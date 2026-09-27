@@ -1,10 +1,8 @@
-import { Button } from "@/components/ui/button"
+import { Accueil } from "@/components/accueil/accueil"
+import { getCatalogueClient } from "@/sanity/catalogue-client"
 
-export default function Home() {
-  return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <h1 className="font-display text-5xl tracking-wide text-primary">Courtisans</h1>
-      <Button>Créer une partie</Button>
-    </main>
-  )
+export const revalidate = 60
+
+export default async function Home() {
+  return <Accueil catalogue={await getCatalogueClient()} />
 }

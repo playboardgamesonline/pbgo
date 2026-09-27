@@ -76,5 +76,9 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+    background-image:
+      radial-gradient(ellipse at top, oklch(0.4 0.07 200 / 60%), transparent 60%),
+      radial-gradient(ellipse at bottom, oklch(0.2 0.04 220 / 80%), transparent 70%);
+    background-attachment: fixed;
   }
 }
