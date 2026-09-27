@@ -9,6 +9,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "deploy:studio": "pnpm --filter studio run deploy",
-    "sanity:images": "pnpm --filter studio run maj-images"
+    "sanity:images": "pnpm --filter studio run maj-images",
+    "sanity:nettoyer-png": "pnpm --filter studio run nettoyer-png"
   }
 }

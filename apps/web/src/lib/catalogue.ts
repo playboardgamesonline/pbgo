@@ -17,19 +17,19 @@ export type RoleInfo = { cle: Role; nom: string; pictoUrl: string | null }
 export const ORDRE_TAPIS: (Famille | "reine")[] = ["papillon", "crapaud", "rossignol", "reine", "lievre", "cerf", "carpe"]
 
 export const FAMILLES_PAR_DEFAUT: Record<Famille, FamilleInfo> = {
-  papillon: { cle: "papillon", nom: "Papillon", pluriel: "Papillons", couleur: "#a3bcc2", pictoUrl: "/pictos/picto-papillon.png" },
-  crapaud: { cle: "crapaud", nom: "Crapaud", pluriel: "Crapauds", couleur: "#8d9431", pictoUrl: "/pictos/picto-crapaud.png" },
-  rossignol: { cle: "rossignol", nom: "Rossignol", pluriel: "Rossignols", couleur: "#d2415e", pictoUrl: "/pictos/picto-rossignol.png" },
-  lievre: { cle: "lievre", nom: "Lièvre", pluriel: "Lièvres", couleur: "#f5b935", pictoUrl: "/pictos/picto-lievre.png" },
-  cerf: { cle: "cerf", nom: "Cerf", pluriel: "Cerfs", couleur: "#0f8a69", pictoUrl: "/pictos/picto-cerf.png" },
-  carpe: { cle: "carpe", nom: "Carpe", pluriel: "Carpes", couleur: "#4a73b5", pictoUrl: "/pictos/picto-carpe.png" },
+  papillon: { cle: "papillon", nom: "Papillon", pluriel: "Papillons", couleur: "#a3bcc2", pictoUrl: "/pictos/picto-papillon.webp" },
+  crapaud: { cle: "crapaud", nom: "Crapaud", pluriel: "Crapauds", couleur: "#8d9431", pictoUrl: "/pictos/picto-crapaud.webp" },
+  rossignol: { cle: "rossignol", nom: "Rossignol", pluriel: "Rossignols", couleur: "#d2415e", pictoUrl: "/pictos/picto-rossignol.webp" },
+  lievre: { cle: "lievre", nom: "Lièvre", pluriel: "Lièvres", couleur: "#f5b935", pictoUrl: "/pictos/picto-lievre.webp" },
+  cerf: { cle: "cerf", nom: "Cerf", pluriel: "Cerfs", couleur: "#0f8a69", pictoUrl: "/pictos/picto-cerf.webp" },
+  carpe: { cle: "carpe", nom: "Carpe", pluriel: "Carpes", couleur: "#4a73b5", pictoUrl: "/pictos/picto-carpe.webp" },
 }
 
 export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
-  noble: { cle: "noble", nom: "Noble", pictoUrl: "/pictos/picto-noble.png" },
-  espion: { cle: "espion", nom: "Espion", pictoUrl: "/pictos/picto-espion.png" },
-  assassin: { cle: "assassin", nom: "Assassin", pictoUrl: "/pictos/picto-assassin.png" },
-  garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictos/picto-garde.png" },
+  noble: { cle: "noble", nom: "Noble", pictoUrl: "/pictos/picto-noble.webp" },
+  espion: { cle: "espion", nom: "Espion", pictoUrl: "/pictos/picto-espion.webp" },
+  assassin: { cle: "assassin", nom: "Assassin", pictoUrl: "/pictos/picto-assassin.webp" },
+  garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictos/picto-garde.webp" },
 }
 
 export type CatalogueClient = {
@@ -55,7 +55,7 @@ export const PHRASES_PAR_DEFAUT = [
 export const cleCarte = (famille: Famille, role: Role | null) => `${role ?? "base"}-${famille}`
 
 export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
-  logoUrl: "/logo.png",
+  logoUrl: "/logo.webp",
   chateaux: CHATEAUX_PAR_DEFAUT,
   familles: FAMILLES_PAR_DEFAUT,
   roles: ROLES_PAR_DEFAUT,

@@ -11,7 +11,8 @@
     "typegen": "sanity schemas extract --force && sanity typegen generate",
     "schema:deploy": "sanity schemas deploy",
     "maj-images": "sanity exec scripts/maj-images.ts --with-user-token",
-    "annuler-import": "sanity exec scripts/annuler-import.ts --with-user-token --"
+    "annuler-import": "sanity exec scripts/annuler-import.ts --with-user-token --",
+    "nettoyer-png": "sanity exec scripts/nettoyer-png.ts --with-user-token --"
   },
   "dependencies": {
     "@sanity/icons": "^5.2.2",
