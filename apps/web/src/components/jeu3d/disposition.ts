@@ -12,8 +12,8 @@ export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
 export const DOMAINE_ECHELLE = 1.1
 const DECALAGE = 0.42
-export const EPAISSEUR = 0.032
-export const EPAISSEUR_PIOCHE = 0.026
+export const EPAISSEUR = 0.02
+export const EPAISSEUR_PIOCHE = 0.016
 
 export const FACE_HAUT = new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
 export const FACE_BAS = new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, 0))

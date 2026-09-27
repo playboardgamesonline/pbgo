@@ -6,10 +6,24 @@ import { button, useControls } from "leva"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Color, Euler, type Mesh, type MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector3 } from "three"
+import {
+  AdditiveBlending,
+  CanvasTexture,
+  Color,
+  Euler,
+  type Group,
+  type Mesh,
+  type MeshBasicMaterial,
+  type PerspectiveCamera,
+  Quaternion,
+  type Texture,
+  TextureLoader,
+  Vector3,
+} from "three"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
 import { Aura } from "./aura"
+import { MOTIFS, type Motif, textureMotif } from "./motifs"
 import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
@@ -144,6 +158,11 @@ function vignetteTexture() {
 
 function Table({ tex }: { tex: Textures }) {
   const vignette = useFrameTexture(vignetteTexture)
+  const { motif, intensite } = useControls("Plateau", {
+    motif: { options: MOTIFS, value: "etoiles" as Motif },
+    intensite: { value: 0.07, min: 0, max: 0.4, step: 0.005 },
+  })
+  const texMotif = useMemo(() => (motif === "aucun" ? null : textureMotif(motif)), [motif])
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.28), [])
   const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.06, 0.28), [])
   return (
@@ -152,6 +171,12 @@ function Table({ tex }: { tex: Textures }) {
         <planeGeometry args={[80, 60]} />
         <meshBasicMaterial map={vignette} toneMapped={false} />
       </mesh>
+      {texMotif && (
+        <mesh rotation-x={-Math.PI / 2} position-y={-0.015} raycast={() => null}>
+          <planeGeometry args={[80, 60]} />
+          <meshBasicMaterial map={texMotif} transparent opacity={intensite} depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
       <mesh geometry={tranche} rotation-x={-Math.PI / 2}>
         <meshBasicMaterial attach="material-0" visible={false} />
         <meshBasicMaterial attach="material-1" color="#0b1d22" toneMapped={false} />
@@ -227,22 +252,80 @@ function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jo
   )
 }
 
+let couronneTexture: Texture | null = null
+const textureCouronne = () => (couronneTexture ??= new TextureLoader().load("/pictos/picto-noble.webp"))
+
+let halo: CanvasTexture | null = null
+function textureHaloDoux() {
+  if (!halo) {
+    const c = document.createElement("canvas")
+    c.width = 256
+    c.height = 128
+    const g = c.getContext("2d")!
+    const grad = g.createRadialGradient(128, 64, 0, 128, 64, 128)
+    grad.addColorStop(0, "rgba(255,255,255,0.9)")
+    grad.addColorStop(0.45, "rgba(255,255,255,0.35)")
+    grad.addColorStop(1, "rgba(255,255,255,0)")
+    g.setTransform(1, 0, 0, 0.5, 0, 32)
+    g.fillStyle = grad
+    g.fillRect(0, -64, 256, 256)
+    halo = new CanvasTexture(c)
+  }
+  return halo
+}
+
 function Badge({
   zone,
   texte,
   style,
+  actif,
+  couleur,
   onClick,
   onSurvol,
 }: {
   zone: ZoneDomaine
   texte: string
   style: StyleTexte
+  actif: boolean
+  couleur: string
   onClick?: () => void
   onSurvol?: (s: boolean) => void
 }) {
+  const [couronne] = useState(textureCouronne)
+  const [lueur] = useState(textureHaloDoux)
+  const aura = useRef<MeshBasicMaterial>(null)
+  const icone = useRef<Group>(null)
+  const largeur = Math.max(2.2, texte.length * 0.52 + 1.4)
+  useFrame(({ clock }, dt) => {
+    const t = clock.elapsedTime
+    if (aura.current) easing.damp(aura.current, "opacity", actif ? 0.55 + Math.sin(t * 2.2) * 0.15 : 0, 0.3, dt)
+    if (icone.current) {
+      easing.damp3(icone.current.scale, actif ? [1, 1, 1] : [0.001, 0.001, 0.001], 0.25, dt)
+      icone.current.position.y = 0.03 + Math.sin(t * 2.2) * 0.02
+    }
+  })
   return (
     <group position={zone.etiquette} rotation-y={zone.lacetEtiquette}>
+      <mesh position={[0, 0.012, -0.5]} rotation-x={-Math.PI / 2} raycast={() => null}>
+        <planeGeometry args={[largeur * 1.5, 2.1]} />
+        <meshBasicMaterial
+          ref={aura}
+          map={lueur}
+          color={couleur}
+          transparent
+          opacity={0}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
       <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.45]} onClick={onClick} onSurvol={onSurvol} />
+      <group ref={icone} position={[0, 0.03, -1.35]} scale={0.001}>
+        <mesh rotation-x={-Math.PI / 2} raycast={() => null}>
+          <planeGeometry args={[0.85, 0.85 * (160 / 145)]} />
+          <meshBasicMaterial map={couronne} color="#f2c14e" transparent depthWrite={false} toneMapped={false} />
+        </mesh>
+      </group>
     </group>
   )
 }
@@ -600,6 +683,8 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             key={j.id}
             zone={zone}
             texte={pseudo(j.id).toUpperCase()}
+            actif={j.id === actif}
+            couleur={couleur(j.id)}
             style={
               survolJoueur === j.id && domaineCible(j.id)
                 ? { couleur: couleur(j.id), lueur: couleur(j.id), espacement: ESPACEMENT }

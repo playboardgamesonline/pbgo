@@ -22,7 +22,7 @@ import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
 const tranches = new Map<string, ExtrudeGeometry>()
-export const EPAISSEUR_RELATIVE = 0.016
+export const EPAISSEUR_RELATIVE = 0.009
 
 function forme(largeur: number, hauteur: number, rayon: number) {
   const x = -largeur / 2
@@ -195,7 +195,7 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
     const distance = g.position.distanceTo(cible.position)
     vol.current = {
       t: -delai,
-      duree: Math.min(2.1, Math.max(1.35, 1.2 + distance * 0.05)),
+      duree: Math.min(1.6, Math.max(1.05, 0.95 + distance * 0.04)),
       p0: g.position.clone(),
       q0: g.quaternion.clone(),
       s0: g.scale.x,
