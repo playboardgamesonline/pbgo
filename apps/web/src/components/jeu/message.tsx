@@ -22,18 +22,18 @@ export function BadgeCarte({ carte, className }: { carte: CarteVisible; classNam
         // eslint-disable-next-line @next/next/no-img-element
         <img src={famille.pictoUrl} alt="" aria-hidden className="pointer-events-none absolute -right-1.5 -bottom-2.5 size-10 opacity-35" />
       )}
-      {carte.role && <PictoRole role={carte.role} className="relative size-[1.15em]" />}
+      {carte.role && <PictoRole role={carte.role} className="relative size-[1.15em] bg-transparent p-0" />}
       <span className="relative">{carte.role ? catalogue.roles[carte.role].nom : "Courtisan"}</span>
     </span>
   )
 }
 
 function Zone({ cible, auteurId }: { cible: Cible; auteurId: string }) {
-  if (cible.zone === "table") return <span>à la table de la Reine.</span>
-  if (cible.joueurId === auteurId) return <span>chez lui.</span>
+  if (cible.zone === "table") return <span>à la table de la Reine</span>
+  if (cible.joueurId === auteurId) return <span>chez lui</span>
   return (
     <span>
-      chez <PseudoJoueur id={cible.joueurId} />.
+      chez <PseudoJoueur id={cible.joueurId} />
     </span>
   )
 }
@@ -45,19 +45,24 @@ export function Message({ evenement, className }: { evenement: EvenementVisible;
     case "carteJouee":
       return (
         <span className={cn(LIGNE, className)}>
-          <PseudoJoueur id={evenement.joueurId} /> joue <BadgeCarte carte={evenement.carte} /> <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
+          <PseudoJoueur id={evenement.joueurId} /> joue <BadgeCarte carte={evenement.carte} />{" "}
+          <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
         </span>
       )
     case "carteEliminee":
       return (
         <span className={cn(LIGNE, className)}>
-          <PseudoJoueur id={evenement.joueurId} /> élimine <BadgeCarte carte={evenement.carte} /> <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
+          <PseudoJoueur id={evenement.joueurId} /> élimine <BadgeCarte carte={evenement.carte} />{" "}
+          <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
         </span>
       )
     case "pioche":
       return (
         <span className={cn(LIGNE, className)}>
-          <PseudoJoueur id={evenement.joueurId} /> <span>pioche {evenement.nombre} carte{evenement.nombre > 1 ? "s" : ""}.</span>
+          <PseudoJoueur id={evenement.joueurId} />{" "}
+          <span>
+            pioche {evenement.nombre} carte{evenement.nombre > 1 ? "s" : ""}
+          </span>
         </span>
       )
     case "finDePartie":
