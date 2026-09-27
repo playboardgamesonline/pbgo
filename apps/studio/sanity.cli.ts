@@ -5,6 +5,9 @@ export default defineCliConfig({
     projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "2lo2f5sv",
     dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
   },
+  deployment: {
+    autoUpdates: true,
+  },
   typegen: {
     enabled: true,
     path: "../web/src/**/*.{ts,tsx}",
