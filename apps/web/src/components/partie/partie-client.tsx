@@ -1,20 +1,16 @@
 "use client"
 
-import { ArrowLeftIcon, Loader2Icon } from "lucide-react"
-import Link from "next/link"
+import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { Logo } from "@/components/logo"
-import { ReglesButton } from "@/components/regles"
+import { BoutonCour, ChampAppellation, ChampCode, Description, EcranBanquet } from "@/components/banquet/ecran-banquet"
 import { Jeu3D } from "@/components/jeu3d/jeu3d"
-import { Button } from "@/components/ui/button"
-import { api } from "@/lib/api"
+import { api, lienPartie } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
 import { useProfil } from "@/lib/profil"
 import { usePartie } from "@/lib/use-partie"
-import { Lobby } from "./lobby"
-import { RejoindreFormulaire } from "./rejoindre"
+import { BoutonLobby, ListeConvives } from "./lobby"
 
 export function PartieClient({ code, catalogue }: { code: string; catalogue: CatalogueClient }) {
   const router = useRouter()
@@ -53,48 +49,59 @@ export function PartieClient({ code, catalogue }: { code: string; catalogue: Cat
     return <Jeu3D partie={partie} catalogue={catalogue} onMaj={appliquer} onQuitter={() => router.push("/")} />
   }
 
-  let contenu: React.ReactNode
-  if (erreur) {
-    contenu = (
-      <div className="space-y-4 text-center">
-        <p className="font-display text-2xl">Partie introuvable</p>
-        <p className="text-muted-foreground">Vérifie le code {code} ou crée une nouvelle partie.</p>
-        <Button asChild>
-          <Link href="/">Retour à l&apos;accueil</Link>
-        </Button>
-      </div>
+  const lien = lienPartie(code)
+  const retour = <BoutonCour onClick={quitter}>Retour à l&apos;accueil</BoutonCour>
+
+  if (erreur)
+    return (
+      <EcranBanquet logoUrl={catalogue.logoUrl} bouton={retour}>
+        <Description>Ce banquet est introuvable. Vérifiez le code {code} ou organisez-en un nouveau.</Description>
+      </EcranBanquet>
     )
-  } else if (!partie || !pret || doitAutoJoin) {
-    contenu = <Loader2Icon className="size-8 animate-spin text-primary" />
-  } else if (partie.moiId === null) {
-    contenu =
-      partie.statut === "lobby" ? (
-        <RejoindreFormulaire code={partie.code} chateaux={catalogue.chateaux} profil={profil} setProfil={setProfil} onRejoindre={async () => void (await rejoindre())} />
-      ) : (
-        <div className="space-y-4 text-center">
-          <p className="font-display text-2xl">Partie déjà commencée</p>
-          <Button asChild>
-            <Link href="/">Retour à l&apos;accueil</Link>
-          </Button>
-        </div>
-      )
-  } else if (partie.statut === "lobby") {
-    contenu = <Lobby partie={partie} chateaux={catalogue.chateaux} onMaj={appliquer} />
-  } else {
-    contenu = <p className="font-display text-2xl">La partie commence…</p>
-  }
+
+  if (!partie || !pret || doitAutoJoin || (partie.statut !== "lobby" && partie.moiId))
+    return (
+      <EcranBanquet logoUrl={catalogue.logoUrl} bas={<ChampCode value={code} />}>
+        <Loader2Icon className="mt-[6vh] size-8 animate-spin text-primary" />
+      </EcranBanquet>
+    )
+
+  if (partie.moiId === null && partie.statut !== "lobby")
+    return (
+      <EcranBanquet logoUrl={catalogue.logoUrl} bouton={retour}>
+        <Description>Ce banquet a déjà commencé.</Description>
+      </EcranBanquet>
+    )
+
+  if (partie.moiId === null)
+    return (
+      <EcranBanquet
+        logoUrl={catalogue.logoUrl}
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (!valide) {
+            toast.error("Choisissez d'abord votre appellation.")
+            return
+          }
+          setAutoJoin("encours")
+          if (!(await rejoindre())) setAutoJoin("echec")
+        }}
+        bouton={<BoutonCour occupe={autoJoin === "encours"}>Rejoindre le banquet</BoutonCour>}
+        bas={<ChampCode value={code} copiable={lien} />}
+      >
+        <ListeConvives partie={partie} />
+        <ChampAppellation value={profil.pseudo} onChange={(pseudo) => setProfil({ pseudo })} />
+      </EcranBanquet>
+    )
 
   return (
-    <main className="relative flex flex-1 flex-col items-center px-4 pt-4 pb-12">
-      <header className="flex w-full items-center justify-between gap-4">
-        <Button variant="ghost" onClick={quitter}>
-          <ArrowLeftIcon />
-          Quitter
-        </Button>
-        <ReglesButton />
-      </header>
-      <Logo src={catalogue.logoUrl} className="mt-2 max-w-64" />
-      <div className="flex w-full flex-1 flex-col items-center justify-center py-8">{contenu}</div>
-    </main>
+    <EcranBanquet
+      logoUrl={catalogue.logoUrl}
+      bouton={<BoutonLobby partie={partie} onMaj={appliquer} />}
+      bas={<ChampCode value={code} copiable={lien} />}
+    >
+      <Description>Partagez le code ou le lien du banquet à vos convives.</Description>
+      <ListeConvives partie={partie} />
+    </EcranBanquet>
   )
 }
