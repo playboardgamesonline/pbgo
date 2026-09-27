@@ -178,7 +178,7 @@ export function Jeu3D({
                   size="lg"
                   disabled={envoi}
                   onClick={() => interaction.eliminer(null)}
-                  className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12]/90 px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
+                  className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12] px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
                 >
                   Ne pas assassiner
                 </Button>

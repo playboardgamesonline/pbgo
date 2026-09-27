@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-export const BOUTON_ICONE = "size-11 rounded-full border border-foreground/70 bg-transparent text-foreground hover:bg-foreground/10 hover:text-foreground"
+export const BOUTON_ICONE = "size-11 rounded-full border border-foreground/70 bg-transparent text-foreground hover:border-foreground hover:bg-foreground hover:text-[#0b2231]"
 
 function Section({ titre, children }: { titre: string; children: React.ReactNode }) {
   return (

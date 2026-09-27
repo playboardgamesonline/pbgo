@@ -123,7 +123,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
           type="button"
           onClick={onBasculer}
           className={cn(
-            "pointer-events-auto cursor-pointer rounded-full bg-[#0b2231]/85 px-5 py-2 font-display text-base tracking-wide text-foreground/85 transition-transform hover:scale-105 hover:text-foreground",
+            "pointer-events-auto cursor-pointer rounded-full bg-[#0b2231] px-5 py-2 font-display text-base tracking-wide text-foreground/85 transition-transform hover:scale-105 hover:text-foreground",
             !ouvert && "fixed bottom-6",
           )}
         >
