@@ -466,7 +466,7 @@ function Monde({
     const n = main.length
     const inclinaison = -0.1
     const pivot = new Vector3(-w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2, -h + hauteur / 4.5, -D_MAIN)
-    const bloc = new Quaternion().setFromEuler(EULER_TMP.set(-(pointer.y + 0.6) * 0.18, (pointer.x + 0.7) * 0.22, inclinaison))
+    const bloc = new Quaternion().setFromEuler(EULER_TMP.set(-0.11, 0.15, inclinaison))
     main.forEach((c, i) => {
       const t = i - (n - 1) / 2
       const choisie = c.id === selectionId
