@@ -10,7 +10,7 @@ export const CARTE_L = PAS * 0.92
 export const CARTE_H = (CARTE_L * 890) / 472
 export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
-export const DOMAINE_ECHELLE = 0.75
+export const DOMAINE_ECHELLE = 0.9
 const DECALAGE = 0.42
 const EPAISSEUR = 0.014
 
@@ -46,8 +46,8 @@ export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n,
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
 
-const H = -11.2
-const COTE = 12.3
+const H = -12.4
+const COTE = 13.4
 const SIEGES: Record<number, [number, number, Orientation, number][]> = {
   1: [[0, H, "haut", 11]],
   2: [
@@ -61,13 +61,13 @@ const SIEGES: Record<number, [number, number, Orientation, number][]> = {
   ],
   4: [
     [-COTE, -0.8, "gauche", 9.5],
-    [-5.4, H, "haut", 8],
-    [5.4, H, "haut", 8],
+    [-6, H, "haut", 9],
+    [6, H, "haut", 9],
     [COTE, -0.8, "droite", 9.5],
   ],
 }
 
-export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 6.5), orientation: "bas", largeurMax: 9 }
+export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 7.4), orientation: "bas", largeurMax: 11 }
 
 export function sieges(vue: VueJoueur): Map<string, Siege> {
   const moiId = vue.moi?.id
@@ -117,7 +117,7 @@ export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses:
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
   })
 
-  const devant = DH / 2 + 0.55
+  const devant = DH / 2 + 0.9
   const etiquette = lateral
     ? new Vector3(centre.x + vers * devant, 0.07, centre.z)
     : new Vector3(centre.x, 0.07, centre.z + (orientation === "haut" ? devant : -devant))

@@ -8,17 +8,19 @@ import { CanvasTexture, SRGBColorSpace } from "three"
 const POLICE = '"Alegreya Variable", "Alegreya", Georgia, serif'
 const TAILLE = 140
 
-export type StyleTexte = { couleur: string; contour?: string; lueur?: string }
+export type StyleTexte = { couleur: string; contour?: string; lueur?: string; espacement?: string }
 
 function dessiner(texte: string, style: StyleTexte) {
   const mesure = document.createElement("canvas").getContext("2d")!
-  mesure.font = `800 ${TAILLE}px ${POLICE}`
+  mesure.font = `900 ${TAILLE}px ${POLICE}`
+  mesure.letterSpacing = style.espacement ?? "0px"
   const marge = 60
   const canvas = document.createElement("canvas")
   canvas.width = Math.ceil(mesure.measureText(texte).width + marge * 2)
   canvas.height = Math.ceil(TAILLE * 1.35 + marge)
   const ctx = canvas.getContext("2d")!
   ctx.font = mesure.font
+  ctx.letterSpacing = mesure.letterSpacing
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
   ctx.lineJoin = "round"
@@ -46,7 +48,7 @@ function usePolicePrete() {
   const [prete, setPrete] = useState(false)
   useEffect(() => {
     let actif = true
-    Promise.resolve(document.fonts?.load(`800 ${TAILLE}px ${POLICE}`))
+    Promise.resolve(document.fonts?.load(`900 ${TAILLE}px ${POLICE}`))
       .catch(() => null)
       .then(() => actif && setPrete(true))
     return () => {
@@ -74,11 +76,11 @@ export function TexteTable({
   onSurvol?: (survol: boolean) => void
 }) {
   const prete = usePolicePrete()
-  const { couleur, contour, lueur } = style
+  const { couleur, contour, lueur, espacement } = style
   const { texture, ratio } = useMemo(
-    () => dessiner(texte, { couleur, contour, lueur }),
+    () => dessiner(texte, { couleur, contour, lueur, espacement }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [texte, couleur, contour, lueur, prete],
+    [texte, couleur, contour, lueur, espacement, prete],
   )
   useEffect(() => () => texture.dispose(), [texture])
   const [survol, setSurvol] = useState(false)

@@ -70,9 +70,10 @@ type Transitoire = {
 function CameraRig() {
   const { camera, size } = useThree()
   useLayoutEffect(() => {
-    const k = Math.max(1, 1.78 / (size.width / size.height))
-    camera.position.set(0, 29.5 * k, 7 * k)
-    camera.lookAt(0, 0, -1.3)
+    const k = Math.max(1, 1.6 / (size.width / size.height))
+    camera.up.set(0, 0, -1)
+    camera.position.set(0, 37 * k, -1)
+    camera.lookAt(0, 0, -1)
     camera.updateProjectionMatrix()
   }, [camera, size])
   return null
@@ -214,6 +215,7 @@ function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFi
 
 const D_MAIN = 6
 const ENCRE = { couleur: "rgba(0,0,0,0.5)" }
+const ESPACEMENT = "18px"
 const QUAT_TMP = new Quaternion()
 const EULER_TMP = new Euler()
 
@@ -295,27 +297,21 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
     const cam = camera as unknown as { fov: number; aspect: number }
     const h = D_MAIN * Math.tan((cam.fov * Math.PI) / 360)
     const w = h * cam.aspect
-    const marge = h * 0.06
-    const hauteur = h * 0.52
+    const hauteur = h * 0.6
     const echelle = hauteur / CARTE_H
-    const largeur = CARTE_L * echelle
-    const pas = largeur * 0.86
     const n = main.length
-    const centreMain = -w + marge + largeur / 2 + ((n - 1) * pas) / 2
     main.forEach((c, i) => {
       const t = i - (n - 1) / 2
-      const leve = c.id === selectionId ? 0.34 : c.id === survol ? 0.14 : 0
-      const local = new Vector3(
-        centreMain + t * pas,
-        -h + hauteur / 5 - Math.abs(t) * 0.07 + leve,
-        -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
-      )
+      const angle = -Math.PI / 4 - t * 0.22
+      const leve = c.id === selectionId ? hauteur * 0.22 : c.id === survol ? hauteur * 0.08 : 0
+      const r = hauteur * 0.62 + leve
+      const local = new Vector3(-w - Math.sin(angle) * r, -h + Math.cos(angle) * r, -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01)
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
-      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.12)))
+      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, angle)))
       p.echelle = echelle
     })
-    const mL = Math.min(w * 0.24, h * 0.5)
+    const mL = Math.min(w * 0.3, h * 0.66)
     const mH = (mL * MISSION_H) / MISSION_L
     missions.forEach((m, i) => {
       const p = poseCamera(`mission:${m.id}`)
@@ -329,10 +325,11 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       } else {
         const devant = survol === `mission:${m.id}`
         const rang = missions.length - 1 - i
-        const x = w - marge * 1.6 - mL / 2 - rang * mL * 0.2
-        const y = -h + marge * 1.6 + mH / 2 + rang * mH * 0.5 + (devant ? mH * 0.06 : 0)
+        const sortie = devant ? 0.22 : 0
+        const x = w - mL * (0.3 + sortie) - rang * mL * 0.42
+        const y = -h + mH * (0.22 + sortie) + rang * mH * 0.62
         p.position.copy(camera.localToWorld(new Vector3(x, y, -D_MAIN + 0.05 + (devant ? 0.3 : 0) - rang * 0.02)))
-        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, rang ? 0.14 : -0.08)))
+        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, rang ? 0.32 : 0.12)))
         p.echelle = mL / MISSION_L
       }
     })
@@ -451,13 +448,13 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         return (
           <TexteTable
             key={j.id}
-            texte={pseudo(j.id)}
+            texte={pseudo(j.id).toUpperCase()}
             style={
               survolJoueur === j.id && domaineCible(j.id)
-                ? { couleur: couleur(j.id), lueur: couleur(j.id) }
+                ? { couleur: couleur(j.id), lueur: couleur(j.id), espacement: ESPACEMENT }
                 : j.id === actif
-                  ? { couleur: couleur(j.id) }
-                  : ENCRE
+                  ? { couleur: couleur(j.id), espacement: ESPACEMENT }
+                  : { ...ENCRE, espacement: ESPACEMENT }
             }
             hauteur={0.8}
             position={[zone.etiquette.x, zone.etiquette.y, zone.etiquette.z]}
