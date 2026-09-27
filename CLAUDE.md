@@ -40,7 +40,7 @@ Exemples de mots métier gardés en français : `courtisan`, `famille`, `role`, 
 
 ## Principes
 - Le serveur est la seule source de vérité ; chaque joueur ne reçoit qu'une vue filtrée (mains, espions, missions cachés).
-- Le rendu du plateau passe par des « slots » de position pour pouvoir basculer en 3D plus tard.
+- Le plateau est rendu en 3D (react-three-fiber) dans `apps/web/src/components/jeu3d` : `disposition.ts` calcule les poses (tapis, piles, domaines, pioche, missions), `scene.tsx` anime chaque carte vers sa pose (même clé = même objet, donc vrai trajet main → tapis), l'interface (bandeau, journal, fin) reste en DOM par-dessus
 - Les règles du jeu vivent uniquement dans `packages/engine`.
 
 ## Commits
