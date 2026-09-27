@@ -13,7 +13,7 @@ void main() {
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`
 
-export const REGLAGES_AURA = { intensite: 1, bord: 1, halo: 1, etoiles: 1, densite: 2.2, taille: 1, vitesse: 1 }
+export const REGLAGES_AURA = { intensite: 1, bord: 1, halo: 1, etoiles: 0.5, densite: 2.2, taille: 1, vitesse: 0.4 }
 
 const fragment = /* glsl */ `
 uniform float uTemps;
@@ -66,8 +66,8 @@ void main() {
   float presence = step(0.45, h) * smoothstep(0.9, -0.2, abs(d + 0.1));
   float eclat = etoile(q * 2.4) * scintille * presence * uEtoiles;
 
-  vec3 couleur = mix(uCouleur, uClair, clamp(bord * onde + course * bord + eclat, 0.0, 1.0));
-  float a = (bord * (0.5 + 0.35 * onde + course * 0.5) + halo * (0.5 + 0.3 * onde) + eclat * 0.7) * uForce;
+  vec3 couleur = mix(uCouleur, uClair, clamp(bord * (0.6 + 0.15 * onde) + course * bord * 0.25 + eclat, 0.0, 1.0));
+  float a = (bord * (0.72 + 0.1 * onde + course * 0.12) + halo * (0.65 + 0.08 * onde) + eclat * 0.7) * uForce;
   vec2 bordUv = min(vUv, 1.0 - vUv);
   a *= smoothstep(0.0, 0.18, bordUv.x) * smoothstep(0.0, 0.18, bordUv.y);
   gl_FragColor = vec4(couleur, a);

@@ -92,7 +92,7 @@ type Transitoire = {
   cible: Pose
 }
 
-export const CAMERA_DEFAUT = { inclinaison: 32, lacet: 0, distance: 37.6, fov: 26.5, cible: { x: 0, y: 0.6 } }
+export const CAMERA_DEFAUT = { inclinaison: 40, lacet: 0, distance: 37.6, fov: 26.5, cible: { x: 0, y: 0.6 } }
 
 const RAD = Math.PI / 180
 const AXE_Y = new Vector3(0, 1, 0)
@@ -167,7 +167,7 @@ function vignetteTexture() {
 function Table({ tex }: { tex: Textures }) {
   const vignette = useFrameTexture(vignetteTexture)
   const texMotif = useMemo(() => textureMotif("losanges"), [])
-  const { opacite } = useControls("Plateau", { opacite: { value: 0.22, min: 0, max: 1, step: 0.01, label: "opacité motif" } })
+  const { opacite } = useControls("Plateau", { opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "opacité motif" } })
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.28), [])
   const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.06, 0.28), [])
   return (
@@ -320,8 +320,8 @@ function Cible({ colonne, niveau, onClick }: { colonne: Colonne_; niveau: "haut"
       sens={haut ? -1 : 1}
       largeur={PAS * 0.96}
       longueur={CARTE_H * 2.1}
-      couleur={haut ? "#ffc247" : "#1a0b26"}
-      bord={haut ? "#fff5c7" : "#9a6ac6"}
+      couleur={haut ? "#ffe8a3" : "#000000"}
+      bord={haut ? "#ffffff" : "#000000"}
       additif={haut}
       onClick={onClick}
     />
@@ -465,21 +465,20 @@ function Monde({
     const pas = largeur * 0.9
     const n = main.length
     const inclinaison = -0.1
-    const centreMain = -w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2
+    const pivot = new Vector3(-w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2, -h + hauteur / 4.5, -D_MAIN)
+    const bloc = new Quaternion().setFromEuler(EULER_TMP.set(-(pointer.y + 0.6) * 0.18, (pointer.x + 0.7) * 0.22, inclinaison))
     main.forEach((c, i) => {
       const t = i - (n - 1) / 2
-      const leve = c.id === selectionId ? hauteur * 0.24 : c.id === survol ? hauteur * 0.08 : 0
-      const local = new Vector3(
-        centreMain + t * pas,
-        -h + hauteur / 4.5 + t * pas * Math.sin(inclinaison) - Math.abs(t) * hauteur * 0.045 + leve,
-        -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
-      )
+      const choisie = c.id === selectionId
+      const leve = choisie ? hauteur * 0.32 : c.id === survol ? hauteur * 0.08 : 0
+      const local = new Vector3(t * pas, -Math.abs(t) * hauteur * 0.045 + leve, (choisie ? 0.15 : 0) + i * 0.01).applyQuaternion(bloc).add(pivot)
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
       p.quaternion
         .copy(camera.quaternion)
-        .multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-(pointer.y + 0.6) * 0.18, (pointer.x + 0.7) * 0.22, inclinaison - t * 0.09)))
-      p.echelle = echelle
+        .multiply(bloc)
+        .multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.09)))
+      p.echelle = echelle * (choisie ? 1.12 : 1)
     })
     const mL = Math.min(w * 0.36, h * 0.8)
     const mH = (mL * MISSION_H) / MISSION_L
@@ -577,7 +576,6 @@ function Monde({
             largeur={CARTE_L}
             hauteur={CARTE_H}
             vitesse={0.12}
-            lueur={carte.id === selectionId ? "selection" : null}
             reflet={carte.id === survol || carte.id === selectionId}
             onSurvol={(s) => setSurvol(s ? carte.id : null)}
             onClick={

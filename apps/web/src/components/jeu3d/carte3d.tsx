@@ -264,7 +264,7 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
 
   useFrame(({ pointer, clock }, dt) => {
     if (haloRef.current)
-      haloRef.current.opacity = lueur === "rouge" ? 0.75 + Math.sin(clock.elapsedTime * 2.6) * 0.15 : 0.35 + Math.sin(clock.elapsedTime * 2.6) * 0.08
+      haloRef.current.opacity = lueur === "rouge" ? 0.75 + Math.sin(clock.elapsedTime * 1.6) * 0.06 : 0.35 + Math.sin(clock.elapsedTime * 1.6) * 0.03
     const cadre = cadreRef.current
     if (cadre) {
       const t = clock.elapsedTime

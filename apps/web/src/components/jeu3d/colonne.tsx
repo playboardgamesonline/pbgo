@@ -20,12 +20,11 @@ uniform vec3 uCouleur;
 uniform vec3 uBord;
 varying vec2 vUv;
 void main() {
-  float fondu = pow(1.0 - vUv.y, 1.4);
+  float fondu = pow(1.0 - vUv.y, 1.6);
   float x = abs(vUv.x - 0.5) * 2.0;
-  float bord = smoothstep(0.86, 0.97, x) * (1.0 - smoothstep(0.97, 1.0, x));
-  float coeur = 1.0 - smoothstep(0.0, 1.0, x);
-  float onde = 0.85 + 0.15 * sin(vUv.y * 9.0 - uTemps * 2.4);
-  float a = (coeur * 0.45 + bord * 0.9) * fondu * onde * uForce;
+  float cotes = 1.0 - smoothstep(0.9, 1.0, x);
+  float bord = smoothstep(0.8, 0.95, x) * cotes;
+  float a = (0.55 + bord * 0.25) * cotes * fondu * uForce;
   vec3 c = mix(uCouleur, uBord, bord);
   gl_FragColor = vec4(c, a);
 }`
@@ -61,7 +60,7 @@ export function Colonne({
     m.uniforms.uTemps.value = clock.elapsedTime
     ;(m.uniforms.uCouleur.value as Color).set(couleur)
     ;(m.uniforms.uBord.value as Color).set(bord)
-    easing.damp(m.uniforms.uForce, "value", survol ? 1.35 : 0.85, 0.15, dt)
+    easing.damp(m.uniforms.uForce, "value", survol ? 1.2 : 0.85, 0.15, dt)
   })
   return (
     <mesh
