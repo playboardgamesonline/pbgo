@@ -23,7 +23,7 @@ export function Bandeau() {
   const tour = vue.phase === "jeu" && !!vue.joueurActifId && (!dernier || (dernier.type === "pioche" && piocheVue === n))
 
   return (
-    <div className="max-w-lg text-left text-base text-foreground md:text-lg [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
+    <div className="max-w-lg text-left text-lg text-foreground md:text-2xl [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
       <AnimatePresence mode="wait">
         <motion.div
           key={tour ? `tour-${vue.joueurActifId}` : `e-${n}`}

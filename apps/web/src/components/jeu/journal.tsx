@@ -29,8 +29,8 @@ export function Journal() {
         className="group fixed top-1/2 right-0 z-30 flex -translate-y-1/2 touch-none items-center gap-1 py-6 pr-2 pl-1 text-foreground transition hover:text-foreground/70"
         aria-label="Ouvrir le journal"
       >
-        <ChevronLeftIcon className="size-4 transition group-hover:-translate-x-1" />
-        <span className="font-display text-sm tracking-[0.2em] [writing-mode:vertical-rl]">Journal</span>
+        <ChevronLeftIcon className="size-6 transition group-hover:-translate-x-1" />
+        <span className="font-display text-lg tracking-[0.2em] [writing-mode:vertical-rl]">Journal</span>
       </button>
       <Drawer direction="right" open={ouvert} onOpenChange={setOuvert}>
         <DrawerContent className="bg-popover text-popover-foreground">

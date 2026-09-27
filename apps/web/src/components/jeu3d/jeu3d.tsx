@@ -138,7 +138,7 @@ export function Jeu3D({
             <div className="flex flex-col items-start gap-3">
               <button
                 type="button"
-                className="pointer-events-auto mt-1 w-24 transition-transform hover:scale-105 sm:w-32"
+                className="pointer-events-auto mt-1 w-32 transition-transform hover:scale-105 sm:w-44"
                 title="Quitter la partie"
                 onClick={onQuitter}
               >
