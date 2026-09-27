@@ -75,7 +75,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
           initial={{ opacity: 0, y: -20, rotate: -2 }}
           animate={{ opacity: 1, y: 0, rotate: 0 }}
           transition={{ type: "spring", stiffness: 120, damping: 14 }}
-          className="mt-[3vh] w-[min(18rem,60vw,28vh)] shrink-0"
+          className="mt-[6vh] w-[min(18rem,60vw,26vh)] shrink-0"
         >
           <Logo src={catalogue.logoUrl} />
         </motion.div>
@@ -84,17 +84,17 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="mt-[1.5vh] max-w-xl shrink-0 px-4 text-center text-lg leading-snug text-balance text-foreground/85 [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
+          className="mt-[2.5vh] max-w-2xl shrink-0 px-4 text-center text-lg leading-snug text-balance text-foreground/85 [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
         >
-          Au banquet de la Reine, chaque courtisan compte. Placez vos alliés dans la lumière, précipitez vos rivaux dans la disgrâce et accomplissez
-          vos missions secrètes pour devenir le favori de la cour.
+          Ce soir a lieu le banquet de la reine. Un évènement majeur où les familles du royaume veulent se montrer à leur avantage. Les manœuvres vont
+          bon train et tous les coups sont permis pour placer son favori sur le devant de la scène.
         </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mt-[2.5vh] w-full max-w-md shrink-0 space-y-2 px-4"
+          className="mt-[4.5vh] w-full max-w-md shrink-0 space-y-2 px-4"
         >
           <Label htmlFor="pseudo" className="justify-center font-display text-base tracking-wide text-foreground/90">
             Votre appellation
@@ -119,7 +119,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, type: "spring", stiffness: 90, damping: 16 }}
-            className="pointer-events-none absolute bottom-[calc(var(--table)*0.35)] left-1/2 h-[min(calc(100%-var(--table)*0.35),44vh)] w-auto -translate-x-1/2 object-contain object-bottom drop-shadow-[0_10px_24px_rgb(0_0_0/50%)] select-none"
+            className="pointer-events-none absolute bottom-[calc(var(--table)*0.18)] left-1/2 h-[min(calc(100%-var(--table)*0.18),34vh)] w-auto -translate-x-1/2 object-contain object-bottom drop-shadow-[0_10px_24px_rgb(0_0_0/50%)] select-none"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -129,7 +129,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
             draggable={false}
             className="pointer-events-none absolute -bottom-2 left-[-3%] h-auto w-[106%] max-w-none select-none"
           />
-          <div className="absolute inset-x-0 bottom-[calc(var(--table)*0.62-2rem)] flex flex-col items-center gap-3 px-4">
+          <div className="absolute inset-x-0 bottom-[calc(var(--table)*0.1)] flex flex-col items-center gap-3 px-4">
             <Button
               type="submit"
               size="lg"
