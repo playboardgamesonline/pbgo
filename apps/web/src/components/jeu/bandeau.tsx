@@ -6,7 +6,7 @@ import { Message } from "./message"
 
 const LIBELLES_ZONES = { table: "la table de la Reine", domaine: "ton domaine", domaineAdverse: "un domaine adverse" } as const
 
-export function Bandeau() {
+export function Bandeau({ aide }: { aide?: string }) {
   const { vue, pseudo } = useJeu()
   const index = vue.journal.findLastIndex((e) => e.type !== "pioche")
   const dernier = index >= 0 ? vue.journal[index] : null
@@ -29,7 +29,7 @@ export function Bandeau() {
       {vue.phase === "jeu" && (
         <p className={monTour ? "font-display text-sm tracking-wide text-primary" : "text-sm text-muted-foreground"}>
           {monTour
-            ? `À toi de jouer : ${vue.zonesDisponibles.map((z) => LIBELLES_ZONES[z]).join(" · ")}`
+            ? aide || `À toi de jouer : ${vue.zonesDisponibles.map((z) => LIBELLES_ZONES[z]).join(" · ")}`
             : `Au tour de ${vue.joueurActifId ? pseudo(vue.joueurActifId) : "…"}`}
         </p>
       )}
