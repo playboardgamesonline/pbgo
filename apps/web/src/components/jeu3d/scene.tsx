@@ -4,10 +4,11 @@ import type { CarteVisible, Mission, VueJoueur } from "@courtisans/engine"
 import { useCursor } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
+import { aGlisse, deplacerCamera, recentrerCamera, setGlisse, vueCamera, zoomerCamera } from "./camera"
 import { Carte3D, geometrieCarte } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
@@ -56,9 +57,9 @@ function disposer(vue: VueJoueur, places: Map<string, Siege>, deplie: string | n
 }
 
 const poseSiege = (zone: ZoneDomaine): Pose => ({
-  position: new Vector3(zone.centre.x, 1.6, zone.centre.z),
-  quaternion: FACE_BAS.clone(),
-  echelle: DOMAINE_ECHELLE,
+  position: new Vector3(zone.etiquette.x, 3.5, zone.etiquette.z),
+  quaternion: new Quaternion().setFromEuler(new Euler(0, zone.lacetEtiquette, 0)).multiply(FACE_BAS),
+  echelle: DOMAINE_ECHELLE * 0.7,
 })
 
 type Transitoire = {
@@ -68,15 +69,72 @@ type Transitoire = {
   cible: Pose
 }
 
+const CIBLE_CAMERA = new Vector3(0, 0, -0.62)
+
 function CameraRig() {
-  const { camera, size } = useThree()
-  useLayoutEffect(() => {
+  const { camera, size, gl } = useThree()
+  const courant = useRef({ lacet: 0, inclinaison: 0, zoom: 1 })
+
+  useEffect(() => {
+    const el = gl.domElement
+    let depart: { x: number; y: number } | null = null
+    let dernier = { x: 0, y: 0 }
+    const bas = (e: PointerEvent) => {
+      setGlisse(false)
+      depart = { x: e.clientX, y: e.clientY }
+      dernier = depart
+    }
+    const bouge = (e: PointerEvent) => {
+      if (!depart || e.buttons === 0) return
+      if (!aGlisse() && Math.hypot(e.clientX - depart.x, e.clientY - depart.y) < 6) return
+      setGlisse(true)
+      deplacerCamera(-(e.clientX - dernier.x) * 0.004, (e.clientY - dernier.y) * 0.004)
+      dernier = { x: e.clientX, y: e.clientY }
+    }
+    const haut = () => {
+      depart = null
+    }
+    const molette = (e: WheelEvent) => {
+      e.preventDefault()
+      zoomerCamera(Math.exp(e.deltaY * 0.0012))
+    }
+    const double = () => {
+      if (!aGlisse()) recentrerCamera()
+    }
+    const menu = (e: Event) => e.preventDefault()
+    el.addEventListener("pointerdown", bas)
+    window.addEventListener("pointermove", bouge)
+    window.addEventListener("pointerup", haut)
+    el.addEventListener("wheel", molette, { passive: false })
+    el.addEventListener("dblclick", double)
+    el.addEventListener("contextmenu", menu)
+    return () => {
+      el.removeEventListener("pointerdown", bas)
+      window.removeEventListener("pointermove", bouge)
+      window.removeEventListener("pointerup", haut)
+      el.removeEventListener("wheel", molette)
+      el.removeEventListener("dblclick", double)
+      el.removeEventListener("contextmenu", menu)
+    }
+  }, [gl])
+
+  useFrame(({ pointer }, dt) => {
+    const c = courant.current
+    easing.damp(c, "lacet", vueCamera.lacet, 0.22, dt)
+    easing.damp(c, "inclinaison", vueCamera.inclinaison, 0.22, dt)
+    easing.damp(c, "zoom", vueCamera.zoom, 0.18, dt)
     const k = Math.max(1, 1.6 / (size.width / size.height))
-    camera.up.set(0, 0, -1)
-    camera.position.set(0, 29.2 * k, -0.62)
-    camera.lookAt(0, 0, -0.62)
-    camera.updateProjectionMatrix()
-  }, [camera, size])
+    const lacet = c.lacet + pointer.x * 0.035
+    const inclinaison = c.inclinaison + 0.035 + pointer.y * 0.025
+    const r = 29.2 * k * c.zoom
+    camera.position.set(
+      CIBLE_CAMERA.x + r * Math.sin(inclinaison) * Math.sin(lacet),
+      r * Math.cos(inclinaison),
+      CIBLE_CAMERA.z + r * Math.sin(inclinaison) * Math.cos(lacet),
+    )
+    camera.up.set(-Math.sin(lacet), 0, -Math.cos(lacet))
+    camera.lookAt(CIBLE_CAMERA)
+  })
   return null
 }
 
@@ -184,7 +242,7 @@ function ZoneCliquable({ zone, onClick, onSurvol }: { zone: ZoneDomaine; onClick
       rotation={[-Math.PI / 2, 0, zone.lacet]}
       onClick={(e) => {
         e.stopPropagation()
-        onClick()
+        if (!aGlisse()) onClick()
       }}
       onPointerOver={(e) => {
         e.stopPropagation()
@@ -218,7 +276,7 @@ function Cible({ largeur, hauteur, pose, onClick }: { largeur: number; hauteur: 
         position-z={0.02}
         onClick={(e) => {
           e.stopPropagation()
-          onClick()
+          if (!aGlisse()) onClick()
         }}
         onPointerOver={(e) => {
           e.stopPropagation()
@@ -278,6 +336,8 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   const [departs, setDeparts] = useState<Map<string, Pose>>(new Map())
   const [transitoires, setTransitoires] = useState<Transitoire[]>([])
 
+  const [posesCamera] = useState(() => new Map<string, Pose>())
+
   if (precedente !== vue) {
     const nouveaux = new Map<string, Pose>()
     const ajouts: Transitoire[] = []
@@ -287,6 +347,10 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         if (e.type === "carteJouee" && e.joueurId !== moiId) {
           const zone = zones.get(e.joueurId)
           if (zone) nouveaux.set(e.carte.id, poseSiege(zone))
+        }
+        if (e.type === "carteJouee" && e.joueurId === moiId) {
+          const p = posesCamera.get(e.carte.id)
+          if (p) nouveaux.set(e.carte.id, { position: p.position.clone(), quaternion: p.quaternion.clone(), echelle: p.echelle })
         }
         if (e.type === "carteEliminee") {
           const p = avant.get(e.carte.id)
@@ -327,7 +391,6 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   const { camera } = useThree()
   const [survol, setSurvol] = useState<string | null>(null)
   const [survolJoueur, setSurvolJoueur] = useState<string | null>(null)
-  const [posesCamera] = useState(() => new Map<string, Pose>())
   const poseCamera = (id: string) => {
     let p = posesCamera.get(id)
     if (!p) {
@@ -553,7 +616,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
 
 export default function Scene3D(props: { intro: boolean; missionFocus: string | null; onMission: (id: string) => void; onVide: () => void }) {
   return (
-    <Canvas dpr={[1, 2]} camera={{ fov: 38, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={props.onVide}>
+    <Canvas dpr={[1, 2]} camera={{ fov: 38, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={() => !aGlisse() && props.onVide()}>
       <Suspense fallback={null}>
         <Monde intro={props.intro} missionFocus={props.missionFocus} onMission={props.onMission} />
       </Suspense>

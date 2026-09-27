@@ -5,6 +5,7 @@ import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
 import { AdditiveBlending, CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, Shape, ShapeGeometry, type Texture, Vector3 } from "three"
+import { aGlisse } from "./camera"
 import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
@@ -146,7 +147,7 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   return (
     <group
       ref={ref}
-      onClick={onClick}
+      onClick={onClick && ((e) => (aGlisse() ? e.stopPropagation() : onClick(e)))}
       onPointerOver={(e) => {
         e.stopPropagation()
         setSurvol(true)
