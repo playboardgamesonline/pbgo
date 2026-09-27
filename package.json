@@ -8,6 +8,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "deploy:studio": "pnpm --filter studio run deploy"
+    "deploy:studio": "pnpm --filter studio run deploy",
+    "sanity:images": "pnpm --filter studio run maj-images"
   }
 }
