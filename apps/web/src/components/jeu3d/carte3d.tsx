@@ -4,11 +4,50 @@ import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
-import { AdditiveBlending, CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, Shape, ShapeGeometry, type Texture, Vector3 } from "three"
-import { aGlisse } from "./camera"
+import {
+  AdditiveBlending,
+  CanvasTexture,
+  ExtrudeGeometry,
+  type Group,
+  type Mesh,
+  type MeshBasicMaterial,
+  Quaternion,
+  Shape,
+  ShapeGeometry,
+  type Texture,
+  Vector3,
+} from "three"
 import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
+const tranches = new Map<string, ExtrudeGeometry>()
+export const EPAISSEUR_RELATIVE = 0.024
+
+function forme(largeur: number, hauteur: number, rayon: number) {
+  const x = -largeur / 2
+  const y = -hauteur / 2
+  const s = new Shape()
+  s.moveTo(x + rayon, y)
+  s.lineTo(x + largeur - rayon, y)
+  s.quadraticCurveTo(x + largeur, y, x + largeur, y + rayon)
+  s.lineTo(x + largeur, y + hauteur - rayon)
+  s.quadraticCurveTo(x + largeur, y + hauteur, x + largeur - rayon, y + hauteur)
+  s.lineTo(x + rayon, y + hauteur)
+  s.quadraticCurveTo(x, y + hauteur, x, y + hauteur - rayon)
+  s.lineTo(x, y + rayon)
+  s.quadraticCurveTo(x, y, x + rayon, y)
+  return s
+}
+
+function geometrieTranche(largeur: number, hauteur: number, epaisseur: number) {
+  const cle = `${largeur.toFixed(3)}:${hauteur.toFixed(3)}:${epaisseur.toFixed(4)}`
+  let geo = tranches.get(cle)
+  if (!geo) {
+    geo = new ExtrudeGeometry(forme(largeur, hauteur, Math.min(largeur, hauteur) * 0.06), { depth: epaisseur, bevelEnabled: false, curveSegments: 6 })
+    tranches.set(cle, geo)
+  }
+  return geo
+}
 
 export function geometrieCarte(largeur: number, hauteur: number, rayon = Math.min(largeur, hauteur) * 0.06) {
   const cle = `${largeur.toFixed(3)}:${hauteur.toFixed(3)}:${rayon.toFixed(3)}`
@@ -16,17 +55,7 @@ export function geometrieCarte(largeur: number, hauteur: number, rayon = Math.mi
   if (!geo) {
     const x = -largeur / 2
     const y = -hauteur / 2
-    const s = new Shape()
-    s.moveTo(x + rayon, y)
-    s.lineTo(x + largeur - rayon, y)
-    s.quadraticCurveTo(x + largeur, y, x + largeur, y + rayon)
-    s.lineTo(x + largeur, y + hauteur - rayon)
-    s.quadraticCurveTo(x + largeur, y + hauteur, x + largeur - rayon, y + hauteur)
-    s.lineTo(x + rayon, y + hauteur)
-    s.quadraticCurveTo(x, y + hauteur, x, y + hauteur - rayon)
-    s.lineTo(x, y + rayon)
-    s.quadraticCurveTo(x, y, x + rayon, y)
-    geo = new ShapeGeometry(s, 6)
+    geo = new ShapeGeometry(forme(largeur, hauteur, rayon), 6)
     const pos = geo.attributes.position!
     const uv = geo.attributes.uv!
     for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) - x) / largeur, (pos.getY(i) - y) / hauteur)
@@ -89,7 +118,6 @@ type Props = {
   largeur: number
   hauteur: number
   lueur?: Lueur | null
-  arc?: number
   vitesse?: number
   onClick?: (e: ThreeEvent<MouseEvent>) => void
   onSurvol?: (survol: boolean) => void
@@ -99,10 +127,30 @@ type Props = {
 const cibleTmp = new Vector3()
 const echelleTmp = new Vector3()
 const normaleTmp = new Vector3()
+const p1 = new Vector3()
+const p2 = new Vector3()
+const qTmp = new Quaternion()
+const HAUT = new Vector3(0, 1, 0)
 
-export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, arc = 0.3, vitesse = 0.16, onClick, onSurvol, reflet }: Props) {
+type Vol = { t: number; duree: number; p0: Vector3; q0: Quaternion; s0: number; elan: number; sens: number }
+
+const douceur = (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+
+function bezier(out: Vector3, a: Vector3, b: Vector3, c: Vector3, d: Vector3, t: number) {
+  const m = 1 - t
+  return out
+    .copy(a)
+    .multiplyScalar(m * m * m)
+    .addScaledVector(b, 3 * m * m * t)
+    .addScaledVector(c, 3 * m * t * t)
+    .addScaledVector(d, t * t * t)
+}
+
+export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, vitesse = 0.16, onClick, onSurvol, reflet }: Props) {
   const ref = useRef<Group>(null)
+  const epaisseur = largeur * EPAISSEUR_RELATIVE
   const geo = useMemo(() => geometrieCarte(largeur, hauteur), [largeur, hauteur])
+  const tranche = useMemo(() => geometrieTranche(largeur, hauteur, epaisseur), [largeur, hauteur, epaisseur])
   const marge = 0.05 / Math.max(cible.echelle, 0.3)
   const geoLueur = useMemo(() => geometrieCarte(largeur + marge, hauteur + marge), [largeur, hauteur, marge])
   const [survol, setSurvol] = useState(false)
@@ -110,7 +158,22 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   const ombreRef = useRef<Mesh>(null)
   const refletRef = useRef<Mesh>(null)
   const [texReflet] = useState(textureReflet)
+  const vol = useRef<Vol | null>(null)
+  const derniere = useRef(new Vector3())
   useCursor(survol && !!onClick)
+
+  const lancer = (g: Group, delai = 0) => {
+    const distance = g.position.distanceTo(cible.position)
+    vol.current = {
+      t: -delai,
+      duree: Math.min(2.1, Math.max(1.35, 1.2 + distance * 0.05)),
+      p0: g.position.clone(),
+      q0: g.quaternion.clone(),
+      s0: g.scale.x,
+      elan: Math.min(5.5, 1.8 + distance * 0.3),
+      sens: Math.random() < 0.5 ? -1 : 1,
+    }
+  }
 
   useLayoutEffect(() => {
     const g = ref.current
@@ -119,6 +182,8 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
     g.position.copy(p.position)
     g.quaternion.copy(p.quaternion)
     g.scale.setScalar(p.echelle)
+    derniere.current.copy(cible.position)
+    if (depart) lancer(g, depart.delai ?? 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -135,19 +200,38 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
     }
     const g = ref.current
     if (!g) return
-    const reste = g.position.distanceTo(cible.position)
-    cibleTmp.copy(cible.position)
-    cibleTmp.y += Math.min(reste * arc, 3)
-    easing.damp3(g.position, cibleTmp, vitesse, dt)
-    easing.dampQ(g.quaternion, cible.quaternion, vitesse, dt)
-    easing.damp3(g.scale, echelleTmp.setScalar(cible.echelle), vitesse, dt)
-    if (ombreRef.current) ombreRef.current.position.z = normaleTmp.set(0, 0, 1).applyQuaternion(g.quaternion).y >= 0 ? -0.012 : 0.012
+    if (!vol.current && cible.position.distanceTo(derniere.current) > 4 && g.position.distanceTo(cible.position) > 4) lancer(g)
+    derniere.current.copy(cible.position)
+
+    const v = vol.current
+    if (v) {
+      v.t += dt
+      if (v.t >= 0) {
+        const u = Math.min(1, v.t / v.duree)
+        const e = douceur(u)
+        p1.copy(v.p0).addScaledVector(HAUT, v.p0.y > 8 ? 0 : v.elan)
+        p2.copy(cible.position).addScaledVector(HAUT, cible.position.y > 8 ? 0 : v.elan * 0.85)
+        bezier(g.position, v.p0, p1, p2, cible.position, e)
+        g.quaternion.slerpQuaternions(v.q0, cible.quaternion, e).premultiply(qTmp.setFromAxisAngle(HAUT, Math.sin(Math.PI * e) * 0.45 * v.sens))
+        g.scale.setScalar((v.s0 + (cible.echelle - v.s0) * e) * (1 + Math.sin(Math.PI * u) * 0.14))
+        if (u >= 1) vol.current = null
+      }
+    } else {
+      cibleTmp.copy(cible.position)
+      easing.damp3(g.position, cibleTmp, vitesse, dt)
+      easing.dampQ(g.quaternion, cible.quaternion, vitesse, dt)
+      easing.damp3(g.scale, echelleTmp.setScalar(cible.echelle), vitesse, dt)
+    }
+    if (ombreRef.current) {
+      const dessus = normaleTmp.set(0, 0, 1).applyQuaternion(g.quaternion).y >= 0
+      ombreRef.current.position.z = dessus ? -epaisseur / 2 - 0.012 : epaisseur / 2 + 0.012
+    }
   })
 
   return (
     <group
       ref={ref}
-      onClick={onClick && ((e) => (aGlisse() ? e.stopPropagation() : onClick(e)))}
+      onClick={onClick}
       onPointerOver={(e) => {
         e.stopPropagation()
         setSurvol(true)
@@ -158,21 +242,25 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
         onSurvol?.(false)
       }}
     >
-      <mesh ref={ombreRef} position={[0.04, -0.07, -0.012]} raycast={() => null}>
+      <mesh ref={ombreRef} position={[0.04, -0.07, -0.03]} raycast={() => null}>
         <planeGeometry args={[largeur * 1.18, hauteur * 1.1]} />
         <meshBasicMaterial map={ombre} transparent depthWrite={false} />
       </mesh>
-      <mesh geometry={geo}>
+      <mesh geometry={geo} position-z={epaisseur / 2 + 0.001}>
         <meshBasicMaterial map={recto} toneMapped={false} />
       </mesh>
-      <mesh ref={refletRef} geometry={geo} position-z={0.002} raycast={() => null} visible={false}>
+      <mesh geometry={tranche} position-z={-epaisseur / 2}>
+        <meshBasicMaterial attach="material-0" visible={false} />
+        <meshBasicMaterial attach="material-1" color="#d9cba6" toneMapped={false} />
+      </mesh>
+      <mesh ref={refletRef} geometry={geo} position-z={epaisseur / 2 + 0.003} raycast={() => null} visible={false}>
         <meshBasicMaterial map={texReflet} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
-      <mesh geometry={geo} rotation-y={Math.PI} position-z={-0.004}>
+      <mesh geometry={geo} rotation-y={Math.PI} position-z={-epaisseur / 2 - 0.001}>
         <meshBasicMaterial map={verso} toneMapped={false} />
       </mesh>
       {lueur && (
-        <mesh geometry={geoLueur} position-z={-0.002}>
+        <mesh geometry={geoLueur} position-z={-epaisseur / 2 - 0.004}>
           <meshBasicMaterial color={COULEURS_LUEUR[lueur]} toneMapped={false} />
         </mesh>
       )}

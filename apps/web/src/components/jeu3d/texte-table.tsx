@@ -4,7 +4,6 @@ import { useCursor } from "@react-three/drei"
 import type { ThreeEvent } from "@react-three/fiber"
 import { useEffect, useMemo, useState } from "react"
 import { CanvasTexture, SRGBColorSpace } from "three"
-import { aGlisse } from "./camera"
 
 const POLICE = '"Alegreya Variable", "Alegreya", Georgia, serif'
 const TAILLE = 140
@@ -97,7 +96,7 @@ export function TexteTable({
           onClick &&
           ((e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation()
-            if (!aGlisse()) onClick()
+            onClick()
           })
         }
         onPointerOver={(e) => {

@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
 import { BoutonSon } from "@/components/son"
-import { BoutonRecentrer } from "./bouton-recentrer"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
@@ -148,7 +147,6 @@ export function Jeu3D({
               <Bandeau />
             </div>
             <div className="pointer-events-auto flex items-center gap-2">
-              <BoutonRecentrer />
               <BoutonSon />
               <ReglesButton icone />
             </div>

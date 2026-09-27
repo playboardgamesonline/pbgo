@@ -12,7 +12,8 @@ export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
 export const DOMAINE_ECHELLE = 1.1
 const DECALAGE = 0.42
-const EPAISSEUR = 0.014
+export const EPAISSEUR = 0.045
+export const EPAISSEUR_PIOCHE = 0.036
 
 export const FACE_HAUT = new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
 export const FACE_BAS = new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, 0))
@@ -21,6 +22,7 @@ export type Pose = {
   position: Vector3
   quaternion: Quaternion
   echelle: number
+  delai?: number
 }
 
 const pose = (x: number, y: number, z: number, q: Quaternion, echelle = 1): Pose => ({
@@ -41,7 +43,7 @@ export function poseTable(colonne: Colonne, niveau: Niveau, rang: number): Pose 
 export const colonneDe = (carte: CarteVisible): Colonne => carte.famille ?? "reine"
 
 export const PIOCHE = new Vector3(TAPIS_L / 2 + 1.2, 0, 0)
-export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n, 60) * 0.006, PIOCHE.z, FACE_BAS)
+export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n, 60) * EPAISSEUR_PIOCHE, PIOCHE.z, FACE_BAS)
 
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
