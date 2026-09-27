@@ -126,6 +126,7 @@ export function TexteTable({
   lacet = 0,
   onClick,
   onSurvol,
+  ordre = 0,
 }: {
   texte: string
   style: StyleTexte
@@ -134,6 +135,7 @@ export function TexteTable({
   lacet?: number
   onClick?: () => void
   onSurvol?: (survol: boolean) => void
+  ordre?: number
 }) {
   const prete = usePolicePrete()
   const { couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura } = style
@@ -158,6 +160,7 @@ export function TexteTable({
     <group position={position} rotation-y={lacet}>
       <mesh
         rotation-x={-Math.PI / 2}
+        renderOrder={ordre}
         {...(onClick || onSurvol ? {} : { raycast: () => null })}
         onClick={
           onClick &&

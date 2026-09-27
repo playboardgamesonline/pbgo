@@ -10,6 +10,7 @@ import { CanvasTexture, Color, Euler, type Mesh, type MeshBasicMaterial, type Pe
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
 import { Aura, ReglagesAura } from "./aura"
+import { Colonne } from "./colonne"
 import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
 import { Compteurs, Projecteur, ResolutionFamilles, useCentresGagnants } from "./fin3d"
@@ -29,6 +30,9 @@ import {
   type Pose,
   TAPIS_L,
   TAPIS_P,
+  PAS,
+  colonneX,
+  type Colonne as Colonne_,
   type ZoneDomaine,
   colonneDe,
   cleGroupe,
@@ -253,27 +257,29 @@ function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jo
   )
 }
 
+function positionCouronne(zone: ZoneDomaine | undefined, moi: boolean) {
+  if (!zone) return null
+  if (moi) return new Vector3(zone.etiquette.x, 0, zone.etiquette.z - 0.5)
+  const recul = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), zone.lacetEtiquette)
+  return zone.etiquette.clone().addScaledVector(recul, 2.2).setY(0)
+}
+
 function Badge({
   zone,
   texte,
   style,
-  actif,
   onClick,
   onSurvol,
 }: {
   zone: ZoneDomaine
   texte: string
   style: StyleTexte
-  actif: boolean
   onClick?: () => void
   onSurvol?: (s: boolean) => void
 }) {
   return (
     <group position={zone.etiquette} rotation-y={zone.lacetEtiquette}>
       <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.45]} onClick={onClick} onSurvol={onSurvol} />
-      <group position={[0, 0, -2.2]}>
-        <Couronne3D visible={actif} />
-      </group>
     </group>
   )
 }
@@ -305,40 +311,20 @@ function ZoneCliquable({ zone, onClick, onSurvol }: { zone: ZoneDomaine; onClick
   )
 }
 
-function Cible({ pose, niveau, onClick }: { pose: Pose; niveau: "haut" | "bas"; onClick: () => void }) {
-  const [survol, setSurvol] = useState(false)
-  useCursor(survol)
-  const geo = useMemo(() => geometrieCarte(CARTE_L, CARTE_H), [])
+function Cible({ colonne, niveau, onClick }: { colonne: Colonne_; niveau: "haut" | "bas"; onClick: () => void }) {
   const haut = niveau === "haut"
   return (
-    <>
-      <Aura
-        largeur={CARTE_L}
-        profondeur={CARTE_H}
-        position={[pose.position.x, 0.02, pose.position.z]}
-        lacet={0}
-        force={survol ? 0.95 : 0.55}
-        couleur={haut ? "#ffc247" : "#1a0b26"}
-        clair={haut ? "#fff5c7" : "#7a4aa6"}
-        additif={haut}
-      />
-      <mesh
-        geometry={geo}
-        position={[pose.position.x, pose.position.y + 0.05, pose.position.z]}
-        rotation-x={-Math.PI / 2}
-        onClick={(e) => {
-          e.stopPropagation()
-          onClick()
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation()
-          setSurvol(true)
-        }}
-        onPointerOut={() => setSurvol(false)}
-      >
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-    </>
+    <Colonne
+      x={colonneX(colonne)}
+      z={haut ? -TAPIS_P / 2 : TAPIS_P / 2}
+      sens={haut ? -1 : 1}
+      largeur={PAS * 0.96}
+      longueur={CARTE_H * 2.1}
+      couleur={haut ? "#ffc247" : "#1a0b26"}
+      bord={haut ? "#fff5c7" : "#9a6ac6"}
+      additif={haut}
+      onClick={onClick}
+    />
   )
 }
 
@@ -394,7 +380,7 @@ function Monde({
     if (actif) setDeplie(cle)
     else fermeture.current = setTimeout(() => setDeplie((d) => (d === cle ? null : d)), 180)
   }
-  const { map: plateau, rangs, zones } = useMemo(() => disposer(vue, places, deplie, fin), [vue, places, deplie, fin])
+  const { map: plateau, zones } = useMemo(() => disposer(vue, places, deplie, fin), [vue, places, deplie, fin])
   const main = vue.moi?.main ?? []
   const moiId = vue.moi?.id
 
@@ -490,7 +476,9 @@ function Monde({
       )
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
-      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, inclinaison - t * 0.09)))
+      p.quaternion
+        .copy(camera.quaternion)
+        .multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-(pointer.y + 0.6) * 0.18, (pointer.x + 0.7) * 0.22, inclinaison - t * 0.09)))
       p.echelle = echelle
     })
     const mL = Math.min(w * 0.36, h * 0.8)
@@ -589,7 +577,8 @@ function Monde({
             largeur={CARTE_L}
             hauteur={CARTE_H}
             vitesse={0.12}
-            lueur={carte.id === selectionId ? "or" : null}
+            lueur={carte.id === selectionId ? "selection" : null}
+            reflet={carte.id === survol || carte.id === selectionId}
             onSurvol={(s) => setSurvol(s ? carte.id : null)}
             onClick={
               jouable
@@ -623,7 +612,7 @@ function Monde({
       ))}
       {resultats && fin && (
         <>
-          <ResolutionFamilles resultats={resultats} fin={fin} rangs={rangs} />
+          <ResolutionFamilles resultats={resultats} fin={fin} />
           <Compteurs vue={vue} resultats={resultats} fin={fin} zones={zones} gagnants={resultats.vainqueurs} />
           <Projecteur fin={fin} centres={centresGagnants.centres} axes={centresGagnants.axes} />
           {fin.projecteur &&
@@ -690,7 +679,6 @@ function Monde({
             key={j.id}
             zone={zone}
             texte={pseudo(j.id).toUpperCase()}
-            actif={j.id === actif}
             style={
               survolJoueur === j.id && domaineCible(j.id)
                 ? { couleur: "#fff4dc", relief: couleur(j.id), aura: couleur(j.id), espacement: ESPACEMENT }
@@ -704,14 +692,11 @@ function Monde({
         )
       })}
 
+      <Couronne3D cible={actif && vue.phase === "jeu" ? positionCouronne(zones.get(actif), actif === moiId) : null} />
+
       {colCible &&
         (["haut", "bas"] as const).map((niveau) => (
-          <Cible
-            key={niveau}
-            niveau={niveau}
-            pose={poseTable(colCible, niveau, rangs.get(`${colCible}:${niveau}`) ?? 0)}
-            onClick={() => it.jouer({ zone: "table", niveau })}
-          />
+          <Cible key={niveau} colonne={colCible} niveau={niveau} onClick={() => it.jouer({ zone: "table", niveau })} />
         ))}
 
       {vue.joueurs.map((j) => {

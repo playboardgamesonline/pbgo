@@ -7,12 +7,12 @@ import { useMemo, useRef, useState } from "react"
 import { AdditiveBlending, CanvasTexture, DoubleSide, type Group, type Mesh, type MeshBasicMaterial, type ShaderMaterial, Vector2 } from "three"
 import { ORDRE_TAPIS } from "@/lib/catalogue"
 import { Aura } from "./aura"
-import { CARTE_H, colonneX, DECALAGE, PAS, TAPIS_P, type ZoneDomaine } from "./disposition"
+import { colonneX, PAS, TAPIS_P, type ZoneDomaine } from "./disposition"
 import type { EtatFin } from "./fin"
 import { TexteTable } from "./texte-table"
 
 const FAMILLES_TABLE = ORDRE_TAPIS.filter((c): c is Famille => c !== "reine")
-const HOLO = { couleur: "#fffaf0", bloom: "rgba(255,255,255,0.95)", holo: true, graisse: 800 }
+const HOLO = { couleur: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", graisse: 800 }
 
 function Apparition({ children, position, flotte = 0.06 }: { children: React.ReactNode; position: [number, number, number]; flotte?: number }) {
   const ref = useRef<Group>(null)
@@ -88,25 +88,21 @@ function Rayon({ x }: { x: number }) {
   )
 }
 
-export function ResolutionFamilles({ resultats, fin, rangs }: { resultats: Resultats; fin: EtatFin; rangs: Map<string, number> }) {
+export function ResolutionFamilles({ resultats, fin }: { resultats: Resultats; fin: EtatFin }) {
   return (
     <>
       {FAMILLES_TABLE.slice(0, fin.familles).map((f) => {
         const s = resultats.statuts[f]
         const x = colonneX(f)
-        const haut = rangs.get(`${f}:haut`) ?? 0
-        const bas = rangs.get(`${f}:bas`) ?? 0
-        const zHaut = -(TAPIS_P / 2 + (haut ? CARTE_H + (haut - 1) * DECALAGE : 0) + 0.55)
-        const zBas = TAPIS_P / 2 + (bas ? CARTE_H + (bas - 1) * DECALAGE : 0) + 0.55
         const lumiere = s.statut === "lumiere"
         const disgrace = s.statut === "disgrace"
         return (
           <group key={f}>
-            <Apparition position={[x, 0.6, zHaut]}>
-              <TexteTable texte={String(s.haut)} style={HOLO} hauteur={0.62} position={[0, 0, 0]} />
+            <Apparition position={[x, 0.09, -TAPIS_P / 2 + 0.42]} flotte={0}>
+              <TexteTable texte={String(s.haut)} style={HOLO} hauteur={0.5} position={[0, 0, 0]} ordre={4} />
             </Apparition>
-            <Apparition position={[x, 0.6, zBas]}>
-              <TexteTable texte={String(s.bas)} style={HOLO} hauteur={0.62} position={[0, 0, 0]} />
+            <Apparition position={[x, 0.09, TAPIS_P / 2 - 0.42]} flotte={0}>
+              <TexteTable texte={String(s.bas)} style={HOLO} hauteur={0.5} position={[0, 0, 0]} ordre={4} />
             </Apparition>
             {(lumiere || disgrace) && (
               <Aura
@@ -121,17 +117,18 @@ export function ResolutionFamilles({ resultats, fin, rangs }: { resultats: Resul
               />
             )}
             {lumiere && <Rayon x={x} />}
-            <Apparition position={[x, 1.1, 0]} flotte={0.1}>
+            <Apparition position={[x, 0.1, 0.05]} flotte={0}>
               <TexteTable
                 texte={lumiere ? "LUMIÈRE" : disgrace ? "DISGRÂCE" : "ÉGALITÉ"}
                 style={{
-                  ...HOLO,
-                  couleur: lumiere ? "#fff1c4" : disgrace ? "#a9e4d6" : "#e9e4d4",
+                  graisse: 800,
+                  couleur: lumiere ? "#6b3f08" : disgrace ? "#a9e4d6" : "#e9e4d4",
                   bloom: lumiere ? "#ffd36a" : disgrace ? "#0f5c52" : "#ffffff",
                   espacement: "6px",
                 }}
                 hauteur={0.24}
                 position={[0, 0, 0]}
+                ordre={4}
               />
             </Apparition>
           </group>
@@ -165,7 +162,7 @@ export function Compteurs({
         const piles = r.detail.slice(0, fin.pile)
         const total = piles.reduce((s, d) => s + d.points, 0) + (fin.missions ? r.missions.reduce((s, m) => s + m.points, 0) : 0)
         return (
-          <Apparition key={j.id} position={[zone.centre.x, 1.8, zone.centre.z]} flotte={0.12}>
+          <Apparition key={j.id} position={[zone.centre.x, 1.8, zone.centre.z]} flotte={0}>
             <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
               <circleGeometry args={[1.25, 48]} />
               <meshBasicMaterial map={fondRond()} color="#02151a" transparent opacity={0.85} depthWrite={false} toneMapped={false} />

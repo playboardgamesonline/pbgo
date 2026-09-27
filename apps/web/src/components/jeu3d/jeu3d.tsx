@@ -163,7 +163,7 @@ export function Jeu3D({
           {intro && (
             <div className="absolute inset-x-0 bottom-[12%] z-20 flex justify-center">
               <Button size="lg" className="h-12 px-8 font-display text-base shadow-2xl" onClick={finirIntro}>
-                J&apos;ai lu mes missions
+                Rejoindre la table
               </Button>
             </div>
           )}
@@ -210,16 +210,7 @@ export function Jeu3D({
               Passer
             </Button>
           )}
-          {fin?.tableau && scoresOuverts && <FinDePartie onMaj={onMaj} onFermer={() => setScoresOuverts(false)} />}
-          {fin?.tableau && !scoresOuverts && (
-            <button
-              type="button"
-              onClick={() => setScoresOuverts(true)}
-              className="absolute inset-x-0 bottom-6 z-30 mx-auto w-fit cursor-pointer rounded-full border border-foreground/40 bg-[#0b2231]/85 px-6 py-2.5 font-display text-lg tracking-wide text-foreground shadow-xl backdrop-blur transition-transform hover:scale-105"
-            >
-              Afficher le tableau des scores
-            </button>
-          )}
+          {fin?.tableau && <FinDePartie onMaj={onMaj} ouvert={scoresOuverts} onBasculer={() => setScoresOuverts((o) => !o)} />}
         </main>
       </InteractionContexte.Provider>
     </JeuProvider>

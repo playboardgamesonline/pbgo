@@ -51,6 +51,21 @@ export function geometrieTranche(largeur: number, hauteur: number, epaisseur: nu
   return geo
 }
 
+const cadres = new Map<string, ShapeGeometry>()
+
+function geometrieCadre(largeur: number, hauteur: number, ecart: number, epaisseur: number) {
+  const cle = `${largeur.toFixed(3)}:${hauteur.toFixed(3)}:${ecart.toFixed(3)}:${epaisseur.toFixed(3)}`
+  let geo = cadres.get(cle)
+  if (!geo) {
+    const rayon = Math.min(largeur, hauteur) * 0.06
+    const exterieur = forme(largeur + 2 * (ecart + epaisseur), hauteur + 2 * (ecart + epaisseur), rayon + ecart + epaisseur)
+    exterieur.holes.push(forme(largeur + 2 * ecart, hauteur + 2 * ecart, rayon + ecart))
+    geo = new ShapeGeometry(exterieur, 8)
+    cadres.set(cle, geo)
+  }
+  return geo
+}
+
 export function geometrieCarte(largeur: number, hauteur: number, rayon = Math.min(largeur, hauteur) * 0.06) {
   const cle = `${largeur.toFixed(3)}:${hauteur.toFixed(3)}:${rayon.toFixed(3)}`
   let geo = geometries.get(cle)
@@ -155,6 +170,7 @@ function textureHalo(largeur: number, hauteur: number, marge: number) {
 
 const COULEURS_LUEUR = {
   or: "#f2c14e",
+  selection: "#ffffff",
   rouge: "#ff4d4d",
   blanc: "#ffffff",
 } as const
@@ -204,12 +220,14 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   const marge = 0.05 / Math.max(cible.echelle, 0.3)
   const geoLueur = useMemo(() => geometrieCarte(largeur + marge, hauteur + marge), [largeur, hauteur, marge])
   const margeHalo = Math.min(largeur, hauteur) * (lueur === "or" ? 0.14 : 0.28)
+  const cadreRef = useRef<Mesh>(null)
   const halo = useMemo(() => textureHalo(largeur, hauteur, margeHalo), [largeur, hauteur, margeHalo])
   const haloRef = useRef<MeshBasicMaterial>(null)
   const scintilleRef = useRef<Mesh>(null)
   const [texScintille] = useState(textureScintille)
-  const epaisseurContour = 0.035 / Math.max(cible.echelle, 0.3)
-  const geoContour = useMemo(() => geometrieCarte(largeur + epaisseurContour, hauteur + epaisseurContour), [largeur, hauteur, epaisseurContour])
+  const epaisseurContour = 0.03 / Math.max(cible.echelle, 0.3)
+  const ecart = 0.07 / Math.max(cible.echelle, 0.3)
+  const geoCadre = useMemo(() => geometrieCadre(largeur, hauteur, ecart, epaisseurContour), [largeur, hauteur, ecart, epaisseurContour])
   const [survol, setSurvol] = useState(false)
   const [ombre] = useState(textureOmbre)
   const ombreRef = useRef<Mesh>(null)
@@ -247,6 +265,12 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   useFrame(({ pointer, clock }, dt) => {
     if (haloRef.current)
       haloRef.current.opacity = lueur === "rouge" ? 0.75 + Math.sin(clock.elapsedTime * 2.6) * 0.15 : 0.35 + Math.sin(clock.elapsedTime * 2.6) * 0.08
+    const cadre = cadreRef.current
+    if (cadre) {
+      const t = clock.elapsedTime
+      cadre.scale.setScalar(1 + Math.sin(t * 3) * 0.012)
+      ;(cadre.material as MeshBasicMaterial).opacity = 0.75 + Math.sin(t * 3) * 0.2
+    }
     const sc = scintilleRef.current
     if (sc) {
       sc.visible = lueur === "or"
@@ -327,7 +351,7 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
       <mesh geometry={geo} rotation-y={Math.PI} position-z={-epaisseur / 2 - 0.001}>
         <meshBasicMaterial map={verso} toneMapped={false} />
       </mesh>
-      {lueur && (
+      {lueur && lueur !== "selection" && (
         <mesh position-z={-epaisseur / 2 - 0.006} raycast={() => null}>
           <planeGeometry args={[largeur + 2 * margeHalo, hauteur + 2 * margeHalo]} />
           <meshBasicMaterial
@@ -344,9 +368,9 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
       <mesh ref={scintilleRef} geometry={geo} position-z={epaisseur / 2 + 0.004} raycast={() => null} visible={false}>
         <meshBasicMaterial map={texScintille} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
-      {lueur === "or" && (
-        <mesh geometry={geoContour} position-z={-epaisseur / 2 - 0.003} raycast={() => null}>
-          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      {lueur === "selection" && (
+        <mesh ref={cadreRef} geometry={geoCadre} position-z={epaisseur / 2 + 0.002} raycast={() => null}>
+          <meshBasicMaterial color="#ffffff" transparent toneMapped={false} />
         </mesh>
       )}
       {lueur === "rouge" && (
