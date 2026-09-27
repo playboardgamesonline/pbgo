@@ -180,11 +180,9 @@ function Cible({ largeur, hauteur, pose, label, onClick }: { largeur: number; ha
       >
         <meshBasicMaterial color="#f2c14e" transparent depthWrite={false} toneMapped={false} />
       </mesh>
-      {label && (
-        <Html zIndexRange={[10, 0]} center position={[0, 0, 0.05]} className="pointer-events-none">
-          <span className="rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-primary">{label}</span>
-        </Html>
-      )}
+      <Html zIndexRange={[10, 0]} center position={[0, 0, 0.05]} className="pointer-events-none">
+        <span className={cn("rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-primary", !label && "hidden")}>{label}</span>
+      </Html>
     </group>
   )
 }
@@ -198,12 +196,13 @@ function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFi
   return <Carte3D cible={item.cible} depart={item.depart} recto={item.carte ? tex.face(item.carte) : tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} vitesse={0.12} />
 }
 
-function Etiquette({ position, children, actif }: { position: [number, number, number]; children: React.ReactNode; actif?: boolean }) {
+function Etiquette({ position, children, actif, visible = true }: { position: [number, number, number]; children: React.ReactNode; actif?: boolean; visible?: boolean }) {
   return (
     <Html zIndexRange={[10, 0]} center position={position} className="pointer-events-none select-none">
       <span
         className={cn(
           "font-display text-sm whitespace-nowrap transition-all duration-500 [text-shadow:0_1px_4px_rgb(0_0_0/90%)]",
+          !visible && "opacity-0",
           actif ? "text-lg text-primary [text-shadow:0_0_14px_rgb(242_193_78/80%)]" : "text-foreground/85",
         )}
       >
@@ -321,13 +320,12 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       <LumiereTour cible={lumiere} />
       <Table tex={tex} />
 
-      {!discret && ORDRE_TAPIS.map((col) => {
+      {ORDRE_TAPIS.map((col) => {
         const haut = vue.table.filter((p) => p.niveau === "haut" && colonneDe(p.carte) === col).reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
         const bas = vue.table.filter((p) => p.niveau === "bas" && colonneDe(p.carte) === col).reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
-        if (!haut && !bas) return null
         return (
           <Html key={col} zIndexRange={[10, 0]} center position={[colonneX(col), 0.05, TAPIS_P / 2 - 0.18]} className="pointer-events-none">
-            <span className="rounded-full bg-black/65 px-1.5 text-[10px] leading-4 whitespace-nowrap text-white tabular-nums">
+            <span className={cn("rounded-full bg-black/65 px-1.5 text-[10px] leading-4 whitespace-nowrap text-white tabular-nums transition-opacity", (discret || (!haut && !bas)) && "opacity-0")}>
               ▲{haut} ▼{bas}
             </span>
           </Html>
@@ -401,8 +399,10 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           }}
         />
       ))}
-      {missions.length > 0 && !discret && (
-        <Etiquette position={[MISSIONS_POS.x, 0.05, MISSIONS_POS.z - MISSION_H / 2 - 0.45]}>Mes missions</Etiquette>
+      {missions.length > 0 && (
+        <Etiquette visible={!discret} position={[MISSIONS_POS.x, 0.05, MISSIONS_POS.z - MISSION_H / 2 - 0.45]}>
+          Mes missions
+        </Etiquette>
       )}
 
       {transitoires.map((t) => (
@@ -420,13 +420,15 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       {vue.nombreCartesPioche > 0 && (
         <Carte3D cible={poseDessusPioche(vue.nombreCartesPioche)} recto={tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} />
       )}
-      {!discret && <Etiquette position={[PIOCHE.x, 0.05, PIOCHE.z + CARTE_H / 2 + 0.4]}>Pioche · {vue.nombreCartesPioche}</Etiquette>}
+      <Etiquette visible={!discret} position={[PIOCHE.x, 0.05, PIOCHE.z + CARTE_H / 2 + 0.4]}>
+        Pioche · {vue.nombreCartesPioche}
+      </Etiquette>
 
-      {!discret && vue.joueurs.map((j) => {
+      {vue.joueurs.map((j) => {
         const siege = places.get(j.id)
         if (!siege) return null
         return (
-          <Etiquette key={j.id} position={[siege.x, 0.05, siege.z]} actif={j.id === actif}>
+          <Etiquette key={j.id} visible={!discret} position={[siege.x, 0.05, siege.z]} actif={j.id === actif}>
             {j.id === moiId ? `${pseudo(j.id)} (toi)` : pseudo(j.id)}
           </Etiquette>
         )
