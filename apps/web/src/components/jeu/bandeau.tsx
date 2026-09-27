@@ -34,7 +34,13 @@ export function Bandeau() {
         >
           {tour ? (
             <span className="inline-flex flex-wrap items-center gap-1.5">
-              C&apos;est à <PseudoJoueur id={vue.joueurActifId!} /> de jouer
+              {vue.joueurActifId === vue.moi?.id ? (
+                "C'est à moi de jouer"
+              ) : (
+                <>
+                  C&apos;est à <PseudoJoueur id={vue.joueurActifId!} /> de jouer
+                </>
+              )}
             </span>
           ) : dernier ? (
             <Message evenement={dernier} className="justify-start" />

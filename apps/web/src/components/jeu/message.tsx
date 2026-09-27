@@ -29,12 +29,24 @@ export function BadgeCarte({ carte, className }: { carte: CarteVisible; classNam
 }
 
 function Zone({ cible, auteurId }: { cible: Cible; auteurId: string }) {
+  const moiId = useJeu().vue.moi?.id
   if (cible.zone === "table") return <span>à la table de la Reine</span>
-  if (cible.joueurId === auteurId) return <span>chez lui</span>
+  if (cible.joueurId === auteurId) return <span>{auteurId === moiId ? "chez moi" : "chez lui"}</span>
+  if (cible.joueurId === moiId) return <span>chez moi</span>
   return (
     <span>
       chez <PseudoJoueur id={cible.joueurId} />
     </span>
+  )
+}
+
+function Sujet({ id, verbe }: { id: string; verbe: string }) {
+  const moiId = useJeu().vue.moi?.id
+  if (id === moiId) return <span>{/^[aeéiou]/i.test(verbe) ? `J'${verbe}` : `Je ${verbe}`}</span>
+  return (
+    <>
+      <PseudoJoueur id={id} /> <span>{verbe}</span>
+    </>
   )
 }
 
@@ -45,24 +57,21 @@ export function Message({ evenement, className }: { evenement: EvenementVisible;
     case "carteJouee":
       return (
         <span className={cn(LIGNE, className)}>
-          <PseudoJoueur id={evenement.joueurId} /> joue <BadgeCarte carte={evenement.carte} />{" "}
+          <Sujet id={evenement.joueurId} verbe="joue" /> <BadgeCarte carte={evenement.carte} />{" "}
           <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
         </span>
       )
     case "carteEliminee":
       return (
         <span className={cn(LIGNE, className)}>
-          <PseudoJoueur id={evenement.joueurId} /> élimine <BadgeCarte carte={evenement.carte} />{" "}
+          <Sujet id={evenement.joueurId} verbe="élimine" /> <BadgeCarte carte={evenement.carte} />{" "}
           <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
         </span>
       )
     case "pioche":
       return (
         <span className={cn(LIGNE, className)}>
-          <PseudoJoueur id={evenement.joueurId} />{" "}
-          <span>
-            pioche {evenement.nombre} carte{evenement.nombre > 1 ? "s" : ""}
-          </span>
+          <Sujet id={evenement.joueurId} verbe={`pioche ${evenement.nombre} carte${evenement.nombre > 1 ? "s" : ""}`} />
         </span>
       )
     case "finDePartie":
