@@ -20,8 +20,10 @@ export function PartieClient({ code, catalogue }: { code: string; catalogue: Cat
   const router = useRouter()
   const { partie, erreur, appliquer } = usePartie(code)
   const { profil, setProfil, pret, valide } = useProfil(catalogue.chateaux[0]!.id)
-  const [autoJoin, setAutoJoin] = useState<"idle" | "encours" | "echec">("idle")
-  const doitAutoJoin = !!partie && pret && valide && partie.moiId === null && partie.statut === "lobby"
+  const [autoJoin, setAutoJoin] = useState<"idle" | "encours" | "echec" | "manuel">("idle")
+  const invite = !!partie && pret && partie.moiId === null && partie.statut === "lobby"
+  if (invite && !valide && autoJoin === "idle") setAutoJoin("manuel")
+  const doitAutoJoin = invite && valide && (autoJoin === "idle" || autoJoin === "encours")
 
   async function rejoindre() {
     try {
@@ -62,7 +64,7 @@ export function PartieClient({ code, catalogue }: { code: string; catalogue: Cat
         </Button>
       </div>
     )
-  } else if (!partie || !pret || (doitAutoJoin && autoJoin !== "echec")) {
+  } else if (!partie || !pret || doitAutoJoin) {
     contenu = <Loader2Icon className="size-8 animate-spin text-primary" />
   } else if (partie.moiId === null) {
     contenu =
