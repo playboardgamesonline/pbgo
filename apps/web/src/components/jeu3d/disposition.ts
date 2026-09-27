@@ -10,7 +10,7 @@ export const CARTE_L = PAS * 0.92
 export const CARTE_H = (CARTE_L * 890) / 472
 export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
-export const DOMAINE_ECHELLE = 0.9
+export const DOMAINE_ECHELLE = 1
 const DECALAGE = 0.42
 const EPAISSEUR = 0.014
 
@@ -117,16 +117,18 @@ export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses:
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
   })
 
-  const devant = DH / 2 + 0.9
-  const etiquette = lateral
-    ? new Vector3(centre.x + vers * devant, 0.07, centre.z)
-    : new Vector3(centre.x, 0.07, centre.z + (orientation === "haut" ? devant : -devant))
+  const versTable = lateral ? new Vector3(vers, 0, 0) : new Vector3(0, 0, orientation === "haut" ? 1 : -1)
+  const etiquette = centre
+    .clone()
+    .addScaledVector(versTable, DH / 2 + 0.3)
+    .setY(0.02)
+  const fond = centre.clone().addScaledVector(versTable, 0.4).setY(0.012)
   return {
     poses,
     zone: {
-      centre,
-      largeur: largeur + 0.6,
-      profondeur: DH + 1.1,
+      centre: fond,
+      largeur: Math.max(largeur, 3 * DL + 2 * ECART) + 0.6,
+      profondeur: DH + 1.5,
       lacet: LACET[orientation],
       etiquette,
       lacetEtiquette: orientation === "haut" ? Math.PI : LACET[orientation],

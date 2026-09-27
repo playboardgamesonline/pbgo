@@ -137,6 +137,15 @@ function Voile({ actif, opacite }: { actif: boolean; opacite: number }) {
   )
 }
 
+function FondDomaine({ zone }: { zone: ZoneDomaine }) {
+  const geo = useMemo(() => geometrieCarte(zone.largeur, zone.profondeur, 0.35), [zone.largeur, zone.profondeur])
+  return (
+    <mesh geometry={geo} position={zone.centre} rotation={[-Math.PI / 2, 0, zone.lacet]} raycast={() => null}>
+      <meshBasicMaterial color="#ffffff" transparent opacity={0.05} depthWrite={false} toneMapped={false} />
+    </mesh>
+  )
+}
+
 function ZoneCliquable({ zone, onClick, onSurvol }: { zone: ZoneDomaine; onClick: () => void; onSurvol: (s: boolean) => void }) {
   const [survol, setSurvol] = useState(false)
   useCursor(survol)
@@ -214,7 +223,7 @@ function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFi
 }
 
 const D_MAIN = 6
-const ENCRE = { couleur: "rgba(0,0,0,0.5)" }
+const ENCRE = { couleur: "rgba(4,32,36,0.45)" }
 const ESPACEMENT = "18px"
 const QUAT_TMP = new Quaternion()
 const EULER_TMP = new Euler()
@@ -297,24 +306,24 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
     const proj = camera.projectionMatrix.elements
     const h = D_MAIN / proj[5]
     const w = D_MAIN / proj[0]
-    const marge = h * 0.05
     const hauteur = h * 0.66
     const echelle = hauteur / CARTE_H
     const largeur = CARTE_L * echelle
     const pas = largeur * 0.9
     const n = main.length
-    const centreMain = -w + marge + largeur / 2 + ((n - 1) * pas) / 2
+    const inclinaison = -0.1
+    const centreMain = -w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2
     main.forEach((c, i) => {
       const t = i - (n - 1) / 2
       const leve = c.id === selectionId ? hauteur * 0.24 : c.id === survol ? hauteur * 0.08 : 0
       const local = new Vector3(
         centreMain + t * pas,
-        -h + hauteur / 6 - Math.abs(t) * hauteur * 0.03 + leve,
+        -h + hauteur / 7 + t * pas * Math.sin(inclinaison) - Math.abs(t) * hauteur * 0.02 + leve,
         -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
       )
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
-      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.06)))
+      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, inclinaison - t * 0.05)))
       p.echelle = echelle
     })
     const mL = Math.min(w * 0.36, h * 0.8)
@@ -330,17 +339,16 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         if (!intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
         p.echelle = intro ? k : 1.4 * k
       } else {
-        const devant = survol === `mission:${m.id}`
-        const machoire = i === 0 ? 0.42 : -0.08
-        const sortie = devant ? mL * 0.14 : 0
-        const bras = -mL * 0.5 + mL * 0.06 - sortie
-        const pivotX = w - mL * 0.16
-        const pivotY = -h + mH * 0.62
+        const survolee = survol === `mission:${m.id}`
+        const machoire = i === 0 ? 0.28 : -0.05
+        const bras = -mL * 0.44
+        const pivotX = w - mL * 0.03
+        const pivotY = -h + mH * 0.55
         const x = pivotX + Math.cos(machoire) * bras
-        const y = pivotY + Math.sin(machoire) * bras * -1 + (i === 0 ? mH * 0.2 : -mH * 0.08)
-        p.position.copy(camera.localToWorld(new Vector3(x, y, -D_MAIN + 0.05 + (devant ? 0.3 : 0) + (i === 0 ? 0 : 0.02))))
+        const y = pivotY - Math.sin(machoire) * bras + (i === 0 ? mH * 0.16 : -mH * 0.08) + (survolee ? mH * 0.05 : 0)
+        p.position.copy(camera.localToWorld(new Vector3(x, y, -D_MAIN + 0.05 + (i === 0 ? 0 : 0.02))))
         p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -machoire)))
-        p.echelle = mL / MISSION_L
+        p.echelle = (mL / MISSION_L) * (survol === `mission:${m.id}` ? 1.05 : 1)
       }
     })
   })
@@ -425,7 +433,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           largeur={MISSION_L}
           hauteur={MISSION_H}
           arc={0.1}
-          vitesse={0.14}
+          vitesse={intro || missionFocus ? 0.14 : 0.05}
           reflet={missionFocus === m.id}
           onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
           onClick={(e) => {
@@ -456,6 +464,12 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       {vue.joueurs.map((j) => {
         const zone = zones.get(j.id)
         if (!zone) return null
+        return <FondDomaine key={`fond-${j.id}`} zone={zone} />
+      })}
+
+      {vue.joueurs.map((j) => {
+        const zone = zones.get(j.id)
+        if (!zone) return null
         return (
           <TexteTable
             key={j.id}
@@ -467,7 +481,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
                   ? { couleur: couleur(j.id), espacement: ESPACEMENT }
                   : { ...ENCRE, espacement: ESPACEMENT }
             }
-            hauteur={0.8}
+            hauteur={1}
             position={[zone.etiquette.x, zone.etiquette.y, zone.etiquette.z]}
             lacet={zone.lacetEtiquette}
             onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
