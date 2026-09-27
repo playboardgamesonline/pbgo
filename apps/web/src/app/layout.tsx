@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import "@fontsource-variable/alegreya"
 import "@fontsource-variable/cinzel"
+import { EcranOrdinateur } from "@/components/ecran-ordinateur"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         <Toaster position="top-center" />
+        <EcranOrdinateur />
       </body>
     </html>
   )
