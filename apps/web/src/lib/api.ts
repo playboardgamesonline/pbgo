@@ -1,18 +1,18 @@
 import type { PartiePublique } from "./partie-types"
 
 const MESSAGES: Record<string, string> = {
-  PSEUDO_INVALIDE: "Choisis un pseudonyme.",
-  CHATEAU_INVALIDE: "Choisis un château.",
+  PSEUDO_INVALIDE: "Choisissez une appellation.",
+  CHATEAU_INVALIDE: "Choisissez un château.",
   CODE_INVALIDE: "Ce code de partie n'est pas valide.",
   PARTIE_INTROUVABLE: "Aucune partie ne correspond à ce code.",
   PARTIE_EN_COURS: "Cette partie a déjà commencé.",
   PARTIE_COMPLETE: "Cette partie est complète (5 joueurs).",
   RESERVE_A_L_HOTE: "Seul l'hôte peut lancer la partie.",
   PAS_ASSEZ_DE_JOUEURS: "Il faut au moins 2 joueurs.",
-  PAS_TON_TOUR: "Ce n'est pas ton tour.",
-  ZONE_DEJA_JOUEE: "Tu as déjà joué une carte dans cette zone.",
+  PAS_TON_TOUR: "Ce n'est pas votre tour.",
+  ZONE_DEJA_JOUEE: "Vous avez déjà joué une carte dans cette zone.",
   ASSASSINAT_INVALIDE: "Cette carte ne peut pas être éliminée.",
-  CONFLIT: "Quelqu'un a joué en même temps, réessaie.",
+  CONFLIT: "Quelqu'un a joué en même temps, réessayez.",
 }
 
 export class ApiClientError extends Error {

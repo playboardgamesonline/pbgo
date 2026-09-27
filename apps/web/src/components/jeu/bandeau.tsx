@@ -35,7 +35,7 @@ export function Bandeau() {
           {tour ? (
             <span className="inline-flex flex-wrap items-center gap-1.5">
               {vue.joueurActifId === vue.moi?.id ? (
-                "C'est à moi de jouer"
+                "C'est à vous de jouer"
               ) : (
                 <>
                   C&apos;est à <PseudoJoueur id={vue.joueurActifId!} /> de jouer

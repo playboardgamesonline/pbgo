@@ -31,8 +31,8 @@ export function BadgeCarte({ carte, className }: { carte: CarteVisible; classNam
 function Zone({ cible, auteurId }: { cible: Cible; auteurId: string }) {
   const moiId = useJeu().vue.moi?.id
   if (cible.zone === "table") return <span>à la table de la Reine</span>
-  if (cible.joueurId === auteurId) return <span>{auteurId === moiId ? "chez moi" : "chez lui"}</span>
-  if (cible.joueurId === moiId) return <span>chez moi</span>
+  if (cible.joueurId === auteurId) return <span>{auteurId === moiId ? "chez vous" : "chez lui"}</span>
+  if (cible.joueurId === moiId) return <span>chez vous</span>
   return (
     <span>
       chez <PseudoJoueur id={cible.joueurId} />
@@ -40,9 +40,17 @@ function Zone({ cible, auteurId }: { cible: Cible; auteurId: string }) {
   )
 }
 
+const VOUS: Record<string, string> = { joue: "jouez", élimine: "éliminez", pioche: "piochez" }
+
 function Sujet({ id, verbe }: { id: string; verbe: string }) {
   const moiId = useJeu().vue.moi?.id
-  if (id === moiId) return <span>{/^[aeéiou]/i.test(verbe) ? `J'${verbe}` : `Je ${verbe}`}</span>
+  if (id === moiId)
+    return (
+      <span>
+        Vous {VOUS[verbe.split(" ")[0]!] ?? verbe.split(" ")[0]}
+        {verbe.slice(verbe.split(" ")[0]!.length)}
+      </span>
+    )
   return (
     <>
       <PseudoJoueur id={id} /> <span>{verbe}</span>
