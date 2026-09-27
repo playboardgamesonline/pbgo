@@ -8,6 +8,7 @@ import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, Color, Euler, type Mesh, type MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
+import { jouerSon } from "@/lib/son"
 import { useInteraction } from "../jeu/interaction"
 import { Aura, ReglagesAura } from "./aura"
 import { Colonne } from "./colonne"
@@ -380,7 +381,7 @@ function Monde({
     if (actif) setDeplie(cle)
     else fermeture.current = setTimeout(() => setDeplie((d) => (d === cle ? null : d)), 180)
   }
-  const { map: plateau, zones } = useMemo(() => disposer(vue, places, deplie, fin), [vue, places, deplie, fin])
+  const { map: plateau, zones } = useMemo(() => disposer(vue, places, it.assassinat ? deplie : null, fin), [vue, places, deplie, fin, it.assassinat])
   const main = vue.moi?.main ?? []
   const moiId = vue.moi?.id
 
@@ -445,6 +446,15 @@ function Monde({
   const { camera } = useThree()
   const [survol, setSurvol] = useState<string | null>(null)
   const [survolJoueur, setSurvolJoueur] = useState<string | null>(null)
+  useEffect(() => {
+    if (survol) jouerSon("survol")
+  }, [survol])
+  useEffect(() => {
+    if (survolJoueur) jouerSon("survol", { volume: 0.7 })
+  }, [survolJoueur])
+  useEffect(() => {
+    if (deplie) jouerSon("glisse", { volume: 0.5 })
+  }, [deplie])
   const poseCamera = (id: string) => {
     let p = posesCamera.get(id)
     if (!p) {
@@ -542,7 +552,7 @@ function Monde({
             onSurvol={
               joueurId
                 ? (s) => {
-                    survolGroupe(`${joueurId}:${cleGroupe(carte)}`, s)
+                    if (it.assassinat) survolGroupe(`${joueurId}:${cleGroupe(carte)}`, s)
                     if (cibleDomaine) setSurvolJoueur(s ? joueurId : null)
                   }
                 : undefined

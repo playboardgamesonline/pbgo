@@ -4,7 +4,7 @@ import type { Famille, Resultats, VueJoueur } from "@courtisans/engine"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useMemo, useRef, useState } from "react"
-import { AdditiveBlending, CanvasTexture, DoubleSide, type Group, type Mesh, type MeshBasicMaterial, type ShaderMaterial, Vector2 } from "three"
+import { CanvasTexture, type Group, type Mesh, SRGBColorSpace, type ShaderMaterial, Vector2 } from "three"
 import { ORDRE_TAPIS } from "@/lib/catalogue"
 import { Aura } from "./aura"
 import { colonneX, PAS, TAPIS_P, type ZoneDomaine } from "./disposition"
@@ -47,44 +47,63 @@ function fondRond() {
   return rond
 }
 
-let degrade: CanvasTexture | null = null
-function textureRayon() {
-  if (!degrade) {
+type Signe = "plus" | "moins" | "egal"
+const signes = new Map<Signe, CanvasTexture>()
+
+function textureSigne(signe: Signe) {
+  let t = signes.get(signe)
+  if (!t) {
     const c = document.createElement("canvas")
-    c.width = 4
-    c.height = 128
+    c.width = c.height = 256
     const g = c.getContext("2d")!
-    const grad = g.createLinearGradient(0, 0, 0, 128)
-    grad.addColorStop(0, "rgba(255,255,255,0)")
-    grad.addColorStop(1, "rgba(255,255,255,1)")
-    g.fillStyle = grad
-    g.fillRect(0, 0, 4, 128)
-    degrade = new CanvasTexture(c)
+    const barres: [number, number, number, number][] =
+      signe === "plus"
+        ? [
+            [48, 104, 160, 48],
+            [104, 48, 48, 160],
+          ]
+        : signe === "moins"
+          ? [[48, 104, 160, 48]]
+          : [
+              [48, 72, 160, 44],
+              [48, 140, 160, 44],
+            ]
+    const tracer = () => {
+      g.beginPath()
+      for (const [x, y, l, h] of barres) g.roundRect(x, y, l, h, 9)
+    }
+    g.lineJoin = "round"
+    g.shadowColor = "rgba(0,0,0,0.45)"
+    g.shadowBlur = 16
+    g.shadowOffsetY = 6
+    tracer()
+    g.lineWidth = 22
+    g.strokeStyle = "#fbf6ea"
+    g.stroke()
+    g.shadowColor = "transparent"
+    tracer()
+    g.fillStyle = "#fbf6ea"
+    g.fill()
+    tracer()
+    g.fillStyle = "#2f2f33"
+    g.fill()
+    t = new CanvasTexture(c)
+    t.colorSpace = SRGBColorSpace
+    t.anisotropy = 8
+    signes.set(signe, t)
   }
-  return degrade
+  return t
 }
 
-function Rayon({ x }: { x: number }) {
-  const ref = useRef<MeshBasicMaterial>(null)
-  const [texture] = useState(textureRayon)
-  useFrame(({ clock }, dt) => {
-    if (ref.current) easing.damp(ref.current, "opacity", 0.16 + Math.sin(clock.elapsedTime * 2.4) * 0.04, 0.4, dt)
-  })
+function Signe({ signe, position }: { signe: Signe; position: [number, number, number] }) {
+  const [texture] = useState(() => textureSigne(signe))
   return (
-    <mesh position={[x, 2.2, 0]} raycast={() => null}>
-      <cylinderGeometry args={[0.35, PAS * 0.55, 4.4, 32, 1, true]} />
-      <meshBasicMaterial
-        ref={ref}
-        map={texture}
-        color="#ffd98a"
-        transparent
-        opacity={0}
-        side={DoubleSide}
-        blending={AdditiveBlending}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </mesh>
+    <Apparition position={position} flotte={0}>
+      <mesh rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
+        <planeGeometry args={[1.15, 1.15]} />
+        <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+      </mesh>
+    </Apparition>
   )
 }
 
@@ -98,39 +117,22 @@ export function ResolutionFamilles({ resultats, fin }: { resultats: Resultats; f
         const disgrace = s.statut === "disgrace"
         return (
           <group key={f}>
-            <Apparition position={[x, 0.09, -TAPIS_P / 2 + 0.42]} flotte={0}>
-              <TexteTable texte={String(s.haut)} style={HOLO} hauteur={0.5} position={[0, 0, 0]} ordre={4} />
-            </Apparition>
-            <Apparition position={[x, 0.09, TAPIS_P / 2 - 0.42]} flotte={0}>
-              <TexteTable texte={String(s.bas)} style={HOLO} hauteur={0.5} position={[0, 0, 0]} ordre={4} />
-            </Apparition>
             {(lumiere || disgrace) && (
               <Aura
                 largeur={PAS * 0.85}
                 profondeur={TAPIS_P * 0.75}
                 position={[x, 0.07, 0]}
                 lacet={0}
-                force={lumiere ? 0.7 : 1.5}
+                force={lumiere ? 0.45 : 0.9}
                 couleur={lumiere ? "#ffc247" : "#021414"}
                 clair={lumiere ? "#fff5c7" : "#1d6b62"}
                 additif={lumiere}
               />
             )}
-            {lumiere && <Rayon x={x} />}
-            <Apparition position={[x, 0.1, 0.05]} flotte={0}>
-              <TexteTable
-                texte={lumiere ? "LUMIÈRE" : disgrace ? "DISGRÂCE" : "ÉGALITÉ"}
-                style={{
-                  graisse: 800,
-                  couleur: lumiere ? "#6b3f08" : disgrace ? "#a9e4d6" : "#e9e4d4",
-                  bloom: lumiere ? "#ffd36a" : disgrace ? "#0f5c52" : "#ffffff",
-                  espacement: "6px",
-                }}
-                hauteur={0.24}
-                position={[0, 0, 0]}
-                ordre={4}
-              />
-            </Apparition>
+            <Signe
+              signe={lumiere ? "plus" : disgrace ? "moins" : "egal"}
+              position={[x, 0.1, lumiere ? -TAPIS_P / 2 + 0.15 : disgrace ? TAPIS_P / 2 - 0.15 : 0]}
+            />
           </group>
         )
       })}

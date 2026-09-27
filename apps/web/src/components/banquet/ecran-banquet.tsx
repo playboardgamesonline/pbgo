@@ -8,6 +8,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
+import { BoutonSon } from "@/components/son"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
@@ -30,7 +31,10 @@ export function EcranBanquet({
     <main className="relative flex h-dvh flex-col overflow-hidden bg-[#0e3940] [--table:calc(114vw*525/3543)]">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url(/accueil/motif.webp)] bg-[length:128px_128px] opacity-[0.07]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgb(34_96_104/55%),transparent_65%)]" />
-      <ReglesButton icone className="absolute top-4 right-4 z-20" />
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
+        <BoutonSon />
+        <ReglesButton icone />
+      </div>
 
       <form onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
         <motion.div

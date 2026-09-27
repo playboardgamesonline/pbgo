@@ -4,6 +4,7 @@ import { useCursor } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useRef, useState } from "react"
+import { jouerSon } from "@/lib/son"
 import { AdditiveBlending, Color, NormalBlending, type ShaderMaterial } from "three"
 
 const vertex = /* glsl */ `
@@ -73,6 +74,7 @@ export function Colonne({
       onPointerOver={(e) => {
         e.stopPropagation()
         setSurvol(true)
+        jouerSon("survol", { volume: 0.7 })
       }}
       onPointerOut={() => setSurvol(false)}
     >

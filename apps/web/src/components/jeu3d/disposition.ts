@@ -138,10 +138,10 @@ export function disposerDomaine(
     const leve = pileLevee === indexGroupe ? 0.45 : 0
     const milieu = u + ((groupe.length - 1) * CHEVAUCHEMENT * f) / 2
     groupe.forEach((carte, k) => {
-      const position = ouvert ? milieu + (k - (groupe.length - 1) / 2) * DL * 1.04 : u + k * CHEVAUCHEMENT * f
+      const position = ouvert ? milieu + (k - (groupe.length - 1) / 2) * DL * 0.6 : u + k * CHEVAUCHEMENT * f
       poses.set(
         carte.id,
-        place(position, (ouvert ? 0.5 : 0.03) + leve + k * EPAISSEUR, penche(carte.id).multiply(famille(carte) ? FACE_HAUT : FACE_BAS)),
+        place(position, (ouvert ? 0.35 : 0.03) + leve + k * EPAISSEUR, penche(carte.id).multiply(famille(carte) ? FACE_HAUT : FACE_BAS)),
       )
     })
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f

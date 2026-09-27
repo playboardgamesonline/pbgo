@@ -17,6 +17,7 @@ import { Bandeau } from "../jeu/bandeau"
 import { JeuProvider } from "../jeu/contexte"
 import { FinDePartie, phraseVainqueur } from "../jeu/fin-de-partie"
 import { useSequenceFin } from "./fin"
+import { useSonsJeu } from "./sons"
 import { useTriche } from "./triche"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
 import { PanneauDebug } from "./debug"
@@ -68,6 +69,7 @@ export function Jeu3D({
   const moiId = vue.moi?.id
   const monTour = vue.phase === "jeu" && !!moiId && vue.joueurActifId === moiId
   const selection = selectionBrute && vue.moi?.main.some((c) => c.id === selectionBrute.id) && monTour ? selectionBrute : null
+  useSonsJeu(vue, fin, selection?.id ?? null, missionFocus)
 
   function finirIntro() {
     const suivantes = [...vues.slice(-20), cleMissions]

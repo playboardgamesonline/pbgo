@@ -1,7 +1,8 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useState, useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
+import { initialiserSon, jouerSon, reglerSon } from "@/lib/son"
 import { BOUTON_ICONE } from "@/components/regles"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +21,7 @@ export function setSonActif(actif: boolean) {
   try {
     localStorage.setItem(CLE, actif ? "on" : "off")
   } catch {}
+  reglerSon(actif)
   abonnes.forEach((f) => f())
 }
 
@@ -84,4 +86,23 @@ export function BoutonSon() {
       </motion.span>
     </motion.button>
   )
+}
+
+export function MoteurSon() {
+  useEffect(() => {
+    reglerSon(lire())
+    const reveil = () => initialiserSon()
+    const clic = (e: MouseEvent) => {
+      if ((e.target as Element | null)?.closest?.("button, a, [role=button]")) jouerSon("clic")
+    }
+    window.addEventListener("pointerdown", reveil)
+    window.addEventListener("keydown", reveil)
+    window.addEventListener("click", clic, true)
+    return () => {
+      window.removeEventListener("pointerdown", reveil)
+      window.removeEventListener("keydown", reveil)
+      window.removeEventListener("click", clic, true)
+    }
+  }, [])
+  return null
 }
