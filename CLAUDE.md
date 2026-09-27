@@ -29,6 +29,13 @@ Exemples de mots métier gardés en français : `courtisan`, `famille`, `role`, 
 - Requêtes GROQ dans `apps/web/src/sanity/queries.ts` avec `defineQuery`, puis `pnpm --filter studio typegen` pour régénérer `apps/web/src/sanity/types.ts`
 - `pnpm --filter studio schema:deploy` après chaque changement de schéma
 
+## Supabase (temps réel)
+- Table `parties` (migration dans `supabase/migrations`), RLS activée sans policy : seul le serveur (clé service role) la lit/écrit
+- `etat` = `GameState` complet du moteur (secret) ; les clients reçoivent uniquement `vueJoueur` via `GET /api/parties/[code]`
+- Après chaque écriture (verrou optimiste sur `version`), le serveur diffuse `maj` sur le canal `partie:{code}` ; le client refetch sa vue
+- Identité joueur = cookie httpOnly `courtisans_joueur`
+- Routes : `POST /api/parties`, `GET /api/parties/[code]`, `POST .../rejoindre|quitter|lancer|action|rejouer`
+
 ## Principes
 - Le serveur est la seule source de vérité ; chaque joueur ne reçoit qu'une vue filtrée (mains, espions, missions cachés).
 - Le rendu du plateau passe par des « slots » de position pour pouvoir basculer en 3D plus tard.
