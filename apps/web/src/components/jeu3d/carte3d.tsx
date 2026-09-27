@@ -4,7 +4,7 @@ import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
-import { type Group, Shape, ShapeGeometry, type Texture, Vector3 } from "three"
+import { CanvasTexture, type Group, type Mesh, Shape, ShapeGeometry, type Texture, Vector3 } from "three"
 import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
@@ -35,7 +35,27 @@ export function geometrieCarte(largeur: number, hauteur: number, rayon = Math.mi
   return geo
 }
 
-const COULEURS_LUEUR = { or: "#f2c14e", rouge: "#ff4d4d", blanc: "#ffffff" } as const
+let ombreTexture: CanvasTexture | null = null
+function textureOmbre() {
+  if (!ombreTexture) {
+    const c = document.createElement("canvas")
+    c.width = c.height = 128
+    const g = c.getContext("2d")!
+    const grad = g.createRadialGradient(64, 64, 20, 64, 64, 64)
+    grad.addColorStop(0, "rgba(0,0,0,0.55)")
+    grad.addColorStop(1, "rgba(0,0,0,0)")
+    g.fillStyle = grad
+    g.fillRect(0, 0, 128, 128)
+    ombreTexture = new CanvasTexture(c)
+  }
+  return ombreTexture
+}
+
+const COULEURS_LUEUR = {
+  or: "#f2c14e",
+  rouge: "#ff4d4d",
+  blanc: "#ffffff",
+} as const
 export type Lueur = keyof typeof COULEURS_LUEUR
 
 type Props = {
@@ -54,12 +74,16 @@ type Props = {
 
 const cibleTmp = new Vector3()
 const echelleTmp = new Vector3()
+const normaleTmp = new Vector3()
 
 export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, arc = 0.3, vitesse = 0.16, onClick, onSurvol }: Props) {
   const ref = useRef<Group>(null)
   const geo = useMemo(() => geometrieCarte(largeur, hauteur), [largeur, hauteur])
-  const geoLueur = useMemo(() => geometrieCarte(largeur + 0.14, hauteur + 0.14), [largeur, hauteur])
+  const marge = 0.14 / Math.max(cible.echelle, 0.3)
+  const geoLueur = useMemo(() => geometrieCarte(largeur + marge, hauteur + marge), [largeur, hauteur, marge])
   const [survol, setSurvol] = useState(false)
+  const [ombre] = useState(textureOmbre)
+  const ombreRef = useRef<Mesh>(null)
   useCursor(survol && !!onClick)
 
   useLayoutEffect(() => {
@@ -81,6 +105,7 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
     easing.damp3(g.position, cibleTmp, vitesse, dt)
     easing.dampQ(g.quaternion, cible.quaternion, vitesse, dt)
     easing.damp3(g.scale, echelleTmp.setScalar(cible.echelle), vitesse, dt)
+    if (ombreRef.current) ombreRef.current.position.z = normaleTmp.set(0, 0, 1).applyQuaternion(g.quaternion).y >= 0 ? -0.012 : 0.012
   })
 
   return (
@@ -97,11 +122,15 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
         onSurvol?.(false)
       }}
     >
+      <mesh ref={ombreRef} position={[0.04, -0.07, -0.012]} raycast={() => null}>
+        <planeGeometry args={[largeur * 1.18, hauteur * 1.1]} />
+        <meshBasicMaterial map={ombre} transparent depthWrite={false} />
+      </mesh>
       <mesh geometry={geo}>
-        <meshStandardMaterial map={recto} roughness={0.55} metalness={0.05} />
+        <meshBasicMaterial map={recto} toneMapped={false} />
       </mesh>
       <mesh geometry={geo} rotation-y={Math.PI} position-z={-0.004}>
-        <meshStandardMaterial map={verso} roughness={0.55} metalness={0.05} />
+        <meshBasicMaterial map={verso} toneMapped={false} />
       </mesh>
       {lueur && (
         <mesh geometry={geoLueur} position-z={-0.002}>

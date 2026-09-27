@@ -5,7 +5,7 @@ import { Html, useCursor } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { AdditiveBlending, CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Object3D, Quaternion, type SpotLight, Vector3 } from "three"
+import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
 import { ORDRE_TAPIS } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 import { useJeu } from "../jeu/contexte"
@@ -15,9 +15,7 @@ import {
   CARTE_H,
   CARTE_L,
   DOMAINE_ECHELLE,
-  DOMAINE_ZONE,
   FACE_BAS,
-  FACE_HAUT,
   MISSION_H,
   MISSION_L,
   MISSIONS_POS,
@@ -25,21 +23,24 @@ import {
   type Pose,
   TAPIS_L,
   TAPIS_P,
-  centreDomaine,
+  type ZoneDomaine,
   colonneDe,
+  disposerDomaine,
   colonneX,
   poseDessusPioche,
+  largeurMaxDomaine,
   poseTable,
-  posesDomaine,
   sieges,
 } from "./disposition"
 import { type Textures, useTextures } from "./textures"
 
-type Placee = { carte: CarteVisible; pose: Pose }
+type Placee = { carte: CarteVisible; pose: Pose; joueurId?: string }
 
 function disposer(vue: VueJoueur, places: Map<string, Vector3>) {
   const map = new Map<string, Placee>()
   const rangs = new Map<string, number>()
+  const zones = new Map<string, ZoneDomaine>()
+  const largeurMax = largeurMaxDomaine(vue.joueurs.length - 1)
   for (const { carte, niveau } of vue.table) {
     const col = colonneDe(carte)
     const cle = `${col}:${niveau}`
@@ -50,15 +51,25 @@ function disposer(vue: VueJoueur, places: Map<string, Vector3>) {
   for (const j of vue.joueurs) {
     const siege = places.get(j.id)
     if (!siege) continue
-    const poses = posesDomaine(siege, j.domaine)
-    for (const carte of j.domaine) map.set(carte.id, { carte, pose: poses.get(carte.id)! })
+    const { poses, zone } = disposerDomaine(siege, j.domaine, largeurMax)
+    zones.set(j.id, zone)
+    for (const carte of j.domaine) map.set(carte.id, { carte, pose: poses.get(carte.id)!, joueurId: j.id })
   }
-  return { map, rangs }
+  return { map, rangs, zones }
 }
 
-const poseSiege = (siege: Vector3): Pose => ({ position: new Vector3(siege.x, 1.6, siege.z + 1.2), quaternion: FACE_BAS.clone(), echelle: DOMAINE_ECHELLE })
+const poseSiege = (siege: Vector3): Pose => ({
+  position: new Vector3(siege.x, 1.6, siege.z + 1.2),
+  quaternion: FACE_BAS.clone(),
+  echelle: DOMAINE_ECHELLE,
+})
 
-type Transitoire = { id: string; carte: CarteVisible | null; depart: Pose; cible: Pose }
+type Transitoire = {
+  id: string
+  carte: CarteVisible | null
+  depart: Pose
+  cible: Pose
+}
 
 function CameraRig() {
   const { camera, size } = useThree()
@@ -80,10 +91,10 @@ function lueurTexture() {
   const c = document.createElement("canvas")
   c.width = c.height = 256
   const g = c.getContext("2d")!
-  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128)
-  grad.addColorStop(0, "rgba(255,160,70,0.45)")
-  grad.addColorStop(0.5, "rgba(255,140,60,0.14)")
-  grad.addColorStop(1, "rgba(255,130,50,0)")
+  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 120)
+  grad.addColorStop(0, "rgba(255,214,120,0.34)")
+  grad.addColorStop(0.75, "rgba(255,200,100,0.16)")
+  grad.addColorStop(1, "rgba(255,200,100,0)")
   g.fillStyle = grad
   g.fillRect(0, 0, 256, 256)
   return new CanvasTexture(c)
@@ -94,8 +105,9 @@ function vignetteTexture() {
   c.width = c.height = 512
   const g = c.getContext("2d")!
   const grad = g.createRadialGradient(256, 256, 40, 256, 256, 256)
-  grad.addColorStop(0, "#12474e")
-  grad.addColorStop(1, "#061a1e")
+  grad.addColorStop(0, "#1d5a60")
+  grad.addColorStop(0.6, "#12424a")
+  grad.addColorStop(1, "#0a2a30")
   g.fillStyle = grad
   g.fillRect(0, 0, 512, 512)
   return new CanvasTexture(c)
@@ -107,50 +119,82 @@ function Table({ tex }: { tex: Textures }) {
     <group>
       <mesh rotation-x={-Math.PI / 2} position-y={-0.02}>
         <planeGeometry args={[80, 60]} />
-        <meshStandardMaterial map={vignette} roughness={0.95} />
+        <meshBasicMaterial map={vignette} toneMapped={false} />
       </mesh>
       <mesh rotation-x={-Math.PI / 2} position-y={0}>
         <planeGeometry args={[TAPIS_L + 0.3, TAPIS_P + 0.3]} />
-        <meshStandardMaterial color="#b8860b" metalness={0.6} roughness={0.35} />
+        <meshBasicMaterial color="#d9a93f" toneMapped={false} />
       </mesh>
       <mesh rotation-x={-Math.PI / 2} position-y={0.01}>
         <planeGeometry args={[TAPIS_L, TAPIS_P]} />
-        <meshStandardMaterial map={tex.tapis} roughness={0.8} />
+        <meshBasicMaterial map={tex.tapis} toneMapped={false} />
       </mesh>
     </group>
   )
 }
 
 function LumiereTour({ cible }: { cible: Vector3 | null }) {
-  const spot = useRef<SpotLight>(null)
   const disque = useRef<Mesh>(null)
   const texture = useFrameTexture(lueurTexture)
-  const [cibleObjet] = useState(() => new Object3D())
   const visee = useRef(new Vector3(0, 0, 0))
+  const position = useRef(new Vector3(0, 0.015, 0))
 
   useFrame((_, dt) => {
-    if (cible) visee.current.copy(cible)
-    easing.damp3(cibleObjet.position, visee.current, 0.35, dt)
-    if (spot.current) {
-      spot.current.target = cibleObjet
-      easing.damp3(spot.current.position, [visee.current.x, 11, visee.current.z + 3], 0.35, dt)
-      easing.damp(spot.current, "intensity", cible ? 420 : 0, 0.3, dt)
-    }
+    if (cible) visee.current.set(cible.x, 0.015, cible.z)
+    easing.damp3(position.current, visee.current, 0.35, dt)
     if (disque.current) {
-      disque.current.position.set(cibleObjet.position.x, 0.02, cibleObjet.position.z)
+      disque.current.position.copy(position.current)
       easing.damp(disque.current.material as MeshBasicMaterial, "opacity", cible ? 1 : 0, 0.3, dt)
     }
   })
 
   return (
-    <>
-      <primitive object={cibleObjet} />
-      <spotLight ref={spot} angle={0.42} penumbra={0.8} distance={40} decay={2} color="#ffd89a" />
-      <mesh ref={disque} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[11, 11]} />
-        <meshBasicMaterial map={texture} transparent blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
-      </mesh>
-    </>
+    <mesh ref={disque} rotation-x={-Math.PI / 2}>
+      <planeGeometry args={[9, 9]} />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+    </mesh>
+  )
+}
+
+function Voile({ actif }: { actif: boolean }) {
+  const ref = useRef<Mesh>(null)
+  const { camera } = useThree()
+  useFrame((_, dt) => {
+    if (!ref.current) return
+    ref.current.position.copy(camera.localToWorld(new Vector3(0, 0, -5)))
+    ref.current.quaternion.copy(camera.quaternion)
+    const m = ref.current.material as MeshBasicMaterial
+    easing.damp(m, "opacity", actif ? 0.6 : 0, 0.2, dt)
+    ref.current.visible = m.opacity > 0.01
+  })
+  return (
+    <mesh ref={ref} renderOrder={10}>
+      <planeGeometry args={[40, 40]} />
+      <meshBasicMaterial color="#020b0d" transparent opacity={0} depthWrite={false} toneMapped={false} />
+    </mesh>
+  )
+}
+
+function ZoneCliquable({ zone, onClick }: { zone: ZoneDomaine; onClick: () => void }) {
+  const [survol, setSurvol] = useState(false)
+  useCursor(survol)
+  return (
+    <mesh
+      position={[zone.centre.x, 0.2, zone.centre.z]}
+      rotation-x={-Math.PI / 2}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation()
+        setSurvol(true)
+      }}
+      onPointerOut={() => setSurvol(false)}
+    >
+      <planeGeometry args={[zone.largeur, zone.profondeur + 0.8]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
   )
 }
 
@@ -181,7 +225,9 @@ function Cible({ largeur, hauteur, pose, label, onClick }: { largeur: number; ha
         <meshBasicMaterial color="#f2c14e" transparent depthWrite={false} toneMapped={false} />
       </mesh>
       <Html zIndexRange={[10, 0]} center position={[0, 0, 0.05]} className="pointer-events-none">
-        <span className={cn("rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-primary", !label && "hidden")}>{label}</span>
+        <span className={cn("rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-primary", !label && "hidden")}>
+          {label}
+        </span>
       </Html>
     </group>
   )
@@ -193,17 +239,41 @@ function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFi
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  return <Carte3D cible={item.cible} depart={item.depart} recto={item.carte ? tex.face(item.carte) : tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} vitesse={0.12} />
+  return (
+    <Carte3D
+      cible={item.cible}
+      depart={item.depart}
+      recto={item.carte ? tex.face(item.carte) : tex.dos}
+      verso={tex.dos}
+      largeur={CARTE_L}
+      hauteur={CARTE_H}
+      vitesse={0.12}
+    />
+  )
 }
 
-function Etiquette({ position, children, actif, visible = true }: { position: [number, number, number]; children: React.ReactNode; actif?: boolean; visible?: boolean }) {
+function Etiquette({
+  position,
+  children,
+  actif,
+  visible = true,
+  onClick,
+}: {
+  position: [number, number, number]
+  children: React.ReactNode
+  actif?: boolean
+  visible?: boolean
+  onClick?: () => void
+}) {
   return (
     <Html zIndexRange={[10, 0]} center position={position} className="pointer-events-none select-none">
       <span
+        onClick={onClick}
         className={cn(
-          "font-display text-sm whitespace-nowrap transition-all duration-500 [text-shadow:0_1px_4px_rgb(0_0_0/90%)]",
+          "block font-display text-sm whitespace-nowrap transition-all duration-500 [text-shadow:0_1px_4px_rgb(0_0_0/90%)]",
           !visible && "opacity-0",
           actif ? "text-lg text-primary [text-shadow:0_0_14px_rgb(242_193_78/80%)]" : "text-foreground/85",
+          onClick && visible && "pointer-events-auto cursor-pointer text-lg text-primary [text-shadow:0_0_12px_rgb(242_193_78/90%)]",
         )}
       >
         {children}
@@ -222,7 +292,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   const missions = useMemo(() => vue.moi?.missions ?? [], [vue.moi?.missions])
   const tex = useTextures(catalogue, missions)
   const places = useMemo(() => sieges(vue), [vue])
-  const { map: plateau, rangs } = useMemo(() => disposer(vue, places), [vue, places])
+  const { map: plateau, rangs, zones } = useMemo(() => disposer(vue, places), [vue, places])
   const main = vue.moi?.main ?? []
   const moiId = vue.moi?.id
 
@@ -243,13 +313,29 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         if (e.type === "carteEliminee") {
           const p = avant.get(e.carte.id)
           if (p) {
-            const cible = { position: p.pose.position.clone().add(new Vector3(0, 6, -2)), quaternion: p.pose.quaternion.clone(), echelle: 0.2 }
-            ajouts.push({ id: `x-${precedente.journal.length + n}`, carte: p.carte, depart: p.pose, cible })
+            const cible = {
+              position: p.pose.position.clone().add(new Vector3(0, 6, -2)),
+              quaternion: p.pose.quaternion.clone(),
+              echelle: 0.2,
+            }
+            ajouts.push({
+              id: `x-${precedente.journal.length + n}`,
+              carte: p.carte,
+              depart: p.pose,
+              cible,
+            })
           }
         }
         if (e.type === "pioche" && e.joueurId !== moiId) {
           const siege = places.get(e.joueurId)
-          if (siege) for (let i = 0; i < e.nombre; i++) ajouts.push({ id: `p-${precedente.journal.length + n}-${i}`, carte: null, depart: poseDessusPioche(precedente.nombreCartesPioche - i), cible: poseSiege(siege) })
+          if (siege)
+            for (let i = 0; i < e.nombre; i++)
+              ajouts.push({
+                id: `p-${precedente.journal.length + n}-${i}`,
+                carte: null,
+                depart: poseDessusPioche(precedente.nombreCartesPioche - i),
+                cible: poseSiege(siege),
+              })
         }
       })
       const avantMain = new Set(precedente.moi?.main.map((c) => c.id))
@@ -283,7 +369,11 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       const n = main.length
       const t = i - (n - 1) / 2
       const leve = c.id === selectionId ? 0.34 : c.id === survol ? 0.14 : 0
-      const local = new Vector3(t * largeur * 0.95, -h + hauteur / 6 - Math.abs(t) * 0.07 + leve, -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01)
+      const local = new Vector3(
+        t * largeur * 0.95,
+        -h + hauteur / 6 - Math.abs(t) * 0.07 + leve,
+        -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
+      )
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
       p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.12)))
@@ -292,10 +382,12 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
     missions.forEach((m, i) => {
       const p = poseCamera(`mission:${m.id}`)
       if (intro || missionFocus === m.id) {
-        const x = intro ? (i - 0.5) * (MISSION_L + 0.3) : 0
-        p.position.copy(camera.localToWorld(new Vector3(x, intro ? 0.6 : 0.5, intro ? -8 : -5.4)))
+        const d = intro ? 4.4 : 3.6
+        const k = d / 8
+        const x = intro ? (i - 0.5) * (MISSION_L + 0.3) * k : 0
+        p.position.copy(camera.localToWorld(new Vector3(x, 0.3 * k, -d)))
         p.quaternion.copy(camera.quaternion)
-        p.echelle = 1
+        p.echelle = intro ? k : 1.4 * k
       } else {
         p.position.set(MISSIONS_POS.x, 0.03, MISSIONS_POS.z + i * (MISSION_H + 0.3))
         p.quaternion.copy(FACE_BAS)
@@ -305,35 +397,44 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   })
 
   const actif = vue.phase === "jeu" ? vue.joueurActifId : null
-  const lumiere = actif ? (actif === moiId ? new Vector3(-3.5, 0, 6.2) : centreDomaine(places.get(actif) ?? new Vector3())) : null
+  const lumiere = actif ? (zones.get(actif)?.centre ?? null) : null
 
   const discret = intro || !!missionFocus
   const colCible = it.selection && it.peutJouer("table") ? (it.selection.role === "espion" ? "reine" : it.selection.famille) : null
   const candidats = new Set(it.assassinat?.candidats ?? [])
+  const domaineCible = (joueurId: string) => !!it.selection && !it.assassinat && it.peutJouer(joueurId === moiId ? "domaine" : "domaineAdverse")
+  const jouerDomaine = (joueurId: string) => it.jouer({ zone: "domaine", joueurId })
 
   return (
     <>
       <CameraRig />
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[3, 14, 8]} intensity={1.1} />
-      <hemisphereLight args={["#fff4dc", "#0b2a30", 0.35]} />
       <LumiereTour cible={lumiere} />
       <Table tex={tex} />
 
       {ORDRE_TAPIS.map((col) => {
-        const haut = vue.table.filter((p) => p.niveau === "haut" && colonneDe(p.carte) === col).reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
-        const bas = vue.table.filter((p) => p.niveau === "bas" && colonneDe(p.carte) === col).reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
+        const haut = vue.table
+          .filter((p) => p.niveau === "haut" && colonneDe(p.carte) === col)
+          .reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
+        const bas = vue.table
+          .filter((p) => p.niveau === "bas" && colonneDe(p.carte) === col)
+          .reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
         return (
           <Html key={col} zIndexRange={[10, 0]} center position={[colonneX(col), 0.05, TAPIS_P / 2 - 0.18]} className="pointer-events-none">
-            <span className={cn("rounded-full bg-black/65 px-1.5 text-[10px] leading-4 whitespace-nowrap text-white tabular-nums transition-opacity", (discret || (!haut && !bas)) && "opacity-0")}>
+            <span
+              className={cn(
+                "rounded-full bg-black/65 px-1.5 text-[10px] leading-4 whitespace-nowrap text-white tabular-nums transition-opacity",
+                (discret || (!haut && !bas)) && "opacity-0",
+              )}
+            >
               ▲{haut} ▼{bas}
             </span>
           </Html>
         )
       })}
 
-      {[...plateau.values()].map(({ carte, pose }) => {
+      {[...plateau.values()].map(({ carte, pose, joueurId }) => {
         const candidat = candidats.has(carte.id)
+        const cibleDomaine = !!joueurId && domaineCible(joueurId)
         return (
           <Carte3D
             key={carte.id}
@@ -343,14 +444,19 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             verso={tex.dos}
             largeur={CARTE_L}
             hauteur={CARTE_H}
-            lueur={candidat ? "rouge" : null}
+            lueur={candidat ? "rouge" : cibleDomaine ? "or" : null}
             onClick={
               candidat
                 ? (e) => {
                     e.stopPropagation()
                     it.eliminer(carte.id)
                   }
-                : undefined
+                : cibleDomaine
+                  ? (e) => {
+                      e.stopPropagation()
+                      jouerDomaine(joueurId)
+                    }
+                  : undefined
             }
           />
         )
@@ -399,11 +505,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           }}
         />
       ))}
-      {missions.length > 0 && (
-        <Etiquette visible={!discret} position={[MISSIONS_POS.x, 0.05, MISSIONS_POS.z - MISSION_H / 2 - 0.45]}>
-          Mes missions
-        </Etiquette>
-      )}
+      <Voile actif={discret} />
 
       {transitoires.map((t) => (
         <Ephemere key={t.id} item={t} tex={tex} onFin={() => setTransitoires((l) => l.filter((x) => x.id !== t.id))} />
@@ -413,7 +515,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         {vue.nombreCartesPioche > 0 && (
           <mesh position-y={(vue.nombreCartesPioche * 0.006) / 2}>
             <boxGeometry args={[CARTE_L * 0.98, vue.nombreCartesPioche * 0.006, CARTE_H * 0.98]} />
-            <meshStandardMaterial color="#e9dfc6" roughness={0.9} />
+            <meshBasicMaterial color="#d8ccae" toneMapped={false} />
           </mesh>
         )}
       </group>
@@ -428,7 +530,13 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         const siege = places.get(j.id)
         if (!siege) return null
         return (
-          <Etiquette key={j.id} visible={!discret} position={[siege.x, 0.05, siege.z]} actif={j.id === actif}>
+          <Etiquette
+            key={j.id}
+            visible={!discret}
+            position={[siege.x, 0.05, siege.z]}
+            actif={j.id === actif}
+            onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
+          >
             {j.id === moiId ? `${pseudo(j.id)} (toi)` : pseudo(j.id)}
           </Etiquette>
         )
@@ -446,20 +554,11 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           />
         ))}
 
-      {it.selection &&
-        vue.joueurs.map((j) => {
-          const siege = places.get(j.id)
-          if (!siege || !it.peutJouer(j.id === moiId ? "domaine" : "domaineAdverse")) return null
-          return (
-            <Cible
-              key={j.id}
-              largeur={DOMAINE_ZONE.largeur}
-              hauteur={DOMAINE_ZONE.profondeur}
-              pose={{ position: centreDomaine(siege), quaternion: FACE_HAUT.clone(), echelle: 1 }}
-              onClick={() => it.jouer({ zone: "domaine", joueurId: j.id })}
-            />
-          )
-        })}
+      {vue.joueurs.map((j) => {
+        const zone = zones.get(j.id)
+        if (!zone || !domaineCible(j.id)) return null
+        return <ZoneCliquable key={j.id} zone={zone} onClick={() => jouerDomaine(j.id)} />
+      })}
     </>
   )
 }

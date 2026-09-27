@@ -17,9 +17,17 @@ const EPAISSEUR = 0.014
 export const FACE_HAUT = new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
 export const FACE_BAS = new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, 0))
 
-export type Pose = { position: Vector3; quaternion: Quaternion; echelle: number }
+export type Pose = {
+  position: Vector3
+  quaternion: Quaternion
+  echelle: number
+}
 
-const pose = (x: number, y: number, z: number, q: Quaternion, echelle = 1): Pose => ({ position: new Vector3(x, y, z), quaternion: q.clone(), echelle })
+const pose = (x: number, y: number, z: number, q: Quaternion, echelle = 1): Pose => ({
+  position: new Vector3(x, y, z),
+  quaternion: q.clone(),
+  echelle,
+})
 
 export type Colonne = Famille | "reine"
 
@@ -36,25 +44,25 @@ export const PIOCHE = new Vector3(TAPIS_L / 2 + 1.6, 0, 0)
 export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n, 60) * 0.006, PIOCHE.z, FACE_BAS)
 
 const SIEGES: Record<number, [number, number][]> = {
-  1: [[0, -12]],
+  1: [[0, -11.5]],
   2: [
-    [-6.5, -12],
-    [6.5, -12],
+    [-6.5, -11.5],
+    [6.5, -11.5],
   ],
   3: [
-    [-12.5, -3],
-    [0, -12],
-    [12.5, -3],
+    [-10, -9.5],
+    [0, -11.5],
+    [10, -9.5],
   ],
   4: [
-    [-12.5, -2.5],
-    [-6, -12],
-    [6, -12],
-    [12.5, -2.5],
+    [-11, -4],
+    [-5.5, -11.5],
+    [5.5, -11.5],
+    [11, -4],
   ],
 }
 
-export const MON_SIEGE = new Vector3(-10.5, 0, 5.2)
+export const MON_SIEGE = new Vector3(-9.5, 0, 5.4)
 export const MISSIONS_POS = new Vector3(10.5, 0, 5)
 
 export function sieges(vue: VueJoueur): Map<string, Vector3> {
@@ -72,24 +80,42 @@ export function sieges(vue: VueJoueur): Map<string, Vector3> {
 }
 
 const ORDRE_FAMILLES = Object.keys(FAMILLES_PAR_DEFAUT) as Famille[]
-const DL = CARTE_L * DOMAINE_ECHELLE
-const DH = CARTE_H * DOMAINE_ECHELLE
+export const DL = CARTE_L * DOMAINE_ECHELLE
+export const DH = CARTE_H * DOMAINE_ECHELLE
+const CHEVAUCHEMENT = 0.24
+const ECART = 0.35
 
-export const DOMAINE_ZONE = { largeur: 3 * (DL + 0.75) + 0.4, profondeur: 2 * (DH + 0.25) + 0.3 }
+export const largeurMaxDomaine = (nombreAdversaires: number) => (nombreAdversaires >= 3 ? 6.4 : 8.5)
 
-export function posesDomaine(siege: Vector3, domaine: CarteVisible[]): Map<string, Pose> {
-  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter((g) => g.length > 0)
-  const poses = new Map<string, Pose>()
-  groupes.forEach((groupe, g) => {
-    const col = g % 3
-    const ligne = Math.floor(g / 3)
-    const x0 = siege.x - DOMAINE_ZONE.largeur / 2 + 0.2 + col * (DL + 0.75) + DL / 2
-    const z0 = siege.z + 0.5 + ligne * (DH + 0.25) + DH / 2
-    groupe.forEach((carte, k) => {
-      poses.set(carte.id, pose(x0 + k * 0.22, 0.03 + k * EPAISSEUR, z0, carte.famille ? FACE_HAUT : FACE_BAS, DOMAINE_ECHELLE))
-    })
-  })
-  return poses
+export type ZoneDomaine = {
+  centre: Vector3
+  largeur: number
+  profondeur: number
 }
 
-export const centreDomaine = (siege: Vector3) => new Vector3(siege.x, 0.01, siege.z + 0.5 + DOMAINE_ZONE.profondeur / 2 - 0.15)
+export function disposerDomaine(siege: Vector3, domaine: CarteVisible[], largeurMax: number): { poses: Map<string, Pose>; zone: ZoneDomaine } {
+  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter(
+    (g) => g.length > 0,
+  )
+  const naturelle = groupes.reduce((s, g) => s + DL + (g.length - 1) * CHEVAUCHEMENT, 0) + ECART * Math.max(0, groupes.length - 1)
+  const fixe = DL * groupes.length
+  const f = naturelle > largeurMax && naturelle > fixe ? Math.max(0.25, (largeurMax - fixe) / (naturelle - fixe)) : 1
+  const largeur = groupes.length ? fixe + (naturelle - fixe) * f : DL * 2
+  const z = siege.z + 0.4 + DH / 2
+  const poses = new Map<string, Pose>()
+  let x = siege.x - largeur / 2 + DL / 2
+  groupes.forEach((groupe) => {
+    groupe.forEach((carte, k) => {
+      poses.set(carte.id, pose(x + k * CHEVAUCHEMENT * f, 0.03 + k * EPAISSEUR, z, carte.famille ? FACE_HAUT : FACE_BAS, DOMAINE_ECHELLE))
+    })
+    x += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
+  })
+  return {
+    poses,
+    zone: {
+      centre: new Vector3(siege.x, 0.02, z),
+      largeur: largeur + 0.6,
+      profondeur: DH + 1.1,
+    },
+  }
+}
