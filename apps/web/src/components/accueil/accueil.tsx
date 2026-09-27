@@ -11,7 +11,6 @@ import { ReglesButton } from "@/components/regles"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
-import { Label } from "@/components/ui/label"
 import { api, lienPartie } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
 import { useProfil } from "@/lib/profil"
@@ -96,17 +95,15 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
           transition={{ delay: 0.15 }}
           className="mt-[4.5vh] w-full max-w-md shrink-0 space-y-2 px-4"
         >
-          <Label htmlFor="pseudo" className="justify-center font-display text-base tracking-wide text-foreground/90">
-            Votre appellation
-          </Label>
           <Input
             id="pseudo"
             value={profil.pseudo}
             maxLength={20}
             autoComplete="nickname"
-            placeholder="Dame Aliénor"
-            onChange={(e) => setProfil({ pseudo: e.target.value })}
-            className="h-14 border-[#8a6a3a]/60 bg-[#0b2231]/80 px-4 text-center text-xl md:text-2xl"
+            placeholder="VOTRE APPELLATION"
+            aria-label="Votre appellation"
+            onChange={(e) => setProfil({ pseudo: e.target.value.toUpperCase() })}
+            className="h-14 border-[#8a6a3a]/60 bg-[#0b2231]/80 px-4 text-center font-display text-xl tracking-[0.12em] uppercase placeholder:text-foreground/30 md:text-2xl"
           />
         </motion.div>
 
@@ -134,7 +131,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
               type="submit"
               size="lg"
               disabled={occupe}
-              className="h-16 w-full max-w-md rounded-xl bg-foreground font-display text-2xl tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] hover:bg-foreground/90"
+              className="h-16 w-full max-w-md cursor-pointer rounded-xl bg-foreground font-display text-2xl tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] hover:bg-foreground active:scale-[0.98]"
             >
               {occupe && <Loader2Icon className="animate-spin" />}
               Courtiser au banquet
