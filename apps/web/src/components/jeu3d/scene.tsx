@@ -671,7 +671,7 @@ function Monde({
       )}
       <TexteTable
         texte={String(vue.nombreCartesPioche)}
-        style={{ couleur: "rgba(250,246,232,0.95)", graisse: 800, bloom: "rgba(255,255,255,0.9)", holo: true }}
+        style={{ couleur: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", graisse: 800 }}
         hauteur={0.85}
         position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.75]}
       />

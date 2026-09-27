@@ -1,6 +1,6 @@
 "use client"
 
-import { Leva } from "leva"
+import { Leva, button, levaStore, useControls } from "leva"
 import { useEffect, useSyncExternalStore } from "react"
 
 const CLE = "courtisans:debug"
@@ -26,7 +26,20 @@ function basculer() {
   abonnes.forEach((f) => f())
 }
 
+function copierTout() {
+  const donnees = levaStore.getData() as Record<string, { type?: string; value?: unknown }>
+  const valeurs: Record<string, unknown> = {}
+  for (const [chemin, entree] of Object.entries(donnees)) {
+    if (!entree || entree.type === "BUTTON" || entree.value === undefined) continue
+    valeurs[chemin] = entree.value
+  }
+  const texte = JSON.stringify(valeurs, null, 2)
+  navigator.clipboard?.writeText(texte).catch(() => null)
+  console.info("Réglages debug", valeurs)
+}
+
 export function PanneauDebug() {
+  useControls({ "Copier tous les réglages": button(copierTout) })
   const actif = useSyncExternalStore(
     (f) => {
       abonnes.add(f)

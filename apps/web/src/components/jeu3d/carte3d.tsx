@@ -9,6 +9,7 @@ import {
   CanvasTexture,
   ExtrudeGeometry,
   NormalBlending,
+  RepeatWrapping,
   type Group,
   type Mesh,
   type MeshBasicMaterial,
@@ -64,6 +65,29 @@ export function geometrieCarte(largeur: number, hauteur: number, rayon = Math.mi
     geometries.set(cle, geo)
   }
   return geo
+}
+
+function textureScintille() {
+  const c = document.createElement("canvas")
+  c.width = c.height = 256
+  const g = c.getContext("2d")!
+  const grad = g.createLinearGradient(0, 256, 256, 0)
+  grad.addColorStop(0.42, "rgba(255,255,255,0)")
+  grad.addColorStop(0.5, "rgba(255,250,230,0.8)")
+  grad.addColorStop(0.58, "rgba(255,255,255,0)")
+  g.fillStyle = grad
+  g.fillRect(0, 0, 256, 256)
+  for (let i = 0; i < 26; i++) {
+    const x = Math.random() * 256
+    const y = Math.random() * 256
+    const r = 2 + Math.random() * 4
+    g.fillStyle = "rgba(255,255,255,0.9)"
+    g.fillRect(x - r, y - 0.6, r * 2, 1.2)
+    g.fillRect(x - 0.6, y - r, 1.2, r * 2)
+  }
+  const t = new CanvasTexture(c)
+  t.wrapS = RepeatWrapping
+  return t
 }
 
 let refletTexture: CanvasTexture | null = null
@@ -179,9 +203,13 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   const tranche = useMemo(() => geometrieTranche(largeur, hauteur, epaisseur), [largeur, hauteur, epaisseur])
   const marge = 0.05 / Math.max(cible.echelle, 0.3)
   const geoLueur = useMemo(() => geometrieCarte(largeur + marge, hauteur + marge), [largeur, hauteur, marge])
-  const margeHalo = Math.min(largeur, hauteur) * 0.28
+  const margeHalo = Math.min(largeur, hauteur) * (lueur === "or" ? 0.14 : 0.28)
   const halo = useMemo(() => textureHalo(largeur, hauteur, margeHalo), [largeur, hauteur, margeHalo])
   const haloRef = useRef<MeshBasicMaterial>(null)
+  const scintilleRef = useRef<Mesh>(null)
+  const [texScintille] = useState(textureScintille)
+  const epaisseurContour = 0.035 / Math.max(cible.echelle, 0.3)
+  const geoContour = useMemo(() => geometrieCarte(largeur + epaisseurContour, hauteur + epaisseurContour), [largeur, hauteur, epaisseurContour])
   const [survol, setSurvol] = useState(false)
   const [ombre] = useState(textureOmbre)
   const ombreRef = useRef<Mesh>(null)
@@ -217,7 +245,17 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   }, [])
 
   useFrame(({ pointer, clock }, dt) => {
-    if (haloRef.current) haloRef.current.opacity = (lueur === "rouge" ? 0.75 : 0.8) + Math.sin(clock.elapsedTime * 2.6) * 0.15
+    if (haloRef.current)
+      haloRef.current.opacity = lueur === "rouge" ? 0.75 + Math.sin(clock.elapsedTime * 2.6) * 0.15 : 0.35 + Math.sin(clock.elapsedTime * 2.6) * 0.08
+    const sc = scintilleRef.current
+    if (sc) {
+      sc.visible = lueur === "or"
+      if (sc.visible) {
+        const m = sc.material as MeshBasicMaterial
+        if (m.map) m.map.offset.x = ((clock.elapsedTime * 0.35) % 1.6) - 0.8
+        m.opacity = 0.55
+      }
+    }
     const r = refletRef.current
     if (r) {
       const m = r.material as MeshBasicMaterial
@@ -301,6 +339,14 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
             blending={lueur === "rouge" ? NormalBlending : AdditiveBlending}
             toneMapped={false}
           />
+        </mesh>
+      )}
+      <mesh ref={scintilleRef} geometry={geo} position-z={epaisseur / 2 + 0.004} raycast={() => null} visible={false}>
+        <meshBasicMaterial map={texScintille} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </mesh>
+      {lueur === "or" && (
+        <mesh geometry={geoContour} position-z={-epaisseur / 2 - 0.003} raycast={() => null}>
+          <meshBasicMaterial color="#ffffff" toneMapped={false} />
         </mesh>
       )}
       {lueur === "rouge" && (

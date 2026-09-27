@@ -151,6 +151,7 @@ export function TexteTable({
     if (!materiau.current) return
     const t = clock.elapsedTime
     materiau.current.opacity = holo ? 0.9 + Math.sin(t * 1.6) * 0.05 : 1
+    if (relief) materiau.current.color.setScalar(0.92 + 0.08 * Math.pow(0.5 + 0.5 * Math.sin(t * 3.1 + texte.length), 8))
   })
 
   return (
