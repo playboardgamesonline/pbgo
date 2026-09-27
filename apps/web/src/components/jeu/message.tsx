@@ -4,58 +4,60 @@ import type { CarteVisible, Cible, EvenementVisible } from "@courtisans/engine"
 import { Fragment } from "react"
 import { cn } from "@/lib/utils"
 import { useJeu } from "./contexte"
-import { PictoFamille, PictoRole } from "./pictos"
+import { PictoRole } from "./pictos"
+import { PseudoJoueur } from "./pseudo"
 
-function NomCarte({ carte }: { carte: CarteVisible }) {
+export function BadgeCarte({ carte, className }: { carte: CarteVisible; className?: string }) {
   const { catalogue } = useJeu()
+  const famille = carte.famille ? catalogue.familles[carte.famille] : null
   return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap font-semibold">
-      {carte.role && <PictoRole role={carte.role} className="size-4" />}
-      {carte.role ? catalogue.roles[carte.role].nom : "Courtisan"}
-      {carte.famille && (
-        <>
-          <PictoFamille famille={carte.famille} className="size-4" />
-          {catalogue.familles[carte.famille].nom}
-        </>
+    <span
+      className={cn(
+        "relative inline-flex items-center gap-1.5 overflow-hidden rounded-md border border-white/30 py-0.5 pr-7 pl-1.5 align-middle font-semibold whitespace-nowrap text-white shadow-md [text-shadow:0_1px_3px_rgb(0_0_0/70%)]",
+        className,
       )}
+      style={{ backgroundColor: famille?.couleur ?? "var(--disgrace)" }}
+    >
+      {famille?.pictoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={famille.pictoUrl} alt="" aria-hidden className="pointer-events-none absolute -right-1.5 -bottom-2.5 size-10 opacity-35" />
+      )}
+      {carte.role && <PictoRole role={carte.role} className="relative size-[1.15em]" />}
+      <span className="relative">{carte.role ? catalogue.roles[carte.role].nom : "Courtisan"}</span>
     </span>
   )
 }
 
-function Zone({ cible, auteurId, elimination }: { cible: Cible; auteurId: string; elimination?: boolean }) {
-  const { pseudo } = useJeu()
-  if (cible.zone === "table") {
-    if (elimination) return <>à la table de la Reine</>
-    return <>{cible.niveau === "haut" ? "en faveur" : "en défaveur"} à la table de la Reine</>
-  }
-  if (cible.joueurId === auteurId) return <>dans son domaine</>
+function Zone({ cible, auteurId }: { cible: Cible; auteurId: string }) {
+  if (cible.zone === "table") return <span>à la table de la Reine.</span>
+  if (cible.joueurId === auteurId) return <span>chez lui.</span>
   return (
-    <>
-      dans le domaine de <strong>{pseudo(cible.joueurId)}</strong>
-    </>
+    <span>
+      chez <PseudoJoueur id={cible.joueurId} />.
+    </span>
   )
 }
 
+const LIGNE = "inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1"
+
 export function Message({ evenement, className }: { evenement: EvenementVisible; className?: string }) {
-  const { pseudo } = useJeu()
   switch (evenement.type) {
     case "carteJouee":
       return (
-        <span className={cn("inline-flex flex-wrap items-center justify-center gap-x-1.5", className)}>
-          <strong>{pseudo(evenement.joueurId)}</strong> a joué un <NomCarte carte={evenement.carte} /> <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
+        <span className={cn(LIGNE, className)}>
+          <PseudoJoueur id={evenement.joueurId} /> joue <BadgeCarte carte={evenement.carte} /> <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
         </span>
       )
     case "carteEliminee":
       return (
-        <span className={cn("inline-flex flex-wrap items-center justify-center gap-x-1.5", className)}>
-          <strong>{pseudo(evenement.joueurId)}</strong> a éliminé un <NomCarte carte={evenement.carte} />{" "}
-          <Zone cible={evenement.cible} auteurId={evenement.joueurId} elimination />
+        <span className={cn(LIGNE, className)}>
+          <PseudoJoueur id={evenement.joueurId} /> élimine <BadgeCarte carte={evenement.carte} /> <Zone cible={evenement.cible} auteurId={evenement.joueurId} />
         </span>
       )
     case "pioche":
       return (
-        <span className={className}>
-          <strong>{pseudo(evenement.joueurId)}</strong> a pioché {evenement.nombre} carte{evenement.nombre > 1 ? "s" : ""}
+        <span className={cn(LIGNE, className)}>
+          <PseudoJoueur id={evenement.joueurId} /> <span>pioche {evenement.nombre} carte{evenement.nombre > 1 ? "s" : ""}.</span>
         </span>
       )
     case "finDePartie":

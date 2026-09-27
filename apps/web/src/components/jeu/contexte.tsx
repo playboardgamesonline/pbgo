@@ -15,7 +15,10 @@ type JeuContexte = Positions & {
   partie: PartiePublique
   vue: VueJoueur
   pseudo: (joueurId: string) => string
+  couleur: (joueurId: string) => string
 }
+
+export const COULEURS_JOUEURS = ["#f47b20", "#8e5bd9", "#e0409c", "#17b3c4", "#8a5a2b"]
 
 const Contexte = createContext<JeuContexte | null>(null)
 
@@ -45,6 +48,7 @@ export function JeuProvider({ catalogue, partie, vue, children }: { catalogue: C
       enregistrer,
       rect,
       pseudo: (id) => partie.joueurs.find((j) => j.id === id)?.pseudo ?? "?",
+      couleur: (id) => COULEURS_JOUEURS[Math.max(0, partie.joueurs.findIndex((j) => j.id === id)) % COULEURS_JOUEURS.length],
     }),
     [catalogue, partie, vue, enregistrer, rect],
   )
