@@ -23,7 +23,7 @@ export function Bandeau() {
   const tour = vue.phase === "jeu" && !!vue.joueurActifId && (!dernier || (dernier.type === "pioche" && piocheVue === n))
 
   return (
-    <div className="max-w-md text-left text-sm text-white md:text-base [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
+    <div className="max-w-lg text-left text-base text-foreground md:text-lg [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
       <AnimatePresence mode="wait">
         <motion.div
           key={tour ? `tour-${vue.joueurActifId}` : `e-${n}`}
@@ -39,7 +39,7 @@ export function Bandeau() {
           ) : dernier ? (
             <Message evenement={dernier} className="justify-start" />
           ) : (
-            <span className="text-white/80">Le banquet commence…</span>
+            <span className="text-foreground/80">Le banquet commence…</span>
           )}
         </motion.div>
       </AnimatePresence>

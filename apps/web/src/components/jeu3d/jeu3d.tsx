@@ -8,6 +8,7 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
+import { BoutonSon } from "@/components/son"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
@@ -137,7 +138,7 @@ export function Jeu3D({
             <div className="flex flex-col items-start gap-3">
               <button
                 type="button"
-                className="pointer-events-auto mt-1 w-20 transition-transform hover:scale-105 sm:w-24"
+                className="pointer-events-auto mt-1 w-24 transition-transform hover:scale-105 sm:w-32"
                 title="Quitter la partie"
                 onClick={onQuitter}
               >
@@ -145,7 +146,10 @@ export function Jeu3D({
               </button>
               <Bandeau />
             </div>
-            <ReglesButton icone className="pointer-events-auto" />
+            <div className="pointer-events-auto flex items-center gap-2">
+              <BoutonSon />
+              <ReglesButton icone />
+            </div>
           </header>
 
           {intro && (
