@@ -1,11 +1,12 @@
 "use client"
 
 import type { Cible, Courtisan, ZoneJeu } from "@courtisans/engine"
-import { ArrowLeftIcon, Loader2Icon } from "lucide-react"
+import { Loader2Icon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
@@ -36,7 +37,17 @@ function missionsVues(): string[] {
   }
 }
 
-export function Jeu3D({ partie, catalogue, onMaj, onQuitter }: { partie: PartiePublique; catalogue: CatalogueClient; onMaj: (p: PartiePublique) => void; onQuitter: () => void }) {
+export function Jeu3D({
+  partie,
+  catalogue,
+  onMaj,
+  onQuitter,
+}: {
+  partie: PartiePublique
+  catalogue: CatalogueClient
+  onMaj: (p: PartiePublique) => void
+  onQuitter: () => void
+}) {
   const vue = partie.vue!
   const [selectionBrute, setSelection] = useState<Courtisan | null>(null)
   const [assassinat, setAssassinat] = useState<Assassinat | null>(null)
@@ -64,7 +75,14 @@ export function Jeu3D({ partie, catalogue, onMaj, onQuitter }: { partie: PartieP
     async function envoyer(carteId: string, cible: Cible, cibleAssassinat?: string) {
       setEnvoi(true)
       try {
-        onMaj(await api.action(partie.code, { type: "jouerCarte", carteId, cible, cibleAssassinat }))
+        onMaj(
+          await api.action(partie.code, {
+            type: "jouerCarte",
+            carteId,
+            cible,
+            cibleAssassinat,
+          }),
+        )
         setSelection(null)
         setAssassinat(null)
       } catch (e) {
@@ -102,7 +120,8 @@ export function Jeu3D({ partie, catalogue, onMaj, onQuitter }: { partie: PartieP
   let aide = ""
   if (intro) aide = ""
   else if (assassinat) aide = ""
-  else if (selection) aide = `Où jouer ${selection.role ? `ce ${catalogue.roles[selection.role].nom}` : "ce Courtisan"} ${catalogue.familles[selection.famille].nom} ?`
+  else if (selection)
+    aide = `Où jouer ${selection.role ? `ce ${catalogue.roles[selection.role].nom}` : "ce Courtisan"} ${catalogue.familles[selection.famille].nom} ?`
 
   return (
     <JeuProvider catalogue={catalogue} partie={partie} vue={vue}>
@@ -121,32 +140,20 @@ export function Jeu3D({ partie, catalogue, onMaj, onQuitter }: { partie: PartieP
           </div>
 
           <header className="pointer-events-none absolute inset-x-0 top-0 z-20 grid grid-cols-[auto_1fr_auto] items-start gap-4 bg-gradient-to-b from-black/60 to-transparent px-4 pt-3 pb-8">
-            <Button variant="ghost" className="pointer-events-auto" onClick={onQuitter}>
-              <ArrowLeftIcon />
-              Quitter
-            </Button>
+            <button
+              type="button"
+              className="pointer-events-auto w-28 transition-transform hover:scale-105 sm:w-36"
+              title="Quitter la partie"
+              onClick={onQuitter}
+            >
+              <Logo src={catalogue.logoUrl} />
+            </button>
             <Bandeau aide={aide} />
-            <ReglesButton className="pointer-events-auto" />
+            <ReglesButton icone className="pointer-events-auto" />
           </header>
 
-          {!intro && missionFocus && (
-            <p className="pointer-events-none absolute inset-x-0 top-[62%] z-20 mx-auto max-w-xl rounded-xl bg-black/55 px-4 py-2 text-center text-lg backdrop-blur-sm">
-              {vue.moi?.missions.find((m) => m.id === missionFocus)?.texte}
-            </p>
-          )}
-
           {intro && (
-            <div className="pointer-events-none absolute inset-x-0 top-[15%] z-20 text-center">
-              <p className="font-display text-3xl text-primary [text-shadow:0_2px_10px_rgb(0_0_0/90%)]">Tes missions secrètes</p>
-            </div>
-          )}
-          {intro && (
-            <div className="absolute inset-x-0 top-[56%] z-20 flex flex-col items-center gap-4">
-              <div className="grid w-full max-w-3xl grid-cols-2 gap-10 px-6 text-center [text-shadow:0_2px_8px_rgb(0_0_0/95%)]">
-                {vue.moi?.missions.map((m) => (
-                  <p key={m.id}>{m.texte}</p>
-                ))}
-              </div>
+            <div className="absolute inset-x-0 bottom-[12%] z-20 flex justify-center">
               <Button size="lg" className="h-12 px-8 font-display text-base shadow-2xl" onClick={finirIntro}>
                 J&apos;ai lu mes missions
               </Button>

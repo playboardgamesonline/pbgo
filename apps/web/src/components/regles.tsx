@@ -4,6 +4,7 @@ import { BookOpenIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 function Section({ titre, children }: { titre: string; children: React.ReactNode }) {
   return (
@@ -14,14 +15,26 @@ function Section({ titre, children }: { titre: string; children: React.ReactNode
   )
 }
 
-export function ReglesButton({ className }: { className?: string }) {
+export function ReglesButton({ className, icone }: { className?: string; icone?: boolean }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className={className}>
-          <BookOpenIcon />
-          Règles du jeu
-        </Button>
+        {icone ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Règles du jeu"
+            title="Règles du jeu"
+            className={cn("rounded-full border border-primary/80 bg-transparent text-primary hover:bg-primary/10 hover:text-primary", className)}
+          >
+            <BookOpenIcon strokeWidth={1.5} />
+          </Button>
+        ) : (
+          <Button variant="outline" className={className}>
+            <BookOpenIcon />
+            Règles du jeu
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] gap-0 bg-popover p-0 text-popover-foreground sm:max-w-2xl">
         <DialogHeader className="border-b p-6">

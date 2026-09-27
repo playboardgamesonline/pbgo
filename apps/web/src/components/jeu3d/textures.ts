@@ -31,6 +31,68 @@ function textureTexte(texte: string, fond: string, encre: string, ratio: number)
   return t
 }
 
+function deuxLignes(ctx: CanvasRenderingContext2D, texte: string): string[] {
+  const mots = texte.split(/\s+/).filter(Boolean)
+  if (mots.length < 2) return [texte]
+  let meilleur: string[] = [texte]
+  let largeurMin = Number.POSITIVE_INFINITY
+  for (let i = 1; i < mots.length; i++) {
+    const lignes = [mots.slice(0, i).join(" "), mots.slice(i).join(" ")]
+    const largeur = Math.max(...lignes.map((l) => ctx.measureText(l).width))
+    if (largeur < largeurMin) {
+      largeurMin = largeur
+      meilleur = lignes
+    }
+  }
+  return meilleur
+}
+
+const POLICE = '"Alegreya Variable", "Alegreya", Georgia, serif'
+
+async function composerMission(image: Texture, texte: string): Promise<Texture> {
+  await document.fonts?.load(`600 40px ${POLICE}`).catch(() => null)
+  const source = image.image as CanvasImageSource & {
+    width: number
+    height: number
+  }
+  const canvas = document.createElement("canvas")
+  canvas.width = 1376
+  canvas.height = 904
+  const ctx = canvas.getContext("2d")!
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height)
+  const largeurMax = canvas.width * 0.6
+  let taille = 58
+  ctx.font = `600 ${taille}px ${POLICE}`
+  let lignes = deuxLignes(ctx, texte)
+  while (taille > 30 && Math.max(...lignes.map((l) => ctx.measureText(l).width)) > largeurMax) {
+    taille -= 2
+    ctx.font = `600 ${taille}px ${POLICE}`
+    lignes = deuxLignes(ctx, texte)
+  }
+  ctx.fillStyle = "#141414"
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  const interligne = taille * 1.15
+  const centre = canvas.height * 0.705
+  lignes.forEach((l, i) => ctx.fillText(l, canvas.width / 2, centre + (i - (lignes.length - 1) / 2) * interligne))
+  const t = new CanvasTexture(canvas)
+  t.colorSpace = SRGBColorSpace
+  t.anisotropy = 8
+  return t
+}
+
+const composees = new WeakMap<Texture, Map<string, Promise<Texture>>>()
+function missionComposee(image: Texture, texte: string) {
+  let parTexte = composees.get(image)
+  if (!parTexte) composees.set(image, (parTexte = new Map()))
+  let promesse = parTexte.get(texte)
+  if (!promesse) {
+    promesse = composerMission(image, texte).catch(() => image)
+    parTexte.set(texte, promesse)
+  }
+  return promesse
+}
+
 const loader = new TextureLoader().setCrossOrigin("anonymous")
 const cache = new Map<string, Promise<Texture>>()
 
@@ -68,7 +130,11 @@ export type Textures = {
   dosMission: (m: Mission) => Texture
 }
 
-type Source = { cle: string; urls: (string | null | undefined)[] }
+type Source = {
+  cle: string
+  urls: (string | null | undefined)[]
+  texte?: string
+}
 
 export function useTextures(catalogue: CatalogueClient, missions: Mission[]): Textures {
   const d = CATALOGUE_PAR_DEFAUT
@@ -76,14 +142,29 @@ export function useTextures(catalogue: CatalogueClient, missions: Mission[]): Te
     const liste: Source[] = [
       { cle: "tapis", urls: [catalogue.tapisUrl, d.tapisUrl] },
       { cle: "dos", urls: [catalogue.dosCourtisanUrl, d.dosCourtisanUrl] },
-      { cle: "dosBlanche", urls: [catalogue.dosMissionBlancheUrl, d.dosMissionBlancheUrl] },
-      { cle: "dosBleue", urls: [catalogue.dosMissionBleueUrl, d.dosMissionBleueUrl] },
+      {
+        cle: "dosBlanche",
+        urls: [catalogue.dosMissionBlancheUrl, d.dosMissionBlancheUrl],
+      },
+      {
+        cle: "dosBleue",
+        urls: [catalogue.dosMissionBleueUrl, d.dosMissionBleueUrl],
+      },
     ]
-    for (const f of FAMILLES) for (const r of [null, ...ROLES]) {
-      const cle = cleCarte(f, r)
-      liste.push({ cle: `face:${cle}`, urls: [catalogue.cartes[cle], d.cartes[cle]] })
-    }
-    for (const m of missions) liste.push({ cle: `mission:${m.id}`, urls: [catalogue.missions[m.id], IMAGES_MISSIONS_PAR_DEFAUT[m.id]] })
+    for (const f of FAMILLES)
+      for (const r of [null, ...ROLES]) {
+        const cle = cleCarte(f, r)
+        liste.push({
+          cle: `face:${cle}`,
+          urls: [catalogue.cartes[cle], d.cartes[cle]],
+        })
+      }
+    for (const m of missions)
+      liste.push({
+        cle: `mission:${m.id}`,
+        urls: [catalogue.missions[m.id], IMAGES_MISSIONS_PAR_DEFAUT[m.id]],
+        texte: m.texte,
+      })
     return liste
   }, [catalogue, missions, d])
 
@@ -91,10 +172,12 @@ export function useTextures(catalogue: CatalogueClient, missions: Mission[]): Te
 
   useEffect(() => {
     let actif = true
-    for (const { cle, urls } of sources) {
-      chargerAvecSecours(urls).then((t) => {
-        if (actif && t) setChargees((c) => (c[cle] === t ? c : { ...c, [cle]: t }))
-      })
+    for (const { cle, urls, texte } of sources) {
+      chargerAvecSecours(urls)
+        .then((t) => (t && texte ? missionComposee(t, texte) : t))
+        .then((t) => {
+          if (actif && t) setChargees((c) => (c[cle] === t ? c : { ...c, [cle]: t }))
+        })
     }
     return () => {
       actif = false
@@ -119,7 +202,9 @@ export function useTextures(catalogue: CatalogueClient, missions: Mission[]): Te
       },
       mission: (m) =>
         chargees[`mission:${m.id}`] ??
-        deSecours(`m:${m.id}`, () => textureTexte(m.texte, m.couleur === "bleue" ? "#0d5c63" : "#efe1bf", m.couleur === "bleue" ? "#fff" : "#10363c", 452 / 688)),
+        deSecours(`m:${m.id}`, () =>
+          textureTexte(m.texte, m.couleur === "bleue" ? "#0d5c63" : "#efe1bf", m.couleur === "bleue" ? "#fff" : "#10363c", 452 / 688),
+        ),
       dosMission: (m) =>
         (m.couleur === "bleue" ? chargees.dosBleue : chargees.dosBlanche) ??
         deSecours(`dm:${m.couleur}`, () => textureTexte("★", m.couleur === "bleue" ? "#0d3b43" : "#e8d7ae", "#c9a227", 452 / 688)),
