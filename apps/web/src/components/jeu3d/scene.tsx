@@ -71,8 +71,8 @@ function CameraRig() {
   const { camera, size } = useThree()
   useLayoutEffect(() => {
     const k = Math.max(1, 1.78 / (size.width / size.height))
-    camera.position.set(0, 23 * k, 13.5 * k)
-    camera.lookAt(0, 0, -0.6)
+    camera.position.set(0, 29.5 * k, 7 * k)
+    camera.lookAt(0, 0, -1.3)
     camera.updateProjectionMatrix()
   }, [camera, size])
   return null
@@ -81,19 +81,6 @@ function CameraRig() {
 function useFrameTexture(creer: () => CanvasTexture) {
   const [texture] = useState(creer)
   return texture
-}
-
-function lueurTexture() {
-  const c = document.createElement("canvas")
-  c.width = c.height = 256
-  const g = c.getContext("2d")!
-  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 120)
-  grad.addColorStop(0, "rgba(255,214,120,0.34)")
-  grad.addColorStop(0.75, "rgba(255,200,100,0.16)")
-  grad.addColorStop(1, "rgba(255,200,100,0)")
-  g.fillStyle = grad
-  g.fillRect(0, 0, 256, 256)
-  return new CanvasTexture(c)
 }
 
 function vignetteTexture() {
@@ -117,38 +104,16 @@ function Table({ tex }: { tex: Textures }) {
         <planeGeometry args={[80, 60]} />
         <meshBasicMaterial map={vignette} toneMapped={false} />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position-y={0}>
-        <planeGeometry args={[TAPIS_L + 0.3, TAPIS_P + 0.3]} />
-        <meshBasicMaterial color="#d9a93f" toneMapped={false} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position-y={0.01}>
-        <planeGeometry args={[TAPIS_L, TAPIS_P]} />
-        <meshBasicMaterial map={tex.tapis} toneMapped={false} />
+      <mesh position-y={0.03}>
+        <boxGeometry args={[TAPIS_L, 0.06, TAPIS_P]} />
+        <meshBasicMaterial attach="material-0" color="#0b1d22" toneMapped={false} />
+        <meshBasicMaterial attach="material-1" color="#0b1d22" toneMapped={false} />
+        <meshBasicMaterial attach="material-2" map={tex.tapis} toneMapped={false} />
+        <meshBasicMaterial attach="material-3" color="#0b1d22" toneMapped={false} />
+        <meshBasicMaterial attach="material-4" color="#0b1d22" toneMapped={false} />
+        <meshBasicMaterial attach="material-5" color="#0b1d22" toneMapped={false} />
       </mesh>
     </group>
-  )
-}
-
-function LumiereTour({ cible }: { cible: Vector3 | null }) {
-  const disque = useRef<Mesh>(null)
-  const texture = useFrameTexture(lueurTexture)
-  const visee = useRef(new Vector3(0, 0, 0))
-  const position = useRef(new Vector3(0, 0.015, 0))
-
-  useFrame((_, dt) => {
-    if (cible) visee.current.set(cible.x, 0.015, cible.z)
-    easing.damp3(position.current, visee.current, 0.35, dt)
-    if (disque.current) {
-      disque.current.position.copy(position.current)
-      easing.damp(disque.current.material as MeshBasicMaterial, "opacity", cible ? 1 : 0, 0.3, dt)
-    }
-  })
-
-  return (
-    <mesh ref={disque} rotation-x={-Math.PI / 2}>
-      <planeGeometry args={[9, 9]} />
-      <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
-    </mesh>
   )
 }
 
@@ -350,7 +315,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.12)))
       p.echelle = echelle
     })
-    const mL = Math.min(w * 0.3, h * 0.62)
+    const mL = Math.min(w * 0.24, h * 0.5)
     const mH = (mL * MISSION_H) / MISSION_L
     missions.forEach((m, i) => {
       const p = poseCamera(`mission:${m.id}`)
@@ -362,17 +327,18 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         p.quaternion.copy(camera.quaternion)
         p.echelle = intro ? k : 1.4 * k
       } else {
-        const leve = survol === `mission:${m.id}` ? mH * 0.12 : 0
-        const x = w - marge - mL / 2 - (missions.length - 1 - i) * (mL + marge * 0.6)
-        p.position.copy(camera.localToWorld(new Vector3(x, -h + marge + mH / 2 + leve, -D_MAIN + 0.05)))
-        p.quaternion.copy(camera.quaternion)
+        const devant = survol === `mission:${m.id}`
+        const rang = missions.length - 1 - i
+        const x = w - marge * 1.6 - mL / 2 - rang * mL * 0.2
+        const y = -h + marge * 1.6 + mH / 2 + rang * mH * 0.5 + (devant ? mH * 0.06 : 0)
+        p.position.copy(camera.localToWorld(new Vector3(x, y, -D_MAIN + 0.05 + (devant ? 0.3 : 0) - rang * 0.02)))
+        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, rang ? 0.14 : -0.08)))
         p.echelle = mL / MISSION_L
       }
     })
   })
 
   const actif = vue.phase === "jeu" ? vue.joueurActifId : null
-  const lumiere = actif ? (zones.get(actif)?.centre ?? null) : null
 
   const discret = intro || !!missionFocus
   const colCible = it.selection && it.peutJouer("table") ? (it.selection.role === "espion" ? "reine" : it.selection.famille) : null
@@ -383,7 +349,6 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   return (
     <>
       <CameraRig />
-      <LumiereTour cible={lumiere} />
       <Table tex={tex} />
 
       {[...plateau.values()].map(({ carte, pose, joueurId }) => {
@@ -489,14 +454,14 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             texte={pseudo(j.id)}
             style={
               survolJoueur === j.id && domaineCible(j.id)
-                ? { couleur: couleur(j.id), contour: "#ffffff", lueur: couleur(j.id) }
+                ? { couleur: couleur(j.id), lueur: couleur(j.id) }
                 : j.id === actif
-                  ? { couleur: couleur(j.id), contour: "#ffffff" }
+                  ? { couleur: couleur(j.id) }
                   : ENCRE
             }
             hauteur={0.8}
             position={[zone.etiquette.x, zone.etiquette.y, zone.etiquette.z]}
-            lacet={zone.lacet}
+            lacet={zone.lacetEtiquette}
             onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
             onSurvol={domaineCible(j.id) ? (s) => setSurvolJoueur(s ? j.id : null) : undefined}
           />

@@ -10,7 +10,7 @@ export const CARTE_L = PAS * 0.92
 export const CARTE_H = (CARTE_L * 890) / 472
 export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
-export const DOMAINE_ECHELLE = 0.55
+export const DOMAINE_ECHELLE = 0.75
 const DECALAGE = 0.42
 const EPAISSEUR = 0.014
 
@@ -40,34 +40,34 @@ export function poseTable(colonne: Colonne, niveau: Niveau, rang: number): Pose 
 
 export const colonneDe = (carte: CarteVisible): Colonne => carte.famille ?? "reine"
 
-export const PIOCHE = new Vector3(TAPIS_L / 2 + 1.6, 0, 0)
+export const PIOCHE = new Vector3(TAPIS_L / 2 + 1.2, 0, 0)
 export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n, 60) * 0.006, PIOCHE.z, FACE_BAS)
 
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
 
-const H = -9.6
-const COTE = 11.2
+const H = -11.2
+const COTE = 12.3
 const SIEGES: Record<number, [number, number, Orientation, number][]> = {
-  1: [[0, H, "haut", 9]],
+  1: [[0, H, "haut", 11]],
   2: [
-    [-COTE, -0.8, "gauche", 8],
-    [COTE, -0.8, "droite", 8],
+    [-COTE, -0.8, "gauche", 9.5],
+    [COTE, -0.8, "droite", 9.5],
   ],
   3: [
-    [-COTE, -0.8, "gauche", 8],
-    [0, H, "haut", 9],
-    [COTE, -0.8, "droite", 8],
+    [-COTE, -0.8, "gauche", 9.5],
+    [0, H, "haut", 11],
+    [COTE, -0.8, "droite", 9.5],
   ],
   4: [
-    [-COTE, -0.8, "gauche", 8],
-    [-5.2, H, "haut", 6.4],
-    [5.2, H, "haut", 6.4],
-    [COTE, -0.8, "droite", 8],
+    [-COTE, -0.8, "gauche", 9.5],
+    [-5.4, H, "haut", 8],
+    [5.4, H, "haut", 8],
+    [COTE, -0.8, "droite", 9.5],
   ],
 }
 
-export const MON_SIEGE: Siege = { position: new Vector3(0.6, 0, 5.3), orientation: "bas", largeurMax: 6.5 }
+export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 6.5), orientation: "bas", largeurMax: 9 }
 
 export function sieges(vue: VueJoueur): Map<string, Siege> {
   const moiId = vue.moi?.id
@@ -91,11 +91,13 @@ const ECART = 0.35
 
 const LACET: Record<Orientation, number> = { bas: 0, haut: 0, gauche: -Math.PI / 2, droite: Math.PI / 2 }
 
-export type ZoneDomaine = { centre: Vector3; largeur: number; profondeur: number; lacet: number; etiquette: Vector3 }
+export type ZoneDomaine = { centre: Vector3; largeur: number; profondeur: number; lacet: number; etiquette: Vector3; lacetEtiquette: number }
 
 export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses: Map<string, Pose>; zone: ZoneDomaine } {
   const { position: p, orientation, largeurMax } = siege
-  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter((g) => g.length > 0)
+  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter(
+    (g) => g.length > 0,
+  )
   const naturelle = groupes.reduce((s, g) => s + DL + (g.length - 1) * CHEVAUCHEMENT, 0) + ECART * Math.max(0, groupes.length - 1)
   const fixe = DL * groupes.length
   const f = naturelle > largeurMax && naturelle > fixe ? Math.max(0.25, (largeurMax - fixe) / (naturelle - fixe)) : 1
@@ -115,11 +117,19 @@ export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses:
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
   })
 
-  const etiquette =
-    orientation === "bas"
-      ? new Vector3(centre.x, 0.04, centre.z + DH / 2 + 0.65)
-      : lateral
-        ? new Vector3(p.x - vers * 0.1, 0.04, centre.z)
-        : new Vector3(p.x, 0.04, p.z - 0.15)
-  return { poses, zone: { centre, largeur: largeur + 0.6, profondeur: DH + 1.1, lacet: LACET[orientation], etiquette } }
+  const devant = DH / 2 + 0.55
+  const etiquette = lateral
+    ? new Vector3(centre.x + vers * devant, 0.07, centre.z)
+    : new Vector3(centre.x, 0.07, centre.z + (orientation === "haut" ? devant : -devant))
+  return {
+    poses,
+    zone: {
+      centre,
+      largeur: largeur + 0.6,
+      profondeur: DH + 1.1,
+      lacet: LACET[orientation],
+      etiquette,
+      lacetEtiquette: orientation === "haut" ? Math.PI : LACET[orientation],
+    },
+  }
 }

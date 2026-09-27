@@ -133,7 +133,7 @@ export function Jeu3D({
             />
           </div>
 
-          <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 bg-gradient-to-b from-black/60 to-transparent px-6 pt-5 pb-8">
+          <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
             <button
               type="button"
               className="pointer-events-auto mt-1 w-20 transition-transform hover:scale-105 sm:w-24"
