@@ -46,28 +46,28 @@ export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n,
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
 
-const H = -11.5
-const COTE = 13.6
+const H = -10.6
+const COTE = 13.2
 const SIEGES: Record<number, [number, number, Orientation, number][]> = {
-  1: [[0, H, "haut", 11]],
+  1: [[0, H, "haut", 12]],
   2: [
-    [-COTE, -1.6, "gauche", 9.5],
-    [COTE, -1.6, "droite", 9.5],
+    [-COTE, -2.2, "gauche", 10],
+    [COTE, -2.2, "droite", 10],
   ],
   3: [
-    [-COTE, -1.6, "gauche", 9.5],
-    [0, H, "haut", 11],
-    [COTE, -1.6, "droite", 9.5],
+    [-COTE, -2.2, "gauche", 10],
+    [0, H, "haut", 12],
+    [COTE, -2.2, "droite", 10],
   ],
   4: [
-    [-COTE, -1.6, "gauche", 9.5],
-    [-6, H, "haut", 9],
-    [6, H, "haut", 9],
-    [COTE, -1.6, "droite", 9.5],
+    [-COTE, -2.2, "gauche", 10],
+    [-6, H, "haut", 9.5],
+    [6, H, "haut", 9.5],
+    [COTE, -2.2, "droite", 10],
   ],
 }
 
-export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 6), orientation: "bas", largeurMax: 11 }
+export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 5.4), orientation: "bas", largeurMax: 11 }
 
 export function sieges(vue: VueJoueur): Map<string, Siege> {
   const moiId = vue.moi?.id
@@ -86,21 +86,27 @@ export function sieges(vue: VueJoueur): Map<string, Siege> {
 const ORDRE_FAMILLES = Object.keys(FAMILLES_PAR_DEFAUT) as Famille[]
 export const DL = CARTE_L * DOMAINE_ECHELLE
 export const DH = CARTE_H * DOMAINE_ECHELLE
-const CHEVAUCHEMENT = 0.24
+const CHEVAUCHEMENT = 0.42
 const ECART = 0.35
 
 const LACET: Record<Orientation, number> = { bas: 0, haut: 0, gauche: -Math.PI / 2, droite: Math.PI / 2 }
 
 export type ZoneDomaine = { centre: Vector3; largeur: number; profondeur: number; lacet: number; etiquette: Vector3; lacetEtiquette: number }
 
-export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses: Map<string, Pose>; zone: ZoneDomaine } {
+export const cleGroupe = (carte: CarteVisible) => carte.famille ?? "espion"
+
+export function disposerDomaine(
+  siege: Siege,
+  domaine: CarteVisible[],
+  deplie: string | null = null,
+): { poses: Map<string, Pose>; zone: ZoneDomaine } {
   const { position: p, orientation, largeurMax } = siege
   const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter(
     (g) => g.length > 0,
   )
   const naturelle = groupes.reduce((s, g) => s + DL + (g.length - 1) * CHEVAUCHEMENT, 0) + ECART * Math.max(0, groupes.length - 1)
   const fixe = DL * groupes.length
-  const f = naturelle > largeurMax && naturelle > fixe ? Math.max(0.25, (largeurMax - fixe) / (naturelle - fixe)) : 1
+  const f = naturelle > largeurMax && naturelle > fixe ? Math.max(0.3, (largeurMax - fixe) / (naturelle - fixe)) : 1
   const largeur = groupes.length ? fixe + (naturelle - fixe) * f : DL * 2
 
   const lateral = orientation === "gauche" || orientation === "droite"
@@ -113,7 +119,12 @@ export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses:
   const poses = new Map<string, Pose>()
   let u = -largeur / 2 + DL / 2
   groupes.forEach((groupe) => {
-    groupe.forEach((carte, k) => poses.set(carte.id, place(u + k * CHEVAUCHEMENT * f, 0.03 + k * EPAISSEUR, carte.famille ? FACE_HAUT : FACE_BAS)))
+    const ouvert = deplie !== null && cleGroupe(groupe[0]) === deplie && groupe.length > 1
+    const milieu = u + ((groupe.length - 1) * CHEVAUCHEMENT * f) / 2
+    groupe.forEach((carte, k) => {
+      const position = ouvert ? milieu + (k - (groupe.length - 1) / 2) * DL * 1.04 : u + k * CHEVAUCHEMENT * f
+      poses.set(carte.id, place(position, (ouvert ? 0.5 : 0.03) + k * EPAISSEUR, carte.famille ? FACE_HAUT : FACE_BAS))
+    })
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
   })
 

@@ -5,7 +5,7 @@ import { useCursor } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, type Texture, Vector3 } from "three"
+import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
 import { Carte3D, geometrieCarte } from "./carte3d"
@@ -23,6 +23,7 @@ import {
   TAPIS_P,
   type ZoneDomaine,
   colonneDe,
+  cleGroupe,
   disposerDomaine,
   poseDessusPioche,
   poseTable,
@@ -33,7 +34,7 @@ import { type Textures, useTextures } from "./textures"
 
 type Placee = { carte: CarteVisible; pose: Pose; joueurId?: string }
 
-function disposer(vue: VueJoueur, places: Map<string, Siege>) {
+function disposer(vue: VueJoueur, places: Map<string, Siege>, deplie: string | null = null) {
   const map = new Map<string, Placee>()
   const rangs = new Map<string, number>()
   const zones = new Map<string, ZoneDomaine>()
@@ -47,7 +48,7 @@ function disposer(vue: VueJoueur, places: Map<string, Siege>) {
   for (const j of vue.joueurs) {
     const siege = places.get(j.id)
     if (!siege) continue
-    const { poses, zone } = disposerDomaine(siege, j.domaine)
+    const { poses, zone } = disposerDomaine(siege, j.domaine, deplie?.startsWith(`${j.id}:`) ? deplie.slice(j.id.length + 1) : null)
     zones.set(j.id, zone)
     for (const carte of j.domaine) map.set(carte.id, { carte, pose: poses.get(carte.id)!, joueurId: j.id })
   }
@@ -72,8 +73,8 @@ function CameraRig() {
   useLayoutEffect(() => {
     const k = Math.max(1, 1.6 / (size.width / size.height))
     camera.up.set(0, 0, -1)
-    camera.position.set(0, 33 * k, -1)
-    camera.lookAt(0, 0, -1)
+    camera.position.set(0, 29.2 * k, -0.62)
+    camera.lookAt(0, 0, -0.62)
     camera.updateProjectionMatrix()
   }, [camera, size])
   return null
@@ -154,39 +155,22 @@ function FondDomaine({ zone, jouable, survol }: { zone: ZoneDomaine; jouable: bo
   )
 }
 
-const ANGLES_EVENTAIL: Record<number, number[]> = { 0: [], 1: [0], 2: [-0.22, 0.22], 3: [-0.42, 0, 0.42] }
-
 function Badge({
   zone,
   texte,
   style,
-  cartes,
-  dos,
   onClick,
   onSurvol,
 }: {
   zone: ZoneDomaine
   texte: string
   style: StyleTexte
-  cartes: number
-  dos: Texture
   onClick?: () => void
   onSurvol?: (s: boolean) => void
 }) {
-  const geo = useMemo(() => geometrieCarte(0.58, 1.1, 0.06), [])
-  const angles = ANGLES_EVENTAIL[Math.min(cartes, 3)] ?? []
   return (
     <group position={zone.etiquette} rotation-y={zone.lacetEtiquette}>
-      <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.4]} onClick={onClick} onSurvol={onSurvol} />
-      <group position={[0, 0.02, -0.72]} rotation-x={-Math.PI / 2}>
-        {angles.map((a, k) => (
-          <group key={k} rotation-z={-a} position-z={k * 0.002}>
-            <mesh geometry={geo} position-y={0.5} raycast={() => null}>
-              <meshBasicMaterial map={dos} toneMapped={false} />
-            </mesh>
-          </group>
-        ))}
-      </group>
+      <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.45]} onClick={onClick} onSurvol={onSurvol} />
     </group>
   )
 }
@@ -196,7 +180,7 @@ function ZoneCliquable({ zone, onClick, onSurvol }: { zone: ZoneDomaine; onClick
   useCursor(survol)
   return (
     <mesh
-      position={[zone.centre.x, 0.2, zone.centre.z]}
+      position={[zone.centre.x, 0.016, zone.centre.z]}
       rotation={[-Math.PI / 2, 0, zone.lacet]}
       onClick={(e) => {
         e.stopPropagation()
@@ -279,7 +263,14 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   const missions = useMemo(() => vue.moi?.missions ?? [], [vue.moi?.missions])
   const tex = useTextures(catalogue, missions)
   const places = useMemo(() => sieges(vue), [vue])
-  const { map: plateau, rangs, zones } = useMemo(() => disposer(vue, places), [vue, places])
+  const [deplie, setDeplie] = useState<string | null>(null)
+  const fermeture = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const survolGroupe = (cle: string, actif: boolean) => {
+    if (fermeture.current) clearTimeout(fermeture.current)
+    if (actif) setDeplie(cle)
+    else fermeture.current = setTimeout(() => setDeplie((d) => (d === cle ? null : d)), 180)
+  }
+  const { map: plateau, rangs, zones } = useMemo(() => disposer(vue, places, deplie), [vue, places, deplie])
   const main = vue.moi?.main ?? []
   const moiId = vue.moi?.id
 
@@ -424,7 +415,14 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             largeur={CARTE_L}
             hauteur={CARTE_H}
             lueur={candidat ? "rouge" : null}
-            onSurvol={cibleDomaine ? (s) => setSurvolJoueur(s ? joueurId : null) : undefined}
+            onSurvol={
+              joueurId
+                ? (s) => {
+                    survolGroupe(`${joueurId}:${cleGroupe(carte)}`, s)
+                    if (cibleDomaine) setSurvolJoueur(s ? joueurId : null)
+                  }
+                : undefined
+            }
             onClick={
               candidat
                 ? (e) => {
@@ -520,8 +518,6 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             key={j.id}
             zone={zone}
             texte={pseudo(j.id).toUpperCase()}
-            cartes={j.nombreCartesMain}
-            dos={tex.dos}
             style={
               survolJoueur === j.id && domaineCible(j.id)
                 ? { couleur: couleur(j.id), lueur: couleur(j.id), espacement: ESPACEMENT }
