@@ -43,39 +43,44 @@ export const colonneDe = (carte: CarteVisible): Colonne => carte.famille ?? "rei
 export const PIOCHE = new Vector3(TAPIS_L / 2 + 1.6, 0, 0)
 export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n, 60) * 0.006, PIOCHE.z, FACE_BAS)
 
-const SIEGES: Record<number, [number, number][]> = {
-  1: [[0, -11.5]],
+export type Orientation = "bas" | "haut" | "gauche" | "droite"
+export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
+
+const H = -9.6
+const COTE = 11.2
+const SIEGES: Record<number, [number, number, Orientation, number][]> = {
+  1: [[0, H, "haut", 9]],
   2: [
-    [-6.5, -11.5],
-    [6.5, -11.5],
+    [-COTE, -0.8, "gauche", 8],
+    [COTE, -0.8, "droite", 8],
   ],
   3: [
-    [-10, -9.5],
-    [0, -11.5],
-    [10, -9.5],
+    [-COTE, -0.8, "gauche", 8],
+    [0, H, "haut", 9],
+    [COTE, -0.8, "droite", 8],
   ],
   4: [
-    [-11, -4],
-    [-5.5, -11.5],
-    [5.5, -11.5],
-    [11, -4],
+    [-COTE, -0.8, "gauche", 8],
+    [-5.2, H, "haut", 6.4],
+    [5.2, H, "haut", 6.4],
+    [COTE, -0.8, "droite", 8],
   ],
 }
 
-export const MON_SIEGE = new Vector3(-9.5, 0, 5.4)
-export const MISSIONS_POS = new Vector3(10.5, 0, 5)
+export const MON_SIEGE: Siege = { position: new Vector3(0.6, 0, 5.3), orientation: "bas", largeurMax: 6.5 }
+export const MISSIONS_POS = new Vector3(10.5, 0, 5.2)
 
-export function sieges(vue: VueJoueur): Map<string, Vector3> {
+export function sieges(vue: VueJoueur): Map<string, Siege> {
   const moiId = vue.moi?.id
   const i = vue.joueurs.findIndex((j) => j.id === moiId)
   const adversaires = [...vue.joueurs.slice(i + 1), ...vue.joueurs.slice(0, Math.max(0, i))].filter((j) => j.id !== moiId)
   const places = SIEGES[adversaires.length] ?? []
-  const map = new Map<string, Vector3>()
+  const map = new Map<string, Siege>()
   adversaires.forEach((j, k) => {
-    const [x, z] = places[k] ?? [0, -12]
-    map.set(j.id, new Vector3(x, 0, z))
+    const [x, z, orientation, largeurMax] = places[k] ?? [0, H, "haut", 6]
+    map.set(j.id, { position: new Vector3(x, 0, z), orientation, largeurMax })
   })
-  if (moiId) map.set(moiId, MON_SIEGE.clone())
+  if (moiId) map.set(moiId, { ...MON_SIEGE, position: MON_SIEGE.position.clone() })
   return map
 }
 
@@ -85,37 +90,37 @@ export const DH = CARTE_H * DOMAINE_ECHELLE
 const CHEVAUCHEMENT = 0.24
 const ECART = 0.35
 
-export const largeurMaxDomaine = (nombreAdversaires: number) => (nombreAdversaires >= 3 ? 6.4 : 8.5)
+const LACET: Record<Orientation, number> = { bas: 0, haut: 0, gauche: -Math.PI / 2, droite: Math.PI / 2 }
 
-export type ZoneDomaine = {
-  centre: Vector3
-  largeur: number
-  profondeur: number
-}
+export type ZoneDomaine = { centre: Vector3; largeur: number; profondeur: number; lacet: number; etiquette: Vector3 }
 
-export function disposerDomaine(siege: Vector3, domaine: CarteVisible[], largeurMax: number): { poses: Map<string, Pose>; zone: ZoneDomaine } {
-  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter(
-    (g) => g.length > 0,
-  )
+export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses: Map<string, Pose>; zone: ZoneDomaine } {
+  const { position: p, orientation, largeurMax } = siege
+  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter((g) => g.length > 0)
   const naturelle = groupes.reduce((s, g) => s + DL + (g.length - 1) * CHEVAUCHEMENT, 0) + ECART * Math.max(0, groupes.length - 1)
   const fixe = DL * groupes.length
   const f = naturelle > largeurMax && naturelle > fixe ? Math.max(0.25, (largeurMax - fixe) / (naturelle - fixe)) : 1
   const largeur = groupes.length ? fixe + (naturelle - fixe) * f : DL * 2
-  const z = siege.z + 0.4 + DH / 2
+
+  const lateral = orientation === "gauche" || orientation === "droite"
+  const vers = orientation === "gauche" ? 1 : orientation === "droite" ? -1 : 1
+  const centre = lateral ? new Vector3(p.x + vers * (0.4 + DH / 2), 0.02, p.z) : new Vector3(p.x, 0.02, p.z + 0.4 + DH / 2)
+  const lacet = new Quaternion().setFromEuler(new Euler(0, LACET[orientation], 0))
+  const place = (u: number, y: number, q: Quaternion) =>
+    pose(lateral ? centre.x : centre.x + u, y, lateral ? centre.z + u : centre.z, lacet.clone().multiply(q), DOMAINE_ECHELLE)
+
   const poses = new Map<string, Pose>()
-  let x = siege.x - largeur / 2 + DL / 2
+  let u = -largeur / 2 + DL / 2
   groupes.forEach((groupe) => {
-    groupe.forEach((carte, k) => {
-      poses.set(carte.id, pose(x + k * CHEVAUCHEMENT * f, 0.03 + k * EPAISSEUR, z, carte.famille ? FACE_HAUT : FACE_BAS, DOMAINE_ECHELLE))
-    })
-    x += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
+    groupe.forEach((carte, k) => poses.set(carte.id, place(u + k * CHEVAUCHEMENT * f, 0.03 + k * EPAISSEUR, carte.famille ? FACE_HAUT : FACE_BAS)))
+    u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
   })
-  return {
-    poses,
-    zone: {
-      centre: new Vector3(siege.x, 0.02, z),
-      largeur: largeur + 0.6,
-      profondeur: DH + 1.1,
-    },
-  }
+
+  const etiquette =
+    orientation === "bas"
+      ? new Vector3(centre.x, 0.05, centre.z + DH / 2 + 0.45)
+      : lateral
+        ? new Vector3(centre.x, 0.05, centre.z - Math.max(largeur, DL * 2) / 2 - 0.55)
+        : new Vector3(p.x, 0.05, p.z)
+  return { poses, zone: { centre, largeur: largeur + 0.6, profondeur: DH + 1.1, lacet: LACET[orientation], etiquette } }
 }

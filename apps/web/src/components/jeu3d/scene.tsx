@@ -10,6 +10,7 @@ import { ORDRE_TAPIS } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
+import { Pseudo } from "../jeu/pseudo"
 import { Carte3D, geometrieCarte } from "./carte3d"
 import {
   CARTE_H,
@@ -28,19 +29,18 @@ import {
   disposerDomaine,
   colonneX,
   poseDessusPioche,
-  largeurMaxDomaine,
   poseTable,
+  type Siege,
   sieges,
 } from "./disposition"
 import { type Textures, useTextures } from "./textures"
 
 type Placee = { carte: CarteVisible; pose: Pose; joueurId?: string }
 
-function disposer(vue: VueJoueur, places: Map<string, Vector3>) {
+function disposer(vue: VueJoueur, places: Map<string, Siege>) {
   const map = new Map<string, Placee>()
   const rangs = new Map<string, number>()
   const zones = new Map<string, ZoneDomaine>()
-  const largeurMax = largeurMaxDomaine(vue.joueurs.length - 1)
   for (const { carte, niveau } of vue.table) {
     const col = colonneDe(carte)
     const cle = `${col}:${niveau}`
@@ -51,15 +51,15 @@ function disposer(vue: VueJoueur, places: Map<string, Vector3>) {
   for (const j of vue.joueurs) {
     const siege = places.get(j.id)
     if (!siege) continue
-    const { poses, zone } = disposerDomaine(siege, j.domaine, largeurMax)
+    const { poses, zone } = disposerDomaine(siege, j.domaine)
     zones.set(j.id, zone)
     for (const carte of j.domaine) map.set(carte.id, { carte, pose: poses.get(carte.id)!, joueurId: j.id })
   }
   return { map, rangs, zones }
 }
 
-const poseSiege = (siege: Vector3): Pose => ({
-  position: new Vector3(siege.x, 1.6, siege.z + 1.2),
+const poseSiege = (zone: ZoneDomaine): Pose => ({
+  position: new Vector3(zone.centre.x, 1.6, zone.centre.z),
   quaternion: FACE_BAS.clone(),
   echelle: DOMAINE_ECHELLE,
 })
@@ -181,7 +181,7 @@ function ZoneCliquable({ zone, onClick }: { zone: ZoneDomaine; onClick: () => vo
   return (
     <mesh
       position={[zone.centre.x, 0.2, zone.centre.z]}
-      rotation-x={-Math.PI / 2}
+      rotation={[-Math.PI / 2, 0, zone.lacet]}
       onClick={(e) => {
         e.stopPropagation()
         onClick()
@@ -282,12 +282,47 @@ function Etiquette({
   )
 }
 
+function EtiquetteJoueur({
+  position,
+  nom,
+  couleur,
+  moi,
+  actif,
+  visible,
+  onClick,
+}: {
+  position: [number, number, number]
+  nom: string
+  couleur: string
+  moi: boolean
+  actif: boolean
+  visible: boolean
+  onClick?: () => void
+}) {
+  return (
+    <Html zIndexRange={[10, 0]} center position={position} className="pointer-events-none select-none">
+      <span
+        onClick={onClick}
+        className={cn(
+          "block rounded-full px-2 text-lg transition-all duration-500",
+          !visible && "opacity-0",
+          actif && "scale-125",
+          onClick && visible && "pointer-events-auto cursor-pointer bg-primary/25 shadow-[0_0_18px_6px_rgb(242_193_78/45%)]",
+        )}
+      >
+        <Pseudo nom={nom} couleur={couleur} />
+        {moi && <span className="ml-1 text-sm font-semibold text-white/80 [text-shadow:0_1px_3px_rgb(0_0_0/90%)]">(toi)</span>}
+      </span>
+    </Html>
+  )
+}
+
 const D_MAIN = 6
 const QUAT_TMP = new Quaternion()
 const EULER_TMP = new Euler()
 
 function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocus: string | null; onMission: (id: string) => void }) {
-  const { vue, catalogue, pseudo } = useJeu()
+  const { vue, catalogue, pseudo, couleur } = useJeu()
   const it = useInteraction()
   const missions = useMemo(() => vue.moi?.missions ?? [], [vue.moi?.missions])
   const tex = useTextures(catalogue, missions)
@@ -307,8 +342,8 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       const avant = disposer(precedente, sieges(precedente)).map
       vue.journal.slice(precedente.journal.length).forEach((e, n) => {
         if (e.type === "carteJouee" && e.joueurId !== moiId) {
-          const siege = places.get(e.joueurId)
-          if (siege) nouveaux.set(e.carte.id, poseSiege(siege))
+          const zone = zones.get(e.joueurId)
+          if (zone) nouveaux.set(e.carte.id, poseSiege(zone))
         }
         if (e.type === "carteEliminee") {
           const p = avant.get(e.carte.id)
@@ -327,14 +362,14 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           }
         }
         if (e.type === "pioche" && e.joueurId !== moiId) {
-          const siege = places.get(e.joueurId)
-          if (siege)
+          const zone = zones.get(e.joueurId)
+          if (zone)
             for (let i = 0; i < e.nombre; i++)
               ajouts.push({
                 id: `p-${precedente.journal.length + n}-${i}`,
                 carte: null,
                 depart: poseDessusPioche(precedente.nombreCartesPioche - i),
-                cible: poseSiege(siege),
+                cible: poseSiege(zone),
               })
         }
       })
@@ -362,7 +397,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   useFrame(() => {
     const cam = camera as unknown as { fov: number; aspect: number }
     const h = D_MAIN * Math.tan((cam.fov * Math.PI) / 360)
-    const hauteur = h * 0.6
+    const hauteur = h * 0.52
     const echelle = hauteur / CARTE_H
     const largeur = CARTE_L * echelle
     main.forEach((c, i) => {
@@ -370,8 +405,8 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       const t = i - (n - 1) / 2
       const leve = c.id === selectionId ? 0.34 : c.id === survol ? 0.14 : 0
       const local = new Vector3(
-        t * largeur * 0.95,
-        -h + hauteur / 6 - Math.abs(t) * 0.07 + leve,
+        (-h * cam.aspect) / 3 + t * largeur * 0.86,
+        -h + hauteur / 5 - Math.abs(t) * 0.07 + leve,
         -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
       )
       const p = poseCamera(c.id)
@@ -527,18 +562,19 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       </Etiquette>
 
       {vue.joueurs.map((j) => {
-        const siege = places.get(j.id)
-        if (!siege) return null
+        const zone = zones.get(j.id)
+        if (!zone) return null
         return (
-          <Etiquette
+          <EtiquetteJoueur
             key={j.id}
+            nom={pseudo(j.id)}
+            couleur={couleur(j.id)}
+            moi={j.id === moiId}
             visible={!discret}
-            position={[siege.x, 0.05, siege.z]}
+            position={[zone.etiquette.x, zone.etiquette.y, zone.etiquette.z]}
             actif={j.id === actif}
             onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
-          >
-            {j.id === moiId ? `${pseudo(j.id)} (toi)` : pseudo(j.id)}
-          </Etiquette>
+          />
         )
       })}
 
