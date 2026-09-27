@@ -1,4 +1,5 @@
-import type { Famille, Role } from "@courtisans/engine"
+import { FAMILLES, type Famille, ROLES, type Role } from "@courtisans/engine"
+import { IMAGES_MISSIONS_PAR_DEFAUT } from "./missions-par-defaut"
 
 export type ChateauOption = { id: string; nom: string; imageUrl: string | null }
 
@@ -16,19 +17,19 @@ export type RoleInfo = { cle: Role; nom: string; pictoUrl: string | null }
 export const ORDRE_TAPIS: (Famille | "reine")[] = ["papillon", "crapaud", "rossignol", "reine", "lievre", "cerf", "carpe"]
 
 export const FAMILLES_PAR_DEFAUT: Record<Famille, FamilleInfo> = {
-  papillon: { cle: "papillon", nom: "Papillon", pluriel: "Papillons", couleur: "#a3bcc2", pictoUrl: null },
-  crapaud: { cle: "crapaud", nom: "Crapaud", pluriel: "Crapauds", couleur: "#8d9431", pictoUrl: null },
-  rossignol: { cle: "rossignol", nom: "Rossignol", pluriel: "Rossignols", couleur: "#d2415e", pictoUrl: null },
-  lievre: { cle: "lievre", nom: "Lièvre", pluriel: "Lièvres", couleur: "#f5b935", pictoUrl: null },
-  cerf: { cle: "cerf", nom: "Cerf", pluriel: "Cerfs", couleur: "#0f8a69", pictoUrl: null },
-  carpe: { cle: "carpe", nom: "Carpe", pluriel: "Carpes", couleur: "#4a73b5", pictoUrl: null },
+  papillon: { cle: "papillon", nom: "Papillon", pluriel: "Papillons", couleur: "#a3bcc2", pictoUrl: "/pictos/picto-papillon.png" },
+  crapaud: { cle: "crapaud", nom: "Crapaud", pluriel: "Crapauds", couleur: "#8d9431", pictoUrl: "/pictos/picto-crapaud.png" },
+  rossignol: { cle: "rossignol", nom: "Rossignol", pluriel: "Rossignols", couleur: "#d2415e", pictoUrl: "/pictos/picto-rossignol.png" },
+  lievre: { cle: "lievre", nom: "Lièvre", pluriel: "Lièvres", couleur: "#f5b935", pictoUrl: "/pictos/picto-lievre.png" },
+  cerf: { cle: "cerf", nom: "Cerf", pluriel: "Cerfs", couleur: "#0f8a69", pictoUrl: "/pictos/picto-cerf.png" },
+  carpe: { cle: "carpe", nom: "Carpe", pluriel: "Carpes", couleur: "#4a73b5", pictoUrl: "/pictos/picto-carpe.png" },
 }
 
 export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
-  noble: { cle: "noble", nom: "Noble", pictoUrl: null },
-  espion: { cle: "espion", nom: "Espion", pictoUrl: null },
-  assassin: { cle: "assassin", nom: "Assassin", pictoUrl: null },
-  garde: { cle: "garde", nom: "Garde", pictoUrl: null },
+  noble: { cle: "noble", nom: "Noble", pictoUrl: "/pictos/picto-noble.png" },
+  espion: { cle: "espion", nom: "Espion", pictoUrl: "/pictos/picto-espion.png" },
+  assassin: { cle: "assassin", nom: "Assassin", pictoUrl: "/pictos/picto-assassin.png" },
+  garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictos/picto-garde.png" },
 }
 
 export type CatalogueClient = {
@@ -58,11 +59,13 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   chateaux: CHATEAUX_PAR_DEFAUT,
   familles: FAMILLES_PAR_DEFAUT,
   roles: ROLES_PAR_DEFAUT,
-  cartes: {},
-  missions: {},
+  cartes: Object.fromEntries(
+    FAMILLES.flatMap((f) => [null, ...ROLES].map((r) => [cleCarte(f, r), `/cartes/${(r ?? "base").toUpperCase()}_${f.toUpperCase()}.webp`])),
+  ),
+  missions: IMAGES_MISSIONS_PAR_DEFAUT,
   tapisUrl: "/tapis.jpg",
-  dosCourtisanUrl: null,
-  dosMissionBlancheUrl: null,
-  dosMissionBleueUrl: null,
+  dosCourtisanUrl: "/cartes/DOS_COURTISAN.webp",
+  dosMissionBlancheUrl: "/cartes/DOS_MISSION_LIGHT.webp",
+  dosMissionBleueUrl: "/cartes/DOS_MISSION_DARK.webp",
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
 }

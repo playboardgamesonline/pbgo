@@ -16,21 +16,21 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
     for (const f of familles) {
       const cle = f.cle as Famille | undefined
       if (!cle || !famillesMap[cle]) continue
-      famillesMap[cle] = { ...famillesMap[cle], nom: f.nom ?? famillesMap[cle].nom, couleur: f.couleur ?? famillesMap[cle].couleur, pictoUrl: url(f.picto, 128) }
+      famillesMap[cle] = { ...famillesMap[cle], nom: f.nom ?? famillesMap[cle].nom, couleur: f.couleur ?? famillesMap[cle].couleur, pictoUrl: url(f.picto, 128) ?? famillesMap[cle].pictoUrl }
     }
     const rolesMap = { ...d.roles }
     for (const r of roles) {
       const cle = r.cle as Role | undefined
       if (!cle || !rolesMap[cle]) continue
-      rolesMap[cle] = { ...rolesMap[cle], nom: r.nom ?? rolesMap[cle].nom, pictoUrl: url(r.picto, 128) }
+      rolesMap[cle] = { ...rolesMap[cle], nom: r.nom ?? rolesMap[cle].nom, pictoUrl: url(r.picto, 128) ?? rolesMap[cle].pictoUrl }
     }
 
-    const cartes: Record<string, string> = {}
+    const cartes: Record<string, string> = { ...d.cartes }
     for (const c of courtisans) {
       const imageUrl = url(c.carte, 360)
       if (c.famille && imageUrl) cartes[cleCarte(c.famille as Famille, (c.role as Role | null) ?? null)] = imageUrl
     }
-    const missionsMap: Record<string, string> = {}
+    const missionsMap: Record<string, string> = { ...d.missions }
     for (const m of missions) {
       const imageUrl = url(m.carte, 520)
       if (imageUrl) missionsMap[m._id] = imageUrl
@@ -46,9 +46,9 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       cartes,
       missions: missionsMap,
       tapisUrl: url(reglages?.tapis, 2400) ?? d.tapisUrl,
-      dosCourtisanUrl: url(reglages?.dosCourtisan, 360),
-      dosMissionBlancheUrl: url(reglages?.dosMissionBlanche, 520),
-      dosMissionBleueUrl: url(reglages?.dosMissionBleue, 520),
+      dosCourtisanUrl: url(reglages?.dosCourtisan, 360) ?? d.dosCourtisanUrl,
+      dosMissionBlancheUrl: url(reglages?.dosMissionBlanche, 520) ?? d.dosMissionBlancheUrl,
+      dosMissionBleueUrl: url(reglages?.dosMissionBleue, 520) ?? d.dosMissionBleueUrl,
       phrasesVainqueur: reglages?.phrasesVainqueur?.length ? reglages.phrasesVainqueur : d.phrasesVainqueur,
     }
   } catch (error) {

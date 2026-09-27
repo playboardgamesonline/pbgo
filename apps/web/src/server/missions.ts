@@ -1,5 +1,6 @@
 import "server-only"
 import type { Condition, Famille, Mission, Role } from "@courtisans/engine"
+import { MISSIONS_PAR_DEFAUT } from "@/lib/missions-par-defaut"
 import { getCatalogue } from "@/sanity/catalogue"
 
 type ConditionSanity = {
@@ -54,18 +55,7 @@ export function versCondition(c: ConditionSanity): Condition {
   }
 }
 
-export const MISSIONS_PROVISOIRES: Mission[] = [
-  { id: "provisoire-b1", couleur: "bleue", texte: "Au moins 2 familles doivent être en disgrâce à la cour.", condition: { type: "nombreFamillesStatut", statut: "disgrace", comparateur: "gte", valeur: 2 } },
-  { id: "provisoire-b2", couleur: "bleue", texte: "Les lièvres doivent être en disgrâce à la cour.", condition: { type: "statutFamille", famille: "lievre", statut: "disgrace" } },
-  { id: "provisoire-b3", couleur: "bleue", texte: "Au moins 2 familles doivent être dans la lumière.", condition: { type: "nombreFamillesStatut", statut: "lumiere", comparateur: "gte", valeur: 2 } },
-  { id: "provisoire-b4", couleur: "bleue", texte: "Les cerfs doivent être dans la lumière.", condition: { type: "statutFamille", famille: "cerf", statut: "lumiere" } },
-  { id: "provisoire-b5", couleur: "bleue", texte: "Au moins une famille doit être neutre.", condition: { type: "nombreFamillesStatut", statut: "neutre", comparateur: "gte", valeur: 1 } },
-  { id: "provisoire-w1", couleur: "blanche", texte: "Vous devez posséder moins de papillons que votre voisin de gauche.", condition: { type: "comparaisonJoueurs", filtre: { famille: "papillon" }, comparateur: "lt", adversaire: "voisinGauche" } },
-  { id: "provisoire-w2", couleur: "blanche", texte: "Vous devez posséder plus de carpes que votre voisin de droite.", condition: { type: "comparaisonJoueurs", filtre: { famille: "carpe" }, comparateur: "gt", adversaire: "voisinDroite" } },
-  { id: "provisoire-w3", couleur: "blanche", texte: "Vous devez posséder au moins 3 crapauds.", condition: { type: "nombreCartesDomaine", filtre: { famille: "crapaud" }, comparateur: "gte", valeur: 3 } },
-  { id: "provisoire-w4", couleur: "blanche", texte: "Vous devez posséder au moins 2 gardes.", condition: { type: "nombreCartesDomaine", filtre: { role: "garde" }, comparateur: "gte", valeur: 2 } },
-  { id: "provisoire-w5", couleur: "blanche", texte: "Vous ne devez posséder aucun rossignol.", condition: { type: "nombreCartesDomaine", filtre: { famille: "rossignol" }, comparateur: "eq", valeur: 0 } },
-]
+export const MISSIONS_PROVISOIRES: Mission[] = MISSIONS_PAR_DEFAUT
 
 export async function chargerMissions(nombreJoueurs: number): Promise<Mission[]> {
   let depuisSanity: Mission[] = []

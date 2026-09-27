@@ -11,8 +11,12 @@ export function PictoRole({ role, className }: { role: Role; className?: string 
   const { catalogue } = useJeu()
   const url = catalogue.roles[role].pictoUrl
   if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt={catalogue.roles[role].nom} className={cn("size-4 object-contain", className)} />
+    return (
+      <span className={cn("inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--disgrace)] p-[2px] align-middle", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={catalogue.roles[role].nom} className="size-full object-contain" />
+      </span>
+    )
   }
   const Icone = ICONES[role]
   return <Icone className={cn("size-4", className)} aria-label={catalogue.roles[role].nom} />
