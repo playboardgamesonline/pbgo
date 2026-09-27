@@ -65,7 +65,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
   const occupe = enCours !== null
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-[#0e3940] [--table:calc(106vw*525/3543)]">
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-[#0e3940] [--table:calc(114vw*525/3543)]">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url(/accueil/motif.webp)] bg-[length:128px_128px] opacity-[0.07]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgb(34_96_104/55%),transparent_65%)]" />
       <ReglesButton icone className="absolute top-4 right-4 z-20" />
@@ -127,7 +127,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
             alt=""
             aria-hidden
             draggable={false}
-            className="pointer-events-none absolute -bottom-2 left-[-3%] h-auto w-[106%] max-w-none select-none"
+            className="pointer-events-none absolute -bottom-2 left-[-7%] h-auto w-[114%] max-w-none select-none"
           />
           <div className="absolute inset-x-0 bottom-[calc(var(--table)*0.1)] flex flex-col items-center gap-3 px-4">
             <Button
@@ -162,7 +162,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
         </div>
       </form>
 
-      <footer className="relative z-20 shrink-0 bg-[#031622] px-4 pt-1 pb-3 text-center text-xs leading-relaxed text-foreground/55">
+      <footer className="relative z-20 shrink-0 bg-[#031622] px-4 pt-[4vh] pb-[3vh] text-center text-xs leading-relaxed text-foreground/55">
         <p>
           Adaptation en ligne non officielle et gratuite de <em>Courtisans</em>, un jeu de Romaric Galonnier et Anthony Perone, illustré par Noëmie
           Chevalier et édité par Catch Up Games. Tous droits réservés à leurs auteurs et à l&apos;éditeur.
