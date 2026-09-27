@@ -31,10 +31,10 @@ export function Bandeau() {
           className={DISCRET}
         >
           {vue.joueurActifId === vue.moi?.id ? (
-            "C'est à vous de jouer"
+            "À vous de jouer"
           ) : (
-            <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
-              C&apos;est à <PseudoJoueur id={vue.joueurActifId!} /> de jouer
+            <span className="inline-flex items-center justify-end gap-1.5">
+              <PseudoJoueur id={vue.joueurActifId!} /> joue
             </span>
           )}
         </motion.li>
@@ -49,7 +49,17 @@ export function Bandeau() {
           transition={{ duration: 0.25 }}
           className={cn(e.type === "pioche" && DISCRET)}
         >
-          <Message evenement={e} className="justify-end" />
+          {e.type === "pioche" ? (
+            e.joueurId === vue.moi?.id ? (
+              "Vous piochez"
+            ) : (
+              <span className="inline-flex items-center justify-end gap-1.5">
+                <PseudoJoueur id={e.joueurId} /> pioche
+              </span>
+            )
+          ) : (
+            <Message evenement={e} className="justify-end" />
+          )}
         </motion.li>
       ))}
     </ol>

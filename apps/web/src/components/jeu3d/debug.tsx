@@ -2,6 +2,7 @@
 
 import { Leva, button, levaStore, useControls } from "leva"
 import { useEffect, useSyncExternalStore } from "react"
+import { changerMusique, musiqueActuelle, type NomMusique, reglerVolumes, type Volumes, VOLUMES_DEFAUT, volumesActuels } from "@/lib/son"
 
 const CLE = "courtisans:debug"
 const abonnes = new Set<() => void>()
@@ -40,6 +41,30 @@ function copierTout() {
 
 export function PanneauDebug() {
   useControls({ "Copier tous les réglages": button(copierTout) })
+  const [, reglerSon] = useControls("Son", () => {
+    const v = volumesActuels()
+    const curseur = (cle: keyof Volumes, label: string) => ({
+      value: v[cle],
+      min: 0,
+      max: 1,
+      step: 0.01,
+      label,
+      onChange: (x: number) => reglerVolumes({ [cle]: x }),
+    })
+    return {
+      general: curseur("general", "général"),
+      musique: curseur("musique", "musique"),
+      effets: curseur("effets", "effets"),
+      ambiance: curseur("ambiance", "ambiance repas"),
+      piste: {
+        value: musiqueActuelle(),
+        options: { Danse: "danse", Estampie: "estampie", Pavane: "pavane", Branle: "branle" },
+        label: "morceau",
+        onChange: (m: NomMusique) => changerMusique(m),
+      },
+    }
+  })
+  useControls("Son", { "Réinitialiser le son": button(() => reglerSon(VOLUMES_DEFAUT)) })
   const actif = useSyncExternalStore(
     (f) => {
       abonnes.add(f)

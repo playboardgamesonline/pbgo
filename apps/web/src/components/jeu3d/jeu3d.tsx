@@ -153,7 +153,7 @@ export function Jeu3D({
           />
           <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
             <div className="pointer-events-auto flex items-center gap-4">
-              <button type="button" className="mt-1 w-24 transition-transform hover:scale-105 sm:w-28" title="Quitter la partie" onClick={onQuitter}>
+              <button type="button" className="mt-1 w-28 transition-transform hover:scale-105 sm:w-36" title="Quitter la partie" onClick={onQuitter}>
                 <Logo src={catalogue.logoUrl} />
               </button>
               <div className="flex items-center gap-1">
