@@ -5,13 +5,13 @@ import { FAMILLES_PAR_DEFAUT, ORDRE_TAPIS } from "@/lib/catalogue"
 export const TAPIS_L = 12
 export const TAPIS_P = TAPIS_L / (2362 / 579)
 const MARGE = 0.033 * TAPIS_L
-const PAS = (TAPIS_L - 2 * MARGE) / 7
+export const PAS = (TAPIS_L - 2 * MARGE) / 7
 export const CARTE_L = PAS * 0.92
 export const CARTE_H = (CARTE_L * 890) / 472
 export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
 export const DOMAINE_ECHELLE = 1.1
-const DECALAGE = 0.42
+export const DECALAGE = 0.42
 export const EPAISSEUR = 0.02
 export const EPAISSEUR_PIOCHE = 0.016
 
@@ -105,14 +105,18 @@ const LACET: Record<Orientation, number> = { bas: 0, haut: 0, gauche: -Math.PI /
 export type ZoneDomaine = { centre: Vector3; largeur: number; profondeur: number; lacet: number; etiquette: Vector3; lacetEtiquette: number }
 
 export const cleGroupe = (carte: CarteVisible) => carte.famille ?? "espion"
+export const ORDRE_GROUPES = ORDRE_FAMILLES
 
 export function disposerDomaine(
   siege: Siege,
   domaine: CarteVisible[],
   deplie: string | null = null,
+  caches: Set<string> | null = null,
+  pileLevee: number | null = null,
 ): { poses: Map<string, Pose>; zone: ZoneDomaine } {
   const { position: p, orientation, largeurMax } = siege
-  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => c.famille === f)), domaine.filter((c) => !c.famille)].filter(
+  const famille = (c: CarteVisible) => (caches?.has(c.id) ? null : c.famille)
+  const groupes = [...ORDRE_FAMILLES.map((f) => domaine.filter((c) => famille(c) === f)), domaine.filter((c) => !famille(c))].filter(
     (g) => g.length > 0,
   )
   const naturelle = groupes.reduce((s, g) => s + DL + (g.length - 1) * CHEVAUCHEMENT, 0) + ECART * Math.max(0, groupes.length - 1)
@@ -129,12 +133,16 @@ export function disposerDomaine(
 
   const poses = new Map<string, Pose>()
   let u = -largeur / 2 + DL / 2
-  groupes.forEach((groupe) => {
+  groupes.forEach((groupe, indexGroupe) => {
     const ouvert = deplie !== null && cleGroupe(groupe[0]) === deplie && groupe.length > 1
+    const leve = pileLevee === indexGroupe ? 0.45 : 0
     const milieu = u + ((groupe.length - 1) * CHEVAUCHEMENT * f) / 2
     groupe.forEach((carte, k) => {
       const position = ouvert ? milieu + (k - (groupe.length - 1) / 2) * DL * 1.04 : u + k * CHEVAUCHEMENT * f
-      poses.set(carte.id, place(position, (ouvert ? 0.5 : 0.03) + k * EPAISSEUR, penche(carte.id).multiply(carte.famille ? FACE_HAUT : FACE_BAS)))
+      poses.set(
+        carte.id,
+        place(position, (ouvert ? 0.5 : 0.03) + leve + k * EPAISSEUR, penche(carte.id).multiply(famille(carte) ? FACE_HAUT : FACE_BAS)),
+      )
     })
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
   })

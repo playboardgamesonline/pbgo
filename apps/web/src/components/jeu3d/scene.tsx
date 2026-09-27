@@ -7,7 +7,6 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import {
-  AdditiveBlending,
   CanvasTexture,
   Color,
   Euler,
@@ -23,7 +22,9 @@ import {
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
 import { Aura } from "./aura"
-import { MOTIFS, type Motif, textureMotif } from "./motifs"
+import type { EtatFin } from "./fin"
+import { Compteurs, Projecteur, ResolutionFamilles, useCentresGagnants } from "./fin3d"
+import { textureMotif } from "./motifs"
 import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
@@ -32,6 +33,7 @@ import {
   DOMAINE_ECHELLE,
   EPAISSEUR_PIOCHE,
   FACE_BAS,
+  FACE_HAUT,
   MISSION_H,
   MISSION_L,
   PIOCHE,
@@ -52,21 +54,32 @@ import { type Textures, useTextures } from "./textures"
 
 type Placee = { carte: CarteVisible; pose: Pose; joueurId?: string }
 
-function disposer(vue: VueJoueur, places: Map<string, Siege>, deplie: string | null = null) {
+function disposer(vue: VueJoueur, places: Map<string, Siege>, deplie: string | null = null, fin: EtatFin | null = null) {
   const map = new Map<string, Placee>()
   const rangs = new Map<string, number>()
   const zones = new Map<string, ZoneDomaine>()
   for (const { carte, niveau } of vue.table) {
-    const col = colonneDe(carte)
+    const espion = !!fin && carte.role === "espion"
+    const col = espion && fin.espionsTable !== "range" ? "reine" : colonneDe(carte)
     const cle = `${col}:${niveau}`
     const rang = rangs.get(cle) ?? 0
     rangs.set(cle, rang + 1)
-    map.set(carte.id, { carte, pose: poseTable(col, niveau, rang, carte.id) })
+    const pose = poseTable(col, niveau, rang, carte.id)
+    if (espion && fin.espionsTable === "cache") pose.quaternion.copy(penche(carte.id)).multiply(FACE_BAS)
+    map.set(carte.id, { carte, pose })
   }
   for (const j of vue.joueurs) {
     const siege = places.get(j.id)
     if (!siege) continue
-    const { poses, zone } = disposerDomaine(siege, j.domaine, deplie?.startsWith(`${j.id}:`) ? deplie.slice(j.id.length + 1) : null)
+    const caches = fin && !fin.domaines ? new Set(j.domaine.filter((c) => c.role === "espion").map((c) => c.id)) : null
+    const pileLevee = fin && fin.pile > 0 && !fin.missions ? fin.pile - 1 : null
+    const { poses, zone } = disposerDomaine(
+      siege,
+      j.domaine,
+      deplie?.startsWith(`${j.id}:`) ? deplie.slice(j.id.length + 1) : null,
+      caches,
+      pileLevee,
+    )
     zones.set(j.id, zone)
     for (const carte of j.domaine) map.set(carte.id, { carte, pose: poses.get(carte.id)!, joueurId: j.id })
   }
@@ -89,6 +102,8 @@ type Transitoire = {
 export const CAMERA_DEFAUT = { inclinaison: 32, lacet: 0, distance: 37.6, fov: 26.5, cible: { x: 0, y: 0.6 } }
 
 const RAD = Math.PI / 180
+const AXE_Y = new Vector3(0, 1, 0)
+const VIDE: string[] = []
 const CIBLE_TMP = new Vector3()
 
 function CameraRig() {
@@ -158,11 +173,7 @@ function vignetteTexture() {
 
 function Table({ tex }: { tex: Textures }) {
   const vignette = useFrameTexture(vignetteTexture)
-  const { motif, intensite } = useControls("Plateau", {
-    motif: { options: MOTIFS, value: "etoiles" as Motif },
-    intensite: { value: 0.07, min: 0, max: 0.4, step: 0.005 },
-  })
-  const texMotif = useMemo(() => (motif === "aucun" ? null : textureMotif(motif)), [motif])
+  const texMotif = useMemo(() => textureMotif("losanges"), [])
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.28), [])
   const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.06, 0.28), [])
   return (
@@ -174,7 +185,7 @@ function Table({ tex }: { tex: Textures }) {
       {texMotif && (
         <mesh rotation-x={-Math.PI / 2} position-y={-0.015} raycast={() => null}>
           <planeGeometry args={[80, 60]} />
-          <meshBasicMaterial map={texMotif} transparent opacity={intensite} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial map={texMotif} transparent opacity={0.6} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
       <mesh geometry={tranche} rotation-x={-Math.PI / 2}>
@@ -255,31 +266,11 @@ function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jo
 let couronneTexture: Texture | null = null
 const textureCouronne = () => (couronneTexture ??= new TextureLoader().load("/pictos/picto-noble.webp"))
 
-let halo: CanvasTexture | null = null
-function textureHaloDoux() {
-  if (!halo) {
-    const c = document.createElement("canvas")
-    c.width = 256
-    c.height = 128
-    const g = c.getContext("2d")!
-    const grad = g.createRadialGradient(128, 64, 0, 128, 64, 128)
-    grad.addColorStop(0, "rgba(255,255,255,0.9)")
-    grad.addColorStop(0.45, "rgba(255,255,255,0.35)")
-    grad.addColorStop(1, "rgba(255,255,255,0)")
-    g.setTransform(1, 0, 0, 0.5, 0, 32)
-    g.fillStyle = grad
-    g.fillRect(0, -64, 256, 256)
-    halo = new CanvasTexture(c)
-  }
-  return halo
-}
-
 function Badge({
   zone,
   texte,
   style,
   actif,
-  couleur,
   onClick,
   onSurvol,
 }: {
@@ -287,18 +278,13 @@ function Badge({
   texte: string
   style: StyleTexte
   actif: boolean
-  couleur: string
   onClick?: () => void
   onSurvol?: (s: boolean) => void
 }) {
   const [couronne] = useState(textureCouronne)
-  const [lueur] = useState(textureHaloDoux)
-  const aura = useRef<MeshBasicMaterial>(null)
   const icone = useRef<Group>(null)
-  const largeur = Math.max(2.2, texte.length * 0.52 + 1.4)
   useFrame(({ clock }, dt) => {
     const t = clock.elapsedTime
-    if (aura.current) easing.damp(aura.current, "opacity", actif ? 0.55 + Math.sin(t * 2.2) * 0.15 : 0, 0.3, dt)
     if (icone.current) {
       easing.damp3(icone.current.scale, actif ? [1, 1, 1] : [0.001, 0.001, 0.001], 0.25, dt)
       icone.current.position.y = 0.03 + Math.sin(t * 2.2) * 0.02
@@ -306,19 +292,6 @@ function Badge({
   })
   return (
     <group position={zone.etiquette} rotation-y={zone.lacetEtiquette}>
-      <mesh position={[0, 0.012, -0.5]} rotation-x={-Math.PI / 2} raycast={() => null}>
-        <planeGeometry args={[largeur * 1.5, 2.1]} />
-        <meshBasicMaterial
-          ref={aura}
-          map={lueur}
-          color={couleur}
-          transparent
-          opacity={0}
-          blending={AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
       <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.45]} onClick={onClick} onSurvol={onSurvol} />
       <group ref={icone} position={[0, 0.03, -1.35]} scale={0.001}>
         <mesh rotation-x={-Math.PI / 2} raycast={() => null}>
@@ -419,11 +392,25 @@ const ESPACEMENT = "18px"
 const QUAT_TMP = new Quaternion()
 const EULER_TMP = new Euler()
 
-function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocus: string | null; onMission: (id: string) => void }) {
+function Monde({
+  intro,
+  missionFocus,
+  onMission,
+  fin,
+}: {
+  intro: boolean
+  missionFocus: string | null
+  onMission: (id: string) => void
+  fin: EtatFin | null
+}) {
   const { vue, catalogue, pseudo, couleur } = useJeu()
   const it = useInteraction()
   const missions = useMemo(() => vue.moi?.missions ?? [], [vue.moi?.missions])
-  const tex = useTextures(catalogue, missions)
+  const toutesMissions = useMemo(
+    () => [...missions, ...vue.joueurs.flatMap((j) => (j.id === vue.moi?.id ? [] : (j.missions ?? [])))],
+    [missions, vue.joueurs, vue.moi?.id],
+  )
+  const tex = useTextures(catalogue, toutesMissions)
   const places = useMemo(() => sieges(vue), [vue])
   const [deplie, setDeplie] = useState<string | null>(null)
   const fermeture = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -432,7 +419,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
     if (actif) setDeplie(cle)
     else fermeture.current = setTimeout(() => setDeplie((d) => (d === cle ? null : d)), 180)
   }
-  const { map: plateau, rangs, zones } = useMemo(() => disposer(vue, places, deplie), [vue, places, deplie])
+  const { map: plateau, rangs, zones } = useMemo(() => disposer(vue, places, deplie, fin), [vue, places, deplie, fin])
   const main = vue.moi?.main ?? []
   const moiId = vue.moi?.id
 
@@ -523,7 +510,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       const leve = c.id === selectionId ? hauteur * 0.24 : c.id === survol ? hauteur * 0.08 : 0
       const local = new Vector3(
         centreMain + t * pas,
-        -h + hauteur / 7 + t * pas * Math.sin(inclinaison) - Math.abs(t) * hauteur * 0.045 + leve,
+        -h + hauteur / 4.5 + t * pas * Math.sin(inclinaison) - Math.abs(t) * hauteur * 0.045 + leve,
         -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
       )
       const p = poseCamera(c.id)
@@ -559,6 +546,9 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   })
 
   const actif = vue.phase === "jeu" ? vue.joueurActifId : null
+  const resultats = vue.resultats
+  const resultatMoi = resultats?.joueurs.find((x) => x.joueurId === moiId)
+  const centresGagnants = useCentresGagnants(resultats?.vainqueurs ?? VIDE, zones)
 
   const discret = intro || !!missionFocus
   const colCible = it.selection && it.peutJouer("table") ? (it.selection.role === "espion" ? "reine" : it.selection.famille) : null
@@ -645,6 +635,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           hauteur={MISSION_H}
           vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
           reflet={missionFocus === m.id}
+          lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
           onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
           onClick={(e) => {
             e.stopPropagation()
@@ -652,6 +643,44 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           }}
         />
       ))}
+      {resultats && fin && (
+        <>
+          <ResolutionFamilles resultats={resultats} fin={fin} rangs={rangs} />
+          <Compteurs vue={vue} resultats={resultats} fin={fin} zones={zones} gagnants={resultats.vainqueurs} />
+          <Projecteur fin={fin} centres={centresGagnants.centres} axes={centresGagnants.axes} />
+          {fin.projecteur &&
+            centresGagnants.zonesGagnantes.map((z, i) => (
+              <Aura key={i} largeur={z.largeur} profondeur={z.profondeur} position={[z.centre.x, 0.016, z.centre.z]} lacet={z.lacet} force={0.9} />
+            ))}
+          {vue.joueurs.map((j) => {
+            const zone = zones.get(j.id)
+            if (!zone || j.id === moiId || !j.missions) return null
+            const r = resultats.joueurs.find((x) => x.joueurId === j.id)
+            const largeurTexte = pseudo(j.id).length * 0.45 + 0.6
+            return j.missions.map((m, k) => {
+              const local = new Vector3(largeurTexte / 2 + 0.75 + k * 1.05, 0.04, -0.45).applyAxisAngle(AXE_Y, zone.lacetEtiquette)
+              const lacet = new Quaternion().setFromAxisAngle(AXE_Y, zone.lacetEtiquette)
+              const cible: Pose = {
+                position: zone.etiquette.clone().add(local),
+                quaternion: lacet.multiply(fin.domaines ? FACE_HAUT : FACE_BAS),
+                echelle: 0.4,
+              }
+              return (
+                <Carte3D
+                  key={m.id}
+                  cible={cible}
+                  recto={tex.mission(m)}
+                  verso={tex.dosMission(m)}
+                  largeur={MISSION_L}
+                  hauteur={MISSION_H}
+                  vitesse={0.22}
+                  lueur={fin.missions && r?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
+                />
+              )
+            })
+          })}
+        </>
+      )}
       <Voile actif={discret} opacite={missionFocus ? 0.8 : 0.6} />
 
       {transitoires.map((t) => (
@@ -664,7 +693,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       )}
       <TexteTable
         texte={String(vue.nombreCartesPioche)}
-        style={{ couleur: "rgba(240,233,206,0.42)", graisse: 800 }}
+        style={{ couleur: "rgba(250,246,232,0.95)", graisse: 800, bloom: "rgba(255,255,255,0.9)", holo: true }}
         hauteur={0.85}
         position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.75]}
       />
@@ -684,12 +713,11 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             zone={zone}
             texte={pseudo(j.id).toUpperCase()}
             actif={j.id === actif}
-            couleur={couleur(j.id)}
             style={
               survolJoueur === j.id && domaineCible(j.id)
-                ? { couleur: couleur(j.id), lueur: couleur(j.id), espacement: ESPACEMENT }
+                ? { couleur: couleur(j.id), bloom: couleur(j.id), espacement: ESPACEMENT, holo: true }
                 : j.id === actif
-                  ? { couleur: couleur(j.id), espacement: ESPACEMENT }
+                  ? { couleur: "#fff4dc", bloom: couleur(j.id), espacement: ESPACEMENT, holo: true }
                   : { ...ENCRE, espacement: ESPACEMENT }
             }
             onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
@@ -717,11 +745,17 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   )
 }
 
-export default function Scene3D(props: { intro: boolean; missionFocus: string | null; onMission: (id: string) => void; onVide: () => void }) {
+export default function Scene3D(props: {
+  intro: boolean
+  missionFocus: string | null
+  onMission: (id: string) => void
+  onVide: () => void
+  fin: EtatFin | null
+}) {
   return (
     <Canvas dpr={[1, 2]} camera={{ fov: 26.5, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={props.onVide}>
       <Suspense fallback={null}>
-        <Monde intro={props.intro} missionFocus={props.missionFocus} onMission={props.onMission} />
+        <Monde intro={props.intro} missionFocus={props.missionFocus} onMission={props.onMission} fin={props.fin} />
       </Suspense>
     </Canvas>
   )

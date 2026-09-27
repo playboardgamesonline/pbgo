@@ -15,7 +15,8 @@ import type { CatalogueClient } from "@/lib/catalogue"
 import type { PartiePublique } from "@/lib/partie-types"
 import { Bandeau } from "../jeu/bandeau"
 import { JeuProvider } from "../jeu/contexte"
-import { FinDePartie } from "../jeu/fin-de-partie"
+import { FinDePartie, phraseVainqueur } from "../jeu/fin-de-partie"
+import { useSequenceFin } from "./fin"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
 import { Journal } from "../jeu/journal"
 import { PanneauDebug } from "./debug"
@@ -55,6 +56,7 @@ export function Jeu3D({
   const [assassinat, setAssassinat] = useState<Assassinat | null>(null)
   const [envoi, setEnvoi] = useState(false)
   const [missionFocus, setMissionFocus] = useState<string | null>(null)
+  const { fin, passer } = useSequenceFin(vue)
   const [vues, setVues] = useState<string[]>(missionsVues)
 
   const cleMissions = `${partie.code}:${vue.moi?.missions.map((m) => m.id).join("+") ?? ""}`
@@ -127,6 +129,7 @@ export function Jeu3D({
             <Scene3D
               intro={intro}
               missionFocus={missionFocus}
+              fin={fin}
               onMission={(id) => (intro ? finirIntro() : setMissionFocus((f) => (f === id ? null : id)))}
               onVide={() => {
                 setMissionFocus(null)
@@ -184,7 +187,26 @@ export function Jeu3D({
             )}
           </AnimatePresence>
 
-          <FinDePartie onMaj={onMaj} />
+          <AnimatePresence>
+            {fin?.texte && !fin.tableau && (
+              <motion.div
+                key="phrase"
+                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ type: "spring", damping: 14 }}
+                className="pointer-events-none absolute inset-x-0 top-[40%] z-30 mx-auto max-w-3xl px-6 text-center font-display text-4xl leading-tight text-[#fff4d6] [text-shadow:0_0_24px_rgb(255_214_120/80%),0_0_60px_rgb(255_200_90/45%)] md:text-5xl"
+              >
+                {phraseVainqueur(partie, vue, catalogue)}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {fin && !fin.tableau && (
+            <Button variant="ghost" size="sm" className="absolute right-4 bottom-4 z-40" onClick={passer}>
+              Passer
+            </Button>
+          )}
+          {fin?.tableau && <FinDePartie onMaj={onMaj} />}
         </main>
       </InteractionContexte.Provider>
     </JeuProvider>

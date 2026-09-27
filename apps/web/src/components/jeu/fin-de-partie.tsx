@@ -1,6 +1,6 @@
 "use client"
 
-import { FAMILLES } from "@courtisans/engine"
+import { FAMILLES, type VueJoueur } from "@courtisans/engine"
 import { HomeIcon, Loader2Icon, RotateCcwIcon } from "lucide-react"
 import { AnimatePresence, animate, motion } from "motion/react"
 import Link from "next/link"
@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { ChateauImage } from "@/components/chateau"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
+import type { CatalogueClient } from "@/lib/catalogue"
 import type { PartiePublique } from "@/lib/partie-types"
 import { cn } from "@/lib/utils"
 import { useJeu } from "./contexte"
@@ -31,9 +32,20 @@ function hash(texte: string) {
   return Math.abs(h)
 }
 
+export function phraseVainqueur(partie: PartiePublique, vue: VueJoueur, catalogue: CatalogueClient) {
+  const resultats = vue.resultats
+  if (!resultats) return ""
+  const info = (id: string) => partie.joueurs.find((j) => j.id === id)
+  const vainqueurs = resultats.joueurs.filter((j) => resultats.vainqueurs.includes(j.joueurId))
+  return catalogue.phrasesVainqueur[hash(partie.code + vue.journal.length) % catalogue.phrasesVainqueur.length]!.replace(
+    "{pseudo}",
+    vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & "),
+  ).replace("{points}", String(vainqueurs[0]?.total ?? 0))
+}
+
 export function FinDePartie({ onMaj }: { onMaj: (p: PartiePublique) => void }) {
   const { vue, partie, catalogue } = useJeu()
-  const [etape, setEtape] = useState(0)
+  const [etape, setEtape] = useState(DUREES.length)
   const [envoi, setEnvoi] = useState(false)
   const resultats = vue.resultats
 
@@ -50,9 +62,10 @@ export function FinDePartie({ onMaj }: { onMaj: (p: PartiePublique) => void }) {
   const vainqueurs = resultats.joueurs.filter((j) => resultats.vainqueurs.includes(j.joueurId))
   const autres = resultats.joueurs.filter((j) => !resultats.vainqueurs.includes(j.joueurId))
   const points = vainqueurs[0]?.total ?? 0
-  const phrase = catalogue.phrasesVainqueur[hash(partie.code + vue.journal.length) % catalogue.phrasesVainqueur.length]!
-    .replace("{pseudo}", vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & "))
-    .replace("{points}", String(points))
+  const phrase = catalogue.phrasesVainqueur[hash(partie.code + vue.journal.length) % catalogue.phrasesVainqueur.length]!.replace(
+    "{pseudo}",
+    vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & "),
+  ).replace("{points}", String(points))
   const dejaVote = !!partie.moiId && partie.rejouer.includes(partie.moiId)
 
   async function rejouer() {
@@ -70,11 +83,20 @@ export function FinDePartie({ onMaj }: { onMaj: (p: PartiePublique) => void }) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={cn("fixed inset-0 z-40 flex flex-col items-center justify-center gap-6 p-6 transition-colors duration-700", etape === 0 ? "bg-background/30" : "bg-background/95 backdrop-blur-md")}
+      className={cn(
+        "fixed inset-0 z-40 flex flex-col items-center justify-center gap-6 p-6 transition-colors duration-700",
+        etape === 0 ? "bg-background/30" : "bg-background/95 backdrop-blur-md",
+      )}
     >
       <AnimatePresence mode="wait">
         {etape === 0 && (
-          <motion.p key="e0" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="rounded-full bg-card/90 px-6 py-3 font-display text-2xl text-primary shadow-2xl">
+          <motion.p
+            key="e0"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="rounded-full bg-card/90 px-6 py-3 font-display text-2xl text-primary shadow-2xl"
+          >
             Les espions se dévoilent…
           </motion.p>
         )}
@@ -146,9 +168,8 @@ export function FinDePartie({ onMaj }: { onMaj: (p: PartiePublique) => void }) {
               <p className="font-display text-xl text-primary">({points} pts)</p>
               <p className="font-display text-3xl">{vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & ")}</p>
               <div className="flex justify-center gap-4 pt-2">
-                {vainqueurs.map((v) => (
-                  <ChateauImage key={v.joueurId} chateau={chateau(v.joueurId)} className="size-24" />
-                ))}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/pictos/picto-noble.webp" alt="" className="h-16 w-auto drop-shadow-[0_0_18px_rgb(242_193_78/70%)]" />
               </div>
             </div>
             <ol className="divide-y divide-border">
