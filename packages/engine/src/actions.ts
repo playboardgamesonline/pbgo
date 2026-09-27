@@ -16,7 +16,7 @@ export function applyAction(state: GameState, action: Action): GameState {
 }
 
 function lireMissions(state: GameState, joueurId: string) {
-  if (state.phase !== "missions") throw new EngineError("PHASE_INVALIDE")
+  if (state.phase === "fin") throw new EngineError("PHASE_INVALIDE")
   const joueur = state.joueurs.find((j) => j.id === joueurId)
   if (!joueur) throw new EngineError("JOUEUR_INCONNU")
   joueur.missionsLues = true

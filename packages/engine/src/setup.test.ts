@@ -35,7 +35,7 @@ describe("setupPartie", () => {
       expect(j.main).toHaveLength(3)
       expect(j.missions.map((m) => m.couleur).sort()).toEqual(["blanche", "bleue"])
     }
-    expect(state.phase).toBe("missions")
+    expect(state.phase).toBe("jeu")
     expect(state.joueurActif).toBeGreaterThanOrEqual(0)
     expect(state.joueurActif).toBeLessThan(n)
   })

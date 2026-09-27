@@ -6,7 +6,7 @@ import { carte, etat, joueur, missionsTest, place } from "./test-utils"
 import type { GameState } from "./types"
 
 describe("lireMissions", () => {
-  it("starts the game once every joueur has read their missions", () => {
+  it("does not block the game: play starts right away and reading only sets a flag", () => {
     let state = setupPartie({
       joueurs: [
         { id: "a", pseudo: "A", chateau: "c1" },
@@ -15,10 +15,10 @@ describe("lireMissions", () => {
       missions: missionsTest(),
       rng: createRng(3),
     })
-    state = applyAction(state, { type: "lireMissions", joueurId: "a" })
-    expect(state.phase).toBe("missions")
-    state = applyAction(state, { type: "lireMissions", joueurId: "b" })
     expect(state.phase).toBe("jeu")
+    state = applyAction(state, { type: "lireMissions", joueurId: "a" })
+    expect(state.phase).toBe("jeu")
+    expect(state.joueurs[0]!.missionsLues).toBe(true)
   })
 })
 

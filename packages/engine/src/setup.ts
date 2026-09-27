@@ -38,7 +38,7 @@ export function setupPartie({ joueurs, missions, rng = Math.random, courtisans =
     joueurActif: Math.floor(rng() * nombre),
     zonesJouees: [],
     numeroTour: 1,
-    phase: "missions",
+    phase: "jeu",
     journal: [],
   }
 }
