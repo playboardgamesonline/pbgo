@@ -5,11 +5,11 @@ import { useCursor } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
+import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, type Texture, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
 import { Carte3D, geometrieCarte } from "./carte3d"
-import { TexteTable } from "./texte-table"
+import { type StyleTexte, TexteTable } from "./texte-table"
 import {
   CARTE_H,
   CARTE_L,
@@ -137,12 +137,57 @@ function Voile({ actif, opacite }: { actif: boolean; opacite: number }) {
   )
 }
 
-function FondDomaine({ zone }: { zone: ZoneDomaine }) {
+function FondDomaine({ zone, jouable, survol }: { zone: ZoneDomaine; jouable: boolean; survol: boolean }) {
+  const ref = useRef<MeshBasicMaterial>(null)
   const geo = useMemo(() => geometrieCarte(zone.largeur, zone.profondeur, 0.35), [zone.largeur, zone.profondeur])
+  useFrame(({ clock }, dt) => {
+    const m = ref.current
+    if (!m) return
+    const cible = jouable ? (survol ? 0.55 : 0.3 + Math.sin(clock.elapsedTime * 3.2) * 0.1) : 0.05
+    easing.damp(m, "opacity", cible, 0.12, dt)
+    easing.dampC(m.color, jouable ? "#ffd766" : "#ffffff", 0.2, dt)
+  })
   return (
     <mesh geometry={geo} position={zone.centre} rotation={[-Math.PI / 2, 0, zone.lacet]} raycast={() => null}>
-      <meshBasicMaterial color="#ffffff" transparent opacity={0.05} depthWrite={false} toneMapped={false} />
+      <meshBasicMaterial ref={ref} color="#ffffff" transparent opacity={0.05} depthWrite={false} toneMapped={false} />
     </mesh>
+  )
+}
+
+const ANGLES_EVENTAIL: Record<number, number[]> = { 0: [], 1: [0], 2: [-0.22, 0.22], 3: [-0.42, 0, 0.42] }
+
+function Badge({
+  zone,
+  texte,
+  style,
+  cartes,
+  dos,
+  onClick,
+  onSurvol,
+}: {
+  zone: ZoneDomaine
+  texte: string
+  style: StyleTexte
+  cartes: number
+  dos: Texture
+  onClick?: () => void
+  onSurvol?: (s: boolean) => void
+}) {
+  const geo = useMemo(() => geometrieCarte(0.58, 1.1, 0.06), [])
+  const angles = ANGLES_EVENTAIL[Math.min(cartes, 3)] ?? []
+  return (
+    <group position={zone.etiquette} rotation-y={zone.lacetEtiquette}>
+      <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.4]} onClick={onClick} onSurvol={onSurvol} />
+      <group position={[0, 0.02, -0.72]} rotation-x={-Math.PI / 2}>
+        {angles.map((a, k) => (
+          <group key={k} rotation-z={-a} position-z={k * 0.002}>
+            <mesh geometry={geo} position-y={0.5} raycast={() => null}>
+              <meshBasicMaterial map={dos} toneMapped={false} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+    </group>
   )
 }
 
@@ -464,16 +509,19 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       {vue.joueurs.map((j) => {
         const zone = zones.get(j.id)
         if (!zone) return null
-        return <FondDomaine key={`fond-${j.id}`} zone={zone} />
+        return <FondDomaine key={`fond-${j.id}`} zone={zone} jouable={domaineCible(j.id)} survol={survolJoueur === j.id} />
       })}
 
       {vue.joueurs.map((j) => {
         const zone = zones.get(j.id)
-        if (!zone) return null
+        if (!zone || j.id === moiId) return null
         return (
-          <TexteTable
+          <Badge
             key={j.id}
+            zone={zone}
             texte={pseudo(j.id).toUpperCase()}
+            cartes={j.nombreCartesMain}
+            dos={tex.dos}
             style={
               survolJoueur === j.id && domaineCible(j.id)
                 ? { couleur: couleur(j.id), lueur: couleur(j.id), espacement: ESPACEMENT }
@@ -481,9 +529,6 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
                   ? { couleur: couleur(j.id), espacement: ESPACEMENT }
                   : { ...ENCRE, espacement: ESPACEMENT }
             }
-            hauteur={1}
-            position={[zone.etiquette.x, zone.etiquette.y, zone.etiquette.z]}
-            lacet={zone.lacetEtiquette}
             onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
             onSurvol={domaineCible(j.id) ? (s) => setSurvolJoueur(s ? j.id : null) : undefined}
           />

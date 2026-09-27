@@ -10,7 +10,7 @@ export const CARTE_L = PAS * 0.92
 export const CARTE_H = (CARTE_L * 890) / 472
 export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
-export const DOMAINE_ECHELLE = 1
+export const DOMAINE_ECHELLE = 1.1
 const DECALAGE = 0.42
 const EPAISSEUR = 0.014
 
@@ -46,8 +46,8 @@ export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n,
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
 
-const H = -10.9
-const COTE = 12.4
+const H = -11.5
+const COTE = 13.6
 const SIEGES: Record<number, [number, number, Orientation, number][]> = {
   1: [[0, H, "haut", 11]],
   2: [
@@ -67,7 +67,7 @@ const SIEGES: Record<number, [number, number, Orientation, number][]> = {
   ],
 }
 
-export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 6.6), orientation: "bas", largeurMax: 11 }
+export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 6), orientation: "bas", largeurMax: 11 }
 
 export function sieges(vue: VueJoueur): Map<string, Siege> {
   const moiId = vue.moi?.id
@@ -120,15 +120,15 @@ export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses:
   const versTable = lateral ? new Vector3(vers, 0, 0) : new Vector3(0, 0, orientation === "haut" ? 1 : -1)
   const etiquette = centre
     .clone()
-    .addScaledVector(versTable, DH / 2 + 0.3)
+    .addScaledVector(versTable, DH / 2 + 0.25)
     .setY(0.02)
-  const fond = centre.clone().addScaledVector(versTable, 0.4).setY(0.012)
+  const fond = centre.clone().setY(0.012)
   return {
     poses,
     zone: {
       centre: fond,
       largeur: Math.max(largeur, 3 * DL + 2 * ECART) + 0.6,
-      profondeur: DH + 1.5,
+      profondeur: DH + 0.5,
       lacet: LACET[orientation],
       etiquette,
       lacetEtiquette: orientation === "haut" ? Math.PI : LACET[orientation],
