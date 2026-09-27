@@ -1,7 +1,7 @@
 "use client"
 
 import { FAMILLES, type VueJoueur } from "@courtisans/engine"
-import { HomeIcon, Loader2Icon, RotateCcwIcon } from "lucide-react"
+import { HomeIcon, Loader2Icon, RotateCcwIcon, XIcon } from "lucide-react"
 import { AnimatePresence, animate, motion } from "motion/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -43,7 +43,7 @@ export function phraseVainqueur(partie: PartiePublique, vue: VueJoueur, catalogu
   ).replace("{points}", String(vainqueurs[0]?.total ?? 0))
 }
 
-export function FinDePartie({ onMaj }: { onMaj: (p: PartiePublique) => void }) {
+export function FinDePartie({ onMaj, onFermer }: { onMaj: (p: PartiePublique) => void; onFermer?: () => void }) {
   const { vue, partie, catalogue } = useJeu()
   const [etape, setEtape] = useState(DUREES.length)
   const [envoi, setEnvoi] = useState(false)
@@ -85,9 +85,20 @@ export function FinDePartie({ onMaj }: { onMaj: (p: PartiePublique) => void }) {
       animate={{ opacity: 1 }}
       className={cn(
         "fixed inset-0 z-40 flex flex-col items-center justify-center gap-6 p-6 transition-colors duration-700",
-        etape === 0 ? "bg-background/30" : "bg-background/95 backdrop-blur-md",
+        etape === 0 ? "bg-background/30" : "bg-background/80 backdrop-blur-sm",
       )}
+      onClick={(e) => e.target === e.currentTarget && onFermer?.()}
     >
+      {onFermer && (
+        <button
+          type="button"
+          aria-label="Fermer le tableau des scores"
+          onClick={onFermer}
+          className="absolute top-5 right-5 flex size-11 cursor-pointer items-center justify-center rounded-full border border-foreground/60 text-foreground transition-transform hover:scale-110"
+        >
+          <XIcon strokeWidth={1.5} />
+        </button>
+      )}
       <AnimatePresence mode="wait">
         {etape === 0 && (
           <motion.p

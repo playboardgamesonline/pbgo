@@ -6,22 +6,11 @@ import { button, useControls } from "leva"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import {
-  CanvasTexture,
-  Color,
-  Euler,
-  type Group,
-  type Mesh,
-  type MeshBasicMaterial,
-  type PerspectiveCamera,
-  Quaternion,
-  type Texture,
-  TextureLoader,
-  Vector3,
-} from "three"
+import { CanvasTexture, Color, Euler, type Mesh, type MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
-import { Aura } from "./aura"
+import { Aura, ReglagesAura } from "./aura"
+import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
 import { Compteurs, Projecteur, ResolutionFamilles, useCentresGagnants } from "./fin3d"
 import { textureMotif } from "./motifs"
@@ -174,6 +163,7 @@ function vignetteTexture() {
 function Table({ tex }: { tex: Textures }) {
   const vignette = useFrameTexture(vignetteTexture)
   const texMotif = useMemo(() => textureMotif("losanges"), [])
+  const { opacite } = useControls("Plateau", { opacite: { value: 0.22, min: 0, max: 1, step: 0.01, label: "opacité motif" } })
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.28), [])
   const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.06, 0.28), [])
   return (
@@ -185,7 +175,7 @@ function Table({ tex }: { tex: Textures }) {
       {texMotif && (
         <mesh rotation-x={-Math.PI / 2} position-y={-0.015} raycast={() => null}>
           <planeGeometry args={[80, 60]} />
-          <meshBasicMaterial map={texMotif} transparent opacity={0.6} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial map={texMotif} transparent opacity={opacite} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
       <mesh geometry={tranche} rotation-x={-Math.PI / 2}>
@@ -263,9 +253,6 @@ function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jo
   )
 }
 
-let couronneTexture: Texture | null = null
-const textureCouronne = () => (couronneTexture ??= new TextureLoader().load("/pictos/picto-noble.webp"))
-
 function Badge({
   zone,
   texte,
@@ -281,23 +268,11 @@ function Badge({
   onClick?: () => void
   onSurvol?: (s: boolean) => void
 }) {
-  const [couronne] = useState(textureCouronne)
-  const icone = useRef<Group>(null)
-  useFrame(({ clock }, dt) => {
-    const t = clock.elapsedTime
-    if (icone.current) {
-      easing.damp3(icone.current.scale, actif ? [1, 1, 1] : [0.001, 0.001, 0.001], 0.25, dt)
-      icone.current.position.y = 0.03 + Math.sin(t * 2.2) * 0.02
-    }
-  })
   return (
     <group position={zone.etiquette} rotation-y={zone.lacetEtiquette}>
       <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.45]} onClick={onClick} onSurvol={onSurvol} />
-      <group ref={icone} position={[0, 0.03, -1.35]} scale={0.001}>
-        <mesh rotation-x={-Math.PI / 2} raycast={() => null}>
-          <planeGeometry args={[0.85, 0.85 * (160 / 145)]} />
-          <meshBasicMaterial map={couronne} color="#f2c14e" transparent depthWrite={false} toneMapped={false} />
-        </mesh>
+      <group position={[0, 0, -2.2]}>
+        <Couronne3D visible={actif} />
       </group>
     </group>
   )
@@ -559,6 +534,9 @@ function Monde({
   return (
     <>
       <CameraRig />
+      <ReglagesAura />
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[4, 12, 6]} intensity={2.2} />
       <Table tex={tex} />
 
       {[...plateau.values()].map(({ carte, pose, joueurId }) => {
@@ -715,9 +693,9 @@ function Monde({
             actif={j.id === actif}
             style={
               survolJoueur === j.id && domaineCible(j.id)
-                ? { couleur: couleur(j.id), bloom: couleur(j.id), espacement: ESPACEMENT, holo: true }
+                ? { couleur: "#fff4dc", relief: couleur(j.id), aura: couleur(j.id), espacement: ESPACEMENT }
                 : j.id === actif
-                  ? { couleur: "#fff4dc", bloom: couleur(j.id), espacement: ESPACEMENT, holo: true }
+                  ? { couleur: "#fff4dc", relief: couleur(j.id), aura: "rgba(255,236,190,0.9)", espacement: ESPACEMENT }
                   : { ...ENCRE, espacement: ESPACEMENT }
             }
             onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}

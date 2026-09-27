@@ -4,7 +4,7 @@ import type { Cible, Courtisan, ZoneJeu } from "@courtisans/engine"
 import { Loader2Icon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
@@ -17,6 +17,7 @@ import { Bandeau } from "../jeu/bandeau"
 import { JeuProvider } from "../jeu/contexte"
 import { FinDePartie, phraseVainqueur } from "../jeu/fin-de-partie"
 import { useSequenceFin } from "./fin"
+import { useTriche } from "./triche"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
 import { Journal } from "../jeu/journal"
 import { PanneauDebug } from "./debug"
@@ -51,7 +52,10 @@ export function Jeu3D({
   onMaj: (p: PartiePublique) => void
   onQuitter: () => void
 }) {
-  const vue = partie.vue!
+  const pseudoDe = useCallback((id: string) => partie.joueurs.find((j) => j.id === id)?.pseudo ?? "?", [partie.joueurs])
+  const vue = useTriche(partie.vue!, pseudoDe)
+  const partieVue = useMemo(() => ({ ...partie, vue }), [partie, vue])
+  const [scoresOuverts, setScoresOuverts] = useState(true)
   const [selectionBrute, setSelection] = useState<Courtisan | null>(null)
   const [assassinat, setAssassinat] = useState<Assassinat | null>(null)
   const [envoi, setEnvoi] = useState(false)
@@ -122,7 +126,7 @@ export function Jeu3D({
   }, [monTour, selection, assassinat, envoi, vue, onMaj, partie.code])
 
   return (
-    <JeuProvider catalogue={catalogue} partie={partie} vue={vue}>
+    <JeuProvider catalogue={catalogue} partie={partieVue} vue={vue}>
       <InteractionContexte.Provider value={interaction}>
         <main className="relative h-dvh w-full overflow-hidden bg-[#061a1e]">
           <div className="absolute inset-0">
@@ -206,7 +210,16 @@ export function Jeu3D({
               Passer
             </Button>
           )}
-          {fin?.tableau && <FinDePartie onMaj={onMaj} />}
+          {fin?.tableau && scoresOuverts && <FinDePartie onMaj={onMaj} onFermer={() => setScoresOuverts(false)} />}
+          {fin?.tableau && !scoresOuverts && (
+            <button
+              type="button"
+              onClick={() => setScoresOuverts(true)}
+              className="absolute inset-x-0 bottom-6 z-30 mx-auto w-fit cursor-pointer rounded-full border border-foreground/40 bg-[#0b2231]/85 px-6 py-2.5 font-display text-lg tracking-wide text-foreground shadow-xl backdrop-blur transition-transform hover:scale-105"
+            >
+              Afficher le tableau des scores
+            </button>
+          )}
         </main>
       </InteractionContexte.Provider>
     </JeuProvider>

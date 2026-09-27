@@ -8,13 +8,23 @@ import { CanvasTexture, type MeshBasicMaterial, SRGBColorSpace } from "three"
 const POLICE = '"Alegreya Variable", "Alegreya", Georgia, serif'
 const TAILLE = 140
 
-export type StyleTexte = { couleur: string; contour?: string; lueur?: string; espacement?: string; graisse?: number; bloom?: string; holo?: boolean }
+export type StyleTexte = {
+  couleur: string
+  contour?: string
+  lueur?: string
+  espacement?: string
+  graisse?: number
+  bloom?: string
+  holo?: boolean
+  relief?: string
+  aura?: string
+}
 
 function dessiner(texte: string, style: StyleTexte) {
   const mesure = document.createElement("canvas").getContext("2d")!
   mesure.font = `${style.graisse ?? 900} ${TAILLE}px ${POLICE}`
   mesure.letterSpacing = style.espacement ?? "0px"
-  const marge = style.bloom ? 110 : 60
+  const marge = style.bloom || style.aura ? 110 : 60
   const canvas = document.createElement("canvas")
   canvas.width = Math.ceil(mesure.measureText(texte).width + marge * 2)
   canvas.height = Math.ceil(TAILLE * 1.35 + marge)
@@ -51,8 +61,37 @@ function dessiner(texte: string, style: StyleTexte) {
     ctx.globalAlpha = 1
     ctx.shadowBlur = 0
   }
+  if (style.aura) {
+    ctx.shadowColor = style.aura
+    ctx.shadowBlur = 55
+    ctx.fillStyle = style.aura
+    ctx.globalAlpha = 0.45
+    ctx.fillText(texte, x, y + 6)
+    ctx.globalAlpha = 1
+    ctx.shadowBlur = 0
+  }
+  if (style.relief) {
+    ctx.fillStyle = style.relief
+    for (let k = 9; k >= 1; k--) ctx.fillText(texte, x + k * 0.35, y + k)
+    ctx.shadowColor = "rgba(0,0,0,0.35)"
+    ctx.shadowBlur = 14
+    ctx.shadowOffsetY = 8
+    ctx.fillText(texte, x, y + 10)
+    ctx.shadowColor = "transparent"
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetY = 0
+  }
   ctx.fillStyle = style.couleur
   ctx.fillText(texte, x, y)
+  if (style.relief) {
+    const reflet = ctx.createLinearGradient(0, y - TAILLE * 0.5, 0, y + TAILLE * 0.2)
+    reflet.addColorStop(0, "rgba(255,255,255,0.35)")
+    reflet.addColorStop(1, "rgba(255,255,255,0)")
+    ctx.globalCompositeOperation = "source-atop"
+    ctx.fillStyle = reflet
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.globalCompositeOperation = "source-over"
+  }
   if (style.holo) {
     ctx.globalCompositeOperation = "destination-out"
     ctx.fillStyle = "rgba(0,0,0,0.28)"
@@ -97,11 +136,11 @@ export function TexteTable({
   onSurvol?: (survol: boolean) => void
 }) {
   const prete = usePolicePrete()
-  const { couleur, contour, lueur, espacement, graisse, bloom, holo } = style
+  const { couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura } = style
   const { texture, ratio, echelle } = useMemo(
-    () => dessiner(texte, { couleur, contour, lueur, espacement, graisse, bloom, holo }),
+    () => dessiner(texte, { couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [texte, couleur, contour, lueur, espacement, graisse, bloom, holo, prete],
+    [texte, couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura, prete],
   )
   useEffect(() => () => texture.dispose(), [texture])
   const [survol, setSurvol] = useState(false)
@@ -111,7 +150,7 @@ export function TexteTable({
   useFrame(({ clock }) => {
     if (!materiau.current) return
     const t = clock.elapsedTime
-    materiau.current.opacity = holo ? 0.86 + Math.sin(t * 3.1) * 0.06 + (Math.sin(t * 23.7) > 0.93 ? -0.18 : 0) : 1
+    materiau.current.opacity = holo ? 0.9 + Math.sin(t * 1.6) * 0.05 : 1
   })
 
   return (

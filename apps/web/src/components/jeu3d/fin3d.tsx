@@ -218,7 +218,7 @@ export function Projecteur({ fin, centres, axes }: { fin: EtatFin; centres: Vect
     const m = materiau.current
     if (!m) return
     const u = m.uniforms
-    easing.damp(u.uNoir, "value", fin.noir ? 0.82 : 0, 0.5, dt)
+    easing.damp(u.uNoir, "value", fin.noir ? (fin.tableau ? 0.5 : 0.82) : 0, 0.5, dt)
     easing.damp(u.uTrou, "value", fin.projecteur ? 1 : 0, 0.6, dt)
     ;(u.uCentre1.value as Vector2).copy(centres[0] ?? new Vector2())
     ;(u.uCentre2.value as Vector2).copy(centres[1] ?? new Vector2(999, 999))
