@@ -2,10 +2,11 @@
 
 import type { CarteVisible, Mission, VueJoueur } from "@courtisans/engine"
 import { useCursor } from "@react-three/drei"
+import { button, useControls } from "leva"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
 import { Aura } from "./aura"
@@ -70,20 +71,55 @@ type Transitoire = {
   cible: Pose
 }
 
-const CIBLE_CAMERA = new Vector3(0, 0, -0.2)
+export const CAMERA_DEFAUT = { inclinaison: 17, lacet: 0, distance: 30.5, fov: 38, cible: { x: 0, y: -0.2 } }
 
-const INCLINAISON = 0.3
+const RAD = Math.PI / 180
+const CIBLE_TMP = new Vector3()
 
 function CameraRig() {
-  const { camera, size } = useThree()
-  useLayoutEffect(() => {
+  const { size } = useThree()
+  const [reglage, regler] = useControls("Caméra", () => ({
+    inclinaison: { value: CAMERA_DEFAUT.inclinaison, min: 0, max: 85, step: 0.5, label: "inclinaison °" },
+    lacet: { value: CAMERA_DEFAUT.lacet, min: -180, max: 180, step: 1, label: "rotation °" },
+    distance: { value: CAMERA_DEFAUT.distance, min: 8, max: 70, step: 0.1 },
+    fov: { value: CAMERA_DEFAUT.fov, min: 10, max: 100, step: 0.5, label: "fov °" },
+    cible: { value: CAMERA_DEFAUT.cible, step: 0.05, label: "cible x / z" },
+  }))
+  useControls("Caméra", {
+    "Copier les valeurs": button((get) => {
+      const valeurs = {
+        inclinaison: get("Caméra.inclinaison"),
+        lacet: get("Caméra.lacet"),
+        distance: get("Caméra.distance"),
+        fov: get("Caméra.fov"),
+        cible: get("Caméra.cible"),
+      }
+      navigator.clipboard?.writeText(JSON.stringify(valeurs)).catch(() => null)
+      console.info("Caméra", valeurs)
+    }),
+    Réinitialiser: button(() => regler(CAMERA_DEFAUT)),
+  })
+
+  useFrame((etat) => {
+    const cam = etat.camera as PerspectiveCamera
     const k = Math.max(1, 1.6 / (size.width / size.height))
-    const r = 30.5 * k
-    camera.up.set(0, 1, 0)
-    camera.position.set(CIBLE_CAMERA.x, r * Math.cos(INCLINAISON), CIBLE_CAMERA.z + r * Math.sin(INCLINAISON))
-    camera.lookAt(CIBLE_CAMERA)
-    camera.updateProjectionMatrix()
-  }, [camera, size])
+    const r = reglage.distance * k
+    const incl = reglage.inclinaison * RAD
+    const lacet = reglage.lacet * RAD
+    const cible = CIBLE_TMP.set(reglage.cible.x, 0, reglage.cible.y)
+    cam.up.set(0, 1, 0)
+    cam.position.set(
+      cible.x + r * Math.sin(incl) * Math.sin(lacet),
+      Math.max(0.5, r * Math.cos(incl)),
+      cible.z + r * Math.sin(incl) * Math.cos(lacet),
+    )
+    if (incl < 0.001) cam.up.set(-Math.sin(lacet), 0, -Math.cos(lacet))
+    cam.lookAt(cible)
+    if (cam.fov !== reglage.fov) {
+      cam.fov = reglage.fov
+      cam.updateProjectionMatrix()
+    }
+  })
   return null
 }
 

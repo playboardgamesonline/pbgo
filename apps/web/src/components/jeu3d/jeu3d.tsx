@@ -18,6 +18,7 @@ import { JeuProvider } from "../jeu/contexte"
 import { FinDePartie } from "../jeu/fin-de-partie"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
 import { Journal } from "../jeu/journal"
+import { PanneauDebug } from "./debug"
 
 const Scene3D = dynamic(() => import("./scene"), {
   ssr: false,
@@ -161,6 +162,7 @@ export function Jeu3D({
           )}
 
           <Journal />
+          <PanneauDebug />
 
           <AnimatePresence>
             {assassinat && (
