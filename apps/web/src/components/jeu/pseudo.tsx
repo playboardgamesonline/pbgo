@@ -5,10 +5,7 @@ import { useJeu } from "./contexte"
 
 export function Pseudo({ nom, couleur, className }: { nom: string; couleur: string; className?: string }) {
   return (
-    <span
-      className={cn("font-sans font-extrabold whitespace-nowrap normal-case", className)}
-      style={{ color: couleur, WebkitTextStroke: "0.22em white", paintOrder: "stroke fill" }}
-    >
+    <span className={cn("font-sans font-black tracking-[0.12em] whitespace-nowrap uppercase", className)} style={{ color: couleur }}>
       {nom}
     </span>
   )

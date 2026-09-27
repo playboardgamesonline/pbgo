@@ -134,18 +134,19 @@ export function Jeu3D({
           </div>
 
           <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
-            <button
-              type="button"
-              className="pointer-events-auto mt-1 w-20 transition-transform hover:scale-105 sm:w-24"
-              title="Quitter la partie"
-              onClick={onQuitter}
-            >
-              <Logo src={catalogue.logoUrl} />
-            </button>
+            <div className="flex flex-col items-start gap-3">
+              <button
+                type="button"
+                className="pointer-events-auto mt-1 w-20 transition-transform hover:scale-105 sm:w-24"
+                title="Quitter la partie"
+                onClick={onQuitter}
+              >
+                <Logo src={catalogue.logoUrl} />
+              </button>
+              <Bandeau />
+            </div>
             <ReglesButton icone className="pointer-events-auto" />
           </header>
-
-          <Bandeau />
 
           {intro && (
             <div className="absolute inset-x-0 bottom-[12%] z-20 flex justify-center">

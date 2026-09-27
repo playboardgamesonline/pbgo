@@ -18,7 +18,7 @@ type JeuContexte = Positions & {
   couleur: (joueurId: string) => string
 }
 
-export const COULEURS_JOUEURS = ["#f47b20", "#8e5bd9", "#e0409c", "#17b3c4", "#8a5a2b"]
+export const COULEURS_JOUEURS = ["#a8603a", "#6f5b99", "#9c4c72", "#4f6478", "#7a5a3a"]
 
 const Contexte = createContext<JeuContexte | null>(null)
 
