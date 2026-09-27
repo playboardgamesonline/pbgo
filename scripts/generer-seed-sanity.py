@@ -2,6 +2,8 @@
 """Génère un dossier d'import Sanity (data.ndjson + images) avec familles, rôles, courtisans, missions et réglages.
 
 Usage : python3 scripts/generer-seed-sanity.py <dossier-Assets> <dossier-sortie> [chemin-absolu-de-sortie-sur-le-mac]
+
+Les cartes sont prises dans apps/web/public/cartes (WebP) si elles existent, sinon dans <Assets>/cartes (PNG).
 Puis :  pnpm --filter studio exec sanity dataset import <dossier-sortie>/data.ndjson production --replace
 
 Les images viennent de <Assets>/cartes (voir extraire-cartes.py) et <dossier-sortie>/images (pictos).
@@ -77,7 +79,18 @@ def missions():
 def main(assets: Path, sortie: Path, base_absolue: str):
     images = sortie / "images"
     images.mkdir(parents=True, exist_ok=True)
-    cartes = assets / "cartes"
+    webp = Path(__file__).resolve().parent.parent / "apps" / "web" / "public" / "cartes"
+    dossier_cartes = webp if webp.exists() else assets / "cartes"
+
+    class Cartes:
+        def __truediv__(self, nom: str) -> Path:
+            stem = Path(nom).stem
+            for ext in (".webp", ".png"):
+                if (dossier_cartes / f"{stem}{ext}").exists():
+                    return dossier_cartes / f"{stem}{ext}"
+            return assets / "cartes" / nom
+
+    cartes = Cartes()
 
     def image(nom_source: Path, nom: str | None = None):
         cible = images / (nom or nom_source.name)
