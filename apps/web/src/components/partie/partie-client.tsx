@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
+import { Jeu } from "@/components/jeu/jeu"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
@@ -44,6 +45,10 @@ export function PartieClient({ code, catalogue }: { code: string; catalogue: Cat
   async function quitter() {
     if (partie?.statut === "lobby" && partie.moiId) await api.quitter(code).catch(() => null)
     router.push("/")
+  }
+
+  if (partie && partie.moiId && partie.statut !== "lobby" && partie.vue) {
+    return <Jeu partie={partie} catalogue={catalogue} onMaj={appliquer} onQuitter={() => router.push("/")} />
   }
 
   let contenu: React.ReactNode
