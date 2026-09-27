@@ -170,14 +170,15 @@ export function Jeu3D({
                 initial={{ y: 80, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 80, opacity: 0 }}
-                className="absolute inset-x-0 bottom-[28%] z-30 mx-auto flex w-fit items-center gap-3 rounded-full border border-destructive bg-card/95 px-5 py-2 shadow-2xl backdrop-blur"
+                className="absolute inset-x-0 bottom-8 z-30 mx-auto w-fit"
               >
-                <span className="text-sm">Ton Assassin peut éliminer une carte de cette zone (sauf les Gardes).</span>
-                <Button size="sm" variant="secondary" disabled={envoi} onClick={() => interaction.eliminer(null)}>
-                  Ne pas éliminer
-                </Button>
-                <Button size="sm" variant="ghost" disabled={envoi} onClick={() => setAssassinat(null)}>
-                  Annuler
+                <Button
+                  size="lg"
+                  disabled={envoi}
+                  onClick={() => interaction.eliminer(null)}
+                  className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12]/90 px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
+                >
+                  Ne pas assassiner
                 </Button>
               </motion.div>
             )}

@@ -39,7 +39,7 @@ export function alea(cle: string) {
   return ((h >>> 0) / 4294967295) * 2 - 1
 }
 
-export const penche = (cle: string, amplitude = 0.045) => new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), alea(cle) * amplitude)
+export const penche = (cle: string, amplitude = 0.028) => new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), alea(cle) * amplitude)
 
 export const colonneX = (colonne: Colonne) => -TAPIS_L / 2 + MARGE + PAS * (ORDRE_TAPIS.indexOf(colonne) + 0.5)
 
@@ -52,7 +52,7 @@ export const colonneDe = (carte: CarteVisible): Colonne => carte.famille ?? "rei
 
 export const PIOCHE = new Vector3(TAPIS_L / 2 + 1.2, 0, 0)
 export const poseDessusPioche = (n: number) =>
-  pose(PIOCHE.x, 0.03 + Math.min(n, 60) * EPAISSEUR_PIOCHE, PIOCHE.z, penche(`pioche${n}`, 0.07).multiply(FACE_BAS))
+  pose(PIOCHE.x, 0.03 + Math.min(n, 60) * EPAISSEUR_PIOCHE, PIOCHE.z, penche(`pioche${n}`, 0.04).multiply(FACE_BAS))
 
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }

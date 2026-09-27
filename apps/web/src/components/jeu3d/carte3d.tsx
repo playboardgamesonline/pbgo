@@ -8,6 +8,7 @@ import {
   AdditiveBlending,
   CanvasTexture,
   ExtrudeGeometry,
+  NormalBlending,
   type Group,
   type Mesh,
   type MeshBasicMaterial,
@@ -103,6 +104,31 @@ function textureOmbre() {
   return ombreTexture
 }
 
+const halos = new Map<string, CanvasTexture>()
+
+function textureHalo(largeur: number, hauteur: number, marge: number) {
+  const cle = `${largeur.toFixed(2)}:${hauteur.toFixed(2)}:${marge.toFixed(2)}`
+  let t = halos.get(cle)
+  if (!t) {
+    const echelle = 160 / (largeur + 2 * marge)
+    const c = document.createElement("canvas")
+    c.width = Math.round((largeur + 2 * marge) * echelle)
+    c.height = Math.round((hauteur + 2 * marge) * echelle)
+    const g = c.getContext("2d")!
+    g.shadowColor = "white"
+    g.shadowBlur = marge * echelle * 0.9
+    g.fillStyle = "white"
+    const r = Math.min(largeur, hauteur) * 0.06 * echelle
+    g.beginPath()
+    g.roundRect(marge * echelle, marge * echelle, largeur * echelle, hauteur * echelle, r)
+    g.fill()
+    g.fill()
+    t = new CanvasTexture(c)
+    halos.set(cle, t)
+  }
+  return t
+}
+
 const COULEURS_LUEUR = {
   or: "#f2c14e",
   rouge: "#ff4d4d",
@@ -153,6 +179,9 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   const tranche = useMemo(() => geometrieTranche(largeur, hauteur, epaisseur), [largeur, hauteur, epaisseur])
   const marge = 0.05 / Math.max(cible.echelle, 0.3)
   const geoLueur = useMemo(() => geometrieCarte(largeur + marge, hauteur + marge), [largeur, hauteur, marge])
+  const margeHalo = Math.min(largeur, hauteur) * 0.28
+  const halo = useMemo(() => textureHalo(largeur, hauteur, margeHalo), [largeur, hauteur, margeHalo])
+  const haloRef = useRef<MeshBasicMaterial>(null)
   const [survol, setSurvol] = useState(false)
   const [ombre] = useState(textureOmbre)
   const ombreRef = useRef<Mesh>(null)
@@ -187,11 +216,12 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useFrame(({ pointer }, dt) => {
+  useFrame(({ pointer, clock }, dt) => {
+    if (haloRef.current) haloRef.current.opacity = (lueur === "rouge" ? 0.75 : 0.8) + Math.sin(clock.elapsedTime * 2.6) * 0.15
     const r = refletRef.current
     if (r) {
       const m = r.material as MeshBasicMaterial
-      easing.damp(m, "opacity", reflet ? 1 : 0, 0.25, dt)
+      easing.damp(m, "opacity", reflet ? 0.5 : 0, 0.3, dt)
       r.visible = m.opacity > 0.01
       if (reflet) {
         easing.damp(texReflet.offset, "x", -pointer.x * 0.45, 0.15, dt)
@@ -260,8 +290,22 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
         <meshBasicMaterial map={verso} toneMapped={false} />
       </mesh>
       {lueur && (
-        <mesh geometry={geoLueur} position-z={-epaisseur / 2 - 0.004}>
-          <meshBasicMaterial color={COULEURS_LUEUR[lueur]} toneMapped={false} />
+        <mesh position-z={-epaisseur / 2 - 0.006} raycast={() => null}>
+          <planeGeometry args={[largeur + 2 * margeHalo, hauteur + 2 * margeHalo]} />
+          <meshBasicMaterial
+            ref={haloRef}
+            map={halo}
+            color={COULEURS_LUEUR[lueur]}
+            transparent
+            depthWrite={false}
+            blending={lueur === "rouge" ? NormalBlending : AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+      {lueur === "rouge" && (
+        <mesh geometry={geoLueur} position-z={-epaisseur / 2 - 0.003} raycast={() => null}>
+          <meshBasicMaterial color={COULEURS_LUEUR.rouge} toneMapped={false} />
         </mesh>
       )}
     </group>

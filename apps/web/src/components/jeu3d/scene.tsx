@@ -169,7 +169,7 @@ function Pioche({ nombre }: { nombre: number }) {
   return (
     <group position={[PIOCHE.x, 0, PIOCHE.z]}>
       {Array.from({ length: Math.max(0, n - 1) }, (_, i) => (
-        <group key={i} position-y={0.03 + (i + 1) * EPAISSEUR_PIOCHE} quaternion={penche(`pioche${i + 1}`, 0.07)}>
+        <group key={i} position-y={0.03 + (i + 1) * EPAISSEUR_PIOCHE} quaternion={penche(`pioche${i + 1}`, 0.04)}>
           <mesh geometry={geo} rotation-x={-Math.PI / 2} position-y={-(CARTE_L * EPAISSEUR_RELATIVE) / 2} raycast={() => null}>
             <meshBasicMaterial attach="material-0" color="#123c42" toneMapped={false} />
             <meshBasicMaterial attach="material-1" color={i % 2 ? "#d9cba6" : "#cdbf98"} toneMapped={false} />
@@ -219,7 +219,7 @@ function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jo
         profondeur={zone.profondeur}
         position={[zone.centre.x, 0.014, zone.centre.z]}
         lacet={zone.lacet}
-        force={jouable ? (survol ? 1.5 : 0.9) : 0}
+        force={jouable ? (survol ? 1 : 0.55) : 0}
         couleur={couleur}
         clair={clair}
       />
@@ -286,7 +286,7 @@ function Cible({ pose, niveau, onClick }: { pose: Pose; niveau: "haut" | "bas"; 
         profondeur={CARTE_H}
         position={[pose.position.x, 0.02, pose.position.z]}
         lacet={0}
-        force={survol ? 1.4 : 0.85}
+        force={survol ? 0.95 : 0.55}
         couleur={haut ? "#ffc247" : "#1a0b26"}
         clair={haut ? "#fff5c7" : "#7a4aa6"}
         additif={haut}
@@ -454,12 +454,12 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       const p = poseCamera(`mission:${m.id}`)
       if (intro || missionFocus === m.id) {
         const d = intro ? 4.4 : 3.6
-        const k = d / 8
+        const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
         const x = intro ? (i - 0.5) * (MISSION_L + 0.3) * k : 0
-        p.position.copy(camera.localToWorld(new Vector3(x, 0.3 * k, -d)))
+        p.position.copy(camera.localToWorld(new Vector3(x, intro ? 0.3 * k : -0.04 * k, -d)))
         p.quaternion.copy(camera.quaternion)
         if (!intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
-        p.echelle = intro ? k : 1.4 * k
+        p.echelle = intro ? k : 1.3 * k
       } else {
         const survolee = survol === `mission:${m.id}`
         const machoire = i === 0 ? 0.28 : -0.05
@@ -560,7 +560,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           verso={tex.dosMission(m)}
           largeur={MISSION_L}
           hauteur={MISSION_H}
-          vitesse={intro || missionFocus ? 0.14 : 0.05}
+          vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
           reflet={missionFocus === m.id}
           onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
           onClick={(e) => {
@@ -581,7 +581,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       )}
       <TexteTable
         texte={String(vue.nombreCartesPioche)}
-        style={{ ...ENCRE, graisse: 600 }}
+        style={{ couleur: "rgba(240,233,206,0.42)", graisse: 800 }}
         hauteur={0.85}
         position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.75]}
       />

@@ -35,7 +35,7 @@ void main() {
   float course = pow(0.5 + 0.5 * sin(angle * 3.0 - uTemps * 1.6), 10.0);
   float eclat = pow(0.5 + 0.5 * sin(p.x * 7.0 + uTemps * 3.1) * sin(p.y * 6.0 - uTemps * 2.3), 18.0) * smoothstep(0.2, -0.6, d);
   vec3 couleur = mix(uCouleur, uClair, clamp(bord * onde + course * bord + eclat, 0.0, 1.0));
-  float a = (bord * (0.55 + 0.45 * onde + course * 0.8) + halo * (0.6 + 0.4 * onde) + eclat * 0.6) * uForce;
+  float a = (bord * (0.5 + 0.35 * onde + course * 0.5) + halo * (0.5 + 0.3 * onde) + eclat * 0.3) * uForce;
   vec2 bordUv = min(vUv, 1.0 - vUv);
   a *= smoothstep(0.0, 0.18, bordUv.x) * smoothstep(0.0, 0.18, bordUv.y);
   gl_FragColor = vec4(couleur, a);
