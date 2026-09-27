@@ -72,7 +72,7 @@ function CameraRig() {
   useLayoutEffect(() => {
     const k = Math.max(1, 1.6 / (size.width / size.height))
     camera.up.set(0, 0, -1)
-    camera.position.set(0, 37 * k, -1)
+    camera.position.set(0, 33 * k, -1)
     camera.lookAt(0, 0, -1)
     camera.updateProjectionMatrix()
   }, [camera, size])
@@ -118,7 +118,7 @@ function Table({ tex }: { tex: Textures }) {
   )
 }
 
-function Voile({ actif }: { actif: boolean }) {
+function Voile({ actif, opacite }: { actif: boolean; opacite: number }) {
   const ref = useRef<Mesh>(null)
   const { camera } = useThree()
   useFrame((_, dt) => {
@@ -126,7 +126,7 @@ function Voile({ actif }: { actif: boolean }) {
     ref.current.position.copy(camera.localToWorld(new Vector3(0, 0, -5)))
     ref.current.quaternion.copy(camera.quaternion)
     const m = ref.current.material as MeshBasicMaterial
-    easing.damp(m, "opacity", actif ? 0.6 : 0, 0.2, dt)
+    easing.damp(m, "opacity", actif ? opacite : 0, 0.2, dt)
     ref.current.visible = m.opacity > 0.01
   })
   return (
@@ -293,25 +293,31 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   }
 
   const selectionId = it.selection?.id
-  useFrame(() => {
-    const cam = camera as unknown as { fov: number; aspect: number }
-    const h = D_MAIN * Math.tan((cam.fov * Math.PI) / 360)
-    const w = h * cam.aspect
-    const hauteur = h * 0.6
+  useFrame(({ pointer }) => {
+    const proj = camera.projectionMatrix.elements
+    const h = D_MAIN / proj[5]
+    const w = D_MAIN / proj[0]
+    const marge = h * 0.05
+    const hauteur = h * 0.66
     const echelle = hauteur / CARTE_H
+    const largeur = CARTE_L * echelle
+    const pas = largeur * 0.9
     const n = main.length
+    const centreMain = -w + marge + largeur / 2 + ((n - 1) * pas) / 2
     main.forEach((c, i) => {
       const t = i - (n - 1) / 2
-      const angle = -Math.PI / 4 - t * 0.22
-      const leve = c.id === selectionId ? hauteur * 0.22 : c.id === survol ? hauteur * 0.08 : 0
-      const r = hauteur * 0.62 + leve
-      const local = new Vector3(-w - Math.sin(angle) * r, -h + Math.cos(angle) * r, -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01)
+      const leve = c.id === selectionId ? hauteur * 0.24 : c.id === survol ? hauteur * 0.08 : 0
+      const local = new Vector3(
+        centreMain + t * pas,
+        -h + hauteur / 6 - Math.abs(t) * hauteur * 0.03 + leve,
+        -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
+      )
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
-      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, angle)))
+      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.06)))
       p.echelle = echelle
     })
-    const mL = Math.min(w * 0.3, h * 0.66)
+    const mL = Math.min(w * 0.36, h * 0.8)
     const mH = (mL * MISSION_H) / MISSION_L
     missions.forEach((m, i) => {
       const p = poseCamera(`mission:${m.id}`)
@@ -321,15 +327,19 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         const x = intro ? (i - 0.5) * (MISSION_L + 0.3) * k : 0
         p.position.copy(camera.localToWorld(new Vector3(x, 0.3 * k, -d)))
         p.quaternion.copy(camera.quaternion)
+        if (!intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
         p.echelle = intro ? k : 1.4 * k
       } else {
         const devant = survol === `mission:${m.id}`
-        const rang = missions.length - 1 - i
-        const sortie = devant ? 0.22 : 0
-        const x = w - mL * (0.3 + sortie) - rang * mL * 0.42
-        const y = -h + mH * (0.22 + sortie) + rang * mH * 0.62
-        p.position.copy(camera.localToWorld(new Vector3(x, y, -D_MAIN + 0.05 + (devant ? 0.3 : 0) - rang * 0.02)))
-        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, rang ? 0.32 : 0.12)))
+        const machoire = i === 0 ? 0.42 : -0.08
+        const sortie = devant ? mL * 0.14 : 0
+        const bras = -mL * 0.5 + mL * 0.06 - sortie
+        const pivotX = w - mL * 0.16
+        const pivotY = -h + mH * 0.62
+        const x = pivotX + Math.cos(machoire) * bras
+        const y = pivotY + Math.sin(machoire) * bras * -1 + (i === 0 ? mH * 0.2 : -mH * 0.08)
+        p.position.copy(camera.localToWorld(new Vector3(x, y, -D_MAIN + 0.05 + (devant ? 0.3 : 0) + (i === 0 ? 0 : 0.02))))
+        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -machoire)))
         p.echelle = mL / MISSION_L
       }
     })
@@ -416,6 +426,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           hauteur={MISSION_H}
           arc={0.1}
           vitesse={0.14}
+          reflet={missionFocus === m.id}
           onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
           onClick={(e) => {
             e.stopPropagation()
@@ -423,7 +434,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           }}
         />
       ))}
-      <Voile actif={discret} />
+      <Voile actif={discret} opacite={missionFocus ? 0.8 : 0.6} />
 
       {transitoires.map((t) => (
         <Ephemere key={t.id} item={t} tex={tex} onFin={() => setTransitoires((l) => l.filter((x) => x.id !== t.id))} />

@@ -4,7 +4,7 @@ import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, type Group, type Mesh, Shape, ShapeGeometry, type Texture, Vector3 } from "three"
+import { AdditiveBlending, CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, Shape, ShapeGeometry, type Texture, Vector3 } from "three"
 import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
@@ -33,6 +33,28 @@ export function geometrieCarte(largeur: number, hauteur: number, rayon = Math.mi
     geometries.set(cle, geo)
   }
   return geo
+}
+
+let refletTexture: CanvasTexture | null = null
+function textureReflet() {
+  if (refletTexture) return refletTexture
+  const c = document.createElement("canvas")
+  c.width = c.height = 256
+  const g = c.getContext("2d")!
+  const grad = g.createLinearGradient(0, 256, 256, 0)
+  grad.addColorStop(0.25, "rgba(255,255,255,0)")
+  grad.addColorStop(0.42, "rgba(255,245,220,0.3)")
+  grad.addColorStop(0.5, "rgba(255,255,255,0.6)")
+  grad.addColorStop(0.53, "rgba(255,255,255,0.2)")
+  grad.addColorStop(0.6, "rgba(255,245,220,0.35)")
+  grad.addColorStop(0.75, "rgba(255,255,255,0)")
+  g.fillStyle = grad
+  g.fillRect(0, 0, 256, 256)
+  const t = new CanvasTexture(c)
+  t.repeat.set(0.6, 0.6)
+  t.center.set(0.5, 0.5)
+  refletTexture = t
+  return t
 }
 
 let ombreTexture: CanvasTexture | null = null
@@ -70,13 +92,14 @@ type Props = {
   vitesse?: number
   onClick?: (e: ThreeEvent<MouseEvent>) => void
   onSurvol?: (survol: boolean) => void
+  reflet?: boolean
 }
 
 const cibleTmp = new Vector3()
 const echelleTmp = new Vector3()
 const normaleTmp = new Vector3()
 
-export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, arc = 0.3, vitesse = 0.16, onClick, onSurvol }: Props) {
+export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, arc = 0.3, vitesse = 0.16, onClick, onSurvol, reflet }: Props) {
   const ref = useRef<Group>(null)
   const geo = useMemo(() => geometrieCarte(largeur, hauteur), [largeur, hauteur])
   const marge = 0.05 / Math.max(cible.echelle, 0.3)
@@ -84,6 +107,8 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   const [survol, setSurvol] = useState(false)
   const [ombre] = useState(textureOmbre)
   const ombreRef = useRef<Mesh>(null)
+  const refletRef = useRef<Mesh>(null)
+  const [texReflet] = useState(textureReflet)
   useCursor(survol && !!onClick)
 
   useLayoutEffect(() => {
@@ -96,7 +121,17 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useFrame((_, dt) => {
+  useFrame(({ pointer }, dt) => {
+    const r = refletRef.current
+    if (r) {
+      const m = r.material as MeshBasicMaterial
+      easing.damp(m, "opacity", reflet ? 1 : 0, 0.25, dt)
+      r.visible = m.opacity > 0.01
+      if (reflet) {
+        easing.damp(texReflet.offset, "x", -pointer.x * 0.45, 0.15, dt)
+        easing.damp(texReflet.offset, "y", -pointer.y * 0.45, 0.15, dt)
+      }
+    }
     const g = ref.current
     if (!g) return
     const reste = g.position.distanceTo(cible.position)
@@ -128,6 +163,9 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
       </mesh>
       <mesh geometry={geo}>
         <meshBasicMaterial map={recto} toneMapped={false} />
+      </mesh>
+      <mesh ref={refletRef} geometry={geo} position-z={0.002} raycast={() => null} visible={false}>
+        <meshBasicMaterial map={texReflet} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
       <mesh geometry={geo} rotation-y={Math.PI} position-z={-0.004}>
         <meshBasicMaterial map={verso} toneMapped={false} />

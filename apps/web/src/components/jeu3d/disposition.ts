@@ -34,7 +34,7 @@ export type Colonne = Famille | "reine"
 export const colonneX = (colonne: Colonne) => -TAPIS_L / 2 + MARGE + PAS * (ORDRE_TAPIS.indexOf(colonne) + 0.5)
 
 export function poseTable(colonne: Colonne, niveau: Niveau, rang: number): Pose {
-  const bord = TAPIS_P / 2 + 0.12 + CARTE_H / 2 + rang * DECALAGE
+  const bord = TAPIS_P / 2 + CARTE_H / 2 + rang * DECALAGE
   return pose(colonneX(colonne), 0.03 + rang * EPAISSEUR, niveau === "haut" ? -bord : bord, FACE_HAUT)
 }
 
@@ -46,28 +46,28 @@ export const poseDessusPioche = (n: number) => pose(PIOCHE.x, 0.03 + Math.min(n,
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
 
-const H = -12.4
-const COTE = 13.4
+const H = -10.9
+const COTE = 12.4
 const SIEGES: Record<number, [number, number, Orientation, number][]> = {
   1: [[0, H, "haut", 11]],
   2: [
-    [-COTE, -0.8, "gauche", 9.5],
-    [COTE, -0.8, "droite", 9.5],
+    [-COTE, -1.6, "gauche", 9.5],
+    [COTE, -1.6, "droite", 9.5],
   ],
   3: [
-    [-COTE, -0.8, "gauche", 9.5],
+    [-COTE, -1.6, "gauche", 9.5],
     [0, H, "haut", 11],
-    [COTE, -0.8, "droite", 9.5],
+    [COTE, -1.6, "droite", 9.5],
   ],
   4: [
-    [-COTE, -0.8, "gauche", 9.5],
+    [-COTE, -1.6, "gauche", 9.5],
     [-6, H, "haut", 9],
     [6, H, "haut", 9],
-    [COTE, -0.8, "droite", 9.5],
+    [COTE, -1.6, "droite", 9.5],
   ],
 }
 
-export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 7.4), orientation: "bas", largeurMax: 11 }
+export const MON_SIEGE: Siege = { position: new Vector3(0, 0, 6.6), orientation: "bas", largeurMax: 11 }
 
 export function sieges(vue: VueJoueur): Map<string, Siege> {
   const moiId = vue.moi?.id
