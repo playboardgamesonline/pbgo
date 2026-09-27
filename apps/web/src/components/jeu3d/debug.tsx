@@ -58,7 +58,7 @@ export function PanneauDebug() {
   }, [])
 
   return (
-    <div className="absolute top-20 right-4 z-40 w-80">
+    <div className="absolute top-36 right-4 z-40 w-80">
       <Leva fill hidden={!actif} collapsed={false} titleBar={{ title: "Debug · Shift+D" }} />
     </div>
   )
