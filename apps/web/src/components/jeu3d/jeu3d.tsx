@@ -13,7 +13,6 @@ import { api } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
 import type { PartiePublique } from "@/lib/partie-types"
 import { Bandeau } from "../jeu/bandeau"
-import { BadgeCarte } from "../jeu/message"
 import { JeuProvider } from "../jeu/contexte"
 import { FinDePartie } from "../jeu/fin-de-partie"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
@@ -118,12 +117,6 @@ export function Jeu3D({
     }
   }, [monTour, selection, assassinat, envoi, vue, onMaj, partie.code])
 
-  const aide = !intro && !assassinat && selection ? (
-    <span className="inline-flex items-center gap-1.5">
-      Où jouer <BadgeCarte carte={selection} /> ?
-    </span>
-  ) : null
-
   return (
     <JeuProvider catalogue={catalogue} partie={partie} vue={vue}>
       <InteractionContexte.Provider value={interaction}>
@@ -140,7 +133,7 @@ export function Jeu3D({
             />
           </div>
 
-          <header className="pointer-events-none absolute inset-x-0 top-0 z-20 grid grid-cols-[auto_1fr_auto] items-start gap-4 bg-gradient-to-b from-black/60 to-transparent px-6 pt-5 pb-8">
+          <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 bg-gradient-to-b from-black/60 to-transparent px-6 pt-5 pb-8">
             <button
               type="button"
               className="pointer-events-auto mt-1 w-20 transition-transform hover:scale-105 sm:w-24"
@@ -149,9 +142,10 @@ export function Jeu3D({
             >
               <Logo src={catalogue.logoUrl} />
             </button>
-            <Bandeau aide={aide} />
             <ReglesButton icone className="pointer-events-auto" />
           </header>
+
+          <Bandeau />
 
           {intro && (
             <div className="absolute inset-x-0 bottom-[12%] z-20 flex justify-center">
