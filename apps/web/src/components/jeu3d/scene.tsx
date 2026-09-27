@@ -6,11 +6,11 @@ import { button, useControls } from "leva"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector3 } from "three"
+import { CanvasTexture, Color, Euler, type Mesh, type MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
 import { Aura } from "./aura"
-import { Carte3D, geometrieCarte } from "./carte3d"
+import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
   CARTE_H,
@@ -29,6 +29,7 @@ import {
   cleGroupe,
   disposerDomaine,
   poseDessusPioche,
+  penche,
   poseTable,
   type Siege,
   sieges,
@@ -46,7 +47,7 @@ function disposer(vue: VueJoueur, places: Map<string, Siege>, deplie: string | n
     const cle = `${col}:${niveau}`
     const rang = rangs.get(cle) ?? 0
     rangs.set(cle, rang + 1)
-    map.set(carte.id, { carte, pose: poseTable(col, niveau, rang) })
+    map.set(carte.id, { carte, pose: poseTable(col, niveau, rang, carte.id) })
   }
   for (const j of vue.joueurs) {
     const siege = places.get(j.id)
@@ -71,7 +72,7 @@ type Transitoire = {
   cible: Pose
 }
 
-export const CAMERA_DEFAUT = { inclinaison: 17, lacet: 0, distance: 30.5, fov: 38, cible: { x: 0, y: -0.2 } }
+export const CAMERA_DEFAUT = { inclinaison: 32, lacet: 0, distance: 37.6, fov: 26.5, cible: { x: 0, y: 0.6 } }
 
 const RAD = Math.PI / 180
 const CIBLE_TMP = new Vector3()
@@ -143,21 +144,38 @@ function vignetteTexture() {
 
 function Table({ tex }: { tex: Textures }) {
   const vignette = useFrameTexture(vignetteTexture)
+  const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.28), [])
+  const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.06, 0.28), [])
   return (
     <group>
       <mesh rotation-x={-Math.PI / 2} position-y={-0.02}>
         <planeGeometry args={[80, 60]} />
         <meshBasicMaterial map={vignette} toneMapped={false} />
       </mesh>
-      <mesh position-y={0.03}>
-        <boxGeometry args={[TAPIS_L, 0.06, TAPIS_P]} />
-        <meshBasicMaterial attach="material-0" color="#0b1d22" toneMapped={false} />
+      <mesh geometry={tranche} rotation-x={-Math.PI / 2}>
+        <meshBasicMaterial attach="material-0" visible={false} />
         <meshBasicMaterial attach="material-1" color="#0b1d22" toneMapped={false} />
-        <meshBasicMaterial attach="material-2" map={tex.tapis} toneMapped={false} />
-        <meshBasicMaterial attach="material-3" color="#0b1d22" toneMapped={false} />
-        <meshBasicMaterial attach="material-4" color="#0b1d22" toneMapped={false} />
-        <meshBasicMaterial attach="material-5" color="#0b1d22" toneMapped={false} />
       </mesh>
+      <mesh geometry={dessus} rotation-x={-Math.PI / 2} position-y={0.061}>
+        <meshBasicMaterial map={tex.tapis} toneMapped={false} />
+      </mesh>
+    </group>
+  )
+}
+
+function Pioche({ nombre }: { nombre: number }) {
+  const geo = useMemo(() => geometrieTranche(CARTE_L, CARTE_H, CARTE_L * EPAISSEUR_RELATIVE), [])
+  const n = Math.min(nombre, 60)
+  return (
+    <group position={[PIOCHE.x, 0, PIOCHE.z]}>
+      {Array.from({ length: Math.max(0, n - 1) }, (_, i) => (
+        <group key={i} position-y={0.03 + (i + 1) * EPAISSEUR_PIOCHE} quaternion={penche(`pioche${i + 1}`, 0.07)}>
+          <mesh geometry={geo} rotation-x={-Math.PI / 2} position-y={-(CARTE_L * EPAISSEUR_RELATIVE) / 2} raycast={() => null}>
+            <meshBasicMaterial attach="material-0" color="#123c42" toneMapped={false} />
+            <meshBasicMaterial attach="material-1" color={i % 2 ? "#d9cba6" : "#cdbf98"} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
     </group>
   )
 }
@@ -181,14 +199,15 @@ function Voile({ actif, opacite }: { actif: boolean; opacite: number }) {
   )
 }
 
-function FondDomaine({ zone, jouable, survol }: { zone: ZoneDomaine; jouable: boolean; survol: boolean }) {
+function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jouable: boolean; survol: boolean; couleur: string }) {
+  const clair = useMemo(() => `#${new Color(couleur).lerp(new Color("#ffffff"), 0.65).getHexString()}`, [couleur])
   const ref = useRef<MeshBasicMaterial>(null)
   const geo = useMemo(() => geometrieCarte(zone.largeur, zone.profondeur, 0.35), [zone.largeur, zone.profondeur])
   useFrame((_, dt) => {
     const m = ref.current
     if (!m) return
     easing.damp(m, "opacity", jouable ? (survol ? 0.22 : 0.12) : 0.05, 0.15, dt)
-    easing.dampC(m.color, jouable ? "#ffd766" : "#ffffff", 0.2, dt)
+    easing.dampC(m.color, jouable ? couleur : "#ffffff", 0.2, dt)
   })
   return (
     <>
@@ -200,7 +219,9 @@ function FondDomaine({ zone, jouable, survol }: { zone: ZoneDomaine; jouable: bo
         profondeur={zone.profondeur}
         position={[zone.centre.x, 0.014, zone.centre.z]}
         lacet={zone.lacet}
-        force={jouable ? (survol ? 1.35 : 0.75) : 0}
+        force={jouable ? (survol ? 1.5 : 0.9) : 0}
+        couleur={couleur}
+        clair={clair}
       />
     </>
   )
@@ -253,20 +274,27 @@ function ZoneCliquable({ zone, onClick, onSurvol }: { zone: ZoneDomaine; onClick
   )
 }
 
-function Cible({ largeur, hauteur, pose, onClick }: { largeur: number; hauteur: number; pose: Pose; onClick: () => void }) {
-  const ref = useRef<Mesh>(null)
+function Cible({ pose, niveau, onClick }: { pose: Pose; niveau: "haut" | "bas"; onClick: () => void }) {
   const [survol, setSurvol] = useState(false)
   useCursor(survol)
-  const geo = useMemo(() => geometrieCarte(largeur, hauteur), [largeur, hauteur])
-  useFrame(({ clock }) => {
-    if (ref.current) (ref.current.material as MeshBasicMaterial).opacity = (survol ? 0.5 : 0.2) + Math.sin(clock.elapsedTime * 4) * 0.07
-  })
+  const geo = useMemo(() => geometrieCarte(CARTE_L, CARTE_H), [])
+  const haut = niveau === "haut"
   return (
-    <group position={pose.position} quaternion={pose.quaternion}>
+    <>
+      <Aura
+        largeur={CARTE_L}
+        profondeur={CARTE_H}
+        position={[pose.position.x, 0.02, pose.position.z]}
+        lacet={0}
+        force={survol ? 1.4 : 0.85}
+        couleur={haut ? "#ffc247" : "#1a0b26"}
+        clair={haut ? "#fff5c7" : "#7a4aa6"}
+        additif={haut}
+      />
       <mesh
-        ref={ref}
         geometry={geo}
-        position-z={0.02}
+        position={[pose.position.x, pose.position.y + 0.05, pose.position.z]}
+        rotation-x={-Math.PI / 2}
         onClick={(e) => {
           e.stopPropagation()
           onClick()
@@ -277,9 +305,9 @@ function Cible({ largeur, hauteur, pose, onClick }: { largeur: number; hauteur: 
         }}
         onPointerOut={() => setSurvol(false)}
       >
-        <meshBasicMaterial color="#f2c14e" transparent depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-    </group>
+    </>
   )
 }
 
@@ -412,12 +440,12 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       const leve = c.id === selectionId ? hauteur * 0.24 : c.id === survol ? hauteur * 0.08 : 0
       const local = new Vector3(
         centreMain + t * pas,
-        -h + hauteur / 7 + t * pas * Math.sin(inclinaison) - Math.abs(t) * hauteur * 0.02 + leve,
+        -h + hauteur / 7 + t * pas * Math.sin(inclinaison) - Math.abs(t) * hauteur * 0.045 + leve,
         -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
       )
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
-      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, inclinaison - t * 0.05)))
+      p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, inclinaison - t * 0.09)))
       p.echelle = echelle
     })
     const mL = Math.min(w * 0.36, h * 0.8)
@@ -547,23 +575,21 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         <Ephemere key={t.id} item={t} tex={tex} onFin={() => setTransitoires((l) => l.filter((x) => x.id !== t.id))} />
       ))}
 
-      <group position={[PIOCHE.x, 0, PIOCHE.z]}>
-        {vue.nombreCartesPioche > 0 && (
-          <mesh position-y={(vue.nombreCartesPioche * EPAISSEUR_PIOCHE) / 2}>
-            <boxGeometry args={[CARTE_L * 0.98, vue.nombreCartesPioche * EPAISSEUR_PIOCHE, CARTE_H * 0.98]} />
-            <meshBasicMaterial color="#d9cba6" toneMapped={false} />
-          </mesh>
-        )}
-      </group>
+      <Pioche nombre={vue.nombreCartesPioche} />
       {vue.nombreCartesPioche > 0 && (
         <Carte3D cible={poseDessusPioche(vue.nombreCartesPioche)} recto={tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} />
       )}
-      <TexteTable texte={String(vue.nombreCartesPioche)} style={ENCRE} hauteur={0.55} position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.6]} />
+      <TexteTable
+        texte={String(vue.nombreCartesPioche)}
+        style={{ ...ENCRE, graisse: 600 }}
+        hauteur={0.85}
+        position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.75]}
+      />
 
       {vue.joueurs.map((j) => {
         const zone = zones.get(j.id)
         if (!zone) return null
-        return <FondDomaine key={`fond-${j.id}`} zone={zone} jouable={domaineCible(j.id)} survol={survolJoueur === j.id} />
+        return <FondDomaine key={`fond-${j.id}`} zone={zone} jouable={domaineCible(j.id)} survol={survolJoueur === j.id} couleur={couleur(j.id)} />
       })}
 
       {vue.joueurs.map((j) => {
@@ -591,8 +617,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         (["haut", "bas"] as const).map((niveau) => (
           <Cible
             key={niveau}
-            largeur={CARTE_L}
-            hauteur={CARTE_H}
+            niveau={niveau}
             pose={poseTable(colCible, niveau, rangs.get(`${colCible}:${niveau}`) ?? 0)}
             onClick={() => it.jouer({ zone: "table", niveau })}
           />
@@ -609,7 +634,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
 
 export default function Scene3D(props: { intro: boolean; missionFocus: string | null; onMission: (id: string) => void; onVide: () => void }) {
   return (
-    <Canvas dpr={[1, 2]} camera={{ fov: 38, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={props.onVide}>
+    <Canvas dpr={[1, 2]} camera={{ fov: 26.5, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={props.onVide}>
       <Suspense fallback={null}>
         <Monde intro={props.intro} missionFocus={props.missionFocus} onMission={props.onMission} />
       </Suspense>

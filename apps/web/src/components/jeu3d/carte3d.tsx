@@ -21,7 +21,7 @@ import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
 const tranches = new Map<string, ExtrudeGeometry>()
-export const EPAISSEUR_RELATIVE = 0.024
+export const EPAISSEUR_RELATIVE = 0.016
 
 function forme(largeur: number, hauteur: number, rayon: number) {
   const x = -largeur / 2
@@ -39,11 +39,11 @@ function forme(largeur: number, hauteur: number, rayon: number) {
   return s
 }
 
-function geometrieTranche(largeur: number, hauteur: number, epaisseur: number) {
-  const cle = `${largeur.toFixed(3)}:${hauteur.toFixed(3)}:${epaisseur.toFixed(4)}`
+export function geometrieTranche(largeur: number, hauteur: number, epaisseur: number, rayon = Math.min(largeur, hauteur) * 0.06) {
+  const cle = `${largeur.toFixed(3)}:${hauteur.toFixed(3)}:${epaisseur.toFixed(4)}:${rayon.toFixed(3)}`
   let geo = tranches.get(cle)
   if (!geo) {
-    geo = new ExtrudeGeometry(forme(largeur, hauteur, Math.min(largeur, hauteur) * 0.06), { depth: epaisseur, bevelEnabled: false, curveSegments: 6 })
+    geo = new ExtrudeGeometry(forme(largeur, hauteur, rayon), { depth: epaisseur, bevelEnabled: false, curveSegments: 6 })
     tranches.set(cle, geo)
   }
   return geo

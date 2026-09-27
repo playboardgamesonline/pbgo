@@ -8,11 +8,11 @@ import { CanvasTexture, SRGBColorSpace } from "three"
 const POLICE = '"Alegreya Variable", "Alegreya", Georgia, serif'
 const TAILLE = 140
 
-export type StyleTexte = { couleur: string; contour?: string; lueur?: string; espacement?: string }
+export type StyleTexte = { couleur: string; contour?: string; lueur?: string; espacement?: string; graisse?: number }
 
 function dessiner(texte: string, style: StyleTexte) {
   const mesure = document.createElement("canvas").getContext("2d")!
-  mesure.font = `900 ${TAILLE}px ${POLICE}`
+  mesure.font = `${style.graisse ?? 900} ${TAILLE}px ${POLICE}`
   mesure.letterSpacing = style.espacement ?? "0px"
   const marge = 60
   const canvas = document.createElement("canvas")
@@ -76,11 +76,11 @@ export function TexteTable({
   onSurvol?: (survol: boolean) => void
 }) {
   const prete = usePolicePrete()
-  const { couleur, contour, lueur, espacement } = style
+  const { couleur, contour, lueur, espacement, graisse } = style
   const { texture, ratio } = useMemo(
-    () => dessiner(texte, { couleur, contour, lueur, espacement }),
+    () => dessiner(texte, { couleur, contour, lueur, espacement, graisse }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [texte, couleur, contour, lueur, espacement, prete],
+    [texte, couleur, contour, lueur, espacement, graisse, prete],
   )
   useEffect(() => () => texture.dispose(), [texture])
   const [survol, setSurvol] = useState(false)

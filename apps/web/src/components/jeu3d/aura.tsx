@@ -3,7 +3,7 @@
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useRef, useState } from "react"
-import { AdditiveBlending, type Mesh, type ShaderMaterial, Vector2 } from "three"
+import { AdditiveBlending, Color, type Mesh, NormalBlending, type ShaderMaterial, Vector2 } from "three"
 
 const vertex = /* glsl */ `
 varying vec2 vUv;
@@ -16,6 +16,8 @@ const fragment = /* glsl */ `
 uniform float uTemps;
 uniform float uForce;
 uniform vec2 uTaille;
+uniform vec3 uCouleur;
+uniform vec3 uClair;
 varying vec2 vUv;
 
 float boite(vec2 p, vec2 b, float r) {
@@ -32,9 +34,7 @@ void main() {
   float angle = atan(p.y, p.x);
   float course = pow(0.5 + 0.5 * sin(angle * 3.0 - uTemps * 1.6), 10.0);
   float eclat = pow(0.5 + 0.5 * sin(p.x * 7.0 + uTemps * 3.1) * sin(p.y * 6.0 - uTemps * 2.3), 18.0) * smoothstep(0.2, -0.6, d);
-  vec3 or = vec3(1.0, 0.76, 0.28);
-  vec3 clair = vec3(1.0, 0.96, 0.78);
-  vec3 couleur = mix(or, clair, clamp(bord * onde + course * bord + eclat, 0.0, 1.0));
+  vec3 couleur = mix(uCouleur, uClair, clamp(bord * onde + course * bord + eclat, 0.0, 1.0));
   float a = (bord * (0.55 + 0.45 * onde + course * 0.8) + halo * (0.6 + 0.4 * onde) + eclat * 0.6) * uForce;
   vec2 bordUv = min(vUv, 1.0 - vUv);
   a *= smoothstep(0.0, 0.18, bordUv.x) * smoothstep(0.0, 0.18, bordUv.y);
@@ -47,22 +47,36 @@ export function Aura({
   position,
   lacet,
   force,
+  couleur = "#ffc247",
+  clair = "#fff5c7",
+  additif = true,
 }: {
   largeur: number
   profondeur: number
   position: [number, number, number]
   lacet: number
   force: number
+  couleur?: string
+  clair?: string
+  additif?: boolean
 }) {
   const ref = useRef<Mesh>(null)
   const materiau = useRef<ShaderMaterial>(null)
-  const [uniforms] = useState(() => ({ uTemps: { value: 0 }, uForce: { value: 0 }, uTaille: { value: new Vector2(1, 1) } }))
+  const [uniforms] = useState(() => ({
+    uTemps: { value: 0 },
+    uForce: { value: 0 },
+    uTaille: { value: new Vector2(1, 1) },
+    uCouleur: { value: new Color() },
+    uClair: { value: new Color() },
+  }))
   useFrame(({ clock }, dt) => {
     const m = materiau.current
     if (!m) return
     const u = m.uniforms
     u.uTemps.value = clock.elapsedTime
     ;(u.uTaille.value as Vector2).set(largeur + 1.6, profondeur + 1.6)
+    ;(u.uCouleur.value as Color).set(couleur)
+    ;(u.uClair.value as Color).set(clair)
     easing.damp(u.uForce, "value", force, 0.18, dt)
     if (ref.current) ref.current.visible = u.uForce.value > 0.01
   })
@@ -76,7 +90,7 @@ export function Aura({
         uniforms={uniforms}
         transparent
         depthWrite={false}
-        blending={AdditiveBlending}
+        blending={additif ? AdditiveBlending : NormalBlending}
       />
     </mesh>
   )
