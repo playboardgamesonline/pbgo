@@ -68,19 +68,24 @@ export const MISSIONS_PROVISOIRES: Mission[] = [
 ]
 
 export async function chargerMissions(nombreJoueurs: number): Promise<Mission[]> {
+  let depuisSanity: Mission[] = []
   try {
     const { missions } = await getCatalogue()
-    const converties = missions.flatMap((m) => {
+    depuisSanity = missions.flatMap((m) => {
       try {
         return [{ id: m._id, couleur: m.couleur as Mission["couleur"], texte: m.texte ?? "", condition: versCondition(m.condition as ConditionSanity) }]
       } catch {
         return []
       }
     })
-    const assez = (couleur: Mission["couleur"]) => converties.filter((m) => m.couleur === couleur).length >= nombreJoueurs
-    if (assez("blanche") && assez("bleue")) return converties
   } catch (error) {
     console.error("Catalogue Sanity indisponible", error)
   }
-  return MISSIONS_PROVISOIRES
+
+  return (["blanche", "bleue"] as const).flatMap((couleur) => {
+    const valides = depuisSanity.filter((m) => m.couleur === couleur)
+    const textes = new Set(valides.map((m) => m.texte))
+    const complements = MISSIONS_PROVISOIRES.filter((m) => m.couleur === couleur && !textes.has(m.texte))
+    return [...valides, ...complements.slice(0, Math.max(0, nombreJoueurs - valides.length))]
+  })
 }

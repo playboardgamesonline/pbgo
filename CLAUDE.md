@@ -28,6 +28,8 @@ Exemples de mots métier gardés en français : `courtisan`, `famille`, `role`, 
 - Les champs `cle` de `famille` / `role` font le lien avec les clés du moteur
 - Requêtes GROQ dans `apps/web/src/sanity/queries.ts` avec `defineQuery`, puis `pnpm --filter studio typegen` pour régénérer `apps/web/src/sanity/types.ts`
 - `pnpm --filter studio schema:deploy` après chaque changement de schéma
+- Contenu initial : `scripts/extraire-cartes.py` (PNG depuis le PDF d'impression) puis `scripts/generer-seed-sanity.py` (dossier d'import `data.ndjson` + images) ; les missions non confirmées sont importées en brouillon
+- Les missions publiées sont complétées par `MISSIONS_PROVISOIRES` tant qu'il y en a moins de 5 par couleur
 
 ## Supabase (temps réel)
 - Table `parties` (migration dans `supabase/migrations`), RLS activée sans policy : seul le serveur (clé service role) la lit/écrit
