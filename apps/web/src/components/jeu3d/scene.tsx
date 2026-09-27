@@ -1,17 +1,15 @@
 "use client"
 
 import type { CarteVisible, Mission, VueJoueur } from "@courtisans/engine"
-import { Html, useCursor } from "@react-three/drei"
+import { useCursor } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, Euler, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
-import { ORDRE_TAPIS } from "@/lib/catalogue"
-import { cn } from "@/lib/utils"
 import { useJeu } from "../jeu/contexte"
 import { useInteraction } from "../jeu/interaction"
-import { Pseudo } from "../jeu/pseudo"
 import { Carte3D, geometrieCarte } from "./carte3d"
+import { TexteTable } from "./texte-table"
 import {
   CARTE_H,
   CARTE_L,
@@ -19,7 +17,6 @@ import {
   FACE_BAS,
   MISSION_H,
   MISSION_L,
-  MISSIONS_POS,
   PIOCHE,
   type Pose,
   TAPIS_L,
@@ -27,7 +24,6 @@ import {
   type ZoneDomaine,
   colonneDe,
   disposerDomaine,
-  colonneX,
   poseDessusPioche,
   poseTable,
   type Siege,
@@ -175,7 +171,7 @@ function Voile({ actif }: { actif: boolean }) {
   )
 }
 
-function ZoneCliquable({ zone, onClick }: { zone: ZoneDomaine; onClick: () => void }) {
+function ZoneCliquable({ zone, onClick, onSurvol }: { zone: ZoneDomaine; onClick: () => void; onSurvol: (s: boolean) => void }) {
   const [survol, setSurvol] = useState(false)
   useCursor(survol)
   return (
@@ -189,8 +185,12 @@ function ZoneCliquable({ zone, onClick }: { zone: ZoneDomaine; onClick: () => vo
       onPointerOver={(e) => {
         e.stopPropagation()
         setSurvol(true)
+        onSurvol(true)
       }}
-      onPointerOut={() => setSurvol(false)}
+      onPointerOut={() => {
+        setSurvol(false)
+        onSurvol(false)
+      }}
     >
       <planeGeometry args={[zone.largeur, zone.profondeur + 0.8]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -198,7 +198,7 @@ function ZoneCliquable({ zone, onClick }: { zone: ZoneDomaine; onClick: () => vo
   )
 }
 
-function Cible({ largeur, hauteur, pose, label, onClick }: { largeur: number; hauteur: number; pose: Pose; label?: string; onClick: () => void }) {
+function Cible({ largeur, hauteur, pose, onClick }: { largeur: number; hauteur: number; pose: Pose; onClick: () => void }) {
   const ref = useRef<Mesh>(null)
   const [survol, setSurvol] = useState(false)
   useCursor(survol)
@@ -224,11 +224,6 @@ function Cible({ largeur, hauteur, pose, label, onClick }: { largeur: number; ha
       >
         <meshBasicMaterial color="#f2c14e" transparent depthWrite={false} toneMapped={false} />
       </mesh>
-      <Html zIndexRange={[10, 0]} center position={[0, 0, 0.05]} className="pointer-events-none">
-        <span className={cn("rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-primary", !label && "hidden")}>
-          {label}
-        </span>
-      </Html>
     </group>
   )
 }
@@ -252,72 +247,8 @@ function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFi
   )
 }
 
-function Etiquette({
-  position,
-  children,
-  actif,
-  visible = true,
-  onClick,
-}: {
-  position: [number, number, number]
-  children: React.ReactNode
-  actif?: boolean
-  visible?: boolean
-  onClick?: () => void
-}) {
-  return (
-    <Html zIndexRange={[10, 0]} center position={position} className="pointer-events-none select-none">
-      <span
-        onClick={onClick}
-        className={cn(
-          "block font-display text-sm whitespace-nowrap transition-all duration-500 [text-shadow:0_1px_4px_rgb(0_0_0/90%)]",
-          !visible && "opacity-0",
-          actif ? "text-lg text-primary [text-shadow:0_0_14px_rgb(242_193_78/80%)]" : "text-foreground/85",
-          onClick && visible && "pointer-events-auto cursor-pointer text-lg text-primary [text-shadow:0_0_12px_rgb(242_193_78/90%)]",
-        )}
-      >
-        {children}
-      </span>
-    </Html>
-  )
-}
-
-function EtiquetteJoueur({
-  position,
-  nom,
-  couleur,
-  moi,
-  actif,
-  visible,
-  onClick,
-}: {
-  position: [number, number, number]
-  nom: string
-  couleur: string
-  moi: boolean
-  actif: boolean
-  visible: boolean
-  onClick?: () => void
-}) {
-  return (
-    <Html zIndexRange={[10, 0]} center position={position} className="pointer-events-none select-none">
-      <span
-        onClick={onClick}
-        className={cn(
-          "block rounded-full px-2 text-lg transition-all duration-500",
-          !visible && "opacity-0",
-          actif && "scale-125",
-          onClick && visible && "pointer-events-auto cursor-pointer bg-primary/25 shadow-[0_0_18px_6px_rgb(242_193_78/45%)]",
-        )}
-      >
-        <Pseudo nom={nom} couleur={couleur} />
-        {moi && <span className="ml-1 text-sm font-semibold text-white/80 [text-shadow:0_1px_3px_rgb(0_0_0/90%)]">(toi)</span>}
-      </span>
-    </Html>
-  )
-}
-
 const D_MAIN = 6
+const ENCRE = { couleur: "rgba(0,0,0,0.5)" }
 const QUAT_TMP = new Quaternion()
 const EULER_TMP = new Euler()
 
@@ -383,6 +314,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
 
   const { camera } = useThree()
   const [survol, setSurvol] = useState<string | null>(null)
+  const [survolJoueur, setSurvolJoueur] = useState<string | null>(null)
   const [posesCamera] = useState(() => new Map<string, Pose>())
   const poseCamera = (id: string) => {
     let p = posesCamera.get(id)
@@ -397,15 +329,19 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
   useFrame(() => {
     const cam = camera as unknown as { fov: number; aspect: number }
     const h = D_MAIN * Math.tan((cam.fov * Math.PI) / 360)
+    const w = h * cam.aspect
+    const marge = h * 0.06
     const hauteur = h * 0.52
     const echelle = hauteur / CARTE_H
     const largeur = CARTE_L * echelle
+    const pas = largeur * 0.86
+    const n = main.length
+    const centreMain = -w + marge + largeur / 2 + ((n - 1) * pas) / 2
     main.forEach((c, i) => {
-      const n = main.length
       const t = i - (n - 1) / 2
       const leve = c.id === selectionId ? 0.34 : c.id === survol ? 0.14 : 0
       const local = new Vector3(
-        (-h * cam.aspect) / 3 + t * largeur * 0.86,
+        centreMain + t * pas,
         -h + hauteur / 5 - Math.abs(t) * 0.07 + leve,
         -D_MAIN + (c.id === selectionId ? 0.15 : 0) + i * 0.01,
       )
@@ -414,6 +350,8 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.12)))
       p.echelle = echelle
     })
+    const mL = Math.min(w * 0.3, h * 0.62)
+    const mH = (mL * MISSION_H) / MISSION_L
     missions.forEach((m, i) => {
       const p = poseCamera(`mission:${m.id}`)
       if (intro || missionFocus === m.id) {
@@ -424,9 +362,11 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
         p.quaternion.copy(camera.quaternion)
         p.echelle = intro ? k : 1.4 * k
       } else {
-        p.position.set(MISSIONS_POS.x, 0.03, MISSIONS_POS.z + i * (MISSION_H + 0.3))
-        p.quaternion.copy(FACE_BAS)
-        p.echelle = 1
+        const leve = survol === `mission:${m.id}` ? mH * 0.12 : 0
+        const x = w - marge - mL / 2 - (missions.length - 1 - i) * (mL + marge * 0.6)
+        p.position.copy(camera.localToWorld(new Vector3(x, -h + marge + mH / 2 + leve, -D_MAIN + 0.05)))
+        p.quaternion.copy(camera.quaternion)
+        p.echelle = mL / MISSION_L
       }
     })
   })
@@ -446,27 +386,6 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       <LumiereTour cible={lumiere} />
       <Table tex={tex} />
 
-      {ORDRE_TAPIS.map((col) => {
-        const haut = vue.table
-          .filter((p) => p.niveau === "haut" && colonneDe(p.carte) === col)
-          .reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
-        const bas = vue.table
-          .filter((p) => p.niveau === "bas" && colonneDe(p.carte) === col)
-          .reduce((s, p) => s + (p.carte.role === "noble" ? 2 : 1), 0)
-        return (
-          <Html key={col} zIndexRange={[10, 0]} center position={[colonneX(col), 0.05, TAPIS_P / 2 - 0.18]} className="pointer-events-none">
-            <span
-              className={cn(
-                "rounded-full bg-black/65 px-1.5 text-[10px] leading-4 whitespace-nowrap text-white tabular-nums transition-opacity",
-                (discret || (!haut && !bas)) && "opacity-0",
-              )}
-            >
-              ▲{haut} ▼{bas}
-            </span>
-          </Html>
-        )
-      })}
-
       {[...plateau.values()].map(({ carte, pose, joueurId }) => {
         const candidat = candidats.has(carte.id)
         const cibleDomaine = !!joueurId && domaineCible(joueurId)
@@ -479,7 +398,8 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             verso={tex.dos}
             largeur={CARTE_L}
             hauteur={CARTE_H}
-            lueur={candidat ? "rouge" : cibleDomaine ? "or" : null}
+            lueur={candidat ? "rouge" : null}
+            onSurvol={cibleDomaine ? (s) => setSurvolJoueur(s ? joueurId : null) : undefined}
             onClick={
               candidat
                 ? (e) => {
@@ -534,6 +454,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
           hauteur={MISSION_H}
           arc={0.1}
           vitesse={0.14}
+          onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
           onClick={(e) => {
             e.stopPropagation()
             onMission(m.id)
@@ -557,23 +478,27 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       {vue.nombreCartesPioche > 0 && (
         <Carte3D cible={poseDessusPioche(vue.nombreCartesPioche)} recto={tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} />
       )}
-      <Etiquette visible={!discret} position={[PIOCHE.x, 0.05, PIOCHE.z + CARTE_H / 2 + 0.4]}>
-        Pioche · {vue.nombreCartesPioche}
-      </Etiquette>
+      <TexteTable texte={String(vue.nombreCartesPioche)} style={ENCRE} hauteur={0.55} position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.6]} />
 
       {vue.joueurs.map((j) => {
         const zone = zones.get(j.id)
         if (!zone) return null
         return (
-          <EtiquetteJoueur
+          <TexteTable
             key={j.id}
-            nom={pseudo(j.id)}
-            couleur={couleur(j.id)}
-            moi={j.id === moiId}
-            visible={!discret}
+            texte={pseudo(j.id)}
+            style={
+              survolJoueur === j.id && domaineCible(j.id)
+                ? { couleur: couleur(j.id), contour: "#ffffff", lueur: couleur(j.id) }
+                : j.id === actif
+                  ? { couleur: couleur(j.id), contour: "#ffffff" }
+                  : ENCRE
+            }
+            hauteur={0.8}
             position={[zone.etiquette.x, zone.etiquette.y, zone.etiquette.z]}
-            actif={j.id === actif}
+            lacet={zone.lacet}
             onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
+            onSurvol={domaineCible(j.id) ? (s) => setSurvolJoueur(s ? j.id : null) : undefined}
           />
         )
       })}
@@ -585,7 +510,6 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
             largeur={CARTE_L}
             hauteur={CARTE_H}
             pose={poseTable(colCible, niveau, rangs.get(`${colCible}:${niveau}`) ?? 0)}
-            label={discret ? undefined : niveau === "haut" ? "▲ Faveur" : "▼ Défaveur"}
             onClick={() => it.jouer({ zone: "table", niveau })}
           />
         ))}
@@ -593,7 +517,7 @@ function Monde({ intro, missionFocus, onMission }: { intro: boolean; missionFocu
       {vue.joueurs.map((j) => {
         const zone = zones.get(j.id)
         if (!zone || !domaineCible(j.id)) return null
-        return <ZoneCliquable key={j.id} zone={zone} onClick={() => jouerDomaine(j.id)} />
+        return <ZoneCliquable key={j.id} zone={zone} onClick={() => jouerDomaine(j.id)} onSurvol={(s) => setSurvolJoueur(s ? j.id : null)} />
       })}
     </>
   )

@@ -79,7 +79,7 @@ const normaleTmp = new Vector3()
 export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, arc = 0.3, vitesse = 0.16, onClick, onSurvol }: Props) {
   const ref = useRef<Group>(null)
   const geo = useMemo(() => geometrieCarte(largeur, hauteur), [largeur, hauteur])
-  const marge = 0.14 / Math.max(cible.echelle, 0.3)
+  const marge = 0.05 / Math.max(cible.echelle, 0.3)
   const geoLueur = useMemo(() => geometrieCarte(largeur + marge, hauteur + marge), [largeur, hauteur, marge])
   const [survol, setSurvol] = useState(false)
   const [ombre] = useState(textureOmbre)

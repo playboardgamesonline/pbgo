@@ -68,7 +68,6 @@ const SIEGES: Record<number, [number, number, Orientation, number][]> = {
 }
 
 export const MON_SIEGE: Siege = { position: new Vector3(0.6, 0, 5.3), orientation: "bas", largeurMax: 6.5 }
-export const MISSIONS_POS = new Vector3(10.5, 0, 5.2)
 
 export function sieges(vue: VueJoueur): Map<string, Siege> {
   const moiId = vue.moi?.id
@@ -118,9 +117,9 @@ export function disposerDomaine(siege: Siege, domaine: CarteVisible[]): { poses:
 
   const etiquette =
     orientation === "bas"
-      ? new Vector3(centre.x, 0.05, centre.z + DH / 2 + 0.45)
+      ? new Vector3(centre.x, 0.04, centre.z + DH / 2 + 0.65)
       : lateral
-        ? new Vector3(centre.x, 0.05, centre.z - Math.max(largeur, DL * 2) / 2 - 0.55)
-        : new Vector3(p.x, 0.05, p.z)
+        ? new Vector3(p.x - vers * 0.1, 0.04, centre.z)
+        : new Vector3(p.x, 0.04, p.z - 0.15)
   return { poses, zone: { centre, largeur: largeur + 0.6, profondeur: DH + 1.1, lacet: LACET[orientation], etiquette } }
 }
