@@ -19,7 +19,6 @@ import { FinDePartie, phraseVainqueur } from "../jeu/fin-de-partie"
 import { useSequenceFin } from "./fin"
 import { useTriche } from "./triche"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
-import { Journal } from "../jeu/journal"
 import { PanneauDebug } from "./debug"
 
 const Scene3D = dynamic(() => import("./scene"), {
@@ -142,12 +141,20 @@ export function Jeu3D({
             />
           </div>
 
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 right-0 z-10 h-[30rem] w-[52rem] max-w-full"
+            style={{
+              background:
+                "radial-gradient(ellipse 100% 100% at 100% 0%, rgb(2 12 16 / 75%) 0%, rgb(2 12 16 / 50%) 35%, rgb(2 12 16 / 18%) 65%, transparent 100%)",
+            }}
+          />
           <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
             <div className="pointer-events-auto flex items-center gap-4">
               <button type="button" className="mt-1 w-24 transition-transform hover:scale-105 sm:w-28" title="Quitter la partie" onClick={onQuitter}>
                 <Logo src={catalogue.logoUrl} />
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <BoutonSon />
                 <ReglesButton icone />
               </div>
@@ -163,7 +170,6 @@ export function Jeu3D({
             </div>
           )}
 
-          <Journal />
           <PanneauDebug />
 
           <AnimatePresence>

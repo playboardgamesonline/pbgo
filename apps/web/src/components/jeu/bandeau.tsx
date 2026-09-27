@@ -1,54 +1,64 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useState } from "react"
+import { cn } from "@/lib/utils"
 import { useJeu } from "./contexte"
 import { Message } from "./message"
 import { PseudoJoueur } from "./pseudo"
 
-const DUREE_PIOCHE = 2000
+const NOMBRE = 5
+const PETIT = "text-sm md:text-base text-foreground/75"
 
 export function Bandeau() {
   const { vue } = useJeu()
-  const n = vue.journal.length
-  const dernier = n > 0 ? vue.journal[n - 1] : null
-  const [piocheVue, setPiocheVue] = useState(-1)
-
-  useEffect(() => {
-    if (dernier?.type !== "pioche") return
-    const t = setTimeout(() => setPiocheVue(n), DUREE_PIOCHE)
-    return () => clearTimeout(t)
-  }, [n, dernier?.type])
-
-  const tour = vue.phase === "jeu" && !!vue.joueurActifId && (!dernier || (dernier.type === "pioche" && piocheVue === n))
+  const derniers = vue.journal
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => e.type !== "finDePartie")
+    .slice(-NOMBRE)
+    .reverse()
+  const tour = vue.phase === "jeu" && !!vue.joueurActifId
 
   return (
-    <div className="mt-2 max-w-lg text-right text-lg text-foreground md:text-2xl [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={tour ? `tour-${vue.joueurActifId}` : `e-${n}`}
-          initial={{ opacity: 0, x: 8 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -8 }}
-          transition={{ duration: 0.2 }}
-        >
-          {tour ? (
-            <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
-              {vue.joueurActifId === vue.moi?.id ? (
-                "C'est à vous de jouer"
-              ) : (
-                <>
-                  C&apos;est à <PseudoJoueur id={vue.joueurActifId!} /> de jouer
-                </>
-              )}
-            </span>
-          ) : dernier ? (
-            <Message evenement={dernier} className="justify-end" />
-          ) : (
-            <span className="text-foreground/80">Le banquet commence…</span>
-          )}
-        </motion.div>
+    <ol className="flex max-w-lg flex-col items-end gap-1.5 text-right text-lg text-foreground md:text-xl [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
+      <AnimatePresence initial={false} mode="popLayout">
+        {tour && (
+          <motion.li
+            key={`tour-${vue.numeroTour}-${vue.joueurActifId}`}
+            layout
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className={cn(PETIT, "italic")}
+          >
+            {vue.joueurActifId === vue.moi?.id ? (
+              "C'est à vous de jouer"
+            ) : (
+              <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                C&apos;est à <PseudoJoueur id={vue.joueurActifId!} /> de jouer
+              </span>
+            )}
+          </motion.li>
+        )}
+        {derniers.length === 0 && !tour && (
+          <motion.li key="debut" className="text-foreground/80">
+            Le banquet commence…
+          </motion.li>
+        )}
+        {derniers.map(({ e, i }, rang) => (
+          <motion.li
+            key={i}
+            layout
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1 - rang * 0.1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className={cn(e.type === "pioche" && PETIT)}
+          >
+            <Message evenement={e} className="justify-end" />
+          </motion.li>
+        ))}
       </AnimatePresence>
-    </div>
+    </ol>
   )
 }

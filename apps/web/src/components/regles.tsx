@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-export const BOUTON_ICONE = "size-11 rounded-full border border-foreground/70 bg-transparent text-foreground hover:border-foreground hover:bg-foreground hover:text-[#0b2231]"
+export const BOUTON_ICONE =
+  "size-11 cursor-pointer rounded-full bg-transparent text-foreground transition-transform hover:scale-110 hover:bg-transparent hover:text-foreground active:scale-95 dark:hover:bg-transparent"
 
 function Section({ titre, children }: { titre: string; children: React.ReactNode }) {
   return (
@@ -29,7 +30,7 @@ export function ReglesButton({ className, icone }: { className?: string; icone?:
             title="Règles du jeu"
             className={cn(BOUTON_ICONE, className)}
           >
-            <BookOpenIcon strokeWidth={1.5} className="size-5" />
+            <BookOpenIcon strokeWidth={1.6} className="size-7 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]" />
           </Button>
         ) : (
           <Button variant="outline" className={className}>
