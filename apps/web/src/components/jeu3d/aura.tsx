@@ -88,7 +88,7 @@ export function Aura({
   profondeur: number
   position: [number, number, number]
   lacet: number
-  force: number
+  force: number | (() => number)
   couleur?: string
   clair?: string
   additif?: boolean
@@ -123,7 +123,7 @@ export function Aura({
     u.uDensite.value = r.densite
     u.uTailleEtoile.value = r.taille
     u.uVitesse.value = r.vitesse
-    easing.damp(u.uForce, "value", force * r.intensite, 0.18, dt)
+    easing.damp(u.uForce, "value", (typeof force === "function" ? force() : force) * r.intensite, 0.18, dt)
     if (ref.current) ref.current.visible = u.uForce.value > 0.01
   })
   return (

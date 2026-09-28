@@ -27,7 +27,7 @@ import { ReglagesCartes } from "./reglages-cartes"
 import { Colonne } from "./colonne"
 import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
-import { Compteurs, Projecteur, ResolutionFamilles, useCentresGagnants } from "./fin3d"
+import { Compteurs, PointsPiles, Projecteur, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
 import { textureMotif } from "./motifs"
 import { boutonCopie, onglet } from "./onglets-debug"
 import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
@@ -977,6 +977,7 @@ function Monde({
       <CameraRig />
       <ReglagesAura />
       <ReglagesCartes />
+      <ReglagesFin />
       <ambientLight intensity={0.8} />
       <directionalLight position={[4, 12, 6]} intensity={2.2} />
       <Table tex={tex} deroulement={deroulement} dureeTapis={reglages.dureeTapis} />
@@ -1083,10 +1084,18 @@ function Monde({
         <>
           <ResolutionFamilles resultats={resultats} fin={fin} />
           <Compteurs vue={vue} resultats={resultats} fin={fin} zones={zones} gagnants={resultats.vainqueurs} />
+          <PointsPiles vue={vue} resultats={resultats} fin={fin} zones={zones} />
           <Projecteur fin={fin} centres={centresGagnants.centres} axes={centresGagnants.axes} />
           {fin.projecteur &&
             centresGagnants.zonesGagnantes.map((z, i) => (
-              <Aura key={i} largeur={z.largeur} profondeur={z.profondeur} position={[z.centre.x, 0.016, z.centre.z]} lacet={z.lacet} force={0.9} />
+              <Aura
+                key={i}
+                largeur={z.largeur}
+                profondeur={z.profondeur}
+                position={[z.centre.x, 0.016, z.centre.z]}
+                lacet={z.lacet}
+                force={() => REGLAGES_FIN.forceGagnant}
+              />
             ))}
           {vue.joueurs.map((j) => {
             const zone = zones.get(j.id)

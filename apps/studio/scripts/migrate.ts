@@ -93,6 +93,8 @@ async function main() {
       pattern: iface.pattern ?? (await upload("home/PATTERN.webp")),
       paper: iface.paper ?? (await upload("home/PAPER.webp")),
       pictogramFrame: iface.pictogramFrame ?? (await upload("rules/PICTOGRAM_FRAME.svg")),
+      arrowUp: iface.arrowUp ?? (await upload("pictograms/PICTOGRAM_ARROW_UP.svg")),
+      arrowDown: iface.arrowDown ?? (await upload("pictograms/PICTOGRAM_ARROW_DOWN.svg")),
     }) as { _id: string; _type: string },
   )
 

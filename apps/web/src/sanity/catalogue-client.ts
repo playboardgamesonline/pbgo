@@ -72,6 +72,8 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       reineUrl: url(iface?.queen, 1400) ?? d.reineUrl,
       motifUrl: url(iface?.pattern, 512) ?? d.motifUrl,
       papierUrl: url(iface?.paper, 1600) ?? d.papierUrl,
+      flecheHautUrl: url(iface?.arrowUp, 256) ?? d.flecheHautUrl,
+      flecheBasUrl: url(iface?.arrowDown, 256) ?? d.flecheBasUrl,
       regles: {
         textes: Object.fromEntries(
           Object.entries(TEXTES_REGLES_DEFAUT).map(([cle, defaut]) => {

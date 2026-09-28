@@ -102,7 +102,16 @@ const ECART = 0.35
 
 const LACET: Record<Orientation, number> = { bas: 0, haut: 0, gauche: -Math.PI / 2, droite: Math.PI / 2 }
 
-export type ZoneDomaine = { centre: Vector3; largeur: number; profondeur: number; lacet: number; etiquette: Vector3; lacetEtiquette: number }
+export type PileDomaine = { famille: Famille | null; position: Vector3 }
+export type ZoneDomaine = {
+  centre: Vector3
+  largeur: number
+  profondeur: number
+  lacet: number
+  etiquette: Vector3
+  lacetEtiquette: number
+  piles: PileDomaine[]
+}
 
 export const cleGroupe = (carte: CarteVisible) => carte.famille ?? "espion"
 export const ORDRE_GROUPES = ORDRE_FAMILLES
@@ -132,11 +141,20 @@ export function disposerDomaine(
     pose(lateral ? centre.x : centre.x + u, y, lateral ? centre.z + u : centre.z, lacet.clone().multiply(q), DOMAINE_ECHELLE)
 
   const poses = new Map<string, Pose>()
+  const versTable = lateral ? new Vector3(vers, 0, 0) : new Vector3(0, 0, orientation === "haut" ? 1 : -1)
+  const piles: PileDomaine[] = []
   let u = -largeur / 2 + DL / 2
   groupes.forEach((groupe, indexGroupe) => {
     const ouvert = deplie !== null && cleGroupe(groupe[0]) === deplie && groupe.length > 1
     const leve = pileLevee === indexGroupe ? 0.45 : 0
     const milieu = u + ((groupe.length - 1) * CHEVAUCHEMENT * f) / 2
+    piles.push({
+      famille: famille(groupe[0]),
+      position: new Vector3(lateral ? centre.x : centre.x + milieu, 0.05, lateral ? centre.z + milieu : centre.z).addScaledVector(
+        versTable,
+        -(DH / 2 + 0.55),
+      ),
+    })
     groupe.forEach((carte, k) => {
       const position = ouvert ? milieu + (k - (groupe.length - 1) / 2) * DL * 0.6 : u + k * CHEVAUCHEMENT * f
       poses.set(
@@ -147,7 +165,6 @@ export function disposerDomaine(
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f
   })
 
-  const versTable = lateral ? new Vector3(vers, 0, 0) : new Vector3(0, 0, orientation === "haut" ? 1 : -1)
   const etiquette = centre
     .clone()
     .addScaledVector(versTable, DH / 2 + 0.25)
@@ -162,6 +179,7 @@ export function disposerDomaine(
       lacet: LACET[orientation],
       etiquette,
       lacetEtiquette: orientation === "haut" ? Math.PI : LACET[orientation],
+      piles,
     },
   }
 }

@@ -103,6 +103,8 @@ export type CatalogueClient = {
   reineUrl: string
   motifUrl: string
   papierUrl: string
+  flecheHautUrl: string
+  flecheBasUrl: string
   regles: ContenuRegles
   phrasesVainqueur: string[]
   texteBoutonMissions: string
@@ -135,6 +137,8 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   reineUrl: "/home/QUEEN.webp",
   motifUrl: "/home/PATTERN.webp",
   papierUrl: "/home/PAPER.webp",
+  flecheHautUrl: "/pictograms/PICTOGRAM_ARROW_UP.svg",
+  flecheBasUrl: "/pictograms/PICTOGRAM_ARROW_DOWN.svg",
   regles: REGLES_PAR_DEFAUT,
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
   texteBoutonMissions: "Missions comprises",
