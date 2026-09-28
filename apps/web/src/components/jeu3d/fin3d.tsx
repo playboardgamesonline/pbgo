@@ -17,6 +17,7 @@ import { useJeu } from "../jeu/contexte"
 import { useReglages, useVersionReglages } from "./reglages"
 import { ORDRE_TAPIS } from "@/lib/catalogue"
 import { CARTE_H, colonneX, PAS, TAPIS_P, type ZoneDomaine } from "./disposition"
+import { REGLAGES_AURA_GAGNANT, CHAMPS_AURA } from "./aura"
 import { Colonne } from "./colonne"
 import type { EtatFin } from "./fin"
 import { TexteTable } from "./texte-table"
@@ -170,6 +171,7 @@ export function ReglagesFin() {
   )
   useReglages("End · Mat Arrows", REGLAGES_FIN, { tailleFleche: ["arrow size", 0.3, 3, 0.05] } as never, { ordre: 11 })
   useReglages("End · Winner", REGLAGES_FIN, { forceGagnant: ["winner aura", 0, 2, 0.01] } as never, { ordre: 12 })
+  useReglages("End · Winner", REGLAGES_AURA_GAGNANT, CHAMPS_AURA as never, { ordre: 12 })
   useReglages(
     "End · Pile Points",
     REGLAGES_FIN,

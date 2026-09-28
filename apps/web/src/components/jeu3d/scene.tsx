@@ -22,7 +22,7 @@ import {
 import { useJeu } from "../jeu/contexte"
 import { jouerSon } from "@/lib/son"
 import { useInteraction } from "../jeu/interaction"
-import { Aura, ReglagesAura } from "./aura"
+import { Aura, CHAMPS_AURA, REGLAGES_AURA_GAGNANT, REGLAGES_AURA_ZONE } from "./aura"
 import { ReglagesCartes } from "./reglages-cartes"
 import { PhotoPartie } from "./photo"
 import { Couronne3D } from "./couronne"
@@ -237,14 +237,15 @@ export const MODES_FUSION = { multiply: 0, screen: 1, overlay: 2, "soft light": 
 function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: boolean; dureeTapis: number }) {
   const vignette = useFrameTexture(vignetteTexture)
   const texMotif = useMemo(() => textureMotif("losanges"), [])
-  const { opacite, desaturation, fusion, force, echelle } = useControls(
+  const { opacite, desaturation, fusion, force, echelle, epaisseur } = useControls(
     "Mat",
     {
-      opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "background pattern opacity" },
-      desaturation: { value: 0.18, min: 0, max: 1, step: 0.01, label: "desaturation" },
+      opacite: { value: 0.12, min: 0, max: 1, step: 0.01, label: "background pattern opacity" },
+      desaturation: { value: 0.06, min: 0, max: 1, step: 0.01, label: "desaturation" },
       fusion: { value: 3, options: MODES_FUSION, label: "blend mode" },
-      force: { value: 0.85, min: 0, max: 1, step: 0.01, label: "texture strength" },
+      force: { value: 0.8, min: 0, max: 1, step: 0.01, label: "texture strength" },
       echelle: { value: 0.5, min: 0.1, max: 6, step: 0.05, label: "tiles / unit" },
+      epaisseur: { value: EPAISSEUR_TAPIS, min: 0.001, max: 0.3, step: 0.001, label: "thickness" },
       ...boutonCopie("SCENE", "Mat"),
     },
     { collapsed: true, order: 8 },
@@ -252,14 +253,15 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
   )
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.07), [])
   const tranche = useMemo(() => {
-    const geo = geometrieTranche(TAPIS_L, TAPIS_P, EPAISSEUR_TAPIS, 0.07).clone()
+    const geo = geometrieTranche(TAPIS_L, TAPIS_P, epaisseur, 0.07).clone()
     const pos = geo.attributes.position!
     const uv = geo.attributes.uv!
     for (let i = 0; i < pos.count; i++)
       uv.setXY(i, Math.min(0.998, Math.max(0.002, pos.getX(i) / TAPIS_L + 0.5)), Math.min(0.998, Math.max(0.002, pos.getY(i) / TAPIS_P + 0.5)))
     uv.needsUpdate = true
     return geo
-  }, [])
+  }, [epaisseur])
+  useEffect(() => () => tranche.dispose(), [tranche])
   const materiau = useMemo(() => {
     const uniformes = {
       uTaille: { value: new Vector2(TAPIS_L, TAPIS_P) },
@@ -321,7 +323,7 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
         </mesh>
       )}
       <mesh geometry={tranche} rotation-x={-Math.PI / 2} material={[CACHE, materiau]} />
-      <mesh ref={dessusRef} geometry={dessus} rotation-x={-Math.PI / 2} position-y={EPAISSEUR_TAPIS + 0.001} material={materiau} />
+      <mesh ref={dessusRef} geometry={dessus} rotation-x={-Math.PI / 2} position-y={epaisseur + 0.001} material={materiau} />
       <mesh ref={rouleau} rotation-x={Math.PI / 2} visible={false} raycast={() => null}>
         <cylinderGeometry args={[1, 1, TAPIS_P, 32]} />
         <meshStandardMaterial color="#1f5358" roughness={0.9} />
@@ -543,6 +545,7 @@ function ReglagesZone() {
     },
     { ordre: 6 },
   )
+  useReglages("Player Zone", REGLAGES_AURA_ZONE, CHAMPS_AURA as never, { ordre: 6 })
   return null
 }
 
@@ -568,6 +571,7 @@ function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jo
         position={[zone.centre.x, 0.014, zone.centre.z]}
         lacet={zone.lacet}
         force={() => (jouable ? (survol ? REGLAGES_ZONE.auraSurvol : REGLAGES_ZONE.auraJouable) : 0)}
+        reglages={REGLAGES_AURA_ZONE}
         couleur={couleur}
         clair={clair}
       />
@@ -1017,7 +1021,6 @@ function Monde({
   return (
     <>
       <CameraRig />
-      <ReglagesAura />
       <ReglagesCartes />
       <ReglagesFin />
       <ReglagesZone />
@@ -1138,6 +1141,7 @@ function Monde({
                 position={[z.centre.x, 0.016, z.centre.z]}
                 lacet={z.lacet}
                 force={() => REGLAGES_FIN.forceGagnant}
+                reglages={REGLAGES_AURA_GAGNANT}
               />
             ))}
           {vue.joueurs.map((j) => {

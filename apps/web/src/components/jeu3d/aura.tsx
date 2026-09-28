@@ -1,8 +1,7 @@
 "use client"
 
-import { boutonCopie, onglet } from "./onglets-debug"
 import { useFrame } from "@react-three/fiber"
-import { useControls } from "leva"
+import type { Champ } from "./reglages"
 import { easing } from "maath"
 import { useRef, useState } from "react"
 import { AdditiveBlending, Color, type Mesh, NormalBlending, type ShaderMaterial, Vector2 } from "three"
@@ -14,7 +13,19 @@ void main() {
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`
 
-export const REGLAGES_AURA = { intensite: 1, bord: 1, halo: 1, etoiles: 0.5, densite: 2.2, taille: 1, vitesse: 0.4 }
+const AURA_DEFAUT = { intensite: 1, bord: 1, halo: 1, etoiles: 0.5, densite: 2.2, taille: 1, vitesse: 0.4 }
+export type ReglagesAura = typeof AURA_DEFAUT
+export const REGLAGES_AURA_ZONE: ReglagesAura = { ...AURA_DEFAUT }
+export const REGLAGES_AURA_GAGNANT: ReglagesAura = { ...AURA_DEFAUT }
+
+export const CHAMPS_AURA = {
+  bord: ["aura edge", 0, 2, 0.05],
+  halo: ["aura halo", 0, 2, 0.05],
+  etoiles: ["aura stars", 0, 3, 0.05],
+  densite: ["aura star density", 0.5, 6, 0.1],
+  taille: ["aura star size", 0.3, 3, 0.05],
+  vitesse: ["aura speed", 0, 3, 0.05],
+} satisfies Partial<Record<keyof ReglagesAura, Champ>>
 
 const fragment = /* glsl */ `
 uniform float uTemps;
@@ -83,6 +94,7 @@ export function Aura({
   couleur = "#ffc247",
   clair = "#fff5c7",
   additif = true,
+  reglages = REGLAGES_AURA_ZONE,
 }: {
   largeur: number
   profondeur: number
@@ -92,6 +104,7 @@ export function Aura({
   couleur?: string
   clair?: string
   additif?: boolean
+  reglages?: ReglagesAura
 }) {
   const ref = useRef<Mesh>(null)
   const materiau = useRef<ShaderMaterial>(null)
@@ -116,7 +129,7 @@ export function Aura({
     ;(u.uTaille.value as Vector2).set(largeur + 1.6, profondeur + 1.6)
     ;(u.uCouleur.value as Color).set(couleur)
     ;(u.uClair.value as Color).set(clair)
-    const r = REGLAGES_AURA
+    const r = reglages
     u.uBord.value = r.bord
     u.uHalo.value = r.halo
     u.uEtoiles.value = r.etoiles
@@ -140,44 +153,4 @@ export function Aura({
       />
     </mesh>
   )
-}
-
-export function ReglagesAura() {
-  useControls(
-    "Auras",
-    {
-      intensite: {
-        label: "intensity",
-        value: REGLAGES_AURA.intensite,
-        min: 0,
-        max: 2,
-        step: 0.05,
-        onChange: (v: number) => (REGLAGES_AURA.intensite = v),
-      },
-      bord: { label: "edge", value: REGLAGES_AURA.bord, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.bord = v) },
-      halo: { label: "halo", value: REGLAGES_AURA.halo, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.halo = v) },
-      etoiles: { label: "stars", value: REGLAGES_AURA.etoiles, min: 0, max: 3, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.etoiles = v) },
-      densite: {
-        label: "star density",
-        value: REGLAGES_AURA.densite,
-        min: 0.5,
-        max: 6,
-        step: 0.1,
-        onChange: (v: number) => (REGLAGES_AURA.densite = v),
-      },
-      taille: {
-        value: REGLAGES_AURA.taille,
-        min: 0.3,
-        max: 3,
-        step: 0.05,
-        label: "star size",
-        onChange: (v: number) => (REGLAGES_AURA.taille = v),
-      },
-      vitesse: { label: "speed", value: REGLAGES_AURA.vitesse, min: 0, max: 3, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.vitesse = v) },
-      ...boutonCopie("SCENE", "Auras"),
-    },
-    { collapsed: true, order: 10 },
-    onglet("SCENE"),
-  )
-  return null
 }
