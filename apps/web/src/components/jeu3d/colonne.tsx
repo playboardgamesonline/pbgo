@@ -69,7 +69,7 @@ export function Colonne({
     ;(m.uniforms.uCouleur.value as Color).set(couleur)
     ;(m.uniforms.uBord.value as Color).set(bord)
     m.uniforms.uFondu.value = fondu
-    easing.damp(m.uniforms.uForce, "value", force ? force(clock.elapsedTime) : survol ? 1.2 : 0.85, force ? 0.35 : 0.15, dt)
+    easing.damp(m.uniforms.uForce, "value", (force ? force(clock.elapsedTime) : 0.85) * (survol ? 1.4 : 1), 0.15, dt)
   })
   return (
     <mesh

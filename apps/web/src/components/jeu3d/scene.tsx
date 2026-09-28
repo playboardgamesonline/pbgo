@@ -24,11 +24,10 @@ import { jouerSon } from "@/lib/son"
 import { useInteraction } from "../jeu/interaction"
 import { Aura, ReglagesAura } from "./aura"
 import { ReglagesCartes } from "./reglages-cartes"
-import { Colonne } from "./colonne"
 import { PhotoPartie } from "./photo"
 import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
-import { Compteurs, LignesTapis, PointsPiles, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
+import { Compteurs, LigneTapis, LignesTapis, PointsPiles, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
 import { useReglages, useVersionReglages } from "./reglages"
 import { textureMotif } from "./motifs"
 import { arrondir, boutonCopie, onglet } from "./onglets-debug"
@@ -47,7 +46,6 @@ import {
   type Pose,
   TAPIS_L,
   TAPIS_P,
-  PAS,
   colonneX,
   type Colonne as Colonne_,
   type ZoneDomaine,
@@ -639,20 +637,7 @@ function ZoneCliquable({ zone, onClick, onSurvol }: { zone: ZoneDomaine; onClick
 }
 
 function Cible({ colonne, niveau, onClick }: { colonne: Colonne_; niveau: "haut" | "bas"; onClick: () => void }) {
-  const haut = niveau === "haut"
-  return (
-    <Colonne
-      x={colonneX(colonne)}
-      z={haut ? -TAPIS_P / 2 : TAPIS_P / 2}
-      sens={haut ? -1 : 1}
-      largeur={PAS * 0.96}
-      longueur={CARTE_H * 2.1}
-      couleur={haut ? "#ffe8a3" : "#000000"}
-      bord={haut ? "#ffffff" : "#000000"}
-      additif={haut}
-      onClick={onClick}
-    />
-  )
+  return <LigneTapis x={colonneX(colonne)} lumiere={niveau === "haut"} onClick={onClick} />
 }
 
 function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFin: () => void }) {

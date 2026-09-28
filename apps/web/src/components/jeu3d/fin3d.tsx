@@ -149,7 +149,7 @@ export const REGLAGES_LIGNES = {
 
 export function ReglagesFin() {
   useReglages(
-    "End · Mat Lines",
+    "Mat Lines",
     REGLAGES_LIGNES,
     {
       apercu: "preview on all families",
@@ -189,7 +189,8 @@ export function ReglagesFin() {
   return null
 }
 
-function LigneFamille({ x, lumiere }: { x: number; lumiere: boolean }) {
+export function LigneTapis({ x, lumiere, onClick }: { x: number; lumiere: boolean; onClick?: () => void }) {
+  useVersionReglages()
   const r = REGLAGES_LIGNES
   return (
     <Colonne
@@ -203,6 +204,7 @@ function LigneFamille({ x, lumiere }: { x: number; lumiere: boolean }) {
       couleur={lumiere ? r.couleurLumiere : r.couleurDisgrace}
       bord={lumiere ? r.bordLumiere : r.bordDisgrace}
       additif={lumiere}
+      onClick={onClick}
       force={(t) =>
         (lumiere ? REGLAGES_LIGNES.intensiteLumiere : REGLAGES_LIGNES.intensiteDisgrace) *
         (1 + Math.sin(t * REGLAGES_LIGNES.vitesse) * REGLAGES_LIGNES.pulsation)
@@ -218,8 +220,8 @@ export function LignesTapis({ resultats, fin }: { resultats: Resultats | null; f
       <>
         {FAMILLES_TABLE.map((f) => (
           <group key={f}>
-            <LigneFamille x={colonneX(f)} lumiere />
-            <LigneFamille x={colonneX(f)} lumiere={false} />
+            <LigneTapis x={colonneX(f)} lumiere />
+            <LigneTapis x={colonneX(f)} lumiere={false} />
           </group>
         ))}
       </>
@@ -230,7 +232,7 @@ export function LignesTapis({ resultats, fin }: { resultats: Resultats | null; f
       {FAMILLES_TABLE.slice(0, fin.familles).map((f) => {
         const s = resultats.statuts[f].statut
         if (s === "neutre") return null
-        return <LigneFamille key={f} x={colonneX(f)} lumiere={s === "lumiere"} />
+        return <LigneTapis key={f} x={colonneX(f)} lumiere={s === "lumiere"} />
       })}
     </>
   )
