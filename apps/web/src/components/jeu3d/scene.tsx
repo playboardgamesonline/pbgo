@@ -401,13 +401,72 @@ function SuitCamera({ children }: { children: React.ReactNode }) {
   return <group ref={ref}>{children}</group>
 }
 
-function Pioche({ nombre }: { nombre: number }) {
+const EASINGS = {
+  linéaire: (u: number) => u,
+  "ease in": (u: number) => u * u * u,
+  "ease out": (u: number) => 1 - (1 - u) ** 3,
+  "ease in-out": (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2),
+}
+type ReglagesPioche = {
+  delai: number
+  duree: number
+  chute: number
+  hauteur: number
+  easing: keyof typeof EASINGS
+  fonduBas: number
+  fonduHaut: number
+}
+
+const finPioche = (r: ReglagesPioche) => r.delai + r.duree
+
+function Pioche({ nombre, actif, reglages: r }: { nombre: number; actif: boolean; reglages: ReglagesPioche }) {
   const geo = useMemo(() => geometrieTranche(CARTE_L, CARTE_H, CARTE_L * EPAISSEUR_RELATIVE), [])
   const n = Math.min(nombre, 60)
+  const cartes = useRef<(Group | null)[]>([])
+  const debut = useRef<number | null>(null)
+  const anime = useRef(false)
+  useFrame(({ clock }) => {
+    FONDU.uFonduBas.value = r.fonduBas
+    FONDU.uFonduHaut.value = r.fonduHaut
+    if (actif && debut.current === null) debut.current = clock.elapsedTime
+    if (!actif) debut.current = null
+    const t = debut.current === null ? Infinity : clock.elapsedTime - debut.current
+    const total = Math.max(1, n - 1)
+    let enCours = false
+    cartes.current.forEach((g, i) => {
+      if (!g) return
+      const base = 0.03 + (i + 1) * EPAISSEUR_PIOCHE
+      const arrivee = r.delai + EASINGS[r.easing](i / total) * r.duree
+      const u = Math.min(1, Math.max(0, (t - (arrivee - r.chute)) / r.chute))
+      if (u < 1) enCours = true
+      g.visible = u > 0
+      g.position.y = base + r.hauteur * (1 - u * u)
+    })
+    if (enCours !== anime.current) {
+      anime.current = enCours
+      cartes.current.forEach((g) =>
+        g?.traverse((o) => {
+          const mats = (o as Mesh).material
+          if (!mats) return
+          for (const m of Array.isArray(mats) ? mats : [mats]) {
+            avecFondu(m as MeshBasicMaterial)
+            m.transparent = enCours
+          }
+        }),
+      )
+    }
+  })
   return (
     <group position={[PIOCHE.x, 0, PIOCHE.z]}>
       {Array.from({ length: Math.max(0, n - 1) }, (_, i) => (
-        <group key={i} position-y={0.03 + (i + 1) * EPAISSEUR_PIOCHE} quaternion={penche(`pioche${i + 1}`, 0.04)}>
+        <group
+          key={i}
+          ref={(g) => {
+            cartes.current[i] = g
+          }}
+          position-y={0.03 + (i + 1) * EPAISSEUR_PIOCHE}
+          quaternion={penche(`pioche${i + 1}`, 0.04)}
+        >
           <mesh geometry={geo} rotation-x={-Math.PI / 2} position-y={-(CARTE_L * EPAISSEUR_RELATIVE) / 2} raycast={() => null}>
             <meshBasicMaterial attach="material-0" color="#123c42" toneMapped={false} />
             <meshBasicMaterial attach="material-1" color={i % 2 ? "#d9cba6" : "#cdbf98"} toneMapped={false} />
@@ -715,20 +774,14 @@ function Monde({
   const reglagesMissions = useControls(
     "Missions (début de partie)",
     {
-      distance: { value: 4.4, min: 2, max: 10, step: 0.05 },
-      x: { value: 0, min: -3, max: 3, step: 0.01, label: "position x" },
-      y: { value: 0.32, min: -3, max: 3, step: 0.01, label: "position y" },
+      distance: { value: 4.4, min: 2, max: 10, step: 0.05, label: "distance caméra" },
+      position: { value: { x: 0, y: 0.32 }, step: 0.01, label: "position groupe" },
+      rotation: { value: { x: 0, y: 0, z: 0 }, step: 0.01, label: "rotation groupe" },
       echelle: { value: 1.4, min: 0.5, max: 2.5, step: 0.01, label: "échelle" },
       ecart: { value: 0.3, min: -1, max: 3, step: 0.01, label: "écart" },
-      rotationX: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation x groupe" },
-      rotationY: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation y groupe" },
-      rotationZ: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation z groupe" },
-      angleY: { value: 0.06, min: -1, max: 1, step: 0.01, label: "angle y cartes" },
-      angleZ: { value: 0.01, min: -1, max: 1, step: 0.01, label: "angle z cartes" },
-      x1: { value: 0, min: -3, max: 3, step: 0.01, label: "x carte 1" },
-      y1: { value: 0, min: -3, max: 3, step: 0.01, label: "y carte 1" },
-      x2: { value: 0, min: -3, max: 3, step: 0.01, label: "x carte 2" },
-      y2: { value: 0, min: -3, max: 3, step: 0.01, label: "y carte 2" },
+      angles: { value: { y: 0.06, z: 0.01 }, step: 0.01, label: "angles cartes" },
+      carte1: { value: { x: 0, y: 0 }, step: 0.01, label: "décalage carte 1" },
+      carte2: { value: { x: 0, y: 0 }, step: 0.01, label: "décalage carte 2" },
       recul: { value: 0, min: 0, max: 1, step: 0.01, label: "recul extérieur" },
       souris: { value: 0.1, min: 0, max: 1, step: 0.01, label: "inclinaison souris" },
       voile: { value: 0.24, min: 0, max: 1, step: 0.01, label: "opacité overlay" },
@@ -738,16 +791,28 @@ function Monde({
     },
     onglet("SCENE"),
   )
+  const reglagesPioche = useControls(
+    "Pioche (apparition)",
+    {
+      delai: { value: 0.15, min: 0, max: 5, step: 0.05, label: "délai (s)" },
+      duree: { value: 1.4, min: 0.1, max: 6, step: 0.05, label: "durée totale (s)" },
+      chute: { value: 0.35, min: 0.05, max: 2, step: 0.01, label: "chute d'une carte (s)" },
+      hauteur: { value: 3, min: 0.5, max: 10, step: 0.1, label: "hauteur de chute" },
+      easing: { value: "ease out" as keyof typeof EASINGS, options: Object.keys(EASINGS) as (keyof typeof EASINGS)[], label: "easing global" },
+      fonduBas: { value: 0.8, min: 0, max: 5, step: 0.05, label: "fondu : opaque sous" },
+      fonduHaut: { value: 4, min: 0.5, max: 10, step: 0.05, label: "fondu : transparent au-dessus" },
+      delaiCompteur: { value: 0.1, min: 0, max: 3, step: 0.05, label: "délai compteur (s)" },
+      ...boutonCopie("TRANSITION", "Pioche (apparition)"),
+    },
+    onglet("TRANSITION"),
+  )
   const reglagesMain = useControls(
     "Main (bas gauche)",
     {
       taille: { value: 0.66, min: 0.2, max: 1.5, step: 0.01, label: "taille" },
       pas: { value: 0.9, min: 0.2, max: 1.5, step: 0.01, label: "espacement" },
-      x: { value: 0, min: -1, max: 1, step: 0.005, label: "position x" },
-      y: { value: 0.22, min: -1, max: 1, step: 0.005, label: "position y" },
-      rotationX: { value: -0.11, min: -1, max: 1, step: 0.01, label: "rotation x" },
-      rotationY: { value: 0.15, min: -1, max: 1, step: 0.01, label: "rotation y" },
-      rotationZ: { value: -0.1, min: -1, max: 1, step: 0.01, label: "rotation z" },
+      position: { value: { x: 0, y: 0.22 }, step: 0.005, label: "position" },
+      rotation: { value: { x: -0.11, y: 0.15, z: -0.1 }, step: 0.01, label: "rotation" },
       eventail: { value: 0.09, min: 0, max: 0.6, step: 0.005, label: "éventail (rotation)" },
       courbe: { value: 0.045, min: 0, max: 0.3, step: 0.005, label: "éventail (courbe)" },
       leveeSurvol: { value: 0.08, min: 0, max: 0.6, step: 0.005, label: "levée survol" },
@@ -764,14 +829,10 @@ function Monde({
     "Missions (en jeu)",
     {
       taille: { value: 0.36, min: 0.1, max: 0.8, step: 0.01, label: "taille" },
-      x: { value: 0, min: -1, max: 1, step: 0.005, label: "position x" },
-      y: { value: 0, min: -1, max: 1, step: 0.005, label: "position y" },
-      angle1: { value: 0.28, min: -1, max: 1, step: 0.01, label: "angle carte 1" },
-      angle2: { value: -0.05, min: -1, max: 1, step: 0.01, label: "angle carte 2" },
-      x1: { value: 0, min: -1, max: 1, step: 0.005, label: "x carte 1" },
-      y1: { value: 0, min: -1, max: 1, step: 0.005, label: "y carte 1" },
-      x2: { value: 0, min: -1, max: 1, step: 0.005, label: "x carte 2" },
-      y2: { value: 0, min: -1, max: 1, step: 0.005, label: "y carte 2" },
+      position: { value: { x: 0, y: 0 }, step: 0.005, label: "position" },
+      angles: { value: { carte1: 0.28, carte2: -0.05 }, step: 0.01, label: "angles" },
+      carte1: { value: { x: 0, y: 0 }, step: 0.005, label: "décalage carte 1" },
+      carte2: { value: { x: 0, y: 0 }, step: 0.005, label: "décalage carte 2" },
       leveeSurvol: { value: 0.05, min: 0, max: 0.5, step: 0.005, label: "levée survol" },
       echelleSurvol: { value: 1.05, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
       distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "distance focus" },
@@ -812,8 +873,8 @@ function Monde({
     const largeur = CARTE_L * echelle
     const pas = largeur * rm.pas
     const n = main.length
-    const pivot = new Vector3(-w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2 + rm.x * w, -h + hauteur * rm.y, -D_MAIN)
-    const bloc = new Quaternion().setFromEuler(EULER_TMP.set(rm.rotationX, rm.rotationY, rm.rotationZ))
+    const pivot = new Vector3(-w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2 + rm.position.x * w, -h + hauteur * rm.position.y, -D_MAIN)
+    const bloc = new Quaternion().setFromEuler(EULER_TMP.set(rm.rotation.x, rm.rotation.y, rm.rotation.z))
     main.forEach((c, i) => {
       const t = i - (n - 1) / 2
       const choisie = c.id === selectionId
@@ -838,12 +899,13 @@ function Monde({
         const r = reglagesMissions
         const k = (r.distance / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
         const sens = i === 0 ? 1 : -1
-        const groupe = QUAT_GROUPE.setFromEuler(EULER_TMP.set(r.rotationX - pointer.y * r.souris, r.rotationY + pointer.x * r.souris, r.rotationZ))
+        const groupe = QUAT_GROUPE.setFromEuler(EULER_TMP.set(r.rotation.x - pointer.y * r.souris, r.rotation.y + pointer.x * r.souris, r.rotation.z))
         const x = (i - 0.5) * (MISSION_L + r.ecart) * k * r.echelle
-        const dx = (i === 0 ? r.x1 : r.x2) * k
-        const dy = (i === 0 ? r.y1 : r.y2) * k
-        p.position.set(r.x * k, r.y * k, -r.distance).add(new Vector3(x + dx, dy, -Math.abs(x) * r.recul).applyQuaternion(groupe))
-        p.quaternion.copy(groupe).multiply(QUAT_LOCAL.setFromEuler(EULER_TMP.set(0, sens * r.angleY, -sens * r.angleZ)))
+        const decalage = i === 0 ? r.carte1 : r.carte2
+        const dx = decalage.x * k
+        const dy = decalage.y * k
+        p.position.set(r.position.x * k, r.position.y * k, -r.distance).add(new Vector3(x + dx, dy, -Math.abs(x) * r.recul).applyQuaternion(groupe))
+        p.quaternion.copy(groupe).multiply(QUAT_LOCAL.setFromEuler(EULER_TMP.set(0, sens * r.angles.y, -sens * r.angles.z)))
         p.echelle = k * r.echelle
       } else if (missionFocus === m.id) {
         const d = rj.distanceFocus
@@ -853,13 +915,17 @@ function Monde({
         p.echelle = rj.echelleFocus * k
       } else {
         const survolee = survol === `mission:${m.id}`
-        const machoire = i === 0 ? rj.angle1 : rj.angle2
+        const machoire = i === 0 ? rj.angles.carte1 : rj.angles.carte2
         const bras = -mL * 0.44
-        const pivotX = w - mL * 0.03 + rj.x * w
-        const pivotY = -h + mH * 0.55 + rj.y * h
+        const pivotX = w - mL * 0.03 + rj.position.x * w
+        const pivotY = -h + mH * 0.55 + rj.position.y * h
         const x = pivotX + Math.cos(machoire) * bras
         const y = pivotY - Math.sin(machoire) * bras + (i === 0 ? mH * 0.16 : -mH * 0.08) + (survolee ? mH * rj.leveeSurvol : 0)
-        p.position.set(x + (i === 0 ? rj.x1 : rj.x2) * mL, y + (i === 0 ? rj.y1 : rj.y2) * mL, -D_MAIN + 0.05 + (i === 0 ? 0 : 0.02))
+        p.position.set(
+          x + (i === 0 ? rj.carte1 : rj.carte2).x * mL,
+          y + (i === 0 ? rj.carte1 : rj.carte2).y * mL,
+          -D_MAIN + 0.05 + (i === 0 ? 0 : 0.02),
+        )
         p.quaternion.setFromEuler(EULER_TMP.set(0, 0, -machoire))
         p.echelle = (mL / MISSION_L) * (survolee ? rj.echelleSurvol : 1)
       }
@@ -969,6 +1035,7 @@ function Monde({
               largeur={MISSION_L}
               hauteur={MISSION_H}
               auDessus
+              sansOmbre
               vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
               reflet={missionFocus === m.id}
               lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
@@ -1024,13 +1091,18 @@ function Monde({
         <Ephemere key={t.id} item={t} tex={tex} onFin={() => setTransitoires((l) => l.filter((x) => x.id !== t.id))} />
       ))}
 
-      <Apparition actif={deroulement} delai={0.15} duree={reglages.dureeTapis * 0.45} hauteur={5} masque>
-        <Pioche nombre={vue.nombreCartesPioche} />
+      <Pioche nombre={vue.nombreCartesPioche} actif={deroulement} reglages={reglagesPioche} />
+      <Apparition actif={deroulement} delai={finPioche(reglagesPioche)} duree={reglagesPioche.chute} hauteur={reglagesPioche.hauteur} masque>
         {vue.nombreCartesPioche > 0 && (
           <Carte3D cible={poseDessusPioche(vue.nombreCartesPioche)} recto={tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} />
         )}
       </Apparition>
-      <Apparition actif={deroulement} delai={0.25 + reglages.dureeTapis * 0.45} duree={0.7} hauteur={-0.6}>
+      <Apparition
+        actif={deroulement}
+        delai={finPioche(reglagesPioche) + reglagesPioche.chute + reglagesPioche.delaiCompteur}
+        duree={0.7}
+        hauteur={-0.6}
+      >
         <TexteTable
           texte={String(vue.nombreCartesPioche)}
           style={{ couleur: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", graisse: 800 }}

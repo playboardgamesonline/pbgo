@@ -107,7 +107,7 @@ export function PanneauDebug() {
       </div>
       <Leva hidden />
       {actif && (
-        <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto rounded-b-md bg-[#181c20] [scrollbar-width:thin]">
+        <div className="max-h-[min(60vh,calc(100dvh-14rem))] overflow-y-auto rounded-b-md bg-[#181c20] [scrollbar-width:thin]">
           <LevaPanel
             key={ongletActif}
             store={MAGASINS_DEBUG[ongletActif]}

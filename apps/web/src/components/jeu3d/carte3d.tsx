@@ -210,6 +210,7 @@ type Props = {
   onSurvol?: (survol: boolean) => void
   reflet?: boolean
   auDessus?: boolean
+  sansOmbre?: boolean
   onArrivee?: () => void
 }
 
@@ -248,6 +249,7 @@ export function Carte3D({
   onSurvol,
   reflet,
   auDessus,
+  sansOmbre,
   onArrivee,
 }: Props) {
   const ref = useRef<Group>(null)
@@ -388,7 +390,7 @@ export function Carte3D({
         onSurvol?.(false)
       }}
     >
-      <mesh ref={ombreRef} position={[0.04, -0.07, -0.03]} raycast={() => null}>
+      <mesh ref={ombreRef} position={[0.04, -0.07, -0.03]} raycast={() => null} visible={!sansOmbre}>
         <planeGeometry args={[largeur * 1.18, hauteur * 1.1]} />
         <meshBasicMaterial map={ombre} transparent depthWrite={false} />
       </mesh>

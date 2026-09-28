@@ -75,11 +75,13 @@ export function Jeu3D({
       nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour", type: "tour" })
     if (nouvelles.length) {
       setCompteur((c) => c + 2)
-      setAnnonces((l) => [...l, ...nouvelles])
+      setAnnonces((l) =>
+        [...l.filter((x) => x.type !== "tour"), ...nouvelles].sort((x, y) => (x.type === "banquet" ? 0 : 1) - (y.type === "banquet" ? 0 : 1)),
+      )
     }
     if (vue.phase === "missions" && phasePrec !== "missions" && aLire(vue)) setEtape("tapis")
   }
-  const annonce = annonces[0]
+  const annonce = etape === null ? annonces[0] : undefined
   const reglagesAnnonces = useReglagesAnnonces()
   const dureeAnnonce = annonce ? reglagesAnnonces[annonce.type].duree : 0
   function annoncer(texte: string, son: NomSon, type: TypeAnnonce) {
