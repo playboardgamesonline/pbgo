@@ -74,6 +74,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  button,
+  [role="button"] {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
   body {
     @apply bg-background text-foreground font-sans;
     background-image:
