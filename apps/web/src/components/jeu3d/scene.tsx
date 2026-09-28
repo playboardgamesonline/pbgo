@@ -6,7 +6,19 @@ import { button, useControls } from "leva"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Color, Euler, type Group, type Mesh, MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector2, Vector3 } from "three"
+import {
+  CanvasTexture,
+  Color,
+  Euler,
+  type Group,
+  type Mesh,
+  MeshBasicMaterial,
+  type PerspectiveCamera,
+  Quaternion,
+  type Texture,
+  Vector2,
+  Vector3,
+} from "three"
 import { useJeu } from "../jeu/contexte"
 import { jouerSon } from "@/lib/son"
 import { useInteraction } from "../jeu/interaction"
@@ -16,6 +28,7 @@ import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
 import { Compteurs, Projecteur, ResolutionFamilles, useCentresGagnants } from "./fin3d"
 import { textureMotif } from "./motifs"
+import { onglet } from "./onglets-debug"
 import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
@@ -102,27 +115,35 @@ const CIBLE_TMP = new Vector3()
 
 function CameraRig() {
   const { size } = useThree()
-  const [reglage, regler] = useControls("Caméra", () => ({
-    inclinaison: { value: CAMERA_DEFAUT.inclinaison, min: 0, max: 85, step: 0.5, label: "inclinaison °" },
-    lacet: { value: CAMERA_DEFAUT.lacet, min: -180, max: 180, step: 1, label: "rotation °" },
-    distance: { value: CAMERA_DEFAUT.distance, min: 8, max: 70, step: 0.1 },
-    fov: { value: CAMERA_DEFAUT.fov, min: 10, max: 100, step: 0.5, label: "fov °" },
-    cible: { value: CAMERA_DEFAUT.cible, step: 0.05, label: "cible x / z" },
-  }))
-  useControls("Caméra", {
-    "Copier les valeurs": button((get) => {
-      const valeurs = {
-        inclinaison: get("Caméra.inclinaison"),
-        lacet: get("Caméra.lacet"),
-        distance: get("Caméra.distance"),
-        fov: get("Caméra.fov"),
-        cible: get("Caméra.cible"),
-      }
-      navigator.clipboard?.writeText(JSON.stringify(valeurs)).catch(() => null)
-      console.info("Caméra", valeurs)
+  const [reglage, regler] = useControls(
+    "Caméra",
+    () => ({
+      inclinaison: { value: CAMERA_DEFAUT.inclinaison, min: 0, max: 85, step: 0.5, label: "inclinaison °" },
+      lacet: { value: CAMERA_DEFAUT.lacet, min: -180, max: 180, step: 1, label: "rotation °" },
+      distance: { value: CAMERA_DEFAUT.distance, min: 8, max: 70, step: 0.1 },
+      fov: { value: CAMERA_DEFAUT.fov, min: 10, max: 100, step: 0.5, label: "fov °" },
+      cible: { value: CAMERA_DEFAUT.cible, step: 0.05, label: "cible x / z" },
     }),
-    Réinitialiser: button(() => regler(CAMERA_DEFAUT)),
-  })
+    onglet("SCENE"),
+  )
+  useControls(
+    "Caméra",
+    {
+      "Copier les valeurs": button((get) => {
+        const valeurs = {
+          inclinaison: get("Caméra.inclinaison"),
+          lacet: get("Caméra.lacet"),
+          distance: get("Caméra.distance"),
+          fov: get("Caméra.fov"),
+          cible: get("Caméra.cible"),
+        }
+        navigator.clipboard?.writeText(JSON.stringify(valeurs)).catch(() => null)
+        console.info("Caméra", valeurs)
+      }),
+      Réinitialiser: button(() => regler(CAMERA_DEFAUT)),
+    },
+    onglet("SCENE"),
+  )
 
   useFrame((etat) => {
     const cam = etat.camera as PerspectiveCamera
@@ -165,21 +186,20 @@ function vignetteTexture() {
   return new CanvasTexture(c)
 }
 
-const DUREE_TAPIS = 1.3
-
 const GLSL_TAPIS = /* glsl */ `
 uniform vec2 uTaille;
 uniform float uDeroule;
 uniform float uDesat;
-uniform float uGrain;
-float hashTapis(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
-float bruitTapis(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hashTapis(i), hashTapis(i + vec2(1.0, 0.0)), f.x), mix(hashTapis(i + vec2(0.0, 1.0)), hashTapis(i + vec2(1.0, 1.0)), f.x), f.y);
+uniform sampler2D uTissu;
+uniform float uAvecTissu;
+uniform float uEchelle;
+uniform float uMode;
+uniform float uForce;
+vec3 melangeTapis(vec3 a, vec3 b) {
+  if (uMode < 0.5) return a * b;
+  if (uMode < 1.5) return 1.0 - (1.0 - a) * (1.0 - b);
+  if (uMode < 2.5) return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, a));
+  return (1.0 - 2.0 * b) * a * a + 2.0 * b * a;
 }
 `
 
@@ -187,42 +207,44 @@ const FRAGMENT_TAPIS = /* glsl */ `
 #include <map_fragment>
 {
   if (vMapUv.x > uDeroule) discard;
-  vec2 q = vMapUv * uTaille;
   float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(l), uDesat) * 0.93 + 0.012;
-  vec2 f = q * 26.0;
-  vec2 g = fract(f);
-  float croise = mod(floor(f.x) + floor(f.y), 2.0);
-  float fil = mix(sin(g.x * 3.14159), sin(g.y * 3.14159), croise);
-  float net = clamp(1.4 - max(fwidth(f.x), fwidth(f.y)) * 1.4, 0.0, 1.0);
-  diffuseColor.rgb *= 1.0 + (fil - 0.64) * 0.22 * uGrain * net;
-  float tache = bruitTapis(q * 1.6) * 0.6 + bruitTapis(q * 6.0) * 0.4;
-  diffuseColor.rgb *= 1.0 + (tache - 0.5) * 0.12 * uGrain;
-  float point = smoothstep(0.955, 1.0, hashTapis(floor(q * 95.0)));
-  float fibre = smoothstep(0.82, 1.0, bruitTapis(vec2(q.x * 3.0, q.y * 60.0))) * smoothstep(0.6, 0.9, bruitTapis(q * 2.3));
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.95, 0.94, 0.9), (point * 0.45 + fibre * 0.12) * uGrain);
-  vec2 e = min(q, uTaille - q);
-  float bord = min(e.x, e.y);
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.84, 0.78), (1.0 - smoothstep(0.035, 0.06, bord)) * 0.7);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(l), uDesat);
+  if (uAvecTissu > 0.5) {
+    vec3 a = pow(max(diffuseColor.rgb, 0.0), vec3(1.0 / 2.2));
+    vec3 b = pow(texture2D(uTissu, vMapUv * uTaille * uEchelle).rgb, vec3(1.0 / 2.2));
+    diffuseColor.rgb = pow(mix(a, clamp(melangeTapis(a, b), 0.0, 1.0), uForce), vec3(2.2));
+  }
 }
 `
 
-function Table({ tex, deroulement }: { tex: Textures; deroulement: boolean }) {
+export const MODES_FUSION = { multiply: 0, screen: 1, overlay: 2, "soft light": 3 } as const
+
+function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: boolean; dureeTapis: number }) {
   const vignette = useFrameTexture(vignetteTexture)
   const texMotif = useMemo(() => textureMotif("losanges"), [])
-  const { opacite, desaturation, grain } = useControls("Plateau", {
-    opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "opacité motif" },
-    desaturation: { value: 0.28, min: 0, max: 1, step: 0.01, label: "désaturation tapis" },
-    grain: { value: 1, min: 0, max: 2, step: 0.05, label: "texture tapis" },
-  })
+  const { opacite, desaturation, fusion, force, echelle } = useControls(
+    "Tapis",
+    {
+      opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "opacité motif fond" },
+      desaturation: { value: 0.18, min: 0, max: 1, step: 0.01, label: "désaturation" },
+      fusion: { value: 3, options: MODES_FUSION, label: "mode de fusion" },
+      force: { value: 0.85, min: 0, max: 1, step: 0.01, label: "force texture" },
+      echelle: { value: 0.5, min: 0.1, max: 6, step: 0.05, label: "tuiles / unité" },
+    },
+    onglet("SCENE"),
+  )
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.07), [])
   const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.05, 0.07), [])
   const materiau = useMemo(() => {
     const uniformes = {
       uTaille: { value: new Vector2(TAPIS_L, TAPIS_P) },
-      uDeroule: { value: deroulement ? 0 : 1 },
-      uDesat: { value: 0.28 },
-      uGrain: { value: 1 },
+      uDeroule: { value: 1 },
+      uDesat: { value: 0.18 },
+      uTissu: { value: null as Texture | null },
+      uAvecTissu: { value: 0 },
+      uEchelle: { value: 0.5 },
+      uMode: { value: 3 },
+      uForce: { value: 0.7 },
     }
     const m = new MeshBasicMaterial({ map: tex.tapis, toneMapped: false })
     m.userData.uniformes = uniformes
@@ -233,7 +255,7 @@ function Table({ tex, deroulement }: { tex: Textures; deroulement: boolean }) {
         .replace("#include <map_fragment>", FRAGMENT_TAPIS)
     }
     return m
-  }, [tex.tapis, deroulement])
+  }, [tex.tapis])
   const dessusRef = useRef<Mesh>(null)
   const debut = useRef<number | null>(null)
   const tranches = useRef<Group>(null)
@@ -242,13 +264,17 @@ function Table({ tex, deroulement }: { tex: Textures; deroulement: boolean }) {
     const uniformes = (dessusRef.current?.material as MeshBasicMaterial | undefined)?.userData.uniformes
     if (!uniformes) return
     uniformes.uDesat.value = desaturation
-    uniformes.uGrain.value = grain
+    uniformes.uTissu.value = tex.tissu
+    uniformes.uAvecTissu.value = tex.tissu ? 1 : 0
+    uniformes.uMode.value = fusion
+    uniformes.uForce.value = force
+    uniformes.uEchelle.value = echelle
     let d = 1
     if (deroulement) {
       if (debut.current === null) debut.current = clock.elapsedTime
-      const t = Math.min(1, Math.max(0, (clock.elapsedTime - debut.current - 0.15) / DUREE_TAPIS))
+      const t = Math.min(1, Math.max(0, (clock.elapsedTime - debut.current - 0.15) / dureeTapis))
       d = 1 - (1 - t) ** 3
-    }
+    } else debut.current = null
     uniformes.uDeroule.value = d
     if (tranches.current) tranches.current.scale.x = Math.max(0.0001, d)
     const r = rouleau.current
@@ -257,7 +283,6 @@ function Table({ tex, deroulement }: { tex: Textures; deroulement: boolean }) {
       const rayon = 0.06 + 0.26 * (1 - d)
       r.position.set(-TAPIS_L / 2 + d * TAPIS_L, rayon + 0.02, 0)
       r.scale.set(rayon, 1, rayon)
-      r.rotation.y = 0
     }
   })
   return (
@@ -279,7 +304,7 @@ function Table({ tex, deroulement }: { tex: Textures; deroulement: boolean }) {
         </mesh>
       </group>
       <mesh ref={dessusRef} geometry={dessus} rotation-x={-Math.PI / 2} position-y={0.051} material={materiau} />
-      <mesh ref={rouleau} rotation-x={Math.PI / 2} visible={deroulement} raycast={() => null}>
+      <mesh ref={rouleau} rotation-x={Math.PI / 2} visible={false} raycast={() => null}>
         <cylinderGeometry args={[1, 1, TAPIS_P, 32]} />
         <meshStandardMaterial color="#1f5358" roughness={0.9} />
       </mesh>
@@ -448,6 +473,7 @@ const QUAT_TMP = new Quaternion()
 const EULER_TMP = new Euler()
 
 export type EtapeOuverture = "tapis" | "distribution" | "missions" | null
+export type ReglagesOuverture = { dureeTapis: number; pasDistribution: number }
 
 function Monde({
   etape,
@@ -455,12 +481,14 @@ function Monde({
   onMission,
   onPret,
   fin,
+  reglages,
 }: {
   etape: EtapeOuverture
   missionFocus: string | null
   onMission: (id: string) => void
   onPret: () => void
   fin: EtatFin | null
+  reglages: ReglagesOuverture
 }) {
   useEffect(() => onPret(), [onPret])
   const { vue, catalogue, pseudo, couleur } = useJeu()
@@ -542,7 +570,7 @@ function Monde({
   }
 
   const [etapePrec, setEtapePrec] = useState<EtapeOuverture>(etape)
-  const [deroulement] = useState(etape === "tapis")
+  const deroulement = etape === "tapis"
   const [distribution, setDistribution] = useState<Map<string, Pose>>(new Map())
   const [departsMissions, setDepartsMissions] = useState<Map<string, Pose>>(new Map())
   if (etapePrec !== etape) {
@@ -555,7 +583,7 @@ function Monde({
       for (let r = 0; r < 3; r++)
         vue.joueurs.forEach((j, idx) => {
           const k = r * n + idx
-          const depart = { ...poseDessusPioche(vue.nombreCartesPioche + total - k), delai: 0.1 + k * 0.17 }
+          const depart = { ...poseDessusPioche(vue.nombreCartesPioche + total - k), delai: 0.1 + k * reglages.pasDistribution }
           jouerSon("glisse", { volume: 0.45, delai: depart.delai + 0.1 })
           if (j.id === moiId) {
             const carte = main[r]
@@ -681,7 +709,7 @@ function Monde({
       <ReglagesAura />
       <ambientLight intensity={0.8} />
       <directionalLight position={[4, 12, 6]} intensity={2.2} />
-      <Table tex={tex} deroulement={deroulement} />
+      <Table tex={tex} deroulement={deroulement} dureeTapis={reglages.dureeTapis} />
 
       {[...plateau.values()].map(({ carte, pose, joueurId }) => {
         const candidat = candidats.has(carte.id)
@@ -873,11 +901,19 @@ export default function Scene3D(props: {
   onVide: () => void
   onPret: () => void
   fin: EtatFin | null
+  reglages: ReglagesOuverture
 }) {
   return (
     <Canvas dpr={[1, 2]} camera={{ fov: 26.5, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={props.onVide}>
       <Suspense fallback={null}>
-        <Monde etape={props.etape} missionFocus={props.missionFocus} onMission={props.onMission} onPret={props.onPret} fin={props.fin} />
+        <Monde
+          etape={props.etape}
+          missionFocus={props.missionFocus}
+          onMission={props.onMission}
+          onPret={props.onPret}
+          fin={props.fin}
+          reglages={props.reglages}
+        />
       </Suspense>
     </Canvas>
   )

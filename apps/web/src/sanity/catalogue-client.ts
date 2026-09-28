@@ -62,6 +62,7 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       cartes,
       missions: missionsMap,
       tapisUrl: url(game?.mat, 2000) ?? d.tapisUrl,
+      tissuUrl: url(game?.matTexture, 1024) ?? d.tissuUrl,
       dosCourtisanUrl: url(game?.courtierBack, 360) ?? d.dosCourtisanUrl,
       dosMissionBlancheUrl: url(game?.whiteMissionBack, 520) ?? d.dosMissionBlancheUrl,
       dosMissionBleueUrl: url(game?.blueMissionBack, 520) ?? d.dosMissionBleueUrl,

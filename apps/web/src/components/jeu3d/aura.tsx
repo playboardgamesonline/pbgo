@@ -1,5 +1,6 @@
 "use client"
 
+import { onglet } from "./onglets-debug"
 import { useFrame } from "@react-three/fiber"
 import { useControls } from "leva"
 import { easing } from "maath"
@@ -142,21 +143,25 @@ export function Aura({
 }
 
 export function ReglagesAura() {
-  useControls("Auras", {
-    intensite: { value: REGLAGES_AURA.intensite, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.intensite = v) },
-    bord: { value: REGLAGES_AURA.bord, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.bord = v) },
-    halo: { value: REGLAGES_AURA.halo, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.halo = v) },
-    etoiles: { value: REGLAGES_AURA.etoiles, min: 0, max: 3, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.etoiles = v) },
-    densite: { value: REGLAGES_AURA.densite, min: 0.5, max: 6, step: 0.1, onChange: (v: number) => (REGLAGES_AURA.densite = v) },
-    taille: {
-      value: REGLAGES_AURA.taille,
-      min: 0.3,
-      max: 3,
-      step: 0.05,
-      label: "taille étoiles",
-      onChange: (v: number) => (REGLAGES_AURA.taille = v),
+  useControls(
+    "Auras",
+    {
+      intensite: { value: REGLAGES_AURA.intensite, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.intensite = v) },
+      bord: { value: REGLAGES_AURA.bord, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.bord = v) },
+      halo: { value: REGLAGES_AURA.halo, min: 0, max: 2, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.halo = v) },
+      etoiles: { value: REGLAGES_AURA.etoiles, min: 0, max: 3, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.etoiles = v) },
+      densite: { value: REGLAGES_AURA.densite, min: 0.5, max: 6, step: 0.1, onChange: (v: number) => (REGLAGES_AURA.densite = v) },
+      taille: {
+        value: REGLAGES_AURA.taille,
+        min: 0.3,
+        max: 3,
+        step: 0.05,
+        label: "taille étoiles",
+        onChange: (v: number) => (REGLAGES_AURA.taille = v),
+      },
+      vitesse: { value: REGLAGES_AURA.vitesse, min: 0, max: 3, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.vitesse = v) },
     },
-    vitesse: { value: REGLAGES_AURA.vitesse, min: 0, max: 3, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.vitesse = v) },
-  })
+    onglet("SCENE"),
+  )
   return null
 }

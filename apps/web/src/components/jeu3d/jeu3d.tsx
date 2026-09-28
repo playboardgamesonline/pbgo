@@ -5,6 +5,8 @@ import { Loader2Icon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { button, useControls } from "leva"
+import { onglet } from "./onglets-debug"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
@@ -77,32 +79,58 @@ export function Jeu3D({
     if (vue.phase === "missions" && phasePrec !== "missions" && aLire(vue)) setEtape("tapis")
   }
   const annonce = annonces[0]
+  function annoncer(texte: string, son: NomSon) {
+    setAnnonces((l) => [...l, { id: Date.now(), texte, son }])
+  }
   const intro = etape === "missions"
   const nbJoueurs = vue.joueurs.length
 
+  const [reglagesOuverture] = useControls(
+    "Ouverture",
+    () => ({
+      dureeTapis: { value: 1.3, min: 0.3, max: 4, step: 0.05, label: "durée tapis (s)" },
+      pasDistribution: { value: 0.17, min: 0.05, max: 0.6, step: 0.01, label: "pas distribution (s)" },
+      attenteBouton: { value: 1.9, min: 0, max: 5, step: 0.1, label: "délai bouton (s)" },
+      dureeAnnonce: { value: 2.8, min: 1, max: 6, step: 0.1, label: "durée annonce (s)" },
+    }),
+    onglet("TRANSITION"),
+  )
+  useControls(
+    "Rejouer",
+    {
+      "Ouverture complète": button(() => {
+        setBoutonMissions(false)
+        setEtape("tapis")
+      }),
+      "Annonce banquet": button(() => annoncer(catalogue.texteDebutBanquet, "victoire")),
+      "Annonce votre tour": button(() => annoncer("C'est votre tour", "tour")),
+    },
+    onglet("TRANSITION"),
+    [catalogue.texteDebutBanquet],
+  )
   const [pret, setPret] = useState(false)
   const scenePrete = useCallback(() => setPret(true), [])
   useEffect(() => {
     if (!pret) return
     if (etape === "tapis") {
-      const t = setTimeout(() => setEtape("distribution"), 1600)
+      const t = setTimeout(() => setEtape("distribution"), (reglagesOuverture.dureeTapis + 0.3) * 1000)
       return () => clearTimeout(t)
     }
     if (etape === "distribution") {
-      const t = setTimeout(() => setEtape("missions"), (0.1 + nbJoueurs * 3 * 0.17) * 1000 + 1300)
+      const t = setTimeout(() => setEtape("missions"), (0.1 + nbJoueurs * 3 * reglagesOuverture.pasDistribution) * 1000 + 1300)
       return () => clearTimeout(t)
     }
     if (etape === "missions") {
-      const t = setTimeout(() => setBoutonMissions(true), 1900)
+      const t = setTimeout(() => setBoutonMissions(true), reglagesOuverture.attenteBouton * 1000)
       return () => clearTimeout(t)
     }
-  }, [etape, nbJoueurs, pret])
+  }, [etape, nbJoueurs, pret, reglagesOuverture])
 
   useEffect(() => {
     if (!annonce) return
-    const t = setTimeout(() => setAnnonces((l) => l.slice(1)), 2800)
+    const t = setTimeout(() => setAnnonces((l) => l.slice(1)), reglagesOuverture.dureeAnnonce * 1000)
     return () => clearTimeout(t)
-  }, [annonce])
+  }, [annonce, reglagesOuverture.dureeAnnonce])
 
   const moiId = vue.moi?.id
   const monTour = vue.phase === "jeu" && !!moiId && vue.joueurActifId === moiId
@@ -172,6 +200,7 @@ export function Jeu3D({
             <Scene3D
               etape={etape}
               onPret={scenePrete}
+              reglages={reglagesOuverture}
               missionFocus={missionFocus}
               fin={fin}
               onMission={(id) => setMissionFocus((f) => (f === id ? null : id))}

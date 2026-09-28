@@ -75,6 +75,7 @@ export type CatalogueClient = {
   cartes: Record<string, string>
   missions: Record<string, string>
   tapisUrl: string
+  tissuUrl: string
   dosCourtisanUrl: string | null
   dosMissionBlancheUrl: string | null
   dosMissionBleueUrl: string | null
@@ -104,6 +105,7 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   ),
   missions: IMAGES_MISSIONS_PAR_DEFAUT,
   tapisUrl: "/tapis.jpg",
+  tissuUrl: "/textures/tissu.webp",
   dosCourtisanUrl: "/cartes/DOS_COURTISAN.webp",
   dosMissionBlancheUrl: "/cartes/DOS_MISSION_LIGHT.webp",
   dosMissionBleueUrl: "/cartes/DOS_MISSION_DARK.webp",

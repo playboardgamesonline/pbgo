@@ -2,7 +2,7 @@
 
 import { type CarteVisible, FAMILLES, type Mission, ROLES } from "@courtisans/engine"
 import { useEffect, useMemo, useState } from "react"
-import { CanvasTexture, SRGBColorSpace, type Texture, TextureLoader } from "three"
+import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture, TextureLoader } from "three"
 import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte } from "@/lib/catalogue"
 import { IMAGES_MISSIONS_PAR_DEFAUT } from "@/lib/missions-par-defaut"
 
@@ -183,6 +183,7 @@ export type Textures = {
   face: (carte: CarteVisible) => Texture
   dos: Texture
   tapis: Texture
+  tissu: Texture | null
   mission: (m: Mission) => Texture
   dosMission: (m: Mission) => Texture
 }
@@ -198,6 +199,7 @@ export function useTextures(catalogue: CatalogueClient, missions: Mission[]): Te
   const sources = useMemo<Source[]>(() => {
     const liste: Source[] = [
       { cle: "tapis", urls: [catalogue.tapisUrl, d.tapisUrl] },
+      { cle: "tissu", urls: [catalogue.tissuUrl, d.tissuUrl] },
       { cle: "dos", urls: [catalogue.dosCourtisanUrl, d.dosCourtisanUrl] },
       {
         cle: "dosBlanche",
@@ -233,6 +235,13 @@ export function useTextures(catalogue: CatalogueClient, missions: Mission[]): Te
       chargerAvecSecours(urls)
         .then((t) => (t && texte ? missionComposee(t, texte) : t))
         .then((t) => {
+          if (t && cle === "tissu") {
+            t.wrapS = t.wrapT = RepeatWrapping
+            t.needsUpdate = true
+          }
+          return t
+        })
+        .then((t) => {
           if (actif && t) setChargees((c) => (c[cle] === t ? c : { ...c, [cle]: t }))
         })
     }
@@ -252,6 +261,7 @@ export function useTextures(catalogue: CatalogueClient, missions: Mission[]): Te
     return {
       tapis: chargees.tapis ?? deSecours("tapis", () => textureTexte("", "#1b3f45", "#fff", 579 / 2362)),
       dos,
+      tissu: chargees.tissu ?? null,
       face: (c) => {
         if (!c.famille) return dos
         const cle = cleCarte(c.famille, c.role)

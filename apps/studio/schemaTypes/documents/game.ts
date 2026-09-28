@@ -12,6 +12,7 @@ export const game = defineType({
   ],
   fields: [
     defineField({ name: "mat", title: "Game mat", type: "image", group: "board" }),
+    defineField({ name: "matTexture", title: "Game mat texture", type: "image", group: "board" }),
     defineField({
       name: "decorations",
       title: "Decorations",

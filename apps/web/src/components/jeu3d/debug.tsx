@@ -1,7 +1,9 @@
 "use client"
 
-import { Leva, button, levaStore, useControls } from "leva"
-import { useEffect, useSyncExternalStore } from "react"
+import { LevaPanel, button, useControls } from "leva"
+import { useEffect, useState, useSyncExternalStore } from "react"
+import { cn } from "@/lib/utils"
+import { MAGASINS_DEBUG, ONGLETS_DEBUG, type OngletDebug, onglet } from "./onglets-debug"
 import { changerMusique, musiqueActuelle, type NomMusique, reglerVolumes, type Volumes, VOLUMES_DEFAUT, volumesActuels } from "@/lib/son"
 
 const CLE = "courtisans:debug"
@@ -28,11 +30,13 @@ function basculer() {
 }
 
 function copierTout() {
-  const donnees = levaStore.getData() as Record<string, { type?: string; value?: unknown }>
-  const valeurs: Record<string, unknown> = {}
-  for (const [chemin, entree] of Object.entries(donnees)) {
-    if (!entree || entree.type === "BUTTON" || entree.value === undefined) continue
-    valeurs[chemin] = entree.value
+  const valeurs: Record<string, Record<string, unknown>> = {}
+  for (const nom of ONGLETS_DEBUG) {
+    const donnees = MAGASINS_DEBUG[nom].getData() as Record<string, { type?: string; value?: unknown }>
+    for (const [chemin, entree] of Object.entries(donnees)) {
+      if (!entree || entree.type === "BUTTON" || entree.value === undefined) continue
+      ;(valeurs[nom] ??= {})[chemin] = entree.value
+    }
   }
   const texte = JSON.stringify(valeurs, null, 2)
   navigator.clipboard?.writeText(texte).catch(() => null)
@@ -41,30 +45,35 @@ function copierTout() {
 
 export function PanneauDebug() {
   useControls({ "Copier tous les réglages": button(copierTout) })
-  const [, reglerSon] = useControls("Son", () => {
-    const v = volumesActuels()
-    const curseur = (cle: keyof Volumes, label: string) => ({
-      value: v[cle],
-      min: 0,
-      max: 1,
-      step: 0.01,
-      label,
-      onChange: (x: number) => reglerVolumes({ [cle]: x }),
-    })
-    return {
-      general: curseur("general", "général"),
-      musique: curseur("musique", "musique"),
-      effets: curseur("effets", "effets"),
-      ambiance: curseur("ambiance", "ambiance repas"),
-      piste: {
-        value: musiqueActuelle(),
-        options: { Danse: "danse", Estampie: "estampie", Pavane: "pavane", Branle: "branle" },
-        label: "morceau",
-        onChange: (m: NomMusique) => changerMusique(m),
-      },
-    }
-  })
-  useControls("Son", { "Réinitialiser le son": button(() => reglerSon(VOLUMES_DEFAUT)) })
+  const [ongletActif, setOnglet] = useState<OngletDebug>("GAME")
+  const [, reglerSon] = useControls(
+    "Son",
+    () => {
+      const v = volumesActuels()
+      const curseur = (cle: keyof Volumes, label: string) => ({
+        value: v[cle],
+        min: 0,
+        max: 1,
+        step: 0.01,
+        label,
+        onChange: (x: number) => reglerVolumes({ [cle]: x }),
+      })
+      return {
+        general: curseur("general", "général"),
+        musique: curseur("musique", "musique"),
+        effets: curseur("effets", "effets"),
+        ambiance: curseur("ambiance", "ambiance repas"),
+        piste: {
+          value: musiqueActuelle(),
+          options: { Danse: "danse", Estampie: "estampie", Pavane: "pavane", Branle: "branle" },
+          label: "morceau",
+          onChange: (m: NomMusique) => changerMusique(m),
+        },
+      }
+    },
+    onglet("AUDIO"),
+  )
+  useControls("Son", { "Réinitialiser le son": button(() => reglerSon(VOLUMES_DEFAUT)) }, onglet("AUDIO"))
   const actif = useSyncExternalStore(
     (f) => {
       abonnes.add(f)
@@ -83,8 +92,24 @@ export function PanneauDebug() {
   }, [])
 
   return (
-    <div className="absolute top-24 left-4 z-40 w-80">
-      <Leva fill hidden={!actif} collapsed={false} titleBar={{ title: "Debug · Shift+D" }} />
+    <div className={cn("absolute top-24 left-4 z-40 w-80", !actif && "hidden")}>
+      <div className="flex gap-px overflow-hidden rounded-t-md bg-[#292d39] font-mono text-[10px] tracking-wider">
+        {ONGLETS_DEBUG.map((nom) => (
+          <button
+            key={nom}
+            type="button"
+            onClick={() => setOnglet(nom)}
+            className={cn("flex-1 py-2 text-[#8c92a4] hover:text-white", ongletActif === nom && "bg-[#181c20] text-white")}
+          >
+            {nom}
+          </button>
+        ))}
+      </div>
+      {ONGLETS_DEBUG.map((nom) => (
+        <div key={nom} className={cn(ongletActif !== nom && "hidden")}>
+          <LevaPanel store={MAGASINS_DEBUG[nom]} fill flat collapsed={false} titleBar={{ title: "Debug · Shift+D", filter: false }} />
+        </div>
+      ))}
     </div>
   )
 }
