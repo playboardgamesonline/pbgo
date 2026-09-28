@@ -70,7 +70,7 @@ export function EcranBanquet({
           initial={{ opacity: 0, y: -20, rotate: -2 }}
           animate={{ opacity: 1, y: 0, rotate: 0 }}
           transition={{ type: "spring", stiffness: 120, damping: 14 }}
-          className="mt-[6vh] w-[min(18rem,60vw,26vh)] shrink-0"
+          className="mt-[5vh] w-[min(24rem,70vw,34vh)] shrink-0"
         >
           <Link href="/" aria-label="Accueil">
             <Logo src={logoUrl} />
@@ -100,7 +100,7 @@ export function EcranBanquet({
             draggable={false}
             className="pointer-events-none absolute -bottom-2 left-[-7%] h-auto w-[114%] max-w-none select-none"
           />
-          <div className="absolute inset-x-0 bottom-[calc(var(--table)*0.1)] flex flex-col items-center gap-3 px-4">
+          <div className="absolute inset-x-0 bottom-[calc(var(--table)*0.1)] flex flex-col items-center gap-6 px-4">
             {bouton}
             {bas}
           </div>
@@ -132,7 +132,8 @@ export function BoutonCour({
       disabled={disabled || occupe}
       onClick={onClick}
       className={cn(
-        "h-16 w-full max-w-md cursor-pointer rounded-xl bg-foreground font-display text-2xl tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] hover:bg-foreground active:scale-[0.98] disabled:cursor-default disabled:opacity-80 disabled:hover:scale-100",
+        "h-16 w-full max-w-md cursor-pointer rounded-xl bg-foreground font-display text-2xl tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] hover:bg-foreground active:scale-[0.98] disabled:cursor-default disabled:opacity-100 disabled:hover:scale-100",
+        disabled && "bg-[#a39d88] text-[#34413f] shadow-none hover:bg-[#a39d88]",
         className,
       )}
     >
@@ -207,10 +208,10 @@ export function ChampAppellation({ value, onChange }: { value: string; onChange:
         value={value}
         maxLength={20}
         autoComplete="nickname"
-        placeholder="VOTRE APPELLATION"
-        aria-label="Votre appellation"
+        placeholder="VÔTRE PRÉNOMMÉE…"
+        aria-label="Vôtre prénommée"
         onChange={(e) => onChange(e.target.value.toUpperCase())}
-        className="h-14 border-[#8a6a3a]/60 bg-[#0b2231]/80 px-4 text-center font-display text-xl tracking-[0.12em] uppercase placeholder:text-foreground/30 md:text-2xl"
+        className="h-14 rounded-none border-0 border-b-2 border-foreground bg-transparent px-2 text-center font-display text-xl tracking-[0.12em] text-foreground uppercase shadow-none placeholder:text-foreground/35 focus-visible:border-foreground focus-visible:ring-0 md:text-2xl dark:bg-transparent"
       />
     </motion.div>
   )

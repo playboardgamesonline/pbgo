@@ -19,7 +19,7 @@ const typey = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: TITRE, template: "%s · Courtisans" },
+  title: { default: TITRE, template: "%s · Courtisans Online" },
   description: DESCRIPTION,
   applicationName: "Courtisans",
   keywords: [

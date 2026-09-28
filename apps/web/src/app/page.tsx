@@ -31,7 +31,7 @@ export default async function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(DONNEES_STRUCTUREES) }} />
-      <h1 className="sr-only">{TITRE} : jouez à Courtisans en ligne avec vos amis</h1>
+      <h1 className="sr-only">{TITRE} · Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis</h1>
       <Accueil catalogue={await getCatalogueClient()} />
     </>
   )

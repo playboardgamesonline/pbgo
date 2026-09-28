@@ -4,7 +4,7 @@ import { getCatalogueClient } from "@/sanity/catalogue-client"
 
 export async function generateMetadata({ params }: PageProps<"/partie/[code]">): Promise<Metadata> {
   const { code } = await params
-  return { title: `Banquet ${code.toUpperCase()}`, robots: { index: false, follow: true } }
+  return { title: `[${code.toUpperCase()}]`, robots: { index: false, follow: true } }
 }
 
 export default async function PartiePage({ params }: PageProps<"/partie/[code]">) {
