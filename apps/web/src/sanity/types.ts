@@ -200,6 +200,8 @@ export type Rules = {
   _updatedAt: string;
   _rev: string;
   videoId?: string;
+  videoTitle?: LocaleString;
+  goalTitle?: LocaleString;
   goalIntro?: LocaleText;
   goalFamilies?: LocaleText;
   goalMissions?: LocaleText;
@@ -217,28 +219,21 @@ export type Rules = {
     crop?: SanityImageCrop;
     _type: "image";
   };
+  flowTitle?: LocaleString;
+  flowIntro?: LocaleText;
+  flowMat?: LocaleText;
+  flowHand?: LocaleText;
+  flowMissions?: LocaleText;
+  flowStart?: LocaleText;
+  turnTitle?: LocaleString;
   turnIntro?: LocaleText;
   turnTable?: LocaleText;
   turnDomain?: LocaleText;
   turnOpponent?: LocaleText;
   turnEnd?: LocaleText;
+  rolesTitle?: LocaleString;
   rolesIntro?: LocaleText;
-  spyExample?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  spyCaption?: LocaleString;
-  assassinExample?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  assassinCaption?: LocaleString;
+  scoringTitle?: LocaleString;
   scoringIntro?: LocaleText;
   scoringReveal?: LocaleText;
   scoringStatus?: LocaleText;
@@ -336,6 +331,13 @@ export type Interface = {
     _type: "image";
   };
   banquetBottom?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  pictogramFrame?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
     hotspot?: SanityImageHotspot;
@@ -477,13 +479,14 @@ export type AllSanitySchemaTypes =
 
 // Source: ../web/src/sanity/queries.ts
 // Variable: CATALOGUE_QUERY
-// Query: {  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom },  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },  "rules": *[_id == "rules"][0],  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts, winnerPhrases },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
+// Query: {  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, pictogramFrame },  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },  "rules": *[_id == "rules"][0],  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts, winnerPhrases },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
 export type CATALOGUE_QUERY_RESULT = {
   interface:
     | {
         logo: null;
         banquetTop: null;
         banquetBottom: null;
+        pictogramFrame: null;
       }
     | {
         logo: {
@@ -501,6 +504,13 @@ export type CATALOGUE_QUERY_RESULT = {
           _type: "image";
         } | null;
         banquetBottom: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+        pictogramFrame: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
@@ -672,6 +682,13 @@ export type CATALOGUE_QUERY_RESULT = {
           crop?: SanityImageCrop;
           _type: "image";
         };
+        pictogramFrame?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
       }
     | {
         _id: "rules";
@@ -722,6 +739,8 @@ export type CATALOGUE_QUERY_RESULT = {
         _updatedAt: string;
         _rev: string;
         videoId?: string;
+        videoTitle?: LocaleString;
+        goalTitle?: LocaleString;
         goalIntro?: LocaleText;
         goalFamilies?: LocaleText;
         goalMissions?: LocaleText;
@@ -739,28 +758,21 @@ export type CATALOGUE_QUERY_RESULT = {
           crop?: SanityImageCrop;
           _type: "image";
         };
+        flowTitle?: LocaleString;
+        flowIntro?: LocaleText;
+        flowMat?: LocaleText;
+        flowHand?: LocaleText;
+        flowMissions?: LocaleText;
+        flowStart?: LocaleText;
+        turnTitle?: LocaleString;
         turnIntro?: LocaleText;
         turnTable?: LocaleText;
         turnDomain?: LocaleText;
         turnOpponent?: LocaleText;
         turnEnd?: LocaleText;
+        rolesTitle?: LocaleString;
         rolesIntro?: LocaleText;
-        spyExample?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        spyCaption?: LocaleString;
-        assassinExample?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        assassinCaption?: LocaleString;
+        scoringTitle?: LocaleString;
         scoringIntro?: LocaleText;
         scoringReveal?: LocaleText;
         scoringStatus?: LocaleText;
@@ -908,7 +920,7 @@ export type CATALOGUE_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom },\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },\n  "rules": *[_id == "rules"][0],\n  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts, winnerPhrases },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOGUE_QUERY_RESULT;
+    '{\n  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, pictogramFrame },\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },\n  "rules": *[_id == "rules"][0],\n  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts, winnerPhrases },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOGUE_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

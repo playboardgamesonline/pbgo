@@ -1,6 +1,6 @@
 "use client"
 
-import { LevaPanel, button, useControls } from "leva"
+import { Leva, LevaPanel, button, useControls } from "leva"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@/lib/utils"
 import { MAGASINS_DEBUG, ONGLETS_DEBUG, type OngletDebug, onglet } from "./onglets-debug"
@@ -105,11 +105,19 @@ export function PanneauDebug() {
           </button>
         ))}
       </div>
-      {ONGLETS_DEBUG.map((nom) => (
-        <div key={nom} className={cn(ongletActif !== nom && "hidden")}>
-          <LevaPanel store={MAGASINS_DEBUG[nom]} fill flat collapsed={false} titleBar={{ title: "Debug · Shift+D", filter: false }} />
+      <Leva hidden />
+      {actif && (
+        <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto rounded-b-md bg-[#181c20] [scrollbar-width:thin]">
+          <LevaPanel
+            key={ongletActif}
+            store={MAGASINS_DEBUG[ongletActif]}
+            fill
+            flat
+            collapsed={false}
+            titleBar={{ title: "Debug · Shift+D", filter: false }}
+          />
         </div>
-      ))}
+      )}
     </div>
   )
 }

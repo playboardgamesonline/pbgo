@@ -38,6 +38,7 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
         nombre: r.countPerFamily ?? reglesRoles[cle].nombre,
         texte: traduire(r.rule) || reglesRoles[cle].texte,
         letteringUrl: r.lettering ?? null,
+        pictoUrl: rolesMap[cle].pictoUrl,
       }
     }
 
@@ -83,6 +84,7 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
           ]),
         ) as VisuelsRegles,
         roles: reglesRoles,
+        cadrePicto: url(iface?.pictogramFrame, 240) ?? d.regles.cadrePicto,
       },
       phrasesVainqueur: traduire(texts?.winnerPhrases)?.length ? traduire(texts?.winnerPhrases)! : d.phrasesVainqueur,
       texteBoutonMissions: traduire(texts?.missionsButton)?.trim() || d.texteBoutonMissions,

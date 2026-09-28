@@ -1,25 +1,26 @@
 "use client"
 
-import { BookOpenIcon, CrownIcon, PlayIcon, ScrollTextIcon, SwordsIcon, TrophyIcon } from "lucide-react"
+import { BookOpenIcon, CrownIcon, HourglassIcon, PlayIcon, ScrollTextIcon, SwordsIcon, TrophyIcon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { type ContenuRegles, REGLES_PAR_DEFAUT } from "@/lib/catalogue"
+import { type ContenuRegles, REGLES_PAR_DEFAUT, type RoleRegles } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
 export const BOUTON_ICONE =
   "size-11 cursor-pointer rounded-full bg-transparent text-foreground transition-transform hover:scale-110 hover:bg-transparent hover:text-foreground active:scale-95 dark:hover:bg-transparent"
 
 const ONGLETS = [
-  { cle: "video", nom: "Vidéo", icone: PlayIcon },
-  { cle: "but", nom: "But du jeu", icone: CrownIcon },
-  { cle: "tour", nom: "Tour de jeu", icone: ScrollTextIcon },
-  { cle: "roles", nom: "Les rôles", icone: SwordsIcon },
-  { cle: "fin", nom: "Décompte", icone: TrophyIcon },
+  { cle: "but", titre: "goalTitle", icone: CrownIcon },
+  { cle: "deroulement", titre: "flowTitle", icone: HourglassIcon },
+  { cle: "tour", titre: "turnTitle", icone: ScrollTextIcon },
+  { cle: "roles", titre: "rolesTitle", icone: SwordsIcon },
+  { cle: "fin", titre: "scoringTitle", icone: TrophyIcon },
 ] as const
-type Onglet = (typeof ONGLETS)[number]["cle"]
+const VIDEO = { cle: "video", titre: "videoTitle", icone: PlayIcon } as const
+type Onglet = (typeof ONGLETS)[number]["cle"] | "video"
 
 function Etiquette({ type }: { type: "lumiere" | "disgrace" | "neutre" }) {
   const styles = {
@@ -51,11 +52,10 @@ function Image({ src, alt, className }: { src: string | null; alt: string; class
   return <img src={src} alt={alt} loading="lazy" className={cn("rounded-xl shadow-[0_10px_30px_rgb(14_57_64/25%)]", className)} />
 }
 
-function EnTete({ surtitre, titre, children }: { surtitre: string; titre: string; children?: React.ReactNode }) {
+function EnTete({ titre, children }: { titre: string; children?: React.ReactNode }) {
   return (
     <header className="mb-8 max-w-2xl">
-      <p className="text-xs font-semibold tracking-[0.25em] text-[#b8862b] uppercase">{surtitre}</p>
-      <h3 className="mt-1 font-display text-4xl text-[#0e3940]">{titre}</h3>
+      <h3 className="font-display text-4xl tracking-[0.04em] text-[#0e3940] uppercase">{titre}</h3>
       {children && <p className="mt-3 text-lg leading-relaxed text-[#1f2b2d]/80">{children}</p>}
     </header>
   )
@@ -76,23 +76,35 @@ function Carte({ numero, titre, sous, children }: { numero?: number; titre: stri
   )
 }
 
-function Role({
-  nom,
-  nombre,
-  cartes,
-  lettering,
-  children,
-}: {
-  nom: string
-  nombre: number
-  cartes: [string, string]
-  lettering: string | null
-  children: React.ReactNode
-}) {
+function Picto({ src, cadre }: { src: string | null; cadre: string }) {
   return (
-    <div className="flex gap-5 rounded-2xl bg-white/70 p-4 shadow-[0_6px_20px_rgb(14_57_64/10%)] ring-1 ring-[#0e3940]/10">
+    <div aria-hidden className="relative size-14 shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={cadre} alt="" className="absolute inset-0 size-full" />
+      {src && (
+        <span
+          className="absolute inset-[27%] bg-[#e7c46a]"
+          style={{
+            maskImage: `url("${src}")`,
+            WebkitMaskImage: `url("${src}")`,
+            maskSize: "contain",
+            WebkitMaskSize: "contain",
+            maskRepeat: "no-repeat",
+            WebkitMaskRepeat: "no-repeat",
+            maskPosition: "center",
+            WebkitMaskPosition: "center",
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function Role({ role, cadre, children }: { role: RoleRegles; cadre: string; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-5 py-2">
       <div aria-hidden className="relative h-28 w-24 shrink-0 self-center">
-        {cartes.map((src, i) => (
+        {role.cartes.map((src, i) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={src}
@@ -107,16 +119,19 @@ function Role({
         ))}
       </div>
       <div>
-        <div className="flex items-baseline gap-2">
-          {lettering ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={lettering} alt={nom} className="h-9 w-auto" />
-          ) : (
-            <p className="font-display text-xl text-[#0e3940]">{nom}</p>
-          )}
-          <span className="rounded-full bg-[#0e3940]/8 px-2 py-0.5 text-xs text-[#0e3940]/70">{nombre} par famille</span>
+        <div className="flex items-center gap-3">
+          <Picto src={role.pictoUrl} cadre={cadre} />
+          <div>
+            {role.letteringUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={role.letteringUrl} alt={role.nom} className="h-9 w-auto" />
+            ) : (
+              <p className="font-display text-xl text-[#0e3940]">{role.nom}</p>
+            )}
+            <span className="text-xs tracking-wider text-[#0e3940]/60 uppercase">{role.nombre} par famille</span>
+          </div>
         </div>
-        <p className="mt-1.5 leading-relaxed text-[#1f2b2d]/85">{children}</p>
+        <p className="mt-2 leading-relaxed text-[#1f2b2d]/85">{children}</p>
       </div>
     </div>
   )
@@ -131,7 +146,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
     case "video":
       return (
         <>
-          <EnTete surtitre="Découvrez" titre="Les règles en vidéo" />
+          <EnTete titre={t.videoTitle} />
           <div className="overflow-hidden rounded-2xl bg-black shadow-[0_16px_40px_rgb(14_57_64/30%)]">
             <iframe
               className="aspect-video w-full"
@@ -146,7 +161,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
     case "but":
       return (
         <>
-          <EnTete surtitre="Présentation" titre="But du jeu">
+          <EnTete titre={t.goalTitle}>
             <Riche texte={t.goalIntro} />
           </EnTete>
           <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
@@ -163,10 +178,35 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           </div>
         </>
       )
+    case "deroulement":
+      return (
+        <>
+          <EnTete titre={t.flowTitle}>
+            <Riche texte={t.flowIntro} />
+          </EnTete>
+          <div className="grid gap-5 lg:grid-cols-3">
+            <Carte numero={1} titre="Le tapis et la pioche">
+              <Riche texte={t.flowMat} />
+            </Carte>
+            <Carte numero={2} titre="Votre main">
+              <Riche texte={t.flowHand} />
+            </Carte>
+            <Carte numero={3} titre="Vos missions">
+              <Riche texte={t.flowMissions} />
+            </Carte>
+          </div>
+          <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
+            <CrownIcon className="size-6 shrink-0 text-[#e7c46a]" />
+            <p>
+              <Riche texte={t.flowStart} />
+            </p>
+          </div>
+        </>
+      )
     case "tour":
       return (
         <>
-          <EnTete surtitre="Déroulement" titre="Votre tour de jeu">
+          <EnTete titre={t.turnTitle}>
             <Riche texte={t.turnIntro} />
           </EnTete>
           <div className="grid gap-5 lg:grid-cols-3">
@@ -191,35 +231,22 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
     case "roles":
       return (
         <>
-          <EnTete surtitre="Pouvoirs" titre="Les rôles">
+          <EnTete titre={t.rolesTitle}>
             <Riche texte={t.rolesIntro} />
           </EnTete>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {ORDRE_ROLES.map((cle) => {
-              const r = regles.roles[cle]
-              return (
-                <Role key={cle} nom={r.nom} nombre={r.nombre} cartes={r.cartes} lettering={r.letteringUrl}>
-                  <Riche texte={r.texte} />
-                </Role>
-              )
-            })}
-          </div>
-          <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
-            <figure className="space-y-2">
-              <Image src={v.spyExample} alt="Un espion joué dans la colonne de la reine" className="w-full" />
-              <figcaption className="text-sm text-[#0e5a5f] italic">{t.spyCaption}</figcaption>
-            </figure>
-            <figure className="space-y-2">
-              <Image src={v.assassinExample} alt="Un assassin élimine une noble" className="mx-auto max-h-80" />
-              <figcaption className="text-center text-sm text-[#0e5a5f] italic">{t.assassinCaption}</figcaption>
-            </figure>
+          <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2">
+            {ORDRE_ROLES.map((cle) => (
+              <Role key={cle} role={regles.roles[cle]} cadre={regles.cadrePicto}>
+                <Riche texte={regles.roles[cle].texte} />
+              </Role>
+            ))}
           </div>
         </>
       )
     case "fin":
       return (
         <>
-          <EnTete surtitre="Fin de partie" titre="Le décompte">
+          <EnTete titre={t.scoringTitle}>
             <Riche texte={t.scoringIntro} />
           </EnTete>
           <div className="grid gap-8 lg:grid-cols-2">
@@ -247,8 +274,32 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
   }
 }
 
+function BoutonOnglet({ onglet, actif, nom, onClick }: { onglet: { icone: typeof PlayIcon }; actif: boolean; nom: string; onClick: () => void }) {
+  const Icone = onglet.icone
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left font-display text-[1.05rem] transition-colors",
+        actif ? "text-[#0e3940]" : "text-[#f3ecd6]/75 hover:text-[#f6e7b8]",
+      )}
+    >
+      {actif && (
+        <motion.span
+          layoutId="onglet-regles"
+          className="absolute inset-0 rounded-xl bg-[#f3ecd6]"
+          transition={{ type: "spring", stiffness: 400, damping: 34 }}
+        />
+      )}
+      <Icone className="relative size-5" strokeWidth={1.6} />
+      <span className="relative">{nom}</span>
+    </button>
+  )
+}
+
 export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: { className?: string; icone?: boolean; regles?: ContenuRegles }) {
-  const [onglet, setOnglet] = useState<Onglet>("video")
+  const [onglet, setOnglet] = useState<Onglet>("but")
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -271,29 +322,15 @@ export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: {
             <DialogDescription className="mt-1 text-sm text-[#f3ecd6]/60">2 à 5 joueurs · 30 minutes</DialogDescription>
           </div>
           <ul className="relative space-y-1">
-            {ONGLETS.map(({ cle, nom, icone: Icone }) => (
-              <li key={cle}>
-                <button
-                  type="button"
-                  onClick={() => setOnglet(cle)}
-                  className={cn(
-                    "relative flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left font-display text-[1.05rem] transition-colors",
-                    onglet === cle ? "text-[#0e3940]" : "text-[#f3ecd6]/75 hover:text-[#f6e7b8]",
-                  )}
-                >
-                  {onglet === cle && (
-                    <motion.span
-                      layoutId="onglet-regles"
-                      className="absolute inset-0 rounded-xl bg-[#f3ecd6]"
-                      transition={{ type: "spring", stiffness: 400, damping: 34 }}
-                    />
-                  )}
-                  <Icone className="relative size-5" strokeWidth={1.6} />
-                  <span className="relative">{nom}</span>
-                </button>
+            {ONGLETS.map((o) => (
+              <li key={o.cle}>
+                <BoutonOnglet onglet={o} actif={onglet === o.cle} nom={regles.textes[o.titre]} onClick={() => setOnglet(o.cle)} />
               </li>
             ))}
           </ul>
+          <div className="relative mt-auto border-t border-[#f3ecd6]/15 pt-4">
+            <BoutonOnglet onglet={VIDEO} actif={onglet === "video"} nom={regles.textes.videoTitle} onClick={() => setOnglet("video")} />
+          </div>
         </nav>
         <ScrollArea className="min-w-0 flex-1">
           <AnimatePresence mode="wait">

@@ -1,10 +1,23 @@
 export const TEXTES_REGLES_DEFAUT = {
   videoId: "ClROWcPTZHk",
+  videoTitle: "Les règles en vidéo",
+  goalTitle: "But du jeu",
+  flowTitle: "Déroulement de la partie",
+  turnTitle: "Tour de jeu",
+  rolesTitle: "Les rôles",
+  scoringTitle: "Décompte",
   goalIntro:
     "À chaque tour, vous jouez vos 3 cartes. L'une influence le statut d'une famille à la table de la reine, les deux autres font gagner ou perdre des points, chez vous et chez un adversaire. Terminez la partie avec le plus de points.",
   goalFamilies:
     "Papillon, crapaud, rossignol, lièvre, cerf et carpe : chacune finira {lumiere}, {disgrace} ou {neutre} selon ce qui se joue à la table de la reine.",
   goalMissions: "Une blanche et une bleue. Chaque mission réussie rapporte 3 points en fin de partie. Ne les dévoilez jamais.",
+  flowIntro:
+    "Une partie se joue dans le sens des aiguilles d'une montre. En commençant par le premier joueur, chacun effectue son tour complètement, puis on passe au joueur suivant. La partie se termine lorsque la pioche est vide et que plus aucun joueur n'a de cartes en main.",
+  flowMat:
+    "Le tapis est placé au centre de la table. Les cartes Courtisan sont mélangées, puis certaines sont écartées selon le nombre de joueurs : 30 à 2 joueurs, 18 à 3, 6 à 4, aucune à 5.",
+  flowHand: "Chaque joueur reçoit 3 cartes Courtisan, face cachée. Les cartes restantes forment la pioche.",
+  flowMissions: "Chaque joueur reçoit 2 missions, **une blanche et une bleue**, à garder secrètes. Vous pouvez les consulter à tout moment.",
+  flowStart: "Le premier joueur est tiré au sort. **Le banquet peut commencer !**",
   turnIntro: "Jouez les 3 cartes de votre main, face visible, **une dans chacune des 3 zones**, dans l'ordre de votre choix.",
   turnTable:
     "Posez la carte dans la colonne de sa famille, au-dessus ou au-dessous du tapis. Majorité au-dessus : {lumiere}. Majorité au-dessous : {disgrace}.",
@@ -12,8 +25,6 @@ export const TEXTES_REGLES_DEFAUT = {
   turnOpponent: "Même principe, mais pour lui : offrez-lui des familles en disgrâce, gardez la lumière pour vous.",
   turnEnd: "vous piochez automatiquement 3 nouvelles cartes. Si la pioche est vide, c'était votre dernier tour.",
   rolesIntro: "Certains courtisans ont un rôle, indiqué par une icône aux quatre coins de la carte.",
-  spyCaption: "L'espion rejoint la colonne de la reine sans révéler sa famille.",
-  assassinCaption: "Un assassin du rossignol, joué au-dessous de la table, élimine une noble du lièvre au-dessus.",
   scoringIntro: "La partie s'arrête quand la pioche est vide et que plus personne n'a de cartes en main.",
   scoringReveal: "Ceux de la table rejoignent la colonne de leur famille, sans changer de niveau.",
   scoringStatus: "Plus de cartes au-dessus : {lumiere}. Plus au-dessous : {disgrace}. Sinon : {neutre}. Les nobles comptent double.",
@@ -34,10 +45,10 @@ export const REGLES_ROLES_DEFAUT = {
 export const VISUELS_REGLES_DEFAUT = {
   missionsVisual: null as string | null,
   tableVisual: "/regles/table-exemple.webp" as string | null,
-  spyExample: "/regles/espion-exemple.webp" as string | null,
-  assassinExample: "/regles/assassin-exemple.webp" as string | null,
   scoringTable: "/regles/decompte-table.webp" as string | null,
   scoringDomain: "/regles/decompte-domaine.webp" as string | null,
 }
+
+export const CADRE_PICTO_DEFAUT = "/regles/cadre-picto.svg"
 
 export type VisuelsRegles = typeof VISUELS_REGLES_DEFAUT

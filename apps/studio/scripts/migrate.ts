@@ -12,6 +12,17 @@ type Image = { _type: "image"; asset: { _type: "reference"; _ref: string } }
 
 const COUNT_PER_FAMILY: Record<string, number> = { noble: 4, garde: 3, espion: 2, assassin: 2 }
 const LEGACY_TEXT: Record<string, string[]> = {
+  videoTitle: [],
+  goalTitle: [],
+  flowTitle: [],
+  turnTitle: [],
+  rolesTitle: [],
+  scoringTitle: [],
+  flowIntro: [],
+  flowMat: [],
+  flowHand: [],
+  flowMissions: [],
+  flowStart: [],
   goalIntro: ["butIntro"],
   goalFamilies: ["butFamilles"],
   goalMissions: ["butMissions"],
@@ -21,20 +32,16 @@ const LEGACY_TEXT: Record<string, string[]> = {
   turnOpponent: ["tourAdverse"],
   turnEnd: ["tourFin"],
   rolesIntro: [],
-  spyCaption: ["legendeEspion"],
-  assassinCaption: ["legendeAssassin"],
   scoringIntro: ["decompteIntro"],
   scoringReveal: ["decompteRevelation"],
   scoringStatus: ["decompteStatut"],
   scoringPoints: ["decomptePoints"],
   domainCaption: ["legendeDomaine"],
 }
-const CAPTIONS = new Set(["spyCaption", "assassinCaption", "domainCaption"])
+const CAPTIONS = new Set(["domainCaption", "videoTitle", "goalTitle", "flowTitle", "turnTitle", "rolesTitle", "scoringTitle"])
 const LEGACY_VISUAL: Record<string, { old: string[]; file?: string }> = {
   tableVisual: { old: ["visuelTable", "table"], file: "regles/table-exemple.webp" },
   missionsVisual: { old: ["visuelMissions", "missions"] },
-  spyExample: { old: ["exempleEspion"], file: "regles/espion-exemple.webp" },
-  assassinExample: { old: ["exempleAssassin"], file: "regles/assassin-exemple.webp" },
   scoringTable: { old: ["decompteTable"], file: "regles/decompte-table.webp" },
   scoringDomain: { old: ["decompteDomaine"], file: "regles/decompte-domaine.webp" },
 }
@@ -89,6 +96,7 @@ async function main() {
       logo: first(iface.logo, assets.logo, reglages.logo),
       banquetTop: first(iface.banquetTop, iface.banquetHaut, assets.banquetHaut),
       banquetBottom: first(iface.banquetBottom, iface.banquetBas, assets.banquetBas),
+      pictogramFrame: iface.pictogramFrame ?? (await upload("regles/cadre-picto.svg")),
     }) as { _id: string; _type: string },
   )
 

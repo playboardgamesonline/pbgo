@@ -1,4 +1,11 @@
-import { REGLES_ROLES_DEFAUT, TEXTES_REGLES_DEFAUT, type TextesRegles, VISUELS_REGLES_DEFAUT, type VisuelsRegles } from "./regles-defaut"
+import {
+  CADRE_PICTO_DEFAUT,
+  REGLES_ROLES_DEFAUT,
+  TEXTES_REGLES_DEFAUT,
+  type TextesRegles,
+  VISUELS_REGLES_DEFAUT,
+  type VisuelsRegles,
+} from "./regles-defaut"
 import { FAMILLES, type Famille, ROLES, type Role } from "@courtisans/engine"
 import { IMAGES_MISSIONS_PAR_DEFAUT } from "./missions-par-defaut"
 
@@ -35,7 +42,14 @@ export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
 
 const NOMBRE_PAR_FAMILLE: Record<Role, number> = { noble: 4, garde: 3, espion: 2, assassin: 2 }
 
-export type RoleRegles = { nom: string; nombre: number; texte: string; letteringUrl: string | null; cartes: [string, string] }
+export type RoleRegles = {
+  nom: string
+  nombre: number
+  texte: string
+  letteringUrl: string | null
+  pictoUrl: string | null
+  cartes: [string, string]
+}
 
 export const FAMILLES_VISUEL_ROLE: Record<Role, [Famille, Famille]> = {
   noble: ["papillon", "carpe"],
@@ -48,11 +62,13 @@ export type ContenuRegles = {
   textes: TextesRegles
   visuels: VisuelsRegles
   roles: Record<Role, RoleRegles>
+  cadrePicto: string
 }
 
 export const REGLES_PAR_DEFAUT: ContenuRegles = {
   textes: TEXTES_REGLES_DEFAUT,
   visuels: VISUELS_REGLES_DEFAUT,
+  cadrePicto: CADRE_PICTO_DEFAUT,
   roles: Object.fromEntries(
     ROLES.map((r) => [
       r,
@@ -62,6 +78,7 @@ export const REGLES_PAR_DEFAUT: ContenuRegles = {
         cartes: FAMILLES_VISUEL_ROLE[r].map((f) => `/cartes/${r.toUpperCase()}_${f.toUpperCase()}.webp`) as [string, string],
         texte: REGLES_ROLES_DEFAUT[r],
         letteringUrl: null,
+        pictoUrl: ROLES_PAR_DEFAUT[r].pictoUrl,
       },
     ]),
   ) as Record<Role, RoleRegles>,
