@@ -25,6 +25,8 @@ const LABELS: Record<Cle, [string, number?, number?, number?]> = {
   reflet: ["reflet", 0, 1, 0.01],
   mouvementReflet: ["mouvement reflet", 0, 1.5, 0.01],
   ombre: ["ombre des cartes", 0, 1, 0.01],
+  dureeVol: ["durée des vols (×)", 0.3, 3, 0.05],
+  hauteurVol: ["hauteur des vols (×)", 0, 3, 0.05],
 }
 
 export function ReglagesCartes() {
@@ -38,8 +40,8 @@ export function ReglagesCartes() {
     }),
   )
   useControls(
-    "Cartes · lueurs et effets",
-    { ...schema, ...boutonCopie("SCENE", "Cartes · lueurs et effets") } as never,
+    "Cartes · effets et animations",
+    { ...schema, ...boutonCopie("SCENE", "Cartes · effets et animations") } as never,
     { collapsed: true },
     onglet("SCENE"),
   )

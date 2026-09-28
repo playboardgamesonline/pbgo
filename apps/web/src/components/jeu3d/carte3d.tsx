@@ -195,6 +195,8 @@ export const REGLAGES_CARTE = {
   reflet: 0.5,
   mouvementReflet: 0.45,
   ombre: 1,
+  dureeVol: 1.35,
+  hauteurVol: 1,
 }
 
 type Props = {
@@ -283,11 +285,11 @@ export function Carte3D({
     const distance = g.position.distanceTo(cible.position)
     vol.current = {
       t: -delai,
-      duree: Math.min(1.6, Math.max(1.05, 0.95 + distance * 0.04)),
+      duree: Math.min(1.6, Math.max(1.05, 0.95 + distance * 0.04)) * REGLAGES_CARTE.dureeVol,
       p0: g.position.clone(),
       q0: g.quaternion.clone(),
       s0: g.scale.x,
-      elan: Math.min(5.5, 1.8 + distance * 0.3),
+      elan: Math.min(5.5, 1.8 + distance * 0.3) * REGLAGES_CARTE.hauteurVol,
       sens: Math.random() < 0.5 ? -1 : 1,
     }
   }

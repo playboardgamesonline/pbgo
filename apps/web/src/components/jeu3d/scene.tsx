@@ -94,11 +94,17 @@ function disposer(vue: VueJoueur, places: Map<string, Siege>, deplie: string | n
   return { map, rangs, zones }
 }
 
-const poseSousTable = (zone: ZoneDomaine): Pose => ({
-  position: new Vector3(zone.etiquette.x, -1.6, zone.etiquette.z),
-  quaternion: new Quaternion().setFromEuler(new Euler(0, zone.lacetEtiquette, 0)).multiply(FACE_BAS),
-  echelle: DOMAINE_ECHELLE * 0.8,
-})
+const poseSousTable = (zone: ZoneDomaine): Pose => {
+  const dehors = new Vector3(zone.centre.x, 0, zone.centre.z).normalize()
+  return {
+    position: zone.centre
+      .clone()
+      .addScaledVector(dehors, zone.profondeur / 2 + 1.2)
+      .setY(-1.6),
+    quaternion: new Quaternion().setFromEuler(new Euler(0, zone.lacetEtiquette, 0)).multiply(FACE_BAS),
+    echelle: DOMAINE_ECHELLE * 0.8,
+  }
+}
 
 const poseSiege = (zone: ZoneDomaine): Pose => ({
   position: new Vector3(zone.etiquette.x, 3.5, zone.etiquette.z),
@@ -843,6 +849,7 @@ function Monde({
       echelleSurvol: { value: 1.01, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
       dureeSurvol: { value: 0.05, min: 0.01, max: 0.5, step: 0.01, label: "durée anim. survol (s)" },
       dureeRetour: { value: 0.12, min: 0.01, max: 0.8, step: 0.01, label: "durée anim. retour (s)" },
+      dureeDefocus: { value: 0.4, min: 0.01, max: 1.5, step: 0.01, label: "durée anim. défocus (s)" },
       refletFocus: { value: 0.06, min: 0, max: 1, step: 0.01, label: "reflet lumineux focus" },
       distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "distance focus" },
       echelleFocus: { value: 1.4, min: 0.5, max: 3, step: 0.01, label: "échelle focus" },
@@ -852,6 +859,13 @@ function Monde({
     onglet("SCENE"),
   )
   const [survol, setSurvol] = useState<string | null>(null)
+  const [focusPrec, setFocusPrec] = useState(missionFocus)
+  const [retourFocus, setRetourFocus] = useState<string | null>(null)
+  if (focusPrec !== missionFocus) {
+    setFocusPrec(missionFocus)
+    if (focusPrec && !missionFocus) setRetourFocus(focusPrec)
+  }
+  if (retourFocus && survol === `mission:${retourFocus}`) setRetourFocus(null)
   const [survolJoueur, setSurvolJoueur] = useState<string | null>(null)
   useEffect(() => {
     if (survol) jouerSon("survol")
@@ -1050,7 +1064,9 @@ function Monde({
                   ? reglagesMissionsJeu.dureeSurvol
                   : intro || missionFocus
                     ? 0.24
-                    : reglagesMissionsJeu.dureeRetour
+                    : retourFocus === m.id
+                      ? reglagesMissionsJeu.dureeDefocus
+                      : reglagesMissionsJeu.dureeRetour
               }
               intensiteReflet={reglagesMissionsJeu.refletFocus}
               reflet={missionFocus === m.id}
