@@ -7,13 +7,12 @@ import { useRef, useState } from "react"
 import { Color, DoubleSide, Vector3, type Group, type MeshBasicMaterial, type Texture, TextureLoader } from "three"
 
 const OR = new Color("#f2c14e")
+const SOUS_TABLE = -1.8
 let couronne: Texture | null = null
 const textureCouronne = () => (couronne ??= new TextureLoader().load("/pictograms/PICTOGRAM_NOBLE.webp"))
 
 export function Couronne3D({ cible, taille = 1.3 }: { cible: Vector3 | null; taille?: number }) {
-  const visible = !!cible
-  const [derniere] = useState(() => new Vector3())
-  const etaitVisible = useRef(false)
+  const affichee = useRef<Vector3 | null>(null)
   const ref = useRef<Group>(null)
   const materiau = useRef<MeshBasicMaterial>(null)
   const [texture] = useState(textureCouronne)
@@ -21,20 +20,19 @@ export function Couronne3D({ cible, taille = 1.3 }: { cible: Vector3 | null; tai
     const g = ref.current
     if (!g) return
     const t = clock.elapsedTime
-    if (cible) derniere.copy(cible)
-    if (visible && !etaitVisible.current && g.scale.x < 0.01) {
-      g.position.set(derniere.x, -1.6, derniere.z)
-      g.scale.setScalar(taille)
+    const enPlace = !!cible && !!affichee.current && cible.distanceTo(affichee.current) < 0.05
+    if (!enPlace && g.position.y <= SOUS_TABLE + 0.2) {
+      affichee.current = cible ? cible.clone() : null
+      if (cible) g.position.set(cible.x, SOUS_TABLE, cible.z)
     }
-    etaitVisible.current = visible
-    const s = visible ? taille : 0.0001
-    easing.damp3(g.scale, [s, s, s], 0.25, dt)
-    easing.damp3(g.position, [derniere.x, 0.5 * s + 0.08 + Math.sin(t * 2) * 0.06, derniere.z], 0.45, dt)
+    const sortie = !!cible && !!affichee.current && cible.distanceTo(affichee.current) < 0.05
+    easing.damp(g.position, "y", sortie ? 0.5 * taille + 0.08 + Math.sin(t * 2) * 0.06 : SOUS_TABLE, sortie ? 0.35 : 0.18, dt)
+    g.scale.setScalar(taille)
     if (materiau.current) materiau.current.color.copy(OR).multiplyScalar(1 + 0.35 * Math.pow(0.5 + 0.5 * Math.sin(t * 3.4), 6))
-    g.visible = g.scale.x > 0.001
+    g.visible = g.position.y > SOUS_TABLE + 0.1
   })
   return (
-    <group ref={ref} scale={0.0001}>
+    <group ref={ref} position-y={SOUS_TABLE}>
       <Billboard lockX lockZ>
         <mesh raycast={() => null}>
           <planeGeometry args={[1, 160 / 145]} />

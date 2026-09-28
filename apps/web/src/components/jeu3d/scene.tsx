@@ -94,6 +94,12 @@ function disposer(vue: VueJoueur, places: Map<string, Siege>, deplie: string | n
   return { map, rangs, zones }
 }
 
+const poseSousTable = (zone: ZoneDomaine): Pose => ({
+  position: new Vector3(zone.etiquette.x, -1.6, zone.etiquette.z),
+  quaternion: new Quaternion().setFromEuler(new Euler(0, zone.lacetEtiquette, 0)).multiply(FACE_BAS),
+  echelle: DOMAINE_ECHELLE * 0.8,
+})
+
 const poseSiege = (zone: ZoneDomaine): Pose => ({
   position: new Vector3(zone.etiquette.x, 3.5, zone.etiquette.z),
   quaternion: new Quaternion().setFromEuler(new Euler(0, zone.lacetEtiquette, 0)).multiply(FACE_BAS),
@@ -706,7 +712,7 @@ function Monde({
                 id: `p-${precedente.journal.length + n}-${i}`,
                 carte: null,
                 depart: { ...poseDessusPioche(precedente.nombreCartesPioche - i), delai: 0.35 + i * 0.28 },
-                cible: poseSiege(zone),
+                cible: poseSousTable(zone),
               })
         }
       })
@@ -742,7 +748,7 @@ function Monde({
             if (carte) dist.set(carte.id, depart)
           } else {
             const zone = zones.get(j.id)
-            if (zone) ajouts.push({ id: `d-${j.id}-${r}`, carte: null, depart, cible: poseSiege(zone) })
+            if (zone) ajouts.push({ id: `d-${j.id}-${r}`, carte: null, depart, cible: poseSousTable(zone) })
           }
         })
       setDistribution(dist)
