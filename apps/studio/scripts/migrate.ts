@@ -127,7 +127,7 @@ async function main() {
   for (const [field, legacy] of Object.entries(LEGACY_TEXT)) {
     const defaut = TEXTES_REGLES_DEFAUT[field as keyof typeof TEXTES_REGLES_DEFAUT]
     const value = fr(first(rules[field], ...legacy.map((l) => rules[l])), defaut) as Doc
-    if (value.fr === ANCIENS_TEXTES_REGLES[field]) value.fr = defaut
+    if (ANCIENS_TEXTES_REGLES[field]?.includes(value.fr)) value.fr = defaut
     rulesDoc[field] = { ...value, _type: CAPTIONS.has(field) ? "localeString" : "localeText" }
   }
   tx.createOrReplace(clean(rulesDoc) as { _id: string; _type: string })
@@ -176,7 +176,7 @@ async function main() {
         rule: (() => {
           const defaut = REGLES_ROLES_DEFAUT[key as keyof typeof REGLES_ROLES_DEFAUT]
           const valeur = fr(first(r.rule, r.regle), defaut) as Doc | undefined
-          if (valeur && valeur.fr === ANCIENNES_REGLES_ROLES[key as string]) valeur.fr = defaut
+          if (valeur && ANCIENNES_REGLES_ROLES[key as string]?.includes(valeur.fr)) valeur.fr = defaut
           return valeur
         })(),
       }) as { _id: string; _type: string },

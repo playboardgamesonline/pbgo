@@ -222,7 +222,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.flowTitle}>
             <Riche texte={t.flowIntro} />
           </EnTete>
-          <div className="grid gap-x-8 gap-y-8 lg:grid-cols-3">
+          <div className="grid max-w-4xl gap-y-6">
             <Carte numero={1} titre="Le tapis et la pioche">
               <Riche texte={t.flowMat} />
             </Carte>
@@ -233,7 +233,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
               <Riche texte={t.flowMissions} />
             </Carte>
           </div>
-          <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
+          <div className="mt-6 flex max-w-4xl items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
             <CrownIcon className="size-6 shrink-0 text-[#e7c46a]" />
             <div>
               <Riche texte={t.flowStart} />
@@ -247,7 +247,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.turnTitle}>
             <Riche texte={t.turnIntro} />
           </EnTete>
-          <div className="grid gap-x-8 gap-y-8 lg:grid-cols-3">
+          <div className="grid max-w-4xl gap-y-6">
             <Carte numero={1} titre="À la table de la reine" sous="autour du tapis">
               <Riche texte={t.turnTable} />
             </Carte>
@@ -258,7 +258,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
               <Riche texte={t.turnOpponent} />
             </Carte>
           </div>
-          <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
+          <div className="mt-6 flex max-w-4xl items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
             <ScrollTextIcon className="size-6 shrink-0 text-[#e7c46a]" />
             <div>
               <strong className="font-display text-[#f6e7b8]">Fin du tour</strong> — <Riche texte={t.turnEnd} />
@@ -272,7 +272,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.rolesTitle}>
             <Riche texte={t.rolesIntro} />
           </EnTete>
-          <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2">
+          <div className="grid max-w-4xl gap-y-6">
             {ORDRE_ROLES.map((cle) => (
               <Role key={cle} role={regles.roles[cle]} cadre={regles.cadrePicto}>
                 <Riche texte={regles.roles[cle].texte} />
