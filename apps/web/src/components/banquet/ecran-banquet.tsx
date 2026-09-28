@@ -70,7 +70,7 @@ export function EcranBanquet({
           initial={{ opacity: 0, y: -20, rotate: -2 }}
           animate={{ opacity: 1, y: 0, rotate: 0 }}
           transition={{ type: "spring", stiffness: 120, damping: 14 }}
-          className="mt-[5vh] w-[min(24rem,70vw,34vh)] shrink-0"
+          className="mt-[4vh] w-[min(23rem,68vw,28vh)] shrink-0"
         >
           <Link href="/" aria-label="Accueil">
             <Logo src={logoUrl} />
@@ -201,7 +201,7 @@ export function ChampAppellation({ value, onChange }: { value: string; onChange:
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
-      className="mt-[4.5vh] w-full max-w-md shrink-0 px-4"
+      className="mt-[4vh] w-full max-w-md shrink-0 px-4"
     >
       <Input
         id="pseudo"
@@ -211,8 +211,22 @@ export function ChampAppellation({ value, onChange }: { value: string; onChange:
         placeholder="VÔTRE PRÉNOMMÉE…"
         aria-label="Vôtre prénommée"
         onChange={(e) => onChange(e.target.value.toUpperCase())}
-        className="h-14 rounded-none border-0 border-b-2 border-foreground bg-transparent px-2 text-center font-display text-xl tracking-[0.12em] text-foreground uppercase shadow-none placeholder:text-foreground/35 focus-visible:border-foreground focus-visible:ring-0 md:text-2xl dark:bg-transparent"
+        className="h-14 rounded-none border-0 border-b-2 border-foreground/30 bg-transparent px-2 text-center font-display text-xl tracking-[0.12em] text-foreground uppercase shadow-none placeholder:text-foreground/35 focus-visible:border-foreground focus-visible:ring-0 md:text-2xl dark:bg-transparent"
       />
+    </motion.div>
+  )
+}
+
+export function Introduction({ titre, children }: { titre: string; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.2 }}
+      className="mt-[2vh] max-w-3xl shrink-0 space-y-2 px-4 text-center [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
+    >
+      <h2 className="font-display text-2xl tracking-[0.08em] whitespace-nowrap text-foreground uppercase md:text-[1.7rem]">{titre}</h2>
+      <div className="mx-auto max-w-2xl space-y-1.5 text-[0.95rem] leading-relaxed text-balance text-foreground/75 italic md:text-base">{children}</div>
     </motion.div>
   )
 }

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
-import { BoutonCour, ChampAppellation, ChampCode, Description, decorBanquet, EcranBanquet } from "@/components/banquet/ecran-banquet"
+import { BoutonCour, ChampAppellation, ChampCode, decorBanquet, EcranBanquet, Introduction } from "@/components/banquet/ecran-banquet"
 import { api, lienPartie } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
 import { useProfil } from "@/lib/profil"
@@ -63,10 +63,16 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
       bouton={<BoutonCour occupe={occupe}>Courtiser au banquet</BoutonCour>}
       bas={<ChampCode value={code} onChange={setCode} />}
     >
-      <Description>
-        Ce soir a lieu le banquet de la reine. Un évènement majeur où les familles du royaume veulent se montrer à leur avantage. Les manœuvres vont
-        bon train et tous les coups sont permis pour placer son favori sur le devant de la scène.
-      </Description>
+      <Introduction titre="Bienvenue au banquet de la reine !">
+        <p>
+          Ce soir a lieu le banquet de la reine. Un évènement majeur où les familles du royaume veulent se montrer à leur avantage. Les manœuvres vont
+          bon train et tous les coups sont permis pour placer son favori sur le devant de la scène.
+        </p>
+        <p>
+          À chaque tour, vous jouez 3 cartes : une au banquet pour influencer le statut d&apos;une famille, une chez vous et une chez un adversaire.
+          En fin de partie, c&apos;est le rapport de force au banquet qui détermine quelles familles vous rapportent ou vous font perdre des points.
+        </p>
+      </Introduction>
       <ChampAppellation value={profil.pseudo} onChange={(pseudo) => setProfil({ pseudo })} />
     </EcranBanquet>
   )
