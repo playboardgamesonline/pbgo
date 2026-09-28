@@ -70,7 +70,7 @@ export function BoutonSon() {
           <motion.path
             d={ONDE}
             stroke="currentColor"
-            strokeWidth={2}
+            strokeWidth={1.5}
             strokeLinecap="round"
             animate={actif ? { x: [0, -28] } : { x: 0 }}
             transition={actif ? { duration: 1.4, repeat: Infinity, ease: "linear" } : { duration: 0.3 }}

@@ -3,7 +3,7 @@
 import { Leva, LevaPanel, button, useControls } from "leva"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@/lib/utils"
-import { MAGASINS_DEBUG, ONGLETS_DEBUG, type OngletDebug, onglet } from "./onglets-debug"
+import { boutonCopie, MAGASINS_DEBUG, ONGLETS_DEBUG, type OngletDebug, onglet } from "./onglets-debug"
 import { changerMusique, musiqueActuelle, type NomMusique, reglerVolumes, type Volumes, VOLUMES_DEFAUT, volumesActuels } from "@/lib/son"
 
 const CLE = "courtisans:debug"
@@ -73,7 +73,7 @@ export function PanneauDebug() {
     },
     onglet("AUDIO"),
   )
-  useControls("Son", { "Réinitialiser le son": button(() => reglerSon(VOLUMES_DEFAUT)) }, onglet("AUDIO"))
+  useControls("Son", { "Réinitialiser le son": button(() => reglerSon(VOLUMES_DEFAUT)), ...boutonCopie("AUDIO", "Son") }, onglet("AUDIO"))
   const actif = useSyncExternalStore(
     (f) => {
       abonnes.add(f)
@@ -92,7 +92,7 @@ export function PanneauDebug() {
   }, [])
 
   return (
-    <div className={cn("absolute top-24 left-4 z-40 w-80", !actif && "hidden")}>
+    <div className={cn("absolute top-44 left-4 z-40 w-80", !actif && "hidden")}>
       <div className="flex gap-px overflow-hidden rounded-t-md bg-[#292d39] font-mono text-[10px] tracking-wider">
         {ONGLETS_DEBUG.map((nom) => (
           <button

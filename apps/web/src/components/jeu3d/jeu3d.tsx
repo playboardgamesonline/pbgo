@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { button, useControls } from "leva"
-import { onglet } from "./onglets-debug"
+import { boutonCopie, onglet } from "./onglets-debug"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
@@ -92,6 +92,7 @@ export function Jeu3D({
       pasDistribution: { value: 0.17, min: 0.05, max: 0.6, step: 0.01, label: "pas distribution (s)" },
       attenteBouton: { value: 1.9, min: 0, max: 5, step: 0.1, label: "délai bouton (s)" },
       dureeAnnonce: { value: 2.8, min: 1, max: 6, step: 0.1, label: "durée annonce (s)" },
+      ...boutonCopie("TRANSITION", "Ouverture"),
     }),
     onglet("TRANSITION"),
   )
@@ -108,7 +109,18 @@ export function Jeu3D({
     onglet("TRANSITION"),
     [catalogue.texteDebutBanquet],
   )
+  useControls(
+    "Phases",
+    {
+      "START · nouvelle partie": button(() => commandeDebug("debut")),
+      "MISSIONS LUES · tous": button(() => commandeDebug("missions")),
+      "TOUR SUIVANT · joue 3 cartes": button(() => commandeDebug("tour")),
+      "END · jouer jusqu'à la fin": button(() => commandeDebug("fin")),
+    },
+    [partie.code],
+  )
   const [pret, setPret] = useState(false)
+  const [basMissions, setBasMissions] = useState(0)
   const scenePrete = useCallback(() => setPret(true), [])
   useEffect(() => {
     if (!pret) return
@@ -136,6 +148,13 @@ export function Jeu3D({
   const monTour = vue.phase === "jeu" && !!moiId && vue.joueurActifId === moiId
   const selection = selectionBrute && vue.moi?.main.some((c) => c.id === selectionBrute.id) && monTour ? selectionBrute : null
   useSonsJeu(vue, fin, selection?.id ?? null, missionFocus)
+
+  function commandeDebug(commande: "debut" | "missions" | "tour" | "fin") {
+    api
+      .debug(partie.code, commande)
+      .then(onMaj)
+      .catch((e: Error) => toast.error(e.message))
+  }
 
   function finirIntro() {
     setBoutonMissions(false)
@@ -200,6 +219,7 @@ export function Jeu3D({
             <Scene3D
               etape={etape}
               onPret={scenePrete}
+              onBasMissions={setBasMissions}
               reglages={reglagesOuverture}
               missionFocus={missionFocus}
               fin={fin}
@@ -220,11 +240,11 @@ export function Jeu3D({
             }}
           />
           <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
-            <div className="pointer-events-auto flex items-center gap-4">
-              <button type="button" className="mt-1 w-28 transition-transform hover:scale-105 sm:w-36" title="Quitter la partie" onClick={onQuitter}>
+            <div className="pointer-events-auto flex flex-col items-center gap-1">
+              <button type="button" className="w-44 transition-transform hover:scale-105 sm:w-52" title="Quitter la partie" onClick={onQuitter}>
                 <Logo src={catalogue.logoUrl} />
               </button>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center justify-center gap-1">
                 <BoutonSon />
                 <ReglesButton icone regles={catalogue.regles} />
               </div>
@@ -237,7 +257,8 @@ export function Jeu3D({
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 160, damping: 20 }}
-              className="absolute inset-x-0 bottom-[7%] z-20 flex justify-center"
+              className="absolute inset-x-0 z-20 flex justify-center"
+              style={{ top: basMissions + 18 }}
             >
               <BoutonCour onClick={finirIntro} className="w-auto max-w-none px-10">
                 {catalogue.texteBoutonMissions}

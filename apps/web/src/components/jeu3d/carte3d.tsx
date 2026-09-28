@@ -188,6 +188,8 @@ type Props = {
   onClick?: (e: ThreeEvent<MouseEvent>) => void
   onSurvol?: (survol: boolean) => void
   reflet?: boolean
+  auDessus?: boolean
+  onArrivee?: () => void
 }
 
 const cibleTmp = new Vector3()
@@ -212,7 +214,21 @@ function bezier(out: Vector3, a: Vector3, b: Vector3, c: Vector3, d: Vector3, t:
     .addScaledVector(d, t * t * t)
 }
 
-export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, vitesse = 0.16, onClick, onSurvol, reflet }: Props) {
+export function Carte3D({
+  cible,
+  depart,
+  recto,
+  verso,
+  largeur,
+  hauteur,
+  lueur,
+  vitesse = 0.16,
+  onClick,
+  onSurvol,
+  reflet,
+  auDessus,
+  onArrivee,
+}: Props) {
   const ref = useRef<Group>(null)
   const epaisseur = largeur * EPAISSEUR_RELATIVE
   const geo = useMemo(() => geometrieCarte(largeur, hauteur), [largeur, hauteur])
@@ -306,7 +322,10 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
         bezier(g.position, v.p0, p1, p2, cible.position, e)
         g.quaternion.slerpQuaternions(v.q0, cible.quaternion, e).premultiply(qTmp.setFromAxisAngle(HAUT, Math.sin(Math.PI * e) * 0.45 * v.sens))
         g.scale.setScalar((v.s0 + (cible.echelle - v.s0) * e) * (1 + Math.sin(Math.PI * u) * 0.14))
-        if (u >= 1) vol.current = null
+        if (u >= 1) {
+          vol.current = null
+          onArrivee?.()
+        }
       }
     } else {
       cibleTmp.copy(cible.position)
@@ -323,6 +342,7 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
   return (
     <group
       ref={ref}
+      renderOrder={auDessus ? 20 : 0}
       onClick={onClick}
       onPointerOver={(e) => {
         e.stopPropagation()
@@ -339,17 +359,17 @@ export function Carte3D({ cible, depart, recto, verso, largeur, hauteur, lueur, 
         <meshBasicMaterial map={ombre} transparent depthWrite={false} />
       </mesh>
       <mesh geometry={geo} position-z={epaisseur / 2 + 0.001}>
-        <meshBasicMaterial map={recto} toneMapped={false} />
+        <meshBasicMaterial map={recto} transparent={auDessus} toneMapped={false} />
       </mesh>
       <mesh geometry={tranche} position-z={-epaisseur / 2}>
         <meshBasicMaterial attach="material-0" visible={false} />
-        <meshBasicMaterial attach="material-1" color="#d9cba6" toneMapped={false} />
+        <meshBasicMaterial attach="material-1" color="#d9cba6" transparent={auDessus} toneMapped={false} />
       </mesh>
       <mesh ref={refletRef} geometry={geo} position-z={epaisseur / 2 + 0.003} raycast={() => null} visible={false}>
         <meshBasicMaterial map={texReflet} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
       <mesh geometry={geo} rotation-y={Math.PI} position-z={-epaisseur / 2 - 0.001}>
-        <meshBasicMaterial map={verso} toneMapped={false} />
+        <meshBasicMaterial map={verso} transparent={auDessus} toneMapped={false} />
       </mesh>
       {lueur && lueur !== "selection" && (
         <mesh position-z={-epaisseur / 2 - 0.006} raycast={() => null}>

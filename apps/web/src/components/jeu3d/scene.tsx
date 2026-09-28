@@ -28,7 +28,7 @@ import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
 import { Compteurs, Projecteur, ResolutionFamilles, useCentresGagnants } from "./fin3d"
 import { textureMotif } from "./motifs"
-import { onglet } from "./onglets-debug"
+import { boutonCopie, onglet } from "./onglets-debug"
 import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
@@ -230,6 +230,7 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
       fusion: { value: 3, options: MODES_FUSION, label: "mode de fusion" },
       force: { value: 0.85, min: 0, max: 1, step: 0.01, label: "force texture" },
       echelle: { value: 0.5, min: 0.1, max: 6, step: 0.05, label: "tuiles / unité" },
+      ...boutonCopie("SCENE", "Tapis"),
     },
     onglet("SCENE"),
   )
@@ -329,7 +330,7 @@ function Pioche({ nombre }: { nombre: number }) {
   )
 }
 
-function Voile({ actif, opacite }: { actif: boolean; opacite: number }) {
+function Voile({ actif, opacite, fondu = 0.2 }: { actif: boolean; opacite: number; fondu?: number }) {
   const ref = useRef<Mesh>(null)
   const { camera } = useThree()
   useFrame((_, dt) => {
@@ -337,7 +338,7 @@ function Voile({ actif, opacite }: { actif: boolean; opacite: number }) {
     ref.current.position.copy(camera.localToWorld(new Vector3(0, 0, -5)))
     ref.current.quaternion.copy(camera.quaternion)
     const m = ref.current.material as MeshBasicMaterial
-    easing.damp(m, "opacity", actif ? opacite : 0, 0.2, dt)
+    easing.damp(m, "opacity", actif ? opacite : 0, actif ? fondu : 0.2, dt)
     ref.current.visible = m.opacity > 0.01
   })
   return (
@@ -449,7 +450,7 @@ function Cible({ colonne, niveau, onClick }: { colonne: Colonne_; niveau: "haut"
 
 function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFin: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onFin, 2200 + (item.depart.delai ?? 0) * 1000)
+    const t = setTimeout(onFin, 3000 + (item.depart.delai ?? 0) * 1000)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -462,6 +463,7 @@ function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFi
       largeur={CARTE_L}
       hauteur={CARTE_H}
       vitesse={0.12}
+      onArrivee={onFin}
     />
   )
 }
@@ -470,6 +472,9 @@ const D_MAIN = 6
 const ENCRE = { couleur: "rgba(4,32,36,0.45)" }
 const ESPACEMENT = "18px"
 const QUAT_TMP = new Quaternion()
+const QUAT_GROUPE = new Quaternion()
+const QUAT_LOCAL = new Quaternion()
+const VEC_TMP = new Vector3()
 const EULER_TMP = new Euler()
 
 export type EtapeOuverture = "tapis" | "distribution" | "missions" | null
@@ -480,6 +485,7 @@ function Monde({
   missionFocus,
   onMission,
   onPret,
+  onBasMissions,
   fin,
   reglages,
 }: {
@@ -487,6 +493,7 @@ function Monde({
   missionFocus: string | null
   onMission: (id: string) => void
   onPret: () => void
+  onBasMissions?: (px: number) => void
   fin: EtatFin | null
   reglages: ReglagesOuverture
 }) {
@@ -615,7 +622,30 @@ function Monde({
   const mainVisible = etape !== "tapis"
   const missionsVisibles = etape === "missions" || etape === null
 
-  const { camera } = useThree()
+  const { camera, size } = useThree()
+  const dernierBas = useRef(-1)
+  const reglagesMissions = useControls(
+    "Missions (début de partie)",
+    {
+      distance: { value: 4.4, min: 2, max: 10, step: 0.05 },
+      x: { value: 0, min: -3, max: 3, step: 0.01, label: "position x" },
+      y: { value: 0.32, min: -3, max: 3, step: 0.01, label: "position y" },
+      echelle: { value: 1.3, min: 0.5, max: 2.5, step: 0.01, label: "échelle" },
+      ecart: { value: 0.55, min: -1, max: 3, step: 0.01, label: "écart" },
+      rotationX: { value: -0.08, min: -1, max: 1, step: 0.01, label: "rotation x groupe" },
+      rotationY: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation y groupe" },
+      rotationZ: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation z groupe" },
+      angleY: { value: 0.38, min: -1, max: 1, step: 0.01, label: "angle y cartes" },
+      angleZ: { value: 0.05, min: -1, max: 1, step: 0.01, label: "angle z cartes" },
+      recul: { value: 0.12, min: 0, max: 1, step: 0.01, label: "recul extérieur" },
+      souris: { value: 0.25, min: 0, max: 1, step: 0.01, label: "inclinaison souris" },
+      voile: { value: 0.4, min: 0, max: 1, step: 0.01, label: "opacité overlay" },
+      voileFocus: { value: 0.65, min: 0, max: 1, step: 0.01, label: "opacité overlay focus" },
+      fonduVoile: { value: 0.6, min: 0.05, max: 2, step: 0.05, label: "fondu overlay" },
+      ...boutonCopie("SCENE", "Missions (début de partie)"),
+    },
+    onglet("SCENE"),
+  )
   const [survol, setSurvol] = useState<string | null>(null)
   const [survolJoueur, setSurvolJoueur] = useState<string | null>(null)
   useEffect(() => {
@@ -666,17 +696,31 @@ function Monde({
     const mH = (mL * MISSION_H) / MISSION_L
     missions.forEach((m, i) => {
       const p = poseCamera(`mission:${m.id}`)
-      if (intro || missionFocus === m.id) {
-        const d = intro ? 4.4 : 3.6
-        const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
-        const agrandi = intro ? 1.3 : 1
-        const x = intro ? (i - 0.5) * (MISSION_L + 0.55) * k * agrandi : 0
+      if (intro) {
+        const r = reglagesMissions
+        const k = (r.distance / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
         const sens = i === 0 ? 1 : -1
-        p.position.copy(camera.localToWorld(new Vector3(x, intro ? 0.32 * k : -0.04 * k, intro ? -d - Math.abs(x) * 0.12 : -d)))
-        p.quaternion.copy(camera.quaternion)
-        if (intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-0.08 - pointer.y * 0.22, sens * 0.38 + pointer.x * 0.3, sens * -0.05)))
-        else p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
-        p.echelle = intro ? k * agrandi : 1.3 * k
+        const souris = QUAT_TMP.setFromEuler(EULER_TMP.set(r.rotationX - pointer.y * r.souris, r.rotationY + pointer.x * r.souris, r.rotationZ))
+        const groupe = QUAT_GROUPE.copy(camera.quaternion).multiply(souris)
+        const centre = camera.localToWorld(VEC_TMP.set(r.x * k, r.y * k, -r.distance))
+        const x = (i - 0.5) * (MISSION_L + r.ecart) * k * r.echelle
+        p.position.copy(centre).add(new Vector3(x, 0, -Math.abs(x) * r.recul).applyQuaternion(groupe))
+        p.quaternion.copy(groupe).multiply(QUAT_LOCAL.setFromEuler(EULER_TMP.set(0, sens * r.angleY, -sens * r.angleZ)))
+        p.echelle = k * r.echelle
+        if (i === 0 && onBasMissions) {
+          const bas = camera.localToWorld(VEC_TMP.set(r.x * k, r.y * k - (MISSION_H / 2) * k * r.echelle, -r.distance)).project(camera)
+          const px = Math.round(((1 - bas.y) / 2) * size.height)
+          if (Math.abs(px - dernierBas.current) > 2) {
+            dernierBas.current = px
+            onBasMissions(px)
+          }
+        }
+      } else if (missionFocus === m.id) {
+        const d = 3.6
+        const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
+        p.position.copy(camera.localToWorld(new Vector3(0, -0.04 * k, -d)))
+        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
+        p.echelle = 1.3 * k
       } else {
         const survolee = survol === `mission:${m.id}`
         const machoire = i === 0 ? 0.28 : -0.05
@@ -786,6 +830,7 @@ function Monde({
             verso={tex.dosMission(m)}
             largeur={MISSION_L}
             hauteur={MISSION_H}
+            auDessus
             vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
             reflet={missionFocus === m.id}
             lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
@@ -834,7 +879,7 @@ function Monde({
           })}
         </>
       )}
-      <Voile actif={discret} opacite={missionFocus ? 0.8 : 0.6} />
+      <Voile actif={discret} opacite={missionFocus ? reglagesMissions.voileFocus : reglagesMissions.voile} fondu={reglagesMissions.fonduVoile} />
 
       {transitoires.map((t) => (
         <Ephemere key={t.id} item={t} tex={tex} onFin={() => setTransitoires((l) => l.filter((x) => x.id !== t.id))} />
@@ -900,6 +945,7 @@ export default function Scene3D(props: {
   onMission: (id: string) => void
   onVide: () => void
   onPret: () => void
+  onBasMissions?: (px: number) => void
   fin: EtatFin | null
   reglages: ReglagesOuverture
 }) {
@@ -911,6 +957,7 @@ export default function Scene3D(props: {
           missionFocus={props.missionFocus}
           onMission={props.onMission}
           onPret={props.onPret}
+          onBasMissions={props.onBasMissions}
           fin={props.fin}
           reglages={props.reglages}
         />

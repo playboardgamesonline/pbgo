@@ -1,6 +1,6 @@
 "use client"
 
-import { onglet } from "./onglets-debug"
+import { boutonCopie, onglet } from "./onglets-debug"
 import { useFrame } from "@react-three/fiber"
 import { useControls } from "leva"
 import { easing } from "maath"
@@ -160,6 +160,7 @@ export function ReglagesAura() {
         onChange: (v: number) => (REGLAGES_AURA.taille = v),
       },
       vitesse: { value: REGLAGES_AURA.vitesse, min: 0, max: 3, step: 0.05, onChange: (v: number) => (REGLAGES_AURA.vitesse = v) },
+      ...boutonCopie("SCENE", "Auras"),
     },
     onglet("SCENE"),
   )

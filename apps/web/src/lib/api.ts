@@ -13,6 +13,7 @@ const MESSAGES: Record<string, string> = {
   ZONE_DEJA_JOUEE: "Vous avez déjà joué une carte dans cette zone.",
   ASSASSINAT_INVALIDE: "Cette carte ne peut pas être éliminée.",
   CONFLIT: "Quelqu'un a joué en même temps, réessayez.",
+  DEBUG_DESACTIVE: "Le debug est désactivé sur ce serveur (DEBUG_PARTIES=1).",
 }
 
 export class ApiClientError extends Error {
@@ -38,6 +39,7 @@ export const api = {
   lancer: (code: string) => post(`/api/parties/${code}/lancer`),
   action: (code: string, action: unknown) => post(`/api/parties/${code}/action`, action),
   rejouer: (code: string) => post(`/api/parties/${code}/rejouer`),
+  debug: (code: string, commande: "debut" | "missions" | "tour" | "fin") => post(`/api/parties/${code}/debug`, { commande }),
 }
 
 export const lienPartie = (code: string) => `${window.location.origin}/partie/${code}`
