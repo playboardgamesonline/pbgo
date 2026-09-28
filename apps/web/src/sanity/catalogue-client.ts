@@ -1,6 +1,7 @@
 import "server-only"
 import type { Famille, Role } from "@courtisans/engine"
-import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, type ImagesRegles } from "@/lib/catalogue"
+import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, type RoleRegles } from "@/lib/catalogue"
+import { TEXTES_REGLES_DEFAUT, type TextesRegles, VISUELS_REGLES_DEFAUT, type VisuelsRegles } from "@/lib/regles-defaut"
 import { getCatalogue } from "./catalogue"
 import { urlFor } from "./image"
 
@@ -9,7 +10,7 @@ const url = (source: Source | null | undefined, width: number) => (source ? urlF
 
 export async function getCatalogueClient(): Promise<CatalogueClient> {
   try {
-    const { assets, board, rules, textes, familles, roles, courtisans, missions } = await getCatalogue()
+    const { interface: iface, game, rules, textes, familles, roles, courtisans, missions } = await getCatalogue()
     const d = CATALOGUE_PAR_DEFAUT
 
     const famillesMap = { ...d.familles }
@@ -24,10 +25,16 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       }
     }
     const rolesMap = { ...d.roles }
+    const reglesRoles: Record<Role, RoleRegles> = { ...d.regles.roles }
     for (const r of roles) {
       const cle = r.cle as Role | undefined
       if (!cle || !rolesMap[cle]) continue
       rolesMap[cle] = { ...rolesMap[cle], nom: r.nom ?? rolesMap[cle].nom, pictoUrl: url(r.picto, 128) ?? rolesMap[cle].pictoUrl }
+      reglesRoles[cle] = {
+        texte: r.regle || reglesRoles[cle].texte,
+        visuelUrl: url(r.visuel, 480) ?? reglesRoles[cle].visuelUrl,
+        letteringUrl: r.lettering ?? null,
+      }
     }
 
     const cartes: Record<string, string> = { ...d.cartes }
@@ -42,21 +49,33 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
     }
 
     return {
-      logoUrl: url(assets?.logo, 1000) ?? d.logoUrl,
+      logoUrl: url(iface?.logo, 1000) ?? d.logoUrl,
       chateaux: d.chateaux,
       familles: famillesMap,
       roles: rolesMap,
       cartes,
       missions: missionsMap,
-      tapisUrl: url(board?.tapis, 2000) ?? d.tapisUrl,
-      dosCourtisanUrl: url(assets?.dosCourtisan, 360) ?? d.dosCourtisanUrl,
-      dosMissionBlancheUrl: url(assets?.dosMissionBlanche, 520) ?? d.dosMissionBlancheUrl,
-      dosMissionBleueUrl: url(assets?.dosMissionBleue, 520) ?? d.dosMissionBleueUrl,
-      banquetHautUrl: url(assets?.banquetHaut, 3000) ?? d.banquetHautUrl,
-      banquetBasUrl: url(assets?.banquetBas, 3000) ?? d.banquetBasUrl,
-      regles: Object.fromEntries(
-        Object.entries(d.regles).map(([cle, defaut]) => [cle, url(rules?.[cle as keyof NonNullable<typeof rules>], 1400) ?? defaut]),
-      ) as ImagesRegles,
+      tapisUrl: url(game?.tapis, 2000) ?? d.tapisUrl,
+      dosCourtisanUrl: url(game?.dosCourtisan, 360) ?? d.dosCourtisanUrl,
+      dosMissionBlancheUrl: url(game?.dosMissionBlanche, 520) ?? d.dosMissionBlancheUrl,
+      dosMissionBleueUrl: url(game?.dosMissionBleue, 520) ?? d.dosMissionBleueUrl,
+      banquetHautUrl: url(iface?.banquetHaut, 3000) ?? d.banquetHautUrl,
+      banquetBasUrl: url(iface?.banquetBas, 3000) ?? d.banquetBasUrl,
+      regles: {
+        textes: Object.fromEntries(
+          Object.entries(TEXTES_REGLES_DEFAUT).map(([cle, defaut]) => {
+            const valeur = rules?.[cle as keyof typeof rules]
+            return [cle, typeof valeur === "string" && valeur.trim() ? valeur : defaut]
+          }),
+        ) as TextesRegles,
+        visuels: Object.fromEntries(
+          Object.entries(VISUELS_REGLES_DEFAUT).map(([cle, defaut]) => [
+            cle,
+            url(rules?.[cle as keyof typeof rules] as Source | undefined, 1400) ?? defaut,
+          ]),
+        ) as VisuelsRegles,
+        roles: reglesRoles,
+      },
       phrasesVainqueur: textes?.phrasesVainqueur?.length ? textes.phrasesVainqueur : d.phrasesVainqueur,
     }
   } catch (error) {

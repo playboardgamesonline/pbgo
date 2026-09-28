@@ -6,13 +6,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { type ImagesRegles, REGLES_PAR_DEFAUT } from "@/lib/catalogue"
+import { type ContenuRegles, REGLES_PAR_DEFAUT } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
 export const BOUTON_ICONE =
   "size-11 cursor-pointer rounded-full bg-transparent text-foreground transition-transform hover:scale-110 hover:bg-transparent hover:text-foreground active:scale-95 dark:hover:bg-transparent"
-
-const VIDEO = "ClROWcPTZHk"
 
 const ONGLETS = [
   { cle: "video", nom: "Vidéo", icone: PlayIcon },
@@ -31,6 +29,20 @@ function Etiquette({ type }: { type: "lumiere" | "disgrace" | "neutre" }) {
   }
   const texte = { lumiere: "dans la lumière", disgrace: "en disgrâce", neutre: "neutre" }
   return <span className={cn("rounded-md px-1.5 py-px text-[0.92em] whitespace-nowrap ring-1", styles[type])}>{texte[type]}</span>
+}
+
+function Riche({ texte }: { texte: string }) {
+  return (
+    <>
+      {texte.split(/(\{lumiere\}|\{disgrace\}|\{neutre\}|\*\*[^*]+\*\*)/).map((morceau, i) => {
+        if (morceau === "{lumiere}") return <Etiquette key={i} type="lumiere" />
+        if (morceau === "{disgrace}") return <Etiquette key={i} type="disgrace" />
+        if (morceau === "{neutre}") return <Etiquette key={i} type="neutre" />
+        if (morceau.startsWith("**") && morceau.endsWith("**")) return <strong key={i}>{morceau.slice(2, -2)}</strong>
+        return morceau
+      })}
+    </>
+  )
 }
 
 function Image({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
@@ -64,14 +76,31 @@ function Carte({ numero, titre, sous, children }: { numero?: number; titre: stri
   )
 }
 
-function Role({ nom, nombre, image, children }: { nom: string; nombre: number; image: string | null; children: React.ReactNode }) {
+function Role({
+  nom,
+  nombre,
+  image,
+  lettering,
+  children,
+}: {
+  nom: string
+  nombre: number
+  image: string | null
+  lettering: string | null
+  children: React.ReactNode
+}) {
   return (
     <div className="flex gap-5 rounded-2xl bg-white/70 p-4 shadow-[0_6px_20px_rgb(14_57_64/10%)] ring-1 ring-[#0e3940]/10">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {image && <img src={image} alt={nom} loading="lazy" className="w-24 shrink-0 self-center mix-blend-multiply" />}
       <div>
         <div className="flex items-baseline gap-2">
-          <p className="font-display text-xl text-[#0e3940]">{nom}</p>
+          {lettering ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={lettering} alt={nom} className="h-9 w-auto" />
+          ) : (
+            <p className="font-display text-xl text-[#0e3940]">{nom}</p>
+          )}
           <span className="rounded-full bg-[#0e3940]/8 px-2 py-0.5 text-xs text-[#0e3940]/70">{nombre} par famille</span>
         </div>
         <p className="mt-1.5 leading-relaxed text-[#1f2b2d]/85">{children}</p>
@@ -80,7 +109,16 @@ function Role({ nom, nombre, image, children }: { nom: string; nombre: number; i
   )
 }
 
-function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
+const ROLES_REGLES = [
+  { cle: "noble", nom: "Noble", nombre: 4 },
+  { cle: "garde", nom: "Garde", nombre: 3 },
+  { cle: "espion", nom: "Espion", nombre: 2 },
+  { cle: "assassin", nom: "Assassin", nombre: 2 },
+] as const
+
+function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) {
+  const t = regles.textes
+  const v = regles.visuels
   switch (onglet) {
     case "video":
       return (
@@ -89,7 +127,7 @@ function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
           <div className="overflow-hidden rounded-2xl bg-black shadow-[0_16px_40px_rgb(14_57_64/30%)]">
             <iframe
               className="aspect-video w-full"
-              src={`https://www.youtube-nocookie.com/embed/${VIDEO}?rel=0`}
+              src={`https://www.youtube-nocookie.com/embed/${t.videoId}?rel=0`}
               title="Courtisans – règles en vidéo"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -101,20 +139,18 @@ function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
       return (
         <>
           <EnTete surtitre="Présentation" titre="But du jeu">
-            À chaque tour, vous jouez vos 3 cartes. L&apos;une influence le statut d&apos;une famille à la table de la reine, les deux autres font
-            gagner ou perdre des points, chez vous et chez un adversaire. Terminez la partie avec le plus de points.
+            <Riche texte={t.butIntro} />
           </EnTete>
           <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
-            <Image src={images.table} alt="La table de la reine" />
+            <Image src={v.visuelTable} alt="La table de la reine" />
             <div className="space-y-4">
               <Carte titre="Six familles">
-                Papillon, crapaud, rossignol, lièvre, cerf et carpe : chacune finira <Etiquette type="lumiere" />, <Etiquette type="disgrace" /> ou{" "}
-                <Etiquette type="neutre" /> selon ce qui se joue à la table de la reine.
+                <Riche texte={t.butFamilles} />
               </Carte>
               <Carte titre="Deux missions secrètes">
-                Une blanche et une bleue. Chaque mission réussie rapporte 3 points en fin de partie. Ne les dévoilez jamais.
+                <Riche texte={t.butMissions} />
               </Carte>
-              <Image src={images.missions} alt="Les cartes Mission" className="w-full" />
+              <Image src={v.visuelMissions} alt="Les cartes Mission" className="w-full" />
             </div>
           </div>
         </>
@@ -123,26 +159,23 @@ function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
       return (
         <>
           <EnTete surtitre="Déroulement" titre="Votre tour de jeu">
-            Jouez les 3 cartes de votre main, face visible, <strong>une dans chacune des 3 zones</strong>, dans l&apos;ordre de votre choix.
+            <Riche texte={t.tourIntro} />
           </EnTete>
           <div className="grid gap-5 lg:grid-cols-3">
             <Carte numero={1} titre="À la table de la reine" sous="autour du tapis">
-              Posez la carte dans la colonne de sa famille, au-dessus ou au-dessous du tapis. Majorité au-dessus : <Etiquette type="lumiere" />.
-              Majorité au-dessous : <Etiquette type="disgrace" />.
+              <Riche texte={t.tourTable} />
             </Carte>
             <Carte numero={2} titre="Dans votre domaine" sous="devant vous">
-              Chaque carte d&apos;une famille <Etiquette type="lumiere" /> vous rapportera 1 point, chaque carte d&apos;une famille{" "}
-              <Etiquette type="disgrace" /> vous en fera perdre 1.
+              <Riche texte={t.tourDomaine} />
             </Carte>
             <Carte numero={3} titre="Dans un domaine adverse" sous="devant l'adversaire de votre choix">
-              Même principe, mais pour lui : offrez-lui des familles en disgrâce, gardez la lumière pour vous.
+              <Riche texte={t.tourAdverse} />
             </Carte>
           </div>
           <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
             <ScrollTextIcon className="size-6 shrink-0 text-[#e7c46a]" />
             <p>
-              <strong className="font-display text-[#f6e7b8]">Fin du tour</strong> — vous piochez automatiquement 3 nouvelles cartes. Si la pioche est
-              vide, c&apos;était votre dernier tour.
+              <strong className="font-display text-[#f6e7b8]">Fin du tour</strong> — <Riche texte={t.tourFin} />
             </p>
           </div>
         </>
@@ -151,32 +184,23 @@ function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
       return (
         <>
           <EnTete surtitre="Pouvoirs" titre="Les rôles">
-            Certains courtisans ont un rôle, indiqué par une icône aux quatre coins de la carte.
+            <Riche texte={t.rolesIntro} />
           </EnTete>
           <div className="grid gap-4 lg:grid-cols-2">
-            <Role nom="Noble" nombre={4} image={images.noble}>
-              Compte pour 2 cartes en fin de partie, dans un domaine comme à la table de la reine.
-            </Role>
-            <Role nom="Garde" nombre={3} image={images.garde}>
-              Ne peut pas être éliminé par un assassin : il ne quitte jamais le jeu.
-            </Role>
-            <Role nom="Espion" nombre={2} image={images.espion}>
-              Toujours joué face cachée, personne ne peut le regarder. À la table, il rejoint la colonne de la reine.
-            </Role>
-            <Role nom="Assassin" nombre={2} image={images.assassin}>
-              En le posant, vous pouvez éliminer une autre carte de la même zone (sauf un garde), espions compris. Facultatif.
-            </Role>
+            {ROLES_REGLES.map(({ cle, nom, nombre }) => (
+              <Role key={cle} nom={nom} nombre={nombre} image={regles.roles[cle].visuelUrl} lettering={regles.roles[cle].letteringUrl}>
+                <Riche texte={regles.roles[cle].texte} />
+              </Role>
+            ))}
           </div>
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
             <figure className="space-y-2">
-              <Image src={images.exempleEspion} alt="Un espion joué dans la colonne de la reine" className="w-full" />
-              <figcaption className="text-sm text-[#0e5a5f] italic">L&apos;espion rejoint la colonne de la reine sans révéler sa famille.</figcaption>
+              <Image src={v.exempleEspion} alt="Un espion joué dans la colonne de la reine" className="w-full" />
+              <figcaption className="text-sm text-[#0e5a5f] italic">{t.legendeEspion}</figcaption>
             </figure>
             <figure className="space-y-2">
-              <Image src={images.exempleAssassin} alt="Un assassin élimine une noble" className="mx-auto max-h-80" />
-              <figcaption className="text-center text-sm text-[#0e5a5f] italic">
-                Un assassin du rossignol, joué au-dessous de la table, élimine une noble du lièvre au-dessus.
-              </figcaption>
+              <Image src={v.exempleAssassin} alt="Un assassin élimine une noble" className="mx-auto max-h-80" />
+              <figcaption className="text-center text-sm text-[#0e5a5f] italic">{t.legendeAssassin}</figcaption>
             </figure>
           </div>
         </>
@@ -185,29 +209,25 @@ function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
       return (
         <>
           <EnTete surtitre="Fin de partie" titre="Le décompte">
-            La partie s&apos;arrête quand la pioche est vide et que plus personne n&apos;a de cartes en main.
+            <Riche texte={t.decompteIntro} />
           </EnTete>
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-5">
               <Carte numero={1} titre="Les espions sont révélés">
-                Ceux de la table rejoignent la colonne de leur famille, sans changer de niveau.
+                <Riche texte={t.decompteRevelation} />
               </Carte>
               <Carte numero={2} titre="Le statut des familles">
-                Plus de cartes au-dessus : <Etiquette type="lumiere" />. Plus au-dessous : <Etiquette type="disgrace" />. Sinon :{" "}
-                <Etiquette type="neutre" />. Les nobles comptent double.
+                <Riche texte={t.decompteStatut} />
               </Carte>
               <Carte numero={3} titre="Les points">
-                +1 par courtisan d&apos;une famille dans la lumière, −1 par courtisan d&apos;une famille en disgrâce, +3 par mission réussie. Le plus
-                haut total l&apos;emporte, les ex-aequo partagent la victoire.
+                <Riche texte={t.decomptePoints} />
               </Carte>
             </div>
             <div className="space-y-6">
-              <Image src={images.decompteTable} alt="Exemple de statut des familles" className="w-full" />
+              <Image src={v.decompteTable} alt="Exemple de statut des familles" className="w-full" />
               <figure className="space-y-2">
-                <Image src={images.decompteDomaine} alt="Exemple de décompte d'un domaine" className="w-full" />
-                <figcaption className="text-sm text-[#0e5a5f] italic">
-                  11 points : +11 (papillon, crapaud, cerf), −3 (rossignol), 0 (carpe), +3 pour la mission.
-                </figcaption>
+                <Image src={v.decompteDomaine} alt="Exemple de décompte d'un domaine" className="w-full" />
+                <figcaption className="text-sm text-[#0e5a5f] italic">{t.legendeDomaine}</figcaption>
               </figure>
             </div>
           </div>
@@ -216,7 +236,7 @@ function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
   }
 }
 
-export function ReglesButton({ className, icone, images = REGLES_PAR_DEFAUT }: { className?: string; icone?: boolean; images?: ImagesRegles }) {
+export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: { className?: string; icone?: boolean; regles?: ContenuRegles }) {
   const [onglet, setOnglet] = useState<Onglet>("video")
   return (
     <Dialog>
@@ -274,7 +294,7 @@ export function ReglesButton({ className, icone, images = REGLES_PAR_DEFAUT }: {
               transition={{ duration: 0.2 }}
               className="px-12 py-12"
             >
-              <Contenu onglet={onglet} images={images} />
+              <Contenu onglet={onglet} regles={regles} />
             </motion.div>
           </AnimatePresence>
         </ScrollArea>

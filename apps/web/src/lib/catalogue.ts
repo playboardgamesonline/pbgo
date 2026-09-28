@@ -1,3 +1,4 @@
+import { REGLES_ROLES_DEFAUT, TEXTES_REGLES_DEFAUT, type TextesRegles, VISUELS_REGLES_DEFAUT, type VisuelsRegles } from "./regles-defaut"
 import { FAMILLES, type Famille, ROLES, type Role } from "@courtisans/engine"
 import { IMAGES_MISSIONS_PAR_DEFAUT } from "./missions-par-defaut"
 
@@ -32,30 +33,21 @@ export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
   garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictos/picto-garde.webp" },
 }
 
-export type ImagesRegles = {
-  missions: string | null
-  noble: string | null
-  garde: string | null
-  espion: string | null
-  assassin: string | null
-  table: string | null
-  exempleEspion: string | null
-  exempleAssassin: string | null
-  decompteTable: string | null
-  decompteDomaine: string | null
+export type RoleRegles = { texte: string; visuelUrl: string | null; letteringUrl: string | null }
+
+export type ContenuRegles = {
+  textes: TextesRegles
+  visuels: VisuelsRegles
+  roles: Record<Role, RoleRegles>
 }
 
-export const REGLES_PAR_DEFAUT: ImagesRegles = {
-  missions: null,
-  noble: "/regles/noble.webp",
-  garde: "/regles/garde.webp",
-  espion: "/regles/espion.webp",
-  assassin: "/regles/assassin.webp",
-  table: "/regles/table-exemple.webp",
-  exempleEspion: "/regles/espion-exemple.webp",
-  exempleAssassin: "/regles/assassin-exemple.webp",
-  decompteTable: "/regles/decompte-table.webp",
-  decompteDomaine: "/regles/decompte-domaine.webp",
+export const REGLES_PAR_DEFAUT: ContenuRegles = {
+  textes: TEXTES_REGLES_DEFAUT,
+  visuels: VISUELS_REGLES_DEFAUT,
+  roles: Object.fromEntries(ROLES.map((r) => [r, { texte: REGLES_ROLES_DEFAUT[r], visuelUrl: `/regles/${r}.webp`, letteringUrl: null }])) as Record<
+    Role,
+    RoleRegles
+  >,
 }
 
 export type CatalogueClient = {
@@ -71,7 +63,7 @@ export type CatalogueClient = {
   dosMissionBleueUrl: string | null
   banquetHautUrl: string | null
   banquetBasUrl: string
-  regles: ImagesRegles
+  regles: ContenuRegles
   phrasesVainqueur: string[]
 }
 

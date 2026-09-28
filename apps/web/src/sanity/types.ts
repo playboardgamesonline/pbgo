@@ -135,6 +135,21 @@ export type Role = {
     crop?: SanityImageCrop;
     _type: "image";
   };
+  visuel?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  lettering?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  regle?: string;
 };
 
 export type Famille = {
@@ -170,48 +185,30 @@ export type Rules = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
-  missions?: {
+  videoId?: string;
+  butIntro?: string;
+  butFamilles?: string;
+  butMissions?: string;
+  visuelTable?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
     _type: "image";
   };
-  noble?: {
+  visuelMissions?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
     hotspot?: SanityImageHotspot;
     crop?: SanityImageCrop;
     _type: "image";
   };
-  garde?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  espion?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  assassin?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  table?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
+  tourIntro?: string;
+  tourTable?: string;
+  tourDomaine?: string;
+  tourAdverse?: string;
+  tourFin?: string;
+  rolesIntro?: string;
   exempleEspion?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
@@ -219,6 +216,7 @@ export type Rules = {
     crop?: SanityImageCrop;
     _type: "image";
   };
+  legendeEspion?: string;
   exempleAssassin?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
@@ -226,6 +224,11 @@ export type Rules = {
     crop?: SanityImageCrop;
     _type: "image";
   };
+  legendeAssassin?: string;
+  decompteIntro?: string;
+  decompteRevelation?: string;
+  decompteStatut?: string;
+  decomptePoints?: string;
   decompteTable?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
@@ -240,11 +243,12 @@ export type Rules = {
     crop?: SanityImageCrop;
     _type: "image";
   };
+  legendeDomaine?: string;
 };
 
-export type Board = {
+export type Game = {
   _id: string;
-  _type: "board";
+  _type: "game";
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
@@ -267,21 +271,6 @@ export type Board = {
     _type: "decoration";
     _key: string;
   }>;
-};
-
-export type Assets = {
-  _id: string;
-  _type: "assets";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  logo?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
   dosCourtisan?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
@@ -297,6 +286,21 @@ export type Assets = {
     _type: "image";
   };
   dosMissionBleue?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+};
+
+export type Interface = {
+  _id: string;
+  _type: "interface";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  logo?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
     hotspot?: SanityImageHotspot;
@@ -435,8 +439,8 @@ export type AllSanitySchemaTypes =
   | Famille
   | Textes
   | Rules
-  | Board
-  | Assets
+  | Game
+  | Interface
   | SanityImagePaletteSwatch
   | SanityImagePalette
   | SanityImageDimensions
@@ -449,19 +453,47 @@ export type AllSanitySchemaTypes =
 
 // Source: ../web/src/sanity/queries.ts
 // Variable: CATALOGUE_QUERY
-// Query: {  "assets": *[_id == "assets"][0]{ logo, dosCourtisan, dosMissionBlanche, dosMissionBleue, banquetHaut, banquetBas },  "board": *[_id == "board"][0]{ tapis },  "rules": *[_id == "rules"][0]{ missions, noble, garde, espion, assassin, table, exempleEspion, exempleAssassin, decompteTable, decompteDomaine },  "textes": *[_id == "textes"][0]{ phrasesVainqueur },  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },  "roles": *[_type == "role"]{ _id, nom, cle, picto },  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition }}
+// Query: {  "interface": *[_id == "interface"][0]{ logo, banquetHaut, banquetBas },  "game": *[_id == "game"][0]{ tapis, dosCourtisan, dosMissionBlanche, dosMissionBleue },  "rules": *[_id == "rules"][0],  "textes": *[_id == "textes"][0]{ phrasesVainqueur },  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },  "roles": *[_type == "role"]{ _id, nom, cle, picto, visuel, regle, "lettering": lettering.asset->url },  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition }}
 export type CATALOGUE_QUERY_RESULT = {
-  assets:
+  interface:
     | {
         logo: null;
-        dosCourtisan: null;
-        dosMissionBlanche: null;
-        dosMissionBleue: null;
         banquetHaut: null;
         banquetBas: null;
       }
     | {
         logo: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+        banquetHaut: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+        banquetBas: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+      }
+    | null;
+  game:
+    | {
+        tapis: null;
+        dosCourtisan: null;
+        dosMissionBlanche: null;
+        dosMissionBleue: null;
+      }
+    | {
+        tapis: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
@@ -489,120 +521,283 @@ export type CATALOGUE_QUERY_RESULT = {
           crop?: SanityImageCrop;
           _type: "image";
         } | null;
-        banquetHaut: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        banquetBas: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-      }
-    | null;
-  board:
-    | {
-        tapis: null;
-      }
-    | {
-        tapis: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
       }
     | null;
   rules:
     | {
-        missions: null;
-        noble: null;
-        garde: null;
-        espion: null;
-        assassin: null;
-        table: null;
-        exempleEspion: null;
-        exempleAssassin: null;
-        decompteTable: null;
-        decompteDomaine: null;
+        _id: "rules";
+        _type: "courtisan";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        famille?: FamilleReference;
+        role?: RoleReference;
+        carte?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        quantite?: number;
       }
     | {
-        missions: {
+        _id: "rules";
+        _type: "famille";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        nom?: string;
+        cle?:
+          "carpe" | "cerf" | "crapaud" | "lievre" | "papillon" | "rossignol";
+        couleur?: string;
+        picto?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        noble: {
+        };
+      }
+    | {
+        _id: "rules";
+        _type: "game";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        tapis?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        garde: {
+        };
+        decorations?: Array<{
+          nom?: string;
+          image?: {
+            asset?: SanityImageAssetReference;
+            media?: unknown;
+            hotspot?: SanityImageHotspot;
+            crop?: SanityImageCrop;
+            _type: "image";
+          };
+          _type: "decoration";
+          _key: string;
+        }>;
+        dosCourtisan?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        espion: {
+        };
+        dosMissionBlanche?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        assassin: {
+        };
+        dosMissionBleue?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        table: {
+        };
+      }
+    | {
+        _id: "rules";
+        _type: "interface";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        logo?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        exempleEspion: {
+        };
+        banquetHaut?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        exempleAssassin: {
+        };
+        banquetBas?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        decompteTable: {
+        };
+      }
+    | {
+        _id: "rules";
+        _type: "mission";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        couleur?: "blanche" | "bleue";
+        texte?: string;
+        carte?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
-        decompteDomaine: {
+        };
+        condition?: Condition;
+      }
+    | {
+        _id: "rules";
+        _type: "role";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        nom?: string;
+        cle?: "assassin" | "espion" | "garde" | "noble";
+        picto?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
           crop?: SanityImageCrop;
           _type: "image";
-        } | null;
+        };
+        visuel?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        lettering?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        regle?: string;
+      }
+    | {
+        _id: "rules";
+        _type: "rules";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        videoId?: string;
+        butIntro?: string;
+        butFamilles?: string;
+        butMissions?: string;
+        visuelTable?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        visuelMissions?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        tourIntro?: string;
+        tourTable?: string;
+        tourDomaine?: string;
+        tourAdverse?: string;
+        tourFin?: string;
+        rolesIntro?: string;
+        exempleEspion?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        legendeEspion?: string;
+        exempleAssassin?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        legendeAssassin?: string;
+        decompteIntro?: string;
+        decompteRevelation?: string;
+        decompteStatut?: string;
+        decomptePoints?: string;
+        decompteTable?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        decompteDomaine?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        legendeDomaine?: string;
+      }
+    | {
+        _id: "rules";
+        _type: "sanity.fileAsset";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        originalFilename?: string;
+        label?: string;
+        title?: string;
+        description?: string;
+        altText?: string;
+        sha1hash?: string;
+        extension?: string;
+        mimeType?: string;
+        size?: number;
+        assetId?: string;
+        uploadId?: string;
+        path?: string;
+        url?: string;
+        source?: SanityAssetSourceData;
+      }
+    | {
+        _id: "rules";
+        _type: "sanity.imageAsset";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        originalFilename?: string;
+        label?: string;
+        title?: string;
+        description?: string;
+        altText?: string;
+        sha1hash?: string;
+        extension?: string;
+        mimeType?: string;
+        size?: number;
+        assetId?: string;
+        uploadId?: string;
+        path?: string;
+        url?: string;
+        metadata?: SanityImageMetadata;
+        source?: SanityAssetSourceData;
+      }
+    | {
+        _id: "rules";
+        _type: "textes";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        phrasesVainqueur?: Array<string>;
       }
     | null;
   textes:
@@ -638,6 +833,15 @@ export type CATALOGUE_QUERY_RESULT = {
       crop?: SanityImageCrop;
       _type: "image";
     } | null;
+    visuel: {
+      asset?: SanityImageAssetReference;
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    } | null;
+    regle: string | null;
+    lettering: string | null;
   }>;
   courtisans: Array<{
     _id: string;
@@ -671,7 +875,7 @@ export type CATALOGUE_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "assets": *[_id == "assets"][0]{ logo, dosCourtisan, dosMissionBlanche, dosMissionBleue, banquetHaut, banquetBas },\n  "board": *[_id == "board"][0]{ tapis },\n  "rules": *[_id == "rules"][0]{ missions, noble, garde, espion, assassin, table, exempleEspion, exempleAssassin, decompteTable, decompteDomaine },\n  "textes": *[_id == "textes"][0]{ phrasesVainqueur },\n  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },\n  "roles": *[_type == "role"]{ _id, nom, cle, picto },\n  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },\n  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition }\n}': CATALOGUE_QUERY_RESULT;
+    '{\n  "interface": *[_id == "interface"][0]{ logo, banquetHaut, banquetBas },\n  "game": *[_id == "game"][0]{ tapis, dosCourtisan, dosMissionBlanche, dosMissionBleue },\n  "rules": *[_id == "rules"][0],\n  "textes": *[_id == "textes"][0]{ phrasesVainqueur },\n  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },\n  "roles": *[_type == "role"]{ _id, nom, cle, picto, visuel, regle, "lettering": lettering.asset->url },\n  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },\n  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition }\n}': CATALOGUE_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

@@ -12,7 +12,7 @@ import { BoutonSon } from "@/components/son"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
-import type { CatalogueClient, ImagesRegles } from "@/lib/catalogue"
+import type { CatalogueClient, ContenuRegles } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
 export function decorBanquet(catalogue: CatalogueClient) {
@@ -32,7 +32,7 @@ export function EcranBanquet({
   logoUrl: string
   banquetHautUrl?: string | null
   banquetBasUrl?: string
-  regles?: ImagesRegles
+  regles?: ContenuRegles
   children?: React.ReactNode
   bouton?: React.ReactNode
   bas?: React.ReactNode
@@ -54,7 +54,7 @@ export function EcranBanquet({
       )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
         <BoutonSon />
-        <ReglesButton icone images={regles} />
+        <ReglesButton icone regles={regles} />
       </div>
 
       <form onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">

@@ -24,10 +24,11 @@ Exemples de mots métier gardés en français : `courtisan`, `famille`, `role`, 
 ## Sanity
 - Projet `2lo2f5sv`, dataset `production`
 - Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js)
-- Types de documents : `assets`, `board`, `rules` et `textes` (singletons, onglets Assets / Board / Rules / Texts), `famille`, `role`, `courtisan`, `mission` ; objet récursif `condition` (règle low code des missions, calqué sur `Condition` du moteur)
+- Types de documents : `interface`, `game`, `rules` et `textes` (singletons, onglets Interface / Game / Rules / Texts ; textes des règles avec balises {lumiere} {disgrace} {neutre} et **gras**), `famille`, `role`, `courtisan`, `mission` ; objet récursif `condition` (règle low code des missions, calqué sur `Condition` du moteur)
 - Les champs `cle` de `famille` / `role` font le lien avec les clés du moteur
 - Requêtes GROQ dans `apps/web/src/sanity/queries.ts` avec `defineQuery`, puis `pnpm --filter studio typegen` pour régénérer `apps/web/src/sanity/types.ts`
 - `pnpm --filter studio schema:deploy` après chaque changement de schéma
+- Migration des singletons : `pnpm --filter studio migrer-assets` puis `schema:deploy` et `pnpm --filter studio run deploy`
 - Contenu initial : `scripts/extraire-cartes.py` (PNG depuis le PDF d'impression) puis `scripts/generer-seed-sanity.py` (dossier d'import `data.ndjson` + images) ; les missions non confirmées sont importées en brouillon
 - Les missions publiées sont complétées par `MISSIONS_PROVISOIRES` tant qu'il y en a moins de 5 par couleur
 

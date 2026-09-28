@@ -24,7 +24,7 @@ export const famille = defineType({
       type: "string",
       validation: (r) => r.required().regex(/^#[0-9a-fA-F]{6}$/, { name: "hex" }),
     }),
-    defineField({ name: "picto", title: "Picto", type: "image", validation: (r) => r.required() }),
+    defineField({ name: "picto", title: "Pictogram", type: "image", validation: (r) => r.required() }),
   ],
   preview: { select: { title: "nom", subtitle: "couleur", media: "picto" } },
 })
