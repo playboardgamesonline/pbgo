@@ -211,6 +211,7 @@ type Props = {
   reflet?: boolean
   auDessus?: boolean
   sansOmbre?: boolean
+  intensiteReflet?: number
   onArrivee?: () => void
 }
 
@@ -250,6 +251,7 @@ export function Carte3D({
   reflet,
   auDessus,
   sansOmbre,
+  intensiteReflet,
   onArrivee,
 }: Props) {
   const ref = useRef<Group>(null)
@@ -335,7 +337,7 @@ export function Carte3D({
     const r = refletRef.current
     if (r) {
       const m = r.material as MeshBasicMaterial
-      easing.damp(m, "opacity", reflet ? R.reflet : 0, 0.3, dt)
+      easing.damp(m, "opacity", reflet ? (intensiteReflet ?? R.reflet) : 0, 0.3, dt)
       r.visible = m.opacity > 0.01
       if (reflet) {
         easing.damp(texReflet.offset, "x", -pointer.x * R.mouvementReflet, 0.15, dt)

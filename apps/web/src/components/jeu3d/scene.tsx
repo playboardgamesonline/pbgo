@@ -830,14 +830,17 @@ function Monde({
     {
       taille: { value: 0.36, min: 0.1, max: 0.8, step: 0.01, label: "taille" },
       position: { value: { x: 0, y: 0 }, step: 0.005, label: "position" },
-      angles: { value: { carte1: 0.28, carte2: -0.05 }, step: 0.01, label: "angles" },
-      carte1: { value: { x: 0, y: 0 }, step: 0.005, label: "décalage carte 1" },
-      carte2: { value: { x: 0, y: 0 }, step: 0.005, label: "décalage carte 2" },
-      leveeSurvol: { value: 0.05, min: 0, max: 0.5, step: 0.005, label: "levée survol" },
-      echelleSurvol: { value: 1.05, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
+      angles: { value: { carte1: 0.08, carte2: 0.01 }, step: 0.01, label: "angles" },
+      carte1: { value: { x: 0.1, y: 0.085 }, step: 0.005, label: "décalage carte 1" },
+      carte2: { value: { x: 0.04, y: -0.07 }, step: 0.005, label: "décalage carte 2" },
+      leveeSurvol: { value: 0.02, min: 0, max: 0.5, step: 0.005, label: "levée survol" },
+      echelleSurvol: { value: 1.01, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
+      dureeSurvol: { value: 0.05, min: 0.01, max: 0.5, step: 0.01, label: "durée anim. survol (s)" },
+      dureeRetour: { value: 0.12, min: 0.01, max: 0.8, step: 0.01, label: "durée anim. retour (s)" },
+      refletFocus: { value: 0.18, min: 0, max: 1, step: 0.01, label: "reflet lumineux focus" },
       distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "distance focus" },
-      echelleFocus: { value: 1.3, min: 0.5, max: 3, step: 0.01, label: "échelle focus" },
-      sourisFocus: { value: 0.45, min: 0, max: 1.5, step: 0.01, label: "inclinaison souris focus" },
+      echelleFocus: { value: 1.4, min: 0.5, max: 3, step: 0.01, label: "échelle focus" },
+      sourisFocus: { value: 0.16, min: 0, max: 1.5, step: 0.01, label: "inclinaison souris focus" },
       ...boutonCopie("SCENE", "Missions (en jeu)"),
     },
     onglet("SCENE"),
@@ -1036,7 +1039,14 @@ function Monde({
               hauteur={MISSION_H}
               auDessus
               sansOmbre
-              vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
+              vitesse={
+                survol === `mission:${m.id}` && !missionFocus
+                  ? reglagesMissionsJeu.dureeSurvol
+                  : intro || missionFocus
+                    ? 0.24
+                    : reglagesMissionsJeu.dureeRetour
+              }
+              intensiteReflet={reglagesMissionsJeu.refletFocus}
               reflet={missionFocus === m.id}
               lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
               onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
