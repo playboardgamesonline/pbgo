@@ -147,18 +147,28 @@ export async function imagePartage(lignes: LignePartage[], photo: HTMLCanvasElem
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/png"))
 }
 
-export async function partagerResultat(lignes: LignePartage[], code: string, texte: string) {
+export async function genererPartage(lignes: LignePartage[], code: string) {
   const blob = await imagePartage(lignes, photographierPartie(1600, 1200))
-  const fichier = new File([blob], `courtisans-${code}.png`, { type: "image/png" })
-  if (navigator.canShare?.({ files: [fichier] })) {
-    await navigator.share({ files: [fichier], title: "Courtisans Online", text: texte })
-    return "partage"
-  }
-  const url = URL.createObjectURL(blob)
+  return new File([blob], `courtisans-${code}.png`, { type: "image/png" })
+}
+
+export function peutPartager(fichier: File) {
+  return typeof navigator !== "undefined" && !!navigator.canShare?.({ files: [fichier] })
+}
+
+export async function partagerFichier(fichier: File, texte: string) {
+  await navigator.share({ files: [fichier], title: "Courtisans Online", text: texte })
+}
+
+export function telechargerFichier(fichier: File) {
+  const url = URL.createObjectURL(fichier)
   const a = document.createElement("a")
   a.href = url
   a.download = fichier.name
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
-  return "telecharge"
+}
+
+export async function copierImage(fichier: File) {
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": fichier })])
 }

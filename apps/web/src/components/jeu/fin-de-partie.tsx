@@ -2,7 +2,8 @@
 
 import type { ResultatJoueur, VueJoueur } from "@courtisans/engine"
 import { Share2Icon } from "lucide-react"
-import { type LignePartage, partagerResultat } from "./partage"
+import { ApercuPartage } from "./apercu-partage"
+import { genererPartage, type LignePartage } from "./partage"
 import { AnimatePresence, motion } from "motion/react"
 import Link from "next/link"
 import { useState } from "react"
@@ -74,6 +75,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
   const { vue, partie, couleur, catalogue } = useJeu()
   const [envoi, setEnvoi] = useState(false)
   const [partage, setPartage] = useState(false)
+  const [image, setImage] = useState<File | null>(null)
   const resultats = vue.resultats
   if (vue.phase !== "fin" || !resultats) return null
 
@@ -99,11 +101,9 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
           familles: j.detail.filter((d) => d.poids > 0).map((d) => ({ couleur: catalogue.familles[d.famille].couleur, points: d.points })),
           vainqueur: resultats.vainqueurs.includes(j.joueurId),
         }))
-      const texte = `${vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & ")} remporte le banquet avec ${vainqueurs[0]?.total ?? 0} points !`
-      const resultat = await partagerResultat(lignes, partie.code, texte)
-      if (resultat === "telecharge") toast.success("Image du résultat téléchargée")
-    } catch (e) {
-      if ((e as Error).name !== "AbortError") toast.error("Impossible de partager le résultat")
+      setImage(await genererPartage(lignes, partie.code))
+    } catch {
+      toast.error("Impossible de générer l'image du résultat")
     } finally {
       setPartage(false)
     }
@@ -120,8 +120,11 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
     }
   }
 
+  const textePartage = `${vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & ")} remporte le banquet avec ${vainqueurs[0]?.total ?? 0} points !`
+
   return (
     <>
+      <ApercuPartage fichier={image} texte={textePartage} onFermer={() => setImage(null)} />
       <AnimatePresence>
         {ouvert && (
           <motion.div

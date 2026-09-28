@@ -127,6 +127,7 @@ async function main() {
   for (const [field, legacy] of Object.entries(LEGACY_TEXT)) {
     const defaut = TEXTES_REGLES_DEFAUT[field as keyof typeof TEXTES_REGLES_DEFAUT]
     const value = fr(first(rules[field], ...legacy.map((l) => rules[l])), defaut) as Doc
+    if (field === "scoringTitle" && value.fr === "Décompte") value.fr = defaut
     rulesDoc[field] = { ...value, _type: CAPTIONS.has(field) ? "localeString" : "localeText" }
   }
   tx.createOrReplace(clean(rulesDoc) as { _id: string; _type: string })

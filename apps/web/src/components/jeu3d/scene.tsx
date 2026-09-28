@@ -1003,11 +1003,13 @@ function Monde({
 
   const actif = vue.phase === "jeu" ? vue.joueurActifId : null
   const couronneJoueur =
-    vue.phase === "jeu"
-      ? vue.joueurActifId
-      : vue.phase === "missions" && (etape === "missions" || etape === null)
-        ? (vue.premierJoueurId ?? null)
-        : null
+    etape === "tapis" || etape === "distribution"
+      ? null
+      : vue.phase === "jeu"
+        ? vue.joueurActifId
+        : vue.phase === "missions"
+          ? (vue.premierJoueurId ?? null)
+          : null
   const resultats = vue.resultats
   const resultatMoi = resultats?.joueurs.find((x) => x.joueurId === moiId)
   const centresGagnants = useCentresGagnants(resultats?.vainqueurs ?? VIDE, zones)

@@ -5,7 +5,7 @@ export const TEXTES_REGLES_DEFAUT = {
   flowTitle: "Déroulement de la partie",
   turnTitle: "Tour de jeu",
   rolesTitle: "Les rôles",
-  scoringTitle: "Décompte",
+  scoringTitle: "Fin de partie",
   goalIntro:
     "À chaque tour, vous jouez vos 3 cartes. L'une influence le statut d'une famille à la table de la reine, les deux autres font gagner ou perdre des points, chez vous et chez un adversaire. Terminez la partie avec le plus de points.",
   goalFamilies:

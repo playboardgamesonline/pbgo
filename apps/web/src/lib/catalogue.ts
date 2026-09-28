@@ -62,15 +62,29 @@ export const FAMILLES_VISUEL_ROLE: Record<Role, [Famille, Famille]> = {
   assassin: ["rossignol", "cerf"],
 }
 
+export type FamilleRegles = { cle: Famille; nom: string; couleur: string; pictoUrl: string | null; carteUrl: string }
+
+export const MISSIONS_VISUEL_REGLES: [string, string] = ["mission-dark-7", "mission-light-5"]
+
 export type ContenuRegles = {
   textes: TextesRegles
   roles: Record<Role, RoleRegles>
+  familles: FamilleRegles[]
+  missions: [string, string]
   cadrePicto: string
 }
 
 export const REGLES_PAR_DEFAUT: ContenuRegles = {
   textes: TEXTES_REGLES_DEFAUT,
   cadrePicto: CADRE_PICTO_DEFAUT,
+  familles: ORDRE_TAPIS.filter((f): f is Famille => f !== "reine").map((f) => ({
+    cle: f,
+    nom: FAMILLES_PAR_DEFAUT[f].nom,
+    couleur: FAMILLES_PAR_DEFAUT[f].couleur,
+    pictoUrl: FAMILLES_PAR_DEFAUT[f].pictoUrl,
+    carteUrl: imageCarteDefaut(f, null),
+  })),
+  missions: MISSIONS_VISUEL_REGLES.map((id) => IMAGES_MISSIONS_PAR_DEFAUT[id]!) as [string, string],
   roles: Object.fromEntries(
     ROLES.map((r) => [
       r,

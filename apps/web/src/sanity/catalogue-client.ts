@@ -1,6 +1,6 @@
 import "server-only"
 import type { Famille, Role } from "@courtisans/engine"
-import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, FAMILLES_VISUEL_ROLE, type RoleRegles } from "@/lib/catalogue"
+import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, FAMILLES_VISUEL_ROLE, MISSIONS_VISUEL_REGLES, type RoleRegles } from "@/lib/catalogue"
 import { TEXTES_REGLES_DEFAUT, type TextesRegles } from "@/lib/regles-defaut"
 import { type Localise, traduire } from "@/lib/i18n"
 import { getCatalogue } from "./catalogue"
@@ -83,6 +83,14 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
           }),
         ) as TextesRegles,
         roles: reglesRoles,
+        familles: d.regles.familles.map((f) => ({
+          ...f,
+          nom: famillesMap[f.cle].nom,
+          couleur: famillesMap[f.cle].couleur,
+          pictoUrl: famillesMap[f.cle].pictoUrl,
+          carteUrl: cartes[cleCarte(f.cle, null)] ?? f.carteUrl,
+        })),
+        missions: MISSIONS_VISUEL_REGLES.map((id, i) => missionsMap[id] ?? d.regles.missions[i]!) as [string, string],
         cadrePicto: url(iface?.pictogramFrame, 240) ?? d.regles.cadrePicto,
       },
       phrasesVainqueur: traduire(texts?.winnerPhrases)?.length ? traduire(texts?.winnerPhrases)! : d.phrasesVainqueur,

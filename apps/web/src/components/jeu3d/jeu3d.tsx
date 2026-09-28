@@ -37,7 +37,7 @@ const Scene3D = dynamic(() => import("./scene"), {
   ),
 })
 
-const aLire = (vue: VueJoueur) => vue.phase === "missions" && !!vue.moi && !vue.joueurs.find((j) => j.id === vue.moi?.id)?.missionsLues
+const aLire = (vue: VueJoueur) => vue.phase !== "fin" && !!vue.moi && !vue.joueurs.find((j) => j.id === vue.moi?.id)?.missionsLues
 
 export function Jeu3D({
   partie,
@@ -61,17 +61,18 @@ export function Jeu3D({
   const { fin, passer } = useSequenceFin(vue)
   const [etape, setEtape] = useState<EtapeOuverture>(() => (aLire(vue) ? "tapis" : null))
   const [boutonMissions, setBoutonMissions] = useState(false)
-  const [repere, setRepere] = useState(`${vue.phase}:${vue.joueurActifId}`)
+  const [repere, setRepere] = useState(`${vue.phase}:${vue.joueurActifId}:${aLire(vue) ? 1 : 0}`)
   const [annonces, setAnnonces] = useState<{ id: number; texte: string; sousTexte?: string; son: NomSon; type: TypeAnnonce }[]>([])
   const [compteur, setCompteur] = useState(0)
-  const repereActuel = `${vue.phase}:${vue.joueurActifId}`
+  const repereActuel = `${vue.phase}:${vue.joueurActifId}:${aLire(vue) ? 1 : 0}`
   if (repere !== repereActuel) {
-    const [phasePrec] = repere.split(":")
+    const [phasePrec, actifPrec, lirePrec] = repere.split(":")
     setRepere(repereActuel)
     const nouvelles: { id: number; texte: string; son: NomSon; type: TypeAnnonce }[] = []
+    const tourChange = phasePrec !== vue.phase || actifPrec !== String(vue.joueurActifId)
     if (vue.phase === "jeu" && phasePrec === "missions")
       nouvelles.push({ id: compteur, texte: catalogue.texteDebutBanquet, son: "victoire", type: "banquet" })
-    if (vue.phase === "jeu" && vue.moi && vue.joueurActifId === vue.moi.id)
+    if (tourChange && vue.phase === "jeu" && vue.moi && vue.joueurActifId === vue.moi.id)
       nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour", type: "tour" })
     if (nouvelles.length) {
       setCompteur((c) => c + 2)
@@ -79,7 +80,10 @@ export function Jeu3D({
         [...l.filter((x) => x.type !== "tour"), ...nouvelles].sort((x, y) => (x.type === "banquet" ? 0 : 1) - (y.type === "banquet" ? 0 : 1)),
       )
     }
-    if (vue.phase === "missions" && phasePrec !== "missions" && aLire(vue)) setEtape("tapis")
+    if (aLire(vue) && lirePrec !== "1") {
+      setBoutonMissions(false)
+      setEtape("tapis")
+    }
   }
   const annonce = etape === null ? annonces[0] : undefined
   const reglagesAnnonces = useReglagesAnnonces()
@@ -89,11 +93,13 @@ export function Jeu3D({
   }
   const intro = etape === "missions"
   const tourAffiche =
-    vue.phase === "jeu"
-      ? vue.joueurActifId
-      : vue.phase === "missions" && (etape === "missions" || etape === null)
-        ? (vue.premierJoueurId ?? null)
-        : null
+    etape === "tapis" || etape === "distribution"
+      ? null
+      : vue.phase === "jeu"
+        ? vue.joueurActifId
+        : vue.phase === "missions"
+          ? (vue.premierJoueurId ?? null)
+          : null
   const nbJoueurs = vue.joueurs.length
 
   const [reglagesOuverture] = useControls(
@@ -181,6 +187,13 @@ export function Jeu3D({
   function finirIntro() {
     setBoutonMissions(false)
     setEtape(null)
+    const nouvelles: { id: number; texte: string; son: NomSon; type: TypeAnnonce }[] = [
+      { id: compteur, texte: catalogue.texteDebutBanquet, son: "victoire", type: "banquet" },
+    ]
+    if (vue.phase === "jeu" && vue.moi && vue.joueurActifId === vue.moi.id)
+      nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour", type: "tour" })
+    setCompteur((c) => c + 2)
+    setAnnonces((l) => [...nouvelles, ...l.filter((x) => x.type !== "tour" && x.type !== "banquet")])
     api
       .action(partie.code, { type: "lireMissions" })
       .then(onMaj)
