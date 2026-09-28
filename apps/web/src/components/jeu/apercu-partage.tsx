@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { copierImage, partagerFichier, peutPartager, telechargerFichier } from "./partage"
 
 const BOUTON =
-  "inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-5 font-display text-base tracking-wide uppercase transition-[background-color,scale] hover:scale-[1.03] active:scale-95"
+  "inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl px-6 font-display text-lg tracking-wide transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
+const BLANC = "bg-foreground text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)]"
+const CONTOUR = "border border-foreground/60 text-foreground hover:bg-foreground/10"
 
 export function ApercuPartage({ fichier, texte, onFermer }: { fichier: File | null; texte: string; onFermer: () => void }) {
   const url = useMemo(() => (fichier ? URL.createObjectURL(fichier) : null), [fichier])
@@ -48,13 +50,13 @@ export function ApercuPartage({ fichier, texte, onFermer }: { fichier: File | nu
         )}
         <div className="flex flex-wrap items-center justify-center gap-3">
           {natif && (
-            <button type="button" onClick={partager} className={`${BOUTON} border-transparent bg-[#f3ecd6] text-[#0b2231] hover:bg-white`}>
+            <button type="button" onClick={partager} className={`${BOUTON} ${BLANC}`}>
               <Share2Icon className="size-4" />
               Partager
             </button>
           )}
           {copiable && (
-            <button type="button" onClick={copier} className={`${BOUTON} border-[#f3ecd6]/40 text-foreground hover:bg-[#f3ecd6]/10`}>
+            <button type="button" onClick={copier} className={`${BOUTON} ${CONTOUR}`}>
               <CopyIcon className="size-4" />
               Copier l&apos;image
             </button>
@@ -62,7 +64,7 @@ export function ApercuPartage({ fichier, texte, onFermer }: { fichier: File | nu
           <button
             type="button"
             onClick={() => fichier && telechargerFichier(fichier)}
-            className={`${BOUTON} ${natif ? "border-[#f3ecd6]/40 text-foreground hover:bg-[#f3ecd6]/10" : "border-transparent bg-[#f3ecd6] text-[#0b2231] hover:bg-white"}`}
+            className={`${BOUTON} ${natif ? CONTOUR : BLANC}`}
           >
             <DownloadIcon className="size-4" />
             Télécharger

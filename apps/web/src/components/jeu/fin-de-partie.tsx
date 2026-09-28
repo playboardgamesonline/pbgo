@@ -249,7 +249,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
           transition={{ type: "spring", stiffness: 220, damping: 26 }}
           type="button"
           onClick={onBasculer}
-          className="pointer-events-auto z-50 shrink-0 cursor-pointer rounded-full border border-[#f3ecd6]/25 bg-[#0b2231] px-6 py-2.5 font-display text-base tracking-wide text-foreground/85 uppercase shadow-[0_8px_24px_rgb(0_0_0/45%)] transition-colors hover:text-foreground"
+          className="pointer-events-auto z-50 h-12 shrink-0 cursor-pointer rounded-xl bg-foreground px-8 font-display text-lg tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
         >
           {ouvert ? "Masquer le tableau des scores" : "Afficher le tableau des scores"}
         </motion.button>

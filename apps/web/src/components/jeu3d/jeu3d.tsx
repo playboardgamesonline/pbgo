@@ -345,9 +345,13 @@ export function Jeu3D({
             )}
           </AnimatePresence>
           {fin && !fin.tableau && (
-            <Button variant="ghost" size="sm" className="absolute right-4 bottom-4 z-40" onClick={passer}>
+            <button
+              type="button"
+              className="absolute right-6 bottom-6 z-40 h-10 cursor-pointer rounded-xl bg-foreground px-6 font-display text-base tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
+              onClick={passer}
+            >
               Passer
-            </Button>
+            </button>
           )}
           {fin?.tableau && <FinDePartie onMaj={onMaj} ouvert={scoresOuverts} onBasculer={() => setScoresOuverts((o) => !o)} />}
         </main>
