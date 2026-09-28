@@ -46,27 +46,38 @@ export function annonceVainqueur(partie: PartiePublique, vue: VueJoueur, catalog
   return { phrase, detail: `${noms} · ${vainqueurs[0]?.total ?? 0} pts` }
 }
 
-function Detail({ j }: { j: ResultatJoueur }) {
+function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
   const { catalogue } = useJeu()
   const reussies = j.missions.filter((m) => m.validee).length
   const pointsMissions = j.missions.reduce((t, m) => t + m.points, 0)
+  const taille = grand ? "h-14 w-10 text-lg" : "h-11 w-8 text-sm"
+  const signe = (n: number) => `${n > 0 ? "+" : ""}${n}`
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+    <div className={cn("flex flex-wrap items-center justify-center", grand ? "gap-2" : "gap-1.5")}>
       {j.detail
         .filter((d) => d.poids > 0)
         .map((d) => (
           <span
             key={d.famille}
-            title={`${catalogue.familles[d.famille].nom} : ${d.points > 0 ? "+" : ""}${d.points}`}
-            className="rounded-md px-1.5 py-0.5 font-semibold text-white tabular-nums shadow-sm [text-shadow:0_1px_2px_rgb(0_0_0/50%)]"
-            style={{ backgroundColor: catalogue.familles[d.famille].couleur, opacity: d.points === 0 ? 0.55 : 1 }}
+            title={`${catalogue.familles[d.famille].nom} : ${signe(d.points)}`}
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-md border border-white/25 font-display font-bold text-white tabular-nums shadow-[0_4px_10px_rgb(0_0_0/35%)] [text-shadow:0_1px_2px_rgb(0_0_0/60%)]",
+              taille,
+            )}
+            style={{ backgroundColor: catalogue.familles[d.famille].couleur, opacity: d.points === 0 ? 0.5 : 1 }}
           >
-            {d.points > 0 ? "+" : ""}
-            {d.points}
+            {signe(d.points)}
           </span>
         ))}
-      <span className="ml-1 rounded-md bg-[#f2c14e]/20 px-1.5 py-0.5 font-semibold text-[#f2c14e] tabular-nums">
-        Missions {reussies}/{j.missions.length} · +{pointsMissions}
+      <span
+        title={`Missions : ${reussies}/${j.missions.length} réussie${reussies > 1 ? "s" : ""}`}
+        className={cn(
+          "ml-1 flex shrink-0 items-center justify-center rounded-md border border-[#f2c14e]/60 bg-gradient-to-b from-[#f6e7b8] to-[#e0b454] font-display font-bold text-[#3b2a08] tabular-nums shadow-[0_4px_10px_rgb(0_0_0/35%)]",
+          taille,
+          reussies === 0 && "opacity-45",
+        )}
+      >
+        {signe(pointsMissions)}
       </span>
     </div>
   )
@@ -167,7 +178,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
               className="pointer-events-auto flex max-h-[calc(100dvh-9rem)] w-full max-w-xl flex-col gap-5 rounded-2xl border border-[#8a6a3a]/60 bg-[#0b2231]/95 p-6 shadow-[0_20px_60px_rgb(0_0_0/60%)]"
             >
               <div className="relative flex min-h-12 items-center justify-center px-16">
-                <p className="text-center font-display text-lg text-foreground/75 italic">{phrase ? `${phrase} ${noms}` : "Le banquet est terminé"}</p>
+                <p className="text-center font-display text-sm tracking-[0.2em] text-foreground/55 uppercase">{phrase || "Le banquet est terminé"}</p>
                 <button
                   type="button"
                   onClick={() => setApercu(true)}
@@ -186,52 +197,37 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                 </button>
               </div>
 
-              <ol className="-mx-2 min-h-0 flex-1 space-y-3 overflow-y-auto px-2 [scrollbar-width:thin]">
-                {classement.map((j) => {
-                  const gagnant = resultats.vainqueurs.includes(j.joueurId)
-                  const teinte = couleur(j.joueurId)
-                  return (
-                    <li
-                      key={j.joueurId}
-                      className={cn(
-                        "flex items-center gap-4 rounded-xl border p-3 pl-4",
-                        gagnant ? "border-[#d9a93f]/60 bg-[#d9a93f]/10" : "border-foreground/10 bg-foreground/[0.03]",
-                      )}
-                    >
-                      <div className="flex w-6 shrink-0 justify-center">
-                        {gagnant ? (
-                          <Couronne className="block h-6 w-6 bg-[#f2c14e]" />
-                        ) : (
-                          <span className="font-display text-lg text-foreground/45 tabular-nums">{j.rang}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span aria-hidden className="text-sm" style={{ color: teinte }}>
-                            ❧
-                          </span>
-                          <span className="truncate font-sans text-xl font-black tracking-[0.14em] uppercase brightness-150" style={{ color: teinte }}>
-                            {info(j.joueurId)?.pseudo}
-                          </span>
-                          <span aria-hidden className="h-px min-w-6 flex-1" style={{ background: `linear-gradient(90deg, ${teinte}, transparent)` }} />
-                        </div>
-                        <Detail j={j} />
-                      </div>
-                      <div
-                        className={cn(
-                          "flex h-[5.4rem] w-[3.9rem] shrink-0 flex-col items-center justify-center rounded-lg border-2 shadow-[0_6px_16px_rgb(0_0_0/40%)]",
-                          gagnant
-                            ? "border-[#f2c14e] bg-gradient-to-b from-[#f6e7b8] to-[#e0b454] text-[#3b2a08]"
-                            : "border-[#f3ecd6]/35 bg-gradient-to-b from-[#12384a] to-[#0a2130] text-foreground",
-                        )}
-                      >
-                        <span className="font-display text-4xl leading-none font-bold tabular-nums">{j.total}</span>
-                        <span className="mt-1 text-[0.65rem] tracking-[0.2em] uppercase opacity-70">pts</span>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ol>
+              <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2 [scrollbar-width:thin]">
+                <div className="flex flex-col items-center gap-2 pb-5 text-center">
+                  <Couronne className="block h-9 w-9 bg-[#f2c14e] drop-shadow-[0_0_12px_rgb(242_193_78/55%)]" />
+                  <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: couleur(vainqueurs[0]!.joueurId) }}>
+                    {noms}
+                  </p>
+                  <p className="font-display text-2xl text-[#f2c14e] tabular-nums">
+                    {vainqueurs[0]!.total > 0 ? "+" : ""}
+                    {vainqueurs[0]!.total} pts
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {vainqueurs.map((v) => (
+                      <CartesFamilles key={v.joueurId} j={v} grand />
+                    ))}
+                  </div>
+                </div>
+                <ol className="divide-y divide-foreground/15 border-t border-foreground/15">
+                  {classement
+                    .filter((j) => !resultats.vainqueurs.includes(j.joueurId))
+                    .map((j) => (
+                      <li key={j.joueurId} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+                        <span className="w-5 font-display text-lg text-foreground/45 tabular-nums">{j.rang}</span>
+                        <span className="min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: couleur(j.joueurId) }}>
+                          {info(j.joueurId)?.pseudo}
+                        </span>
+                        <CartesFamilles j={j} />
+                        <span className="w-16 text-right font-display text-xl text-foreground/85 tabular-nums">{j.total} pts</span>
+                      </li>
+                    ))}
+                </ol>
+              </div>
 
               <div className="flex shrink-0 flex-col items-center gap-4">
                 <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8">
