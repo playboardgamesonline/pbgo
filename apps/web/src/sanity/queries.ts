@@ -6,7 +6,7 @@ export const CATALOGUE_QUERY = defineQuery(`{
   "rules": *[_id == "rules"][0],
   "texts": *[_id == "texts"][0]{ winnerPhrases },
   "families": *[_type == "family"]{ _id, name, key, color, pictogram },
-  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rulesVisual, rule, "lettering": lettering.asset->url },
+  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },
   "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },
   "missions": *[_type == "mission"]{ _id, color, text, card, condition }
 }`)

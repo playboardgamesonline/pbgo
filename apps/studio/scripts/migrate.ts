@@ -161,7 +161,6 @@ async function main() {
         key,
         countPerFamily: first(r.countPerFamily, COUNT_PER_FAMILY[key]),
         pictogram: first(r.pictogram, r.picto),
-        rulesVisual: first(r.rulesVisual, r.visuel, rules[key]) ?? (await upload(`regles/${key}.webp`)),
         lettering: r.lettering,
         rule: fr(first(r.rule, r.regle), REGLES_ROLES_DEFAUT[key as keyof typeof REGLES_ROLES_DEFAUT]),
       }) as { _id: string; _type: string },

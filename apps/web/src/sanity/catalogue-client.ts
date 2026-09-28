@@ -1,6 +1,6 @@
 import "server-only"
 import type { Famille, Role } from "@courtisans/engine"
-import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, type RoleRegles } from "@/lib/catalogue"
+import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, FAMILLES_VISUEL_ROLE, type RoleRegles } from "@/lib/catalogue"
 import { TEXTES_REGLES_DEFAUT, type TextesRegles, VISUELS_REGLES_DEFAUT, type VisuelsRegles } from "@/lib/regles-defaut"
 import { type Localise, traduire } from "@/lib/i18n"
 import { getCatalogue } from "./catalogue"
@@ -33,10 +33,10 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       const nom = traduire(r.name) ?? rolesMap[cle].nom
       rolesMap[cle] = { ...rolesMap[cle], nom, pictoUrl: url(r.pictogram, 128) ?? rolesMap[cle].pictoUrl }
       reglesRoles[cle] = {
+        ...reglesRoles[cle],
         nom,
         nombre: r.countPerFamily ?? reglesRoles[cle].nombre,
         texte: traduire(r.rule) || reglesRoles[cle].texte,
-        visuelUrl: url(r.rulesVisual, 480) ?? reglesRoles[cle].visuelUrl,
         letteringUrl: r.lettering ?? null,
       }
     }
@@ -46,6 +46,8 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       const imageUrl = url(c.card, 360)
       if (c.family && imageUrl) cartes[cleCarte(c.family as Famille, (c.role as Role | null) ?? null)] = imageUrl
     }
+    for (const r of Object.keys(reglesRoles) as Role[])
+      reglesRoles[r] = { ...reglesRoles[r], cartes: FAMILLES_VISUEL_ROLE[r].map((f) => cartes[cleCarte(f, r)]) as [string, string] }
     const missionsMap: Record<string, string> = { ...d.missions }
     for (const m of missions) {
       const imageUrl = url(m.card, 520)

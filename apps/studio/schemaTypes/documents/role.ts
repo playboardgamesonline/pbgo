@@ -12,7 +12,6 @@ export const role = defineType({
     defineField({ name: "key", title: "Game key", type: "string", options: { list: ROLES, layout: "dropdown" }, validation: (r) => r.required() }),
     defineField({ name: "countPerFamily", title: "Count per family", type: "number", validation: (r) => r.required().integer().min(0) }),
     defineField({ name: "pictogram", title: "Pictogram", type: "image", validation: (r) => r.required() }),
-    defineField({ name: "rulesVisual", title: "Rules visual", type: "image" }),
     defineField({ name: "lettering", title: "Lettering", type: "image", options: { accept: "image/svg+xml" } }),
     defineField({ name: "rule", title: "Rule", type: "localeText" }),
   ],

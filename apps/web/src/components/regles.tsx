@@ -79,20 +79,33 @@ function Carte({ numero, titre, sous, children }: { numero?: number; titre: stri
 function Role({
   nom,
   nombre,
-  image,
+  cartes,
   lettering,
   children,
 }: {
   nom: string
   nombre: number
-  image: string | null
+  cartes: [string, string]
   lettering: string | null
   children: React.ReactNode
 }) {
   return (
     <div className="flex gap-5 rounded-2xl bg-white/70 p-4 shadow-[0_6px_20px_rgb(14_57_64/10%)] ring-1 ring-[#0e3940]/10">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {image && <img src={image} alt={nom} loading="lazy" className="w-24 shrink-0 self-center mix-blend-multiply" />}
+      <div aria-hidden className="relative h-28 w-24 shrink-0 self-center">
+        {cartes.map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={src}
+            src={src}
+            alt=""
+            loading="lazy"
+            className={cn(
+              "absolute top-1/2 left-1/2 h-24 w-auto -translate-x-1/2 -translate-y-1/2 rounded-[6px] shadow-[0_4px_10px_rgb(0_0_0/25%)]",
+              i === 0 ? "-ml-3 -rotate-[9deg]" : "mt-1 ml-3 rotate-[7deg]",
+            )}
+          />
+        ))}
+      </div>
       <div>
         <div className="flex items-baseline gap-2">
           {lettering ? (
@@ -185,7 +198,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
             {ORDRE_ROLES.map((cle) => {
               const r = regles.roles[cle]
               return (
-                <Role key={cle} nom={r.nom} nombre={r.nombre} image={r.visuelUrl} lettering={r.letteringUrl}>
+                <Role key={cle} nom={r.nom} nombre={r.nombre} cartes={r.cartes} lettering={r.letteringUrl}>
                   <Riche texte={r.texte} />
                 </Role>
               )

@@ -35,7 +35,14 @@ export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
 
 const NOMBRE_PAR_FAMILLE: Record<Role, number> = { noble: 4, garde: 3, espion: 2, assassin: 2 }
 
-export type RoleRegles = { nom: string; nombre: number; texte: string; visuelUrl: string | null; letteringUrl: string | null }
+export type RoleRegles = { nom: string; nombre: number; texte: string; letteringUrl: string | null; cartes: [string, string] }
+
+export const FAMILLES_VISUEL_ROLE: Record<Role, [Famille, Famille]> = {
+  noble: ["papillon", "carpe"],
+  garde: ["lievre", "carpe"],
+  espion: ["lievre", "crapaud"],
+  assassin: ["rossignol", "cerf"],
+}
 
 export type ContenuRegles = {
   textes: TextesRegles
@@ -52,8 +59,8 @@ export const REGLES_PAR_DEFAUT: ContenuRegles = {
       {
         nom: ROLES_PAR_DEFAUT[r].nom,
         nombre: NOMBRE_PAR_FAMILLE[r],
+        cartes: FAMILLES_VISUEL_ROLE[r].map((f) => `/cartes/${r.toUpperCase()}_${f.toUpperCase()}.webp`) as [string, string],
         texte: REGLES_ROLES_DEFAUT[r],
-        visuelUrl: `/regles/${r}.webp`,
         letteringUrl: null,
       },
     ]),
