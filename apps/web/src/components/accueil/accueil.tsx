@@ -68,10 +68,6 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
           Ce soir a lieu le banquet de la reine. Un évènement majeur où les familles du royaume veulent se montrer à leur avantage. Les manœuvres vont
           bon train et tous les coups sont permis pour placer son favori sur le devant de la scène.
         </p>
-        <p>
-          À chaque tour, vous jouez 3 cartes : une au banquet pour influencer le statut d&apos;une famille, une chez vous et une chez un adversaire.
-          En fin de partie, c&apos;est le rapport de force au banquet qui détermine quelles familles vous rapportent ou vous font perdre des points.
-        </p>
       </Introduction>
       <ChampAppellation value={profil.pseudo} onChange={(pseudo) => setProfil({ pseudo })} />
     </EcranBanquet>

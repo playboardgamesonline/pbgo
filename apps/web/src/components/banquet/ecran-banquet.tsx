@@ -70,7 +70,7 @@ export function EcranBanquet({
           initial={{ opacity: 0, y: -20, rotate: -2 }}
           animate={{ opacity: 1, y: 0, rotate: 0 }}
           transition={{ type: "spring", stiffness: 120, damping: 14 }}
-          className="mt-[4vh] w-[min(23rem,68vw,28vh)] shrink-0"
+          className="mt-[7vh] w-[min(27rem,72vw,32vh)] shrink-0"
         >
           <Link href="/" aria-label="Accueil">
             <Logo src={logoUrl} />
@@ -223,10 +223,10 @@ export function Introduction({ titre, children }: { titre: string; children: Rea
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2 }}
-      className="mt-[2vh] max-w-3xl shrink-0 space-y-2 px-4 text-center [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
+      className="mt-[3vh] max-w-5xl shrink-0 space-y-2 px-4 text-center [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
     >
       <h2 className="font-display text-2xl tracking-[0.08em] whitespace-nowrap text-foreground uppercase md:text-[1.7rem]">{titre}</h2>
-      <div className="mx-auto max-w-2xl space-y-1.5 text-[0.95rem] leading-relaxed text-balance text-foreground/75 italic md:text-base">{children}</div>
+      <div className="mx-auto max-w-4xl space-y-1.5 text-[0.95rem] leading-relaxed text-foreground/75 italic md:text-base">{children}</div>
     </motion.div>
   )
 }
