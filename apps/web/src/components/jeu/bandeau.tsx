@@ -35,9 +35,9 @@ function Tour({ joueurId, court }: { joueurId: string; court?: boolean }) {
   )
 }
 
-export function Bandeau() {
+export function Bandeau({ tour, attente }: { tour: string | null; attente: string }) {
   const { vue } = useJeu()
-  const actif = vue.phase === "jeu" ? vue.joueurActifId : null
+  const actif = tour
   const tours = useMemo(
     () =>
       regrouper(vue.journal)
@@ -49,13 +49,13 @@ export function Bandeau() {
   return (
     <div className="flex max-w-lg flex-col items-end text-right text-foreground [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
       <motion.p
-        key={actif ?? "attente"}
+        key={actif ?? attente}
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
         className="inline-flex items-center gap-1.5 font-display text-lg tracking-[0.14em] uppercase md:text-xl"
       >
-        {actif ? <Tour joueurId={actif} /> : "Le banquet commence…"}
+        {actif ? <Tour joueurId={actif} /> : attente}
       </motion.p>
       <div className="mt-3 mb-3 h-px w-full min-w-64 bg-white/25" />
       <div

@@ -30,6 +30,7 @@ export type VueJoueur = {
   table: { carte: CarteVisible; niveau: Niveau }[]
   nombreCartesPioche: number
   joueurActifId: string | null
+  premierJoueurId: string | null
   zonesDisponibles: ZoneJeu[]
   numeroTour: number
   phase: Phase
@@ -60,6 +61,7 @@ export function vueJoueur(state: GameState, joueurId: string | null): VueJoueur 
     table: state.table.map(({ carte, niveau }) => ({ carte: carteVisible(carte, fin), niveau })),
     nombreCartesPioche: state.pioche.length,
     joueurActifId: joueurActifId(state),
+    premierJoueurId: state.joueurs[state.joueurActif]?.id ?? null,
     zonesDisponibles: zonesDisponibles(state),
     numeroTour: state.numeroTour,
     phase: state.phase,

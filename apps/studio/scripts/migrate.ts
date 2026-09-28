@@ -116,6 +116,7 @@ async function main() {
     _id: "texts",
     _type: "texts",
     missionsButton: texts.missionsButton ?? { _type: "localeString", fr: "Missions comprises", en: "Missions understood" },
+    guestsSettling: texts.guestsSettling ?? { _type: "localeString", fr: "Les convives s'installent…", en: "The guests are taking their seats…" },
     banquetStarts: texts.banquetStarts ?? { _type: "localeString", fr: "Le banquet peut commencer !", en: "Let the banquet begin!" },
     winnerPhrases: texts.winnerPhrases ?? { _type: "localeStringList", fr: legacyPhrases },
   })

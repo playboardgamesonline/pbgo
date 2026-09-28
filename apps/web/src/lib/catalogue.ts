@@ -107,6 +107,7 @@ export type CatalogueClient = {
   phrasesVainqueur: string[]
   texteBoutonMissions: string
   texteDebutBanquet: string
+  texteConvives: string
 }
 
 export const PHRASES_PAR_DEFAUT = [
@@ -138,4 +139,5 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
   texteBoutonMissions: "Missions comprises",
   texteDebutBanquet: "Le banquet peut commencer !",
+  texteConvives: "Les convives s'installent…",
 }

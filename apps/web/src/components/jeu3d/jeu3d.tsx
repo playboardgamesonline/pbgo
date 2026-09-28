@@ -86,6 +86,12 @@ export function Jeu3D({
     setAnnonces((l) => [...l, { id: Date.now(), texte, son, type }])
   }
   const intro = etape === "missions"
+  const tourAffiche =
+    vue.phase === "jeu"
+      ? vue.joueurActifId
+      : vue.phase === "missions" && (etape === "missions" || etape === null)
+        ? (vue.premierJoueurId ?? null)
+        : null
   const nbJoueurs = vue.joueurs.length
 
   const [reglagesOuverture] = useControls(
@@ -256,7 +262,7 @@ export function Jeu3D({
                 <ReglesButton icone regles={catalogue.regles} />
               </div>
             </div>
-            <Bandeau />
+            <Bandeau tour={tourAffiche} attente={vue.phase === "fin" ? "Fin du banquet" : catalogue.texteConvives} />
           </header>
 
           {intro && boutonMissions && (

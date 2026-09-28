@@ -8,6 +8,7 @@ export const texts = defineType({
   icon: DocumentTextIcon,
   fields: [
     defineField({ name: "missionsButton", title: "Missions button", type: "localeString" }),
+    defineField({ name: "guestsSettling", title: "Guests settling in", type: "localeString" }),
     defineField({ name: "banquetStarts", title: "Banquet starts", type: "localeString" }),
     defineField({ name: "winnerPhrases", title: "Winner phrases", type: "localeStringList" }),
   ],

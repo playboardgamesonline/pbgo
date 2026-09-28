@@ -13,6 +13,7 @@ const textureCouronne = () => (couronne ??= new TextureLoader().load("/pictogram
 export function Couronne3D({ cible, taille = 1.3 }: { cible: Vector3 | null; taille?: number }) {
   const visible = !!cible
   const [derniere] = useState(() => new Vector3())
+  const etaitVisible = useRef(false)
   const ref = useRef<Group>(null)
   const materiau = useRef<MeshBasicMaterial>(null)
   const [texture] = useState(textureCouronne)
@@ -21,6 +22,11 @@ export function Couronne3D({ cible, taille = 1.3 }: { cible: Vector3 | null; tai
     if (!g) return
     const t = clock.elapsedTime
     if (cible) derniere.copy(cible)
+    if (visible && !etaitVisible.current && g.scale.x < 0.01) {
+      g.position.set(derniere.x, -1.6, derniere.z)
+      g.scale.setScalar(taille)
+    }
+    etaitVisible.current = visible
     const s = visible ? taille : 0.0001
     easing.damp3(g.scale, [s, s, s], 0.25, dt)
     easing.damp3(g.position, [derniere.x, 0.5 * s + 0.08 + Math.sin(t * 2) * 0.06, derniere.z], 0.45, dt)

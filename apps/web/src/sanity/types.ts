@@ -189,6 +189,7 @@ export type Texts = {
   _updatedAt: string;
   _rev: string;
   missionsButton?: LocaleString;
+  guestsSettling?: LocaleString;
   banquetStarts?: LocaleString;
   winnerPhrases?: LocaleStringList;
 };
@@ -471,7 +472,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../web/src/sanity/queries.ts
 // Variable: CATALOGUE_QUERY
-// Query: {  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, queen, pattern, paper, pictogramFrame },  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },  "rules": *[_id == "rules"][0],  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts, winnerPhrases },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
+// Query: {  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, queen, pattern, paper, pictogramFrame },  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },  "rules": *[_id == "rules"][0],  "texts": *[_id == "texts"][0]{ missionsButton, guestsSettling, banquetStarts, winnerPhrases },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
 export type CATALOGUE_QUERY_RESULT = {
   interface:
     | {
@@ -851,6 +852,7 @@ export type CATALOGUE_QUERY_RESULT = {
         _updatedAt: string;
         _rev: string;
         missionsButton?: LocaleString;
+        guestsSettling?: LocaleString;
         banquetStarts?: LocaleString;
         winnerPhrases?: LocaleStringList;
       }
@@ -858,11 +860,13 @@ export type CATALOGUE_QUERY_RESULT = {
   texts:
     | {
         missionsButton: null;
+        guestsSettling: null;
         banquetStarts: null;
         winnerPhrases: null;
       }
     | {
         missionsButton: LocaleString | null;
+        guestsSettling: LocaleString | null;
         banquetStarts: LocaleString | null;
         winnerPhrases: LocaleStringList | null;
       }
@@ -928,7 +932,7 @@ export type CATALOGUE_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, queen, pattern, paper, pictogramFrame },\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },\n  "rules": *[_id == "rules"][0],\n  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts, winnerPhrases },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOGUE_QUERY_RESULT;
+    '{\n  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, queen, pattern, paper, pictogramFrame },\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },\n  "rules": *[_id == "rules"][0],\n  "texts": *[_id == "texts"][0]{ missionsButton, guestsSettling, banquetStarts, winnerPhrases },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOGUE_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

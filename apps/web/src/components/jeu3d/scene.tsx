@@ -318,17 +318,43 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
 const EPAISSEUR_TAPIS = 0.018
 const CACHE = new MeshBasicMaterial({ visible: false })
 
+const FONDU = { uFonduBas: { value: 0.8 }, uFonduHaut: { value: 4 } }
+
+function avecFondu(m: MeshBasicMaterial) {
+  if (m.userData.fondu) return
+  m.userData.fondu = true
+  const precedent = m.onBeforeCompile
+  m.onBeforeCompile = (shader, renderer) => {
+    precedent.call(m, shader, renderer)
+    Object.assign(shader.uniforms, FONDU)
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying float vHauteurFondu;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\nvHauteurFondu = (modelMatrix * vec4(transformed, 1.0)).y;")
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vHauteurFondu;\nuniform float uFonduBas;\nuniform float uFonduHaut;")
+      .replace(
+        "#include <dithering_fragment>",
+        "#include <dithering_fragment>\ngl_FragColor.a *= 1.0 - smoothstep(uFonduBas, uFonduHaut, vHauteurFondu);",
+      )
+  }
+  const cle = m.customProgramCacheKey.bind(m)
+  m.customProgramCacheKey = () => `${cle()}:fondu`
+  m.needsUpdate = true
+}
+
 function Apparition({
   actif,
   delai,
   duree,
   hauteur,
+  masque = false,
   children,
 }: {
   actif: boolean
   delai: number
   duree: number
   hauteur: number
+  masque?: boolean
   children: React.ReactNode
 }) {
   const ref = useRef<Group>(null)
@@ -344,6 +370,7 @@ function Apparition({
     } else debut.current = null
     const e = 1 - (1 - u) ** 3
     g.position.y = hauteur * (1 - e)
+    g.visible = !actif || clock.elapsedTime - (debut.current ?? 0) >= delai || u > 0
     if (u >= 1 && fini.current) return
     fini.current = u >= 1
     g.traverse((o) => {
@@ -354,7 +381,9 @@ function Apparition({
         m.userData.opaciteOrigine = m.opacity
       }
       m.transparent = u < 1 || m.userData.transparentOrigine
-      m.opacity = m.userData.opaciteOrigine * e
+      if (masque) {
+        if (u < 1) avecFondu(m)
+      } else m.opacity = m.userData.opaciteOrigine * e
     })
   })
   return <group ref={ref}>{children}</group>
@@ -696,6 +725,10 @@ function Monde({
       rotationZ: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation z groupe" },
       angleY: { value: 0.06, min: -1, max: 1, step: 0.01, label: "angle y cartes" },
       angleZ: { value: 0.01, min: -1, max: 1, step: 0.01, label: "angle z cartes" },
+      x1: { value: 0, min: -3, max: 3, step: 0.01, label: "x carte 1" },
+      y1: { value: 0, min: -3, max: 3, step: 0.01, label: "y carte 1" },
+      x2: { value: 0, min: -3, max: 3, step: 0.01, label: "x carte 2" },
+      y2: { value: 0, min: -3, max: 3, step: 0.01, label: "y carte 2" },
       recul: { value: 0, min: 0, max: 1, step: 0.01, label: "recul extérieur" },
       souris: { value: 0.1, min: 0, max: 1, step: 0.01, label: "inclinaison souris" },
       voile: { value: 0.24, min: 0, max: 1, step: 0.01, label: "opacité overlay" },
@@ -735,6 +768,10 @@ function Monde({
       y: { value: 0, min: -1, max: 1, step: 0.005, label: "position y" },
       angle1: { value: 0.28, min: -1, max: 1, step: 0.01, label: "angle carte 1" },
       angle2: { value: -0.05, min: -1, max: 1, step: 0.01, label: "angle carte 2" },
+      x1: { value: 0, min: -1, max: 1, step: 0.005, label: "x carte 1" },
+      y1: { value: 0, min: -1, max: 1, step: 0.005, label: "y carte 1" },
+      x2: { value: 0, min: -1, max: 1, step: 0.005, label: "x carte 2" },
+      y2: { value: 0, min: -1, max: 1, step: 0.005, label: "y carte 2" },
       leveeSurvol: { value: 0.05, min: 0, max: 0.5, step: 0.005, label: "levée survol" },
       echelleSurvol: { value: 1.05, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
       distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "distance focus" },
@@ -803,7 +840,9 @@ function Monde({
         const sens = i === 0 ? 1 : -1
         const groupe = QUAT_GROUPE.setFromEuler(EULER_TMP.set(r.rotationX - pointer.y * r.souris, r.rotationY + pointer.x * r.souris, r.rotationZ))
         const x = (i - 0.5) * (MISSION_L + r.ecart) * k * r.echelle
-        p.position.set(r.x * k, r.y * k, -r.distance).add(new Vector3(x, 0, -Math.abs(x) * r.recul).applyQuaternion(groupe))
+        const dx = (i === 0 ? r.x1 : r.x2) * k
+        const dy = (i === 0 ? r.y1 : r.y2) * k
+        p.position.set(r.x * k, r.y * k, -r.distance).add(new Vector3(x + dx, dy, -Math.abs(x) * r.recul).applyQuaternion(groupe))
         p.quaternion.copy(groupe).multiply(QUAT_LOCAL.setFromEuler(EULER_TMP.set(0, sens * r.angleY, -sens * r.angleZ)))
         p.echelle = k * r.echelle
       } else if (missionFocus === m.id) {
@@ -820,7 +859,7 @@ function Monde({
         const pivotY = -h + mH * 0.55 + rj.y * h
         const x = pivotX + Math.cos(machoire) * bras
         const y = pivotY - Math.sin(machoire) * bras + (i === 0 ? mH * 0.16 : -mH * 0.08) + (survolee ? mH * rj.leveeSurvol : 0)
-        p.position.set(x, y, -D_MAIN + 0.05 + (i === 0 ? 0 : 0.02))
+        p.position.set(x + (i === 0 ? rj.x1 : rj.x2) * mL, y + (i === 0 ? rj.y1 : rj.y2) * mL, -D_MAIN + 0.05 + (i === 0 ? 0 : 0.02))
         p.quaternion.setFromEuler(EULER_TMP.set(0, 0, -machoire))
         p.echelle = (mL / MISSION_L) * (survolee ? rj.echelleSurvol : 1)
       }
@@ -828,6 +867,12 @@ function Monde({
   })
 
   const actif = vue.phase === "jeu" ? vue.joueurActifId : null
+  const couronneJoueur =
+    vue.phase === "jeu"
+      ? vue.joueurActifId
+      : vue.phase === "missions" && (etape === "missions" || etape === null)
+        ? (vue.premierJoueurId ?? null)
+        : null
   const resultats = vue.resultats
   const resultatMoi = resultats?.joueurs.find((x) => x.joueurId === moiId)
   const centresGagnants = useCentresGagnants(resultats?.vainqueurs ?? VIDE, zones)
@@ -979,11 +1024,13 @@ function Monde({
         <Ephemere key={t.id} item={t} tex={tex} onFin={() => setTransitoires((l) => l.filter((x) => x.id !== t.id))} />
       ))}
 
-      <Apparition actif={deroulement} delai={reglages.dureeTapis * 0.55} duree={0.8} hauteur={5}>
+      <Apparition actif={deroulement} delai={0.15} duree={reglages.dureeTapis * 0.45} hauteur={5} masque>
         <Pioche nombre={vue.nombreCartesPioche} />
         {vue.nombreCartesPioche > 0 && (
           <Carte3D cible={poseDessusPioche(vue.nombreCartesPioche)} recto={tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} />
         )}
+      </Apparition>
+      <Apparition actif={deroulement} delai={0.25 + reglages.dureeTapis * 0.45} duree={0.7} hauteur={-0.6}>
         <TexteTable
           texte={String(vue.nombreCartesPioche)}
           style={{ couleur: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", graisse: 800 }}
@@ -998,28 +1045,30 @@ function Monde({
         return <FondDomaine key={`fond-${j.id}`} zone={zone} jouable={domaineCible(j.id)} survol={survolJoueur === j.id} couleur={couleur(j.id)} />
       })}
 
-      {vue.joueurs.map((j) => {
-        const zone = zones.get(j.id)
-        if (!zone || j.id === moiId) return null
-        return (
-          <Badge
-            key={j.id}
-            zone={zone}
-            texte={pseudo(j.id).toUpperCase()}
-            style={
-              survolJoueur === j.id && domaineCible(j.id)
-                ? { couleur: "#fff4dc", relief: couleur(j.id), aura: couleur(j.id), espacement: ESPACEMENT }
-                : j.id === actif
-                  ? { couleur: "#fff4dc", relief: couleur(j.id), aura: "rgba(255,236,190,0.9)", espacement: ESPACEMENT }
-                  : { ...ENCRE, espacement: ESPACEMENT }
-            }
-            onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
-            onSurvol={domaineCible(j.id) ? (s) => setSurvolJoueur(s ? j.id : null) : undefined}
-          />
-        )
-      })}
+      <Apparition actif={deroulement} delai={0.2} duree={reglages.dureeTapis * 0.4} hauteur={-0.7}>
+        {vue.joueurs.map((j) => {
+          const zone = zones.get(j.id)
+          if (!zone || j.id === moiId) return null
+          return (
+            <Badge
+              key={j.id}
+              zone={zone}
+              texte={pseudo(j.id).toUpperCase()}
+              style={
+                survolJoueur === j.id && domaineCible(j.id)
+                  ? { couleur: "#fff4dc", relief: couleur(j.id), aura: couleur(j.id), espacement: ESPACEMENT }
+                  : j.id === actif
+                    ? { couleur: "#fff4dc", relief: couleur(j.id), aura: "rgba(255,236,190,0.9)", espacement: ESPACEMENT }
+                    : { ...ENCRE, espacement: ESPACEMENT }
+              }
+              onClick={domaineCible(j.id) ? () => jouerDomaine(j.id) : undefined}
+              onSurvol={domaineCible(j.id) ? (s) => setSurvolJoueur(s ? j.id : null) : undefined}
+            />
+          )
+        })}
+      </Apparition>
 
-      <Couronne3D cible={actif && vue.phase === "jeu" ? positionCouronne(zones.get(actif), actif === moiId) : null} />
+      <Couronne3D cible={couronneJoueur ? positionCouronne(zones.get(couronneJoueur), couronneJoueur === moiId) : null} />
 
       {colCible &&
         (["haut", "bas"] as const).map((niveau) => (
