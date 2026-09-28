@@ -92,13 +92,7 @@ function Carte({ numero, titre, sous, children }: { numero?: number; titre: stri
 }
 
 function urlMasque(src: string) {
-  if (!/^https?:/.test(src)) return src
-  const u = new URL(src)
-  if (u.hostname === "cdn.sanity.io") {
-    u.searchParams.set("fm", "png")
-    u.searchParams.set("w", "256")
-  }
-  return `/_next/image?url=${encodeURIComponent(u.toString())}&w=256&q=90`
+  return /^https:\/\/cdn\.sanity\.io\//.test(src) ? `/api/media?url=${encodeURIComponent(src)}` : src
 }
 
 function Picto({ src, cadre, className }: { src: string | null; cadre: string; className?: string }) {

@@ -68,18 +68,26 @@ export async function imagePartage(lignes: LignePartage[], photo: HTMLCanvasElem
     ctx.drawImage(source, (W - l) / 2, (H - h) / 2, l, h)
   }
 
-  const haut = ctx.createLinearGradient(0, 0, 0, 300)
-  haut.addColorStop(0, "rgba(3,14,20,0.94)")
-  haut.addColorStop(0.55, "rgba(3,14,20,0.7)")
+  ctx.save()
+  ctx.translate(W / 2, H / 2)
+  ctx.scale(W / H, 1)
+  const vignette = ctx.createRadialGradient(0, 0, H * 0.22, 0, 0, H * 0.72)
+  vignette.addColorStop(0, "rgba(3,14,20,0)")
+  vignette.addColorStop(0.55, "rgba(3,14,20,0.18)")
+  vignette.addColorStop(1, "rgba(3,14,20,0.72)")
+  ctx.fillStyle = vignette
+  ctx.fillRect(-W, -H, 2 * W, 2 * H)
+  ctx.restore()
+  const haut = ctx.createLinearGradient(0, 0, 0, 260)
+  haut.addColorStop(0, "rgba(3,14,20,0.55)")
   haut.addColorStop(1, "rgba(3,14,20,0)")
   ctx.fillStyle = haut
-  ctx.fillRect(0, 0, W, 300)
-  const bas = ctx.createLinearGradient(0, H - 240, 0, H)
+  ctx.fillRect(0, 0, W, 260)
+  const bas = ctx.createLinearGradient(0, H - 220, 0, H)
   bas.addColorStop(0, "rgba(3,14,20,0)")
-  bas.addColorStop(0.6, "rgba(3,14,20,0.82)")
-  bas.addColorStop(1, "rgba(3,14,20,0.95)")
+  bas.addColorStop(1, "rgba(3,14,20,0.6)")
   ctx.fillStyle = bas
-  ctx.fillRect(0, H - 240, W, 240)
+  ctx.fillRect(0, H - 220, W, 220)
 
   const gagnants = lignes.filter((j) => j.vainqueur)
   const autres = lignes.filter((j) => !j.vainqueur)
