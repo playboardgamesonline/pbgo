@@ -843,7 +843,7 @@ function Monde({
       echelleSurvol: { value: 1.01, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
       dureeSurvol: { value: 0.05, min: 0.01, max: 0.5, step: 0.01, label: "durée anim. survol (s)" },
       dureeRetour: { value: 0.12, min: 0.01, max: 0.8, step: 0.01, label: "durée anim. retour (s)" },
-      refletFocus: { value: 0.18, min: 0, max: 1, step: 0.01, label: "reflet lumineux focus" },
+      refletFocus: { value: 0.06, min: 0, max: 1, step: 0.01, label: "reflet lumineux focus" },
       distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "distance focus" },
       echelleFocus: { value: 1.4, min: 0.5, max: 3, step: 0.01, label: "échelle focus" },
       sourisFocus: { value: 0.16, min: 0, max: 1.5, step: 0.01, label: "inclinaison souris focus" },
