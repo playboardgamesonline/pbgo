@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import "@fontsource-variable/alegreya"
-import "@fontsource-variable/cinzel"
 import { EcranOrdinateur } from "@/components/ecran-ordinateur"
 import { MoteurSon } from "@/components/son"
 import { Toaster } from "@/components/ui/sonner"
