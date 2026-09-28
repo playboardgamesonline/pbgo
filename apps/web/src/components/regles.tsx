@@ -109,12 +109,7 @@ function Role({
   )
 }
 
-const ROLES_REGLES = [
-  { cle: "noble", nom: "Noble", nombre: 4 },
-  { cle: "garde", nom: "Garde", nombre: 3 },
-  { cle: "espion", nom: "Espion", nombre: 2 },
-  { cle: "assassin", nom: "Assassin", nombre: 2 },
-] as const
+const ORDRE_ROLES = ["noble", "garde", "espion", "assassin"] as const
 
 function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) {
   const t = regles.textes
@@ -139,18 +134,18 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
       return (
         <>
           <EnTete surtitre="Présentation" titre="But du jeu">
-            <Riche texte={t.butIntro} />
+            <Riche texte={t.goalIntro} />
           </EnTete>
           <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
-            <Image src={v.visuelTable} alt="La table de la reine" />
+            <Image src={v.tableVisual} alt="La table de la reine" />
             <div className="space-y-4">
               <Carte titre="Six familles">
-                <Riche texte={t.butFamilles} />
+                <Riche texte={t.goalFamilies} />
               </Carte>
               <Carte titre="Deux missions secrètes">
-                <Riche texte={t.butMissions} />
+                <Riche texte={t.goalMissions} />
               </Carte>
-              <Image src={v.visuelMissions} alt="Les cartes Mission" className="w-full" />
+              <Image src={v.missionsVisual} alt="Les cartes Mission" className="w-full" />
             </div>
           </div>
         </>
@@ -159,23 +154,23 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
       return (
         <>
           <EnTete surtitre="Déroulement" titre="Votre tour de jeu">
-            <Riche texte={t.tourIntro} />
+            <Riche texte={t.turnIntro} />
           </EnTete>
           <div className="grid gap-5 lg:grid-cols-3">
             <Carte numero={1} titre="À la table de la reine" sous="autour du tapis">
-              <Riche texte={t.tourTable} />
+              <Riche texte={t.turnTable} />
             </Carte>
             <Carte numero={2} titre="Dans votre domaine" sous="devant vous">
-              <Riche texte={t.tourDomaine} />
+              <Riche texte={t.turnDomain} />
             </Carte>
             <Carte numero={3} titre="Dans un domaine adverse" sous="devant l'adversaire de votre choix">
-              <Riche texte={t.tourAdverse} />
+              <Riche texte={t.turnOpponent} />
             </Carte>
           </div>
           <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
             <ScrollTextIcon className="size-6 shrink-0 text-[#e7c46a]" />
             <p>
-              <strong className="font-display text-[#f6e7b8]">Fin du tour</strong> — <Riche texte={t.tourFin} />
+              <strong className="font-display text-[#f6e7b8]">Fin du tour</strong> — <Riche texte={t.turnEnd} />
             </p>
           </div>
         </>
@@ -187,20 +182,23 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
             <Riche texte={t.rolesIntro} />
           </EnTete>
           <div className="grid gap-4 lg:grid-cols-2">
-            {ROLES_REGLES.map(({ cle, nom, nombre }) => (
-              <Role key={cle} nom={nom} nombre={nombre} image={regles.roles[cle].visuelUrl} lettering={regles.roles[cle].letteringUrl}>
-                <Riche texte={regles.roles[cle].texte} />
-              </Role>
-            ))}
+            {ORDRE_ROLES.map((cle) => {
+              const r = regles.roles[cle]
+              return (
+                <Role key={cle} nom={r.nom} nombre={r.nombre} image={r.visuelUrl} lettering={r.letteringUrl}>
+                  <Riche texte={r.texte} />
+                </Role>
+              )
+            })}
           </div>
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
             <figure className="space-y-2">
-              <Image src={v.exempleEspion} alt="Un espion joué dans la colonne de la reine" className="w-full" />
-              <figcaption className="text-sm text-[#0e5a5f] italic">{t.legendeEspion}</figcaption>
+              <Image src={v.spyExample} alt="Un espion joué dans la colonne de la reine" className="w-full" />
+              <figcaption className="text-sm text-[#0e5a5f] italic">{t.spyCaption}</figcaption>
             </figure>
             <figure className="space-y-2">
-              <Image src={v.exempleAssassin} alt="Un assassin élimine une noble" className="mx-auto max-h-80" />
-              <figcaption className="text-center text-sm text-[#0e5a5f] italic">{t.legendeAssassin}</figcaption>
+              <Image src={v.assassinExample} alt="Un assassin élimine une noble" className="mx-auto max-h-80" />
+              <figcaption className="text-center text-sm text-[#0e5a5f] italic">{t.assassinCaption}</figcaption>
             </figure>
           </div>
         </>
@@ -209,25 +207,25 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
       return (
         <>
           <EnTete surtitre="Fin de partie" titre="Le décompte">
-            <Riche texte={t.decompteIntro} />
+            <Riche texte={t.scoringIntro} />
           </EnTete>
           <div className="grid gap-8 lg:grid-cols-2">
             <div className="space-y-5">
               <Carte numero={1} titre="Les espions sont révélés">
-                <Riche texte={t.decompteRevelation} />
+                <Riche texte={t.scoringReveal} />
               </Carte>
               <Carte numero={2} titre="Le statut des familles">
-                <Riche texte={t.decompteStatut} />
+                <Riche texte={t.scoringStatus} />
               </Carte>
               <Carte numero={3} titre="Les points">
-                <Riche texte={t.decomptePoints} />
+                <Riche texte={t.scoringPoints} />
               </Carte>
             </div>
             <div className="space-y-6">
-              <Image src={v.decompteTable} alt="Exemple de statut des familles" className="w-full" />
+              <Image src={v.scoringTable} alt="Exemple de statut des familles" className="w-full" />
               <figure className="space-y-2">
-                <Image src={v.decompteDomaine} alt="Exemple de décompte d'un domaine" className="w-full" />
-                <figcaption className="text-sm text-[#0e5a5f] italic">{t.legendeDomaine}</figcaption>
+                <Image src={v.scoringDomain} alt="Exemple de décompte d'un domaine" className="w-full" />
+                <figcaption className="text-sm text-[#0e5a5f] italic">{t.domainCaption}</figcaption>
               </figure>
             </div>
           </div>

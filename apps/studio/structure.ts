@@ -4,7 +4,7 @@ import { ImagesIcon } from "@sanity/icons/Images"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
 import type { StructureResolver } from "sanity/structure"
 
-export const SINGLETONS = ["interface", "game", "rules", "textes"]
+export const SINGLETONS = ["interface", "game", "rules", "texts"]
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -13,10 +13,10 @@ export const structure: StructureResolver = (S) =>
       S.listItem().title("Interface").icon(ImagesIcon).child(S.document().schemaType("interface").documentId("interface")),
       S.listItem().title("Game").icon(ThLargeIcon).child(S.document().schemaType("game").documentId("game")),
       S.listItem().title("Rules").icon(BookIcon).child(S.document().schemaType("rules").documentId("rules")),
-      S.listItem().title("Texts").icon(DocumentTextIcon).child(S.document().schemaType("textes").documentId("textes")),
+      S.listItem().title("Texts").icon(DocumentTextIcon).child(S.document().schemaType("texts").documentId("texts")),
       S.divider(),
-      S.documentTypeListItem("famille").title("Families"),
+      S.documentTypeListItem("family").title("Families"),
       S.documentTypeListItem("role").title("Roles"),
-      S.documentTypeListItem("courtisan").title("Courtiers"),
+      S.documentTypeListItem("courtier").title("Courtiers"),
       S.documentTypeListItem("mission").title("Missions"),
     ])

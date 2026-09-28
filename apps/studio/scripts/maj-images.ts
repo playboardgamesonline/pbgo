@@ -5,24 +5,44 @@ import { getCliClient } from "sanity/cli"
 const client = getCliClient({ apiVersion: "2026-09-27" })
 const PUBLIC = path.resolve(process.cwd(), "../web/public")
 
-const FAMILLES = ["papillon", "crapaud", "rossignol", "lievre", "cerf", "carpe"]
-const ROLES = ["BASE", "GARDE", "NOBLE", "ASSASSIN", "ESPION"]
-const ROLES_PICTO = ["noble", "espion", "assassin", "garde"]
+const FAMILLES = [
+  ["papillon", "butterfly"],
+  ["crapaud", "toad"],
+  ["rossignol", "nightingale"],
+  ["lievre", "hare"],
+  ["cerf", "stag"],
+  ["carpe", "carp"],
+]
+const ROLES = [
+  ["BASE", "base"],
+  ["GARDE", "guard"],
+  ["NOBLE", "noble"],
+  ["ASSASSIN", "assassin"],
+  ["ESPION", "spy"],
+]
+const ROLES_PICTO = [
+  ["noble", "noble"],
+  ["espion", "spy"],
+  ["assassin", "assassin"],
+  ["garde", "guard"],
+]
 
 type Cible = { ids: string[]; champ: string; fichier: string }
 
 const cibles: Cible[] = [
-  ...FAMILLES.flatMap((f) => ROLES.map((r) => ({ ids: [`courtisan-${r.toLowerCase()}-${f}`], champ: "carte", fichier: `cartes/${r}_${f.toUpperCase()}.webp` }))),
+  ...FAMILLES.flatMap(([f, fe]) =>
+    ROLES.map(([r, re]) => ({ ids: [`courtier-${re}-${fe}`], champ: "card", fichier: `cartes/${r}_${f.toUpperCase()}.webp` })),
+  ),
   ...Array.from({ length: 10 }, (_, i) => [
-    { ids: [`mission-light-${i + 1}`, `drafts.mission-light-${i + 1}`], champ: "carte", fichier: `cartes/MISSION_LIGHT_${i + 1}.webp` },
-    { ids: [`mission-dark-${i + 1}`, `drafts.mission-dark-${i + 1}`], champ: "carte", fichier: `cartes/MISSION_DARK_${i + 1}.webp` },
+    { ids: [`mission-light-${i + 1}`, `drafts.mission-light-${i + 1}`], champ: "card", fichier: `cartes/MISSION_LIGHT_${i + 1}.webp` },
+    { ids: [`mission-dark-${i + 1}`, `drafts.mission-dark-${i + 1}`], champ: "card", fichier: `cartes/MISSION_DARK_${i + 1}.webp` },
   ]).flat(),
-  { ids: ["assets", "drafts.assets"], champ: "dosCourtisan", fichier: "cartes/DOS_COURTISAN.webp" },
-  { ids: ["assets", "drafts.assets"], champ: "dosMissionBlanche", fichier: "cartes/DOS_MISSION_LIGHT.webp" },
-  { ids: ["assets", "drafts.assets"], champ: "dosMissionBleue", fichier: "cartes/DOS_MISSION_DARK.webp" },
-  { ids: ["assets", "drafts.assets"], champ: "logo", fichier: "logo.webp" },
-  ...FAMILLES.map((f) => ({ ids: [`famille-${f}`, `drafts.famille-${f}`], champ: "picto", fichier: `pictos/picto-${f}.webp` })),
-  ...ROLES_PICTO.map((r) => ({ ids: [`role-${r}`, `drafts.role-${r}`], champ: "picto", fichier: `pictos/picto-${r}.webp` })),
+  { ids: ["game", "drafts.game"], champ: "courtierBack", fichier: "cartes/DOS_COURTISAN.webp" },
+  { ids: ["game", "drafts.game"], champ: "whiteMissionBack", fichier: "cartes/DOS_MISSION_LIGHT.webp" },
+  { ids: ["game", "drafts.game"], champ: "blueMissionBack", fichier: "cartes/DOS_MISSION_DARK.webp" },
+  { ids: ["interface", "drafts.interface"], champ: "logo", fichier: "logo.webp" },
+  ...FAMILLES.map(([f, fe]) => ({ ids: [`family-${fe}`, `drafts.family-${fe}`], champ: "pictogram", fichier: `pictos/picto-${f}.webp` })),
+  ...ROLES_PICTO.map(([r, re]) => ({ ids: [`role-${re}`, `drafts.role-${re}`], champ: "pictogram", fichier: `pictos/picto-${r}.webp` })),
 ]
 
 async function main() {

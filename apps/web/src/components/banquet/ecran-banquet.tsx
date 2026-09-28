@@ -15,6 +15,12 @@ import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/comp
 import type { CatalogueClient, ContenuRegles } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
+function srcSetDecor(url: string) {
+  if (url.includes("-3200.webp")) return `${url.replace("-3200.webp", "-1600.webp")} 1600w, ${url} 3200w`
+  if (url.includes("w=3000")) return `${url.replace("w=3000", "w=1600")} 1600w, ${url} 3000w`
+  return undefined
+}
+
 export function decorBanquet(catalogue: CatalogueClient) {
   return { logoUrl: catalogue.logoUrl, banquetHautUrl: catalogue.banquetHautUrl, banquetBasUrl: catalogue.banquetBasUrl, regles: catalogue.regles }
 }
@@ -22,7 +28,7 @@ export function decorBanquet(catalogue: CatalogueClient) {
 export function EcranBanquet({
   logoUrl,
   banquetHautUrl = null,
-  banquetBasUrl = "/accueil/banquet.webp",
+  banquetBasUrl = "/accueil/banquet-bas-3200.webp",
   regles,
   children,
   bouton,
@@ -46,6 +52,8 @@ export function EcranBanquet({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={banquetHautUrl}
+          srcSet={srcSetDecor(banquetHautUrl)}
+          sizes="114vw"
           alt=""
           aria-hidden
           draggable={false}
@@ -85,6 +93,8 @@ export function EcranBanquet({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={banquetBasUrl}
+            srcSet={srcSetDecor(banquetBasUrl)}
+            sizes="114vw"
             alt=""
             aria-hidden
             draggable={false}

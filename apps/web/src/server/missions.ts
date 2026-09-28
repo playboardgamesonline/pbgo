@@ -1,50 +1,51 @@
 import "server-only"
 import type { Condition, Famille, Mission, Role } from "@courtisans/engine"
+import { traduire } from "@/lib/i18n"
 import { MISSIONS_PAR_DEFAUT } from "@/lib/missions-par-defaut"
 import { getCatalogue } from "@/sanity/catalogue"
 
 type ConditionSanity = {
   type?: string
-  famille?: string
-  statut?: string
-  filtreFamille?: string
-  filtreRole?: string
-  niveau?: string
-  comparateur?: string
-  valeur?: number
-  adversaire?: string
+  family?: string
+  status?: string
+  familyFilter?: string
+  roleFilter?: string
+  level?: string
+  comparator?: string
+  value?: number
+  opponent?: string
   mode?: string
   conditions?: ConditionSanity[]
 }
 
 function filtre(c: ConditionSanity) {
   return {
-    ...(c.filtreFamille ? { famille: c.filtreFamille as Famille } : {}),
-    ...(c.filtreRole ? { role: c.filtreRole as Role | "sansRole" } : {}),
+    ...(c.familyFilter ? { famille: c.familyFilter as Famille } : {}),
+    ...(c.roleFilter ? { role: c.roleFilter as Role | "sansRole" } : {}),
   }
 }
 
 export function versCondition(c: ConditionSanity): Condition {
-  const comparateur = (c.comparateur ?? "gte") as Extract<Condition, { comparateur: unknown }>["comparateur"]
+  const comparateur = (c.comparator ?? "gte") as Extract<Condition, { comparateur: unknown }>["comparateur"]
   const mode = (c.mode ?? "cartes") as "cartes" | "poids"
   switch (c.type) {
     case "statutFamille":
-      return { type: "statutFamille", famille: c.famille as Famille, statut: c.statut as "lumiere" }
+      return { type: "statutFamille", famille: c.family as Famille, statut: c.status as "lumiere" }
     case "nombreFamillesStatut":
-      return { type: "nombreFamillesStatut", statut: c.statut as "lumiere", comparateur, valeur: c.valeur ?? 0 }
+      return { type: "nombreFamillesStatut", statut: c.status as "lumiere", comparateur, valeur: c.value ?? 0 }
     case "nombreCartesDomaine":
-      return { type: "nombreCartesDomaine", filtre: filtre(c), comparateur, valeur: c.valeur ?? 0, mode }
+      return { type: "nombreCartesDomaine", filtre: filtre(c), comparateur, valeur: c.value ?? 0, mode }
     case "nombreCartesTable":
       return {
         type: "nombreCartesTable",
         filtre: filtre(c),
         comparateur,
-        valeur: c.valeur ?? 0,
+        valeur: c.value ?? 0,
         mode,
-        ...(c.niveau ? { niveau: c.niveau as "haut" | "bas" } : {}),
+        ...(c.level ? { niveau: c.level as "haut" | "bas" } : {}),
       }
     case "comparaisonJoueurs":
-      return { type: "comparaisonJoueurs", filtre: filtre(c), comparateur, adversaire: c.adversaire as "voisinGauche", mode }
+      return { type: "comparaisonJoueurs", filtre: filtre(c), comparateur, adversaire: c.opponent as "voisinGauche", mode }
     case "et":
     case "ou":
       return { type: c.type, conditions: (c.conditions ?? []).map(versCondition) }
@@ -63,7 +64,14 @@ export async function chargerMissions(nombreJoueurs: number): Promise<Mission[]>
     const { missions } = await getCatalogue()
     depuisSanity = missions.flatMap((m) => {
       try {
-        return [{ id: m._id, couleur: m.couleur as Mission["couleur"], texte: m.texte ?? "", condition: versCondition(m.condition as ConditionSanity) }]
+        return [
+          {
+            id: m._id,
+            couleur: m.color as Mission["couleur"],
+            texte: traduire(m.text) ?? "",
+            condition: versCondition(m.condition as ConditionSanity),
+          },
+        ]
       } catch {
         return []
       }

@@ -2,6 +2,7 @@ import "server-only"
 import type { Famille, Role } from "@courtisans/engine"
 import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, type RoleRegles } from "@/lib/catalogue"
 import { TEXTES_REGLES_DEFAUT, type TextesRegles, VISUELS_REGLES_DEFAUT, type VisuelsRegles } from "@/lib/regles-defaut"
+import { type Localise, traduire } from "@/lib/i18n"
 import { getCatalogue } from "./catalogue"
 import { urlFor } from "./image"
 
@@ -10,41 +11,44 @@ const url = (source: Source | null | undefined, width: number) => (source ? urlF
 
 export async function getCatalogueClient(): Promise<CatalogueClient> {
   try {
-    const { interface: iface, game, rules, textes, familles, roles, courtisans, missions } = await getCatalogue()
+    const { interface: iface, game, rules, texts, families, roles, courtiers, missions } = await getCatalogue()
     const d = CATALOGUE_PAR_DEFAUT
 
     const famillesMap = { ...d.familles }
-    for (const f of familles) {
-      const cle = f.cle as Famille | undefined
+    for (const f of families) {
+      const cle = f.key as Famille | undefined
       if (!cle || !famillesMap[cle]) continue
       famillesMap[cle] = {
         ...famillesMap[cle],
-        nom: f.nom ?? famillesMap[cle].nom,
-        couleur: f.couleur ?? famillesMap[cle].couleur,
-        pictoUrl: url(f.picto, 128) ?? famillesMap[cle].pictoUrl,
+        nom: traduire(f.name) ?? famillesMap[cle].nom,
+        couleur: f.color ?? famillesMap[cle].couleur,
+        pictoUrl: url(f.pictogram, 128) ?? famillesMap[cle].pictoUrl,
       }
     }
     const rolesMap = { ...d.roles }
     const reglesRoles: Record<Role, RoleRegles> = { ...d.regles.roles }
     for (const r of roles) {
-      const cle = r.cle as Role | undefined
+      const cle = r.key as Role | undefined
       if (!cle || !rolesMap[cle]) continue
-      rolesMap[cle] = { ...rolesMap[cle], nom: r.nom ?? rolesMap[cle].nom, pictoUrl: url(r.picto, 128) ?? rolesMap[cle].pictoUrl }
+      const nom = traduire(r.name) ?? rolesMap[cle].nom
+      rolesMap[cle] = { ...rolesMap[cle], nom, pictoUrl: url(r.pictogram, 128) ?? rolesMap[cle].pictoUrl }
       reglesRoles[cle] = {
-        texte: r.regle || reglesRoles[cle].texte,
-        visuelUrl: url(r.visuel, 480) ?? reglesRoles[cle].visuelUrl,
+        nom,
+        nombre: r.countPerFamily ?? reglesRoles[cle].nombre,
+        texte: traduire(r.rule) || reglesRoles[cle].texte,
+        visuelUrl: url(r.rulesVisual, 480) ?? reglesRoles[cle].visuelUrl,
         letteringUrl: r.lettering ?? null,
       }
     }
 
     const cartes: Record<string, string> = { ...d.cartes }
-    for (const c of courtisans) {
-      const imageUrl = url(c.carte, 360)
-      if (c.famille && imageUrl) cartes[cleCarte(c.famille as Famille, (c.role as Role | null) ?? null)] = imageUrl
+    for (const c of courtiers) {
+      const imageUrl = url(c.card, 360)
+      if (c.family && imageUrl) cartes[cleCarte(c.family as Famille, (c.role as Role | null) ?? null)] = imageUrl
     }
     const missionsMap: Record<string, string> = { ...d.missions }
     for (const m of missions) {
-      const imageUrl = url(m.carte, 520)
+      const imageUrl = url(m.card, 520)
       if (imageUrl) missionsMap[m._id] = imageUrl
     }
 
@@ -55,17 +59,18 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       roles: rolesMap,
       cartes,
       missions: missionsMap,
-      tapisUrl: url(game?.tapis, 2000) ?? d.tapisUrl,
-      dosCourtisanUrl: url(game?.dosCourtisan, 360) ?? d.dosCourtisanUrl,
-      dosMissionBlancheUrl: url(game?.dosMissionBlanche, 520) ?? d.dosMissionBlancheUrl,
-      dosMissionBleueUrl: url(game?.dosMissionBleue, 520) ?? d.dosMissionBleueUrl,
-      banquetHautUrl: url(iface?.banquetHaut, 3000) ?? d.banquetHautUrl,
-      banquetBasUrl: url(iface?.banquetBas, 3000) ?? d.banquetBasUrl,
+      tapisUrl: url(game?.mat, 2000) ?? d.tapisUrl,
+      dosCourtisanUrl: url(game?.courtierBack, 360) ?? d.dosCourtisanUrl,
+      dosMissionBlancheUrl: url(game?.whiteMissionBack, 520) ?? d.dosMissionBlancheUrl,
+      dosMissionBleueUrl: url(game?.blueMissionBack, 520) ?? d.dosMissionBleueUrl,
+      banquetHautUrl: url(iface?.banquetTop, 3000) ?? d.banquetHautUrl,
+      banquetBasUrl: url(iface?.banquetBottom, 3000) ?? d.banquetBasUrl,
       regles: {
         textes: Object.fromEntries(
           Object.entries(TEXTES_REGLES_DEFAUT).map(([cle, defaut]) => {
-            const valeur = rules?.[cle as keyof typeof rules]
-            return [cle, typeof valeur === "string" && valeur.trim() ? valeur : defaut]
+            const brut = rules?.[cle as keyof typeof rules] as unknown
+            const valeur = typeof brut === "string" ? brut : traduire(brut as Localise)
+            return [cle, valeur?.trim() ? valeur : defaut]
           }),
         ) as TextesRegles,
         visuels: Object.fromEntries(
@@ -76,7 +81,7 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
         ) as VisuelsRegles,
         roles: reglesRoles,
       },
-      phrasesVainqueur: textes?.phrasesVainqueur?.length ? textes.phrasesVainqueur : d.phrasesVainqueur,
+      phrasesVainqueur: traduire(texts?.winnerPhrases)?.length ? traduire(texts?.winnerPhrases)! : d.phrasesVainqueur,
     }
   } catch (error) {
     console.error("Catalogue Sanity indisponible", error)

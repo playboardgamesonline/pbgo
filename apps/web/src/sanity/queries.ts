@@ -1,12 +1,12 @@
 import { defineQuery } from "next-sanity"
 
 export const CATALOGUE_QUERY = defineQuery(`{
-  "interface": *[_id == "interface"][0]{ logo, banquetHaut, banquetBas },
-  "game": *[_id == "game"][0]{ tapis, dosCourtisan, dosMissionBlanche, dosMissionBleue },
+  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom },
+  "game": *[_id == "game"][0]{ mat, courtierBack, whiteMissionBack, blueMissionBack },
   "rules": *[_id == "rules"][0],
-  "textes": *[_id == "textes"][0]{ phrasesVainqueur },
-  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },
-  "roles": *[_type == "role"]{ _id, nom, cle, picto, visuel, regle, "lettering": lettering.asset->url },
-  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },
-  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition }
+  "texts": *[_id == "texts"][0]{ winnerPhrases },
+  "families": *[_type == "family"]{ _id, name, key, color, pictogram },
+  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rulesVisual, rule, "lettering": lettering.asset->url },
+  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },
+  "missions": *[_type == "mission"]{ _id, color, text, card, condition }
 }`)

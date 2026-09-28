@@ -8,8 +8,8 @@ export const mission = defineType({
   icon: DocumentIcon,
   fields: [
     defineField({
-      name: "couleur",
-      title: "Colour",
+      name: "color",
+      title: "Color",
       type: "string",
       options: {
         list: [
@@ -21,18 +21,12 @@ export const mission = defineType({
       },
       validation: (r) => r.required(),
     }),
-    defineField({ name: "texte", title: "Text", type: "text", rows: 2, validation: (r) => r.required() }),
-    defineField({ name: "carte", title: "Card", type: "image", validation: (r) => r.required() }),
-    defineField({
-      name: "condition",
-      title: "Rule",
-      description: "Condition checked at the end of the game to earn 3 points",
-      type: "condition",
-      validation: (r) => r.required(),
-    }),
+    defineField({ name: "text", title: "Text", type: "localeText" }),
+    defineField({ name: "card", title: "Card", type: "image", validation: (r) => r.required() }),
+    defineField({ name: "condition", title: "Rule", type: "condition", validation: (r) => r.required() }),
   ],
   preview: {
-    select: { title: "texte", couleur: "couleur", media: "carte" },
-    prepare: ({ title, couleur, media }) => ({ title, subtitle: couleur === "bleue" ? "Blue" : "White", media }),
+    select: { title: "text.en", fallback: "text.fr", color: "color", media: "card" },
+    prepare: ({ title, fallback, color, media }) => ({ title: title || fallback, subtitle: color === "bleue" ? "Blue" : "White", media }),
   },
 })

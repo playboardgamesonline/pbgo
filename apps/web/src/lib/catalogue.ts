@@ -33,7 +33,9 @@ export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
   garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictos/picto-garde.webp" },
 }
 
-export type RoleRegles = { texte: string; visuelUrl: string | null; letteringUrl: string | null }
+const NOMBRE_PAR_FAMILLE: Record<Role, number> = { noble: 4, garde: 3, espion: 2, assassin: 2 }
+
+export type RoleRegles = { nom: string; nombre: number; texte: string; visuelUrl: string | null; letteringUrl: string | null }
 
 export type ContenuRegles = {
   textes: TextesRegles
@@ -44,10 +46,18 @@ export type ContenuRegles = {
 export const REGLES_PAR_DEFAUT: ContenuRegles = {
   textes: TEXTES_REGLES_DEFAUT,
   visuels: VISUELS_REGLES_DEFAUT,
-  roles: Object.fromEntries(ROLES.map((r) => [r, { texte: REGLES_ROLES_DEFAUT[r], visuelUrl: `/regles/${r}.webp`, letteringUrl: null }])) as Record<
-    Role,
-    RoleRegles
-  >,
+  roles: Object.fromEntries(
+    ROLES.map((r) => [
+      r,
+      {
+        nom: ROLES_PAR_DEFAUT[r].nom,
+        nombre: NOMBRE_PAR_FAMILLE[r],
+        texte: REGLES_ROLES_DEFAUT[r],
+        visuelUrl: `/regles/${r}.webp`,
+        letteringUrl: null,
+      },
+    ]),
+  ) as Record<Role, RoleRegles>,
 }
 
 export type CatalogueClient = {
@@ -88,8 +98,8 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   dosCourtisanUrl: "/cartes/DOS_COURTISAN.webp",
   dosMissionBlancheUrl: "/cartes/DOS_MISSION_LIGHT.webp",
   dosMissionBleueUrl: "/cartes/DOS_MISSION_DARK.webp",
-  banquetHautUrl: null,
-  banquetBasUrl: "/accueil/banquet.webp",
+  banquetHautUrl: "/accueil/banquet-haut-3200.webp",
+  banquetBasUrl: "/accueil/banquet-bas-3200.webp",
   regles: REGLES_PAR_DEFAUT,
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
 }
