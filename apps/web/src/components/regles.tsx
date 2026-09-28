@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { type ImagesRegles, REGLES_PAR_DEFAUT } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
 export const BOUTON_ICONE =
@@ -32,7 +33,8 @@ function Etiquette({ type }: { type: "lumiere" | "disgrace" | "neutre" }) {
   return <span className={cn("rounded-md px-1.5 py-px text-[0.92em] whitespace-nowrap ring-1", styles[type])}>{texte[type]}</span>
 }
 
-function Image({ src, alt, className }: { src: string; alt: string; className?: string }) {
+function Image({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
+  if (!src) return null
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={src} alt={alt} loading="lazy" className={cn("rounded-xl shadow-[0_10px_30px_rgb(14_57_64/25%)]", className)} />
 }
@@ -62,11 +64,11 @@ function Carte({ numero, titre, sous, children }: { numero?: number; titre: stri
   )
 }
 
-function Role({ nom, nombre, image, children }: { nom: string; nombre: number; image: string; children: React.ReactNode }) {
+function Role({ nom, nombre, image, children }: { nom: string; nombre: number; image: string | null; children: React.ReactNode }) {
   return (
     <div className="flex gap-5 rounded-2xl bg-white/70 p-4 shadow-[0_6px_20px_rgb(14_57_64/10%)] ring-1 ring-[#0e3940]/10">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={image} alt={nom} loading="lazy" className="w-24 shrink-0 self-center mix-blend-multiply" />
+      {image && <img src={image} alt={nom} loading="lazy" className="w-24 shrink-0 self-center mix-blend-multiply" />}
       <div>
         <div className="flex items-baseline gap-2">
           <p className="font-display text-xl text-[#0e3940]">{nom}</p>
@@ -78,7 +80,7 @@ function Role({ nom, nombre, image, children }: { nom: string; nombre: number; i
   )
 }
 
-function Contenu({ onglet }: { onglet: Onglet }) {
+function Contenu({ onglet, images }: { onglet: Onglet; images: ImagesRegles }) {
   switch (onglet) {
     case "video":
       return (
@@ -103,7 +105,7 @@ function Contenu({ onglet }: { onglet: Onglet }) {
             gagner ou perdre des points, chez vous et chez un adversaire. Terminez la partie avec le plus de points.
           </EnTete>
           <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
-            <Image src="/regles/table-exemple.webp" alt="La table de la reine" />
+            <Image src={images.table} alt="La table de la reine" />
             <div className="space-y-4">
               <Carte titre="Six familles">
                 Papillon, crapaud, rossignol, lièvre, cerf et carpe : chacune finira <Etiquette type="lumiere" />, <Etiquette type="disgrace" /> ou{" "}
@@ -112,6 +114,7 @@ function Contenu({ onglet }: { onglet: Onglet }) {
               <Carte titre="Deux missions secrètes">
                 Une blanche et une bleue. Chaque mission réussie rapporte 3 points en fin de partie. Ne les dévoilez jamais.
               </Carte>
+              <Image src={images.missions} alt="Les cartes Mission" className="w-full" />
             </div>
           </div>
         </>
@@ -151,26 +154,26 @@ function Contenu({ onglet }: { onglet: Onglet }) {
             Certains courtisans ont un rôle, indiqué par une icône aux quatre coins de la carte.
           </EnTete>
           <div className="grid gap-4 lg:grid-cols-2">
-            <Role nom="Noble" nombre={4} image="/regles/noble.webp">
+            <Role nom="Noble" nombre={4} image={images.noble}>
               Compte pour 2 cartes en fin de partie, dans un domaine comme à la table de la reine.
             </Role>
-            <Role nom="Garde" nombre={3} image="/regles/garde.webp">
+            <Role nom="Garde" nombre={3} image={images.garde}>
               Ne peut pas être éliminé par un assassin : il ne quitte jamais le jeu.
             </Role>
-            <Role nom="Espion" nombre={2} image="/regles/espion.webp">
+            <Role nom="Espion" nombre={2} image={images.espion}>
               Toujours joué face cachée, personne ne peut le regarder. À la table, il rejoint la colonne de la reine.
             </Role>
-            <Role nom="Assassin" nombre={2} image="/regles/assassin.webp">
+            <Role nom="Assassin" nombre={2} image={images.assassin}>
               En le posant, vous pouvez éliminer une autre carte de la même zone (sauf un garde), espions compris. Facultatif.
             </Role>
           </div>
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
             <figure className="space-y-2">
-              <Image src="/regles/espion-exemple.webp" alt="Un espion joué dans la colonne de la reine" className="w-full" />
+              <Image src={images.exempleEspion} alt="Un espion joué dans la colonne de la reine" className="w-full" />
               <figcaption className="text-sm text-[#0e5a5f] italic">L&apos;espion rejoint la colonne de la reine sans révéler sa famille.</figcaption>
             </figure>
             <figure className="space-y-2">
-              <Image src="/regles/assassin-exemple.webp" alt="Un assassin élimine une noble" className="mx-auto max-h-80" />
+              <Image src={images.exempleAssassin} alt="Un assassin élimine une noble" className="mx-auto max-h-80" />
               <figcaption className="text-center text-sm text-[#0e5a5f] italic">
                 Un assassin du rossignol, joué au-dessous de la table, élimine une noble du lièvre au-dessus.
               </figcaption>
@@ -199,9 +202,9 @@ function Contenu({ onglet }: { onglet: Onglet }) {
               </Carte>
             </div>
             <div className="space-y-6">
-              <Image src="/regles/decompte-table.webp" alt="Exemple de statut des familles" className="w-full" />
+              <Image src={images.decompteTable} alt="Exemple de statut des familles" className="w-full" />
               <figure className="space-y-2">
-                <Image src="/regles/decompte-domaine.webp" alt="Exemple de décompte d'un domaine" className="w-full" />
+                <Image src={images.decompteDomaine} alt="Exemple de décompte d'un domaine" className="w-full" />
                 <figcaption className="text-sm text-[#0e5a5f] italic">
                   11 points : +11 (papillon, crapaud, cerf), −3 (rossignol), 0 (carpe), +3 pour la mission.
                 </figcaption>
@@ -213,7 +216,7 @@ function Contenu({ onglet }: { onglet: Onglet }) {
   }
 }
 
-export function ReglesButton({ className, icone }: { className?: string; icone?: boolean }) {
+export function ReglesButton({ className, icone, images = REGLES_PAR_DEFAUT }: { className?: string; icone?: boolean; images?: ImagesRegles }) {
   const [onglet, setOnglet] = useState<Onglet>("video")
   return (
     <Dialog>
@@ -271,7 +274,7 @@ export function ReglesButton({ className, icone }: { className?: string; icone?:
               transition={{ duration: 0.2 }}
               className="px-12 py-12"
             >
-              <Contenu onglet={onglet} />
+              <Contenu onglet={onglet} images={images} />
             </motion.div>
           </AnimatePresence>
         </ScrollArea>

@@ -7,12 +7,11 @@ export const assets = defineType({
   type: "document",
   icon: ImagesIcon,
   groups: [
-    { name: "jeu", title: "Jeu", default: true },
-    { name: "banquet", title: "Décor du banquet" },
+    { name: "jeu", title: "Game", default: true },
+    { name: "banquet", title: "Banquet" },
   ],
   fields: [
     defineField({ name: "logo", title: "Logo", type: "image", group: "jeu" }),
-    defineField({ name: "tapis", title: "Tapis de jeu", type: "image", group: "jeu" }),
     defineField({
       name: "dosCourtisan",
       title: "Dos des cartes Courtisan",

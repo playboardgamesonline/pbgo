@@ -32,6 +32,32 @@ export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
   garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictos/picto-garde.webp" },
 }
 
+export type ImagesRegles = {
+  missions: string | null
+  noble: string | null
+  garde: string | null
+  espion: string | null
+  assassin: string | null
+  table: string | null
+  exempleEspion: string | null
+  exempleAssassin: string | null
+  decompteTable: string | null
+  decompteDomaine: string | null
+}
+
+export const REGLES_PAR_DEFAUT: ImagesRegles = {
+  missions: null,
+  noble: "/regles/noble.webp",
+  garde: "/regles/garde.webp",
+  espion: "/regles/espion.webp",
+  assassin: "/regles/assassin.webp",
+  table: "/regles/table-exemple.webp",
+  exempleEspion: "/regles/espion-exemple.webp",
+  exempleAssassin: "/regles/assassin-exemple.webp",
+  decompteTable: "/regles/decompte-table.webp",
+  decompteDomaine: "/regles/decompte-domaine.webp",
+}
+
 export type CatalogueClient = {
   logoUrl: string
   chateaux: ChateauOption[]
@@ -45,6 +71,7 @@ export type CatalogueClient = {
   dosMissionBleueUrl: string | null
   banquetHautUrl: string | null
   banquetBasUrl: string
+  regles: ImagesRegles
   phrasesVainqueur: string[]
 }
 
@@ -71,5 +98,6 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   dosMissionBleueUrl: "/cartes/DOS_MISSION_DARK.webp",
   banquetHautUrl: null,
   banquetBasUrl: "/accueil/banquet.webp",
+  regles: REGLES_PAR_DEFAUT,
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
 }

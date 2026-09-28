@@ -159,7 +159,7 @@ export function Jeu3D({
               </button>
               <div className="flex items-center gap-1">
                 <BoutonSon />
-                <ReglesButton icone />
+                <ReglesButton icone images={catalogue.regles} />
               </div>
             </div>
             <Bandeau />

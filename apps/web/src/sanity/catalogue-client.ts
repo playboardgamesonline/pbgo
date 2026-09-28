@@ -1,6 +1,6 @@
 import "server-only"
 import type { Famille, Role } from "@courtisans/engine"
-import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte } from "@/lib/catalogue"
+import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, type ImagesRegles } from "@/lib/catalogue"
 import { getCatalogue } from "./catalogue"
 import { urlFor } from "./image"
 
@@ -9,7 +9,7 @@ const url = (source: Source | null | undefined, width: number) => (source ? urlF
 
 export async function getCatalogueClient(): Promise<CatalogueClient> {
   try {
-    const { assets, textes, familles, roles, courtisans, missions } = await getCatalogue()
+    const { assets, board, rules, textes, familles, roles, courtisans, missions } = await getCatalogue()
     const d = CATALOGUE_PAR_DEFAUT
 
     const famillesMap = { ...d.familles }
@@ -48,12 +48,15 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       roles: rolesMap,
       cartes,
       missions: missionsMap,
-      tapisUrl: url(assets?.tapis, 2000) ?? d.tapisUrl,
+      tapisUrl: url(board?.tapis, 2000) ?? d.tapisUrl,
       dosCourtisanUrl: url(assets?.dosCourtisan, 360) ?? d.dosCourtisanUrl,
       dosMissionBlancheUrl: url(assets?.dosMissionBlanche, 520) ?? d.dosMissionBlancheUrl,
       dosMissionBleueUrl: url(assets?.dosMissionBleue, 520) ?? d.dosMissionBleueUrl,
       banquetHautUrl: url(assets?.banquetHaut, 3000) ?? d.banquetHautUrl,
       banquetBasUrl: url(assets?.banquetBas, 3000) ?? d.banquetBasUrl,
+      regles: Object.fromEntries(
+        Object.entries(d.regles).map(([cle, defaut]) => [cle, url(rules?.[cle as keyof NonNullable<typeof rules>], 1400) ?? defaut]),
+      ) as ImagesRegles,
       phrasesVainqueur: textes?.phrasesVainqueur?.length ? textes.phrasesVainqueur : d.phrasesVainqueur,
     }
   } catch (error) {

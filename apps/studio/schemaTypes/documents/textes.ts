@@ -3,7 +3,7 @@ import { defineField, defineType } from "sanity"
 
 export const textes = defineType({
   name: "textes",
-  title: "Textes",
+  title: "Texts",
   type: "document",
   icon: DocumentTextIcon,
   fields: [
@@ -15,5 +15,5 @@ export const textes = defineType({
       of: [{ type: "string" }],
     }),
   ],
-  preview: { prepare: () => ({ title: "Textes" }) },
+  preview: { prepare: () => ({ title: "Texts" }) },
 })

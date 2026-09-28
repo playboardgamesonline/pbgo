@@ -12,17 +12,18 @@ import { BoutonSon } from "@/components/son"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
-import type { CatalogueClient } from "@/lib/catalogue"
+import type { CatalogueClient, ImagesRegles } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
 export function decorBanquet(catalogue: CatalogueClient) {
-  return { logoUrl: catalogue.logoUrl, banquetHautUrl: catalogue.banquetHautUrl, banquetBasUrl: catalogue.banquetBasUrl }
+  return { logoUrl: catalogue.logoUrl, banquetHautUrl: catalogue.banquetHautUrl, banquetBasUrl: catalogue.banquetBasUrl, regles: catalogue.regles }
 }
 
 export function EcranBanquet({
   logoUrl,
   banquetHautUrl = null,
   banquetBasUrl = "/accueil/banquet.webp",
+  regles,
   children,
   bouton,
   bas,
@@ -31,6 +32,7 @@ export function EcranBanquet({
   logoUrl: string
   banquetHautUrl?: string | null
   banquetBasUrl?: string
+  regles?: ImagesRegles
   children?: React.ReactNode
   bouton?: React.ReactNode
   bas?: React.ReactNode
@@ -52,7 +54,7 @@ export function EcranBanquet({
       )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
         <BoutonSon />
-        <ReglesButton icone />
+        <ReglesButton icone images={regles} />
       </div>
 
       <form onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
