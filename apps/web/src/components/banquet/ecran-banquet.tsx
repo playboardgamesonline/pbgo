@@ -65,7 +65,7 @@ export function EcranBanquet({
         <ReglesButton icone regles={regles} />
       </div>
 
-      <form onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
+      <form autoComplete="off" onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
         <motion.div
           initial={{ opacity: 0, y: -20, rotate: -2 }}
           animate={{ opacity: 1, y: 0, rotate: 0 }}
@@ -167,6 +167,12 @@ export function ChampCode({ value, onChange, copiable }: { value: string; onChan
         onChange={(v) => onChange?.(v.toUpperCase())}
         disabled={!onChange}
         aria-label="Code du banquet"
+        name="code-banquet"
+        autoComplete="off"
+        data-1p-ignore
+        data-lpignore="true"
+        data-bwignore="true"
+        data-form-type="other"
       >
         <InputOTPGroup>
           {[0, 1, 2].map((i) => (
@@ -201,17 +207,26 @@ export function ChampAppellation({ value, onChange }: { value: string; onChange:
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
-      className="mt-[4vh] w-full max-w-md shrink-0 px-4"
+      className="mt-[6vh] w-full max-w-md shrink-0 px-4"
     >
       <Input
-        id="pseudo"
+        id="appellation"
+        name="appellation"
+        type="text"
         value={value}
         maxLength={20}
-        autoComplete="nickname"
+        autoFocus
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
+        data-bwignore="true"
+        data-form-type="other"
         placeholder="VÔTRE PRÉNOMMÉE…"
         aria-label="Vôtre prénommée"
         onChange={(e) => onChange(e.target.value.toUpperCase())}
-        className="h-14 rounded-none border-0 border-b-2 border-foreground/30 bg-transparent px-2 text-center font-display text-xl tracking-[0.12em] text-foreground uppercase shadow-none placeholder:text-foreground/35 focus-visible:border-foreground focus-visible:ring-0 md:text-2xl dark:bg-transparent"
+        className="h-14 rounded-none border-0 border-b border-foreground/30 bg-transparent px-2 text-center font-display text-xl tracking-[0.12em] text-foreground uppercase shadow-none placeholder:text-foreground/35 focus-visible:border-foreground focus-visible:ring-0 md:text-2xl dark:bg-transparent"
       />
     </motion.div>
   )
@@ -225,8 +240,8 @@ export function Introduction({ titre, children }: { titre: string; children: Rea
       transition={{ delay: 0.2 }}
       className="mt-[3vh] max-w-5xl shrink-0 space-y-2 px-4 text-center [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
     >
-      <h2 className="font-display text-2xl tracking-[0.08em] whitespace-nowrap text-foreground uppercase md:text-[1.7rem]">{titre}</h2>
-      <div className="mx-auto max-w-4xl space-y-1.5 text-[0.95rem] leading-relaxed text-foreground/75 italic md:text-base">{children}</div>
+      <h2 className="font-typey text-lg tracking-[0.1em] whitespace-nowrap text-foreground uppercase md:text-xl">{titre}</h2>
+      <div className="mx-auto max-w-5xl space-y-1.5 font-typey text-[0.95rem] leading-relaxed text-foreground/80 md:text-base">{children}</div>
     </motion.div>
   )
 }
