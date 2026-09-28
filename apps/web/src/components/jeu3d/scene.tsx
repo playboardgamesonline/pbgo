@@ -27,7 +27,7 @@ import { ReglagesCartes } from "./reglages-cartes"
 import { Colonne } from "./colonne"
 import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
-import { Compteurs, PointsPiles, Projecteur, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
+import { Compteurs, PointsPiles, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
 import { textureMotif } from "./motifs"
 import { boutonCopie, onglet } from "./onglets-debug"
 import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
@@ -1083,9 +1083,8 @@ function Monde({
       {resultats && fin && (
         <>
           <ResolutionFamilles resultats={resultats} fin={fin} />
-          <Compteurs vue={vue} resultats={resultats} fin={fin} zones={zones} gagnants={resultats.vainqueurs} />
+          <Compteurs vue={vue} resultats={resultats} fin={fin} zones={zones} />
           <PointsPiles vue={vue} resultats={resultats} fin={fin} zones={zones} />
-          <Projecteur fin={fin} centres={centresGagnants.centres} axes={centresGagnants.axes} />
           {fin.projecteur &&
             centresGagnants.zonesGagnantes.map((z, i) => (
               <Aura

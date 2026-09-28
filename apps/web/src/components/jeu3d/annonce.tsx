@@ -6,7 +6,7 @@ import { useEffect } from "react"
 import { jouerSon, type NomSon } from "@/lib/son"
 import { boutonCopie, onglet } from "./onglets-debug"
 
-export type TypeAnnonce = "banquet" | "tour"
+export type TypeAnnonce = "banquet" | "tour" | "victoire"
 
 const DEFAUT = {
   duree: 2.4,
@@ -57,7 +57,13 @@ function schema(defaut: ReglagesAnnonce, dossier: string) {
 export function useReglagesAnnonces(): Record<TypeAnnonce, ReglagesAnnonce> {
   const banquet = useControls("Annonce banquet", schema(DEFAUT, "Annonce banquet"), { collapsed: true }, onglet("TRANSITION"))
   const tour = useControls("Annonce votre tour", schema(DEFAUT, "Annonce votre tour"), { collapsed: true }, onglet("TRANSITION"))
-  return { banquet: banquet as ReglagesAnnonce, tour: tour as ReglagesAnnonce }
+  const victoire = useControls(
+    "Annonce victoire",
+    schema({ ...DEFAUT, duree: 4.5, son: false, taille: 3.2, dureeLignes: 3.5 }, "Annonce victoire"),
+    { collapsed: true },
+    onglet("TRANSITION"),
+  )
+  return { banquet: banquet as ReglagesAnnonce, tour: tour as ReglagesAnnonce, victoire: victoire as ReglagesAnnonce }
 }
 
 function Ligne({ sens, r }: { sens: 1 | -1; r: ReglagesAnnonce }) {

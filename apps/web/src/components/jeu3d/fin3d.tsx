@@ -4,24 +4,12 @@ import type { Famille, Resultats, VueJoueur } from "@courtisans/engine"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useMemo, useRef, useState } from "react"
-import {
-  AdditiveBlending,
-  CanvasTexture,
-  Color,
-  type Group,
-  type Mesh,
-  NormalBlending,
-  SRGBColorSpace,
-  type ShaderMaterial,
-  type Texture,
-  TextureLoader,
-  Vector2,
-} from "three"
+import { CanvasTexture, type Group, type Mesh, SRGBColorSpace, type Texture, TextureLoader, Vector2 } from "three"
 import { useControls } from "leva"
 import { useJeu } from "../jeu/contexte"
 import { boutonCopie, onglet } from "./onglets-debug"
 import { ORDRE_TAPIS } from "@/lib/catalogue"
-import { CARTE_H, colonneX, PAS, TAPIS_L, TAPIS_P, type ZoneDomaine } from "./disposition"
+import { colonneX, TAPIS_P, type ZoneDomaine } from "./disposition"
 import type { EtatFin } from "./fin"
 import { TexteTable } from "./texte-table"
 
@@ -122,22 +110,8 @@ function Signe({ signe, position }: { signe: Signe; position: [number, number, n
 }
 
 export const REGLAGES_FIN = {
-  couleurLumiere: "#ffc247",
-  intensiteLumiere: 0.55,
-  couleurDisgrace: "#021414",
-  intensiteDisgrace: 0.7,
-  fondu: 1.6,
-  couverture: 1,
-  largeur: 1,
-  bordLateral: 0.02,
-  pulsation: 0.08,
-  vitesse: 1.2,
   tailleFleche: 1.15,
-  obscurite: 0.6,
-  obscuriteTableau: 0.4,
   forceGagnant: 0.4,
-  tapisEclaire: true,
-  margeTapis: 0.8,
   taillePoints: 0.75,
   couleurPositif: "#ffd35c",
   couleurNegatif: "#ff5a5a",
@@ -146,22 +120,8 @@ export const REGLAGES_FIN = {
 
 type CleFin = keyof typeof REGLAGES_FIN
 const LABELS_FIN: Record<CleFin, [string, string, number?, number?, number?]> = {
-  couleurLumiere: ["Familles du tapis", "couleur lumière"],
-  intensiteLumiere: ["Familles du tapis", "intensité lumière", 0, 2, 0.01],
-  couleurDisgrace: ["Familles du tapis", "couleur disgrâce"],
-  intensiteDisgrace: ["Familles du tapis", "intensité disgrâce", 0, 2, 0.01],
-  fondu: ["Familles du tapis", "fondu (exposant)", 0.2, 6, 0.05],
-  couverture: ["Familles du tapis", "couverture en hauteur", 0.1, 1.5, 0.01],
-  largeur: ["Familles du tapis", "largeur (× colonne)", 0.5, 1.2, 0.01],
-  bordLateral: ["Familles du tapis", "douceur des côtés", 0, 0.5, 0.005],
-  pulsation: ["Familles du tapis", "pulsation", 0, 0.5, 0.01],
-  vitesse: ["Familles du tapis", "vitesse pulsation", 0, 5, 0.05],
   tailleFleche: ["Familles du tapis", "taille flèches", 0.3, 3, 0.05],
-  obscurite: ["Éclairage", "obscurité", 0, 1, 0.01],
-  obscuriteTableau: ["Éclairage", "obscurité (tableau)", 0, 1, 0.01],
-  forceGagnant: ["Éclairage", "lumière du vainqueur", 0, 2, 0.01],
-  tapisEclaire: ["Éclairage", "tapis éclairé"],
-  margeTapis: ["Éclairage", "fondu autour du tapis", 0.05, 3, 0.05],
+  forceGagnant: ["Vainqueur", "aura du vainqueur", 0, 2, 0.01],
   taillePoints: ["Points des piles", "taille", 0.3, 2, 0.05],
   couleurPositif: ["Points des piles", "couleur positif"],
   couleurNegatif: ["Points des piles", "couleur négatif"],
@@ -187,70 +147,9 @@ function useReglagesFin(dossier: string) {
 
 export function ReglagesFin() {
   useReglagesFin("Familles du tapis")
-  useReglagesFin("Éclairage")
+  useReglagesFin("Vainqueur")
   useReglagesFin("Points des piles")
   return null
-}
-
-const vertexRect = /* glsl */ `
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`
-
-const fragmentRect = /* glsl */ `
-uniform vec3 uCouleur;
-uniform float uForce;
-uniform float uFondu;
-uniform float uBord;
-uniform float uHaut;
-varying vec2 vUv;
-void main() {
-  float v = uHaut > 0.5 ? vUv.y : 1.0 - vUv.y;
-  float g = pow(clamp(v, 0.0, 1.0), uFondu);
-  float c = min(vUv.x, 1.0 - vUv.x);
-  float cotes = uBord > 0.0 ? smoothstep(0.0, uBord, c) : 1.0;
-  gl_FragColor = vec4(uCouleur, g * cotes * uForce);
-}`
-
-function RectangleFamille({ x, lumiere }: { x: number; lumiere: boolean }) {
-  const ref = useRef<Mesh>(null)
-  const materiau = useRef<ShaderMaterial>(null)
-  const [uniforms] = useState(() => ({
-    uCouleur: { value: new Color() },
-    uForce: { value: 0 },
-    uFondu: { value: 1.6 },
-    uBord: { value: 0.02 },
-    uHaut: { value: lumiere ? 1 : 0 },
-  }))
-  useFrame(({ clock }, dt) => {
-    const r = REGLAGES_FIN
-    const m = ref.current
-    const mat = materiau.current
-    if (!m || !mat) return
-    const u = mat.uniforms
-    m.scale.set(PAS * r.largeur, TAPIS_P * r.couverture, 1)
-    ;(u.uCouleur.value as Color).set(lumiere ? r.couleurLumiere : r.couleurDisgrace)
-    u.uFondu.value = r.fondu
-    u.uBord.value = r.bordLateral
-    const cible = (lumiere ? r.intensiteLumiere : r.intensiteDisgrace) * (1 + Math.sin(clock.elapsedTime * r.vitesse) * r.pulsation)
-    easing.damp(u.uForce, "value", cible, 0.25, dt)
-  })
-  return (
-    <mesh ref={ref} position={[x, 0.065, 0]} rotation-x={-Math.PI / 2} raycast={() => null} renderOrder={3}>
-      <planeGeometry args={[1, 1]} />
-      <shaderMaterial
-        ref={materiau}
-        vertexShader={vertexRect}
-        fragmentShader={fragmentRect}
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        blending={lumiere ? AdditiveBlending : NormalBlending}
-      />
-    </mesh>
-  )
 }
 
 const textures = new Map<string, Texture>()
@@ -292,7 +191,6 @@ export function ResolutionFamilles({ resultats, fin }: { resultats: Resultats; f
         const disgrace = s.statut === "disgrace"
         return (
           <group key={f}>
-            {(lumiere || disgrace) && <RectangleFamille x={x} lumiere={lumiere} />}
             {lumiere || disgrace ? (
               <Fleche
                 url={lumiere ? catalogue.flecheHautUrl : catalogue.flecheBasUrl}
@@ -347,19 +245,7 @@ export function PointsPiles({ vue, resultats, fin, zones }: { vue: VueJoueur; re
   )
 }
 
-export function Compteurs({
-  vue,
-  resultats,
-  fin,
-  zones,
-  gagnants,
-}: {
-  vue: VueJoueur
-  resultats: Resultats
-  fin: EtatFin
-  zones: Map<string, ZoneDomaine>
-  gagnants: string[]
-}) {
+export function Compteurs({ vue, resultats, fin, zones }: { vue: VueJoueur; resultats: Resultats; fin: EtatFin; zones: Map<string, ZoneDomaine> }) {
   if (fin.pile === 0 && !fin.missions) return null
   return (
     <>
@@ -367,7 +253,6 @@ export function Compteurs({
         const zone = zones.get(j.id)
         const r = resultats.joueurs.find((x) => x.joueurId === j.id)
         if (!zone || !r) return null
-        if (fin.noir && !gagnants.includes(j.id)) return null
         const piles = r.detail.slice(0, fin.pile)
         const total = piles.reduce((s, d) => s + d.points, 0) + (fin.missions ? r.missions.reduce((s, m) => s + m.points, 0) : 0)
         return (
@@ -381,73 +266,6 @@ export function Compteurs({
         )
       })}
     </>
-  )
-}
-
-const vertex = /* glsl */ `
-varying vec3 vMonde;
-void main() {
-  vec4 m = modelMatrix * vec4(position, 1.0);
-  vMonde = m.xyz;
-  gl_Position = projectionMatrix * viewMatrix * m;
-}`
-
-const fragment = /* glsl */ `
-uniform float uNoir;
-uniform float uTrou;
-uniform vec2 uCentre1;
-uniform vec2 uCentre2;
-uniform vec2 uAxes;
-uniform float uDeux;
-uniform vec2 uTapis;
-uniform float uMargeTapis;
-uniform float uTapisOn;
-varying vec3 vMonde;
-float trou(vec2 c) {
-  vec2 d = (vMonde.xz - c) / uAxes;
-  return 1.0 - smoothstep(0.75, 1.25, length(d));
-}
-void main() {
-  vec2 q = abs(vMonde.xz) - uTapis;
-  float dTapis = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-  float tapis = (1.0 - smoothstep(0.0, uMargeTapis, dTapis)) * uTapisOn;
-  float lumiere = max(max(trou(uCentre1), uDeux * trou(uCentre2)) * uTrou, tapis);
-  gl_FragColor = vec4(0.004, 0.02, 0.025, uNoir * (1.0 - lumiere));
-}`
-
-export function Projecteur({ fin, centres, axes }: { fin: EtatFin; centres: Vector2[]; axes: Vector2 }) {
-  const materiau = useRef<ShaderMaterial>(null)
-  const maille = useRef<Mesh>(null)
-  const [uniforms] = useState(() => ({
-    uNoir: { value: 0 },
-    uTrou: { value: 0 },
-    uCentre1: { value: new Vector2() },
-    uCentre2: { value: new Vector2() },
-    uAxes: { value: new Vector2(4, 3) },
-    uDeux: { value: 0 },
-    uTapis: { value: new Vector2(TAPIS_L / 2 + 0.3, TAPIS_P / 2 + CARTE_H + 1.2) },
-    uMargeTapis: { value: 0.8 },
-    uTapisOn: { value: 1 },
-  }))
-  useFrame((_, dt) => {
-    const m = materiau.current
-    if (!m) return
-    const u = m.uniforms
-    easing.damp(u.uNoir, "value", fin.noir ? (fin.tableau ? REGLAGES_FIN.obscuriteTableau : REGLAGES_FIN.obscurite) : 0, 0.5, dt)
-    u.uMargeTapis.value = REGLAGES_FIN.margeTapis
-    easing.damp(u.uTapisOn, "value", REGLAGES_FIN.tapisEclaire ? 1 : 0, 0.3, dt)
-    easing.damp(u.uTrou, "value", fin.projecteur ? 1 : 0, 0.6, dt)
-    ;(u.uCentre1.value as Vector2).copy(centres[0] ?? new Vector2())
-    ;(u.uCentre2.value as Vector2).copy(centres[1] ?? new Vector2(999, 999))
-    u.uDeux.value = centres.length > 1 ? 1 : 0
-    ;(u.uAxes.value as Vector2).copy(axes)
-    if (maille.current) maille.current.visible = u.uNoir.value > 0.005
-  })
-  return (
-    <mesh ref={maille} rotation-x={-Math.PI / 2} position-y={0.9} raycast={() => null} visible={false} renderOrder={5}>
-      <planeGeometry args={[90, 70]} />
-      <shaderMaterial ref={materiau} vertexShader={vertex} fragmentShader={fragment} uniforms={uniforms} transparent depthWrite={false} />
-    </mesh>
   )
 }
 

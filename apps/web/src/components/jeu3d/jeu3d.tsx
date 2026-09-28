@@ -115,6 +115,7 @@ export function Jeu3D({
       }),
       "Annonce banquet": button(() => annoncer(catalogue.texteDebutBanquet, "victoire", "banquet")),
       "Annonce votre tour": button(() => annoncer("C'est votre tour", "tour", "tour")),
+      "Annonce victoire": button(() => annoncer(phraseVainqueur(partie, vue, catalogue) || "Toute la cour s'incline", "victoire", "victoire")),
     },
     onglet("TRANSITION"),
     [catalogue.texteDebutBanquet],
@@ -308,16 +309,7 @@ export function Jeu3D({
 
           <AnimatePresence>
             {fin?.texte && !fin.tableau && (
-              <motion.div
-                key="phrase"
-                initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, y: -30 }}
-                transition={{ type: "spring", damping: 14 }}
-                className="pointer-events-none absolute inset-x-0 top-[40%] z-30 mx-auto max-w-3xl px-6 text-center font-display text-4xl leading-tight text-[#fff4d6] [text-shadow:0_0_24px_rgb(255_214_120/80%),0_0_60px_rgb(255_200_90/45%)] md:text-5xl"
-              >
-                {phraseVainqueur(partie, vue, catalogue)}
-              </motion.div>
+              <Annonce key="victoire" texte={phraseVainqueur(partie, vue, catalogue)} son="victoire" reglages={reglagesAnnonces.victoire} />
             )}
           </AnimatePresence>
           {fin && !fin.tableau && (
