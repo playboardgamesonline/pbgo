@@ -13,6 +13,7 @@ import { Couronne } from "@/components/partie/lobby"
 import { api } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
 import type { PartiePublique } from "@/lib/partie-types"
+import { cn } from "@/lib/utils"
 import { useJeu } from "./contexte"
 
 function hash(texte: string) {
@@ -128,6 +129,8 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
   }
 
   const textePartage = `${vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & ")} remporte le banquet avec ${vainqueurs[0]?.total ?? 0} points !`
+  const { phrase } = annonceVainqueur(partie, vue, catalogue)
+  const noms = vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & ")
 
   return (
     <>
@@ -144,70 +147,93 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-6 pb-[calc(20vh+4.5rem)]">
-        <AnimatePresence>
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-0 z-40 flex flex-col items-center gap-6 px-6 py-6",
+          ouvert ? "justify-center" : "justify-end pb-[20vh]",
+        )}
+      >
+        <AnimatePresence mode="popLayout">
           {ouvert && (
             <motion.section
               key="tableau"
               role="dialog"
               aria-label="Tableau des scores"
+              layout
               initial={{ opacity: 0, y: 24, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              className="pointer-events-auto flex max-h-full w-full max-w-2xl flex-col gap-4 rounded-2xl border border-[#8a6a3a]/60 bg-[#0b2231]/95 p-6 shadow-[0_20px_60px_rgb(0_0_0/60%)]"
+              className="pointer-events-auto flex max-h-[calc(100dvh-9rem)] w-full max-w-xl flex-col gap-5 rounded-2xl border border-[#8a6a3a]/60 bg-[#0b2231]/95 p-6 shadow-[0_20px_60px_rgb(0_0_0/60%)]"
             >
-              <h2 className="text-center font-display text-2xl tracking-wide text-foreground">Tableau des scores</h2>
-              <div className="-mx-2 min-h-0 flex-1 space-y-4 overflow-y-auto px-2 [scrollbar-width:thin]">
-                <div className="relative mx-auto aspect-[4/3] w-[min(100%,56vh)] overflow-hidden rounded-xl border border-[#d9a93f]/60 bg-[#061a1e] shadow-[0_10px_30px_rgb(0_0_0/45%)]">
-                  {url ? (
+              <div className="relative flex min-h-12 items-center justify-center px-16">
+                <p className="text-center font-display text-lg text-foreground/75 italic">{phrase ? `${phrase} ${noms}` : "Le banquet est terminé"}</p>
+                <button
+                  type="button"
+                  onClick={() => setApercu(true)}
+                  disabled={!image}
+                  title="Partager le résultat"
+                  aria-label="Partager le résultat"
+                  className="group absolute top-1/2 right-0 size-12 -translate-y-1/2 cursor-pointer overflow-hidden rounded-lg border border-[#f3ecd6]/20 bg-[#061a1e] opacity-70 transition-[opacity,scale] hover:scale-105 hover:opacity-100 disabled:cursor-wait disabled:opacity-30"
+                >
+                  {url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="Résultat du banquet" className="block size-full object-cover" />
-                  ) : (
-                    <div className="flex size-full animate-pulse items-center justify-center px-6 text-center font-display text-foreground/50">
-                      Le peintre de la cour immortalise le banquet…
-                    </div>
+                    <img src={url} alt="" className="absolute inset-0 size-full object-cover" />
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setApercu(true)}
-                    disabled={!image}
-                    title="Partager le résultat"
-                    className="absolute top-3 right-3 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#f3ecd6]/30 bg-[#0b2231]/80 px-3 py-1.5 font-display text-sm tracking-wide text-foreground uppercase shadow-sm backdrop-blur-sm transition-[background-color,scale] hover:scale-105 hover:bg-[#0b2231] disabled:opacity-50"
-                  >
-                    <Share2Icon className="size-3.5" />
-                    Partager
-                  </button>
-                </div>
-
-                <ol className="divide-y divide-foreground/15">
-                  {classement.map((j) => {
-                    const gagnant = resultats.vainqueurs.includes(j.joueurId)
-                    return (
-                      <li key={j.joueurId} className="space-y-1.5 py-3">
-                        <div className="flex items-center justify-between text-lg">
-                          <span className="flex items-center gap-3">
-                            {gagnant ? (
-                              <Couronne className="block h-5 w-5 shrink-0 bg-[#f2c14e]" />
-                            ) : (
-                              <span className="w-5 text-foreground/50 tabular-nums">{j.rang}.</span>
-                            )}
-                            <span className="font-sans font-black tracking-[0.12em] uppercase brightness-150" style={{ color: couleur(j.joueurId) }}>
-                              {info(j.joueurId)?.pseudo}
-                            </span>
-                          </span>
-                          <span className={gagnant ? "font-semibold text-[#f2c14e] tabular-nums" : "text-foreground/80 tabular-nums"}>{j.total} pts</span>
-                        </div>
-                        <div className="pl-8">
-                          <Detail j={j} />
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ol>
+                  <span className="absolute inset-0 flex items-center justify-center bg-[#061a1e]/45 text-foreground transition-colors group-hover:bg-[#061a1e]/25">
+                    <Share2Icon className="size-4 drop-shadow" />
+                  </span>
+                </button>
               </div>
 
-              <div className="flex shrink-0 flex-col items-center gap-5 pt-1">
+              <ol className="-mx-2 min-h-0 flex-1 space-y-3 overflow-y-auto px-2 [scrollbar-width:thin]">
+                {classement.map((j) => {
+                  const gagnant = resultats.vainqueurs.includes(j.joueurId)
+                  const teinte = couleur(j.joueurId)
+                  return (
+                    <li
+                      key={j.joueurId}
+                      className={cn(
+                        "flex items-center gap-4 rounded-xl border p-3 pl-4",
+                        gagnant ? "border-[#d9a93f]/60 bg-[#d9a93f]/10" : "border-foreground/10 bg-foreground/[0.03]",
+                      )}
+                    >
+                      <div className="flex w-6 shrink-0 justify-center">
+                        {gagnant ? (
+                          <Couronne className="block h-6 w-6 bg-[#f2c14e]" />
+                        ) : (
+                          <span className="font-display text-lg text-foreground/45 tabular-nums">{j.rang}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span aria-hidden className="text-sm" style={{ color: teinte }}>
+                            ❧
+                          </span>
+                          <span className="truncate font-sans text-xl font-black tracking-[0.14em] uppercase brightness-150" style={{ color: teinte }}>
+                            {info(j.joueurId)?.pseudo}
+                          </span>
+                          <span aria-hidden className="h-px min-w-6 flex-1" style={{ background: `linear-gradient(90deg, ${teinte}, transparent)` }} />
+                        </div>
+                        <Detail j={j} />
+                      </div>
+                      <div
+                        className={cn(
+                          "flex h-[5.4rem] w-[3.9rem] shrink-0 flex-col items-center justify-center rounded-lg border-2 shadow-[0_6px_16px_rgb(0_0_0/40%)]",
+                          gagnant
+                            ? "border-[#f2c14e] bg-gradient-to-b from-[#f6e7b8] to-[#e0b454] text-[#3b2a08]"
+                            : "border-[#f3ecd6]/35 bg-gradient-to-b from-[#12384a] to-[#0a2130] text-foreground",
+                        )}
+                      >
+                        <span className="font-display text-4xl leading-none font-bold tabular-nums">{j.total}</span>
+                        <span className="mt-1 text-[0.65rem] tracking-[0.2em] uppercase opacity-70">pts</span>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+
+              <div className="flex shrink-0 flex-col items-center gap-4">
                 <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8">
                   Rejouer ({partie.rejouer.length}/{partie.joueurs.length})
                 </BoutonCour>
@@ -218,13 +244,15 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
             </motion.section>
           )}
         </AnimatePresence>
-        <button
+        <motion.button
+          layout
+          transition={{ type: "spring", stiffness: 220, damping: 26 }}
           type="button"
           onClick={onBasculer}
-          className="pointer-events-auto fixed bottom-[20%] left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-full border border-[#f3ecd6]/25 bg-[#0b2231] px-6 py-2.5 font-display text-base tracking-wide text-foreground/85 uppercase shadow-[0_8px_24px_rgb(0_0_0/45%)] transition-[scale,color] hover:scale-105 hover:text-foreground"
+          className="pointer-events-auto z-50 shrink-0 cursor-pointer rounded-full border border-[#f3ecd6]/25 bg-[#0b2231] px-6 py-2.5 font-display text-base tracking-wide text-foreground/85 uppercase shadow-[0_8px_24px_rgb(0_0_0/45%)] transition-colors hover:text-foreground"
         >
           {ouvert ? "Masquer le tableau des scores" : "Afficher le tableau des scores"}
-        </button>
+        </motion.button>
       </div>
     </>
   )
