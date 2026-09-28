@@ -49,7 +49,7 @@ function espacer(ctx: CanvasRenderingContext2D, px: number) {
   if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${px}px`
 }
 
-export async function imagePartage(lignes: LignePartage[], code: string, photo: HTMLCanvasElement | null): Promise<Blob> {
+export async function imagePartage(lignes: LignePartage[], photo: HTMLCanvasElement | null): Promise<Blob> {
   await Promise.all([document.fonts?.load(`800 72px ${POLICE}`).catch(() => null), document.fonts?.load(`500 28px ${POLICE}`).catch(() => null)])
   const W = 1600
   const H = 1200
@@ -132,19 +132,23 @@ export async function imagePartage(lignes: LignePartage[], code: string, photo: 
     })
   }
 
+  const maintenant = new Date()
+  const date = maintenant.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+  const heure = maintenant.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
   ctx.font = `600 18px ${POLICE}`
   espacer(ctx, 3)
   ctx.fillStyle = "rgba(243,236,214,0.45)"
   ctx.textAlign = "left"
   ctx.fillText("COURTISANS ONLINE", 36, H - 20)
   ctx.textAlign = "right"
-  ctx.fillText(`BANQUET ${code} · ${window.location.host} · ${new Date().toLocaleDateString("fr-FR")}`, W - 36, H - 20)
+  espacer(ctx, 1.5)
+  ctx.fillText(`${date} · ${heure}`, W - 36, H - 20)
 
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/png"))
 }
 
 export async function partagerResultat(lignes: LignePartage[], code: string, texte: string) {
-  const blob = await imagePartage(lignes, code, photographierPartie(1600, 1200))
+  const blob = await imagePartage(lignes, photographierPartie(1600, 1200))
   const fichier = new File([blob], `courtisans-${code}.png`, { type: "image/png" })
   if (navigator.canShare?.({ files: [fichier] })) {
     await navigator.share({ files: [fichier], title: "Courtisans Online", text: texte })

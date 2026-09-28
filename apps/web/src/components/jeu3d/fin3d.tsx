@@ -11,7 +11,6 @@ import {
   type Mesh,
   SRGBColorSpace,
   type Texture,
-  TextureLoader,
   Vector2,
 } from "three"
 import { useJeu } from "../jeu/contexte"
@@ -241,9 +240,25 @@ const textures = new Map<string, Texture>()
 function textureUrl(url: string) {
   let t = textures.get(url)
   if (!t) {
-    t = new TextureLoader().load(url)
-    t.colorSpace = SRGBColorSpace
-    t.anisotropy = 8
+    const toile = document.createElement("canvas")
+    toile.width = toile.height = 4
+    const texture = new CanvasTexture(toile)
+    texture.colorSpace = SRGBColorSpace
+    texture.anisotropy = 8
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      const l = img.naturalWidth || 512
+      const h = img.naturalHeight || 512
+      const k = 512 / Math.max(l, h)
+      toile.width = Math.round(l * k)
+      toile.height = Math.round(h * k)
+      toile.getContext("2d")!.drawImage(img, 0, 0, toile.width, toile.height)
+      texture.dispose()
+      texture.needsUpdate = true
+    }
+    img.src = url
+    t = texture
     textures.set(url, t)
   }
   return t
