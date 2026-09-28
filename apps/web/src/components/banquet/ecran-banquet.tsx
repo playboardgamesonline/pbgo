@@ -86,11 +86,13 @@ export function BoutonCour({
   occupe,
   disabled,
   onClick,
+  className,
 }: {
   children: React.ReactNode
   occupe?: boolean
   disabled?: boolean
   onClick?: () => void
+  className?: string
 }) {
   return (
     <Button
@@ -98,7 +100,10 @@ export function BoutonCour({
       size="lg"
       disabled={disabled || occupe}
       onClick={onClick}
-      className="h-16 w-full max-w-md cursor-pointer rounded-xl bg-foreground font-display text-2xl tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] hover:bg-foreground active:scale-[0.98] disabled:cursor-default disabled:opacity-80 disabled:hover:scale-100"
+      className={cn(
+        "h-16 w-full max-w-md cursor-pointer rounded-xl bg-foreground font-display text-2xl tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] hover:bg-foreground active:scale-[0.98] disabled:cursor-default disabled:opacity-80 disabled:hover:scale-100",
+        className,
+      )}
     >
       {occupe && <Loader2Icon className="animate-spin" />}
       {children}

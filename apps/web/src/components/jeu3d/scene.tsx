@@ -465,7 +465,10 @@ function Monde({
   }
 
   const selectionId = it.selection?.id
-  useFrame(({ pointer }) => {
+  const debutIntro = useRef(-1)
+  useFrame(({ pointer, clock }) => {
+    if (!intro) debutIntro.current = -1
+    else if (debutIntro.current < 0) debutIntro.current = clock.elapsedTime
     const proj = camera.projectionMatrix.elements
     const h = D_MAIN / proj[5]
     const w = D_MAIN / proj[0]
@@ -497,11 +500,16 @@ function Monde({
       if (intro || missionFocus === m.id) {
         const d = intro ? 4.4 : 3.6
         const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
-        const x = intro ? (i - 0.5) * (MISSION_L + 0.3) * k : 0
-        p.position.copy(camera.localToWorld(new Vector3(x, intro ? 0.3 * k : -0.04 * k, -d)))
+        const agrandi = intro ? 1.3 : 1
+        const x = intro ? (i - 0.5) * (MISSION_L + 0.55) * k * agrandi : 0
+        const sens = i === 0 ? 1 : -1
+        const montee = intro ? Math.min(1, Math.max(0, (clock.elapsedTime - debutIntro.current - 0.2 - i * 0.18) / 0.9)) : 1
+        const leve = 1 - (1 - montee) ** 3 - 1
+        p.position.copy(camera.localToWorld(new Vector3(x, intro ? 0.32 * k + leve * 3.2 * k : -0.04 * k, intro ? -d - Math.abs(x) * 0.12 : -d)))
         p.quaternion.copy(camera.quaternion)
-        if (!intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
-        p.echelle = intro ? k : 1.3 * k
+        if (intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-0.08 + leve * 0.5, sens * 0.38, sens * -0.05)))
+        else p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
+        p.echelle = intro ? k * agrandi : 1.3 * k
       } else {
         const survolee = survol === `mission:${m.id}`
         const machoire = i === 0 ? 0.28 : -0.05

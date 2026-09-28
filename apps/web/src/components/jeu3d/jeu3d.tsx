@@ -18,6 +18,7 @@ import { JeuProvider } from "../jeu/contexte"
 import { FinDePartie, phraseVainqueur } from "../jeu/fin-de-partie"
 import { useSequenceFin } from "./fin"
 import { useSonsJeu } from "./sons"
+import { BoutonCour } from "../banquet/ecran-banquet"
 import { useTriche } from "./triche"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
 import { PanneauDebug } from "./debug"
@@ -164,13 +165,21 @@ export function Jeu3D({
             <Bandeau />
           </header>
 
-          {intro && (
-            <div className="absolute inset-x-0 bottom-[12%] z-20 flex justify-center">
-              <Button size="lg" className="h-12 px-8 font-display text-base shadow-2xl" onClick={finirIntro}>
-                Rejoindre la table
-              </Button>
-            </div>
-          )}
+          <AnimatePresence>
+            {intro && (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ delay: 1.1, type: "spring", stiffness: 160, damping: 20 }}
+                className="absolute inset-x-0 bottom-[7%] z-20 flex justify-center"
+              >
+                <BoutonCour onClick={finirIntro} className="w-auto max-w-none px-10">
+                  J&apos;ai pris connaissance de mes missions
+                </BoutonCour>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <PanneauDebug />
 
