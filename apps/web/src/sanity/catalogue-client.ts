@@ -9,14 +9,19 @@ const url = (source: Source | null | undefined, width: number) => (source ? urlF
 
 export async function getCatalogueClient(): Promise<CatalogueClient> {
   try {
-    const { reglages, chateaux, familles, roles, courtisans, missions } = await getCatalogue()
+    const { assets, textes, familles, roles, courtisans, missions } = await getCatalogue()
     const d = CATALOGUE_PAR_DEFAUT
 
     const famillesMap = { ...d.familles }
     for (const f of familles) {
       const cle = f.cle as Famille | undefined
       if (!cle || !famillesMap[cle]) continue
-      famillesMap[cle] = { ...famillesMap[cle], nom: f.nom ?? famillesMap[cle].nom, couleur: f.couleur ?? famillesMap[cle].couleur, pictoUrl: url(f.picto, 128) ?? famillesMap[cle].pictoUrl }
+      famillesMap[cle] = {
+        ...famillesMap[cle],
+        nom: f.nom ?? famillesMap[cle].nom,
+        couleur: f.couleur ?? famillesMap[cle].couleur,
+        pictoUrl: url(f.picto, 128) ?? famillesMap[cle].pictoUrl,
+      }
     }
     const rolesMap = { ...d.roles }
     for (const r of roles) {
@@ -36,20 +41,20 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       if (imageUrl) missionsMap[m._id] = imageUrl
     }
 
-    const depuisSanity = chateaux.flatMap((c) => (c.image ? [{ id: c._id, nom: c.nom ?? "Château", imageUrl: url(c.image, 240) }] : []))
-
     return {
-      logoUrl: url(reglages?.logo, 1000) ?? d.logoUrl,
-      chateaux: depuisSanity.length > 0 ? depuisSanity : d.chateaux,
+      logoUrl: url(assets?.logo, 1000) ?? d.logoUrl,
+      chateaux: d.chateaux,
       familles: famillesMap,
       roles: rolesMap,
       cartes,
       missions: missionsMap,
-      tapisUrl: url(reglages?.tapis, 2000) ?? d.tapisUrl,
-      dosCourtisanUrl: url(reglages?.dosCourtisan, 360) ?? d.dosCourtisanUrl,
-      dosMissionBlancheUrl: url(reglages?.dosMissionBlanche, 520) ?? d.dosMissionBlancheUrl,
-      dosMissionBleueUrl: url(reglages?.dosMissionBleue, 520) ?? d.dosMissionBleueUrl,
-      phrasesVainqueur: reglages?.phrasesVainqueur?.length ? reglages.phrasesVainqueur : d.phrasesVainqueur,
+      tapisUrl: url(assets?.tapis, 2000) ?? d.tapisUrl,
+      dosCourtisanUrl: url(assets?.dosCourtisan, 360) ?? d.dosCourtisanUrl,
+      dosMissionBlancheUrl: url(assets?.dosMissionBlanche, 520) ?? d.dosMissionBlancheUrl,
+      dosMissionBleueUrl: url(assets?.dosMissionBleue, 520) ?? d.dosMissionBleueUrl,
+      banquetHautUrl: url(assets?.banquetHaut, 3000) ?? d.banquetHautUrl,
+      banquetBasUrl: url(assets?.banquetBas, 3000) ?? d.banquetBasUrl,
+      phrasesVainqueur: textes?.phrasesVainqueur?.length ? textes.phrasesVainqueur : d.phrasesVainqueur,
     }
   } catch (error) {
     console.error("Catalogue Sanity indisponible", error)

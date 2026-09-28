@@ -43,6 +43,8 @@ export type CatalogueClient = {
   dosCourtisanUrl: string | null
   dosMissionBlancheUrl: string | null
   dosMissionBleueUrl: string | null
+  banquetHautUrl: string | null
+  banquetBasUrl: string
   phrasesVainqueur: string[]
 }
 
@@ -67,5 +69,7 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   dosCourtisanUrl: "/cartes/DOS_COURTISAN.webp",
   dosMissionBlancheUrl: "/cartes/DOS_MISSION_LIGHT.webp",
   dosMissionBleueUrl: "/cartes/DOS_MISSION_DARK.webp",
+  banquetHautUrl: null,
+  banquetBasUrl: "/accueil/banquet.webp",
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
 }

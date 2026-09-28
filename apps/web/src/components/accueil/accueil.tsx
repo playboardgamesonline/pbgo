@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
-import { BoutonCour, ChampAppellation, ChampCode, Description, EcranBanquet } from "@/components/banquet/ecran-banquet"
+import { BoutonCour, ChampAppellation, ChampCode, Description, decorBanquet, EcranBanquet } from "@/components/banquet/ecran-banquet"
 import { api, lienPartie } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
 import { useProfil } from "@/lib/profil"
@@ -58,7 +58,7 @@ export function Accueil({ catalogue }: { catalogue: CatalogueClient }) {
 
   return (
     <EcranBanquet
-      logoUrl={catalogue.logoUrl}
+      {...decorBanquet(catalogue)}
       onSubmit={courtiser}
       bouton={<BoutonCour occupe={occupe}>Courtiser au banquet</BoutonCour>}
       bas={<ChampCode value={code} onChange={setCode} />}

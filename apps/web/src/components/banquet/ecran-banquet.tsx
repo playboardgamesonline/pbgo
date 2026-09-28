@@ -12,16 +12,25 @@ import { BoutonSon } from "@/components/son"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp"
+import type { CatalogueClient } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
+
+export function decorBanquet(catalogue: CatalogueClient) {
+  return { logoUrl: catalogue.logoUrl, banquetHautUrl: catalogue.banquetHautUrl, banquetBasUrl: catalogue.banquetBasUrl }
+}
 
 export function EcranBanquet({
   logoUrl,
+  banquetHautUrl = null,
+  banquetBasUrl = "/accueil/banquet.webp",
   children,
   bouton,
   bas,
   onSubmit,
 }: {
   logoUrl: string
+  banquetHautUrl?: string | null
+  banquetBasUrl?: string
   children?: React.ReactNode
   bouton?: React.ReactNode
   bas?: React.ReactNode
@@ -31,6 +40,16 @@ export function EcranBanquet({
     <main className="relative flex h-dvh flex-col overflow-hidden bg-[#0e3940] [--table:calc(114vw*525/3543)]">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url(/accueil/motif.webp)] bg-[length:128px_128px] opacity-[0.07]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgb(34_96_104/55%),transparent_65%)]" />
+      {banquetHautUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={banquetHautUrl}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="pointer-events-none absolute top-0 left-[-7%] w-[114%] max-w-none select-none"
+        />
+      )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
         <BoutonSon />
         <ReglesButton icone />
@@ -63,7 +82,7 @@ export function EcranBanquet({
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/accueil/banquet.webp"
+            src={banquetBasUrl}
             alt=""
             aria-hidden
             draggable={false}

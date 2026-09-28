@@ -4,7 +4,7 @@ import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { BoutonCour, ChampAppellation, ChampCode, Description, EcranBanquet } from "@/components/banquet/ecran-banquet"
+import { BoutonCour, ChampAppellation, ChampCode, Description, decorBanquet, EcranBanquet } from "@/components/banquet/ecran-banquet"
 import { Jeu3D } from "@/components/jeu3d/jeu3d"
 import { api, lienPartie } from "@/lib/api"
 import type { CatalogueClient } from "@/lib/catalogue"
@@ -54,21 +54,21 @@ export function PartieClient({ code, catalogue }: { code: string; catalogue: Cat
 
   if (erreur)
     return (
-      <EcranBanquet logoUrl={catalogue.logoUrl} bouton={retour}>
+      <EcranBanquet {...decorBanquet(catalogue)} bouton={retour}>
         <Description>Ce banquet est introuvable. Vérifiez le code {code} ou organisez-en un nouveau.</Description>
       </EcranBanquet>
     )
 
   if (!partie || !pret || doitAutoJoin || (partie.statut !== "lobby" && partie.moiId))
     return (
-      <EcranBanquet logoUrl={catalogue.logoUrl} bas={<ChampCode value={code} />}>
+      <EcranBanquet {...decorBanquet(catalogue)} bas={<ChampCode value={code} />}>
         <Loader2Icon className="mt-[6vh] size-8 animate-spin text-primary" />
       </EcranBanquet>
     )
 
   if (partie.moiId === null && partie.statut !== "lobby")
     return (
-      <EcranBanquet logoUrl={catalogue.logoUrl} bouton={retour}>
+      <EcranBanquet {...decorBanquet(catalogue)} bouton={retour}>
         <Description>Ce banquet a déjà commencé.</Description>
       </EcranBanquet>
     )
@@ -76,7 +76,7 @@ export function PartieClient({ code, catalogue }: { code: string; catalogue: Cat
   if (partie.moiId === null)
     return (
       <EcranBanquet
-        logoUrl={catalogue.logoUrl}
+        {...decorBanquet(catalogue)}
         onSubmit={async (e) => {
           e.preventDefault()
           if (!valide) {
@@ -96,7 +96,7 @@ export function PartieClient({ code, catalogue }: { code: string; catalogue: Cat
 
   return (
     <EcranBanquet
-      logoUrl={catalogue.logoUrl}
+      {...decorBanquet(catalogue)}
       bouton={<BoutonLobby partie={partie} onMaj={appliquer} />}
       bas={<ChampCode value={code} copiable={lien} />}
     >

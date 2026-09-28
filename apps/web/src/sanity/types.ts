@@ -54,39 +54,6 @@ export type SanityImageAssetReference = {
   [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
 };
 
-export type Chateau = {
-  _id: string;
-  _type: "chateau";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  nom?: string;
-  image?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  ordre?: number;
-};
-
-export type SanityImageCrop = {
-  _type: "sanity.imageCrop";
-  top?: number;
-  bottom?: number;
-  left?: number;
-  right?: number;
-};
-
-export type SanityImageHotspot = {
-  _type: "sanity.imageHotspot";
-  x?: number;
-  y?: number;
-  height?: number;
-  width?: number;
-};
-
 export type Mission = {
   _id: string;
   _type: "mission";
@@ -103,6 +70,22 @@ export type Mission = {
     _type: "image";
   };
   condition?: Condition;
+};
+
+export type SanityImageCrop = {
+  _type: "sanity.imageCrop";
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+};
+
+export type SanityImageHotspot = {
+  _type: "sanity.imageHotspot";
+  x?: number;
+  y?: number;
+  height?: number;
+  width?: number;
 };
 
 export type FamilleReference = {
@@ -172,9 +155,18 @@ export type Famille = {
   };
 };
 
-export type Reglages = {
+export type Textes = {
   _id: string;
-  _type: "reglages";
+  _type: "textes";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  phrasesVainqueur?: Array<string>;
+};
+
+export type Assets = {
+  _id: string;
+  _type: "assets";
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
@@ -213,7 +205,20 @@ export type Reglages = {
     crop?: SanityImageCrop;
     _type: "image";
   };
-  phrasesVainqueur?: Array<string>;
+  banquetHaut?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  banquetBas?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
 };
 
 export type SanityImagePaletteSwatch = {
@@ -322,16 +327,16 @@ export type Slug = {
 export type AllSanitySchemaTypes =
   | Condition
   | SanityImageAssetReference
-  | Chateau
+  | Mission
   | SanityImageCrop
   | SanityImageHotspot
-  | Mission
   | FamilleReference
   | RoleReference
   | Courtisan
   | Role
   | Famille
-  | Reglages
+  | Textes
+  | Assets
   | SanityImagePaletteSwatch
   | SanityImagePalette
   | SanityImageDimensions
@@ -344,16 +349,17 @@ export type AllSanitySchemaTypes =
 
 // Source: ../web/src/sanity/queries.ts
 // Variable: CATALOGUE_QUERY
-// Query: {  "reglages": *[_id == "reglages"][0]{ logo, tapis, dosCourtisan, dosMissionBlanche, dosMissionBleue, phrasesVainqueur },  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },  "roles": *[_type == "role"]{ _id, nom, cle, picto },  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition },  "chateaux": *[_type == "chateau"] | order(ordre asc){ _id, nom, image }}
+// Query: {  "assets": *[_id == "assets"][0]{ logo, tapis, dosCourtisan, dosMissionBlanche, dosMissionBleue, banquetHaut, banquetBas },  "textes": *[_id == "textes"][0]{ phrasesVainqueur },  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },  "roles": *[_type == "role"]{ _id, nom, cle, picto },  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition }}
 export type CATALOGUE_QUERY_RESULT = {
-  reglages:
+  assets:
     | {
         logo: null;
         tapis: null;
         dosCourtisan: null;
         dosMissionBlanche: null;
         dosMissionBleue: null;
-        phrasesVainqueur: null;
+        banquetHaut: null;
+        banquetBas: null;
       }
     | {
         logo: {
@@ -391,6 +397,27 @@ export type CATALOGUE_QUERY_RESULT = {
           crop?: SanityImageCrop;
           _type: "image";
         } | null;
+        banquetHaut: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+        banquetBas: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+      }
+    | null;
+  textes:
+    | {
+        phrasesVainqueur: null;
+      }
+    | {
         phrasesVainqueur: Array<string> | null;
       }
     | null;
@@ -447,23 +474,12 @@ export type CATALOGUE_QUERY_RESULT = {
     } | null;
     condition: Condition | null;
   }>;
-  chateaux: Array<{
-    _id: string;
-    nom: string | null;
-    image: {
-      asset?: SanityImageAssetReference;
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    } | null;
-  }>;
 };
 
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "reglages": *[_id == "reglages"][0]{ logo, tapis, dosCourtisan, dosMissionBlanche, dosMissionBleue, phrasesVainqueur },\n  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },\n  "roles": *[_type == "role"]{ _id, nom, cle, picto },\n  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },\n  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition },\n  "chateaux": *[_type == "chateau"] | order(ordre asc){ _id, nom, image }\n}': CATALOGUE_QUERY_RESULT;
+    '{\n  "assets": *[_id == "assets"][0]{ logo, tapis, dosCourtisan, dosMissionBlanche, dosMissionBleue, banquetHaut, banquetBas },\n  "textes": *[_id == "textes"][0]{ phrasesVainqueur },\n  "familles": *[_type == "famille"]{ _id, nom, cle, couleur, picto },\n  "roles": *[_type == "role"]{ _id, nom, cle, picto },\n  "courtisans": *[_type == "courtisan"]{ _id, quantite, carte, "famille": famille->cle, "role": role->cle },\n  "missions": *[_type == "mission"]{ _id, couleur, texte, carte, condition }\n}': CATALOGUE_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

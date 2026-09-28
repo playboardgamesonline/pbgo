@@ -1,9 +1,9 @@
-import { chateau } from "./documents/chateau"
+import { assets } from "./documents/assets"
 import { courtisan } from "./documents/courtisan"
 import { famille } from "./documents/famille"
 import { mission } from "./documents/mission"
-import { reglages } from "./documents/reglages"
 import { role } from "./documents/role"
+import { textes } from "./documents/textes"
 import { condition } from "./objects/condition"
 
-export const schemaTypes = [reglages, famille, role, courtisan, mission, chateau, condition]
+export const schemaTypes = [assets, textes, famille, role, courtisan, mission, condition]

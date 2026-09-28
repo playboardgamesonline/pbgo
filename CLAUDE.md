@@ -24,7 +24,7 @@ Exemples de mots métier gardés en français : `courtisan`, `famille`, `role`, 
 ## Sanity
 - Projet `2lo2f5sv`, dataset `production`
 - Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js)
-- Types de documents : `reglages` (singleton), `famille`, `role`, `courtisan`, `mission`, `chateau` ; objet récursif `condition` (règle low code des missions, calqué sur `Condition` du moteur)
+- Types de documents : `assets` et `textes` (singletons), `famille`, `role`, `courtisan`, `mission` ; objet récursif `condition` (règle low code des missions, calqué sur `Condition` du moteur)
 - Les champs `cle` de `famille` / `role` font le lien avec les clés du moteur
 - Requêtes GROQ dans `apps/web/src/sanity/queries.ts` avec `defineQuery`, puis `pnpm --filter studio typegen` pour régénérer `apps/web/src/sanity/types.ts`
 - `pnpm --filter studio schema:deploy` après chaque changement de schéma
