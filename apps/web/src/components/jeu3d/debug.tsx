@@ -3,7 +3,7 @@
 import { Leva, LevaPanel, button, useControls } from "leva"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@/lib/utils"
-import { boutonCopie, MAGASINS_DEBUG, ONGLETS_DEBUG, type OngletDebug, onglet } from "./onglets-debug"
+import { arrondir, boutonCopie, MAGASINS_DEBUG, ONGLETS_DEBUG, type OngletDebug, onglet } from "./onglets-debug"
 import { changerMusique, musiqueActuelle, type NomMusique, reglerVolumes, type Volumes, VOLUMES_DEFAUT, volumesActuels } from "@/lib/son"
 
 const CLE = "courtisans:debug"
@@ -38,7 +38,7 @@ function copierTout() {
       ;(valeurs[nom] ??= {})[chemin] = entree.value
     }
   }
-  const texte = JSON.stringify(valeurs, null, 2)
+  const texte = JSON.stringify(valeurs, arrondir, 2)
   navigator.clipboard?.writeText(texte).catch(() => null)
   console.info("Réglages debug", valeurs)
 }

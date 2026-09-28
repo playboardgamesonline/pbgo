@@ -4,6 +4,7 @@ import { useControls } from "leva"
 import { motion } from "motion/react"
 import { useEffect, useRef } from "react"
 import { jouerSon, type NomSon } from "@/lib/son"
+import { cn } from "@/lib/utils"
 import { boutonCopie, onglet } from "./onglets-debug"
 
 export type TypeAnnonce = "banquet" | "tour" | "victoire"
@@ -28,6 +29,9 @@ const DEFAUT = {
   epaisseurLignes: 3,
   couleurLignes: "#f5c542",
   ecartLignes: 24,
+  haut: false,
+  degrade: false,
+  hauteurDegrade: 45,
   confettis: false,
   nombreConfettis: 110,
   couleurConfettis: "#ffd35c",
@@ -58,6 +62,9 @@ function schema(defaut: ReglagesAnnonce, dossier: string) {
     epaisseurLignes: { value: defaut.epaisseurLignes, min: 1, max: 12, step: 0.5, label: "lines thickness (px)" },
     couleurLignes: { value: defaut.couleurLignes, label: "lines color" },
     ecartLignes: { value: defaut.ecartLignes, min: 0, max: 120, step: 1, label: "lines gap (px)" },
+    haut: { value: defaut.haut, label: "at top of screen" },
+    degrade: { value: defaut.degrade, label: "gradient overlay" },
+    hauteurDegrade: { value: defaut.hauteurDegrade, min: 5, max: 100, step: 1, label: "gradient height (%)" },
     confettis: { value: defaut.confettis, label: "confetti" },
     nombreConfettis: { value: defaut.nombreConfettis, min: 0, max: 400, step: 1, label: "confetti count" },
     couleurConfettis: { value: defaut.couleurConfettis, label: "confetti color" },
@@ -72,7 +79,22 @@ export function useReglagesAnnonces(): Record<TypeAnnonce, ReglagesAnnonce> {
   const banquet = useControls("Announcement · Banquet", schema(DEFAUT, "Announcement · Banquet"), { collapsed: true, order: 2 }, onglet("TRANSITION"))
   const tour = useControls(
     "Announcement · Your Turn",
-    schema(DEFAUT, "Announcement · Your Turn"),
+    schema(
+      {
+        ...DEFAUT,
+        haut: true,
+        degrade: true,
+        voile: 0.55,
+        lignes: false,
+        taille: 2.2,
+        contour: 0,
+        ombre: 2,
+        flou: 12,
+        echelleDepart: 0.96,
+        duree: 2,
+      },
+      "Announcement · Your Turn",
+    ),
     { collapsed: true, order: 3 },
     onglet("TRANSITION"),
   )
@@ -212,8 +234,12 @@ export function Annonce({ texte, sousTexte, son, reglages: r }: { texte: string;
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: r.fondu + 0.2 } }}
       transition={{ duration: r.fondu }}
-      className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
-      style={{ backgroundColor: `rgb(0 0 0 / ${r.voile})` }}
+      className={cn("pointer-events-none absolute inset-0 z-40 flex justify-center", r.haut ? "items-start pt-[9vh]" : "items-center")}
+      style={
+        r.degrade
+          ? { background: `linear-gradient(to bottom, rgb(0 0 0 / ${r.voile}) 0%, transparent ${r.hauteurDegrade}%)` }
+          : { backgroundColor: `rgb(0 0 0 / ${r.voile})` }
+      }
     >
       {r.confettis && <Confettis r={r} />}
       <div className="relative flex w-full flex-col items-center" style={{ gap: r.ecartLignes }}>

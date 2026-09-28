@@ -30,7 +30,7 @@ import type { EtatFin } from "./fin"
 import { Compteurs, LignesTapis, PointsPiles, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
 import { useReglages, useVersionReglages } from "./reglages"
 import { textureMotif } from "./motifs"
-import { boutonCopie, onglet } from "./onglets-debug"
+import { arrondir, boutonCopie, onglet } from "./onglets-debug"
 import { Carte3D, REGLAGES_CARTE, geometrieCarte, geometrieTranche } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
@@ -152,7 +152,7 @@ function CameraRig() {
           fov: get("Camera.fov"),
           cible: get("Camera.cible"),
         }
-        navigator.clipboard?.writeText(JSON.stringify({ Camera: valeurs }, null, 2)).catch(() => null)
+        navigator.clipboard?.writeText(JSON.stringify({ Camera: valeurs }, arrondir, 2)).catch(() => null)
         console.info("Camera", valeurs)
       }),
       Reset: button(() => regler(CAMERA_DEFAUT)),

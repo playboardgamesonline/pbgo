@@ -3,6 +3,8 @@ import { button, levaStore } from "leva"
 type Magasin = typeof levaStore
 const Magasin = levaStore.constructor as new () => Magasin
 
+export const arrondir = (_cle: string, v: unknown) => (typeof v === "number" ? Math.round(v * 1000) / 1000 : v)
+
 export const ONGLETS_DEBUG = ["GAME", "SCENE", "AUDIO", "TRANSITION"] as const
 export type OngletDebug = (typeof ONGLETS_DEBUG)[number]
 
@@ -22,7 +24,7 @@ export function copierDossier(nom: OngletDebug, dossier: string) {
     if (!chemin.startsWith(`${dossier}.`) || !entree || entree.type === "BUTTON" || entree.value === undefined) continue
     valeurs[chemin.slice(dossier.length + 1)] = entree.value
   }
-  const texte = JSON.stringify({ [dossier]: valeurs }, null, 2)
+  const texte = JSON.stringify({ [dossier]: valeurs }, arrondir, 2)
   navigator.clipboard?.writeText(texte).catch(() => null)
   console.info(texte)
 }

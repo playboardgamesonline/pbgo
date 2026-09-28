@@ -12,7 +12,7 @@ export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
 export const DOMAINE_ECHELLE = 1.1
 export const DECALAGE = 0.42
-export const REGLAGES_DISPOSITION = { rotationAleatoire: 0.028, espacementPile: 0.012, espacementPioche: 0.008 }
+export const REGLAGES_DISPOSITION = { rotationAleatoire: 0.017, espacementPile: 0.02, espacementPioche: 0.017 }
 
 export const FACE_HAUT = new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
 export const FACE_BAS = new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, 0))

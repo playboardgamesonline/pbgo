@@ -196,11 +196,11 @@ export const REGLAGES_CARTE = {
   vitesseCadre: 3,
   reflet: 0.5,
   mouvementReflet: 0.45,
-  ombre: 1,
-  dureeVol: 1.35,
-  hauteurVol: 1,
-  epaisseur: 0.004,
-  pliable: 0.15,
+  ombre: 0.06,
+  dureeVol: 1.2,
+  hauteurVol: 1.9,
+  epaisseur: 0.005,
+  pliable: 0.04,
 }
 
 const pliables = new Map<BufferGeometry, BufferGeometry>()
