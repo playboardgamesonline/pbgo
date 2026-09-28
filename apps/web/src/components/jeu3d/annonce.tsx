@@ -12,26 +12,27 @@ export type TypeAnnonce = "banquet" | "tour" | "victoire"
 const DEFAUT = {
   duree: 2.4,
   son: true,
-  voile: 0.3,
+  voile: 0.64,
   fondu: 0.3,
-  taille: 4.5,
+  taille: 4.8,
   tailleSous: 2,
-  espacement: 0.06,
+  espacement: 0,
   couleurTexte: "#ffffff",
-  contour: 3,
+  contour: 0.5,
   couleurContour: "#f2b705",
   ombre: 4,
   flou: 18,
   echelleDepart: 0.85,
   rebond: 16,
   lignes: true,
-  dureeLignes: 2.6,
-  epaisseurLignes: 3,
+  dureeLignes: 3.2,
+  epaisseurLignes: 2,
   couleurLignes: "#f5c542",
-  ecartLignes: 24,
+  ecartLignes: 80,
   haut: false,
+  decalageY: 0,
   degrade: false,
-  hauteurDegrade: 45,
+  hauteurDegrade: 52,
   confettis: false,
   nombreConfettis: 70,
   couleurConfettis: "#ffd35c",
@@ -63,6 +64,7 @@ function schema(defaut: ReglagesAnnonce, dossier: string) {
     couleurLignes: { value: defaut.couleurLignes, label: "lines color" },
     ecartLignes: { value: defaut.ecartLignes, min: 0, max: 120, step: 1, label: "lines gap (px)" },
     haut: { value: defaut.haut, label: "at top of screen" },
+    decalageY: { value: defaut.decalageY, min: -45, max: 45, step: 0.5, label: "text vertical offset (vh)" },
     degrade: { value: defaut.degrade, label: "gradient overlay" },
     hauteurDegrade: { value: defaut.hauteurDegrade, min: 5, max: 100, step: 1, label: "gradient height (%)" },
     confettis: { value: defaut.confettis, label: "confetti" },
@@ -92,6 +94,8 @@ export function useReglagesAnnonces(): Record<TypeAnnonce, ReglagesAnnonce> {
         flou: 12,
         echelleDepart: 0.96,
         duree: 2,
+        espacement: 0.06,
+        hauteurDegrade: 45,
       },
       "Announcement · Your Turn",
     ),
@@ -105,13 +109,7 @@ export function useReglagesAnnonces(): Record<TypeAnnonce, ReglagesAnnonce> {
         ...DEFAUT,
         duree: 4.5,
         son: false,
-        voile: 0.18,
-        taille: 2.4,
-        tailleSous: 1.6,
-        contour: 0,
-        ombre: 2,
-        flou: 14,
-        lignes: false,
+        taille: 3.4,
         confettis: true,
       },
       "Announcement · Victory",
@@ -256,13 +254,13 @@ export function Annonce({ texte, sousTexte, son, reglages: r }: { texte: string;
       }
     >
       {r.confettis && <Confettis r={r} />}
-      <div className="relative flex w-full flex-col items-center" style={{ gap: r.ecartLignes }}>
+      <div className="relative flex w-full flex-col items-center" style={{ gap: r.ecartLignes, transform: r.decalageY ? `translateY(${r.decalageY}vh)` : undefined }}>
         {r.lignes && <Ligne sens={1} r={r} />}
         <motion.div
           initial={{ opacity: 0, scale: r.echelleDepart, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 180, damping: r.rebond, delay: 0.1 }}
-          className="flex flex-col items-center gap-2 px-6 text-center font-typey uppercase"
+          className="flex max-w-full flex-col items-center gap-2 px-6 text-center font-typey text-balance uppercase"
         >
           <h2 style={{ ...style, fontSize: `${r.taille}rem`, lineHeight: 1.1, letterSpacing: `${r.espacement}em` }}>{texte}</h2>
           {sousTexte && <p style={{ ...style, fontSize: `${r.tailleSous}rem`, lineHeight: 1.1, letterSpacing: `${r.espacement}em` }}>{sousTexte}</p>}
