@@ -120,7 +120,6 @@ export function Jeu3D({
     [partie.code],
   )
   const [pret, setPret] = useState(false)
-  const [basMissions, setBasMissions] = useState(0)
   const scenePrete = useCallback(() => setPret(true), [])
   useEffect(() => {
     if (!pret) return
@@ -219,7 +218,6 @@ export function Jeu3D({
             <Scene3D
               etape={etape}
               onPret={scenePrete}
-              onBasMissions={setBasMissions}
               reglages={reglagesOuverture}
               missionFocus={missionFocus}
               fin={fin}
@@ -241,7 +239,7 @@ export function Jeu3D({
           />
           <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
             <div className="pointer-events-auto flex flex-col items-center gap-1">
-              <button type="button" className="w-44 transition-transform hover:scale-105 sm:w-52" title="Quitter la partie" onClick={onQuitter}>
+              <button type="button" className="w-40 transition-transform hover:scale-105 sm:w-48" title="Quitter la partie" onClick={onQuitter}>
                 <Logo src={catalogue.logoUrl} />
               </button>
               <div className="flex items-center justify-center gap-1">
@@ -257,8 +255,7 @@ export function Jeu3D({
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 160, damping: 20 }}
-              className="absolute inset-x-0 z-20 flex justify-center"
-              style={{ top: basMissions + 18 }}
+              className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center"
             >
               <BoutonCour onClick={finirIntro} className="w-auto max-w-none px-10">
                 {catalogue.texteBoutonMissions}

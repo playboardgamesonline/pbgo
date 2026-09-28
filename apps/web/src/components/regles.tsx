@@ -1,6 +1,8 @@
 "use client"
 
-import { BookOpenIcon, CrownIcon, HourglassIcon, PlayIcon, ScrollTextIcon, SwordsIcon, TrophyIcon } from "lucide-react"
+import { CrownIcon, HourglassIcon, PlayIcon, ScrollTextIcon, SwordsIcon, TrophyIcon } from "lucide-react"
+import { CatalogueIcon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -305,11 +307,11 @@ export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: {
       <DialogTrigger asChild>
         {icone ? (
           <Button variant="ghost" size="icon" aria-label="Règles du jeu" title="Règles du jeu" className={cn(BOUTON_ICONE, className)}>
-            <BookOpenIcon strokeWidth={1.6} className="size-7 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]" />
+            <HugeiconsIcon icon={CatalogueIcon} strokeWidth={1.6} className="size-7 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]" />
           </Button>
         ) : (
           <Button variant="outline" className={className}>
-            <BookOpenIcon />
+            <HugeiconsIcon icon={CatalogueIcon} />
             Règles du jeu
           </Button>
         )}

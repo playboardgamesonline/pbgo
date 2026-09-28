@@ -485,7 +485,6 @@ function Monde({
   missionFocus,
   onMission,
   onPret,
-  onBasMissions,
   fin,
   reglages,
 }: {
@@ -493,7 +492,6 @@ function Monde({
   missionFocus: string | null
   onMission: (id: string) => void
   onPret: () => void
-  onBasMissions?: (px: number) => void
   fin: EtatFin | null
   reglages: ReglagesOuverture
 }) {
@@ -622,26 +620,25 @@ function Monde({
   const mainVisible = etape !== "tapis"
   const missionsVisibles = etape === "missions" || etape === null
 
-  const { camera, size } = useThree()
-  const dernierBas = useRef(-1)
+  const { camera } = useThree()
   const reglagesMissions = useControls(
     "Missions (début de partie)",
     {
       distance: { value: 4.4, min: 2, max: 10, step: 0.05 },
       x: { value: 0, min: -3, max: 3, step: 0.01, label: "position x" },
       y: { value: 0.32, min: -3, max: 3, step: 0.01, label: "position y" },
-      echelle: { value: 1.3, min: 0.5, max: 2.5, step: 0.01, label: "échelle" },
-      ecart: { value: 0.55, min: -1, max: 3, step: 0.01, label: "écart" },
-      rotationX: { value: -0.08, min: -1, max: 1, step: 0.01, label: "rotation x groupe" },
+      echelle: { value: 1.4, min: 0.5, max: 2.5, step: 0.01, label: "échelle" },
+      ecart: { value: 0.3, min: -1, max: 3, step: 0.01, label: "écart" },
+      rotationX: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation x groupe" },
       rotationY: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation y groupe" },
       rotationZ: { value: 0, min: -1, max: 1, step: 0.01, label: "rotation z groupe" },
-      angleY: { value: 0.38, min: -1, max: 1, step: 0.01, label: "angle y cartes" },
-      angleZ: { value: 0.05, min: -1, max: 1, step: 0.01, label: "angle z cartes" },
-      recul: { value: 0.12, min: 0, max: 1, step: 0.01, label: "recul extérieur" },
-      souris: { value: 0.25, min: 0, max: 1, step: 0.01, label: "inclinaison souris" },
-      voile: { value: 0.4, min: 0, max: 1, step: 0.01, label: "opacité overlay" },
-      voileFocus: { value: 0.65, min: 0, max: 1, step: 0.01, label: "opacité overlay focus" },
-      fonduVoile: { value: 0.6, min: 0.05, max: 2, step: 0.05, label: "fondu overlay" },
+      angleY: { value: 0.06, min: -1, max: 1, step: 0.01, label: "angle y cartes" },
+      angleZ: { value: 0.01, min: -1, max: 1, step: 0.01, label: "angle z cartes" },
+      recul: { value: 0, min: 0, max: 1, step: 0.01, label: "recul extérieur" },
+      souris: { value: 0.1, min: 0, max: 1, step: 0.01, label: "inclinaison souris" },
+      voile: { value: 0.24, min: 0, max: 1, step: 0.01, label: "opacité overlay" },
+      voileFocus: { value: 0.24, min: 0, max: 1, step: 0.01, label: "opacité overlay focus" },
+      fonduVoile: { value: 0.8, min: 0.05, max: 2, step: 0.05, label: "fondu overlay" },
       ...boutonCopie("SCENE", "Missions (début de partie)"),
     },
     onglet("SCENE"),
@@ -707,14 +704,6 @@ function Monde({
         p.position.copy(centre).add(new Vector3(x, 0, -Math.abs(x) * r.recul).applyQuaternion(groupe))
         p.quaternion.copy(groupe).multiply(QUAT_LOCAL.setFromEuler(EULER_TMP.set(0, sens * r.angleY, -sens * r.angleZ)))
         p.echelle = k * r.echelle
-        if (i === 0 && onBasMissions) {
-          const bas = camera.localToWorld(VEC_TMP.set(r.x * k, r.y * k - (MISSION_H / 2) * k * r.echelle, -r.distance)).project(camera)
-          const px = Math.round(((1 - bas.y) / 2) * size.height)
-          if (Math.abs(px - dernierBas.current) > 2) {
-            dernierBas.current = px
-            onBasMissions(px)
-          }
-        }
       } else if (missionFocus === m.id) {
         const d = 3.6
         const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
@@ -945,7 +934,6 @@ export default function Scene3D(props: {
   onMission: (id: string) => void
   onVide: () => void
   onPret: () => void
-  onBasMissions?: (px: number) => void
   fin: EtatFin | null
   reglages: ReglagesOuverture
 }) {
@@ -957,7 +945,6 @@ export default function Scene3D(props: {
           missionFocus={props.missionFocus}
           onMission={props.onMission}
           onPret={props.onPret}
-          onBasMissions={props.onBasMissions}
           fin={props.fin}
           reglages={props.reglages}
         />
