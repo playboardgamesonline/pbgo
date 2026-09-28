@@ -153,6 +153,16 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                   className="relative overflow-hidden rounded-xl border border-[#d9a93f]/60 bg-[#f4ecd6] bg-cover bg-center px-6 py-5 text-center text-[#1b2a2e] shadow-inner"
                   style={{ backgroundImage: "var(--image-papier)" }}
                 >
+                  <button
+                    type="button"
+                    onClick={partager}
+                    disabled={partage}
+                    title="Partager le résultat"
+                    className="absolute top-3 right-3 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#8a6a3a]/50 bg-[#fffaf0]/70 px-3 py-1.5 font-display text-sm tracking-wide text-[#6b4a1a] uppercase shadow-sm transition-[background-color,scale] hover:scale-105 hover:bg-[#fffaf0] disabled:opacity-60"
+                  >
+                    <Share2Icon className={partage ? "size-3.5 animate-pulse" : "size-3.5"} />
+                    Partager
+                  </button>
                   <Couronne className="mx-auto mb-1 block h-10 w-9 bg-[#b88a2a]" />
                   <p className="font-sans text-3xl font-black tracking-[0.12em] uppercase" style={{ color: couleur(vainqueurs[0]!.joueurId) }}>
                     {vainqueurs.map((v) => info(v.joueurId)?.pseudo).join(" & ")}
@@ -188,20 +198,9 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
               </div>
 
               <div className="flex shrink-0 flex-col items-center gap-5 pt-1">
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8">
-                    Rejouer ({partie.rejouer.length}/{partie.joueurs.length})
-                  </BoutonCour>
-                  <button
-                    type="button"
-                    onClick={partager}
-                    disabled={partage}
-                    className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-xl border border-[#f3ecd6]/40 px-5 font-display text-base tracking-wide text-foreground uppercase transition-colors hover:bg-[#f3ecd6]/10 disabled:opacity-60"
-                  >
-                    <Share2Icon className="size-4" />
-                    Partager
-                  </button>
-                </div>
+                <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8">
+                  Rejouer ({partie.rejouer.length}/{partie.joueurs.length})
+                </BoutonCour>
                 <Link href="/" className="font-display text-base text-foreground/75 underline-offset-4 hover:text-foreground hover:underline">
                   Retour à l&apos;accueil
                 </Link>

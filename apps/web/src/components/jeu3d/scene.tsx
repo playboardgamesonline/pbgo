@@ -25,6 +25,7 @@ import { useInteraction } from "../jeu/interaction"
 import { Aura, ReglagesAura } from "./aura"
 import { ReglagesCartes } from "./reglages-cartes"
 import { Colonne } from "./colonne"
+import { PhotoPartie } from "./photo"
 import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
 import { Compteurs, LignesTapis, PointsPiles, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
@@ -402,7 +403,11 @@ function Apparition({
       } else m.opacity = m.userData.opaciteOrigine * e
     })
   })
-  return <group ref={ref}>{children}</group>
+  return (
+    <group ref={ref} userData={{ horsPhoto: true }}>
+      {children}
+    </group>
+  )
 }
 
 function SuitCamera({ children }: { children: React.ReactNode }) {
@@ -506,7 +511,7 @@ function Voile({ actif, opacite, fondu = 0.2 }: { actif: boolean; opacite: numbe
     ref.current.visible = m.opacity > 0.01
   })
   return (
-    <mesh ref={ref} renderOrder={10}>
+    <mesh ref={ref} renderOrder={10} userData={{ horsPhoto: true }}>
       <planeGeometry args={[40, 40]} />
       <meshBasicMaterial color="#020b0d" transparent opacity={0} depthWrite={false} toneMapped={false} />
     </mesh>
@@ -1276,6 +1281,7 @@ export default function Scene3D(props: {
           fin={props.fin}
           reglages={props.reglages}
         />
+        <PhotoPartie />
       </Suspense>
     </Canvas>
   )
