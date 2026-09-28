@@ -1,7 +1,7 @@
 import "server-only"
 import type { Famille, Role } from "@courtisans/engine"
 import { CATALOGUE_PAR_DEFAUT, type CatalogueClient, cleCarte, FAMILLES_VISUEL_ROLE, type RoleRegles } from "@/lib/catalogue"
-import { TEXTES_REGLES_DEFAUT, type TextesRegles, VISUELS_REGLES_DEFAUT, type VisuelsRegles } from "@/lib/regles-defaut"
+import { TEXTES_REGLES_DEFAUT, type TextesRegles } from "@/lib/regles-defaut"
 import { type Localise, traduire } from "@/lib/i18n"
 import { getCatalogue } from "./catalogue"
 import { urlFor } from "./image"
@@ -80,12 +80,6 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
             return [cle, valeur?.trim() ? valeur : defaut]
           }),
         ) as TextesRegles,
-        visuels: Object.fromEntries(
-          Object.entries(VISUELS_REGLES_DEFAUT).map(([cle, defaut]) => [
-            cle,
-            url(rules?.[cle as keyof typeof rules] as Source | undefined, 1400) ?? defaut,
-          ]),
-        ) as VisuelsRegles,
         roles: reglesRoles,
         cadrePicto: url(iface?.pictogramFrame, 240) ?? d.regles.cadrePicto,
       },

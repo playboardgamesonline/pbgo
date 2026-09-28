@@ -48,12 +48,6 @@ function Riche({ texte }: { texte: string }) {
   )
 }
 
-function Image({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
-  if (!src) return null
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} loading="lazy" className={cn("rounded-xl shadow-[0_10px_30px_rgb(14_57_64/25%)]", className)} />
-}
-
 function EnTete({ titre, children }: { titre: string; children?: React.ReactNode }) {
   return (
     <header className="mb-8 max-w-2xl">
@@ -65,14 +59,18 @@ function EnTete({ titre, children }: { titre: string; children?: React.ReactNode
 
 function Carte({ numero, titre, sous, children }: { numero?: number; titre: string; sous?: string; children: React.ReactNode }) {
   return (
-    <div className="relative rounded-2xl bg-white/70 p-5 shadow-[0_1px_0_rgb(255_255_255/80%)_inset,0_6px_20px_rgb(14_57_64/10%)] ring-1 ring-[#0e3940]/10">
-      {numero !== undefined && (
-        <span className="absolute -top-3 left-5 flex size-7 items-center justify-center rounded-full bg-[#0e3940] font-display text-sm text-[#f6e7b8] shadow">
-          {numero}
-        </span>
-      )}
-      <p className="font-display text-lg text-[#0e3940]">{titre}</p>
-      {sous && <p className="text-sm text-[#1f2b2d]/55 italic">{sous}</p>}
+    <div className="border-t border-[#0e3940]/15 pt-4">
+      <div className="flex items-center gap-3">
+        {numero !== undefined && (
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0e3940] font-display text-sm text-[#f6e7b8]">
+            {numero}
+          </span>
+        )}
+        <div>
+          <p className="font-display text-lg text-[#0e3940]">{titre}</p>
+          {sous && <p className="text-sm text-[#1f2b2d]/55 italic">{sous}</p>}
+        </div>
+      </div>
       <div className="mt-2 leading-relaxed text-[#1f2b2d]/85">{children}</div>
     </div>
   )
@@ -104,22 +102,7 @@ function Picto({ src, cadre }: { src: string | null; cadre: string }) {
 
 function Role({ role, cadre, children }: { role: RoleRegles; cadre: string; children: React.ReactNode }) {
   return (
-    <div className="flex gap-5 py-2">
-      <div aria-hidden className="relative h-28 w-24 shrink-0 self-center">
-        {role.cartes.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={src}
-            src={src}
-            alt=""
-            loading="lazy"
-            className={cn(
-              "absolute top-1/2 left-1/2 h-24 w-auto -translate-x-1/2 -translate-y-1/2 rounded-[6px] shadow-[0_4px_10px_rgb(0_0_0/25%)]",
-              i === 0 ? "-ml-3 -rotate-[9deg]" : "mt-1 ml-3 rotate-[7deg]",
-            )}
-          />
-        ))}
-      </div>
+    <div className="border-t border-[#0e3940]/15 pt-4">
       <div>
         <div className="flex items-center gap-3">
           <Picto src={role.pictoUrl} cadre={cadre} />
@@ -143,7 +126,6 @@ const ORDRE_ROLES = ["noble", "garde", "espion", "assassin"] as const
 
 function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) {
   const t = regles.textes
-  const v = regles.visuels
   switch (onglet) {
     case "video":
       return (
@@ -166,17 +148,13 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.goalTitle}>
             <Riche texte={t.goalIntro} />
           </EnTete>
-          <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
-            <Image src={v.tableVisual} alt="La table de la reine" />
-            <div className="space-y-4">
-              <Carte titre="Six familles">
-                <Riche texte={t.goalFamilies} />
-              </Carte>
-              <Carte titre="Deux missions secrètes">
-                <Riche texte={t.goalMissions} />
-              </Carte>
-              <Image src={v.missionsVisual} alt="Les cartes Mission" className="w-full" />
-            </div>
+          <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
+            <Carte titre="Six familles">
+              <Riche texte={t.goalFamilies} />
+            </Carte>
+            <Carte titre="Deux missions secrètes">
+              <Riche texte={t.goalMissions} />
+            </Carte>
           </div>
         </>
       )
@@ -186,7 +164,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.flowTitle}>
             <Riche texte={t.flowIntro} />
           </EnTete>
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-x-12 gap-y-8 lg:grid-cols-3">
             <Carte numero={1} titre="Le tapis et la pioche">
               <Riche texte={t.flowMat} />
             </Carte>
@@ -211,7 +189,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.turnTitle}>
             <Riche texte={t.turnIntro} />
           </EnTete>
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-x-12 gap-y-8 lg:grid-cols-3">
             <Carte numero={1} titre="À la table de la reine" sous="autour du tapis">
               <Riche texte={t.turnTable} />
             </Carte>
@@ -251,25 +229,16 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.scoringTitle}>
             <Riche texte={t.scoringIntro} />
           </EnTete>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="space-y-5">
-              <Carte numero={1} titre="Les espions sont révélés">
-                <Riche texte={t.scoringReveal} />
-              </Carte>
-              <Carte numero={2} titre="Le statut des familles">
-                <Riche texte={t.scoringStatus} />
-              </Carte>
-              <Carte numero={3} titre="Les points">
-                <Riche texte={t.scoringPoints} />
-              </Carte>
-            </div>
-            <div className="space-y-6">
-              <Image src={v.scoringTable} alt="Exemple de statut des familles" className="w-full" />
-              <figure className="space-y-2">
-                <Image src={v.scoringDomain} alt="Exemple de décompte d'un domaine" className="w-full" />
-                <figcaption className="text-sm text-[#0e5a5f] italic">{t.domainCaption}</figcaption>
-              </figure>
-            </div>
+          <div className="grid gap-x-12 gap-y-8 lg:grid-cols-3">
+            <Carte numero={1} titre="Les espions sont révélés">
+              <Riche texte={t.scoringReveal} />
+            </Carte>
+            <Carte numero={2} titre="Le statut des familles">
+              <Riche texte={t.scoringStatus} />
+            </Carte>
+            <Carte numero={3} titre="Les points">
+              <Riche texte={t.scoringPoints} />
+            </Carte>
           </div>
         </>
       )
@@ -316,7 +285,7 @@ export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="flex h-[86vh] w-[min(92vw,78rem)] max-w-none gap-0 overflow-hidden rounded-3xl border-0 bg-[#f3ecd6] p-0 text-[#1f2b2d] shadow-[0_30px_80px_rgb(0_0_0/55%)] sm:max-w-none">
+      <DialogContent className="flex h-[86vh] w-[min(95vw,92rem)] max-w-none gap-0 overflow-hidden rounded-3xl border-0 bg-[#f3ecd6] p-0 text-[#1f2b2d] shadow-[0_30px_80px_rgb(0_0_0/55%)] sm:max-w-none">
         <nav className="relative flex w-64 shrink-0 flex-col bg-[#0e3940] px-4 py-7 text-[#f3ecd6]">
           <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:110px_110px] opacity-[0.06]" />
           <div className="relative px-3 pb-8">
@@ -334,20 +303,26 @@ export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: {
             <BoutonOnglet onglet={VIDEO} actif={onglet === "video"} nom={regles.textes.videoTitle} onClick={() => setOnglet("video")} />
           </div>
         </nav>
-        <ScrollArea className="min-w-0 flex-1">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={onglet}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2 }}
-              className="px-12 py-12"
-            >
-              <Contenu onglet={onglet} regles={regles} />
-            </motion.div>
-          </AnimatePresence>
-        </ScrollArea>
+        <div className="relative flex min-w-0 flex-1">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-(image:--image-papier) bg-cover bg-center opacity-45 mix-blend-multiply"
+          />
+          <ScrollArea className="relative min-w-0 flex-1">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={onglet}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                className="px-12 py-12"
+              >
+                <Contenu onglet={onglet} regles={regles} />
+              </motion.div>
+            </AnimatePresence>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )

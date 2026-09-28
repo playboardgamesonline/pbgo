@@ -1,11 +1,4 @@
-import {
-  CADRE_PICTO_DEFAUT,
-  REGLES_ROLES_DEFAUT,
-  TEXTES_REGLES_DEFAUT,
-  type TextesRegles,
-  VISUELS_REGLES_DEFAUT,
-  type VisuelsRegles,
-} from "./regles-defaut"
+import { CADRE_PICTO_DEFAUT, REGLES_ROLES_DEFAUT, TEXTES_REGLES_DEFAUT, type TextesRegles } from "./regles-defaut"
 import { FAMILLES, type Famille, ROLES, type Role } from "@courtisans/engine"
 import { IMAGES_MISSIONS_PAR_DEFAUT } from "./missions-par-defaut"
 
@@ -71,14 +64,12 @@ export const FAMILLES_VISUEL_ROLE: Record<Role, [Famille, Famille]> = {
 
 export type ContenuRegles = {
   textes: TextesRegles
-  visuels: VisuelsRegles
   roles: Record<Role, RoleRegles>
   cadrePicto: string
 }
 
 export const REGLES_PAR_DEFAUT: ContenuRegles = {
   textes: TEXTES_REGLES_DEFAUT,
-  visuels: VISUELS_REGLES_DEFAUT,
   cadrePicto: CADRE_PICTO_DEFAUT,
   roles: Object.fromEntries(
     ROLES.map((r) => [

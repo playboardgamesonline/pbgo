@@ -205,20 +205,6 @@ export type Rules = {
   goalIntro?: LocaleText;
   goalFamilies?: LocaleText;
   goalMissions?: LocaleText;
-  tableVisual?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  missionsVisual?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
   flowTitle?: LocaleString;
   flowIntro?: LocaleText;
   flowMat?: LocaleText;
@@ -238,21 +224,6 @@ export type Rules = {
   scoringReveal?: LocaleText;
   scoringStatus?: LocaleText;
   scoringPoints?: LocaleText;
-  scoringTable?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  scoringDomain?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  domainCaption?: LocaleString;
 };
 
 export type Game = {
@@ -810,20 +781,6 @@ export type CATALOGUE_QUERY_RESULT = {
         goalIntro?: LocaleText;
         goalFamilies?: LocaleText;
         goalMissions?: LocaleText;
-        tableVisual?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        missionsVisual?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
         flowTitle?: LocaleString;
         flowIntro?: LocaleText;
         flowMat?: LocaleText;
@@ -843,21 +800,6 @@ export type CATALOGUE_QUERY_RESULT = {
         scoringReveal?: LocaleText;
         scoringStatus?: LocaleText;
         scoringPoints?: LocaleText;
-        scoringTable?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        scoringDomain?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        domainCaption?: LocaleString;
       }
     | {
         _id: "rules";

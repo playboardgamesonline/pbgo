@@ -30,7 +30,6 @@ export const TEXTES_REGLES_DEFAUT = {
   scoringStatus: "Plus de cartes au-dessus : {lumiere}. Plus au-dessous : {disgrace}. Sinon : {neutre}. Les nobles comptent double.",
   scoringPoints:
     "+1 par courtisan d'une famille dans la lumière, −1 par courtisan d'une famille en disgrâce, +3 par mission réussie. Le plus haut total l'emporte, les ex-aequo partagent la victoire.",
-  domainCaption: "11 points : +11 (papillon, crapaud, cerf), −3 (rossignol), 0 (carpe), +3 pour la mission.",
 }
 
 export type TextesRegles = typeof TEXTES_REGLES_DEFAUT
@@ -42,13 +41,4 @@ export const REGLES_ROLES_DEFAUT = {
   assassin: "En le posant, vous pouvez éliminer une autre carte de la même zone (sauf un garde), espions compris. Facultatif.",
 }
 
-export const VISUELS_REGLES_DEFAUT = {
-  missionsVisual: null as string | null,
-  tableVisual: "/rules/TABLE_EXAMPLE.webp" as string | null,
-  scoringTable: "/rules/SCORING_TABLE.webp" as string | null,
-  scoringDomain: "/rules/SCORING_DOMAIN.webp" as string | null,
-}
-
 export const CADRE_PICTO_DEFAUT = "/rules/PICTOGRAM_FRAME.svg"
-
-export type VisuelsRegles = typeof VISUELS_REGLES_DEFAUT

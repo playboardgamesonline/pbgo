@@ -36,15 +36,8 @@ const LEGACY_TEXT: Record<string, string[]> = {
   scoringReveal: ["decompteRevelation"],
   scoringStatus: ["decompteStatut"],
   scoringPoints: ["decomptePoints"],
-  domainCaption: ["legendeDomaine"],
 }
-const CAPTIONS = new Set(["domainCaption", "videoTitle", "goalTitle", "flowTitle", "turnTitle", "rolesTitle", "scoringTitle"])
-const LEGACY_VISUAL: Record<string, { old: string[]; file?: string }> = {
-  tableVisual: { old: ["visuelTable", "table"], file: "rules/TABLE_EXAMPLE.webp" },
-  missionsVisual: { old: ["visuelMissions", "missions"] },
-  scoringTable: { old: ["decompteTable"], file: "rules/SCORING_TABLE.webp" },
-  scoringDomain: { old: ["decompteDomaine"], file: "rules/SCORING_DOMAIN.webp" },
-}
+const CAPTIONS = new Set(["videoTitle", "goalTitle", "flowTitle", "turnTitle", "rolesTitle", "scoringTitle"])
 
 const first = (...values: unknown[]) => values.find((v) => v !== undefined && v !== null && v !== "")
 const fr = (value: unknown, fallback?: string) => {
@@ -132,9 +125,6 @@ async function main() {
     const defaut = TEXTES_REGLES_DEFAUT[field as keyof typeof TEXTES_REGLES_DEFAUT]
     const value = fr(first(rules[field], ...legacy.map((l) => rules[l])), defaut) as Doc
     rulesDoc[field] = { ...value, _type: CAPTIONS.has(field) ? "localeString" : "localeText" }
-  }
-  for (const [field, { old, file }] of Object.entries(LEGACY_VISUAL)) {
-    rulesDoc[field] = first(rules[field], ...old.map((o) => rules[o])) ?? (file ? await upload(file) : undefined)
   }
   tx.createOrReplace(clean(rulesDoc) as { _id: string; _type: string })
 

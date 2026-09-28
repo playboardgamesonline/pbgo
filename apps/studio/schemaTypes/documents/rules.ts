@@ -3,7 +3,6 @@ import { defineField, defineType } from "sanity"
 
 const text = (name: string, title: string, group: string) => defineField({ name, title, type: "localeText", group })
 const caption = (name: string, title: string, group: string) => defineField({ name, title, type: "localeString", group })
-const visual = (name: string, title: string, group: string) => defineField({ name, title, type: "image", group })
 
 export const rules = defineType({
   name: "rules",
@@ -25,8 +24,6 @@ export const rules = defineType({
     text("goalIntro", "Introduction", "goal"),
     text("goalFamilies", "Six families", "goal"),
     text("goalMissions", "Two secret missions", "goal"),
-    visual("tableVisual", "Visual: the Queen's table", "goal"),
-    visual("missionsVisual", "Visual: the missions", "goal"),
     caption("flowTitle", "Title", "flow"),
     text("flowIntro", "Introduction", "flow"),
     text("flowMat", "1. Mat and draw pile", "flow"),
@@ -46,9 +43,6 @@ export const rules = defineType({
     text("scoringReveal", "1. Spies are revealed", "scoring"),
     text("scoringStatus", "2. Family status", "scoring"),
     text("scoringPoints", "3. Points", "scoring"),
-    visual("scoringTable", "Visual: family status", "scoring"),
-    visual("scoringDomain", "Visual: domain points", "scoring"),
-    caption("domainCaption", "Domain scoring caption", "scoring"),
   ],
   preview: { prepare: () => ({ title: "Rules" }) },
 })
