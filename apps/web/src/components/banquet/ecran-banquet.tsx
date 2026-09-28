@@ -223,7 +223,11 @@ function PiedDePage() {
     <footer className="relative z-20 shrink-0 bg-[#031622] px-4 pt-[4vh] pb-[3vh] text-center text-xs leading-relaxed text-foreground/55">
       <p>
         Adaptation en ligne non officielle et gratuite de <em>Courtisans</em>, un jeu de Romaric Galonnier et Anthony Perone, illustré par Noëmie
-        Chevalier et édité par Catch Up Games. Tous droits réservés à leurs auteurs et à l&apos;éditeur.
+        Chevalier et édité par{" "}
+        <a href="https://catchupgames.com/nos-jeux/courtisans/" target="_blank" rel="noreferrer" className={lien}>
+          Catch Up Games
+        </a>
+        . Tous droits réservés à leurs auteurs et à l&apos;éditeur.
       </p>
       <p>
         Développé par{" "}
