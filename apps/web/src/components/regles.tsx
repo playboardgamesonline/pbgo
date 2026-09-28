@@ -35,6 +35,21 @@ function Etiquette({ type }: { type: "lumiere" | "disgrace" | "neutre" }) {
 }
 
 function Riche({ texte }: { texte: string }) {
+  const paragraphes = texte.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+  if (paragraphes.length > 1)
+    return (
+      <>
+        {paragraphes.map((p, i) => (
+          <span key={i} className={cn("block", i > 0 && "mt-[0.7em]")}>
+            <Ligne texte={p} />
+          </span>
+        ))}
+      </>
+    )
+  return <Ligne texte={texte.trim()} />
+}
+
+function Ligne({ texte }: { texte: string }) {
   return (
     <>
       {texte.split(/(\{lumiere\}|\{disgrace\}|\{neutre\}|\*\*[^*]+\*\*)/).map((morceau, i) => {
@@ -42,7 +57,7 @@ function Riche({ texte }: { texte: string }) {
         if (morceau === "{disgrace}") return <Etiquette key={i} type="disgrace" />
         if (morceau === "{neutre}") return <Etiquette key={i} type="neutre" />
         if (morceau.startsWith("**") && morceau.endsWith("**")) return <strong key={i}>{morceau.slice(2, -2)}</strong>
-        return morceau
+        return morceau.split("\n").flatMap((l, j) => (j ? [<br key={`${i}-${j}`} />, l] : [l]))
       })}
     </>
   )
@@ -50,9 +65,9 @@ function Riche({ texte }: { texte: string }) {
 
 function EnTete({ titre, children }: { titre: string; children?: React.ReactNode }) {
   return (
-    <header className="mb-8 max-w-2xl">
+    <header className="mb-8 max-w-4xl">
       <h3 className="font-display text-4xl tracking-[0.04em] text-[#0e3940] uppercase">{titre}</h3>
-      {children && <p className="mt-3 text-lg leading-relaxed text-[#1f2b2d]/80">{children}</p>}
+      {children && <div className="mt-3 text-lg leading-[1.45] text-[#1f2b2d]/80">{children}</div>}
     </header>
   )
 }
@@ -71,9 +86,19 @@ function Carte({ numero, titre, sous, children }: { numero?: number; titre: stri
           {sous && <p className="text-sm text-[#1f2b2d]/55 italic">{sous}</p>}
         </div>
       </div>
-      <div className="mt-2 leading-relaxed text-[#1f2b2d]/85">{children}</div>
+      <div className="mt-2 leading-[1.45] text-[#1f2b2d]/85">{children}</div>
     </div>
   )
+}
+
+function urlMasque(src: string) {
+  if (!/^https?:/.test(src)) return src
+  const u = new URL(src)
+  if (u.hostname === "cdn.sanity.io") {
+    u.searchParams.set("fm", "png")
+    u.searchParams.set("w", "256")
+  }
+  return `/_next/image?url=${encodeURIComponent(u.toString())}&w=256&q=90`
 }
 
 function Picto({ src, cadre, className }: { src: string | null; cadre: string; className?: string }) {
@@ -85,8 +110,8 @@ function Picto({ src, cadre, className }: { src: string | null; cadre: string; c
         <span
           className="absolute inset-[27%] bg-[#e7c46a]"
           style={{
-            maskImage: `url("${src}")`,
-            WebkitMaskImage: `url("${src}")`,
+            maskImage: `url("${urlMasque(src)}")`,
+            WebkitMaskImage: `url("${urlMasque(src)}")`,
             maskSize: "contain",
             WebkitMaskSize: "contain",
             maskRepeat: "no-repeat",
@@ -127,7 +152,7 @@ function Role({ role, cadre, children }: { role: RoleRegles; cadre: string; chil
             × {role.nombre} <span className="text-base text-[#0e3940]/70">par famille</span>
           </span>
         </div>
-        <p className="mt-2 leading-relaxed text-[#1f2b2d]/85">{children}</p>
+        <div className="mt-2 leading-[1.45] text-[#1f2b2d]/85">{children}</div>
       </div>
     </div>
   )
@@ -197,7 +222,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.flowTitle}>
             <Riche texte={t.flowIntro} />
           </EnTete>
-          <div className="grid gap-x-12 gap-y-8 lg:grid-cols-3">
+          <div className="grid gap-x-8 gap-y-8 lg:grid-cols-3">
             <Carte numero={1} titre="Le tapis et la pioche">
               <Riche texte={t.flowMat} />
             </Carte>
@@ -210,9 +235,9 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           </div>
           <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
             <CrownIcon className="size-6 shrink-0 text-[#e7c46a]" />
-            <p>
+            <div>
               <Riche texte={t.flowStart} />
-            </p>
+            </div>
           </div>
         </>
       )
@@ -222,7 +247,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.turnTitle}>
             <Riche texte={t.turnIntro} />
           </EnTete>
-          <div className="grid gap-x-12 gap-y-8 lg:grid-cols-3">
+          <div className="grid gap-x-8 gap-y-8 lg:grid-cols-3">
             <Carte numero={1} titre="À la table de la reine" sous="autour du tapis">
               <Riche texte={t.turnTable} />
             </Carte>
@@ -235,9 +260,9 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           </div>
           <div className="mt-6 flex items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
             <ScrollTextIcon className="size-6 shrink-0 text-[#e7c46a]" />
-            <p>
+            <div>
               <strong className="font-display text-[#f6e7b8]">Fin du tour</strong> — <Riche texte={t.turnEnd} />
-            </p>
+            </div>
           </div>
         </>
       )
@@ -262,7 +287,7 @@ function Contenu({ onglet, regles }: { onglet: Onglet; regles: ContenuRegles }) 
           <EnTete titre={t.scoringTitle}>
             <Riche texte={t.scoringIntro} />
           </EnTete>
-          <div className="grid gap-x-12 gap-y-8 lg:grid-cols-3">
+          <div className="grid gap-x-8 gap-y-8 lg:grid-cols-3">
             <Carte numero={1} titre="Les espions sont révélés">
               <Riche texte={t.scoringReveal} />
             </Carte>
@@ -349,7 +374,7 @@ export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.2 }}
-                className="px-12 py-12"
+                className="px-10 py-10"
               >
                 <Contenu onglet={onglet} regles={regles} />
               </motion.div>

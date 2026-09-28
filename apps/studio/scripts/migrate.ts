@@ -1,7 +1,7 @@
 import { createReadStream, existsSync } from "node:fs"
 import path from "node:path"
 import { getCliClient } from "sanity/cli"
-import { REGLES_ROLES_DEFAUT, TEXTES_REGLES_DEFAUT } from "../../web/src/lib/regles-defaut"
+import { ANCIENNES_REGLES_ROLES, ANCIENS_TEXTES_REGLES, REGLES_ROLES_DEFAUT, TEXTES_REGLES_DEFAUT } from "../../web/src/lib/regles-defaut"
 import { FAMILIES, ROLES } from "../schemaTypes/constants"
 
 const client = getCliClient({ apiVersion: "2026-09-27" }).withConfig({ perspective: "raw" })
@@ -127,7 +127,7 @@ async function main() {
   for (const [field, legacy] of Object.entries(LEGACY_TEXT)) {
     const defaut = TEXTES_REGLES_DEFAUT[field as keyof typeof TEXTES_REGLES_DEFAUT]
     const value = fr(first(rules[field], ...legacy.map((l) => rules[l])), defaut) as Doc
-    if (field === "scoringTitle" && value.fr === "Décompte") value.fr = defaut
+    if (value.fr === ANCIENS_TEXTES_REGLES[field]) value.fr = defaut
     rulesDoc[field] = { ...value, _type: CAPTIONS.has(field) ? "localeString" : "localeText" }
   }
   tx.createOrReplace(clean(rulesDoc) as { _id: string; _type: string })
@@ -173,7 +173,12 @@ async function main() {
         countPerFamily: first(r.countPerFamily, COUNT_PER_FAMILY[key]),
         pictogram: first(r.pictogram, r.picto),
         lettering: r.lettering,
-        rule: fr(first(r.rule, r.regle), REGLES_ROLES_DEFAUT[key as keyof typeof REGLES_ROLES_DEFAUT]),
+        rule: (() => {
+          const defaut = REGLES_ROLES_DEFAUT[key as keyof typeof REGLES_ROLES_DEFAUT]
+          const valeur = fr(first(r.rule, r.regle), defaut) as Doc | undefined
+          if (valeur && valeur.fr === ANCIENNES_REGLES_ROLES[key as string]) valeur.fr = defaut
+          return valeur
+        })(),
       }) as { _id: string; _type: string },
     )
     if (r._id !== id) obsolete.add(r._id)
