@@ -82,6 +82,8 @@ export type CatalogueClient = {
   banquetBasUrl: string
   regles: ContenuRegles
   phrasesVainqueur: string[]
+  texteBoutonMissions: string
+  texteDebutBanquet: string
 }
 
 export const PHRASES_PAR_DEFAUT = [
@@ -109,4 +111,6 @@ export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
   banquetBasUrl: "/accueil/banquet-bas-3200.webp",
   regles: REGLES_PAR_DEFAUT,
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
+  texteBoutonMissions: "Missions comprises",
+  texteDebutBanquet: "Le banquet peut commencer !",
 }

@@ -1,10 +1,10 @@
 "use client"
 
-import type { Cible, Courtisan, ZoneJeu } from "@courtisans/engine"
+import type { Cible, Courtisan, VueJoueur, ZoneJeu } from "@courtisans/engine"
 import { Loader2Icon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 import { ReglesButton } from "@/components/regles"
@@ -22,6 +22,9 @@ import { BoutonCour } from "../banquet/ecran-banquet"
 import { useTriche } from "./triche"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
 import { PanneauDebug } from "./debug"
+import { Annonce } from "./annonce"
+import type { NomSon } from "@/lib/son"
+import type { EtapeOuverture } from "./scene"
 
 const Scene3D = dynamic(() => import("./scene"), {
   ssr: false,
@@ -32,15 +35,7 @@ const Scene3D = dynamic(() => import("./scene"), {
   ),
 })
 
-const CLE_MISSIONS = "courtisans:missions-vues"
-
-function missionsVues(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(CLE_MISSIONS) ?? "[]") as string[]
-  } catch {
-    return []
-  }
-}
+const aLire = (vue: VueJoueur) => vue.phase === "missions" && !!vue.moi && !vue.joueurs.find((j) => j.id === vue.moi?.id)?.missionsLues
 
 export function Jeu3D({
   partie,
@@ -62,10 +57,52 @@ export function Jeu3D({
   const [envoi, setEnvoi] = useState(false)
   const [missionFocus, setMissionFocus] = useState<string | null>(null)
   const { fin, passer } = useSequenceFin(vue)
-  const [vues, setVues] = useState<string[]>(missionsVues)
+  const [etape, setEtape] = useState<EtapeOuverture>(() => (aLire(vue) ? "tapis" : null))
+  const [boutonMissions, setBoutonMissions] = useState(false)
+  const [repere, setRepere] = useState(`${vue.phase}:${vue.joueurActifId}`)
+  const [annonces, setAnnonces] = useState<{ id: number; texte: string; son: NomSon }[]>([])
+  const [compteur, setCompteur] = useState(0)
+  const repereActuel = `${vue.phase}:${vue.joueurActifId}`
+  if (repere !== repereActuel) {
+    const [phasePrec] = repere.split(":")
+    setRepere(repereActuel)
+    const nouvelles: { id: number; texte: string; son: NomSon }[] = []
+    if (vue.phase === "jeu" && phasePrec === "missions") nouvelles.push({ id: compteur, texte: catalogue.texteDebutBanquet, son: "victoire" })
+    if (vue.phase === "jeu" && vue.moi && vue.joueurActifId === vue.moi.id)
+      nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour" })
+    if (nouvelles.length) {
+      setCompteur((c) => c + 2)
+      setAnnonces((l) => [...l, ...nouvelles])
+    }
+    if (vue.phase === "missions" && phasePrec !== "missions" && aLire(vue)) setEtape("tapis")
+  }
+  const annonce = annonces[0]
+  const intro = etape === "missions"
+  const nbJoueurs = vue.joueurs.length
 
-  const cleMissions = `${partie.code}:${vue.moi?.missions.map((m) => m.id).join("+") ?? ""}`
-  const intro = !!vue.moi && vue.phase !== "fin" && !vues.includes(cleMissions)
+  const [pret, setPret] = useState(false)
+  const scenePrete = useCallback(() => setPret(true), [])
+  useEffect(() => {
+    if (!pret) return
+    if (etape === "tapis") {
+      const t = setTimeout(() => setEtape("distribution"), 1600)
+      return () => clearTimeout(t)
+    }
+    if (etape === "distribution") {
+      const t = setTimeout(() => setEtape("missions"), (0.1 + nbJoueurs * 3 * 0.17) * 1000 + 1300)
+      return () => clearTimeout(t)
+    }
+    if (etape === "missions") {
+      const t = setTimeout(() => setBoutonMissions(true), 1900)
+      return () => clearTimeout(t)
+    }
+  }, [etape, nbJoueurs, pret])
+
+  useEffect(() => {
+    if (!annonce) return
+    const t = setTimeout(() => setAnnonces((l) => l.slice(1)), 2800)
+    return () => clearTimeout(t)
+  }, [annonce])
 
   const moiId = vue.moi?.id
   const monTour = vue.phase === "jeu" && !!moiId && vue.joueurActifId === moiId
@@ -73,12 +110,12 @@ export function Jeu3D({
   useSonsJeu(vue, fin, selection?.id ?? null, missionFocus)
 
   function finirIntro() {
-    const suivantes = [...vues.slice(-20), cleMissions]
-    setVues(suivantes)
-    try {
-      localStorage.setItem(CLE_MISSIONS, JSON.stringify(suivantes))
-    } catch {}
-    api.action(partie.code, { type: "lireMissions" }).catch(() => null)
+    setBoutonMissions(false)
+    setEtape(null)
+    api
+      .action(partie.code, { type: "lireMissions" })
+      .then(onMaj)
+      .catch(() => null)
   }
 
   const interaction = useMemo<Interaction>(() => {
@@ -133,10 +170,11 @@ export function Jeu3D({
         <main className="relative h-dvh w-full overflow-hidden bg-[#061a1e]">
           <div className="absolute inset-0">
             <Scene3D
-              intro={intro}
+              etape={etape}
+              onPret={scenePrete}
               missionFocus={missionFocus}
               fin={fin}
-              onMission={(id) => (intro ? finirIntro() : setMissionFocus((f) => (f === id ? null : id)))}
+              onMission={(id) => setMissionFocus((f) => (f === id ? null : id))}
               onVide={() => {
                 setMissionFocus(null)
                 if (!assassinat) setSelection(null)
@@ -165,21 +203,20 @@ export function Jeu3D({
             <Bandeau />
           </header>
 
-          <AnimatePresence>
-            {intro && (
-              <motion.div
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 1.1, type: "spring", stiffness: 160, damping: 20 }}
-                className="absolute inset-x-0 bottom-[7%] z-20 flex justify-center"
-              >
-                <BoutonCour onClick={finirIntro} className="w-auto max-w-none px-10">
-                  J&apos;ai pris connaissance de mes missions
-                </BoutonCour>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {intro && boutonMissions && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 160, damping: 20 }}
+              className="absolute inset-x-0 bottom-[7%] z-20 flex justify-center"
+            >
+              <BoutonCour onClick={finirIntro} className="w-auto max-w-none px-10">
+                {catalogue.texteBoutonMissions}
+              </BoutonCour>
+            </motion.div>
+          )}
+
+          <AnimatePresence mode="wait">{annonce && <Annonce key={annonce.id} texte={annonce.texte} son={annonce.son} />}</AnimatePresence>
 
           <PanneauDebug />
 

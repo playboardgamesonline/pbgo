@@ -108,7 +108,13 @@ async function main() {
   )
 
   const legacyPhrases = (first(textes.phrasesVainqueur, reglages.phrasesVainqueur) as string[] | undefined) ?? []
-  tx.createOrReplace({ _id: "texts", _type: "texts", winnerPhrases: texts.winnerPhrases ?? { _type: "localeStringList", fr: legacyPhrases } })
+  tx.createOrReplace({
+    _id: "texts",
+    _type: "texts",
+    missionsButton: texts.missionsButton ?? { _type: "localeString", fr: "Missions comprises", en: "Missions understood" },
+    banquetStarts: texts.banquetStarts ?? { _type: "localeString", fr: "Le banquet peut commencer !", en: "Let the banquet begin!" },
+    winnerPhrases: texts.winnerPhrases ?? { _type: "localeStringList", fr: legacyPhrases },
+  })
 
   const rulesDoc: Doc = { _id: "rules", _type: "rules", videoId: first(rules.videoId, TEXTES_REGLES_DEFAUT.videoId) }
   for (const [field, legacy] of Object.entries(LEGACY_TEXT)) {

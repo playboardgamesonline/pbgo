@@ -84,6 +84,8 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
         roles: reglesRoles,
       },
       phrasesVainqueur: traduire(texts?.winnerPhrases)?.length ? traduire(texts?.winnerPhrases)! : d.phrasesVainqueur,
+      texteBoutonMissions: traduire(texts?.missionsButton)?.trim() || d.texteBoutonMissions,
+      texteDebutBanquet: traduire(texts?.banquetStarts)?.trim() || d.texteDebutBanquet,
     }
   } catch (error) {
     console.error("Catalogue Sanity indisponible", error)

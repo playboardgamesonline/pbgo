@@ -6,6 +6,10 @@ export const texts = defineType({
   title: "Texts",
   type: "document",
   icon: DocumentTextIcon,
-  fields: [defineField({ name: "winnerPhrases", title: "Winner phrases", type: "localeStringList" })],
+  fields: [
+    defineField({ name: "missionsButton", title: "Missions button", type: "localeString" }),
+    defineField({ name: "banquetStarts", title: "Banquet starts", type: "localeString" }),
+    defineField({ name: "winnerPhrases", title: "Winner phrases", type: "localeStringList" }),
+  ],
   preview: { prepare: () => ({ title: "Texts" }) },
 })

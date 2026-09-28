@@ -23,7 +23,7 @@ import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
 const tranches = new Map<string, ExtrudeGeometry>()
-export const EPAISSEUR_RELATIVE = 0.009
+export const EPAISSEUR_RELATIVE = 0.004
 
 function forme(largeur: number, hauteur: number, rayon: number) {
   const x = -largeur / 2

@@ -6,7 +6,7 @@ import { button, useControls } from "leva"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Color, Euler, type Mesh, type MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector3 } from "three"
+import { CanvasTexture, Color, Euler, type Group, type Mesh, MeshBasicMaterial, type PerspectiveCamera, Quaternion, Vector2, Vector3 } from "three"
 import { useJeu } from "../jeu/contexte"
 import { jouerSon } from "@/lib/son"
 import { useInteraction } from "../jeu/interaction"
@@ -165,12 +165,101 @@ function vignetteTexture() {
   return new CanvasTexture(c)
 }
 
-function Table({ tex }: { tex: Textures }) {
+const DUREE_TAPIS = 1.3
+
+const GLSL_TAPIS = /* glsl */ `
+uniform vec2 uTaille;
+uniform float uDeroule;
+uniform float uDesat;
+uniform float uGrain;
+float hashTapis(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float bruitTapis(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hashTapis(i), hashTapis(i + vec2(1.0, 0.0)), f.x), mix(hashTapis(i + vec2(0.0, 1.0)), hashTapis(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+`
+
+const FRAGMENT_TAPIS = /* glsl */ `
+#include <map_fragment>
+{
+  if (vMapUv.x > uDeroule) discard;
+  vec2 q = vMapUv * uTaille;
+  float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(l), uDesat) * 0.93 + 0.012;
+  vec2 f = q * 26.0;
+  vec2 g = fract(f);
+  float croise = mod(floor(f.x) + floor(f.y), 2.0);
+  float fil = mix(sin(g.x * 3.14159), sin(g.y * 3.14159), croise);
+  float net = clamp(1.4 - max(fwidth(f.x), fwidth(f.y)) * 1.4, 0.0, 1.0);
+  diffuseColor.rgb *= 1.0 + (fil - 0.64) * 0.22 * uGrain * net;
+  float tache = bruitTapis(q * 1.6) * 0.6 + bruitTapis(q * 6.0) * 0.4;
+  diffuseColor.rgb *= 1.0 + (tache - 0.5) * 0.12 * uGrain;
+  float point = smoothstep(0.955, 1.0, hashTapis(floor(q * 95.0)));
+  float fibre = smoothstep(0.82, 1.0, bruitTapis(vec2(q.x * 3.0, q.y * 60.0))) * smoothstep(0.6, 0.9, bruitTapis(q * 2.3));
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.95, 0.94, 0.9), (point * 0.45 + fibre * 0.12) * uGrain);
+  vec2 e = min(q, uTaille - q);
+  float bord = min(e.x, e.y);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.84, 0.78), (1.0 - smoothstep(0.035, 0.06, bord)) * 0.7);
+}
+`
+
+function Table({ tex, deroulement }: { tex: Textures; deroulement: boolean }) {
   const vignette = useFrameTexture(vignetteTexture)
   const texMotif = useMemo(() => textureMotif("losanges"), [])
-  const { opacite } = useControls("Plateau", { opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "opacité motif" } })
-  const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.28), [])
-  const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.06, 0.28), [])
+  const { opacite, desaturation, grain } = useControls("Plateau", {
+    opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "opacité motif" },
+    desaturation: { value: 0.28, min: 0, max: 1, step: 0.01, label: "désaturation tapis" },
+    grain: { value: 1, min: 0, max: 2, step: 0.05, label: "texture tapis" },
+  })
+  const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.07), [])
+  const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.05, 0.07), [])
+  const materiau = useMemo(() => {
+    const uniformes = {
+      uTaille: { value: new Vector2(TAPIS_L, TAPIS_P) },
+      uDeroule: { value: deroulement ? 0 : 1 },
+      uDesat: { value: 0.28 },
+      uGrain: { value: 1 },
+    }
+    const m = new MeshBasicMaterial({ map: tex.tapis, toneMapped: false })
+    m.userData.uniformes = uniformes
+    m.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, uniformes)
+      shader.fragmentShader = shader.fragmentShader
+        .replace("#include <common>", `#include <common>\n${GLSL_TAPIS}`)
+        .replace("#include <map_fragment>", FRAGMENT_TAPIS)
+    }
+    return m
+  }, [tex.tapis, deroulement])
+  const dessusRef = useRef<Mesh>(null)
+  const debut = useRef<number | null>(null)
+  const tranches = useRef<Group>(null)
+  const rouleau = useRef<Mesh>(null)
+  useFrame(({ clock }) => {
+    const uniformes = (dessusRef.current?.material as MeshBasicMaterial | undefined)?.userData.uniformes
+    if (!uniformes) return
+    uniformes.uDesat.value = desaturation
+    uniformes.uGrain.value = grain
+    let d = 1
+    if (deroulement) {
+      if (debut.current === null) debut.current = clock.elapsedTime
+      const t = Math.min(1, Math.max(0, (clock.elapsedTime - debut.current - 0.15) / DUREE_TAPIS))
+      d = 1 - (1 - t) ** 3
+    }
+    uniformes.uDeroule.value = d
+    if (tranches.current) tranches.current.scale.x = Math.max(0.0001, d)
+    const r = rouleau.current
+    if (r) {
+      r.visible = d < 0.999
+      const rayon = 0.06 + 0.26 * (1 - d)
+      r.position.set(-TAPIS_L / 2 + d * TAPIS_L, rayon + 0.02, 0)
+      r.scale.set(rayon, 1, rayon)
+      r.rotation.y = 0
+    }
+  })
   return (
     <group>
       <mesh rotation-x={-Math.PI / 2} position-y={-0.02}>
@@ -183,12 +272,16 @@ function Table({ tex }: { tex: Textures }) {
           <meshBasicMaterial map={texMotif} transparent opacity={opacite} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
-      <mesh geometry={tranche} rotation-x={-Math.PI / 2}>
-        <meshBasicMaterial attach="material-0" visible={false} />
-        <meshBasicMaterial attach="material-1" color="#0b1d22" toneMapped={false} />
-      </mesh>
-      <mesh geometry={dessus} rotation-x={-Math.PI / 2} position-y={0.061}>
-        <meshBasicMaterial map={tex.tapis} toneMapped={false} />
+      <group ref={tranches} position-x={-TAPIS_L / 2}>
+        <mesh geometry={tranche} rotation-x={-Math.PI / 2} position-x={TAPIS_L / 2}>
+          <meshBasicMaterial attach="material-0" visible={false} />
+          <meshBasicMaterial attach="material-1" color="#0b1d22" toneMapped={false} />
+        </mesh>
+      </group>
+      <mesh ref={dessusRef} geometry={dessus} rotation-x={-Math.PI / 2} position-y={0.051} material={materiau} />
+      <mesh ref={rouleau} rotation-x={Math.PI / 2} visible={deroulement} raycast={() => null}>
+        <cylinderGeometry args={[1, 1, TAPIS_P, 32]} />
+        <meshStandardMaterial color="#1f5358" roughness={0.9} />
       </mesh>
     </group>
   )
@@ -331,7 +424,7 @@ function Cible({ colonne, niveau, onClick }: { colonne: Colonne_; niveau: "haut"
 
 function Ephemere({ item, tex, onFin }: { item: Transitoire; tex: Textures; onFin: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onFin, 2200)
+    const t = setTimeout(onFin, 2200 + (item.depart.delai ?? 0) * 1000)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -354,17 +447,22 @@ const ESPACEMENT = "18px"
 const QUAT_TMP = new Quaternion()
 const EULER_TMP = new Euler()
 
+export type EtapeOuverture = "tapis" | "distribution" | "missions" | null
+
 function Monde({
-  intro,
+  etape,
   missionFocus,
   onMission,
+  onPret,
   fin,
 }: {
-  intro: boolean
+  etape: EtapeOuverture
   missionFocus: string | null
   onMission: (id: string) => void
+  onPret: () => void
   fin: EtatFin | null
 }) {
+  useEffect(() => onPret(), [onPret])
   const { vue, catalogue, pseudo, couleur } = useJeu()
   const it = useInteraction()
   const missions = useMemo(() => vue.moi?.missions ?? [], [vue.moi?.missions])
@@ -443,6 +541,52 @@ function Monde({
     setPrecedente(vue)
   }
 
+  const [etapePrec, setEtapePrec] = useState<EtapeOuverture>(etape)
+  const [deroulement] = useState(etape === "tapis")
+  const [distribution, setDistribution] = useState<Map<string, Pose>>(new Map())
+  const [departsMissions, setDepartsMissions] = useState<Map<string, Pose>>(new Map())
+  if (etapePrec !== etape) {
+    setEtapePrec(etape)
+    if (etape === "distribution") {
+      const n = vue.joueurs.length
+      const total = n * 3
+      const dist = new Map<string, Pose>()
+      const ajouts: Transitoire[] = []
+      for (let r = 0; r < 3; r++)
+        vue.joueurs.forEach((j, idx) => {
+          const k = r * n + idx
+          const depart = { ...poseDessusPioche(vue.nombreCartesPioche + total - k), delai: 0.1 + k * 0.17 }
+          jouerSon("glisse", { volume: 0.45, delai: depart.delai + 0.1 })
+          if (j.id === moiId) {
+            const carte = main[r]
+            if (carte) dist.set(carte.id, depart)
+          } else {
+            const zone = zones.get(j.id)
+            if (zone) ajouts.push({ id: `d-${j.id}-${r}`, carte: null, depart, cible: poseSiege(zone) })
+          }
+        })
+      setDistribution(dist)
+      if (ajouts.length) setTransitoires((t) => [...t, ...ajouts])
+    }
+    if (etape === "missions")
+      setDepartsMissions(
+        new Map(
+          missions.map((m, i) => [
+            m.id,
+            {
+              position: new Vector3((i - 0.5) * 0.25, 0.12 + i * 0.01, 0),
+              quaternion: new Quaternion().setFromAxisAngle(AXE_Y, (i - 0.5) * 0.3).multiply(FACE_BAS),
+              echelle: 0.85,
+              delai: 0.35 + i * 0.3,
+            },
+          ]),
+        ),
+      )
+  }
+  const intro = etape === "missions"
+  const mainVisible = etape !== "tapis"
+  const missionsVisibles = etape === "missions" || etape === null
+
   const { camera } = useThree()
   const [survol, setSurvol] = useState<string | null>(null)
   const [survolJoueur, setSurvolJoueur] = useState<string | null>(null)
@@ -465,10 +609,7 @@ function Monde({
   }
 
   const selectionId = it.selection?.id
-  const debutIntro = useRef(-1)
-  useFrame(({ pointer, clock }) => {
-    if (!intro) debutIntro.current = -1
-    else if (debutIntro.current < 0) debutIntro.current = clock.elapsedTime
+  useFrame(({ pointer }) => {
     const proj = camera.projectionMatrix.elements
     const h = D_MAIN / proj[5]
     const w = D_MAIN / proj[0]
@@ -503,11 +644,9 @@ function Monde({
         const agrandi = intro ? 1.3 : 1
         const x = intro ? (i - 0.5) * (MISSION_L + 0.55) * k * agrandi : 0
         const sens = i === 0 ? 1 : -1
-        const montee = intro ? Math.min(1, Math.max(0, (clock.elapsedTime - debutIntro.current - 0.2 - i * 0.18) / 0.9)) : 1
-        const leve = 1 - (1 - montee) ** 3 - 1
-        p.position.copy(camera.localToWorld(new Vector3(x, intro ? 0.32 * k + leve * 3.2 * k : -0.04 * k, intro ? -d - Math.abs(x) * 0.12 : -d)))
+        p.position.copy(camera.localToWorld(new Vector3(x, intro ? 0.32 * k : -0.04 * k, intro ? -d - Math.abs(x) * 0.12 : -d)))
         p.quaternion.copy(camera.quaternion)
-        if (intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-0.08 + leve * 0.5, sens * 0.38, sens * -0.05)))
+        if (intro) p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-0.08 - pointer.y * 0.22, sens * 0.38 + pointer.x * 0.3, sens * -0.05)))
         else p.quaternion.multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
         p.echelle = intro ? k * agrandi : 1.3 * k
       } else {
@@ -542,7 +681,7 @@ function Monde({
       <ReglagesAura />
       <ambientLight intensity={0.8} />
       <directionalLight position={[4, 12, 6]} intensity={2.2} />
-      <Table tex={tex} />
+      <Table tex={tex} deroulement={deroulement} />
 
       {[...plateau.values()].map(({ carte, pose, joueurId }) => {
         const candidat = candidats.has(carte.id)
@@ -582,50 +721,53 @@ function Monde({
         )
       })}
 
-      {main.map((carte) => {
-        const jouable = it.monTour && !it.assassinat && !it.envoi
-        return (
-          <Carte3D
-            key={carte.id}
-            cible={poseCamera(carte.id)}
-            depart={departs.get(carte.id)}
-            recto={tex.face(carte)}
-            verso={tex.dos}
-            largeur={CARTE_L}
-            hauteur={CARTE_H}
-            vitesse={0.12}
-            reflet={carte.id === survol || carte.id === selectionId}
-            onSurvol={(s) => setSurvol(s ? carte.id : null)}
-            onClick={
-              jouable
-                ? (e) => {
-                    e.stopPropagation()
-                    it.selectionner(carte.id === selectionId ? null : carte)
-                  }
-                : undefined
-            }
-          />
-        )
-      })}
+      {mainVisible &&
+        main.map((carte) => {
+          const jouable = it.monTour && !it.assassinat && !it.envoi
+          return (
+            <Carte3D
+              key={carte.id}
+              cible={poseCamera(carte.id)}
+              depart={departs.get(carte.id) ?? distribution.get(carte.id)}
+              recto={tex.face(carte)}
+              verso={tex.dos}
+              largeur={CARTE_L}
+              hauteur={CARTE_H}
+              vitesse={0.12}
+              reflet={carte.id === survol || carte.id === selectionId}
+              onSurvol={(s) => setSurvol(s ? carte.id : null)}
+              onClick={
+                jouable
+                  ? (e) => {
+                      e.stopPropagation()
+                      it.selectionner(carte.id === selectionId ? null : carte)
+                    }
+                  : undefined
+              }
+            />
+          )
+        })}
 
-      {missions.map((m: Mission) => (
-        <Carte3D
-          key={m.id}
-          cible={poseCamera(`mission:${m.id}`)}
-          recto={tex.mission(m)}
-          verso={tex.dosMission(m)}
-          largeur={MISSION_L}
-          hauteur={MISSION_H}
-          vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
-          reflet={missionFocus === m.id}
-          lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
-          onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
-          onClick={(e) => {
-            e.stopPropagation()
-            onMission(m.id)
-          }}
-        />
-      ))}
+      {missionsVisibles &&
+        missions.map((m: Mission) => (
+          <Carte3D
+            key={m.id}
+            cible={poseCamera(`mission:${m.id}`)}
+            depart={departsMissions.get(m.id)}
+            recto={tex.mission(m)}
+            verso={tex.dosMission(m)}
+            largeur={MISSION_L}
+            hauteur={MISSION_H}
+            vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
+            reflet={missionFocus === m.id}
+            lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
+            onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (!intro) onMission(m.id)
+            }}
+          />
+        ))}
       {resultats && fin && (
         <>
           <ResolutionFamilles resultats={resultats} fin={fin} />
@@ -725,16 +867,17 @@ function Monde({
 }
 
 export default function Scene3D(props: {
-  intro: boolean
+  etape: EtapeOuverture
   missionFocus: string | null
   onMission: (id: string) => void
   onVide: () => void
+  onPret: () => void
   fin: EtatFin | null
 }) {
   return (
     <Canvas dpr={[1, 2]} camera={{ fov: 26.5, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={props.onVide}>
       <Suspense fallback={null}>
-        <Monde intro={props.intro} missionFocus={props.missionFocus} onMission={props.onMission} fin={props.fin} />
+        <Monde etape={props.etape} missionFocus={props.missionFocus} onMission={props.onMission} onPret={props.onPret} fin={props.fin} />
       </Suspense>
     </Canvas>
   )

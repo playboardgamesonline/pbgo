@@ -25,11 +25,6 @@ export function useSonsJeu(vue: VueJoueur, fin: EtatFin | null, selectionId: str
     }
   }, [vue.journal])
 
-  const monTour = vue.phase === "jeu" && !!vue.moi && vue.joueurActifId === vue.moi.id
-  useEffect(() => {
-    if (monTour) jouerSon("tour", { delai: 0.9 })
-  }, [monTour])
-
   useEffect(() => {
     if (selectionId) jouerSon("selection")
   }, [selectionId])
