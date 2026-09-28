@@ -42,13 +42,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_FR",
     url: "/",
-    siteName: "Courtisans",
+    siteName: "Courtisans Online",
     title: TITRE,
     description: DESCRIPTION,
   },
   twitter: { card: "summary_large_image", title: TITRE, description: DESCRIPTION },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
   formatDetection: { telephone: false, email: false, address: false },
+  verification: { google: "NNqyjwU_KDPRURSnEMUynx4l6Vrl_ELFzR99g8dBudQ" },
 }
 
 export const viewport: Viewport = { themeColor: "#0e3940", colorScheme: "dark" }
