@@ -31,20 +31,78 @@ function textureTexte(texte: string, fond: string, encre: string, ratio: number)
   return t
 }
 
-function deuxLignes(ctx: CanvasRenderingContext2D, texte: string): string[] {
-  const mots = texte.split(/\s+/).filter(Boolean)
-  if (mots.length < 2) return [texte]
-  let meilleur: string[] = [texte]
+const BADGES = [
+  { motif: /en disgrâce|fallen from grace/i, fond: "#002C37", encre: "#CF9400" },
+  { motif: /dans la lumière|en lumière|esteemed/i, fond: "#EFE8CD", encre: "#B38200" },
+]
+const MOTIF_BADGES = new RegExp(BADGES.map((b) => b.motif.source).join("|"), "gi")
+
+type Morceau = { texte: string; badge?: (typeof BADGES)[number] }
+
+function decouper(texte: string): Morceau[] {
+  const morceaux: Morceau[] = []
+  let reste = 0
+  const mots = (t: string) =>
+    t
+      .split(/\s+/)
+      .filter(Boolean)
+      .forEach((m) => morceaux.push({ texte: m }))
+  for (const r of texte.matchAll(MOTIF_BADGES)) {
+    mots(texte.slice(reste, r.index))
+    morceaux.push({ texte: r[0], badge: BADGES.find((b) => b.motif.test(r[0])) })
+    reste = r.index + r[0].length
+  }
+  mots(texte.slice(reste))
+  return morceaux
+}
+
+const marge = (taille: number) => taille * 0.32
+
+function largeur(ctx: CanvasRenderingContext2D, ligne: Morceau[], taille: number) {
+  const espace = ctx.measureText(" ").width
+  return ligne.reduce((l, m, i) => l + ctx.measureText(m.texte).width + (m.badge ? marge(taille) * 2 : 0) + (i ? espace : 0), 0)
+}
+
+function deuxLignes(ctx: CanvasRenderingContext2D, morceaux: Morceau[], taille: number): Morceau[][] {
+  if (morceaux.length < 2) return [morceaux]
+  let meilleur: Morceau[][] = [morceaux]
   let largeurMin = Number.POSITIVE_INFINITY
-  for (let i = 1; i < mots.length; i++) {
-    const lignes = [mots.slice(0, i).join(" "), mots.slice(i).join(" ")]
-    const largeur = Math.max(...lignes.map((l) => ctx.measureText(l).width))
-    if (largeur < largeurMin) {
-      largeurMin = largeur
+  for (let i = 1; i < morceaux.length; i++) {
+    const lignes = [morceaux.slice(0, i), morceaux.slice(i)]
+    const l = Math.max(...lignes.map((x) => largeur(ctx, x, taille)))
+    if (l < largeurMin) {
+      largeurMin = l
       meilleur = lignes
     }
   }
   return meilleur
+}
+
+function dessinerLigne(ctx: CanvasRenderingContext2D, ligne: Morceau[], centreX: number, y: number, taille: number) {
+  const espace = ctx.measureText(" ").width
+  let x = centreX - largeur(ctx, ligne, taille) / 2
+  ctx.textAlign = "left"
+  for (const m of ligne) {
+    const w = ctx.measureText(m.texte).width
+    if (m.badge) {
+      const h = taille * 1.12
+      const l = w + marge(taille) * 2
+      ctx.beginPath()
+      ctx.roundRect(x, y - h / 2, l, h, taille * 0.24)
+      ctx.fillStyle = m.badge.fond
+      ctx.fill()
+      ctx.lineWidth = Math.max(2, taille * 0.045)
+      ctx.strokeStyle = m.badge.encre
+      ctx.stroke()
+      ctx.fillStyle = m.badge.encre
+      ctx.fillText(m.texte, x + marge(taille), y + taille * 0.02)
+      x += l + espace
+    } else {
+      ctx.fillStyle = "#141414"
+      ctx.fillText(m.texte, x, y)
+      x += w + espace
+    }
+  }
 }
 
 const POLICE = '"Alegreya Variable", "Alegreya", Georgia, serif'
@@ -62,19 +120,18 @@ async function composerMission(image: Texture, texte: string): Promise<Texture> 
   ctx.drawImage(source, 0, 0, canvas.width, canvas.height)
   const largeurMax = canvas.width * 0.6
   let taille = 58
+  const morceaux = decouper(texte)
   ctx.font = `600 ${taille}px ${POLICE}`
-  let lignes = deuxLignes(ctx, texte)
-  while (taille > 30 && Math.max(...lignes.map((l) => ctx.measureText(l).width)) > largeurMax) {
+  let lignes = deuxLignes(ctx, morceaux, taille)
+  while (taille > 30 && Math.max(...lignes.map((l) => largeur(ctx, l, taille))) > largeurMax) {
     taille -= 2
     ctx.font = `600 ${taille}px ${POLICE}`
-    lignes = deuxLignes(ctx, texte)
+    lignes = deuxLignes(ctx, morceaux, taille)
   }
-  ctx.fillStyle = "#141414"
-  ctx.textAlign = "center"
   ctx.textBaseline = "middle"
-  const interligne = taille * 1.15
+  const interligne = taille * (morceaux.some((m) => m.badge) ? 1.32 : 1.15)
   const centre = canvas.height * 0.705
-  lignes.forEach((l, i) => ctx.fillText(l, canvas.width / 2, centre + (i - (lignes.length - 1) / 2) * interligne))
+  lignes.forEach((l, i) => dessinerLigne(ctx, l, canvas.width / 2, centre + (i - (lignes.length - 1) / 2) * interligne, taille))
   const t = new CanvasTexture(canvas)
   t.colorSpace = SRGBColorSpace
   t.anisotropy = 8
