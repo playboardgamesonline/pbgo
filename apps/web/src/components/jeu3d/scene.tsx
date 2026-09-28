@@ -235,7 +235,15 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
     onglet("SCENE"),
   )
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.07), [])
-  const tranche = useMemo(() => geometrieTranche(TAPIS_L, TAPIS_P, 0.05, 0.07), [])
+  const tranche = useMemo(() => {
+    const geo = geometrieTranche(TAPIS_L, TAPIS_P, EPAISSEUR_TAPIS, 0.07).clone()
+    const pos = geo.attributes.position!
+    const uv = geo.attributes.uv!
+    for (let i = 0; i < pos.count; i++)
+      uv.setXY(i, Math.min(0.998, Math.max(0.002, pos.getX(i) / TAPIS_L + 0.5)), Math.min(0.998, Math.max(0.002, pos.getY(i) / TAPIS_P + 0.5)))
+    uv.needsUpdate = true
+    return geo
+  }, [])
   const materiau = useMemo(() => {
     const uniformes = {
       uTaille: { value: new Vector2(TAPIS_L, TAPIS_P) },
@@ -259,7 +267,6 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
   }, [tex.tapis])
   const dessusRef = useRef<Mesh>(null)
   const debut = useRef<number | null>(null)
-  const tranches = useRef<Group>(null)
   const rouleau = useRef<Mesh>(null)
   useFrame(({ clock }) => {
     const uniformes = (dessusRef.current?.material as MeshBasicMaterial | undefined)?.userData.uniformes
@@ -277,7 +284,6 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
       d = 1 - (1 - t) ** 3
     } else debut.current = null
     uniformes.uDeroule.value = d
-    if (tranches.current) tranches.current.scale.x = Math.max(0.0001, d)
     const r = rouleau.current
     if (r) {
       r.visible = d < 0.999
@@ -298,19 +304,59 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
           <meshBasicMaterial map={texMotif} transparent opacity={opacite} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
-      <group ref={tranches} position-x={-TAPIS_L / 2}>
-        <mesh geometry={tranche} rotation-x={-Math.PI / 2} position-x={TAPIS_L / 2}>
-          <meshBasicMaterial attach="material-0" visible={false} />
-          <meshBasicMaterial attach="material-1" color="#0b1d22" toneMapped={false} />
-        </mesh>
-      </group>
-      <mesh ref={dessusRef} geometry={dessus} rotation-x={-Math.PI / 2} position-y={0.051} material={materiau} />
+      <mesh geometry={tranche} rotation-x={-Math.PI / 2} material={[CACHE, materiau]} />
+      <mesh ref={dessusRef} geometry={dessus} rotation-x={-Math.PI / 2} position-y={EPAISSEUR_TAPIS + 0.001} material={materiau} />
       <mesh ref={rouleau} rotation-x={Math.PI / 2} visible={false} raycast={() => null}>
         <cylinderGeometry args={[1, 1, TAPIS_P, 32]} />
         <meshStandardMaterial color="#1f5358" roughness={0.9} />
       </mesh>
     </group>
   )
+}
+
+const EPAISSEUR_TAPIS = 0.018
+const CACHE = new MeshBasicMaterial({ visible: false })
+
+function Apparition({
+  actif,
+  delai,
+  duree,
+  hauteur,
+  children,
+}: {
+  actif: boolean
+  delai: number
+  duree: number
+  hauteur: number
+  children: React.ReactNode
+}) {
+  const ref = useRef<Group>(null)
+  const debut = useRef<number | null>(null)
+  const fini = useRef(true)
+  useFrame(({ clock }) => {
+    const g = ref.current
+    if (!g) return
+    let u = 1
+    if (actif) {
+      if (debut.current === null) debut.current = clock.elapsedTime
+      u = Math.min(1, Math.max(0, (clock.elapsedTime - debut.current - delai) / duree))
+    } else debut.current = null
+    const e = 1 - (1 - u) ** 3
+    g.position.y = hauteur * (1 - e)
+    if (u >= 1 && fini.current) return
+    fini.current = u >= 1
+    g.traverse((o) => {
+      const m = (o as Mesh).material as MeshBasicMaterial | undefined
+      if (!m || Array.isArray(m)) return
+      if (m.userData.transparentOrigine === undefined) {
+        m.userData.transparentOrigine = m.transparent
+        m.userData.opaciteOrigine = m.opacity
+      }
+      m.transparent = u < 1 || m.userData.transparentOrigine
+      m.opacity = m.userData.opaciteOrigine * e
+    })
+  })
+  return <group ref={ref}>{children}</group>
 }
 
 function Pioche({ nombre }: { nombre: number }) {
@@ -874,16 +920,18 @@ function Monde({
         <Ephemere key={t.id} item={t} tex={tex} onFin={() => setTransitoires((l) => l.filter((x) => x.id !== t.id))} />
       ))}
 
-      <Pioche nombre={vue.nombreCartesPioche} />
-      {vue.nombreCartesPioche > 0 && (
-        <Carte3D cible={poseDessusPioche(vue.nombreCartesPioche)} recto={tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} />
-      )}
-      <TexteTable
-        texte={String(vue.nombreCartesPioche)}
-        style={{ couleur: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", graisse: 800 }}
-        hauteur={0.85}
-        position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.75]}
-      />
+      <Apparition actif={deroulement} delai={reglages.dureeTapis * 0.55} duree={0.8} hauteur={5}>
+        <Pioche nombre={vue.nombreCartesPioche} />
+        {vue.nombreCartesPioche > 0 && (
+          <Carte3D cible={poseDessusPioche(vue.nombreCartesPioche)} recto={tex.dos} verso={tex.dos} largeur={CARTE_L} hauteur={CARTE_H} />
+        )}
+        <TexteTable
+          texte={String(vue.nombreCartesPioche)}
+          style={{ couleur: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", graisse: 800 }}
+          hauteur={0.85}
+          position={[PIOCHE.x, 0.04, PIOCHE.z + CARTE_H / 2 + 0.75]}
+        />
+      </Apparition>
 
       {vue.joueurs.map((j) => {
         const zone = zones.get(j.id)

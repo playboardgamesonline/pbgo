@@ -24,7 +24,7 @@ import { BoutonCour } from "../banquet/ecran-banquet"
 import { useTriche } from "./triche"
 import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
 import { PanneauDebug } from "./debug"
-import { Annonce } from "./annonce"
+import { Annonce, type TypeAnnonce, useReglagesAnnonces } from "./annonce"
 import type { NomSon } from "@/lib/son"
 import type { EtapeOuverture } from "./scene"
 
@@ -62,16 +62,17 @@ export function Jeu3D({
   const [etape, setEtape] = useState<EtapeOuverture>(() => (aLire(vue) ? "tapis" : null))
   const [boutonMissions, setBoutonMissions] = useState(false)
   const [repere, setRepere] = useState(`${vue.phase}:${vue.joueurActifId}`)
-  const [annonces, setAnnonces] = useState<{ id: number; texte: string; son: NomSon }[]>([])
+  const [annonces, setAnnonces] = useState<{ id: number; texte: string; son: NomSon; type: TypeAnnonce }[]>([])
   const [compteur, setCompteur] = useState(0)
   const repereActuel = `${vue.phase}:${vue.joueurActifId}`
   if (repere !== repereActuel) {
     const [phasePrec] = repere.split(":")
     setRepere(repereActuel)
-    const nouvelles: { id: number; texte: string; son: NomSon }[] = []
-    if (vue.phase === "jeu" && phasePrec === "missions") nouvelles.push({ id: compteur, texte: catalogue.texteDebutBanquet, son: "victoire" })
+    const nouvelles: { id: number; texte: string; son: NomSon; type: TypeAnnonce }[] = []
+    if (vue.phase === "jeu" && phasePrec === "missions")
+      nouvelles.push({ id: compteur, texte: catalogue.texteDebutBanquet, son: "victoire", type: "banquet" })
     if (vue.phase === "jeu" && vue.moi && vue.joueurActifId === vue.moi.id)
-      nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour" })
+      nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour", type: "tour" })
     if (nouvelles.length) {
       setCompteur((c) => c + 2)
       setAnnonces((l) => [...l, ...nouvelles])
@@ -79,8 +80,10 @@ export function Jeu3D({
     if (vue.phase === "missions" && phasePrec !== "missions" && aLire(vue)) setEtape("tapis")
   }
   const annonce = annonces[0]
-  function annoncer(texte: string, son: NomSon) {
-    setAnnonces((l) => [...l, { id: Date.now(), texte, son }])
+  const reglagesAnnonces = useReglagesAnnonces()
+  const dureeAnnonce = annonce ? reglagesAnnonces[annonce.type].duree : 0
+  function annoncer(texte: string, son: NomSon, type: TypeAnnonce) {
+    setAnnonces((l) => [...l, { id: Date.now(), texte, son, type }])
   }
   const intro = etape === "missions"
   const nbJoueurs = vue.joueurs.length
@@ -88,10 +91,9 @@ export function Jeu3D({
   const [reglagesOuverture] = useControls(
     "Ouverture",
     () => ({
-      dureeTapis: { value: 1.3, min: 0.3, max: 4, step: 0.05, label: "durée tapis (s)" },
-      pasDistribution: { value: 0.17, min: 0.05, max: 0.6, step: 0.01, label: "pas distribution (s)" },
-      attenteBouton: { value: 1.9, min: 0, max: 5, step: 0.1, label: "délai bouton (s)" },
-      dureeAnnonce: { value: 2.8, min: 1, max: 6, step: 0.1, label: "durée annonce (s)" },
+      dureeTapis: { value: 3.2, min: 0.3, max: 6, step: 0.05, label: "durée tapis (s)" },
+      pasDistribution: { value: 0.4, min: 0.05, max: 0.6, step: 0.01, label: "pas distribution (s)" },
+      attenteBouton: { value: 1.6, min: 0, max: 5, step: 0.1, label: "délai bouton (s)" },
       ...boutonCopie("TRANSITION", "Ouverture"),
     }),
     onglet("TRANSITION"),
@@ -103,8 +105,8 @@ export function Jeu3D({
         setBoutonMissions(false)
         setEtape("tapis")
       }),
-      "Annonce banquet": button(() => annoncer(catalogue.texteDebutBanquet, "victoire")),
-      "Annonce votre tour": button(() => annoncer("C'est votre tour", "tour")),
+      "Annonce banquet": button(() => annoncer(catalogue.texteDebutBanquet, "victoire", "banquet")),
+      "Annonce votre tour": button(() => annoncer("C'est votre tour", "tour", "tour")),
     },
     onglet("TRANSITION"),
     [catalogue.texteDebutBanquet],
@@ -139,9 +141,9 @@ export function Jeu3D({
 
   useEffect(() => {
     if (!annonce) return
-    const t = setTimeout(() => setAnnonces((l) => l.slice(1)), reglagesOuverture.dureeAnnonce * 1000)
+    const t = setTimeout(() => setAnnonces((l) => l.slice(1)), dureeAnnonce * 1000)
     return () => clearTimeout(t)
-  }, [annonce, reglagesOuverture.dureeAnnonce])
+  }, [annonce, dureeAnnonce])
 
   const moiId = vue.moi?.id
   const monTour = vue.phase === "jeu" && !!moiId && vue.joueurActifId === moiId
@@ -151,7 +153,14 @@ export function Jeu3D({
   function commandeDebug(commande: "debut" | "missions" | "tour" | "fin") {
     api
       .debug(partie.code, commande)
-      .then(onMaj)
+      .then((p) => {
+        onMaj(p)
+        if (commande === "debut") {
+          setBoutonMissions(false)
+          setAnnonces([])
+          setEtape("tapis")
+        }
+      })
       .catch((e: Error) => toast.error(e.message))
   }
 
@@ -263,7 +272,9 @@ export function Jeu3D({
             </motion.div>
           )}
 
-          <AnimatePresence mode="wait">{annonce && <Annonce key={annonce.id} texte={annonce.texte} son={annonce.son} />}</AnimatePresence>
+          <AnimatePresence mode="wait">
+            {annonce && <Annonce key={annonce.id} texte={annonce.texte} son={annonce.son} reglages={reglagesAnnonces[annonce.type]} />}
+          </AnimatePresence>
 
           <PanneauDebug />
 
