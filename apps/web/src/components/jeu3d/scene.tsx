@@ -1260,7 +1260,13 @@ export default function Scene3D(props: {
   reglages: ReglagesOuverture
 }) {
   return (
-    <Canvas dpr={[1, 2]} camera={{ fov: 26.5, near: 0.1, far: 200, position: [0, 23, 13.5] }} onPointerMissed={props.onVide}>
+    <Canvas
+      id="scene-3d"
+      gl={{ preserveDrawingBuffer: true }}
+      dpr={[1, 2]}
+      camera={{ fov: 26.5, near: 0.1, far: 200, position: [0, 23, 13.5] }}
+      onPointerMissed={props.onVide}
+    >
       <Suspense fallback={null}>
         <Monde
           etape={props.etape}
