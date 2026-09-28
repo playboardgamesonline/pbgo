@@ -19,9 +19,10 @@ uniform float uForce;
 uniform float uTemps;
 uniform vec3 uCouleur;
 uniform vec3 uBord;
+uniform float uFondu;
 varying vec2 vUv;
 void main() {
-  float fondu = pow(1.0 - vUv.y, 1.6);
+  float fondu = pow(1.0 - vUv.y, uFondu);
   float x = abs(vUv.x - 0.5) * 2.0;
   float cotes = 1.0 - smoothstep(0.9, 1.0, x);
   float bord = smoothstep(0.8, 0.95, x) * cotes;
@@ -40,6 +41,9 @@ export function Colonne({
   bord,
   additif,
   onClick,
+  force,
+  fondu = 1.6,
+  hauteur = 0.07,
 }: {
   x: number
   z: number
@@ -49,34 +53,45 @@ export function Colonne({
   couleur: string
   bord: string
   additif: boolean
-  onClick: () => void
+  onClick?: () => void
+  force?: (temps: number) => number
+  fondu?: number
+  hauteur?: number
 }) {
   const materiau = useRef<ShaderMaterial>(null)
   const [survol, setSurvol] = useState(false)
   useCursor(survol)
-  const [uniforms] = useState(() => ({ uForce: { value: 0 }, uTemps: { value: 0 }, uCouleur: { value: new Color() }, uBord: { value: new Color() } }))
+  const [uniforms] = useState(() => ({ uForce: { value: 0 }, uTemps: { value: 0 }, uCouleur: { value: new Color() }, uBord: { value: new Color() }, uFondu: { value: 1.6 } }))
   useFrame(({ clock }, dt) => {
     const m = materiau.current
     if (!m) return
     m.uniforms.uTemps.value = clock.elapsedTime
     ;(m.uniforms.uCouleur.value as Color).set(couleur)
     ;(m.uniforms.uBord.value as Color).set(bord)
-    easing.damp(m.uniforms.uForce, "value", survol ? 1.2 : 0.85, 0.15, dt)
+    m.uniforms.uFondu.value = fondu
+    easing.damp(m.uniforms.uForce, "value", force ? force(clock.elapsedTime) : survol ? 1.2 : 0.85, force ? 0.35 : 0.15, dt)
   })
   return (
     <mesh
-      position={[x, 0.07, z + (sens * longueur) / 2]}
+      position={[x, hauteur, z + (sens * longueur) / 2]}
       rotation={[-Math.PI / 2, 0, sens === 1 ? Math.PI : 0]}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation()
-        setSurvol(true)
-        jouerSon("survol", { volume: 0.7 })
-      }}
-      onPointerOut={() => setSurvol(false)}
+      raycast={onClick ? undefined : () => null}
+      onClick={
+        onClick &&
+        ((e) => {
+          e.stopPropagation()
+          onClick()
+        })
+      }
+      onPointerOver={
+        onClick &&
+        ((e) => {
+          e.stopPropagation()
+          setSurvol(true)
+          jouerSon("survol", { volume: 0.7 })
+        })
+      }
+      onPointerOut={onClick && (() => setSurvol(false))}
     >
       <planeGeometry args={[largeur, longueur]} />
       <shaderMaterial

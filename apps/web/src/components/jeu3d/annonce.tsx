@@ -33,7 +33,7 @@ const DEFAUT = {
   degrade: false,
   hauteurDegrade: 45,
   confettis: false,
-  nombreConfettis: 110,
+  nombreConfettis: 70,
   couleurConfettis: "#ffd35c",
   tailleConfettis: 1,
   vitesseConfettis: 1,
@@ -138,18 +138,47 @@ function Ligne({ sens, r }: { sens: 1 | -1; r: ReglagesAnnonce }) {
 
 type Particule = { x: number; y: number; vx: number; vy: number; taille: number; angle: number; spin: number; phase: number; freq: number }
 
+function sprite(couleur: string, lueur: number) {
+  const rayon = 32
+  const marge = Math.ceil(lueur * 1.5)
+  const cote = (rayon + marge) * 2
+  const c = document.createElement("canvas")
+  c.width = cote
+  c.height = cote
+  const ctx = c.getContext("2d")!
+  const etoile = (t: number) => {
+    ctx.beginPath()
+    for (let k = 0; k < 8; k++) {
+      const r = k % 2 === 0 ? t : t * 0.28
+      const a = (k * Math.PI) / 4
+      ctx.lineTo(cote / 2 + Math.cos(a) * r, cote / 2 + Math.sin(a) * r)
+    }
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.shadowColor = couleur
+  ctx.shadowBlur = lueur * 2
+  ctx.fillStyle = couleur
+  etoile(rayon)
+  ctx.shadowBlur = 0
+  ctx.fillStyle = "#fffbe8"
+  etoile(rayon * 0.35)
+  return { image: c, echelle: cote / (rayon * 2) }
+}
+
 function Confettis({ r }: { r: ReglagesAnnonce }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")!
-    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    const dpr = Math.min(1.25, window.devicePixelRatio || 1)
     const resize = () => {
-      canvas.width = canvas.clientWidth * dpr
-      canvas.height = canvas.clientHeight * dpr
+      canvas.width = Math.round(canvas.clientWidth * dpr)
+      canvas.height = Math.round(canvas.clientHeight * dpr)
     }
     resize()
+    const { image, echelle } = sprite(r.couleurConfettis, r.lueurConfettis)
     const W = () => canvas.width
     const H = () => canvas.height
     const particules: Particule[] = Array.from({ length: r.nombreConfettis }, () => ({
@@ -163,31 +192,16 @@ function Confettis({ r }: { r: ReglagesAnnonce }) {
       phase: Math.random() * Math.PI * 2,
       freq: 2 + Math.random() * 4,
     }))
-    const etoile = (x: number, y: number, t: number, a: number) => {
-      ctx.save()
-      ctx.translate(x, y)
-      ctx.rotate(a)
-      ctx.beginPath()
-      for (let k = 0; k < 8; k++) {
-        const rayon = k % 2 === 0 ? t : t * 0.28
-        const ang = (k * Math.PI) / 4
-        ctx.lineTo(Math.cos(ang) * rayon, Math.sin(ang) * rayon)
-      }
-      ctx.closePath()
-      ctx.fill()
-      ctx.restore()
-    }
-    let debut = performance.now()
+    const debut = performance.now()
     let precedent = debut
     let id = 0
     const boucle = (maintenant: number) => {
       const dt = Math.min(0.05, (maintenant - precedent) / 1000) * r.vitesseConfettis
       precedent = maintenant
       const temps = (maintenant - debut) / 1000
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.clearRect(0, 0, W(), H())
       ctx.globalCompositeOperation = "lighter"
-      ctx.shadowColor = r.couleurConfettis
-      ctx.shadowBlur = r.lueurConfettis * dpr
       for (const p of particules) {
         p.x += (p.vx + Math.sin(temps * 1.3 + p.phase) * 25 * dpr) * dt
         p.y += p.vy * dt
@@ -197,11 +211,12 @@ function Confettis({ r }: { r: ReglagesAnnonce }) {
           p.x = Math.random() * W()
         }
         const scintille = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(temps * p.freq + p.phase), 3)
+        const cote = p.taille * (0.7 + 0.3 * scintille) * 2 * echelle
+        const cos = Math.cos(p.angle)
+        const sin = Math.sin(p.angle)
         ctx.globalAlpha = scintille
-        ctx.fillStyle = r.couleurConfettis
-        etoile(p.x, p.y, p.taille * (0.7 + 0.3 * scintille), p.angle)
-        ctx.fillStyle = "#fffbe8"
-        etoile(p.x, p.y, p.taille * 0.35, p.angle)
+        ctx.setTransform(cos, sin, -sin, cos, p.x, p.y)
+        ctx.drawImage(image, -cote / 2, -cote / 2, cote, cote)
       }
       ctx.globalAlpha = 1
       id = requestAnimationFrame(boucle)
@@ -211,7 +226,6 @@ function Confettis({ r }: { r: ReglagesAnnonce }) {
     return () => {
       cancelAnimationFrame(id)
       window.removeEventListener("resize", resize)
-      debut = 0
     }
   }, [r.nombreConfettis, r.couleurConfettis, r.tailleConfettis, r.vitesseConfettis, r.lueurConfettis])
   return <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0 size-full" />

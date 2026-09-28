@@ -5,13 +5,11 @@ import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useMemo, useRef, useState } from "react"
 import {
-  AdditiveBlending,
   CanvasTexture,
   Color,
   type Group,
   type Mesh,
   SRGBColorSpace,
-  type ShaderMaterial,
   type Texture,
   TextureLoader,
   Vector2,
@@ -19,7 +17,8 @@ import {
 import { useJeu } from "../jeu/contexte"
 import { useReglages, useVersionReglages } from "./reglages"
 import { ORDRE_TAPIS } from "@/lib/catalogue"
-import { colonneX, PAS, TAPIS_P, type ZoneDomaine } from "./disposition"
+import { CARTE_H, colonneX, PAS, TAPIS_P, type ZoneDomaine } from "./disposition"
+import { Colonne } from "./colonne"
 import type { EtatFin } from "./fin"
 import { TexteTable } from "./texte-table"
 
@@ -135,40 +134,40 @@ export const REGLAGES_FIN = {
 
 export const REGLAGES_LIGNES = {
   apercu: false,
-  longueur: 0.86,
-  epaisseur: 0.05,
-  lueur: 0.22,
-  finExtremites: 0.25,
-  decalage: 0.03,
+  largeur: 0.96,
+  longueur: 2.1,
   hauteur: 0.07,
-  couleurLumiere: "#ffd35c",
-  intensiteLumiere: 1.4,
-  couleurDisgrace: "#ff4a3d",
-  intensiteDisgrace: 1.1,
-  pulsation: 0.18,
+  fondu: 1.6,
+  couleurLumiere: "#ffe8a3",
+  bordLumiere: "#ffffff",
+  intensiteLumiere: 0.85,
+  couleurDisgrace: "#000000",
+  bordDisgrace: "#000000",
+  intensiteDisgrace: 0.85,
+  pulsation: 0.15,
   vitesse: 1.6,
 }
 
 export function ReglagesFin() {
   useReglages(
-    "Mat Lines",
+    "End · Mat Lines",
     REGLAGES_LIGNES,
     {
       apercu: "preview on all families",
-      longueur: ["length (× column)", 0.1, 1.2, 0.01],
-      epaisseur: ["core thickness", 0, 0.4, 0.005],
-      lueur: ["glow width", 0.01, 1, 0.01],
-      finExtremites: ["end fade", 0, 0.5, 0.01],
-      decalage: ["offset from edge", -0.5, 0.5, 0.005],
+      largeur: ["width (× column)", 0.1, 1.5, 0.01],
+      longueur: ["length (× card height)", 0.2, 5, 0.05],
       hauteur: ["height", 0.02, 0.5, 0.005],
+      fondu: ["fade curve", 0.2, 5, 0.05],
       couleurLumiere: "light color",
-      intensiteLumiere: ["light intensity", 0, 4, 0.05],
+      bordLumiere: "light edge color",
+      intensiteLumiere: ["light intensity", 0, 3, 0.01],
       couleurDisgrace: "disgrace color",
-      intensiteDisgrace: ["disgrace intensity", 0, 4, 0.05],
+      bordDisgrace: "disgrace edge color",
+      intensiteDisgrace: ["disgrace intensity", 0, 3, 0.01],
       pulsation: ["pulse", 0, 1, 0.01],
       vitesse: ["pulse speed", 0, 8, 0.05],
     },
-    { ordre: 9 },
+    { ordre: 9, ferme: false },
   )
   useReglages("End · Mat Arrows", REGLAGES_FIN, { tailleFleche: ["arrow size", 0.3, 3, 0.05] } as never, { ordre: 11 })
   useReglages("End · Winner", REGLAGES_FIN, { forceGagnant: ["winner aura", 0, 2, 0.01] } as never, { ordre: 12 })
@@ -191,75 +190,25 @@ export function ReglagesFin() {
   return null
 }
 
-const vertexLigne = /* glsl */ `
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`
-
-const fragmentLigne = /* glsl */ `
-uniform vec3 uCouleur;
-uniform float uForce;
-uniform float uEpaisseur;
-uniform float uLueur;
-uniform float uFin;
-uniform vec2 uTaille;
-varying vec2 vUv;
-void main() {
-  float y = abs(vUv.y - 0.5) * uTaille.y;
-  float d = max(y - uEpaisseur * 0.5, 0.0);
-  float a = exp(-d * d / max(uLueur * uLueur * 0.25, 0.0001));
-  float coeur = 1.0 - smoothstep(0.0, uEpaisseur * 0.5 + 0.001, y);
-  float x = min(vUv.x, 1.0 - vUv.x);
-  a *= uFin > 0.0 ? smoothstep(0.0, uFin, x) : 1.0;
-  vec3 c = mix(uCouleur, vec3(1.0), coeur * 0.6);
-  gl_FragColor = vec4(c * a * uForce, a * uForce);
-}`
-
 function LigneFamille({ x, lumiere }: { x: number; lumiere: boolean }) {
-  const ref = useRef<Mesh>(null)
-  const materiau = useRef<ShaderMaterial>(null)
-  const [uniforms] = useState(() => ({
-    uCouleur: { value: new Color() },
-    uForce: { value: 0 },
-    uEpaisseur: { value: 0.05 },
-    uLueur: { value: 0.2 },
-    uFin: { value: 0.25 },
-    uTaille: { value: new Vector2(1, 1) },
-  }))
-  useFrame(({ clock }, dt) => {
-    const r = REGLAGES_LIGNES
-    const m = ref.current
-    const mat = materiau.current
-    if (!m || !mat) return
-    const u = mat.uniforms
-    const longueur = PAS * r.longueur
-    const largeur = r.epaisseur + r.lueur * 2
-    m.scale.set(longueur, largeur, 1)
-    const bord = TAPIS_P / 2 + r.decalage
-    m.position.set(x, r.hauteur, lumiere ? -bord : bord)
-    ;(u.uTaille.value as Vector2).set(longueur, largeur)
-    ;(u.uCouleur.value as Color).set(lumiere ? r.couleurLumiere : r.couleurDisgrace)
-    u.uEpaisseur.value = r.epaisseur
-    u.uLueur.value = r.lueur
-    u.uFin.value = r.finExtremites
-    const cible = (lumiere ? r.intensiteLumiere : r.intensiteDisgrace) * (1 + Math.sin(clock.elapsedTime * r.vitesse) * r.pulsation)
-    easing.damp(u.uForce, "value", cible, 0.25, dt)
-  })
+  const r = REGLAGES_LIGNES
   return (
-    <mesh ref={ref} rotation-x={-Math.PI / 2} raycast={() => null} renderOrder={3}>
-      <planeGeometry args={[1, 1]} />
-      <shaderMaterial
-        ref={materiau}
-        vertexShader={vertexLigne}
-        fragmentShader={fragmentLigne}
-        uniforms={uniforms}
-        transparent
-        depthWrite={false}
-        blending={AdditiveBlending}
-      />
-    </mesh>
+    <Colonne
+      x={x}
+      z={lumiere ? -TAPIS_P / 2 : TAPIS_P / 2}
+      sens={lumiere ? -1 : 1}
+      largeur={PAS * r.largeur}
+      longueur={CARTE_H * r.longueur}
+      hauteur={r.hauteur}
+      fondu={r.fondu}
+      couleur={lumiere ? r.couleurLumiere : r.couleurDisgrace}
+      bord={lumiere ? r.bordLumiere : r.bordDisgrace}
+      additif={lumiere}
+      force={(t) =>
+        (lumiere ? REGLAGES_LIGNES.intensiteLumiere : REGLAGES_LIGNES.intensiteDisgrace) *
+        (1 + Math.sin(t * REGLAGES_LIGNES.vitesse) * REGLAGES_LIGNES.pulsation)
+      }
+    />
   )
 }
 

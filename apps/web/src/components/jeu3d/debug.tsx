@@ -1,7 +1,7 @@
 "use client"
 
 import { Leva, LevaPanel, button, useControls } from "leva"
-import { useEffect, useState, useSyncExternalStore } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { cn } from "@/lib/utils"
 import { arrondir, boutonCopie, MAGASINS_DEBUG, ONGLETS_DEBUG, type OngletDebug, onglet } from "./onglets-debug"
 import { changerMusique, musiqueActuelle, type NomMusique, reglerVolumes, type Volumes, VOLUMES_DEFAUT, volumesActuels } from "@/lib/son"
@@ -41,6 +41,37 @@ function copierTout() {
   const texte = JSON.stringify(valeurs, arrondir, 2)
   navigator.clipboard?.writeText(texte).catch(() => null)
   console.info("Réglages debug", valeurs)
+}
+
+function Fps() {
+  const ref = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    let id = 0
+    let images = 0
+    let debut = performance.now()
+    let pire = 0
+    let precedent = debut
+    const boucle = (t: number) => {
+      images++
+      pire = Math.max(pire, t - precedent)
+      precedent = t
+      if (t - debut >= 500) {
+        const fps = Math.round((images * 1000) / (t - debut))
+        const el = ref.current
+        if (el) {
+          el.textContent = `${fps} FPS · ${Math.round(pire)}ms`
+          el.style.color = fps >= 50 ? "#7ee787" : fps >= 30 ? "#f2cc60" : "#ff7b72"
+        }
+        images = 0
+        pire = 0
+        debut = t
+      }
+      id = requestAnimationFrame(boucle)
+    }
+    id = requestAnimationFrame(boucle)
+    return () => cancelAnimationFrame(id)
+  }, [])
+  return <span ref={ref} className="shrink-0 self-center px-3 tabular-nums" />
 }
 
 export function PanneauDebug() {
@@ -104,6 +135,7 @@ export function PanneauDebug() {
             {nom}
           </button>
         ))}
+        {actif && <Fps />}
       </div>
       <Leva hidden />
       {actif && (
