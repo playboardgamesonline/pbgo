@@ -69,6 +69,9 @@ export async function getCatalogueClient(): Promise<CatalogueClient> {
       dosMissionBleueUrl: url(game?.blueMissionBack, 520) ?? d.dosMissionBleueUrl,
       banquetHautUrl: url(iface?.banquetTop, 3000) ?? d.banquetHautUrl,
       banquetBasUrl: url(iface?.banquetBottom, 3000) ?? d.banquetBasUrl,
+      reineUrl: url(iface?.queen, 1400) ?? d.reineUrl,
+      motifUrl: url(iface?.pattern, 512) ?? d.motifUrl,
+      papierUrl: url(iface?.paper, 1600) ?? d.papierUrl,
       regles: {
         textes: Object.fromEntries(
           Object.entries(TEXTES_REGLES_DEFAUT).map(([cle, defaut]) => {

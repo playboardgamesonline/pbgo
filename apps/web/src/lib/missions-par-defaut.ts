@@ -43,5 +43,5 @@ export const MISSIONS_PAR_DEFAUT: Mission[] = [
 ]
 
 export const IMAGES_MISSIONS_PAR_DEFAUT: Record<string, string> = Object.fromEntries(
-  MISSIONS_PAR_DEFAUT.map((m) => [m.id, `/cartes/${m.id.replace("mission-", "MISSION_").replace("light-", "LIGHT_").replace("dark-", "DARK_")}.webp`]),
+  MISSIONS_PAR_DEFAUT.map((m) => [m.id, `/cards/${m.id.replace("mission-", "MISSION_").replace("light-", "LIGHT_").replace("dark-", "DARK_")}.webp`]),
 )

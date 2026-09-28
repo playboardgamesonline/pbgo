@@ -3,6 +3,7 @@ import localFont from "next/font/local"
 import "@fontsource-variable/alegreya"
 import { EcranOrdinateur } from "@/components/ecran-ordinateur"
 import { MoteurSon } from "@/components/son"
+import { getCatalogueClient } from "@/sanity/catalogue-client"
 import { DESCRIPTION, SITE_URL, TITRE } from "@/lib/site"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -52,9 +53,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#0e3940", colorScheme: "dark" }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const catalogue = await getCatalogueClient()
+  const images = { "--image-motif": `url("${catalogue.motifUrl}")`, "--image-papier": `url("${catalogue.papierUrl}")` } as React.CSSProperties
   return (
-    <html lang="fr" className={`${typey.variable} h-full antialiased`}>
+    <html lang="fr" className={`${typey.variable} h-full antialiased`} style={images}>
       <body className="flex min-h-full flex-col">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         <Toaster position="top-center" />

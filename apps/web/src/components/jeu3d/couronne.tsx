@@ -8,7 +8,7 @@ import { Color, DoubleSide, Vector3, type Group, type MeshBasicMaterial, type Te
 
 const OR = new Color("#f2c14e")
 let couronne: Texture | null = null
-const textureCouronne = () => (couronne ??= new TextureLoader().load("/pictos/picto-noble.webp"))
+const textureCouronne = () => (couronne ??= new TextureLoader().load("/pictograms/PICTOGRAM_NOBLE.webp"))
 
 export function Couronne3D({ cible, taille = 1.3 }: { cible: Vector3 | null; taille?: number }) {
   const visible = !!cible

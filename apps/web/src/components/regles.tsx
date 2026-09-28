@@ -316,7 +316,7 @@ export function ReglesButton({ className, icone, regles = REGLES_PAR_DEFAUT }: {
       </DialogTrigger>
       <DialogContent className="flex h-[86vh] w-[min(92vw,78rem)] max-w-none gap-0 overflow-hidden rounded-3xl border-0 bg-[#f3ecd6] p-0 text-[#1f2b2d] shadow-[0_30px_80px_rgb(0_0_0/55%)] sm:max-w-none">
         <nav className="relative flex w-64 shrink-0 flex-col bg-[#0e3940] px-4 py-7 text-[#f3ecd6]">
-          <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url(/accueil/motif.webp)] bg-[length:110px_110px] opacity-[0.06]" />
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:110px_110px] opacity-[0.06]" />
           <div className="relative px-3 pb-8">
             <DialogTitle className="font-display text-2xl text-[#f6e7b8]">Règles du jeu</DialogTitle>
             <DialogDescription className="mt-1 text-sm text-[#f3ecd6]/60">2 à 5 joueurs · 30 minutes</DialogDescription>

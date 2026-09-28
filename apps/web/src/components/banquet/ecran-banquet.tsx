@@ -16,19 +16,25 @@ import type { CatalogueClient, ContenuRegles } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
 function srcSetDecor(url: string) {
-  if (url.includes("-3200.webp")) return `${url.replace("-3200.webp", "-1600.webp")} 1600w, ${url} 3200w`
   if (url.includes("w=3000")) return `${url.replace("w=3000", "w=1600")} 1600w, ${url} 3000w`
   return undefined
 }
 
 export function decorBanquet(catalogue: CatalogueClient) {
-  return { logoUrl: catalogue.logoUrl, banquetHautUrl: catalogue.banquetHautUrl, banquetBasUrl: catalogue.banquetBasUrl, regles: catalogue.regles }
+  return {
+    logoUrl: catalogue.logoUrl,
+    banquetHautUrl: catalogue.banquetHautUrl,
+    banquetBasUrl: catalogue.banquetBasUrl,
+    reineUrl: catalogue.reineUrl,
+    regles: catalogue.regles,
+  }
 }
 
 export function EcranBanquet({
   logoUrl,
   banquetHautUrl = null,
-  banquetBasUrl = "/accueil/banquet-bas-3200.webp",
+  banquetBasUrl = "/home/DECORATION_BANQUET_BOTTOM.webp",
+  reineUrl = "/home/QUEEN.webp",
   regles,
   children,
   bouton,
@@ -38,6 +44,7 @@ export function EcranBanquet({
   logoUrl: string
   banquetHautUrl?: string | null
   banquetBasUrl?: string
+  reineUrl?: string
   regles?: ContenuRegles
   children?: React.ReactNode
   bouton?: React.ReactNode
@@ -46,7 +53,7 @@ export function EcranBanquet({
 }) {
   return (
     <main className="relative flex h-dvh flex-col overflow-hidden bg-[#0e3940] [--table:calc(114vw*525/3543)]">
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url(/accueil/motif.webp)] bg-[length:128px_128px] opacity-[0.07]" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:128px_128px] opacity-[0.07]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgb(34_96_104/55%),transparent_65%)]" />
       {banquetHautUrl && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -81,7 +88,7 @@ export function EcranBanquet({
 
         <div className="relative mt-[2vh] min-h-0 w-full flex-1">
           <motion.img
-            src="/accueil/reine.webp"
+            src={reineUrl}
             alt=""
             aria-hidden
             draggable={false}

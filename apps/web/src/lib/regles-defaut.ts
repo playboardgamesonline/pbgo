@@ -44,11 +44,11 @@ export const REGLES_ROLES_DEFAUT = {
 
 export const VISUELS_REGLES_DEFAUT = {
   missionsVisual: null as string | null,
-  tableVisual: "/regles/table-exemple.webp" as string | null,
-  scoringTable: "/regles/decompte-table.webp" as string | null,
-  scoringDomain: "/regles/decompte-domaine.webp" as string | null,
+  tableVisual: "/rules/TABLE_EXAMPLE.webp" as string | null,
+  scoringTable: "/rules/SCORING_TABLE.webp" as string | null,
+  scoringDomain: "/rules/SCORING_DOMAIN.webp" as string | null,
 }
 
-export const CADRE_PICTO_DEFAUT = "/regles/cadre-picto.svg"
+export const CADRE_PICTO_DEFAUT = "/rules/PICTOGRAM_FRAME.svg"
 
 export type VisuelsRegles = typeof VISUELS_REGLES_DEFAUT

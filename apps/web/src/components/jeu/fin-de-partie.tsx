@@ -83,7 +83,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
 
               <div
                 className="relative overflow-hidden rounded-xl border border-[#d9a93f]/60 bg-[#f4ecd6] bg-cover bg-center px-6 py-5 text-center text-[#1b2a2e] shadow-inner"
-                style={{ backgroundImage: "url(/accueil/papier.webp)" }}
+                style={{ backgroundImage: "var(--image-papier)" }}
               >
                 <Couronne className="mx-auto mb-1 block h-10 w-9 bg-[#b88a2a]" />
                 <p className="font-sans text-3xl font-black tracking-[0.12em] uppercase" style={{ color: couleur(vainqueurs[0]!.joueurId) }}>

@@ -25,20 +25,31 @@ export type RoleInfo = { cle: Role; nom: string; pictoUrl: string | null }
 export const ORDRE_TAPIS: (Famille | "reine")[] = ["papillon", "crapaud", "rossignol", "reine", "lievre", "cerf", "carpe"]
 
 export const FAMILLES_PAR_DEFAUT: Record<Famille, FamilleInfo> = {
-  papillon: { cle: "papillon", nom: "Papillon", pluriel: "Papillons", couleur: "#a3bcc2", pictoUrl: "/pictos/picto-papillon.webp" },
-  crapaud: { cle: "crapaud", nom: "Crapaud", pluriel: "Crapauds", couleur: "#8d9431", pictoUrl: "/pictos/picto-crapaud.webp" },
-  rossignol: { cle: "rossignol", nom: "Rossignol", pluriel: "Rossignols", couleur: "#d2415e", pictoUrl: "/pictos/picto-rossignol.webp" },
-  lievre: { cle: "lievre", nom: "Lièvre", pluriel: "Lièvres", couleur: "#f5b935", pictoUrl: "/pictos/picto-lievre.webp" },
-  cerf: { cle: "cerf", nom: "Cerf", pluriel: "Cerfs", couleur: "#0f8a69", pictoUrl: "/pictos/picto-cerf.webp" },
-  carpe: { cle: "carpe", nom: "Carpe", pluriel: "Carpes", couleur: "#4a73b5", pictoUrl: "/pictos/picto-carpe.webp" },
+  papillon: { cle: "papillon", nom: "Papillon", pluriel: "Papillons", couleur: "#a3bcc2", pictoUrl: "/pictograms/PICTOGRAM_BUTTERFLY.webp" },
+  crapaud: { cle: "crapaud", nom: "Crapaud", pluriel: "Crapauds", couleur: "#8d9431", pictoUrl: "/pictograms/PICTOGRAM_TOAD.webp" },
+  rossignol: { cle: "rossignol", nom: "Rossignol", pluriel: "Rossignols", couleur: "#d2415e", pictoUrl: "/pictograms/PICTOGRAM_NIGHTINGALE.webp" },
+  lievre: { cle: "lievre", nom: "Lièvre", pluriel: "Lièvres", couleur: "#f5b935", pictoUrl: "/pictograms/PICTOGRAM_HARE.webp" },
+  cerf: { cle: "cerf", nom: "Cerf", pluriel: "Cerfs", couleur: "#0f8a69", pictoUrl: "/pictograms/PICTOGRAM_STAG.webp" },
+  carpe: { cle: "carpe", nom: "Carpe", pluriel: "Carpes", couleur: "#4a73b5", pictoUrl: "/pictograms/PICTOGRAM_CARP.webp" },
 }
 
 export const ROLES_PAR_DEFAUT: Record<Role, RoleInfo> = {
-  noble: { cle: "noble", nom: "Noble", pictoUrl: "/pictos/picto-noble.webp" },
-  espion: { cle: "espion", nom: "Espion", pictoUrl: "/pictos/picto-espion.webp" },
-  assassin: { cle: "assassin", nom: "Assassin", pictoUrl: "/pictos/picto-assassin.webp" },
-  garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictos/picto-garde.webp" },
+  noble: { cle: "noble", nom: "Noble", pictoUrl: "/pictograms/PICTOGRAM_NOBLE.webp" },
+  espion: { cle: "espion", nom: "Espion", pictoUrl: "/pictograms/PICTOGRAM_SPY.webp" },
+  assassin: { cle: "assassin", nom: "Assassin", pictoUrl: "/pictograms/PICTOGRAM_ASSASSIN.webp" },
+  garde: { cle: "garde", nom: "Garde", pictoUrl: "/pictograms/PICTOGRAM_GUARD.webp" },
 }
+
+const FAMILLE_EN: Record<Famille, string> = {
+  papillon: "BUTTERFLY",
+  crapaud: "TOAD",
+  rossignol: "NIGHTINGALE",
+  lievre: "HARE",
+  cerf: "STAG",
+  carpe: "CARP",
+}
+const ROLE_EN: Record<Role, string> = { noble: "NOBLE", garde: "GUARD", espion: "SPY", assassin: "ASSASSIN" }
+const imageCarteDefaut = (f: Famille, r: Role | null) => `/cards/${r ? ROLE_EN[r] : "BASE"}_${FAMILLE_EN[f]}.webp`
 
 const NOMBRE_PAR_FAMILLE: Record<Role, number> = { noble: 4, garde: 3, espion: 2, assassin: 2 }
 
@@ -75,7 +86,7 @@ export const REGLES_PAR_DEFAUT: ContenuRegles = {
       {
         nom: ROLES_PAR_DEFAUT[r].nom,
         nombre: NOMBRE_PAR_FAMILLE[r],
-        cartes: FAMILLES_VISUEL_ROLE[r].map((f) => `/cartes/${r.toUpperCase()}_${f.toUpperCase()}.webp`) as [string, string],
+        cartes: FAMILLES_VISUEL_ROLE[r].map((f) => imageCarteDefaut(f, r)) as [string, string],
         texte: REGLES_ROLES_DEFAUT[r],
         letteringUrl: null,
         pictoUrl: ROLES_PAR_DEFAUT[r].pictoUrl,
@@ -98,6 +109,9 @@ export type CatalogueClient = {
   dosMissionBleueUrl: string | null
   banquetHautUrl: string | null
   banquetBasUrl: string
+  reineUrl: string
+  motifUrl: string
+  papierUrl: string
   regles: ContenuRegles
   phrasesVainqueur: string[]
   texteBoutonMissions: string
@@ -113,21 +127,22 @@ export const PHRASES_PAR_DEFAUT = [
 export const cleCarte = (famille: Famille, role: Role | null) => `${role ?? "base"}-${famille}`
 
 export const CATALOGUE_PAR_DEFAUT: CatalogueClient = {
-  logoUrl: "/logo.webp",
+  logoUrl: "/LOGO.webp",
   chateaux: CHATEAUX_PAR_DEFAUT,
   familles: FAMILLES_PAR_DEFAUT,
   roles: ROLES_PAR_DEFAUT,
-  cartes: Object.fromEntries(
-    FAMILLES.flatMap((f) => [null, ...ROLES].map((r) => [cleCarte(f, r), `/cartes/${(r ?? "base").toUpperCase()}_${f.toUpperCase()}.webp`])),
-  ),
+  cartes: Object.fromEntries(FAMILLES.flatMap((f) => [null, ...ROLES].map((r) => [cleCarte(f, r), imageCarteDefaut(f, r)]))),
   missions: IMAGES_MISSIONS_PAR_DEFAUT,
-  tapisUrl: "/tapis.jpg",
-  tissuUrl: "/textures/tissu.webp",
-  dosCourtisanUrl: "/cartes/DOS_COURTISAN.webp",
-  dosMissionBlancheUrl: "/cartes/DOS_MISSION_LIGHT.webp",
-  dosMissionBleueUrl: "/cartes/DOS_MISSION_DARK.webp",
-  banquetHautUrl: "/accueil/banquet-haut-3200.webp",
-  banquetBasUrl: "/accueil/banquet-bas-3200.webp",
+  tapisUrl: "/GAME_MAT.jpg",
+  tissuUrl: "/textures/GAME_MAT_TEXTURE.webp",
+  dosCourtisanUrl: "/cards/COURTIER_BACK.webp",
+  dosMissionBlancheUrl: "/cards/MISSION_BACK_LIGHT.webp",
+  dosMissionBleueUrl: "/cards/MISSION_BACK_DARK.webp",
+  banquetHautUrl: "/home/DECORATION_BANQUET_TOP.webp",
+  banquetBasUrl: "/home/DECORATION_BANQUET_BOTTOM.webp",
+  reineUrl: "/home/QUEEN.webp",
+  motifUrl: "/home/PATTERN.webp",
+  papierUrl: "/home/PAPER.webp",
   regles: REGLES_PAR_DEFAUT,
   phrasesVainqueur: PHRASES_PAR_DEFAUT,
   texteBoutonMissions: "Missions comprises",

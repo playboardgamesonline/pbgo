@@ -8,6 +8,9 @@ Mot "métier" en français
 
 Exemples de mots métier gardés en français : `courtisan`, `famille`, `role`, `mission`, `domaine`, `tableDeLaReine`, `lumiere`, `disgrace`, `noble`, `espion`, `assassin`, `garde`, `pioche`, `chateau`.
 
+## Assets
+Fichiers dans `apps/web/public` nommés en anglais, `EN_MAJUSCULES_AVEC_DES_TIRETS_DU_BAS` (ex. `home/QUEEN.webp`, `cards/SPY_HARE.webp`, `sounds/HOVER.mp3`), dossiers en anglais minuscules.
+
 ## Stack Technique
 - Nextjs
 - Sanity

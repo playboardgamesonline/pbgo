@@ -15,10 +15,10 @@ const FAMILLES = [
 ]
 const ROLES = [
   ["BASE", "base"],
-  ["GARDE", "guard"],
+  ["GUARD", "guard"],
   ["NOBLE", "noble"],
   ["ASSASSIN", "assassin"],
-  ["ESPION", "spy"],
+  ["SPY", "spy"],
 ]
 const ROLES_PICTO = [
   ["noble", "noble"],
@@ -31,18 +31,26 @@ type Cible = { ids: string[]; champ: string; fichier: string }
 
 const cibles: Cible[] = [
   ...FAMILLES.flatMap(([f, fe]) =>
-    ROLES.map(([r, re]) => ({ ids: [`courtier-${re}-${fe}`], champ: "card", fichier: `cartes/${r}_${f.toUpperCase()}.webp` })),
+    ROLES.map(([r, re]) => ({ ids: [`courtier-${re}-${fe}`], champ: "card", fichier: `cards/${r}_${fe.toUpperCase()}.webp` })),
   ),
   ...Array.from({ length: 10 }, (_, i) => [
-    { ids: [`mission-light-${i + 1}`, `drafts.mission-light-${i + 1}`], champ: "card", fichier: `cartes/MISSION_LIGHT_${i + 1}.webp` },
-    { ids: [`mission-dark-${i + 1}`, `drafts.mission-dark-${i + 1}`], champ: "card", fichier: `cartes/MISSION_DARK_${i + 1}.webp` },
+    { ids: [`mission-light-${i + 1}`, `drafts.mission-light-${i + 1}`], champ: "card", fichier: `cards/MISSION_LIGHT_${i + 1}.webp` },
+    { ids: [`mission-dark-${i + 1}`, `drafts.mission-dark-${i + 1}`], champ: "card", fichier: `cards/MISSION_DARK_${i + 1}.webp` },
   ]).flat(),
-  { ids: ["game", "drafts.game"], champ: "courtierBack", fichier: "cartes/DOS_COURTISAN.webp" },
-  { ids: ["game", "drafts.game"], champ: "whiteMissionBack", fichier: "cartes/DOS_MISSION_LIGHT.webp" },
-  { ids: ["game", "drafts.game"], champ: "blueMissionBack", fichier: "cartes/DOS_MISSION_DARK.webp" },
-  { ids: ["interface", "drafts.interface"], champ: "logo", fichier: "logo.webp" },
-  ...FAMILLES.map(([f, fe]) => ({ ids: [`family-${fe}`, `drafts.family-${fe}`], champ: "pictogram", fichier: `pictos/picto-${f}.webp` })),
-  ...ROLES_PICTO.map(([r, re]) => ({ ids: [`role-${re}`, `drafts.role-${re}`], champ: "pictogram", fichier: `pictos/picto-${r}.webp` })),
+  { ids: ["game", "drafts.game"], champ: "courtierBack", fichier: "cards/COURTIER_BACK.webp" },
+  { ids: ["game", "drafts.game"], champ: "whiteMissionBack", fichier: "cards/MISSION_BACK_LIGHT.webp" },
+  { ids: ["game", "drafts.game"], champ: "blueMissionBack", fichier: "cards/MISSION_BACK_DARK.webp" },
+  { ids: ["interface", "drafts.interface"], champ: "logo", fichier: "LOGO.webp" },
+  ...FAMILLES.map(([f, fe]) => ({
+    ids: [`family-${fe}`, `drafts.family-${fe}`],
+    champ: "pictogram",
+    fichier: `pictograms/PICTOGRAM_${fe.toUpperCase()}.webp`,
+  })),
+  ...ROLES_PICTO.map(([r, re]) => ({
+    ids: [`role-${re}`, `drafts.role-${re}`],
+    champ: "pictogram",
+    fichier: `pictograms/PICTOGRAM_${re.toUpperCase()}.webp`,
+  })),
 ]
 
 async function main() {

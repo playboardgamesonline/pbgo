@@ -54,11 +54,30 @@ let piste: NomMusique = typeof window === "undefined" ? "danse" : lireMusique()
 const tampons = new Map<string, Promise<AudioBuffer | null>>()
 const derniers = new Map<NomSon, number>()
 
+const FICHIERS_SONS: Record<string, string> = {
+  ambiance: "AMBIENCE",
+  assassin: "ASSASSIN",
+  clic: "CLICK",
+  elimine: "ELIMINATE",
+  glisse: "SLIDE",
+  mission: "MISSION",
+  pose: "PLACE",
+  revele: "REVEAL",
+  selection: "SELECT",
+  survol: "HOVER",
+  tour: "TURN",
+  victoire: "VICTORY",
+  "musique-branle": "MUSIC_BRANLE",
+  "musique-danse": "MUSIC_DANCE",
+  "musique-estampie": "MUSIC_ESTAMPIE",
+  "musique-pavane": "MUSIC_PAVANE",
+}
+
 function charger(nom: string) {
   let p = tampons.get(nom)
   if (!p && contexte) {
     const ctx = contexte
-    p = fetch(`/sons/${nom}.mp3`)
+    p = fetch(`/sounds/${FICHIERS_SONS[nom] ?? nom}.mp3`)
       .then((r) => r.arrayBuffer())
       .then((b) => ctx.decodeAudioData(b))
       .catch(() => null)

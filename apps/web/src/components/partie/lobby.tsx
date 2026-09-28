@@ -14,7 +14,7 @@ export function Couronne({ className }: { className?: string }) {
       aria-label="Hôte"
       role="img"
       className={className ?? "inline-block size-7 shrink-0 bg-primary"}
-      style={{ maskImage: "url(/pictos/picto-noble.webp)", maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }}
+      style={{ maskImage: "url(/pictograms/PICTOGRAM_NOBLE.webp)", maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center" }}
     />
   )
 }

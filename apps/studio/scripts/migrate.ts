@@ -40,10 +40,10 @@ const LEGACY_TEXT: Record<string, string[]> = {
 }
 const CAPTIONS = new Set(["domainCaption", "videoTitle", "goalTitle", "flowTitle", "turnTitle", "rolesTitle", "scoringTitle"])
 const LEGACY_VISUAL: Record<string, { old: string[]; file?: string }> = {
-  tableVisual: { old: ["visuelTable", "table"], file: "regles/table-exemple.webp" },
+  tableVisual: { old: ["visuelTable", "table"], file: "rules/TABLE_EXAMPLE.webp" },
   missionsVisual: { old: ["visuelMissions", "missions"] },
-  scoringTable: { old: ["decompteTable"], file: "regles/decompte-table.webp" },
-  scoringDomain: { old: ["decompteDomaine"], file: "regles/decompte-domaine.webp" },
+  scoringTable: { old: ["decompteTable"], file: "rules/SCORING_TABLE.webp" },
+  scoringDomain: { old: ["decompteDomaine"], file: "rules/SCORING_DOMAIN.webp" },
 }
 
 const first = (...values: unknown[]) => values.find((v) => v !== undefined && v !== null && v !== "")
@@ -96,7 +96,10 @@ async function main() {
       logo: first(iface.logo, assets.logo, reglages.logo),
       banquetTop: first(iface.banquetTop, iface.banquetHaut, assets.banquetHaut),
       banquetBottom: first(iface.banquetBottom, iface.banquetBas, assets.banquetBas),
-      pictogramFrame: iface.pictogramFrame ?? (await upload("regles/cadre-picto.svg")),
+      queen: iface.queen ?? (await upload("home/QUEEN.webp")),
+      pattern: iface.pattern ?? (await upload("home/PATTERN.webp")),
+      paper: iface.paper ?? (await upload("home/PAPER.webp")),
+      pictogramFrame: iface.pictogramFrame ?? (await upload("rules/PICTOGRAM_FRAME.svg")),
     }) as { _id: string; _type: string },
   )
 
@@ -107,7 +110,7 @@ async function main() {
     clean({
       _id: "game",
       _type: "game",
-      mat: first(game.mat, game.tapis, board.tapis, assets.tapis, reglages.tapis) ?? (await upload("tapis.jpg")),
+      mat: first(game.mat, game.tapis, board.tapis, assets.tapis, reglages.tapis) ?? (await upload("GAME_MAT.jpg")),
       decorations,
       courtierBack: first(game.courtierBack, game.dosCourtisan, assets.dosCourtisan, reglages.dosCourtisan),
       whiteMissionBack: first(game.whiteMissionBack, game.dosMissionBlanche, assets.dosMissionBlanche, reglages.dosMissionBlanche),
