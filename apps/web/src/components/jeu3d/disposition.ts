@@ -12,8 +12,7 @@ export const MISSION_L = 2.4
 export const MISSION_H = (MISSION_L * 452) / 688
 export const DOMAINE_ECHELLE = 1.1
 export const DECALAGE = 0.42
-export const EPAISSEUR = 0.012
-export const EPAISSEUR_PIOCHE = 0.008
+export const REGLAGES_DISPOSITION = { rotationAleatoire: 0.028, espacementPile: 0.012, espacementPioche: 0.008 }
 
 export const FACE_HAUT = new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
 export const FACE_BAS = new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, 0))
@@ -39,20 +38,26 @@ export function alea(cle: string) {
   return ((h >>> 0) / 4294967295) * 2 - 1
 }
 
-export const penche = (cle: string, amplitude = 0.028) => new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), alea(cle) * amplitude)
+export const penche = (cle: string, amplitude = REGLAGES_DISPOSITION.rotationAleatoire) =>
+  new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), alea(cle) * amplitude)
 
 export const colonneX = (colonne: Colonne) => -TAPIS_L / 2 + MARGE + PAS * (ORDRE_TAPIS.indexOf(colonne) + 0.5)
 
 export function poseTable(colonne: Colonne, niveau: Niveau, rang: number, id?: string): Pose {
   const bord = TAPIS_P / 2 + CARTE_H / 2 + rang * DECALAGE
-  return pose(colonneX(colonne), 0.03 + rang * EPAISSEUR, niveau === "haut" ? -bord : bord, id ? penche(id).multiply(FACE_HAUT) : FACE_HAUT)
+  return pose(
+    colonneX(colonne),
+    0.03 + rang * REGLAGES_DISPOSITION.espacementPile,
+    niveau === "haut" ? -bord : bord,
+    id ? penche(id).multiply(FACE_HAUT) : FACE_HAUT,
+  )
 }
 
 export const colonneDe = (carte: CarteVisible): Colonne => carte.famille ?? "reine"
 
 export const PIOCHE = new Vector3(TAPIS_L / 2 + 1.2, 0, 0)
 export const poseDessusPioche = (n: number) =>
-  pose(PIOCHE.x, 0.03 + Math.min(n, 60) * EPAISSEUR_PIOCHE, PIOCHE.z, penche(`pioche${n}`, 0.04).multiply(FACE_BAS))
+  pose(PIOCHE.x, 0.03 + Math.min(n, 60) * REGLAGES_DISPOSITION.espacementPioche, PIOCHE.z, penche(`pioche${n}`, 0.04).multiply(FACE_BAS))
 
 export type Orientation = "bas" | "haut" | "gauche" | "droite"
 export type Siege = { position: Vector3; orientation: Orientation; largeurMax: number }
@@ -159,7 +164,11 @@ export function disposerDomaine(
       const position = ouvert ? milieu + (k - (groupe.length - 1) / 2) * DL * 0.6 : u + k * CHEVAUCHEMENT * f
       poses.set(
         carte.id,
-        place(position, (ouvert ? 0.35 : 0.03) + leve + k * EPAISSEUR, penche(carte.id).multiply(famille(carte) ? FACE_HAUT : FACE_BAS)),
+        place(
+          position,
+          (ouvert ? 0.35 : 0.03) + leve + k * REGLAGES_DISPOSITION.espacementPile,
+          penche(carte.id).multiply(famille(carte) ? FACE_HAUT : FACE_BAS),
+        ),
       )
     })
     u += DL + (groupe.length - 1) * CHEVAUCHEMENT * f + ECART * f

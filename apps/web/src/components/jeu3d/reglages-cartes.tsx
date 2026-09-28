@@ -1,49 +1,55 @@
 "use client"
 
-import { useControls } from "leva"
 import { REGLAGES_CARTE } from "./carte3d"
-import { boutonCopie, onglet } from "./onglets-debug"
-
-type Cle = keyof typeof REGLAGES_CARTE
-
-const LABELS: Record<Cle, [string, number?, number?, number?]> = {
-  couleurAssassin: ["couleur assassin"],
-  haloAssassin: ["halo assassin", 0, 1, 0.01],
-  pulsationAssassin: ["pulsation assassin", 0, 0.5, 0.01],
-  contourAssassin: ["contour plein assassin"],
-  couleurOr: ["couleur mission réussie"],
-  haloOr: ["halo mission réussie", 0, 1, 0.01],
-  pulsationOr: ["pulsation mission réussie", 0, 0.5, 0.01],
-  scintillement: ["scintillement", 0, 1, 0.01],
-  vitesseScintillement: ["vitesse scintillement", 0, 2, 0.01],
-  vitessePulsation: ["vitesse pulsation", 0, 8, 0.1],
-  couleurSelection: ["couleur cadre sélection"],
-  opaciteCadre: ["opacité cadre", 0, 1, 0.01],
-  pulsationCadre: ["pulsation cadre", 0, 0.5, 0.01],
-  respirationCadre: ["respiration cadre", 0, 0.1, 0.001],
-  vitesseCadre: ["vitesse cadre", 0, 10, 0.1],
-  reflet: ["reflet", 0, 1, 0.01],
-  mouvementReflet: ["mouvement reflet", 0, 1.5, 0.01],
-  ombre: ["ombre des cartes", 0, 1, 0.01],
-  dureeVol: ["durée des vols (×)", 0.3, 3, 0.05],
-  hauteurVol: ["hauteur des vols (×)", 0, 3, 0.05],
-}
+import { REGLAGES_DISPOSITION } from "./disposition"
+import { useReglages } from "./reglages"
 
 export function ReglagesCartes() {
-  const schema = Object.fromEntries(
-    (Object.keys(REGLAGES_CARTE) as Cle[]).map((cle) => {
-      const [label, min, max, step] = LABELS[cle]
-      const onChange = (v: never) => {
-        ;(REGLAGES_CARTE as Record<Cle, unknown>)[cle] = v
-      }
-      return [cle, { value: REGLAGES_CARTE[cle], label, min, max, step, onChange }]
-    }),
+  useReglages(
+    "Card",
+    REGLAGES_DISPOSITION,
+    {
+      rotationAleatoire: ["random rotation (rad)", 0, 0.3, 0.001],
+      espacementPile: ["stack spacing", 0.001, 0.05, 0.001],
+      espacementPioche: ["draw pile spacing", 0.001, 0.05, 0.001],
+    },
+    { ordre: 1 },
   )
-  useControls(
-    "Cartes · effets et animations",
-    { ...schema, ...boutonCopie("SCENE", "Cartes · effets et animations") } as never,
-    { collapsed: true },
-    onglet("SCENE"),
+  useReglages(
+    "Card",
+    REGLAGES_CARTE,
+    {
+      epaisseur: ["thickness (× width)", 0.001, 0.03, 0.0005],
+      pliable: ["bendability", 0, 1, 0.01],
+      dureeVol: ["flight duration (×)", 0.3, 3, 0.05],
+      hauteurVol: ["flight height (×)", 0, 3, 0.05],
+      ombre: ["shadow", 0, 1, 0.01],
+    } as never,
+    { ordre: 1 },
+  )
+  useReglages(
+    "Card Effects",
+    REGLAGES_CARTE,
+    {
+      couleurAssassin: "assassin color",
+      haloAssassin: ["assassin glow", 0, 1, 0.01],
+      pulsationAssassin: ["assassin pulse", 0, 0.5, 0.01],
+      contourAssassin: "assassin solid outline",
+      couleurOr: "completed mission color",
+      haloOr: ["completed mission glow", 0, 1, 0.01],
+      pulsationOr: ["completed mission pulse", 0, 0.5, 0.01],
+      scintillement: ["sparkle", 0, 1, 0.01],
+      vitesseScintillement: ["sparkle speed", 0, 2, 0.01],
+      vitessePulsation: ["pulse speed", 0, 8, 0.1],
+      couleurSelection: "selection frame color",
+      opaciteCadre: ["frame opacity", 0, 1, 0.01],
+      pulsationCadre: ["frame pulse", 0, 0.5, 0.01],
+      respirationCadre: ["frame breathing", 0, 0.1, 0.001],
+      vitesseCadre: ["frame speed", 0, 10, 0.1],
+      reflet: ["reflection", 0, 1, 0.01],
+      mouvementReflet: ["reflection motion", 0, 1.5, 0.01],
+    } as never,
+    { ordre: 7 },
   )
   return null
 }

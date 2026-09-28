@@ -23,7 +23,7 @@ export function tricher(resultats: Resultats, gagnant: string): Resultats {
 
 export function useTriche(vue: VueJoueur, pseudo: (id: string) => string): VueJoueur {
   const options = useMemo(() => Object.fromEntries([[AUCUN, AUCUN], ...vue.joueurs.map((j) => [pseudo(j.id), j.id])]), [vue.joueurs, pseudo])
-  const { gagnant } = useControls("Triche", { gagnant: { options, value: AUCUN, label: "faire gagner" } }, [options])
+  const { gagnant } = useControls("Cheat", { gagnant: { options, value: AUCUN, label: "make winner" } }, [options])
   return useMemo(() => {
     if (!vue.resultats || gagnant === AUCUN) return vue
     return { ...vue, resultats: tricher(vue.resultats, gagnant as string) }

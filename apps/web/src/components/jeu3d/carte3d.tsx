@@ -5,6 +5,8 @@ import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
+  type BufferGeometry,
+  type Material,
   AdditiveBlending,
   CanvasTexture,
   ExtrudeGeometry,
@@ -19,11 +21,11 @@ import {
   type Texture,
   Vector3,
 } from "three"
+import { TessellateModifier } from "three/examples/jsm/modifiers/TessellateModifier.js"
 import type { Pose } from "./disposition"
 
 const geometries = new Map<string, ShapeGeometry>()
 const tranches = new Map<string, ExtrudeGeometry>()
-export const EPAISSEUR_RELATIVE = 0.004
 
 function forme(largeur: number, hauteur: number, rayon: number) {
   const x = -largeur / 2
@@ -197,6 +199,34 @@ export const REGLAGES_CARTE = {
   ombre: 1,
   dureeVol: 1.35,
   hauteurVol: 1,
+  epaisseur: 0.004,
+  pliable: 0.15,
+}
+
+const pliables = new Map<BufferGeometry, BufferGeometry>()
+function pliable(geo: BufferGeometry, taille: number) {
+  let g = pliables.get(geo)
+  if (!g) {
+    g = new TessellateModifier(taille, 8).modify(geo)
+    pliables.set(geo, g)
+  }
+  return g
+}
+
+function plier(m: Material | null, uniforms: Record<string, { value: number }>) {
+  if (!m || m.userData.plie) return
+  m.userData.plie = true
+  m.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms)
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nuniform float uPli;\nuniform float uDemiH;\nuniform float uSens;")
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nfloat pyPli = clamp(position.y / uDemiH, -1.0, 1.0);\ntransformed.z += uSens * uPli * uDemiH * (1.0 - pyPli * pyPli);",
+      )
+  }
+  m.customProgramCacheKey = () => "pli"
+  m.needsUpdate = true
 }
 
 type Props = {
@@ -257,9 +287,11 @@ export function Carte3D({
   onArrivee,
 }: Props) {
   const ref = useRef<Group>(null)
-  const epaisseur = largeur * EPAISSEUR_RELATIVE
-  const geo = useMemo(() => geometrieCarte(largeur, hauteur), [largeur, hauteur])
-  const tranche = useMemo(() => geometrieTranche(largeur, hauteur, epaisseur), [largeur, hauteur, epaisseur])
+  const epaisseur = largeur * REGLAGES_CARTE.epaisseur
+  const pas = Math.min(largeur, hauteur) / 5
+  const geo = useMemo(() => pliable(geometrieCarte(largeur, hauteur), pas), [largeur, hauteur, pas])
+  const tranche = useMemo(() => pliable(geometrieTranche(largeur, hauteur, epaisseur), pas), [largeur, hauteur, epaisseur, pas])
+  const pli = useRef({ value: 0 })
   const marge = 0.05 / Math.max(cible.echelle, 0.3)
   const geoLueur = useMemo(() => geometrieCarte(largeur + marge, hauteur + marge), [largeur, hauteur, marge])
   const margeHalo = Math.min(largeur, hauteur) * (lueur === "or" ? 0.14 : 0.28)
@@ -362,12 +394,14 @@ export function Carte3D({
         bezier(g.position, v.p0, p1, p2, cible.position, e)
         g.quaternion.slerpQuaternions(v.q0, cible.quaternion, e).premultiply(qTmp.setFromAxisAngle(HAUT, Math.sin(Math.PI * e) * 0.45 * v.sens))
         g.scale.setScalar((v.s0 + (cible.echelle - v.s0) * e) * (1 + Math.sin(Math.PI * u) * 0.14))
+        pli.current.value = REGLAGES_CARTE.pliable * Math.sin(Math.PI * u) * v.sens
         if (u >= 1) {
           vol.current = null
           onArrivee?.()
         }
       }
     } else {
+      pli.current.value *= Math.max(0, 1 - dt * 8)
       cibleTmp.copy(cible.position)
       easing.damp3(g.position, cibleTmp, vitesse, dt)
       easing.dampQ(g.quaternion, cible.quaternion, vitesse, dt)
@@ -399,17 +433,33 @@ export function Carte3D({
         <meshBasicMaterial map={ombre} transparent depthWrite={false} />
       </mesh>
       <mesh geometry={geo} position-z={epaisseur / 2 + 0.001}>
-        <meshBasicMaterial map={recto} transparent={auDessus} toneMapped={false} />
+        <meshBasicMaterial
+          ref={(m) => plier(m, { uPli: pli.current, uDemiH: { value: hauteur / 2 }, uSens: { value: 1 } })}
+          map={recto}
+          transparent={auDessus}
+          toneMapped={false}
+        />
       </mesh>
       <mesh geometry={tranche} position-z={-epaisseur / 2}>
         <meshBasicMaterial attach="material-0" visible={false} />
-        <meshBasicMaterial attach="material-1" color="#d9cba6" transparent={auDessus} toneMapped={false} />
+        <meshBasicMaterial
+          attach="material-1"
+          ref={(m) => plier(m, { uPli: pli.current, uDemiH: { value: hauteur / 2 }, uSens: { value: 1 } })}
+          color="#d9cba6"
+          transparent={auDessus}
+          toneMapped={false}
+        />
       </mesh>
       <mesh ref={refletRef} geometry={geo} position-z={epaisseur / 2 + 0.003} raycast={() => null} visible={false}>
         <meshBasicMaterial map={texReflet} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
       <mesh geometry={geo} rotation-y={Math.PI} position-z={-epaisseur / 2 - 0.001}>
-        <meshBasicMaterial map={verso} transparent={auDessus} toneMapped={false} />
+        <meshBasicMaterial
+          ref={(m) => plier(m, { uPli: pli.current, uDemiH: { value: hauteur / 2 }, uSens: { value: -1 } })}
+          map={verso}
+          transparent={auDessus}
+          toneMapped={false}
+        />
       </mesh>
       {lueur && lueur !== "selection" && (
         <mesh position-z={-epaisseur / 2 - 0.006} raycast={() => null}>

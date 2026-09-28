@@ -44,10 +44,10 @@ function copierTout() {
 }
 
 export function PanneauDebug() {
-  useControls({ "Copier tous les réglages": button(copierTout) })
+  useControls({ "Copy all settings": button(copierTout) })
   const [ongletActif, setOnglet] = useState<OngletDebug>("GAME")
   const [, reglerSon] = useControls(
-    "Son",
+    "Sound",
     () => {
       const v = volumesActuels()
       const curseur = (cle: keyof Volumes, label: string) => ({
@@ -59,21 +59,21 @@ export function PanneauDebug() {
         onChange: (x: number) => reglerVolumes({ [cle]: x }),
       })
       return {
-        general: curseur("general", "général"),
-        musique: curseur("musique", "musique"),
-        effets: curseur("effets", "effets"),
-        ambiance: curseur("ambiance", "ambiance repas"),
+        general: curseur("general", "master"),
+        musique: curseur("musique", "music"),
+        effets: curseur("effets", "effects"),
+        ambiance: curseur("ambiance", "dinner ambience"),
         piste: {
           value: musiqueActuelle(),
           options: { Danse: "danse", Estampie: "estampie", Pavane: "pavane", Branle: "branle" },
-          label: "morceau",
+          label: "track",
           onChange: (m: NomMusique) => changerMusique(m),
         },
       }
     },
     onglet("AUDIO"),
   )
-  useControls("Son", { "Réinitialiser le son": button(() => reglerSon(VOLUMES_DEFAUT)), ...boutonCopie("AUDIO", "Son") }, onglet("AUDIO"))
+  useControls("Sound", { "Reset sound": button(() => reglerSon(VOLUMES_DEFAUT)), ...boutonCopie("AUDIO", "Sound") }, onglet("AUDIO"))
   const actif = useSyncExternalStore(
     (f) => {
       abonnes.add(f)

@@ -18,6 +18,7 @@ export type StyleTexte = {
   holo?: boolean
   relief?: string
   aura?: string
+  ombre?: string
 }
 
 function dessiner(texte: string, style: StyleTexte) {
@@ -81,8 +82,17 @@ function dessiner(texte: string, style: StyleTexte) {
     ctx.shadowBlur = 0
     ctx.shadowOffsetY = 0
   }
+  if (style.ombre) {
+    const [couleurOmbre, flou, decalage] = style.ombre.split("|")
+    ctx.shadowColor = couleurOmbre!
+    ctx.shadowBlur = Number(flou)
+    ctx.shadowOffsetY = Number(decalage)
+  }
   ctx.fillStyle = style.couleur
   ctx.fillText(texte, x, y)
+  ctx.shadowColor = "transparent"
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
   if (style.relief) {
     const reflet = ctx.createLinearGradient(0, y - TAILLE * 0.5, 0, y + TAILLE * 0.2)
     reflet.addColorStop(0, "rgba(255,255,255,0.35)")
@@ -138,11 +148,11 @@ export function TexteTable({
   ordre?: number
 }) {
   const prete = usePolicePrete()
-  const { couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura } = style
+  const { couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura, ombre } = style
   const { texture, ratio, echelle } = useMemo(
-    () => dessiner(texte, { couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura }),
+    () => dessiner(texte, { couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura, ombre }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [texte, couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura, prete],
+    [texte, couleur, contour, lueur, espacement, graisse, bloom, holo, relief, aura, ombre, prete],
   )
   useEffect(() => () => texture.dispose(), [texture])
   const [survol, setSurvol] = useState(false)

@@ -76,10 +76,11 @@ export function useSequenceFin(vue: VueJoueur) {
   }, [actif, piles, lecture])
 
   useControls(
-    "Fin de partie",
+    "End Sequence",
     {
-      Rejouer: button(() => setLecture((l) => Math.abs(l) + 1)),
+      Replay: button(() => setLecture((l) => Math.abs(l) + 1)),
       etape: {
+        label: "step",
         value: 0,
         min: 0,
         max: etapes.length,

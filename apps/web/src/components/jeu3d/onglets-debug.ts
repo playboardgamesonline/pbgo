@@ -27,4 +27,4 @@ export function copierDossier(nom: OngletDebug, dossier: string) {
   console.info(texte)
 }
 
-export const boutonCopie = (nom: OngletDebug, dossier: string) => ({ "Copier les valeurs": button(() => copierDossier(nom, dossier)) })
+export const boutonCopie = (nom: OngletDebug, dossier: string) => ({ "Copy values": button(() => copierDossier(nom, dossier)) })

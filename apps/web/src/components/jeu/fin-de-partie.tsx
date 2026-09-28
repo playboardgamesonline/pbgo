@@ -30,6 +30,19 @@ export function phraseVainqueur(partie: PartiePublique, vue: VueJoueur, catalogu
   ).replace("{points}", String(vainqueurs[0]?.total ?? 0))
 }
 
+export function annonceVainqueur(partie: PartiePublique, vue: VueJoueur, catalogue: CatalogueClient) {
+  const resultats = vue.resultats
+  if (!resultats) return { phrase: "", detail: "" }
+  const vainqueurs = resultats.joueurs.filter((j) => resultats.vainqueurs.includes(j.joueurId))
+  const modele = catalogue.phrasesVainqueur[hash(partie.code + vue.journal.length) % catalogue.phrasesVainqueur.length]!
+  const phrase = modele
+    .split("{pseudo}")[0]!
+    .replace(/[\s:,–-]+$/, "")
+    .trim()
+  const noms = vainqueurs.map((v) => partie.joueurs.find((j) => j.id === v.joueurId)?.pseudo).join(" & ")
+  return { phrase, detail: `${noms} · ${vainqueurs[0]?.total ?? 0} pts` }
+}
+
 export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePublique) => void; ouvert: boolean; onBasculer: () => void }) {
   const { vue, partie, couleur } = useJeu()
   const [envoi, setEnvoi] = useState(false)

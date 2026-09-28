@@ -17,7 +17,7 @@ import type { CatalogueClient } from "@/lib/catalogue"
 import type { PartiePublique } from "@/lib/partie-types"
 import { Bandeau } from "../jeu/bandeau"
 import { JeuProvider } from "../jeu/contexte"
-import { FinDePartie, phraseVainqueur } from "../jeu/fin-de-partie"
+import { annonceVainqueur, FinDePartie } from "../jeu/fin-de-partie"
 import { useSequenceFin } from "./fin"
 import { useSonsJeu } from "./sons"
 import { BoutonCour } from "../banquet/ecran-banquet"
@@ -62,7 +62,7 @@ export function Jeu3D({
   const [etape, setEtape] = useState<EtapeOuverture>(() => (aLire(vue) ? "tapis" : null))
   const [boutonMissions, setBoutonMissions] = useState(false)
   const [repere, setRepere] = useState(`${vue.phase}:${vue.joueurActifId}`)
-  const [annonces, setAnnonces] = useState<{ id: number; texte: string; son: NomSon; type: TypeAnnonce }[]>([])
+  const [annonces, setAnnonces] = useState<{ id: number; texte: string; sousTexte?: string; son: NomSon; type: TypeAnnonce }[]>([])
   const [compteur, setCompteur] = useState(0)
   const repereActuel = `${vue.phase}:${vue.joueurActifId}`
   if (repere !== repereActuel) {
@@ -84,8 +84,8 @@ export function Jeu3D({
   const annonce = etape === null ? annonces[0] : undefined
   const reglagesAnnonces = useReglagesAnnonces()
   const dureeAnnonce = annonce ? reglagesAnnonces[annonce.type].duree : 0
-  function annoncer(texte: string, son: NomSon, type: TypeAnnonce) {
-    setAnnonces((l) => [...l, { id: Date.now(), texte, son, type }])
+  function annoncer(texte: string, son: NomSon, type: TypeAnnonce, sousTexte?: string) {
+    setAnnonces((l) => [...l, { id: Date.now(), texte, son, type, sousTexte }])
   }
   const intro = etape === "missions"
   const tourAffiche =
@@ -97,36 +97,41 @@ export function Jeu3D({
   const nbJoueurs = vue.joueurs.length
 
   const [reglagesOuverture] = useControls(
-    "Ouverture",
+    "Opening",
     () => ({
-      dureeTapis: { value: 3.2, min: 0.3, max: 6, step: 0.05, label: "durée tapis (s)" },
-      pasDistribution: { value: 0.4, min: 0.05, max: 0.6, step: 0.01, label: "pas distribution (s)" },
-      attenteBouton: { value: 1.6, min: 0, max: 5, step: 0.1, label: "délai bouton (s)" },
-      ...boutonCopie("TRANSITION", "Ouverture"),
+      dureeTapis: { value: 3.2, min: 0.3, max: 6, step: 0.05, label: "mat unroll (s)" },
+      pasDistribution: { value: 0.4, min: 0.05, max: 0.6, step: 0.01, label: "deal step (s)" },
+      attenteBouton: { value: 1.6, min: 0, max: 5, step: 0.1, label: "button delay (s)" },
+      ...boutonCopie("TRANSITION", "Opening"),
     }),
+    { order: 0 },
     onglet("TRANSITION"),
   )
   useControls(
-    "Rejouer",
+    "Replay",
     {
-      "Ouverture complète": button(() => {
+      "Full opening": button(() => {
         setBoutonMissions(false)
         setEtape("tapis")
       }),
-      "Annonce banquet": button(() => annoncer(catalogue.texteDebutBanquet, "victoire", "banquet")),
-      "Annonce votre tour": button(() => annoncer("C'est votre tour", "tour", "tour")),
-      "Annonce victoire": button(() => annoncer(phraseVainqueur(partie, vue, catalogue) || "Toute la cour s'incline", "victoire", "victoire")),
+      "Banquet announcement": button(() => annoncer(catalogue.texteDebutBanquet, "victoire", "banquet")),
+      "Your turn announcement": button(() => annoncer("C'est votre tour", "tour", "tour")),
+      "Victory announcement": button(() => {
+        const { phrase, detail } = annonceVainqueur(partie, vue, catalogue)
+        annoncer(phrase || "Toute la cour s'incline devant", "victoire", "victoire", detail || "Oré · 9 pts")
+      }),
     },
+    { order: 1 },
     onglet("TRANSITION"),
     [catalogue.texteDebutBanquet],
   )
   useControls(
     "Phases",
     {
-      "START · nouvelle partie": button(() => commandeDebug("debut")),
-      "MISSIONS LUES · tous": button(() => commandeDebug("missions")),
-      "TOUR SUIVANT · joue 3 cartes": button(() => commandeDebug("tour")),
-      "END · jouer jusqu'à la fin": button(() => commandeDebug("fin")),
+      "START · new game": button(() => commandeDebug("debut")),
+      "MISSIONS · everyone read": button(() => commandeDebug("missions")),
+      "NEXT TURN · play 3 cards": button(() => commandeDebug("tour")),
+      "END · play to the end": button(() => commandeDebug("fin")),
     },
     [partie.code],
   )
@@ -282,7 +287,15 @@ export function Jeu3D({
           )}
 
           <AnimatePresence mode="wait">
-            {annonce && <Annonce key={annonce.id} texte={annonce.texte} son={annonce.son} reglages={reglagesAnnonces[annonce.type]} />}
+            {annonce && (
+              <Annonce
+                key={annonce.id}
+                texte={annonce.texte}
+                sousTexte={annonce.sousTexte}
+                son={annonce.son}
+                reglages={reglagesAnnonces[annonce.type]}
+              />
+            )}
           </AnimatePresence>
 
           <PanneauDebug />
@@ -309,7 +322,13 @@ export function Jeu3D({
 
           <AnimatePresence>
             {fin?.texte && !fin.tableau && (
-              <Annonce key="victoire" texte={phraseVainqueur(partie, vue, catalogue)} son="victoire" reglages={reglagesAnnonces.victoire} />
+              <Annonce
+                key="victoire"
+                texte={annonceVainqueur(partie, vue, catalogue).phrase}
+                sousTexte={annonceVainqueur(partie, vue, catalogue).detail}
+                son="victoire"
+                reglages={reglagesAnnonces.victoire}
+              />
             )}
           </AnimatePresence>
           {fin && !fin.tableau && (

@@ -27,21 +27,22 @@ import { ReglagesCartes } from "./reglages-cartes"
 import { Colonne } from "./colonne"
 import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
-import { Compteurs, PointsPiles, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
+import { Compteurs, LignesTapis, PointsPiles, REGLAGES_FIN, ReglagesFin, ResolutionFamilles, useCentresGagnants } from "./fin3d"
+import { useReglages, useVersionReglages } from "./reglages"
 import { textureMotif } from "./motifs"
 import { boutonCopie, onglet } from "./onglets-debug"
-import { Carte3D, EPAISSEUR_RELATIVE, geometrieCarte, geometrieTranche } from "./carte3d"
+import { Carte3D, REGLAGES_CARTE, geometrieCarte, geometrieTranche } from "./carte3d"
 import { type StyleTexte, TexteTable } from "./texte-table"
 import {
   CARTE_H,
   CARTE_L,
   DOMAINE_ECHELLE,
-  EPAISSEUR_PIOCHE,
   FACE_BAS,
   FACE_HAUT,
   MISSION_H,
   MISSION_L,
   PIOCHE,
+  REGLAGES_DISPOSITION,
   type Pose,
   TAPIS_L,
   TAPIS_P,
@@ -129,32 +130,34 @@ const CIBLE_TMP = new Vector3()
 function CameraRig() {
   const { size } = useThree()
   const [reglage, regler] = useControls(
-    "Caméra",
+    "Camera",
     () => ({
-      inclinaison: { value: CAMERA_DEFAUT.inclinaison, min: 0, max: 85, step: 0.5, label: "inclinaison °" },
-      lacet: { value: CAMERA_DEFAUT.lacet, min: -180, max: 180, step: 1, label: "rotation °" },
-      distance: { value: CAMERA_DEFAUT.distance, min: 8, max: 70, step: 0.1 },
+      inclinaison: { value: CAMERA_DEFAUT.inclinaison, min: 0, max: 85, step: 0.5, label: "tilt °" },
+      lacet: { value: CAMERA_DEFAUT.lacet, min: -180, max: 180, step: 1, label: "yaw °" },
+      distance: { value: CAMERA_DEFAUT.distance, min: 8, max: 70, step: 0.1, label: "distance" },
       fov: { value: CAMERA_DEFAUT.fov, min: 10, max: 100, step: 0.5, label: "fov °" },
-      cible: { value: CAMERA_DEFAUT.cible, step: 0.05, label: "cible x / z" },
+      cible: { value: CAMERA_DEFAUT.cible, step: 0.05, label: "target x / z" },
     }),
+    { order: 0 },
     onglet("SCENE"),
   )
   useControls(
-    "Caméra",
+    "Camera",
     {
-      "Copier les valeurs": button((get) => {
+      "Copy values": button((get) => {
         const valeurs = {
-          inclinaison: get("Caméra.inclinaison"),
-          lacet: get("Caméra.lacet"),
-          distance: get("Caméra.distance"),
-          fov: get("Caméra.fov"),
-          cible: get("Caméra.cible"),
+          inclinaison: get("Camera.inclinaison"),
+          lacet: get("Camera.lacet"),
+          distance: get("Camera.distance"),
+          fov: get("Camera.fov"),
+          cible: get("Camera.cible"),
         }
-        navigator.clipboard?.writeText(JSON.stringify(valeurs)).catch(() => null)
-        console.info("Caméra", valeurs)
+        navigator.clipboard?.writeText(JSON.stringify({ Camera: valeurs }, null, 2)).catch(() => null)
+        console.info("Camera", valeurs)
       }),
-      Réinitialiser: button(() => regler(CAMERA_DEFAUT)),
+      Reset: button(() => regler(CAMERA_DEFAUT)),
     },
+    { order: 0 },
     onglet("SCENE"),
   )
 
@@ -236,15 +239,16 @@ function Table({ tex, deroulement, dureeTapis }: { tex: Textures; deroulement: b
   const vignette = useFrameTexture(vignetteTexture)
   const texMotif = useMemo(() => textureMotif("losanges"), [])
   const { opacite, desaturation, fusion, force, echelle } = useControls(
-    "Tapis",
+    "Mat",
     {
-      opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "opacité motif fond" },
-      desaturation: { value: 0.18, min: 0, max: 1, step: 0.01, label: "désaturation" },
-      fusion: { value: 3, options: MODES_FUSION, label: "mode de fusion" },
-      force: { value: 0.85, min: 0, max: 1, step: 0.01, label: "force texture" },
-      echelle: { value: 0.5, min: 0.1, max: 6, step: 0.05, label: "tuiles / unité" },
-      ...boutonCopie("SCENE", "Tapis"),
+      opacite: { value: 0.08, min: 0, max: 1, step: 0.01, label: "background pattern opacity" },
+      desaturation: { value: 0.18, min: 0, max: 1, step: 0.01, label: "desaturation" },
+      fusion: { value: 3, options: MODES_FUSION, label: "blend mode" },
+      force: { value: 0.85, min: 0, max: 1, step: 0.01, label: "texture strength" },
+      echelle: { value: 0.5, min: 0.1, max: 6, step: 0.05, label: "tiles / unit" },
+      ...boutonCopie("SCENE", "Mat"),
     },
+    { collapsed: true, order: 8 },
     onglet("SCENE"),
   )
   const dessus = useMemo(() => geometrieCarte(TAPIS_L, TAPIS_P, 0.07), [])
@@ -432,7 +436,8 @@ type ReglagesPioche = {
 const finPioche = (r: ReglagesPioche) => r.delai + r.duree
 
 function Pioche({ nombre, actif, reglages: r }: { nombre: number; actif: boolean; reglages: ReglagesPioche }) {
-  const geo = useMemo(() => geometrieTranche(CARTE_L, CARTE_H, CARTE_L * EPAISSEUR_RELATIVE), [])
+  const epaisseurCarte = CARTE_L * REGLAGES_CARTE.epaisseur
+  const geo = useMemo(() => geometrieTranche(CARTE_L, CARTE_H, epaisseurCarte), [epaisseurCarte])
   const n = Math.min(nombre, 60)
   const cartes = useRef<(Group | null)[]>([])
   const debut = useRef<number | null>(null)
@@ -447,7 +452,7 @@ function Pioche({ nombre, actif, reglages: r }: { nombre: number; actif: boolean
     let enCours = false
     cartes.current.forEach((g, i) => {
       if (!g) return
-      const base = 0.03 + (i + 1) * EPAISSEUR_PIOCHE
+      const base = 0.03 + (i + 1) * REGLAGES_DISPOSITION.espacementPioche
       const arrivee = r.delai + EASINGS[r.easing](i / total) * r.duree
       const u = Math.min(1, Math.max(0, (t - (arrivee - r.chute)) / r.chute))
       if (u < 1) enCours = true
@@ -476,10 +481,10 @@ function Pioche({ nombre, actif, reglages: r }: { nombre: number; actif: boolean
           ref={(g) => {
             cartes.current[i] = g
           }}
-          position-y={0.03 + (i + 1) * EPAISSEUR_PIOCHE}
+          position-y={0.03 + (i + 1) * REGLAGES_DISPOSITION.espacementPioche}
           quaternion={penche(`pioche${i + 1}`, 0.04)}
         >
-          <mesh geometry={geo} rotation-x={-Math.PI / 2} position-y={-(CARTE_L * EPAISSEUR_RELATIVE) / 2} raycast={() => null}>
+          <mesh geometry={geo} rotation-x={-Math.PI / 2} position-y={-epaisseurCarte / 2} raycast={() => null}>
             <meshBasicMaterial attach="material-0" color="#123c42" toneMapped={false} />
             <meshBasicMaterial attach="material-1" color={i % 2 ? "#d9cba6" : "#cdbf98"} toneMapped={false} />
           </mesh>
@@ -508,14 +513,45 @@ function Voile({ actif, opacite, fondu = 0.2 }: { actif: boolean; opacite: numbe
   )
 }
 
+export const REGLAGES_ZONE = {
+  opaciteRepos: 0.05,
+  opaciteJouable: 0.12,
+  opaciteSurvol: 0.22,
+  auraJouable: 0.55,
+  auraSurvol: 1,
+  arrondi: 0.35,
+  taillePseudo: 0.62,
+  reculPseudo: 0.45,
+}
+
+function ReglagesZone() {
+  useReglages(
+    "Player Zone",
+    REGLAGES_ZONE,
+    {
+      opaciteRepos: ["idle opacity", 0, 1, 0.01],
+      opaciteJouable: ["playable opacity", 0, 1, 0.01],
+      opaciteSurvol: ["hover opacity", 0, 1, 0.01],
+      auraJouable: ["playable aura", 0, 2, 0.01],
+      auraSurvol: ["hover aura", 0, 2, 0.01],
+      arrondi: ["corner radius", 0, 1.5, 0.01],
+      taillePseudo: ["name size", 0.2, 2, 0.01],
+      reculPseudo: ["name offset", -2, 2, 0.01],
+    },
+    { ordre: 6 },
+  )
+  return null
+}
+
 function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jouable: boolean; survol: boolean; couleur: string }) {
   const clair = useMemo(() => `#${new Color(couleur).lerp(new Color("#ffffff"), 0.65).getHexString()}`, [couleur])
   const ref = useRef<MeshBasicMaterial>(null)
-  const geo = useMemo(() => geometrieCarte(zone.largeur, zone.profondeur, 0.35), [zone.largeur, zone.profondeur])
+  const arrondi = REGLAGES_ZONE.arrondi
+  const geo = useMemo(() => geometrieCarte(zone.largeur, zone.profondeur, arrondi), [zone.largeur, zone.profondeur, arrondi])
   useFrame((_, dt) => {
     const m = ref.current
     if (!m) return
-    easing.damp(m, "opacity", jouable ? (survol ? 0.22 : 0.12) : 0.05, 0.15, dt)
+    easing.damp(m, "opacity", jouable ? (survol ? REGLAGES_ZONE.opaciteSurvol : REGLAGES_ZONE.opaciteJouable) : REGLAGES_ZONE.opaciteRepos, 0.15, dt)
     easing.dampC(m.color, jouable ? couleur : "#ffffff", 0.2, dt)
   })
   return (
@@ -528,7 +564,7 @@ function FondDomaine({ zone, jouable, survol, couleur }: { zone: ZoneDomaine; jo
         profondeur={zone.profondeur}
         position={[zone.centre.x, 0.014, zone.centre.z]}
         lacet={zone.lacet}
-        force={jouable ? (survol ? 1 : 0.55) : 0}
+        force={() => (jouable ? (survol ? REGLAGES_ZONE.auraSurvol : REGLAGES_ZONE.auraJouable) : 0)}
         couleur={couleur}
         clair={clair}
       />
@@ -558,7 +594,14 @@ function Badge({
 }) {
   return (
     <group position={zone.etiquette} rotation-y={zone.lacetEtiquette}>
-      <TexteTable texte={texte} style={style} hauteur={0.62} position={[0, 0, -0.45]} onClick={onClick} onSurvol={onSurvol} />
+      <TexteTable
+        texte={texte}
+        style={style}
+        hauteur={REGLAGES_ZONE.taillePseudo}
+        position={[0, 0, -REGLAGES_ZONE.reculPseudo]}
+        onClick={onClick}
+        onSurvol={onSurvol}
+      />
     </group>
   )
 }
@@ -670,7 +713,12 @@ function Monde({
     if (actif) setDeplie(cle)
     else fermeture.current = setTimeout(() => setDeplie((d) => (d === cle ? null : d)), 180)
   }
-  const { map: plateau, zones } = useMemo(() => disposer(vue, places, it.assassinat ? deplie : null, fin), [vue, places, deplie, fin, it.assassinat])
+  const versionReglages = useVersionReglages()
+  const { map: plateau, zones } = useMemo(
+    () => disposer(vue, places, it.assassinat ? deplie : null, fin),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vue, places, deplie, fin, it.assassinat, versionReglages],
+  )
   const main = vue.moi?.main ?? []
   const moiId = vue.moi?.id
 
@@ -784,78 +832,82 @@ function Monde({
 
   const { camera } = useThree()
   const reglagesMissions = useControls(
-    "Missions (début de partie)",
+    "Missions",
     {
-      distance: { value: 4.4, min: 2, max: 10, step: 0.05, label: "distance caméra" },
-      position: { value: { x: 0, y: 0.32 }, step: 0.01, label: "position groupe" },
-      rotation: { value: { x: 0, y: 0, z: 0 }, step: 0.01, label: "rotation groupe" },
-      echelle: { value: 1.4, min: 0.5, max: 2.5, step: 0.01, label: "échelle" },
-      ecart: { value: 0.3, min: -1, max: 3, step: 0.01, label: "écart" },
-      angles: { value: { y: 0.06, z: 0.01 }, step: 0.01, label: "angles cartes" },
-      carte1: { value: { x: 0, y: 0 }, step: 0.01, label: "décalage carte 1" },
-      carte2: { value: { x: 0, y: 0 }, step: 0.01, label: "décalage carte 2" },
-      recul: { value: 0, min: 0, max: 1, step: 0.01, label: "recul extérieur" },
-      souris: { value: 0.1, min: 0, max: 1, step: 0.01, label: "inclinaison souris" },
-      voile: { value: 0.24, min: 0, max: 1, step: 0.01, label: "opacité overlay" },
-      voileFocus: { value: 0.24, min: 0, max: 1, step: 0.01, label: "opacité overlay focus" },
-      fonduVoile: { value: 0.8, min: 0.05, max: 2, step: 0.05, label: "fondu overlay" },
-      ...boutonCopie("SCENE", "Missions (début de partie)"),
+      distance: { value: 4.4, min: 2, max: 10, step: 0.05, label: "camera distance" },
+      position: { value: { x: 0, y: 0.32 }, step: 0.01, label: "group position" },
+      rotation: { value: { x: 0, y: 0, z: 0 }, step: 0.01, label: "group rotation" },
+      echelle: { value: 1.4, min: 0.5, max: 2.5, step: 0.01, label: "scale" },
+      ecart: { value: 0.3, min: -1, max: 3, step: 0.01, label: "gap" },
+      angles: { value: { y: 0.06, z: 0.01 }, step: 0.01, label: "card angles" },
+      carte1: { value: { x: 0, y: 0 }, step: 0.01, label: "card 1 offset" },
+      carte2: { value: { x: 0, y: 0 }, step: 0.01, label: "card 2 offset" },
+      recul: { value: 0, min: 0, max: 1, step: 0.01, label: "outer depth" },
+      souris: { value: 0.1, min: 0, max: 1, step: 0.01, label: "mouse tilt" },
+      voile: { value: 0.24, min: 0, max: 1, step: 0.01, label: "overlay opacity" },
+      voileFocus: { value: 0.24, min: 0, max: 1, step: 0.01, label: "focus overlay opacity" },
+      fonduVoile: { value: 0.8, min: 0.05, max: 2, step: 0.05, label: "overlay fade" },
+      ...boutonCopie("SCENE", "Missions"),
     },
+    { collapsed: true, order: 4 },
     onglet("SCENE"),
   )
   const reglagesPioche = useControls(
-    "Pioche (apparition)",
+    "Draw Pile",
     {
-      delai: { value: 0.15, min: 0, max: 5, step: 0.05, label: "délai (s)" },
-      duree: { value: 1.4, min: 0.1, max: 6, step: 0.05, label: "durée totale (s)" },
-      chute: { value: 0.35, min: 0.05, max: 2, step: 0.01, label: "chute d'une carte (s)" },
-      hauteur: { value: 3, min: 0.5, max: 10, step: 0.1, label: "hauteur de chute" },
-      easing: { value: "ease out" as keyof typeof EASINGS, options: Object.keys(EASINGS) as (keyof typeof EASINGS)[], label: "easing global" },
-      fonduBas: { value: 0.8, min: 0, max: 5, step: 0.05, label: "fondu : opaque sous" },
-      fonduHaut: { value: 4, min: 0.5, max: 10, step: 0.05, label: "fondu : transparent au-dessus" },
-      delaiCompteur: { value: 0.1, min: 0, max: 3, step: 0.05, label: "délai compteur (s)" },
-      ...boutonCopie("TRANSITION", "Pioche (apparition)"),
+      delai: { value: 0.15, min: 0, max: 5, step: 0.05, label: "delay (s)" },
+      duree: { value: 1.4, min: 0.1, max: 6, step: 0.05, label: "total duration (s)" },
+      chute: { value: 0.35, min: 0.05, max: 2, step: 0.01, label: "single card fall (s)" },
+      hauteur: { value: 3, min: 0.5, max: 10, step: 0.1, label: "fall height" },
+      easing: { value: "ease out" as keyof typeof EASINGS, options: Object.keys(EASINGS) as (keyof typeof EASINGS)[], label: "global easing" },
+      fonduBas: { value: 0.8, min: 0, max: 5, step: 0.05, label: "fade: opaque below" },
+      fonduHaut: { value: 4, min: 0.5, max: 10, step: 0.05, label: "fade: transparent above" },
+      delaiCompteur: { value: 0.1, min: 0, max: 3, step: 0.05, label: "counter delay (s)" },
+      ...boutonCopie("SCENE", "Draw Pile"),
     },
-    onglet("TRANSITION"),
+    { collapsed: true, order: 3 },
+    onglet("SCENE"),
   )
   const reglagesMain = useControls(
-    "Main (bas gauche)",
+    "Deck",
     {
-      taille: { value: 0.66, min: 0.2, max: 1.5, step: 0.01, label: "taille" },
-      pas: { value: 0.9, min: 0.2, max: 1.5, step: 0.01, label: "espacement" },
+      taille: { value: 0.66, min: 0.2, max: 1.5, step: 0.01, label: "size" },
+      pas: { value: 0.9, min: 0.2, max: 1.5, step: 0.01, label: "spacing" },
       position: { value: { x: 0, y: 0.22 }, step: 0.005, label: "position" },
       rotation: { value: { x: -0.11, y: 0.15, z: -0.1 }, step: 0.01, label: "rotation" },
-      eventail: { value: 0.09, min: 0, max: 0.6, step: 0.005, label: "éventail (rotation)" },
-      courbe: { value: 0.045, min: 0, max: 0.3, step: 0.005, label: "éventail (courbe)" },
-      leveeSurvol: { value: 0.08, min: 0, max: 0.6, step: 0.005, label: "levée survol" },
-      echelleSurvol: { value: 1, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
-      leveeSelection: { value: 0.32, min: 0, max: 1, step: 0.01, label: "levée sélection" },
-      echelleSelection: { value: 1.12, min: 0.8, max: 1.8, step: 0.01, label: "échelle sélection" },
-      avanceSelection: { value: 0.15, min: 0, max: 1, step: 0.01, label: "avance sélection" },
-      rotationSelection: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: "rotation sélection" },
-      ...boutonCopie("SCENE", "Main (bas gauche)"),
+      eventail: { value: 0.09, min: 0, max: 0.6, step: 0.005, label: "fan rotation" },
+      courbe: { value: 0.045, min: 0, max: 0.3, step: 0.005, label: "fan curve" },
+      leveeSurvol: { value: 0.08, min: 0, max: 0.6, step: 0.005, label: "hover lift" },
+      echelleSurvol: { value: 1, min: 0.8, max: 1.5, step: 0.01, label: "hover scale" },
+      leveeSelection: { value: 0.32, min: 0, max: 1, step: 0.01, label: "selected lift" },
+      echelleSelection: { value: 1.12, min: 0.8, max: 1.8, step: 0.01, label: "selected scale" },
+      avanceSelection: { value: 0.15, min: 0, max: 1, step: 0.01, label: "selected forward" },
+      rotationSelection: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: "selected rotation" },
+      ...boutonCopie("SCENE", "Deck"),
     },
+    { collapsed: true, order: 2 },
     onglet("SCENE"),
   )
   const reglagesMissionsJeu = useControls(
-    "Missions (en jeu)",
+    "Missions · In Game",
     {
-      taille: { value: 0.36, min: 0.1, max: 0.8, step: 0.01, label: "taille" },
+      taille: { value: 0.36, min: 0.1, max: 0.8, step: 0.01, label: "size" },
       position: { value: { x: 0, y: 0 }, step: 0.005, label: "position" },
       angles: { value: { carte1: 0.08, carte2: 0.01 }, step: 0.01, label: "angles" },
-      carte1: { value: { x: 0.1, y: 0.085 }, step: 0.005, label: "décalage carte 1" },
-      carte2: { value: { x: 0.04, y: -0.07 }, step: 0.005, label: "décalage carte 2" },
-      leveeSurvol: { value: 0.02, min: 0, max: 0.5, step: 0.005, label: "levée survol" },
-      echelleSurvol: { value: 1.01, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
-      dureeSurvol: { value: 0.05, min: 0.01, max: 0.5, step: 0.01, label: "durée anim. survol (s)" },
-      dureeRetour: { value: 0.12, min: 0.01, max: 0.8, step: 0.01, label: "durée anim. retour (s)" },
-      dureeDefocus: { value: 0.4, min: 0.01, max: 1.5, step: 0.01, label: "durée anim. défocus (s)" },
-      refletFocus: { value: 0.06, min: 0, max: 1, step: 0.01, label: "reflet lumineux focus" },
-      distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "distance focus" },
-      echelleFocus: { value: 1.4, min: 0.5, max: 3, step: 0.01, label: "échelle focus" },
-      sourisFocus: { value: 0.16, min: 0, max: 1.5, step: 0.01, label: "inclinaison souris focus" },
-      ...boutonCopie("SCENE", "Missions (en jeu)"),
+      carte1: { value: { x: 0.1, y: 0.085 }, step: 0.005, label: "card 1 offset" },
+      carte2: { value: { x: 0.04, y: -0.07 }, step: 0.005, label: "card 2 offset" },
+      leveeSurvol: { value: 0.02, min: 0, max: 0.5, step: 0.005, label: "hover lift" },
+      echelleSurvol: { value: 1.01, min: 0.8, max: 1.5, step: 0.01, label: "hover scale" },
+      dureeSurvol: { value: 0.05, min: 0.01, max: 0.5, step: 0.01, label: "hover anim (s)" },
+      dureeRetour: { value: 0.12, min: 0.01, max: 0.8, step: 0.01, label: "return anim (s)" },
+      dureeDefocus: { value: 0.4, min: 0.01, max: 1.5, step: 0.01, label: "unfocus anim (s)" },
+      refletFocus: { value: 0.06, min: 0, max: 1, step: 0.01, label: "focus reflection" },
+      distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "focus distance" },
+      echelleFocus: { value: 1.4, min: 0.5, max: 3, step: 0.01, label: "focus scale" },
+      sourisFocus: { value: 0.16, min: 0, max: 1.5, step: 0.01, label: "focus mouse tilt" },
+      ...boutonCopie("SCENE", "Missions · In Game"),
     },
+    { collapsed: true, order: 5 },
     onglet("SCENE"),
   )
   const [survol, setSurvol] = useState<string | null>(null)
@@ -978,6 +1030,8 @@ function Monde({
       <ReglagesAura />
       <ReglagesCartes />
       <ReglagesFin />
+      <ReglagesZone />
+      <LignesTapis resultats={resultats ?? null} fin={fin} />
       <ambientLight intensity={0.8} />
       <directionalLight position={[4, 12, 6]} intensity={2.2} />
       <Table tex={tex} deroulement={deroulement} dureeTapis={reglages.dureeTapis} />
