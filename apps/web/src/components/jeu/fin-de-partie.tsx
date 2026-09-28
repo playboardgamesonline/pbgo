@@ -1,7 +1,7 @@
 "use client"
 
 import type { ResultatJoueur, VueJoueur } from "@courtisans/engine"
-import { Share2Icon } from "lucide-react"
+import { ShareIcon } from "lucide-react"
 import { ApercuPartage } from "./apercu-partage"
 import { genererPartage, type LignePartage } from "./partage"
 import { AnimatePresence, motion } from "motion/react"
@@ -50,7 +50,7 @@ function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
   const { catalogue } = useJeu()
   const reussies = j.missions.filter((m) => m.validee).length
   const pointsMissions = j.missions.reduce((t, m) => t + m.points, 0)
-  const taille = grand ? "h-14 w-10 text-lg" : "h-11 w-8 text-sm"
+  const taille = grand ? "h-10 w-7 text-sm" : "h-8 w-[1.4rem] text-[0.68rem]"
   const signe = (n: number) => `${n > 0 ? "+" : ""}${n}`
   return (
     <div className={cn("flex flex-wrap items-center justify-center", grand ? "gap-2" : "gap-1.5")}>
@@ -61,10 +61,10 @@ function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
             key={d.famille}
             title={`${catalogue.familles[d.famille].nom} : ${signe(d.points)}`}
             className={cn(
-              "flex shrink-0 items-center justify-center rounded-md border border-white/25 font-display font-bold text-white tabular-nums shadow-[0_4px_10px_rgb(0_0_0/35%)] [text-shadow:0_1px_2px_rgb(0_0_0/60%)]",
+              "flex shrink-0 items-center justify-center rounded-[0.3rem] border border-white/20 font-display font-bold text-white/95 tabular-nums shadow-[0_3px_8px_rgb(0_0_0/30%)] [text-shadow:0_1px_2px_rgb(0_0_0/50%)]",
               taille,
             )}
-            style={{ backgroundColor: catalogue.familles[d.famille].couleur, opacity: d.points === 0 ? 0.5 : 1 }}
+            style={{ backgroundColor: `color-mix(in oklab, ${catalogue.familles[d.famille].couleur} 62%, #56686c)`, opacity: d.points === 0 ? 0.45 : 1 }}
           >
             {signe(d.points)}
           </span>
@@ -72,7 +72,7 @@ function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
       <span
         title={`Missions : ${reussies}/${j.missions.length} réussie${reussies > 1 ? "s" : ""}`}
         className={cn(
-          "ml-1 flex shrink-0 items-center justify-center rounded-md border border-[#f2c14e]/60 bg-gradient-to-b from-[#f6e7b8] to-[#e0b454] font-display font-bold text-[#3b2a08] tabular-nums shadow-[0_4px_10px_rgb(0_0_0/35%)]",
+          "ml-1 flex shrink-0 items-center justify-center rounded-[0.3rem] border border-[#d9bf7a]/50 bg-gradient-to-b from-[#ece0bc] to-[#cfb472] font-display font-bold text-[#3b2a08] tabular-nums shadow-[0_3px_8px_rgb(0_0_0/30%)]",
           taille,
           reussies === 0 && "opacity-45",
         )}
@@ -175,31 +175,41 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              className="pointer-events-auto flex max-h-[calc(100dvh-9rem)] w-full max-w-xl flex-col gap-5 rounded-2xl border border-[#8a6a3a]/60 bg-[#0b2231]/95 p-6 shadow-[0_20px_60px_rgb(0_0_0/60%)]"
+              className="pointer-events-auto relative flex max-h-[calc(100dvh-9rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border-[3px] border-[#8a6a3a] bg-[#0e3940] shadow-[0_24px_70px_rgb(0_0_0/65%)]"
             >
-              <div className="relative flex min-h-12 items-center justify-center px-16">
-                <p className="text-center font-display text-sm tracking-[0.2em] text-foreground/55 uppercase">{phrase || "Le banquet est terminé"}</p>
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:128px_128px] opacity-[0.07]" />
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(34_96_104/55%),transparent_70%)]" />
+              <div className="relative shrink-0 px-8 pt-7 pb-6">
+                {url && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 right-0 w-[55%] overflow-hidden"
+                    style={{
+                      maskImage:
+                        "linear-gradient(to left, black 20%, transparent 95%), linear-gradient(to top, transparent 0%, black 35%, black 85%, transparent 100%)",
+                      WebkitMaskImage:
+                        "linear-gradient(to left, black 20%, transparent 95%), linear-gradient(to top, transparent 0%, black 35%, black 85%, transparent 100%)",
+                      maskComposite: "intersect",
+                      WebkitMaskComposite: "source-in",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="size-full scale-[1.45] object-cover opacity-90 [object-position:50%_58%]" style={{ transformOrigin: "60% 55%" }} />
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setApercu(true)}
                   disabled={!image}
                   title="Partager le résultat"
                   aria-label="Partager le résultat"
-                  className="group absolute top-1/2 right-0 size-12 -translate-y-1/2 cursor-pointer overflow-hidden rounded-lg border border-[#f3ecd6]/20 bg-[#061a1e] opacity-70 transition-[opacity,scale] hover:scale-105 hover:opacity-100 disabled:cursor-wait disabled:opacity-30"
+                  className="absolute top-6 right-7 z-10 flex size-10 cursor-pointer items-center justify-center rounded-full border border-foreground/30 bg-[#0b2231]/70 text-foreground/85 backdrop-blur-sm transition-[scale,color,background-color] hover:scale-110 hover:bg-[#0b2231]/90 hover:text-foreground disabled:cursor-wait disabled:opacity-40"
                 >
-                  {url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="" className="absolute inset-0 size-full object-cover" />
-                  )}
-                  <span className="absolute inset-0 flex items-center justify-center bg-[#061a1e]/45 text-foreground transition-colors group-hover:bg-[#061a1e]/25">
-                    <Share2Icon className="size-4 drop-shadow" />
-                  </span>
+                  <ShareIcon className="size-4" />
                 </button>
-              </div>
-
-              <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2 [scrollbar-width:thin]">
-                <div className="flex flex-col items-center gap-2 pb-5 text-center">
-                  <Couronne className="block h-9 w-9 bg-[#f2c14e] drop-shadow-[0_0_12px_rgb(242_193_78/55%)]" />
+                <div className="relative flex w-[55%] flex-col items-center gap-2 text-center">
+                  <p className="font-display text-sm tracking-[0.2em] text-foreground/55 uppercase">{phrase || "Le banquet est terminé"}</p>
+                  <Couronne className="mt-3 block h-9 w-9 bg-[#f2c14e] drop-shadow-[0_0_12px_rgb(242_193_78/55%)]" />
                   <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: couleur(vainqueurs[0]!.joueurId) }}>
                     {noms}
                   </p>
@@ -213,6 +223,9 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                     ))}
                   </div>
                 </div>
+              </div>
+
+              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 [scrollbar-width:thin]">
                 <ol className="divide-y divide-foreground/15 border-t border-foreground/15">
                   {classement
                     .filter((j) => !resultats.vainqueurs.includes(j.joueurId))
@@ -229,7 +242,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                 </ol>
               </div>
 
-              <div className="flex shrink-0 flex-col items-center gap-4">
+              <div className="relative flex shrink-0 flex-col items-center gap-4 px-8 pt-5 pb-7">
                 <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8">
                   Rejouer ({partie.rejouer.length}/{partie.joueurs.length})
                 </BoutonCour>
@@ -245,7 +258,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
           transition={{ type: "spring", stiffness: 220, damping: 26 }}
           type="button"
           onClick={onBasculer}
-          className="pointer-events-auto z-50 h-12 shrink-0 cursor-pointer rounded-xl bg-foreground px-8 font-display text-lg tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
+          className="pointer-events-auto z-50 h-9 shrink-0 cursor-pointer rounded-lg bg-foreground/85 px-5 font-display text-sm tracking-wide text-[#0b2231] shadow-[0_6px_18px_rgb(0_0_0/45%)] transition-[scale,background-color] duration-200 hover:scale-[1.03] hover:bg-foreground active:scale-[0.98]"
         >
           {ouvert ? "Masquer le tableau des scores" : "Afficher le tableau des scores"}
         </motion.button>
