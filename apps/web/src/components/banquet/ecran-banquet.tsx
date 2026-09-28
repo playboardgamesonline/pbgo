@@ -244,7 +244,7 @@ function PiedDePage() {
       <p>
         Développé par{" "}
         <a href="https://ore.today" target="_blank" rel="noreferrer" className={lien}>
-          oré
+          oré ˖ ࣪⊹
         </a>{" "}
         · Pour toute réclamation :{" "}
         <a href="mailto:louvel.aurelien.pro@gmail.com" className={lien}>
