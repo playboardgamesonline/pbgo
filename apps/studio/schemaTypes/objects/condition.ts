@@ -4,14 +4,14 @@ import { FAMILLES, ROLES, STATUTS } from "../constants"
 type ConditionParent = { type?: string } | undefined
 
 const TYPES = [
-  { title: "Statut d'une famille", value: "statutFamille" },
-  { title: "Nombre de familles dans un statut", value: "nombreFamillesStatut" },
-  { title: "Nombre de cartes dans mon domaine", value: "nombreCartesDomaine" },
-  { title: "Nombre de cartes à la table de la Reine", value: "nombreCartesTable" },
-  { title: "Comparaison avec d'autres joueurs", value: "comparaisonJoueurs" },
-  { title: "Toutes les conditions (ET)", value: "et" },
-  { title: "Au moins une condition (OU)", value: "ou" },
-  { title: "Condition inverse (NON)", value: "non" },
+  { title: "Family status", value: "statutFamille" },
+  { title: "Number of families with a status", value: "nombreFamillesStatut" },
+  { title: "Number of cards in my domain", value: "nombreCartesDomaine" },
+  { title: "Number of cards at the Queen's table", value: "nombreCartesTable" },
+  { title: "Comparison with other players", value: "comparaisonJoueurs" },
+  { title: "All conditions (AND)", value: "et" },
+  { title: "At least one condition (OR)", value: "ou" },
+  { title: "Inverse condition (NOT)", value: "non" },
 ]
 
 const visibleFor =
@@ -35,14 +35,14 @@ export const condition = defineType({
   fields: [
     defineField({
       name: "type",
-      title: "Type de condition",
+      title: "Condition type",
       type: "string",
       options: { list: TYPES },
       validation: (r) => r.required(),
     }),
     defineField({
       name: "famille",
-      title: "Famille",
+      title: "Family",
       type: "string",
       options: { list: FAMILLES },
       hidden: visibleFor("statutFamille"),
@@ -50,7 +50,7 @@ export const condition = defineType({
     }),
     defineField({
       name: "statut",
-      title: "Statut",
+      title: "Status",
       type: "string",
       options: { list: STATUTS, layout: "radio", direction: "horizontal" },
       hidden: visibleFor("statutFamille", "nombreFamillesStatut"),
@@ -58,29 +58,29 @@ export const condition = defineType({
     }),
     defineField({
       name: "filtreFamille",
-      title: "Cartes de la famille",
-      description: "Vide = toutes les familles",
+      title: "Cards of family",
+      description: "Empty = all families",
       type: "string",
       options: { list: FAMILLES },
       hidden: visibleFor(...COMPTAGE),
     }),
     defineField({
       name: "filtreRole",
-      title: "Cartes du rôle",
-      description: "Vide = tous les rôles",
+      title: "Cards with role",
+      description: "Empty = all roles",
       type: "string",
-      options: { list: [...ROLES, { title: "Sans rôle", value: "sansRole" }] },
+      options: { list: [...ROLES, { title: "No role", value: "sansRole" }] },
       hidden: visibleFor(...COMPTAGE),
     }),
     defineField({
       name: "niveau",
-      title: "Position à la table",
-      description: "Vide = au-dessus et au-dessous",
+      title: "Position at the table",
+      description: "Empty = above and below",
       type: "string",
       options: {
         list: [
-          { title: "Au-dessus", value: "haut" },
-          { title: "Au-dessous", value: "bas" },
+          { title: "Above", value: "haut" },
+          { title: "Below", value: "bas" },
         ],
         layout: "radio",
         direction: "horizontal",
@@ -89,15 +89,15 @@ export const condition = defineType({
     }),
     defineField({
       name: "comparateur",
-      title: "Comparaison",
+      title: "Comparison",
       type: "string",
       options: {
         list: [
-          { title: "Au moins (≥)", value: "gte" },
-          { title: "Au plus (≤)", value: "lte" },
-          { title: "Exactement (=)", value: "eq" },
-          { title: "Plus que (>)", value: "gt" },
-          { title: "Moins que (<)", value: "lt" },
+          { title: "At least (≥)", value: "gte" },
+          { title: "At most (≤)", value: "lte" },
+          { title: "Exactly (=)", value: "eq" },
+          { title: "More than (>)", value: "gt" },
+          { title: "Less than (<)", value: "lt" },
         ],
       },
       hidden: visibleFor("nombreFamillesStatut", ...COMPTAGE),
@@ -105,21 +105,21 @@ export const condition = defineType({
     }),
     defineField({
       name: "valeur",
-      title: "Valeur",
+      title: "Value",
       type: "number",
       hidden: visibleFor("nombreFamillesStatut", "nombreCartesDomaine", "nombreCartesTable"),
       validation: (r) => r.custom(requiredFor("nombreFamillesStatut", "nombreCartesDomaine", "nombreCartesTable")),
     }),
     defineField({
       name: "adversaire",
-      title: "Comparé à",
+      title: "Compared to",
       type: "string",
       options: {
         list: [
-          { title: "Mon voisin de gauche", value: "voisinGauche" },
-          { title: "Mon voisin de droite", value: "voisinDroite" },
-          { title: "Tous les adversaires", value: "tousLesAdversaires" },
-          { title: "Au moins un adversaire", value: "auMoinsUnAdversaire" },
+          { title: "My left neighbour", value: "voisinGauche" },
+          { title: "My right neighbour", value: "voisinDroite" },
+          { title: "All opponents", value: "tousLesAdversaires" },
+          { title: "At least one opponent", value: "auMoinsUnAdversaire" },
         ],
       },
       hidden: visibleFor("comparaisonJoueurs"),
@@ -127,13 +127,13 @@ export const condition = defineType({
     }),
     defineField({
       name: "mode",
-      title: "Comptage",
+      title: "Counting",
       type: "string",
       initialValue: "cartes",
       options: {
         list: [
-          { title: "Nombre de cartes", value: "cartes" },
-          { title: "Poids (noble = 2)", value: "poids" },
+          { title: "Number of cards", value: "cartes" },
+          { title: "Weight (noble = 2)", value: "poids" },
         ],
         layout: "radio",
         direction: "horizontal",

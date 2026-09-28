@@ -9,30 +9,30 @@ export const mission = defineType({
   fields: [
     defineField({
       name: "couleur",
-      title: "Couleur",
+      title: "Colour",
       type: "string",
       options: {
         list: [
-          { title: "Blanche", value: "blanche" },
-          { title: "Bleue", value: "bleue" },
+          { title: "White", value: "blanche" },
+          { title: "Blue", value: "bleue" },
         ],
         layout: "radio",
         direction: "horizontal",
       },
       validation: (r) => r.required(),
     }),
-    defineField({ name: "texte", title: "Texte", type: "text", rows: 2, validation: (r) => r.required() }),
-    defineField({ name: "carte", title: "Carte", type: "image", validation: (r) => r.required() }),
+    defineField({ name: "texte", title: "Text", type: "text", rows: 2, validation: (r) => r.required() }),
+    defineField({ name: "carte", title: "Card", type: "image", validation: (r) => r.required() }),
     defineField({
       name: "condition",
-      title: "Règle",
-      description: "Condition vérifiée en fin de partie pour gagner 3 points",
+      title: "Rule",
+      description: "Condition checked at the end of the game to earn 3 points",
       type: "condition",
       validation: (r) => r.required(),
     }),
   ],
   preview: {
     select: { title: "texte", couleur: "couleur", media: "carte" },
-    prepare: ({ title, couleur, media }) => ({ title, subtitle: couleur === "bleue" ? "Bleue" : "Blanche", media }),
+    prepare: ({ title, couleur, media }) => ({ title, subtitle: couleur === "bleue" ? "Blue" : "White", media }),
   },
 })

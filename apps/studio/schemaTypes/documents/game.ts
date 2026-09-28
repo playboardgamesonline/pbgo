@@ -13,15 +13,15 @@ export const game = defineType({
   fields: [
     defineField({
       name: "tapis",
-      title: "Tapis de jeu",
-      description: "Le tapis de la table de la Reine, au centre du plateau.",
+      title: "Game mat",
+      description: "The Queen's table mat, in the middle of the board.",
       type: "image",
       group: "plateau",
     }),
     defineField({
       name: "decorations",
-      title: "Décorations",
-      description: "Éléments de décor du plateau, à placer plus tard (bougies, coupes, pétales…). PNG ou WebP transparent.",
+      title: "Decorations",
+      description: "Board decorations, to be placed later (candles, goblets, petals…). Transparent PNG or WebP.",
       type: "array",
       group: "plateau",
       of: [
@@ -29,7 +29,7 @@ export const game = defineType({
           type: "object",
           name: "decoration",
           fields: [
-            defineField({ name: "nom", title: "Nom", type: "string", validation: (r) => r.required() }),
+            defineField({ name: "nom", title: "Name", type: "string", validation: (r) => r.required() }),
             defineField({ name: "image", title: "Image", type: "image", validation: (r) => r.required() }),
           ],
           preview: { select: { title: "nom", media: "image" } },
@@ -38,13 +38,13 @@ export const game = defineType({
     }),
     defineField({
       name: "dosCourtisan",
-      title: "Dos des cartes Courtisan",
-      description: "Aussi utilisé pour les espions face cachée",
+      title: "Courtier card back",
+      description: "Also used for face-down spies",
       type: "image",
       group: "cartes",
     }),
-    defineField({ name: "dosMissionBlanche", title: "Dos des Missions blanches", type: "image", group: "cartes" }),
-    defineField({ name: "dosMissionBleue", title: "Dos des Missions bleues", type: "image", group: "cartes" }),
+    defineField({ name: "dosMissionBlanche", title: "White mission back", type: "image", group: "cartes" }),
+    defineField({ name: "dosMissionBleue", title: "Blue mission back", type: "image", group: "cartes" }),
   ],
   preview: { prepare: () => ({ title: "Game" }) },
 })

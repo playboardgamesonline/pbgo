@@ -1,7 +1,7 @@
 import { BookIcon } from "@sanity/icons/Book"
 import { defineField, defineType } from "sanity"
 
-const AIDE = "Balises : {lumiere}, {disgrace}, {neutre} affichent les étiquettes colorées ; **texte** met en gras."
+const AIDE = "Tags: {lumiere}, {disgrace}, {neutre} show the coloured labels; **text** makes bold."
 
 const texte = (name: string, title: string, group: string) => defineField({ name, title, type: "text", rows: 3, description: AIDE, group })
 const ligne = (name: string, title: string, group: string) => defineField({ name, title, type: "string", group })
@@ -22,40 +22,40 @@ export const rules = defineType({
   fields: [
     defineField({
       name: "videoId",
-      title: "Identifiant de la vidéo YouTube",
-      description: "La partie après « v= » dans l'adresse de la vidéo.",
+      title: "YouTube video ID",
+      description: "The part after “v=” in the video URL.",
       type: "string",
       group: "video",
     }),
     texte("butIntro", "Introduction", "but"),
-    texte("butFamilles", "Six familles", "but"),
-    texte("butMissions", "Deux missions secrètes", "but"),
-    visuel("visuelTable", "Visuel : la table de la Reine", "but"),
-    visuel("visuelMissions", "Visuel : les missions", "but"),
+    texte("butFamilles", "Six families", "but"),
+    texte("butMissions", "Two secret missions", "but"),
+    visuel("visuelTable", "Visual: the Queen's table", "but"),
+    visuel("visuelMissions", "Visual: the missions", "but"),
     texte("tourIntro", "Introduction", "tour"),
-    texte("tourTable", "1. À la table de la reine", "tour"),
-    texte("tourDomaine", "2. Dans votre domaine", "tour"),
-    texte("tourAdverse", "3. Dans un domaine adverse", "tour"),
-    texte("tourFin", "Fin du tour", "tour"),
+    texte("tourTable", "1. At the Queen's table", "tour"),
+    texte("tourDomaine", "2. In your domain", "tour"),
+    texte("tourAdverse", "3. In an opponent's domain", "tour"),
+    texte("tourFin", "End of turn", "tour"),
     defineField({
       name: "rolesIntro",
       title: "Introduction",
-      description: `Les visuels, le lettering et le texte de chaque rôle se règlent dans Roles. ${AIDE}`,
+      description: `Each role's visual, lettering and text are set in Roles. ${AIDE}`,
       type: "text",
       rows: 3,
       group: "roles",
     }),
-    visuel("exempleEspion", "Exemple d'espion", "roles"),
-    ligne("legendeEspion", "Légende de l'exemple d'espion", "roles"),
-    visuel("exempleAssassin", "Exemple d'assassin", "roles"),
-    ligne("legendeAssassin", "Légende de l'exemple d'assassin", "roles"),
+    visuel("exempleEspion", "Spy example", "roles"),
+    ligne("legendeEspion", "Spy example caption", "roles"),
+    visuel("exempleAssassin", "Assassin example", "roles"),
+    ligne("legendeAssassin", "Assassin example caption", "roles"),
     texte("decompteIntro", "Introduction", "decompte"),
-    texte("decompteRevelation", "1. Les espions sont révélés", "decompte"),
-    texte("decompteStatut", "2. Le statut des familles", "decompte"),
-    texte("decomptePoints", "3. Les points", "decompte"),
-    visuel("decompteTable", "Visuel : statut des familles", "decompte"),
-    visuel("decompteDomaine", "Visuel : points d'un domaine", "decompte"),
-    ligne("legendeDomaine", "Légende du décompte d'un domaine", "decompte"),
+    texte("decompteRevelation", "1. Spies are revealed", "decompte"),
+    texte("decompteStatut", "2. Family status", "decompte"),
+    texte("decomptePoints", "3. Points", "decompte"),
+    visuel("decompteTable", "Visual: family status", "decompte"),
+    visuel("decompteDomaine", "Visual: domain points", "decompte"),
+    ligne("legendeDomaine", "Domain scoring caption", "decompte"),
   ],
   preview: { prepare: () => ({ title: "Rules" }) },
 })

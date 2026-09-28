@@ -9,8 +9,8 @@ export const textes = defineType({
   fields: [
     defineField({
       name: "phrasesVainqueur",
-      title: "Phrases du vainqueur",
-      description: "Utilisez {pseudo} et {points}. Une phrase est tirée au hasard en fin de partie.",
+      title: "Winner phrases",
+      description: "Use {pseudo} and {points}. One phrase is picked at random at the end of the game.",
       type: "array",
       of: [{ type: "string" }],
     }),

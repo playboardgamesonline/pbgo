@@ -1,21 +1,21 @@
 export const FAMILLES = [
-  { title: "Papillon", value: "papillon" },
-  { title: "Crapaud", value: "crapaud" },
-  { title: "Rossignol", value: "rossignol" },
-  { title: "Lièvre", value: "lievre" },
-  { title: "Cerf", value: "cerf" },
-  { title: "Carpe", value: "carpe" },
+  { title: "Butterfly", value: "papillon" },
+  { title: "Toad", value: "crapaud" },
+  { title: "Nightingale", value: "rossignol" },
+  { title: "Hare", value: "lievre" },
+  { title: "Stag", value: "cerf" },
+  { title: "Carp", value: "carpe" },
 ]
 
 export const ROLES = [
   { title: "Noble", value: "noble" },
-  { title: "Espion", value: "espion" },
+  { title: "Spy", value: "espion" },
   { title: "Assassin", value: "assassin" },
-  { title: "Garde", value: "garde" },
+  { title: "Guard", value: "garde" },
 ]
 
 export const STATUTS = [
-  { title: "Dans la lumière", value: "lumiere" },
-  { title: "En disgrâce", value: "disgrace" },
-  { title: "Neutre", value: "neutre" },
+  { title: "In the light", value: "lumiere" },
+  { title: "In disgrace", value: "disgrace" },
+  { title: "Neutral", value: "neutre" },
 ]

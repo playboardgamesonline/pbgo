@@ -10,15 +10,14 @@ export const interfaceDoc = defineType({
     defineField({ name: "logo", title: "Logo", type: "image" }),
     defineField({
       name: "banquetHaut",
-      title: "Décoration du banquet (haut)",
-      description:
-        "Suspendue en haut des écrans d'accueil et de lobby (guirlandes, lanternes…). PNG ou WebP transparent, idéalement 3500 px de large.",
+      title: "Banquet decoration (top)",
+      description: "Hangs at the top of the home and lobby screens (garlands, lanterns…). Transparent PNG or WebP, ideally 3500 px wide.",
       type: "image",
     }),
     defineField({
       name: "banquetBas",
-      title: "Décoration du banquet (bas)",
-      description: "La table du banquet en bas des écrans d'accueil et de lobby. PNG ou WebP transparent, idéalement 3500 px de large.",
+      title: "Banquet decoration (bottom)",
+      description: "The banquet table at the bottom of the home and lobby screens. Transparent PNG or WebP, ideally 3500 px wide.",
       type: "image",
     }),
   ],

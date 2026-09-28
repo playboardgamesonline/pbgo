@@ -4,14 +4,14 @@ import { ROLES } from "../constants"
 
 export const role = defineType({
   name: "role",
-  title: "Rôle",
+  title: "Role",
   type: "document",
   icon: StarIcon,
   fields: [
-    defineField({ name: "nom", title: "Nom", type: "string", validation: (r) => r.required() }),
+    defineField({ name: "nom", title: "Name", type: "string", validation: (r) => r.required() }),
     defineField({
       name: "cle",
-      title: "Clé de jeu",
+      title: "Game key",
       type: "string",
       options: { list: ROLES, layout: "dropdown" },
       validation: (r) => r.required(),
@@ -19,24 +19,27 @@ export const role = defineType({
     defineField({ name: "picto", title: "Pictogram", type: "image", validation: (r) => r.required() }),
     defineField({
       name: "visuel",
-      title: "Visuel des règles",
-      description: "Les cartes de ce rôle, affichées dans l'onglet « Les rôles » des règles.",
+      title: "Rules visual",
+      description: "The cards of this role, shown in the Roles tab of the rules.",
       type: "image",
     }),
     defineField({
       name: "lettering",
       title: "Lettering",
-      description: "Le nom du rôle en calligraphie (SVG), affiché à la place du texte dans les règles.",
+      description: "The role's name as calligraphy (SVG), shown instead of the text in the rules.",
       type: "image",
       options: { accept: "image/svg+xml" },
     }),
     defineField({
       name: "regle",
-      title: "Règle",
-      description: "Balises : {lumiere}, {disgrace}, {neutre} affichent les étiquettes colorées ; **texte** met en gras.",
+      title: "Rule",
+      description: "Tags: {lumiere}, {disgrace}, {neutre} show the coloured labels; **text** makes bold.",
       type: "text",
       rows: 3,
     }),
   ],
-  preview: { select: { title: "nom", media: "picto" } },
+  preview: {
+    select: { cle: "cle", media: "picto" },
+    prepare: ({ cle, media }) => ({ title: ROLES.find((r) => r.value === cle)?.title ?? cle, media }),
+  },
 })
