@@ -92,7 +92,7 @@ export function PanneauDebug() {
   }, [])
 
   return (
-    <div className={cn("absolute top-44 left-4 z-40 w-80", !actif && "hidden")}>
+    <div className={cn("absolute top-44 left-4 z-40 w-[27rem]", !actif && "hidden")}>
       <div className="flex gap-px overflow-hidden rounded-t-md bg-[#292d39] font-mono text-[10px] tracking-wider">
         {ONGLETS_DEBUG.map((nom) => (
           <button

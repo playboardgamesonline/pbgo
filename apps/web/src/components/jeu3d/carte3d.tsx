@@ -176,6 +176,27 @@ const COULEURS_LUEUR = {
 } as const
 export type Lueur = keyof typeof COULEURS_LUEUR
 
+export const REGLAGES_CARTE = {
+  couleurAssassin: "#ff4d4d",
+  haloAssassin: 0.75,
+  pulsationAssassin: 0.06,
+  contourAssassin: true,
+  couleurOr: "#f2c14e",
+  haloOr: 0.35,
+  pulsationOr: 0.03,
+  scintillement: 0.55,
+  vitesseScintillement: 0.35,
+  vitessePulsation: 1.6,
+  couleurSelection: "#ffffff",
+  opaciteCadre: 0.75,
+  pulsationCadre: 0.2,
+  respirationCadre: 0.012,
+  vitesseCadre: 3,
+  reflet: 0.5,
+  mouvementReflet: 0.45,
+  ombre: 1,
+}
+
 type Props = {
   cible: Pose
   depart?: Pose | null
@@ -248,6 +269,7 @@ export function Carte3D({
   const [ombre] = useState(textureOmbre)
   const ombreRef = useRef<Mesh>(null)
   const refletRef = useRef<Mesh>(null)
+  const contourRef = useRef<Mesh>(null)
   const [texReflet] = useState(textureReflet)
   const vol = useRef<Vol | null>(null)
   const derniere = useRef(new Vector3())
@@ -279,31 +301,43 @@ export function Carte3D({
   }, [])
 
   useFrame(({ pointer, clock }, dt) => {
-    if (haloRef.current)
-      haloRef.current.opacity = lueur === "rouge" ? 0.75 + Math.sin(clock.elapsedTime * 1.6) * 0.06 : 0.35 + Math.sin(clock.elapsedTime * 1.6) * 0.03
+    const R = REGLAGES_CARTE
+    const onde = Math.sin(clock.elapsedTime * R.vitessePulsation)
+    if (haloRef.current) {
+      haloRef.current.opacity = lueur === "rouge" ? R.haloAssassin + onde * R.pulsationAssassin : R.haloOr + onde * R.pulsationOr
+      if (lueur === "rouge") haloRef.current.color.set(R.couleurAssassin)
+      else if (lueur === "or") haloRef.current.color.set(R.couleurOr)
+    }
+    if (contourRef.current) {
+      contourRef.current.visible = R.contourAssassin
+      ;(contourRef.current.material as MeshBasicMaterial).color.set(R.couleurAssassin)
+    }
+    if (ombreRef.current) (ombreRef.current.material as MeshBasicMaterial).opacity = R.ombre
     const cadre = cadreRef.current
     if (cadre) {
       const t = clock.elapsedTime
-      cadre.scale.setScalar(1 + Math.sin(t * 3) * 0.012)
-      ;(cadre.material as MeshBasicMaterial).opacity = 0.75 + Math.sin(t * 3) * 0.2
+      cadre.scale.setScalar(1 + Math.sin(t * R.vitesseCadre) * R.respirationCadre)
+      const m = cadre.material as MeshBasicMaterial
+      m.opacity = R.opaciteCadre + Math.sin(t * R.vitesseCadre) * R.pulsationCadre
+      m.color.set(R.couleurSelection)
     }
     const sc = scintilleRef.current
     if (sc) {
       sc.visible = lueur === "or"
       if (sc.visible) {
         const m = sc.material as MeshBasicMaterial
-        if (m.map) m.map.offset.x = ((clock.elapsedTime * 0.35) % 1.6) - 0.8
-        m.opacity = 0.55
+        if (m.map) m.map.offset.x = ((clock.elapsedTime * R.vitesseScintillement) % 1.6) - 0.8
+        m.opacity = R.scintillement
       }
     }
     const r = refletRef.current
     if (r) {
       const m = r.material as MeshBasicMaterial
-      easing.damp(m, "opacity", reflet ? 0.5 : 0, 0.3, dt)
+      easing.damp(m, "opacity", reflet ? R.reflet : 0, 0.3, dt)
       r.visible = m.opacity > 0.01
       if (reflet) {
-        easing.damp(texReflet.offset, "x", -pointer.x * 0.45, 0.15, dt)
-        easing.damp(texReflet.offset, "y", -pointer.y * 0.45, 0.15, dt)
+        easing.damp(texReflet.offset, "x", -pointer.x * R.mouvementReflet, 0.15, dt)
+        easing.damp(texReflet.offset, "y", -pointer.y * R.mouvementReflet, 0.15, dt)
       }
     }
     const g = ref.current
@@ -394,7 +428,7 @@ export function Carte3D({
         </mesh>
       )}
       {lueur === "rouge" && (
-        <mesh geometry={geoLueur} position-z={-epaisseur / 2 - 0.003} raycast={() => null}>
+        <mesh ref={contourRef} geometry={geoLueur} position-z={-epaisseur / 2 - 0.003} raycast={() => null}>
           <meshBasicMaterial color={COULEURS_LUEUR.rouge} toneMapped={false} />
         </mesh>
       )}

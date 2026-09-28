@@ -23,6 +23,7 @@ import { useJeu } from "../jeu/contexte"
 import { jouerSon } from "@/lib/son"
 import { useInteraction } from "../jeu/interaction"
 import { Aura, ReglagesAura } from "./aura"
+import { ReglagesCartes } from "./reglages-cartes"
 import { Colonne } from "./colonne"
 import { Couronne3D } from "./couronne"
 import type { EtatFin } from "./fin"
@@ -359,6 +360,18 @@ function Apparition({
   return <group ref={ref}>{children}</group>
 }
 
+function SuitCamera({ children }: { children: React.ReactNode }) {
+  const ref = useRef<Group>(null)
+  const { camera } = useThree()
+  useFrame(() => {
+    const g = ref.current
+    if (!g) return
+    g.position.copy(camera.position)
+    g.quaternion.copy(camera.quaternion)
+  }, -1)
+  return <group ref={ref}>{children}</group>
+}
+
 function Pioche({ nombre }: { nombre: number }) {
   const geo = useMemo(() => geometrieTranche(CARTE_L, CARTE_H, CARTE_L * EPAISSEUR_RELATIVE), [])
   const n = Math.min(nombre, 60)
@@ -520,7 +533,6 @@ const ESPACEMENT = "18px"
 const QUAT_TMP = new Quaternion()
 const QUAT_GROUPE = new Quaternion()
 const QUAT_LOCAL = new Quaternion()
-const VEC_TMP = new Vector3()
 const EULER_TMP = new Euler()
 
 export type EtapeOuverture = "tapis" | "distribution" | "missions" | null
@@ -624,6 +636,7 @@ function Monde({
   const deroulement = etape === "tapis"
   const [distribution, setDistribution] = useState<Map<string, Pose>>(new Map())
   const [departsMissions, setDepartsMissions] = useState<Map<string, Pose>>(new Map())
+  const cameraOuverture = useThree((s) => s.camera)
   if (etapePrec !== etape) {
     setEtapePrec(etape)
     if (etape === "distribution") {
@@ -647,20 +660,23 @@ function Monde({
       setDistribution(dist)
       if (ajouts.length) setTransitoires((t) => [...t, ...ajouts])
     }
-    if (etape === "missions")
+    if (etape === "missions") {
+      cameraOuverture.updateMatrixWorld()
+      const inverse = cameraOuverture.quaternion.clone().invert()
       setDepartsMissions(
         new Map(
           missions.map((m, i) => [
             m.id,
             {
-              position: new Vector3((i - 0.5) * 0.25, 0.12 + i * 0.01, 0),
-              quaternion: new Quaternion().setFromAxisAngle(AXE_Y, (i - 0.5) * 0.3).multiply(FACE_BAS),
+              position: cameraOuverture.worldToLocal(new Vector3((i - 0.5) * 0.25, 0.12 + i * 0.01, 0)),
+              quaternion: inverse.clone().multiply(new Quaternion().setFromAxisAngle(AXE_Y, (i - 0.5) * 0.3).multiply(FACE_BAS)),
               echelle: 0.85,
               delai: 0.35 + i * 0.3,
             },
           ]),
         ),
       )
+    }
   }
   const intro = etape === "missions"
   const mainVisible = etape !== "tapis"
@@ -689,6 +705,45 @@ function Monde({
     },
     onglet("SCENE"),
   )
+  const reglagesMain = useControls(
+    "Main (bas gauche)",
+    {
+      taille: { value: 0.66, min: 0.2, max: 1.5, step: 0.01, label: "taille" },
+      pas: { value: 0.9, min: 0.2, max: 1.5, step: 0.01, label: "espacement" },
+      x: { value: 0, min: -1, max: 1, step: 0.005, label: "position x" },
+      y: { value: 0.22, min: -1, max: 1, step: 0.005, label: "position y" },
+      rotationX: { value: -0.11, min: -1, max: 1, step: 0.01, label: "rotation x" },
+      rotationY: { value: 0.15, min: -1, max: 1, step: 0.01, label: "rotation y" },
+      rotationZ: { value: -0.1, min: -1, max: 1, step: 0.01, label: "rotation z" },
+      eventail: { value: 0.09, min: 0, max: 0.6, step: 0.005, label: "éventail (rotation)" },
+      courbe: { value: 0.045, min: 0, max: 0.3, step: 0.005, label: "éventail (courbe)" },
+      leveeSurvol: { value: 0.08, min: 0, max: 0.6, step: 0.005, label: "levée survol" },
+      echelleSurvol: { value: 1, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
+      leveeSelection: { value: 0.32, min: 0, max: 1, step: 0.01, label: "levée sélection" },
+      echelleSelection: { value: 1.12, min: 0.8, max: 1.8, step: 0.01, label: "échelle sélection" },
+      avanceSelection: { value: 0.15, min: 0, max: 1, step: 0.01, label: "avance sélection" },
+      rotationSelection: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: "rotation sélection" },
+      ...boutonCopie("SCENE", "Main (bas gauche)"),
+    },
+    onglet("SCENE"),
+  )
+  const reglagesMissionsJeu = useControls(
+    "Missions (en jeu)",
+    {
+      taille: { value: 0.36, min: 0.1, max: 0.8, step: 0.01, label: "taille" },
+      x: { value: 0, min: -1, max: 1, step: 0.005, label: "position x" },
+      y: { value: 0, min: -1, max: 1, step: 0.005, label: "position y" },
+      angle1: { value: 0.28, min: -1, max: 1, step: 0.01, label: "angle carte 1" },
+      angle2: { value: -0.05, min: -1, max: 1, step: 0.01, label: "angle carte 2" },
+      leveeSurvol: { value: 0.05, min: 0, max: 0.5, step: 0.005, label: "levée survol" },
+      echelleSurvol: { value: 1.05, min: 0.8, max: 1.5, step: 0.01, label: "échelle survol" },
+      distanceFocus: { value: 3.6, min: 2, max: 10, step: 0.05, label: "distance focus" },
+      echelleFocus: { value: 1.3, min: 0.5, max: 3, step: 0.01, label: "échelle focus" },
+      sourisFocus: { value: 0.45, min: 0, max: 1.5, step: 0.01, label: "inclinaison souris focus" },
+      ...boutonCopie("SCENE", "Missions (en jeu)"),
+    },
+    onglet("SCENE"),
+  )
   const [survol, setSurvol] = useState<string | null>(null)
   const [survolJoueur, setSurvolJoueur] = useState<string | null>(null)
   useEffect(() => {
@@ -714,28 +769,31 @@ function Monde({
     const proj = camera.projectionMatrix.elements
     const h = D_MAIN / proj[5]
     const w = D_MAIN / proj[0]
-    const hauteur = h * 0.66
+    const rm = reglagesMain
+    const hauteur = h * rm.taille
     const echelle = hauteur / CARTE_H
     const largeur = CARTE_L * echelle
-    const pas = largeur * 0.9
+    const pas = largeur * rm.pas
     const n = main.length
-    const inclinaison = -0.1
-    const pivot = new Vector3(-w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2, -h + hauteur / 4.5, -D_MAIN)
-    const bloc = new Quaternion().setFromEuler(EULER_TMP.set(-0.11, 0.15, inclinaison))
+    const pivot = new Vector3(-w - largeur * 0.02 + largeur / 2 + ((n - 1) * pas) / 2 + rm.x * w, -h + hauteur * rm.y, -D_MAIN)
+    const bloc = new Quaternion().setFromEuler(EULER_TMP.set(rm.rotationX, rm.rotationY, rm.rotationZ))
     main.forEach((c, i) => {
       const t = i - (n - 1) / 2
       const choisie = c.id === selectionId
-      const leve = choisie ? hauteur * 0.32 : c.id === survol ? hauteur * 0.08 : 0
-      const local = new Vector3(t * pas, -Math.abs(t) * hauteur * 0.045 + leve, (choisie ? 0.15 : 0) + i * 0.01).applyQuaternion(bloc).add(pivot)
+      const leve = choisie ? hauteur * rm.leveeSelection : c.id === survol ? hauteur * rm.leveeSurvol : 0
+      const local = new Vector3(t * pas, -Math.abs(t) * hauteur * rm.courbe + leve, (choisie ? rm.avanceSelection : 0) + i * 0.01)
+        .applyQuaternion(bloc)
+        .add(pivot)
       const p = poseCamera(c.id)
       p.position.copy(camera.localToWorld(local))
       p.quaternion
         .copy(camera.quaternion)
         .multiply(bloc)
-        .multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * 0.09)))
-      p.echelle = echelle * (choisie ? 1.12 : 1)
+        .multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * rm.eventail + (choisie ? rm.rotationSelection : 0))))
+      p.echelle = echelle * (choisie ? rm.echelleSelection : c.id === survol ? rm.echelleSurvol : 1)
     })
-    const mL = Math.min(w * 0.36, h * 0.8)
+    const rj = reglagesMissionsJeu
+    const mL = Math.min(w * rj.taille, h * 0.8)
     const mH = (mL * MISSION_H) / MISSION_L
     missions.forEach((m, i) => {
       const p = poseCamera(`mission:${m.id}`)
@@ -743,30 +801,28 @@ function Monde({
         const r = reglagesMissions
         const k = (r.distance / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
         const sens = i === 0 ? 1 : -1
-        const souris = QUAT_TMP.setFromEuler(EULER_TMP.set(r.rotationX - pointer.y * r.souris, r.rotationY + pointer.x * r.souris, r.rotationZ))
-        const groupe = QUAT_GROUPE.copy(camera.quaternion).multiply(souris)
-        const centre = camera.localToWorld(VEC_TMP.set(r.x * k, r.y * k, -r.distance))
+        const groupe = QUAT_GROUPE.setFromEuler(EULER_TMP.set(r.rotationX - pointer.y * r.souris, r.rotationY + pointer.x * r.souris, r.rotationZ))
         const x = (i - 0.5) * (MISSION_L + r.ecart) * k * r.echelle
-        p.position.copy(centre).add(new Vector3(x, 0, -Math.abs(x) * r.recul).applyQuaternion(groupe))
+        p.position.set(r.x * k, r.y * k, -r.distance).add(new Vector3(x, 0, -Math.abs(x) * r.recul).applyQuaternion(groupe))
         p.quaternion.copy(groupe).multiply(QUAT_LOCAL.setFromEuler(EULER_TMP.set(0, sens * r.angleY, -sens * r.angleZ)))
         p.echelle = k * r.echelle
       } else if (missionFocus === m.id) {
-        const d = 3.6
+        const d = rj.distanceFocus
         const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
-        p.position.copy(camera.localToWorld(new Vector3(0, -0.04 * k, -d)))
-        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(-pointer.y * 0.45, pointer.x * 0.6, 0)))
-        p.echelle = 1.3 * k
+        p.position.set(0, -0.04 * k, -d)
+        p.quaternion.setFromEuler(EULER_TMP.set(-pointer.y * rj.sourisFocus, pointer.x * rj.sourisFocus * 1.3, 0))
+        p.echelle = rj.echelleFocus * k
       } else {
         const survolee = survol === `mission:${m.id}`
-        const machoire = i === 0 ? 0.28 : -0.05
+        const machoire = i === 0 ? rj.angle1 : rj.angle2
         const bras = -mL * 0.44
-        const pivotX = w - mL * 0.03
-        const pivotY = -h + mH * 0.55
+        const pivotX = w - mL * 0.03 + rj.x * w
+        const pivotY = -h + mH * 0.55 + rj.y * h
         const x = pivotX + Math.cos(machoire) * bras
-        const y = pivotY - Math.sin(machoire) * bras + (i === 0 ? mH * 0.16 : -mH * 0.08) + (survolee ? mH * 0.05 : 0)
-        p.position.copy(camera.localToWorld(new Vector3(x, y, -D_MAIN + 0.05 + (i === 0 ? 0 : 0.02))))
-        p.quaternion.copy(camera.quaternion).multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -machoire)))
-        p.echelle = (mL / MISSION_L) * (survol === `mission:${m.id}` ? 1.05 : 1)
+        const y = pivotY - Math.sin(machoire) * bras + (i === 0 ? mH * 0.16 : -mH * 0.08) + (survolee ? mH * rj.leveeSurvol : 0)
+        p.position.set(x, y, -D_MAIN + 0.05 + (i === 0 ? 0 : 0.02))
+        p.quaternion.setFromEuler(EULER_TMP.set(0, 0, -machoire))
+        p.echelle = (mL / MISSION_L) * (survolee ? rj.echelleSurvol : 1)
       }
     })
   })
@@ -786,6 +842,7 @@ function Monde({
     <>
       <CameraRig />
       <ReglagesAura />
+      <ReglagesCartes />
       <ambientLight intensity={0.8} />
       <directionalLight position={[4, 12, 6]} intensity={2.2} />
       <Table tex={tex} deroulement={deroulement} dureeTapis={reglages.dureeTapis} />
@@ -855,27 +912,29 @@ function Monde({
           )
         })}
 
-      {missionsVisibles &&
-        missions.map((m: Mission) => (
-          <Carte3D
-            key={m.id}
-            cible={poseCamera(`mission:${m.id}`)}
-            depart={departsMissions.get(m.id)}
-            recto={tex.mission(m)}
-            verso={tex.dosMission(m)}
-            largeur={MISSION_L}
-            hauteur={MISSION_H}
-            auDessus
-            vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
-            reflet={missionFocus === m.id}
-            lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
-            onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (!intro) onMission(m.id)
-            }}
-          />
-        ))}
+      <SuitCamera>
+        {missionsVisibles &&
+          missions.map((m: Mission) => (
+            <Carte3D
+              key={m.id}
+              cible={poseCamera(`mission:${m.id}`)}
+              depart={departsMissions.get(m.id)}
+              recto={tex.mission(m)}
+              verso={tex.dosMission(m)}
+              largeur={MISSION_L}
+              hauteur={MISSION_H}
+              auDessus
+              vitesse={survol === `mission:${m.id}` && !missionFocus ? 0.05 : 0.24}
+              reflet={missionFocus === m.id}
+              lueur={fin?.missions && resultatMoi?.missions.find((x) => x.missionId === m.id)?.validee ? "or" : null}
+              onSurvol={(s) => setSurvol(s ? `mission:${m.id}` : null)}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (!intro) onMission(m.id)
+              }}
+            />
+          ))}
+      </SuitCamera>
       {resultats && fin && (
         <>
           <ResolutionFamilles resultats={resultats} fin={fin} />
