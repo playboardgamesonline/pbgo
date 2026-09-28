@@ -25,59 +25,68 @@ function regrouper(journal: EvenementVisible[]) {
   return tours
 }
 
-function EnTete({ joueurId }: { joueurId: string }) {
+function Tour({ joueurId, court }: { joueurId: string; court?: boolean }) {
   const moiId = useJeu().vue.moi?.id
+  if (joueurId === moiId) return <>{court ? "Votre tour" : "C'est votre tour"}</>
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-sm border border-[#f5c542]/70 bg-[#02161a]/60 px-3 py-1 font-display text-sm tracking-[0.12em] text-[#fff4d6] uppercase shadow-[0_0_14px_rgb(245_197_66/25%)] md:text-base">
-      {joueurId === moiId ? (
-        "C'est votre tour"
-      ) : (
-        <>
-          C&apos;est au tour de <PseudoJoueur id={joueurId} />
-        </>
-      )}
-    </span>
+    <>
+      {court ? "Tour de" : "C'est au tour de"} <PseudoJoueur id={joueurId} />
+    </>
   )
 }
 
 export function Bandeau() {
   const { vue } = useJeu()
-  const tours = useMemo(() => {
-    const liste = regrouper(vue.journal)
-    const actif = vue.phase === "jeu" ? vue.joueurActifId : null
-    const dernier = liste.at(-1)
-    if (actif && (!dernier || dernier.fini || dernier.joueurId !== actif)) liste.push({ joueurId: actif, actions: [], fini: false })
-    return liste.map((t, n) => ({ ...t, n })).reverse()
-  }, [vue.journal, vue.phase, vue.joueurActifId])
+  const actif = vue.phase === "jeu" ? vue.joueurActifId : null
+  const tours = useMemo(
+    () =>
+      regrouper(vue.journal)
+        .map((t, n) => ({ ...t, n }))
+        .reverse(),
+    [vue.journal],
+  )
 
   return (
-    <div
-      className="pointer-events-auto max-h-[42vh] max-w-lg overflow-y-auto pr-1 pb-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      style={{
-        maskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
-      }}
-    >
-      <ol className="flex flex-col items-end gap-4 text-right text-lg text-foreground md:text-xl [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
-        {tours.length === 0 && <li className="text-foreground/80">Le banquet commence…</li>}
-        {tours.map((t) => (
-          <motion.li
-            key={t.n}
-            layout="position"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className="flex flex-col items-end gap-1.5"
-          >
-            <EnTete joueurId={t.joueurId} />
-            {t.actions.map(({ e, i }) => (
-              <motion.div key={i} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-                <Message evenement={e} className="justify-end" />
-              </motion.div>
-            ))}
-          </motion.li>
-        ))}
-      </ol>
+    <div className="flex max-w-lg flex-col items-end text-right text-foreground [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
+      <motion.p
+        key={actif ?? "attente"}
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="inline-flex items-center gap-1.5 font-display text-lg tracking-[0.14em] uppercase md:text-xl"
+      >
+        {actif ? <Tour joueurId={actif} /> : "Le banquet commence…"}
+      </motion.p>
+      <div className="mt-3 mb-3 h-px w-full min-w-64 bg-white/25" />
+      <div
+        className="pointer-events-auto max-h-[12.5rem] w-full overflow-y-auto pr-1 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{
+          maskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+        }}
+      >
+        <ol className="flex flex-col items-end gap-5 text-lg md:text-xl">
+          {tours.map((t) => (
+            <motion.li
+              key={t.n}
+              layout="position"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col items-end gap-2.5"
+            >
+              <span className="inline-flex items-center gap-1 font-display text-xs tracking-[0.18em] text-foreground/55 uppercase md:text-sm">
+                <Tour joueurId={t.joueurId} court />
+              </span>
+              {t.actions.map(({ e, i }) => (
+                <motion.div key={i} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+                  <Message evenement={e} className="justify-end" />
+                </motion.div>
+              ))}
+            </motion.li>
+          ))}
+        </ol>
+      </div>
     </div>
   )
 }
