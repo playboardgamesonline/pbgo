@@ -1,0 +1,126 @@
+/* Palette tirée du livret de règles Hanabi */
+:root {
+  --night-900: #101b3e;
+  --night-700: #252846;
+  --night-500: #394b85;
+  --night-400: #3c5c98;
+  --plum: #251b37;
+  --firework-red: #e5334f;
+  --firework-blue: #4378aa;
+  --firework-green: #8bc983;
+  --firework-yellow: #f2d04b;
+  --text: #f0f1f4;
+  --text-muted: rgba(240, 241, 244, 0.65);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--night-900);
+  color: var(--text);
+  font-family: ui-rounded, "Avenir Next", "Nunito", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.home {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 24px 16px;
+  background:
+    radial-gradient(120% 80% at 50% 40%, var(--night-400) 0%, var(--night-500) 30%, var(--night-900) 75%),
+    var(--night-900);
+}
+
+/* Petites étincelles façon feu d'artifice en arrière-plan */
+.sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at 12% 18%, var(--firework-yellow), transparent),
+    radial-gradient(2px 2px at 82% 14%, var(--firework-green), transparent),
+    radial-gradient(1.5px 1.5px at 68% 72%, var(--firework-red), transparent),
+    radial-gradient(1.5px 1.5px at 22% 78%, var(--firework-blue), transparent),
+    radial-gradient(1px 1px at 45% 10%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 55%, #fff, transparent),
+    radial-gradient(1px 1px at 6% 50%, #fff, transparent),
+    radial-gradient(1px 1px at 55% 90%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 35% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 75% 35%, #fff, transparent);
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  text-align: center;
+  width: 100%;
+  max-width: 720px;
+}
+
+.logo img {
+  width: min(88vw, 640px);
+  height: auto;
+  filter: drop-shadow(0 8px 30px rgba(16, 27, 62, 0.6));
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(16, 27, 62, 0.55);
+  border: 1px solid rgba(240, 241, 244, 0.18);
+  backdrop-filter: blur(6px);
+  font-size: clamp(0.875rem, 3.6vw, 1rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--firework-red);
+  box-shadow: 0 0 0 0 rgba(229, 51, 79, 0.6);
+  animation: pulse 1.8s ease-out infinite;
+}
+
+.credits {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(229, 51, 79, 0.6); }
+  100% { box-shadow: 0 0 0 10px rgba(229, 51, 79, 0); }
+}
+
+@keyframes twinkle {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky,
+  .dot {
+    animation: none;
+  }
+}
