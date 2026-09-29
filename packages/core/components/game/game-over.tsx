@@ -14,7 +14,8 @@ import { api } from "../../lib/api"
 import type { PublicGame } from "../../lib/game-types"
 import { cn } from "@pgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
-import { useText } from "../skin-provider"
+import { useSkin, useText } from "../skin-provider"
+import { HostIcon } from "../lobby/lobby"
 import { useGame } from "./context"
 import { DEFAULT_SKIN } from "../../lib/skin"
 
@@ -78,6 +79,7 @@ export function GameOver({
   renderDetail?: ResultDetailRenderer
 }) {
   const t = useText()
+  const { hostIcon } = useSkin()
   const { view, game, color } = useGame()
   const { title } = useSiteSettings()
   const [sending, setSending] = useState(false)
@@ -171,8 +173,8 @@ export function GameOver({
                   type="button"
                   onClick={() => setPreview(true)}
                   disabled={!image}
-                  title="Partager le résultat"
-                  aria-label="Partager le résultat"
+                  title={t("shareResult")}
+                  aria-label={t("shareResult")}
                   className="group absolute -top-3 -right-10 z-20 w-40 rotate-[5deg] cursor-pointer rounded-[3px] bg-[#f3ecd6] p-[2px] shadow-[0_10px_24px_rgb(0_0_0/55%)] transition-transform duration-200 hover:rotate-[1deg] disabled:cursor-wait"
                 >
                   <span className="relative block aspect-[4/3] overflow-hidden rounded-[2px] bg-surface-dark">
@@ -188,8 +190,12 @@ export function GameOver({
                   </span>
                 </button>
                 <div className="relative flex flex-col items-center gap-1.5 px-20 text-center">
-                  <p className="-mx-16 font-display text-sm tracking-[0.18em] whitespace-nowrap text-foreground/55 uppercase">Victoire de</p>
-                  <CrownIcon aria-hidden className="relative z-10 -mt-1 size-9 fill-accent-game text-accent-game drop-shadow-[0_0_12px_var(--accent-game)]" />
+                  <p className="-mx-16 font-display text-sm tracking-[0.18em] whitespace-nowrap text-foreground/55 uppercase">{t("winnerTitle")}</p>
+                  {hostIcon ? (
+                    <HostIcon className="relative z-10 -mt-1 inline-block size-9 shrink-0 bg-accent-game drop-shadow-[0_0_12px_var(--accent-game)]" />
+                  ) : (
+                    <CrownIcon aria-hidden className="relative z-10 -mt-1 size-9 fill-accent-game text-accent-game drop-shadow-[0_0_12px_var(--accent-game)]" />
+                  )}
                   <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: color(winners[0]!.playerId) }}>
                     {names}
                   </p>
@@ -242,7 +248,7 @@ export function GameOver({
           onClick={onToggle}
           className="pointer-events-auto fixed bottom-8 left-1/2 z-50 h-9 -translate-x-1/2 cursor-pointer px-4 font-display text-sm tracking-wide whitespace-nowrap text-foreground/75 uppercase underline-offset-4 transition-colors duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:text-foreground hover:underline"
         >
-          {isOpen ? "Masquer le tableau des scores" : "Afficher le tableau des scores"}
+          {isOpen ? t("hideScores") : t("showScores")}
         </button>
     </>
   )

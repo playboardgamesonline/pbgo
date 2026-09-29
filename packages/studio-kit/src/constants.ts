@@ -60,6 +60,10 @@ export const UI_TEXTS = [
   { key: "gameOver", group: "game", title: "Game over (ticker)", fr: "Fin de la partie" },
   { key: "leave", group: "game", title: "Leave button", fr: "Quitter" },
   { key: "replay", group: "game", title: "Replay button", fr: "Rejouer" },
+  { key: "winnerTitle", group: "game", title: "Scoreboard: above the winner", fr: "Victoire de" },
+  { key: "showScores", group: "game", title: "Scoreboard: show", fr: "Afficher le tableau des scores" },
+  { key: "hideScores", group: "game", title: "Scoreboard: hide", fr: "Masquer le tableau des scores" },
+  { key: "shareResult", group: "game", title: "Scoreboard: share", fr: "Partager le résultat" },
   { key: "desktopOnly", group: "game", title: "Desktop only message", fr: "Ce jeu se joue sur ordinateur : agrandissez la fenêtre ou revenez depuis un écran plus large." },
 ] as const
 

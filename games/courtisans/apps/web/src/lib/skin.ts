@@ -39,6 +39,7 @@ export const DEFAULT_SKIN: SkinDefaults = {
     waiting: "Les convives s'installent…",
     gameOver: "Fin du banquet",
     leave: "Quitter la partie",
+    winnerTitle: "La cour s'incline devant",
   },
 }
 
