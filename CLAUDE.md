@@ -25,7 +25,7 @@ Les sources (PDF, PSD, visuels HD) restent dans `../ASSETS`, hors du dépôt.
 
 ## Sanity
 - Projet `2w4tgwae`, dataset `production`
-- Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js), déployé sur `odin.sanity.studio`
+- Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js), déployé sur `odin-online.sanity.studio`
 - Studio entièrement en anglais : singletons `interface`, `game`, `rules`, `texts` ; textes localisés via `localeString` / `localeText` / `localeStringList` (`{ fr, en }`), lus côté Next avec `traduire()` (`src/lib/i18n.ts`)
 - `pnpm --filter studio schema:deploy` après chaque changement de schéma
 
