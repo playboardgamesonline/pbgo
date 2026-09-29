@@ -1000,65 +1000,67 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 4. `loadSetupData` = `chargerMissions` ;
 5. routes `/api/parties` → `/api/games`, `statut lobby/jeu/fin` → `status lobby/playing/over`, table `parties` → `games` (migration SQL et données).
 
+---
+
 ## 8. Dette et pièges
 
 ### 8.1 Bugs et risques connus
 
-1. `lireMissions` en rafale : juste après le lancement, n écritures concurrentes sur la même ligne passent par le verrou optimiste, avec seulement 5 essais. Si l'une échoue, `finirIntro()` avale l'erreur : le joueur n'est pas marqué « lu » et rejouera l'ouverture au prochain chargement. Pistes : relancer l'action avec un backoff aléatoire, ou marquer « lu » côté client en `localStorage` par `code + numéro de partie`.
-2. Aucun abandon ni timeout : un joueur parti bloque la partie à son tour. Il n'y a ni exclusion par l'hôte, ni bot de remplacement. `quitter` n'existe qu'en lobby.
-3. Mobile non supporté (`EcranOrdinateur` sous 900 px). Toute l'interaction repose sur le survol.
-4. Journal : non tronqué, sans `id`, comparé par longueur (`Monde`, `useSonsJeu`). Un journal qui repart de zéro (rejouer) est géré par une condition `>=` fragile.
-5. Missions Sanity invalides écartées en silence par `chargerMissions()`. Une faute de saisie dans le studio fait disparaître une mission sans alerte. Il faudrait au moins un `console.warn` et une validation dans le studio.
-6. `rejouer` appelle `chargerMissions(MAX_JOUEURS)` (requête Sanity) à chaque vote, et relance avec `setupPartie()` directement, pas via `GAME.setup`.
-7. `annuler-import.ts` pointe vers `../../../Assets/sanity-seed/data.ndjson`, chemin d'avant le monorepo. Le seed est maintenant dans `games/courtisans/assets/sanity-seed/`.
+1. **`lireMissions` en rafale** : juste après le lancement, n écritures concurrentes sur la même ligne passent par le verrou optimiste, avec seulement 5 essais. Si l'une échoue, `finirIntro()` avale l'erreur : le joueur n'est pas marqué « lu » et **rejouera l'ouverture au prochain chargement**. Pistes : relancer l'action avec un backoff aléatoire, ou marquer « lu » côté client en `localStorage` par `code + numéro de partie`.
+2. **Aucun abandon ni timeout** : un joueur parti bloque la partie à son tour. Il n'y a ni exclusion par l'hôte, ni bot de remplacement. `quitter` n'existe qu'en lobby.
+3. **Mobile non supporté** (`EcranOrdinateur` sous 900 px). Toute l'interaction repose sur le survol.
+4. **Journal** : non tronqué, sans `id`, comparé par longueur (`Monde`, `useSonsJeu`). Un journal qui repart de zéro (rejouer) est géré par une condition `>=` fragile.
+5. **Missions Sanity invalides écartées en silence** par `chargerMissions()`. Une faute de saisie dans le studio fait disparaître une mission sans alerte. Il faudrait au moins un `console.warn` et une validation dans le studio.
+6. **`rejouer`** appelle `chargerMissions(MAX_JOUEURS)` (requête Sanity) à **chaque vote**, et relance avec `setupPartie()` directement, pas via `GAME.setup`.
+7. **`annuler-import.ts`** pointe vers `../../../Assets/sanity-seed/data.ndjson`, chemin d'avant le monorepo. Le seed est maintenant dans `games/courtisans/assets/sanity-seed/`.
 
 ### 8.2 Doubles sources de vérité et reliquats
 
-- Composition du paquet : `engine/deck.ts` (codé en dur) contre Sanity `role.countPerFamily` et `courtier.quantity`. Le moteur ignore Sanity ; `countPerFamily` n'alimente que l'écran des règles et `quantity` n'est pas lu. Modifier Sanity ne change pas le jeu.
-- Couleurs des familles : `CATALOGUE_PAR_DEFAUT` / Sanity (3D, badges, partage) contre `--famille-*` dans `globals.css` (quelques classes CSS, `chateau.tsx`). Les valeurs divergent.
-- Château : `profil.chateau` est toujours requis par `web/server/profil.ts` et stocké dans `courtisans:profil`, mais il n'est plus choisi ni affiché (les châteaux ont été retirés de Sanity ; `ChateauPicker` est inutilisé). `GAME.setup` passe `chateau: ""`.
-- Phase `missions` : présente dans les types, dans `lireMissions()` et dans `tourAffiche` / `couronneJoueur` (via `premierJoueurId`), mais jamais atteinte depuis que `setupPartie()` démarre en `jeu`.
-- Contexte de positions DOM (`enregistrer` / `rect` dans `contexte.tsx`) et `Interaction.origine()` : restes de l'ancienne UI 2D.
-- `game.decorations` (Sanity) : jamais lu.
-- Crédits codés en dur dans `PiedDePage` (le template les a mis dans Sanity).
-- Nommage : Courtisans est en français (`parties`, `joueurs`, `etat`, `vue`), alors que `@pgo/core` et le template sont en anglais. Tant que `apps/web` n'est pas migré, il existe deux implémentations du serveur de parties.
+- **Composition du paquet** : `engine/deck.ts` (codé en dur) contre Sanity `role.countPerFamily` et `courtier.quantity`. Le moteur ignore Sanity ; `countPerFamily` n'alimente que l'écran des règles et `quantity` n'est pas lu. Modifier Sanity ne change **pas** le jeu.
+- **Couleurs des familles** : `CATALOGUE_PAR_DEFAUT` / Sanity (3D, badges, partage) contre `--famille-*` dans `globals.css` (quelques classes CSS, `chateau.tsx`). Les valeurs divergent.
+- **Château** : `profil.chateau` est toujours requis par `web/server/profil.ts` et stocké dans `courtisans:profil`, mais il n'est plus choisi ni affiché (les châteaux ont été retirés de Sanity ; `ChateauPicker` est inutilisé). `GAME.setup` passe `chateau: ""`.
+- **Phase `missions`** : présente dans les types, dans `lireMissions()` et dans `tourAffiche` / `couronneJoueur` (via `premierJoueurId`), mais jamais atteinte depuis que `setupPartie()` démarre en `jeu`.
+- **Contexte de positions DOM** (`enregistrer` / `rect` dans `contexte.tsx`) et `Interaction.origine()` : restes de l'ancienne UI 2D.
+- **`game.decorations`** (Sanity) : jamais lu.
+- **Crédits** codés en dur dans `PiedDePage` (le template les a mis dans Sanity).
+- **Nommage** : Courtisans est en français (`parties`, `joueurs`, `etat`, `vue`), alors que `@pgo/core` et le template sont en anglais. Tant que `apps/web` n'est pas migré, il existe **deux implémentations du serveur de parties**.
 
 ### 8.3 Réglages faits à la main, et couplés entre eux
 
-- Délais des sons ↔ durée de vol : `pose` à +0,95 s et `elimine` à +1,2 s (`useSonsJeu`) supposent `REGLAGES_CARTE.dureeVol = 1,2` et une distance moyenne. Changer la vitesse des vols décale les sons.
-- Minuteries d'ouverture ↔ animations : `jeu3d.tsx` recalcule seul la durée de la distribution (`0,1 + n×3×pasDistribution + 1,3` s) et du tapis (`dureeTapis + 0,3`), en parallèle de `Monde` et `Table`. Changer l'un sans l'autre fait apparaître le bouton trop tôt ou trop tard.
-- Séquence de fin : `programme()` suppose 6 familles (`NOMBRE_FAMILLES_TABLE`) et un nombre de piles égal au maximum de `detail.length`. Les délais sont absolus.
-- Toutes les valeurs leva (§4.5) dépendent des dimensions `TAPIS_L`, `CARTE_L` et `D_MAIN`, et de `CAMERA_DEFAUT`. Changer une dimension oblige à tout revoir.
-- Sièges (`SIEGES`) : positions à la main pour 1 à 4 adversaires uniquement. Au-delà, repli sur une place par défaut qui superpose les joueurs.
-- Voisins des missions ↔ sièges : gauche = i + 1 dans `missions.ts`, et la scène place les adversaires à partir de i + 1 dans `sieges()`. Les deux doivent rester alignés.
+- **Délais des sons ↔ durée de vol** : `pose` à +0,95 s et `elimine` à +1,2 s (`useSonsJeu`) supposent `REGLAGES_CARTE.dureeVol = 1,2` et une distance moyenne. Changer la vitesse des vols décale les sons.
+- **Minuteries d'ouverture ↔ animations** : `jeu3d.tsx` recalcule seul la durée de la distribution (`0,1 + n×3×pasDistribution + 1,3` s) et du tapis (`dureeTapis + 0,3`), en parallèle de `Monde` et `Table`. Changer l'un sans l'autre fait apparaître le bouton trop tôt ou trop tard.
+- **Séquence de fin** : `programme()` suppose 6 familles (`NOMBRE_FAMILLES_TABLE`) et un nombre de piles égal au maximum de `detail.length`. Les délais sont absolus.
+- **Toutes les valeurs leva** (§4.5) dépendent des dimensions `TAPIS_L`, `CARTE_L` et `D_MAIN`, et de `CAMERA_DEFAUT`. Changer une dimension oblige à tout revoir.
+- **Sièges** (`SIEGES`) : positions à la main pour 1 à 4 adversaires uniquement. Au-delà, repli sur une place par défaut qui superpose les joueurs.
+- **Voisins des missions ↔ sièges** : gauche = i + 1 dans `missions.ts`, et la scène place les adversaires à partir de i + 1 dans `sieges()`. Les deux doivent rester alignés.
 
 ### 8.4 Ce qu'il ne faut pas casser
 
-- L'id de carte est la clé React et la clé d'animation. Ne pas le régénérer, ne pas le dériver d'un index.
-- Le diff de `Monde` se fait pendant le rendu, pas dans un `useEffect`. Sinon les cartes apparaissent une frame à leur cible avant de sauter au départ.
-- `posesCamera` est une `Map` mutable écrite dans `useFrame`. C'est elle qui permet à une carte jouée depuis la main de partir de l'écran. Ne pas la transformer en état React.
-- `useLayoutEffect` initial de `Carte3D` : il place la carte à `depart` avant la première frame.
-- `preserveDrawingBuffer: true` et `userData.horsPhoto` (voiles, apparitions) sont indispensables pour la photo de partage.
-- La vue filtrée : ne jamais ajouter au `GET` un champ de `etat` (pioche, mains adverses, missions adverses avant la fin, famille des espions).
-- La garde de version de `usePartie.appliquer()` : sans elle, un poll lent écrase un coup plus récent.
-- Les replis (`CATALOGUE_PAR_DEFAUT`, `MISSIONS_PROVISOIRES`, `chargerAvecSecours()`, textures canvas de secours) : le jeu doit démarrer sans Sanity.
-- Le moteur pur (`structuredClone` en entrée de `applyAction()`) : `modifierPartie()` réessaie avec le même état.
-- La politique d'autoplay : `initialiserSon()` ne doit être appelé que sur un geste utilisateur.
-- Les textes des règles restent paraphrasés, pas copiés du livret.
-- Le pied de page garde les crédits des auteurs, de l'illustratrice et de l'éditeur, et la mention « non officielle ».
+- **L'id de carte** est la clé React et la clé d'animation. Ne pas le régénérer, ne pas le dériver d'un index.
+- **Le diff de `Monde` se fait pendant le rendu**, pas dans un `useEffect`. Sinon les cartes apparaissent une frame à leur cible avant de sauter au départ.
+- **`posesCamera`** est une `Map` mutable écrite dans `useFrame`. C'est elle qui permet à une carte jouée depuis la main de partir de l'écran. Ne pas la transformer en état React.
+- **`useLayoutEffect` initial de `Carte3D`** : il place la carte à `depart` avant la première frame.
+- **`preserveDrawingBuffer: true`** et **`userData.horsPhoto`** (voiles, apparitions) sont indispensables pour la photo de partage.
+- **La vue filtrée** : ne jamais ajouter au `GET` un champ de `etat` (pioche, mains adverses, missions adverses avant la fin, famille des espions).
+- **La garde de version** de `usePartie.appliquer()` : sans elle, un poll lent écrase un coup plus récent.
+- **Les replis** (`CATALOGUE_PAR_DEFAUT`, `MISSIONS_PROVISOIRES`, `chargerAvecSecours()`, textures canvas de secours) : le jeu doit démarrer sans Sanity.
+- **Le moteur pur** (`structuredClone` en entrée de `applyAction()`) : `modifierPartie()` réessaie avec le même état.
+- **La politique d'autoplay** : `initialiserSon()` ne doit être appelé que sur un geste utilisateur.
+- **Les textes des règles** restent paraphrasés, pas copiés du livret.
+- **Le pied de page** garde les crédits des auteurs, de l'illustratrice et de l'éditeur, et la mention « non officielle ».
 
 ### 8.5 Choix à refaire dans la version `@pgo`
 
-1. `scene.tsx` fait 1 279 lignes : séparer layouts (purs), animations (diff + journal), interactions (cibles) et décor (tapis, pioche). Voir §7.4 f.
-2. Journal normalisé (`move` / `reveal` / `remove` avec `from` / `to` et `id`) à la place des événements métier interprétés par la scène.
-3. Ouverture et fin décrites comme des listes d'étapes, avec des durées lues depuis les mêmes réglages que les animations, et les sons calés sur `onArrivee` plutôt que sur des délais fixes.
-4. Cibles légales fournies par le moteur (`targets()`) au lieu d'être recalculées dans le client (`jouer()` refait le calcul des candidats de l'assassinat).
-5. Composition du paquet : soit depuis Sanity (`quantity`) avec validation, soit uniquement dans le moteur. Retirer l'autre source.
-6. Une seule source de couleurs (Sanity → variables CSS injectées comme `--image-motif`).
-7. i18n de l'interface : dictionnaires `fr` / `en`, comme prévu dans le template. Aujourd'hui seul Sanity est localisé.
-8. Présence et abandon : présence Realtime, et après N minutes d'absence, jeu automatique (`coupAutomatique()` existe déjà) ou exclusion par l'hôte.
-9. Leva en production : le panneau est accessible via `?debug` (les commandes serveur restent protégées par `DEBUG_PARTIES`, et la triche ne modifie que la vue locale), mais leva et ses stores sont chargés dans le bundle. On pourrait les charger dynamiquement.
-10. Tests : le moteur est bien couvert (`*.test.ts`, simulations complètes). Rien ne teste l'UI ni les layouts, alors que les layouts, purs, s'y prêteraient facilement (snapshots de poses par nombre de joueurs).
+1. **`scene.tsx` fait 1 279 lignes** : séparer layouts (purs), animations (diff + journal), interactions (cibles) et décor (tapis, pioche). Voir §7.4 f.
+2. **Journal normalisé** (`move` / `reveal` / `remove` avec `from` / `to` et `id`) à la place des événements métier interprétés par la scène.
+3. **Ouverture et fin décrites comme des listes d'étapes**, avec des durées lues depuis les mêmes réglages que les animations, et les sons calés sur `onArrivee` plutôt que sur des délais fixes.
+4. **Cibles légales fournies par le moteur** (`targets()`) au lieu d'être recalculées dans le client (`jouer()` refait le calcul des candidats de l'assassinat).
+5. **Composition du paquet** : soit depuis Sanity (`quantity`) avec validation, soit uniquement dans le moteur. Retirer l'autre source.
+6. **Une seule source de couleurs** (Sanity → variables CSS injectées comme `--image-motif`).
+7. **i18n de l'interface** : dictionnaires `fr` / `en`, comme prévu dans le template. Aujourd'hui seul Sanity est localisé.
+8. **Présence et abandon** : présence Realtime, et après N minutes d'absence, jeu automatique (`coupAutomatique()` existe déjà) ou exclusion par l'hôte.
+9. **Leva en production** : le panneau est accessible via `?debug` (les commandes serveur restent protégées par `DEBUG_PARTIES`, et la triche ne modifie que la vue locale), mais leva et ses stores sont chargés dans le bundle. On pourrait les charger dynamiquement.
+10. **Tests** : le moteur est bien couvert (`*.test.ts`, simulations complètes). Rien ne teste l'UI ni les layouts, alors que les layouts, purs, s'y prêteraient facilement (snapshots de poses par nombre de joueurs).
 
 ### 8.6 État après le passage sur `@pgo/core` (branche `courtisans-core`)
 
