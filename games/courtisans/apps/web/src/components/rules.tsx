@@ -19,7 +19,7 @@ const TABS = [
   { key: "flow", title: "flowTitle", icon: HourglassIcon },
   { key: "turn", title: "turnTitle", icon: ScrollTextIcon },
   { key: "roles", title: "rolesTitle", icon: SwordsIcon },
-  { key: "over", title: "scoringTitle", icon: TrophyIcon },
+  { key: "scoring", title: "scoringTitle", icon: TrophyIcon },
 ] as const
 const VIDEO = { key: "video", title: "videoTitle", icon: PlayIcon } as const
 type Tab = (typeof TABS)[number]["key"] | "video"
@@ -30,7 +30,7 @@ function StatusTag({ type }: { type: "light" | "disgrace" | "neutral" }) {
     disgrace: "bg-[#12322f] text-[#e7c46a] ring-[#d9a93f]/50",
     neutral: "bg-[#7b8384] text-white ring-[#9aa1a2]",
   }
-  const text = { light: "dans la lumière", disgrace: "en disgrâce", neutral: "neutral" }
+  const text = { light: "dans la lumière", disgrace: "en disgrâce", neutral: "neutre" }
   return <span className={cn("rounded-md px-1.5 py-px text-[0.92em] whitespace-nowrap ring-1", styles[type])}>{text[type]}</span>
 }
 
@@ -276,7 +276,7 @@ function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
           </div>
         </>
       )
-    case "over":
+    case "scoring":
       return (
         <>
           <Heading title={t.scoringTitle}>
