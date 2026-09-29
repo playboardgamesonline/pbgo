@@ -14,7 +14,7 @@ import { LobbyButton, PlayerList } from "../lobby/lobby"
 import { GameOptions } from "../lobby/game-options"
 import { useText } from "../skin-provider"
 
-export function GameClient({ code, rules }: { code: string; rules: RulesContent }) {
+export function GameClient({ code, rules, data }: { code: string; rules: RulesContent; data?: unknown }) {
   const router = useRouter()
   const t = useText()
   const { game, error, apply } = useLiveGame(code)
@@ -49,7 +49,7 @@ export function GameClient({ code, rules }: { code: string; rules: RulesContent 
   }
 
   if (game && game.meId && game.status !== "lobby" && game.view) {
-    return <Game game={game} rules={rules} onUpdate={apply} onLeave={() => router.push("/")} />
+    return <Game game={game} rules={rules} data={data} onUpdate={apply} onLeave={() => router.push("/")} />
   }
 
   const link = typeof window === "undefined" ? "" : gameLink(code)

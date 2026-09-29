@@ -1,51 +1,51 @@
 import { describe, expect, it } from "vitest"
-import { applyAction, zonesDisponibles } from "./actions"
+import { applyAction, availableZones } from "./actions"
 import { type Rng, createRng } from "./rng"
-import { setupPartie } from "./setup"
-import { missionsTest } from "./test-utils"
-import type { Cible, GameState } from "./types"
-import { vueJoueur } from "./view"
+import { setupGame } from "./setup"
+import { testMissions } from "./test-utils"
+import type { Target, GameState } from "./types"
+import { playerView } from "./view"
 
-function coupAleatoire(state: GameState, rng: Rng): GameState {
-  const joueur = state.joueurs[state.joueurActif]!
-  const carte = joueur.main[Math.floor(rng() * joueur.main.length)]!
-  const zone = zonesDisponibles(state)[0]!
-  const adversaires = state.joueurs.filter((j) => j.id !== joueur.id)
-  const cible: Cible =
+function randomMove(state: GameState, rng: Rng): GameState {
+  const player = state.players[state.activePlayer]!
+  const card = player.hand[Math.floor(rng() * player.hand.length)]!
+  const zone = availableZones(state)[0]!
+  const opponents = state.players.filter((j) => j.id !== player.id)
+  const target: Target =
     zone === "table"
-      ? { zone: "table", niveau: rng() < 0.5 ? "haut" : "bas" }
-      : { zone: "domaine", joueurId: zone === "domaine" ? joueur.id : adversaires[Math.floor(rng() * adversaires.length)]!.id }
+      ? { zone: "table", level: rng() < 0.5 ? "up" : "down" }
+      : { zone: "domain", playerId: zone === "domain" ? player.id : opponents[Math.floor(rng() * opponents.length)]!.id }
 
-  let cibleAssassinat: string | undefined
-  if (carte.role === "assassin") {
-    const cartes = cible.zone === "table" ? state.table.map((p) => p.carte) : state.joueurs.find((j) => j.id === cible.joueurId)!.domaine
-    cibleAssassinat = cartes.find((c) => c.role !== "garde")?.id
+  let victimId: string | undefined
+  if (card.role === "assassin") {
+    const cards = target.zone === "table" ? state.table.map((p) => p.card) : state.players.find((j) => j.id === target.playerId)!.domain
+    victimId = cards.find((c) => c.role !== "guard")?.id
   }
-  return applyAction(state, { type: "jouerCarte", joueurId: joueur.id, carteId: carte.id, cible, cibleAssassinat })
+  return applyAction(state, { type: "playCard", playerId: player.id, cardId: card.id, target, victimId })
 }
 
 describe("simulation", () => {
-  it.each([2, 3, 4, 5])("plays full random games with %i joueurs", (n) => {
+  it.each([2, 3, 4, 5])("plays full random games with %i players", (n) => {
     for (let seed = 1; seed <= 20; seed++) {
       const rng = createRng(seed * 31 + n)
-      let state = setupPartie({
-        joueurs: Array.from({ length: n }, (_, i) => ({ id: `p${i}`, pseudo: `P${i}`, chateau: "c1" })),
-        missions: missionsTest(),
+      let state = setupGame({
+        players: Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` })),
+        missions: testMissions(),
         rng,
       })
-      for (const j of state.joueurs) state = applyAction(state, { type: "lireMissions", joueurId: j.id })
+      for (const j of state.players) state = applyAction(state, { type: "readMissions", playerId: j.id })
 
-      let coups = 0
-      while (state.phase === "jeu") {
-        state = coupAleatoire(state, rng)
-        expect(++coups).toBeLessThan(200)
+      let moves = 0
+      while (state.phase === "playing") {
+        state = randomMove(state, rng)
+        expect(++moves).toBeLessThan(200)
       }
 
       const total =
-        state.table.length + state.eliminees.length + state.ecartees.length + state.joueurs.reduce((s, j) => s + j.domaine.length, 0)
+        state.table.length + state.eliminated.length + state.setAside.length + state.players.reduce((s, j) => s + j.domain.length, 0)
       expect(total).toBe(90)
-      expect(state.joueurs.every((j) => j.main.length === 0)).toBe(true)
-      expect(vueJoueur(state, "p0").resultats?.vainqueurs.length).toBeGreaterThan(0)
+      expect(state.players.every((j) => j.hand.length === 0)).toBe(true)
+      expect(playerView(state, "p0").results?.winners.length).toBeGreaterThan(0)
     }
   })
 })

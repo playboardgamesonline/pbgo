@@ -1,73 +1,71 @@
-import { joueurActifId, zonesDisponibles } from "./actions"
-import { type Resultats, calculerResultats } from "./scoring"
-import type { Cible, Courtisan, Famille, GameState, Mission, Niveau, Phase, Role, ZoneJeu } from "./types"
+import { activePlayerId, availableZones } from "./actions"
+import { type CourtisansResults, computeResults } from "./scoring"
+import type { Target, Courtier, Family, GameState, Mission, Level, Phase, Role, PlayZone } from "./types"
 
-export type CarteVisible = {
+export type VisibleCard = {
   id: string
-  famille: Famille | null
+  family: Family | null
   role: Role | null
 }
 
-export type EvenementVisible =
-  | { type: "carteJouee"; joueurId: string; carte: CarteVisible; cible: Cible }
-  | { type: "carteEliminee"; joueurId: string; carte: CarteVisible; cible: Cible }
-  | { type: "pioche"; joueurId: string; nombre: number }
-  | { type: "finDePartie" }
+export type VisibleEvent =
+  | { type: "cardPlayed"; playerId: string; card: VisibleCard; target: Target }
+  | { type: "cardEliminated"; playerId: string; card: VisibleCard; target: Target }
+  | { type: "draw"; playerId: string; count: number }
+  | { type: "gameOver" }
 
-export type JoueurVisible = {
+export type VisiblePlayer = {
   id: string
-  pseudo: string
-  chateau: string
-  domaine: CarteVisible[]
-  nombreCartesMain: number
-  missionsLues: boolean
+  nickname: string
+  domain: VisibleCard[]
+  handCount: number
+  missionsRead: boolean
   missions: Mission[] | null
 }
 
-export type VueJoueur = {
-  moi: { id: string; main: Courtisan[]; missions: Mission[] } | null
-  joueurs: JoueurVisible[]
-  table: { carte: CarteVisible; niveau: Niveau }[]
-  nombreCartesPioche: number
-  joueurActifId: string | null
-  premierJoueurId: string | null
-  zonesDisponibles: ZoneJeu[]
-  numeroTour: number
+export type PlayerView = {
+  me: { id: string; hand: Courtier[]; missions: Mission[] } | null
+  players: VisiblePlayer[]
+  table: { card: VisibleCard; level: Level }[]
+  deckCount: number
+  activePlayerId: string | null
+  firstPlayerId: string | null
+  availableZones: PlayZone[]
+  turnNumber: number
   phase: Phase
-  journal: EvenementVisible[]
-  resultats: Resultats | null
+  log: VisibleEvent[]
+  results: CourtisansResults | null
 }
 
-export function carteVisible(carte: Courtisan, revele: boolean): CarteVisible {
-  if (carte.role === "espion" && !revele) return { id: carte.id, famille: null, role: "espion" }
-  return { id: carte.id, famille: carte.famille, role: carte.role }
+export function visibleCard(card: Courtier, revealed: boolean): VisibleCard {
+  if (card.role === "spy" && !revealed) return { id: card.id, family: null, role: "spy" }
+  return { id: card.id, family: card.family, role: card.role }
 }
 
-export function vueJoueur(state: GameState, joueurId: string | null): VueJoueur {
-  const fin = state.phase === "fin"
-  const moi = state.joueurs.find((j) => j.id === joueurId)
+export function playerView(state: GameState, playerId: string | null): PlayerView {
+  const ending = state.phase === "over"
+  const me = state.players.find((j) => j.id === playerId)
 
   return {
-    moi: moi ? { id: moi.id, main: moi.main, missions: moi.missions } : null,
-    joueurs: state.joueurs.map((j) => ({
+    me: me ? { id: me.id, hand: me.hand, missions: me.missions } : null,
+    players: state.players.map((j) => ({
       id: j.id,
-      pseudo: j.pseudo,
-      chateau: j.chateau,
-      domaine: j.domaine.map((c) => carteVisible(c, fin)),
-      nombreCartesMain: j.main.length,
-      missionsLues: j.missionsLues,
-      missions: fin ? j.missions : null,
+      nickname: j.nickname,
+      domain: j.domain.map((c) => visibleCard(c, ending)),
+      handCount: j.hand.length,
+      missionsRead: j.missionsRead,
+      missions: ending ? j.missions : null,
     })),
-    table: state.table.map(({ carte, niveau }) => ({ carte: carteVisible(carte, fin), niveau })),
-    nombreCartesPioche: state.pioche.length,
-    joueurActifId: joueurActifId(state),
-    premierJoueurId: state.joueurs[state.joueurActif]?.id ?? null,
-    zonesDisponibles: zonesDisponibles(state),
-    numeroTour: state.numeroTour,
+    table: state.table.map(({ card, level }) => ({ card: visibleCard(card, ending), level })),
+    deckCount: state.deck.length,
+    activePlayerId: activePlayerId(state),
+    firstPlayerId: state.players[state.activePlayer]?.id ?? null,
+    availableZones: availableZones(state),
+    turnNumber: state.turnNumber,
     phase: state.phase,
-    journal: state.journal.map((e) =>
-      e.type === "carteJouee" || e.type === "carteEliminee" ? { ...e, carte: carteVisible(e.carte, fin) } : e,
+    log: state.log.map((e) =>
+      e.type === "cardPlayed" || e.type === "cardEliminated" ? { ...e, card: visibleCard(e.card, ending) } : e,
     ),
-    resultats: fin ? calculerResultats(state) : null,
+    results: ending ? computeResults(state) : null,
   }
 }

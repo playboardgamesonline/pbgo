@@ -4,14 +4,14 @@ import { FAMILIES, ROLES, STATUSES, titleOf } from "../constants"
 type ConditionParent = { type?: string } | undefined
 
 const TYPES = [
-  { title: "Family status", value: "statutFamille" },
-  { title: "Number of families with a status", value: "nombreFamillesStatut" },
-  { title: "Number of cards in my domain", value: "nombreCartesDomaine" },
-  { title: "Number of cards at the Queen's table", value: "nombreCartesTable" },
-  { title: "Comparison with other players", value: "comparaisonJoueurs" },
-  { title: "All conditions (AND)", value: "et" },
-  { title: "At least one condition (OR)", value: "ou" },
-  { title: "Inverse condition (NOT)", value: "non" },
+  { title: "Family status", value: "familyStatus" },
+  { title: "Number of families with a status", value: "familiesWithStatus" },
+  { title: "Number of cards in my domain", value: "domainCards" },
+  { title: "Number of cards at the Queen's table", value: "tableCards" },
+  { title: "Comparison with other players", value: "playerComparison" },
+  { title: "All conditions (AND)", value: "and" },
+  { title: "At least one condition (OR)", value: "or" },
+  { title: "Inverse condition (NOT)", value: "not" },
 ]
 
 const visibleFor =
@@ -26,7 +26,7 @@ const requiredFor =
     return types.includes(parent?.type ?? "") && (value === undefined || value === null) ? "Required" : true
   }
 
-const COUNTING = ["nombreCartesDomaine", "nombreCartesTable", "comparaisonJoueurs"]
+const COUNTING = ["domainCards", "tableCards", "playerComparison"]
 
 export const condition = defineType({
   name: "condition",
@@ -45,16 +45,16 @@ export const condition = defineType({
       title: "Family",
       type: "string",
       options: { list: FAMILIES },
-      hidden: visibleFor("statutFamille"),
-      validation: (r) => r.custom(requiredFor("statutFamille")),
+      hidden: visibleFor("familyStatus"),
+      validation: (r) => r.custom(requiredFor("familyStatus")),
     }),
     defineField({
       name: "status",
       title: "Status",
       type: "string",
       options: { list: STATUSES, layout: "radio", direction: "horizontal" },
-      hidden: visibleFor("statutFamille", "nombreFamillesStatut"),
-      validation: (r) => r.custom(requiredFor("statutFamille", "nombreFamillesStatut")),
+      hidden: visibleFor("familyStatus", "familiesWithStatus"),
+      validation: (r) => r.custom(requiredFor("familyStatus", "familiesWithStatus")),
     }),
     defineField({
       name: "familyFilter",
@@ -67,7 +67,7 @@ export const condition = defineType({
       name: "roleFilter",
       title: "Cards with role",
       type: "string",
-      options: { list: [...ROLES, { title: "No role", value: "sansRole" }] },
+      options: { list: [...ROLES, { title: "No role", value: "noRole" }] },
       hidden: visibleFor(...COUNTING),
     }),
     defineField({
@@ -76,13 +76,13 @@ export const condition = defineType({
       type: "string",
       options: {
         list: [
-          { title: "Above", value: "haut" },
-          { title: "Below", value: "bas" },
+          { title: "Above", value: "up" },
+          { title: "Below", value: "down" },
         ],
         layout: "radio",
         direction: "horizontal",
       },
-      hidden: visibleFor("nombreCartesTable"),
+      hidden: visibleFor("tableCards"),
     }),
     defineField({
       name: "comparator",
@@ -97,15 +97,15 @@ export const condition = defineType({
           { title: "Less than (<)", value: "lt" },
         ],
       },
-      hidden: visibleFor("nombreFamillesStatut", ...COUNTING),
-      validation: (r) => r.custom(requiredFor("nombreFamillesStatut", ...COUNTING)),
+      hidden: visibleFor("familiesWithStatus", ...COUNTING),
+      validation: (r) => r.custom(requiredFor("familiesWithStatus", ...COUNTING)),
     }),
     defineField({
       name: "value",
       title: "Value",
       type: "number",
-      hidden: visibleFor("nombreFamillesStatut", "nombreCartesDomaine", "nombreCartesTable"),
-      validation: (r) => r.custom(requiredFor("nombreFamillesStatut", "nombreCartesDomaine", "nombreCartesTable")),
+      hidden: visibleFor("familiesWithStatus", "domainCards", "tableCards"),
+      validation: (r) => r.custom(requiredFor("familiesWithStatus", "domainCards", "tableCards")),
     }),
     defineField({
       name: "opponent",
@@ -113,24 +113,24 @@ export const condition = defineType({
       type: "string",
       options: {
         list: [
-          { title: "My left neighbour", value: "voisinGauche" },
-          { title: "My right neighbour", value: "voisinDroite" },
-          { title: "All opponents", value: "tousLesAdversaires" },
-          { title: "At least one opponent", value: "auMoinsUnAdversaire" },
+          { title: "My left neighbour", value: "leftNeighbor" },
+          { title: "My right neighbour", value: "rightNeighbor" },
+          { title: "All opponents", value: "allOpponents" },
+          { title: "At least one opponent", value: "anyOpponent" },
         ],
       },
-      hidden: visibleFor("comparaisonJoueurs"),
-      validation: (r) => r.custom(requiredFor("comparaisonJoueurs")),
+      hidden: visibleFor("playerComparison"),
+      validation: (r) => r.custom(requiredFor("playerComparison")),
     }),
     defineField({
       name: "mode",
       title: "Counting",
       type: "string",
-      initialValue: "cartes",
+      initialValue: "cards",
       options: {
         list: [
-          { title: "Number of cards", value: "cartes" },
-          { title: "Weight (noble = 2)", value: "poids" },
+          { title: "Number of cards", value: "cards" },
+          { title: "Weight (noble = 2)", value: "weight" },
         ],
         layout: "radio",
         direction: "horizontal",
@@ -142,12 +142,12 @@ export const condition = defineType({
       title: "Conditions",
       type: "array",
       of: [defineArrayMember({ type: "condition" })],
-      hidden: visibleFor("et", "ou", "non"),
+      hidden: visibleFor("and", "or", "not"),
       validation: (r) =>
         r.custom((value: unknown[] | undefined, context) => {
           const type = (context.parent as ConditionParent)?.type
-          if (type === "non" && value?.length !== 1) return "Exactly one condition"
-          if ((type === "et" || type === "ou") && (value?.length ?? 0) < 2) return "At least 2 conditions"
+          if (type === "not" && value?.length !== 1) return "Exactly one condition"
+          if ((type === "and" || type === "or") && (value?.length ?? 0) < 2) return "At least 2 conditions"
           return true
         }),
     }),

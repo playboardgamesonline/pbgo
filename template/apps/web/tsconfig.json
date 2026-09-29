@@ -31,6 +31,9 @@
       ],
       "@pgo/binding-ui": [
         "./src/binding-ui.ts"
+      ],
+      "@pgo/binding-server": [
+        "./src/binding-server.ts"
       ]
     }
   },

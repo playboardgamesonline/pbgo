@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { GAME } from "./game"
-import { missionsTest } from "./test-utils"
+import { testMissions } from "./test-utils"
 
 const players = [
   { id: "a", nickname: "Alice" },
@@ -8,30 +8,30 @@ const players = [
   { id: "c", nickname: "Chloé" },
 ]
 
-describe("GAME (contrat @pgo/engine-kit)", () => {
-  it("met en place une partie à partir des joueurs du lobby et des missions chargées", () => {
-    const state = GAME.setup({ players, options: {}, seed: 42, data: missionsTest() })
-    expect(state.joueurs.map((j) => [j.id, j.pseudo])).toEqual([["a", "Alice"], ["b", "Bob"], ["c", "Chloé"]])
-    expect(state.joueurs.every((j) => j.missions.length === 2)).toBe(true)
+describe("GAME (@pgo/engine-kit contract)", () => {
+  it("sets up a game from the lobby players and the loaded missions", () => {
+    const state = GAME.setup({ players, options: {}, seed: 42, data: testMissions() })
+    expect(state.players.map((j) => [j.id, j.nickname])).toEqual([["a", "Alice"], ["b", "Bob"], ["c", "Chloé"]])
+    expect(state.players.every((j) => j.missions.length === 2)).toBe(true)
     expect(GAME.isOver(state)).toBe(false)
   })
 
-  it("est déterministe avec une graine", () => {
-    const a = GAME.setup({ players, options: {}, seed: 7, data: missionsTest() })
-    const b = GAME.setup({ players, options: {}, seed: 7, data: missionsTest() })
+  it("is deterministic with a seed", () => {
+    const a = GAME.setup({ players, options: {}, seed: 7, data: testMissions() })
+    const b = GAME.setup({ players, options: {}, seed: 7, data: testMissions() })
     expect(a).toEqual(b)
   })
 
-  it("traduit playerId en joueurId pour appliquer une action", () => {
-    const state = GAME.setup({ players, options: {}, seed: 1, data: missionsTest() })
-    const next = GAME.apply(state, { type: "lireMissions", playerId: "b" })
-    expect(next.joueurs.find((j) => j.id === "b")!.missionsLues).toBe(true)
+  it("applies an action", () => {
+    const state = GAME.setup({ players, options: {}, seed: 1, data: testMissions() })
+    const next = GAME.apply(state, { type: "readMissions", playerId: "b" })
+    expect(next.players.find((j) => j.id === "b")!.missionsRead).toBe(true)
   })
 
-  it("mène une partie jusqu'au bout via les commandes debug", () => {
-    const state = GAME.setup({ players, options: {}, seed: 3, data: missionsTest() })
+  it("plays a game to the end with the debug commands", () => {
+    const state = GAME.setup({ players, options: {}, seed: 3, data: testMissions() })
     const over = GAME.debug!.over!(state)
     expect(GAME.isOver(over)).toBe(true)
-    expect(GAME.view(over, "a").joueurs).toHaveLength(3)
+    expect(GAME.view(over, "a").players).toHaveLength(3)
   })
 })

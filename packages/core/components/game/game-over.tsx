@@ -33,7 +33,7 @@ export function winnerAnnouncement(game: PublicGame, view: PlayerView, phrases: 
   if (!results) return { phrase: "", detail: "" }
   const winners = results.players.filter((j) => results.winners.includes(j.playerId))
   const template = phrases[hash(game.code + view.log.length) % phrases.length] ?? ""
-  const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).trim()
+  const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).replace(/[\s:,–-]+$/, "").trim()
   const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
   return { phrase, detail: `${names} · ${winners[0]?.total ?? 0} pts` }
 }

@@ -1,38 +1,41 @@
-import { Accueil } from "@/components/accueil/accueil"
-import { DESCRIPTION, SITE_URL, TITRE } from "@/lib/site"
-import { getCatalogueClient } from "@/sanity/catalogue-client"
+import { Home } from "@pgo/core/components/home/home"
+import { loadRules } from "@pgo/core/lib/rules-server"
+import { loadSettings } from "@pgo/core/lib/settings-server"
+import { AUTHOR, GENRES, SITE_URL } from "@/lib/site"
 
 export const revalidate = 60
 
-const DONNEES_STRUCTUREES = {
+function structuredData({ title, description, minPlayers, maxPlayers }: Awaited<ReturnType<typeof loadSettings>>) {
+  return {
   "@context": "https://schema.org",
   "@graph": [
-    { "@type": "WebSite", "@id": `${SITE_URL}/#site`, url: SITE_URL, name: "Courtisans", inLanguage: "fr-FR", description: DESCRIPTION },
+    { "@type": "WebSite", "@id": `${SITE_URL}/#site`, url: SITE_URL, name: title, inLanguage: "fr-FR", description },
     {
       "@type": "VideoGame",
-      name: "Courtisans",
-      alternateName: TITRE,
+      name: title,
       url: SITE_URL,
-      description: DESCRIPTION,
+      description,
       inLanguage: "fr-FR",
-      genre: ["Jeu de cartes", "Jeu de société", "Jeu de bluff"],
+      genre: GENRES,
       gamePlatform: "Navigateur web",
       applicationCategory: "Game",
       playMode: "MultiPlayer",
-      numberOfPlayers: { "@type": "QuantitativeValue", minValue: 2, maxValue: 5 },
+      numberOfPlayers: { "@type": "QuantitativeValue", minValue: minPlayers, maxValue: maxPlayers },
       image: `${SITE_URL}/opengraph-image.jpg`,
       offers: { "@type": "Offer", price: 0, priceCurrency: "EUR" },
-      author: { "@type": "Person", name: "oré", url: "https://ore.today" },
+      author: { "@type": "Person", name: AUTHOR.name, url: AUTHOR.url },
     },
   ],
+  }
 }
 
-export default async function Home() {
+export default async function HomePage() {
+  const settings = await loadSettings()
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(DONNEES_STRUCTUREES) }} />
-      <h1 className="sr-only">{TITRE} · Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis</h1>
-      <Accueil catalogue={await getCatalogueClient()} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData(settings)) }} />
+      <h1 className="sr-only">{settings.title} · Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis</h1>
+      <Home rules={await loadRules()} />
     </>
   )
 }

@@ -1,90 +1,87 @@
-export const FAMILLES = ["papillon", "crapaud", "rossignol", "lievre", "cerf", "carpe"] as const
-export type Famille = (typeof FAMILLES)[number]
+export const FAMILIES = ["butterfly", "toad", "nightingale", "hare", "stag", "carp"] as const
+export type Family = (typeof FAMILIES)[number]
 
-export const ROLES = ["noble", "espion", "assassin", "garde"] as const
+export const ROLES = ["noble", "spy", "assassin", "guard"] as const
 export type Role = (typeof ROLES)[number]
 
-export type Courtisan = {
+export type Courtier = {
   id: string
-  famille: Famille
+  family: Family
   role: Role | null
 }
 
-export type Niveau = "haut" | "bas"
-export type Statut = "lumiere" | "disgrace" | "neutre"
-export type ZoneJeu = "table" | "domaine" | "domaineAdverse"
+export type Level = "up" | "down"
+export type Status = "light" | "disgrace" | "neutral"
+export type PlayZone = "table" | "domain" | "opponentDomain"
 
-export type Cible = { zone: "table"; niveau: Niveau } | { zone: "domaine"; joueurId: string }
+export type Target = { zone: "table"; level: Level } | { zone: "domain"; playerId: string }
 
-export type Comparateur = "eq" | "gte" | "lte" | "gt" | "lt"
+export type Comparator = "eq" | "gte" | "lte" | "gt" | "lt"
 
-export type FiltreCartes = {
-  famille?: Famille
-  role?: Role | "sansRole"
+export type CardFilter = {
+  family?: Family
+  role?: Role | "noRole"
 }
 
-export type ModeComptage = "cartes" | "poids"
+export type CountMode = "cards" | "weight"
 
-export type Adversaire = "voisinGauche" | "voisinDroite" | "tousLesAdversaires" | "auMoinsUnAdversaire"
+export type Opponent = "leftNeighbor" | "rightNeighbor" | "allOpponents" | "anyOpponent"
 
 export type Condition =
-  | { type: "statutFamille"; famille: Famille; statut: Statut }
-  | { type: "nombreFamillesStatut"; statut: Statut; comparateur: Comparateur; valeur: number }
-  | { type: "nombreCartesDomaine"; filtre: FiltreCartes; comparateur: Comparateur; valeur: number; mode?: ModeComptage }
-  | { type: "nombreCartesTable"; filtre: FiltreCartes; niveau?: Niveau; comparateur: Comparateur; valeur: number; mode?: ModeComptage }
-  | { type: "comparaisonJoueurs"; filtre: FiltreCartes; comparateur: Comparateur; adversaire: Adversaire; mode?: ModeComptage }
-  | { type: "et"; conditions: Condition[] }
-  | { type: "ou"; conditions: Condition[] }
-  | { type: "non"; condition: Condition }
+  | { type: "familyStatus"; family: Family; status: Status }
+  | { type: "familiesWithStatus"; status: Status; comparator: Comparator; value: number }
+  | { type: "domainCards"; filter: CardFilter; comparator: Comparator; value: number; mode?: CountMode }
+  | { type: "tableCards"; filter: CardFilter; level?: Level; comparator: Comparator; value: number; mode?: CountMode }
+  | { type: "playerComparison"; filter: CardFilter; comparator: Comparator; opponent: Opponent; mode?: CountMode }
+  | { type: "and"; conditions: Condition[] }
+  | { type: "or"; conditions: Condition[] }
+  | { type: "not"; condition: Condition }
 
-export type CouleurMission = "blanche" | "bleue"
+export type MissionColor = "white" | "blue"
 
 export type Mission = {
   id: string
-  couleur: CouleurMission
-  texte: string
+  color: MissionColor
+  text: string
   condition: Condition
 }
 
-export type JoueurInfo = {
-  id: string
-  pseudo: string
-  chateau: string
-}
+export type { PlayerInfo } from "@pgo/engine-kit"
+import type { PlayerInfo } from "@pgo/engine-kit"
 
-export type Joueur = JoueurInfo & {
-  main: Courtisan[]
-  domaine: Courtisan[]
+export type Player = PlayerInfo & {
+  hand: Courtier[]
+  domain: Courtier[]
   missions: Mission[]
-  missionsLues: boolean
+  missionsRead: boolean
 }
 
 export type Placement = {
-  carte: Courtisan
-  niveau: Niveau
+  card: Courtier
+  level: Level
 }
 
-export type Phase = "missions" | "jeu" | "fin"
+export type Phase = "missions" | "playing" | "over"
 
-export type Evenement =
-  | { type: "carteJouee"; joueurId: string; carte: Courtisan; cible: Cible }
-  | { type: "carteEliminee"; joueurId: string; carte: Courtisan; cible: Cible }
-  | { type: "pioche"; joueurId: string; nombre: number }
-  | { type: "finDePartie" }
+export type GameEvent =
+  | { type: "cardPlayed"; playerId: string; card: Courtier; target: Target }
+  | { type: "cardEliminated"; playerId: string; card: Courtier; target: Target }
+  | { type: "draw"; playerId: string; count: number }
+  | { type: "gameOver" }
 
 export type GameState = {
-  joueurs: Joueur[]
-  pioche: Courtisan[]
-  ecartees: Courtisan[]
-  eliminees: Courtisan[]
+  players: Player[]
+  deck: Courtier[]
+  setAside: Courtier[]
+  eliminated: Courtier[]
   table: Placement[]
-  joueurActif: number
-  zonesJouees: ZoneJeu[]
-  numeroTour: number
+  activePlayer: number
+  playedZones: PlayZone[]
+  turnNumber: number
   phase: Phase
-  journal: Evenement[]
+  log: GameEvent[]
 }
 
 export type Action =
-  | { type: "lireMissions"; joueurId: string }
-  | { type: "jouerCarte"; joueurId: string; carteId: string; cible: Cible; cibleAssassinat?: string }
+  | { type: "readMissions"; playerId: string }
+  | { type: "playCard"; playerId: string; cardId: string; target: Target; victimId?: string }

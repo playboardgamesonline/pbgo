@@ -1,29 +1,29 @@
-import { FAMILLES, type Courtisan, type Role } from "./types"
+import { FAMILIES, type Courtier, type Role } from "./types"
 
-export const COMPOSITION_FAMILLE: { role: Role | null; nombre: number }[] = [
-  { role: "noble", nombre: 4 },
-  { role: "espion", nombre: 2 },
-  { role: "assassin", nombre: 2 },
-  { role: "garde", nombre: 3 },
-  { role: null, nombre: 4 },
+export const FAMILY_COMPOSITION: { role: Role | null; count: number }[] = [
+  { role: "noble", count: 4 },
+  { role: "spy", count: 2 },
+  { role: "assassin", count: 2 },
+  { role: "guard", count: 3 },
+  { role: null, count: 4 },
 ]
 
-export const CARTES_ECARTEES: Record<number, number> = { 2: 30, 3: 18, 4: 6, 5: 0 }
-export const TAILLE_MAIN = 3
-export const POINTS_MISSION = 3
+export const SET_ASIDE_CARDS: Record<number, number> = { 2: 30, 3: 18, 4: 6, 5: 0 }
+export const HAND_SIZE = 3
+export const MISSION_POINTS = 3
 
-export function creerCourtisans(): Courtisan[] {
-  return FAMILLES.flatMap((famille) =>
-    COMPOSITION_FAMILLE.flatMap(({ role, nombre }) =>
-      Array.from({ length: nombre }, (_, i) => ({
-        id: `${famille}-${role ?? "courtisan"}-${i + 1}`,
-        famille,
+export function createCourtiers(): Courtier[] {
+  return FAMILIES.flatMap((family) =>
+    FAMILY_COMPOSITION.flatMap(({ role, count }) =>
+      Array.from({ length: count }, (_, i) => ({
+        id: `${family}-${role ?? "courtier"}-${i + 1}`,
+        family,
         role,
       })),
     ),
   )
 }
 
-export function poids(carte: Courtisan): number {
-  return carte.role === "noble" ? 2 : 1
+export function weight(card: Courtier): number {
+  return card.role === "noble" ? 2 : 1
 }

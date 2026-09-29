@@ -8,7 +8,8 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "deploy:studio": "pnpm --filter courtisans-studio run deploy",
-    "sanity:images": "pnpm --filter courtisans-studio run maj-images",
-    "sanity:nettoyer-png": "pnpm --filter courtisans-studio run nettoyer-png"
+    "sanity:images": "pnpm --filter courtisans-studio run update-images",
+    "sanity:clean-png": "pnpm --filter courtisans-studio run clean-png",
+    "sanity:migrate-core": "pnpm --filter courtisans-studio run migrate:core"
   }
 }

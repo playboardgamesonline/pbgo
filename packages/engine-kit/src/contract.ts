@@ -31,4 +31,5 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
   debug?: Partial<Record<DebugCommand, (state: State) => State>>
 }
 
-export type DebugCommand = "turn" | "over"
+/** Commandes de debug : `turn` (tour automatique) et `over` (jusqu'à la fin) sont communes ; un jeu peut en ajouter (ex. `missions`). */
+export type DebugCommand = "turn" | "over" | (string & {})

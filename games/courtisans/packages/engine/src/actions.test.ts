@@ -1,161 +1,161 @@
 import { describe, expect, it } from "vitest"
 import { applyAction } from "./actions"
 import { createRng } from "./rng"
-import { setupPartie } from "./setup"
-import { carte, etat, joueur, missionsTest, place } from "./test-utils"
+import { setupGame } from "./setup"
+import { card, makeState, player, testMissions, place } from "./test-utils"
 import type { GameState } from "./types"
 
-describe("lireMissions", () => {
+describe("readMissions", () => {
   it("does not block the game: play starts right away and reading only sets a flag", () => {
-    let state = setupPartie({
-      joueurs: [
-        { id: "a", pseudo: "A", chateau: "c1" },
-        { id: "b", pseudo: "B", chateau: "c2" },
+    let state = setupGame({
+      players: [
+        { id: "a", nickname: "A" },
+        { id: "b", nickname: "B" },
       ],
-      missions: missionsTest(),
+      missions: testMissions(),
       rng: createRng(3),
     })
-    expect(state.phase).toBe("jeu")
-    state = applyAction(state, { type: "lireMissions", joueurId: "a" })
-    expect(state.phase).toBe("jeu")
-    expect(state.joueurs[0]!.missionsLues).toBe(true)
+    expect(state.phase).toBe("playing")
+    state = applyAction(state, { type: "readMissions", playerId: "a" })
+    expect(state.phase).toBe("playing")
+    expect(state.players[0]!.missionsRead).toBe(true)
   })
 })
 
-function partieSimple(): GameState {
-  const main = [carte("lievre", "garde"), carte("cerf"), carte("carpe", "noble")]
-  return etat({
-    joueurs: [joueur("a", { main }), joueur("b", { main: [carte("papillon"), carte("papillon"), carte("papillon")] })],
-    pioche: [carte("crapaud"), carte("crapaud"), carte("crapaud")],
+function simpleGame(): GameState {
+  const hand = [card("hare", "guard"), card("stag"), card("carp", "noble")]
+  return makeState({
+    players: [player("a", { hand }), player("b", { hand: [card("butterfly"), card("butterfly"), card("butterfly")] })],
+    deck: [card("toad"), card("toad"), card("toad")],
   })
 }
 
-describe("jouerCarte", () => {
+describe("playCard", () => {
   it("plays one card per zone then draws and passes the turn", () => {
-    let state = partieSimple()
-    const [c1, c2, c3] = state.joueurs[0]!.main
-    state = applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: c1!.id, cible: { zone: "table", niveau: "haut" } })
-    state = applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: c2!.id, cible: { zone: "domaine", joueurId: "a" } })
-    expect(state.zonesJouees).toEqual(["table", "domaine"])
-    state = applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: c3!.id, cible: { zone: "domaine", joueurId: "b" } })
+    let state = simpleGame()
+    const [c1, c2, c3] = state.players[0]!.hand
+    state = applyAction(state, { type: "playCard", playerId: "a", cardId: c1!.id, target: { zone: "table", level: "up" } })
+    state = applyAction(state, { type: "playCard", playerId: "a", cardId: c2!.id, target: { zone: "domain", playerId: "a" } })
+    expect(state.playedZones).toEqual(["table", "domain"])
+    state = applyAction(state, { type: "playCard", playerId: "a", cardId: c3!.id, target: { zone: "domain", playerId: "b" } })
 
     expect(state.table).toHaveLength(1)
-    expect(state.joueurs[0]!.domaine).toHaveLength(1)
-    expect(state.joueurs[1]!.domaine).toHaveLength(1)
-    expect(state.joueurs[0]!.main).toHaveLength(3)
-    expect(state.pioche).toHaveLength(0)
-    expect(state.joueurActif).toBe(1)
-    expect(state.zonesJouees).toEqual([])
-    expect(state.journal.map((e) => e.type)).toEqual(["carteJouee", "carteJouee", "carteJouee", "pioche"])
+    expect(state.players[0]!.domain).toHaveLength(1)
+    expect(state.players[1]!.domain).toHaveLength(1)
+    expect(state.players[0]!.hand).toHaveLength(3)
+    expect(state.deck).toHaveLength(0)
+    expect(state.activePlayer).toBe(1)
+    expect(state.playedZones).toEqual([])
+    expect(state.log.map((e) => e.type)).toEqual(["cardPlayed", "cardPlayed", "cardPlayed", "draw"])
   })
 
   it("refuses a second card in the same zone", () => {
-    let state = partieSimple()
-    const [c1, c2] = state.joueurs[0]!.main
-    state = applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: c1!.id, cible: { zone: "table", niveau: "haut" } })
+    let state = simpleGame()
+    const [c1, c2] = state.players[0]!.hand
+    state = applyAction(state, { type: "playCard", playerId: "a", cardId: c1!.id, target: { zone: "table", level: "up" } })
     expect(() =>
-      applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: c2!.id, cible: { zone: "table", niveau: "bas" } }),
-    ).toThrow("ZONE_DEJA_JOUEE")
+      applyAction(state, { type: "playCard", playerId: "a", cardId: c2!.id, target: { zone: "table", level: "down" } }),
+    ).toThrow("ZONE_ALREADY_PLAYED")
   })
 
   it("refuses to play out of turn or an unknown card", () => {
-    const state = partieSimple()
-    const cb = state.joueurs[1]!.main[0]!
-    expect(() => applyAction(state, { type: "jouerCarte", joueurId: "b", carteId: cb.id, cible: { zone: "table", niveau: "haut" } })).toThrow(
-      "PAS_TON_TOUR",
+    const state = simpleGame()
+    const cb = state.players[1]!.hand[0]!
+    expect(() => applyAction(state, { type: "playCard", playerId: "b", cardId: cb.id, target: { zone: "table", level: "up" } })).toThrow(
+      "NOT_YOUR_TURN",
     )
-    expect(() => applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: "nope", cible: { zone: "table", niveau: "haut" } })).toThrow(
-      "CARTE_INCONNUE",
+    expect(() => applyAction(state, { type: "playCard", playerId: "a", cardId: "nope", target: { zone: "table", level: "up" } })).toThrow(
+      "UNKNOWN_CARD",
     )
   })
 
   it("does not mutate the previous state", () => {
-    const state = partieSimple()
-    const c = state.joueurs[0]!.main[0]!
-    applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: c.id, cible: { zone: "table", niveau: "haut" } })
-    expect(state.joueurs[0]!.main).toHaveLength(3)
+    const state = simpleGame()
+    const c = state.players[0]!.hand[0]!
+    applyAction(state, { type: "playCard", playerId: "a", cardId: c.id, target: { zone: "table", level: "up" } })
+    expect(state.players[0]!.hand).toHaveLength(3)
     expect(state.table).toHaveLength(0)
   })
 })
 
 describe("assassin", () => {
   it("eliminates any card at the table, spies included", () => {
-    const assassin = carte("rossignol", "assassin")
-    const espion = carte("lievre", "espion")
-    const state = etat({
-      joueurs: [joueur("a", { main: [assassin, carte("cerf"), carte("cerf")] }), joueur("b")],
-      table: [place(espion, "haut")],
+    const assassin = card("nightingale", "assassin")
+    const spy = card("hare", "spy")
+    const state = makeState({
+      players: [player("a", { hand: [assassin, card("stag"), card("stag")] }), player("b")],
+      table: [place(spy, "up")],
     })
     const next = applyAction(state, {
-      type: "jouerCarte",
-      joueurId: "a",
-      carteId: assassin.id,
-      cible: { zone: "table", niveau: "bas" },
-      cibleAssassinat: espion.id,
+      type: "playCard",
+      playerId: "a",
+      cardId: assassin.id,
+      target: { zone: "table", level: "down" },
+      victimId: spy.id,
     })
-    expect(next.table.map((p) => p.carte.id)).toEqual([assassin.id])
-    expect(next.eliminees.map((c) => c.id)).toEqual([espion.id])
-    expect(next.journal.at(-1)).toMatchObject({ type: "carteEliminee", cible: { zone: "table", niveau: "haut" } })
+    expect(next.table.map((p) => p.card.id)).toEqual([assassin.id])
+    expect(next.eliminated.map((c) => c.id)).toEqual([spy.id])
+    expect(next.log.at(-1)).toMatchObject({ type: "cardEliminated", target: { zone: "table", level: "up" } })
   })
 
   it("only targets cards in the same domaine", () => {
-    const assassin = carte("rossignol", "assassin")
-    const victime = carte("cerf", "noble")
-    const state = etat({
-      joueurs: [joueur("a", { main: [assassin, carte("cerf"), carte("cerf")], domaine: [victime] }), joueur("b")],
+    const assassin = card("nightingale", "assassin")
+    const victim = card("stag", "noble")
+    const state = makeState({
+      players: [player("a", { hand: [assassin, card("stag"), card("stag")], domain: [victim] }), player("b")],
     })
     expect(() =>
-      applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: assassin.id, cible: { zone: "domaine", joueurId: "b" }, cibleAssassinat: victime.id }),
-    ).toThrow("ASSASSINAT_INVALIDE")
+      applyAction(state, { type: "playCard", playerId: "a", cardId: assassin.id, target: { zone: "domain", playerId: "b" }, victimId: victim.id }),
+    ).toThrow("INVALID_ASSASSINATION")
     const next = applyAction(state, {
-      type: "jouerCarte",
-      joueurId: "a",
-      carteId: assassin.id,
-      cible: { zone: "domaine", joueurId: "a" },
-      cibleAssassinat: victime.id,
+      type: "playCard",
+      playerId: "a",
+      cardId: assassin.id,
+      target: { zone: "domain", playerId: "a" },
+      victimId: victim.id,
     })
-    expect(next.joueurs[0]!.domaine.map((c) => c.id)).toEqual([assassin.id])
+    expect(next.players[0]!.domain.map((c) => c.id)).toEqual([assassin.id])
   })
 
   it("cannot eliminate a garde nor act for a non-assassin", () => {
-    const assassin = carte("rossignol", "assassin")
-    const garde = carte("cerf", "garde")
-    const simple = carte("carpe")
-    const state = etat({
-      joueurs: [joueur("a", { main: [assassin, simple, carte("cerf")] }), joueur("b")],
-      table: [place(garde, "haut")],
+    const assassin = card("nightingale", "assassin")
+    const guard = card("stag", "guard")
+    const simple = card("carp")
+    const state = makeState({
+      players: [player("a", { hand: [assassin, simple, card("stag")] }), player("b")],
+      table: [place(guard, "up")],
     })
     expect(() =>
-      applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: assassin.id, cible: { zone: "table", niveau: "haut" }, cibleAssassinat: garde.id }),
-    ).toThrow("ASSASSINAT_INVALIDE")
+      applyAction(state, { type: "playCard", playerId: "a", cardId: assassin.id, target: { zone: "table", level: "up" }, victimId: guard.id }),
+    ).toThrow("INVALID_ASSASSINATION")
     expect(() =>
-      applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: simple.id, cible: { zone: "table", niveau: "haut" }, cibleAssassinat: garde.id }),
-    ).toThrow("ASSASSINAT_INVALIDE")
+      applyAction(state, { type: "playCard", playerId: "a", cardId: simple.id, target: { zone: "table", level: "up" }, victimId: guard.id }),
+    ).toThrow("INVALID_ASSASSINATION")
   })
 
   it("is optional", () => {
-    const assassin = carte("rossignol", "assassin")
-    const state = etat({ joueurs: [joueur("a", { main: [assassin, carte("cerf"), carte("cerf")] }), joueur("b")], table: [place(carte("cerf"), "haut")] })
-    const next = applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: assassin.id, cible: { zone: "table", niveau: "haut" } })
+    const assassin = card("nightingale", "assassin")
+    const state = makeState({ players: [player("a", { hand: [assassin, card("stag"), card("stag")] }), player("b")], table: [place(card("stag"), "up")] })
+    const next = applyAction(state, { type: "playCard", playerId: "a", cardId: assassin.id, target: { zone: "table", level: "up" } })
     expect(next.table).toHaveLength(2)
   })
 })
 
-describe("fin de partie", () => {
+describe("game over", () => {
   it("ends when the pioche is empty and every main is empty", () => {
-    const a = [carte("cerf"), carte("cerf"), carte("cerf")]
-    const b = [carte("carpe"), carte("carpe"), carte("carpe")]
-    let state = etat({ joueurs: [joueur("a", { main: a }), joueur("b", { main: b })] })
-    const cibles = (moi: string, autre: string) => [
-      { zone: "table" as const, niveau: "haut" as const },
-      { zone: "domaine" as const, joueurId: moi },
-      { zone: "domaine" as const, joueurId: autre },
+    const a = [card("stag"), card("stag"), card("stag")]
+    const b = [card("carp"), card("carp"), card("carp")]
+    let state = makeState({ players: [player("a", { hand: a }), player("b", { hand: b })] })
+    const targets = (me: string, other: string) => [
+      { zone: "table" as const, level: "up" as const },
+      { zone: "domain" as const, playerId: me },
+      { zone: "domain" as const, playerId: other },
     ]
-    a.forEach((c, i) => (state = applyAction(state, { type: "jouerCarte", joueurId: "a", carteId: c.id, cible: cibles("a", "b")[i]! })))
-    expect(state.phase).toBe("jeu")
-    expect(state.joueurActif).toBe(1)
-    b.forEach((c, i) => (state = applyAction(state, { type: "jouerCarte", joueurId: "b", carteId: c.id, cible: cibles("b", "a")[i]! })))
-    expect(state.phase).toBe("fin")
-    expect(state.journal.at(-1)).toEqual({ type: "finDePartie" })
+    a.forEach((c, i) => (state = applyAction(state, { type: "playCard", playerId: "a", cardId: c.id, target: targets("a", "b")[i]! })))
+    expect(state.phase).toBe("playing")
+    expect(state.activePlayer).toBe(1)
+    b.forEach((c, i) => (state = applyAction(state, { type: "playCard", playerId: "b", cardId: c.id, target: targets("b", "a")[i]! })))
+    expect(state.phase).toBe("over")
+    expect(state.log.at(-1)).toEqual({ type: "gameOver" })
   })
 })

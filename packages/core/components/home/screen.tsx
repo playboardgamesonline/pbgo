@@ -11,7 +11,7 @@ import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pgo/u
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { SoundButton } from "../sound/sound"
-import { RulesButton } from "../rules"
+import { GameRulesButton as RulesButton } from "../rules-slot"
 import type { RulesContent } from "../../lib/rules"
 import { AUTHOR, CONTACT } from "@pgo/binding"
 import { cn } from "@pgo/ui/utils"
@@ -237,6 +237,9 @@ export function CodeField({ value, onChange, copyable }: { value: string; onChan
   )
 }
 
+// Police d'ambiance (annonces, introduction) : variable CSS --font-accent du jeu, sinon la police des titres
+const ACCENT_FONT = "var(--font-accent, var(--font-title))"
+
 /** Titre + texte d'introduction (accueil). */
 export function Intro({ title, children }: { title?: string | null; children: React.ReactNode }) {
   return (
@@ -246,8 +249,14 @@ export function Intro({ title, children }: { title?: string | null; children: Re
       transition={{ delay: 0.2 }}
       className="mt-[3vh] max-w-5xl shrink-0 space-y-2 px-4 text-center [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
     >
-      {title && <h2 className="font-display text-lg tracking-[0.1em] text-foreground uppercase md:text-xl">{title}</h2>}
-      <div className="mx-auto max-w-5xl space-y-1.5 font-display text-[0.95rem] leading-relaxed whitespace-pre-line text-foreground/80 md:text-base">{children}</div>
+      {title && (
+        <h2 className="text-lg tracking-[0.1em] text-foreground uppercase md:text-xl" style={{ fontFamily: ACCENT_FONT }}>
+          {title}
+        </h2>
+      )}
+      <div className="mx-auto max-w-5xl space-y-1.5 text-[0.95rem] leading-relaxed whitespace-pre-line text-foreground/80 md:text-base" style={{ fontFamily: ACCENT_FONT }}>
+        {children}
+      </div>
     </motion.div>
   )
 }

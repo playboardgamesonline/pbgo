@@ -10,12 +10,13 @@
     "typecheck": "tsc --noEmit",
     "typegen": "sanity schemas extract --force && sanity typegen generate",
     "schema:deploy": "sanity schemas deploy",
-    "maj-images": "sanity exec scripts/maj-images.ts --with-user-token",
-    "annuler-import": "sanity exec scripts/annuler-import.ts --with-user-token --",
-    "nettoyer-png": "sanity exec scripts/nettoyer-png.ts --with-user-token --",
-    "migrate": "sanity exec scripts/migrate.ts --with-user-token"
+    "update-images": "sanity exec scripts/update-images.ts --with-user-token",
+    "undo-import": "sanity exec scripts/undo-import.ts --with-user-token --",
+    "clean-png": "sanity exec scripts/clean-png.ts --with-user-token --",
+    "migrate:core": "sanity exec scripts/migrate-to-core.ts --with-user-token --"
   },
   "dependencies": {
+    "@pgo/studio-kit": "workspace:*",
     "@sanity/icons": "^5.2.2",
     "@sanity/vision": "^6.16.0",
     "react": "19.2.8",

@@ -42,18 +42,18 @@ export function toSettings(doc: SettingsDoc): SiteSettings {
   return {
     title: doc.title?.trim() || DEFAULT_SETTINGS.title,
     description: doc.description?.trim() || DEFAULT_SETTINGS.description,
-    logo: doc.logo?.asset?._ref ? urlFor(doc.logo).width(1200).url() : null,
+    logo: doc.logo?.asset?._ref ? urlFor(doc.logo).width(1200).url() : DEFAULT_SETTINGS.logo,
     ...clampPlayers(doc.minPlayers, doc.maxPlayers),
     theme,
-    bodyFont: isFont(doc.bodyFont) ? doc.bodyFont : null,
-    displayFont: isFont(doc.displayFont) ? doc.displayFont : null,
+    bodyFont: isFont(doc.bodyFont) ? doc.bodyFont : DEFAULT_SETTINGS.bodyFont,
+    displayFont: isFont(doc.displayFont) ? doc.displayFont : DEFAULT_SETTINGS.displayFont,
     rulesPdf: { fr: file(doc.rulesPdfFrFile)?.url ?? url(doc.rulesPdfFr), en: file(doc.rulesPdfEnFile)?.url ?? url(doc.rulesPdfEn) },
     rulesPdfLinks: { fr: url(doc.rulesPdfFr), en: url(doc.rulesPdfEn) },
     files: { rulesFr: file(doc.rulesPdfFrFile), rulesEn: file(doc.rulesPdfEnFile), fontBody: file(doc.bodyFontFile), fontDisplay: file(doc.displayFontFile) },
     credits: {
-      authors: doc.creditsAuthors?.trim() || null,
-      publisher: doc.publisher?.trim() || null,
-      publisherUrl: url(doc.publisherUrl),
+      authors: doc.creditsAuthors?.trim() || DEFAULT_SETTINGS.credits.authors,
+      publisher: doc.publisher?.trim() || DEFAULT_SETTINGS.credits.publisher,
+      publisherUrl: url(doc.publisherUrl) ?? DEFAULT_SETTINGS.credits.publisherUrl,
     },
   }
 }

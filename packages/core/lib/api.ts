@@ -31,7 +31,7 @@ async function apiRequest(path: string, init?: RequestInit): Promise<PublicGame>
 const post = (path: string, body?: unknown) => apiRequest(path, { method: "POST", body: JSON.stringify(body ?? {}) })
 
 export type Profile = { nickname: string }
-export type ClientDebugCommand = "start" | "turn" | "over"
+export type ClientDebugCommand = "start" | "turn" | "over" | (string & {})
 
 export const api = {
   create: (profile: Profile) => post("/api/games", profile),

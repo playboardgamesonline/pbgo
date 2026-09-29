@@ -1,16 +1,8 @@
-import { DocumentTextIcon } from "@sanity/icons/DocumentText"
-import { defineField, defineType } from "sanity"
+import { createTexts } from "@pgo/studio-kit"
+import { defineField } from "sanity"
 
-export const texts = defineType({
-  name: "texts",
-  title: "Texts",
-  type: "document",
-  icon: DocumentTextIcon,
-  fields: [
-    defineField({ name: "missionsButton", title: "Missions button", type: "localeString" }),
-    defineField({ name: "guestsSettling", title: "Guests settling in", type: "localeString" }),
-    defineField({ name: "banquetStarts", title: "Banquet starts", type: "localeString" }),
-    defineField({ name: "winnerPhrases", title: "Winner phrases", type: "localeStringList" }),
-  ],
-  preview: { prepare: () => ({ title: "Texts" }) },
-})
+/** Textes communs (libellés d'interface, phrases de victoire…) + textes propres au banquet. */
+export const texts = createTexts([
+  defineField({ name: "missionsButton", title: "Missions button", description: "End of the opening (e.g. Missions comprises)", type: "localeString", group: "content" }),
+  defineField({ name: "banquetStarts", title: "Banquet starts", description: "Announcement after the opening", type: "localeString", group: "content" }),
+])

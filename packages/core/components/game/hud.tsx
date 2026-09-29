@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useState } from "react"
 import { Logo } from "@pgo/binding-ui"
 import type { RulesContent } from "../../lib/rules"
-import { RulesButton } from "../rules"
+import { GameRulesButton as RulesButton } from "../rules-slot"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { SoundButton } from "../sound/sound"
@@ -183,11 +183,12 @@ let counter = 0
 
 /**
  * File d'annonces plein écran : `announce(text, type, { subtitle, sound, replace })`, une à la fois, chacune pendant la durée de son préréglage.
- * `replace` retire de la file les annonces des types donnés (ex. « votre tour » périmé).
+ * `replace` retire de la file les annonces des types donnés (ex. « votre tour » périmé) ; `first` la place en tête.
  */
-export function useAnnouncements<T extends string>(settings: Record<T, AnnouncementSettings>) {
+export function useAnnouncements<T extends string>(settings: Record<T, AnnouncementSettings>, { paused = false }: { paused?: boolean } = {}) {
   const [queue, setQueue] = useState<Queued<T>[]>([])
-  const current = queue[0] ?? null
+  // en pause (ex. pendant l'ouverture), la file attend sans rien afficher
+  const current = paused ? null : (queue[0] ?? null)
   const announce = useCallback((text: string, type: T, options: { subtitle?: string; sound?: string; replace?: T[]; first?: boolean } = {}) => {
     const item = { id: ++counter, text, type, subtitle: options.subtitle, sound: options.sound }
     setQueue((q) => {

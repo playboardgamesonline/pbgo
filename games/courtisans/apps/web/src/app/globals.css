@@ -1,46 +1,72 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@source "../../../../../packages/ui/src";
+@source "../../../../../packages/core";
 
 @custom-variant dark (&:is(.dark *));
 
+/* Game theme: defaults, overridden at runtime by the /setup settings (inline style on <html>) */
 :root {
   --radius: 0.75rem;
+  --font-body: ui-rounded, "Avenir Next", "Nunito", system-ui, -apple-system, sans-serif;
+  --font-title: var(--font-body);
 
-  --background: oklch(0.29 0.05 205);
-  --foreground: #f0e9ce;
-  --card: oklch(0.34 0.055 205);
-  --card-foreground: #f0e9ce;
-  --popover: oklch(0.96 0.025 85);
-  --popover-foreground: oklch(0.28 0.04 205);
-  --primary: oklch(0.76 0.13 85);
-  --primary-foreground: oklch(0.24 0.04 205);
-  --secondary: oklch(0.93 0.03 85);
-  --secondary-foreground: oklch(0.28 0.04 205);
-  --muted: oklch(0.37 0.05 205);
-  --muted-foreground: oklch(0.8 0.03 85);
-  --accent: oklch(0.4 0.06 205);
-  --accent-foreground: #f0e9ce;
+  --background: #13213a;
+  --foreground: #f5f2ea;
+  --accent-game: #e8b43a;
+  --surface: #1b2c4a;
+  --surface-dark: #0d1729;
+
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: #f5f2ea;
+  --popover-foreground: #13213a;
+  --primary: var(--accent-game);
+  --primary-foreground: #13213a;
+  --secondary: #f5f2ea;
+  --secondary-foreground: #13213a;
+  --muted: #22355a;
+  --muted-foreground: #c9cfdc;
+  --accent: #22355a;
+  --accent-foreground: var(--foreground);
   --destructive: oklch(0.58 0.2 25);
-  --border: oklch(0.76 0.13 85 / 35%);
-  --input: oklch(0.76 0.13 85 / 45%);
-  --ring: oklch(0.76 0.13 85);
+  --border: color-mix(in oklab, var(--accent-game) 35%, transparent);
+  --input: color-mix(in oklab, var(--foreground) 35%, transparent);
+  --ring: var(--accent-game);
 
-  --famille-papillon: #c9d6de;
-  --famille-crapaud: #8a9a3c;
-  --famille-rossignol: #c8364a;
-  --famille-lievre: #e9b634;
-  --famille-cerf: #1f7a52;
-  --famille-carpe: #4a73c4;
-  --lumiere: oklch(0.86 0.12 88);
+  /* Courtisans */
+  --font-accent: var(--font-typey-file), Georgia, serif;
+  --family-butterfly: #c9d6de;
+  --family-toad: #8a9a3c;
+  --family-nightingale: #c8364a;
+  --family-hare: #e9b634;
+  --family-stag: #1f7a52;
+  --family-carp: #4a73c4;
+  --light: oklch(0.86 0.12 88);
   --disgrace: oklch(0.24 0.04 220);
+  --image-pattern: url("/home/PATTERN.webp");
+  --image-paper: url("/home/PAPER.webp");
 }
 
 @theme inline {
-  --font-sans: "Alegreya Variable", Georgia, serif;
-  --font-display: "Alegreya Variable", Georgia, serif;
-  --font-typey: var(--police-typey), Georgia, serif;
+  --font-sans: var(--font-body);
+  --font-display: var(--font-title);
+  --font-heading: var(--font-title);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-dark: var(--surface-dark);
+  --color-accent-game: var(--accent-game);
+  --font-typey: var(--font-accent);
+  --color-light: var(--light);
+  --color-disgrace: var(--disgrace);
+  --color-butterfly: var(--family-butterfly);
+  --color-toad: var(--family-toad);
+  --color-nightingale: var(--family-nightingale);
+  --color-hare: var(--family-hare);
+  --color-stag: var(--family-stag);
+  --color-carp: var(--family-carp);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -57,34 +83,71 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-lumiere: var(--lumiere);
-  --color-disgrace: var(--disgrace);
-  --color-papillon: var(--famille-papillon);
-  --color-crapaud: var(--famille-crapaud);
-  --color-rossignol: var(--famille-rossignol);
-  --color-lievre: var(--famille-lievre);
-  --color-cerf: var(--famille-cerf);
-  --color-carpe: var(--famille-carpe);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  button,
-  [role="button"] {
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
   body {
     @apply bg-background text-foreground font-sans;
-    background-image:
-      radial-gradient(ellipse at top, oklch(0.4 0.07 200 / 60%), transparent 60%),
-      radial-gradient(ellipse at bottom, oklch(0.2 0.04 220 / 80%), transparent 70%);
-    background-attachment: fixed;
   }
+}
+
+.game-bg {
+  background:
+    radial-gradient(120% 80% at 50% 40%, color-mix(in oklab, var(--background), white 14%) 0%, var(--background) 70%),
+    var(--background);
+}
+
+/* Admin (/setup, /status): shadcn preset b1VlJAwK — style luma, neutral, Inter, Hugeicons */
+.admin {
+  --radius: 0.625rem;
+  --font-body: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-title: var(--font-body);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  color-scheme: light;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+/* Courtisans : boutons en capitales espacées (hors /setup et /status) */
+:where(button, [role="button"]):not(.admin *) {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }

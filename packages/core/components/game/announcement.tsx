@@ -257,7 +257,8 @@ export function Announcement({ text, subtitle, settings: r, sound }: { text: str
           initial={{ opacity: 0, scale: r.startScale, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 180, damping: r.bounce, delay: 0.1 }}
-          className="flex max-w-full flex-col items-center gap-2 px-6 text-center font-display text-balance uppercase"
+          className="flex max-w-full flex-col items-center gap-2 px-6 text-center text-balance uppercase"
+          style={{ fontFamily: "var(--font-accent, var(--font-title))" }}
         >
           <h2 style={{ ...style, fontSize: `${r.size}rem`, lineHeight: 1.1, letterSpacing: `${r.spacing}em` }}>{text}</h2>
           {subtitle && <p style={{ ...style, fontSize: `${r.subtitleSize}rem`, lineHeight: 1.1, letterSpacing: `${r.spacing}em` }}>{subtitle}</p>}

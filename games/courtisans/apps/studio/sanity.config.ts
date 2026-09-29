@@ -1,21 +1,15 @@
-import { visionTool } from "@sanity/vision"
-import { defineConfig } from "sanity"
-import { structureTool } from "sanity/structure"
-import { schemaTypes } from "./schemaTypes"
-import { SINGLETONS, structure } from "./structure"
+import { createStudioConfig } from "@pgo/studio-kit"
+import { gameTypes } from "./schemaTypes"
 
-export default defineConfig({
-  name: "default",
+export default createStudioConfig({
   title: "Courtisans",
   projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "2lo2f5sv",
   dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
-  plugins: [structureTool({ structure }), visionTool()],
-  schema: {
-    types: schemaTypes,
-    templates: (templates) => templates.filter(({ schemaType }) => !SINGLETONS.includes(schemaType)),
-  },
-  document: {
-    actions: (actions, { schemaType }) =>
-      SINGLETONS.includes(schemaType) ? actions.filter(({ action }) => action && ["publish", "discardChanges", "restore"].includes(action)) : actions,
-  },
+  gameTypes,
+  collections: [
+    { type: "family", title: "Families" },
+    { type: "role", title: "Roles" },
+    { type: "courtier", title: "Courtiers" },
+    { type: "mission", title: "Missions" },
+  ],
 })

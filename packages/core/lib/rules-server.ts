@@ -1,4 +1,5 @@
 import "server-only"
+import * as serverBinding from "@pgo/binding-server"
 import { client } from "../sanity/client"
 import { urlFor } from "../sanity/image"
 import { type Localized, translate } from "./i18n"
@@ -10,7 +11,11 @@ type RulesSanity = {
   sections?: { title?: Localized; body?: Localized; image?: Parameters<typeof urlFor>[0] }[]
 } | null
 
+/** Règles propres au jeu (forme libre, lue par le `RulesButton` du jeu) : export facultatif `loadRules()` de @pgo/binding-server. */
+const gameRules = (serverBinding as { loadRules?: () => Promise<unknown> }).loadRules
+
 export async function loadRules(): Promise<RulesContent> {
+  if (gameRules) return (await gameRules()) as RulesContent
   if (!client) return DEFAULT_RULES
   try {
     const rules = await client.fetch<RulesSanity>(`*[_id == "rules"][0]{ intro, videoId, sections[]{ title, body, image } }`, {}, { next: { revalidate: 60 } })

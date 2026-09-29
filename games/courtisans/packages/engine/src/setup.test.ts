@@ -1,47 +1,47 @@
 import { describe, expect, it } from "vitest"
-import { creerCourtisans } from "./deck"
+import { createCourtiers } from "./deck"
 import { createRng } from "./rng"
-import { setupPartie } from "./setup"
-import { missionsTest } from "./test-utils"
+import { setupGame } from "./setup"
+import { testMissions } from "./test-utils"
 
-const joueurs = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, pseudo: `P${i}`, chateau: "c1" }))
+const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` }))
 
 describe("creerCourtisans", () => {
-  it("builds 90 cards, 15 per famille with the right roles", () => {
-    const cartes = creerCourtisans()
-    expect(cartes).toHaveLength(90)
-    expect(new Set(cartes.map((c) => c.id)).size).toBe(90)
-    const lievres = cartes.filter((c) => c.famille === "lievre")
-    expect(lievres).toHaveLength(15)
-    expect(lievres.filter((c) => c.role === "noble")).toHaveLength(4)
-    expect(lievres.filter((c) => c.role === "espion")).toHaveLength(2)
-    expect(lievres.filter((c) => c.role === "assassin")).toHaveLength(2)
-    expect(lievres.filter((c) => c.role === "garde")).toHaveLength(3)
-    expect(lievres.filter((c) => c.role === null)).toHaveLength(4)
+  it("builds 90 cards, 15 per family with the right roles", () => {
+    const cards = createCourtiers()
+    expect(cards).toHaveLength(90)
+    expect(new Set(cards.map((c) => c.id)).size).toBe(90)
+    const hares = cards.filter((c) => c.family === "hare")
+    expect(hares).toHaveLength(15)
+    expect(hares.filter((c) => c.role === "noble")).toHaveLength(4)
+    expect(hares.filter((c) => c.role === "spy")).toHaveLength(2)
+    expect(hares.filter((c) => c.role === "assassin")).toHaveLength(2)
+    expect(hares.filter((c) => c.role === "guard")).toHaveLength(3)
+    expect(hares.filter((c) => c.role === null)).toHaveLength(4)
   })
 })
 
-describe("setupPartie", () => {
+describe("setupGame", () => {
   it.each([
     [2, 30],
     [3, 18],
     [4, 6],
     [5, 0],
-  ])("with %i joueurs discards %i cards", (n, ecartees) => {
-    const state = setupPartie({ joueurs: joueurs(n), missions: missionsTest(), rng: createRng(1) })
-    expect(state.ecartees).toHaveLength(ecartees)
-    expect(state.pioche).toHaveLength(90 - ecartees - 3 * n)
-    for (const j of state.joueurs) {
-      expect(j.main).toHaveLength(3)
-      expect(j.missions.map((m) => m.couleur).sort()).toEqual(["blanche", "bleue"])
+  ])("with %i players sets aside %i cards", (n, setAside) => {
+    const state = setupGame({ players: players(n), missions: testMissions(), rng: createRng(1) })
+    expect(state.setAside).toHaveLength(setAside)
+    expect(state.deck).toHaveLength(90 - setAside - 3 * n)
+    for (const j of state.players) {
+      expect(j.hand).toHaveLength(3)
+      expect(j.missions.map((m) => m.color).sort()).toEqual(["blue", "white"])
     }
-    expect(state.phase).toBe("jeu")
-    expect(state.joueurActif).toBeGreaterThanOrEqual(0)
-    expect(state.joueurActif).toBeLessThan(n)
+    expect(state.phase).toBe("playing")
+    expect(state.activePlayer).toBeGreaterThanOrEqual(0)
+    expect(state.activePlayer).toBeLessThan(n)
   })
 
   it("rejects invalid player counts", () => {
-    expect(() => setupPartie({ joueurs: joueurs(1), missions: missionsTest() })).toThrow()
-    expect(() => setupPartie({ joueurs: joueurs(6), missions: missionsTest() })).toThrow()
+    expect(() => setupGame({ players: players(1), missions: testMissions() })).toThrow()
+    expect(() => setupGame({ players: players(6), missions: testMissions() })).toThrow()
   })
 })

@@ -1,109 +1,109 @@
-import { TAILLE_MAIN } from "./deck"
+import { HAND_SIZE } from "./deck"
 import { EngineError } from "./errors"
-import type { Action, Cible, Courtisan, GameState, ZoneJeu } from "./types"
+import type { Action, Target, Courtier, GameState, PlayZone } from "./types"
 
 export function applyAction(state: GameState, action: Action): GameState {
   const next = structuredClone(state)
   switch (action.type) {
-    case "lireMissions":
-      lireMissions(next, action.joueurId)
+    case "readMissions":
+      readMissions(next, action.playerId)
       break
-    case "jouerCarte":
-      jouerCarte(next, action.joueurId, action.carteId, action.cible, action.cibleAssassinat)
+    case "playCard":
+      playCard(next, action.playerId, action.cardId, action.target, action.victimId)
       break
   }
   return next
 }
 
-function lireMissions(state: GameState, joueurId: string) {
-  if (state.phase === "fin") throw new EngineError("PHASE_INVALIDE")
-  const joueur = state.joueurs.find((j) => j.id === joueurId)
-  if (!joueur) throw new EngineError("JOUEUR_INCONNU")
-  joueur.missionsLues = true
-  if (state.joueurs.every((j) => j.missionsLues)) state.phase = "jeu"
+function readMissions(state: GameState, playerId: string) {
+  if (state.phase === "over") throw new EngineError("INVALID_PHASE")
+  const player = state.players.find((j) => j.id === playerId)
+  if (!player) throw new EngineError("UNKNOWN_PLAYER")
+  player.missionsRead = true
+  if (state.players.every((j) => j.missionsRead)) state.phase = "playing"
 }
 
-export function zoneDeCible(state: GameState, joueurId: string, cible: Cible): ZoneJeu {
-  if (cible.zone === "table") return "table"
-  if (!state.joueurs.some((j) => j.id === cible.joueurId)) throw new EngineError("JOUEUR_INCONNU")
-  return cible.joueurId === joueurId ? "domaine" : "domaineAdverse"
+export function zoneOfTarget(state: GameState, playerId: string, target: Target): PlayZone {
+  if (target.zone === "table") return "table"
+  if (!state.players.some((j) => j.id === target.playerId)) throw new EngineError("UNKNOWN_PLAYER")
+  return target.playerId === playerId ? "domain" : "opponentDomain"
 }
 
-export function zonesDisponibles(state: GameState): ZoneJeu[] {
-  return (["table", "domaine", "domaineAdverse"] as const).filter((z) => !state.zonesJouees.includes(z))
+export function availableZones(state: GameState): PlayZone[] {
+  return (["table", "domain", "opponentDomain"] as const).filter((z) => !state.playedZones.includes(z))
 }
 
-export function joueurActifId(state: GameState): string | null {
-  return state.phase === "jeu" ? (state.joueurs[state.joueurActif]?.id ?? null) : null
+export function activePlayerId(state: GameState): string | null {
+  return state.phase === "playing" ? (state.players[state.activePlayer]?.id ?? null) : null
 }
 
-function jouerCarte(state: GameState, joueurId: string, carteId: string, cible: Cible, cibleAssassinat?: string) {
-  if (state.phase !== "jeu") throw new EngineError("PHASE_INVALIDE")
-  const joueur = state.joueurs[state.joueurActif]
-  if (!joueur || joueur.id !== joueurId) throw new EngineError("PAS_TON_TOUR")
+function playCard(state: GameState, playerId: string, cardId: string, target: Target, victimId?: string) {
+  if (state.phase !== "playing") throw new EngineError("INVALID_PHASE")
+  const player = state.players[state.activePlayer]
+  if (!player || player.id !== playerId) throw new EngineError("NOT_YOUR_TURN")
 
-  const index = joueur.main.findIndex((c) => c.id === carteId)
-  const carte = joueur.main[index]
-  if (!carte) throw new EngineError("CARTE_INCONNUE")
+  const index = player.hand.findIndex((c) => c.id === cardId)
+  const card = player.hand[index]
+  if (!card) throw new EngineError("UNKNOWN_CARD")
 
-  const zone = zoneDeCible(state, joueurId, cible)
-  if (state.zonesJouees.includes(zone)) throw new EngineError("ZONE_DEJA_JOUEE")
-  if (cibleAssassinat && carte.role !== "assassin") throw new EngineError("ASSASSINAT_INVALIDE")
+  const zone = zoneOfTarget(state, playerId, target)
+  if (state.playedZones.includes(zone)) throw new EngineError("ZONE_ALREADY_PLAYED")
+  if (victimId && card.role !== "assassin") throw new EngineError("INVALID_ASSASSINATION")
 
-  joueur.main.splice(index, 1)
-  if (cible.zone === "table") state.table.push({ carte, niveau: cible.niveau })
-  else state.joueurs.find((j) => j.id === cible.joueurId)!.domaine.push(carte)
-  state.journal.push({ type: "carteJouee", joueurId, carte, cible })
+  player.hand.splice(index, 1)
+  if (target.zone === "table") state.table.push({ card, level: target.level })
+  else state.players.find((j) => j.id === target.playerId)!.domain.push(card)
+  state.log.push({ type: "cardPlayed", playerId, card, target })
 
-  if (cibleAssassinat) assassiner(state, joueurId, carte, cible, cibleAssassinat)
+  if (victimId) assassinate(state, playerId, card, target, victimId)
 
-  state.zonesJouees.push(zone)
-  if (state.zonesJouees.length === 3 || joueur.main.length === 0) finirTour(state)
+  state.playedZones.push(zone)
+  if (state.playedZones.length === 3 || player.hand.length === 0) endTurn(state)
 }
 
-function assassiner(state: GameState, joueurId: string, assassin: Courtisan, cible: Cible, victimeId: string) {
-  if (victimeId === assassin.id) throw new EngineError("ASSASSINAT_INVALIDE")
+function assassinate(state: GameState, playerId: string, assassin: Courtier, target: Target, victimId: string) {
+  if (victimId === assassin.id) throw new EngineError("INVALID_ASSASSINATION")
 
-  let victime: Courtisan | undefined
-  let cibleVictime: Cible
-  if (cible.zone === "table") {
-    const i = state.table.findIndex((p) => p.carte.id === victimeId)
+  let victim: Courtier | undefined
+  let victimTarget: Target
+  if (target.zone === "table") {
+    const i = state.table.findIndex((p) => p.card.id === victimId)
     const placement = state.table[i]
-    if (!placement || placement.carte.role === "garde") throw new EngineError("ASSASSINAT_INVALIDE")
+    if (!placement || placement.card.role === "guard") throw new EngineError("INVALID_ASSASSINATION")
     state.table.splice(i, 1)
-    victime = placement.carte
-    cibleVictime = { zone: "table", niveau: placement.niveau }
+    victim = placement.card
+    victimTarget = { zone: "table", level: placement.level }
   } else {
-    const domaine = state.joueurs.find((j) => j.id === cible.joueurId)!.domaine
-    const i = domaine.findIndex((c) => c.id === victimeId)
-    victime = domaine[i]
-    if (!victime || victime.role === "garde") throw new EngineError("ASSASSINAT_INVALIDE")
-    domaine.splice(i, 1)
-    cibleVictime = cible
+    const domain = state.players.find((j) => j.id === target.playerId)!.domain
+    const i = domain.findIndex((c) => c.id === victimId)
+    victim = domain[i]
+    if (!victim || victim.role === "guard") throw new EngineError("INVALID_ASSASSINATION")
+    domain.splice(i, 1)
+    victimTarget = target
   }
 
-  state.eliminees.push(victime)
-  state.journal.push({ type: "carteEliminee", joueurId, carte: victime, cible: cibleVictime })
+  state.eliminated.push(victim)
+  state.log.push({ type: "cardEliminated", playerId, card: victim, target: victimTarget })
 }
 
-function finirTour(state: GameState) {
-  const joueur = state.joueurs[state.joueurActif]!
-  const piochees = state.pioche.splice(0, TAILLE_MAIN)
-  if (piochees.length > 0) {
-    joueur.main.push(...piochees)
-    state.journal.push({ type: "pioche", joueurId: joueur.id, nombre: piochees.length })
+function endTurn(state: GameState) {
+  const player = state.players[state.activePlayer]!
+  const drawn = state.deck.splice(0, HAND_SIZE)
+  if (drawn.length > 0) {
+    player.hand.push(...drawn)
+    state.log.push({ type: "draw", playerId: player.id, count: drawn.length })
   }
-  state.zonesJouees = []
+  state.playedZones = []
 
-  const total = state.joueurs.length
-  for (let pas = 1; pas <= total; pas++) {
-    const candidat = (state.joueurActif + pas) % total
-    if (state.joueurs[candidat]!.main.length > 0) {
-      state.joueurActif = candidat
-      state.numeroTour++
+  const total = state.players.length
+  for (let step = 1; step <= total; step++) {
+    const candidate = (state.activePlayer + step) % total
+    if (state.players[candidate]!.hand.length > 0) {
+      state.activePlayer = candidate
+      state.turnNumber++
       return
     }
   }
-  state.phase = "fin"
-  state.journal.push({ type: "finDePartie" })
+  state.phase = "over"
+  state.log.push({ type: "gameOver" })
 }

@@ -26,14 +26,16 @@ type StudioOptions = {
   title: string
   projectId: string
   dataset?: string
-  /** Types propres au jeu (ex. le singleton `game`, les cartes…) */
+  /** Types propres au jeu (ex. le singleton `game`, les cartes…) ; même nom qu'un type commun = remplacement */
   gameTypes?: SchemaTypeDefinition[]
   /** Documents non-singletons listés sous les singletons (ex. ["card", "role"]) */
   collections?: { type: string; title: string }[]
 }
 
 export function createStudioConfig({ title, projectId, dataset = "production", gameTypes = [], collections = [] }: StudioOptions) {
-  const types = [...commonSchemaTypes, ...gameTypes]
+  // un type du jeu portant le même nom qu'un type commun le remplace (ex. des règles propres au jeu)
+  const gameNames = new Set(gameTypes.map((t) => t.name))
+  const types = [...commonSchemaTypes.filter((t) => !gameNames.has(t.name)), ...gameTypes]
   const names = new Set(types.map((t) => t.name))
   const singletons = COMMON_SINGLETONS.filter((s) => names.has(s.id))
   const singletonIds = singletons.map((s) => s.id)

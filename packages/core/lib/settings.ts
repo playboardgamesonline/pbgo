@@ -1,3 +1,4 @@
+import * as binding from "@pgo/binding"
 import { GAME } from "@pgo/binding"
 import { FONT_CHOICES } from "@pgo/studio-kit/constants"
 import { DESCRIPTION, NAME } from "@pgo/binding"
@@ -55,7 +56,7 @@ export const THEME_FIELDS: { key: keyof ThemeColors; label: string; hint: string
   { key: "surfaceDark", label: "Surface foncée", hint: "Champs et fonds secondaires" },
 ]
 
-export const DEFAULT_THEME: ThemeColors = {
+const CORE_THEME: ThemeColors = {
   background: "#13213a",
   foreground: "#f5f2ea",
   accent: "#e8b43a",
@@ -63,7 +64,12 @@ export const DEFAULT_THEME: ThemeColors = {
   surfaceDark: "#0d1729",
 }
 
+export const DEFAULT_THEME: ThemeColors = { ...CORE_THEME, ...(binding as { SETTINGS_DEFAULTS?: { theme?: Partial<ThemeColors> } }).SETTINGS_DEFAULTS?.theme }
+
 export const PLAYER_BOUNDS = { min: GAME.minPlayers, max: GAME.maxPlayers }
+
+/** Valeurs par défaut propres au jeu (thème, polices, crédits…) quand Sanity n'a rien : export facultatif `SETTINGS_DEFAULTS` de @pgo/binding. */
+const gameDefaults = (binding as { SETTINGS_DEFAULTS?: Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> } }).SETTINGS_DEFAULTS ?? {}
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   title: NAME,
@@ -71,13 +77,14 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   logo: null,
   minPlayers: GAME.minPlayers,
   maxPlayers: GAME.maxPlayers,
-  theme: DEFAULT_THEME,
   bodyFont: null,
   displayFont: null,
   rulesPdf: { fr: null, en: null },
   rulesPdfLinks: { fr: null, en: null },
   files: { rulesFr: null, rulesEn: null, fontBody: null, fontDisplay: null },
   credits: { authors: null, publisher: null, publisherUrl: null },
+  ...gameDefaults,
+  theme: { ...DEFAULT_THEME, ...gameDefaults.theme },
 }
 
 const HEX = /^#[0-9a-fA-F]{6}$/

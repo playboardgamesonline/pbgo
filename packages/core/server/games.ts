@@ -1,4 +1,5 @@
 import "server-only"
+import * as serverBinding from "@pgo/binding-server"
 import { type State, GAME, type PlayerInfo, normalizeOptions, type OptionValues } from "@pgo/binding"
 import { type PublicGame, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { ApiError } from "./api"
@@ -77,8 +78,19 @@ async function notify(code: string, version: number) {
   }
 }
 
-export function newGame(row: GameRow): Pick<GameRow, "status" | "state" | "replay"> {
-  return { status: "playing", state: GAME.setup({ players: row.players, options: row.options }), replay: [] }
+/**
+ * Données de mise en place chargées côté serveur avant `GAME.setup` (ex. missions Sanity de Courtisans) :
+ * export facultatif `loadSetupData({ options })` de @pgo/binding-server.
+ */
+const setupLoader = (serverBinding as { loadSetupData?: (args: { options: OptionValues }) => Promise<unknown> }).loadSetupData
+
+export async function loadSetupData(options: OptionValues = {}): Promise<unknown> {
+  return setupLoader ? setupLoader({ options }) : undefined
+}
+
+export function newGame(row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay"> {
+  const setup = GAME.setup as (args: { players: PlayerInfo[]; options: OptionValues; data?: unknown }) => State
+  return { status: "playing", state: setup({ players: row.players, options: row.options, data }), replay: [] }
 }
 
 export function publicGame(row: GameRow, playerId: string | null): PublicGame {

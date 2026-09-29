@@ -13,8 +13,8 @@ export const mission = defineType({
       type: "string",
       options: {
         list: [
-          { title: "White", value: "blanche" },
-          { title: "Blue", value: "bleue" },
+          { title: "White", value: "white" },
+          { title: "Blue", value: "blue" },
         ],
         layout: "radio",
         direction: "horizontal",
@@ -27,6 +27,6 @@ export const mission = defineType({
   ],
   preview: {
     select: { title: "text.en", fallback: "text.fr", color: "color", media: "card" },
-    prepare: ({ title, fallback, color, media }) => ({ title: title || fallback, subtitle: color === "bleue" ? "Blue" : "White", media }),
+    prepare: ({ title, fallback, color, media }) => ({ title: title || fallback, subtitle: color === "blue" ? "Blue" : "White", media }),
   },
 })

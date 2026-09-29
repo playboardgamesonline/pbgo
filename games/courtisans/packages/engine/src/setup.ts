@@ -1,44 +1,44 @@
-import { CARTES_ECARTEES, TAILLE_MAIN, creerCourtisans } from "./deck"
+import { SET_ASIDE_CARDS, HAND_SIZE, createCourtiers } from "./deck"
 import { EngineError } from "./errors"
 import { type Rng, shuffle } from "./rng"
-import type { Courtisan, GameState, JoueurInfo, Mission } from "./types"
+import type { Courtier, GameState, PlayerInfo, Mission } from "./types"
 
 export type SetupOptions = {
-  joueurs: JoueurInfo[]
+  players: PlayerInfo[]
   missions: Mission[]
   rng?: Rng
-  courtisans?: Courtisan[]
+  courtiers?: Courtier[]
 }
 
-export function setupPartie({ joueurs, missions, rng = Math.random, courtisans = creerCourtisans() }: SetupOptions): GameState {
-  const nombre = joueurs.length
-  const aEcarter = CARTES_ECARTEES[nombre]
-  if (aEcarter === undefined) throw new EngineError("JOUEURS_INVALIDES", "2 à 5 joueurs")
-  if (new Set(joueurs.map((j) => j.id)).size !== nombre) throw new EngineError("JOUEURS_INVALIDES", "ids dupliqués")
+export function setupGame({ players, missions, rng = Math.random, courtiers = createCourtiers() }: SetupOptions): GameState {
+  const count = players.length
+  const toSetAside = SET_ASIDE_CARDS[count]
+  if (toSetAside === undefined) throw new EngineError("INVALID_PLAYERS", "2 à 5 joueurs")
+  if (new Set(players.map((j) => j.id)).size !== count) throw new EngineError("INVALID_PLAYERS", "ids dupliqués")
 
-  const blanches = shuffle(missions.filter((m) => m.couleur === "blanche"), rng)
-  const bleues = shuffle(missions.filter((m) => m.couleur === "bleue"), rng)
-  if (blanches.length < nombre || bleues.length < nombre) throw new EngineError("MISSIONS_INSUFFISANTES")
+  const whites = shuffle(missions.filter((m) => m.color === "white"), rng)
+  const blues = shuffle(missions.filter((m) => m.color === "blue"), rng)
+  if (whites.length < count || blues.length < count) throw new EngineError("NOT_ENOUGH_MISSIONS")
 
-  const melange = shuffle(courtisans, rng)
-  const ecartees = melange.splice(0, aEcarter)
+  const shuffled = shuffle(courtiers, rng)
+  const setAside = shuffled.splice(0, toSetAside)
 
   return {
-    joueurs: joueurs.map((joueur, i) => ({
-      ...joueur,
-      main: melange.splice(0, TAILLE_MAIN),
-      domaine: [],
-      missions: [blanches[i] as Mission, bleues[i] as Mission],
-      missionsLues: false,
+    players: players.map((player, i) => ({
+      ...player,
+      hand: shuffled.splice(0, HAND_SIZE),
+      domain: [],
+      missions: [whites[i] as Mission, blues[i] as Mission],
+      missionsRead: false,
     })),
-    pioche: melange,
-    ecartees,
-    eliminees: [],
+    deck: shuffled,
+    setAside,
+    eliminated: [],
     table: [],
-    joueurActif: Math.floor(rng() * nombre),
-    zonesJouees: [],
-    numeroTour: 1,
-    phase: "jeu",
-    journal: [],
+    activePlayer: Math.floor(rng() * count),
+    playedZones: [],
+    turnNumber: 1,
+    phase: "playing",
+    log: [],
   }
 }

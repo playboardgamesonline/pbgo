@@ -1,8 +1,8 @@
 import "server-only"
-import type { Condition, Famille, Mission, Role } from "@courtisans/engine"
-import { traduire } from "@/lib/i18n"
-import { MISSIONS_PAR_DEFAUT } from "@/lib/missions-par-defaut"
-import { getCatalogue } from "@/sanity/catalogue"
+import type { Condition, Family, Mission, Role } from "@courtisans/engine"
+import { translate } from "@pgo/core/lib/i18n"
+import { DEFAULT_MISSIONS } from "@/lib/default-missions"
+import { getCatalog } from "@/sanity/catalog"
 
 type ConditionSanity = {
   type?: string
@@ -18,58 +18,58 @@ type ConditionSanity = {
   conditions?: ConditionSanity[]
 }
 
-function filtre(c: ConditionSanity) {
+function filter(c: ConditionSanity) {
   return {
-    ...(c.familyFilter ? { famille: c.familyFilter as Famille } : {}),
-    ...(c.roleFilter ? { role: c.roleFilter as Role | "sansRole" } : {}),
+    ...(c.familyFilter ? { family: c.familyFilter as Family } : {}),
+    ...(c.roleFilter ? { role: c.roleFilter as Role | "noRole" } : {}),
   }
 }
 
-export function versCondition(c: ConditionSanity): Condition {
-  const comparateur = (c.comparator ?? "gte") as Extract<Condition, { comparateur: unknown }>["comparateur"]
-  const mode = (c.mode ?? "cartes") as "cartes" | "poids"
+export function toCondition(c: ConditionSanity): Condition {
+  const comparator = (c.comparator ?? "gte") as Extract<Condition, { comparator: unknown }>["comparator"]
+  const mode = (c.mode ?? "cards") as "cards" | "weight"
   switch (c.type) {
-    case "statutFamille":
-      return { type: "statutFamille", famille: c.family as Famille, statut: c.status as "lumiere" }
-    case "nombreFamillesStatut":
-      return { type: "nombreFamillesStatut", statut: c.status as "lumiere", comparateur, valeur: c.value ?? 0 }
-    case "nombreCartesDomaine":
-      return { type: "nombreCartesDomaine", filtre: filtre(c), comparateur, valeur: c.value ?? 0, mode }
-    case "nombreCartesTable":
+    case "familyStatus":
+      return { type: "familyStatus", family: c.family as Family, status: c.status as "light" }
+    case "familiesWithStatus":
+      return { type: "familiesWithStatus", status: c.status as "light", comparator, value: c.value ?? 0 }
+    case "domainCards":
+      return { type: "domainCards", filter: filter(c), comparator, value: c.value ?? 0, mode }
+    case "tableCards":
       return {
-        type: "nombreCartesTable",
-        filtre: filtre(c),
-        comparateur,
-        valeur: c.value ?? 0,
+        type: "tableCards",
+        filter: filter(c),
+        comparator,
+        value: c.value ?? 0,
         mode,
-        ...(c.level ? { niveau: c.level as "haut" | "bas" } : {}),
+        ...(c.level ? { level: c.level as "up" | "down" } : {}),
       }
-    case "comparaisonJoueurs":
-      return { type: "comparaisonJoueurs", filtre: filtre(c), comparateur, adversaire: c.opponent as "voisinGauche", mode }
-    case "et":
-    case "ou":
-      return { type: c.type, conditions: (c.conditions ?? []).map(versCondition) }
-    case "non":
-      return { type: "non", condition: versCondition(c.conditions?.[0] ?? {}) }
+    case "playerComparison":
+      return { type: "playerComparison", filter: filter(c), comparator, opponent: c.opponent as "leftNeighbor", mode }
+    case "and":
+    case "or":
+      return { type: c.type, conditions: (c.conditions ?? []).map(toCondition) }
+    case "not":
+      return { type: "not", condition: toCondition(c.conditions?.[0] ?? {}) }
     default:
       throw new Error(`Condition inconnue : ${c.type}`)
   }
 }
 
-export const MISSIONS_PROVISOIRES: Mission[] = MISSIONS_PAR_DEFAUT
+export const FALLBACK_MISSIONS: Mission[] = DEFAULT_MISSIONS
 
-export async function chargerMissions(nombreJoueurs: number): Promise<Mission[]> {
-  let depuisSanity: Mission[] = []
+export async function loadMissions(playerCount: number): Promise<Mission[]> {
+  let fromSanity: Mission[] = []
   try {
-    const { missions } = await getCatalogue()
-    depuisSanity = missions.flatMap((m) => {
+    const { missions } = await getCatalog()
+    fromSanity = missions.flatMap((m) => {
       try {
         return [
           {
             id: m._id,
-            couleur: m.color as Mission["couleur"],
-            texte: traduire(m.text) ?? "",
-            condition: versCondition(m.condition as ConditionSanity),
+            color: m.color as Mission["color"],
+            text: translate(m.text) ?? "",
+            condition: toCondition(m.condition as ConditionSanity),
           },
         ]
       } catch {
@@ -80,10 +80,10 @@ export async function chargerMissions(nombreJoueurs: number): Promise<Mission[]>
     console.error("Catalogue Sanity indisponible", error)
   }
 
-  return (["blanche", "bleue"] as const).flatMap((couleur) => {
-    const valides = depuisSanity.filter((m) => m.couleur === couleur)
-    const textes = new Set(valides.map((m) => m.texte))
-    const complements = MISSIONS_PROVISOIRES.filter((m) => m.couleur === couleur && !textes.has(m.texte))
-    return [...valides, ...complements.slice(0, Math.max(0, nombreJoueurs - valides.length))]
+  return (["white", "blue"] as const).flatMap((color) => {
+    const valid = fromSanity.filter((m) => m.color === color)
+    const texts = new Set(valid.map((m) => m.text))
+    const fillers = FALLBACK_MISSIONS.filter((m) => m.color === color && !texts.has(m.text))
+    return [...valid, ...fillers.slice(0, Math.max(0, playerCount - valid.length))]
   })
 }

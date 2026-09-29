@@ -1,0 +1,98 @@
+import "server-only"
+import type { Family, Role } from "@courtisans/engine"
+import { DEFAULT_CATALOG, type ClientCatalog, cardKey, ROLE_VISUAL_FAMILIES, RULES_MISSION_VISUALS, type RoleRules } from "@/lib/catalog"
+import { DEFAULT_RULE_TEXTS, type RuleTexts } from "@/lib/default-rules"
+import { type Localized, translate } from "@pgo/core/lib/i18n"
+import { client } from "@pgo/core/sanity/client"
+import { getCatalog } from "./catalog"
+import { urlFor } from "@pgo/core/sanity/image"
+
+type Source = Parameters<typeof urlFor>[0]
+const url = (source: Source | null | undefined, width: number) => (source ? urlFor(source).width(width).url() : null)
+
+export async function getClientCatalog(): Promise<ClientCatalog> {
+  if (!client) return DEFAULT_CATALOG
+  try {
+    const { game, rules, texts, families, roles, courtiers, missions } = await getCatalog()
+    const d = DEFAULT_CATALOG
+
+    const familiesMap = { ...d.families }
+    for (const f of families) {
+      const key = f.key as Family | undefined
+      if (!key || !familiesMap[key]) continue
+      familiesMap[key] = {
+        ...familiesMap[key],
+        name: translate(f.name) ?? familiesMap[key].name,
+        color: f.color ?? familiesMap[key].color,
+        pictogramUrl: url(f.pictogram, 128) ?? familiesMap[key].pictogramUrl,
+      }
+    }
+    const rolesMap = { ...d.roles }
+    const roleRules: Record<Role, RoleRules> = { ...d.rules.roles }
+    for (const r of roles) {
+      const key = r.key as Role | undefined
+      if (!key || !rolesMap[key]) continue
+      const name = translate(r.name) ?? rolesMap[key].name
+      rolesMap[key] = { ...rolesMap[key], name, pictogramUrl: url(r.pictogram, 128) ?? rolesMap[key].pictogramUrl }
+      roleRules[key] = {
+        ...roleRules[key],
+        name,
+        count: r.countPerFamily ?? roleRules[key].count,
+        text: translate(r.rule) || roleRules[key].text,
+        letteringUrl: r.lettering ?? null,
+        pictogramUrl: rolesMap[key].pictogramUrl,
+      }
+    }
+
+    const cards: Record<string, string> = { ...d.cards }
+    for (const c of courtiers) {
+      const imageUrl = url(c.card, 360)
+      if (c.family && imageUrl) cards[cardKey(c.family as Family, (c.role as Role | null) ?? null)] = imageUrl
+    }
+    for (const r of Object.keys(roleRules) as Role[])
+      roleRules[r] = { ...roleRules[r], cards: ROLE_VISUAL_FAMILIES[r].map((f) => cards[cardKey(f, r)]) as [string, string] }
+    const missionsMap: Record<string, string> = { ...d.missions }
+    for (const m of missions) {
+      const imageUrl = url(m.card, 520)
+      if (imageUrl) missionsMap[m._id] = imageUrl
+    }
+
+    return {
+      families: familiesMap,
+      roles: rolesMap,
+      cards,
+      missions: missionsMap,
+      matUrl: url(game?.mat, 2000) ?? d.matUrl,
+      clothUrl: url(game?.matTexture, 1024) ?? d.clothUrl,
+      courtierBackUrl: url(game?.courtierBack, 360) ?? d.courtierBackUrl,
+      whiteMissionBackUrl: url(game?.whiteMissionBack, 520) ?? d.whiteMissionBackUrl,
+      blueMissionBackUrl: url(game?.blueMissionBack, 520) ?? d.blueMissionBackUrl,
+      arrowUpUrl: url(game?.arrowUp, 256) ?? d.arrowUpUrl,
+      arrowDownUrl: url(game?.arrowDown, 256) ?? d.arrowDownUrl,
+      rules: {
+        texts: Object.fromEntries(
+          Object.entries(DEFAULT_RULE_TEXTS).map(([key, defaultValue]) => {
+            const raw = rules?.[key as keyof typeof rules] as unknown
+            const value = typeof raw === "string" ? raw : translate(raw as Localized)
+            return [key, value?.trim() ? value : defaultValue]
+          }),
+        ) as RuleTexts,
+        roles: roleRules,
+        families: d.rules.families.map((f) => ({
+          ...f,
+          name: familiesMap[f.key].name,
+          color: familiesMap[f.key].color,
+          pictogramUrl: familiesMap[f.key].pictogramUrl,
+          cardUrl: cards[cardKey(f.key, null)] ?? f.cardUrl,
+        })),
+        missions: RULES_MISSION_VISUALS.map((id, i) => missionsMap[id] ?? d.rules.missions[i]!) as [string, string],
+        pictoFrame: url(game?.pictogramFrame, 240) ?? d.rules.pictoFrame,
+      },
+      missionsButtonText: translate(texts?.missionsButton)?.trim() || d.missionsButtonText,
+      banquetStartText: translate(texts?.banquetStarts)?.trim() || d.banquetStartText,
+    }
+  } catch (error) {
+    console.error("Catalogue Sanity indisponible", error)
+    return DEFAULT_CATALOG
+  }
+}

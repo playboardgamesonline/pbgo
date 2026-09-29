@@ -15,49 +15,27 @@
 export declare const internalGroqTypeReferenceTo: unique symbol;
 
 // Source: schema.json
-export type LocaleStringList = {
-  _type: "localeStringList";
-  fr?: Array<string>;
-  en?: Array<string>;
-};
-
-export type LocaleText = {
-  _type: "localeText";
-  fr?: string;
-  en?: string;
-};
-
-export type LocaleString = {
-  _type: "localeString";
-  fr?: string;
-  en?: string;
-};
-
 export type Condition = {
   _type: "condition";
   type?:
-    | "statutFamille"
-    | "nombreFamillesStatut"
-    | "nombreCartesDomaine"
-    | "nombreCartesTable"
-    | "comparaisonJoueurs"
-    | "et"
-    | "ou"
-    | "non";
-  family?: "papillon" | "crapaud" | "rossignol" | "lievre" | "cerf" | "carpe";
-  status?: "lumiere" | "disgrace" | "neutre";
+    | "familyStatus"
+    | "familiesWithStatus"
+    | "domainCards"
+    | "tableCards"
+    | "playerComparison"
+    | "and"
+    | "or"
+    | "not";
+  family?: "butterfly" | "toad" | "nightingale" | "hare" | "stag" | "carp";
+  status?: "light" | "disgrace" | "neutral";
   familyFilter?:
-    "papillon" | "crapaud" | "rossignol" | "lievre" | "cerf" | "carpe";
-  roleFilter?: "noble" | "espion" | "assassin" | "garde" | "sansRole";
-  level?: "haut" | "bas";
+    "butterfly" | "toad" | "nightingale" | "hare" | "stag" | "carp";
+  roleFilter?: "noble" | "spy" | "assassin" | "guard" | "noRole";
+  level?: "up" | "down";
   comparator?: "gte" | "lte" | "eq" | "gt" | "lt";
   value?: number;
-  opponent?:
-    | "voisinGauche"
-    | "voisinDroite"
-    | "tousLesAdversaires"
-    | "auMoinsUnAdversaire";
-  mode?: "cartes" | "poids";
+  opponent?: "leftNeighbor" | "rightNeighbor" | "allOpponents" | "anyOpponent";
+  mode?: "cards" | "weight";
   conditions?: Array<
     {
       _key: string;
@@ -78,7 +56,7 @@ export type Mission = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
-  color?: "blanche" | "bleue";
+  color?: "white" | "blue";
   text?: LocaleText;
   card?: {
     asset?: SanityImageAssetReference;
@@ -104,6 +82,12 @@ export type SanityImageHotspot = {
   y?: number;
   height?: number;
   width?: number;
+};
+
+export type LocaleText = {
+  _type: "localeText";
+  fr?: string;
+  en?: string;
 };
 
 export type FamilyReference = {
@@ -145,7 +129,7 @@ export type Role = {
   _updatedAt: string;
   _rev: string;
   name?: LocaleString;
-  key?: "noble" | "espion" | "assassin" | "garde";
+  key?: "noble" | "spy" | "assassin" | "guard";
   countPerFamily?: number;
   pictogram?: {
     asset?: SanityImageAssetReference;
@@ -164,6 +148,12 @@ export type Role = {
   rule?: LocaleText;
 };
 
+export type LocaleString = {
+  _type: "localeString";
+  fr?: string;
+  en?: string;
+};
+
 export type Family = {
   _id: string;
   _type: "family";
@@ -171,7 +161,7 @@ export type Family = {
   _updatedAt: string;
   _rev: string;
   name?: LocaleString;
-  key?: "papillon" | "crapaud" | "rossignol" | "lievre" | "cerf" | "carpe";
+  key?: "butterfly" | "toad" | "nightingale" | "hare" | "stag" | "carp";
   color?: string;
   pictogram?: {
     asset?: SanityImageAssetReference;
@@ -188,10 +178,54 @@ export type Texts = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  tagline?: LocaleString;
+  homeTitle?: LocaleString;
+  homeIntro?: LocaleText;
+  victoryPhrases?: LocaleStringList;
+  ui_home?: {
+    nicknamePlaceholder?: LocaleString;
+    createButton?: LocaleString;
+    joinButton?: LocaleString;
+    chooseNickname?: LocaleString;
+    codeLength?: LocaleString;
+    linkCopied?: LocaleString;
+    linkCopiedHint?: LocaleString;
+    gameCreated?: LocaleString;
+    codeLabel?: LocaleString;
+    copyLink?: LocaleString;
+  };
+  ui_lobby?: {
+    joinGameButton?: LocaleString;
+    gameNotFound?: LocaleString;
+    alreadyStarted?: LocaleString;
+    backHome?: LocaleString;
+    shareInvite?: LocaleString;
+    playerCount?: LocaleString;
+    you?: LocaleString;
+    host?: LocaleString;
+    startButton?: LocaleString;
+    waitingPlayers?: LocaleString;
+    waitingHost?: LocaleString;
+  };
+  ui_game?: {
+    yourTurn?: LocaleString;
+    turnOf?: LocaleString;
+    yourTurnShort?: LocaleString;
+    turnOfShort?: LocaleString;
+    waiting?: LocaleString;
+    gameOver?: LocaleString;
+    leave?: LocaleString;
+    replay?: LocaleString;
+    desktopOnly?: LocaleString;
+  };
   missionsButton?: LocaleString;
-  guestsSettling?: LocaleString;
   banquetStarts?: LocaleString;
-  winnerPhrases?: LocaleStringList;
+};
+
+export type LocaleStringList = {
+  _type: "localeStringList";
+  fr?: Array<string>;
+  en?: Array<string>;
 };
 
 export type Rules = {
@@ -247,18 +281,6 @@ export type Game = {
     crop?: SanityImageCrop;
     _type: "image";
   };
-  decorations?: Array<{
-    name?: string;
-    image?: {
-      asset?: SanityImageAssetReference;
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    };
-    _type: "decoration";
-    _key: string;
-  }>;
   courtierBack?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
@@ -274,56 +296,6 @@ export type Game = {
     _type: "image";
   };
   blueMissionBack?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-};
-
-export type Interface = {
-  _id: string;
-  _type: "interface";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  logo?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  banquetTop?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  banquetBottom?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  queen?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  pattern?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  paper?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
     hotspot?: SanityImageHotspot;
@@ -351,6 +323,157 @@ export type Interface = {
     crop?: SanityImageCrop;
     _type: "image";
   };
+  paper?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+};
+
+export type Interface = {
+  _id: string;
+  _type: "interface";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  background?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  pattern?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  decorTop?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  decorBottom?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  hero?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  hostIcon?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  playerColors?: Array<string>;
+  desktopOnly?: boolean;
+};
+
+export type SanityFileAssetReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "sanity.fileAsset";
+};
+
+export type Settings = {
+  _id: string;
+  _type: "settings";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  title?: string;
+  description?: string;
+  logo?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  minPlayers?: number;
+  maxPlayers?: number;
+  theme?: {
+    background?: string;
+    foreground?: string;
+    accent?: string;
+    surface?: string;
+    surfaceDark?: string;
+  };
+  bodyFont?:
+    | "Inter"
+    | "Nunito"
+    | "Fredoka"
+    | "Baloo 2"
+    | "Poppins"
+    | "Outfit"
+    | "DM Sans"
+    | "Montserrat"
+    | "Space Grotesk"
+    | "Lilita One"
+    | "Bangers"
+    | "Bebas Neue"
+    | "Cinzel"
+    | "Playfair Display"
+    | "Alegreya"
+    | "Press Start 2P";
+  displayFont?:
+    | "Inter"
+    | "Nunito"
+    | "Fredoka"
+    | "Baloo 2"
+    | "Poppins"
+    | "Outfit"
+    | "DM Sans"
+    | "Montserrat"
+    | "Space Grotesk"
+    | "Lilita One"
+    | "Bangers"
+    | "Bebas Neue"
+    | "Cinzel"
+    | "Playfair Display"
+    | "Alegreya"
+    | "Press Start 2P";
+  bodyFontFile?: {
+    asset?: SanityFileAssetReference;
+    media?: unknown;
+    _type: "file";
+  };
+  displayFontFile?: {
+    asset?: SanityFileAssetReference;
+    media?: unknown;
+    _type: "file";
+  };
+  rulesPdfFrFile?: {
+    asset?: SanityFileAssetReference;
+    media?: unknown;
+    _type: "file";
+  };
+  rulesPdfEnFile?: {
+    asset?: SanityFileAssetReference;
+    media?: unknown;
+    _type: "file";
+  };
+  rulesPdfFr?: string;
+  rulesPdfEn?: string;
+  creditsAuthors?: string;
+  publisher?: string;
+  publisherUrl?: string;
 };
 
 export type SanityImagePaletteSwatch = {
@@ -457,23 +580,25 @@ export type Slug = {
 };
 
 export type AllSanitySchemaTypes =
-  | LocaleStringList
-  | LocaleText
-  | LocaleString
   | Condition
   | SanityImageAssetReference
   | Mission
   | SanityImageCrop
   | SanityImageHotspot
+  | LocaleText
   | FamilyReference
   | RoleReference
   | Courtier
   | Role
+  | LocaleString
   | Family
   | Texts
+  | LocaleStringList
   | Rules
   | Game
   | Interface
+  | SanityFileAssetReference
+  | Settings
   | SanityImagePaletteSwatch
   | SanityImagePalette
   | SanityImageDimensions
@@ -485,87 +610,9 @@ export type AllSanitySchemaTypes =
   | Slug;
 
 // Source: ../web/src/sanity/queries.ts
-// Variable: CATALOGUE_QUERY
-// Query: {  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, queen, pattern, paper, pictogramFrame, arrowUp, arrowDown },  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },  "rules": *[_id == "rules"][0],  "texts": *[_id == "texts"][0]{ missionsButton, guestsSettling, banquetStarts, winnerPhrases },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
-export type CATALOGUE_QUERY_RESULT = {
-  interface:
-    | {
-        logo: null;
-        banquetTop: null;
-        banquetBottom: null;
-        queen: null;
-        pattern: null;
-        paper: null;
-        pictogramFrame: null;
-        arrowUp: null;
-        arrowDown: null;
-      }
-    | {
-        logo: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        banquetTop: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        banquetBottom: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        queen: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        pattern: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        paper: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        pictogramFrame: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        arrowUp: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        arrowDown: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-      }
-    | null;
+// Variable: CATALOG_QUERY
+// Query: {  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },  "rules": *[_id == "rules"][0],  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
+export type CATALOG_QUERY_RESULT = {
   game:
     | {
         mat: null;
@@ -573,6 +620,9 @@ export type CATALOGUE_QUERY_RESULT = {
         courtierBack: null;
         whiteMissionBack: null;
         blueMissionBack: null;
+        pictogramFrame: null;
+        arrowUp: null;
+        arrowDown: null;
       }
     | {
         mat: {
@@ -610,6 +660,27 @@ export type CATALOGUE_QUERY_RESULT = {
           crop?: SanityImageCrop;
           _type: "image";
         } | null;
+        pictogramFrame: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+        arrowUp: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+        arrowDown: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
       }
     | null;
   rules:
@@ -637,8 +708,7 @@ export type CATALOGUE_QUERY_RESULT = {
         _updatedAt: string;
         _rev: string;
         name?: LocaleString;
-        key?:
-          "carpe" | "cerf" | "crapaud" | "lievre" | "papillon" | "rossignol";
+        key?: "butterfly" | "carp" | "hare" | "nightingale" | "stag" | "toad";
         color?: string;
         pictogram?: {
           asset?: SanityImageAssetReference;
@@ -668,18 +738,6 @@ export type CATALOGUE_QUERY_RESULT = {
           crop?: SanityImageCrop;
           _type: "image";
         };
-        decorations?: Array<{
-          name?: string;
-          image?: {
-            asset?: SanityImageAssetReference;
-            media?: unknown;
-            hotspot?: SanityImageHotspot;
-            crop?: SanityImageCrop;
-            _type: "image";
-          };
-          _type: "decoration";
-          _key: string;
-        }>;
         courtierBack?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
@@ -695,55 +753,6 @@ export type CATALOGUE_QUERY_RESULT = {
           _type: "image";
         };
         blueMissionBack?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-      }
-    | {
-        _id: "rules";
-        _type: "interface";
-        _createdAt: string;
-        _updatedAt: string;
-        _rev: string;
-        logo?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        banquetTop?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        banquetBottom?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        queen?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        pattern?: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        };
-        paper?: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
@@ -771,6 +780,64 @@ export type CATALOGUE_QUERY_RESULT = {
           crop?: SanityImageCrop;
           _type: "image";
         };
+        paper?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+      }
+    | {
+        _id: "rules";
+        _type: "interface";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        background?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        pattern?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        decorTop?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        decorBottom?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        hero?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        hostIcon?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        playerColors?: Array<string>;
+        desktopOnly?: boolean;
       }
     | {
         _id: "rules";
@@ -778,7 +845,7 @@ export type CATALOGUE_QUERY_RESULT = {
         _createdAt: string;
         _updatedAt: string;
         _rev: string;
-        color?: "blanche" | "bleue";
+        color?: "blue" | "white";
         text?: LocaleText;
         card?: {
           asset?: SanityImageAssetReference;
@@ -796,7 +863,7 @@ export type CATALOGUE_QUERY_RESULT = {
         _updatedAt: string;
         _rev: string;
         name?: LocaleString;
-        key?: "assassin" | "espion" | "garde" | "noble";
+        key?: "assassin" | "guard" | "noble" | "spy";
         countPerFamily?: number;
         pictogram?: {
           asset?: SanityImageAssetReference;
@@ -891,35 +958,152 @@ export type CATALOGUE_QUERY_RESULT = {
       }
     | {
         _id: "rules";
+        _type: "settings";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        title?: string;
+        description?: string;
+        logo?: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        };
+        minPlayers?: number;
+        maxPlayers?: number;
+        theme?: {
+          background?: string;
+          foreground?: string;
+          accent?: string;
+          surface?: string;
+          surfaceDark?: string;
+        };
+        bodyFont?:
+          | "Alegreya"
+          | "Baloo 2"
+          | "Bangers"
+          | "Bebas Neue"
+          | "Cinzel"
+          | "DM Sans"
+          | "Fredoka"
+          | "Inter"
+          | "Lilita One"
+          | "Montserrat"
+          | "Nunito"
+          | "Outfit"
+          | "Playfair Display"
+          | "Poppins"
+          | "Press Start 2P"
+          | "Space Grotesk";
+        displayFont?:
+          | "Alegreya"
+          | "Baloo 2"
+          | "Bangers"
+          | "Bebas Neue"
+          | "Cinzel"
+          | "DM Sans"
+          | "Fredoka"
+          | "Inter"
+          | "Lilita One"
+          | "Montserrat"
+          | "Nunito"
+          | "Outfit"
+          | "Playfair Display"
+          | "Poppins"
+          | "Press Start 2P"
+          | "Space Grotesk";
+        bodyFontFile?: {
+          asset?: SanityFileAssetReference;
+          media?: unknown;
+          _type: "file";
+        };
+        displayFontFile?: {
+          asset?: SanityFileAssetReference;
+          media?: unknown;
+          _type: "file";
+        };
+        rulesPdfFrFile?: {
+          asset?: SanityFileAssetReference;
+          media?: unknown;
+          _type: "file";
+        };
+        rulesPdfEnFile?: {
+          asset?: SanityFileAssetReference;
+          media?: unknown;
+          _type: "file";
+        };
+        rulesPdfFr?: string;
+        rulesPdfEn?: string;
+        creditsAuthors?: string;
+        publisher?: string;
+        publisherUrl?: string;
+      }
+    | {
+        _id: "rules";
         _type: "texts";
         _createdAt: string;
         _updatedAt: string;
         _rev: string;
+        tagline?: LocaleString;
+        homeTitle?: LocaleString;
+        homeIntro?: LocaleText;
+        victoryPhrases?: LocaleStringList;
+        ui_home?: {
+          nicknamePlaceholder?: LocaleString;
+          createButton?: LocaleString;
+          joinButton?: LocaleString;
+          chooseNickname?: LocaleString;
+          codeLength?: LocaleString;
+          linkCopied?: LocaleString;
+          linkCopiedHint?: LocaleString;
+          gameCreated?: LocaleString;
+          codeLabel?: LocaleString;
+          copyLink?: LocaleString;
+        };
+        ui_lobby?: {
+          joinGameButton?: LocaleString;
+          gameNotFound?: LocaleString;
+          alreadyStarted?: LocaleString;
+          backHome?: LocaleString;
+          shareInvite?: LocaleString;
+          playerCount?: LocaleString;
+          you?: LocaleString;
+          host?: LocaleString;
+          startButton?: LocaleString;
+          waitingPlayers?: LocaleString;
+          waitingHost?: LocaleString;
+        };
+        ui_game?: {
+          yourTurn?: LocaleString;
+          turnOf?: LocaleString;
+          yourTurnShort?: LocaleString;
+          turnOfShort?: LocaleString;
+          waiting?: LocaleString;
+          gameOver?: LocaleString;
+          leave?: LocaleString;
+          replay?: LocaleString;
+          desktopOnly?: LocaleString;
+        };
         missionsButton?: LocaleString;
-        guestsSettling?: LocaleString;
         banquetStarts?: LocaleString;
-        winnerPhrases?: LocaleStringList;
       }
     | null;
   texts:
     | {
         missionsButton: null;
-        guestsSettling: null;
         banquetStarts: null;
-        winnerPhrases: null;
       }
     | {
         missionsButton: LocaleString | null;
-        guestsSettling: LocaleString | null;
         banquetStarts: LocaleString | null;
-        winnerPhrases: LocaleStringList | null;
       }
     | null;
   families: Array<{
     _id: string;
     name: LocaleString | null;
-    key:
-      "carpe" | "cerf" | "crapaud" | "lievre" | "papillon" | "rossignol" | null;
+    key: "butterfly" | "carp" | "hare" | "nightingale" | "stag" | "toad" | null;
     color: string | null;
     pictogram: {
       asset?: SanityImageAssetReference;
@@ -932,7 +1116,7 @@ export type CATALOGUE_QUERY_RESULT = {
   roles: Array<{
     _id: string;
     name: LocaleString | null;
-    key: "assassin" | "espion" | "garde" | "noble" | null;
+    key: "assassin" | "guard" | "noble" | "spy" | null;
     countPerFamily: number | null;
     pictogram: {
       asset?: SanityImageAssetReference;
@@ -955,12 +1139,12 @@ export type CATALOGUE_QUERY_RESULT = {
       _type: "image";
     } | null;
     family:
-      "carpe" | "cerf" | "crapaud" | "lievre" | "papillon" | "rossignol" | null;
-    role: "assassin" | "espion" | "garde" | "noble" | null;
+      "butterfly" | "carp" | "hare" | "nightingale" | "stag" | "toad" | null;
+    role: "assassin" | "guard" | "noble" | "spy" | null;
   }>;
   missions: Array<{
     _id: string;
-    color: "blanche" | "bleue" | null;
+    color: "blue" | "white" | null;
     text: LocaleText | null;
     card: {
       asset?: SanityImageAssetReference;
@@ -976,7 +1160,7 @@ export type CATALOGUE_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "interface": *[_id == "interface"][0]{ logo, banquetTop, banquetBottom, queen, pattern, paper, pictogramFrame, arrowUp, arrowDown },\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack },\n  "rules": *[_id == "rules"][0],\n  "texts": *[_id == "texts"][0]{ missionsButton, guestsSettling, banquetStarts, winnerPhrases },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOGUE_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },\n  "rules": *[_id == "rules"][0],\n  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

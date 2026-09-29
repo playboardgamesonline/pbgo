@@ -18,7 +18,7 @@ import type { RulesContent } from "@pgo/core/lib/rules"
 
 const Scene = dynamic(() => import("@/components/game3d/scene").then((m) => m.Scene), { ssr: false })
 
-type Props = { game: PublicGame; rules: RulesContent; onUpdate: (p: PublicGame) => void; onLeave: () => void }
+type Props = { game: PublicGame; rules: RulesContent; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
 
 export function Game(props: Props) {
   const view = props.game.view

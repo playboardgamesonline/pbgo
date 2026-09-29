@@ -1,63 +1,66 @@
-import { POINTS_MISSION, poids } from "./deck"
-import { evaluerCondition } from "./missions"
-import { FAMILLES, type Courtisan, type Famille, type GameState, type Placement, type Statut } from "./types"
+import type { PlayerResult, Results } from "@pgo/engine-kit"
+import { MISSION_POINTS, weight } from "./deck"
+import { evaluateCondition } from "./missions"
+import { FAMILIES, type Courtier, type Family, type GameState, type Placement, type Status } from "./types"
 
-export type StatutFamille = { haut: number; bas: number; statut: Statut }
-export type Statuts = Record<Famille, StatutFamille>
+export type FamilyStatus = { up: number; down: number; status: Status }
+export type Statuses = Record<Family, FamilyStatus>
 
-export type DetailFamille = { famille: Famille; poids: number; points: number }
+export type FamilyDetail = { family: Family; weight: number; points: number }
 
-export type ResultatJoueur = {
-  joueurId: string
-  pointsDomaine: number
-  detail: DetailFamille[]
-  missions: { missionId: string; validee: boolean; points: number }[]
-  total: number
-  rang: number
+/** Résultat d'un joueur : contrat commun (`detail` générique) + détail propre à Courtisans (familles, missions). */
+export type CourtisansPlayerResult = PlayerResult & {
+  domainPoints: number
+  families: FamilyDetail[]
+  missions: { missionId: string; done: boolean; points: number }[]
 }
 
-export type Resultats = {
-  statuts: Statuts
-  joueurs: ResultatJoueur[]
-  vainqueurs: string[]
+export type CourtisansResults = Omit<Results, "players"> & {
+  statuses: Statuses
+  players: CourtisansPlayerResult[]
 }
 
-export function calculerStatuts(table: Placement[]): Statuts {
-  const statuts = Object.fromEntries(FAMILLES.map((f) => [f, { haut: 0, bas: 0, statut: "neutre" }])) as Statuts
-  for (const { carte, niveau } of table) statuts[carte.famille][niveau] += poids(carte)
-  for (const s of Object.values(statuts)) {
-    s.statut = s.haut > s.bas ? "lumiere" : s.bas > s.haut ? "disgrace" : "neutre"
+export function computeStatuses(table: Placement[]): Statuses {
+  const statuses = Object.fromEntries(FAMILIES.map((f) => [f, { up: 0, down: 0, status: "neutral" }])) as Statuses
+  for (const { card, level } of table) statuses[card.family][level] += weight(card)
+  for (const s of Object.values(statuses)) {
+    s.status = s.up > s.down ? "light" : s.down > s.up ? "disgrace" : "neutral"
   }
-  return statuts
+  return statuses
 }
 
-export function valeurStatut(statut: Statut): number {
-  return statut === "lumiere" ? 1 : statut === "disgrace" ? -1 : 0
+export function statusValue(status: Status): number {
+  return status === "light" ? 1 : status === "disgrace" ? -1 : 0
 }
 
-export function pointsDomaine(domaine: Courtisan[], statuts: Statuts): { total: number; detail: DetailFamille[] } {
-  const detail = FAMILLES.map((famille) => {
-    const p = domaine.filter((c) => c.famille === famille).reduce((sum, c) => sum + poids(c), 0)
-    return { famille, poids: p, points: p * valeurStatut(statuts[famille].statut) }
-  }).filter((d) => d.poids > 0)
+export function domainPoints(domain: Courtier[], statuses: Statuses): { total: number; detail: FamilyDetail[] } {
+  const detail = FAMILIES.map((family) => {
+    const p = domain.filter((c) => c.family === family).reduce((sum, c) => sum + weight(c), 0)
+    return { family, weight: p, points: p * statusValue(statuses[family].status) }
+  }).filter((d) => d.weight > 0)
   return { total: detail.reduce((sum, d) => sum + d.points, 0), detail }
 }
 
-export function calculerResultats(state: GameState): Resultats {
-  const statuts = calculerStatuts(state.table)
-  const joueurs = state.joueurs.map((joueur, index) => {
-    const domaine = pointsDomaine(joueur.domaine, statuts)
-    const missions = joueur.missions.map((m) => {
-      const validee = evaluerCondition(m.condition, { state, joueurIndex: index, statuts })
-      return { missionId: m.id, validee, points: validee ? POINTS_MISSION : 0 }
+export function computeResults(state: GameState): CourtisansResults {
+  const statuses = computeStatuses(state.table)
+  const players: CourtisansPlayerResult[] = state.players.map((player, index) => {
+    const domain = domainPoints(player.domain, statuses)
+    const missions = player.missions.map((m) => {
+      const done = evaluateCondition(m.condition, { state, playerIndex: index, statuses })
+      return { missionId: m.id, done, points: done ? MISSION_POINTS : 0 }
     })
-    const total = domaine.total + missions.reduce((sum, m) => sum + m.points, 0)
-    return { joueurId: joueur.id, pointsDomaine: domaine.total, detail: domaine.detail, missions, total, rang: 0 }
+    const total = domain.total + missions.reduce((sum, m) => sum + m.points, 0)
+    const missionPoints = missions.reduce((sum, m) => sum + m.points, 0)
+    const detail = [
+      ...domain.detail.map((d) => ({ key: d.family, label: d.family, points: d.points })),
+      ...(missions.length ? [{ key: "missions", label: "Missions", points: missionPoints }] : []),
+    ]
+    return { playerId: player.id, domainPoints: domain.total, families: domain.detail, missions, detail, total, rank: 0 }
   })
 
-  joueurs.sort((a, b) => b.total - a.total)
-  for (const j of joueurs) j.rang = 1 + joueurs.filter((o) => o.total > j.total).length
+  players.sort((a, b) => b.total - a.total)
+  for (const j of players) j.rank = 1 + players.filter((o) => o.total > j.total).length
 
-  const meilleur = joueurs[0]?.total
-  return { statuts, joueurs, vainqueurs: joueurs.filter((j) => j.total === meilleur).map((j) => j.joueurId) }
+  const best = players[0]?.total
+  return { statuses, players, winners: players.filter((j) => j.total === best).map((j) => j.playerId) }
 }
