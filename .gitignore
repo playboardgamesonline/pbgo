@@ -1,0 +1,27 @@
+# sources de design et assets lourds (locaux uniquement)
+games/*/assets/
+template/assets/
+*.psd
+
+# deps & builds
+node_modules/
+.next/
+out/
+dist/
+.sanity/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# env et liens locaux
+.env
+.env*.local
+.vercel
+.sanity-project-id
+
+# misc
+.DS_Store
+*.log
+.turbo
+.pnpm-store/
+**/apps/studio/schema.json

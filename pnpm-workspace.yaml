@@ -1,0 +1,15 @@
+packages:
+  - "template"
+  - "template/apps/*"
+  - "template/packages/*"
+  - "games/*"
+  - "games/*/apps/*"
+  - "games/*/packages/*"
+  - "games/hanabi/studio"
+
+onlyBuiltDependencies:
+  - sharp
+  - esbuild
+
+ignoredBuiltDependencies:
+  - unrs-resolver

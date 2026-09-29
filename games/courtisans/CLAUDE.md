@@ -29,9 +29,9 @@ Fichiers dans `apps/web/public` nommés en anglais, `EN_MAJUSCULES_AVEC_DES_TIRE
 - Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js)
 - Studio entièrement en anglais (types, ids, champs, titres) : singletons `interface`, `game`, `rules`, `texts` ; documents `family`, `role`, `courtier`, `mission` (ids `family-butterfly`, `role-spy`, `courtier-noble-hare`…) ; objet récursif `condition` (calqué sur `Condition` du moteur, valeurs = clés du moteur) ; textes localisés via `localeString` / `localeText` / `localeStringList` (`{ fr, en }`), lus côté Next avec `traduire()` (`src/lib/i18n.ts`)
 - Le champ `key` de `family` / `role` contient la clé du moteur (`papillon`, `espion`…)
-- Requêtes GROQ dans `apps/web/src/sanity/queries.ts` avec `defineQuery`, puis `pnpm --filter studio typegen` pour régénérer `apps/web/src/sanity/types.ts`
-- `pnpm --filter studio schema:deploy` après chaque changement de schéma
-- Migration du contenu : `pnpm --filter studio migrate` puis `schema:deploy` et `pnpm --filter studio run deploy`
+- Requêtes GROQ dans `apps/web/src/sanity/queries.ts` avec `defineQuery`, puis `pnpm --filter courtisans-studio typegen` pour régénérer `apps/web/src/sanity/types.ts`
+- `pnpm --filter courtisans-studio schema:deploy` après chaque changement de schéma
+- Migration du contenu : `pnpm --filter courtisans-studio migrate` puis `schema:deploy` et `pnpm --filter courtisans-studio run deploy`
 - Contenu initial : `scripts/extraire-cartes.py` (PNG depuis le PDF d'impression) puis `scripts/generer-seed-sanity.py` (dossier d'import `data.ndjson` + images) ; les missions non confirmées sont importées en brouillon
 - Les missions publiées sont complétées par `MISSIONS_PROVISOIRES` tant qu'il y en a moins de 5 par couleur
 

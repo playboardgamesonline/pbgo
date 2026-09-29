@@ -108,9 +108,9 @@ Ce document décrit le repo **Courtisans Online** pour le réutiliser comme **te
 - **Comptes & secrets** : créer le projet Supabase, Sanity, Vercel, le repo GitHub ; remplir `apps/web/.env.local` et les variables Vercel. **Ne jamais coller de token dans le chat** : les mettre dans `.env.local`.
 - **Pousser le code** : `git push` (l'IA commite, Oré pousse).
 - **Commandes Sanity avec son compte** :
-  - `pnpm --filter studio schema:deploy` (après un changement de schéma)
-  - `pnpm --filter studio migrate` (migration du contenu)
-  - `pnpm --filter studio run deploy` (déployer le Studio)
+  - `pnpm --filter template-studio schema:deploy` (après un changement de schéma)
+  - `pnpm --filter template-studio migrate` (migration du contenu)
+  - `pnpm --filter template-studio run deploy` (déployer le Studio)
 - **Appliquer la migration SQL** Supabase (`supabase/migrations/*.sql`).
 - **Fournir les assets** : PDF des règles, images des cartes, pictos (SVG), textures, polices, sons — nommés selon la convention, ou dans un dossier `ASSETS/` à trier.
 - **Saisir / valider le contenu dans Sanity** (textes, missions, images).
@@ -199,10 +199,10 @@ pnpm dev                     # site (apps/web)
 pnpm dev:studio              # Sanity Studio local
 pnpm test                    # tests du moteur
 pnpm typecheck
-pnpm --filter studio typegen # régénère apps/web/src/sanity/types.ts
-pnpm --filter studio schema:deploy
-pnpm --filter studio migrate
-pnpm --filter studio run deploy
+pnpm --filter template-studio typegen # régénère apps/web/src/sanity/types.ts
+pnpm --filter template-studio schema:deploy
+pnpm --filter template-studio migrate
+pnpm --filter template-studio run deploy
 ```
 
 ### Variables d'environnement (`apps/web/.env.local`, jamais commité)

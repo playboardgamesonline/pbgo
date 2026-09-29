@@ -27,7 +27,7 @@ Les sources (PDF, PSD, visuels HD) restent dans `../ASSETS`, hors du dépôt.
 - Projet `erf97a0b`, dataset `production`
 - Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js), déployé sur `trio-online.sanity.studio`
 - Studio entièrement en anglais : singletons `interface`, `game`, `rules`, `texts` ; textes localisés via `localeString` / `localeText` / `localeStringList` (`{ fr, en }`), lus côté Next avec `traduire()` (`src/lib/i18n.ts`)
-- `pnpm --filter studio schema:deploy` après chaque changement de schéma
+- `pnpm --filter trio-studio schema:deploy` après chaque changement de schéma
 
 ## Site
 - URL : `https://play-trio-online.vercel.app`

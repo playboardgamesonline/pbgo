@@ -1,13 +1,12 @@
 {
   "name": "flip-7",
   "private": true,
-  "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "dev:studio": "pnpm --filter studio dev",
+    "dev": "pnpm --filter flip-7-web dev",
+    "dev:studio": "pnpm --filter flip-7-studio dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "deploy:studio": "pnpm --filter studio run deploy"
+    "deploy:studio": "pnpm --filter flip-7-studio run deploy"
   }
 }

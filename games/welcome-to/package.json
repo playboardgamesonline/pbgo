@@ -1,13 +1,12 @@
 {
   "name": "welcome-to",
   "private": true,
-  "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "dev:studio": "pnpm --filter studio dev",
+    "dev": "pnpm --filter welcome-to-web dev",
+    "dev:studio": "pnpm --filter welcome-to-studio dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "deploy:studio": "pnpm --filter studio run deploy"
+    "deploy:studio": "pnpm --filter welcome-to-studio run deploy"
   }
 }

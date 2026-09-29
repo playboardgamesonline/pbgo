@@ -1,13 +1,12 @@
 {
   "name": "dracula-vs-van-helsing",
   "private": true,
-  "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "dev:studio": "pnpm --filter studio dev",
+    "dev": "pnpm --filter dracula-vs-van-helsing-web dev",
+    "dev:studio": "pnpm --filter dracula-vs-van-helsing-studio dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "deploy:studio": "pnpm --filter studio run deploy"
+    "deploy:studio": "pnpm --filter dracula-vs-van-helsing-studio run deploy"
   }
 }

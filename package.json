@@ -1,0 +1,14 @@
+{
+  "name": "play-game-online",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "dev": "bash scripts/run.sh dev",
+    "dev:studio": "bash scripts/run.sh dev:studio",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "new-game": "bash scripts/new-game.sh",
+    "go-live": "bash scripts/go-live.sh"
+  }
+}

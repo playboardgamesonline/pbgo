@@ -27,7 +27,7 @@ Les sources (PDF, PSD, visuels HD) restent dans `../ASSETS`, hors du dépôt.
 - Projet `e9247r0u`, dataset `production`
 - Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js), déployé sur `skull-king.sanity.studio`
 - Studio entièrement en anglais : singletons `interface`, `game`, `rules`, `texts` ; textes localisés via `localeString` / `localeText` / `localeStringList` (`{ fr, en }`), lus côté Next avec `traduire()` (`src/lib/i18n.ts`)
-- `pnpm --filter studio schema:deploy` après chaque changement de schéma
+- `pnpm --filter skull-king-studio schema:deploy` après chaque changement de schéma
 
 ## Site
 - URL : `https://play-skull-king-online.vercel.app`
