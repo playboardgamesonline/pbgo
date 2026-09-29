@@ -1,7 +1,8 @@
 "use client"
 
 import type { ResultatJoueur, VueJoueur } from "@courtisans/engine"
-import { ShareIcon } from "lucide-react"
+import { LinkForwardIcon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { ApercuPartage } from "./apercu-partage"
 import { genererPartage, type LignePartage } from "./partage"
 import { AnimatePresence, motion } from "motion/react"
@@ -171,7 +172,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
         )}
       </AnimatePresence>
       <div
-        className="pointer-events-none fixed inset-x-0 top-0 bottom-[5.75rem] z-40 flex flex-col items-center justify-end px-6 pt-6"
+        className="pointer-events-none fixed inset-x-0 top-0 bottom-[8.75rem] z-40 flex flex-col items-center justify-center px-6 pt-6"
       >
         <AnimatePresence mode="popLayout">
           {ouvert && (
@@ -183,32 +184,33 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              className="pointer-events-auto relative flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-[2.75rem] border border-[#f2c14e]/70 bg-[#0e3940] shadow-[0_24px_70px_rgb(0_0_0/65%),0_0_28px_rgb(242_193_78/28%),inset_0_0_18px_rgb(242_193_78/12%)]"
+              className="pointer-events-auto relative flex max-h-full w-full max-w-xl flex-col"
             >
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:128px_128px] opacity-[0.07]" />
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(34_96_104/55%),transparent_70%)]" />
-              <div className="relative shrink-0 px-8 pt-6 pb-5">
-                <button
+              <button
                   type="button"
                   onClick={() => setApercu(true)}
                   disabled={!image}
                   title="Partager le résultat"
                   aria-label="Partager le résultat"
-                  className="group absolute top-6 right-6 z-10 w-24 rotate-[4deg] cursor-pointer rounded-md bg-[#f3ecd6] p-[3px] shadow-[0_8px_20px_rgb(0_0_0/50%)] transition-transform duration-200 hover:scale-105 hover:rotate-[1deg] disabled:cursor-wait"
+                  className="group absolute top-10 right-0 z-20 w-36 translate-x-1/2 rotate-[4deg] cursor-pointer rounded-[3px] bg-[#f3ecd6] p-[2px] shadow-[0_10px_24px_rgb(0_0_0/55%)] transition-transform duration-200 hover:rotate-[1deg] disabled:cursor-wait"
                 >
-                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[0.2rem] bg-[#061a1e]">
+                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[2px] bg-[#061a1e]">
                     {url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt="" className="size-full object-cover" />
+                      <img src={url} alt="" className="size-full scale-[1.35] object-cover" style={{ transformOrigin: "50% 58%" }} />
                     ) : (
                       <span className="block size-full animate-pulse bg-[#12384a]" />
                     )}
                   </span>
-                  <span className="absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-full border border-[#8a6a3a]/60 bg-[#0b2231] text-foreground shadow-md transition-transform group-hover:scale-110">
-                    <ShareIcon className="size-3.5" />
+                  <span className="absolute -bottom-2.5 -left-2.5 flex size-8 items-center justify-center rounded-full border border-[#f3ecd6]/50 bg-[#0b2231] text-foreground shadow-md transition-transform group-hover:scale-110">
+                    <HugeiconsIcon icon={LinkForwardIcon} strokeWidth={1.8} className="size-4" />
                   </span>
                 </button>
-                <div className="relative flex flex-col items-center gap-1.5 px-24 text-center">
+              <div className="relative flex min-h-[26rem] flex-1 flex-col overflow-hidden rounded-[4px] border border-[#f2c14e]/70 bg-[#0e3940] shadow-[0_24px_70px_rgb(0_0_0/65%),0_0_28px_rgb(242_193_78/28%),inset_0_0_18px_rgb(242_193_78/12%)]">
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:128px_128px] opacity-[0.07]" />
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(34_96_104/55%),transparent_70%)]" />
+              <div className="relative shrink-0 px-8 pt-6 pb-5">
+                <div className="relative flex flex-col items-center gap-1.5 px-16 text-center">
                   <p className="font-display text-sm tracking-[0.2em] text-foreground/55 uppercase">{phrase || "Le banquet est terminé"}</p>
                   <Couronne className="relative z-10 -mt-2.5 block h-9 w-9 bg-[#f2c14e] drop-shadow-[0_0_12px_rgb(242_193_78/55%)]" />
                   <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: couleur(vainqueurs[0]!.joueurId) }}>
@@ -226,7 +228,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                 </div>
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 [scrollbar-width:thin]">
+              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 pb-12 [scrollbar-width:thin]">
                 <ol className="divide-y divide-foreground/15 border-t border-foreground/15">
                   {classement
                     .filter((j) => !resultats.vainqueurs.includes(j.joueurId))
@@ -248,8 +250,9 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                 </ol>
               </div>
 
-              <div className="relative flex shrink-0 flex-col items-center gap-4 px-8 pt-5 pb-7">
-                <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8">
+              </div>
+              <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2 translate-y-1/2">
+                <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8 whitespace-nowrap">
                   Rejouer ({partie.rejouer.length}/{partie.joueurs.length})
                 </BoutonCour>
               </div>
