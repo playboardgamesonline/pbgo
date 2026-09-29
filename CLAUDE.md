@@ -4,7 +4,7 @@ Tous les jeux de société en ligne d'oré dans un seul dépôt (`aurelienlouvel
 
 ## Structure
 - `template/` — le template de jeu (voir `template/CLAUDE.md` pour l'architecture : moteur, lobby, temps réel Supabase, 3D, /setup, /status)
-- `games/<jeu>/` — un jeu = `apps/web` (Next.js), `apps/studio` (Sanity), `packages/engine` (moteur pur TS). Exception : `games/hanabi` (app Next à la racine + `studio/`)
+- `games/<jeu>/` — un jeu = `apps/web` (Next.js), `apps/studio` (Sanity), `packages/engine` (moteur pur TS).
 - `games/<jeu>/assets/` — sources (PDF, PSD, visuels HD), ignorées par git
 - `packages/` — code partagé par tous les jeux (voir ci-dessous)
 - `scripts/` — `new-game.sh`, `go-live.sh`, `run.sh`

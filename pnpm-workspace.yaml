@@ -6,7 +6,6 @@ packages:
   - "games/*"
   - "games/*/apps/*"
   - "games/*/packages/*"
-  - "games/hanabi/studio"
 
 onlyBuiltDependencies:
   - sharp
