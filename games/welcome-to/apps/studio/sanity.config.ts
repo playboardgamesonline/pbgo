@@ -1,21 +1,9 @@
-import { visionTool } from "@sanity/vision"
-import { defineConfig } from "sanity"
-import { structureTool } from "sanity/structure"
-import { schemaTypes } from "./schemaTypes"
-import { SINGLETONS, structure } from "./structure"
+import { createStudioConfig } from "@pgo/studio-kit"
+import { game } from "./schemaTypes/game"
 
-export default defineConfig({
-  name: "default",
+export default createStudioConfig({
   title: "Welcome To",
   projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "ljyif8yt",
   dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
-  plugins: [structureTool({ structure }), visionTool()],
-  schema: {
-    types: schemaTypes,
-    templates: (templates) => templates.filter(({ schemaType }) => !SINGLETONS.includes(schemaType)),
-  },
-  document: {
-    actions: (actions, { schemaType }) =>
-      SINGLETONS.includes(schemaType) ? actions.filter(({ action }) => action && ["publish", "discardChanges", "restore"].includes(action)) : actions,
-  },
+  gameTypes: [game],
 })

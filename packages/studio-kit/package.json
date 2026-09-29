@@ -1,0 +1,29 @@
+{
+  "name": "@pgo/studio-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@sanity/icons": "^5.2.2",
+    "@sanity/vision": "^6.16.0",
+    "sanity": "^6.16.0",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@sanity/icons": "^5.2.2",
+    "@sanity/vision": "^6.16.0",
+    "sanity": "^6.16.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "styled-components": "^6.5.3",
+    "@types/react": "^19",
+    "typescript": "^5"
+  }
+}

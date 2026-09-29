@@ -1,25 +1,8 @@
 import { GAME } from "@game/engine"
+import { FONT_CHOICES } from "@pgo/studio-kit/constants"
 import { DESCRIPTION, NAME } from "./site"
 
-// Keep in sync with FONT_CHOICES in apps/studio/schemaTypes/constants.ts
-export const FONT_CHOICES = [
-  "Inter",
-  "Nunito",
-  "Fredoka",
-  "Baloo 2",
-  "Poppins",
-  "Outfit",
-  "DM Sans",
-  "Montserrat",
-  "Space Grotesk",
-  "Lilita One",
-  "Bangers",
-  "Bebas Neue",
-  "Cinzel",
-  "Playfair Display",
-  "Alegreya",
-  "Press Start 2P",
-] as const
+export { FONT_CHOICES }
 
 const FONT_WEIGHTS: Record<string, string> = {
   Inter: "400..900",
