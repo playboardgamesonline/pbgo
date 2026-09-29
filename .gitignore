@@ -25,3 +25,6 @@ next-env.d.ts
 .turbo
 .pnpm-store/
 **/apps/studio/schema.json
+
+# anciens dossiers (avant le monorepo)
+_archive/
