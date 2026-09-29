@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #16243f;
+  --foreground: #f5f2ea;
+  --accent: #f2b134;
+}
+
+@theme inline {
+  --font-sans: ui-rounded, "Avenir Next", "Nunito", system-ui, -apple-system, sans-serif;
+  --font-display: ui-rounded, "Avenir Next", "Nunito", system-ui, -apple-system, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.fond {
+  background:
+    radial-gradient(120% 80% at 50% 40%, color-mix(in oklab, var(--background), white 16%) 0%, var(--background) 70%),
+    var(--background);
+}
+
+.pastille {
+  animation: pulse-pastille 1.8s ease-out infinite;
+}
+
+@keyframes pulse-pastille {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent), transparent 40%); }
+  100% { box-shadow: 0 0 0 10px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pastille { animation: none; }
+}
