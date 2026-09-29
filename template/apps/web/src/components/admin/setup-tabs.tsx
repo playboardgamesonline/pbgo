@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/admin/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@pgo/ui/admin/tabs"
 
 export function SetupTabs({ initial, settings, todo }: { initial: "settings" | "todo"; settings: React.ReactNode; todo: React.ReactNode }) {
   const router = useRouter()

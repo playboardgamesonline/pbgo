@@ -4,7 +4,7 @@ import { Analytics01Icon, LinkSquare02Icon, Logout03Icon, Settings02Icon } from 
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Button } from "@/components/admin/ui/button"
+import { Button } from "@pgo/ui/admin/button"
 import { adminRequest } from "@/lib/admin-api"
 import { cn } from "@/lib/utils"
 

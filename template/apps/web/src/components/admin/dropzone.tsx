@@ -3,8 +3,8 @@
 import { Delete02Icon, Upload04Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useRef, useState } from "react"
-import { Button } from "@/components/admin/ui/button"
-import { Spinner } from "@/components/admin/ui/spinner"
+import { Button } from "@pgo/ui/admin/button"
+import { Spinner } from "@pgo/ui/admin/spinner"
 import { cn } from "@/lib/utils"
 
 type Props = {
