@@ -172,10 +172,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
         )}
       </AnimatePresence>
       <div
-        className={cn(
-          "pointer-events-none fixed inset-0 z-40 flex flex-col items-center gap-6 px-6 py-6",
-          ouvert ? "justify-center" : "justify-end pb-[20vh]",
-        )}
+        className="pointer-events-none fixed inset-x-0 top-0 bottom-20 z-40 flex flex-col items-center justify-center px-6 pt-6 pb-4"
       >
         <AnimatePresence mode="popLayout">
           {ouvert && (
@@ -183,23 +180,22 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
               key="tableau"
               role="dialog"
               aria-label="Tableau des scores"
-              layout
               initial={{ opacity: 0, y: 24, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              className="pointer-events-auto relative flex max-h-[calc(100dvh-9rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border-[3px] border-[#8a6a3a] bg-[#0e3940] shadow-[0_24px_70px_rgb(0_0_0/65%)]"
+              className="pointer-events-auto relative flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-[2.75rem] border border-[#f2c14e]/70 bg-[#0e3940] shadow-[0_24px_70px_rgb(0_0_0/65%),0_0_28px_rgb(242_193_78/28%),inset_0_0_18px_rgb(242_193_78/12%)]"
             >
               <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:128px_128px] opacity-[0.07]" />
               <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(34_96_104/55%),transparent_70%)]" />
-              <div className="relative shrink-0 px-8 pt-7 pb-6">
+              <div className="relative shrink-0 px-8 pt-6 pb-5">
                 <button
                   type="button"
                   onClick={() => setApercu(true)}
                   disabled={!image}
                   title="Partager le résultat"
                   aria-label="Partager le résultat"
-                  className="group absolute top-6 right-6 z-10 w-28 rotate-[4deg] cursor-pointer rounded-md bg-[#f3ecd6] p-1 pb-1.5 shadow-[0_8px_20px_rgb(0_0_0/50%)] transition-transform duration-200 hover:scale-105 hover:rotate-[1deg] disabled:cursor-wait"
+                  className="group absolute top-6 right-6 z-10 w-24 rotate-[4deg] cursor-pointer rounded-md bg-[#f3ecd6] p-[3px] shadow-[0_8px_20px_rgb(0_0_0/50%)] transition-transform duration-200 hover:scale-105 hover:rotate-[1deg] disabled:cursor-wait"
                 >
                   <span className="relative block aspect-[4/3] overflow-hidden rounded-[0.2rem] bg-[#061a1e]">
                     {url ? (
@@ -213,9 +209,9 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                     <ShareIcon className="size-3.5" />
                   </span>
                 </button>
-                <div className="relative flex flex-col items-center gap-2 px-32 text-center">
+                <div className="relative flex flex-col items-center gap-1.5 px-24 text-center">
                   <p className="font-display text-sm tracking-[0.2em] text-foreground/55 uppercase">{phrase || "Le banquet est terminé"}</p>
-                  <Couronne className="mt-3 block h-9 w-9 bg-[#f2c14e] drop-shadow-[0_0_12px_rgb(242_193_78/55%)]" />
+                  <Couronne className="relative z-10 -mt-2.5 block h-9 w-9 bg-[#f2c14e] drop-shadow-[0_0_12px_rgb(242_193_78/55%)]" />
                   <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: couleur(vainqueurs[0]!.joueurId) }}>
                     {noms}
                   </p>
@@ -242,7 +238,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                           <span className="min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: couleur(j.joueurId) }}>
                             {info(j.joueurId)?.pseudo}
                           </span>
-                          <span className="font-display text-xl text-foreground/85 tabular-nums">
+                          <span className="font-display text-3xl leading-none text-foreground/90 tabular-nums">
                             {j.total > 0 ? "+" : ""}
                             {j.total} pts
                           </span>
@@ -264,16 +260,14 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
             </motion.section>
           )}
         </AnimatePresence>
-        <motion.button
-          layout
-          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+        </div>
+        <button
           type="button"
           onClick={onBasculer}
-          className="pointer-events-auto z-50 h-9 shrink-0 cursor-pointer rounded-lg bg-foreground/85 px-5 font-display text-sm tracking-wide text-[#0b2231] shadow-[0_6px_18px_rgb(0_0_0/45%)] transition-[scale,background-color] duration-200 hover:scale-[1.03] hover:bg-foreground active:scale-[0.98]"
+          className="pointer-events-auto fixed bottom-8 left-1/2 z-50 h-9 -translate-x-1/2 cursor-pointer rounded-lg bg-foreground/85 px-5 font-display text-sm tracking-wide text-[#0b2231] shadow-[0_6px_18px_rgb(0_0_0/45%)] transition-[scale,background-color] duration-200 hover:scale-[1.03] hover:bg-foreground active:scale-[0.98]"
         >
           {ouvert ? "Masquer le tableau des scores" : "Afficher le tableau des scores"}
-        </motion.button>
-      </div>
+        </button>
     </>
   )
 }
