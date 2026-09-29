@@ -172,7 +172,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
         )}
       </AnimatePresence>
       <div
-        className="pointer-events-none fixed inset-x-0 top-0 bottom-20 z-40 flex flex-col items-center justify-center px-6 pt-6 pb-4"
+        className="pointer-events-none fixed inset-x-0 top-0 bottom-[5.75rem] z-40 flex flex-col items-center justify-end px-6 pt-6"
       >
         <AnimatePresence mode="popLayout">
           {ouvert && (
@@ -264,7 +264,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
         <button
           type="button"
           onClick={onBasculer}
-          className="pointer-events-auto fixed bottom-8 left-1/2 z-50 h-9 -translate-x-1/2 cursor-pointer rounded-lg bg-foreground/85 px-5 font-display text-sm tracking-wide text-[#0b2231] shadow-[0_6px_18px_rgb(0_0_0/45%)] transition-[scale,background-color] duration-200 hover:scale-[1.03] hover:bg-foreground active:scale-[0.98]"
+          className="pointer-events-auto fixed bottom-8 left-1/2 z-50 h-9 -translate-x-1/2 cursor-pointer rounded-lg border border-foreground/45 bg-[#0b2231]/75 px-5 font-display text-sm tracking-wide text-foreground/90 shadow-[0_6px_18px_rgb(0_0_0/40%)] backdrop-blur-sm transition-[background-color,border-color,color] duration-200 hover:border-foreground/80 hover:bg-[#0b2231]/90 hover:text-foreground"
         >
           {ouvert ? "Masquer le tableau des scores" : "Afficher le tableau des scores"}
         </button>
