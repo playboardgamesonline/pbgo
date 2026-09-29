@@ -151,6 +151,10 @@ importers:
         version: 5.9.3
 
   games/courtisans/packages/engine:
+    dependencies:
+      '@pgo/engine-kit':
+        specifier: workspace:*
+        version: link:../../../../packages/engine-kit
     devDependencies:
       '@types/node':
         specifier: ^22.20.4

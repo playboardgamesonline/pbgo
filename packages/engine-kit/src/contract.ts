@@ -13,14 +13,18 @@ export type PlayerResult = {
 
 export type Results = { players: PlayerResult[]; winners: string[] }
 
-export type GameDefinition<State, Action extends PlayerAction, View> = {
+/**
+ * `SetupData` : données chargées côté serveur avant le lancement (ex. missions depuis Sanity).
+ * Le web les fournit via `loadSetupData` exporté par `@pgo/binding` ; absent → `undefined`.
+ */
+export type GameDefinition<State, Action extends PlayerAction, View, SetupData = undefined> = {
   id: string
   name: string
   minPlayers: number
   maxPlayers: number
   options: OptionDefinitions
   clientActions: readonly Action["type"][]
-  setup: (args: { players: PlayerInfo[]; options: OptionValues; seed?: number }) => State
+  setup: (args: { players: PlayerInfo[]; options: OptionValues; seed?: number; data?: SetupData }) => State
   apply: (state: State, action: Action) => State
   view: (state: State, playerId: string | null) => View
   isOver: (state: State) => boolean
