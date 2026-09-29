@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-flip-7-online.vercel.app"
 
 export const NOM = "Flip 7"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Flip 7", "Flip 7 en ligne", "jeu de stop ou encore", 
 export const COULEUR = "#1d1f5c"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes", "Jeu de stop ou encore"],
+  playMode: "MultiPlayer",
+  players: { min: 3, max: 18 },
+}

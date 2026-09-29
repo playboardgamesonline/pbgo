@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-skull-king-online.vercel.app"
 
 export const NOM = "Skull King"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Skull King", "Skull King en ligne", "jeu de plis", "j
 export const COULEUR = "#13213a"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes", "Jeu de plis", "Jeu de pirates"],
+  playMode: "MultiPlayer",
+  players: { min: 2, max: 8 },
+}

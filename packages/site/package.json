@@ -1,0 +1,10 @@
+{
+  "name": "@pgo/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "peerDependencies": { "next": "*" },
+  "devDependencies": { "next": "16.3.6", "react": "19.2.8", "react-dom": "19.2.8", "@types/react": "^19", "typescript": "^5" }
+}

@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-love-letter-online.vercel.app"
 
 export const NOM = "Love Letter"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Love Letter", "Love Letter en ligne", "jeu de déduct
 export const COULEUR = "#3a1320"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes", "Jeu de déduction"],
+  playMode: "MultiPlayer",
+  players: { min: 2, max: 6 },
+}

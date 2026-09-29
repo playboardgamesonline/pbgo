@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-odin-online.vercel.app"
 
 export const NOM = "Odin"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Odin", "Odin en ligne", "jeu de défausse", "jeu de c
 export const COULEUR = "#16283b"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes", "Jeu de défausse"],
+  playMode: "MultiPlayer",
+  players: { min: 2, max: 6 },
+}

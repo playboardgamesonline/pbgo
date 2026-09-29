@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-dracula-vs-van-helsing-online.vercel.app"
 
 export const NOM = "Dracula vs Van Helsing"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Dracula vs Van Helsing", "Dracula vs Van Helsing en l
 export const COULEUR = "#150d14"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes", "Jeu à deux"],
+  playMode: "MultiPlayer",
+  players: { min: 2, max: 2 },
+}

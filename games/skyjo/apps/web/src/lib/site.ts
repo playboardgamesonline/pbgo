@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-skyjo-online.vercel.app"
 
 export const NOM = "Skyjo"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Skyjo", "Skyjo en ligne", "jeu de cartes familial", "
 export const COULEUR = "#123a52"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes", "Jeu familial"],
+  playMode: "MultiPlayer",
+  players: { min: 2, max: 8 },
+}

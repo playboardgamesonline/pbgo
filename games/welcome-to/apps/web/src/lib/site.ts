@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-welcome-to-online.vercel.app"
 
 export const NOM = "Welcome To"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Welcome To", "Welcome To en ligne", "flip and write",
 export const COULEUR = "#f6efd9"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "light",
+  genre: ["Jeu de société", "Flip and write"],
+  playMode: "MultiPlayer",
+  players: { min: 1, max: 100 },
+}

@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-cry-baby-online.vercel.app"
 
 export const NOM = "Cry Baby"
@@ -14,3 +16,16 @@ export const MOTS_CLES = ["Cry Baby", "Cry Baby en ligne", "jeu de cartes en lig
 export const COULEUR = "#f7f1e3"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "light",
+  genre: ["Jeu de cartes"],
+  playMode: "MultiPlayer",
+}

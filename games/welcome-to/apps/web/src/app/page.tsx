@@ -1,28 +1,8 @@
 import { Logo } from "@/components/logo"
-import { ACCROCHE, DESCRIPTION, LOGO, NOM, SITE_URL, TITRE } from "@/lib/site"
+import { gameJsonLd } from "@pgo/site"
+import { ACCROCHE, LOGO, SITE, TITRE } from "@/lib/site"
 
-const DONNEES_STRUCTUREES = {
-  "@context": "https://schema.org",
-  "@graph": [
-    { "@type": "WebSite", "@id": `${SITE_URL}/#site`, url: SITE_URL, name: TITRE, inLanguage: "fr-FR", description: DESCRIPTION },
-    {
-      "@type": "VideoGame",
-      name: NOM,
-      alternateName: TITRE,
-      url: SITE_URL,
-      description: DESCRIPTION,
-      inLanguage: "fr-FR",
-      genre: ["Jeu de société", "Flip and write"],
-      gamePlatform: "Navigateur web",
-      applicationCategory: "Game",
-      playMode: "MultiPlayer",
-      numberOfPlayers: { "@type": "QuantitativeValue", minValue: 1, maxValue: 100 },
-      image: `${SITE_URL}/opengraph-image.png`,
-      offers: { "@type": "Offer", price: 0, priceCurrency: "EUR" },
-      author: { "@type": "Person", name: "oré", url: "https://ore.today" },
-    },
-  ],
-}
+const DONNEES_STRUCTUREES = gameJsonLd(SITE)
 
 export default function Home() {
   return (

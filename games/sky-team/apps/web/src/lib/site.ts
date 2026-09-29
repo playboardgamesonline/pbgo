@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-sky-team-online.vercel.app"
 
 export const NOM = "Sky Team"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Sky Team", "Sky Team en ligne", "jeu coopératif à d
 export const COULEUR = "#16243f"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de société", "Jeu coopératif", "Jeu à deux"],
+  playMode: "CoOp",
+  players: { min: 2, max: 2 },
+}

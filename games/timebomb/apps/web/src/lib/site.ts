@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-timebomb-online.vercel.app"
 
 export const NOM = "Timebomb"
@@ -14,3 +16,17 @@ export const MOTS_CLES = ["Timebomb", "Time Bomb en ligne", "jeu de bluff", "jeu
 export const COULEUR = "#17141a"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes", "Jeu de bluff", "Jeu à rôles cachés"],
+  playMode: "MultiPlayer",
+  players: { min: 4, max: 8 },
+}

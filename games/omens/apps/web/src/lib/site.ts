@@ -1,3 +1,5 @@
+import type { SiteConfig } from "@pgo/site"
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-omens-online.vercel.app"
 
 export const NOM = "Présages"
@@ -14,3 +16,16 @@ export const MOTS_CLES = ["Présages", "Présages en ligne", "Omens", "Omens en 
 export const COULEUR = "#221933"
 
 export const LOGO: string | null = "/LOGO.webp"
+
+export const SITE: SiteConfig = {
+  url: SITE_URL,
+  name: NOM,
+  title: TITRE,
+  tagline: ACCROCHE,
+  description: DESCRIPTION,
+  keywords: MOTS_CLES,
+  color: COULEUR,
+  colorScheme: "dark",
+  genre: ["Jeu de cartes"],
+  playMode: "MultiPlayer",
+}
