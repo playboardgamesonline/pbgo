@@ -6,7 +6,17 @@ Tous les jeux de société en ligne d'oré dans un seul dépôt (`aurelienlouvel
 - `template/` — le template de jeu (voir `template/CLAUDE.md` pour l'architecture : moteur, lobby, temps réel Supabase, 3D, /setup, /status)
 - `games/<jeu>/` — un jeu = `apps/web` (Next.js), `apps/studio` (Sanity), `packages/engine` (moteur pur TS). Exception : `games/hanabi` (app Next à la racine + `studio/`)
 - `games/<jeu>/assets/` — sources (PDF, PSD, visuels HD), ignorées par git
+- `packages/` — code partagé par tous les jeux (voir ci-dessous)
 - `scripts/` — `new-game.sh`, `go-live.sh`, `run.sh`
+
+## Paquets partagés (`packages/`)
+Une modification ici profite à tous les jeux qui les utilisent au prochain déploiement.
+- `@pgo/engine-kit` — contrat moteur ↔ web (`GameDefinition`, `Results`…), options de partie (`defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`. Le moteur d'un jeu le ré-exporte : `export * from "@pgo/engine-kit"`
+- `@pgo/ui` — composants shadcn + `cn` : `@pgo/ui/game/<comp>` (thème du jeu), `@pgo/ui/admin/<comp>` (preset luma de /setup et /status), `@pgo/ui/utils`
+- `@pgo/studio-kit` — schémas Sanity communs (`settings`, `interface`, `rules`, `texts`, `localeString`…) et `createStudioConfig({ title, projectId, gameTypes })` ; `@pgo/studio-kit/constants` (langues, `FONT_CHOICES`) importable côté web
+- `@pgo/site` — référencement : `createMetadata`, `createViewport`, `createRobots`, `createSitemap`, `createManifest`, `gameJsonLd` à partir d'un `SiteConfig` (`lib/site.ts` du jeu)
+- Utiliser un paquet dans un jeu : l'ajouter aux `dependencies` (`"@pgo/ui": "workspace:*"`) et à `transpilePackages` dans `next.config.ts` ; pour Tailwind, `@source` vers `packages/ui/src` dans `globals.css`
+- Prochaine étape prévue : `@pgo/core` (lobby, parties temps réel Supabase, identité joueur, fin de partie, /setup, /status) en injectant le `GAME` du jeu
 
 ## Commandes (depuis la racine)
 - `pnpm install` — une seule fois pour tout le monorepo

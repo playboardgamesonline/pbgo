@@ -14,7 +14,7 @@ Base commune des jeux de société en ligne (`<slug>-online`). La démo « La Pl
 
 ## UI admin
 - `/setup` et `/status` utilisent le preset shadcn `b1VlJAwK` (style luma, neutral, Inter, Hugeicons), scopé par la classe `.admin` dans `globals.css`
-- Composants dans `components/admin/ui` (bases radix + `style-luma.css` inliné). Pour en ajouter : `pnpm dlx shadcn@latest add <comp>` depuis un poste qui accède à ui.shadcn.com, puis déplacer dans `components/admin/ui`
+- Composants dans le paquet partagé `@pgo/ui/admin/*` (`packages/ui/src/admin`) ; ceux du jeu dans `@pgo/ui/game/*`. Pour en ajouter : `pnpm dlx shadcn@latest add <comp>` puis déplacer dans `packages/ui/src/admin` (ou `game`) et remplacer les imports `@/lib/utils` par `../utils`
 - L'accueil, le lobby et le jeu gardent le thème du jeu (couleurs et polices réglées dans /setup)
 
 ## Assets
@@ -28,9 +28,8 @@ Fichiers dans `apps/web/public` nommés en anglais, `UPPER_SNAKE_CASE` (ex. `car
 - Vitest pour le moteur · pnpm workspaces · Vercel
 
 ## Structure
-- `packages/engine` (`@game/engine`) — moteur pur TypeScript, sans UI
-  - `contract.ts` : `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`)
-  - `options.ts` : options de partie déclaratives (`number` / `choice` / `boolean`), `defaultOptions`, `normalizeOptions`
+- `packages/engine` (`@game/engine`) — moteur pur TypeScript, sans UI ; ré-exporte `@pgo/engine-kit` (paquet partagé à la racine du monorepo)
+  - `@pgo/engine-kit` : `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`), options de partie déclaratives (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`
   - `demo/` : le jeu démo ; `index.ts` exporte `GAME` = le jeu actif
 - `apps/web/src`
   - `server/games.ts` : `createGame`, `newGame`, `updateGame` (verrou optimiste), `publicGame` ; routes `app/api/games/[code]/*`
@@ -41,7 +40,7 @@ Fichiers dans `apps/web/public` nommés en anglais, `UPPER_SNAKE_CASE` (ex. `car
   - `app/(admin)/setup` : paramètres du site (Sanity `settings`) + to-do (Supabase `tasks`) ; `app/(admin)/status` : dashboard (Supabase `games`, Vercel Web Analytics)
   - Admin protégé par `ADMIN_LOGIN` / `ADMIN_PASSWORD` (`server/admin.ts`), écriture Sanity via `SANITY_API_WRITE_TOKEN` (`server/settings.ts`)
   - `lib/settings.ts` / `lib/settings-server.ts` : réglages du site (titre, description, logo, min/max joueurs, thème, polices, règles PDF) lus depuis Sanity avec les valeurs par défaut de `lib/site.ts`, fournis aux composants client par `useSiteSettings()`
-- `apps/studio` — Sanity Studio (singletons `settings`, `interface`, `game`, `rules`, `texts`)
+- `apps/studio` — Sanity Studio via `createStudioConfig` de `@pgo/studio-kit` (singletons communs `settings`, `interface`, `rules`, `texts`) ; seul `schemaTypes/game.ts` est propre au jeu
 - `supabase/migrations` — `0001_games.sql`, `0002_tasks.sql`
 
 ## Adapter à un nouveau jeu
