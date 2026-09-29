@@ -1,5 +1,5 @@
 import type { GameDefinition } from "@pgo/engine-kit"
-import { applyAction } from "./actions"
+import { activePlayerId, applyAction } from "./actions"
 import { applyDebug } from "./debug"
 import { createRng } from "./rng"
 import { setupGame } from "./setup"
@@ -23,6 +23,9 @@ export const GAME: GameDefinition<GameState, Action, PlayerView, Mission[]> = {
   apply: applyAction,
   view: playerView,
   isOver: (state) => state.phase === "over",
+  activePlayer: activePlayerId,
+  // joueur absent : on joue son tour entier (jusqu'à 3 cartes)
+  autoPlay: (state) => applyDebug(state, "turn"),
   debug: {
     turn: (state) => applyDebug(state, "turn"),
     over: (state) => applyDebug(state, "over"),

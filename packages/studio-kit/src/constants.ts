@@ -59,6 +59,8 @@ export const UI_TEXTS = [
   { key: "waiting", group: "game", title: "Waiting (no active player)", fr: "La partie se prépare…" },
   { key: "gameOver", group: "game", title: "Game over (ticker)", fr: "Fin de la partie" },
   { key: "leave", group: "game", title: "Leave button", fr: "Quitter" },
+  { key: "takeoverPrompt", group: "game", title: "Absent player: prompt", fr: "{name} ne répond plus ?" },
+  { key: "takeoverButton", group: "game", title: "Absent player: button", fr: "Jouer à sa place" },
   { key: "replay", group: "game", title: "Replay button", fr: "Rejouer" },
   { key: "winnerTitle", group: "game", title: "Scoreboard: above the winner", fr: "Victoire de" },
   { key: "showScores", group: "game", title: "Scoreboard: show", fr: "Afficher le tableau des scores" },

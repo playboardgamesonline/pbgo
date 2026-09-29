@@ -35,3 +35,12 @@ describe("GAME (@pgo/engine-kit contract)", () => {
     expect(GAME.view(over, "a").players).toHaveLength(3)
   })
 })
+
+describe("GAME.autoPlay (joueur absent)", () => {
+  it("plays the whole turn of the active player", () => {
+    const state = GAME.setup({ players, options: {}, seed: 5, data: testMissions() })
+    const active = GAME.activePlayer!(state)
+    const next = GAME.autoPlay!(state)
+    expect(GAME.activePlayer!(next)).not.toBe(active)
+  })
+})

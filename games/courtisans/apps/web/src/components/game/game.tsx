@@ -13,6 +13,7 @@ import { DebugPanel } from "@pgo/core/components/game/debug"
 import { copyButton, debugTab } from "@pgo/core/components/game/debug-tabs"
 import { GameOver, winnerAnnouncement } from "@pgo/core/components/game/game-over"
 import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pgo/core/components/game/hud"
+import { StalledTurn } from "@pgo/core/components/game/stalled-turn"
 import { PrimaryButton } from "@pgo/core/components/home/screen"
 import { useSkin, useText } from "@pgo/core/components/skin-provider"
 import { api } from "@pgo/core/lib/api"
@@ -182,10 +183,19 @@ function Board({
     setOpeningStep(null)
     announce(catalog.banquetStartText, "start", { sound: "victory", first: true, replace: ["start", "turn"] })
     if (view.phase === "playing" && view.me && view.activePlayerId === view.me.id) announce(t("yourTurn"), "turn", { sound: "turn" })
-    api
-      .action(game.code, { type: "readMissions" })
-      .then(onUpdate)
-      .catch(() => null)
+    void markMissionsRead()
+  }
+
+  // Tous les joueurs valident l'ouverture presque en même temps : le serveur réessaie déjà, on retente aussi côté client
+  async function markMissionsRead(attempt = 0): Promise<void> {
+    try {
+      onUpdate(await api.action(game.code, { type: "readMissions" }))
+    } catch {
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 300 + Math.random() * 700 * (attempt + 1)))
+        return markMissionsRead(attempt + 1)
+      }
+    }
   }
 
   const interaction = useMemo<Interaction>(() => {
@@ -269,6 +279,8 @@ function Board({
                 )}
 
                 {announcementElement}
+
+                <StalledTurn activePlayerId={view.activePlayerId} onUpdate={onUpdate} />
 
                 <DebugPanel />
 

@@ -11,6 +11,7 @@ import { DebugPanel } from "@pgo/core/components/game/debug"
 import { debugTab } from "@pgo/core/components/game/debug-tabs"
 import { GameOver, winnerAnnouncement } from "@pgo/core/components/game/game-over"
 import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pgo/core/components/game/hud"
+import { StalledTurn } from "@pgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pgo/core/components/skin-provider"
 import { api, type ClientDebugCommand } from "@pgo/core/lib/api"
 import type { PublicGame } from "@pgo/core/lib/game-types"
@@ -130,6 +131,7 @@ function Table({ rules, onUpdate, onLeave }: Props) {
       overlay={
         <>
           {announcement}
+          <StalledTurn activePlayerId={ended ? null : view.activePlayerId} onUpdate={onUpdate} />
           {ended && !current && <GameOver onUpdate={onUpdate} isOpen={scoresOpen} onToggle={() => setScoresOpen((o) => !o)} />}
           <DebugPanel />
         </>

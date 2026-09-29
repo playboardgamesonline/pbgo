@@ -29,6 +29,10 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
   view: (state: State, playerId: string | null) => View
   isOver: (state: State) => boolean
   debug?: Partial<Record<DebugCommand, (state: State) => State>>
+  /** Joue le tour du joueur actif à sa place (joueur absent). Par défaut : `debug.turn`. */
+  autoPlay?: (state: State) => State
+  /** Id du joueur qui doit jouer (null si personne). Nécessaire pour jouer à la place d'un absent. */
+  activePlayer?: (state: State) => string | null
 }
 
 /** Commandes de debug : `turn` (tour automatique) et `over` (jusqu'à la fin) sont communes ; un jeu peut en ajouter (ex. `missions`). */

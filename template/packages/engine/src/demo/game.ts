@@ -95,6 +95,8 @@ export const demo: GameDefinition<State, Action, PlayerView> = {
   maxPlayers: 6,
   options: DEMO_OPTIONS,
   clientActions: ["playCard"],
+  activePlayer: (state) => (state.phase === "playing" ? (state.players[state.activePlayer]?.id ?? null) : null),
+  autoPlay: autoMove,
   setup: ({ players, options, seed = Math.floor(Math.random() * 2 ** 31) }) => {
     if (players.length < 2 || players.length > 6) throw new EngineError("INVALID_PLAYERS")
     const opts = normalizeOptions(DEMO_OPTIONS, options) as DemoOptions

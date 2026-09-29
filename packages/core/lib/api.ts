@@ -1,3 +1,4 @@
+import * as binding from "@pgo/binding"
 import type { OptionValues } from "@pgo/binding"
 import type { PublicGame } from "./game-types"
 
@@ -13,6 +14,10 @@ const MESSAGES: Record<string, string> = {
   UNKNOWN_CARD: "Cette carte n'est pas dans votre main.",
   CONFLICT: "Quelqu'un a joué en même temps, réessayez.",
   DEBUG_DISABLED: "Le debug est désactivé sur ce serveur (DEBUG_GAMES=1).",
+  NOT_STALLED: "La partie avance encore : attendez un peu avant de jouer à sa place.",
+  TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
+  // messages propres au jeu (codes d'erreur du moteur) : export facultatif `ERROR_MESSAGES` de @pgo/binding
+  ...(binding as { ERROR_MESSAGES?: Record<string, string> }).ERROR_MESSAGES,
 }
 
 export class ApiClientError extends Error {
@@ -42,6 +47,7 @@ export const api = {
   start: (code: string) => post(`/api/games/${code}/start`),
   action: (code: string, action: { type: string } & Record<string, unknown>) => post(`/api/games/${code}/action`, action),
   replay: (code: string) => post(`/api/games/${code}/replay`),
+  takeover: (code: string) => post(`/api/games/${code}/takeover`),
   debug: (code: string, command: ClientDebugCommand) => post(`/api/games/${code}/debug`, { command }),
 }
 

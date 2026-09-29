@@ -33,3 +33,18 @@ export const GENRES = ["Jeu de cartes", "Jeu de société", "Jeu de bluff"]
 export const CONTACT = "louvel.aurelien.pro@gmail.com"
 
 export const GOOGLE_SITE_VERIFICATION = "NNqyjwU_KDPRURSnEMUynx4l6Vrl_ELFzR99g8dBudQ"
+
+/** Messages des erreurs du moteur (codes EngineError), affichés par @pgo/core. */
+export const ERROR_MESSAGES: Record<string, string> = {
+  INVALID_PHASE: "Ce n'est pas le moment de jouer.",
+  NOT_YOUR_TURN: "Ce n'est pas votre tour.",
+  UNKNOWN_CARD: "Cette carte n'est plus dans votre main.",
+  ZONE_ALREADY_PLAYED: "Vous avez déjà joué une carte dans cette zone ce tour-ci.",
+  INVALID_TARGET: "Vous ne pouvez pas jouer cette carte ici.",
+  INVALID_ASSASSINATION: "Cette carte ne peut pas être éliminée.",
+  INVALID_PLAYERS: "Il faut de 2 à 5 joueurs.",
+  NOT_ENOUGH_MISSIONS: "Il manque des missions pour lancer la partie.",
+  UNKNOWN_PLAYER: "Ce joueur ne fait pas partie du banquet.",
+  NOT_ENOUGH_PLAYERS: "Il faut au moins 2 convives pour ouvrir le banquet.",
+  GAME_FULL: "Ce banquet est complet (5 convives).",
+}

@@ -15,9 +15,14 @@ export type GameRow = {
   state: State | null
   replay: string[]
   version: number
+  updated_at?: string
 }
 
-const COLUMNS = "code, host_id, status, players, options, state, replay, version"
+const COLUMNS = "code, host_id, status, players, options, state, replay, version, updated_at"
+
+// Écritures concurrentes (ex. tous les joueurs qui valident l'ouverture en même temps) : on réessaie avec une attente aléatoire croissante
+const MAX_ATTEMPTS = 8
+const pause = (attempt: number) => new Promise((resolve) => setTimeout(resolve, 20 + Math.random() * 60 * (attempt + 1)))
 
 export async function readGame(rawCode: string): Promise<GameRow> {
   const code = normalizeCode(rawCode)
@@ -50,14 +55,16 @@ export async function createGame(host: PlayerInfo): Promise<GameRow> {
 
 export async function updateGame(code: string, modifier: (row: GameRow) => Partial<Omit<GameRow, "code" | "version">> | null): Promise<GameRow> {
   const db = supabaseAdmin()
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) await pause(attempt)
     const row = await readGame(code)
     const patch = modifier(row)
     if (!patch) return row
-    const next = { ...row, ...patch, version: row.version + 1 }
+    const updatedAt = new Date().toISOString()
+    const next = { ...row, ...patch, version: row.version + 1, updated_at: updatedAt }
     const { data, error } = await db
       .from("games")
-      .update({ ...patch, version: next.version, updated_at: new Date().toISOString() })
+      .update({ ...patch, version: next.version, updated_at: updatedAt })
       .eq("code", row.code)
       .eq("version", row.version)
       .select("code")
@@ -104,6 +111,7 @@ export function publicGame(row: GameRow, playerId: string | null): PublicGame {
     options: row.options ?? normalizeOptions(GAME.options, {}),
     replay: row.replay,
     version: row.version,
+    updatedAt: row.updated_at ?? null,
     view: row.state ? GAME.view(row.state, member ? playerId : null) : null,
   }
 }

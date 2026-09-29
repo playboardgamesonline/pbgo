@@ -1,5 +1,5 @@
 import "server-only"
-import type { Condition, Family, Mission, Role } from "@courtisans/engine"
+import { type Condition, FAMILIES, type Family, type Mission, ROLES, type Role } from "@courtisans/engine"
 import { translate } from "@pgo/core/lib/i18n"
 import { DEFAULT_MISSIONS } from "@/lib/default-missions"
 import { getCatalog } from "@/sanity/catalog"
@@ -23,6 +23,28 @@ function filter(c: ConditionSanity) {
     ...(c.familyFilter ? { family: c.familyFilter as Family } : {}),
     ...(c.roleFilter ? { role: c.roleFilter as Role | "noRole" } : {}),
   }
+}
+
+const STATUSES = ["light", "disgrace", "neutral"]
+const COMPARATORS = ["eq", "gte", "lte", "gt", "lt"]
+const OPPONENTS = ["leftNeighbor", "rightNeighbor", "allOpponents", "anyOpponent"]
+const oneOf = (value: unknown, list: readonly string[], field: string) => {
+  if (!list.includes(value as string)) throw new Error(`${field} invalide : ${JSON.stringify(value)}`)
+}
+
+/** Vérifie les valeurs d'une condition Sanity (une faute de saisie ne doit pas produire une mission impossible). */
+function checkCondition(c: ConditionSanity) {
+  if (c.familyFilter) oneOf(c.familyFilter, FAMILIES, "familyFilter")
+  if (c.roleFilter) oneOf(c.roleFilter, [...ROLES, "noRole"], "roleFilter")
+  if (c.comparator) oneOf(c.comparator, COMPARATORS, "comparator")
+  if (c.level) oneOf(c.level, ["up", "down"], "level")
+  if (c.mode) oneOf(c.mode, ["cards", "weight"], "mode")
+  if (c.type === "familyStatus") oneOf(c.family, FAMILIES, "family")
+  if (c.type === "familyStatus" || c.type === "familiesWithStatus") oneOf(c.status, STATUSES, "status")
+  if (c.type === "playerComparison") oneOf(c.opponent, OPPONENTS, "opponent")
+  if ((c.type === "and" || c.type === "or") && (c.conditions?.length ?? 0) < 2) throw new Error(`${c.type} : au moins 2 conditions`)
+  if (c.type === "not" && c.conditions?.length !== 1) throw new Error("not : exactement 1 condition")
+  c.conditions?.forEach(checkCondition)
 }
 
 export function toCondition(c: ConditionSanity): Condition {
@@ -64,6 +86,8 @@ export async function loadMissions(playerCount: number): Promise<Mission[]> {
     const { missions } = await getCatalog()
     fromSanity = missions.flatMap((m) => {
       try {
+        if (m.color !== "white" && m.color !== "blue") throw new Error(`couleur invalide : ${JSON.stringify(m.color)}`)
+        checkCondition(m.condition as ConditionSanity)
         return [
           {
             id: m._id,
@@ -72,7 +96,9 @@ export async function loadMissions(playerCount: number): Promise<Mission[]> {
             condition: toCondition(m.condition as ConditionSanity),
           },
         ]
-      } catch {
+      } catch (error) {
+        // visible dans les logs Vercel : la mission est ignorée et remplacée par une mission par défaut
+        console.warn(`Mission Sanity ${m._id} ignorée : ${(error as Error).message}`)
         return []
       }
     })

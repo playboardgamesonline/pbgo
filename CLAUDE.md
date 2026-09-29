@@ -18,12 +18,14 @@ Une modification ici profite à tous les jeux qui les utilisent au prochain dép
 - Utiliser un paquet dans un jeu : l'ajouter aux `dependencies` (`"@pgo/ui": "workspace:*"`) et à `transpilePackages` dans `next.config.ts` ; pour Tailwind, `@source` vers `packages/ui/src` dans `globals.css`
 - `@pgo/core` — socle commun des jeux : serveur (`server/*` : parties Supabase avec verrou de version, joueur, admin, stats, tâches), `lib/*` (api, realtime, settings, rules, i18n), composants (accueil, lobby, contexte de partie, fin de partie, partage, /setup, /status), pages (`pages/game|setup|status`) et routes API (`routes/api/**/route.ts`)
   - Le jeu branche son code via trois alias déclarés dans `next.config.ts` (`turbopack.resolveAlias`) **et** `tsconfig.json` (`paths`) :
-    - `@pgo/binding` → `src/binding.ts` : moteur (`GAME`, types), constantes de `lib/site.ts` ; facultatif : `SOUNDS`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`
+    - `@pgo/binding` → `src/binding.ts` : moteur (`GAME`, types), constantes de `lib/site.ts` ; facultatif : `SOUNDS`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`, `ERROR_MESSAGES` (textes des erreurs du moteur), `SANITY_PROJECT_ID`
     - `@pgo/binding-ui` → `src/binding-ui.ts` : `Logo`, `Game` (plateau), `captureGamePhoto` ; facultatif : `RulesButton` (règles propres au jeu)
     - `@pgo/binding-server` → `src/binding-server.ts` (serveur uniquement), tout facultatif : `loadSetupData` (données de `GAME.setup`), `loadGameData` (prop `data` du plateau), `loadRules`
   - Écrans et partie standard (repris de Courtisans) : `Screen` (accueil, invitation, lobby), `GameHud` + `Ticker` + `groupTurns` + `useAnnouncements` (partie), `GameOver` (`renderDetail` pour le détail des points), son (`lib/sound.ts`, `SoundButton`, `SoundEngine`), `DesktopOnly`, panneau debug leva — le tout monté par `AppShell` dans le layout
   - Habillage (`lib/skin.ts`, `loadSkin`, `useSkin`, `useText`) : Sanity `interface` (décor haut/bas, personnage, motif, picto de l'hôte, couleurs des joueurs, ordinateur uniquement) + `texts` (intro de l'accueil, phrases de victoire, libellés d'interface `UI_TEXTS` de `@pgo/studio-kit/constants`) ; valeurs par défaut du jeu dans `DEFAULT_SKIN`
   - Les fichiers de `app/` sont de simples ré-exports (`export { POST } from "@pgo/core/routes/api/games/[code]/join/route"`) ; les configs de segment (`dynamic`, `revalidate`) restent écrites en toutes lettres dans l'app (Next ne les lit pas à travers un ré-export)
+  - Joueur absent : après `TURN_TIMEOUT` (60 s) sans écriture, `StalledTurn` propose aux autres de jouer à sa place (route `/takeover`, qui utilise `GAME.autoPlay` ou `GAME.debug.turn` et `GAME.activePlayer`)
+  - Écritures concurrentes : `updateGame` réessaie jusqu'à 8 fois avec une attente aléatoire croissante
   - Tailwind : `@source` vers `packages/core` dans `globals.css` ; police d'ambiance (annonces, intro) : variable CSS `--font-accent`
   - Utilisé par : template (et donc tout jeu créé avec `new-game`), Courtisans
 
