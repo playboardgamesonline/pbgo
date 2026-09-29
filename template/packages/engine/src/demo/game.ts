@@ -1,7 +1,4 @@
-import type { GameDefinition, Results } from "../contract"
-import { EngineError } from "../errors"
-import { type OptionDefinitions, normalizeOptions } from "../options"
-import { createRng, shuffle } from "../rng"
+import { type GameDefinition, type OptionDefinitions, type Results, EngineError, createRng, normalizeOptions, shuffle } from "@pgo/engine-kit"
 import { type Action, type Card, CARD_COLORS, type State, type DemoOptions, MAX_VALUE, type PlayerView } from "./types"
 
 export const DEMO_OPTIONS: OptionDefinitions = {

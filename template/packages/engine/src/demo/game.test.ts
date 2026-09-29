@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { EngineError } from "../errors"
+import { EngineError } from "@pgo/engine-kit"
 import { demo } from "./game"
 import type { State } from "./types"
 

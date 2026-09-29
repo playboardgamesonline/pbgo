@@ -1,4 +1,4 @@
-import type { Results } from "../contract"
+import type { Results } from "@pgo/engine-kit"
 
 export const CARD_COLORS = ["sun", "moon", "star", "comet"] as const
 export type CardColor = (typeof CARD_COLORS)[number]

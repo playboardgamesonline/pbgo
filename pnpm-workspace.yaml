@@ -2,6 +2,7 @@ packages:
   - "template"
   - "template/apps/*"
   - "template/packages/*"
+  - "packages/*"
   - "games/*"
   - "games/*/apps/*"
   - "games/*/packages/*"
