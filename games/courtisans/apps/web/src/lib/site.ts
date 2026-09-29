@@ -4,6 +4,8 @@ export const SITE_URL =
 
 export const SLUG = "courtisans"
 
+export const SANITY_PROJECT_ID = "2lo2f5sv"
+
 // Valeurs par défaut, remplacées par les réglages de /setup (document Sanity « settings »)
 export const NAME = "Courtisans Online"
 

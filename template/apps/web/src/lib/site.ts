@@ -4,6 +4,9 @@ export const SITE_URL =
 
 export const SLUG = "template"
 
+// Projet Sanity du jeu (remplacé par pnpm go-live)
+export const SANITY_PROJECT_ID = "__SANITY_PROJECT_ID__"
+
 // Defaults, overridden by the /setup settings (Sanity "settings" document)
 export const NAME = "La Plus Haute"
 

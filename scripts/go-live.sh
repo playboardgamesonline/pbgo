@@ -44,6 +44,8 @@ for origin in "https://$DOMAIN" "http://localhost:3000"; do
 done
 [ -f "$DIR/apps/studio/.env" ] || printf "SANITY_STUDIO_PROJECT_ID=%s\nSANITY_STUDIO_DATASET=production\nSANITY_STUDIO_HOST=%s\n" "$PID" "$SLUG" > "$DIR/apps/studio/.env"
 ok "Dataset production + CORS"
+SITE_TS="$DIR/apps/web/src/lib/site.ts"
+if [ -f "$SITE_TS" ] && grep -q "__SANITY_PROJECT_ID__" "$SITE_TS"; then perl -pi -e "s/__SANITY_PROJECT_ID__/$PID/g" "$SITE_TS" && ok "Projet Sanity renseigné dans apps/web/src/lib/site.ts"; fi
 
 # ---------- Vercel ----------
 title "Vercel"
