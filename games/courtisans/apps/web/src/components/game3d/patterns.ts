@@ -2,7 +2,7 @@
 
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three"
 
-export type Pattern = "losanges"
+export type Pattern = "diamonds"
 
 const GOLD = "rgba(240, 214, 150, 1)"
 const SIZE = 256

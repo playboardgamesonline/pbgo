@@ -143,8 +143,9 @@ export function themeStyle(s: SiteSettings): Record<string, string> {
     "--secondary-foreground": s.theme.background,
     "--muted": `color-mix(in oklab, ${s.theme.surface}, ${s.theme.foreground} 8%)`,
     "--accent": `color-mix(in oklab, ${s.theme.surface}, ${s.theme.foreground} 8%)`,
-    "--font-body": fontStack(bodyFamily(s), BODY_FALLBACK),
-    "--font-title": fontStack(titleFamily(s) ?? bodyFamily(s), BODY_FALLBACK),
+    // sans police choisie, on garde celles du CSS du jeu (:root --font-body / --font-title)
+    ...(bodyFamily(s) ? { "--font-body": fontStack(bodyFamily(s), BODY_FALLBACK) } : {}),
+    ...((titleFamily(s) ?? bodyFamily(s)) ? { "--font-title": fontStack(titleFamily(s) ?? bodyFamily(s), BODY_FALLBACK) } : {}),
   }
 }
 

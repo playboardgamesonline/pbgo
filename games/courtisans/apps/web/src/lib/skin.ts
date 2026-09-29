@@ -48,8 +48,6 @@ const THEME: ThemeColors = { background: "#0e3940", foreground: "#f0e9ce", accen
 export const SETTINGS_DEFAULTS: Partial<Omit<SiteSettings, "theme">> & { theme: ThemeColors } = {
   logo: "/LOGO.webp",
   theme: THEME,
-  bodyFont: "Alegreya",
-  displayFont: "Alegreya",
   credits: {
     authors: "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier",
     publisher: "Catch Up Games",

@@ -3,7 +3,7 @@ import { applyAction } from "./actions"
 import { card, makeState, player } from "./test-utils"
 import { playerView } from "./view"
 
-describe("vueJoueur", () => {
+describe("playerView", () => {
   const spy = card("hare", "spy")
   const state = makeState({
     players: [player("a", { hand: [spy, card("stag"), card("stag")] }), player("b", { hand: [card("carp")] })],

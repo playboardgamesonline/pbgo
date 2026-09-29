@@ -225,7 +225,7 @@ function fold(m: Material | null, uniforms: Record<string, { value: number }>) {
         "#include <begin_vertex>\nfloat pyPli = clamp(position.y / uHalfH, -1.0, 1.0);\ntransformed.z += uDir * uFold * uHalfH * (1.0 - pyPli * pyPli);",
       )
   }
-  m.customProgramCacheKey = () => "pli"
+  m.customProgramCacheKey = () => "fold"
   m.needsUpdate = true
 }
 

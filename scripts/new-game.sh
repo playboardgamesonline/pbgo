@@ -26,6 +26,8 @@ pkg("apps/web/package.json", p => { p.name = `${slug}-web`
   return p })
 pkg("apps/studio/package.json", p => ({ ...p, name: `${slug}-studio` }))
 pkg("packages/engine/package.json", p => ({ ...p, name: `@${slug}/engine` }))
+// games/<jeu>/apps/web est un niveau plus bas que template/apps/web : chemins @source de Tailwind
+edit("apps/web/src/app/globals.css", (s) => s.replaceAll('@source "../../../../../packages/', '@source "../../../../../../packages/'))
 // imports @game/engine → @<slug>/engine
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? (e.name === "node_modules" ? [] : walk(path.join(d, e.name))) : [path.join(d, e.name)])
 for (const f of walk(dest).filter(f => /\.(ts|tsx|mts|js|mjs|json|md)$/.test(f))) {

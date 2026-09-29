@@ -27,7 +27,7 @@ function bookletTable() {
   ]
 }
 
-describe("calculerStatuts", () => {
+describe("computeStatuses", () => {
   it("matches the rulebook example (nobles count double, spies count by famille)", () => {
     const statuses = computeStatuses(bookletTable())
     expect(statuses.butterfly.status).toBe("light")
@@ -39,7 +39,7 @@ describe("calculerStatuts", () => {
   })
 })
 
-describe("calculerResultats", () => {
+describe("computeResults", () => {
   it("gives Noëmie 11 points like in the rulebook", () => {
     const mission: Mission = {
       id: "m1",

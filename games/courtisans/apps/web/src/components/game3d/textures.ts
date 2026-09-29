@@ -199,8 +199,8 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
   const sources = useMemo<Source[]>(() => {
     const list: Source[] = [
       { key: "mat", urls: [catalog.matUrl, d.matUrl] },
-      { key: "tissu", urls: [catalog.clothUrl, d.clothUrl] },
-      { key: "dos", urls: [catalog.courtierBackUrl, d.courtierBackUrl] },
+      { key: "cloth", urls: [catalog.clothUrl, d.clothUrl] },
+      { key: "back", urls: [catalog.courtierBackUrl, d.courtierBackUrl] },
       {
         key: "whiteBack",
         urls: [catalog.whiteMissionBackUrl, d.whiteMissionBackUrl],
@@ -235,7 +235,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
       loadWithFallback(urls)
         .then((t) => (t && text ? composedMission(t, text) : t))
         .then((t) => {
-          if (t && key === "tissu") {
+          if (t && key === "cloth") {
             t.wrapS = t.wrapT = RepeatWrapping
             t.needsUpdate = true
           }
@@ -250,14 +250,14 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
     }
   }, [sources])
 
-  const [fallbackUrl] = useState(() => new Map<string, Texture>())
+  const [fallbacks] = useState(() => new Map<string, Texture>())
 
   return useMemo(() => {
     const fallback = (key: string, create: () => Texture) => {
-      if (!fallbackUrl.has(key)) fallbackUrl.set(key, create())
-      return fallbackUrl.get(key)!
+      if (!fallbacks.has(key)) fallbacks.set(key, create())
+      return fallbacks.get(key)!
     }
-    const back = loaded.back ?? fallback("dos", () => textTexture("★", "#10363c", "#d9a93f", 890 / 472))
+    const back = loaded.back ?? fallback("back", () => textTexture("★", "#10363c", "#d9a93f", 890 / 472))
     return {
       mat: loaded.mat ?? fallback("mat", () => textTexture("", "#1b3f45", "#fff", 579 / 2362)),
       back,
@@ -276,5 +276,5 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
         (m.color === "blue" ? loaded.blueBack : loaded.whiteBack) ??
         fallback(`dm:${m.color}`, () => textTexture("★", m.color === "blue" ? "#0d3b43" : "#e8d7ae", "#c9a227", 452 / 688)),
     }
-  }, [loaded, catalog, fallbackUrl])
+  }, [loaded, catalog, fallbacks])
 }

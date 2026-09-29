@@ -1,15 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@source "../../../../../packages/ui/src";
-@source "../../../../../packages/core";
+@source "../../../../../../packages/ui/src";
+@source "../../../../../../packages/core";
 
 @custom-variant dark (&:is(.dark *));
 
 /* Game theme: defaults, overridden at runtime by the /setup settings (inline style on <html>) */
 :root {
   --radius: 0.75rem;
-  --font-body: ui-rounded, "Avenir Next", "Nunito", system-ui, -apple-system, sans-serif;
+  --font-body: "Alegreya Variable", Georgia, serif;
   --font-title: var(--font-body);
 
   --background: #13213a;

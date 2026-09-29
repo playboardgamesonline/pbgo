@@ -6,7 +6,7 @@ import { testMissions } from "./test-utils"
 
 const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` }))
 
-describe("creerCourtisans", () => {
+describe("createCourtiers", () => {
   it("builds 90 cards, 15 per family with the right roles", () => {
     const cards = createCourtiers()
     expect(cards).toHaveLength(90)

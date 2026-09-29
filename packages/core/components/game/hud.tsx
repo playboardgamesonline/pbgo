@@ -91,9 +91,9 @@ export function Ticker({
         {activePlayerId ? <TurnLabel playerId={activePlayerId} /> : waiting}
       </motion.p>
       {status && <div className="mt-1 font-display text-sm tracking-[0.18em] text-foreground/60 uppercase tabular-nums">{status}</div>}
+      <div className="my-3 h-px w-full min-w-64 bg-white/25" />
       {history.length > 0 && (
         <>
-          <div className="my-3 h-px w-full min-w-64 bg-white/25" />
           <div
             className="pointer-events-auto max-h-[12.5rem] w-full overflow-y-auto pr-1 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={{

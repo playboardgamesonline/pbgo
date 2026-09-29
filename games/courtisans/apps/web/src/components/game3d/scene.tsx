@@ -236,7 +236,7 @@ export const BLEND_MODES = { multiply: 0, screen: 1, overlay: 2, "soft light": 3
 
 function Table({ tex, flow, matDuration }: { tex: Textures; flow: boolean; matDuration: number }) {
   const vignette = useFrameTexture(vignetteTexture)
-  const texPattern = useMemo(() => patternTexture("losanges"), [])
+  const texPattern = useMemo(() => patternTexture("diamonds"), [])
   const { opacity, desaturation, blend, strength, scaleFactor, thickness } = useControls(
     "Mat",
     {

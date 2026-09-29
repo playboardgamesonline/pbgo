@@ -17,7 +17,7 @@ const state = makeState({
   ],
 })
 
-describe("evaluerCondition", () => {
+describe("evaluateCondition", () => {
   const cases: [string, Condition, boolean][] = [
     ["familyStatus", { type: "familyStatus", family: "hare", status: "disgrace" }, true],
     ["familiesWithStatus", { type: "familiesWithStatus", status: "disgrace", comparator: "gte", value: 2 }, true],
