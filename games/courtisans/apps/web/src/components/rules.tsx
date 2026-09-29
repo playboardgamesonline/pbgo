@@ -52,10 +52,11 @@ function Rich({ text }: { text: string }) {
 function Line({ text }: { text: string }) {
   return (
     <>
-      {text.split(/(\{lumiere\}|\{disgrace\}|\{neutre\}|\*\*[^*]+\*\*)/).map((piece, i) => {
-        if (piece === "{lumiere}") return <StatusTag key={i} type="light" />
+      {text.split(/(\{(?:light|lumiere|disgrace|neutral|neutre)\}|\*\*[^*]+\*\*)/).map((piece, i) => {
+        // balises de statut dans les textes Sanity : {light} {disgrace} {neutral} (anciennes formes {lumiere} {neutre} acceptées)
+        if (piece === "{light}" || piece === "{lumiere}") return <StatusTag key={i} type="light" />
         if (piece === "{disgrace}") return <StatusTag key={i} type="disgrace" />
-        if (piece === "{neutre}") return <StatusTag key={i} type="neutral" />
+        if (piece === "{neutral}" || piece === "{neutre}") return <StatusTag key={i} type="neutral" />
         if (piece.startsWith("**") && piece.endsWith("**")) return <strong key={i}>{piece.slice(2, -2)}</strong>
         return piece.split("\n").flatMap((l, j) => (j ? [<br key={`${i}-${j}`} />, l] : [l]))
       })}

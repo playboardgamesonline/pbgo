@@ -9,7 +9,7 @@ export const DEFAULT_RULE_TEXTS = {
   goalIntro:
     "Dans Courtisans, vous recevez 3 cartes à chaque tour et vous les jouez toutes. L'une part à la table de la reine, où elle améliore ou dégrade le statut d'une famille. Les deux autres se posent chez vous et chez un adversaire : selon le statut de leur famille, elles feront gagner ou perdre des points.\n\nRéfléchissez bien à la répartition de vos 3 cartes : c'est elle qui vous permettra de finir avec le plus de points et de remporter la partie.",
   goalFamilies:
-    "Le jeu compte 90 cartes Courtisan, réparties en 6 familles de 15 : papillon, crapaud, rossignol, lièvre, cerf et carpe. En fin de partie, chaque famille sera {lumiere}, {disgrace} ou {neutre}, selon ce qui s'est joué à la table de la reine.",
+    "Le jeu compte 90 cartes Courtisan, réparties en 6 familles de 15 : papillon, crapaud, rossignol, lièvre, cerf et carpe. En fin de partie, chaque famille sera {light}, {disgrace} ou {neutral}, selon ce qui s'est joué à la table de la reine.",
   goalMissions: "Le jeu compte 20 missions, 10 blanches et 10 bleues. Chaque joueur en reçoit une de chaque couleur et la garde secrète : chaque mission validée en fin de partie rapporte 3 points de plus.",
   flowIntro:
     "Courtisans se joue dans le sens horaire. Le premier joueur joue son tour en entier, puis c'est au joueur suivant, et ainsi de suite.\n\nLa partie prend fin quand la pioche est épuisée et que plus personne n'a de carte en main. Chacun fait alors le compte de ses points, et le meilleur total l'emporte.",
@@ -20,14 +20,14 @@ export const DEFAULT_RULE_TEXTS = {
   flowStart: "Le premier joueur est choisi au hasard. **Le banquet peut commencer !**",
   turnIntro: "À votre tour, vous jouez obligatoirement les 3 cartes de votre main, face visible, **une dans chacune des 3 zones** ci-dessous. L'ordre est libre, tant que chaque zone reçoit exactement une carte.",
   turnTable:
-    "Posez la carte dans la colonne de sa famille, au choix au-dessus ou au-dessous du tapis.\n\nEn fin de partie, une famille qui a plus de cartes au-dessus sera {lumiere} ; une famille qui en a plus au-dessous sera {disgrace}.",
-  turnDomain: "En fin de partie, chaque carte d'une famille {lumiere} vous rapporte 1 point, et chaque carte d'une famille {disgrace} vous en coûte 1.",
-  turnOpponent: "Même calcul, mais pour l'adversaire choisi : chaque carte d'une famille {lumiere} lui rapporte 1 point, chaque carte d'une famille {disgrace} lui en retire 1.",
+    "Posez la carte dans la colonne de sa famille, au choix au-dessus ou au-dessous du tapis.\n\nEn fin de partie, une famille qui a plus de cartes au-dessus sera {light} ; une famille qui en a plus au-dessous sera {disgrace}.",
+  turnDomain: "En fin de partie, chaque carte d'une famille {light} vous rapporte 1 point, et chaque carte d'une famille {disgrace} vous en coûte 1.",
+  turnOpponent: "Même calcul, mais pour l'adversaire choisi : chaque carte d'une famille {light} lui rapporte 1 point, chaque carte d'une famille {disgrace} lui en retire 1.",
   turnEnd: "après avoir joué vos 3 cartes, piochez-en 3 nouvelles pour le tour suivant. Si la pioche est épuisée, c'était votre dernier tour : patientez jusqu'à la fin du tour de table.",
   rolesIntro: "Certains courtisans ont un rôle : on le reconnaît à un objet dans l'illustration et à l'icône présente aux quatre coins de la carte. Il existe 4 rôles, chacun avec son propre effet.",
   scoringIntro: "La partie s'arrête quand la pioche est épuisée et que plus aucun joueur n'a de carte en main.",
   scoringReveal: "Tous les espions (les cartes face cachée) sont retournés. Ceux de la table de la reine rejoignent la colonne de leur famille en gardant leur niveau : au-dessus s'ils étaient au-dessus, au-dessous s'ils étaient au-dessous.",
-  scoringStatus: "On établit ensuite le statut de chaque famille à la table de la reine. Plus de cartes au-dessus du tapis : elle est {lumiere}. Plus au-dessous : elle est {disgrace}. Sans majorité : elle est {neutre}. Les nobles comptent pour 2 cartes.",
+  scoringStatus: "On établit ensuite le statut de chaque famille à la table de la reine. Plus de cartes au-dessus du tapis : elle est {light}. Plus au-dessous : elle est {disgrace}. Sans majorité : elle est {neutral}. Les nobles comptent pour 2 cartes.",
   scoringPoints:
     "Chacun calcule ensuite son total : +1 point par courtisan d'une famille dans la lumière, −1 par courtisan d'une famille en disgrâce, rien pour les familles neutres. Les nobles comptent pour 2.\n\nChacun révèle enfin ses missions : chaque mission validée ajoute 3 points, les autres ne rapportent rien. Le meilleur total remporte la partie ; en cas d'égalité, la victoire est partagée.",
 }
@@ -51,16 +51,16 @@ export const LEGACY_RULE_TEXTS: Record<string, string[]> = {
   flowMissions: ["Chaque joueur reçoit 2 missions, **une blanche et une bleue**, à garder secrètes. Vous pouvez les consulter à tout moment.", "Chaque joueur reçoit 2 missions, **une blanche et une bleue**, qu'il découvre en secret. Les autres missions ne servent pas pendant la partie.\n\nVous pouvez relire vos missions quand vous voulez, mais ne les montrez jamais à vos adversaires."],
   turnEnd: ["vous piochez automatiquement 3 nouvelles cartes. Si la pioche est vide, c'était votre dernier tour.", "une fois vos 3 cartes jouées, vous en piochez 3 nouvelles pour votre prochain tour. Si la pioche est vide, c'était votre dernier tour : attendez que les autres terminent le leur."],
   scoringReveal: ["Ceux de la table rejoignent la colonne de leur famille, sans changer de niveau.", "Tous les espions sont retournés. Ceux de la table de la reine rejoignent la colonne de leur famille, en restant du même côté du tapis : au-dessus s'ils étaient au-dessus, au-dessous sinon."],
-  scoringStatus: ["Plus de cartes au-dessus : {lumiere}. Plus au-dessous : {disgrace}. Sinon : {neutre}. Les nobles comptent double.", "Plus de cartes au-dessus du tapis : la famille est {lumiere}. Plus de cartes au-dessous : elle est {disgrace}. À égalité : elle est {neutre}.\n\nLes nobles comptent pour 2 cartes."],
+  scoringStatus: ["Plus de cartes au-dessus : {light}. Plus au-dessous : {disgrace}. Sinon : {neutral}. Les nobles comptent double.", "Plus de cartes au-dessus du tapis : la famille est {light}. Plus de cartes au-dessous : elle est {disgrace}. À égalité : elle est {neutral}.\n\nLes nobles comptent pour 2 cartes."],
   scoringPoints: ["+1 par courtisan d'une famille dans la lumière, −1 par courtisan d'une famille en disgrâce, +3 par mission réussie. Le plus haut total l'emporte, les ex-aequo partagent la victoire.", "Chaque courtisan d'une famille dans la lumière vous rapporte 1 point, chaque courtisan d'une famille en disgrâce vous en retire 1, les familles neutres ne comptent pas. Les nobles valent double.\n\nChaque mission réussie ajoute 3 points. Le plus haut total gagne ; en cas d'égalité, la victoire est partagée."],
   scoringTitle: ["Décompte"],
-  goalFamilies: ["Papillon, crapaud, rossignol, lièvre, cerf et carpe : chacune finira {lumiere}, {disgrace} ou {neutre} selon ce qui se joue à la table de la reine."],
+  goalFamilies: ["Papillon, crapaud, rossignol, lièvre, cerf et carpe : chacune finira {light}, {disgrace} ou {neutral} selon ce qui se joue à la table de la reine."],
   goalMissions: ["Une blanche et une bleue. Chaque mission réussie rapporte 3 points en fin de partie. Ne les dévoilez jamais."],
   flowHand: ["Chaque joueur reçoit 3 cartes Courtisan, face cachée. Les cartes restantes forment la pioche."],
   flowStart: ["Le premier joueur est tiré au sort. **Le banquet peut commencer !**"],
   turnIntro: ["Jouez les 3 cartes de votre main, face visible, **une dans chacune des 3 zones**, dans l'ordre de votre choix."],
-  turnTable: ["Posez la carte dans la colonne de sa famille, au-dessus ou au-dessous du tapis. Majorité au-dessus : {lumiere}. Majorité au-dessous : {disgrace}."],
-  turnDomain: ["Chaque carte d'une famille {lumiere} vous rapportera 1 point, chaque carte d'une famille {disgrace} vous en fera perdre 1."],
+  turnTable: ["Posez la carte dans la colonne de sa famille, au-dessus ou au-dessous du tapis. Majorité au-dessus : {light}. Majorité au-dessous : {disgrace}."],
+  turnDomain: ["Chaque carte d'une famille {light} vous rapportera 1 point, chaque carte d'une famille {disgrace} vous en fera perdre 1."],
   turnOpponent: ["Même principe, mais pour lui : offrez-lui des familles en disgrâce, gardez la lumière pour vous."],
   rolesIntro: ["Certains courtisans ont un rôle, indiqué par une icône aux quatre coins de la carte."],
   scoringIntro: ["La partie s'arrête quand la pioche est vide et que plus personne n'a de cartes en main."],

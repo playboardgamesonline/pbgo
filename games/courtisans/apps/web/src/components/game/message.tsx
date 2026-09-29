@@ -40,7 +40,8 @@ function Zone({ target, authorId }: { target: Target; authorId: string }) {
   )
 }
 
-const YOU: Record<string, string> = { played: "jouez", élimine: "éliminez", deck: "piochez" }
+// conjugaison à la 2e personne des verbes affichés (texte d'interface)
+const YOU: Record<string, string> = { "joue": "jouez", "élimine": "éliminez", "pioche": "piochez" }
 
 function Subject({ id, verb }: { id: string; verb: string }) {
   const meId = useCourtisans().view.me?.id
