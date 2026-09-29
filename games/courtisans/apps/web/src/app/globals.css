@@ -1,0 +1,90 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  --background: oklch(0.29 0.05 205);
+  --foreground: #f0e9ce;
+  --card: oklch(0.34 0.055 205);
+  --card-foreground: #f0e9ce;
+  --popover: oklch(0.96 0.025 85);
+  --popover-foreground: oklch(0.28 0.04 205);
+  --primary: oklch(0.76 0.13 85);
+  --primary-foreground: oklch(0.24 0.04 205);
+  --secondary: oklch(0.93 0.03 85);
+  --secondary-foreground: oklch(0.28 0.04 205);
+  --muted: oklch(0.37 0.05 205);
+  --muted-foreground: oklch(0.8 0.03 85);
+  --accent: oklch(0.4 0.06 205);
+  --accent-foreground: #f0e9ce;
+  --destructive: oklch(0.58 0.2 25);
+  --border: oklch(0.76 0.13 85 / 35%);
+  --input: oklch(0.76 0.13 85 / 45%);
+  --ring: oklch(0.76 0.13 85);
+
+  --famille-papillon: #c9d6de;
+  --famille-crapaud: #8a9a3c;
+  --famille-rossignol: #c8364a;
+  --famille-lievre: #e9b634;
+  --famille-cerf: #1f7a52;
+  --famille-carpe: #4a73c4;
+  --lumiere: oklch(0.86 0.12 88);
+  --disgrace: oklch(0.24 0.04 220);
+}
+
+@theme inline {
+  --font-sans: "Alegreya Variable", Georgia, serif;
+  --font-display: "Alegreya Variable", Georgia, serif;
+  --font-typey: var(--police-typey), Georgia, serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-lumiere: var(--lumiere);
+  --color-disgrace: var(--disgrace);
+  --color-papillon: var(--famille-papillon);
+  --color-crapaud: var(--famille-crapaud);
+  --color-rossignol: var(--famille-rossignol);
+  --color-lievre: var(--famille-lievre);
+  --color-cerf: var(--famille-cerf);
+  --color-carpe: var(--famille-carpe);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  button,
+  [role="button"] {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    background-image:
+      radial-gradient(ellipse at top, oklch(0.4 0.07 200 / 60%), transparent 60%),
+      radial-gradient(ellipse at bottom, oklch(0.2 0.04 220 / 80%), transparent 70%);
+    background-attachment: fixed;
+  }
+}

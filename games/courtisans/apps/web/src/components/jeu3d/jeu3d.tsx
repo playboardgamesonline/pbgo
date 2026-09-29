@@ -1,0 +1,361 @@
+"use client"
+
+import type { Cible, Courtisan, VueJoueur, ZoneJeu } from "@courtisans/engine"
+import { Loader2Icon } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import dynamic from "next/dynamic"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { button, useControls } from "leva"
+import { boutonCopie, onglet } from "./onglets-debug"
+import { toast } from "sonner"
+import { Logo } from "@/components/logo"
+import { ReglesButton } from "@/components/regles"
+import { BoutonSon } from "@/components/son"
+import { Button } from "@/components/ui/button"
+import { api } from "@/lib/api"
+import type { CatalogueClient } from "@/lib/catalogue"
+import type { PartiePublique } from "@/lib/partie-types"
+import { Bandeau } from "../jeu/bandeau"
+import { JeuProvider } from "../jeu/contexte"
+import { annonceVainqueur, FinDePartie } from "../jeu/fin-de-partie"
+import { useSequenceFin } from "./fin"
+import { useSonsJeu } from "./sons"
+import { BoutonCour } from "../banquet/ecran-banquet"
+import { useTriche } from "./triche"
+import { type Assassinat, type Interaction, InteractionContexte } from "../jeu/interaction"
+import { PanneauDebug } from "./debug"
+import { Annonce, type TypeAnnonce, useReglagesAnnonces } from "./annonce"
+import type { NomSon } from "@/lib/son"
+import type { EtapeOuverture } from "./scene"
+
+const Scene3D = dynamic(() => import("./scene"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex size-full items-center justify-center">
+      <Loader2Icon className="size-8 animate-spin text-primary" />
+    </div>
+  ),
+})
+
+const aLire = (vue: VueJoueur) => vue.phase !== "fin" && !!vue.moi && !vue.joueurs.find((j) => j.id === vue.moi?.id)?.missionsLues
+
+export function Jeu3D({
+  partie,
+  catalogue,
+  onMaj,
+  onQuitter,
+}: {
+  partie: PartiePublique
+  catalogue: CatalogueClient
+  onMaj: (p: PartiePublique) => void
+  onQuitter: () => void
+}) {
+  const pseudoDe = useCallback((id: string) => partie.joueurs.find((j) => j.id === id)?.pseudo ?? "?", [partie.joueurs])
+  const vue = useTriche(partie.vue!, pseudoDe)
+  const partieVue = useMemo(() => ({ ...partie, vue }), [partie, vue])
+  const [scoresOuverts, setScoresOuverts] = useState(true)
+  const [selectionBrute, setSelection] = useState<Courtisan | null>(null)
+  const [assassinat, setAssassinat] = useState<Assassinat | null>(null)
+  const [envoi, setEnvoi] = useState(false)
+  const [missionFocus, setMissionFocus] = useState<string | null>(null)
+  const { fin, passer } = useSequenceFin(vue)
+  const [etape, setEtape] = useState<EtapeOuverture>(() => (aLire(vue) ? "tapis" : null))
+  const [boutonMissions, setBoutonMissions] = useState(false)
+  const [repere, setRepere] = useState(`${vue.phase}:${vue.joueurActifId}:${aLire(vue) ? 1 : 0}`)
+  const [annonces, setAnnonces] = useState<{ id: number; texte: string; sousTexte?: string; son: NomSon; type: TypeAnnonce }[]>([])
+  const [compteur, setCompteur] = useState(0)
+  const repereActuel = `${vue.phase}:${vue.joueurActifId}:${aLire(vue) ? 1 : 0}`
+  if (repere !== repereActuel) {
+    const [phasePrec, actifPrec, lirePrec] = repere.split(":")
+    setRepere(repereActuel)
+    const nouvelles: { id: number; texte: string; son: NomSon; type: TypeAnnonce }[] = []
+    const tourChange = phasePrec !== vue.phase || actifPrec !== String(vue.joueurActifId)
+    if (vue.phase === "jeu" && phasePrec === "missions")
+      nouvelles.push({ id: compteur, texte: catalogue.texteDebutBanquet, son: "victoire", type: "banquet" })
+    if (tourChange && vue.phase === "jeu" && vue.moi && vue.joueurActifId === vue.moi.id)
+      nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour", type: "tour" })
+    if (nouvelles.length) {
+      setCompteur((c) => c + 2)
+      setAnnonces((l) =>
+        [...l.filter((x) => x.type !== "tour"), ...nouvelles].sort((x, y) => (x.type === "banquet" ? 0 : 1) - (y.type === "banquet" ? 0 : 1)),
+      )
+    }
+    if (aLire(vue) && lirePrec !== "1") {
+      setBoutonMissions(false)
+      setEtape("tapis")
+    }
+  }
+  const annonce = etape === null ? annonces[0] : undefined
+  const reglagesAnnonces = useReglagesAnnonces()
+  const dureeAnnonce = annonce ? reglagesAnnonces[annonce.type].duree : 0
+  function annoncer(texte: string, son: NomSon, type: TypeAnnonce, sousTexte?: string) {
+    setAnnonces((l) => [...l, { id: Date.now(), texte, son, type, sousTexte }])
+  }
+  const intro = etape === "missions"
+  const tourAffiche =
+    etape === "tapis" || etape === "distribution"
+      ? null
+      : vue.phase === "jeu"
+        ? vue.joueurActifId
+        : vue.phase === "missions"
+          ? (vue.premierJoueurId ?? null)
+          : null
+  const nbJoueurs = vue.joueurs.length
+
+  const [reglagesOuverture] = useControls(
+    "Opening",
+    () => ({
+      dureeTapis: { value: 3.2, min: 0.3, max: 6, step: 0.05, label: "mat unroll (s)" },
+      pasDistribution: { value: 0.4, min: 0.05, max: 0.6, step: 0.01, label: "deal step (s)" },
+      attenteBouton: { value: 1.6, min: 0, max: 5, step: 0.1, label: "button delay (s)" },
+      ...boutonCopie("TRANSITION", "Opening"),
+    }),
+    { order: 0 },
+    onglet("TRANSITION"),
+  )
+  useControls(
+    "Replay",
+    {
+      "Full opening": button(() => {
+        setBoutonMissions(false)
+        setEtape("tapis")
+      }),
+      "Banquet announcement": button(() => annoncer(catalogue.texteDebutBanquet, "victoire", "banquet")),
+      "Your turn announcement": button(() => annoncer("C'est votre tour", "tour", "tour")),
+      "Victory announcement": button(() => {
+        const { phrase, detail } = annonceVainqueur(partie, vue, catalogue)
+        annoncer(phrase || "Toute la cour s'incline devant", "victoire", "victoire", detail || "Oré · 9 pts")
+      }),
+    },
+    { order: 1 },
+    onglet("TRANSITION"),
+    [catalogue.texteDebutBanquet],
+  )
+  useControls(
+    "Phases",
+    {
+      "START · new game": button(() => commandeDebug("debut")),
+      "MISSIONS · everyone read": button(() => commandeDebug("missions")),
+      "NEXT TURN · play 3 cards": button(() => commandeDebug("tour")),
+      "END · play to the end": button(() => commandeDebug("fin")),
+    },
+    [partie.code],
+  )
+  const [pret, setPret] = useState(false)
+  const scenePrete = useCallback(() => setPret(true), [])
+  useEffect(() => {
+    if (!pret) return
+    if (etape === "tapis") {
+      const t = setTimeout(() => setEtape("distribution"), (reglagesOuverture.dureeTapis + 0.3) * 1000)
+      return () => clearTimeout(t)
+    }
+    if (etape === "distribution") {
+      const t = setTimeout(() => setEtape("missions"), (0.1 + nbJoueurs * 3 * reglagesOuverture.pasDistribution) * 1000 + 1300)
+      return () => clearTimeout(t)
+    }
+    if (etape === "missions") {
+      const t = setTimeout(() => setBoutonMissions(true), reglagesOuverture.attenteBouton * 1000)
+      return () => clearTimeout(t)
+    }
+  }, [etape, nbJoueurs, pret, reglagesOuverture])
+
+  useEffect(() => {
+    if (!annonce) return
+    const t = setTimeout(() => setAnnonces((l) => l.slice(1)), dureeAnnonce * 1000)
+    return () => clearTimeout(t)
+  }, [annonce, dureeAnnonce])
+
+  const moiId = vue.moi?.id
+  const monTour = vue.phase === "jeu" && !!moiId && vue.joueurActifId === moiId
+  const selection = selectionBrute && vue.moi?.main.some((c) => c.id === selectionBrute.id) && monTour ? selectionBrute : null
+  useSonsJeu(vue, fin, selection?.id ?? null, missionFocus)
+
+  function commandeDebug(commande: "debut" | "missions" | "tour" | "fin") {
+    api
+      .debug(partie.code, commande)
+      .then((p) => {
+        onMaj(p)
+        if (commande === "debut") {
+          setBoutonMissions(false)
+          setAnnonces([])
+          setEtape("tapis")
+        }
+      })
+      .catch((e: Error) => toast.error(e.message))
+  }
+
+  function finirIntro() {
+    setBoutonMissions(false)
+    setEtape(null)
+    const nouvelles: { id: number; texte: string; son: NomSon; type: TypeAnnonce }[] = [
+      { id: compteur, texte: catalogue.texteDebutBanquet, son: "victoire", type: "banquet" },
+    ]
+    if (vue.phase === "jeu" && vue.moi && vue.joueurActifId === vue.moi.id)
+      nouvelles.push({ id: compteur + 1, texte: "C'est votre tour", son: "tour", type: "tour" })
+    setCompteur((c) => c + 2)
+    setAnnonces((l) => [...nouvelles, ...l.filter((x) => x.type !== "tour" && x.type !== "banquet")])
+    api
+      .action(partie.code, { type: "lireMissions" })
+      .then(onMaj)
+      .catch(() => null)
+  }
+
+  const interaction = useMemo<Interaction>(() => {
+    async function envoyer(carteId: string, cible: Cible, cibleAssassinat?: string) {
+      setEnvoi(true)
+      try {
+        onMaj(
+          await api.action(partie.code, {
+            type: "jouerCarte",
+            carteId,
+            cible,
+            cibleAssassinat,
+          }),
+        )
+        setSelection(null)
+        setAssassinat(null)
+      } catch (e) {
+        toast.error((e as Error).message)
+      } finally {
+        setEnvoi(false)
+      }
+    }
+    return {
+      monTour,
+      selection,
+      selectionner: setSelection,
+      assassinat,
+      envoi,
+      peutJouer: (zone: ZoneJeu) => monTour && vue.zonesDisponibles.includes(zone),
+      origine: () => null,
+      jouer: (cible) => {
+        if (!selection) return
+        if (selection.role === "assassin") {
+          const cartes = cible.zone === "table" ? vue.table.map((p) => p.carte) : (vue.joueurs.find((j) => j.id === cible.joueurId)?.domaine ?? [])
+          const candidats = cartes.filter((c) => c.role !== "garde").map((c) => c.id)
+          if (candidats.length > 0) {
+            setAssassinat({ carteId: selection.id, cible, candidats })
+            return
+          }
+        }
+        envoyer(selection.id, cible)
+      },
+      eliminer: (carteId) => {
+        if (assassinat) envoyer(assassinat.carteId, assassinat.cible, carteId ?? undefined)
+      },
+    }
+  }, [monTour, selection, assassinat, envoi, vue, onMaj, partie.code])
+
+  return (
+    <JeuProvider catalogue={catalogue} partie={partieVue} vue={vue}>
+      <InteractionContexte.Provider value={interaction}>
+        <main className="relative h-dvh w-full overflow-hidden bg-[#061a1e]">
+          <div className="absolute inset-0">
+            <Scene3D
+              etape={etape}
+              onPret={scenePrete}
+              reglages={reglagesOuverture}
+              missionFocus={missionFocus}
+              fin={fin}
+              onMission={(id) => setMissionFocus((f) => (f === id ? null : id))}
+              onVide={() => {
+                setMissionFocus(null)
+                if (!assassinat) setSelection(null)
+              }}
+            />
+          </div>
+
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 right-0 z-10 h-[30rem] w-[52rem] max-w-full"
+            style={{
+              background:
+                "radial-gradient(ellipse 100% 100% at 100% 0%, rgb(2 12 16 / 75%) 0%, rgb(2 12 16 / 50%) 35%, rgb(2 12 16 / 18%) 65%, transparent 100%)",
+            }}
+          />
+          <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
+            <div className="pointer-events-auto flex flex-col items-center gap-1">
+              <button type="button" className="w-40 transition-transform hover:scale-105 sm:w-48" title="Quitter la partie" onClick={onQuitter}>
+                <Logo src={catalogue.logoUrl} />
+              </button>
+              <div className="flex items-center justify-center gap-1">
+                <BoutonSon />
+                <ReglesButton icone regles={catalogue.regles} />
+              </div>
+            </div>
+            <Bandeau tour={tourAffiche} attente={vue.phase === "fin" ? "Fin du banquet" : catalogue.texteConvives} />
+          </header>
+
+          {intro && boutonMissions && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 160, damping: 20 }}
+              className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center"
+            >
+              <BoutonCour onClick={finirIntro} className="w-auto max-w-none px-10">
+                {catalogue.texteBoutonMissions}
+              </BoutonCour>
+            </motion.div>
+          )}
+
+          <AnimatePresence mode="wait">
+            {annonce && (
+              <Annonce
+                key={annonce.id}
+                texte={annonce.texte}
+                sousTexte={annonce.sousTexte}
+                son={annonce.son}
+                reglages={reglagesAnnonces[annonce.type]}
+              />
+            )}
+          </AnimatePresence>
+
+          <PanneauDebug />
+
+          <AnimatePresence>
+            {assassinat && (
+              <motion.div
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 80, opacity: 0 }}
+                className="absolute inset-x-0 bottom-8 z-30 mx-auto w-fit"
+              >
+                <Button
+                  size="lg"
+                  disabled={envoi}
+                  onClick={() => interaction.eliminer(null)}
+                  className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12] px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
+                >
+                  Ne pas assassiner
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {fin?.texte && !fin.tableau && (
+              <Annonce
+                key="victoire"
+                texte={annonceVainqueur(partie, vue, catalogue).phrase}
+                sousTexte={annonceVainqueur(partie, vue, catalogue).detail}
+                son="victoire"
+                reglages={reglagesAnnonces.victoire}
+              />
+            )}
+          </AnimatePresence>
+          {fin && !fin.tableau && (
+            <button
+              type="button"
+              className="absolute right-6 bottom-6 z-40 h-10 cursor-pointer rounded-xl bg-foreground px-6 font-display text-base tracking-wide text-[#0b2231] shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_rgb(240_233_206/30%)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
+              onClick={passer}
+            >
+              Passer
+            </button>
+          )}
+          {fin?.tableau && <FinDePartie onMaj={onMaj} ouvert={scoresOuverts} onBasculer={() => setScoresOuverts((o) => !o)} />}
+        </main>
+      </InteractionContexte.Provider>
+    </JeuProvider>
+  )
+}
