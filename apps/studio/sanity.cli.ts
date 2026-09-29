@@ -5,7 +5,7 @@ export default defineCliConfig({
     projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "erf97a0b",
     dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
   },
-  studioHost: "trio",
+  studioHost: "trio-online",
   deployment: {
     autoUpdates: true,
   },
