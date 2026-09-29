@@ -5,7 +5,6 @@ import { ShareIcon } from "lucide-react"
 import { ApercuPartage } from "./apercu-partage"
 import { genererPartage, type LignePartage } from "./partage"
 import { AnimatePresence, motion } from "motion/react"
-import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { BoutonCour } from "@/components/banquet/ecran-banquet"
@@ -166,7 +165,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-[#020c0f]/55"
+            className="fixed inset-0 z-40 bg-[#020c0f]/80 backdrop-blur-[2px]"
             onClick={onBasculer}
           />
         )}
@@ -253,9 +252,6 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                 <BoutonCour onClick={rejouer} occupe={envoi} disabled={dejaVote} className="w-auto max-w-none px-8">
                   Rejouer ({partie.rejouer.length}/{partie.joueurs.length})
                 </BoutonCour>
-                <Link href="/" className="font-display text-base text-foreground/75 underline-offset-4 hover:text-foreground hover:underline">
-                  Retour à l&apos;accueil
-                </Link>
               </div>
             </motion.section>
           )}
