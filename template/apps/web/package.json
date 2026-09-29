@@ -40,7 +40,8 @@
     "vaul": "^1.1.2",
     "@pgo/ui": "workspace:*",
     "@pgo/studio-kit": "workspace:*",
-    "@pgo/site": "workspace:*"
+    "@pgo/site": "workspace:*",
+    "@pgo/core": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

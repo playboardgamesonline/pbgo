@@ -1,6 +1,6 @@
-import { Home } from "@/components/home/home"
-import { loadRules } from "@/lib/rules-server"
-import { loadSettings } from "@/lib/settings-server"
+import { Home } from "@pgo/core/components/home/home"
+import { loadRules } from "@pgo/core/lib/rules-server"
+import { loadSettings } from "@pgo/core/lib/settings-server"
 import { AUTHOR, GENRES, SITE_URL } from "@/lib/site"
 
 export const revalidate = 60

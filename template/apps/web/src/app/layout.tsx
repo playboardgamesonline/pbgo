@@ -1,10 +1,10 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
-import { SettingsProvider } from "@/components/settings-provider"
+import { SettingsProvider } from "@pgo/core/components/settings-provider"
 import { Toaster } from "@pgo/ui/game/sonner"
 import { TooltipProvider } from "@pgo/ui/game/tooltip"
-import { fontFaceCss, googleFontsHref, themeStyle } from "@/lib/settings"
-import { loadSettings } from "@/lib/settings-server"
+import { fontFaceCss, googleFontsHref, themeStyle } from "@pgo/core/lib/settings"
+import { loadSettings } from "@pgo/core/lib/settings-server"
 import { AUTHOR, KEYWORDS, SITE_URL } from "@/lib/site"
 import "./globals.css"
 

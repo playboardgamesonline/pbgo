@@ -1,0 +1,36 @@
+{
+  "name": "@pgo/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Socle commun des jeux : lobby, parties temps réel, fin de partie, /setup, /status, routes API. Le jeu fournit @pgo/binding (moteur + constantes du site) et @pgo/binding-ui (Logo, plateau, photo).",
+  "dependencies": {
+    "@hugeicons/core-free-icons": "^4.3.5",
+    "@hugeicons/react": "^1.1.10",
+    "@pgo/studio-kit": "workspace:*",
+    "@pgo/ui": "workspace:*",
+    "@sanity/client": "^7.27.0",
+    "@sanity/image-url": "^2.1.1",
+    "@supabase/supabase-js": "^2.117.2",
+    "input-otp": "^1.5.0",
+    "lucide-react": "^1.48.0",
+    "motion": "^13.4.4",
+    "next-sanity": "^13.3.4",
+    "server-only": "^0.0.1",
+    "sonner": "^2.0.8"
+  },
+  "peerDependencies": {
+    "next": "16.3.6",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "^5"
+  }
+}

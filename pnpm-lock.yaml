@@ -1501,6 +1501,70 @@ importers:
         specifier: ^5
         version: 5.0.2(@types/node@22.20.4)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/core:
+    dependencies:
+      '@hugeicons/core-free-icons':
+        specifier: ^4.3.5
+        version: 4.3.5
+      '@hugeicons/react':
+        specifier: ^1.1.10
+        version: 1.1.10(react@19.2.8)
+      '@pgo/studio-kit':
+        specifier: workspace:*
+        version: link:../studio-kit
+      '@pgo/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@sanity/client':
+        specifier: ^7.27.0
+        version: 7.27.0
+      '@sanity/image-url':
+        specifier: ^2.1.1
+        version: 2.1.1
+      '@supabase/supabase-js':
+        specifier: ^2.117.2
+        version: 2.117.2
+      input-otp:
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      lucide-react:
+        specifier: ^1.48.0
+        version: 1.48.0(react@19.2.8)
+      motion:
+        specifier: ^13.4.4
+        version: 13.4.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      next-sanity:
+        specifier: ^13.3.4
+        version: 13.3.4(c7601d14e72f907d2815c875054a98b8)
+      server-only:
+        specifier: ^0.0.1
+        version: 0.0.1
+      sonner:
+        specifier: ^2.0.8
+        version: 2.0.8(@types/react@19.3.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.4
+        version: 22.20.4
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 16.3.6
+        version: 16.3.6(@babel/core@7.29.7)(@types/node@22.20.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   packages/engine-kit:
     devDependencies:
       '@types/node':
@@ -1654,6 +1718,9 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.10
         version: 1.1.10(react@19.2.8)
+      '@pgo/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
       '@pgo/site':
         specifier: workspace:*
         version: link:../../../packages/site

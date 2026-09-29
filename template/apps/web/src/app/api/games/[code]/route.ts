@@ -1,9 +1,1 @@
-import type { NextRequest } from "next/server"
-import { handle } from "@/server/api"
-import { getPlayerId } from "@/server/player"
-import { readGame, publicGame } from "@/server/games"
-
-export const GET = handle(async (_request: NextRequest, ctx: RouteContext<"/api/games/[code]">) => {
-  const { code } = await ctx.params
-  return publicGame(await readGame(code), await getPlayerId())
-})
+export { GET } from "@pgo/core/routes/api/games/[code]/route"
