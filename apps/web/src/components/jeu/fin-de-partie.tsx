@@ -46,14 +46,14 @@ export function annonceVainqueur(partie: PartiePublique, vue: VueJoueur, catalog
   return { phrase, detail: `${noms} · ${vainqueurs[0]?.total ?? 0} pts` }
 }
 
-function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
+function CartesFamilles({ j, grand, centre }: { j: ResultatJoueur; grand?: boolean; centre?: boolean }) {
   const { catalogue } = useJeu()
   const reussies = j.missions.filter((m) => m.validee).length
   const pointsMissions = j.missions.reduce((t, m) => t + m.points, 0)
   const taille = grand ? "h-10 w-7 text-sm" : "h-8 w-[1.4rem] text-[0.68rem]"
   const signe = (n: number) => `${n > 0 ? "+" : ""}${n}`
   return (
-    <div className={cn("flex flex-wrap items-center justify-center", grand ? "gap-2" : "gap-1.5")}>
+    <div className={cn("flex flex-wrap items-center", centre ? "justify-center" : "justify-start", grand ? "gap-2" : "gap-1.5")}>
       {j.detail
         .filter((d) => d.poids > 0)
         .map((d) => (
@@ -72,7 +72,7 @@ function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
       {reussies > 0 && (
         <span
           title={`Missions réussies : ${reussies}/${j.missions.length} (${signe(pointsMissions)})`}
-          className={cn("relative ml-2 shrink-0", grand ? "h-10" : "h-8", reussies > 1 ? (grand ? "w-[5.4rem]" : "w-[4.1rem]") : grand ? "w-12" : "w-9")}
+          className={cn("relative ml-3 shrink-0", grand ? "h-10" : "h-9", reussies > 1 ? (grand ? "w-[5.4rem]" : "w-[5rem]") : grand ? "w-12" : "w-12")}
         >
           {j.missions
             .map((m, i) => ({ ...m, bleue: i === 1 }))
@@ -82,7 +82,7 @@ function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
                 key={m.missionId}
                 className={cn(
                   "absolute flex items-center justify-center rounded-[0.3rem] border font-display font-bold tabular-nums shadow-[0_3px_8px_rgb(0_0_0/35%)]",
-                  grand ? "h-8 w-12 text-sm" : "h-6 w-9 text-[0.68rem]",
+                  grand ? "h-8 w-12 text-sm" : "h-7 w-12 text-xs",
                   m.bleue ? "border-[#d9bf7a]/60 bg-[#0c2a31] text-[#e7cf8a]" : "border-[#cdb888]/70 bg-[#f1e8d0] text-[#3b2a08]",
                   liste.length > 1 ? (i === 0 ? "top-0 left-0 -rotate-6" : "right-0 bottom-0 rotate-[5deg]") : "inset-x-0 top-1/2 -translate-y-1/2",
                 )}
@@ -193,34 +193,27 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
               <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-motif) bg-[length:128px_128px] opacity-[0.07]" />
               <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(34_96_104/55%),transparent_70%)]" />
               <div className="relative shrink-0 px-8 pt-7 pb-6">
-                {url && (
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-y-0 right-0 w-[55%] overflow-hidden"
-                    style={{
-                      maskImage:
-                        "linear-gradient(to left, black 20%, transparent 95%), linear-gradient(to top, transparent 0%, black 35%, black 85%, transparent 100%)",
-                      WebkitMaskImage:
-                        "linear-gradient(to left, black 20%, transparent 95%), linear-gradient(to top, transparent 0%, black 35%, black 85%, transparent 100%)",
-                      maskComposite: "intersect",
-                      WebkitMaskComposite: "source-in",
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" className="size-full scale-[1.45] object-cover opacity-90 [object-position:50%_58%]" style={{ transformOrigin: "60% 55%" }} />
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={() => setApercu(true)}
                   disabled={!image}
                   title="Partager le résultat"
                   aria-label="Partager le résultat"
-                  className="absolute top-6 right-7 z-10 flex size-10 cursor-pointer items-center justify-center rounded-full border border-foreground/30 bg-[#0b2231]/70 text-foreground/85 backdrop-blur-sm transition-[scale,color,background-color] hover:scale-110 hover:bg-[#0b2231]/90 hover:text-foreground disabled:cursor-wait disabled:opacity-40"
+                  className="group absolute top-6 right-6 z-10 w-28 rotate-[4deg] cursor-pointer rounded-md bg-[#f3ecd6] p-1 pb-1.5 shadow-[0_8px_20px_rgb(0_0_0/50%)] transition-transform duration-200 hover:scale-105 hover:rotate-[1deg] disabled:cursor-wait"
                 >
-                  <ShareIcon className="size-4" />
+                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[0.2rem] bg-[#061a1e]">
+                    {url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={url} alt="" className="size-full object-cover" />
+                    ) : (
+                      <span className="block size-full animate-pulse bg-[#12384a]" />
+                    )}
+                  </span>
+                  <span className="absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-full border border-[#8a6a3a]/60 bg-[#0b2231] text-foreground shadow-md transition-transform group-hover:scale-110">
+                    <ShareIcon className="size-3.5" />
+                  </span>
                 </button>
-                <div className="relative flex w-[55%] flex-col items-center gap-2 text-center">
+                <div className="relative flex flex-col items-center gap-2 px-32 text-center">
                   <p className="font-display text-sm tracking-[0.2em] text-foreground/55 uppercase">{phrase || "Le banquet est terminé"}</p>
                   <Couronne className="mt-3 block h-9 w-9 bg-[#f2c14e] drop-shadow-[0_0_12px_rgb(242_193_78/55%)]" />
                   <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: couleur(vainqueurs[0]!.joueurId) }}>
@@ -232,7 +225,7 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                   </p>
                   <div className="mt-2 space-y-2">
                     {vainqueurs.map((v) => (
-                      <CartesFamilles key={v.joueurId} j={v} grand />
+                      <CartesFamilles key={v.joueurId} j={v} grand centre />
                     ))}
                   </div>
                 </div>
@@ -243,13 +236,18 @@ export function FinDePartie({ onMaj, ouvert, onBasculer }: { onMaj: (p: PartiePu
                   {classement
                     .filter((j) => !resultats.vainqueurs.includes(j.joueurId))
                     .map((j) => (
-                      <li key={j.joueurId} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
-                        <span className="w-5 font-display text-lg text-foreground/45 tabular-nums">{j.rang}</span>
-                        <span className="min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: couleur(j.joueurId) }}>
-                          {info(j.joueurId)?.pseudo}
-                        </span>
+                      <li key={j.joueurId} className="space-y-2 py-3.5">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-display text-lg text-foreground/45 tabular-nums">{j.rang}.</span>
+                          <span className="min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: couleur(j.joueurId) }}>
+                            {info(j.joueurId)?.pseudo}
+                          </span>
+                          <span className="font-display text-xl text-foreground/85 tabular-nums">
+                            {j.total > 0 ? "+" : ""}
+                            {j.total} pts
+                          </span>
+                        </div>
                         <CartesFamilles j={j} />
-                        <span className="w-16 text-right font-display text-xl text-foreground/85 tabular-nums">{j.total} pts</span>
                       </li>
                     ))}
                 </ol>
