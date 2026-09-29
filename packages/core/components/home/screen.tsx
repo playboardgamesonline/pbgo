@@ -3,46 +3,127 @@
 import { CheckIcon, CopyIcon, Loader2Icon } from "lucide-react"
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp"
 import { motion } from "motion/react"
+import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Logo } from "@pgo/binding-ui"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pgo/ui/game/input-otp"
 import { useSiteSettings } from "../settings-provider"
+import { useSkin, useText } from "../skin-provider"
+import { SoundButton } from "../sound/sound"
+import { RulesButton } from "../rules"
+import type { RulesContent } from "../../lib/rules"
 import { AUTHOR, CONTACT } from "@pgo/binding"
 import { cn } from "@pgo/ui/utils"
 
+/**
+ * Écran standard hors partie (accueil, invitation, lobby), repris de Courtisans :
+ * fond + motif, décor haut, logo animé, contenu, personnage debout sur le décor bas, bouton principal et code posés sur le décor,
+ * son et règles en haut à droite, pied de page. Toutes les images viennent de l'habillage (Sanity `interface`) et sont facultatives.
+ */
 export function Screen({
   children,
   cta,
   below,
-  above,
+  rules,
   onSubmit,
 }: {
   children?: React.ReactNode
   cta?: React.ReactNode
   below?: React.ReactNode
-  above?: React.ReactNode
+  rules?: RulesContent
   onSubmit?: (e: React.FormEvent) => void
 }) {
-  const Container = onSubmit ? "form" : "div"
   const { title, logo } = useSiteSettings()
+  const { decor } = useSkin()
+  // hauteur du décor bas = largeur affichée (114vw) / ratio de l'image
+  const decorHeight = decor.bottom?.ratio ? `calc(114vw / ${decor.bottom.ratio})` : "0px"
   return (
-    <div className="flex min-h-dvh flex-col">
-      <main className="game-bg relative flex flex-1 flex-col items-center overflow-hidden px-4 pt-[8vh] pb-[6vh]">
-        {above && <div className="absolute top-5 right-5 z-20">{above}</div>}
-        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="w-[min(80vw,520px)]">
-          {logo ? <Logo src={logo} alt={title} /> : <h1 className="text-center font-display text-5xl font-black tracking-tight text-balance md:text-6xl">{title}</h1>}
+    <main className="relative flex h-dvh flex-col overflow-hidden bg-background" style={{ "--decor-h": decorHeight } as React.CSSProperties}>
+      {decor.background && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={decor.background} alt="" aria-hidden draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover select-none" />
+      )}
+      {decor.pattern && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[length:128px_128px] opacity-[0.07]"
+          style={{ backgroundImage: `url(${decor.pattern})` }}
+        />
+      )}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,color-mix(in_oklab,var(--surface),white_12%),transparent_65%)] opacity-70"
+      />
+      {decor.top && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={decor.top.url}
+          srcSet={decor.top.srcSet}
+          sizes="114vw"
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="pointer-events-none absolute top-0 left-[-7%] w-[114%] max-w-none select-none"
+        />
+      )}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
+        <SoundButton />
+        {rules && <RulesButton rules={rules} />}
+      </div>
+
+      <form autoComplete="off" onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
+        <motion.div
+          initial={{ opacity: 0, y: -20, rotate: -2 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 120, damping: 14 }}
+          className="mt-[7vh] w-[min(27rem,72vw,32vh)] shrink-0"
+        >
+          <Link href="/" aria-label="Accueil" className="block">
+            {logo ? (
+              <Logo src={logo} alt={title} />
+            ) : (
+              <h1 className="text-center font-display text-5xl font-black tracking-tight text-balance md:text-6xl">{title}</h1>
+            )}
+          </Link>
         </motion.div>
-        <Container onSubmit={onSubmit} className="flex w-full flex-1 flex-col items-center">
-          {children}
-          <div className="mt-auto flex w-full flex-col items-center gap-5 pt-[5vh]">
+
+        {children}
+
+        <div className="relative mt-[2vh] min-h-0 w-full flex-1">
+          {decor.hero && (
+            <motion.img
+              src={decor.hero}
+              alt=""
+              aria-hidden
+              draggable={false}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, type: "spring", stiffness: 90, damping: 16 }}
+              className="pointer-events-none absolute bottom-[calc(var(--decor-h)*0.18)] left-1/2 h-[min(calc(100%-var(--decor-h)*0.18),34vh)] w-auto -translate-x-1/2 object-contain object-bottom drop-shadow-[0_10px_24px_rgb(0_0_0/50%)] select-none"
+            />
+          )}
+          {decor.bottom && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={decor.bottom.url}
+              srcSet={decor.bottom.srcSet}
+              sizes="114vw"
+              alt=""
+              aria-hidden
+              draggable={false}
+              className="pointer-events-none absolute -bottom-2 left-[-7%] h-auto w-[114%] max-w-none select-none"
+            />
+          )}
+          <div className="absolute inset-x-0 bottom-[max(calc(var(--decor-h)*0.1),4vh)] flex flex-col items-center gap-6 px-4">
             {cta}
             {below}
           </div>
-        </Container>
-      </main>
+        </div>
+      </form>
+
       <Footer />
-    </div>
+    </main>
   )
 }
 
@@ -65,7 +146,8 @@ export function PrimaryButton({
       disabled={disabled || busy}
       onClick={onClick}
       className={cn(
-        "inline-flex h-14 w-full max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl bg-foreground px-8 font-display text-xl font-bold tracking-wide text-background uppercase shadow-[0_10px_30px_rgb(0_0_0/45%)] transition-transform duration-200 hover:scale-[1.03] active:scale-[0.98] disabled:cursor-default disabled:opacity-60 disabled:hover:scale-100",
+        "inline-flex h-16 w-full max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl bg-foreground px-8 font-display text-2xl tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] disabled:cursor-default disabled:hover:scale-100",
+        disabled && "bg-[color-mix(in_oklab,var(--foreground)_62%,var(--background))] shadow-none",
         className,
       )}
     >
@@ -75,37 +157,42 @@ export function PrimaryButton({
   )
 }
 
+const NO_AUTOFILL = { autoComplete: "off", "data-1p-ignore": true, "data-lpignore": "true", "data-bwignore": "true", "data-form-type": "other" } as const
+
 export function NicknameField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useText()
   return (
-    <input
-      id="nickname"
-      name="nickname"
-      type="text"
-      value={value}
-      maxLength={20}
-      autoFocus
-      autoComplete="off"
-      spellCheck={false}
-      data-1p-ignore
-      data-lpignore="true"
-      placeholder="VOTRE PSEUDO…"
-      aria-label="Votre pseudo"
-      onChange={(e) => onChange(e.target.value.toUpperCase())}
-      className="mt-[6vh] h-14 w-full max-w-md border-b border-foreground/30 bg-transparent px-2 text-center font-display text-2xl tracking-[0.12em] uppercase outline-none placeholder:text-foreground/35 focus:border-foreground"
-    />
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-[6vh] w-full max-w-md shrink-0 px-4">
+      <input
+        id="nickname"
+        name="nickname"
+        type="text"
+        value={value}
+        maxLength={20}
+        autoFocus
+        autoCorrect="off"
+        spellCheck={false}
+        {...NO_AUTOFILL}
+        placeholder={t("nicknamePlaceholder")}
+        aria-label={t("nicknamePlaceholder").replace(/…$/, "")}
+        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        className="h-14 w-full border-b border-foreground/30 bg-transparent px-2 text-center font-display text-xl tracking-[0.12em] uppercase outline-none placeholder:text-foreground/35 focus:border-foreground md:text-2xl"
+      />
+    </motion.div>
   )
 }
 
 const SLOT = "size-11 bg-surface-dark/80 font-display text-lg uppercase"
 
 export function CodeField({ value, onChange, copyable }: { value: string; onChange?: (v: string) => void; copyable?: string }) {
+  const t = useText()
   const [copied, setCopied] = useState(false)
   async function copy() {
     if (!copyable) return
     try {
       await navigator.clipboard.writeText(copyable)
       setCopied(true)
-      toast.success("Lien de la partie copié !")
+      toast.success(t("linkCopied"))
       setTimeout(() => setCopied(false), 1600)
     } catch {
       toast.error("Impossible de copier")
@@ -119,10 +206,9 @@ export function CodeField({ value, onChange, copyable }: { value: string; onChan
         value={value}
         onChange={(v) => onChange?.(v.toUpperCase())}
         disabled={!onChange}
-        aria-label="Code de la partie"
-        autoComplete="off"
-        data-1p-ignore
-        data-lpignore="true"
+        aria-label={t("codeLabel")}
+        name="game-code"
+        {...NO_AUTOFILL}
       >
         <InputOTPGroup>
           {[0, 1, 2].map((i) => (
@@ -140,8 +226,9 @@ export function CodeField({ value, onChange, copyable }: { value: string; onChan
         <button
           type="button"
           onClick={copy}
-          aria-label="Copier le lien de la partie"
-          className="absolute -right-14 flex size-11 cursor-pointer items-center justify-center rounded-lg border border-foreground/40 bg-surface-dark/80 transition-transform hover:scale-110"
+          aria-label={t("copyLink")}
+          title={t("copyLink")}
+          className="absolute -right-14 flex size-11 cursor-pointer items-center justify-center rounded-lg border border-foreground/50 bg-surface-dark/80 text-foreground transition-transform hover:scale-110"
         >
           {copied ? <CheckIcon className="size-5" /> : <CopyIcon className="size-5" strokeWidth={1.5} />}
         </button>
@@ -150,16 +237,31 @@ export function CodeField({ value, onChange, copyable }: { value: string; onChan
   )
 }
 
-export function Paragraph({ children, className }: { children: React.ReactNode; className?: string }) {
+/** Titre + texte d'introduction (accueil). */
+export function Intro({ title, children }: { title?: string | null; children: React.ReactNode }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ delay: 0.15 }}
-      className={cn("mt-[3vh] max-w-2xl text-center text-lg leading-snug text-balance text-foreground/80", className)}
+      transition={{ delay: 0.2 }}
+      className="mt-[3vh] max-w-5xl shrink-0 space-y-2 px-4 text-center [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
+    >
+      {title && <h2 className="font-display text-lg tracking-[0.1em] text-foreground uppercase md:text-xl">{title}</h2>}
+      <div className="mx-auto max-w-5xl space-y-1.5 font-display text-[0.95rem] leading-relaxed whitespace-pre-line text-foreground/80 md:text-base">{children}</div>
+    </motion.div>
+  )
+}
+
+export function Paragraph({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <motion.p
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.2 }}
+      className={cn("mt-[2.5vh] max-w-2xl shrink-0 px-4 text-center text-lg leading-snug text-balance text-foreground/85 [text-shadow:0_1px_6px_rgb(0_0_0/60%)]", className)}
     >
       {children}
-    </motion.div>
+    </motion.p>
   )
 }
 

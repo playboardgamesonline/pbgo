@@ -22,3 +22,50 @@ export const FONT_CHOICES = [
   "Alegreya",
   "Press Start 2P",
 ] as const
+
+/**
+ * Libellés d'interface communs à tous les jeux, modifiables dans Sanity (document « Texts », onglet « Interface »).
+ * `fr` = valeur par défaut. Variables entre accolades : {code}, {name}, {count}, {max}.
+ */
+export const UI_TEXTS = [
+  // Accueil
+  { key: "nicknamePlaceholder", group: "home", title: "Nickname placeholder", fr: "VOTRE PSEUDO…" },
+  { key: "createButton", group: "home", title: "Create button", fr: "Créer une partie" },
+  { key: "joinButton", group: "home", title: "Join button (code typed)", fr: "Rejoindre la partie" },
+  { key: "chooseNickname", group: "home", title: "Error: no nickname", fr: "Choisissez d'abord votre pseudo." },
+  { key: "codeLength", group: "home", title: "Error: code length", fr: "Le code de partie fait 6 caractères." },
+  { key: "linkCopied", group: "home", title: "Toast: link copied", fr: "Lien de la partie copié !" },
+  { key: "linkCopiedHint", group: "home", title: "Toast: link copied (detail)", fr: "Envoyez-le à vos amis pour qu'ils vous rejoignent." },
+  { key: "gameCreated", group: "home", title: "Toast: game created", fr: "Partie {code} créée !" },
+  { key: "codeLabel", group: "home", title: "Code field label", fr: "Code de la partie" },
+  { key: "copyLink", group: "home", title: "Copy link button", fr: "Copier le lien de la partie" },
+  // Invitation et lobby
+  { key: "joinGameButton", group: "lobby", title: "Join button (invitation)", fr: "Rejoindre la partie" },
+  { key: "gameNotFound", group: "lobby", title: "Game not found", fr: "Cette partie est introuvable. Vérifiez le code {code} ou créez-en une nouvelle." },
+  { key: "alreadyStarted", group: "lobby", title: "Game already started", fr: "Cette partie a déjà commencé." },
+  { key: "backHome", group: "lobby", title: "Back home button", fr: "Retour à l'accueil" },
+  { key: "shareInvite", group: "lobby", title: "Lobby: share invite", fr: "Partagez le code ou le lien de la partie à vos amis." },
+  { key: "playerCount", group: "lobby", title: "Lobby: player count", fr: "{count}/{max} joueurs" },
+  { key: "you", group: "lobby", title: "Lobby: (you)", fr: "(vous)" },
+  { key: "host", group: "lobby", title: "Lobby: host label", fr: "Hôte" },
+  { key: "startButton", group: "lobby", title: "Start button (host)", fr: "Lancer la partie" },
+  { key: "waitingPlayers", group: "lobby", title: "Start button: not enough players", fr: "En attente de joueurs…" },
+  { key: "waitingHost", group: "lobby", title: "Waiting for host", fr: "En attente de l'hôte" },
+  // En partie
+  { key: "yourTurn", group: "game", title: "Your turn", fr: "C'est votre tour" },
+  { key: "turnOf", group: "game", title: "Turn of a player", fr: "Au tour de {name}" },
+  { key: "yourTurnShort", group: "game", title: "History: your turn", fr: "Votre tour" },
+  { key: "turnOfShort", group: "game", title: "History: turn of a player", fr: "Tour de {name}" },
+  { key: "waiting", group: "game", title: "Waiting (no active player)", fr: "La partie se prépare…" },
+  { key: "gameOver", group: "game", title: "Game over (ticker)", fr: "Fin de la partie" },
+  { key: "leave", group: "game", title: "Leave button", fr: "Quitter" },
+  { key: "replay", group: "game", title: "Replay button", fr: "Rejouer" },
+  { key: "desktopOnly", group: "game", title: "Desktop only message", fr: "Ce jeu se joue sur ordinateur : agrandissez la fenêtre ou revenez depuis un écran plus large." },
+] as const
+
+export type UiTextKey = (typeof UI_TEXTS)[number]["key"]
+export const UI_TEXT_GROUPS = [
+  { name: "home", title: "Home" },
+  { name: "lobby", title: "Invitation & lobby" },
+  { name: "game", title: "In game" },
+] as const

@@ -3,22 +3,24 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
-import { RulesButton } from "../rules"
+import { TAGLINE } from "@pgo/binding"
 import { api, gameLink } from "../../lib/api"
 import { useProfile } from "../../lib/profile"
-import { TAGLINE } from "@pgo/binding"
 import type { RulesContent } from "../../lib/rules"
-import { PrimaryButton, CodeField, NicknameField, Screen, Paragraph } from "./screen"
+import { useSkin, useText } from "../skin-provider"
+import { CodeField, Intro, NicknameField, Paragraph, PrimaryButton, Screen } from "./screen"
 
 export function Home({ rules }: { rules: RulesContent }) {
   const router = useRouter()
+  const t = useText()
+  const { home } = useSkin()
   const { profile, setProfile, valid } = useProfile()
   const [code, setCode] = useState("")
   const [pending, setPending] = useState(false)
 
   function checkProfile() {
     if (valid) return true
-    toast.error("Choisissez d'abord votre pseudo.")
+    toast.error(t("chooseNickname"))
     document.getElementById("nickname")?.focus()
     return false
   }
@@ -27,7 +29,7 @@ export function Home({ rules }: { rules: RulesContent }) {
     event.preventDefault()
     if (!checkProfile()) return
     if (code.length > 0 && code.length !== 6) {
-      toast.error("Le code de partie fait 6 caractères.")
+      toast.error(t("codeLength"))
       return
     }
     setPending(true)
@@ -39,9 +41,9 @@ export function Home({ rules }: { rules: RulesContent }) {
       const game = await api.create(profile)
       try {
         await navigator.clipboard.writeText(gameLink(game.code))
-        toast.success("Lien de la partie copié !", { description: "Envoyez-le à vos amis pour qu'ils vous rejoignent." })
+        toast.success(t("linkCopied"), { description: t("linkCopiedHint") })
       } catch {
-        toast.success(`Partie ${game.code} créée !`)
+        toast.success(t("gameCreated", { code: game.code }))
       }
       router.push(`/game/${game.code}`)
     } catch (error) {
@@ -53,11 +55,11 @@ export function Home({ rules }: { rules: RulesContent }) {
   return (
     <Screen
       onSubmit={validate}
-      above={<RulesButton rules={rules} />}
-      cta={<PrimaryButton busy={pending}>{code.length === 6 ? "Rejoindre la partie" : "Créer une partie"}</PrimaryButton>}
+      rules={rules}
+      cta={<PrimaryButton busy={pending}>{code.length === 6 ? t("joinButton") : t("createButton")}</PrimaryButton>}
       below={<CodeField value={code} onChange={setCode} />}
     >
-      <Paragraph>{TAGLINE}</Paragraph>
+      {home.intro ? <Intro title={home.title}>{home.intro}</Intro> : <Paragraph>{TAGLINE}</Paragraph>}
       <NicknameField value={profile.nickname} onChange={(nickname) => setProfile({ nickname })} />
     </Screen>
   )

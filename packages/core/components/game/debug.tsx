@@ -2,7 +2,7 @@
 
 import { Leva, LevaPanel, button, useControls } from "leva"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "@pgo/ui/utils"
 import { roundValue, DEBUG_STORES, DEBUG_TABS, type DebugTab } from "./debug-tabs"
 
 const STORAGE_KEY = "game:debug"

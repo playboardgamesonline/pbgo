@@ -1,10 +1,11 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
-import { SettingsProvider } from "@pgo/core/components/settings-provider"
+import { AppShell } from "@pgo/core/components/app-shell"
 import { Toaster } from "@pgo/ui/game/sonner"
 import { TooltipProvider } from "@pgo/ui/game/tooltip"
 import { fontFaceCss, googleFontsHref, themeStyle } from "@pgo/core/lib/settings"
 import { loadSettings } from "@pgo/core/lib/settings-server"
+import { loadSkin } from "@pgo/core/lib/skin-server"
 import { AUTHOR, KEYWORDS, SITE_URL } from "@/lib/site"
 import "./globals.css"
 
@@ -33,7 +34,7 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const settings = await loadSettings()
+  const [settings, skin] = await Promise.all([loadSettings(), loadSkin()])
   const fonts = googleFontsHref([settings.files.fontBody ? null : settings.bodyFont, settings.files.fontDisplay ? null : settings.displayFont])
   const fontFaces = fontFaceCss(settings.files)
   return (
@@ -48,10 +49,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </>
         )}
       </head>
-      <body className="flex min-h-full flex-col">
-        <SettingsProvider settings={settings}>
+      <body className="flex min-h-full flex-col bg-background">
+        <AppShell settings={settings} skin={skin}>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
-        </SettingsProvider>
+        </AppShell>
         <Toaster position="top-center" />
         <Analytics />
       </body>

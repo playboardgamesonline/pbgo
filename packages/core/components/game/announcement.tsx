@@ -3,10 +3,10 @@
 import { useControls } from "leva"
 import { motion } from "motion/react"
 import { useEffect, useRef } from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "@pgo/ui/utils"
 import { copyButton, debugTab } from "./debug-tabs"
+import { playSound } from "../../lib/sound"
 
-export type AnnouncementType = "start" | "turn" | "victory"
 
 const DEFAULTS = {
   duration: 2.4,
@@ -76,47 +76,44 @@ function schema(defaults: AnnouncementSettings, folder: string) {
   }
 }
 
-export function useAnnouncementSettings(): Record<AnnouncementType, AnnouncementSettings> {
-  const start = useControls("Announcement · Start", schema(DEFAULTS, "Announcement · Start"), { collapsed: true, order: 2 }, debugTab("TRANSITION"))
-  const turn = useControls(
-    "Announcement · Your Turn",
-    schema(
-      {
-        ...DEFAULTS,
-        above: true,
-        fadeGradient: true,
-        overlay: 0.55,
-        lines: false,
-        size: 2.2,
-        outline: 0,
-        shadow: 2,
-        blur: 12,
-        startScale: 0.96,
-        duration: 2,
-        spacing: 0.06,
-        gradientHeight: 45,
-      },
-      "Announcement · Your Turn",
-    ),
-    { collapsed: true, order: 3 },
-    debugTab("TRANSITION"),
-  )
-  const victory = useControls(
-    "Announcement · Victory",
-    schema(
-      {
-        ...DEFAULTS,
-        duration: 4.5,
-        sound: false,
-        size: 3.4,
-        confetti: true,
-      },
-      "Announcement · Victory",
-    ),
-    { collapsed: true, order: 4 },
-    debugTab("TRANSITION"),
-  )
-  return { start: start as AnnouncementSettings, turn: turn as AnnouncementSettings, victory: victory as AnnouncementSettings }
+const PRESETS = {
+  start: {},
+  turn: {
+    above: true,
+    fadeGradient: true,
+    overlay: 0.55,
+    lines: false,
+    size: 2.2,
+    outline: 0,
+    shadow: 2,
+    blur: 12,
+    startScale: 0.96,
+    duration: 2,
+    spacing: 0.06,
+    gradientHeight: 45,
+  },
+  victory: { duration: 4.5, sound: false, size: 3.4, confetti: true },
+} satisfies Record<string, Partial<AnnouncementSettings>>
+
+export type BaseAnnouncementType = keyof typeof PRESETS
+
+const LABELS: Record<string, string> = { start: "Start", turn: "Your Turn", victory: "Victory" }
+
+/**
+ * Réglages leva des annonces (onglet TRANSITION). Trois préréglages communs (`start`, `turn`, `victory`) ;
+ * `extra` ajoute ou surcharge des préréglages propres au jeu (objet constant : ne pas le recréer à chaque rendu).
+ */
+export function useAnnouncementSettings<X extends string = never>(
+  extra?: Record<X, Partial<AnnouncementSettings>>,
+): Record<BaseAnnouncementType | X, AnnouncementSettings> {
+  const presets = { ...PRESETS, ...extra } as Record<string, Partial<AnnouncementSettings>>
+  const out: Record<string, AnnouncementSettings> = {}
+  Object.entries(presets).forEach(([key, preset], i) => {
+    const folder = `Announcement · ${LABELS[key] ?? key}`
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- nombre de préréglages constant
+    out[key] = useControls(folder, schema({ ...DEFAULTS, ...preset }, folder), { collapsed: true, order: 2 + i }, debugTab("TRANSITION")) as AnnouncementSettings
+  })
+  return out as Record<BaseAnnouncementType | X, AnnouncementSettings>
 }
 
 function Line({ direction, r }: { direction: 1 | -1; r: AnnouncementSettings }) {
@@ -228,7 +225,12 @@ function Confetti({ r }: { r: AnnouncementSettings }) {
   return <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0 size-full" />
 }
 
-export function Announcement({ text, subtitle, settings: r }: { text: string; subtitle?: string; settings: AnnouncementSettings }) {
+/** `sound` : effet déclaré dans `SOUNDS` du jeu, joué à l'apparition si le réglage « sound » est actif. */
+export function Announcement({ text, subtitle, settings: r, sound }: { text: string; subtitle?: string; settings: AnnouncementSettings; sound?: string }) {
+  useEffect(() => {
+    if (sound && r.sound) playSound(sound)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const style = {
     color: r.textColor,
     WebkitTextStroke: r.outline ? `${r.outline}px ${r.outlineColor}` : undefined,

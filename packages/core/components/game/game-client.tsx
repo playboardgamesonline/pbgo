@@ -6,16 +6,17 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { PrimaryButton, CodeField, NicknameField, Screen, Paragraph } from "../home/screen"
 import { Game } from "@pgo/binding-ui"
-import { RulesButton } from "../rules"
 import { api, gameLink } from "../../lib/api"
 import { useProfile } from "../../lib/profile"
 import type { RulesContent } from "../../lib/rules"
 import { useLiveGame } from "../../lib/use-live-game"
 import { LobbyButton, PlayerList } from "../lobby/lobby"
 import { GameOptions } from "../lobby/game-options"
+import { useText } from "../skin-provider"
 
 export function GameClient({ code, rules }: { code: string; rules: RulesContent }) {
   const router = useRouter()
+  const t = useText()
   const { game, error, apply } = useLiveGame(code)
   const { profile, setProfile, ready, valid } = useProfile()
   const [autoJoin, setAutoJoin] = useState<"idle" | "pending" | "failed" | "manual">("idle")
@@ -52,44 +53,43 @@ export function GameClient({ code, rules }: { code: string; rules: RulesContent 
   }
 
   const link = typeof window === "undefined" ? "" : gameLink(code)
-  const backButton = <PrimaryButton onClick={leave}>Retour à l&apos;accueil</PrimaryButton>
-  const above = <RulesButton rules={rules} />
+  const backButton = <PrimaryButton onClick={leave}>{t("backHome")}</PrimaryButton>
 
   if (error)
     return (
-      <Screen above={above} cta={backButton}>
-        <Paragraph>Cette partie est introuvable. Vérifiez le code {code} ou créez-en une nouvelle.</Paragraph>
+      <Screen rules={rules} cta={backButton}>
+        <Paragraph>{t("gameNotFound", { code })}</Paragraph>
       </Screen>
     )
 
   if (!game || !ready || shouldAutoJoin || (game.status !== "lobby" && game.meId))
     return (
-      <Screen above={above} below={<CodeField value={code} />}>
-        <Loader2Icon className="mt-[8vh] size-8 animate-spin text-accent-game" />
+      <Screen rules={rules} below={<CodeField value={code} />}>
+        <Loader2Icon className="mt-[6vh] size-8 animate-spin text-accent-game" />
       </Screen>
     )
 
   if (game.meId === null && game.status !== "lobby")
     return (
-      <Screen above={above} cta={backButton}>
-        <Paragraph>Cette partie a déjà commencé.</Paragraph>
+      <Screen rules={rules} cta={backButton}>
+        <Paragraph>{t("alreadyStarted")}</Paragraph>
       </Screen>
     )
 
   if (game.meId === null)
     return (
       <Screen
-        above={above}
+        rules={rules}
         onSubmit={async (e) => {
           e.preventDefault()
           if (!valid) {
-            toast.error("Choisissez d'abord votre pseudo.")
+            toast.error(t("chooseNickname"))
             return
           }
           setAutoJoin("pending")
           if (!(await join())) setAutoJoin("failed")
         }}
-        cta={<PrimaryButton busy={autoJoin === "pending"}>Rejoindre la partie</PrimaryButton>}
+        cta={<PrimaryButton busy={autoJoin === "pending"}>{t("joinGameButton")}</PrimaryButton>}
         below={<CodeField value={code} copyable={link} />}
       >
         <PlayerList game={game} />
@@ -98,8 +98,8 @@ export function GameClient({ code, rules }: { code: string; rules: RulesContent 
     )
 
   return (
-    <Screen above={above} cta={<LobbyButton game={game} onUpdate={apply} />} below={<CodeField value={code} copyable={link} />}>
-      <Paragraph>Partagez le code ou le lien de la partie à vos amis.</Paragraph>
+    <Screen rules={rules} cta={<LobbyButton game={game} onUpdate={apply} />} below={<CodeField value={code} copyable={link} />}>
+      <Paragraph>{t("shareInvite")}</Paragraph>
       <PlayerList game={game} />
       <GameOptions game={game} onUpdate={apply} />
     </Screen>

@@ -14,7 +14,9 @@ import { api } from "../../lib/api"
 import type { PublicGame } from "../../lib/game-types"
 import { cn } from "@pgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
+import { useText } from "../skin-provider"
 import { useGame } from "./context"
+import { DEFAULT_SKIN } from "../../lib/skin"
 
 function hash(text: string) {
   let h = 0
@@ -22,13 +24,16 @@ function hash(text: string) {
   return Math.abs(h)
 }
 
-const VICTORY_PHRASES = ["Victoire de", "Bravo à", "La partie est remportée par", "Champion·ne du jour"]
-
-export function winnerAnnouncement(game: PublicGame, view: PlayerView) {
+/**
+ * Phrase de victoire tirée des phrases de l'habillage par un hash déterministe (tout le monde voit la même).
+ * Gabarit `{pseudo}` / `{points}` : l'annonce garde ce qui précède `{pseudo}`, les noms et les points passent en sous-titre.
+ */
+export function winnerAnnouncement(game: PublicGame, view: PlayerView, phrases: string[] = DEFAULT_SKIN.victoryPhrases) {
   const results = view.results
   if (!results) return { phrase: "", detail: "" }
   const winners = results.players.filter((j) => results.winners.includes(j.playerId))
-  const phrase = VICTORY_PHRASES[hash(game.code + view.log.length) % VICTORY_PHRASES.length]!
+  const template = phrases[hash(game.code + view.log.length) % phrases.length] ?? ""
+  const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).trim()
   const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
   return { phrase, detail: `${names} · ${winners[0]?.total ?? 0} pts` }
 }
@@ -55,7 +60,24 @@ function Details({ j, large, centered }: { j: PlayerResult; large?: boolean; cen
   )
 }
 
-export function GameOver({ onUpdate, isOpen, onToggle }: { onUpdate: (p: PublicGame) => void; isOpen: boolean; onToggle: () => void }) {
+export type ResultDetailRenderer = (result: PlayerResult, options: { large: boolean; centered: boolean }) => React.ReactNode
+
+/**
+ * Tableau de fin : vainqueur(s), classement, « Rejouer (x/n) », afficher / masquer, vignette de partage.
+ * `renderDetail` : rendu propre au jeu du détail des points d'un joueur (par défaut, des pastilles `label +n`).
+ */
+export function GameOver({
+  onUpdate,
+  isOpen,
+  onToggle,
+  renderDetail,
+}: {
+  onUpdate: (p: PublicGame) => void
+  isOpen: boolean
+  onToggle: () => void
+  renderDetail?: ResultDetailRenderer
+}) {
+  const t = useText()
   const { view, game, color } = useGame()
   const { title } = useSiteSettings()
   const [sending, setSending] = useState(false)
@@ -177,7 +199,7 @@ export function GameOver({ onUpdate, isOpen, onToggle }: { onUpdate: (p: PublicG
                   </p>
                   <div className="mt-2 space-y-2">
                     {winners.map((v) => (
-                      <Details key={v.playerId} j={v} large centered />
+                      <div key={v.playerId}>{renderDetail ? renderDetail(v, { large: true, centered: true }) : <Details j={v} large centered />}</div>
                     ))}
                   </div>
                 </div>
@@ -199,7 +221,7 @@ export function GameOver({ onUpdate, isOpen, onToggle }: { onUpdate: (p: PublicG
                             {j.total} pts
                           </span>
                         </div>
-                        <Details j={j} />
+                        {renderDetail ? renderDetail(j, { large: false, centered: false }) : <Details j={j} />}
                       </li>
                     ))}
                 </ol>
@@ -208,7 +230,7 @@ export function GameOver({ onUpdate, isOpen, onToggle }: { onUpdate: (p: PublicG
               </div>
               <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2 translate-y-1/2">
                 <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="w-auto max-w-none px-8 whitespace-nowrap">
-                  Rejouer ({game.replay.length}/{game.players.length})
+                  {t("replay")} ({game.replay.length}/{game.players.length})
                 </PrimaryButton>
               </div>
             </motion.section>
