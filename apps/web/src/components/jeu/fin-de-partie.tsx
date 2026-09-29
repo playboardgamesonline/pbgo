@@ -69,16 +69,29 @@ function CartesFamilles({ j, grand }: { j: ResultatJoueur; grand?: boolean }) {
             {signe(d.points)}
           </span>
         ))}
-      <span
-        title={`Missions : ${reussies}/${j.missions.length} réussie${reussies > 1 ? "s" : ""}`}
-        className={cn(
-          "ml-1 flex shrink-0 items-center justify-center rounded-[0.3rem] border border-[#d9bf7a]/50 bg-gradient-to-b from-[#ece0bc] to-[#cfb472] font-display font-bold text-[#3b2a08] tabular-nums shadow-[0_3px_8px_rgb(0_0_0/30%)]",
-          taille,
-          reussies === 0 && "opacity-45",
-        )}
-      >
-        {signe(pointsMissions)}
-      </span>
+      {reussies > 0 && (
+        <span
+          title={`Missions réussies : ${reussies}/${j.missions.length} (${signe(pointsMissions)})`}
+          className={cn("relative ml-2 shrink-0", grand ? "h-10" : "h-8", reussies > 1 ? (grand ? "w-[5.4rem]" : "w-[4.1rem]") : grand ? "w-12" : "w-9")}
+        >
+          {j.missions
+            .map((m, i) => ({ ...m, bleue: i === 1 }))
+            .filter((m) => m.validee)
+            .map((m, i, liste) => (
+              <span
+                key={m.missionId}
+                className={cn(
+                  "absolute flex items-center justify-center rounded-[0.3rem] border font-display font-bold tabular-nums shadow-[0_3px_8px_rgb(0_0_0/35%)]",
+                  grand ? "h-8 w-12 text-sm" : "h-6 w-9 text-[0.68rem]",
+                  m.bleue ? "border-[#d9bf7a]/60 bg-[#0c2a31] text-[#e7cf8a]" : "border-[#cdb888]/70 bg-[#f1e8d0] text-[#3b2a08]",
+                  liste.length > 1 ? (i === 0 ? "top-0 left-0 -rotate-6" : "right-0 bottom-0 rotate-[5deg]") : "inset-x-0 top-1/2 -translate-y-1/2",
+                )}
+              >
+                {signe(m.points)}
+              </span>
+            ))}
+        </span>
+      )}
     </div>
   )
 }
