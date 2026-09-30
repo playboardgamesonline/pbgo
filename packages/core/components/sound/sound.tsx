@@ -30,7 +30,7 @@ export function useSoundEnabled() {
 export const ICON_BUTTON =
   "flex size-11 cursor-pointer items-center justify-center rounded-full text-foreground transition-transform hover:scale-110 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]"
 
-export function SoundButton({ className }: { className?: string }) {
+export function SoundButton({ className, iconClass = "size-7", stroke = 1.6 }: { className?: string; iconClass?: string; stroke?: number }) {
   const on = useSoundEnabled()
   const [pulse, setPulse] = useState(0)
   const t = useText()
@@ -54,7 +54,7 @@ export function SoundButton({ className }: { className?: string }) {
         transition={{ type: "spring", stiffness: 500, damping: 14 }}
         className="inline-flex"
       >
-        {on ? <Volume2Icon strokeWidth={1.6} className="size-7" /> : <VolumeXIcon strokeWidth={1.6} className="size-7" />}
+        {on ? <Volume2Icon strokeWidth={stroke} className={iconClass} /> : <VolumeXIcon strokeWidth={stroke} className={iconClass} />}
       </motion.span>
     </button>
   )

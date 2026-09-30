@@ -14,10 +14,13 @@ import { InfoDialog } from "./info-dialog"
 import { setLocaleCookie } from "./language-select"
 import { GameRulesButton as RulesButton } from "./rules-slot"
 import { useSiteSettings } from "./settings-provider"
-import { ICON_BUTTON, SoundButton } from "./sound/sound"
+import { SoundButton } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
 import { useRouter } from "next/navigation"
 
+/** Boutons ronds fins : liseré discret, icône légère, léger relief au survol. */
+const BADGE =
+  "flex size-10 cursor-pointer items-center justify-center rounded-full border border-foreground/40 bg-black/25 text-foreground shadow-[inset_0_0_0_1px_rgb(255_255_255/6%),0_2px_8px_rgb(0_0_0/35%)] backdrop-blur-sm transition-[transform,border-color,background-color] duration-200 hover:scale-105 hover:border-foreground/70 hover:bg-black/40 active:scale-95"
 const ROW = "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10"
 const SEPARATOR = <div role="separator" className="my-1 h-px bg-foreground/15" />
 
@@ -75,10 +78,10 @@ export function Toolbar({ rules, gameCode, options, align = "left" }: { rules?: 
   })
   const tab = open ? 0 : -1
   return (
-    <div ref={root} className="relative flex items-center gap-1">
-      <SoundButton />
-      <button type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} className={ICON_BUTTON} onClick={() => setOpen((o) => !o)}>
-        <HugeiconsIcon icon={Menu09Icon} strokeWidth={1.6} className="size-7" />
+    <div ref={root} className="relative flex items-center justify-center gap-2">
+      <SoundButton className={BADGE} iconClass="size-[18px]" stroke={1.1} />
+      <button type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} className={BADGE} onClick={() => setOpen((o) => !o)}>
+        <HugeiconsIcon icon={Menu09Icon} strokeWidth={1.1} className="size-[18px]" />
       </button>
       <div ref={rulesHost} className="hidden" aria-hidden>
         {rules && <RulesButton rules={rules} />}
@@ -87,9 +90,9 @@ export function Toolbar({ rules, gameCode, options, align = "left" }: { rules?: 
         role="menu"
         aria-hidden={!open}
         className={cn(
-          "absolute top-full z-50 mt-1 flex w-64 flex-col rounded-xl border border-foreground/15 bg-surface/95 p-1.5 text-foreground shadow-xl backdrop-blur-sm transition-[opacity,transform] duration-200",
-          align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left",
-          open ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0",
+          "absolute top-full z-50 mt-1 flex w-64 flex-col rounded-xl border border-foreground/15 bg-surface/95 p-1.5 text-foreground shadow-xl backdrop-blur-sm transition-opacity duration-200",
+          align === "right" ? "right-0 origin-top-right" : "left-1/2 -translate-x-1/2 origin-top",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
         <button type="button" role="menuitem" tabIndex={tab} aria-expanded={languages} className={ROW} onClick={() => setLanguages((v) => !v)}>

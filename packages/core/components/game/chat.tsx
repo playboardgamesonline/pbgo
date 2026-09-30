@@ -107,16 +107,29 @@ export function Chat({ className }: { className?: string }) {
     showReaction(meId, reaction, true)
   }
 
+  // la palette reste ouverte tant qu'on ne clique pas ailleurs (le trajet du bouton vers un emoji ne la ferme plus)
+  const boardRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!board) return
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent) return void (e.key === "Escape" && setBoard(false))
+      if (!boardRef.current?.contains(e.target as Node)) setBoard(false)
+    }
+    document.addEventListener("pointerdown", close)
+    document.addEventListener("keydown", close)
+    return () => {
+      document.removeEventListener("pointerdown", close)
+      document.removeEventListener("keydown", close)
+    }
+  }, [board])
+
   if (!meId) return null
   const now = Date.now()
   return (
     <div
       className={cn("pointer-events-none fixed right-5 bottom-5 z-30 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col gap-2", className)}
       onPointerEnter={() => setActive(true)}
-      onPointerLeave={() => {
-        setActive(false)
-        setBoard(false)
-      }}
+      onPointerLeave={() => setActive(false)}
     >
       <div className="pointer-events-none absolute inset-x-0 bottom-12 h-72 overflow-visible" aria-hidden>
         {particles.map((p) => (
@@ -174,7 +187,7 @@ export function Chat({ className }: { className?: string }) {
           autoComplete="off"
           className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/50"
         />
-        <div className="relative">
+        <div ref={boardRef} className="relative">
           <AnimatePresence>
             {board && (
               <motion.div
@@ -182,7 +195,7 @@ export function Chat({ className }: { className?: string }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.96 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 bottom-11 grid w-44 grid-cols-4 gap-1 rounded-2xl border border-foreground/20 bg-black/70 p-2 backdrop-blur-md"
+                className="absolute right-0 bottom-full grid w-44 grid-cols-4 gap-1 rounded-2xl border border-foreground/20 bg-black/70 p-2 pb-2 backdrop-blur-md [margin-bottom:0.35rem] before:absolute before:inset-x-0 before:-bottom-2 before:h-2 before:content-['']"
               >
                 {REACTIONS.map((r) => (
                   <button key={r.id} type="button" title={r.label} aria-label={r.label} onClick={() => react(r)} className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-xl transition-transform hover:scale-125 hover:bg-foreground/10 active:scale-95">

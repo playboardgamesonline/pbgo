@@ -3,7 +3,7 @@
 import type { Family, CourtisansResults, PlayerView } from "@courtisans/engine"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   CanvasTexture,
   Color,
@@ -12,6 +12,7 @@ import {
   SRGBColorSpace,
   Vector2,
 } from "three"
+import { useCourtisans } from "../game/context"
 import { useSettings, useSettingsVersion } from "./settings"
 import { MAT_ORDER } from "@/lib/catalog"
 import { CARD_H, columnX, STEP, MAT_D, type DomainZone } from "./layout"
@@ -128,6 +129,8 @@ export const ENDING_SETTINGS = {
   shadowOpacity: 0.18,
   shadowBlur: 4,
   shadowOffset: 2,
+  counterBackdrop: 0,
+  counterShadow: 0.22,
 }
 
 export const LINE_SETTINGS = {
@@ -183,6 +186,15 @@ export function EndingSettings() {
       shadowOpacity: ["drop shadow opacity", 0, 1, 0.01],
       shadowBlur: ["drop shadow blur", 0, 60, 1],
       shadowOffset: ["drop shadow offset", -30, 30, 1],
+    } as never,
+    { order: 13 },
+  )
+  useSettings(
+    "End · Counter",
+    ENDING_SETTINGS,
+    {
+      counterBackdrop: ["dark disc opacity", 0, 1, 0.01],
+      counterShadow: ["text shadow", 0, 1, 0.01],
     } as never,
     { order: 13 },
   )
@@ -276,8 +288,35 @@ function arrowTexture(direction: "up" | "down") {
   return t
 }
 
-function Arrow({ direction, position }: { direction: "up" | "down"; position: [number, number, number] }) {
-  const [texture] = useState(() => arrowTexture(direction))
+const arrowImages = new Map<string, CanvasTexture>()
+
+/** Rasterise le pictogramme (SVG ou image Sanity) dans un canvas : la taille est fixée avant le dessin, sinon un SVG sans dimensions n'affiche rien. */
+function loadArrow(url: string, onReady: (t: CanvasTexture) => void) {
+  const cached = arrowImages.get(url)
+  if (cached) return onReady(cached)
+  const img = new Image()
+  img.crossOrigin = "anonymous"
+  img.onload = () => {
+    const ratio = (img.naturalWidth || 1) / (img.naturalHeight || 1)
+    const c = document.createElement("canvas")
+    c.width = 512
+    c.height = Math.max(1, Math.round(512 / ratio))
+    c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height)
+    const t = new CanvasTexture(c)
+    t.colorSpace = SRGBColorSpace
+    t.anisotropy = 8
+    arrowImages.set(url, t)
+    onReady(t)
+  }
+  img.src = url
+}
+
+/** Flèche de la colonne : pictogramme du catalogue (Sanity, SVG) ; la flèche dessinée sert d'attente et de secours si l'image ne charge pas. */
+function Arrow({ direction, url, position }: { direction: "up" | "down"; url?: string; position: [number, number, number] }) {
+  const [texture, setTexture] = useState<CanvasTexture>(() => arrowTexture(direction))
+  useEffect(() => {
+    if (url) loadArrow(url, setTexture)
+  }, [url])
   const ref = useRef<Mesh>(null)
   useFrame(() => {
     if (ref.current) ref.current.scale.setScalar(ENDING_SETTINGS.arrowSize)
@@ -293,6 +332,7 @@ function Arrow({ direction, position }: { direction: "up" | "down"; position: [n
 }
 
 export function FamilyResolution({ results, ending }: { results: CourtisansResults; ending: EndingState }) {
+  const { catalog } = useCourtisans()
   useSettingsVersion()
   return (
     <>
@@ -304,7 +344,7 @@ export function FamilyResolution({ results, ending }: { results: CourtisansResul
         return (
           <group key={f}>
             {light || disgrace ? (
-              <Arrow direction={light ? "up" : "down"} position={[x, 0.12, light ? -MAT_D / 2 + 0.05 : MAT_D / 2 - 0.05]} />
+              <Arrow direction={light ? "up" : "down"} url={light ? catalog.arrowUpUrl : catalog.arrowDownUrl} position={[x, 0.12, light ? -MAT_D / 2 + 0.05 : MAT_D / 2 - 0.05]} />
             ) : (
               <Sign sign="equal" position={[x, 0.1, 0]} />
             )}
@@ -381,6 +421,7 @@ export function MissionSign({ done, points, position }: { done: boolean; points:
 }
 
 export function Counters({ view, results, ending, zones }: { view: PlayerView; results: CourtisansResults; ending: EndingState; zones: Map<string, DomainZone> }) {
+  useSettingsVersion()
   if (ending.pile === 0 && !ending.missions) return null
   return (
     <>
@@ -392,11 +433,18 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
         const total = piles.reduce((s, d) => s + d.points, 0) + (ending.missions ? r.missions.reduce((s, m) => s + m.points, 0) : 0)
         return (
           <Appear key={j.id} position={[zone.center.x, 1.8, zone.center.z]} floating={0}>
-            <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
-              <circleGeometry args={[1.25, 48]} />
-              <meshBasicMaterial map={roundBg()} color="#02151a" transparent opacity={0.85} depthWrite={false} toneMapped={false} />
-            </mesh>
-            <TableText text={`${total}`} style={{ ...HOLO, spacing: "4px" }} elevation={1.5} position={[0, 0, 0]} />
+            {ENDING_SETTINGS.counterBackdrop > 0.01 && (
+              <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
+                <circleGeometry args={[1.25, 48]} />
+                <meshBasicMaterial map={roundBg()} color="#02151a" transparent opacity={ENDING_SETTINGS.counterBackdrop} depthWrite={false} toneMapped={false} />
+              </mesh>
+            )}
+            <TableText
+              text={`${total}`}
+              style={{ ...HOLO, spacing: "4px", shadow: `rgba(0,0,0,${ENDING_SETTINGS.counterShadow})|3|2` }}
+              elevation={1.5}
+              position={[0, 0, 0]}
+            />
           </Appear>
         )
       })}
