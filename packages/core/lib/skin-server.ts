@@ -1,11 +1,11 @@
 import "server-only"
-import * as binding from "@pbgo/binding"
 import { cache } from "react"
 import { client } from "../sanity/client"
 import { urlFor } from "../sanity/image"
-import { translate, type Localized } from "./i18n"
+import { type Locale, only, type Localized } from "./i18n"
+import { getLocale } from "./locale-server"
 import { mediaUrl } from "./settings"
-import { type DecorImage, DEFAULT_SKIN, mergeSkin, type Skin, type SkinDefaults } from "./skin"
+import { baseSkin, type DecorImage, mergeSkin, type Skin, type SkinDefaults } from "./skin"
 
 export const SKIN_TAG = "skin"
 
@@ -55,14 +55,14 @@ const HEX = /^#[0-9a-fA-F]{6}$/
 
 export type { SkinDoc }
 
-export function toSkin(doc: SkinDoc): Partial<SkinDefaults> {
+export function toSkin(doc: SkinDoc, locale: Locale = "fr"): Partial<SkinDefaults> {
   const ui = doc?.interface
   const t = doc?.texts
   const labels = Object.fromEntries(
-    ["ui_home", "ui_lobby", "ui_game"].flatMap((g) => Object.entries((t?.[g] as Record<string, Localized>) ?? {}).map(([k, v]) => [k, translate(v)?.trim()])),
+    ["ui_home", "ui_lobby", "ui_game"].flatMap((g) => Object.entries((t?.[g] as Record<string, Localized>) ?? {}).map(([k, v]) => [k, only(v, locale)?.trim()])),
   )
   const colors = (ui?.playerColors ?? []).filter((c) => HEX.test(c))
-  const phrases = (translate(t?.victoryPhrases) ?? []).filter((p) => p.trim())
+  const phrases = (only(t?.victoryPhrases, locale) ?? []).filter((p) => p.trim())
   return {
     decor: {
       background: image(ui?.background, 2400),
@@ -74,23 +74,23 @@ export function toSkin(doc: SkinDoc): Partial<SkinDefaults> {
     hostIcon: picto(ui?.hostIcon),
     ...(colors.length ? { playerColors: colors } : {}),
     ...(typeof ui?.desktopOnly === "boolean" ? { desktopOnly: ui.desktopOnly } : {}),
-    home: { title: translate(t?.homeTitle)?.trim() || null, intro: translate(t?.homeIntro)?.trim() || null, tagline: translate(t?.tagline)?.trim() || null },
-    errors: Object.fromEntries((t?.errorMessages ?? []).flatMap((e) => (e.code && translate(e.message)?.trim() ? [[e.code, translate(e.message)!.trim()]] : []))),
+    home: { title: only(t?.homeTitle, locale)?.trim() || null, intro: only(t?.homeIntro, locale)?.trim() || null, tagline: only(t?.tagline, locale)?.trim() || null },
+    errors: Object.fromEntries((t?.errorMessages ?? []).flatMap((e) => (e.code && only(e.message, locale)?.trim() ? [[e.code, only(e.message, locale)!.trim()]] : []))),
     ...(phrases.length ? { victoryPhrases: phrases } : {}),
     texts: labels,
   }
 }
 
-/** Valeurs par défaut propres au jeu (images locales de /public, libellés…) : export facultatif `DEFAULT_SKIN` de @pbgo/binding. */
-const gameDefaults = (binding as { DEFAULT_SKIN?: SkinDefaults }).DEFAULT_SKIN
-
-export const loadSkin = cache(async (): Promise<Skin> => {
-  const base = mergeSkin(DEFAULT_SKIN, gameDefaults)
+const skinFor = cache(async (locale: Locale): Promise<Skin> => {
+  const base = baseSkin(locale)
   if (!client) return base
   try {
     const doc = await client.fetch<SkinDoc>(SKIN_QUERY, {}, { next: { tags: [SKIN_TAG], revalidate: 60 } })
-    return mergeSkin(base, toSkin(doc))
+    return mergeSkin(base, toSkin(doc, locale))
   } catch {
     return base
   }
 })
+
+/** Habillage dans la langue du visiteur ; `locale` explicite pour les rendus indépendants de la requête. */
+export const loadSkin = async (locale?: Locale): Promise<Skin> => skinFor(locale ?? (await getLocale()))

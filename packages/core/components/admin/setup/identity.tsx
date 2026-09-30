@@ -4,18 +4,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
 import { Input } from "@pbgo/ui/admin/input"
 import { Textarea } from "@pbgo/ui/admin/textarea"
+import { useState } from "react"
+import { LOCALE_NAMES, type Locale } from "../../../lib/i18n"
+import { baseSkin } from "../../../lib/skin"
 import { siteTitle, TITLE_SUFFIX, type SiteSettings } from "../../../lib/settings"
+import { LangTabs } from "./lang-tabs"
 import { FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
-type Draft = Pick<SiteSettings, "title" | "description" | "credits">
+type Draft = Pick<SiteSettings, "title" | "descriptions" | "creditsAuthors" | "credits">
 
-const pick = (d: AdminData): Draft => ({ title: d.settings.title, description: d.settings.description, credits: d.settings.credits })
+const pick = (d: AdminData): Draft => ({ title: d.settings.title, descriptions: d.settings.descriptions, creditsAuthors: d.settings.creditsAuthors, credits: d.settings.credits })
 
 export function IdentityPage({ initial, domain }: { initial: AdminData; domain: string }) {
   const s = useSection("identity", initial, pick)
   const { data, draft, set, disabled } = s
-  const settings = { ...data.settings, ...draft }
-  const credits = (k: keyof Draft["credits"], v: string) => set("credits", { ...draft.credits, [k]: v || null })
+  const [lang, setLang] = useState<Locale>("fr")
+  const settings = { ...data.settings, ...draft, description: draft.descriptions[lang] || draft.descriptions.fr, credits: { ...draft.credits, authors: draft.creditsAuthors[lang] || draft.creditsAuthors.fr || null } }
+  const credits = (k: "publisher" | "publisherUrl", v: string) => set("credits", { ...draft.credits, [k]: v || null })
+  const description = draft.descriptions[lang]
+  const authors = draft.creditsAuthors[lang]
+  const filled = (m: Record<Locale, string>) => Object.fromEntries((Object.keys(m) as Locale[]).map((l) => [l, !!m[l]])) as Partial<Record<Locale, boolean>>
+  const skin = baseSkin(lang)
   const shareUrl = settings.shareImage ?? `/opengraph-image?v=${s.version}`
 
   return (
@@ -23,6 +32,11 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
       aside={<LinkPreviewAside draft={{ settings, skin: data.skin }} share={{ image: shareUrl, title: siteTitle(settings.title), description: settings.description, domain }} tab={{ title: settings.title, favicon: settings.favicon }} />}
     >
       <ReadOnlyAlert writable={data.writable} />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <LangTabs value={lang} onChange={setLang} filled={filled(draft.descriptions)} />
+        <p className="text-xs text-muted-foreground">Description and credits are written per language. The game name and the tab suffix are the same everywhere.</p>
+      </div>
 
       <Card>
         <CardHeader>
@@ -67,10 +81,19 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
               </FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="description">Description</FieldLabel>
-              <Textarea id="description" rows={4} value={draft.description} maxLength={400} onChange={(e) => set("description", e.target.value)} disabled={disabled} />
+              <FieldLabel htmlFor="description">Description · {LOCALE_NAMES[lang]}</FieldLabel>
+              <Textarea
+                id="description"
+                rows={4}
+                value={description}
+                maxLength={400}
+                placeholder={lang === "fr" ? undefined : draft.descriptions.fr}
+                onChange={(e) => set("descriptions", { ...draft.descriptions, [lang]: e.target.value })}
+                disabled={disabled}
+              />
               <FieldDescription>
-                Google result and share card · {draft.description.length}/400 {draft.description.length < 80 && "· aim for 120–160 characters"}
+                Google result and share card · {description.length}/400 {description.length < 80 && lang === "fr" && "· aim for 120–160 characters"}
+                {lang !== "fr" && !description && "· empty: the French text is shown"}
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -107,12 +130,12 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
         <CardContent>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="credits-authors">A game by</FieldLabel>
+              <FieldLabel htmlFor="credits-authors">A game by · {LOCALE_NAMES[lang]}</FieldLabel>
               <Input
                 id="credits-authors"
-                placeholder="Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier"
-                value={draft.credits.authors ?? ""}
-                onChange={(e) => credits("authors", e.target.value)}
+                placeholder={lang === "fr" ? "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier" : draft.creditsAuthors.fr}
+                value={authors}
+                onChange={(e) => set("creditsAuthors", { ...draft.creditsAuthors, [lang]: e.target.value })}
                 disabled={disabled}
               />
             </Field>
@@ -127,9 +150,9 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
               </Field>
             </div>
             <p className="rounded-xl bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
-              {draft.credits.authors
-                ? `Adaptation en ligne non officielle et gratuite de ${draft.title || "…"}, un jeu de ${draft.credits.authors}${draft.credits.publisher ? ` et édité par ${draft.credits.publisher}` : ""}. Tous droits réservés à leurs auteurs${draft.credits.publisher ? " et à l’éditeur" : ""}.`
-                : "Original game: only the “Développé par oré” line is shown."}
+              {settings.credits.authors
+                ? `${skin.texts.creditsAdaptation} ${draft.title || "…"}, ${skin.texts.creditsBy} ${settings.credits.authors}${draft.credits.publisher ? ` ${skin.texts.creditsPublishedBy} ${draft.credits.publisher}` : ""}. ${draft.credits.publisher ? skin.texts.creditsRightsPublisher : skin.texts.creditsRights}`
+                : `Original game: only the “${skin.texts.developedBy} oré” line is shown.`}
             </p>
           </FieldGroup>
         </CardContent>

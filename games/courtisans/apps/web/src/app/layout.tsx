@@ -6,6 +6,8 @@ import { AppShell } from "@pbgo/core/components/app-shell"
 import { AppToaster } from "@pbgo/core/components/toaster"
 import { TooltipProvider } from "@pbgo/ui/game/tooltip"
 import { fontFaceCss, googleFontsHref, siteTitle, themeStyle } from "@pbgo/core/lib/settings"
+import { OG_LOCALES } from "@pbgo/core/lib/i18n"
+import { getLocale } from "@pbgo/core/lib/locale-server"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
 import { loadSkin } from "@pbgo/core/lib/skin-server"
 import { loadAudio } from "@pbgo/core/lib/audio-server"
@@ -23,7 +25,7 @@ const typey = localFont({
 })
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await loadSettings()
+  const [settings, locale] = await Promise.all([loadSettings(), getLocale()])
   const { description } = settings
   const title = siteTitle(settings.title)
   return {
@@ -36,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: AUTHOR.name,
     category: "games",
     alternates: { canonical: "/" },
-    openGraph: { type: "website", locale: "fr_FR", url: "/", siteName: title, title, description },
+    openGraph: { type: "website", locale: OG_LOCALES[locale], url: "/", siteName: title, title, description },
     twitter: { card: "summary_large_image", title, description },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
     formatDetection: { telephone: false, email: false, address: false },
@@ -51,10 +53,11 @@ export async function generateViewport(): Promise<Viewport> {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [settings, skin, sounds] = await Promise.all([loadSettings(), loadSkin(), loadAudio()])
+  const locale = skin.locale
   const fonts = googleFontsHref([settings.files.fontBody ? null : settings.bodyFont, settings.files.fontDisplay ? null : settings.displayFont])
   const fontFaces = fontFaceCss(settings.files)
   return (
-    <html lang="fr" className={`${typey.variable} h-full antialiased`} style={themeStyle(settings) as React.CSSProperties}>
+    <html lang={locale} className={`${typey.variable} h-full antialiased`} style={themeStyle(settings) as React.CSSProperties}>
       <head>
         {fontFaces && <style dangerouslySetInnerHTML={{ __html: fontFaces }} />}
         {fonts && (

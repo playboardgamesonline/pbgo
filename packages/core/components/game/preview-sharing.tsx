@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@pbgo/ui/game/dialog"
 import { useSiteSettings } from "../settings-provider"
+import { useText } from "../skin-provider"
 import { copyImage, shareFile, canShare, downloadFile } from "./sharing"
 
 const BUTTON =
@@ -14,6 +15,7 @@ const OUTLINE = "border border-foreground/60 text-foreground hover:bg-foreground
 
 export function SharePreview({ file, text, onClose }: { file: File | null; text: string; onClose: () => void }) {
   const { title } = useSiteSettings()
+  const t = useText()
   const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
   useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url])
 
@@ -24,9 +26,9 @@ export function SharePreview({ file, text, onClose }: { file: File | null; text:
     if (!file) return
     try {
       await copyImage(file)
-      toast.success("Image copiée, il ne reste plus qu'à la coller")
+      toast.success(t("imageCopied"))
     } catch {
-      toast.error("Impossible de copier l'image")
+      toast.error(t("copyFailed"))
     }
   }
 
@@ -35,7 +37,7 @@ export function SharePreview({ file, text, onClose }: { file: File | null; text:
     try {
       await shareFile(file, text, title)
     } catch (e) {
-      if ((e as Error).name !== "AbortError") toast.error("Impossible de partager l'image")
+      if ((e as Error).name !== "AbortError") toast.error(t("shareFailed"))
     }
   }
 
@@ -43,24 +45,24 @@ export function SharePreview({ file, text, onClose }: { file: File | null; text:
     <Dialog open={!!file} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="w-[min(94vw,56rem)] max-w-none gap-5 rounded-2xl border border-accent-game/50 bg-surface-dark p-6 text-foreground sm:max-w-none">
         <div>
-          <DialogTitle className="font-display text-2xl tracking-wide">Partager le résultat</DialogTitle>
+          <DialogTitle className="font-display text-2xl tracking-wide">{t("shareResult")}</DialogTitle>
           <DialogDescription className="mt-1 text-foreground/65">{text}</DialogDescription>
         </div>
         {url && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="Résultat de la partie" className="w-full rounded-xl border border-foreground/15 shadow-[0_12px_40px_rgb(0_0_0/50%)]" />
+          <img src={url} alt={t("resultAlt")} className="w-full rounded-xl border border-foreground/15 shadow-[0_12px_40px_rgb(0_0_0/50%)]" />
         )}
         <div className="flex flex-wrap items-center justify-center gap-3">
           {native && (
             <button type="button" onClick={share} className={`${BUTTON} ${WHITE}`}>
               <Share2Icon className="size-4" />
-              Partager
+              {t("share")}
             </button>
           )}
           {copyable && (
             <button type="button" onClick={copy} className={`${BUTTON} ${OUTLINE}`}>
               <CopyIcon className="size-4" />
-              Copier l&apos;image
+              {t("copyImage")}
             </button>
           )}
           <button
@@ -69,7 +71,7 @@ export function SharePreview({ file, text, onClose }: { file: File | null; text:
             className={`${BUTTON} ${native ? OUTLINE : WHITE}`}
           >
             <DownloadIcon className="size-4" />
-            Télécharger
+            {t("download")}
           </button>
         </div>
       </DialogContent>

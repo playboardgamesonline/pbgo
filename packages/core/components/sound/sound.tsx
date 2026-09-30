@@ -4,6 +4,7 @@ import { Volume2Icon, VolumeXIcon } from "lucide-react"
 import { motion } from "motion/react"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@pbgo/ui/utils"
+import { useText } from "../skin-provider"
 import { initSound, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, SOUNDS } from "../../lib/sound"
 
 const listeners = new Set<() => void>()
@@ -32,8 +33,9 @@ export const ICON_BUTTON =
 export function SoundButton({ className }: { className?: string }) {
   const on = useSoundEnabled()
   const [pulse, setPulse] = useState(0)
+  const t = useText()
   if (!Object.keys(SOUNDS.effects).length && !SOUNDS.music && !SOUNDS.ambience) return null
-  const label = on ? "Couper le son" : "Activer le son"
+  const label = on ? t("soundOff") : t("soundOn")
   return (
     <button
       type="button"

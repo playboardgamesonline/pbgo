@@ -1,12 +1,12 @@
 import "server-only"
 import { TAGLINE } from "@pbgo/binding"
-import * as binding from "@pbgo/binding"
 import { UI_TEXTS } from "@pbgo/studio-kit/constants"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { DEFAULT_ERROR_MESSAGES } from "../lib/api"
 import { AUDIO_QUERY, AUDIO_TAG, type AudioDoc, toSoundConfig } from "../lib/audio-server"
-import { translate, type Localized } from "../lib/i18n"
+import { LOCALES, type Locale, type Localized } from "../lib/i18n"
 import {
+  byLocale,
   clampPlayers,
   clampTimeout,
   cleanOptions,
@@ -14,6 +14,8 @@ import {
   isFont,
   isHex,
   mediaUrl,
+  RULES_FIELD,
+  RULES_SLOT,
   SETTINGS_FILE_SLOTS,
   SETTINGS_IMAGE_SLOTS,
   type SiteSettings,
@@ -23,7 +25,7 @@ import {
   type VisualSlot,
 } from "../lib/settings"
 import { SETTINGS_QUERY, SETTINGS_TAG, type SettingsDoc, toSettings } from "../lib/settings-server"
-import { DEFAULT_SKIN, mergeSkin, type Skin, type SkinDefaults } from "../lib/skin"
+import { baseSkin, gameI18n, mergeSkin, type Skin } from "../lib/skin"
 import { SKIN_QUERY, SKIN_TAG, type SkinDoc, toSkin } from "../lib/skin-server"
 import { CODE_SOUNDS, DEFAULT_VOLUMES, type Volumes } from "../lib/sound-config"
 import { client as readClient, sanityConfigure } from "../sanity/client"
@@ -36,7 +38,8 @@ import { asIs, type Converted, fontToWoff2, imageToIcon, imageToShare, imageToWe
 export type ImageInfo = { url: string | null; custom: boolean }
 
 export type CopyGroup = "home" | "lobby" | "game" | "end" | "errors"
-export type CopyEntry = { key: string; group: CopyGroup; label: string; value: string | null; fallback: string; multiline?: boolean }
+/** Un texte modifiable : valeur saisie (ou null) et texte par défaut, pour chaque langue */
+export type CopyEntry = { key: string; group: CopyGroup; label: string; values: Record<Locale, string | null>; fallbacks: Record<Locale, string>; multiline?: boolean }
 
 export type AudioAdmin = {
   volumes: Volumes
@@ -55,12 +58,9 @@ export type AdminData = {
   skin: Skin
   visual: { images: Record<VisualSlot, ImageInfo>; customColors: boolean }
   audio: AudioAdmin
-  copy: { entries: CopyEntry[]; victoryPhrases: { value: string[] | null; fallback: string[] } }
+  copy: { entries: CopyEntry[]; victoryPhrases: { values: Record<Locale, string[] | null>; fallbacks: Record<Locale, string[]> } }
   writable: boolean
 }
-
-const gameSkin = (binding as { DEFAULT_SKIN?: SkinDefaults }).DEFAULT_SKIN
-const baseSkin = () => mergeSkin(DEFAULT_SKIN, gameSkin)
 
 function reader() {
   return writeClient ?? readClient?.withConfig({ useCdn: false }) ?? null
@@ -76,29 +76,42 @@ type TextsDoc = NonNullable<NonNullable<SkinDoc>["texts"]>
 /** Libellés de fin de partie : rangés dans `ui_game` côté Sanity, affichés à part dans l'admin. */
 const END_KEYS = ["winnerTitle", "showScores", "hideScores", "shareResult", "replay"]
 
-function copyEntries(texts: TextsDoc | null | undefined, skin: Skin): CopyEntry[] {
-  const fr = (v: unknown) => translate(v as Localized)?.trim() || null
-  const base = baseSkin()
+const gameI18nTagline = (l: Locale) => (l === "fr" ? TAGLINE : ((gameI18n[l]?.skin?.home?.tagline as string | undefined) ?? TAGLINE))
+
+/** Valeur saisie dans une langue (sans repli : vide = texte par défaut de cette langue). */
+const stored = (v: unknown, l: Locale) => {
+  const x = (v as Localized)?.[l]
+  return typeof x === "string" && x.trim() ? x.trim() : null
+}
+
+function copyEntries(texts: TextsDoc | null | undefined): CopyEntry[] {
+  const bases = byLocale((l) => baseSkin(l))
+  const values = (v: unknown) => byLocale((l) => stored(v, l))
   const entries: CopyEntry[] = [
-    { key: "tagline", group: "home", label: "Tagline", value: fr(texts?.tagline), fallback: TAGLINE, multiline: true },
-    { key: "homeTitle", group: "home", label: "Intro title", value: fr(texts?.homeTitle), fallback: base.home.title ?? "" },
-    { key: "homeIntro", group: "home", label: "Intro text (replaces the tagline)", value: fr(texts?.homeIntro), fallback: base.home.intro ?? "", multiline: true },
+    { key: "tagline", group: "home", label: "Tagline", values: values(texts?.tagline), fallbacks: byLocale((l) => gameI18nTagline(l)), multiline: true },
+    { key: "homeTitle", group: "home", label: "Intro title", values: values(texts?.homeTitle), fallbacks: byLocale((l) => bases[l].home.title ?? "") },
+    { key: "homeIntro", group: "home", label: "Intro text (replaces the tagline)", values: values(texts?.homeIntro), fallbacks: byLocale((l) => bases[l].home.intro ?? ""), multiline: true },
   ]
   for (const t of UI_TEXTS) {
-    const stored = (texts?.[`ui_${t.group}`] as Record<string, unknown> | undefined)?.[t.key]
+    const raw = (texts?.[`ui_${t.group}`] as Record<string, unknown> | undefined)?.[t.key]
     entries.push({
       key: `ui.${t.key}`,
       group: t.group === "game" && END_KEYS.includes(t.key) ? "end" : t.group,
       label: t.title,
-      value: fr(stored),
-      fallback: base.texts[t.key],
+      values: values(raw),
+      fallbacks: byLocale((l) => bases[l].texts[t.key]),
     })
   }
-  const stored = new Map((texts?.errorMessages ?? []).map((e) => [e.code, fr(e.message)]))
-  for (const [code, message] of Object.entries(DEFAULT_ERROR_MESSAGES)) {
-    entries.push({ key: `error.${code}`, group: "errors", label: code.toLowerCase().replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), value: stored.get(code) ?? null, fallback: message })
+  const errors = new Map((texts?.errorMessages ?? []).map((e) => [e.code, e.message]))
+  for (const code of Object.keys(DEFAULT_ERROR_MESSAGES)) {
+    entries.push({
+      key: `error.${code}`,
+      group: "errors",
+      label: code.toLowerCase().replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
+      values: values(errors.get(code)),
+      fallbacks: byLocale((l) => bases[l].errors[code] ?? DEFAULT_ERROR_MESSAGES[code]!),
+    })
   }
-  void skin
   return entries
 }
 
@@ -142,7 +155,7 @@ export async function readAdminData(): Promise<AdminData> {
     safe(c?.fetch<AudioDoc>(AUDIO_QUERY)),
   ])
   const partial = toSkin(skinDoc)
-  const skin = mergeSkin(baseSkin(), partial)
+  const skin = mergeSkin(baseSkin("fr"), partial)
   const images = Object.fromEntries(
     VISUAL_IMAGE_SLOTS.map((slot) => {
       const custom = !!(slot === "hostIcon" ? partial.hostIcon : partial.decor?.[DECOR_KEY[slot as Exclude<VisualSlot, "hostIcon">]])
@@ -157,8 +170,14 @@ export async function readAdminData(): Promise<AdminData> {
     visual: { images, customColors: !!partial.playerColors },
     audio: audioAdmin(audioDoc),
     copy: {
-      entries: copyEntries(texts, skin),
-      victoryPhrases: { value: translate(texts?.victoryPhrases)?.filter((p) => p.trim()) || null, fallback: baseSkin().victoryPhrases },
+      entries: copyEntries(texts),
+      victoryPhrases: {
+        values: byLocale((l) => {
+          const list = (texts?.victoryPhrases as Localized<string[]>)?.[l]?.filter((p) => p.trim())
+          return list?.length ? list : null
+        }),
+        fallbacks: byLocale((l) => baseSkin(l).victoryPhrases),
+      },
     },
     writable: !!writeClient,
   }
@@ -212,23 +231,24 @@ const SAVERS: Record<SectionName, (input: Input) => Promise<void>> = {
     const s = input as Partial<SiteSettings>
     const title = text(s.title, 80)
     if (!title) throw new ApiError("EMPTY_TITLE")
+    const descriptions = (input.descriptions ?? {}) as Partial<Record<Locale, unknown>>
+    const authors = (input.creditsAuthors ?? {}) as Partial<Record<Locale, unknown>>
     const { set, unset } = split({
       title,
-      description: text(s.description, 400),
-      creditsAuthors: text(s.credits?.authors, 240),
+      description: text(descriptions.fr, 400),
+      creditsAuthors: text(authors.fr, 240),
+      ...Object.fromEntries(LOCALES.flatMap((l) => [[`descriptionI18n.${l}`, text(descriptions[l], 400)], [`creditsAuthorsI18n.${l}`, text(authors[l], 240)]])),
       publisher: text(s.credits?.publisher, 80),
       publisherUrl: httpUrl(s.credits?.publisherUrl),
     })
+    await patchDoc("settings", "settings", {}, [], { descriptionI18n: { _type: "localeText" }, creditsAuthorsI18n: { _type: "localeString" } })
     await patchDoc("settings", "settings", set, unset)
   },
 
   async mechanics(input) {
     const s = input as Partial<SiteSettings> & { desktopOnly?: unknown }
     const options = cleanOptions(s.options)
-    const { set, unset } = split({
-      rulesPdfFr: httpUrl(s.rulesPdfLinks?.fr),
-      rulesPdfEn: httpUrl(s.rulesPdfLinks?.en),
-    })
+    const { set, unset } = split(Object.fromEntries(LOCALES.map((l) => [RULES_FIELD[l], httpUrl(s.rulesPdfLinks?.[l])])))
     await patchDoc(
       "settings",
       "settings",
@@ -319,45 +339,52 @@ const SAVERS: Record<SectionName, (input: Input) => Promise<void>> = {
   },
 
   async copy(input) {
-    const s = input as { values?: Record<string, unknown>; victoryPhrases?: unknown }
+    const s = input as { values?: Record<string, Partial<Record<Locale, unknown>>>; victoryPhrases?: Partial<Record<Locale, unknown>> }
     const c = writer()
     const current = await c.fetch<{ errorMessages?: { code?: string; message?: Record<string, string> }[] } | null>(`*[_id == "texts"][0]{ errorMessages }`)
     const set: Record<string, unknown> = {}
     const unset: string[] = []
     const setIfMissing: Record<string, unknown> = {}
     const errors = new Map((current?.errorMessages ?? []).map((e) => [e.code, e.message ?? {}]))
-    for (const [key, raw] of Object.entries(s.values ?? {})) {
-      const value = text(raw, 600) || null
-      if (key.startsWith("error.")) {
-        const code = key.slice(6)
-        if (!(code in DEFAULT_ERROR_MESSAGES)) continue
-        const message: Record<string, string> = { ...(errors.get(code) ?? {}) }
-        if (value) message.fr = value
-        else delete message.fr
-        errors.set(code, message)
-        continue
+    for (const [key, byLang] of Object.entries(s.values ?? {})) {
+      for (const l of LOCALES) {
+        if (!(byLang && l in byLang)) continue
+        const value = text(byLang[l], 600) || null
+        if (key.startsWith("error.")) {
+          const code = key.slice(6)
+          if (!(code in DEFAULT_ERROR_MESSAGES)) continue
+          const message: Record<string, string> = { ...(errors.get(code) ?? {}) }
+          if (value) message[l] = value
+          else delete message[l]
+          errors.set(code, message)
+          continue
+        }
+        let path: string
+        if (key.startsWith("ui.")) {
+          const t = UI_TEXTS.find((u) => u.key === key.slice(3))
+          if (!t) continue
+          path = `ui_${t.group}.${t.key}`
+          setIfMissing[`ui_${t.group}`] = {}
+        } else if (["tagline", "homeTitle", "homeIntro"].includes(key)) path = key
+        else continue
+        if (value) {
+          setIfMissing[path] = { _type: key === "homeIntro" ? "localeText" : "localeString" }
+          set[`${path}.${l}`] = value
+        } else unset.push(`${path}.${l}`)
       }
-      let path: string
-      if (key.startsWith("ui.")) {
-        const t = UI_TEXTS.find((u) => u.key === key.slice(3))
-        if (!t) continue
-        path = `ui_${t.group}.${t.key}`
-        setIfMissing[`ui_${t.group}`] = {}
-      } else if (["tagline", "homeTitle", "homeIntro"].includes(key)) path = key
-      else continue
-      if (value) {
-        setIfMissing[path] = { _type: key === "homeIntro" ? "localeText" : "localeString" }
-        set[`${path}.fr`] = value
-      } else unset.push(`${path}.fr`)
     }
     set.errorMessages = [...errors.entries()]
       .filter(([code, m]) => code && Object.values(m).some(Boolean))
       .map(([code, message]) => ({ _key: code, _type: "errorMessage", code, message: { _type: "localeString", ...message } }))
-    if (s.victoryPhrases !== undefined) {
-      const list = Array.isArray(s.victoryPhrases) ? s.victoryPhrases.map((p) => text(p, 120)).filter(Boolean) : []
+    if (s.victoryPhrases) {
       setIfMissing.victoryPhrases = { _type: "localeStringList" }
-      if (list.length) set["victoryPhrases.fr"] = list
-      else unset.push("victoryPhrases.fr")
+      for (const l of LOCALES) {
+        if (!(l in s.victoryPhrases)) continue
+        const raw = s.victoryPhrases[l]
+        const list = Array.isArray(raw) ? raw.map((p) => text(p, 120)).filter(Boolean) : []
+        if (list.length) set[`victoryPhrases.${l}`] = list
+        else unset.push(`victoryPhrases.${l}`)
+      }
     }
     await c.createIfNotExists({ _id: "texts", _type: "texts" })
     // les objets parents d'abord (setIfMissing), puis les valeurs
@@ -394,6 +421,8 @@ const SLOTS: Record<UploadSlot, SlotConf> = {
   shareImage: { doc: "settings", field: "shareImage", asset: "image", convert: imageToShare },
   rulesFr: { doc: "settings", field: "rulesPdfFrFile", asset: "file", convert: (f) => asIs(f, "application/pdf") },
   rulesEn: { doc: "settings", field: "rulesPdfEnFile", asset: "file", convert: (f) => asIs(f, "application/pdf") },
+  rulesEs: { doc: "settings", field: "rulesPdfEsFile", asset: "file", convert: (f) => asIs(f, "application/pdf") },
+  rulesDe: { doc: "settings", field: "rulesPdfDeFile", asset: "file", convert: (f) => asIs(f, "application/pdf") },
   fontBody: { doc: "settings", field: "bodyFontFile", asset: "file", convert: fontToWoff2 },
   fontDisplay: { doc: "settings", field: "displayFontFile", asset: "file", convert: fontToWoff2 },
   background: { doc: "interface", field: "background", asset: "image", convert: imageToWebp },
@@ -414,7 +443,7 @@ export const isUploadSlot = (v: string) => v in SLOTS || AUDIO_SLOT.test(v)
 
 function accepts(slot: string, file: File) {
   if (slot.startsWith("audio.")) return file.type === "audio/mpeg" || /\.mp3$/i.test(file.name)
-  if (slot === "rulesFr" || slot === "rulesEn") return pdf(file)
+  if (slot.startsWith("rules")) return pdf(file)
   if (slot === "fontBody" || slot === "fontDisplay") return /\.(woff2?|ttf|otf)$/i.test(file.name)
   return image(file)
 }

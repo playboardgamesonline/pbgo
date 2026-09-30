@@ -49,7 +49,7 @@ const imageResponse = (buffer: Buffer, contentType: string) =>
 /* ------------------------------------------------------------------ favicon */
 
 export async function renderIcon(size: number) {
-  const settings = await loadSettings()
+  const settings = await loadSettings("fr")
   const favicon = await loadImage(settings.favicon)
   if (favicon) {
     const out = await sharp(favicon).resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
@@ -85,7 +85,7 @@ export async function renderIcon(size: number) {
 export const SHARE_SIZE = { width: 1200, height: 630 }
 
 export async function renderShareImage() {
-  const [settings, skin] = await Promise.all([loadSettings(), loadSkin()])
+  const [settings, skin] = await Promise.all([loadSettings("fr"), loadSkin("fr")])
   const custom = await loadImage(settings.shareImage)
   if (custom) return imageResponse(await sharp(custom).resize(1200, 630, { fit: "cover" }).jpeg({ quality: 88 }).toBuffer(), "image/jpeg")
 

@@ -8,12 +8,14 @@ import { api } from "../../lib/api"
 import type { PublicGame } from "../../lib/game-types"
 import { cn } from "@pbgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
+import { useText } from "../skin-provider"
 
 export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p: PublicGame) => void }) {
   const editable = game.meId === game.hostId && game.status !== "playing"
   const [local, setLocal] = useState<{ version: number; values: OptionValues } | null>(null)
   const values = local && local.version >= game.version ? local.values : game.options
   const { options: optionSettings } = useSiteSettings()
+  const t = useText()
   const entries = Object.entries(GAME.options).filter(([key]) => !optionSettings.hidden.includes(key))
   if (entries.length === 0) return null
 
@@ -31,8 +33,8 @@ export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p
   return (
     <section className="mt-[4vh] w-full max-w-md rounded-2xl border border-foreground/10 bg-surface/70 p-5 backdrop-blur-sm">
       <h2 className="mb-4 flex items-baseline justify-between font-display text-sm font-semibold tracking-[0.14em] text-foreground/60 uppercase">
-        Options de la partie
-        {!editable && <span className="text-xs tracking-normal normal-case">choisies par l&apos;hôte</span>}
+        {t("gameOptions")}
+        {!editable && <span className="text-xs tracking-normal normal-case">{t("chosenByHost")}</span>}
       </h2>
       <ul className="space-y-4">
         {entries.map(([key, def]) => (

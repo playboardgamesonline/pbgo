@@ -274,6 +274,7 @@ export function Paragraph({ children, className }: { children: React.ReactNode; 
 
 function Footer() {
   const { title, credits } = useSiteSettings()
+  const t = useText()
   const link = "underline decoration-foreground/30 underline-offset-2 hover:text-foreground"
   const publisher = credits.publisher ? (
     credits.publisherUrl ? (
@@ -288,16 +289,16 @@ function Footer() {
     <footer className="relative z-20 shrink-0 bg-surface-dark px-4 pt-[4vh] pb-[3vh] text-center text-xs leading-relaxed text-foreground/55">
       {credits.authors && (
         <p>
-          Adaptation en ligne non officielle et gratuite de <em>{title}</em>, un jeu de {credits.authors}
-          {publisher && <> et édité par {publisher}</>}. Tous droits réservés à leurs auteurs{publisher ? " et à l\u2019éditeur" : ""}.
+          {t("creditsAdaptation")} <em>{title}</em>, {t("creditsBy")} {credits.authors}
+          {publisher && <> {t("creditsPublishedBy")} {publisher}</>}. {publisher ? t("creditsRightsPublisher") : t("creditsRights")}
         </p>
       )}
       <p>
-        Développé par{" "}
+        {t("developedBy")}{" "}
         <a href={AUTHOR.url} target="_blank" rel="noreferrer" className={link}>
           {AUTHOR.signature}
         </a>{" "}
-        · Pour toute réclamation :{" "}
+        · {t("claims")}{" "}
         <a href={`mailto:${CONTACT}`} className={link}>
           {CONTACT}
         </a>

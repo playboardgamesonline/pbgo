@@ -1,5 +1,6 @@
 "use client"
 
+import { LOCALE_NAMES, LOCALES } from "../../../lib/i18n"
 import { LinkSquare02Icon, Pdf02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { GAME, type OptionDefinition, type OptionValue } from "@pbgo/binding"
@@ -11,7 +12,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 import { Label } from "@pbgo/ui/admin/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/admin/select"
 import { Switch } from "@pbgo/ui/admin/switch"
-import { PLAYER_BOUNDS, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
+import { PLAYER_BOUNDS, RULES_SLOT, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
 import { FileTile, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = Pick<SiteSettings, "minPlayers" | "maxPlayers" | "turnTimeout" | "options" | "rulesPdfLinks"> & { desktopOnly: boolean }
@@ -134,15 +135,12 @@ export function MechanicsPage({ initial, studioUrl }: { initial: AdminData; stud
       <Card>
         <CardHeader>
           <CardTitle>Rules</CardTitle>
-          <CardDescription>PDFs shown in the rules window. Upload the file, or paste a link if it is over 4 MB.</CardDescription>
+          <CardDescription>PDFs shown in the rules window, one per language (a player sees theirs first). Upload the file, or paste a link if it is over 4 MB.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 sm:grid-cols-2">
             {(
-              [
-                { lang: "fr", slot: "rulesFr", label: "French" },
-                { lang: "en", slot: "rulesEn", label: "English" },
-              ] as const
+              LOCALES.map((lang) => ({ lang, slot: RULES_SLOT[lang], label: LOCALE_NAMES[lang] }))
             ).map(({ lang, slot, label }) => {
               const file = data.settings.files[slot]
               return (

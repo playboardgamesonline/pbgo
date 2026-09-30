@@ -1,6 +1,8 @@
 export const LANGUAGES = [
   { id: "fr", title: "Français" },
   { id: "en", title: "English" },
+  { id: "es", title: "Español" },
+  { id: "de", title: "Deutsch" },
 ] as const
 
 // Keep in sync with FONT_CHOICES in apps/web/src/lib/settings.ts
@@ -80,6 +82,32 @@ export const UI_TEXTS = [
   { key: "hideScores", group: "game", title: "Scoreboard: hide", fr: "Masquer le tableau des scores" },
   { key: "shareResult", group: "game", title: "Scoreboard: share", fr: "Partager le résultat" },
   { key: "desktopOnly", group: "game", title: "Desktop only message", fr: "Ce jeu se joue sur ordinateur : agrandissez la fenêtre ou revenez depuis un écran plus large." },
+  { key: "creditsAdaptation", group: "home", title: "Footer: adaptation", fr: "Adaptation en ligne non officielle et gratuite de" },
+  { key: "creditsBy", group: "home", title: "Footer: “a game by”", fr: "un jeu de" },
+  { key: "creditsPublishedBy", group: "home", title: "Footer: “published by”", fr: "et édité par" },
+  { key: "creditsRights", group: "home", title: "Footer: rights", fr: "Tous droits réservés à leurs auteurs." },
+  { key: "creditsRightsPublisher", group: "home", title: "Footer: rights (with publisher)", fr: "Tous droits réservés à leurs auteurs et à l’éditeur." },
+  { key: "developedBy", group: "home", title: "Footer: developed by", fr: "Développé par" },
+  { key: "claims", group: "home", title: "Footer: claims", fr: "Pour toute réclamation :" },
+  { key: "soundOn", group: "home", title: "Sound button: turn on", fr: "Activer le son" },
+  { key: "soundOff", group: "home", title: "Sound button: turn off", fr: "Couper le son" },
+  { key: "language", group: "home", title: "Language selector label", fr: "Langue" },
+  { key: "rules", group: "home", title: "Rules: title", fr: "Règles" },
+  { key: "rulesTitle", group: "home", title: "Rules: button label", fr: "Règles du jeu" },
+  { key: "rulesVideo", group: "home", title: "Rules: video tab", fr: "Vidéo" },
+  { key: "rulesPdf", group: "home", title: "Rules: PDF link", fr: "Règles PDF ({lang})" },
+  { key: "rulesVideoTitle", group: "home", title: "Rules: video title", fr: "Règles en vidéo" },
+  { key: "gameOptions", group: "lobby", title: "Lobby: game options", fr: "Options de la partie" },
+  { key: "chosenByHost", group: "lobby", title: "Lobby: options chosen by the host", fr: "choisies par l'hôte" },
+  { key: "resultAlt", group: "game", title: "Share: image description", fr: "Résultat de la partie" },
+  { key: "copyImage", group: "game", title: "Share: copy image", fr: "Copier l'image" },
+  { key: "download", group: "game", title: "Share: download", fr: "Télécharger" },
+  { key: "imageCopied", group: "game", title: "Share: toast copied", fr: "Image copiée, il ne reste plus qu'à la coller" },
+  { key: "imageError", group: "game", title: "Share: toast error", fr: "Impossible de générer l'image du résultat" },
+  { key: "share", group: "game", title: "Share: share button", fr: "Partager" },
+  { key: "copyFailed", group: "game", title: "Share: copy failed", fr: "Impossible de copier l'image" },
+  { key: "shareFailed", group: "game", title: "Share: share failed", fr: "Impossible de partager l'image" },
+  { key: "winsWith", group: "game", title: "Share: text", fr: "{names} remporte la partie avec {points} points !" },
 ] as const
 
 export type UiTextKey = (typeof UI_TEXTS)[number]["key"]

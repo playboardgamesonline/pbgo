@@ -101,14 +101,14 @@ export function GameOver({
         total: j.total,
         winner: results.winners.includes(j.playerId),
       }))
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       generateShareImage(lines, game.code, title)
         .then((f) => !cancelled && setImage(f))
-        .catch(() => !cancelled && toast.error("Impossible de générer l'image du résultat"))
+        .catch(() => !cancelled && toast.error(t("imageError")))
     }, 1200)
     return () => {
       cancelled = true
-      clearTimeout(t)
+      clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultsKey])
@@ -132,8 +132,8 @@ export function GameOver({
     }
   }
 
-  const shareText = `${winners.map((v) => info(v.playerId)?.nickname).join(" & ")} remporte la partie avec ${winners[0]?.total ?? 0} points !`
   const names = winners.map((v) => info(v.playerId)?.nickname).join(" & ")
+  const shareText = t("winsWith", { names, points: winners[0]?.total ?? 0 })
 
   return (
     <>

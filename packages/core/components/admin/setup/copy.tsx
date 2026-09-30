@@ -9,14 +9,16 @@ import { Input } from "@pbgo/ui/admin/input"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/admin/input-group"
 import { Textarea } from "@pbgo/ui/admin/textarea"
 import { cn } from "@pbgo/ui/utils"
+import { LOCALES, type Locale } from "../../../lib/i18n"
 import type { CopyEntry, CopyGroup } from "../../../server/settings"
+import { LangTabs } from "./lang-tabs"
 import { ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
-type Draft = { values: Record<string, string | null>; victoryPhrases: string[] | null }
+type Draft = { values: Record<string, Record<Locale, string | null>>; victoryPhrases: Record<Locale, string[] | null> }
 
 const pick = (d: AdminData): Draft => ({
-  values: Object.fromEntries(d.copy.entries.map((e) => [e.key, e.value])),
-  victoryPhrases: d.copy.victoryPhrases.value,
+  values: Object.fromEntries(d.copy.entries.map((e) => [e.key, e.values])),
+  victoryPhrases: d.copy.victoryPhrases.values,
 })
 
 const GROUPS: { id: CopyGroup; title: string; description: string }[] = [
@@ -34,22 +36,29 @@ export function CopyPage({ initial }: { initial: AdminData }) {
   const { data, draft, setDraft, disabled } = s
   const [query, setQuery] = useState("")
   const [group, setGroup] = useState<CopyGroup>("home")
-  const setValue = (key: string, value: string | null) => setDraft((d) => ({ ...d, values: { ...d.values, [key]: value } }))
+  const [lang, setLang] = useState<Locale>("fr")
+  const value = (key: string, l: Locale = lang) => draft.values[key]?.[l] ?? null
+  const setValue = (key: string, v: string | null) => setDraft((d) => ({ ...d, values: { ...d.values, [key]: { ...d.values[key]!, [lang]: v } } }))
+  const phrases = draft.victoryPhrases[lang]
+  const fallbackPhrases = data.copy.victoryPhrases.fallbacks[lang]
+  const setPhrases = (list: string[] | null) => setDraft((d) => ({ ...d, victoryPhrases: { ...d.victoryPhrases, [lang]: list } }))
+  const countFor = (l: Locale) => data.copy.entries.filter((e) => value(e.key, l)).length + (draft.victoryPhrases[l] ? 1 : 0)
 
   const q = query.trim().toLowerCase()
   const visible = useMemo(
     () =>
       data.copy.entries.filter((e) =>
-        q ? [e.label, e.fallback, draft.values[e.key] ?? "", e.key].some((t) => t.toLowerCase().includes(q)) : e.group === group,
+        q ? [e.label, e.fallbacks[lang], value(e.key) ?? "", e.key].some((t) => t.toLowerCase().includes(q)) : e.group === group,
       ),
-    [data.copy.entries, q, group, draft.values],
+    [data.copy.entries, q, group, draft.values, lang],
   )
-  const edited = (g: CopyGroup) => data.copy.entries.filter((e) => e.group === g && draft.values[e.key]).length + (g === "end" && draft.victoryPhrases ? 1 : 0)
+  const edited = (g: CopyGroup) => data.copy.entries.filter((e) => e.group === g && value(e.key)).length + (g === "end" && phrases ? 1 : 0)
 
   return (
     <SetupLayout>
       <ReadOnlyAlert writable={data.writable} />
       <div className="flex flex-wrap items-center gap-3">
+        <LangTabs value={lang} onChange={setLang} filled={Object.fromEntries(LOCALES.map((l) => [l, countFor(l)]))} />
         <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
           {GROUPS.map((g) => (
             <button
@@ -78,14 +87,14 @@ export function CopyPage({ initial }: { initial: AdminData }) {
         <CardHeader>
           <CardTitle>{q ? `Results for “${query.trim()}”` : GROUPS.find((g) => g.id === group)!.title}</CardTitle>
           <CardDescription>
-            {q ? `${visible.length} text${visible.length > 1 ? "s" : ""}` : GROUPS.find((g) => g.id === group)!.description} Empty field = default text (shown in grey). Keep the
+            {q ? `${visible.length} text${visible.length > 1 ? "s" : ""}` : GROUPS.find((g) => g.id === group)!.description} Empty field = default text of this language (shown in grey). Keep the
             variables in braces.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="divide-y">
             {visible.map((e) => (
-              <CopyRow key={e.key} entry={e} value={draft.values[e.key] ?? null} onChange={(v) => setValue(e.key, v)} disabled={disabled} />
+              <CopyRow key={e.key} entry={e} lang={lang} value={value(e.key)} onChange={(v) => setValue(e.key, v)} disabled={disabled} />
             ))}
             {visible.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">No text matches.</li>}
           </ul>
@@ -99,32 +108,32 @@ export function CopyPage({ initial }: { initial: AdminData }) {
             <CardDescription>One is picked at random on the scoreboard. {"{pseudo}"} and {"{points}"} are replaced.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {(draft.victoryPhrases ?? data.copy.victoryPhrases.fallback).map((p, i, list) => (
+            {(phrases ?? fallbackPhrases).map((p, i, list) => (
               <div key={i} className="flex items-center gap-2">
                 <Input
                   value={p}
                   disabled={disabled}
-                  className={cn(!draft.victoryPhrases && "text-muted-foreground")}
-                  onChange={(e) => setDraft((d) => ({ ...d, victoryPhrases: list.map((x, j) => (j === i ? e.target.value : x)) }))}
+                  className={cn(!phrases && "text-muted-foreground")}
+                  onChange={(e) => setPhrases(list.map((x, j) => (j === i ? e.target.value : x)))}
                 />
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   aria-label="Remove phrase"
                   disabled={disabled || list.length < 2}
-                  onClick={() => setDraft((d) => ({ ...d, victoryPhrases: list.filter((_, j) => j !== i) }))}
+                  onClick={() => setPhrases(list.filter((_, j) => j !== i))}
                 >
                   <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
                 </Button>
               </div>
             ))}
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={disabled} onClick={() => setDraft((d) => ({ ...d, victoryPhrases: [...(d.victoryPhrases ?? data.copy.victoryPhrases.fallback), ""] }))}>
+              <Button variant="outline" size="sm" disabled={disabled} onClick={() => setPhrases([...(phrases ?? fallbackPhrases), ""])}>
                 <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
                 Add
               </Button>
-              {draft.victoryPhrases && (
-                <Button variant="ghost" size="sm" disabled={disabled} onClick={() => setDraft((d) => ({ ...d, victoryPhrases: null }))}>
+              {phrases && (
+                <Button variant="ghost" size="sm" disabled={disabled} onClick={() => setPhrases(null)}>
                   <HugeiconsIcon icon={RotateLeft01Icon} strokeWidth={2} data-icon="inline-start" />
                   Back to default
                 </Button>
@@ -139,8 +148,9 @@ export function CopyPage({ initial }: { initial: AdminData }) {
   )
 }
 
-function CopyRow({ entry, value, onChange, disabled }: { entry: CopyEntry; value: string | null; onChange: (v: string | null) => void; disabled: boolean }) {
-  const vars = variables(entry.fallback)
+function CopyRow({ entry, lang, value, onChange, disabled }: { entry: CopyEntry; lang: Locale; value: string | null; onChange: (v: string | null) => void; disabled: boolean }) {
+  const fallback = entry.fallbacks[lang]
+  const vars = variables(entry.fallbacks.fr)
   const missing = value ? vars.filter((v) => !value.includes(v)) : []
   const Field = entry.multiline ? Textarea : Input
   return (
@@ -153,7 +163,7 @@ function CopyRow({ entry, value, onChange, disabled }: { entry: CopyEntry; value
         <Field
           aria-label={entry.label}
           value={value ?? ""}
-          placeholder={entry.fallback}
+          placeholder={fallback}
           rows={entry.multiline ? 3 : undefined}
           onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => onChange(e.target.value || null)}
           disabled={disabled}

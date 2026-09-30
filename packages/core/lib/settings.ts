@@ -2,6 +2,8 @@ import * as binding from "@pbgo/binding"
 import { defaultOptions, GAME, normalizeOptions, type OptionValues } from "@pbgo/binding"
 import { FONT_CHOICES } from "@pbgo/studio-kit/constants"
 import { DESCRIPTION, NAME } from "@pbgo/binding"
+import { LOCALES, type Locale } from "./i18n"
+import { gameI18n } from "./skin"
 
 export { FONT_CHOICES }
 
@@ -22,12 +24,24 @@ const FONT_WEIGHTS: Record<string, string> = {
 
 // Crédits du jeu original, affichés dans le pied de page (vides : pas de mention d'adaptation)
 // authors : texte libre après « un jeu de », ex. « Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier »
-export type Credits = { authors: string | null; publisher: string | null; publisherUrl: string | null }
+export type Credits = {
+  /** Dans la langue de la requête (repli sur le français) */
+  authors: string | null
+  publisher: string | null
+  publisherUrl: string | null
+}
 
 export type UploadedFile = { url: string; name: string }
 
 // Fichiers envoyés depuis l'admin (stockés dans Sanity) : réglages (`settings`) et habillage (`interface`)
-export const SETTINGS_FILE_SLOTS = ["rulesFr", "rulesEn", "fontBody", "fontDisplay"] as const
+export const SETTINGS_FILE_SLOTS = ["rulesFr", "rulesEn", "rulesEs", "rulesDe", "fontBody", "fontDisplay"] as const
+
+/** Emplacement (et champ Sanity) du PDF des règles de chaque langue */
+export const RULES_SLOT = { fr: "rulesFr", en: "rulesEn", es: "rulesEs", de: "rulesDe" } as const satisfies Record<Locale, (typeof SETTINGS_FILE_SLOTS)[number]>
+export const RULES_FIELD = { fr: "rulesPdfFr", en: "rulesPdfEn", es: "rulesPdfEs", de: "rulesPdfDe" } as const satisfies Record<Locale, string>
+
+export type ByLocale<T> = Record<Locale, T>
+export const byLocale = <T,>(f: (l: Locale) => T) => Object.fromEntries(LOCALES.map((l) => [l, f(l)])) as ByLocale<T>
 export const SETTINGS_IMAGE_SLOTS = ["logo", "favicon", "shareImage"] as const
 export const VISUAL_IMAGE_SLOTS = ["background", "pattern", "decorTop", "decorBottom", "hero", "hostIcon"] as const
 export type VisualSlot = (typeof VISUAL_IMAGE_SLOTS)[number]
@@ -43,7 +57,11 @@ export type ThemeColors = { background: string; foreground: string; accent: stri
 
 export type SiteSettings = {
   title: string
+  /** Dans la langue de la requête (repli sur le français) */
   description: string
+  /** Toutes les langues, telles qu'enregistrées (ou par défaut) : pour l'admin */
+  descriptions: ByLocale<string>
+  creditsAuthors: ByLocale<string>
   logo: string | null
   /** Icône d'onglet (PNG ou SVG) ; sans elle, générée depuis le logo */
   favicon: string | null
@@ -55,8 +73,8 @@ export type SiteSettings = {
   bodyFont: string | null
   displayFont: string | null
   // lien effectif (PDF envoyé, sinon lien saisi)
-  rulesPdf: { fr: string | null; en: string | null }
-  rulesPdfLinks: { fr: string | null; en: string | null }
+  rulesPdf: ByLocale<string | null>
+  rulesPdfLinks: ByLocale<string | null>
   files: SettingsFiles
   credits: Credits
   /** Secondes d'inactivité avant de pouvoir jouer à la place d'un joueur absent */
@@ -102,6 +120,8 @@ export const tableTitle = (title: string, code: string) => {
 export const DEFAULT_SETTINGS: SiteSettings = {
   title: NAME,
   description: DESCRIPTION,
+  descriptions: byLocale((l) => (l === "fr" ? DESCRIPTION : (gameI18n[l]?.description ?? ""))),
+  creditsAuthors: byLocale((l) => (l === "fr" ? "" : (gameI18n[l]?.authors ?? ""))),
   logo: null,
   favicon: null,
   shareImage: null,
@@ -109,9 +129,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   maxPlayers: GAME.maxPlayers,
   bodyFont: null,
   displayFont: null,
-  rulesPdf: { fr: null, en: null },
-  rulesPdfLinks: { fr: null, en: null },
-  files: { rulesFr: null, rulesEn: null, fontBody: null, fontDisplay: null },
+  rulesPdf: byLocale(() => null),
+  rulesPdfLinks: byLocale(() => null),
+  files: { rulesFr: null, rulesEn: null, rulesEs: null, rulesDe: null, fontBody: null, fontDisplay: null },
   credits: { authors: null, publisher: null, publisherUrl: null },
   turnTimeout: TURN_TIMEOUT_BOUNDS.default,
   options: { defaults: defaultOptions(GAME.options), hidden: [] },
