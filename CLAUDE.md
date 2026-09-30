@@ -71,3 +71,17 @@ Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo
 - Sons : `lib/sound-config.ts` (types, sons déclarés par le jeu), `lib/audio-server.ts` (`loadAudio` fusionne Sanity `audio`), passé à `AppShell` (`sounds`). Admin › Audio › « Import into Sanity » envoie les fichiers de /public/sounds.
 - Tasks : table `tasks` (colonnes `type` backlog|bug et `priority`), table `feedback` (bouton « Donner votre avis » du jeu, `POST /api/feedback`) — migration `…_admin_tasks_feedback.sql`. Launch = liste vérifiée (`server/launch.ts`).
 - Options du moteur : défauts et options masquées réglés dans Mechanics (`settings.options`, `gameOptions()` dans `lib/settings.ts`).
+
+## Nouveau jeu en une commande
+
+`pnpm add-game <slug> [--push]` enchaîne new-game, go-live (Sanity, Vercel, domaine, studio) et setup-env en mode automatique : projet Supabase créé, clés lues, migrations appliquées, token Sanity créé, compte admin et variables poussés sur Vercel.
+
+Le mode automatique s'active si `~/.config/pbgo/secrets.env` existe (hors repo, `chmod 600`) :
+
+```
+ADMIN_LOGIN=...
+ADMIN_PASSWORD=...
+SUPABASE_ACCESS_TOKEN=...
+```
+
+Facultatifs : `SUPABASE_ORG_ID`, `SUPABASE_REGION`, `VERCEL_TOKEN`, `VERCEL_TEAM_ID`. Ne jamais mettre ces valeurs dans le repo.

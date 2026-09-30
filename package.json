@@ -9,6 +9,7 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "new-game": "bash scripts/new-game.sh",
-    "go-live": "bash scripts/go-live.sh"
+    "go-live": "bash scripts/go-live.sh",
+    "add-game": "bash scripts/add-game.sh"
   }
 }

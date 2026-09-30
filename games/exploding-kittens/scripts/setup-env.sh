@@ -5,6 +5,14 @@
 # Usage, depuis la racine du repo du jeu :  pnpm setup:env   (ou  bash scripts/setup-env.sh)
 # Relançable : Entrée garde la valeur actuelle, les étapes déjà faites sont sautées.
 # Les secrets ne sont jamais affichés (sauf le mot de passe admin généré, une fois, à la fin).
+#
+# Mode automatique : si ~/.config/pbgo/secrets.env existe (ou PBGO_SECRETS), rien n'est demandé.
+#   ADMIN_LOGIN, ADMIN_PASSWORD          compte admin commun à tous les jeux
+#   SUPABASE_ACCESS_TOKEN                token perso Supabase : le projet est créé, ses clés lues, les migrations appliquées
+#   SUPABASE_ORG_ID, SUPABASE_REGION     facultatifs (défaut : première organisation, région d'un projet existant)
+#   VERCEL_TOKEN, VERCEL_TEAM_ID         facultatifs : page Monitoring de l'admin
+# Sanity est déjà automatique : le token d'écriture est créé pour chaque projet avec la connexion `sanity login`.
+# Ce fichier reste sur ta machine, jamais dans le repo.
 
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,6 +21,8 @@ ENV_FILE="apps/web/.env.local"
 VERCEL_TEAM="${VERCEL_TEAM:-team_5AgMIBlJbSmZXWxmJ1pDPHQi}"
 VERCEL_SCOPE="${VERCEL_SCOPE:-ore}"
 SANITY_API="https://api.sanity.io/v2021-06-07"
+SECRETS_FILE="${PBGO_SECRETS:-$HOME/.config/pbgo/secrets.env}"
+AUTO=0; [ -f "$SECRETS_FILE" ] && AUTO=1
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -49,10 +59,13 @@ envset() { # envset <CLÉ> <valeur>  (écrit dans apps/web/.env.local, sans rien
     fs.writeFileSync(file, lines.join("\n").replace(/\n*$/, "\n"), { mode: 0o600 })' "$ENV_FILE"
 }
 
+secret() { envget "$SECRETS_FILE" "$1"; } # valeur du fichier de secrets (vide s'il n'existe pas)
+
 PULLED="$TMP/vercel.env"
 current() { # valeur actuelle : .env.local, sinon celle récupérée sur Vercel
   local v; v="$(envget "$ENV_FILE" "$1")"
   [ -z "$v" ] && v="$(envget "$PULLED" "$1")"
+  [ -z "$v" ] && v="$(secret "$1")"
   printf "%s" "$v"
 }
 
@@ -62,6 +75,8 @@ safe() { [[ "$1" =~ ^[A-Za-z0-9._:/@+=~-]*$ ]]; }
 ask() {
   local key="$1" label="$2" def="${3:-}" mode="${4:-}" cur shown answer
   cur="$(current "$key")"; [ -z "$cur" ] && cur="$def"
+  # mode automatique : une valeur connue est utilisée sans poser la question
+  if [ "$AUTO" = 1 ] && [ -n "$cur" ] && safe "$cur"; then envset "$key" "$cur"; ok "$key"; return; fi
   while true; do
     if [ -n "$cur" ]; then
       if [[ "$mode" == secret* ]]; then shown="••••${cur: -4}"; else shown="$cur"; fi
@@ -78,7 +93,7 @@ ask() {
   envset "$key" "$answer"
 }
 
-confirm() { local a; printf "  %s [O/n] : " "$1"; read -r a; [[ -z "$a" || "$a" =~ ^[oOyY] ]]; }
+confirm() { [ "$AUTO" = 1 ] && return 0; local a; printf "  %s [O/n] : " "$1"; read -r a; [[ -z "$a" || "$a" =~ ^[oOyY] ]]; }
 
 SLUG="$(basename "$ROOT")"
 # play-board-games-online-template → play-board-games-online-template.vercel.app ; skull-king → play-skull-king-online.vercel.app
@@ -158,29 +173,76 @@ fi
 
 # ---------- Supabase ----------
 title "Supabase"
-echo "  Clés : supabase.com/dashboard → ton projet → Project Settings → API"
-ask NEXT_PUBLIC_SUPABASE_URL "URL du projet (https://xxxx.supabase.co)"
-ask NEXT_PUBLIC_SUPABASE_ANON_KEY "Clé anon / publishable" "" secret
-ask SUPABASE_SERVICE_ROLE_KEY "Clé service_role / secret" "" secret
+SB_PAT="$(secret SUPABASE_ACCESS_TOKEN)"
+SBAPI="https://api.supabase.com/v1"
+SB() { curl -s -H "Authorization: Bearer $SB_PAT" -H "Content-Type: application/json" "$@"; }
+FRESH=0
+
+# création automatique du projet Supabase (nom = nom du jeu) quand aucune URL n'est encore connue
+if [ -z "$(current NEXT_PUBLIC_SUPABASE_URL)" ] && [ -n "$SB_PAT" ]; then
+  REF="$(SB "$SBAPI/projects" | json "o.find(p=>p.name==='$SLUG')?.ref")"
+  if [ -n "$REF" ]; then ok "Projet Supabase existant : $SLUG ($REF)"
+  else
+    ORG="$(secret SUPABASE_ORG_ID)"; [ -z "$ORG" ] && ORG="$(SB "$SBAPI/organizations" | json "o[0]?.id")"
+    REGION="$(secret SUPABASE_REGION)"; [ -z "$REGION" ] && REGION="$(SB "$SBAPI/projects" | json "o[0]?.region")"
+    REGION="${REGION:-eu-west-3}"
+    DBPW="$(node -e 'const c="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";console.log(Array.from(require("crypto").randomBytes(24),b=>c[b%c.length]).join(""))')"
+    [ -n "$ORG" ] || { err "aucune organisation Supabase trouvée (token invalide ?)"; }
+    RES="$(SB -X POST "$SBAPI/projects" -d "{\"name\":\"$SLUG\",\"organization_id\":\"$ORG\",\"db_pass\":\"$DBPW\",\"region\":\"$REGION\"}")"
+    REF="$(echo "$RES" | json "o.ref ?? o.id")"
+    if [ -n "$REF" ]; then ok "Projet Supabase créé : $SLUG ($REGION)"; FRESH=1
+    else err "création du projet Supabase : $(echo "$RES" | head -c 300)"; fi
+  fi
+  if [ -n "$REF" ]; then
+    printf "  Démarrage du projet"
+    for i in $(seq 1 60); do
+      st="$(SB "$SBAPI/projects/$REF" | json "o.status")"
+      [ "$st" = "ACTIVE_HEALTHY" ] && break
+      printf "."; sleep 5
+    done; echo
+    KEYS_JSON="$(SB "$SBAPI/projects/$REF/api-keys?reveal=true")"
+    ANON="$(echo "$KEYS_JSON" | json "o.find(k=>k.name==='anon')?.api_key")"
+    SERVICE="$(echo "$KEYS_JSON" | json "o.find(k=>k.name==='service_role')?.api_key")"
+    if [ -n "$ANON" ] && [ -n "$SERVICE" ]; then
+      envset NEXT_PUBLIC_SUPABASE_URL "https://$REF.supabase.co"; envset NEXT_PUBLIC_SUPABASE_ANON_KEY "$ANON"; envset SUPABASE_SERVICE_ROLE_KEY "$SERVICE"
+      ok "URL et clés Supabase renseignées"
+    else err "clés Supabase introuvables (projet pas encore prêt ? relance le script)"; fi
+  fi
+fi
+
+if [ "$AUTO" = 1 ] && [ -n "$(current NEXT_PUBLIC_SUPABASE_URL)" ]; then
+  ask NEXT_PUBLIC_SUPABASE_URL "URL du projet"; ask NEXT_PUBLIC_SUPABASE_ANON_KEY "Clé anon" "" secret; ask SUPABASE_SERVICE_ROLE_KEY "Clé service_role" "" secret
+else
+  echo "  Clés : supabase.com/dashboard → ton projet → Project Settings → API"
+  ask NEXT_PUBLIC_SUPABASE_URL "URL du projet (https://xxxx.supabase.co)"
+  ask NEXT_PUBLIC_SUPABASE_ANON_KEY "Clé anon / publishable" "" secret
+  ask SUPABASE_SERVICE_ROLE_KEY "Clé service_role / secret" "" secret
+fi
 SB_URL="$(current NEXT_PUBLIC_SUPABASE_URL)"; SB_URL="${SB_URL%/}"
 SB_KEY="$(current SUPABASE_SERVICE_ROLE_KEY)"
 REF="$(echo "$SB_URL" | sed -E 's#https://([^.]+)\..*#\1#')"
 
 table_ok() { [ "$(curl -s -o /dev/null -w '%{http_code}' "$SB_URL/rest/v1/$1?select=*&limit=1" -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY")" = "200" ]; }
 
+# migrations : toutes, dans l'ordre, sur un projet neuf ; sinon celles dont les tables manquent
 MISSING=()
-table_ok games || MISSING+=("0001_games.sql")
-table_ok tasks || MISSING+=("0002_tasks.sql")
+if [ "$FRESH" = 1 ]; then for f in supabase/migrations/*.sql; do MISSING+=("$(basename "$f")"); done
+else
+  table_ok games || MISSING+=("0001_games.sql")
+  table_ok tasks || MISSING+=("0002_tasks.sql")
+fi
 if [ ${#MISSING[@]} -eq 0 ]; then
   ok "Tables games et tasks présentes"
 else
   warn "Migrations à appliquer : ${MISSING[*]}"
-  echo "  Pour les lancer d'ici : token perso sur supabase.com/dashboard/account/tokens (non enregistré)"
-  printf "  Token Supabase (Entrée pour le faire à la main) : "; read -rs SB_PAT; echo
+  if [ -z "$SB_PAT" ]; then
+    echo "  Pour les lancer d'ici : token perso sur supabase.com/dashboard/account/tokens (non enregistré)"
+    printf "  Token Supabase (Entrée pour le faire à la main) : "; read -rs SB_PAT; echo
+  fi
   if [ -n "$SB_PAT" ]; then
     for f in "${MISSING[@]}"; do
       body="$(node -e 'console.log(JSON.stringify({query:require("fs").readFileSync(process.argv[1],"utf8")}))' "supabase/migrations/$f")"
-      code="$(curl -s -o "$TMP/sb.json" -w '%{http_code}' -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+      code="$(curl -s -o "$TMP/sb.json" -w '%{http_code}' -X POST "$SBAPI/projects/$REF/database/query" \
         -H "Authorization: Bearer $SB_PAT" -H "Content-Type: application/json" -d "$body")"
       if [[ "$code" == 2* ]]; then ok "$f appliquée"; else err "$f : $(head -c 200 "$TMP/sb.json")"; fi
     done
@@ -190,11 +252,12 @@ else
 fi
 
 # ---------- Compte admin ----------
-title "Compte admin (/setup, /status)"
+title "Compte admin (/admin)"
 ask ADMIN_LOGIN "Identifiant" "ore"
 GENERATED=""
 if [ -z "$(current ADMIN_PASSWORD)" ]; then
-  printf "  Mot de passe (Entrée pour en générer un) : "; read -rs pw; echo
+  pw=""
+  [ "$AUTO" = 1 ] || { printf "  Mot de passe (Entrée pour en générer un) : "; read -rs pw; echo; }
   if [ -z "$pw" ]; then pw="$(node -e 'const c="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";console.log(Array.from(require("crypto").randomBytes(20),b=>c[b%c.length]).join(""))')"; GENERATED="$pw"; fi
   if safe "$pw"; then envset ADMIN_PASSWORD "$pw"; ok "Mot de passe enregistré"; else err "caractères non autorisés, relance le script"; fi
 else
@@ -202,8 +265,8 @@ else
 fi
 
 # ---------- Vercel Web Analytics ----------
-title "Stats Vercel (/status)"
-echo "  Token longue durée : vercel.com/account/settings/tokens (scope : ton équipe)"
+title "Monitoring (/admin)"
+[ "$AUTO" = 1 ] || echo "  Token longue durée : vercel.com/account/settings/tokens (scope : ton équipe)"
 ask VERCEL_TOKEN "Token Vercel" "" secret-optional
 [ -n "$(current VERCEL_TOKEN)" ] && ask VERCEL_TEAM_ID "Team ID" "$VERCEL_TEAM"
 [ -n "$VID" ] && [ -z "$(current VERCEL_ANALYTICS_PROJECT_ID)" ] && envset VERCEL_ANALYTICS_PROJECT_ID "$VID"
@@ -225,14 +288,16 @@ if [ -n "$VID" ] && confirm "Envoyer ces variables sur Vercel (production, previ
     res="$(V -X POST "https://api.vercel.com/v10/projects/$VID/env?upsert=true&teamId=$VERCEL_TEAM" -d "$body")"
     if [ -n "$(echo "$res" | json "o.error?.message")" ]; then err "$k : $(echo "$res" | json "o.error.message")"; else ok "$k"; fi
   done
-  if confirm "Redéployer la production pour appliquer les variables ?"; then
+  if [ "$AUTO" = 1 ]; then
+    ok "Variables en place : le prochain push sur main déploie le jeu avec elles"
+  elif confirm "Redéployer la production pour appliquer les variables ?"; then
     npx -y vercel@latest deploy --prod --yes --scope "$VERCEL_SCOPE" >"$TMP/deploy.log" 2>&1 && ok "Déployé" || err "déploiement : $(tail -3 "$TMP/deploy.log")"
   fi
 fi
 
 # ---------- Récap ----------
 title "Terminé"
-echo "  Admin : ${SITE_URL}/setup  ·  ${SITE_URL}/status"
+echo "  Admin : ${SITE_URL}/admin"
 echo "  Identifiant : $(current ADMIN_LOGIN)"
 [ -n "$GENERATED" ] && printf "  Mot de passe généré (note-le, il n'est affiché qu'une fois) : \033[1m%s\033[0m\n" "$GENERATED"
-echo "  En local : pnpm dev → http://localhost:3000/setup"
+echo "  En local : pnpm dev → http://localhost:3000/admin"
