@@ -57,7 +57,7 @@ function roundBg() {
   return rond
 }
 
-type Sign = "plus" | "minus" | "equal"
+type Sign = "plus" | "minus" | "equal" | "cross"
 const signs = new Map<Sign, CanvasTexture>()
 
 function signTexture(sign: Sign) {
@@ -80,6 +80,16 @@ function signTexture(sign: Sign) {
             ]
     const trace = () => {
       g.beginPath()
+      if (sign === "cross") {
+        for (const angle of [Math.PI / 4, -Math.PI / 4]) {
+          g.save()
+          g.translate(128, 128)
+          g.rotate(angle)
+          g.roundRect(-80, -24, 160, 48, 9)
+          g.restore()
+        }
+        return
+      }
       for (const [x, y, l, h] of bars) g.roundRect(x, y, l, h, 9)
     }
     g.lineJoin = "round"
@@ -105,12 +115,12 @@ function signTexture(sign: Sign) {
   return t
 }
 
-function Sign({ sign, position }: { sign: Sign; position: [number, number, number] }) {
+function Sign({ sign, position, size = 1.15 }: { sign: Sign; position: [number, number, number]; size?: number }) {
   const [texture] = useState(() => signTexture(sign))
   return (
     <Appear position={position} floating={0}>
       <mesh rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
-        <planeGeometry args={[1.15, 1.15]} />
+        <planeGeometry args={[size, size]} />
         <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
       </mesh>
     </Appear>
@@ -126,11 +136,14 @@ export const ENDING_SETTINGS = {
   zeroColor: "#a8b0b2",
   relief: true,
   shadowColor: "#000000",
-  shadowOpacity: 0.18,
-  shadowBlur: 4,
+  shadowOpacity: 0.12,
+  shadowBlur: 3,
   shadowOffset: 2,
   counterBackdrop: 0,
-  counterShadow: 0.22,
+  counterShadow: 0.45,
+  counterShadowBlur: 22,
+  counterShadowOffset: 5,
+  counterHeight: 0.45,
 }
 
 export const LINE_SETTINGS = {
@@ -194,7 +207,10 @@ export function EndingSettings() {
     ENDING_SETTINGS,
     {
       counterBackdrop: ["dark disc opacity", 0, 1, 0.01],
-      counterShadow: ["text shadow", 0, 1, 0.01],
+      counterShadow: ["text shadow opacity", 0, 1, 0.01],
+      counterShadowBlur: ["text shadow blur", 0, 60, 1],
+      counterShadowOffset: ["text shadow offset", -30, 30, 1],
+      counterHeight: ["height", 0, 3, 0.05],
     } as never,
     { order: 13 },
   )
@@ -397,21 +413,22 @@ export function PilePoints({ view, results, ending, zones }: { view: PlayerView;
   )
 }
 
-/** « +3 » (mission réussie) ou « ✕ » (ratée), posé au-dessus de la carte mission retournée. */
+/** Mission réussie : « +3 » doré, comme les points des piles ; ratée : croix grise, comme le signe égal. Fixes (pas de flottement ni de clignotement). */
 export function MissionSign({ done, points, position }: { done: boolean; points: number; position: [number, number, number] }) {
   useSettingsVersion()
+  if (!done) return <Sign sign="cross" size={1} position={position} />
   return (
     <group position={position}>
-      <Appear position={[0, 0, 0]} floating={0.03}>
+      <Appear position={[0, 0, 0]} floating={0}>
         <TableText
-          text={done ? `+${points}` : "✕"}
+          text={`+${points}`}
           style={{
-            color: done ? ENDING_SETTINGS.positiveColor : ENDING_SETTINGS.negativeColor,
+            color: ENDING_SETTINGS.positiveColor,
             relief: ENDING_SETTINGS.relief ? "#1a1a1a" : undefined,
             fontWeight: 800,
             shadow: `${shadowRgba()}|${ENDING_SETTINGS.shadowBlur}|${ENDING_SETTINGS.shadowOffset}`,
           }}
-          elevation={ENDING_SETTINGS.pointsSize * 0.9}
+          elevation={ENDING_SETTINGS.pointsSize}
           position={[0, 0, 0]}
           order={8}
         />
@@ -432,7 +449,7 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
         const piles = r.families.slice(0, ending.pile)
         const total = piles.reduce((s, d) => s + d.points, 0) + (ending.missions ? r.missions.reduce((s, m) => s + m.points, 0) : 0)
         return (
-          <Appear key={j.id} position={[zone.center.x, 1.8, zone.center.z]} floating={0}>
+          <Appear key={j.id} position={[zone.center.x, ENDING_SETTINGS.counterHeight, zone.center.z]} floating={0}>
             {ENDING_SETTINGS.counterBackdrop > 0.01 && (
               <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
                 <circleGeometry args={[1.25, 48]} />
@@ -441,7 +458,7 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
             )}
             <TableText
               text={`${total}`}
-              style={{ ...HOLO, spacing: "4px", shadow: `rgba(0,0,0,${ENDING_SETTINGS.counterShadow})|3|2` }}
+              style={{ ...HOLO, spacing: "4px", shadow: `rgba(0,0,0,${ENDING_SETTINGS.counterShadow})|${ENDING_SETTINGS.counterShadowBlur}|${ENDING_SETTINGS.counterShadowOffset}` }}
               elevation={1.5}
               position={[0, 0, 0]}
             />

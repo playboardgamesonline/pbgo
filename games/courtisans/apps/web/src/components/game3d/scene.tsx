@@ -1195,9 +1195,9 @@ function World({
                     width={MISSION_W}
                     elevation={MISSION_H}
                     speed={0.22}
-                    glow={ending.missions && result?.done ? "gold" : null}
+                    glow={null}
                   />
-                  {ending.missions && result && <MissionSign done={result.done} points={result.points} position={[target.position.x, 0.06, target.position.z]} />}
+                  {ending.missions && result && <MissionSign done={result.done} points={result.points} position={[target.position.x, 0.12, target.position.z]} />}
                 </group>
               )
             })

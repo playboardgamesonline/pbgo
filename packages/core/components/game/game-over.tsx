@@ -134,7 +134,7 @@ export function GameOver({
 
   const replayButton = (
     <div className="pointer-events-auto">
-      <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="w-auto max-w-none px-8 whitespace-nowrap">
+      <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="h-14 w-auto max-w-none rounded-t-2xl rounded-b-none px-10 whitespace-nowrap shadow-[0_-6px_24px_rgb(0_0_0/35%)] hover:scale-100 hover:brightness-110">
         {t("replay")} ({game.replay.length}/{game.players.length})
       </PrimaryButton>
     </div>
@@ -157,7 +157,7 @@ export function GameOver({
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-24">
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-28">
         <AnimatePresence mode="popLayout">
           {isOpen && (
             <motion.section
@@ -239,12 +239,11 @@ export function GameOver({
               </div>
 
               </div>
-              <div className="absolute inset-x-0 bottom-0 z-20 flex translate-y-1/2 justify-center">{replayButton}</div>
             </motion.section>
           )}
         </AnimatePresence>
         </div>
-      <div className="pointer-events-none fixed inset-x-0 top-5 z-50 flex justify-center">
+      <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--spacing)*6)] z-50 flex justify-center">
         <button
           type="button"
           onClick={onToggle}
@@ -255,7 +254,7 @@ export function GameOver({
           <span className="underline underline-offset-4">{isOpen ? t("hideScores") : t("showScores")}</span>
         </button>
       </div>
-      {!isOpen && <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">{replayButton}</div>}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center">{replayButton}</div>
     </>
   )
 }
