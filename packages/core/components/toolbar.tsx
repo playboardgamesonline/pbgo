@@ -1,58 +1,47 @@
 "use client"
 
-import { LinkIcon, MaximizeIcon, MinimizeIcon, SettingsIcon } from "lucide-react"
-import { motion } from "motion/react"
+import { Menu09Icon, Scroll01Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ChevronDownIcon, CookieIcon, LanguagesIcon, ScaleIcon, SlidersHorizontalIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
 import { cn } from "@pbgo/ui/utils"
+import { AUTHOR, CONTACT, type OptionValues } from "@pbgo/binding"
 import type { RulesContent } from "../lib/rules"
 import { LOCALES, LOCALE_NAMES } from "../lib/i18n"
-import { currentVolumes, setVolumes } from "../lib/sound"
 import { FeedbackButton } from "./feedback"
+import { GameSettingsDialog } from "./game-settings"
+import { InfoDialog } from "./info-dialog"
 import { setLocaleCookie } from "./language-select"
 import { GameRulesButton as RulesButton } from "./rules-slot"
-import { SoundButton } from "./sound/sound"
+import { useSiteSettings } from "./settings-provider"
+import { ICON_BUTTON, SoundButton } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
 import { useRouter } from "next/navigation"
 
-const MICRO = "size-8 [&_svg]:size-[18px] hover:scale-110"
 const ROW = "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10"
-
-function Slider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <label className="flex items-center gap-3 px-3 py-1.5 text-sm">
-      <span className="w-16 shrink-0 text-foreground/80">{label}</span>
-      <input type="range" min={0} max={1} step={0.01} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-1 min-w-0 flex-1 cursor-pointer accent-[var(--color-accent-game,currentColor)]" />
-    </label>
-  )
-}
+const SEPARATOR = <div role="separator" className="my-1 h-px bg-foreground/15" />
 
 /**
- * Commandes discrètes à droite du logo : un bouton réglages (engrenage → langue, volumes, plein écran, lien d'invitation, feedback)
- * et dessous deux micro-boutons, le son (animé selon la musique) et les règles.
+ * Deux boutons discrets : le son et un menu déroulant (langue, règles, paramètres de la partie · cookies, mentions légales · feedback).
  * Les fenêtres (règles, feedback) restent montées même menu fermé pour conserver leur état.
  */
-export function Toolbar({ rules, gameCode, align = "left" }: { rules?: RulesContent; gameCode?: string; align?: "left" | "right" }) {
+export function Toolbar({ rules, gameCode, options, align = "left" }: { rules?: RulesContent; gameCode?: string; options?: OptionValues; align?: "left" | "right" }) {
   const t = useText()
   const { locale } = useSkin()
+  const { credits } = useSiteSettings()
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [volumes, setLocalVolumes] = useState(currentVolumes)
-  const [fullscreen, setFullscreen] = useState(false)
+  const [languages, setLanguages] = useState(false)
+  const [dialog, setDialog] = useState<"settings" | "cookies" | "legal" | null>(null)
   const root = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const update = () => setFullscreen(!!document.fullscreenElement)
-    document.addEventListener("fullscreenchange", update)
-    return () => document.removeEventListener("fullscreenchange", update)
-  }, [])
+  const rulesHost = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     const close = (e: Event) => {
       if (e instanceof KeyboardEvent) return void (e.key === "Escape" && setOpen(false))
       const target = e.target as Element | null
-      // les fenêtres (feedback) sont rendues hors du menu : cliquer dedans ne le referme pas
+      // les fenêtres (règles, feedback…) sont rendues hors du menu : cliquer dedans ne le referme pas
       if (!root.current?.contains(target) && !target?.closest?.("[role=dialog], [data-radix-popper-content-wrapper]")) setOpen(false)
     }
     document.addEventListener("pointerdown", close)
@@ -69,90 +58,94 @@ export function Toolbar({ rules, gameCode, align = "left" }: { rules?: RulesCont
     document.documentElement.lang = l
     router.refresh()
   }
-  const volume = (key: "music" | "effects", v: number) => {
-    setVolumes({ [key]: v })
-    setLocalVolumes(currentVolumes())
+  const openDialog = (d: "settings" | "cookies" | "legal") => {
+    setOpen(false)
+    setDialog(d)
   }
-  const toggleFullscreen = () => {
-    if (document.fullscreenElement) void document.exitFullscreen()
-    else void document.documentElement.requestFullscreen?.()
-  }
-  const copyInvite = async () => {
-    if (!gameCode) return
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/game/${gameCode}`)
-      toast.success(t("linkCopied"))
-    } catch {}
+  const openRules = () => {
+    setOpen(false)
+    rulesHost.current?.querySelector("button")?.click()
   }
 
   const label = open ? t("closeMenu") : t("menu")
+  const legalText = t("legalBody", {
+    publisher: credits.publisher ?? AUTHOR.name,
+    authors: credits.authors ?? AUTHOR.name,
+    contact: CONTACT,
+  })
+  const tab = open ? 0 : -1
   return (
-    <div ref={root} className="relative flex flex-col items-center gap-0.5">
-      <button
-        type="button"
-        aria-label={label}
-        title={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="flex size-10 cursor-pointer items-center justify-center rounded-full text-foreground transition-transform hover:scale-110 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ type: "spring", stiffness: 260, damping: 18 }} className="inline-flex">
-          <SettingsIcon strokeWidth={1.6} className="size-6" />
-        </motion.span>
+    <div ref={root} className="relative flex items-center gap-1">
+      <SoundButton />
+      <button type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} className={ICON_BUTTON} onClick={() => setOpen((o) => !o)}>
+        <HugeiconsIcon icon={Menu09Icon} strokeWidth={1.6} className="size-7" />
       </button>
-      <div className="flex items-center gap-0.5">
-        <SoundButton className={MICRO} size={20} />
-        {rules && <RulesButton rules={rules} className={MICRO} />}
+      <div ref={rulesHost} className="hidden" aria-hidden>
+        {rules && <RulesButton rules={rules} />}
       </div>
       <div
         role="menu"
         aria-hidden={!open}
         className={cn(
-          "absolute top-10 z-50 mt-1 flex w-64 flex-col gap-1 rounded-xl border border-foreground/15 bg-surface/95 p-2 text-foreground shadow-xl backdrop-blur-sm transition-[opacity,transform] duration-200",
+          "absolute top-full z-50 mt-1 flex w-64 flex-col rounded-xl border border-foreground/15 bg-surface/95 p-1.5 text-foreground shadow-xl backdrop-blur-sm transition-[opacity,transform] duration-200",
           align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left",
           open ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0",
         )}
       >
-        <p className="px-3 pt-1 text-[11px] font-semibold tracking-[0.14em] text-foreground/50 uppercase">{t("language")}</p>
-        <div className="flex items-center gap-1 px-2 pb-1" role="group" aria-label={t("language")}>
-          {LOCALES.map((l) => (
-            <button
-              key={l}
-              type="button"
-              lang={l}
-              title={LOCALE_NAMES[l]}
-              aria-pressed={l === locale}
-              tabIndex={open ? 0 : -1}
-              onClick={() => choose(l)}
-              className={cn(
-                "h-8 flex-1 cursor-pointer rounded-lg px-2 text-xs font-bold uppercase transition-colors",
-                l === locale ? "bg-foreground/90 text-background" : "text-foreground/70 hover:bg-foreground/10 hover:text-foreground",
-              )}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-        <div className="border-t border-foreground/15 pt-1">
-          <p className="px-3 pt-1 text-[11px] font-semibold tracking-[0.14em] text-foreground/50 uppercase">{t("menuSound")}</p>
-          <Slider label={t("volumeMusic")} value={volumes.music} onChange={(v) => volume("music", v)} />
-          <Slider label={t("volumeEffects")} value={volumes.effects} onChange={(v) => volume("effects", v)} />
-        </div>
-        <div className="border-t border-foreground/15 pt-1">
-          {gameCode && (
-            <button type="button" className={ROW} tabIndex={open ? 0 : -1} onClick={copyInvite}>
-              <LinkIcon strokeWidth={1.6} className="size-4.5" />
-              {t("copyLink")}
-            </button>
-          )}
-          <button type="button" className={ROW} tabIndex={open ? 0 : -1} onClick={toggleFullscreen}>
-            {fullscreen ? <MinimizeIcon strokeWidth={1.6} className="size-4.5" /> : <MaximizeIcon strokeWidth={1.6} className="size-4.5" />}
-            {fullscreen ? t("exitFullscreen") : t("fullscreen")}
+        <button type="button" role="menuitem" tabIndex={tab} aria-expanded={languages} className={ROW} onClick={() => setLanguages((v) => !v)}>
+          <LanguagesIcon strokeWidth={1.6} className="size-4.5" />
+          <span className="flex-1">{t("language")}</span>
+          <span className="text-xs font-bold text-foreground/60 uppercase">{locale}</span>
+          <ChevronDownIcon strokeWidth={1.6} className={cn("size-4 text-foreground/50 transition-transform", languages && "rotate-180")} />
+        </button>
+        {languages && (
+          <div className="flex items-center gap-1 px-2 pb-1.5" role="group" aria-label={t("language")}>
+            {LOCALES.map((l) => (
+              <button
+                key={l}
+                type="button"
+                lang={l}
+                title={LOCALE_NAMES[l]}
+                aria-pressed={l === locale}
+                tabIndex={tab}
+                onClick={() => choose(l)}
+                className={cn(
+                  "h-8 flex-1 cursor-pointer rounded-lg px-2 text-xs font-bold uppercase transition-colors",
+                  l === locale ? "bg-foreground/90 text-background" : "text-foreground/70 hover:bg-foreground/10 hover:text-foreground",
+                )}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+        {rules && (
+          <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={openRules}>
+            <HugeiconsIcon icon={Scroll01Icon} strokeWidth={1.6} className="size-4.5" />
+            {t("rulesTitle")}
           </button>
-          <FeedbackButton gameCode={gameCode} asRow />
-        </div>
+        )}
+        {options && (
+          <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={() => openDialog("settings")}>
+            <SlidersHorizontalIcon strokeWidth={1.6} className="size-4.5" />
+            {t("gameSettingsMenu")}
+          </button>
+        )}
+        {SEPARATOR}
+        <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={() => openDialog("cookies")}>
+          <CookieIcon strokeWidth={1.6} className="size-4.5" />
+          {t("cookiesMenu")}
+        </button>
+        <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={() => openDialog("legal")}>
+          <ScaleIcon strokeWidth={1.6} className="size-4.5" />
+          {t("legalMenu")}
+        </button>
+        {SEPARATOR}
+        <FeedbackButton gameCode={gameCode} asRow />
       </div>
+      {options && <GameSettingsDialog open={dialog === "settings"} onOpenChange={(o) => setDialog(o ? "settings" : null)} options={options} />}
+      <InfoDialog open={dialog === "cookies"} onOpenChange={(o) => setDialog(o ? "cookies" : null)} title={t("cookiesMenu")} text={t("cookiesBody")} />
+      <InfoDialog open={dialog === "legal"} onOpenChange={(o) => setDialog(o ? "legal" : null)} title={t("legalMenu")} text={legalText} />
     </div>
   )
 }

@@ -163,11 +163,11 @@ export function GameHud({
         />
       )}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
-        <div className="pointer-events-auto flex items-start gap-1">
+        <div className="pointer-events-auto flex flex-col items-start gap-0.5">
           <button type="button" className="w-40 cursor-pointer transition-transform hover:scale-105 sm:w-48" title={t("leave")} onClick={onLeave}>
             {logo ? <Logo src={logo} alt={title} /> : <span className="font-display text-2xl font-black tracking-[0.12em] uppercase">{title}</span>}
           </button>
-          <Toolbar rules={rules} gameCode={game.code} />
+          <Toolbar rules={rules} gameCode={game.code} options={game.options} />
         </div>
         {ticker}
       </header>

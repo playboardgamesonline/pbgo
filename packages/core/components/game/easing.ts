@@ -5,6 +5,9 @@ const c4 = (2 * Math.PI) / 3
 
 export const EASINGS = {
   linear: (u: number) => u,
+  /** Départ et arrivée très doux, vitesse quasi constante au milieu : le réglage par défaut des vols de cartes. */
+  gentle: (u: number) => u + (u * u * (3 - 2 * u) - u) * 0.55,
+  smoothstep: (u: number) => u * u * (3 - 2 * u),
   easeInOutSine: (u: number) => -(Math.cos(Math.PI * u) - 1) / 2,
   easeInOutQuad: (u: number) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2),
   easeInOutCubic: (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2),
@@ -20,7 +23,7 @@ export const EASINGS = {
 
 export type EasingName = keyof typeof EASINGS
 export const EASING_NAMES = Object.keys(EASINGS) as EasingName[]
-export const DEFAULT_EASING: EasingName = "easeInOutCubic"
+export const DEFAULT_EASING: EasingName = "gentle"
 
 export function ease(name: string, u: number): number {
   return (EASINGS[name as EasingName] ?? EASINGS[DEFAULT_EASING])(u)

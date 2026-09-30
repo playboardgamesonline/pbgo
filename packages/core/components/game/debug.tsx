@@ -3,8 +3,7 @@
 import { Leva, LevaPanel, button, useControls } from "leva"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { cn } from "@pbgo/ui/utils"
-import { SOUND_VARIANTS, SOUND_VISUAL, notifySoundVisual } from "../sound/sound-visual"
-import { roundValue, DEBUG_STORES, DEBUG_TABS, copyButton, type DebugTab } from "./debug-tabs"
+import { roundValue, DEBUG_STORES, DEBUG_TABS, type DebugTab } from "./debug-tabs"
 
 const STORAGE_KEY = "game:debug"
 const subscribers = new Set<() => void>()
@@ -74,34 +73,8 @@ function Fps() {
   return <span ref={ref} className="w-32 shrink-0 self-center px-2 text-right whitespace-nowrap tabular-nums" />
 }
 
-function useSoundVisualControls() {
-  const field = <K extends keyof typeof SOUND_VISUAL>(key: K, extra: Record<string, unknown>) => ({
-    value: SOUND_VISUAL[key],
-    ...extra,
-    onChange: (v: (typeof SOUND_VISUAL)[K], _p: string, ctx: { initial: boolean }) => {
-      SOUND_VISUAL[key] = v
-      if (!ctx.initial) notifySoundVisual()
-    },
-  })
-  useControls(
-    "Sound button",
-    {
-      variant: field("variant", { options: [...SOUND_VARIANTS], label: "animation" }),
-      bars: field("bars", { min: 3, max: 12, step: 1, label: "bars / points" }),
-      sensitivity: field("sensitivity", { min: 0.2, max: 4, step: 0.05, label: "sensitivity" }),
-      smoothing: field("smoothing", { min: 0.03, max: 1, step: 0.01, label: "smoothing" }),
-      thickness: field("thickness", { min: 1, max: 6, step: 0.1, label: "thickness" }),
-      idle: field("idle", { min: 0, max: 1, step: 0.01, label: "muted height" }),
-      color: field("color", { label: "color" }),
-      ...copyButton("GAME", "Sound button"),
-    } as never,
-    { collapsed: true },
-  )
-}
-
 export function DebugPanel() {
   useControls({ "Copy all settings": button(copyAll) })
-  useSoundVisualControls()
   const [activeTab, setActiveTab] = useState<DebugTab>("GAME")
   const active = useSyncExternalStore(
     (f) => {
