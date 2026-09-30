@@ -90,11 +90,8 @@ const gameDefaults = (binding as { SETTINGS_DEFAULTS?: Partial<Omit<SiteSettings
 /** Suffixe ajouté au nom du jeu dans l'onglet du navigateur, les résultats de recherche et les cartes de partage. */
 export const TITLE_SUFFIX = "Online (PBGO)"
 
-/** Nom du jeu tel qu'enregistré dans l'admin : sans « Online » ni « (PBGO) » (tolère les anciennes valeurs). */
-export const gameName = (title: string) => title.replace(/\s*\bonline\b(\s*\(PBGO\))?\s*$/i, "").trim()
-
 /** « Courtisans Online (PBGO) » */
-export const siteTitle = (title: string) => `${gameName(title)} ${TITLE_SUFFIX}`
+export const siteTitle = (title: string) => `${title.trim()} ${TITLE_SUFFIX}`
 
 /** « Courtisans Online (PBGO) · Table #4XV-XA1 » */
 export const tableTitle = (title: string, code: string) => {
@@ -103,7 +100,7 @@ export const tableTitle = (title: string, code: string) => {
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
-  title: gameName(NAME),
+  title: NAME,
   description: DESCRIPTION,
   logo: null,
   favicon: null,
