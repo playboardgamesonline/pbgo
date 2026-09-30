@@ -2,10 +2,10 @@
 
 import type { VisibleCard, Target, VisibleEvent } from "@courtisans/engine"
 import { Fragment } from "react"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 import { useCourtisans } from "./context"
 import { RolePictogram } from "./pictograms"
-import { PlayerName } from "@pgo/core/components/game/hud"
+import { PlayerName } from "@pbgo/core/components/game/hud"
 
 export function CardBadge({ card, className }: { card: VisibleCard; className?: string }) {
   const { catalog } = useCourtisans()

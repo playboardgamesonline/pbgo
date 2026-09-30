@@ -6,7 +6,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 SLUG="${1:-}"; DIR="games/$SLUG"
 [ -n "$SLUG" ] && [ -d "$DIR/apps/web" ] || { echo "Usage : pnpm go-live <jeu>  (games/<jeu>/apps/web doit exister)"; exit 1; }
-GH_REPO="${GH_REPO:-aurelienlouvel/play-game-online}"
+GH_REPO="${GH_REPO:-aurelienlouvel/play-board-games-online}"
 VERCEL_TEAM="${VERCEL_TEAM:-team_5AgMIBlJbSmZXWxmJ1pDPHQi}"
 SANITY_API="https://api.sanity.io/v2021-06-07"
 DOMAIN="play-$SLUG-online.vercel.app"

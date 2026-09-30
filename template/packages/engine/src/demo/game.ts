@@ -1,4 +1,4 @@
-import { type GameDefinition, type OptionDefinitions, type Results, EngineError, createRng, normalizeOptions, shuffle } from "@pgo/engine-kit"
+import { type GameDefinition, type OptionDefinitions, type Results, EngineError, createRng, normalizeOptions, shuffle } from "@pbgo/engine-kit"
 import { type Action, type Card, CARD_COLORS, type State, type DemoOptions, MAX_VALUE, type PlayerView } from "./types"
 
 export const DEMO_OPTIONS: OptionDefinitions = {

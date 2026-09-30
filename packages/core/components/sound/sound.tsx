@@ -3,7 +3,7 @@
 import { Volume2Icon, VolumeXIcon } from "lucide-react"
 import { motion } from "motion/react"
 import { useEffect, useState, useSyncExternalStore } from "react"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 import { initSound, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, SOUNDS } from "../../lib/sound"
 
 const listeners = new Set<() => void>()

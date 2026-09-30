@@ -1,6 +1,6 @@
 "use client"
 
-import type { PlayerView } from "@pgo/binding"
+import type { PlayerView } from "@pbgo/binding"
 import { createContext, useContext, useMemo } from "react"
 import type { PublicGame } from "../../lib/game-types"
 import { useSkin } from "../skin-provider"

@@ -1,5 +1,5 @@
 import Image from "next/image"
-import { gameJsonLd } from "@pgo/site"
+import { gameJsonLd } from "@pbgo/site"
 import { SITE } from "@/lib/site"
 
 const STRUCTURED_DATA = gameJsonLd(SITE)

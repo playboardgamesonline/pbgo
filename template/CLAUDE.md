@@ -14,7 +14,7 @@ Base commune des jeux de société en ligne (`<slug>-online`). La démo « La Pl
 
 ## UI admin
 - L'admin `/admin` utilise le preset shadcn `b1VlJAwK` (style luma, neutral, Inter, Hugeicons), scopé par la classe `.admin` dans `globals.css`
-- Composants dans le paquet partagé `@pgo/ui/admin/*` (`packages/ui/src/admin`) ; ceux du jeu dans `@pgo/ui/game/*`. Pour en ajouter : `pnpm dlx shadcn@latest add <comp>` puis déplacer dans `packages/ui/src/admin` (ou `game`) et remplacer les imports `@/lib/utils` par `../utils`
+- Composants dans le paquet partagé `@pbgo/ui/admin/*` (`packages/ui/src/admin`) ; ceux du jeu dans `@pbgo/ui/game/*`. Pour en ajouter : `pnpm dlx shadcn@latest add <comp>` puis déplacer dans `packages/ui/src/admin` (ou `game`) et remplacer les imports `@/lib/utils` par `../utils`
 - L'accueil, le lobby et le jeu gardent le thème du jeu (couleurs et polices réglées dans /admin/visual)
 
 ## Assets
@@ -28,8 +28,8 @@ Fichiers dans `apps/web/public` nommés en anglais, `UPPER_SNAKE_CASE` (ex. `car
 - Vitest pour le moteur · pnpm workspaces · Vercel
 
 ## Structure
-- `packages/engine` (`@game/engine`) — moteur pur TypeScript, sans UI ; ré-exporte `@pgo/engine-kit` (paquet partagé à la racine du monorepo)
-  - `@pgo/engine-kit` : `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`), options de partie déclaratives (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`
+- `packages/engine` (`@game/engine`) — moteur pur TypeScript, sans UI ; ré-exporte `@pbgo/engine-kit` (paquet partagé à la racine du monorepo)
+  - `@pbgo/engine-kit` : `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`), options de partie déclaratives (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`
   - `demo/` : le jeu démo ; `index.ts` exporte `GAME` = le jeu actif
 - `apps/web/src`
   - `server/games.ts` : `createGame`, `newGame`, `updateGame` (verrou optimiste), `publicGame` ; routes `app/api/games/[code]/*`
@@ -40,7 +40,7 @@ Fichiers dans `apps/web/public` nommés en anglais, `UPPER_SNAKE_CASE` (ex. `car
   - `app/(admin)/admin/[[...section]]` : admin (Setup, Tasks, Monitoring — voir le CLAUDE.md racine) ; `app/preview/[kind]` : aperçus de l'admin 
   - Admin protégé par `ADMIN_LOGIN` / `ADMIN_PASSWORD` (`server/admin.ts`), écriture Sanity via `SANITY_API_WRITE_TOKEN` (`server/settings.ts`)
   - `lib/settings.ts` / `lib/settings-server.ts` : réglages du site (titre, description, logo, min/max joueurs, thème, polices, règles PDF) lus depuis Sanity avec les valeurs par défaut de `lib/site.ts`, fournis aux composants client par `useSiteSettings()`
-- `apps/studio` — Sanity Studio via `createStudioConfig` de `@pgo/studio-kit` (singletons communs `settings`, `interface`, `rules`, `texts`) ; seul `schemaTypes/game.ts` est propre au jeu
+- `apps/studio` — Sanity Studio via `createStudioConfig` de `@pbgo/studio-kit` (singletons communs `settings`, `interface`, `rules`, `texts`) ; seul `schemaTypes/game.ts` est propre au jeu
 - `supabase/migrations` — `0001_games.sql`, `0002_tasks.sql`
 
 ## Adapter à un nouveau jeu

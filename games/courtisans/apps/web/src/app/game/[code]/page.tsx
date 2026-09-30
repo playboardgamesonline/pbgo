@@ -1,1 +1,1 @@
-export { default, generateMetadata } from "@pgo/core/pages/game"
+export { default, generateMetadata } from "@pbgo/core/pages/game"

@@ -1,6 +1,6 @@
 "use client"
 
-import { Game } from "@pgo/binding-ui"
+import { Game } from "@pbgo/binding-ui"
 import type { PublicGame } from "../lib/game-types"
 import type { RulesContent } from "../lib/rules"
 

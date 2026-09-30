@@ -1,5 +1,5 @@
 {
-  "name": "play-game-online",
+  "name": "play-board-games-online",
   "private": true,
   "packageManager": "pnpm@10.34.5",
   "scripts": {

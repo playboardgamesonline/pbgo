@@ -2,7 +2,7 @@
 
 import type { PlayerView } from "@courtisans/engine"
 import { useEffect, useRef } from "react"
-import { playSound } from "@pgo/core/lib/sound"
+import { playSound } from "@pbgo/core/lib/sound"
 import type { EndingState } from "./ending"
 
 export function useGameSounds(view: PlayerView, ending: EndingState | null, selectionId: string | null, missionFocus: string | null) {

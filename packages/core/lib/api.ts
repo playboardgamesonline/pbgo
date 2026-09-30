@@ -1,5 +1,5 @@
-import * as binding from "@pgo/binding"
-import type { OptionValues } from "@pgo/binding"
+import * as binding from "@pbgo/binding"
+import type { OptionValues } from "@pbgo/binding"
 import type { PublicGame } from "./game-types"
 import { isPreviewWindow } from "./preview"
 
@@ -25,7 +25,7 @@ export const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
   TOO_MANY_REQUESTS: "Trop d'envois : réessayez dans un instant.",
   FORBIDDEN: "Action refusée.",
   TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
-  // messages propres au jeu (codes d'erreur du moteur) : export facultatif `ERROR_MESSAGES` de @pgo/binding
+  // messages propres au jeu (codes d'erreur du moteur) : export facultatif `ERROR_MESSAGES` de @pbgo/binding
   ...(binding as { ERROR_MESSAGES?: Record<string, string> }).ERROR_MESSAGES,
 }
 

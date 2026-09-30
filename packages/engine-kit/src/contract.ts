@@ -15,7 +15,7 @@ export type Results = { players: PlayerResult[]; winners: string[] }
 
 /**
  * `SetupData` : données chargées côté serveur avant le lancement (ex. missions depuis Sanity).
- * Le web les fournit via `loadSetupData` exporté par `@pgo/binding` ; absent → `undefined`.
+ * Le web les fournit via `loadSetupData` exporté par `@pbgo/binding` ; absent → `undefined`.
  */
 export type GameDefinition<State, Action extends PlayerAction, View, SetupData = undefined> = {
   id: string

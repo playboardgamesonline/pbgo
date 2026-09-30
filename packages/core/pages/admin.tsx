@@ -1,5 +1,5 @@
-import * as binding from "@pgo/binding"
-import { SITE_URL } from "@pgo/binding"
+import * as binding from "@pbgo/binding"
+import { SITE_URL } from "@pbgo/binding"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 import { AdminShell, PageHeader } from "../components/admin/admin-shell"
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return { title: item ? `${item.label} · Admin` : "Admin", robots: { index: false, follow: false } }
 }
 
-/** Studio Sanity du jeu : NEXT_PUBLIC_SANITY_STUDIO_URL, sinon `STUDIO_URL` de @pgo/binding, sinon la page du projet sur sanity.io. */
+/** Studio Sanity du jeu : NEXT_PUBLIC_SANITY_STUDIO_URL, sinon `STUDIO_URL` de @pbgo/binding, sinon la page du projet sur sanity.io. */
 const studioUrl =
   process.env.NEXT_PUBLIC_SANITY_STUDIO_URL ??
   (binding as { STUDIO_URL?: string }).STUDIO_URL ??

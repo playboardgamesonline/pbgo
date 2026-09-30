@@ -1,11 +1,11 @@
 "use client"
 
-import * as binding from "@pgo/binding"
+import * as binding from "@pbgo/binding"
 
 /**
  * Moteur de son commun (WebAudio) : bus effets / musique / ambiance, anti-rafale, variations de hauteur et de volume,
  * musiques bouclées sur un point de fin musical (pas sur la durée du fichier, qui contient la queue de réverbération).
- * Le jeu déclare ses sons via l'export facultatif `SOUNDS` de @pgo/binding ; fichiers dans /public/sounds/<file>.mp3.
+ * Le jeu déclare ses sons via l'export facultatif `SOUNDS` de @pbgo/binding ; fichiers dans /public/sounds/<file>.mp3.
  */
 import { CODE_SOUNDS, DEFAULT_VOLUMES, type SoundConfig, type Volumes } from "./sound-config"
 

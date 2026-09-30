@@ -4,7 +4,7 @@ import { useCursor } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useRef, useState } from "react"
-import { playSound } from "@pgo/core/lib/sound"
+import { playSound } from "@pbgo/core/lib/sound"
 import { AdditiveBlending, Color, NormalBlending, type ShaderMaterial } from "three"
 
 const vertex = /* glsl */ `

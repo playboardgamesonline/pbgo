@@ -18,7 +18,7 @@
     "react-dom": "19.2.8",
     "sanity": "^6.16.0",
     "styled-components": "^6.5.3",
-    "@pgo/studio-kit": "workspace:*"
+    "@pbgo/studio-kit": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19",

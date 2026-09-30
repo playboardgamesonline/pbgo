@@ -1,12 +1,12 @@
 "use client"
 
-import { type OptionDefinition, GAME, type OptionValue, type OptionValues } from "@pgo/binding"
+import { type OptionDefinition, GAME, type OptionValue, type OptionValues } from "@pbgo/binding"
 import { MinusIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { api } from "../../lib/api"
 import type { PublicGame } from "../../lib/game-types"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
 
 export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p: PublicGame) => void }) {

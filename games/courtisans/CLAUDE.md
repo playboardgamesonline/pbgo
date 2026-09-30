@@ -1,6 +1,6 @@
 # Courtisans Online
 
-Version en ligne du jeu de société **Courtisans** (Catch Up Games), branchée sur le socle commun `@pgo/core`.
+Version en ligne du jeu de société **Courtisans** (Catch Up Games), branchée sur le socle commun `@pbgo/core`.
 Architecture détaillée (intentions, réglages, pièges) : `ARCHITECTURE.md` — rédigée avant le passage sur core et en anglais, les noms y sont encore en français.
 
 ## Conventions de code
@@ -11,13 +11,13 @@ Architecture détaillée (intentions, réglages, pièges) : `ARCHITECTURE.md` �
 Fichiers dans `apps/web/public` nommés en anglais, `EN_MAJUSCULES_AVEC_DES_TIRETS_DU_BAS` (ex. `home/QUEEN.webp`, `cards/SPY_HARE.webp`, `sounds/HOVER.mp3`), dossiers en anglais minuscules.
 
 ## Structure
-- `apps/web` — Next.js sur `@pgo/core` (lobby, temps réel, routes API, /admin viennent de core)
+- `apps/web` — Next.js sur `@pbgo/core` (lobby, temps réel, routes API, /admin viennent de core)
   - `src/binding.ts` (moteur, constantes du site, `SOUNDS`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), `src/binding-ui.ts` (`Logo`, `Game`, `captureGamePhoto`, `RulesButton`), `src/binding-server.ts` (`loadSetupData` = missions, `loadGameData` = catalogue, `loadRules`)
   - `src/components/game` — plateau (`game.tsx` : ouverture, interactions, annonces, fin), messages, pictos, détail des points
   - `src/components/game3d` — scène react-three-fiber (`layout.ts` calcule les poses, `scene.tsx` anime chaque carte vers sa pose)
   - `src/lib/catalog.ts` (catalogue par défaut), `src/lib/skin.ts` (habillage banquet par défaut), `src/lib/sounds.ts`
-- `apps/studio` — Sanity Studio sur `@pgo/studio-kit` (`rules` et `texts` propres au jeu remplacent les versions communes)
-- `packages/engine` — moteur pur TypeScript (`@courtisans/engine`), `GAME` = contrat `@pgo/engine-kit`, testé avec Vitest
+- `apps/studio` — Sanity Studio sur `@pbgo/studio-kit` (`rules` et `texts` propres au jeu remplacent les versions communes)
+- `packages/engine` — moteur pur TypeScript (`@courtisans/engine`), `GAME` = contrat `@pbgo/engine-kit`, testé avec Vitest
 
 ## Sanity
 - Projet `2lo2f5sv`, dataset `production`, studio `courtisans.sanity.studio`

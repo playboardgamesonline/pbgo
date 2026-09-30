@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useState } from "react"
-import { Logo } from "@pgo/binding-ui"
+import { Logo } from "@pbgo/binding-ui"
 import type { RulesContent } from "../../lib/rules"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"

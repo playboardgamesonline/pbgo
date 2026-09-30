@@ -1,5 +1,5 @@
 import "server-only"
-import type { PlayerInfo } from "@pgo/binding"
+import type { PlayerInfo } from "@pbgo/binding"
 import { supabaseAdmin } from "./supabase"
 
 type Row = { code: string; status: string; players: PlayerInfo[]; created_at: string; updated_at: string }

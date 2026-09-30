@@ -2,10 +2,10 @@ import "server-only"
 import type { Family, Role } from "@courtisans/engine"
 import { DEFAULT_CATALOG, type ClientCatalog, cardKey, ROLE_VISUAL_FAMILIES, RULES_MISSION_VISUALS, type RoleRules } from "@/lib/catalog"
 import { DEFAULT_RULE_TEXTS, type RuleTexts } from "@/lib/default-rules"
-import { type Localized, translate } from "@pgo/core/lib/i18n"
-import { client } from "@pgo/core/sanity/client"
+import { type Localized, translate } from "@pbgo/core/lib/i18n"
+import { client } from "@pbgo/core/sanity/client"
 import { getCatalog } from "./catalog"
-import { urlFor } from "@pgo/core/sanity/image"
+import { urlFor } from "@pbgo/core/sanity/image"
 
 type Source = Parameters<typeof urlFor>[0]
 const url = (source: Source | null | undefined, width: number) => (source ? urlFor(source).width(width).url() : null)

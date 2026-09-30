@@ -1,4 +1,4 @@
-// Côté serveur uniquement (alias "@pgo/binding-server").
+// Côté serveur uniquement (alias "@pbgo/binding-server").
 import { GAME } from "@courtisans/engine"
 import { loadMissions } from "./server/missions"
 import { getClientCatalog } from "./sanity/catalog-client"

@@ -1,5 +1,5 @@
 import "server-only"
-import * as binding from "@pgo/binding"
+import * as binding from "@pbgo/binding"
 import { cache } from "react"
 import { client } from "../sanity/client"
 import { urlFor } from "../sanity/image"
@@ -81,7 +81,7 @@ export function toSkin(doc: SkinDoc): Partial<SkinDefaults> {
   }
 }
 
-/** Valeurs par défaut propres au jeu (images locales de /public, libellés…) : export facultatif `DEFAULT_SKIN` de @pgo/binding. */
+/** Valeurs par défaut propres au jeu (images locales de /public, libellés…) : export facultatif `DEFAULT_SKIN` de @pbgo/binding. */
 const gameDefaults = (binding as { DEFAULT_SKIN?: SkinDefaults }).DEFAULT_SKIN
 
 export const loadSkin = cache(async (): Promise<Skin> => {

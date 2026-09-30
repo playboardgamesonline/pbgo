@@ -1,4 +1,4 @@
-import { renderShareImage } from "@pgo/core/metadata/images"
+import { renderShareImage } from "@pbgo/core/metadata/images"
 import { NAME } from "@/lib/site"
 
 // Image de partage : envoyée dans l'admin (Identity), sinon composée avec l'habillage (Visual)

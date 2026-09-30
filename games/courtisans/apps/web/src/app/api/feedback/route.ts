@@ -1,1 +1,1 @@
-export { DELETE, GET, PATCH, POST } from "@pgo/core/routes/api/feedback/route"
+export { DELETE, GET, PATCH, POST } from "@pbgo/core/routes/api/feedback/route"

@@ -1,1 +1,1 @@
-export { POST } from "@pgo/core/routes/api/admin/logout/route"
+export { POST } from "@pbgo/core/routes/api/admin/logout/route"

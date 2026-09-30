@@ -4,8 +4,8 @@ import { RefreshIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useRouter } from "next/navigation"
 import { useTransition } from "react"
-import { Button } from "@pgo/ui/admin/button"
-import { Spinner } from "@pgo/ui/admin/spinner"
+import { Button } from "@pbgo/ui/admin/button"
+import { Spinner } from "@pbgo/ui/admin/spinner"
 
 export function RefreshButton() {
   const router = useRouter()

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@welcome-to/engine", "@pgo/site"],
+  transpilePackages: ["@welcome-to/engine", "@pbgo/site"],
   images: {
     remotePatterns: [{ protocol: "https", hostname: "cdn.sanity.io" }],
   },

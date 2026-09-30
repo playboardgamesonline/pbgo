@@ -1,1 +1,1 @@
-export { GET } from "@pgo/core/routes/api/media/route"
+export { GET } from "@pbgo/core/routes/api/media/route"

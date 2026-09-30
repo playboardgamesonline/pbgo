@@ -1,4 +1,4 @@
-import type { SiteConfig } from "@pgo/site"
+import type { SiteConfig } from "@pbgo/site"
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://play-dracula-vs-van-helsing-online.vercel.app"
 

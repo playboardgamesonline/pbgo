@@ -1,5 +1,5 @@
 import "server-only"
-import { client } from "@pgo/core/sanity/client"
+import { client } from "@pbgo/core/sanity/client"
 import { CATALOG_QUERY } from "./queries"
 
 export async function getCatalog() {

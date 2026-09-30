@@ -5,11 +5,11 @@ import { CatalogueIcon, Scroll01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
-import { Button } from "@pgo/ui/game/button"
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@pgo/ui/game/dialog"
-import { ScrollArea } from "@pgo/ui/game/scroll-area"
+import { Button } from "@pbgo/ui/game/button"
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@pbgo/ui/game/dialog"
+import { ScrollArea } from "@pbgo/ui/game/scroll-area"
 import { type RulesCatalog, DEFAULT_RULES, type RoleRules } from "@/lib/catalog"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 
 export const ICON_BUTTON_CLASS =
   "size-11 cursor-pointer rounded-full bg-transparent text-foreground transition-transform hover:scale-110 hover:bg-transparent hover:text-foreground active:scale-95 dark:hover:bg-transparent"
@@ -381,7 +381,7 @@ export function RulesButton({ className, icon, rules = DEFAULT_RULES }: { classN
   )
 }
 
-/** Bouton des règles branché sur @pgo/core (`RulesButton` de @pgo/binding-ui) : `rules` = règles de Courtisans chargées par `loadRules` (binding-server). */
+/** Bouton des règles branché sur @pbgo/core (`RulesButton` de @pbgo/binding-ui) : `rules` = règles de Courtisans chargées par `loadRules` (binding-server). */
 export function CourtisansRulesButton({ rules, className }: { rules: unknown; className?: string }) {
   const content = rules && typeof rules === "object" && "roles" in rules ? (rules as RulesCatalog) : DEFAULT_RULES
   return <RulesButton icon className={className} rules={content} />

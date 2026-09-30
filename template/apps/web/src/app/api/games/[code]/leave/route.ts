@@ -1,1 +1,1 @@
-export { POST } from "@pgo/core/routes/api/games/[code]/leave/route"
+export { POST } from "@pbgo/core/routes/api/games/[code]/leave/route"

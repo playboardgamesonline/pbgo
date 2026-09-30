@@ -1,11 +1,11 @@
-import { UI_TEXTS, type UiTextKey } from "@pgo/studio-kit/constants"
+import { UI_TEXTS, type UiTextKey } from "@pbgo/studio-kit/constants"
 
 /** Image de décor (URL prête à l'emploi) et son ratio largeur / hauteur, pour caler l'interface dessus. */
 export type DecorImage = { url: string; srcSet?: string; ratio: number | null }
 
 /**
  * Habillage d'un jeu : tout ce qui change l'apparence des écrans communs sans toucher au code.
- * Source : Sanity (`interface` + `texts`), puis valeurs par défaut du jeu (`DEFAULT_SKIN` exporté par @pgo/binding), puis celles de core.
+ * Source : Sanity (`interface` + `texts`), puis valeurs par défaut du jeu (`DEFAULT_SKIN` exporté par @pbgo/binding), puis celles de core.
  */
 export type Skin = {
   decor: {

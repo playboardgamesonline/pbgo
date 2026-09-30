@@ -1,9 +1,9 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pgo/ui/admin/card"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pgo/ui/admin/field"
-import { Input } from "@pgo/ui/admin/input"
-import { Textarea } from "@pgo/ui/admin/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
+import { Input } from "@pbgo/ui/admin/input"
+import { Textarea } from "@pbgo/ui/admin/textarea"
 import { siteTitle, TITLE_SUFFIX, type SiteSettings } from "../../../lib/settings"
 import { FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 

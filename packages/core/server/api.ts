@@ -1,5 +1,5 @@
 import "server-only"
-import { EngineError } from "@pgo/binding"
+import { EngineError } from "@pbgo/binding"
 
 export class ApiError extends Error {
   constructor(

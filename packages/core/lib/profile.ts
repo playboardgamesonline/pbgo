@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useMemo, useSyncExternalStore } from "react"
-import { SLUG } from "@pgo/binding"
+import { SLUG } from "@pbgo/binding"
 
 export type Profile = { nickname: string }
 

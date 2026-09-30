@@ -1,6 +1,6 @@
 import "server-only"
 import { type Condition, FAMILIES, type Family, type Mission, ROLES, type Role } from "@courtisans/engine"
-import { translate } from "@pgo/core/lib/i18n"
+import { translate } from "@pbgo/core/lib/i18n"
 import { DEFAULT_MISSIONS } from "@/lib/default-missions"
 import { getCatalog } from "@/sanity/catalog"
 

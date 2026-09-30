@@ -1,1 +1,1 @@
-export { POST, DELETE } from "@pgo/core/routes/api/admin/upload/[slot]/route"
+export { POST, DELETE } from "@pbgo/core/routes/api/admin/upload/[slot]/route"

@@ -1,4 +1,4 @@
-import type { PlayerResult, Results } from "@pgo/engine-kit"
+import type { PlayerResult, Results } from "@pbgo/engine-kit"
 import { MISSION_POINTS, weight } from "./deck"
 import { evaluateCondition } from "./missions"
 import { FAMILIES, type Courtier, type Family, type GameState, type Placement, type Status } from "./types"

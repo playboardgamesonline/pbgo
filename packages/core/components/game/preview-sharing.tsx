@@ -3,7 +3,7 @@
 import { CopyIcon, DownloadIcon, Share2Icon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@pgo/ui/game/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@pbgo/ui/game/dialog"
 import { useSiteSettings } from "../settings-provider"
 import { copyImage, shareFile, canShare, downloadFile } from "./sharing"
 

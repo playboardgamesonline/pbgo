@@ -1,4 +1,4 @@
-# Guide template — Jeu de société en ligne (base : play-game-online-template)
+# Guide template — Jeu de société en ligne (base : play-board-games-online-template)
 
 Ce document décrit le repo **Courtisans Online** pour le réutiliser comme **template** d'autres jeux de société multijoueurs en ligne. Il est destiné à **Oré** (porteur du projet, designer) et à **Claude** (l'IA qui code). Chaque section indique clairement **qui fait quoi**.
 

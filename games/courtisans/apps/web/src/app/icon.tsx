@@ -1,4 +1,4 @@
-import { renderIcon } from "@pgo/core/metadata/images"
+import { renderIcon } from "@pbgo/core/metadata/images"
 
 // Favicon : envoyé dans l'admin (Identity), sinon fait à partir du logo
 export const size = { width: 64, height: 64 }

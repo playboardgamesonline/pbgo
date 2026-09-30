@@ -1,1 +1,1 @@
-export { GET, POST } from "@pgo/core/routes/api/tasks/route"
+export { GET, POST } from "@pbgo/core/routes/api/tasks/route"

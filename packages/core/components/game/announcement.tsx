@@ -3,7 +3,7 @@
 import { useControls } from "leva"
 import { motion } from "motion/react"
 import { useEffect, useRef } from "react"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 import { copyButton, debugTab } from "./debug-tabs"
 import { playSound } from "../../lib/sound"
 

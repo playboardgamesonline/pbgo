@@ -5,7 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useRef } from "react"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../lib/admin-api"
 import { ADMIN_NAV, type CountKey } from "../../lib/admin-nav"
 

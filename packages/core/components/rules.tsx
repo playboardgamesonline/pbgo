@@ -5,11 +5,11 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { FileTextIcon, PlayIcon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@pgo/ui/game/dialog"
-import { ScrollArea } from "@pgo/ui/game/scroll-area"
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@pbgo/ui/game/dialog"
+import { ScrollArea } from "@pbgo/ui/game/scroll-area"
 import type { RulesContent } from "../lib/rules"
 import { useSiteSettings } from "./settings-provider"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 
 export function RichText({ text }: { text: string }) {
   return (

@@ -1,4 +1,4 @@
-import { createSitemap } from "@pgo/site"
+import { createSitemap } from "@pbgo/site"
 import { SITE_URL } from "@/lib/site"
 
 export default function sitemap() {

@@ -1,4 +1,4 @@
-import { createMetadata, createViewport } from "@pgo/site"
+import { createMetadata, createViewport } from "@pbgo/site"
 import { SITE } from "@/lib/site"
 import "./globals.css"
 

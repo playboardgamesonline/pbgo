@@ -1,10 +1,10 @@
 import { ArrowRight01Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
-import { Badge } from "@pgo/ui/admin/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pgo/ui/admin/card"
-import { Progress } from "@pgo/ui/admin/progress"
-import { cn } from "@pgo/ui/utils"
+import { Badge } from "@pbgo/ui/admin/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
+import { Progress } from "@pbgo/ui/admin/progress"
+import { cn } from "@pbgo/ui/utils"
 import type { LaunchItem } from "../../server/launch"
 
 export function LaunchPage({ items }: { items: LaunchItem[] }) {

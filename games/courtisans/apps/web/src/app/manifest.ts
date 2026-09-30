@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
-import { siteTitle } from "@pgo/core/lib/settings"
-import { loadSettings } from "@pgo/core/lib/settings-server"
+import { siteTitle } from "@pbgo/core/lib/settings"
+import { loadSettings } from "@pbgo/core/lib/settings-server"
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const { title, description, theme } = await loadSettings()

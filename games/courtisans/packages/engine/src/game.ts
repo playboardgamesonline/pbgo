@@ -1,4 +1,4 @@
-import type { GameDefinition } from "@pgo/engine-kit"
+import type { GameDefinition } from "@pbgo/engine-kit"
 import { activePlayerId, applyAction } from "./actions"
 import { applyDebug } from "./debug"
 import { createRng } from "./rng"
@@ -6,7 +6,7 @@ import { setupGame } from "./setup"
 import type { Action, GameState, Mission } from "./types"
 import { type PlayerView, playerView } from "./view"
 
-/** Définition du jeu pour @pgo/core (contrat @pgo/engine-kit). `data` = missions chargées côté serveur. */
+/** Définition du jeu pour @pbgo/core (contrat @pbgo/engine-kit). `data` = missions chargées côté serveur. */
 export const GAME: GameDefinition<GameState, Action, PlayerView, Mission[]> = {
   id: "courtisans",
   name: "Courtisans",

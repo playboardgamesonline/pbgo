@@ -1,4 +1,4 @@
-# play-game-online
+# play-board-games-online
 
 Monorepo des jeux de société en ligne (`play-<jeu>-online.vercel.app`).
 

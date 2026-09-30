@@ -1,7 +1,7 @@
 import "server-only"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
-import { SITE_URL } from "@pgo/binding"
+import { SITE_URL } from "@pbgo/binding"
 import { ImageResponse } from "next/og"
 import sharp from "sharp"
 import { loadSettings } from "../lib/settings-server"

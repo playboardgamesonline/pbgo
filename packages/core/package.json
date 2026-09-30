@@ -1,14 +1,14 @@
 {
-  "name": "@pgo/core",
+  "name": "@pbgo/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Socle commun des jeux : lobby, parties temps réel, fin de partie, admin (/admin), routes API. Le jeu fournit @pgo/binding (moteur + constantes du site) et @pgo/binding-ui (Logo, plateau, photo).",
+  "description": "Socle commun des jeux : lobby, parties temps réel, fin de partie, admin (/admin), routes API. Le jeu fournit @pbgo/binding (moteur + constantes du site) et @pbgo/binding-ui (Logo, plateau, photo).",
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.3.5",
     "@hugeicons/react": "^1.1.10",
-    "@pgo/studio-kit": "workspace:*",
-    "@pgo/ui": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
+    "@pbgo/ui": "workspace:*",
     "@sanity/client": "^7.27.0",
     "@sanity/image-url": "^2.1.1",
     "@supabase/supabase-js": "^2.117.2",

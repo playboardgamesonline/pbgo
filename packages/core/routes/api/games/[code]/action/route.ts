@@ -1,4 +1,4 @@
-import { type Action, GAME } from "@pgo/binding"
+import { type Action, GAME } from "@pbgo/binding"
 import type { NextRequest } from "next/server"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { getPlayerId } from "../../../../../server/player"

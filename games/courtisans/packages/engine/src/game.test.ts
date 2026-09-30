@@ -8,7 +8,7 @@ const players = [
   { id: "c", nickname: "Chloé" },
 ]
 
-describe("GAME (@pgo/engine-kit contract)", () => {
+describe("GAME (@pbgo/engine-kit contract)", () => {
   it("sets up a game from the lobby players and the loaded missions", () => {
     const state = GAME.setup({ players, options: {}, seed: 42, data: testMissions() })
     expect(state.players.map((j) => [j.id, j.nickname])).toEqual([["a", "Alice"], ["b", "Bob"], ["c", "Chloé"]])

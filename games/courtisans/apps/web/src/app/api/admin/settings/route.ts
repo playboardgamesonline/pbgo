@@ -1,1 +1,1 @@
-export { GET, PUT } from "@pgo/core/routes/api/admin/settings/route"
+export { GET, PUT } from "@pbgo/core/routes/api/admin/settings/route"

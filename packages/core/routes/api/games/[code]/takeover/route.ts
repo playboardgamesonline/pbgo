@@ -1,4 +1,4 @@
-import { GAME } from "@pgo/binding"
+import { GAME } from "@pbgo/binding"
 import type { NextRequest } from "next/server"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { ApiError, handle } from "../../../../../server/api"

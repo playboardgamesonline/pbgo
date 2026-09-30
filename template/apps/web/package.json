@@ -38,10 +38,10 @@
     "tailwind-merge": "^3.7.0",
     "three": "^0.186.1",
     "vaul": "^1.1.2",
-    "@pgo/ui": "workspace:*",
-    "@pgo/studio-kit": "workspace:*",
-    "@pgo/site": "workspace:*",
-    "@pgo/core": "workspace:*"
+    "@pbgo/ui": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
+    "@pbgo/site": "workspace:*",
+    "@pbgo/core": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

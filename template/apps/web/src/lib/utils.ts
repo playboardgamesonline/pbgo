@@ -1,1 +1,1 @@
-export { cn } from "@pgo/ui/utils"
+export { cn } from "@pbgo/ui/utils"

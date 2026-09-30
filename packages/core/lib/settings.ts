@@ -1,7 +1,7 @@
-import * as binding from "@pgo/binding"
-import { defaultOptions, GAME, normalizeOptions, type OptionValues } from "@pgo/binding"
-import { FONT_CHOICES } from "@pgo/studio-kit/constants"
-import { DESCRIPTION, NAME } from "@pgo/binding"
+import * as binding from "@pbgo/binding"
+import { defaultOptions, GAME, normalizeOptions, type OptionValues } from "@pbgo/binding"
+import { FONT_CHOICES } from "@pbgo/studio-kit/constants"
+import { DESCRIPTION, NAME } from "@pbgo/binding"
 
 export { FONT_CHOICES }
 
@@ -84,7 +84,7 @@ export const DEFAULT_THEME: ThemeColors = { ...CORE_THEME, ...(binding as { SETT
 
 export const PLAYER_BOUNDS = { min: GAME.minPlayers, max: GAME.maxPlayers }
 
-/** Valeurs par défaut propres au jeu (thème, polices, crédits…) quand Sanity n'a rien : export facultatif `SETTINGS_DEFAULTS` de @pgo/binding. */
+/** Valeurs par défaut propres au jeu (thème, polices, crédits…) quand Sanity n'a rien : export facultatif `SETTINGS_DEFAULTS` de @pbgo/binding. */
 const gameDefaults = (binding as { SETTINGS_DEFAULTS?: Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> } }).SETTINGS_DEFAULTS ?? {}
 
 /** Suffixe ajouté au nom du jeu dans l'onglet du navigateur, les résultats de recherche et les cartes de partage. */

@@ -1,7 +1,7 @@
 "use client"
 
-import { captureGamePhoto } from "@pgo/binding-ui"
-import { SLUG } from "@pgo/binding"
+import { captureGamePhoto } from "@pbgo/binding-ui"
+import { SLUG } from "@pbgo/binding"
 
 export type ShareRow = {
   rank: number

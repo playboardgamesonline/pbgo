@@ -7,19 +7,19 @@ import dynamic from "next/dynamic"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { button, useControls } from "leva"
 import { toast } from "sonner"
-import { Announcement, useAnnouncementSettings } from "@pgo/core/components/game/announcement"
-import { GameProvider } from "@pgo/core/components/game/context"
-import { DebugPanel } from "@pgo/core/components/game/debug"
-import { copyButton, debugTab } from "@pgo/core/components/game/debug-tabs"
-import { GameOver, winnerAnnouncement } from "@pgo/core/components/game/game-over"
-import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pgo/core/components/game/hud"
-import { StalledTurn } from "@pgo/core/components/game/stalled-turn"
-import { PrimaryButton } from "@pgo/core/components/home/screen"
-import { useSkin, useText } from "@pgo/core/components/skin-provider"
-import { api } from "@pgo/core/lib/api"
-import type { PublicGame } from "@pgo/core/lib/game-types"
-import type { RulesContent } from "@pgo/core/lib/rules"
-import { Button } from "@pgo/ui/game/button"
+import { Announcement, useAnnouncementSettings } from "@pbgo/core/components/game/announcement"
+import { GameProvider } from "@pbgo/core/components/game/context"
+import { DebugPanel } from "@pbgo/core/components/game/debug"
+import { copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
+import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
+import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
+import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
+import { PrimaryButton } from "@pbgo/core/components/home/screen"
+import { useSkin, useText } from "@pbgo/core/components/skin-provider"
+import { api } from "@pbgo/core/lib/api"
+import type { PublicGame } from "@pbgo/core/lib/game-types"
+import type { RulesContent } from "@pbgo/core/lib/rules"
+import { Button } from "@pbgo/ui/game/button"
 import { DEFAULT_CATALOG, type ClientCatalog } from "@/lib/catalog"
 import { CourtisansProvider } from "./context"
 import { renderFamilyCards } from "./score-details"
@@ -43,7 +43,7 @@ const mustRead = (view: PlayerView) => view.phase !== "over" && !!view.me && !vi
 
 type GameProps = { game: PublicGame; rules: RulesContent; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
 
-/** Plateau de Courtisans branché sur @pgo/core (`Game` de @pgo/binding-ui). `data` = catalogue Sanity chargé côté serveur. */
+/** Plateau de Courtisans branché sur @pbgo/core (`Game` de @pbgo/binding-ui). `data` = catalogue Sanity chargé côté serveur. */
 export function Game({ game, rules, data, onUpdate, onLeave }: GameProps) {
   if (!game.view) return null
   return <Board game={game} rules={rules} catalog={(data as ClientCatalog | undefined) ?? DEFAULT_CATALOG} onUpdate={onUpdate} onLeave={onLeave} />

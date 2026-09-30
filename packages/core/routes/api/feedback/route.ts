@@ -18,7 +18,7 @@ const BUCKET = "feedback"
 function ipHash(request: Request) {
   const ip = (request.headers.get("x-vercel-forwarded-for") ?? request.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim()
   if (!ip) return null
-  const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "pgo"
+  const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "pbgo"
   return createHmac("sha256", key).update(ip).digest("hex").slice(0, 32)
 }
 

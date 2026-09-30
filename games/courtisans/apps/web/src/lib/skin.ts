@@ -1,5 +1,5 @@
-import type { SkinDefaults } from "@pgo/core/lib/skin"
-import type { SiteSettings, ThemeColors } from "@pgo/core/lib/settings"
+import type { SkinDefaults } from "@pbgo/core/lib/skin"
+import type { SiteSettings, ThemeColors } from "@pbgo/core/lib/settings"
 
 /** Habillage par défaut de Courtisans (images de /public), remplacé champ par champ par Sanity (`interface`, `texts`). */
 export const DEFAULT_SKIN: SkinDefaults = {

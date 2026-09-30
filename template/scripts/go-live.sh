@@ -2,7 +2,7 @@
 # Met ce repo en ligne de A à Z, sans toucher aux fichiers suivis par git :
 #   repo GitHub privé + push, projet Sanity + CORS + studio, projet Vercel relié au repo (root apps/web) + domaine,
 #   puis enchaîne sur scripts/setup-env.sh (clés, compte admin, variables Vercel, redéploiement).
-# Noms : play-game-online-template → play-game-online-template.vercel.app ; skull-king → play-skull-king-online.vercel.app
+# Noms : play-board-games-online-template → play-board-games-online-template.vercel.app ; skull-king → play-skull-king-online.vercel.app
 # Usage, depuis la racine du repo :  pnpm go-live
 # Relançable : chaque étape déjà faite est sautée.
 

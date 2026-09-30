@@ -20,7 +20,7 @@ import {
   Vector3,
 } from "three"
 import { useCourtisans } from "../game/context"
-import { playSound } from "@pgo/core/lib/sound"
+import { playSound } from "@pbgo/core/lib/sound"
 import { useInteraction } from "../game/interaction"
 import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./aura"
 import { CardSettingsPanel } from "./card-settings"
@@ -30,7 +30,7 @@ import type { EndingState } from "./ending"
 import { Counters, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { useSettings, useSettingsVersion } from "./settings"
 import { patternTexture } from "./patterns"
-import { roundValue, copyButton, debugTab } from "@pgo/core/components/game/debug-tabs"
+import { roundValue, copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
 import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
 import {

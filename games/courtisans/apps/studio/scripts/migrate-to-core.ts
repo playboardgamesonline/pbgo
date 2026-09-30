@@ -1,5 +1,5 @@
 /**
- * Passage de Courtisans sur @pgo/core : valeurs en anglais et habillage commun.
+ * Passage de Courtisans sur @pbgo/core : valeurs en anglais et habillage commun.
  *   pnpm sanity:migrate-core              → simulation (affiche les changements)
  *   pnpm sanity:migrate-core --confirm    → applique (une transaction)
  *

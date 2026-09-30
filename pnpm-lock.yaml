@@ -12,7 +12,7 @@ importers:
 
   games/courtisans/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -58,19 +58,19 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.10
         version: 1.1.10(react@19.2.8)
-      '@pgo/core':
+      '@pbgo/core':
         specifier: workspace:*
         version: link:../../../../packages/core
-      '@pgo/engine-kit':
+      '@pbgo/engine-kit':
         specifier: workspace:*
         version: link:../../../../packages/engine-kit
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
-      '@pgo/ui':
+      '@pbgo/ui':
         specifier: workspace:*
         version: link:../../../../packages/ui
       '@react-three/drei':
@@ -158,7 +158,7 @@ importers:
 
   games/courtisans/packages/engine:
     dependencies:
-      '@pgo/engine-kit':
+      '@pbgo/engine-kit':
         specifier: workspace:*
         version: link:../../../../packages/engine-kit
     devDependencies:
@@ -176,7 +176,7 @@ importers:
 
   games/cry-baby/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -210,7 +210,7 @@ importers:
       '@cry-baby/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -279,7 +279,7 @@ importers:
 
   games/dracula-vs-van-helsing/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -313,7 +313,7 @@ importers:
       '@dracula-vs-van-helsing/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -382,7 +382,7 @@ importers:
 
   games/flip-7/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -416,7 +416,7 @@ importers:
       '@flip-7/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -485,7 +485,7 @@ importers:
 
   games/hanabi/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -519,7 +519,7 @@ importers:
       '@hanabi/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -588,7 +588,7 @@ importers:
 
   games/love-letter/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -622,7 +622,7 @@ importers:
       '@love-letter/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -691,7 +691,7 @@ importers:
 
   games/odin/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -725,7 +725,7 @@ importers:
       '@odin/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -794,7 +794,7 @@ importers:
 
   games/omens/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -828,7 +828,7 @@ importers:
       '@omens/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -897,7 +897,7 @@ importers:
 
   games/skull-king/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -928,7 +928,7 @@ importers:
 
   games/skull-king/apps/web:
     dependencies:
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -1000,7 +1000,7 @@ importers:
 
   games/sky-team/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -1031,7 +1031,7 @@ importers:
 
   games/sky-team/apps/web:
     dependencies:
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -1103,7 +1103,7 @@ importers:
 
   games/skyjo/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -1134,7 +1134,7 @@ importers:
 
   games/skyjo/apps/web:
     dependencies:
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -1206,7 +1206,7 @@ importers:
 
   games/timebomb/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -1237,7 +1237,7 @@ importers:
 
   games/timebomb/apps/web:
     dependencies:
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -1309,7 +1309,7 @@ importers:
 
   games/trio/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -1340,7 +1340,7 @@ importers:
 
   games/trio/apps/web:
     dependencies:
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -1412,7 +1412,7 @@ importers:
 
   games/welcome-to/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../../packages/studio-kit
       '@sanity/icons':
@@ -1443,7 +1443,7 @@ importers:
 
   games/welcome-to/apps/web:
     dependencies:
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../../packages/site
       '@sanity/client':
@@ -1519,10 +1519,10 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.10
         version: 1.1.10(react@19.2.8)
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../studio-kit
-      '@pgo/ui':
+      '@pbgo/ui':
         specifier: workspace:*
         version: link:../ui
       '@sanity/client':
@@ -1694,7 +1694,7 @@ importers:
 
   template/apps/studio:
     dependencies:
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../packages/studio-kit
       '@sanity/icons':
@@ -1737,16 +1737,16 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.10
         version: 1.1.10(react@19.2.8)
-      '@pgo/core':
+      '@pbgo/core':
         specifier: workspace:*
         version: link:../../../packages/core
-      '@pgo/site':
+      '@pbgo/site':
         specifier: workspace:*
         version: link:../../../packages/site
-      '@pgo/studio-kit':
+      '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../../packages/studio-kit
-      '@pgo/ui':
+      '@pbgo/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
       '@react-three/drei':
@@ -1855,7 +1855,7 @@ importers:
 
   template/packages/engine:
     dependencies:
-      '@pgo/engine-kit':
+      '@pbgo/engine-kit':
         specifier: workspace:*
         version: link:../../../packages/engine-kit
     devDependencies:

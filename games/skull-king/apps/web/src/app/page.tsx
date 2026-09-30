@@ -1,5 +1,5 @@
 import { Logo } from "@/components/logo"
-import { gameJsonLd } from "@pgo/site"
+import { gameJsonLd } from "@pbgo/site"
 import { ACCROCHE, LOGO, SITE, TITRE } from "@/lib/site"
 
 const DONNEES_STRUCTUREES = gameJsonLd(SITE)

@@ -6,14 +6,14 @@ import { motion } from "motion/react"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Logo } from "@pgo/binding-ui"
-import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pgo/ui/game/input-otp"
+import { Logo } from "@pbgo/binding-ui"
+import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pbgo/ui/game/input-otp"
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
 import type { RulesContent } from "../../lib/rules"
-import { AUTHOR, CONTACT } from "@pgo/binding"
-import { cn } from "@pgo/ui/utils"
+import { AUTHOR, CONTACT } from "@pbgo/binding"
+import { cn } from "@pbgo/ui/utils"
 
 /**
  * Écran standard hors partie (accueil, invitation, lobby), repris de Courtisans :

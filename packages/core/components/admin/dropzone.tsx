@@ -3,9 +3,9 @@
 import { Delete02Icon, Upload04Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useRef, useState } from "react"
-import { Button } from "@pgo/ui/admin/button"
-import { Spinner } from "@pgo/ui/admin/spinner"
-import { cn } from "@pgo/ui/utils"
+import { Button } from "@pbgo/ui/admin/button"
+import { Spinner } from "@pbgo/ui/admin/spinner"
+import { cn } from "@pbgo/ui/utils"
 
 type Props = {
   accept: string

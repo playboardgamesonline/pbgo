@@ -2,7 +2,7 @@
 
 import { useControls } from "leva"
 import { useSyncExternalStore } from "react"
-import { copyButton, debugTab, type DebugTab } from "@pgo/core/components/game/debug-tabs"
+import { copyButton, debugTab, type DebugTab } from "@pbgo/core/components/game/debug-tabs"
 
 export type Field = string | [label: string, min: number, max: number, step: number] | [label: string, options: Record<string, unknown>]
 

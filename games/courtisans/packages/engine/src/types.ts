@@ -46,8 +46,8 @@ export type Mission = {
   condition: Condition
 }
 
-export type { PlayerInfo } from "@pgo/engine-kit"
-import type { PlayerInfo } from "@pgo/engine-kit"
+export type { PlayerInfo } from "@pbgo/engine-kit"
+import type { PlayerInfo } from "@pbgo/engine-kit"
 
 export type Player = PlayerInfo & {
   hand: Courtier[]

@@ -2,7 +2,7 @@
 
 import type { Family, Role } from "@courtisans/engine"
 import { CrownIcon, ShieldIcon, SwordIcon, VenetianMaskIcon } from "lucide-react"
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 import { useCourtisans } from "./context"
 
 const ICONS: Record<Role, typeof CrownIcon> = { noble: CrownIcon, spy: VenetianMaskIcon, assassin: SwordIcon, guard: ShieldIcon }

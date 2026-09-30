@@ -1,5 +1,5 @@
 import "server-only"
-import { SITE_URL } from "@pgo/binding"
+import { SITE_URL } from "@pbgo/binding"
 import { DEFAULT_THEME } from "../lib/settings"
 import type { AdminPath } from "../lib/admin-nav"
 import { sanityConfigure } from "../sanity/client"

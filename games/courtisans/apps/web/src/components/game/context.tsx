@@ -2,8 +2,8 @@
 
 import type { PlayerView } from "@courtisans/engine"
 import { createContext, useContext, useMemo } from "react"
-import { useGame } from "@pgo/core/components/game/context"
-import type { PublicGame } from "@pgo/core/lib/game-types"
+import { useGame } from "@pbgo/core/components/game/context"
+import type { PublicGame } from "@pbgo/core/lib/game-types"
 import type { ClientCatalog } from "@/lib/catalog"
 
 type CourtisansContextValue = {
@@ -16,7 +16,7 @@ type CourtisansContextValue = {
 
 const CourtisansContext = createContext<CourtisansContextValue | null>(null)
 
-/** Contexte du plateau : partie, vue et joueurs viennent de @pgo/core (GameProvider), plus le catalogue de Courtisans. */
+/** Contexte du plateau : partie, vue et joueurs viennent de @pbgo/core (GameProvider), plus le catalogue de Courtisans. */
 export function CourtisansProvider({ catalog, view, children }: { catalog: ClientCatalog; game?: PublicGame; view: PlayerView; children: React.ReactNode }) {
   const core = useGame()
   const value = useMemo<CourtisansContextValue>(

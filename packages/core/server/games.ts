@@ -1,6 +1,6 @@
 import "server-only"
-import * as serverBinding from "@pgo/binding-server"
-import { type State, GAME, type PlayerInfo, normalizeOptions, type OptionValues } from "@pgo/binding"
+import * as serverBinding from "@pbgo/binding-server"
+import { type State, GAME, type PlayerInfo, normalizeOptions, type OptionValues } from "@pbgo/binding"
 import { type PublicGame, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
@@ -87,7 +87,7 @@ async function notify(code: string, version: number) {
 
 /**
  * Données de mise en place chargées côté serveur avant `GAME.setup` (ex. missions Sanity de Courtisans) :
- * export facultatif `loadSetupData({ options })` de @pgo/binding-server.
+ * export facultatif `loadSetupData({ options })` de @pbgo/binding-server.
  */
 const setupLoader = (serverBinding as { loadSetupData?: (args: { options: OptionValues }) => Promise<unknown> }).loadSetupData
 

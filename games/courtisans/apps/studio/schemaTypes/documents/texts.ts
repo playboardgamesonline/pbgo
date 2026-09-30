@@ -1,4 +1,4 @@
-import { createTexts } from "@pgo/studio-kit"
+import { createTexts } from "@pbgo/studio-kit"
 import { defineField } from "sanity"
 
 /** Textes communs (libellés d'interface, phrases de victoire…) + textes propres au banquet. */

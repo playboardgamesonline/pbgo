@@ -16,7 +16,7 @@
     "migrate:core": "sanity exec scripts/migrate-to-core.ts --with-user-token --"
   },
   "dependencies": {
-    "@pgo/studio-kit": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
     "@sanity/icons": "^5.2.2",
     "@sanity/vision": "^6.17.0",
     "react": "19.2.8",

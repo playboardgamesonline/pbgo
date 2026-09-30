@@ -1,11 +1,11 @@
 import type { Metadata } from "next"
 import { GameClient } from "../components/game/game-client"
-import * as serverBinding from "@pgo/binding-server"
+import * as serverBinding from "@pbgo/binding-server"
 import { loadRules } from "../lib/rules-server"
 import { tableTitle } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
 
-/** Données propres au jeu passées au plateau (`Game`, prop `data`) : export facultatif `loadGameData()` de @pgo/binding-server. */
+/** Données propres au jeu passées au plateau (`Game`, prop `data`) : export facultatif `loadGameData()` de @pbgo/binding-server. */
 const gameDataLoader = (serverBinding as { loadGameData?: () => Promise<unknown> }).loadGameData
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {

@@ -1,6 +1,6 @@
 # Courtisans Online : architecture, intentions et pièges
 
-Ce document décrit ce que le code ne dit pas : pourquoi il est organisé ainsi, ce qui a été réglé à la main, où sont les pièges, et comment en tirer des briques `@pgo/*` réutilisables par d'autres jeux de cartes (Skull King, Flip 7, Love Letter, Hanabi, Skyjo…).
+Ce document décrit ce que le code ne dit pas : pourquoi il est organisé ainsi, ce qui a été réglé à la main, où sont les pièges, et comment en tirer des briques `@pbgo/*` réutilisables par d'autres jeux de cartes (Skull King, Flip 7, Love Letter, Hanabi, Skyjo…).
 
 Conventions de ce document :
 
@@ -8,9 +8,9 @@ Conventions de ce document :
 - `engine/…` désigne `games/courtisans/packages/engine/src/…`
 - `studio/…` désigne `games/courtisans/apps/studio/…`
 - Les noms de fonctions sont entre backticks et suivis de `()`. Les réglages Leva sont cités avec leur dossier (« Deck », « Draw Pile »…).
-- Le code de Courtisans est **en français** (identifiants, fichiers, routes `/api/parties`). Le template et `@pgo/core` sont **en anglais** (`/api/games`, `players`, `view`). Toute la section 7 parle de cet écart.
+- Le code de Courtisans est **en français** (identifiants, fichiers, routes `/api/parties`). Le template et `@pbgo/core` sont **en anglais** (`/api/games`, `players`, `view`). Toute la section 7 parle de cet écart.
 
-État au moment de la rédaction (commit `392e07b`) : `apps/web` est encore autonome et importe `@courtisans/engine` ; seul le moteur est branché sur `@pgo/engine-kit` via `engine/game.ts` (`GAME`). `apps/web` n'utilise pas encore `@pgo/core`.
+État au moment de la rédaction (commit `392e07b`) : `apps/web` est encore autonome et importe `@courtisans/engine` ; seul le moteur est branché sur `@pbgo/engine-kit` via `engine/game.ts` (`GAME`). `apps/web` n'utilise pas encore `@pbgo/core`.
 
 ---
 
@@ -167,7 +167,7 @@ sequenceDiagram
 
 ## 2. Moteur
 
-Paquet `packages/engine` (`@courtisans/engine`), testé avec Vitest (`*.test.ts`, dont `simulation.test.ts` qui joue des parties entières). Aucune dépendance runtime, hormis `@pgo/engine-kit` pour l'adaptateur `game.ts`.
+Paquet `packages/engine` (`@courtisans/engine`), testé avec Vitest (`*.test.ts`, dont `simulation.test.ts` qui joue des parties entières). Aucune dépendance runtime, hormis `@pbgo/engine-kit` pour l'adaptateur `game.ts`.
 
 ### 2.1 Données (`engine/types.ts`, `engine/deck.ts`)
 
@@ -738,13 +738,13 @@ Légende :
 - **CONFIGURABLE** : la mécanique est générique, mais des paramètres ou un point d'extension sont nécessaires.
 - **SPÉCIFIQUE** : propre à Courtisans ; reste dans `games/courtisans`.
 
-Destination proposée : `@pgo/engine-kit` (contrats purs), `@pgo/core` (serveur, lobby, UI hors 3D, déjà amorcé), un nouveau `@pgo/scene` (3D), `@pgo/ui`, `@pgo/studio-kit`.
+Destination proposée : `@pbgo/engine-kit` (contrats purs), `@pbgo/core` (serveur, lobby, UI hors 3D, déjà amorcé), un nouveau `@pbgo/scene` (3D), `@pbgo/ui`, `@pbgo/studio-kit`.
 
 ### 7.1 Moteur et serveur
 
 | Élément | Classe | Paramètres / points d'extension | Source Courtisans → cible |
 |---|---|---|---|
-| Contrat moteur pur (`setup` / `apply` / `view` / `isOver`, `structuredClone`, `EngineError`) | GÉNÉRIQUE | déjà `GameDefinition` | `engine/game.ts` → `@pgo/engine-kit` |
+| Contrat moteur pur (`setup` / `apply` / `view` / `isOver`, `structuredClone`, `EngineError`) | GÉNÉRIQUE | déjà `GameDefinition` | `engine/game.ts` → `@pbgo/engine-kit` |
 | RNG injectable, `seed` | GÉNÉRIQUE | — | `engine/rng.ts` → déjà dans `engine-kit` |
 | Options de partie | GÉNÉRIQUE | `OptionDefinitions` (`number` / `choice` / `boolean`) ; ajouter `visibleIf`, presets de variantes | Courtisans : `options: {}` |
 | `SetupData` chargé côté serveur (missions Sanity) | CONFIGURABLE | `loadSetupData(players, options)` exporté par le binding | `web/server/missions.ts` `chargerMissions()` |
@@ -754,26 +754,26 @@ Destination proposée : `@pgo/engine-kit` (contrats purs), `@pgo/core` (serveur,
 | Tour de table « suivant qui a encore des cartes » | CONFIGURABLE | `nextPlayer(state, {skipIf, direction})` : helper à ajouter dans `engine-kit` | `finirTour()` |
 | « Une action par zone et par tour » (`zonesJouees`) | CONFIGURABLE | quotas par tour : `turnSlots: {zone, max}[]` | `zonesJouees`, `zonesDisponibles()` |
 | Règles, rôles, assassinat, espion, statuts, missions | SPÉCIFIQUE | — | `engine/actions.ts`, `scoring.ts`, `missions.ts` |
-| Code de partie, cookie joueur, verrou optimiste, `notifier`, `handle` | GÉNÉRIQUE | nom du cookie = `SLUG` | `web/server/*` → déjà `@pgo/core/server/games.ts`, `player.ts`, `code.ts`, `api.ts` |
-| Routes créer / rejoindre / quitter / lancer / action / rejouer / debug | GÉNÉRIQUE | `clientActions`, `debug` | `web/app/api/parties/**` → `@pgo/core/routes/api/games/**` |
-| `usePartie` (garde de version, broadcast, poll, focus) | GÉNÉRIQUE | intervalle de poll | `web/lib/use-partie.ts` → `@pgo/core/lib/use-live-game.ts` |
-| Proxy `/api/media` | GÉNÉRIQUE | hôtes autorisés | `web/app/api/media/route.ts` → `@pgo/core` |
+| Code de partie, cookie joueur, verrou optimiste, `notifier`, `handle` | GÉNÉRIQUE | nom du cookie = `SLUG` | `web/server/*` → déjà `@pbgo/core/server/games.ts`, `player.ts`, `code.ts`, `api.ts` |
+| Routes créer / rejoindre / quitter / lancer / action / rejouer / debug | GÉNÉRIQUE | `clientActions`, `debug` | `web/app/api/parties/**` → `@pbgo/core/routes/api/games/**` |
+| `usePartie` (garde de version, broadcast, poll, focus) | GÉNÉRIQUE | intervalle de poll | `web/lib/use-partie.ts` → `@pbgo/core/lib/use-live-game.ts` |
+| Proxy `/api/media` | GÉNÉRIQUE | hôtes autorisés | `web/app/api/media/route.ts` → `@pbgo/core` |
 | Catalogue Sanity + repli par défaut | CONFIGURABLE | partie commune (logo, décor, dos, tapis, règles, textes) + extension par jeu (`extendCatalogue(query, merge)`) | `web/sanity/catalogue-client.ts` |
 
 ### 7.2 UI hors 3D
 
 | Élément | Classe | Paramètres / points d'extension | Source |
 |---|---|---|---|
-| Écran d'accueil (pseudo, code OTP, création / rejoindre) | GÉNÉRIQUE | textes d'intro, décor (images haut / bas / personnage) | `accueil.tsx`, `ecran-banquet.tsx` → `@pgo/core/components/home` |
+| Écran d'accueil (pseudo, code OTP, création / rejoindre) | GÉNÉRIQUE | textes d'intro, décor (images haut / bas / personnage) | `accueil.tsx`, `ecran-banquet.tsx` → `@pbgo/core/components/home` |
 | Auto-join avec profil déjà enregistré | GÉNÉRIQUE | — | `partie-client.tsx` |
 | Lobby (liste, hôte, lancer, min / max, options) | GÉNÉRIQUE | `GAME.options` (déjà `game-options.tsx` dans core) | `lobby.tsx` |
 | Couleurs par siège | CONFIGURABLE | palette | `COULEURS_JOUEURS` |
 | Bandeau « tour de X » + historique groupé | CONFIGURABLE | `renderEvent(event)`, événement de fin de tour | `bandeau.tsx`, `message.tsx` |
 | Annonces plein écran (voile, lignes, confettis) | GÉNÉRIQUE | types d'annonce = clés libres + préréglages leva | `annonce.tsx` |
 | File d'annonces pilotée par un « repère » d'état | CONFIGURABLE | `announcementsFor(prevView, view)` | `jeu3d.tsx` |
-| Fin de partie (tableau, rejouer, vignette) | CONFIGURABLE | rendu de `detail[]` par jeu (`CartesFamilles` est spécifique) | `fin-de-partie.tsx` → `@pgo/core/components/game/game-over.tsx` |
+| Fin de partie (tableau, rejouer, vignette) | CONFIGURABLE | rendu de `detail[]` par jeu (`CartesFamilles` est spécifique) | `fin-de-partie.tsx` → `@pbgo/core/components/game/game-over.tsx` |
 | Image de partage + aperçu (Share / Copier / Télécharger) | GÉNÉRIQUE | titre du site, couleurs, photo fournie par la scène | `partage.ts`, `apercu-partage.tsx` → déjà `sharing.ts` / `preview-sharing.tsx` dans core |
-| Règles à onglets + vidéo + mini-balisage | CONFIGURABLE | onglets = champs Sanity (`@pgo/studio-kit` `rules`), balises `{token}` par jeu | `regles.tsx` |
+| Règles à onglets + vidéo + mini-balisage | CONFIGURABLE | onglets = champs Sanity (`@pbgo/studio-kit` `rules`), balises `{token}` par jeu | `regles.tsx` |
 | Moteur de son (bus, anti-rafale, boucles musicales) | GÉNÉRIQUE | liste des sons et des pistes, `REGLAGES` par son | `web/lib/son.ts`, `web/components/son.tsx` |
 | Sons liés aux événements | CONFIGURABLE | `soundFor(event) → {name, delay}[]` | `jeu3d/sons.ts` |
 | Écran « jouez sur ordinateur » | GÉNÉRIQUE | seuil de largeur, texte | `ecran-ordinateur.tsx` |
@@ -811,9 +811,9 @@ Destination proposée : `@pgo/engine-kit` (contrats purs), `@pgo/core` (serveur,
 
 ### 7.4 API proposée pour brancher un jeu
 
-Objectif : qu'un jeu **décrive** ses emplacements de cartes et ses informations globales, et que `@pgo/core` et `@pgo/scene` s'occupent du lobby, du HUD, des animations et des interactions. Le moteur reste propriétaire des règles.
+Objectif : qu'un jeu **décrive** ses emplacements de cartes et ses informations globales, et que `@pbgo/core` et `@pbgo/scene` s'occupent du lobby, du HUD, des animations et des interactions. Le moteur reste propriétaire des règles.
 
-#### a) Paramètres de partie (lobby), dans `@pgo/engine-kit`
+#### a) Paramètres de partie (lobby), dans `@pbgo/engine-kit`
 
 ```ts
 // étend l'existant (options.ts)
@@ -831,12 +831,12 @@ export type GameDefinition<State, Action, View, SetupData = undefined> = {
   playerBounds?: (options: OptionValues) => { min: number; max: number }
   /** Données serveur avant setup (missions Sanity pour Courtisans). */
   loadSetupData?: (args: { players: PlayerInfo[]; options: OptionValues }) => Promise<SetupData>
-  /** Description plateau pour @pgo/scene et le HUD. */
+  /** Description plateau pour @pbgo/scene et le HUD. */
   board?: BoardDefinition<View>
 }
 ```
 
-Le lobby (`@pgo/core/components/lobby/game-options.tsx`) affiche déjà `options`. Il faudrait y ajouter les presets, `visibleIf` et un résumé en lecture seule pour les non-hôtes.
+Le lobby (`@pbgo/core/components/lobby/game-options.tsx`) affiche déjà `options`. Il faudrait y ajouter les presets, `visibleIf` et un résumé en lecture seule pour les non-hôtes.
 
 #### b) Emplacements de cartes
 
@@ -971,7 +971,7 @@ L'assassinat de Courtisans devient `followUp: {kind: "pickCard", key: "victim", 
 
 Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `BoardDefinition.actions?: (view) => { id, label, choice? }[]`, rendues en boutons HUD.
 
-#### f) Scène (`@pgo/scene`)
+#### f) Scène (`@pbgo/scene`)
 
 ```tsx
 <BoardScene
@@ -992,7 +992,7 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 
 #### g) Binding actuel à combler
 
-`@pgo/core` attend déjà `@pgo/binding` (`GAME`, `State`, `PlayerView`, `SLUG`, `TAGLINE`, `NAME`, `DESCRIPTION`, `AUTHOR`, `CONTACT`, `SITE_URL`, `EngineError`, `PlayerInfo`, `normalizeOptions`) et `@pgo/binding-ui` (`Logo`, `Game`, `captureGamePhoto`). Pour brancher Courtisans :
+`@pbgo/core` attend déjà `@pbgo/binding` (`GAME`, `State`, `PlayerView`, `SLUG`, `TAGLINE`, `NAME`, `DESCRIPTION`, `AUTHOR`, `CONTACT`, `SITE_URL`, `EngineError`, `PlayerInfo`, `normalizeOptions`) et `@pbgo/binding-ui` (`Logo`, `Game`, `captureGamePhoto`). Pour brancher Courtisans :
 
 1. un adaptateur de vue : `VueJoueur.resultats` → `PlayerView.results` (`players[].playerId/total/rank/detail[{key, label, points}]`, `winners`) et `phase "fin"` → `"over"` (`game-over.tsx` teste `view.phase === "over"`) ;
 2. `Game` = `Jeu3D` sans sa gestion de fin ni son contexte (fournis par core) ;
@@ -1023,7 +1023,7 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 - **Contexte de positions DOM** (`enregistrer` / `rect` dans `contexte.tsx`) et `Interaction.origine()` : restes de l'ancienne UI 2D.
 - **`game.decorations`** (Sanity) : jamais lu.
 - **Crédits** codés en dur dans `PiedDePage` (le template les a mis dans Sanity).
-- **Nommage** : Courtisans est en français (`parties`, `joueurs`, `etat`, `vue`), alors que `@pgo/core` et le template sont en anglais. Tant que `apps/web` n'est pas migré, il existe **deux implémentations du serveur de parties**.
+- **Nommage** : Courtisans est en français (`parties`, `joueurs`, `etat`, `vue`), alors que `@pbgo/core` et le template sont en anglais. Tant que `apps/web` n'est pas migré, il existe **deux implémentations du serveur de parties**.
 
 ### 8.3 Réglages faits à la main, et couplés entre eux
 
@@ -1049,7 +1049,7 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 - **Les textes des règles** restent paraphrasés, pas copiés du livret.
 - **Le pied de page** garde les crédits des auteurs, de l'illustratrice et de l'éditeur, et la mention « non officielle ».
 
-### 8.5 Choix à refaire dans la version `@pgo`
+### 8.5 Choix à refaire dans la version `@pbgo`
 
 1. **`scene.tsx` fait 1 279 lignes** : séparer layouts (purs), animations (diff + journal), interactions (cibles) et décor (tapis, pioche). Voir §7.4 f.
 2. **Journal normalisé** (`move` / `reveal` / `remove` avec `from` / `to` et `id`) à la place des événements métier interprétés par la scène.
@@ -1062,11 +1062,11 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 9. **Leva en production** : le panneau est accessible via `?debug` (les commandes serveur restent protégées par `DEBUG_PARTIES`, et la triche ne modifie que la vue locale), mais leva et ses stores sont chargés dans le bundle. On pourrait les charger dynamiquement.
 10. **Tests** : le moteur est bien couvert (`*.test.ts`, simulations complètes). Rien ne teste l'UI ni les layouts, alors que les layouts, purs, s'y prêteraient facilement (snapshots de poses par nombre de joueurs).
 
-### 8.6 État après le passage sur `@pgo/core` (branche `courtisans-core`)
+### 8.6 État après le passage sur `@pbgo/core` (branche `courtisans-core`)
 
 Le document ci-dessus décrit le code d'avant la migration, en français. Correspondances et points réglés depuis :
 
-- **Nommage** : tout le code est en anglais (`Monde` → `World`, `Carte3D` → `Card3D`, `jeu3d/` → `game3d/`, `disposition.ts` → `layout.ts`, `posesCamera` → `cameraPoses`, `depart` → `origin`, `horsPhoto` → `hideInPhoto`, `dureeVol` → `flightDuration`, `useSonsJeu` → `useGameSounds`, `setupPartie` → `setupGame`, `vueJoueur` → `playerView`…). Valeurs du moteur et de Sanity en anglais (`butterfly`, `spy`, `up` / `down`, `light` / `neutral`, `white` / `blue`). Le serveur de parties n'existe plus qu'une fois, dans `@pgo/core` (8.2, dernier point).
-- **Réglé** : chemin du seed de `undo-import.ts` (8.1 §7) ; château supprimé (8.2) ; contexte de positions DOM supprimé (8.2) ; `game.decorations` supprimé (8.2) ; crédits dans Sanity `settings` et par défaut dans `SETTINGS_DEFAULTS` (8.2) ; la relance passe par `GAME.setup` avec les missions de `loadSetupData` (8.1 §6, mais les missions sont toujours relues à chaque vote, en cache Next 60 s) ; son, écrans du banquet, bandeau, annonces, tableau de fin et debug sont désormais communs (`@pgo/core`).
-- **Toujours ouvert** : 8.1 §1 à §5, couleurs des familles en double (`--family-*` dans `globals.css` contre le catalogue), phase `missions` et `Interaction.originOf()` toujours présents, tout le 8.3, et le 8.5 (prévu pour la 2e passe `@pgo/scene`).
-- **Ne pas casser (8.4), en plus** : les alias `@pgo/binding*` ; les clés de textures (`back`, `cloth`, `mat`…) doivent rester alignées avec les propriétés de `Textures` ; les chaînes de sons (`hover`, `place`, `slide`…) avec `SOUNDS` dans `lib/sounds.ts`.
+- **Nommage** : tout le code est en anglais (`Monde` → `World`, `Carte3D` → `Card3D`, `jeu3d/` → `game3d/`, `disposition.ts` → `layout.ts`, `posesCamera` → `cameraPoses`, `depart` → `origin`, `horsPhoto` → `hideInPhoto`, `dureeVol` → `flightDuration`, `useSonsJeu` → `useGameSounds`, `setupPartie` → `setupGame`, `vueJoueur` → `playerView`…). Valeurs du moteur et de Sanity en anglais (`butterfly`, `spy`, `up` / `down`, `light` / `neutral`, `white` / `blue`). Le serveur de parties n'existe plus qu'une fois, dans `@pbgo/core` (8.2, dernier point).
+- **Réglé** : chemin du seed de `undo-import.ts` (8.1 §7) ; château supprimé (8.2) ; contexte de positions DOM supprimé (8.2) ; `game.decorations` supprimé (8.2) ; crédits dans Sanity `settings` et par défaut dans `SETTINGS_DEFAULTS` (8.2) ; la relance passe par `GAME.setup` avec les missions de `loadSetupData` (8.1 §6, mais les missions sont toujours relues à chaque vote, en cache Next 60 s) ; son, écrans du banquet, bandeau, annonces, tableau de fin et debug sont désormais communs (`@pbgo/core`).
+- **Toujours ouvert** : 8.1 §1 à §5, couleurs des familles en double (`--family-*` dans `globals.css` contre le catalogue), phase `missions` et `Interaction.originOf()` toujours présents, tout le 8.3, et le 8.5 (prévu pour la 2e passe `@pbgo/scene`).
+- **Ne pas casser (8.4), en plus** : les alias `@pbgo/binding*` ; les clés de textures (`back`, `cloth`, `mat`…) doivent rester alignées avec les propriétés de `Textures` ; les chaînes de sons (`hover`, `place`, `slide`…) avec `SOUNDS` dans `lib/sounds.ts`.

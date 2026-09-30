@@ -1,4 +1,4 @@
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 
 export function Logo({ src, alt = "Courtisans", className }: { src: string; alt?: string; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element

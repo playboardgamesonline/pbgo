@@ -1,1 +1,1 @@
-export { PATCH, DELETE } from "@pgo/core/routes/api/tasks/[id]/route"
+export { PATCH, DELETE } from "@pbgo/core/routes/api/tasks/[id]/route"

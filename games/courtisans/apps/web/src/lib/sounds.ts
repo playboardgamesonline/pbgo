@@ -1,4 +1,4 @@
-import type { SoundConfig } from "@pgo/core/lib/sound-config"
+import type { SoundConfig } from "@pbgo/core/lib/sound-config"
 
 /** Sons de Courtisans (/public/sounds). Musiques bouclées sur un nombre entier de mesures, pas sur la durée du fichier. */
 export const SOUNDS: SoundConfig = {

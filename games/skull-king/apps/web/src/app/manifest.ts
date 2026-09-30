@@ -1,4 +1,4 @@
-import { createManifest } from "@pgo/site"
+import { createManifest } from "@pbgo/site"
 import { SITE } from "@/lib/site"
 
 export default function manifest() {

@@ -26,13 +26,13 @@
       "@/*": [
         "./src/*"
       ],
-      "@pgo/binding": [
+      "@pbgo/binding": [
         "./src/binding.ts"
       ],
-      "@pgo/binding-ui": [
+      "@pbgo/binding-ui": [
         "./src/binding-ui.ts"
       ],
-      "@pgo/binding-server": [
+      "@pbgo/binding-server": [
         "./src/binding-server.ts"
       ]
     }

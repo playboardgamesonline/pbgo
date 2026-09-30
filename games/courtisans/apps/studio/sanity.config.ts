@@ -1,4 +1,4 @@
-import { createStudioConfig } from "@pgo/studio-kit"
+import { createStudioConfig } from "@pbgo/studio-kit"
 import { gameTypes } from "./schemaTypes"
 
 export default createStudioConfig({

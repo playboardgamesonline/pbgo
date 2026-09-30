@@ -1,4 +1,4 @@
-import { renderIcon } from "@pgo/core/metadata/images"
+import { renderIcon } from "@pbgo/core/metadata/images"
 
 // Icône de l'écran d'accueil iOS : même source que le favicon
 export const size = { width: 180, height: 180 }

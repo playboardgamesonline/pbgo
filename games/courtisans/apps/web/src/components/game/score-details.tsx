@@ -1,8 +1,8 @@
 "use client"
 
 import type { CourtisansPlayerResult } from "@courtisans/engine"
-import type { ResultDetailRenderer } from "@pgo/core/components/game/game-over"
-import { cn } from "@pgo/ui/utils"
+import type { ResultDetailRenderer } from "@pbgo/core/components/game/game-over"
+import { cn } from "@pbgo/ui/utils"
 import { useCourtisans } from "./context"
 
 /** Détail des points d'un joueur en fin de partie : une mini-carte par famille, puis les missions réussies. */
@@ -57,7 +57,7 @@ export function FamilyCards({ j, large, center }: { j: CourtisansPlayerResult; l
 }
 
 
-/** `renderDetail` du tableau de fin commun (@pgo/core GameOver). */
+/** `renderDetail` du tableau de fin commun (@pbgo/core GameOver). */
 export const renderFamilyCards: ResultDetailRenderer = (result, { large, centered }) => (
   <FamilyCards j={result as CourtisansPlayerResult} large={large} center={centered} />
 )

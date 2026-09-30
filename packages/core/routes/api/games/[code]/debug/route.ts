@@ -1,4 +1,4 @@
-import { type DebugCommand, GAME } from "@pgo/binding"
+import { type DebugCommand, GAME } from "@pbgo/binding"
 import type { NextRequest } from "next/server"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { getPlayerId } from "../../../../../server/player"

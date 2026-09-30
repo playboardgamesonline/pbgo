@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
-import { TAGLINE } from "@pgo/binding"
+import { TAGLINE } from "@pbgo/binding"
 import { api, gameLink } from "../../lib/api"
 import { useProfile } from "../../lib/profile"
 import type { RulesContent } from "../../lib/rules"

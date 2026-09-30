@@ -34,7 +34,7 @@ export const CONTACT = "louvel.aurelien.pro@gmail.com"
 
 export const GOOGLE_SITE_VERIFICATION = "NNqyjwU_KDPRURSnEMUynx4l6Vrl_ELFzR99g8dBudQ"
 
-/** Messages des erreurs du moteur (codes EngineError), affichés par @pgo/core. */
+/** Messages des erreurs du moteur (codes EngineError), affichés par @pbgo/core. */
 export const ERROR_MESSAGES: Record<string, string> = {
   INVALID_PHASE: "Ce n'est pas le moment de jouer.",
   NOT_YOUR_TURN: "Ce n'est pas votre tour.",

@@ -5,7 +5,7 @@ import { button, useControls } from "leva"
 import { useEffect } from "react"
 import { type Object3D, PerspectiveCamera, Vector2 } from "three"
 import { useSettings } from "./settings"
-import { debugTab } from "@pgo/core/components/game/debug-tabs"
+import { debugTab } from "@pbgo/core/components/game/debug-tabs"
 
 export const PHOTO_SETTINGS = {
   tilt: 34,

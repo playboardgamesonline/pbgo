@@ -7,5 +7,5 @@ import { rules } from "./documents/rules"
 import { texts } from "./documents/texts"
 import { condition } from "./objects/condition"
 
-/** Types propres à Courtisans ; `rules` et `texts` remplacent les versions communes de @pgo/studio-kit. */
+/** Types propres à Courtisans ; `rules` et `texts` remplacent les versions communes de @pbgo/studio-kit. */
 export const gameTypes = [game, rules, texts, family, role, courtier, mission, condition]

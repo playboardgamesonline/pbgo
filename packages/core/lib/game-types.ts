@@ -1,4 +1,4 @@
-import { type State, GAME, type PlayerInfo, type OptionValues, type PlayerView } from "@pgo/binding"
+import { type State, GAME, type PlayerInfo, type OptionValues, type PlayerView } from "@pbgo/binding"
 
 export const MAX_PLAYERS = GAME.maxPlayers
 export const MIN_PLAYERS = GAME.minPlayers

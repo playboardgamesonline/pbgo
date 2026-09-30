@@ -1,6 +1,6 @@
 import "server-only"
 import { cookies } from "next/headers"
-import { SLUG } from "@pgo/binding"
+import { SLUG } from "@pbgo/binding"
 
 const COOKIE = `${SLUG.replace(/[^a-z0-9]/gi, "_")}_player`
 

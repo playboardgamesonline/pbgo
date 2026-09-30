@@ -1,5 +1,5 @@
-import { GAME, type State } from "@pgo/binding"
-import * as serverBinding from "@pgo/binding-server"
+import { GAME, type State } from "@pbgo/binding"
+import * as serverBinding from "@pbgo/binding-server"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Home } from "../components/home/home"

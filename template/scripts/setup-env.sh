@@ -81,7 +81,7 @@ ask() {
 confirm() { local a; printf "  %s [O/n] : " "$1"; read -r a; [[ -z "$a" || "$a" =~ ^[oOyY] ]]; }
 
 SLUG="$(basename "$ROOT")"
-# play-game-online-template → play-game-online-template.vercel.app ; skull-king → play-skull-king-online.vercel.app
+# play-board-games-online-template → play-board-games-online-template.vercel.app ; skull-king → play-skull-king-online.vercel.app
 if [[ "$SLUG" == play-* ]]; then DOMAIN="$SLUG.vercel.app"; else DOMAIN="play-$SLUG-online.vercel.app"; fi
 PROJECT="$(node -e 'try{console.log(require("./.vercel/project.json").projectName||"")}catch{console.log("")}')"
 PROJECT="${PROJECT:-$SLUG}"

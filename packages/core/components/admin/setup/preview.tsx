@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pgo/ui/admin/card"
-import { Tabs, TabsList, TabsTrigger } from "@pgo/ui/admin/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
+import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/admin/tabs"
 import { PREVIEW_MESSAGE, PREVIEW_READY, type PreviewDraft } from "../../../lib/preview"
 import { siteTitle, tableTitle } from "../../../lib/settings"
 

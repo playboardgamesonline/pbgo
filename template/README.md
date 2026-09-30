@@ -1,4 +1,4 @@
-# play-game-online-template
+# play-board-games-online-template
 
 Base des jeux de société en ligne : lobby avec options de partie, table 3D temps réel, fin de partie partageable, règles Sanity, administration sur `/admin` (Setup, Tasks, Monitoring).
 
@@ -13,7 +13,7 @@ pnpm dev:studio                                # Sanity Studio
 pnpm test && pnpm typecheck
 ```
 
-`pnpm go-live` (scripts/go-live.sh) : repo GitHub privé + push, projet Sanity + CORS + studio, projet Vercel relié au repo (root `apps/web`) + domaine (`play-game-online-template.vercel.app` pour le template, `play-<jeu>-online.vercel.app` pour un jeu), sans modifier les fichiers suivis. Il enchaîne sur `pnpm setup:env`.
+`pnpm go-live` (scripts/go-live.sh) : repo GitHub privé + push, projet Sanity + CORS + studio, projet Vercel relié au repo (root `apps/web`) + domaine (`play-board-games-online-template.vercel.app` pour le template, `play-<jeu>-online.vercel.app` pour un jeu), sans modifier les fichiers suivis. Il enchaîne sur `pnpm setup:env`.
 
 `pnpm setup:env` (scripts/setup-env.sh) : crée le token d'écriture Sanity et déploie le schéma, demande les clés Supabase et applique les migrations manquantes, crée le compte admin (mot de passe généré), ajoute le token Vercel pour /admin/monitoring, écrit `apps/web/.env.local` puis pousse les variables sur Vercel et redéploie. Relançable : Entrée garde la valeur actuelle.
 

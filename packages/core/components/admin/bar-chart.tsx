@@ -1,4 +1,4 @@
-import { cn } from "@pgo/ui/utils"
+import { cn } from "@pbgo/ui/utils"
 
 type Point = { label: string; value: number; detail?: string }
 
