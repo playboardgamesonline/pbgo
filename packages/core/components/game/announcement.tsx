@@ -29,7 +29,7 @@ const DEFAULTS = {
   lineColor: "#f5c542",
   lineGap: 80,
   above: false,
-  offsetY: 0,
+  offsetY: -10,
   fadeGradient: false,
   gradientHeight: 52,
   confetti: false,
@@ -79,6 +79,7 @@ function schema(defaults: AnnouncementSettings, folder: string) {
 const PRESETS = {
   start: {},
   turn: {
+    offsetY: 0,
     above: true,
     fadeGradient: true,
     overlay: 0.55,

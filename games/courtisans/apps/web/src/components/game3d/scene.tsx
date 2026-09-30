@@ -129,8 +129,36 @@ const Y_AXIS = new Vector3(0, 1, 0)
 const EMPTY: string[] = []
 const TARGET_TMP = new Vector3()
 
-function CameraRig() {
+const CAMERA_INTRO = { enabled: true, duration: 2.6, zoom: 1.45, rotate: 22, tilt: 12 }
+
+/** Progression 0 → 1 (ease out) de l'intro de caméra, relancée à chaque ouverture (`run`). */
+function useCameraIntro(run: boolean) {
+  const [intro] = useControls(
+    "Camera intro",
+    () => ({
+      enabled: { value: CAMERA_INTRO.enabled, label: "enabled" },
+      duration: { value: CAMERA_INTRO.duration, min: 0.5, max: 8, step: 0.1, label: "duration (s)" },
+      zoom: { value: CAMERA_INTRO.zoom, min: 1, max: 2.5, step: 0.01, label: "start distance ×" },
+      rotate: { value: CAMERA_INTRO.rotate, min: -90, max: 90, step: 1, label: "start yaw °" },
+      tilt: { value: CAMERA_INTRO.tilt, min: -30, max: 40, step: 0.5, label: "start tilt °" },
+    }),
+    { order: 1 },
+    debugTab("SCENE"),
+  )
+  const start = useRef<number | null>(null)
+  useEffect(() => {
+    start.current = run ? performance.now() : null
+  }, [run])
+  return { intro, progress: () => {
+    if (!intro.enabled || start.current === null) return 1
+    const p = Math.min(1, (performance.now() - start.current) / (intro.duration * 1000))
+    return 1 - Math.pow(1 - p, 3)
+  } }
+}
+
+function CameraRig({ introRun }: { introRun: boolean }) {
   const { size } = useThree()
+  const { intro, progress } = useCameraIntro(introRun)
   const [setting, adjust] = useControls(
     "Camera",
     () => ({
@@ -166,9 +194,10 @@ function CameraRig() {
   useFrame((makeState) => {
     const cam = makeState.camera as PerspectiveCamera
     const k = Math.max(1, 1.6 / (size.width / size.height))
-    const r = setting.distance * k
-    const incl = setting.tilt * RAD
-    const yaw = setting.yaw * RAD
+    const rest = 1 - progress()
+    const r = setting.distance * k * (1 + (intro.zoom - 1) * rest)
+    const incl = Math.max(0, setting.tilt + intro.tilt * rest) * RAD
+    const yaw = (setting.yaw + intro.rotate * rest) * RAD
     const target = TARGET_TMP.set(setting.target.x, 0, setting.target.y)
     cam.up.set(0, 1, 0)
     cam.position.set(
@@ -1039,7 +1068,7 @@ function World({
 
   return (
     <>
-      <CameraRig />
+      <CameraRig introRun={openingStep === "unroll"} />
       <CardSettingsPanel />
       <EndingSettings />
       <ZoneSettings />

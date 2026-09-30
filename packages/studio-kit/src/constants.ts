@@ -128,6 +128,7 @@ export const UI_TEXTS = [
   { key: "share", group: "game", title: "Share: share button", fr: "Partager" },
   { key: "copyFailed", group: "game", title: "Share: copy failed", fr: "Impossible de copier l'image" },
   { key: "shareFailed", group: "game", title: "Share: share failed", fr: "Impossible de partager l'image" },
+  { key: "missionsWaiting", group: "game", title: "Opening: waiting for other players", fr: "En attente des autres joueurs ({read}/{total})" },
   { key: "winsWith", group: "game", title: "Share: text", fr: "{names} remporte la partie avec {points} points !" },
 ] as const
 
