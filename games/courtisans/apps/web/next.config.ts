@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     return [
       // anciens liens d'invitation (avant @pgo/core)
       { source: "/partie/:code", destination: "/game/:code", permanent: true },
-      { source: "/to-do", destination: "/setup?tab=todo", permanent: false },
+      { source: "/to-do", destination: "/admin/tasks/backlog", permanent: false },
     ]
   },
   images: {

@@ -58,7 +58,7 @@ Ce document décrit le repo **Courtisans Online** pour le réutiliser comme **te
    ├─ app/
    │  ├─ page.tsx, layout.tsx    # accueil, SEO
    │  ├─ game/[code]/            # page de partie (lobby puis jeu)
-   │  ├─ (admin)/setup, status/  # admin (ADMIN_LOGIN / ADMIN_PASSWORD) : paramètres Sanity + to-do, dashboard
+   │  ├─ (admin)/admin/  # admin (ADMIN_LOGIN / ADMIN_PASSWORD) : Setup, Tasks, Monitoring
    │  ├─ api/games/…             # create, [code], join, leave, options, start, action, replay, debug
    │  ├─ api/tasks/…, api/admin/… # to-do, login/logout, paramètres, logo
    │  └─ api/media, robots.ts, sitemap.ts, manifest.ts
@@ -171,7 +171,7 @@ Ce document décrit le repo **Courtisans Online** pour le réutiliser comme **te
 - Annonces (`announcement.tsx`), auras, `table-text.tsx`, carte 3D (`card3d.tsx` : pli, reflets, contour), textures
 - Règles en onglets (`rules.tsx` + `lib/rules.ts` + singleton Sanity `rules`)
 - Fin de partie (`game-over.tsx`), partage (`photo.tsx` + `sharing.ts` + `preview-sharing.tsx`)
-- SEO (metadata, robots, sitemap, manifest), proxy `api/media`, pages `/setup` (paramètres du site + to-do) et `/status` (dashboard + Vercel Web Analytics)
+- SEO (metadata, robots, sitemap, manifest), proxy `api/media`, admin `/admin` (Setup, Tasks, Monitoring + Vercel Web Analytics)
 
 **Spécifique (à réécrire par jeu)**
 - `packages/engine/src/<jeu>/` (règles, vue, options, debug) et l'export `GAME`
@@ -209,4 +209,4 @@ pnpm --filter template-studio run deploy
 
 `pnpm setup:env` pose les questions une par une (secrets masqués), crée le token Sanity, applique les migrations Supabase manquantes, génère le mot de passe admin, écrit `.env.local` et pousse tout sur Vercel.
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (ou `ANON_KEY`), `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, `SANITY_API_WRITE_TOKEN` (Editor, pour /setup), optionnels `VERCEL_TOKEN` (+ `VERCEL_TEAM_ID`) pour les stats de /status et `DEBUG_GAMES=1`.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (ou `ANON_KEY`), `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, `SANITY_API_WRITE_TOKEN` (Editor, pour /admin), optionnels `VERCEL_TOKEN` (+ `VERCEL_TEAM_ID`) pour les stats de /admin/monitoring et `DEBUG_GAMES=1`.

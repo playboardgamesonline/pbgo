@@ -118,4 +118,4 @@ title "Variables d'environnement"
 bash scripts/setup-env.sh
 
 echo
-echo "En ligne : https://$DOMAIN  ·  admin : https://$DOMAIN/setup"
+echo "En ligne : https://$DOMAIN  ·  admin : https://$DOMAIN/admin"

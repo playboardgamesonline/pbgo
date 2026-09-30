@@ -37,7 +37,7 @@ Fichiers dans `apps/web/public` nommés en anglais, `UPPER_SNAKE_CASE` (ex. `car
   - `components/lobby` : `lobby.tsx`, `game-options.tsx` (rendues depuis `GAME.options`, éditables par l'hôte)
   - `components/game` : `game-client.tsx` (lobby → jeu), `game.tsx` (table, annonces, debug), `game-over.tsx`, `sharing.ts`, `preview-sharing.tsx`
   - `components/game3d` : `scene.tsx`, poses (`layout.ts`), `card3d.tsx`, textures, annonces, debug leva
-  - `app/(admin)/admin/[[...section]]` : admin (Setup, Tasks, Monitoring — voir le CLAUDE.md racine) ; `app/preview/[kind]` : aperçus de l'admin ; `app/(admin)/setup` et `status` : redirections
+  - `app/(admin)/admin/[[...section]]` : admin (Setup, Tasks, Monitoring — voir le CLAUDE.md racine) ; `app/preview/[kind]` : aperçus de l'admin 
   - Admin protégé par `ADMIN_LOGIN` / `ADMIN_PASSWORD` (`server/admin.ts`), écriture Sanity via `SANITY_API_WRITE_TOKEN` (`server/settings.ts`)
   - `lib/settings.ts` / `lib/settings-server.ts` : réglages du site (titre, description, logo, min/max joueurs, thème, polices, règles PDF) lus depuis Sanity avec les valeurs par défaut de `lib/site.ts`, fournis aux composants client par `useSiteSettings()`
 - `apps/studio` — Sanity Studio via `createStudioConfig` de `@pgo/studio-kit` (singletons communs `settings`, `interface`, `rules`, `texts`) ; seul `schemaTypes/game.ts` est propre au jeu

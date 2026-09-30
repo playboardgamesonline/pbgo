@@ -11,7 +11,7 @@ Architecture détaillée (intentions, réglages, pièges) : `ARCHITECTURE.md` �
 Fichiers dans `apps/web/public` nommés en anglais, `EN_MAJUSCULES_AVEC_DES_TIRETS_DU_BAS` (ex. `home/QUEEN.webp`, `cards/SPY_HARE.webp`, `sounds/HOVER.mp3`), dossiers en anglais minuscules.
 
 ## Structure
-- `apps/web` — Next.js sur `@pgo/core` (lobby, temps réel, routes API, /setup, /status viennent de core)
+- `apps/web` — Next.js sur `@pgo/core` (lobby, temps réel, routes API, /admin viennent de core)
   - `src/binding.ts` (moteur, constantes du site, `SOUNDS`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), `src/binding-ui.ts` (`Logo`, `Game`, `captureGamePhoto`, `RulesButton`), `src/binding-server.ts` (`loadSetupData` = missions, `loadGameData` = catalogue, `loadRules`)
   - `src/components/game` — plateau (`game.tsx` : ouverture, interactions, annonces, fin), messages, pictos, détail des points
   - `src/components/game3d` — scène react-three-fiber (`layout.ts` calcule les poses, `scene.tsx` anime chaque carte vers sa pose)

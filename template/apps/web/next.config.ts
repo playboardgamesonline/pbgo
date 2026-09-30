@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: ["@pgo/core", "@game/engine", "@pgo/engine-kit", "@pgo/ui", "@pgo/studio-kit", "@pgo/site"],
   async redirects() {
-    return [{ source: "/to-do", destination: "/setup?tab=todo", permanent: false }]
+    return [{ source: "/to-do", destination: "/admin/tasks/backlog", permanent: false }]
   },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "cdn.sanity.io" }],

@@ -52,7 +52,7 @@ Identité git : `oré <louvel.aurelien.perso@gmail.com>` (compte GitHub/Vercel d
 Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo` (ex. `✨(skull-king): …`, `🔧(repo): …`)
 
 ## Admin (`/admin`, tout en anglais)
-- Barre latérale (`lib/admin-nav.ts`) : **Setup** (Identity, Mechanics, Visual, Audio, Copy) · **Tasks** (Launch, Backlog, Bugs, Feedback) · **Monitoring** (Games, Audience, Health). Une seule route par app : `app/(admin)/admin/[[...section]]/page.tsx` → `@pgo/core/pages/admin`. `/setup` et `/status` redirigent.
+- Barre latérale (`lib/admin-nav.ts`) : **Setup** (Identity, Mechanics, Visual, Audio, Copy) · **Tasks** (Launch, Backlog, Bugs, Feedback) · **Monitoring** (Games, Audience, Health). Une seule route par app : `app/(admin)/admin/[[...section]]/page.tsx` → `@pgo/core/pages/admin`.
 - Données Setup : `server/settings.ts` (`readAdminData`, `saveSection(section, values)`, `uploadAsset(slot, file)`), routes `PUT/GET/POST /api/admin/settings` et `/api/admin/upload/[slot]`. Documents Sanity : `settings` (Identity, Mechanics, couleurs et polices), `interface` (images de Visual, couleurs des joueurs, desktopOnly), `audio` (musiques, ambiance, effets, volumes), `texts` (Copy, dont `errorMessages`).
 - Conversions à l'envoi (`server/convert.ts`) : images → WebP (SVG gardé), favicon → PNG 512, image de partage → JPG 1200×630, polices TTF/OTF → WOFF2 (wawoff2). Sons : MP3, 4 Mo max.
 - Aperçus : iframe sur `/preview/home` et `/preview/game` (admin seulement, partie fictive), brouillon envoyé par `postMessage` (`lib/preview.ts`, `components/preview-bridge.tsx`) ; les appels API y sont neutralisés.
