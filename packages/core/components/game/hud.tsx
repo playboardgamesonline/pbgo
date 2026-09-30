@@ -7,6 +7,7 @@ import type { RulesContent } from "../../lib/rules"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
+import { Chat } from "./chat"
 import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
 
@@ -161,17 +162,16 @@ export function GameHud({
         />
       )}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
-        <div className="pointer-events-auto flex flex-col items-center gap-1">
+        <div className="pointer-events-auto flex items-start gap-1">
           <button type="button" className="w-40 cursor-pointer transition-transform hover:scale-105 sm:w-48" title={t("leave")} onClick={onLeave}>
             {logo ? <Logo src={logo} alt={title} /> : <span className="font-display text-2xl font-black tracking-[0.12em] uppercase">{title}</span>}
           </button>
-          <div className="flex items-center justify-center gap-1">
-            <Toolbar rules={rules} />
-          </div>
+          <Toolbar rules={rules} />
         </div>
         {ticker}
       </header>
       {overlay}
+      <Chat />
     </main>
   )
 }

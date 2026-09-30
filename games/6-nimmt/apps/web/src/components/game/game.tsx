@@ -39,7 +39,7 @@ function eventText(e: GameEvent) {
 
 function Table({ rules, onUpdate, onLeave }: Props) {
   const t = useText()
-  const { victoryPhrases } = useSkin()
+  const { victoryPhrases, hostIcon } = useSkin()
   const { game, view, color } = useGame()
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings)
@@ -137,7 +137,7 @@ function Table({ rules, onUpdate, onLeave }: Props) {
         </>
       }
     >
-      <Scene view={view} color={color} myTurn={myTurn && !sending} onPlay={play} />
+      <Scene view={view} color={color} crownIcon={hostIcon} myTurn={myTurn && !sending} onPlay={play} />
     </GameHud>
   )
 }

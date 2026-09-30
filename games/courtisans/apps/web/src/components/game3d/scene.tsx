@@ -25,7 +25,7 @@ import { useInteraction } from "../game/interaction"
 import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./aura"
 import { CardSettingsPanel } from "./card-settings"
 import { GamePhoto } from "./photo"
-import { Crown3D } from "./crown"
+import { CrownMark } from "./crown"
 import type { EndingState } from "./ending"
 import { Counters, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { useSettings, useSettingsVersion } from "./settings"
@@ -57,6 +57,7 @@ import {
   tablePose,
   type Seat,
   seats,
+  missionRestPose,
 } from "./layout"
 import { type Textures, useTextures } from "./textures"
 
@@ -579,13 +580,6 @@ function DomainBackground({ zone, playable, hover, color }: { zone: DomainZone; 
   )
 }
 
-function crownPosition(zone: DomainZone | undefined, me: boolean) {
-  if (!zone) return null
-  if (me) return new Vector3(zone.labelPos.x, 0, zone.labelPos.z - 0.5)
-  const backOffset = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), zone.labelYaw)
-  return zone.labelPos.clone().addScaledVector(backOffset, 2.2).setY(0)
-}
-
 function Badge({
   zone,
   text,
@@ -715,6 +709,15 @@ function World({
   )
   const hand = view.me?.hand ?? []
   const meId = view.me?.id
+  const myZone = meId ? zones.get(meId) : undefined
+  // poses au repos des missions des autres joueurs (dos seulement) : mises en cache pour ne pas relancer l'animation à chaque rendu
+  const restPoses = useMemo(() => new Map<string, Pose>(), [zones])
+  const restPose = (zone: DomainZone, id: string, k: number) => {
+    const key = `${id}:${k}`
+    let p = restPoses.get(key)
+    if (!p) restPoses.set(key, (p = missionRestPose(zone, k, id)))
+    return p
+  }
 
   const [prevView, setPrevView] = useState(view)
   const [origins, setOrigins] = useState<Map<string, Pose>>(new Map())
@@ -982,6 +985,15 @@ function World({
         p.position.set(0, -0.04 * k, -d)
         p.quaternion.setFromEuler(EULER_TMP.set(-pointer.y * rj.focusMouse, pointer.x * rj.focusMouse * 1.3, 0))
         p.scaleFactor = rj.focusScale * k
+      } else if (myZone) {
+        // posées face cachée sur la table, à droite du plateau ; convertie dans le repère de la caméra (les cartes suivent la caméra)
+        const hovered = hover === `mission:${m.id}`
+        const rest = missionRestPose(myZone, i, m.id)
+        camera.updateMatrixWorld()
+        if (hovered) rest.position.y += 0.18
+        p.position.copy(camera.worldToLocal(rest.position))
+        p.quaternion.copy(camera.quaternion).invert().multiply(rest.quaternion)
+        p.scaleFactor = rest.scaleFactor * (hovered ? 1.08 : 1)
       } else {
         const hovered = hover === `mission:${m.id}`
         const jaw = i === 0 ? rj.angles.card1 : rj.angles.card2
@@ -1129,6 +1141,18 @@ function World({
             />
           ))}
       </FollowCamera>
+      {visibleMissions &&
+        !intro &&
+        !ending?.missions &&
+        missions.length > 0 &&
+        view.players.map((j) => {
+          const zone = zones.get(j.id)
+          if (!zone || j.id === meId) return null
+          return [0, 1].map((k) => {
+            const back = tex.missionBack(missions[k % missions.length]!)
+            return <Card3D key={`mission-dos-${j.id}-${k}`} target={restPose(zone, j.id, k)} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow />
+          })
+        })}
       {results && ending && (
         <>
           <FamilyResolution results={results} ending={ending} />
@@ -1230,7 +1254,22 @@ function World({
         })}
       </Appear>
 
-      <Crown3D target={crownPlayer ? crownPosition(zones.get(crownPlayer), crownPlayer === meId) : null} />
+      {view.players.map((j) => {
+        const zone = zones.get(j.id)
+        if (!zone) return null
+        const mine = j.id === meId
+        // à gauche du pseudo (largeur estimée comme pour les cartes de fin) ; pour soi, là où le pseudo serait
+        const x = mine ? 0 : -((nickname(j.id).length * 0.45 + 0.6) / 2 + 0.8)
+        return (
+          <CrownMark
+            key={`couronne-${j.id}`}
+            show={crownPlayer === j.id}
+            origin={zone.labelPos}
+            offset={[x, mine ? -0.5 : -ZONE_SETTINGS.nicknameOffset]}
+            yaw={zone.labelYaw}
+          />
+        )
+      })}
 
       {targetColumn &&
         (["up", "down"] as const).map((level) => (

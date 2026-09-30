@@ -4,15 +4,17 @@ import { Billboard } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useRef, useState } from "react"
-import { Color, DoubleSide, Vector3, type Group, type MeshBasicMaterial, type Texture, TextureLoader } from "three"
+import { Color, DoubleSide, type Vector3, type Group, type MeshBasicMaterial, type Texture, TextureLoader } from "three"
 
 const GOLD = new Color("#f2c14e")
-const UNDER_TABLE = -1.8
 let crown: Texture | null = null
 const crownTexture = () => (crown ??= new TextureLoader().load("/pictograms/PICTOGRAM_NOBLE.webp"))
 
-export function Crown3D({ target, size = 1.3 }: { target: Vector3 | null; size?: number }) {
-  const shown = useRef<Vector3 | null>(null)
+/**
+ * Couronne du joueur dont c'est le tour : posée à gauche de son pseudo (ou à la place du pseudo pour soi), sans se déplacer autour de la table.
+ * Elle apparaît et disparaît en fondu d'échelle ; le pictogramme (`/pictograms/PICTOGRAM_NOBLE.webp`) est celui de l'habillage du jeu.
+ */
+export function CrownMark({ show, origin, yaw, offset, size = 1.1 }: { show: boolean; origin: Vector3; yaw: number; offset: [number, number]; size?: number }) {
   const ref = useRef<Group>(null)
   const material = useRef<MeshBasicMaterial>(null)
   const [texture] = useState(crownTexture)
@@ -20,25 +22,24 @@ export function Crown3D({ target, size = 1.3 }: { target: Vector3 | null; size?:
     const g = ref.current
     if (!g) return
     const t = clock.elapsedTime
-    const inPlace = !!target && !!shown.current && target.distanceTo(shown.current) < 0.05
-    if (!inPlace && g.position.y <= UNDER_TABLE + 0.2) {
-      shown.current = target ? target.clone() : null
-      if (target) g.position.set(target.x, UNDER_TABLE, target.z)
-    }
-    const output = !!target && !!shown.current && target.distanceTo(shown.current) < 0.05
-    easing.damp(g.position, "y", output ? 0.5 * size + 0.08 + Math.sin(t * 2) * 0.06 : UNDER_TABLE, output ? 0.35 : 0.18, dt)
-    g.scale.setScalar(size)
+    easing.damp(g.scale, "x", show ? size : 0.0001, 0.25, dt)
+    g.scale.y = g.scale.z = g.scale.x
+    g.position.y = 0.5 * g.scale.x + 0.08 + (show ? Math.sin(t * 2) * 0.05 : 0)
     if (material.current) material.current.color.copy(GOLD).multiplyScalar(1 + 0.35 * Math.pow(0.5 + 0.5 * Math.sin(t * 3.4), 6))
-    g.visible = g.position.y > UNDER_TABLE + 0.1
+    g.visible = g.scale.x > 0.02
   })
   return (
-    <group ref={ref} position-y={UNDER_TABLE}>
-      <Billboard lockX lockZ>
-        <mesh raycast={() => null}>
-          <planeGeometry args={[1, 160 / 145]} />
-          <meshBasicMaterial ref={material} map={texture} color="#f2c14e" transparent alphaTest={0.05} side={DoubleSide} toneMapped={false} />
-        </mesh>
-      </Billboard>
+    <group position={origin} rotation-y={yaw}>
+      <group position={[offset[0], 0, offset[1]]}>
+      <group ref={ref} scale={0.0001} visible={false}>
+        <Billboard lockX lockZ>
+          <mesh raycast={() => null}>
+            <planeGeometry args={[1, 160 / 145]} />
+            <meshBasicMaterial ref={material} map={texture} color="#f2c14e" transparent alphaTest={0.05} side={DoubleSide} toneMapped={false} />
+          </mesh>
+        </Billboard>
+      </group>
+      </group>
     </group>
   )
 }

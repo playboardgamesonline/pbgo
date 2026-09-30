@@ -92,3 +92,11 @@ Facultatifs : `SUPABASE_ORG_ID`, `SUPABASE_REGION` (création du projet partagé
 ## Supabase partagé : état
 
 Projet partagé : celui de Courtisans (`SUPABASE_PROJECT_REF`). Courtisans reste dans le schéma `public` ; les autres jeux ont chacun leur schéma `g_<jeu>` (déjà créé, tables games, tasks, feedback, exposé à l'API). Chaque jeu a `scripts/setup-env.sh` : `pnpm setup-env <jeu>` ou `pnpm setup-env --all` renseigne URL, clés, schéma, admin et pousse les variables sur Vercel. L'ancien projet `play-game-online-template` n'est plus utilisé par les jeux.
+
+## Interface de partie (chat, menu, couronne, fin)
+
+- Menu des réglages (`components/toolbar.tsx`) : un bouton à droite du logo (en haut à droite de l'accueil) ouvre règles, son, feedback et langue.
+- Chat (`components/game/chat.tsx`, monté par `GameHud`) : diffusion temps réel Supabase sans stockage, pseudos dans la couleur du joueur, fondu des anciens messages.
+- Couronne du tour : à gauche du pseudo du joueur actif, sans déplacement. Template : `game3d/crown.tsx` (`TurnCrown`, icône `hostIcon` de l'habillage ou couronne dessinée) ; Courtisans : `CrownMark` avec son pictogramme.
+- Missions de Courtisans : posées face cachée à droite de chaque plateau (`missionRestPose` dans `layout.ts`, réglages `MISSION_REST`), retournées au clic.
+- Fin de partie : tableau centré, lien « masquer / afficher » souligné au-dessus du bouton REJOUER centré en bas.

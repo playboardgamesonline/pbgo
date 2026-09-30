@@ -24,3 +24,24 @@ export function subscribeToGame(code: string, onUpdate: (version: number) => voi
     sb.removeChannel(channel)
   }
 }
+
+export const CHAT_EVENT = "chat"
+export type ChatMessage = { id: string; playerId: string; text: string; at: number }
+
+/** Canal de chat d'une partie (diffusion temps réel Supabase, sans stockage) : les messages n'existent que pour les joueurs connectés. */
+export function openChat(code: string, onMessage: (m: ChatMessage) => void) {
+  const sb = supabase()
+  if (!sb) return null
+  const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA || "public"
+  const channel = sb
+    .channel(`chat:${schema}:${code}`, { config: { broadcast: { self: false } } })
+    .on("broadcast", { event: CHAT_EVENT }, ({ payload }) => {
+      const m = payload as Partial<ChatMessage>
+      if (typeof m?.id === "string" && typeof m.playerId === "string" && typeof m.text === "string") onMessage({ id: m.id, playerId: m.playerId, text: m.text.slice(0, 240), at: Date.now() })
+    })
+    .subscribe()
+  return {
+    send: (m: ChatMessage) => void channel.send({ type: "broadcast", event: CHAT_EVENT, payload: m }),
+    close: () => void sb.removeChannel(channel),
+  }
+}

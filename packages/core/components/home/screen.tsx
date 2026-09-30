@@ -67,7 +67,7 @@ export function Screen({
         />
       )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
-        <Toolbar rules={rules} />
+        <Toolbar rules={rules} align="right" />
       </div>
 
       <form autoComplete="off" onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">

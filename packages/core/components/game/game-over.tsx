@@ -150,9 +150,7 @@ export function GameOver({
           />
         )}
       </AnimatePresence>
-      <div
-        className="pointer-events-none fixed inset-x-0 top-0 bottom-[10rem] z-40 flex flex-col items-center justify-end px-6 pt-6"
-      >
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-16 pb-40">
         <AnimatePresence mode="popLayout">
           {isOpen && (
             <motion.section
@@ -211,7 +209,7 @@ export function GameOver({
                 </div>
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 pb-20 [scrollbar-width:thin]">
+              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 pb-6 [scrollbar-width:thin]">
                 <ol className="divide-y divide-foreground/15 border-t border-foreground/15">
                   {ranking
                     .filter((j) => !results.winners.includes(j.playerId))
@@ -234,22 +232,24 @@ export function GameOver({
               </div>
 
               </div>
-              <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2 translate-y-1/2">
-                <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="w-auto max-w-none px-8 whitespace-nowrap">
-                  {t("replay")} ({game.replay.length}/{game.players.length})
-                </PrimaryButton>
-              </div>
             </motion.section>
           )}
         </AnimatePresence>
         </div>
+      <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex flex-col items-center gap-3">
         <button
           type="button"
           onClick={onToggle}
-          className="pointer-events-auto fixed bottom-8 left-1/2 z-50 h-9 -translate-x-1/2 cursor-pointer px-4 font-display text-sm tracking-wide whitespace-nowrap text-foreground/75 uppercase underline-offset-4 transition-colors duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:text-foreground hover:underline"
+          className="pointer-events-auto cursor-pointer text-sm text-white underline underline-offset-4 opacity-80 transition-opacity duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:opacity-100"
         >
           {isOpen ? t("hideScores") : t("showScores")}
         </button>
+        <div className="pointer-events-auto">
+          <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="w-auto max-w-none px-8 whitespace-nowrap">
+            {t("replay")} ({game.replay.length}/{game.players.length})
+          </PrimaryButton>
+        </div>
+      </div>
     </>
   )
 }
