@@ -40,7 +40,7 @@ async function shrink(file: File): Promise<File> {
 }
 
 /** Bouton « feedback » (hors jeu, séparé des boutons de partie) : type, message, e-mail et capture facultatifs → admin, Tasks › Feedback. */
-export function FeedbackButton({ gameCode, className }: { gameCode?: string; className?: string }) {
+export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: string; className?: string; asRow?: boolean }) {
   const t = useText()
   const { errors } = useSkin()
   const { profile } = useProfile()
@@ -103,9 +103,16 @@ export function FeedbackButton({ gameCode, className }: { gameCode?: string; cla
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" aria-label={t("feedbackButton")} title={t("feedbackButton")} className={cn(ICON_BUTTON, className)}>
-          <HugeiconsIcon icon={Sent02Icon} strokeWidth={1.6} className="size-7" />
-        </button>
+        {asRow ? (
+          <button type="button" className={cn("flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10", className)}>
+            <HugeiconsIcon icon={Sent02Icon} strokeWidth={1.6} className="size-4.5" />
+            {t("feedbackButton")}
+          </button>
+        ) : (
+          <button type="button" aria-label={t("feedbackButton")} title={t("feedbackButton")} className={cn(ICON_BUTTON, className)}>
+            <HugeiconsIcon icon={Sent02Icon} strokeWidth={1.6} className="size-7" />
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[92vh] w-[min(92vw,30rem)] overflow-y-auto rounded-2xl border-0 bg-surface p-6 text-foreground">
         <DialogTitle className="font-display text-2xl">{t("feedbackTitle")}</DialogTitle>

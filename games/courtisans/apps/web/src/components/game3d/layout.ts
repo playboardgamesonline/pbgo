@@ -73,6 +73,11 @@ export const DRAW_PILE = new Vector3(MAT_W / 2 + 1.2, 0, 0)
 export const deckTopPose = (n: number) =>
   pose(DRAW_PILE.x, 0.03 + Math.min(n, 60) * LAYOUT_SETTINGS.deckSpacing, DRAW_PILE.z, lean(`pioche${n}`, 0.04).multiply(FACE_DOWN))
 
+/** Pile des missions, face cachée, à gauche du plateau (symétrique de la pioche) ; les missions en sont distribuées après les cartes de la pioche. */
+export const MISSION_PILE = { x: -(MAT_W / 2 + 1.2), z: 0, size: 8, scale: 0.85, spacing: 0.022 }
+export const missionPilePose = (n: number, scaleFactor = MISSION_PILE.scale): Pose =>
+  pose(MISSION_PILE.x, 0.03 + n * MISSION_PILE.spacing, MISSION_PILE.z, lean(`mission-pile${n}`, 0.05).multiply(FACE_DOWN), scaleFactor)
+
 export type Orientation = "down" | "up" | "left" | "right"
 export type Seat = { position: Vector3; orientation: Orientation; maxWidth: number }
 

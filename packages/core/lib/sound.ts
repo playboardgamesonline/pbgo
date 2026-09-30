@@ -49,6 +49,8 @@ let ctx: AudioContext | null = null
 let master: GainNode | null = null
 let effectsBus: GainNode | null = null
 let musicBus: GainNode | null = null
+let analyser: AnalyserNode | null = null
+let spectrum: Uint8Array<ArrayBuffer> | null = null
 let ambienceBus: GainNode | null = null
 let music: { name: string; source: AudioBufferSourceNode; gain: GainNode } | null = null
 let ambience: AudioBufferSourceNode | null = null
@@ -143,6 +145,11 @@ export function initSound() {
     master = ctx.createGain()
     master.gain.value = 0
     master.connect(ctx.destination)
+    analyser = ctx.createAnalyser()
+    analyser.fftSize = 256
+    analyser.smoothingTimeConstant = 0.78
+    master.connect(analyser)
+    spectrum = new Uint8Array(analyser.frequencyBinCount)
     effectsBus = ctx.createGain()
     effectsBus.connect(master)
     musicBus = ctx.createGain()
@@ -217,4 +224,26 @@ export function playSound(name: string, { volume = 1, delay = 0 }: { volume?: nu
     source.connect(gain).connect(output)
     source.start(Math.max(at, c.currentTime))
   })
+}
+
+/**
+ * Niveaux (0 à 1) de `count` bandes du son actuellement joué (musique + ambiance + effets), pour animer l'interface.
+ * Renvoie null tant que l'audio n'est pas démarré ; `silent` est vrai quand rien n'est audible.
+ */
+export function readSoundLevels(count: number): { levels: number[]; silent: boolean } | null {
+  if (!analyser || !spectrum) return null
+  analyser.getByteFrequencyData(spectrum)
+  const usable = Math.floor(spectrum.length * 0.7)
+  const levels: number[] = []
+  let total = 0
+  for (let i = 0; i < count; i++) {
+    const from = Math.floor(Math.pow(i / count, 1.6) * usable)
+    const to = Math.max(from + 1, Math.floor(Math.pow((i + 1) / count, 1.6) * usable))
+    let sum = 0
+    for (let j = from; j < to; j++) sum += spectrum[j]!
+    const v = sum / (to - from) / 255
+    levels.push(v)
+    total += v
+  }
+  return { levels, silent: total / count < 0.01 }
 }

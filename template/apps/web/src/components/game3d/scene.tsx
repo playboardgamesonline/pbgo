@@ -7,10 +7,11 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import { type PerspectiveCamera, Vector3 } from "three"
 import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import { TurnCrown } from "./crown"
-import { Card3D } from "./card3d"
+import { CARD_SETTINGS, Card3D } from "./card3d"
 import { DECK_POSE, type Pose, backPose, handPose, trickPose, collectedPose, LAYOUT_SETTINGS, seats } from "./layout"
 import { copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
 import { GamePhoto } from "./photo"
+import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { useSettings } from "./settings"
 import { TableText } from "./table-text"
 import { CARD_H, CARD_W, backTexture, faceTexture, matTexture } from "./textures"
@@ -91,6 +92,13 @@ function World({ view, color, onPlay, myTurn, crownIcon }: SceneProps) {
     hoverLift: ["hover lift", 0, 1.5, 0.01],
     trickGap: ["trick spread", 0, 1, 0.01],
   }, { order: 1 })
+  useSettings("Card", CARD_SETTINGS, {
+    flightDuration: ["flight duration (×)", 0.2, 3, 0.01],
+    flightHeight: ["flight height (×)", 0, 3, 0.01],
+    easing: ["flight easing", EASING_NAMES as string[]],
+    foldable: ["bendability", 0, 1, 0.01],
+    shadow: ["shadow", 0, 1, 0.01],
+  } as never, { order: 2 })
   const meId = view.me?.id ?? null
   const slots = useMemo(() => seats(view.players.map((j) => j.id), meId), [view.players, meId])
   const [hovered, setHovered] = useState<string | null>(null)

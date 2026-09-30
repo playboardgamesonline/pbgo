@@ -1,10 +1,10 @@
 "use client"
 
-import { Volume2Icon, VolumeXIcon } from "lucide-react"
 import { motion } from "motion/react"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useText } from "../skin-provider"
+import { SoundWaves } from "./sound-visual"
 import { initSound, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, SOUNDS } from "../../lib/sound"
 
 const listeners = new Set<() => void>()
@@ -30,7 +30,7 @@ export function useSoundEnabled() {
 export const ICON_BUTTON =
   "flex size-11 cursor-pointer items-center justify-center rounded-full text-foreground transition-transform hover:scale-110 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]"
 
-export function SoundButton({ className }: { className?: string }) {
+export function SoundButton({ className, size = 28 }: { className?: string; size?: number }) {
   const on = useSoundEnabled()
   const [pulse, setPulse] = useState(0)
   const t = useText()
@@ -54,7 +54,7 @@ export function SoundButton({ className }: { className?: string }) {
         transition={{ type: "spring", stiffness: 500, damping: 14 }}
         className="inline-flex"
       >
-        {on ? <Volume2Icon strokeWidth={1.6} className="size-7" /> : <VolumeXIcon strokeWidth={1.6} className="size-7" />}
+        <SoundWaves on={on} size={size} />
       </motion.span>
     </button>
   )

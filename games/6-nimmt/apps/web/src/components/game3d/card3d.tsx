@@ -22,6 +22,7 @@ import {
   Vector3,
 } from "three"
 import { TessellateModifier } from "three/examples/jsm/modifiers/TessellateModifier.js"
+import { DEFAULT_EASING, ease } from "@pbgo/core/components/game/easing"
 import type { Pose } from "./layout"
 
 const geometries = new Map<string, ShapeGeometry>()
@@ -197,8 +198,9 @@ export const CARD_SETTINGS = {
   gloss: 0.5,
   glossMotion: 0.45,
   shadow: 0.06,
-  flightDuration: 1.2,
-  flightHeight: 1.9,
+  flightDuration: 0.64,
+  flightHeight: 0.64,
+  easing: DEFAULT_EASING as string,
   thickness: 0.005,
   foldable: 0.04,
 }
@@ -256,8 +258,6 @@ const qTmp = new Quaternion()
 const UP = new Vector3(0, 1, 0)
 
 type Flight = { t: number; duration: number; p0: Vector3; q0: Quaternion; s0: number; momentum: number; direction: number }
-
-const smoothness = (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
 
 function bezier(out: Vector3, a: Vector3, b: Vector3, c: Vector3, d: Vector3, t: number) {
   const m = 1 - t
@@ -388,7 +388,7 @@ export function Card3D({
       v.t += dt
       if (v.t >= 0) {
         const u = Math.min(1, v.t / v.duration)
-        const e = smoothness(u)
+        const e = ease(CARD_SETTINGS.easing, u)
         p1.copy(v.p0).addScaledVector(UP, v.p0.y > 8 ? 0 : v.momentum)
         p2.copy(target.position).addScaledVector(UP, target.position.y > 8 ? 0 : v.momentum * 0.85)
         bezier(g.position, v.p0, p1, p2, target.position, e)

@@ -30,7 +30,7 @@ import type { EndingState } from "./ending"
 import { Counters, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { useSettings, useSettingsVersion } from "./settings"
 import { patternTexture } from "./patterns"
-import { roundValue, copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
+import { roundValue, copyButton, debugTab, COPY_ORDER } from "@pbgo/core/components/game/debug-tabs"
 import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
 import {
@@ -42,6 +42,8 @@ import {
   MISSION_H,
   MISSION_W,
   DRAW_PILE,
+  MISSION_PILE,
+  missionPilePose,
   LAYOUT_SETTINGS,
   type Pose,
   MAT_W,
@@ -144,7 +146,7 @@ function CameraRig() {
   useControls(
     "Camera",
     {
-      "Copy values": button((get) => {
+      "Copy values": { ...button((get) => {
         const values = {
           tilt: get("Camera.inclinaison"),
           yaw: get("Camera.lacet"),
@@ -154,8 +156,8 @@ function CameraRig() {
         }
         navigator.clipboard?.writeText(JSON.stringify({ Camera: values }, roundValue, 2)).catch(() => null)
         console.info("Camera", values)
-      }),
-      Reset: button(() => adjust(DEFAULT_CAMERA)),
+      }), order: COPY_ORDER },
+      Reset: { ...button(() => adjust(DEFAULT_CAMERA)), order: COPY_ORDER + 1 },
     },
     { order: 0 },
     debugTab("SCENE"),
@@ -810,15 +812,18 @@ function World({
       const inverse = cameraOuverture.quaternion.clone().invert()
       setMissionOrigins(
         new Map(
-          missions.map((m, i) => [
-            m.id,
-            {
-              position: cameraOuverture.worldToLocal(new Vector3((i - 0.5) * 0.25, 0.12 + i * 0.01, 0)),
-              quaternion: inverse.clone().multiply(new Quaternion().setFromAxisAngle(Y_AXIS, (i - 0.5) * 0.3).multiply(FACE_DOWN)),
-              scaleFactor: 0.85,
-              delay: 0.35 + i * 0.3,
-            },
-          ]),
+          missions.map((m, i) => {
+            const from = missionPilePose(MISSION_PILE.size + i)
+            return [
+              m.id,
+              {
+                position: cameraOuverture.worldToLocal(from.position.clone()),
+                quaternion: inverse.clone().multiply(from.quaternion),
+                scaleFactor: from.scaleFactor,
+                delay: 0.35 + i * 0.3,
+              },
+            ]
+          }),
         ),
       )
     }
@@ -1148,9 +1153,11 @@ function World({
         view.players.map((j) => {
           const zone = zones.get(j.id)
           if (!zone || j.id === meId) return null
+          const order = view.players.findIndex((x) => x.id === j.id)
           return [0, 1].map((k) => {
             const back = tex.missionBack(missions[k % missions.length]!)
-            return <Card3D key={`mission-dos-${j.id}-${k}`} target={restPose(zone, j.id, k)} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow />
+            const origin = openingStep === "missions" ? { ...missionPilePose(MISSION_PILE.size + 2 + k), delay: 0.9 + (order * 2 + k) * 0.25 } : undefined
+            return <Card3D key={`mission-dos-${j.id}-${k}`} target={restPose(zone, j.id, k)} origin={origin} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow />
           })
         })}
       {results && ending && (
@@ -1205,6 +1212,12 @@ function World({
         <Ephemeral key={t.id} item={t} tex={tex} onEnd={() => setTransients((l) => l.filter((x) => x.id !== t.id))} />
       ))}
 
+      <Appear active={flow} delay={deckEnd(drawPileSettings)} duration={drawPileSettings.drop} elevation={drawPileSettings.elevation} mask>
+        {Array.from({ length: missions.length > 0 ? MISSION_PILE.size : 0 }, (_, n) => {
+          const back = tex.missionBack(missions[0]!)
+          return <Card3D key={`mission-pile-${n}`} target={missionPilePose(n)} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow={n < MISSION_PILE.size - 1} />
+        })}
+      </Appear>
       <DrawPile count={view.deckCount} active={flow} settings={drawPileSettings} />
       <Appear active={flow} delay={deckEnd(drawPileSettings)} duration={drawPileSettings.drop} elevation={drawPileSettings.elevation} mask>
         {view.deckCount > 0 && (

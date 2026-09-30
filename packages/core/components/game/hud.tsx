@@ -147,6 +147,7 @@ export function GameHud({
   children: React.ReactNode
 }) {
   const t = useText()
+  const { game } = useGame()
   const { logo, title } = useSiteSettings()
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background text-foreground">
@@ -166,7 +167,7 @@ export function GameHud({
           <button type="button" className="w-40 cursor-pointer transition-transform hover:scale-105 sm:w-48" title={t("leave")} onClick={onLeave}>
             {logo ? <Logo src={logo} alt={title} /> : <span className="font-display text-2xl font-black tracking-[0.12em] uppercase">{title}</span>}
           </button>
-          <Toolbar rules={rules} />
+          <Toolbar rules={rules} gameCode={game.code} />
         </div>
         {ticker}
       </header>
