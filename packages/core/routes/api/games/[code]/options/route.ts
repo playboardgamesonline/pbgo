@@ -13,7 +13,7 @@ export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{
   const row = await updateGame(code, (game) => {
     if (game.host_id !== id) throw new ApiError("HOST_ONLY", 403)
     if (game.status === "playing") throw new ApiError("GAME_IN_PROGRESS", 409)
-    return { options: gameOptions(settings.options, { ...game.options, ...(options as object) }) }
+    return { options: gameOptions(settings.options, { ...game.options, ...(options as object) }, { playerCount: game.players.length }) }
   })
   return publicGame(row, id)
 })

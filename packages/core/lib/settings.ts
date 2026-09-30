@@ -1,5 +1,5 @@
 import * as binding from "@pbgo/binding"
-import { defaultOptions, GAME, normalizeOptions, type OptionValues } from "@pbgo/binding"
+import { defaultOptions, GAME, normalizeOptions, type OptionContext, type OptionValues } from "@pbgo/binding"
 import { FONT_CHOICES } from "@pbgo/studio-kit/constants"
 import { DESCRIPTION, NAME } from "@pbgo/binding"
 import { LOCALES, type Locale } from "./i18n"
@@ -165,8 +165,8 @@ export function cleanOptions(v: unknown): OptionSettings {
 }
 
 /** Options d'une nouvelle partie : défauts de l'admin. Options d'une partie modifiées par l'hôte : les masquées restent au défaut. */
-export function gameOptions(settings: OptionSettings, values: unknown = {}): OptionValues {
-  const merged = normalizeOptions(GAME.options, { ...settings.defaults, ...(values as object) })
+export function gameOptions(settings: OptionSettings, values: unknown = {}, ctx: OptionContext = {}): OptionValues {
+  const merged = normalizeOptions(GAME.options, { ...settings.defaults, ...(values as object) }, ctx)
   for (const k of settings.hidden) merged[k] = settings.defaults[k]!
   return merged
 }

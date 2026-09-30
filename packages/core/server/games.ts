@@ -97,7 +97,8 @@ export async function loadSetupData(options: OptionValues = {}): Promise<unknown
 
 export function newGame(row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay"> {
   const setup = GAME.setup as (args: { players: PlayerInfo[]; options: OptionValues; data?: unknown }) => State
-  return { status: "playing", state: setup({ players: row.players, options: row.options, data }), replay: [] }
+  const options = normalizeOptions(GAME.options, row.options, { playerCount: row.players.length })
+  return { status: "playing", state: setup({ players: row.players, options, data }), replay: [] }
 }
 
 export function publicGame(row: GameRow, playerId: string | null): PublicGame {
