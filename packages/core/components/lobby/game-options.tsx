@@ -1,6 +1,6 @@
 "use client"
 
-import { type OptionDefinition, GAME, type OptionValue, type OptionValues } from "@pbgo/binding"
+import { type OptionDefinition, GAME, type OptionValue, type OptionValues, applyPreset, normalizeOptions, optionGroup, optionStatus, presetMatches } from "@pbgo/binding"
 import { MinusIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -16,11 +16,14 @@ export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p
   const values = local && local.version >= game.version ? local.values : game.options
   const { options: optionSettings } = useSiteSettings()
   const t = useText()
-  const entries = Object.entries(GAME.options).filter(([key]) => !optionSettings.hidden.includes(key))
-  if (entries.length === 0) return null
+  const ctx = { playerCount: game.players.length }
+  const visible = Object.entries(GAME.options).filter(([key]) => !optionSettings.hidden.includes(key))
+  const parameters = visible.filter(([, def]) => optionGroup(def) === "parameter")
+  const extensions = visible.filter(([, def]) => optionGroup(def) === "extension")
+  const presets = (GAME.presets ?? []).filter((p) => Object.keys(p.values).every((k) => !optionSettings.hidden.includes(k)))
+  if (visible.length === 0) return null
 
-  async function change(key: string, value: OptionValue) {
-    const nextValues = { ...values, [key]: value }
+  async function send(nextValues: OptionValues) {
     setLocal({ version: game.version + 1, values: nextValues })
     try {
       onUpdate(await api.options(game.code, nextValues))
@@ -29,24 +32,89 @@ export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p
       toast.error((e as Error).message)
     }
   }
+  const change = (key: string, value: OptionValue) => send(normalizeOptions(GAME.options, { ...values, [key]: value }, ctx))
+  const label = (k: string) => GAME.options[k]?.label ?? k
 
+  function reason(key: string): string | null {
+    const status = optionStatus(GAME.options, values, key, ctx)
+    if (status.available) return null
+    const names = (status.with ?? []).map(label).join(", ")
+    if (status.reason === "players") return t("optionPlayers", { count: ctx.playerCount })
+    return status.reason === "requires" ? t("optionNeeds", { names }) : t("optionConflicts", { names })
+  }
+
+  const title = "mb-4 flex items-baseline justify-between font-display text-sm font-semibold tracking-[0.14em] text-foreground/60 uppercase"
   return (
-    <section className="mt-[4vh] w-full max-w-md rounded-2xl border border-foreground/10 bg-surface/70 p-5 backdrop-blur-sm">
-      <h2 className="mb-4 flex items-baseline justify-between font-display text-sm font-semibold tracking-[0.14em] text-foreground/60 uppercase">
-        {t("gameOptions")}
-        {!editable && <span className="text-xs tracking-normal normal-case">{t("chosenByHost")}</span>}
-      </h2>
-      <ul className="space-y-4">
-        {entries.map(([key, def]) => (
-          <li key={key} className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-semibold">{def.label}</p>
-              {def.help && <p className="text-xs text-foreground/50">{def.help}</p>}
-            </div>
-            <Control def={def} value={values[key] ?? def.defaultValue} editable={editable} onChange={(v) => change(key, v)} />
-          </li>
-        ))}
-      </ul>
+    <section className="mt-[4vh] w-full max-w-md space-y-6 rounded-2xl border border-foreground/10 bg-surface/70 p-5 backdrop-blur-sm">
+      {presets.length > 0 && (
+        <div>
+          <h2 className={title}>{t("gamePresets")}</h2>
+          <div className="flex flex-wrap gap-2">
+            {presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                disabled={!editable}
+                title={preset.help}
+                onClick={() => send(applyPreset(GAME.options, preset, ctx))}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-sm transition-colors disabled:cursor-default",
+                  presetMatches(preset, values) ? "border-transparent bg-accent-game font-semibold text-background" : "border-foreground/20",
+                  editable && !presetMatches(preset, values) && "cursor-pointer hover:bg-foreground/10",
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {parameters.length > 0 && (
+        <div>
+          <h2 className={title}>
+            {presets.length || extensions.length ? t("gameParameters") : t("gameOptions")}
+            {!editable && <span className="text-xs tracking-normal normal-case">{t("chosenByHost")}</span>}
+          </h2>
+          <ul className="space-y-4">
+            {parameters.map(([key, def]) => (
+              <li key={key} className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-semibold">{def.label}</p>
+                  {def.help && <p className="text-xs text-foreground/50">{def.help}</p>}
+                </div>
+                <Control def={def} value={values[key] ?? def.defaultValue} editable={editable} onChange={(v) => change(key, v)} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {extensions.length > 0 && (
+        <div>
+          <h2 className={title}>
+            {t("gameExtensions")}
+            {!editable && parameters.length === 0 && <span className="text-xs tracking-normal normal-case">{t("chosenByHost")}</span>}
+          </h2>
+          <ul className="space-y-2">
+            {extensions.map(([key, def]) => {
+              const blocked = reason(key)
+              const active = values[key] === true
+              return (
+                <li key={key} className={cn("flex items-center justify-between gap-4 rounded-xl border p-3 transition-colors", active ? "border-accent-game/60 bg-accent-game/10" : "border-foreground/10", blocked && !active && "opacity-50")}>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {def.icon && <span className="text-2xl" aria-hidden>{def.icon}</span>}
+                    <div className="min-w-0">
+                      <p className="font-semibold">{def.label}</p>
+                      {def.help && <p className="text-xs text-foreground/50">{def.help}</p>}
+                      {blocked && <p className="text-xs text-foreground/60 italic">{blocked}</p>}
+                    </div>
+                  </div>
+                  <Control def={def} value={active} editable={editable && (!blocked || active)} onChange={(v) => change(key, v)} />
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </section>
   )
 }
