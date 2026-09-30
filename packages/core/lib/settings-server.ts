@@ -2,7 +2,7 @@ import "server-only"
 import { cache } from "react"
 import { client } from "../sanity/client"
 import { fixedUrlFor, urlFor } from "../sanity/image"
-import { clampPlayers, clampTimeout, cleanOptions, DEFAULT_SETTINGS, DEFAULT_THEME, isFont, isHex, type SiteSettings, type ThemeColors, type UploadedFile } from "./settings"
+import { clampPlayers, clampTimeout, cleanOptions, DEFAULT_SETTINGS, DEFAULT_THEME, gameName, isFont, isHex, type SiteSettings, type ThemeColors, type UploadedFile } from "./settings"
 
 export const SETTINGS_TAG = "settings"
 
@@ -55,7 +55,7 @@ export function toSettings(doc: SettingsDoc): SiteSettings {
     Object.entries(DEFAULT_THEME).map(([k, d]) => [k, isHex(doc.theme?.[k as keyof ThemeColors]) ? doc.theme![k as keyof ThemeColors]! : d]),
   ) as ThemeColors
   return {
-    title: doc.title?.trim() || DEFAULT_SETTINGS.title,
+    title: gameName(doc.title ?? "") || DEFAULT_SETTINGS.title,
     description: doc.description?.trim() || DEFAULT_SETTINGS.description,
     logo: hasImage(doc.logo) ? urlFor(doc.logo).width(1200).url() : DEFAULT_SETTINGS.logo,
     favicon: hasImage(doc.favicon) ? (doc.favicon.mime === "image/svg+xml" ? fixedUrlFor(doc.favicon).url() : fixedUrlFor(doc.favicon).width(512).height(512).fit("fill").format("png").url()) : DEFAULT_SETTINGS.favicon,

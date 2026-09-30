@@ -7,7 +7,7 @@ export const SLUG = "courtisans"
 export const SANITY_PROJECT_ID = "2lo2f5sv"
 
 // Valeurs par défaut, remplacées par les réglages de /admin (document Sanity « settings »)
-export const NAME = "Courtisans Online"
+export const NAME = "Courtisans"
 
 export const TAGLINE = "Le banquet de la Reine, en ligne et entre amis"
 

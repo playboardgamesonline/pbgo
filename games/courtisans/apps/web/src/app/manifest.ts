@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next"
+import { siteTitle } from "@pgo/core/lib/settings"
 import { loadSettings } from "@pgo/core/lib/settings-server"
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const { title, description, theme } = await loadSettings()
   return {
-    name: title,
+    name: siteTitle(title),
     short_name: "Courtisans",
     description,
     start_url: "/",

@@ -12,6 +12,7 @@ import {
   cleanOptions,
   DEFAULT_THEME,
   isFont,
+  gameName,
   isHex,
   mediaUrl,
   SETTINGS_FILE_SLOTS,
@@ -210,7 +211,7 @@ type Input = Record<string, unknown>
 const SAVERS: Record<SectionName, (input: Input) => Promise<void>> = {
   async identity(input) {
     const s = input as Partial<SiteSettings>
-    const title = text(s.title, 80)
+    const title = gameName(text(s.title, 80))
     if (!title) throw new ApiError("EMPTY_TITLE")
     const { set, unset } = split({
       title,

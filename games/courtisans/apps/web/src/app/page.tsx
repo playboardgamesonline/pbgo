@@ -1,5 +1,6 @@
 import { Home } from "@pgo/core/components/home/home"
 import { loadRules } from "@pgo/core/lib/rules-server"
+import { siteTitle } from "@pgo/core/lib/settings"
 import { loadSettings } from "@pgo/core/lib/settings-server"
 import { AUTHOR, GENRES, SITE_URL } from "@/lib/site"
 
@@ -9,10 +10,10 @@ function structuredData({ title, description, minPlayers, maxPlayers }: Awaited<
   return {
   "@context": "https://schema.org",
   "@graph": [
-    { "@type": "WebSite", "@id": `${SITE_URL}/#site`, url: SITE_URL, name: title, inLanguage: "fr-FR", description },
+    { "@type": "WebSite", "@id": `${SITE_URL}/#site`, url: SITE_URL, name: siteTitle(title), inLanguage: "fr-FR", description },
     {
       "@type": "VideoGame",
-      name: title,
+      name: siteTitle(title),
       url: SITE_URL,
       description,
       inLanguage: "fr-FR",
@@ -34,7 +35,7 @@ export default async function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData(settings)) }} />
-      <h1 className="sr-only">{settings.title} · Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis</h1>
+      <h1 className="sr-only">{siteTitle(settings.title)} · Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis</h1>
       <Home rules={await loadRules()} />
     </>
   )

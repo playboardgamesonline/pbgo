@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { AppShell } from "@pgo/core/components/app-shell"
 import { Toaster } from "@pgo/ui/game/sonner"
 import { TooltipProvider } from "@pgo/ui/game/tooltip"
-import { fontFaceCss, googleFontsHref, themeStyle } from "@pgo/core/lib/settings"
+import { fontFaceCss, googleFontsHref, siteTitle, themeStyle } from "@pgo/core/lib/settings"
 import { loadSettings } from "@pgo/core/lib/settings-server"
 import { loadSkin } from "@pgo/core/lib/skin-server"
 import { loadAudio } from "@pgo/core/lib/audio-server"
@@ -11,7 +11,9 @@ import { AUTHOR, KEYWORDS, SITE_URL } from "@/lib/site"
 import "./globals.css"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { title, description } = await loadSettings()
+  const settings = await loadSettings()
+  const { description } = settings
+  const title = siteTitle(settings.title)
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: title, template: `%s · ${title}` },

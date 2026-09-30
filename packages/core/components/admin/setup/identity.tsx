@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pgo/
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pgo/ui/admin/field"
 import { Input } from "@pgo/ui/admin/input"
 import { Textarea } from "@pgo/ui/admin/textarea"
-import type { SiteSettings } from "../../../lib/settings"
+import { siteTitle, TITLE_SUFFIX, type SiteSettings } from "../../../lib/settings"
 import { FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = Pick<SiteSettings, "title" | "description" | "credits">
@@ -20,7 +20,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
 
   return (
     <SetupLayout
-      aside={<LinkPreviewAside draft={{ settings, skin: data.skin }} share={{ image: shareUrl, title: settings.title, description: settings.description, domain }} />}
+      aside={<LinkPreviewAside draft={{ settings, skin: data.skin }} share={{ image: shareUrl, title: siteTitle(settings.title), description: settings.description, domain }} tab={{ title: settings.title, favicon: settings.favicon }} />}
     >
       <ReadOnlyAlert writable={data.writable} />
 
@@ -60,9 +60,11 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
           </p>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="title">Title</FieldLabel>
+              <FieldLabel htmlFor="title">Game name</FieldLabel>
               <Input id="title" value={draft.title} maxLength={80} onChange={(e) => set("title", e.target.value)} disabled={disabled} className="h-11 text-lg font-semibold" />
-              <FieldDescription>Browser tab, search results and share card.</FieldDescription>
+              <FieldDescription>
+                The game’s name only, without “Online”. The site adds “{TITLE_SUFFIX}” (browser tab, search results, share card) and “· Table #CODE” during a game.
+              </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="description">Description</FieldLabel>

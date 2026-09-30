@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pgo/ui/admin/card"
 import { Tabs, TabsList, TabsTrigger } from "@pgo/ui/admin/tabs"
 import { PREVIEW_MESSAGE, PREVIEW_READY, type PreviewDraft } from "../../../lib/preview"
+import { siteTitle, tableTitle } from "../../../lib/settings"
 
 const FRAME = { width: 1440, height: 900 }
 
@@ -96,6 +97,28 @@ export function LinkPreview({ image, title, description, domain }: { image: stri
             <p className="line-clamp-2 text-xs text-muted-foreground">{description}</p>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Onglets du navigateur : accueil, puis pendant une partie. */
+export function TabPreview({ title, favicon }: { title: string; favicon: string | null }) {
+  const tabs = [siteTitle(title), tableTitle(title, "4XVXA1")]
+  return (
+    <Card className="gap-3">
+      <CardHeader>
+        <CardTitle>Browser tab</CardTitle>
+        <CardDescription>Home, then during a game</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {tabs.map((t) => (
+          <div key={t} className="flex h-9 items-center gap-2 rounded-t-lg border bg-background px-3 shadow-xs">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={favicon ?? "/icon.png"} alt="" className="size-4 shrink-0 rounded-[3px] object-cover" />
+            <span className="truncate text-xs">{t}</span>
+          </div>
+        ))}
       </CardContent>
     </Card>
   )

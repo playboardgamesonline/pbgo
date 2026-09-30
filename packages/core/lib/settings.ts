@@ -87,8 +87,23 @@ export const PLAYER_BOUNDS = { min: GAME.minPlayers, max: GAME.maxPlayers }
 /** Valeurs par défaut propres au jeu (thème, polices, crédits…) quand Sanity n'a rien : export facultatif `SETTINGS_DEFAULTS` de @pgo/binding. */
 const gameDefaults = (binding as { SETTINGS_DEFAULTS?: Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> } }).SETTINGS_DEFAULTS ?? {}
 
+/** Suffixe ajouté au nom du jeu dans l'onglet du navigateur, les résultats de recherche et les cartes de partage. */
+export const TITLE_SUFFIX = "Online (PBGO)"
+
+/** Nom du jeu tel qu'enregistré dans l'admin : sans « Online » ni « (PBGO) » (tolère les anciennes valeurs). */
+export const gameName = (title: string) => title.replace(/\s*\bonline\b(\s*\(PBGO\))?\s*$/i, "").trim()
+
+/** « Courtisans Online (PBGO) » */
+export const siteTitle = (title: string) => `${gameName(title)} ${TITLE_SUFFIX}`
+
+/** « Courtisans Online (PBGO) · Table #4XV-XA1 » */
+export const tableTitle = (title: string, code: string) => {
+  const c = code.toUpperCase()
+  return `${siteTitle(title)} · Table #${c.length === 6 ? `${c.slice(0, 3)}-${c.slice(3)}` : c}`
+}
+
 export const DEFAULT_SETTINGS: SiteSettings = {
-  title: NAME,
+  title: gameName(NAME),
   description: DESCRIPTION,
   logo: null,
   favicon: null,
