@@ -21,6 +21,7 @@ export type PublicGame = {
 
 export type GameState = State
 
-export const gameChannel = (code: string) => `game:${code}`
+// Le schéma évite qu'un même code de partie croise deux jeux sur le projet Supabase partagé.
+export const gameChannel = (code: string) => `game:${process.env.NEXT_PUBLIC_SUPABASE_SCHEMA || "public"}:${code}`
 export const UPDATE_EVENT = "maj"
 

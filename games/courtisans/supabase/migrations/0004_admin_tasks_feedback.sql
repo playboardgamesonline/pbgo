@@ -6,10 +6,10 @@ alter table public.tasks add column if not exists priority text not null default
 
 do $$
 begin
-  if not exists (select 1 from pg_constraint where conname = 'tasks_type_check') then
+  if not exists (select 1 from pg_constraint where conname = 'tasks_type_check' and conrelid = 'public.tasks'::regclass) then
     alter table public.tasks add constraint tasks_type_check check (type in ('backlog', 'bug'));
   end if;
-  if not exists (select 1 from pg_constraint where conname = 'tasks_priority_check') then
+  if not exists (select 1 from pg_constraint where conname = 'tasks_priority_check' and conrelid = 'public.tasks'::regclass) then
     alter table public.tasks add constraint tasks_priority_check check (priority in ('high', 'medium', 'low'));
   end if;
 end $$;

@@ -8,8 +8,9 @@
 #
 # Mode automatique : si ~/.config/pbgo/secrets.env existe (ou PBGO_SECRETS), rien n'est demandé.
 #   ADMIN_LOGIN, ADMIN_PASSWORD          compte admin commun à tous les jeux
-#   SUPABASE_ACCESS_TOKEN                token perso Supabase : le projet est créé, ses clés lues, les migrations appliquées
-#   SUPABASE_ORG_ID, SUPABASE_REGION     facultatifs (défaut : première organisation, région d'un projet existant)
+#   SUPABASE_ACCESS_TOKEN                token perso Supabase : schéma du jeu créé, migrations appliquées, schéma exposé
+#   SUPABASE_PROJECT_REF                 projet Supabase partagé par tous les jeux (sinon « pbgo » est trouvé ou créé)
+#   SUPABASE_ORG_ID, SUPABASE_REGION     facultatifs, seulement si le projet partagé doit être créé
 #   VERCEL_TOKEN, VERCEL_TEAM_ID         facultatifs : page Monitoring de l'admin
 # Sanity est déjà automatique : le token d'écriture est créé pour chaque projet avec la connexion `sanity login`.
 # Ce fichier reste sur ta machine, jamais dans le repo.
@@ -171,43 +172,46 @@ if confirm "Déployer le schéma Sanity (champs Settings pour /setup) ?"; then
   else err "schema deploy : $(tail -3 "$TMP/schema.log")"; fi
 fi
 
-# ---------- Supabase ----------
+# ---------- Supabase (projet partagé, un schéma par jeu) ----------
 title "Supabase"
 SB_PAT="$(secret SUPABASE_ACCESS_TOKEN)"
 SBAPI="https://api.supabase.com/v1"
 SB() { curl -s -H "Authorization: Bearer $SB_PAT" -H "Content-Type: application/json" "$@"; }
-FRESH=0
+SCHEMA="$(current NEXT_PUBLIC_SUPABASE_SCHEMA)"
+[ -z "$SCHEMA" ] && SCHEMA="g_$(echo "$SLUG" | tr '-' '_')"
+REF="$(current NEXT_PUBLIC_SUPABASE_URL | sed -E 's#https://([^.]+)\..*#\1#')"
+[ -z "$REF" ] && REF="$(secret SUPABASE_PROJECT_REF)"
 
-# création automatique du projet Supabase (nom = nom du jeu) quand aucune URL n'est encore connue
-if [ -z "$(current NEXT_PUBLIC_SUPABASE_URL)" ] && [ -n "$SB_PAT" ]; then
-  REF="$(SB "$SBAPI/projects" | json "o.find(p=>p.name==='$SLUG')?.ref")"
-  if [ -n "$REF" ]; then ok "Projet Supabase existant : $SLUG ($REF)"
-  else
+# projet partagé : celui du fichier de secrets, sinon « pbgo » (trouvé ou créé)
+if [ -z "$REF" ] && [ -n "$SB_PAT" ]; then
+  REF="$(SB "$SBAPI/projects" | json "o.find(p=>p.name==='pbgo')?.ref")"
+  if [ -z "$REF" ]; then
     ORG="$(secret SUPABASE_ORG_ID)"; [ -z "$ORG" ] && ORG="$(SB "$SBAPI/organizations" | json "o[0]?.id")"
-    REGION="$(secret SUPABASE_REGION)"; [ -z "$REGION" ] && REGION="$(SB "$SBAPI/projects" | json "o[0]?.region")"
-    REGION="${REGION:-eu-west-3}"
+    REGION="$(secret SUPABASE_REGION)"; REGION="${REGION:-eu-west-3}"
     DBPW="$(node -e 'const c="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";console.log(Array.from(require("crypto").randomBytes(24),b=>c[b%c.length]).join(""))')"
-    [ -n "$ORG" ] || { err "aucune organisation Supabase trouvée (token invalide ?)"; }
-    RES="$(SB -X POST "$SBAPI/projects" -d "{\"name\":\"$SLUG\",\"organization_id\":\"$ORG\",\"db_pass\":\"$DBPW\",\"region\":\"$REGION\"}")"
+    RES="$(SB -X POST "$SBAPI/projects" -d "{\"name\":\"pbgo\",\"organization_id\":\"$ORG\",\"db_pass\":\"$DBPW\",\"region\":\"$REGION\"}")"
     REF="$(echo "$RES" | json "o.ref ?? o.id")"
-    if [ -n "$REF" ]; then ok "Projet Supabase créé : $SLUG ($REGION)"; FRESH=1
+    if [ -n "$REF" ]; then ok "Projet Supabase partagé créé : pbgo ($REGION)"
     else err "création du projet Supabase : $(echo "$RES" | head -c 300)"; fi
-  fi
-  if [ -n "$REF" ]; then
-    printf "  Démarrage du projet"
-    for i in $(seq 1 60); do
-      st="$(SB "$SBAPI/projects/$REF" | json "o.status")"
-      [ "$st" = "ACTIVE_HEALTHY" ] && break
-      printf "."; sleep 5
-    done; echo
-    KEYS_JSON="$(SB "$SBAPI/projects/$REF/api-keys?reveal=true")"
-    ANON="$(echo "$KEYS_JSON" | json "o.find(k=>k.name==='anon')?.api_key")"
-    SERVICE="$(echo "$KEYS_JSON" | json "o.find(k=>k.name==='service_role')?.api_key")"
-    if [ -n "$ANON" ] && [ -n "$SERVICE" ]; then
-      envset NEXT_PUBLIC_SUPABASE_URL "https://$REF.supabase.co"; envset NEXT_PUBLIC_SUPABASE_ANON_KEY "$ANON"; envset SUPABASE_SERVICE_ROLE_KEY "$SERVICE"
-      ok "URL et clés Supabase renseignées"
-    else err "clés Supabase introuvables (projet pas encore prêt ? relance le script)"; fi
-  fi
+  else ok "Projet Supabase partagé : pbgo ($REF)"; fi
+  [ -n "$REF" ] && warn "Ajoute SUPABASE_PROJECT_REF=$REF à ton fichier de secrets"
+fi
+
+# clés du projet (URL, anon, service_role) quand elles ne sont pas déjà connues
+if [ -n "$REF" ] && [ -n "$SB_PAT" ] && { [ -z "$(current SUPABASE_SERVICE_ROLE_KEY)" ] || [ -z "$(current NEXT_PUBLIC_SUPABASE_URL)" ]; }; then
+  printf "  Démarrage du projet"
+  for i in $(seq 1 60); do
+    st="$(SB "$SBAPI/projects/$REF" | json "o.status")"
+    [ "$st" = "ACTIVE_HEALTHY" ] && break
+    printf "."; sleep 5
+  done; echo
+  KEYS_JSON="$(SB "$SBAPI/projects/$REF/api-keys?reveal=true")"
+  ANON="$(echo "$KEYS_JSON" | json "o.find(k=>k.name==='anon')?.api_key")"
+  SERVICE="$(echo "$KEYS_JSON" | json "o.find(k=>k.name==='service_role')?.api_key")"
+  if [ -n "$ANON" ] && [ -n "$SERVICE" ]; then
+    envset NEXT_PUBLIC_SUPABASE_URL "https://$REF.supabase.co"; envset NEXT_PUBLIC_SUPABASE_ANON_KEY "$ANON"; envset SUPABASE_SERVICE_ROLE_KEY "$SERVICE"
+    ok "URL et clés Supabase renseignées"
+  else err "clés Supabase introuvables (projet pas encore prêt ? relance le script)"; fi
 fi
 
 if [ "$AUTO" = 1 ] && [ -n "$(current NEXT_PUBLIC_SUPABASE_URL)" ]; then
@@ -218,37 +222,41 @@ else
   ask NEXT_PUBLIC_SUPABASE_ANON_KEY "Clé anon / publishable" "" secret
   ask SUPABASE_SERVICE_ROLE_KEY "Clé service_role / secret" "" secret
 fi
-SB_URL="$(current NEXT_PUBLIC_SUPABASE_URL)"; SB_URL="${SB_URL%/}"
-SB_KEY="$(current SUPABASE_SERVICE_ROLE_KEY)"
-REF="$(echo "$SB_URL" | sed -E 's#https://([^.]+)\..*#\1#')"
+envset NEXT_PUBLIC_SUPABASE_SCHEMA "$SCHEMA"
+ok "Schéma du jeu : $SCHEMA"
+REF="$(current NEXT_PUBLIC_SUPABASE_URL | sed -E 's#https://([^.]+)\..*#\1#')"
 
-table_ok() { [ "$(curl -s -o /dev/null -w '%{http_code}' "$SB_URL/rest/v1/$1?select=*&limit=1" -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY")" = "200" ]; }
-
-# migrations : toutes, dans l'ordre, sur un projet neuf ; sinon celles dont les tables manquent
-MISSING=()
-if [ "$FRESH" = 1 ]; then for f in supabase/migrations/*.sql; do MISSING+=("$(basename "$f")"); done
-else
-  table_ok games || MISSING+=("0001_games.sql")
-  table_ok tasks || MISSING+=("0002_tasks.sql")
+if [ -z "$SB_PAT" ]; then
+  echo "  Pour créer le schéma d'ici : token perso sur supabase.com/dashboard/account/tokens (non enregistré)"
+  printf "  Token Supabase (Entrée pour le faire à la main) : "; read -rs SB_PAT; echo
 fi
-if [ ${#MISSING[@]} -eq 0 ]; then
-  ok "Tables games et tasks présentes"
-else
-  warn "Migrations à appliquer : ${MISSING[*]}"
-  if [ -z "$SB_PAT" ]; then
-    echo "  Pour les lancer d'ici : token perso sur supabase.com/dashboard/account/tokens (non enregistré)"
-    printf "  Token Supabase (Entrée pour le faire à la main) : "; read -rs SB_PAT; echo
-  fi
-  if [ -n "$SB_PAT" ]; then
-    for f in "${MISSING[@]}"; do
-      body="$(node -e 'console.log(JSON.stringify({query:require("fs").readFileSync(process.argv[1],"utf8")}))' "supabase/migrations/$f")"
-      code="$(curl -s -o "$TMP/sb.json" -w '%{http_code}' -X POST "$SBAPI/projects/$REF/database/query" \
-        -H "Authorization: Bearer $SB_PAT" -H "Content-Type: application/json" -d "$body")"
-      if [[ "$code" == 2* ]]; then ok "$f appliquée"; else err "$f : $(head -c 200 "$TMP/sb.json")"; fi
-    done
+sbq() { # sbq <sql> → réponse JSON de l'API ; code HTTP dans $SBCODE
+  local body; body="$(node -e 'console.log(JSON.stringify({query:process.argv[1]}))' "$1")"
+  SBCODE="$(curl -s -o "$TMP/sb.json" -w '%{http_code}' -X POST "$SBAPI/projects/$REF/database/query" -H "Authorization: Bearer $SB_PAT" -H "Content-Type: application/json" -d "$body")"
+  cat "$TMP/sb.json"
+}
+if [ -n "$SB_PAT" ] && [ -n "$REF" ]; then
+  # schéma + droits pour le serveur (service_role)
+  sbq "create schema if not exists \"$SCHEMA\"; grant usage on schema \"$SCHEMA\" to service_role; alter default privileges in schema \"$SCHEMA\" grant all on tables to service_role; alter default privileges in schema \"$SCHEMA\" grant all on sequences to service_role;" >/dev/null
+  [[ "$SBCODE" == 2* ]] && ok "Schéma $SCHEMA prêt" || err "schéma : $(head -c 200 "$TMP/sb.json")"
+  # migrations, seulement si les tables du jeu manquent (le 0002 insère des tâches : pas de rejeu)
+  N="$(sbq "select count(*) as n from information_schema.tables where table_schema='$SCHEMA' and table_name in ('games','tasks','feedback')" | json "o[0]?.n")"
+  if [ "$N" = "3" ]; then ok "Tables games, tasks et feedback présentes"
   else
-    warn "Colle le contenu de ${MISSING[*]} (dossier supabase/migrations) dans https://supabase.com/dashboard/project/$REF/sql/new"
+    for f in supabase/migrations/*.sql; do
+      sql="$(sed "s/public\./\"$SCHEMA\"./g" "$f")"
+      sbq "$sql" >/dev/null
+      [[ "$SBCODE" == 2* ]] && ok "$(basename "$f") appliquée" || err "$(basename "$f") : $(head -c 200 "$TMP/sb.json")"
+    done
+    sbq "grant all on all tables in schema \"$SCHEMA\" to service_role" >/dev/null
   fi
+  # exposition du schéma à l'API REST
+  CUR="$(SB "$SBAPI/projects/$REF/postgrest" | json "o.db_schema")"
+  if [ -n "$CUR" ] && [[ ",$CUR," != *",$SCHEMA,"* ]]; then
+    SB -X PATCH "$SBAPI/projects/$REF/postgrest" -d "{\"db_schema\":\"$CUR,$SCHEMA\"}" >/dev/null && ok "Schéma exposé à l'API" || err "exposition du schéma"
+  else ok "Schéma exposé à l'API"; fi
+else
+  warn "Colle supabase/migrations/*.sql (en remplaçant public. par $SCHEMA.) dans https://supabase.com/dashboard/project/$REF/sql/new, après « create schema $SCHEMA », et ajoute $SCHEMA dans Settings → API → Exposed schemas"
 fi
 
 # ---------- Compte admin ----------
@@ -276,7 +284,7 @@ ok "Écrit dans $ENV_FILE"
 
 # ---------- Envoi sur Vercel ----------
 KEYS=(NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_SANITY_PROJECT_ID NEXT_PUBLIC_SANITY_DATASET SANITY_API_WRITE_TOKEN
-  NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY
+  NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_SCHEMA
   ADMIN_LOGIN ADMIN_PASSWORD VERCEL_TOKEN VERCEL_TEAM_ID VERCEL_ANALYTICS_PROJECT_ID)
 if [ -n "$VID" ] && confirm "Envoyer ces variables sur Vercel (production, preview, development) ?"; then
   title "Envoi sur Vercel"

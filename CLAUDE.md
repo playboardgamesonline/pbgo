@@ -74,7 +74,7 @@ Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo
 
 ## Nouveau jeu en une commande
 
-`pnpm add-game <slug> [--push]` enchaîne new-game, go-live (Sanity, Vercel, domaine, studio) et setup-env en mode automatique : projet Supabase créé, clés lues, migrations appliquées, token Sanity créé, compte admin et variables poussés sur Vercel.
+`pnpm add-game <slug> [--push]` enchaîne new-game, go-live (Sanity, Vercel, domaine, studio) et setup-env en mode automatique : schéma Supabase du jeu créé dans le projet partagé, migrations appliquées, schéma exposé, token Sanity créé, compte admin et variables poussés sur Vercel.
 
 Le mode automatique s'active si `~/.config/pbgo/secrets.env` existe (hors repo, `chmod 600`) :
 
@@ -82,6 +82,9 @@ Le mode automatique s'active si `~/.config/pbgo/secrets.env` existe (hors repo, 
 ADMIN_LOGIN=...
 ADMIN_PASSWORD=...
 SUPABASE_ACCESS_TOKEN=...
+SUPABASE_PROJECT_REF=...
 ```
 
-Facultatifs : `SUPABASE_ORG_ID`, `SUPABASE_REGION`, `VERCEL_TOKEN`, `VERCEL_TEAM_ID`. Ne jamais mettre ces valeurs dans le repo.
+Un seul projet Supabase pour tous les jeux : un schéma Postgres par jeu (`NEXT_PUBLIC_SUPABASE_SCHEMA`, `public` pour Courtisans, `g_<jeu>` pour les autres). Sans `SUPABASE_PROJECT_REF`, le projet « pbgo » est trouvé ou créé.
+
+Facultatifs : `SUPABASE_ORG_ID`, `SUPABASE_REGION` (création du projet partagé), `VERCEL_TOKEN`, `VERCEL_TEAM_ID`. Ne jamais mettre ces valeurs dans le repo.
