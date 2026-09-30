@@ -57,14 +57,14 @@ export const columnOf = (card: VisibleCard): Column => card.family ?? "queen"
 
 /** Missions posées face cachée sur la table, à droite de chaque plateau, le long du bord côté table. */
 export const MISSION_REST = { scale: 0.62, gap: 0.35, spacing: 0.14 }
-export function missionRestPose(zone: { center: Vector3; width: number; labelPos: Vector3; labelYaw: number }, index: number, key: string): Pose {
+export function missionRestPose(zone: { center: Vector3; width: number; labelPos: Vector3; labelYaw: number }, index: number, key: string, faceUp = false): Pose {
   const w = MISSION_W * MISSION_REST.scale
   const h = MISSION_H * MISSION_REST.scale
   const yaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), zone.labelYaw)
   const local = new Vector3(zone.width / 2 + MISSION_REST.gap + w / 2, 0.05 + index * 0.02, 0.25 + h / 2 + index * (h + MISSION_REST.spacing)).applyQuaternion(yaw)
   return {
     position: zone.labelPos.clone().add(local).setY(0.05 + index * 0.02),
-    quaternion: yaw.multiply(lean(`${key}:${index}`, 0.06)).multiply(FACE_DOWN),
+    quaternion: yaw.multiply(lean(`${key}:${index}`, 0.06)).multiply(faceUp ? FACE_UP : FACE_DOWN),
     scaleFactor: MISSION_REST.scale,
   }
 }

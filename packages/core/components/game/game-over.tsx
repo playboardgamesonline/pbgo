@@ -1,7 +1,7 @@
 "use client"
 
 import type { PlayerResult, PlayerView } from "@pbgo/binding"
-import { CrownIcon } from "lucide-react"
+import { CrownIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { LinkForwardIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { SharePreview } from "./preview-sharing"
@@ -132,6 +132,13 @@ export function GameOver({
     }
   }
 
+  const replayButton = (
+    <div className="pointer-events-auto">
+      <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="w-auto max-w-none px-8 whitespace-nowrap">
+        {t("replay")} ({game.replay.length}/{game.players.length})
+      </PrimaryButton>
+    </div>
+  )
   const names = winners.map((v) => info(v.playerId)?.nickname).join(" & ")
   const shareText = t("winsWith", { names, points: winners[0]?.total ?? 0 })
 
@@ -150,7 +157,7 @@ export function GameOver({
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-16 pb-40">
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-24">
         <AnimatePresence mode="popLayout">
           {isOpen && (
             <motion.section
@@ -232,24 +239,23 @@ export function GameOver({
               </div>
 
               </div>
+              <div className="absolute inset-x-0 bottom-0 z-20 flex translate-y-1/2 justify-center">{replayButton}</div>
             </motion.section>
           )}
         </AnimatePresence>
         </div>
-      <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex flex-col items-center gap-3">
+      <div className="pointer-events-none fixed inset-x-0 top-5 z-50 flex justify-center">
         <button
           type="button"
           onClick={onToggle}
-          className="pointer-events-auto cursor-pointer text-sm text-white underline underline-offset-4 opacity-80 transition-opacity duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:opacity-100"
+          aria-pressed={isOpen}
+          className="pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm text-white opacity-80 transition-opacity duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:opacity-100"
         >
-          {isOpen ? t("hideScores") : t("showScores")}
+          {isOpen ? <EyeOffIcon strokeWidth={1.6} className="size-5" /> : <EyeIcon strokeWidth={1.6} className="size-5" />}
+          <span className="underline underline-offset-4">{isOpen ? t("hideScores") : t("showScores")}</span>
         </button>
-        <div className="pointer-events-auto">
-          <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="w-auto max-w-none px-8 whitespace-nowrap">
-            {t("replay")} ({game.replay.length}/{game.players.length})
-          </PrimaryButton>
-        </div>
       </div>
+      {!isOpen && <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">{replayButton}</div>}
     </>
   )
 }

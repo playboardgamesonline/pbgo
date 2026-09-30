@@ -27,7 +27,7 @@ import { CardSettingsPanel } from "./card-settings"
 import { GamePhoto } from "./photo"
 import { CrownMark } from "./crown"
 import type { EndingState } from "./ending"
-import { Counters, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
+import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { useSettings, useSettingsVersion } from "./settings"
 import { patternTexture } from "./patterns"
 import { roundValue, copyButton, debugTab, COPY_ORDER } from "@pbgo/core/components/game/debug-tabs"
@@ -717,6 +717,7 @@ function World({
   const restPose = (zone: DomainZone, id: string, k: number) => {
     const key = `${id}:${k}`
     let p = restPoses.get(key)
+    // eslint-disable-next-line react-hooks/immutability
     if (!p) restPoses.set(key, (p = missionRestPose(zone, k, id)))
     return p
   }
@@ -1028,7 +1029,6 @@ function World({
           ? (view.firstPlayerId ?? null)
           : null
   const results = view.results
-  const myResult = results?.players.find((x) => x.playerId === meId)
   const winnerCenters = useWinnerCenters(results?.winners ?? EMPTY, zones)
 
   const subtle = intro || !!missionFocus
@@ -1115,6 +1115,7 @@ function World({
 
       <FollowCamera>
         {visibleMissions &&
+          !ending &&
           missions.map((m: Mission) => (
             <Card3D
               key={m.id}
@@ -1137,7 +1138,7 @@ function World({
               }
               reflectionIntensity={inGameMissionSettings.focusReflection}
               reflection={missionFocus === m.id}
-              glow={ending?.missions && myResult?.missions.find((x) => x.missionId === m.id)?.done ? "gold" : null}
+              glow={null}
               onHover={(s) => setHover(s ? `mission:${m.id}` : null)}
               onClick={(e) => {
                 e.stopPropagation()
@@ -1148,7 +1149,7 @@ function World({
       </FollowCamera>
       {visibleMissions &&
         !intro &&
-        !ending?.missions &&
+        !ending &&
         missions.length > 0 &&
         view.players.map((j) => {
           const zone = zones.get(j.id)
@@ -1179,28 +1180,25 @@ function World({
             ))}
           {view.players.map((j) => {
             const zone = zones.get(j.id)
-            if (!zone || j.id === meId || !j.missions) return null
+            const list = j.id === meId ? missions : j.missions
+            if (!zone || !list) return null
             const r = results.players.find((x) => x.playerId === j.id)
-            const textWidth = nickname(j.id).length * 0.45 + 0.6
-            return j.missions.map((m, k) => {
-              const local = new Vector3(textWidth / 2 + 0.75 + k * 1.05, 0.04, -0.45).applyAxisAngle(Y_AXIS, zone.labelYaw)
-              const yaw = new Quaternion().setFromAxisAngle(Y_AXIS, zone.labelYaw)
-              const target: Pose = {
-                position: zone.labelPos.clone().add(local),
-                quaternion: yaw.multiply(ending.domains ? FACE_UP : FACE_DOWN),
-                scaleFactor: 0.4,
-              }
+            return list.map((m, k) => {
+              const target = missionRestPose(zone, k, m.id, ending.missions)
+              const result = r?.missions.find((x) => x.missionId === m.id)
               return (
-                <Card3D
-                  key={m.id}
-                  target={target}
-                  front={tex.mission(m)}
-                  backFace={tex.missionBack(m)}
-                  width={MISSION_W}
-                  elevation={MISSION_H}
-                  speed={0.22}
-                  glow={ending.missions && r?.missions.find((x) => x.missionId === m.id)?.done ? "gold" : null}
-                />
+                <group key={m.id}>
+                  <Card3D
+                    target={target}
+                    front={tex.mission(m)}
+                    backFace={tex.missionBack(m)}
+                    width={MISSION_W}
+                    elevation={MISSION_H}
+                    speed={0.22}
+                    glow={ending.missions && result?.done ? "gold" : null}
+                  />
+                  {ending.missions && result && <MissionSign done={result.done} points={result.points} position={[target.position.x, 0.06, target.position.z]} />}
+                </group>
               )
             })
           })}
