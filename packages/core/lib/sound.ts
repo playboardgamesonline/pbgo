@@ -39,9 +39,9 @@ function readMusic(): string | null {
 
 export function readSoundEnabled() {
   try {
-    return localStorage.getItem(ENABLED_KEY) !== "off"
+    return localStorage.getItem(ENABLED_KEY) === "on" // coupé par défaut : le joueur l'active lui-même
   } catch {
-    return true
+    return false
   }
 }
 
@@ -52,7 +52,7 @@ let musicBus: GainNode | null = null
 let ambienceBus: GainNode | null = null
 let music: { name: string; source: AudioBufferSourceNode; gain: GainNode } | null = null
 let ambience: AudioBufferSourceNode | null = null
-let enabled = true
+let enabled = false
 let volumes: Volumes = typeof window === "undefined" ? baseVolumes : readVolumes()
 let track: string | null = typeof window === "undefined" ? null : readMusic()
 const buffers = new Map<string, Promise<AudioBuffer | null>>()

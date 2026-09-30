@@ -15,6 +15,7 @@ import { adminRequest, AdminApiError } from "../../../lib/admin-api"
 import type { Feedback } from "../../../server/tasks"
 
 const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
+const TYPE_LABEL: Record<Feedback["type"], string> = { review: "Review", bug: "Bug report", suggestion: "Suggestion", other: "Other" }
 const TABS: { id: Feedback["status"]; label: string }[] = [
   { id: "new", label: "New" },
   { id: "read", label: "Read" },
@@ -56,7 +57,7 @@ export function FeedbackList() {
     try {
       await adminRequest("/api/tasks", {
         method: "POST",
-        body: JSON.stringify({ text: f.message.slice(0, 300), type, category: type === "bug" ? "Bugs" : "Feedback", priority: "medium" }),
+        body: JSON.stringify({ text: f.message.slice(0, 300), type: type, category: type === "bug" ? "Bugs" : "Feedback", priority: "medium" }),
       })
       await setStatus(f.id, "archived")
       toast.success(type === "bug" ? "Added to Bugs" : "Added to the Backlog")
@@ -73,7 +74,7 @@ export function FeedbackList() {
       <Alert>
         <AlertTitle>Supabase migration missing</AlertTitle>
         <AlertDescription>
-          Apply <code>supabase/migrations/…_admin_tasks_feedback.sql</code> to create the feedback table. The “Donner votre avis” button of the game needs it too.
+          Apply <code>supabase/migrations/…_admin_tasks_feedback.sql</code> to create the feedback table. The feedback button of the game needs it too.
         </AlertDescription>
       </Alert>
     )
@@ -109,7 +110,7 @@ export function FeedbackList() {
               <HugeiconsIcon icon={Message01Icon} strokeWidth={2} />
             </EmptyMedia>
             <EmptyTitle>{tab === "new" ? "Nothing new" : "Empty"}</EmptyTitle>
-            <EmptyDescription>Players send feedback with the speech-bubble button, next to the sound and rules buttons.</EmptyDescription>
+            <EmptyDescription>Players send feedback with the paper-plane button, next to the rules and sound buttons.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -117,9 +118,21 @@ export function FeedbackList() {
           <Card key={f.id} className="group gap-3 py-4">
             <CardContent className="flex flex-col gap-3">
               <p className="text-sm leading-relaxed whitespace-pre-line">{f.message}</p>
+              {f.screenshot_url && (
+                <a href={f.screenshot_url} target="_blank" rel="noopener noreferrer" className="w-fit">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.screenshot_url} alt="Screenshot sent by the player" loading="lazy" referrerPolicy="no-referrer" className="max-h-40 rounded-lg border" />
+                </a>
+              )}
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span>{DATE.format(new Date(f.created_at))}</span>
-                {f.nickname && <Badge variant="secondary">{f.nickname}</Badge>}
+                <Badge variant={f.type === "bug" ? "destructive" : "secondary"}>{TYPE_LABEL[f.type] ?? f.type}</Badge>
+                {f.nickname && <Badge variant="outline">{f.nickname}</Badge>}
+                {f.email && (
+                  <a href={`mailto:${encodeURIComponent(f.email).replace(/%40/g, "@")}`} className="underline underline-offset-2 hover:text-foreground">
+                    {f.email}
+                  </a>
+                )}
                 {f.game_code && <Badge variant="outline" className="font-mono">{f.game_code}</Badge>}
                 {f.page && <span className="font-mono">{f.page}</span>}
                 <span className="ml-auto flex items-center gap-1">

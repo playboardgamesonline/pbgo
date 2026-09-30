@@ -4,11 +4,9 @@ import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useState } from "react"
 import { Logo } from "@pgo/binding-ui"
 import type { RulesContent } from "../../lib/rules"
-import { GameRulesButton as RulesButton } from "../rules-slot"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
-import { SoundButton } from "../sound/sound"
-import { FeedbackButton } from "../feedback"
+import { Toolbar } from "../toolbar"
 import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
 
@@ -168,9 +166,7 @@ export function GameHud({
             {logo ? <Logo src={logo} alt={title} /> : <span className="font-display text-2xl font-black tracking-[0.12em] uppercase">{title}</span>}
           </button>
           <div className="flex items-center justify-center gap-1">
-            <SoundButton />
-            <FeedbackButton />
-            <RulesButton rules={rules} />
+            <Toolbar rules={rules} />
           </div>
         </div>
         {ticker}

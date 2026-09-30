@@ -39,10 +39,19 @@ export async function listTasks(type?: TaskType): Promise<{ tasks: Task[]; migra
   return { tasks: data as Task[], migrated: true }
 }
 
+export const FEEDBACK_TYPES = ["review", "bug", "suggestion", "other"] as const
+export type FeedbackType = (typeof FEEDBACK_TYPES)[number]
+
 export type Feedback = {
   id: string
   created_at: string
+  type: FeedbackType
   message: string
+  email: string | null
+  /** Chemin dans le bucket privé « feedback » (jamais exposé aux joueurs). */
+  screenshot: string | null
+  /** URL signée (1 h), ajoutée par GET /api/feedback pour l'admin. */
+  screenshot_url?: string | null
   nickname: string | null
   game_code: string | null
   page: string | null

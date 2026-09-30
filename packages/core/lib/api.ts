@@ -18,6 +18,12 @@ export const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
   DEBUG_DISABLED: "Le debug est désactivé sur ce serveur (DEBUG_GAMES=1).",
   NOT_STALLED: "La partie avance encore : attendez un peu avant de jouer à sa place.",
   SERVER_ERROR: "Une erreur est survenue.",
+  EMPTY_TEXT: "Écrivez d'abord votre message.",
+  INVALID_EMAIL: "Cette adresse e-mail n'est pas valide.",
+  INVALID_IMAGE: "Cette image n'est pas lisible (PNG, JPG ou WebP).",
+  FILE_TOO_BIG: "Cette capture est trop lourde (3 Mo maximum).",
+  TOO_MANY_REQUESTS: "Trop d'envois : réessayez dans un instant.",
+  FORBIDDEN: "Action refusée.",
   TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
   // messages propres au jeu (codes d'erreur du moteur) : export facultatif `ERROR_MESSAGES` de @pgo/binding
   ...(binding as { ERROR_MESSAGES?: Record<string, string> }).ERROR_MESSAGES,

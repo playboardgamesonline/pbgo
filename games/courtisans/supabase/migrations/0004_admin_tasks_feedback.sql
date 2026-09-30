@@ -19,7 +19,11 @@ create index if not exists tasks_type_idx on public.tasks (type, done);
 create table if not exists public.feedback (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  type text not null default 'review' check (type in ('review', 'bug', 'suggestion', 'other')),
   message text not null check (char_length(message) between 1 and 2000),
+  email text check (email is null or char_length(email) <= 254),
+  screenshot text,
+  ip_hash text,
   nickname text,
   player_id text,
   game_code text,
@@ -30,4 +34,12 @@ create table if not exists public.feedback (
 
 create index if not exists feedback_status_created_at_idx on public.feedback (status, created_at desc);
 
+create index if not exists feedback_ip_hash_created_at_idx on public.feedback (ip_hash, created_at desc);
+
 alter table public.feedback enable row level security;
+
+-- Captures d'écran des retours : bucket privé (aucune URL publique), écrit et lu par le serveur uniquement (service role).
+-- Seul le WebP est accepté, 3 Mo maximum.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('feedback', 'feedback', false, 3145728, array['image/webp'])
+on conflict (id) do nothing;

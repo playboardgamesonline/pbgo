@@ -21,7 +21,7 @@ export function useSoundEnabled() {
       return () => listeners.delete(f)
     },
     readSoundEnabled,
-    () => true,
+    () => false,
   )
 }
 

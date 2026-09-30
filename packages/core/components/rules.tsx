@@ -1,6 +1,8 @@
 "use client"
 
-import { BookOpenIcon, FileTextIcon, PlayIcon } from "lucide-react"
+import { Scroll01Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { FileTextIcon, PlayIcon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@pgo/ui/game/dialog"
@@ -49,7 +51,7 @@ export function RulesButton({ rules, className }: { rules: RulesContent; classNa
           title="Règles du jeu"
           className={cn("flex size-11 cursor-pointer items-center justify-center rounded-full text-foreground transition-transform hover:scale-110", className)}
         >
-          <BookOpenIcon className="size-6 drop-shadow" strokeWidth={1.6} />
+          <HugeiconsIcon icon={Scroll01Icon} strokeWidth={1.6} className="size-7 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]" />
         </button>
       </DialogTrigger>
       <DialogContent className="flex h-[80vh] w-[min(95vw,64rem)] max-w-none gap-0 overflow-hidden rounded-2xl border-0 bg-secondary p-0 text-secondary-foreground sm:max-w-none">

@@ -1,7 +1,7 @@
 "use client"
 
 import { CrownIcon, HourglassIcon, PlayIcon, ScrollTextIcon, SwordsIcon, TrophyIcon } from "lucide-react"
-import { CatalogueIcon } from "@hugeicons/core-free-icons"
+import { CatalogueIcon, Scroll01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
@@ -329,7 +329,7 @@ export function RulesButton({ className, icon, rules = DEFAULT_RULES }: { classN
       <DialogTrigger asChild>
         {icon ? (
           <Button variant="ghost" size="icon" aria-label="Règles du jeu" title="Règles du jeu" className={cn(ICON_BUTTON_CLASS, className)}>
-            <HugeiconsIcon icon={CatalogueIcon} strokeWidth={1.6} className="size-7 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]" />
+            <HugeiconsIcon icon={Scroll01Icon} strokeWidth={1.6} className="size-7 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]" />
           </Button>
         ) : (
           <Button variant="outline" className={className}>
