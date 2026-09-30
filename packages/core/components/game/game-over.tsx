@@ -1,6 +1,6 @@
 "use client"
 
-import type { PlayerResult, PlayerView } from "@pbgo/binding"
+import { GAME, type PlayerResult, type PlayerView } from "@pbgo/binding"
 import { CrownIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { LinkForwardIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -79,7 +79,7 @@ export function GameOver({
   renderDetail?: ResultDetailRenderer
 }) {
   const t = useText()
-  const { hostIcon } = useSkin()
+  const { hostIcon, decor } = useSkin()
   const { view, game, color } = useGame()
   const { title } = useSiteSettings()
   const [sending, setSending] = useState(false)
@@ -134,11 +134,22 @@ export function GameOver({
 
   const replayButton = (
     <div className="pointer-events-auto">
-      <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="h-14 w-auto max-w-none rounded-t-2xl rounded-b-none px-10 whitespace-nowrap shadow-[0_-6px_24px_rgb(0_0_0/35%)] hover:scale-100 hover:brightness-110">
+      <PrimaryButton onClick={replay} busy={sending} waiting={alreadyVoted} className="h-14 w-auto max-w-none rounded-t-2xl rounded-b-none px-10 whitespace-nowrap shadow-[0_-6px_24px_rgb(0_0_0/35%)] hover:scale-100 hover:brightness-110">
         {t("replay")} ({game.replay.length}/{game.players.length})
       </PrimaryButton>
     </div>
   )
+  const created = game.createdAt ? new Date(game.createdAt) : null
+  const ended = game.updatedAt ? new Date(game.updatedAt) : null
+  const minutes = created && ended ? Math.max(1, Math.round((ended.getTime() - created.getTime()) / 60000)) : null
+  const footer = [
+    GAME.name,
+    minutes !== null ? (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`) : null,
+    ended ? `${ended.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })} · ${ended.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : null,
+    "PBGO",
+  ]
+    .filter(Boolean)
+    .join("  ·  ")
   const names = winners.map((v) => info(v.playerId)?.nickname).join(" & ")
   const shareText = t("winsWith", { names, points: winners[0]?.total ?? 0 })
 
@@ -171,8 +182,11 @@ export function GameOver({
               className="pointer-events-auto relative flex max-h-full w-full max-w-lg flex-col"
             >
 
-              <div className="relative flex min-h-[26rem] flex-1 flex-col overflow-hidden rounded-lg border border-accent-game/70 bg-surface shadow-[0_24px_70px_rgb(0_0_0/65%)]">
-                            <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(255_255_255/8%),transparent_70%)]" />
+              <div className="relative flex min-h-[26rem] flex-1 flex-col overflow-hidden rounded-3xl border-[0.5px] border-accent-game/60 bg-surface shadow-[0_24px_70px_rgb(0_0_0/65%)]">
+              {decor.pattern && (
+                <div aria-hidden className="pointer-events-none absolute inset-0 bg-[length:128px_128px] opacity-[0.07]" style={{ backgroundImage: `url(${decor.pattern})` }} />
+              )}
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(255_255_255/8%),transparent_70%)]" />
               <div className="relative shrink-0 px-8 pt-6 pb-5">
                 <button
                   type="button"
@@ -180,9 +194,9 @@ export function GameOver({
                   disabled={!image}
                   title={t("shareResult")}
                   aria-label={t("shareResult")}
-                  className="group absolute -top-3 -right-10 z-20 w-40 rotate-[5deg] cursor-pointer rounded-[3px] bg-[#f3ecd6] p-[2px] shadow-[0_10px_24px_rgb(0_0_0/55%)] transition-transform duration-200 hover:rotate-[1deg] disabled:cursor-wait"
+                  className="group absolute -top-3 -right-10 z-20 w-40 rotate-[5deg] cursor-pointer rounded-2xl bg-[#f3ecd6] p-[3px] shadow-[0_10px_24px_rgb(0_0_0/55%)] transition-transform duration-200 hover:rotate-[1deg] disabled:cursor-wait"
                 >
-                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[2px] bg-surface-dark">
+                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[13px] bg-surface-dark">
                     {url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={url} alt="" className="size-full scale-[1.35] object-cover" style={{ transformOrigin: "50% 58%" }} />
@@ -237,7 +251,9 @@ export function GameOver({
                     ))}
                 </ol>
               </div>
-
+              <footer className="relative shrink-0 border-t border-foreground/10 px-8 py-3 text-center font-sans text-[11px] tracking-[0.12em] text-foreground/40 uppercase">
+                {footer}
+              </footer>
               </div>
             </motion.section>
           )}

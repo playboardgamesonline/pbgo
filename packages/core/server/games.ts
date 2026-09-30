@@ -16,9 +16,10 @@ export type GameRow = {
   replay: string[]
   version: number
   updated_at?: string
+  created_at?: string
 }
 
-const COLUMNS = "code, host_id, status, players, options, state, replay, version, updated_at"
+const COLUMNS = "code, host_id, status, players, options, state, replay, version, updated_at, created_at"
 
 // Écritures concurrentes (ex. tous les joueurs qui valident l'ouverture en même temps) : on réessaie avec une attente aléatoire croissante
 const MAX_ATTEMPTS = 8
@@ -113,6 +114,7 @@ export function publicGame(row: GameRow, playerId: string | null): PublicGame {
     replay: row.replay,
     version: row.version,
     updatedAt: row.updated_at ?? null,
+    createdAt: row.created_at ?? null,
     view: row.state ? GAME.view(row.state, member ? playerId : null) : null,
   }
 }

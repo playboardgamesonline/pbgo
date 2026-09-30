@@ -6,7 +6,7 @@ import { CookieIcon, LanguagesIcon, ScaleIcon, SlidersHorizontalIcon, SquareArro
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { AUTHOR, CONTACT, type OptionValues } from "@pbgo/binding"
-import { LOCALES, LOCALE_NAMES } from "../lib/i18n"
+import { LOCALES } from "../lib/i18n"
 import { FeedbackButton } from "./feedback"
 import { GameSettingsDialog } from "./game-settings"
 import { InfoDialog } from "./info-dialog"
@@ -82,7 +82,7 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
         aria-hidden={!open}
         className={cn(
           "absolute top-full z-50 mt-1 flex w-64 flex-col rounded-xl border border-foreground/15 bg-surface/95 p-1.5 text-foreground shadow-xl backdrop-blur-sm transition-opacity duration-200",
-          align === "right" ? "right-0 origin-top-right" : "left-1/2 -translate-x-1/2 origin-top",
+          align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
@@ -98,7 +98,7 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
           >
             {LOCALES.map((l) => (
               <option key={l} value={l} lang={l} className="bg-surface text-foreground">
-                {LOCALE_NAMES[l]}
+                {l.toUpperCase()}
               </option>
             ))}
           </select>

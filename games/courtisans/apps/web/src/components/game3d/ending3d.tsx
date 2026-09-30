@@ -136,14 +136,14 @@ export const ENDING_SETTINGS = {
   zeroColor: "#a8b0b2",
   relief: true,
   shadowColor: "#000000",
-  shadowOpacity: 0.12,
-  shadowBlur: 3,
+  shadowOpacity: 0.05,
+  shadowBlur: 2,
   shadowOffset: 2,
   counterBackdrop: 0,
-  counterShadow: 0.45,
-  counterShadowBlur: 22,
+  counterShadow: 0.3,
+  counterShadowBlur: 14,
   counterShadowOffset: 5,
-  counterHeight: 0.45,
+  counterHeight: 1.1,
 }
 
 export const LINE_SETTINGS = {

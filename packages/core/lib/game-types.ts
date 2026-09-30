@@ -16,6 +16,8 @@ export type PublicGame = {
   version: number
   /** Dernière écriture (ISO) : sert à repérer un tour bloqué par un joueur absent */
   updatedAt?: string | null
+  /** Création de la partie (ISO) : sert au pied du tableau des scores */
+  createdAt?: string | null
   view: PlayerView | null
 }
 
