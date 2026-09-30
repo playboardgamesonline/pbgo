@@ -50,21 +50,28 @@ export async function loadWebAnalytics(): Promise<WebAnalytics | { error: string
   }
 }
 
-export type Site = { id: string; name: string; url: string | null; state: string | null; deployedAt: number | null; visitors7d: number | null }
+export type Game = { id: string; name: string; url: string | null; state: string | null; deployedAt: number | null; visitors7d: number | null }
 
 type Project = {
   id: string
   name: string
+  link?: { repo?: string; repoId?: number | string }
   targets?: { production?: { alias?: string[]; url?: string; readyState?: string; createdAt?: number } }
   latestDeployments?: { readyState?: string; createdAt?: number; url?: string; target?: string | null }[]
 }
 
-export async function loadSites(): Promise<Site[] | { error: string } | null> {
+/** Dépôt PBGO : celui de ce déploiement (VERCEL_GIT_REPO_ID / _SLUG, fournis par Vercel), sinon le nom par défaut. Le numéro de dépôt résiste à un renommage. */
+const repoId = process.env.VERCEL_GIT_REPO_ID
+const repoSlug = process.env.VERCEL_GIT_REPO_SLUG ?? process.env.PBGO_REPO ?? "play-board-games-online"
+const inPbgo = (p: Project) => (repoId && p.link?.repoId !== undefined ? String(p.link.repoId) === repoId : p.link?.repo === repoSlug)
+
+/** Les jeux du dépôt PBGO uniquement (les autres projets du compte Vercel sont ignorés). */
+export async function loadGames(): Promise<Game[] | { error: string } | null> {
   if (!token) return null
   try {
-    const { projects } = await get<{ projects: Project[] }>("/v10/projects", { limit: "30" })
+    const { projects } = await get<{ projects: Project[] }>("/v10/projects", { limit: "100" })
     return await Promise.all(
-      projects.map(async (p) => {
+      projects.filter(inPbgo).map(async (p) => {
         const prod = p.targets?.production
         const latest = prod ?? p.latestDeployments?.find((d) => d.target === "production") ?? p.latestDeployments?.[0]
         const host = prod?.alias?.find((a) => !a.includes("-git-")) ?? prod?.alias?.[0] ?? latest?.url

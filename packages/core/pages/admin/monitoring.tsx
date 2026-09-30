@@ -10,7 +10,7 @@ import { sanityConfigure } from "../../sanity/client"
 import { sanityWritable } from "../../sanity/write-client"
 import { adminConfigured } from "../../server/admin"
 import { type GameStats, loadGameStats } from "../../server/stats"
-import { loadSites, loadWebAnalytics, vercelConfigured } from "../../server/vercel"
+import { loadGames, loadWebAnalytics, vercelConfigured } from "../../server/vercel"
 
 const NUM = new Intl.NumberFormat("en-GB")
 const DATE_TIME = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
@@ -172,7 +172,7 @@ export async function AudiencePage() {
 }
 
 export async function HealthPage({ settings, supabaseOk }: { settings: SiteSettings; supabaseOk: boolean }) {
-  const [analytics, sites] = await Promise.all([loadWebAnalytics(), loadSites()])
+  const [analytics, games] = await Promise.all([loadWebAnalytics(), loadGames()])
   const env = process.env.VERCEL_ENV ?? process.env.NODE_ENV
   const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7)
   return (
@@ -180,7 +180,7 @@ export async function HealthPage({ settings, supabaseOk }: { settings: SiteSetti
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            This site <Badge variant="outline">{env}</Badge>
+            This game <Badge variant="outline">{env}</Badge>
           </CardTitle>
           <CardDescription>{SITE_URL}</CardDescription>
           {commit && (
@@ -203,25 +203,25 @@ export async function HealthPage({ settings, supabaseOk }: { settings: SiteSetti
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Play Game Online sites</CardTitle>
-          <CardDescription>Projects of the Vercel account · visitors over 7 days</CardDescription>
+          <CardTitle>PBGO games</CardTitle>
+          <CardDescription>Games of the Play Board Games Online repository · visitors over 7 days</CardDescription>
         </CardHeader>
         <CardContent>
-          {!vercelConfigured || sites === null ? (
-            <p className="text-sm text-muted-foreground">Add VERCEL_TOKEN to list your sites.</p>
-          ) : "error" in sites ? (
-            <p className="text-sm text-muted-foreground">List unavailable: {sites.error}</p>
+          {!vercelConfigured || games === null ? (
+            <p className="text-sm text-muted-foreground">Add VERCEL_TOKEN to list your games.</p>
+          ) : "error" in games ? (
+            <p className="text-sm text-muted-foreground">List unavailable: {games.error}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Site</TableHead>
+                  <TableHead>Game</TableHead>
                   <TableHead>Deployment</TableHead>
                   <TableHead className="text-right">Visitors</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sites.map((s) => (
+                {games.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="max-w-48 truncate">
                       {s.url ? (

@@ -97,7 +97,7 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
           <div className="flex flex-col gap-0.5 border-t px-3 py-3">
             <a href="/" target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">
               <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-4" />
-              View site
+              View game
             </a>
             {studioUrl && (
               <a href={studioUrl} target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">

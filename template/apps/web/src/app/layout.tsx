@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
 import { AppShell } from "@pbgo/core/components/app-shell"
-import { Toaster } from "@pbgo/ui/game/sonner"
+import { AppToaster } from "@pbgo/core/components/toaster"
 import { TooltipProvider } from "@pbgo/ui/game/tooltip"
 import { fontFaceCss, googleFontsHref, siteTitle, themeStyle } from "@pbgo/core/lib/settings"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <AppShell settings={settings} skin={skin} sounds={sounds}>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         </AppShell>
-        <Toaster position="top-center" />
+        <AppToaster />
         <Analytics />
       </body>
     </html>

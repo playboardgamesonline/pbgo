@@ -85,7 +85,7 @@ export function LinkPreview({ image, title, description, domain }: { image: stri
     <Card className="gap-3">
       <CardHeader>
         <CardTitle>Link preview</CardTitle>
-        <CardDescription>When the site is shared</CardDescription>
+        <CardDescription>When the game link is shared</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-hidden rounded-xl border bg-background shadow-xs">

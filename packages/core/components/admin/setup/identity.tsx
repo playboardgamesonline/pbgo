@@ -63,7 +63,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
               <FieldLabel htmlFor="title">Game name</FieldLabel>
               <Input id="title" value={draft.title} maxLength={80} onChange={(e) => set("title", e.target.value)} disabled={disabled} className="h-11 text-lg font-semibold" />
               <FieldDescription>
-                The game’s name only, without “Online”. The site adds “{TITLE_SUFFIX}” (browser tab, search results, share card) and “· Table #CODE” during a game.
+                The game’s name only, without “Online”. PBGO adds “{TITLE_SUFFIX}” (browser tab, search results, share card) and “· Table #CODE” during a game.
               </FieldDescription>
             </Field>
             <Field>

@@ -57,7 +57,7 @@ export const ADMIN_NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { path: "monitoring/games", label: "Games", description: "Games played, players and completion.", icon: GameController01Icon },
       { path: "monitoring/audience", label: "Audience", description: "Visitors, pages and countries (Vercel Web Analytics).", icon: Analytics01Icon },
-      { path: "monitoring/health", label: "Health", description: "Services, deployment and the other sites.", icon: Activity01Icon },
+      { path: "monitoring/health", label: "Health", description: "Services, deployment and the other PBGO games.", icon: Activity01Icon },
     ],
   },
 ]
