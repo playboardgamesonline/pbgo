@@ -178,7 +178,7 @@ SB_PAT="$(secret SUPABASE_ACCESS_TOKEN)"
 SBAPI="https://api.supabase.com/v1"
 SB() { curl -s -H "Authorization: Bearer $SB_PAT" -H "Content-Type: application/json" "$@"; }
 SCHEMA="$(current NEXT_PUBLIC_SUPABASE_SCHEMA)"
-[ -z "$SCHEMA" ] && SCHEMA="g_$(echo "$SLUG" | tr '-' '_')"
+[ -z "$SCHEMA" ] && { if [ "$SLUG" = courtisans ]; then SCHEMA=public; else SCHEMA="g_$(echo "$SLUG" | tr '-' '_')"; fi; }
 REF="$(current NEXT_PUBLIC_SUPABASE_URL | sed -E 's#https://([^.]+)\..*#\1#')"
 [ -z "$REF" ] && REF="$(secret SUPABASE_PROJECT_REF)"
 

@@ -88,3 +88,7 @@ SUPABASE_PROJECT_REF=...
 Un seul projet Supabase pour tous les jeux : un schéma Postgres par jeu (`NEXT_PUBLIC_SUPABASE_SCHEMA`, `public` pour Courtisans, `g_<jeu>` pour les autres). Sans `SUPABASE_PROJECT_REF`, le projet « pbgo » est trouvé ou créé.
 
 Facultatifs : `SUPABASE_ORG_ID`, `SUPABASE_REGION` (création du projet partagé), `VERCEL_TOKEN`, `VERCEL_TEAM_ID`. Ne jamais mettre ces valeurs dans le repo.
+
+## Supabase partagé : état
+
+Projet partagé : celui de Courtisans (`SUPABASE_PROJECT_REF`). Courtisans reste dans le schéma `public` ; les autres jeux ont chacun leur schéma `g_<jeu>` (déjà créé, tables games, tasks, feedback, exposé à l'API). Chaque jeu a `scripts/setup-env.sh` : `pnpm setup-env <jeu>` ou `pnpm setup-env --all` renseigne URL, clés, schéma, admin et pousse les variables sur Vercel. L'ancien projet `play-game-online-template` n'est plus utilisé par les jeux.
