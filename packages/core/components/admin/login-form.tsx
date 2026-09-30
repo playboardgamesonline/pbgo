@@ -39,30 +39,30 @@ export function LoginForm({ title, configured }: { title: string; configured: bo
           <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted">
             <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-5" />
           </div>
-          <CardTitle>Administration</CardTitle>
+          <CardTitle>Admin</CardTitle>
           <CardDescription>{title}</CardDescription>
         </CardHeader>
         <CardContent>
           {!configured ? (
             <Alert>
-              <AlertTitle>Compte admin non configuré</AlertTitle>
-              <AlertDescription>Ajoutez ADMIN_LOGIN et ADMIN_PASSWORD dans les variables d&apos;environnement puis redéployez.</AlertDescription>
+              <AlertTitle>Admin account not configured</AlertTitle>
+              <AlertDescription>Add ADMIN_LOGIN and ADMIN_PASSWORD to the environment variables, then redeploy.</AlertDescription>
             </Alert>
           ) : (
             <form onSubmit={submit}>
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="login">Identifiant</FieldLabel>
+                  <FieldLabel htmlFor="login">Login</FieldLabel>
                   <Input id="login" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} autoFocus required />
                 </Field>
                 <Field data-invalid={!!error}>
-                  <FieldLabel htmlFor="password">Mot de passe</FieldLabel>
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
                   <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={!!error} required />
                   {error && <FieldError>{error}</FieldError>}
                 </Field>
                 <Button type="submit" disabled={pending} className="w-full">
                   {pending && <Spinner />}
-                  Se connecter
+                  Log in
                 </Button>
               </FieldGroup>
             </form>

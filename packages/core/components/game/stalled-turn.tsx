@@ -4,17 +4,19 @@ import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { api } from "../../lib/api"
-import { type PublicGame, TURN_TIMEOUT } from "../../lib/game-types"
+import type { PublicGame } from "../../lib/game-types"
+import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
 
 /**
- * Joueur absent : si la partie n'a pas bougé depuis TURN_TIMEOUT secondes et que ce n'est pas mon tour,
+ * Joueur absent : si la partie n'a pas bougé depuis le délai réglé dans l'admin et que ce n'est pas mon tour,
  * propose aux autres de jouer à sa place (route /takeover, qui revérifie tout côté serveur).
  */
 export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: string | null; onUpdate: (g: PublicGame) => void }) {
   const t = useText()
   const { game, view, nickname } = useGame()
+  const { turnTimeout } = useSiteSettings()
   const [since, setSince] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
   const [sending, setSending] = useState(false)
@@ -27,7 +29,7 @@ export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: stri
   }, [])
 
   const stalled =
-    game.status === "playing" && !!activePlayerId && activePlayerId !== view.me?.id && !!view.me && now - since >= TURN_TIMEOUT * 1000
+    game.status === "playing" && !!activePlayerId && activePlayerId !== view.me?.id && !!view.me && now - since >= turnTimeout * 1000
 
   async function takeover() {
     setSending(true)

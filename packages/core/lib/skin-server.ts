@@ -23,8 +23,10 @@ type SkinDoc = {
     desktopOnly?: boolean
   } | null
   texts?: ({
+    tagline?: Localized
     homeTitle?: Localized
     homeIntro?: Localized
+    errorMessages?: { code?: string; message?: Localized }[]
     victoryPhrases?: Localized<string[]>
   } & Record<string, unknown>) | null
 } | null
@@ -33,7 +35,7 @@ const IMG = "{asset, crop, hotspot, \"ratio\": asset->metadata.dimensions.aspect
 
 export const SKIN_QUERY = `{
   "interface": *[_id == "interface"][0]{ "background": background${IMG}, "pattern": pattern${IMG}, "decorTop": decorTop${IMG}, "decorBottom": decorBottom${IMG}, "hero": hero${IMG}, "hostIcon": hostIcon${IMG}, playerColors, desktopOnly },
-  "texts": *[_id == "texts"][0]{ homeTitle, homeIntro, victoryPhrases, ui_home, ui_lobby, ui_game }
+  "texts": *[_id == "texts"][0]{ tagline, homeTitle, homeIntro, victoryPhrases, ui_home, ui_lobby, ui_game, errorMessages }
 }`
 
 const has = (i: ImageRef): i is NonNullable<ImageRef> => !!i?.asset?._ref
@@ -50,6 +52,8 @@ function decor(i: ImageRef): DecorImage | null {
 }
 
 const HEX = /^#[0-9a-fA-F]{6}$/
+
+export type { SkinDoc }
 
 export function toSkin(doc: SkinDoc): Partial<SkinDefaults> {
   const ui = doc?.interface
@@ -70,7 +74,8 @@ export function toSkin(doc: SkinDoc): Partial<SkinDefaults> {
     hostIcon: picto(ui?.hostIcon),
     ...(colors.length ? { playerColors: colors } : {}),
     ...(typeof ui?.desktopOnly === "boolean" ? { desktopOnly: ui.desktopOnly } : {}),
-    home: { title: translate(t?.homeTitle)?.trim() || null, intro: translate(t?.homeIntro)?.trim() || null },
+    home: { title: translate(t?.homeTitle)?.trim() || null, intro: translate(t?.homeIntro)?.trim() || null, tagline: translate(t?.tagline)?.trim() || null },
+    errors: Object.fromEntries((t?.errorMessages ?? []).flatMap((e) => (e.code && translate(e.message)?.trim() ? [[e.code, translate(e.message)!.trim()]] : []))),
     ...(phrases.length ? { victoryPhrases: phrases } : {}),
     texts: labels,
   }

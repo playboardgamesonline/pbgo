@@ -13,7 +13,7 @@ export function RefreshButton() {
   return (
     <Button variant="outline" size="sm" onClick={() => start(() => router.refresh())} disabled={pending}>
       {pending ? <Spinner data-icon="inline-start" /> : <HugeiconsIcon icon={RefreshIcon} strokeWidth={2} data-icon="inline-start" />}
-      Actualiser
+      Refresh
     </Button>
   )
 }

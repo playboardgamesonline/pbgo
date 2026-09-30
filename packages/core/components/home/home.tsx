@@ -59,7 +59,7 @@ export function Home({ rules }: { rules: RulesContent }) {
       cta={<PrimaryButton busy={pending}>{code.length === 6 ? t("joinButton") : t("createButton")}</PrimaryButton>}
       below={<CodeField value={code} onChange={setCode} />}
     >
-      {home.intro ? <Intro title={home.title}>{home.intro}</Intro> : <Paragraph>{TAGLINE}</Paragraph>}
+      {home.intro ? <Intro title={home.title}>{home.intro}</Intro> : <Paragraph>{home.tagline ?? TAGLINE}</Paragraph>}
       <NicknameField value={profile.nickname} onChange={(nickname) => setProfile({ nickname })} />
     </Screen>
   )

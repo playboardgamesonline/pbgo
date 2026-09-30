@@ -48,6 +48,7 @@ const THEME: ThemeColors = { background: "#0e3940", foreground: "#f0e9ce", accen
 /** Réglages par défaut (quand le document Sanity « settings » est vide). */
 export const SETTINGS_DEFAULTS: Partial<Omit<SiteSettings, "theme">> & { theme: ThemeColors } = {
   logo: "/LOGO.webp",
+  favicon: "/favicon.png",
   theme: THEME,
   credits: {
     authors: "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier",

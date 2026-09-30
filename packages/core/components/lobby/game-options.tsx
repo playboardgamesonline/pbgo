@@ -7,12 +7,14 @@ import { toast } from "sonner"
 import { api } from "../../lib/api"
 import type { PublicGame } from "../../lib/game-types"
 import { cn } from "@pgo/ui/utils"
+import { useSiteSettings } from "../settings-provider"
 
 export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p: PublicGame) => void }) {
   const editable = game.meId === game.hostId && game.status !== "playing"
   const [local, setLocal] = useState<{ version: number; values: OptionValues } | null>(null)
   const values = local && local.version >= game.version ? local.values : game.options
-  const entries = Object.entries(GAME.options)
+  const { options: optionSettings } = useSiteSettings()
+  const entries = Object.entries(GAME.options).filter(([key]) => !optionSettings.hidden.includes(key))
   if (entries.length === 0) return null
 
   async function change(key: string, value: OptionValue) {

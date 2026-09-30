@@ -2,11 +2,13 @@
 
 import { createContext, useCallback, useContext } from "react"
 import type { UiTextKey } from "@pgo/studio-kit/constants"
+import { setErrorOverrides } from "../lib/api"
 import { DEFAULT_SKIN, fill, type Skin } from "../lib/skin"
 
 const SkinContext = createContext<Skin>(DEFAULT_SKIN)
 
 export function SkinProvider({ skin, children }: { skin: Skin; children: React.ReactNode }) {
+  setErrorOverrides(skin.errors)
   return <SkinContext.Provider value={skin}>{children}</SkinContext.Provider>
 }
 

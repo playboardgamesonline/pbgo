@@ -1,5 +1,5 @@
 import * as binding from "@pgo/binding"
-import { GAME } from "@pgo/binding"
+import { defaultOptions, GAME, normalizeOptions, type OptionValues } from "@pgo/binding"
 import { FONT_CHOICES } from "@pgo/studio-kit/constants"
 import { DESCRIPTION, NAME } from "@pgo/binding"
 
@@ -26,9 +26,18 @@ export type Credits = { authors: string | null; publisher: string | null; publis
 
 export type UploadedFile = { url: string; name: string }
 
-// Fichiers envoyés depuis /setup (stockés dans Sanity)
-export type UploadSlot = "logo" | "rulesFr" | "rulesEn" | "fontBody" | "fontDisplay"
-export type SettingsFiles = Record<Exclude<UploadSlot, "logo">, UploadedFile | null>
+// Fichiers envoyés depuis l'admin (stockés dans Sanity) : réglages (`settings`) et habillage (`interface`)
+export const SETTINGS_FILE_SLOTS = ["rulesFr", "rulesEn", "fontBody", "fontDisplay"] as const
+export const SETTINGS_IMAGE_SLOTS = ["logo", "favicon", "shareImage"] as const
+export const VISUAL_IMAGE_SLOTS = ["background", "pattern", "decorTop", "decorBottom", "hero", "hostIcon"] as const
+export type VisualSlot = (typeof VISUAL_IMAGE_SLOTS)[number]
+export type UploadSlot = (typeof SETTINGS_FILE_SLOTS)[number] | (typeof SETTINGS_IMAGE_SLOTS)[number] | VisualSlot
+export type SettingsFiles = Record<(typeof SETTINGS_FILE_SLOTS)[number], UploadedFile | null>
+
+/** Options du moteur : valeur par défaut choisie dans l'admin et options masquées dans le lobby (gardent leur défaut). */
+export type OptionSettings = { defaults: OptionValues; hidden: string[] }
+
+export const TURN_TIMEOUT_BOUNDS = { min: 20, max: 600, default: 60 }
 
 export type ThemeColors = { background: string; foreground: string; accent: string; surface: string; surfaceDark: string }
 
@@ -36,6 +45,10 @@ export type SiteSettings = {
   title: string
   description: string
   logo: string | null
+  /** Icône d'onglet (PNG ou SVG) ; sans elle, générée depuis le logo */
+  favicon: string | null
+  /** Image de partage 1200×630 ; sans elle, générée depuis l'habillage */
+  shareImage: string | null
   minPlayers: number
   maxPlayers: number
   theme: ThemeColors
@@ -46,14 +59,17 @@ export type SiteSettings = {
   rulesPdfLinks: { fr: string | null; en: string | null }
   files: SettingsFiles
   credits: Credits
+  /** Secondes d'inactivité avant de pouvoir jouer à la place d'un joueur absent */
+  turnTimeout: number
+  options: OptionSettings
 }
 
 export const THEME_FIELDS: { key: keyof ThemeColors; label: string; hint: string }[] = [
-  { key: "background", label: "Fond", hint: "Arrière-plan des écrans" },
-  { key: "foreground", label: "Texte", hint: "Texte principal" },
-  { key: "accent", label: "Accent", hint: "Boutons, sélection, titres" },
-  { key: "surface", label: "Surface", hint: "Cartes et panneaux" },
-  { key: "surfaceDark", label: "Surface foncée", hint: "Champs et fonds secondaires" },
+  { key: "background", label: "Background", hint: "Screen background" },
+  { key: "foreground", label: "Text", hint: "Main text and primary button" },
+  { key: "accent", label: "Accent", hint: "Selection, highlights, titles" },
+  { key: "surface", label: "Surface", hint: "Cards and panels" },
+  { key: "surfaceDark", label: "Dark surface", hint: "Fields, footer, secondary backgrounds" },
 ]
 
 const CORE_THEME: ThemeColors = {
@@ -75,6 +91,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   title: NAME,
   description: DESCRIPTION,
   logo: null,
+  favicon: null,
+  shareImage: null,
   minPlayers: GAME.minPlayers,
   maxPlayers: GAME.maxPlayers,
   bodyFont: null,
@@ -83,6 +101,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   rulesPdfLinks: { fr: null, en: null },
   files: { rulesFr: null, rulesEn: null, fontBody: null, fontDisplay: null },
   credits: { authors: null, publisher: null, publisherUrl: null },
+  turnTimeout: TURN_TIMEOUT_BOUNDS.default,
+  options: { defaults: defaultOptions(GAME.options), hidden: [] },
   ...gameDefaults,
   theme: { ...DEFAULT_THEME, ...gameDefaults.theme },
 }
@@ -96,6 +116,27 @@ export function clampPlayers(min: unknown, max: unknown) {
   const lo = Math.min(PLAYER_BOUNDS.max, Math.max(PLAYER_BOUNDS.min, toInt(min, PLAYER_BOUNDS.min)))
   const hi = Math.min(PLAYER_BOUNDS.max, Math.max(lo, toInt(max, PLAYER_BOUNDS.max)))
   return { minPlayers: lo, maxPlayers: hi }
+}
+
+export function clampTimeout(v: unknown) {
+  const n = typeof v === "number" && Number.isFinite(v) ? Math.round(v) : TURN_TIMEOUT_BOUNDS.default
+  return Math.min(TURN_TIMEOUT_BOUNDS.max, Math.max(TURN_TIMEOUT_BOUNDS.min, n))
+}
+
+export function cleanOptions(v: unknown): OptionSettings {
+  const raw = (v && typeof v === "object" ? v : {}) as { defaults?: unknown; hidden?: unknown }
+  const keys = Object.keys(GAME.options)
+  return {
+    defaults: normalizeOptions(GAME.options, raw.defaults),
+    hidden: Array.isArray(raw.hidden) ? raw.hidden.filter((k): k is string => typeof k === "string" && keys.includes(k)) : [],
+  }
+}
+
+/** Options d'une nouvelle partie : défauts de l'admin. Options d'une partie modifiées par l'hôte : les masquées restent au défaut. */
+export function gameOptions(settings: OptionSettings, values: unknown = {}): OptionValues {
+  const merged = normalizeOptions(GAME.options, { ...settings.defaults, ...(values as object) })
+  for (const k of settings.hidden) merged[k] = settings.defaults[k]!
+  return merged
 }
 
 export const isFont = (v: unknown): v is string => typeof v === "string" && (FONT_CHOICES as readonly string[]).includes(v)

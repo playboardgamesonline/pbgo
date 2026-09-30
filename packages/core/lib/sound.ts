@@ -7,26 +7,17 @@ import * as binding from "@pgo/binding"
  * musiques bouclées sur un point de fin musical (pas sur la durée du fichier, qui contient la queue de réverbération).
  * Le jeu déclare ses sons via l'export facultatif `SOUNDS` de @pgo/binding ; fichiers dans /public/sounds/<file>.mp3.
  */
-export type EffectSound = { file: string; volume: number; spread?: number; minGap?: number }
-export type LoopSound = { file: string; loopEnd: number }
-export type SoundConfig = {
-  effects: Record<string, EffectSound>
-  music?: Record<string, LoopSound>
-  ambience?: LoopSound
-  defaultMusic?: string
-  volumes?: Partial<Volumes>
-}
+import { CODE_SOUNDS, DEFAULT_VOLUMES, type SoundConfig, type Volumes } from "./sound-config"
 
-export type Volumes = { master: number; music: number; effects: number; ambience: number }
-export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.1, effects: 0.8, ambience: 0.18 }
+export * from "./sound-config"
 
 const { SLUG } = binding
-export const SOUNDS: SoundConfig = (binding as { SOUNDS?: SoundConfig }).SOUNDS ?? { effects: {} }
+export let SOUNDS: SoundConfig = CODE_SOUNDS
 const VOLUMES_KEY = `${SLUG}:volumes`
 const MUSIC_KEY = `${SLUG}:music`
 const ENABLED_KEY = `${SLUG}:sound`
 
-const baseVolumes = { ...DEFAULT_VOLUMES, ...SOUNDS.volumes }
+let baseVolumes = { ...DEFAULT_VOLUMES, ...SOUNDS.volumes }
 
 function readVolumes(): Volumes {
   try {
@@ -67,11 +58,24 @@ let track: string | null = typeof window === "undefined" ? null : readMusic()
 const buffers = new Map<string, Promise<AudioBuffer | null>>()
 const lastPlayed = new Map<string, number>()
 
-function load(file: string) {
+const soundUrl = (s: { file: string; url?: string | null }) => s.url ?? `/sounds/${s.file}.mp3`
+
+/** Réglages de l'admin (fichiers Sanity, volumes, musiques) : appelé au rendu de l'AppShell, avant tout son. */
+export function configureSounds(config: SoundConfig) {
+  if (config === SOUNDS) return
+  SOUNDS = config
+  baseVolumes = { ...DEFAULT_VOLUMES, ...config.volumes }
+  if (typeof window === "undefined") return
+  volumes = readVolumes()
+  track = readMusic()
+}
+
+function load(sound: { file: string; url?: string | null }) {
+  const file = soundUrl(sound)
   let p = buffers.get(file)
   if (!p && ctx) {
     const c = ctx
-    p = fetch(`/sounds/${file}.mp3`)
+    p = fetch(file)
       .then((r) => r.arrayBuffer())
       .then((b) => c.decodeAudioData(b))
       .catch(() => null)
@@ -97,7 +101,7 @@ function startMusic() {
   const def = SOUNDS.music?.[name]
   if (!def) return
   const previous = music
-  load(def.file).then((buffer) => {
+  load(def).then((buffer) => {
     if (!buffer || track !== name || music?.name === name) return
     const gain = c.createGain()
     gain.gain.value = 0
@@ -114,7 +118,7 @@ function startMusic() {
 function startAmbience() {
   const def = SOUNDS.ambience
   if (!ctx || !ambienceBus || ambience || !def) return
-  load(def.file).then((buffer) => {
+  load(def).then((buffer) => {
     if (!buffer || ambience) return
     ambience = loop(buffer, def.loopEnd, ambienceBus!)
   })
@@ -146,7 +150,7 @@ export function initSound() {
     ambienceBus = ctx.createGain()
     ambienceBus.connect(master)
     applyVolumes(1)
-    for (const e of Object.values(SOUNDS.effects)) load(e.file)
+    for (const e of Object.values(SOUNDS.effects)) load(e)
   }
   if (ctx.state === "suspended") ctx.resume().catch(() => null)
   startMusic()
@@ -203,7 +207,7 @@ export function playSound(name: string, { volume = 1, delay = 0 }: { volume?: nu
   if (previous !== undefined && Math.abs(at - previous) < (def.minGap ?? 0.03)) return
   const close = previous !== undefined && Math.abs(at - previous) < 0.4
   lastPlayed.set(name, at)
-  load(def.file).then((buffer) => {
+  load(def).then((buffer) => {
     if (!buffer) return
     const source = c.createBufferSource()
     source.buffer = buffer

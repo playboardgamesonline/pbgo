@@ -39,6 +39,11 @@ export const UI_TEXTS = [
   { key: "gameCreated", group: "home", title: "Toast: game created", fr: "Partie {code} créée !" },
   { key: "codeLabel", group: "home", title: "Code field label", fr: "Code de la partie" },
   { key: "copyLink", group: "home", title: "Copy link button", fr: "Copier le lien de la partie" },
+  { key: "feedbackButton", group: "home", title: "Feedback: button", fr: "Donner votre avis" },
+  { key: "feedbackTitle", group: "home", title: "Feedback: title", fr: "Un avis, un bug ?" },
+  { key: "feedbackPlaceholder", group: "home", title: "Feedback: placeholder", fr: "Ce qui vous plaît, ce qui coince, une idée…" },
+  { key: "feedbackSend", group: "home", title: "Feedback: send button", fr: "Envoyer" },
+  { key: "feedbackThanks", group: "home", title: "Feedback: thanks", fr: "Merci, votre message est bien arrivé !" },
   // Invitation et lobby
   { key: "joinGameButton", group: "lobby", title: "Join button (invitation)", fr: "Rejoindre la partie" },
   { key: "gameNotFound", group: "lobby", title: "Game not found", fr: "Cette partie est introuvable. Vérifiez le code {code} ou créez-en une nouvelle." },

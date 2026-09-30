@@ -1,15 +1,19 @@
 import "server-only"
 import { cache } from "react"
 import { client } from "../sanity/client"
-import { urlFor } from "../sanity/image"
-import { clampPlayers, DEFAULT_SETTINGS, DEFAULT_THEME, isFont, isHex, type SiteSettings, type ThemeColors, type UploadedFile } from "./settings"
+import { fixedUrlFor, urlFor } from "../sanity/image"
+import { clampPlayers, clampTimeout, cleanOptions, DEFAULT_SETTINGS, DEFAULT_THEME, isFont, isHex, type SiteSettings, type ThemeColors, type UploadedFile } from "./settings"
 
 export const SETTINGS_TAG = "settings"
 
 export type SettingsDoc = {
   title?: string
   description?: string
-  logo?: Parameters<typeof urlFor>[0] & { asset?: { _ref?: string } }
+  logo?: ImageRef
+  favicon?: ImageRef
+  shareImage?: ImageRef
+  turnTimeout?: number
+  gameOptions?: { defaults?: string; hidden?: string[] }
   minPlayers?: number
   maxPlayers?: number
   theme?: Partial<ThemeColors>
@@ -27,8 +31,19 @@ export type SettingsDoc = {
 } | null
 
 type FileRef = { url?: string; name?: string } | null
+type ImageRef = (Parameters<typeof urlFor>[0] & { asset?: { _ref?: string }; mime?: string }) | null | undefined
 
-export const SETTINGS_QUERY = `*[_id == "settings"][0]{ title, description, logo, minPlayers, maxPlayers, theme, bodyFont, displayFont, rulesPdfFr, rulesPdfEn, creditsAuthors, publisher, publisherUrl, "rulesPdfFrFile": rulesPdfFrFile.asset->{url, "name": originalFilename}, "rulesPdfEnFile": rulesPdfEnFile.asset->{url, "name": originalFilename}, "bodyFontFile": bodyFontFile.asset->{url, "name": originalFilename}, "displayFontFile": displayFontFile.asset->{url, "name": originalFilename} }`
+const hasImage = (i: ImageRef): i is NonNullable<ImageRef> => !!i?.asset?._ref
+
+function parseJson(v: unknown) {
+  try {
+    return typeof v === "string" ? JSON.parse(v) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export const SETTINGS_QUERY = `*[_id == "settings"][0]{ title, description, logo, "favicon": favicon{asset, crop, hotspot, "mime": asset->mimeType}, shareImage, turnTimeout, gameOptions, minPlayers, maxPlayers, theme, bodyFont, displayFont, rulesPdfFr, rulesPdfEn, creditsAuthors, publisher, publisherUrl, "rulesPdfFrFile": rulesPdfFrFile.asset->{url, "name": originalFilename}, "rulesPdfEnFile": rulesPdfEnFile.asset->{url, "name": originalFilename}, "bodyFontFile": bodyFontFile.asset->{url, "name": originalFilename}, "displayFontFile": displayFontFile.asset->{url, "name": originalFilename} }`
 
 const file = (f: FileRef | undefined): UploadedFile | null => (f?.url ? { url: f.url, name: f.name || f.url.split("/").pop() || "fichier" } : null)
 
@@ -42,7 +57,11 @@ export function toSettings(doc: SettingsDoc): SiteSettings {
   return {
     title: doc.title?.trim() || DEFAULT_SETTINGS.title,
     description: doc.description?.trim() || DEFAULT_SETTINGS.description,
-    logo: doc.logo?.asset?._ref ? urlFor(doc.logo).width(1200).url() : DEFAULT_SETTINGS.logo,
+    logo: hasImage(doc.logo) ? urlFor(doc.logo).width(1200).url() : DEFAULT_SETTINGS.logo,
+    favicon: hasImage(doc.favicon) ? (doc.favicon.mime === "image/svg+xml" ? fixedUrlFor(doc.favicon).url() : fixedUrlFor(doc.favicon).width(512).height(512).fit("fill").format("png").url()) : DEFAULT_SETTINGS.favicon,
+    shareImage: hasImage(doc.shareImage) ? fixedUrlFor(doc.shareImage).width(1200).height(630).fit("crop").format("jpg").quality(88).url() : DEFAULT_SETTINGS.shareImage,
+    turnTimeout: doc.turnTimeout == null ? DEFAULT_SETTINGS.turnTimeout : clampTimeout(doc.turnTimeout),
+    options: doc.gameOptions ? cleanOptions({ defaults: parseJson(doc.gameOptions.defaults), hidden: doc.gameOptions.hidden }) : DEFAULT_SETTINGS.options,
     ...clampPlayers(doc.minPlayers, doc.maxPlayers),
     theme,
     bodyFont: isFont(doc.bodyFont) ? doc.bodyFont : DEFAULT_SETTINGS.bodyFont,

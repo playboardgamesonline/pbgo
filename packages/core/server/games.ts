@@ -33,7 +33,7 @@ export async function readGame(rawCode: string): Promise<GameRow> {
   return data as GameRow
 }
 
-export async function createGame(host: PlayerInfo): Promise<GameRow> {
+export async function createGame(host: PlayerInfo, options: OptionValues = normalizeOptions(GAME.options, {})): Promise<GameRow> {
   const db = supabaseAdmin()
   for (let attempt = 0; attempt < 5; attempt++) {
     const row: GameRow = {
@@ -41,7 +41,7 @@ export async function createGame(host: PlayerInfo): Promise<GameRow> {
       host_id: host.id,
       status: "lobby",
       players: [host],
-      options: normalizeOptions(GAME.options, {}),
+      options,
       state: null,
       replay: [],
       version: 0,

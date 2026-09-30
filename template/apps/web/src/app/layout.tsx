@@ -6,11 +6,12 @@ import { TooltipProvider } from "@pgo/ui/game/tooltip"
 import { fontFaceCss, googleFontsHref, themeStyle } from "@pgo/core/lib/settings"
 import { loadSettings } from "@pgo/core/lib/settings-server"
 import { loadSkin } from "@pgo/core/lib/skin-server"
+import { loadAudio } from "@pgo/core/lib/audio-server"
 import { AUTHOR, KEYWORDS, SITE_URL } from "@/lib/site"
 import "./globals.css"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { title, description, logo } = await loadSettings()
+  const { title, description } = await loadSettings()
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: title, template: `%s · ${title}` },
@@ -21,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: AUTHOR.name,
     category: "games",
     alternates: { canonical: "/" },
-    openGraph: { type: "website", locale: "fr_FR", url: "/", siteName: title, title, description, ...(logo ? { images: [logo] } : {}) },
+    openGraph: { type: "website", locale: "fr_FR", url: "/", siteName: title, title, description },
     twitter: { card: "summary_large_image", title, description },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
     formatDetection: { telephone: false, email: false, address: false },
@@ -34,7 +35,7 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [settings, skin] = await Promise.all([loadSettings(), loadSkin()])
+  const [settings, skin, sounds] = await Promise.all([loadSettings(), loadSkin(), loadAudio()])
   const fonts = googleFontsHref([settings.files.fontBody ? null : settings.bodyFont, settings.files.fontDisplay ? null : settings.displayFont])
   const fontFaces = fontFaceCss(settings.files)
   return (
@@ -50,7 +51,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         )}
       </head>
       <body className="flex min-h-full flex-col bg-background">
-        <AppShell settings={settings} skin={skin}>
+        <AppShell settings={settings} skin={skin} sounds={sounds}>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
         </AppShell>
         <Toaster position="top-center" />

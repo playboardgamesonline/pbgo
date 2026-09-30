@@ -11,6 +11,7 @@ import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pgo/u
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { SoundButton } from "../sound/sound"
+import { FeedbackButton } from "../feedback"
 import { GameRulesButton as RulesButton } from "../rules-slot"
 import type { RulesContent } from "../../lib/rules"
 import { AUTHOR, CONTACT } from "@pgo/binding"
@@ -69,6 +70,7 @@ export function Screen({
       )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
         <SoundButton />
+        <FeedbackButton />
         {rules && <RulesButton rules={rules} />}
       </div>
 

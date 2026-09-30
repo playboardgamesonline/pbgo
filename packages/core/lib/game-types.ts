@@ -24,5 +24,3 @@ export type GameState = State
 export const gameChannel = (code: string) => `game:${code}`
 export const UPDATE_EVENT = "maj"
 
-/** Délai après lequel les autres joueurs peuvent jouer à la place d'un joueur absent (secondes). */
-export const TURN_TIMEOUT = 60

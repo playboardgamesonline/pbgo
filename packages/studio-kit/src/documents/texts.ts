@@ -6,10 +6,14 @@ import { UI_TEXT_GROUPS, UI_TEXTS } from "../constants"
 export const createTexts = (extraFields: FieldDefinition[] = []) =>
   defineType({
   name: "texts",
-  title: "Texts",
+  title: "Copy",
   type: "document",
   icon: DocumentTextIcon,
-  groups: [{ name: "content", title: "Content", default: true }, ...UI_TEXT_GROUPS.map((g) => ({ name: g.name, title: `UI · ${g.title}` }))],
+  groups: [
+    { name: "content", title: "Content", default: true },
+    ...UI_TEXT_GROUPS.map((g) => ({ name: g.name, title: `UI · ${g.title}` })),
+    { name: "errors", title: "Errors" },
+  ],
   fields: [
     defineField({ name: "tagline", title: "Tagline", type: "localeString", group: "content" }),
     defineField({ name: "homeTitle", title: "Home title", description: "Above the intro text on the home screen", type: "localeString", group: "content" }),
@@ -28,9 +32,27 @@ export const createTexts = (extraFields: FieldDefinition[] = []) =>
         ),
       }),
     ),
+    defineField({
+      name: "errorMessages",
+      title: "Error messages",
+      description: "Replaces the default message of an error code (edited from the admin, Copy)",
+      type: "array",
+      group: "errors",
+      of: [
+        {
+          type: "object",
+          name: "errorMessage",
+          fields: [
+            defineField({ name: "code", title: "Code", type: "string" }),
+            defineField({ name: "message", title: "Message", type: "localeString" }),
+          ],
+          preview: { select: { title: "code", subtitle: "message.fr" } },
+        },
+      ],
+    }),
     ...extraFields,
   ],
-  preview: { prepare: () => ({ title: "Texts" }) },
+  preview: { prepare: () => ({ title: "Copy" }) },
 })
 
 export const texts = createTexts()

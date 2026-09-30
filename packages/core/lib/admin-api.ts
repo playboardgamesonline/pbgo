@@ -1,19 +1,23 @@
 const MESSAGES: Record<string, string> = {
-  ACCESS_DENIED: "Session expirée, reconnectez-vous.",
-  INVALID_CREDENTIALS: "Identifiant ou mot de passe incorrect.",
-  SANITY_TOKEN_MISSING: "Ajoutez SANITY_API_WRITE_TOKEN pour enregistrer dans Sanity.",
-  SANITY_NOT_CONFIGURED: "Sanity n'est pas configuré (NEXT_PUBLIC_SANITY_PROJECT_ID).",
-  INVALID_COLOR: "Une couleur n'est pas au format #rrggbb.",
-  INVALID_URL: "Les liens doivent commencer par http(s)://.",
-  EMPTY_TITLE: "Le titre est obligatoire.",
-  EMPTY_TEXT: "La tâche est vide.",
-  INVALID_FILE: "Format de fichier non accepté.",
-  FILE_TOO_LARGE: "Fichier trop lourd (4 Mo max ici) : passez par le studio Sanity ou un lien.",
+  ACCESS_DENIED: "Session expired, please log in again.",
+  INVALID_CREDENTIALS: "Wrong login or password.",
+  SANITY_TOKEN_MISSING: "Add SANITY_API_WRITE_TOKEN to save to Sanity.",
+  SANITY_NOT_CONFIGURED: "Sanity is not configured (NEXT_PUBLIC_SANITY_PROJECT_ID).",
+  INVALID_COLOR: "A color is not in the #rrggbb format.",
+  INVALID_URL: "Links must start with http(s)://.",
+  EMPTY_TITLE: "The title is required.",
+  EMPTY_TEXT: "The text is empty.",
+  INVALID_FILE: "This file format is not accepted.",
+  FILE_TOO_LARGE: "File too large (4 MB max here): use the Sanity Studio or a link.",
+  MIGRATION_MISSING: "The Supabase migration for tasks and feedback has not been applied yet.",
+  SOUND_NOT_FOUND: "A sound file could not be read from the site.",
+  INVALID_REQUEST: "Invalid request.",
+  SERVER_ERROR: "Something went wrong.",
 }
 
 export class AdminApiError extends Error {
   constructor(public code: string) {
-    super(MESSAGES[code] ?? "Une erreur est survenue.")
+    super(MESSAGES[code] ?? MESSAGES.SERVER_ERROR!)
   }
 }
 

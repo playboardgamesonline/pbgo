@@ -8,6 +8,7 @@ import { GameRulesButton as RulesButton } from "../rules-slot"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { SoundButton } from "../sound/sound"
+import { FeedbackButton } from "../feedback"
 import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
 
@@ -168,6 +169,7 @@ export function GameHud({
           </button>
           <div className="flex items-center justify-center gap-1">
             <SoundButton />
+            <FeedbackButton />
             <RulesButton rules={rules} />
           </div>
         </div>

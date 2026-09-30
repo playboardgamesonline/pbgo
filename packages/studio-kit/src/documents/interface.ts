@@ -6,7 +6,7 @@ const HEX = /^#[0-9a-fA-F]{6}$/
 /** Habillage commun à tous les jeux : décor des écrans hors partie, pictos, palette des joueurs. */
 export const interfaceDoc = defineType({
   name: "interface",
-  title: "Interface",
+  title: "Visual",
   type: "document",
   icon: ImagesIcon,
   groups: [
@@ -29,7 +29,7 @@ export const interfaceDoc = defineType({
       of: [{ type: "string", validation: (r) => r.regex(HEX, { name: "hex color" }) }],
       group: "players",
     }),
-    defineField({ name: "desktopOnly", title: "Desktop only", description: "Hide the game under 900 px wide", type: "boolean", initialValue: true, group: "options" }),
+    defineField({ name: "desktopOnly", title: "Desktop only", description: "Hide the game under 900 px wide (edited in the admin, Mechanics)", type: "boolean", initialValue: true, group: "options" }),
   ],
-  preview: { prepare: () => ({ title: "Interface" }) },
+  preview: { prepare: () => ({ title: "Visual" }) },
 })

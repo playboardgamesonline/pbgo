@@ -3,23 +3,27 @@ import { BookIcon } from "@sanity/icons/Book"
 import { CogIcon } from "@sanity/icons/Cog"
 import { DocumentTextIcon } from "@sanity/icons/DocumentText"
 import { ImagesIcon } from "@sanity/icons/Images"
+import { PlayIcon } from "@sanity/icons/Play"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
 import { defineConfig, type SchemaTypeDefinition } from "sanity"
 import { structureTool, type StructureResolver } from "sanity/structure"
+import { audio } from "./documents/audio"
 import { interfaceDoc } from "./documents/interface"
 import { rules } from "./documents/rules"
 import { settings } from "./documents/settings"
 import { texts } from "./documents/texts"
 import { localeString, localeStringList, localeText } from "./objects/locale"
 
-export const commonSchemaTypes: SchemaTypeDefinition[] = [settings, interfaceDoc, rules, texts, localeString, localeText, localeStringList]
+export const commonSchemaTypes: SchemaTypeDefinition[] = [settings, interfaceDoc, audio, rules, texts, localeString, localeText, localeStringList]
 
+// Même découpage que l'admin du site : Identity · Mechanics (settings), Visual (interface), Audio, Copy (texts), puis le contenu du jeu
 const COMMON_SINGLETONS = [
-  { id: "settings", title: "Settings", icon: CogIcon },
-  { id: "interface", title: "Interface", icon: ImagesIcon },
-  { id: "game", title: "Game", icon: ThLargeIcon },
+  { id: "settings", title: "Identity & Mechanics", icon: CogIcon },
+  { id: "interface", title: "Visual", icon: ImagesIcon },
+  { id: "audio", title: "Audio", icon: PlayIcon },
+  { id: "texts", title: "Copy", icon: DocumentTextIcon },
   { id: "rules", title: "Rules", icon: BookIcon },
-  { id: "texts", title: "Texts", icon: DocumentTextIcon },
+  { id: "game", title: "Game", icon: ThLargeIcon },
 ]
 
 type StudioOptions = {

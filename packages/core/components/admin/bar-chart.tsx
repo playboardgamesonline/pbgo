@@ -2,7 +2,7 @@ import { cn } from "@pgo/ui/utils"
 
 type Point = { label: string; value: number; detail?: string }
 
-const DAY_FMT = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" })
+const DAY_FMT = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" })
 
 export const dayLabel = (iso: string) => DAY_FMT.format(new Date(`${iso}T12:00:00`))
 
@@ -10,7 +10,7 @@ export function BarChart({ data, unit, className }: { data: Point[]; unit: strin
   const max = Math.max(1, ...data.map((d) => d.value))
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="relative flex h-40 items-end gap-0.5 border-b" role="img" aria-label={`${unit} par jour`}>
+      <div className="relative flex h-40 items-end gap-0.5 border-b" role="img" aria-label={`${unit} per day`}>
         {data.map((d) => (
           <div key={d.label} className="group relative flex h-full flex-1 items-end">
             <div

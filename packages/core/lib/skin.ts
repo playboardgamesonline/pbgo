@@ -18,14 +18,17 @@ export type Skin = {
   hostIcon: string | null
   playerColors: string[]
   desktopOnly: boolean
-  home: { title: string | null; intro: string | null }
+  home: { title: string | null; intro: string | null; tagline: string | null }
   victoryPhrases: string[]
   texts: UiTexts
+  /** Messages d'erreur remplacés dans l'admin (code → message) */
+  errors: Record<string, string>
 }
 
 export type UiTexts = Record<UiTextKey, string>
 
-export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "home">> & {
+export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "home" | "errors">> & {
+  errors?: Record<string, string>
   decor?: Partial<Skin["decor"]>
   texts?: Partial<UiTexts>
   home?: Partial<Skin["home"]>
@@ -40,9 +43,10 @@ export const DEFAULT_SKIN: Skin = {
   hostIcon: null,
   playerColors: DEFAULT_PLAYER_COLORS,
   desktopOnly: true,
-  home: { title: null, intro: null },
+  home: { title: null, intro: null, tagline: null },
   victoryPhrases: ["Victoire de", "Bravo à", "La partie est remportée par", "Champion·ne du jour"],
   texts: DEFAULT_TEXTS,
+  errors: {},
 }
 
 /** Remplace les variables `{nom}` d'un libellé. */
@@ -54,9 +58,10 @@ export function mergeSkin(base: Skin, over: SkinDefaults | undefined): Skin {
   if (!over) return base
   return {
     ...base,
-    ...Object.fromEntries(Object.entries(over).filter(([k, v]) => v != null && !["decor", "texts", "home"].includes(k))),
+    ...Object.fromEntries(Object.entries(over).filter(([k, v]) => v != null && !["decor", "texts", "home", "errors"].includes(k))),
     decor: { ...base.decor, ...Object.fromEntries(Object.entries(over.decor ?? {}).filter(([, v]) => v != null)) },
     home: { ...base.home, ...Object.fromEntries(Object.entries(over.home ?? {}).filter(([, v]) => v != null)) },
     texts: { ...base.texts, ...Object.fromEntries(Object.entries(over.texts ?? {}).filter(([, v]) => typeof v === "string" && v.trim())) },
+    errors: { ...base.errors, ...Object.fromEntries(Object.entries(over.errors ?? {}).filter(([, v]) => typeof v === "string" && v.trim())) },
   }
 }

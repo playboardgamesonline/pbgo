@@ -1,8 +1,10 @@
 import * as binding from "@pgo/binding"
 import type { OptionValues } from "@pgo/binding"
 import type { PublicGame } from "./game-types"
+import { isPreviewWindow } from "./preview"
 
-const MESSAGES: Record<string, string> = {
+/** Messages d'erreur par défaut (core + moteur du jeu), remplaçables dans l'admin (page Copy). */
+export const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
   INVALID_NICKNAME: "Choisissez un pseudo.",
   INVALID_CODE: "Ce code de partie n'est pas valide.",
   GAME_NOT_FOUND: "Aucune partie ne correspond à ce code.",
@@ -15,18 +17,30 @@ const MESSAGES: Record<string, string> = {
   CONFLICT: "Quelqu'un a joué en même temps, réessayez.",
   DEBUG_DISABLED: "Le debug est désactivé sur ce serveur (DEBUG_GAMES=1).",
   NOT_STALLED: "La partie avance encore : attendez un peu avant de jouer à sa place.",
+  SERVER_ERROR: "Une erreur est survenue.",
   TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
   // messages propres au jeu (codes d'erreur du moteur) : export facultatif `ERROR_MESSAGES` de @pgo/binding
   ...(binding as { ERROR_MESSAGES?: Record<string, string> }).ERROR_MESSAGES,
 }
 
+let overrides: Record<string, string> = {}
+
+/** Appelé par le SkinProvider avec les messages remplacés dans Sanity. */
+export function setErrorOverrides(messages: Record<string, string>) {
+  overrides = messages
+}
+
 export class ApiClientError extends Error {
   constructor(public code: string) {
-    super(MESSAGES[code] ?? "Une erreur est survenue.")
+    super(overrides[code] ?? DEFAULT_ERROR_MESSAGES[code] ?? overrides.SERVER_ERROR ?? DEFAULT_ERROR_MESSAGES.SERVER_ERROR)
   }
 }
 
+/** Aperçu de l'admin : les appels ne partent pas (la promesse reste en attente, sans erreur affichée). */
+const isPreview = isPreviewWindow
+
 async function apiRequest(path: string, init?: RequestInit): Promise<PublicGame> {
+  if (isPreview()) return new Promise<PublicGame>(() => {})
   const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json" }, cache: "no-store" })
   const data = await response.json().catch(() => ({ error: "SERVER_ERROR" }))
   if (!response.ok) throw new ApiClientError(data.error ?? "SERVER_ERROR")
