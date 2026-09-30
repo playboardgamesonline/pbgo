@@ -6,11 +6,10 @@ import { toast } from "sonner"
 import { TAGLINE } from "@pbgo/binding"
 import { api, gameLink } from "../../lib/api"
 import { useProfile } from "../../lib/profile"
-import type { RulesContent } from "../../lib/rules"
 import { useSkin, useText } from "../skin-provider"
 import { CodeField, Intro, NicknameField, Paragraph, PrimaryButton, Screen } from "./screen"
 
-export function Home({ rules }: { rules: RulesContent }) {
+export function Home() {
   const router = useRouter()
   const t = useText()
   const { home } = useSkin()
@@ -55,7 +54,6 @@ export function Home({ rules }: { rules: RulesContent }) {
   return (
     <Screen
       onSubmit={validate}
-      rules={rules}
       cta={<PrimaryButton busy={pending}>{code.length === 6 ? t("joinButton") : t("createButton")}</PrimaryButton>}
       below={<CodeField value={code} onChange={setCode} />}
     >

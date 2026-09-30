@@ -43,7 +43,7 @@ export async function launchChecklist(data: AdminData): Promise<LaunchItem[]> {
     { id: "logo", group: "Identity", label: "Logo", detail: "Shown on every screen and in the share image", ok: !!settings.logo, fix: "identity" },
     { id: "favicon", group: "Identity", label: "Favicon", detail: settings.favicon?.startsWith("https://") ? "Uploaded" : settings.favicon ? "Default from the game code" : "Generated from the logo for now", ok: !!settings.favicon, optional: true, fix: "identity" },
     { id: "share", group: "Identity", label: "Share image", detail: settings.shareImage ? "Custom image" : "Generated from the visual identity", ok: !!settings.shareImage || !!settings.logo || !!skin.decor.top, fix: "identity" },
-    { id: "rules", group: "Mechanics", label: "Rules PDF (French)", detail: "Linked from the rules window", ok: !!settings.rulesPdf.fr, fix: "mechanics" },
+    { id: "rules", group: "Mechanics", label: "Rules PDF (French)", detail: "Linked from the menu (Rules)", ok: !!settings.rulesPdf.fr, fix: "mechanics" },
     { id: "theme", group: "Visual", label: "Colors", detail: "Theme changed from the template defaults", ok: customTheme, fix: "visual" },
     { id: "decor", group: "Visual", label: "Decorations", detail: "Top and bottom decorations of the home screen", ok: !!visual.images.decorTop.url && !!visual.images.decorBottom.url, fix: "visual" },
     { id: "sounds", group: "Audio", label: "Sounds in Sanity", detail: audio.pendingImport ? `${audio.pendingImport} still served from the code` : "Everything can be replaced from the admin", ok: audio.pendingImport === 0, optional: true, fix: "audio" },

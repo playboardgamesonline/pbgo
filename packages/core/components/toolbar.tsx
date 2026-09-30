@@ -2,42 +2,38 @@
 
 import { Menu09Icon, Scroll01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ChevronDownIcon, CookieIcon, LanguagesIcon, ScaleIcon, SlidersHorizontalIcon } from "lucide-react"
+import { CookieIcon, LanguagesIcon, ScaleIcon, SlidersHorizontalIcon, SquareArrowOutUpRightIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { AUTHOR, CONTACT, type OptionValues } from "@pbgo/binding"
-import type { RulesContent } from "../lib/rules"
 import { LOCALES, LOCALE_NAMES } from "../lib/i18n"
 import { FeedbackButton } from "./feedback"
 import { GameSettingsDialog } from "./game-settings"
 import { InfoDialog } from "./info-dialog"
 import { setLocaleCookie } from "./language-select"
-import { GameRulesButton as RulesButton } from "./rules-slot"
 import { useSiteSettings } from "./settings-provider"
 import { SoundButton } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
 import { useRouter } from "next/navigation"
 
-/** Boutons ronds fins : liseré discret, icône légère, léger relief au survol. */
-const BADGE =
-  "flex size-10 cursor-pointer items-center justify-center rounded-full border border-foreground/40 bg-black/25 text-foreground shadow-[inset_0_0_0_1px_rgb(255_255_255/6%),0_2px_8px_rgb(0_0_0/35%)] backdrop-blur-sm transition-[transform,border-color,background-color] duration-200 hover:scale-105 hover:border-foreground/70 hover:bg-black/40 active:scale-95"
-const ROW = "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10"
+/** Traits d'1 px partout : le liseré du cercle et les icônes (vector-effect) ont exactement la même épaisseur. Ni fond, ni dégradé. */
+const HAIRLINE = "[&_svg_*]:[vector-effect:non-scaling-stroke]"
+const BADGE = `flex size-10 cursor-pointer items-center justify-center rounded-full border border-foreground/70 bg-transparent text-foreground drop-shadow-none transition-[transform,border-color] duration-200 hover:scale-105 hover:border-foreground active:scale-95 ${HAIRLINE}`
+const ROW = `flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10 ${HAIRLINE}`
 const SEPARATOR = <div role="separator" className="my-1 h-px bg-foreground/15" />
 
 /**
- * Deux boutons discrets : le son et un menu déroulant (langue, règles, paramètres de la partie · cookies, mentions légales · feedback).
- * Les fenêtres (règles, feedback) restent montées même menu fermé pour conserver leur état.
+ * Deux boutons discrets : le son et un menu déroulant (langue, règles [lien externe], paramètres de la partie · cookies, mentions légales · feedback).
+ * Les fenêtres (feedback, paramètres…) restent montées même menu fermé pour conserver leur état.
  */
-export function Toolbar({ rules, gameCode, options, align = "left" }: { rules?: RulesContent; gameCode?: string; options?: OptionValues; align?: "left" | "right" }) {
+export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: string; options?: OptionValues; align?: "left" | "right" }) {
   const t = useText()
   const { locale } = useSkin()
-  const { credits } = useSiteSettings()
+  const { credits, rulesPdf } = useSiteSettings()
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [languages, setLanguages] = useState(false)
   const [dialog, setDialog] = useState<"settings" | "cookies" | "legal" | null>(null)
   const root = useRef<HTMLDivElement>(null)
-  const rulesHost = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -65,10 +61,8 @@ export function Toolbar({ rules, gameCode, options, align = "left" }: { rules?: 
     setOpen(false)
     setDialog(d)
   }
-  const openRules = () => {
-    setOpen(false)
-    rulesHost.current?.querySelector("button")?.click()
-  }
+  // règles : simple lien vers le PDF / la page de la langue du joueur (à défaut, la première disponible)
+  const rulesUrl = [locale, ...LOCALES].map((l) => rulesPdf[l]).find((u): u is string => !!u) ?? null
 
   const label = open ? t("closeMenu") : t("menu")
   const legalText = t("legalBody", {
@@ -79,13 +73,10 @@ export function Toolbar({ rules, gameCode, options, align = "left" }: { rules?: 
   const tab = open ? 0 : -1
   return (
     <div ref={root} className="relative flex items-center justify-center gap-2">
-      <SoundButton className={BADGE} iconClass="size-[18px]" stroke={1.1} />
+      <SoundButton className={BADGE} iconClass="size-[18px]" stroke={1} />
       <button type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} className={BADGE} onClick={() => setOpen((o) => !o)}>
-        <HugeiconsIcon icon={Menu09Icon} strokeWidth={1.1} className="size-[18px]" />
+        <HugeiconsIcon icon={Menu09Icon} strokeWidth={1} className="size-[18px]" />
       </button>
-      <div ref={rulesHost} className="hidden" aria-hidden>
-        {rules && <RulesButton rules={rules} />}
-      </div>
       <div
         role="menu"
         aria-hidden={!open}
@@ -95,52 +86,43 @@ export function Toolbar({ rules, gameCode, options, align = "left" }: { rules?: 
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
-        <button type="button" role="menuitem" tabIndex={tab} aria-expanded={languages} className={ROW} onClick={() => setLanguages((v) => !v)}>
-          <LanguagesIcon strokeWidth={1.6} className="size-4.5" />
+        <label className={cn(ROW, "cursor-default hover:bg-transparent")}>
+          <LanguagesIcon strokeWidth={1} className="size-4.5" />
           <span className="flex-1">{t("language")}</span>
-          <span className="text-xs font-bold text-foreground/60 uppercase">{locale}</span>
-          <ChevronDownIcon strokeWidth={1.6} className={cn("size-4 text-foreground/50 transition-transform", languages && "rotate-180")} />
-        </button>
-        {languages && (
-          <div className="flex items-center gap-1 px-2 pb-1.5" role="group" aria-label={t("language")}>
+          <select
+            value={locale}
+            tabIndex={tab}
+            aria-label={t("language")}
+            onChange={(e) => choose(e.target.value as (typeof LOCALES)[number])}
+            className="cursor-pointer rounded-md border border-foreground/40 bg-transparent py-1 pr-1 pl-2 text-xs font-semibold outline-none hover:border-foreground/70 focus-visible:border-foreground"
+          >
             {LOCALES.map((l) => (
-              <button
-                key={l}
-                type="button"
-                lang={l}
-                title={LOCALE_NAMES[l]}
-                aria-pressed={l === locale}
-                tabIndex={tab}
-                onClick={() => choose(l)}
-                className={cn(
-                  "h-8 flex-1 cursor-pointer rounded-lg px-2 text-xs font-bold uppercase transition-colors",
-                  l === locale ? "bg-foreground/90 text-background" : "text-foreground/70 hover:bg-foreground/10 hover:text-foreground",
-                )}
-              >
-                {l}
-              </button>
+              <option key={l} value={l} lang={l} className="bg-surface text-foreground">
+                {LOCALE_NAMES[l]}
+              </option>
             ))}
-          </div>
-        )}
-        {rules && (
-          <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={openRules}>
-            <HugeiconsIcon icon={Scroll01Icon} strokeWidth={1.6} className="size-4.5" />
-            {t("rulesTitle")}
-          </button>
+          </select>
+        </label>
+        {rulesUrl && (
+          <a href={rulesUrl} target="_blank" rel="noopener noreferrer" role="menuitem" tabIndex={tab} className={ROW} onClick={() => setOpen(false)}>
+            <HugeiconsIcon icon={Scroll01Icon} strokeWidth={1} className="size-4.5" />
+            <span className="flex-1">{t("rulesTitle")}</span>
+            <SquareArrowOutUpRightIcon strokeWidth={1} className="size-4 text-foreground/60" />
+          </a>
         )}
         {options && (
           <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={() => openDialog("settings")}>
-            <SlidersHorizontalIcon strokeWidth={1.6} className="size-4.5" />
+            <SlidersHorizontalIcon strokeWidth={1} className="size-4.5" />
             {t("gameSettingsMenu")}
           </button>
         )}
         {SEPARATOR}
         <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={() => openDialog("cookies")}>
-          <CookieIcon strokeWidth={1.6} className="size-4.5" />
+          <CookieIcon strokeWidth={1} className="size-4.5" />
           {t("cookiesMenu")}
         </button>
         <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={() => openDialog("legal")}>
-          <ScaleIcon strokeWidth={1.6} className="size-4.5" />
+          <ScaleIcon strokeWidth={1} className="size-4.5" />
           {t("legalMenu")}
         </button>
         {SEPARATOR}

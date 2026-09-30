@@ -1,5 +1,4 @@
 import { Home } from "@pbgo/core/components/home/home"
-import { loadRules } from "@pbgo/core/lib/rules-server"
 import { OG_LOCALES } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
@@ -35,7 +34,7 @@ export default async function HomePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData(settings, language)) }} />
       <h1 className="sr-only">{settings.title}</h1>
-      <Home rules={await loadRules()} />
+      <Home />
     </>
   )
 }

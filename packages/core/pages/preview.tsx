@@ -4,7 +4,6 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Home } from "../components/home/home"
 import { PreviewGame } from "../components/preview-game"
-import { loadRules } from "../lib/rules-server"
 import { gameOptions } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
 import { isAdmin } from "../server/admin"
@@ -37,11 +36,10 @@ async function previewGame() {
 export default async function PreviewPage({ params }: { params: Promise<{ kind: string }> }) {
   if (!(await isAdmin())) notFound()
   const { kind } = await params
-  const rules = await loadRules()
-  if (kind === "home") return <Home rules={rules} />
+  if (kind === "home") return <Home />
   if (kind === "game") {
     const [game, data] = await Promise.all([previewGame(), gameDataLoader?.()])
-    return <PreviewGame game={game} rules={rules} data={data} />
+    return <PreviewGame game={game} data={data} />
   }
   notFound()
 }

@@ -105,7 +105,7 @@ export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: stri
       <DialogTrigger asChild>
         {asRow ? (
           <button type="button" className={cn("flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10", className)}>
-            <HugeiconsIcon icon={Sent02Icon} strokeWidth={1.6} className="size-4.5" />
+            <HugeiconsIcon icon={Sent02Icon} strokeWidth={1} className="size-4.5 [&_*]:[vector-effect:non-scaling-stroke]" />
             {t("feedbackButton")}
           </button>
         ) : (

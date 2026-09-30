@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useState } from "react"
 import { Logo } from "@pbgo/binding-ui"
-import type { RulesContent } from "../../lib/rules"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
@@ -134,13 +133,11 @@ export function Ticker({
  * en haut à droite le bandeau (`ticker`) sur un voile sombre ; `overlay` pour les boutons et panneaux propres au jeu.
  */
 export function GameHud({
-  rules,
   onLeave,
   ticker,
   overlay,
   children,
 }: {
-  rules: RulesContent
   onLeave: () => void
   ticker?: React.ReactNode
   overlay?: React.ReactNode
@@ -167,7 +164,7 @@ export function GameHud({
           <button type="button" className="w-40 cursor-pointer transition-transform hover:scale-105 sm:w-48" title={t("leave")} onClick={onLeave}>
             {logo ? <Logo src={logo} alt={title} /> : <span className="font-display text-2xl font-black tracking-[0.12em] uppercase">{title}</span>}
           </button>
-          <Toolbar rules={rules} gameCode={game.code} options={game.options} />
+          <Toolbar gameCode={game.code} options={game.options} />
         </div>
         {ticker}
       </header>

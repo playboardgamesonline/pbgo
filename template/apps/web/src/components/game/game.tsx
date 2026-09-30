@@ -15,11 +15,10 @@ import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import { api, type ClientDebugCommand } from "@pbgo/core/lib/api"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
-import type { RulesContent } from "@pbgo/core/lib/rules"
 
 const Scene = dynamic(() => import("@/components/game3d/scene").then((m) => m.Scene), { ssr: false })
 
-type Props = { game: PublicGame; rules: RulesContent; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
+type Props = { game: PublicGame; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
 
 export function Game(props: Props) {
   const view = props.game.view
@@ -37,7 +36,7 @@ function eventText(e: GameEvent) {
   return null
 }
 
-function Table({ rules, onUpdate, onLeave }: Props) {
+function Table({ onUpdate, onLeave }: Props) {
   const t = useText()
   const { victoryPhrases, hostIcon } = useSkin()
   const { game, view, color } = useGame()
@@ -119,7 +118,7 @@ function Table({ rules, onUpdate, onLeave }: Props) {
 
   return (
     <GameHud
-      rules={rules}
+     
       onLeave={onLeave}
       ticker={
         <Ticker

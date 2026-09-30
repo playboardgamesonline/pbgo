@@ -11,7 +11,6 @@ import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pbgo/
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
-import type { RulesContent } from "../../lib/rules"
 import { AUTHOR, CONTACT } from "@pbgo/binding"
 import { cn } from "@pbgo/ui/utils"
 
@@ -24,13 +23,11 @@ export function Screen({
   children,
   cta,
   below,
-  rules,
   onSubmit,
 }: {
   children?: React.ReactNode
   cta?: React.ReactNode
   below?: React.ReactNode
-  rules?: RulesContent
   onSubmit?: (e: React.FormEvent) => void
 }) {
   const { title, logo } = useSiteSettings()
@@ -67,7 +64,7 @@ export function Screen({
         />
       )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
-        <Toolbar rules={rules} align="right" />
+        <Toolbar align="right" />
       </div>
 
       <form autoComplete="off" onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
