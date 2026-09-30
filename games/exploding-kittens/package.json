@@ -1,0 +1,14 @@
+{
+  "name": "exploding-kittens",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter exploding-kittens-web dev",
+    "dev:studio": "pnpm --filter exploding-kittens-studio dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "deploy:studio": "pnpm --filter exploding-kittens-studio run deploy",
+    "setup:env": "bash scripts/setup-env.sh",
+    "go-live": "bash scripts/go-live.sh"
+  }
+}

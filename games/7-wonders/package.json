@@ -1,0 +1,14 @@
+{
+  "name": "7-wonders",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter 7-wonders-web dev",
+    "dev:studio": "pnpm --filter 7-wonders-studio dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "deploy:studio": "pnpm --filter 7-wonders-studio run deploy",
+    "setup:env": "bash scripts/setup-env.sh",
+    "go-live": "bash scripts/go-live.sh"
+  }
+}
