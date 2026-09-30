@@ -6,9 +6,11 @@ import { cn } from "@pbgo/ui/utils"
 import { useCourtisans } from "./context"
 import { RolePictogram } from "./pictograms"
 import { PlayerName } from "@pbgo/core/components/game/hud"
+import { useDict } from "../use-dict"
 
 export function CardBadge({ card, className }: { card: VisibleCard; className?: string }) {
   const { catalog } = useCourtisans()
+  const d = useDict()
   const family = card.family ? catalog.families[card.family] : null
   return (
     <span
@@ -23,38 +25,36 @@ export function CardBadge({ card, className }: { card: VisibleCard; className?: 
         <img src={family.pictogramUrl} alt="" aria-hidden className="pointer-events-none absolute -right-1.5 -bottom-2.5 size-10 opacity-35" />
       )}
       {card.role && <RolePictogram role={card.role} className="relative size-[1.15em] bg-transparent p-0" />}
-      <span className="relative">{card.role ? catalog.roles[card.role].name : "Courtisan"}</span>
+      <span className="relative">{card.role ? catalog.roles[card.role].name : d.courtier}</span>
     </span>
   )
 }
 
 function Zone({ target, authorId }: { target: Target; authorId: string }) {
   const meId = useCourtisans().view.me?.id
-  if (target.zone === "table") return <span>à la table de la Reine</span>
-  if (target.playerId === authorId) return <span>{authorId === meId ? "chez vous" : "chez lui"}</span>
-  if (target.playerId === meId) return <span>chez vous</span>
+  const { zone } = useDict()
+  if (target.zone === "table") return <span>{zone.table}</span>
+  if (target.playerId === authorId) return <span>{authorId === meId ? zone.mine : zone.own}</span>
+  if (target.playerId === meId) return <span>{zone.mine}</span>
   return (
     <span>
-      chez <PlayerName id={target.playerId} />
+      {zone.other[0]}
+      <PlayerName id={target.playerId} />
+      {zone.other[1]}
     </span>
   )
 }
 
-// conjugaison à la 2e personne des verbes affichés (texte d'interface)
-const YOU: Record<string, string> = { "joue": "jouez", "élimine": "éliminez", "pioche": "piochez" }
+type Action = "play" | "eliminate" | { draw: number }
 
-function Subject({ id, verb }: { id: string; verb: string }) {
+function Subject({ id, action }: { id: string; action: Action }) {
   const meId = useCourtisans().view.me?.id
-  if (id === meId)
-    return (
-      <span>
-        Vous {YOU[verb.split(" ")[0]!] ?? verb.split(" ")[0]}
-        {verb.slice(verb.split(" ")[0]!.length)}
-      </span>
-    )
+  const { you, they } = useDict()
+  const text = (v: typeof you) => (typeof action === "string" ? v[action] : v.draw(action.draw))
+  if (id === meId) return <span>{text(you)}</span>
   return (
     <>
-      <PlayerName id={id} /> <span>{verb}</span>
+      <PlayerName id={id} /> <span>{text(they)}</span>
     </>
   )
 }
@@ -62,29 +62,30 @@ function Subject({ id, verb }: { id: string; verb: string }) {
 const LINE = "inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1"
 
 export function Message({ event, className }: { event: VisibleEvent; className?: string }) {
+  const d = useDict()
   switch (event.type) {
     case "cardPlayed":
       return (
         <span className={cn(LINE, className)}>
-          <Subject id={event.playerId} verb="joue" /> <CardBadge card={event.card} />{" "}
+          <Subject id={event.playerId} action="play" /> <CardBadge card={event.card} />{" "}
           <Zone target={event.target} authorId={event.playerId} />
         </span>
       )
     case "cardEliminated":
       return (
         <span className={cn(LINE, className)}>
-          <Subject id={event.playerId} verb="élimine" /> <CardBadge card={event.card} />{" "}
+          <Subject id={event.playerId} action="eliminate" /> <CardBadge card={event.card} />{" "}
           <Zone target={event.target} authorId={event.playerId} />
         </span>
       )
     case "draw":
       return (
         <span className={cn(LINE, className)}>
-          <Subject id={event.playerId} verb={`pioche ${event.count} carte${event.count > 1 ? "s" : ""}`} />
+          <Subject id={event.playerId} action={{ draw: event.count }} />
         </span>
       )
     case "gameOver":
-      return <span className={className}>La pioche est vide : fin de la partie !</span>
+      return <span className={className}>{d.gameOverLog}</span>
   }
 }
 

@@ -9,7 +9,9 @@ import { Button } from "@pbgo/ui/game/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@pbgo/ui/game/dialog"
 import { ScrollArea } from "@pbgo/ui/game/scroll-area"
 import { type RulesCatalog, DEFAULT_RULES, type RoleRules } from "@/lib/catalog"
+import { useSkin } from "@pbgo/core/components/skin-provider"
 import { cn } from "@pbgo/ui/utils"
+import { useDict } from "./use-dict"
 
 export const ICON_BUTTON_CLASS =
   "size-11 cursor-pointer rounded-full bg-transparent text-foreground transition-transform hover:scale-110 hover:bg-transparent hover:text-foreground active:scale-95 dark:hover:bg-transparent"
@@ -30,8 +32,8 @@ function StatusTag({ type }: { type: "light" | "disgrace" | "neutral" }) {
     disgrace: "bg-[#12322f] text-[#e7c46a] ring-[#d9a93f]/50",
     neutral: "bg-[#7b8384] text-white ring-[#9aa1a2]",
   }
-  const text = { light: "dans la lumière", disgrace: "en disgrâce", neutral: "neutre" }
-  return <span className={cn("rounded-md px-1.5 py-px text-[0.92em] whitespace-nowrap ring-1", styles[type])}>{text[type]}</span>
+  const { status } = useDict()
+  return <span className={cn("rounded-md px-1.5 py-px text-[0.92em] whitespace-nowrap ring-1", styles[type])}>{status[type]}</span>
 }
 
 function Rich({ text }: { text: string }) {
@@ -128,6 +130,8 @@ function CardImage({ src, className }: { src: string; className?: string }) {
 }
 
 function Role({ role, frame, children }: { role: RoleRules; frame: string; children: React.ReactNode }) {
+  const d = useDict()
+  const { locale } = useSkin()
   return (
     <div className="flex gap-6 border-t border-[#0e3940]/15 pt-5">
       <div aria-hidden className="relative h-[10rem] w-[7.6rem] shrink-0">
@@ -137,14 +141,14 @@ function Role({ role, frame, children }: { role: RoleRules; frame: string; child
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Pictogram src={role.pictogramUrl} frame={frame} />
-          {role.letteringUrl ? (
+          {role.letteringUrl && locale === "fr" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={role.letteringUrl} alt={role.name} className="h-9 w-auto" />
           ) : (
             <p className="font-display text-2xl text-[#0e3940]">{role.name}</p>
           )}
           <span className="font-display text-xl whitespace-nowrap text-[#0e3940]">
-            × {role.count} <span className="text-base text-[#0e3940]/70">par famille</span>
+            × {role.count} <span className="text-base text-[#0e3940]/70">{d.rules.perFamily}</span>
           </span>
         </div>
         <div className="mt-2 leading-[1.45] text-[#1f2b2d]/85">{children}</div>
@@ -157,6 +161,7 @@ const ROLE_ORDER = ["noble", "guard", "spy", "assassin"] as const
 
 function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
   const t = rules.texts
+  const { rules: r } = useDict()
   switch (tab) {
     case "video":
       return (
@@ -166,7 +171,7 @@ function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
             <iframe
               className="aspect-video w-full"
               src={`https://www.youtube-nocookie.com/embed/${t.videoId}?rel=0`}
-              title="Courtisans – règles en vidéo"
+              title={r.videoFrame}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
@@ -179,7 +184,7 @@ function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
           <Heading title={t.goalTitle}>
             <Rich text={t.goalIntro} />
           </Heading>
-          <Card title="Six familles">
+          <Card title={r.sixFamilies}>
             <Rich text={t.goalFamilies} />
           </Card>
           <div className="mt-6 grid grid-cols-3 gap-x-6 gap-y-10 sm:grid-cols-6">
@@ -201,7 +206,7 @@ function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
             ))}
           </div>
           <div className="mt-12 grid items-center gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_auto]">
-            <Card title="Deux missions secrètes">
+            <Card title={r.twoMissions}>
               <Rich text={t.goalMissions} />
             </Card>
             <div aria-hidden className="relative mx-auto h-[15.5rem] w-[22rem]">
@@ -218,13 +223,13 @@ function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
             <Rich text={t.flowIntro} />
           </Heading>
           <div className="grid max-w-4xl gap-y-6">
-            <Card number={1} title="Le tapis et la pioche">
+            <Card number={1} title={r.matAndDraw}>
               <Rich text={t.flowMat} />
             </Card>
-            <Card number={2} title="Votre main">
+            <Card number={2} title={r.yourHand}>
               <Rich text={t.flowHand} />
             </Card>
-            <Card number={3} title="Vos missions">
+            <Card number={3} title={r.yourMissions}>
               <Rich text={t.flowMissions} />
             </Card>
           </div>
@@ -243,20 +248,20 @@ function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
             <Rich text={t.turnIntro} />
           </Heading>
           <div className="grid max-w-4xl gap-y-6">
-            <Card number={1} title="À la table de la reine" subtitle="autour du tapis">
+            <Card number={1} title={r.queenTable} subtitle={r.aroundMat}>
               <Rich text={t.turnTable} />
             </Card>
-            <Card number={2} title="Dans votre domaine" subtitle="devant vous">
+            <Card number={2} title={r.yourDomain} subtitle={r.inFrontOfYou}>
               <Rich text={t.turnDomain} />
             </Card>
-            <Card number={3} title="Dans un domaine adverse" subtitle="devant l'adversaire de votre choix">
+            <Card number={3} title={r.opponentDomain} subtitle={r.opponentSubtitle}>
               <Rich text={t.turnOpponent} />
             </Card>
           </div>
           <div className="mt-6 flex max-w-4xl items-center gap-4 rounded-2xl bg-[#0e3940] px-6 py-4 text-[#f3ecd6]">
             <ScrollTextIcon className="size-6 shrink-0 text-[#e7c46a]" />
             <div>
-              <strong className="font-display text-[#f6e7b8]">Fin du tour</strong> — <Rich text={t.turnEnd} />
+              <strong className="font-display text-[#f6e7b8]">{r.endOfTurn}</strong> — <Rich text={t.turnEnd} />
             </div>
           </div>
         </>
@@ -283,13 +288,13 @@ function Content({ tab, rules }: { tab: Tab; rules: RulesCatalog }) {
             <Rich text={t.scoringIntro} />
           </Heading>
           <div className="grid gap-x-8 gap-y-8 lg:grid-cols-3">
-            <Card number={1} title="Les espions sont révélés">
+            <Card number={1} title={r.spiesRevealed}>
               <Rich text={t.scoringReveal} />
             </Card>
-            <Card number={2} title="Le statut des familles">
+            <Card number={2} title={r.familyStatus}>
               <Rich text={t.scoringStatus} />
             </Card>
-            <Card number={3} title="Les points">
+            <Card number={3} title={r.points}>
               <Rich text={t.scoringPoints} />
             </Card>
           </div>
@@ -324,17 +329,18 @@ function TabButton({ tab, active, name, onClick }: { tab: { icon: typeof PlayIco
 
 export function RulesButton({ className, icon, rules = DEFAULT_RULES }: { className?: string; icon?: boolean; rules?: RulesCatalog }) {
   const [tab, setTab] = useState<Tab>("goal")
+  const { rules: r } = useDict()
   return (
     <Dialog>
       <DialogTrigger asChild>
         {icon ? (
-          <Button variant="ghost" size="icon" aria-label="Règles du jeu" title="Règles du jeu" className={cn(ICON_BUTTON_CLASS, className)}>
+          <Button variant="ghost" size="icon" aria-label={r.title} title={r.title} className={cn(ICON_BUTTON_CLASS, className)}>
             <HugeiconsIcon icon={Scroll01Icon} strokeWidth={1.6} className="size-7 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]" />
           </Button>
         ) : (
           <Button variant="outline" className={className}>
             <HugeiconsIcon icon={CatalogueIcon} />
-            Règles du jeu
+            {r.title}
           </Button>
         )}
       </DialogTrigger>
@@ -342,8 +348,8 @@ export function RulesButton({ className, icon, rules = DEFAULT_RULES }: { classN
         <nav className="relative flex w-80 shrink-0 flex-col bg-[#0e3940] px-4 py-7 text-[#f3ecd6]">
           <div aria-hidden className="pointer-events-none absolute inset-0 bg-(image:--image-pattern) bg-[length:110px_110px] opacity-[0.06]" />
           <div className="relative px-3 pb-8">
-            <DialogTitle className="font-display text-2xl text-[#f6e7b8]">Règles du jeu</DialogTitle>
-            <DialogDescription className="mt-1 text-sm text-[#f3ecd6]/60">2 à 5 joueurs · 30 minutes</DialogDescription>
+            <DialogTitle className="font-display text-2xl text-[#f6e7b8]">{r.title}</DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-[#f3ecd6]/60">{r.subtitle}</DialogDescription>
           </div>
           <ul className="relative space-y-1">
             {TABS.map((o) => (

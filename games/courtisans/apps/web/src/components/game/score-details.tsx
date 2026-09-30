@@ -3,11 +3,13 @@
 import type { CourtisansPlayerResult } from "@courtisans/engine"
 import type { ResultDetailRenderer } from "@pbgo/core/components/game/game-over"
 import { cn } from "@pbgo/ui/utils"
+import { useDict } from "../use-dict"
 import { useCourtisans } from "./context"
 
 /** Détail des points d'un joueur en fin de partie : une mini-carte par famille, puis les missions réussies. */
 export function FamilyCards({ j, large, center }: { j: CourtisansPlayerResult; large?: boolean; center?: boolean }) {
   const { catalog } = useCourtisans()
+  const dict = useDict()
   const succeeded = j.missions.filter((m) => m.done).length
   const missionPoints = j.missions.reduce((t, m) => t + m.points, 0)
   const size = large ? "h-10 w-7 text-sm" : "h-8 w-[1.4rem] text-[0.68rem]"
@@ -31,7 +33,7 @@ export function FamilyCards({ j, large, center }: { j: CourtisansPlayerResult; l
         ))}
       {succeeded > 0 && (
         <span
-          title={`Missions réussies : ${succeeded}/${j.missions.length} (${sign(missionPoints)})`}
+          title={`${dict.missionsSucceeded} : ${succeeded}/${j.missions.length} (${sign(missionPoints)})`}
           className={cn("relative ml-3 shrink-0", large ? "h-10" : "h-9", succeeded > 1 ? (large ? "w-[5.4rem]" : "w-[5rem]") : large ? "w-12" : "w-12")}
         >
           {j.missions

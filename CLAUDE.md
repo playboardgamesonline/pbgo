@@ -53,6 +53,15 @@ Les jeux créés depuis le template en sont une copie : une amélioration faite 
 Identité git : `oré <louvel.aurelien.perso@gmail.com>` (compte GitHub/Vercel du projet) — jamais l'adresse pro, sinon Vercel bloque le déploiement.
 Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo` (ex. `✨(skull-king): …`, `🔧(repo): …`)
 
+## Langues (FR / EN / ES / DE)
+
+- Langues : `LANGUAGES` dans `packages/studio-kit/src/constants.ts` (source unique, alimente aussi les champs Sanity `localeString`). Ajouter une langue = l'ajouter là, puis les traductions ci-dessous (TypeScript signale ce qui manque).
+- Langue du visiteur : cookie `pbgo-locale` (sélecteur dans la barre d'outils), sinon `Accept-Language` (langue non gérée : anglais ; pas d'en-tête : français). Même URL pour tous ; `getLocale()` (`lib/locale-server.ts`) lit cookie et en-têtes, donc les pages sont rendues à la demande (données Sanity toujours en cache 60 s).
+- Textes communs : français dans `UI_TEXTS`, traductions par défaut dans `packages/studio-kit/src/translations.ts` (libellés + erreurs). Un texte saisi dans l'admin (Copy) passe avant, langue par langue ; sans saisie dans la langue, la traduction du code s'applique (jamais le français de Sanity).
+- Un jeu fournit ses textes non français via l'export facultatif `I18N` de `@pbgo/binding` (`skin`, `description`, `authors`, `errors`) ; Courtisans y ajoute `lib/i18n.ts` (plateau, missions, familles, rôles) et `lib/i18n-rules.ts` (règles).
+- Identité (description, « un jeu de »), PDF des règles et Copy s'éditent par langue dans l'admin ; le nom du jeu et le suffixe d'onglet sont communs.
+- Règles : Sanity dans la langue, sinon Sanity en français, sinon règles par défaut de la langue.
+
 ## Admin (`/admin`, tout en anglais)
 - Barre latérale (`lib/admin-nav.ts`) : **Setup** (Identity, Mechanics, Visual, Audio, Copy) · **Tasks** (Launch, Backlog, Bugs, Feedback) · **Monitoring** (Games, Audience, Health). Une seule route par app : `app/(admin)/admin/[[...section]]/page.tsx` → `@pbgo/core/pages/admin`.
 - Données Setup : `server/settings.ts` (`readAdminData`, `saveSection(section, values)`, `uploadAsset(slot, file)`), routes `PUT/GET/POST /api/admin/settings` et `/api/admin/upload/[slot]`. Documents Sanity : `settings` (Identity, Mechanics, couleurs et polices), `interface` (images de Visual, couleurs des joueurs, desktopOnly), `audio` (musiques, ambiance, effets, volumes), `texts` (Copy, dont `errorMessages`).

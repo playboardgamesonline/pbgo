@@ -222,7 +222,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
       list.push({
         key: `mission:${m.id}`,
         urls: [catalog.missions[m.id], DEFAULT_MISSION_IMAGES[m.id]],
-        text: m.text,
+        text: catalog.missionTexts?.[m.id] ?? m.text,
       })
     return list
   }, [catalog, missions, d])
@@ -270,7 +270,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
       mission: (m) =>
         loaded[`mission:${m.id}`] ??
         fallback(`m:${m.id}`, () =>
-          textTexture(m.text, m.color === "blue" ? "#0d5c63" : "#efe1bf", m.color === "blue" ? "#fff" : "#10363c", 452 / 688),
+          textTexture(catalog.missionTexts?.[m.id] ?? m.text, m.color === "blue" ? "#0d5c63" : "#efe1bf", m.color === "blue" ? "#fff" : "#10363c", 452 / 688),
         ),
       missionBack: (m) =>
         (m.color === "blue" ? loaded.blueBack : loaded.whiteBack) ??

@@ -13,7 +13,7 @@ export const LOCALE_COOKIE = "pbgo-locale"
 
 export const isLocale = (v: unknown): v is Locale => typeof v === "string" && (LOCALES as readonly string[]).includes(v)
 
-/** Première langue gérée de l'en-tête Accept-Language (`fr-CA,fr;q=0.9,en;q=0.8` → `fr`), sinon la langue par défaut. */
+/** Première langue gérée de l'en-tête Accept-Language (`fr-CA,fr;q=0.9,en;q=0.8` → `fr`), sinon l'anglais (langue non gérée) ou la langue par défaut (pas d'en-tête). */
 export function fromAcceptLanguage(header: string | null | undefined): Locale {
   const wanted = (header ?? "")
     .split(",")
@@ -23,7 +23,8 @@ export function fromAcceptLanguage(header: string | null | undefined): Locale {
     })
     .filter((x) => x.lang && Number.isFinite(x.q))
     .sort((a, b) => b.q - a.q)
-  return wanted.map((x) => x.lang).find(isLocale) ?? DEFAULT_LOCALE
+  // navigateur dans une langue non gérée : l'anglais ; sans en-tête (robots) : le français
+  return wanted.map((x) => x.lang).find(isLocale) ?? (wanted.length ? "en" : DEFAULT_LOCALE)
 }
 
 export type Localized<T = string> = Partial<Record<Locale, T | null>> | null | undefined

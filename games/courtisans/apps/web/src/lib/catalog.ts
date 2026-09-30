@@ -1,6 +1,9 @@
 import { DEFAULT_PICTO_FRAME, DEFAULT_ROLE_RULES, DEFAULT_RULE_TEXTS, type RuleTexts } from "./default-rules"
 import { FAMILIES, type Family, ROLES, type Role } from "@courtisans/engine"
 import { DEFAULT_MISSION_IMAGES } from "./default-missions"
+import type { Locale } from "@pbgo/core/lib/i18n"
+import { defaultMissionTexts, gameDict } from "./i18n"
+import { ROLE_RULE_TEXTS, RULE_TEXTS } from "./i18n-rules"
 
 export type FamilyInfo = { key: Family; name: string; plural: string; color: string; pictogramUrl: string | null }
 export type RoleInfo = { key: Role; name: string; pictogramUrl: string | null }
@@ -105,6 +108,8 @@ export type ClientCatalog = {
   rules: RulesCatalog
   missionsButtonText: string
   banquetStartText: string
+  /** Texte des missions dans la langue du joueur (id → texte) ; vide en français, où le texte de la partie sert */
+  missionTexts: Record<string, string>
 }
 
 export const cardKey = (family: Family, role: Role | null) => `${role ?? "base"}-${family}`
@@ -124,4 +129,32 @@ export const DEFAULT_CATALOG: ClientCatalog = {
   rules: DEFAULT_RULES,
   missionsButtonText: "Missions comprises",
   banquetStartText: "Le banquet peut commencer !",
+  missionTexts: {},
+}
+
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+
+/** Catalogue par défaut (images du code) avec les textes de la langue : familles, rôles, règles, boutons, missions. */
+export function defaultCatalog(locale: Locale): ClientCatalog {
+  if (locale === "fr") return DEFAULT_CATALOG
+  const d = gameDict(locale)
+  const c = DEFAULT_CATALOG
+  const families = Object.fromEntries(
+    FAMILIES.map((f) => [f, { ...c.families[f], name: d.families[f].name, plural: cap(d.families[f].plural) }]),
+  ) as Record<Family, FamilyInfo>
+  const roles = Object.fromEntries(ROLES.map((r) => [r, { ...c.roles[r], name: d.roles[r].name }])) as Record<Role, RoleInfo>
+  return {
+    ...c,
+    families,
+    roles,
+    rules: {
+      ...c.rules,
+      texts: RULE_TEXTS[locale],
+      roles: Object.fromEntries(ROLES.map((r) => [r, { ...c.rules.roles[r], name: roles[r].name, text: ROLE_RULE_TEXTS[locale][r] }])) as Record<Role, RoleRules>,
+      families: c.rules.families.map((f) => ({ ...f, name: families[f.key].name })),
+    },
+    missionsButtonText: d.missionsButton,
+    banquetStartText: d.banquetStart,
+    missionTexts: defaultMissionTexts(locale),
+  }
 }
