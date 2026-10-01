@@ -66,8 +66,8 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
     setOpen(false)
     setDialog(d)
   }
-  // règles : simple lien vers le PDF / la page de la langue du joueur (à défaut, la première disponible)
-  const rulesUrl = [locale, ...LOCALES].map((l) => rulesPdf[l]).find((u): u is string => !!u) ?? null
+  // règles : lien vers le PDF de la langue du joueur ; à défaut la version anglaise, puis la première disponible
+  const rulesUrl = [locale, "en", ...LOCALES].map((l) => rulesPdf[l]).find((u): u is string => !!u) ?? null
 
   const label = open ? t("closeMenu") : t("menu")
   const legalText = t("legalBody", {
