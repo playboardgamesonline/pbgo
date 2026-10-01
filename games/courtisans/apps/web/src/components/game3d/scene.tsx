@@ -551,7 +551,7 @@ function Veil({ active, opacity, fade = 0.2 }: { active: boolean; opacity: numbe
 }
 
 export const ZONE_SETTINGS = {
-  restOpacity: 0.05,
+  restOpacity: 0.12,
   playableOpacity: 0.12,
   hoverOpacity: 0.22,
   playableAura: 0.55,
@@ -590,7 +590,7 @@ function DomainBackground({ zone, playable, hover, color }: { zone: DomainZone; 
     const m = ref.current
     if (!m) return
     easing.damp(m, "opacity", playable ? (hover ? ZONE_SETTINGS.hoverOpacity : ZONE_SETTINGS.playableOpacity) : ZONE_SETTINGS.restOpacity, 0.15, dt)
-    easing.dampC(m.color, playable ? color : "#ffffff", 0.2, dt)
+    easing.dampC(m.color, color, 0.2, dt)
   })
   return (
     <>
@@ -1285,7 +1285,7 @@ function World({
                   ? { color: "#fff4dc", relief: color(j.id), aura: color(j.id), spacing: SPACING }
                   : j.id === active
                     ? { color: "#fff4dc", relief: color(j.id), aura: "rgba(255,236,190,0.9)", spacing: SPACING }
-                    : { ...INK, spacing: SPACING }
+                    : { color: color(j.id), spacing: SPACING }
               }
               onClick={targetDomain(j.id) ? () => playDomain(j.id) : undefined}
               onHover={targetDomain(j.id) ? (s) => setHoverPlayer(s ? j.id : null) : undefined}
