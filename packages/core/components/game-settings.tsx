@@ -19,11 +19,13 @@ export function GameSettingsDialog({ open, onOpenChange, options }: { open: bool
   const entries = Object.entries(GAME.options).filter(([key]) => !settings.hidden.includes(key))
   const parameters = entries.filter(([, def]) => optionGroup(def) === "parameter")
   const extensions = entries.filter(([, def]) => optionGroup(def) === "extension")
+  const standard = entries.every(([key, def]) => (options[key] ?? def.defaultValue) === def.defaultValue)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] w-[min(92vw,28rem)] overflow-y-auto rounded-2xl border-0 bg-surface p-6 text-foreground">
         <DialogTitle className="font-display text-2xl">{t("gameSettingsMenu")}</DialogTitle>
         <DialogDescription className="sr-only">{t("gameSettingsMenu")}</DialogDescription>
+        {entries.length > 0 && standard && <p className="text-sm font-medium text-foreground/80">{t("gameSettingsStandard")}</p>}
         {entries.length === 0 && <p className="text-sm text-foreground/60">{t("gameSettingsNone")}</p>}
         {parameters.length > 0 && (
           <section>

@@ -4,7 +4,7 @@ import { Volume2Icon, VolumeXIcon } from "lucide-react"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useText } from "../skin-provider"
-import { currentMusic, currentVolumes, initSound, persistSoundEnabled, playSound, readSoundEnabled, setMusic, setSoundOn, setVolumes, SOUNDS } from "../../lib/sound"
+import { currentVolumes, initSound, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, setVolumes, SOUNDS } from "../../lib/sound"
 import { DEFAULT_REACTIONS, playReaction } from "../../lib/soundboard"
 
 const listeners = new Set<() => void>()
@@ -68,7 +68,6 @@ export function SoundPanel({ open, className }: { open: boolean; className?: str
   const t = useText()
   const on = useSoundEnabled()
   const [volumes, setLocal] = useState(currentVolumes)
-  const [track, setTrack] = useState(currentMusic)
   const tracks = Object.entries(SOUNDS.music ?? {})
   const rows: { key: Channel; label: string; show: boolean; preview: () => void }[] = [
     { key: "music", label: t("soundMusic"), show: tracks.length > 0, preview: () => undefined },
@@ -87,13 +86,13 @@ export function SoundPanel({ open, className }: { open: boolean; className?: str
       aria-label={t("soundSettings")}
       aria-hidden={!open}
       className={cn(
-        "absolute top-full z-50 mt-1 flex w-64 flex-col gap-3 rounded-xl border border-foreground/15 bg-surface/95 p-4 text-foreground shadow-xl backdrop-blur-sm transition-opacity duration-200 [&_svg_*]:[vector-effect:non-scaling-stroke]",
+        "absolute top-full z-50 mt-3 flex w-52 flex-col gap-3 rounded-xl border border-foreground/15 bg-surface/95 p-4 text-foreground shadow-xl backdrop-blur-sm transition-opacity duration-200 [&_svg_*]:[vector-effect:non-scaling-stroke]",
         open ? "opacity-100" : "pointer-events-none opacity-0",
         className,
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{t("soundTitle")}</span>
+        <span className="text-lg font-medium">{t("soundTitle")}</span>
         <button
           type="button"
           role="switch"
@@ -110,7 +109,7 @@ export function SoundPanel({ open, className }: { open: boolean; className?: str
         {rows
           .filter((r) => r.show)
           .map((r) => (
-            <label key={r.key} className="flex flex-col gap-0.5 text-xs text-foreground/80">
+            <label key={r.key} className="flex flex-col gap-0.5 text-base text-foreground">
               {r.label}
               <input
                 type="range"
@@ -126,26 +125,6 @@ export function SoundPanel({ open, className }: { open: boolean; className?: str
               />
             </label>
           ))}
-        {tracks.length > 1 && (
-          <label className="mt-1 flex items-center justify-between gap-2 text-xs text-foreground/80">
-            {t("soundTrack")}
-            <select
-              value={track ?? ""}
-              tabIndex={open ? 0 : -1}
-              onChange={(e) => {
-                setMusic(e.target.value)
-                setTrack(e.target.value)
-              }}
-              className="max-w-36 cursor-pointer rounded-md border border-foreground/40 bg-transparent py-1 pr-1 pl-2 text-xs outline-none"
-            >
-              {tracks.map(([name, def]) => (
-                <option key={name} value={name} className="bg-surface text-foreground">
-                  {def.title ?? name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
       </div>
     </div>
   )
