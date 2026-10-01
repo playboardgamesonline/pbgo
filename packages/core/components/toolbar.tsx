@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation"
 /** Traits d'1 px partout : le liseré du cercle et les icônes (vector-effect) ont exactement la même épaisseur. Ni fond, ni dégradé. */
 const HAIRLINE = "[&_svg_*]:[vector-effect:non-scaling-stroke]"
 const BADGE = `flex size-10 cursor-pointer items-center justify-center rounded-full border border-foreground/70 bg-transparent text-foreground drop-shadow-none transition-[transform,border-color] duration-200 hover:scale-105 hover:border-foreground active:scale-95 ${HAIRLINE}`
-const ROW = `flex w-full normal-case cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10 ${HAIRLINE}`
+const ROW = `flex w-full normal-case! tracking-normal! cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10 ${HAIRLINE}`
 const SEPARATOR = <div role="separator" className="my-1 h-px bg-foreground/15" />
 
 /**
