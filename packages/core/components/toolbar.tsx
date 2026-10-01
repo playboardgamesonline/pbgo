@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { AUTHOR, CONTACT, type OptionValues } from "@pbgo/binding"
 import { LOCALES } from "../lib/i18n"
+import { MENU_FONT } from "./menu-style"
 import { FeedbackButton } from "./feedback"
 import { GameSettingsDialog } from "./game-settings"
 import { InfoDialog } from "./info-dialog"
@@ -89,7 +90,7 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
             setOpen(false)
           }}
         />
-        <SoundPanel open={soundOpen} className="left-0 origin-top-left" />
+        <SoundPanel open={soundOpen} className={align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"} />
       </div>
       <div className="relative">
       <button type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} className={BADGE} onClick={() => {
@@ -102,6 +103,7 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
         role="menu"
         aria-hidden={!open}
         className={cn(
+          MENU_FONT,
           "absolute top-full z-50 mt-3 flex w-64 flex-col rounded-xl border border-foreground/15 bg-surface/95 p-1.5 text-foreground shadow-xl backdrop-blur-sm transition-opacity duration-200",
           align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left",
           open ? "opacity-100" : "pointer-events-none opacity-0",

@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useText } from "../skin-provider"
 import { currentVolumes, initSound, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, setVolumes, SOUNDS } from "../../lib/sound"
+import { MENU_FONT } from "../menu-style"
 import { DEFAULT_REACTIONS, playReaction } from "../../lib/soundboard"
 
 const listeners = new Set<() => void>()
@@ -86,6 +87,7 @@ export function SoundPanel({ open, className }: { open: boolean; className?: str
       aria-label={t("soundSettings")}
       aria-hidden={!open}
       className={cn(
+        MENU_FONT,
         "absolute top-full z-50 mt-3 flex w-52 flex-col gap-3 rounded-xl border border-foreground/15 bg-surface/95 p-4 text-foreground shadow-xl backdrop-blur-sm transition-opacity duration-200 [&_svg_*]:[vector-effect:non-scaling-stroke]",
         open ? "opacity-100" : "pointer-events-none opacity-0",
         className,
