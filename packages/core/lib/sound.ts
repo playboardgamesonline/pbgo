@@ -50,6 +50,7 @@ let master: GainNode | null = null
 let effectsBus: GainNode | null = null
 let musicBus: GainNode | null = null
 let ambienceBus: GainNode | null = null
+let alertsBus: GainNode | null = null
 let music: { name: string; source: AudioBufferSourceNode; gain: GainNode } | null = null
 let ambience: AudioBufferSourceNode | null = null
 let enabled = false
@@ -125,12 +126,13 @@ function startAmbience() {
 }
 
 function applyVolumes(smoothing = 0.15) {
-  if (!ctx || !master || !effectsBus || !musicBus || !ambienceBus) return
+  if (!ctx || !master || !effectsBus || !musicBus || !ambienceBus || !alertsBus) return
   const t = ctx.currentTime
   master.gain.setTargetAtTime(enabled ? volumes.master : 0, t, smoothing)
   effectsBus.gain.setTargetAtTime(volumes.effects, t, smoothing)
   musicBus.gain.setTargetAtTime(volumes.music, t, smoothing)
   ambienceBus.gain.setTargetAtTime(volumes.ambience, t, smoothing)
+  alertsBus.gain.setTargetAtTime(volumes.alerts, t, smoothing)
 }
 
 /** À appeler sur un geste utilisateur (politique d'autoplay) : crée le contexte, précharge les effets, lance musique et ambiance. */
@@ -149,6 +151,8 @@ export function initSound() {
     musicBus.connect(master)
     ambienceBus = ctx.createGain()
     ambienceBus.connect(master)
+    alertsBus = ctx.createGain()
+    alertsBus.connect(master)
     applyVolumes(1)
     for (const e of Object.values(SOUNDS.effects)) load(e)
   }
@@ -197,11 +201,11 @@ export function persistSoundEnabled(on: boolean) {
  * Joue un effet déclaré dans `SOUNDS.effects`. `delay` (s) est programmé sur l'horloge audio, pour caler un son sur une animation.
  * Ignoré si le même son a été programmé il y a moins de `minGap` ; volume réduit si le précédent date de moins de 0,4 s.
  */
-export function playSound(name: string, { volume = 1, delay = 0 }: { volume?: number; delay?: number } = {}) {
+export function playSound(name: string, { volume = 1, delay = 0, bus = "effects" }: { volume?: number; delay?: number; bus?: "effects" | "alerts" } = {}) {
   const def = SOUNDS.effects[name]
-  if (!ctx || !effectsBus || !enabled || !def) return
+  if (!ctx || !effectsBus || !alertsBus || !enabled || !def) return
   const c = ctx
-  const output = effectsBus
+  const output = bus === "alerts" ? alertsBus : effectsBus
   const at = c.currentTime + delay
   const previous = lastPlayed.get(name)
   if (previous !== undefined && Math.abs(at - previous) < (def.minGap ?? 0.03)) return

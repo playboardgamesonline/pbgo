@@ -1,11 +1,11 @@
 "use client"
 
 import { Volume2Icon, VolumeXIcon } from "lucide-react"
-import { motion } from "motion/react"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useText } from "../skin-provider"
-import { initSound, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, SOUNDS } from "../../lib/sound"
+import { currentMusic, currentVolumes, initSound, persistSoundEnabled, playSound, readSoundEnabled, setMusic, setSoundOn, setVolumes, SOUNDS } from "../../lib/sound"
+import { DEFAULT_REACTIONS, playReaction } from "../../lib/soundboard"
 
 const listeners = new Set<() => void>()
 
@@ -30,33 +30,124 @@ export function useSoundEnabled() {
 export const ICON_BUTTON =
   "flex size-11 cursor-pointer items-center justify-center rounded-full text-foreground transition-transform hover:scale-110 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]"
 
-export function SoundButton({ className, iconClass = "size-7", stroke = 1.6 }: { className?: string; iconClass?: string; stroke?: number }) {
+/** Bouton du son : ouvre le panneau de réglages (`SoundPanel`) ; l'icône reflète l'état activé / coupé. */
+export function SoundButton({
+  className,
+  iconClass = "size-7",
+  stroke = 1.6,
+  open,
+  onClick,
+}: {
+  className?: string
+  iconClass?: string
+  stroke?: number
+  open?: boolean
+  onClick?: () => void
+}) {
   const on = useSoundEnabled()
-  const [pulse, setPulse] = useState(0)
   const t = useText()
   if (!Object.keys(SOUNDS.effects).length && !SOUNDS.music && !SOUNDS.ambience) return null
-  const label = on ? t("soundOff") : t("soundOn")
+  const label = t("soundSettings")
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      className={cn(ICON_BUTTON, className)}
-      onClick={() => {
-        setSoundEnabled(!on)
-        setPulse((n) => n + 1)
-      }}
-    >
-      <motion.span
-        key={pulse}
-        initial={pulse ? { scale: 0.7 } : false}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 500, damping: 14 }}
-        className="inline-flex"
-      >
-        {on ? <Volume2Icon strokeWidth={stroke} className={iconClass} /> : <VolumeXIcon strokeWidth={stroke} className={iconClass} />}
-      </motion.span>
+    <button type="button" aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={open} className={cn(ICON_BUTTON, className)} onClick={onClick}>
+      {on ? <Volume2Icon strokeWidth={stroke} className={iconClass} /> : <VolumeXIcon strokeWidth={stroke} className={iconClass} />}
     </button>
+  )
+}
+
+const SLIDER =
+  "h-5 w-full cursor-pointer appearance-none bg-transparent outline-none " +
+  "[&::-webkit-slider-runnable-track]:h-px [&::-webkit-slider-runnable-track]:bg-foreground/40 " +
+  "[&::-webkit-slider-thumb]:-mt-[5px] [&::-webkit-slider-thumb]:size-[11px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground " +
+  "[&::-moz-range-track]:h-px [&::-moz-range-track]:bg-foreground/40 [&::-moz-range-thumb]:size-[11px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-foreground"
+
+type Channel = "music" | "ambience" | "effects" | "alerts" | "reactions"
+
+/** Panneau de réglages : activer / couper, puis un curseur par catégorie (musique, ambiance, effets, alertes, réactions). */
+export function SoundPanel({ open, className }: { open: boolean; className?: string }) {
+  const t = useText()
+  const on = useSoundEnabled()
+  const [volumes, setLocal] = useState(currentVolumes)
+  const [track, setTrack] = useState(currentMusic)
+  const tracks = Object.entries(SOUNDS.music ?? {})
+  const rows: { key: Channel; label: string; show: boolean; preview: () => void }[] = [
+    { key: "music", label: t("soundMusic"), show: tracks.length > 0, preview: () => undefined },
+    { key: "ambience", label: t("soundAmbience"), show: !!SOUNDS.ambience, preview: () => undefined },
+    { key: "effects", label: t("soundEffects"), show: Object.keys(SOUNDS.effects).length > 0, preview: () => playSound("click") },
+    { key: "alerts", label: t("soundAlerts"), show: true, preview: () => playSound("turn", { bus: "alerts" }) },
+    { key: "reactions", label: t("soundReactions"), show: true, preview: () => playReaction(DEFAULT_REACTIONS[0]!) },
+  ]
+  const change = (key: Channel, value: number) => {
+    setLocal((v) => ({ ...v, [key]: value }))
+    setVolumes({ [key]: value })
+  }
+  return (
+    <div
+      role="dialog"
+      aria-label={t("soundSettings")}
+      aria-hidden={!open}
+      className={cn(
+        "absolute top-full z-50 mt-1 flex w-64 flex-col gap-3 rounded-xl border border-foreground/15 bg-surface/95 p-4 text-foreground shadow-xl backdrop-blur-sm transition-opacity duration-200 [&_svg_*]:[vector-effect:non-scaling-stroke]",
+        open ? "opacity-100" : "pointer-events-none opacity-0",
+        className,
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">{t("soundTitle")}</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label={on ? t("soundOff") : t("soundOn")}
+          tabIndex={open ? 0 : -1}
+          onClick={() => setSoundEnabled(!on)}
+          className="relative h-5 w-9 cursor-pointer rounded-full border border-foreground/60 transition-colors"
+        >
+          <span className={cn("absolute top-1/2 size-3 -translate-y-1/2 rounded-full bg-foreground transition-all", on ? "left-[19px]" : "left-[3px] opacity-60")} />
+        </button>
+      </div>
+      <div className={cn("flex flex-col gap-2.5 transition-opacity", !on && "opacity-45")}>
+        {rows
+          .filter((r) => r.show)
+          .map((r) => (
+            <label key={r.key} className="flex flex-col gap-0.5 text-xs text-foreground/80">
+              {r.label}
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volumes[r.key]}
+                tabIndex={open ? 0 : -1}
+                aria-label={r.label}
+                className={SLIDER}
+                onChange={(e) => change(r.key, Number(e.target.value))}
+                onPointerUp={r.preview}
+              />
+            </label>
+          ))}
+        {tracks.length > 1 && (
+          <label className="mt-1 flex items-center justify-between gap-2 text-xs text-foreground/80">
+            {t("soundTrack")}
+            <select
+              value={track ?? ""}
+              tabIndex={open ? 0 : -1}
+              onChange={(e) => {
+                setMusic(e.target.value)
+                setTrack(e.target.value)
+              }}
+              className="max-w-36 cursor-pointer rounded-md border border-foreground/40 bg-transparent py-1 pr-1 pl-2 text-xs outline-none"
+            >
+              {tracks.map(([name, def]) => (
+                <option key={name} value={name} className="bg-surface text-foreground">
+                  {def.title ?? name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+    </div>
   )
 }
 

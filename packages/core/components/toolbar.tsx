@@ -12,7 +12,7 @@ import { GameSettingsDialog } from "./game-settings"
 import { InfoDialog } from "./info-dialog"
 import { setLocaleCookie } from "./language-select"
 import { useSiteSettings } from "./settings-provider"
-import { SoundButton } from "./sound/sound"
+import { SoundButton, SoundPanel } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
 import { useRouter } from "next/navigation"
 
@@ -32,16 +32,21 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
   const { credits, rulesPdf } = useSiteSettings()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [soundOpen, setSoundOpen] = useState(false)
   const [dialog, setDialog] = useState<"settings" | "cookies" | "legal" | null>(null)
   const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open && !soundOpen) return
+    const hide = () => {
+      setOpen(false)
+      setSoundOpen(false)
+    }
     const close = (e: Event) => {
-      if (e instanceof KeyboardEvent) return void (e.key === "Escape" && setOpen(false))
+      if (e instanceof KeyboardEvent) return void (e.key === "Escape" && hide())
       const target = e.target as Element | null
       // les fenêtres (règles, feedback…) sont rendues hors du menu : cliquer dedans ne le referme pas
-      if (!root.current?.contains(target) && !target?.closest?.("[role=dialog], [data-radix-popper-content-wrapper]")) setOpen(false)
+      if (!root.current?.contains(target) && !target?.closest?.("[role=dialog], [data-radix-popper-content-wrapper]")) hide()
     }
     document.addEventListener("pointerdown", close)
     document.addEventListener("keydown", close)
@@ -49,7 +54,7 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
       document.removeEventListener("pointerdown", close)
       document.removeEventListener("keydown", close)
     }
-  }, [open])
+  }, [open, soundOpen])
 
   const choose = (l: (typeof LOCALES)[number]) => {
     if (l === locale) return
@@ -73,10 +78,23 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
   const tab = open ? 0 : -1
   return (
     <div ref={root} className="relative flex items-center justify-center gap-2">
-      <SoundButton className={BADGE} iconClass="size-[18px]" stroke={1} />
-      <button type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} className={BADGE} onClick={() => setOpen((o) => !o)}>
+      <SoundButton
+        className={BADGE}
+        iconClass="size-[18px]"
+        stroke={1}
+        open={soundOpen}
+        onClick={() => {
+          setSoundOpen((o) => !o)
+          setOpen(false)
+        }}
+      />
+      <button type="button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} className={BADGE} onClick={() => {
+          setOpen((o) => !o)
+          setSoundOpen(false)
+        }}>
         <HugeiconsIcon icon={Menu09Icon} strokeWidth={1} className="size-[18px]" />
       </button>
+      <SoundPanel open={soundOpen} className="left-0 origin-top-left" />
       <div
         role="menu"
         aria-hidden={!open}

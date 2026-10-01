@@ -1,6 +1,6 @@
 "use client"
 
-import { readSoundEnabled } from "./sound"
+import { currentVolumes, readSoundEnabled } from "./sound"
 
 /**
  * Réactions du chat : un emoji + un petit son synthétisé (aucun fichier audio à fournir, donc disponible dans tous les jeux).
@@ -68,5 +68,6 @@ export function prepareSoundboard() {
 export function playReaction(reaction: Reaction) {
   if (!readSoundEnabled()) return
   prepareSoundboard()
+  if (bus) bus.gain.value = currentVolumes().reactions * currentVolumes().master
   if (ctx && bus) reaction.play(ctx, bus, ctx.currentTime + 0.02)
 }

@@ -15,8 +15,9 @@ export type SoundConfig = {
   volumes?: Partial<Volumes>
 }
 
-export type Volumes = { master: number; music: number; effects: number; ambience: number }
-export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.1, effects: 0.8, ambience: 0.18 }
+/** `alerts` : sons d'annonces (début, ton tour, victoire) ; `reactions` : soundboard du chat. */
+export type Volumes = { master: number; music: number; effects: number; ambience: number; alerts: number; reactions: number }
+export const DEFAULT_VOLUMES: Volumes = { master: 1, music: 0.1, effects: 0.8, ambience: 0.18, alerts: 0.8, reactions: 0.6 }
 
 /** Sons déclarés par le jeu (export facultatif `SOUNDS` de @pbgo/binding), complétés par l'admin via `configureSounds`. */
 export const CODE_SOUNDS: SoundConfig = (binding as { SOUNDS?: SoundConfig }).SOUNDS ?? { effects: {} }
