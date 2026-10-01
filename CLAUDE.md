@@ -69,6 +69,7 @@ Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo
 - Aperçus : iframe sur `/preview/home` et `/preview/game` (admin seulement, partie fictive), brouillon envoyé par `postMessage` (`lib/preview.ts`, `components/preview-bridge.tsx`) ; les appels API y sont neutralisés.
 - Favicon / image de partage : `app/icon.tsx`, `app/apple-icon.tsx`, `app/opengraph-image.tsx` → `@pbgo/core/metadata/images` (fichier envoyé dans Identity, sinon généré depuis le logo / l'habillage).
 - Sons : `lib/sound-config.ts` (types, sons déclarés par le jeu), `lib/audio-server.ts` (`loadAudio` fusionne Sanity `audio`), passé à `AppShell` (`sounds`). Admin › Audio › « Import into Sanity » envoie les fichiers de /public/sounds.
+- Joueur absent : `POST /api/games/[code]/takeover` = vote à l'unanimité des autres joueurs (colonne `games.takeover_votes`, entrées `<empreinte de l'état>:<joueur>`, périmées dès qu'un coup est joué) ; migration `…_takeover_votes.sql` à appliquer sur chaque schéma de jeu (sinon les lectures de `games` échouent).
 - Tasks : table `tasks` (colonnes `type` backlog|bug et `priority`), table `feedback` (bouton « Donner votre avis » du jeu, `POST /api/feedback`) — migration `…_admin_tasks_feedback.sql`. Launch = liste vérifiée (`server/launch.ts`).
 - Options du moteur : défauts et options masquées réglés dans Mechanics (`settings.options`, `gameOptions()` dans `lib/settings.ts`).
 

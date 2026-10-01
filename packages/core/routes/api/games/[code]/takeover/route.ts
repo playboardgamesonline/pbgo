@@ -27,10 +27,10 @@ export const POST = handle(async (_request: NextRequest, ctx: { params: Promise<
     const others = game.players.filter((p) => p.id !== active)
     if (!others.every((p) => votes.has(p.id))) {
       if (takeoverVotes(game).includes(id)) return null
-      return { replay: [...game.replay, takeoverEntry(game.state, id)] }
+      return { takeover_votes: [...(game.takeover_votes ?? []), takeoverEntry(game.state, id)] }
     }
     const state = play(game.state)
-    return { state, status: GAME.isOver(state) ? "over" : "playing", replay: game.replay.filter((v) => !v.startsWith("t:")) }
+    return { state, status: GAME.isOver(state) ? "over" : "playing", takeover_votes: [] }
   }, { quiet: true })
   return publicGame(row, id)
 })

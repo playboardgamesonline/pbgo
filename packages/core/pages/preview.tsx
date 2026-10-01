@@ -20,7 +20,7 @@ async function previewGame() {
   const settings = await loadSettings()
   const count = Math.max(GAME.minPlayers, Math.min(GAME.maxPlayers, 4))
   const players = NAMES.slice(0, count).map((nickname, i) => ({ id: `preview-${i}`, nickname }))
-  const row: GameRow = { code: "APERCU", host_id: players[0]!.id, status: "lobby", players, options: gameOptions(settings.options), state: null, replay: [], version: 1 }
+  const row: GameRow = { code: "APERCU", host_id: players[0]!.id, status: "lobby", players, options: gameOptions(settings.options), state: null, replay: [], takeover_votes: [], version: 1 }
   const started = { ...row, ...newGame(row, await loadSetupData(row.options)) }
   const play = GAME.autoPlay ?? GAME.debug?.turn
   let state = started.state as State
