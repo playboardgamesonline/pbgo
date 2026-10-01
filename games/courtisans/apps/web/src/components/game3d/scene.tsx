@@ -690,7 +690,6 @@ function Ephemeral({ item, tex, onEnd }: { item: Transient; tex: Textures; onEnd
 }
 
 const HAND_DISTANCE = 6
-const INK = { color: "rgba(4,32,36,0.45)" }
 const SPACING = "18px"
 const QUAT_TMP = new Quaternion()
 const QUAT_GROUP = new Quaternion()
@@ -1048,7 +1047,6 @@ function World({
     })
   })
 
-  const active = view.phase === "playing" ? view.activePlayerId : null
   const crownPlayer =
     openingStep === "unroll" || openingStep === "deal"
       ? null
@@ -1271,41 +1269,37 @@ function World({
         return <DomainBackground key={`fond-${j.id}`} zone={zone} playable={targetDomain(j.id)} hover={hoverPlayer === j.id} color={color(j.id)} />
       })}
 
-      <Appear active={flow} delay={0.2} duration={settings.matDuration * 0.4} elevation={-0.7}>
-        {view.players.map((j) => {
-          const zone = zones.get(j.id)
-          if (!zone || j.id === meId) return null
-          return (
-            <Badge
-              key={j.id}
-              zone={zone}
-              text={nickname(j.id).toUpperCase()}
-              style={
-                hoverPlayer === j.id && targetDomain(j.id)
-                  ? { color: "#fff4dc", relief: color(j.id), aura: color(j.id), spacing: SPACING }
-                  : j.id === active
-                    ? { color: "#fff4dc", relief: color(j.id), aura: "rgba(255,236,190,0.9)", spacing: SPACING }
-                    : { color: color(j.id), spacing: SPACING }
-              }
-              onClick={targetDomain(j.id) ? () => playDomain(j.id) : undefined}
-              onHover={targetDomain(j.id) ? (s) => setHoverPlayer(s ? j.id : null) : undefined}
-            />
-          )
-        })}
-      </Appear>
+      {/* pseudos de tous les joueurs (le sien compris), affichés d'emblée ; leur couleur ne change pas quand c'est leur tour : seule la couronne l'indique */}
+      {view.players.map((j) => {
+        const zone = zones.get(j.id)
+        if (!zone) return null
+        return (
+          <Badge
+            key={j.id}
+            zone={zone}
+            text={nickname(j.id).toUpperCase()}
+            style={
+              hoverPlayer === j.id && targetDomain(j.id)
+                ? { color: "#fff4dc", relief: color(j.id), aura: color(j.id), spacing: SPACING }
+                : { color: color(j.id), spacing: SPACING }
+            }
+            onClick={targetDomain(j.id) ? () => playDomain(j.id) : undefined}
+            onHover={targetDomain(j.id) ? (s) => setHoverPlayer(s ? j.id : null) : undefined}
+          />
+        )
+      })}
 
       {view.players.map((j) => {
         const zone = zones.get(j.id)
         if (!zone) return null
-        const mine = j.id === meId
-        // à gauche du pseudo (largeur estimée comme pour les cartes de fin) ; pour soi, là où le pseudo serait
-        const x = mine ? 0 : -((nickname(j.id).length * 0.45 + 0.6) / 2 + 0.8)
+        // à gauche du pseudo (largeur estimée comme pour les cartes de fin)
+        const x = -((nickname(j.id).length * 0.45 + 0.6) / 2 + 0.8)
         return (
           <CrownMark
             key={`couronne-${j.id}`}
             show={crownPlayer === j.id}
             origin={zone.labelPos}
-            offset={[x, mine ? -0.5 : -ZONE_SETTINGS.nicknameOffset]}
+            offset={[x, -ZONE_SETTINGS.nicknameOffset]}
             yaw={zone.labelYaw}
           />
         )
