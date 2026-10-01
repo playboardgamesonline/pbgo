@@ -54,14 +54,42 @@ export async function createGame(host: PlayerInfo, options: OptionValues = norma
   throw new ApiError("CODE_UNAVAILABLE", 500)
 }
 
-export async function updateGame(code: string, modifier: (row: GameRow) => Partial<Omit<GameRow, "code" | "version">> | null): Promise<GameRow> {
+/**
+ * Votes « jouer à la place du joueur absent » : stockés dans `replay` (vide pendant la partie) sous la forme `t:<empreinte de l'état>:<joueur>`.
+ * Toute action change l'état, donc l'empreinte : les votes périmés sont ignorés sans qu'il faille les purger.
+ */
+const TAKEOVER_PREFIX = "t:"
+
+export function stateFingerprint(state: unknown): string {
+  const text = JSON.stringify(state ?? null)
+  let h = 5381
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
+/** Votes de relève valables pour l'état courant (identifiants de joueurs). */
+export function takeoverVotes(row: Pick<GameRow, "replay" | "state">): string[] {
+  const key = `${TAKEOVER_PREFIX}${stateFingerprint(row.state)}:`
+  return row.replay.filter((v) => v.startsWith(key)).map((v) => v.slice(key.length))
+}
+
+export const takeoverEntry = (state: unknown, playerId: string) => `${TAKEOVER_PREFIX}${stateFingerprint(state)}:${playerId}`
+/** Votes de rejouer uniquement (sans les votes de relève). */
+export const replayVotes = (row: Pick<GameRow, "replay">) => row.replay.filter((v) => !v.startsWith(TAKEOVER_PREFIX))
+
+export async function updateGame(
+  code: string,
+  modifier: (row: GameRow) => Partial<Omit<GameRow, "code" | "version">> | null,
+  { quiet = false }: { quiet?: boolean } = {},
+): Promise<GameRow> {
   const db = supabaseAdmin()
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     if (attempt > 0) await pause(attempt)
     const row = await readGame(code)
     const patch = modifier(row)
     if (!patch) return row
-    const updatedAt = new Date().toISOString()
+    // `quiet` (votes) : la version change pour rafraîchir les clients, mais pas l'horloge d'inactivité du tour
+    const updatedAt = quiet && !("state" in patch) && row.updated_at ? row.updated_at : new Date().toISOString()
     const next = { ...row, ...patch, version: row.version + 1, updated_at: updatedAt }
     const { data, error } = await db
       .from("games")
@@ -111,7 +139,8 @@ export function publicGame(row: GameRow, playerId: string | null): PublicGame {
     players: row.players,
     meId: member ? playerId : null,
     options: row.options ?? normalizeOptions(GAME.options, {}),
-    replay: row.replay,
+    replay: replayVotes(row),
+    takeoverVotes: row.status === "playing" ? takeoverVotes(row) : [],
     version: row.version,
     updatedAt: row.updated_at ?? null,
     createdAt: row.created_at ?? null,

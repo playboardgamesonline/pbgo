@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server"
 import { ApiError, handle } from "../../../../../server/api"
 import { getPlayerId } from "../../../../../server/player"
-import { loadSetupData, readGame, updateGame, newGame, publicGame } from "../../../../../server/games"
+import { loadSetupData, readGame, updateGame, newGame, publicGame, replayVotes } from "../../../../../server/games"
 
 export const POST = handle(async (_request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
   const { code } = await ctx.params
@@ -10,8 +10,9 @@ export const POST = handle(async (_request: NextRequest, ctx: { params: Promise<
   const row = await updateGame(code, (game) => {
     if (game.status !== "over") throw new ApiError("GAME_NOT_OVER", 409)
     if (!id || !game.players.some((j) => j.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
-    if (game.replay.includes(id)) return null
-    const replay = [...game.replay, id]
+    const votes = replayVotes(game)
+    if (votes.includes(id)) return null
+    const replay = [...votes, id]
     if (replay.length < game.players.length) return { replay }
     return newGame(game, data)
   })
