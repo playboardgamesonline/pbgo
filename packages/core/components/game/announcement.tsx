@@ -29,7 +29,7 @@ const DEFAULTS = {
   lineColor: "#f5c542",
   lineGap: 80,
   above: false,
-  offsetY: 0,
+  offsetY: -10,
   fadeGradient: false,
   gradientHeight: 52,
   confetti: false,
@@ -79,6 +79,7 @@ function schema(defaults: AnnouncementSettings, folder: string) {
 const PRESETS = {
   start: {},
   turn: {
+    offsetY: 0,
     above: true,
     fadeGradient: true,
     overlay: 0.55,
@@ -228,7 +229,7 @@ function Confetti({ r }: { r: AnnouncementSettings }) {
 /** `sound` : effet déclaré dans `SOUNDS` du jeu, joué à l'apparition si le réglage « sound » est actif. */
 export function Announcement({ text, subtitle, settings: r, sound }: { text: string; subtitle?: string; settings: AnnouncementSettings; sound?: string }) {
   useEffect(() => {
-    if (sound && r.sound) playSound(sound)
+    if (sound && r.sound) playSound(sound, { bus: "alerts" })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const style = {

@@ -69,6 +69,7 @@ Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo
 - Aperçus : iframe sur `/preview/home` et `/preview/game` (admin seulement, partie fictive), brouillon envoyé par `postMessage` (`lib/preview.ts`, `components/preview-bridge.tsx`) ; les appels API y sont neutralisés.
 - Favicon / image de partage : `app/icon.tsx`, `app/apple-icon.tsx`, `app/opengraph-image.tsx` → `@pbgo/core/metadata/images` (fichier envoyé dans Identity, sinon généré depuis le logo / l'habillage).
 - Sons : `lib/sound-config.ts` (types, sons déclarés par le jeu), `lib/audio-server.ts` (`loadAudio` fusionne Sanity `audio`), passé à `AppShell` (`sounds`). Admin › Audio › « Import into Sanity » envoie les fichiers de /public/sounds.
+- Joueur absent : `POST /api/games/[code]/takeover` = vote à l'unanimité des autres joueurs (colonne `games.takeover_votes`, entrées `<empreinte de l'état>:<joueur>`, périmées dès qu'un coup est joué) ; migration `…_takeover_votes.sql` à appliquer sur chaque schéma de jeu (sinon les lectures de `games` échouent).
 - Tasks : table `tasks` (colonnes `type` backlog|bug et `priority`), table `feedback` (bouton « Donner votre avis » du jeu, `POST /api/feedback`) — migration `…_admin_tasks_feedback.sql`. Launch = liste vérifiée (`server/launch.ts`).
 - Options du moteur : défauts et options masquées réglés dans Mechanics (`settings.options`, `gameOptions()` dans `lib/settings.ts`).
 
@@ -88,3 +89,15 @@ SUPABASE_PROJECT_REF=...
 Un seul projet Supabase pour tous les jeux : un schéma Postgres par jeu (`NEXT_PUBLIC_SUPABASE_SCHEMA`, `public` pour Courtisans, `g_<jeu>` pour les autres). Sans `SUPABASE_PROJECT_REF`, le projet « pbgo » est trouvé ou créé.
 
 Facultatifs : `SUPABASE_ORG_ID`, `SUPABASE_REGION` (création du projet partagé), `VERCEL_TOKEN`, `VERCEL_TEAM_ID`. Ne jamais mettre ces valeurs dans le repo.
+
+## Supabase partagé : état
+
+Projet partagé : celui de Courtisans (`SUPABASE_PROJECT_REF`). Courtisans reste dans le schéma `public` ; les autres jeux ont chacun leur schéma `g_<jeu>` (déjà créé, tables games, tasks, feedback, exposé à l'API). Chaque jeu a `scripts/setup-env.sh` : `pnpm setup-env <jeu>` ou `pnpm setup-env --all` renseigne URL, clés, schéma, admin et pousse les variables sur Vercel. L'ancien projet `play-game-online-template` n'est plus utilisé par les jeux.
+
+## Interface de partie (chat, menu, couronne, fin)
+
+- Menu des réglages (`components/toolbar.tsx`) : un bouton à droite du logo (en haut à droite de l'accueil) ouvre règles, son, feedback et langue.
+- Chat (`components/game/chat.tsx`, monté par `GameHud`) : diffusion temps réel Supabase sans stockage, pseudos dans la couleur du joueur, fondu des anciens messages.
+- Couronne du tour : à gauche du pseudo du joueur actif, sans déplacement. Template : `game3d/crown.tsx` (`TurnCrown`, icône `hostIcon` de l'habillage ou couronne dessinée) ; Courtisans : `CrownMark` avec son pictogramme.
+- Missions de Courtisans : posées face cachée à droite de chaque plateau (`missionRestPose` dans `layout.ts`, réglages `MISSION_REST`), retournées au clic.
+- Fin de partie : tableau centré, lien « masquer / afficher » souligné au-dessus du bouton REJOUER centré en bas.

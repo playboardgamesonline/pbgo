@@ -8,7 +8,9 @@ import { getCatalog } from "./catalog"
 import { urlFor } from "@pbgo/core/sanity/image"
 
 type Source = Parameters<typeof urlFor>[0]
-const url = (source: Source | null | undefined, width: number) => (source ? urlFor(source).width(width).url() : null)
+// Un SVG ne se redimensionne pas via le CDN (paramètres de transformation → erreurs 400) : on sert le fichier tel quel.
+const isSvg = (source: Source) => JSON.stringify(source).includes("-svg")
+const url = (source: Source | null | undefined, width: number) => (source ? (isSvg(source) ? urlFor(source).url() : urlFor(source).width(width).url()) : null)
 
 export async function getClientCatalog(locale: Locale): Promise<ClientCatalog> {
   const d = defaultCatalog(locale)

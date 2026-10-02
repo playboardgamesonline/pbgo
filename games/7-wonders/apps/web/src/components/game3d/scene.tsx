@@ -6,10 +6,12 @@ import { useControls } from "leva"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { type PerspectiveCamera, Vector3 } from "three"
 import { Aura, WINNER_AURA_SETTINGS } from "./aura"
-import { Card3D } from "./card3d"
+import { TurnCrown } from "./crown"
+import { CARD_SETTINGS, Card3D } from "./card3d"
 import { DECK_POSE, type Pose, backPose, handPose, trickPose, collectedPose, LAYOUT_SETTINGS, seats } from "./layout"
 import { copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
 import { GamePhoto } from "./photo"
+import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { useSettings } from "./settings"
 import { TableText } from "./table-text"
 import { CARD_H, CARD_W, backTexture, faceTexture, matTexture } from "./textures"
@@ -78,7 +80,7 @@ function useCollect(view: PlayerView) {
   return state.phase
 }
 
-function World({ view, color, onPlay, myTurn }: SceneProps) {
+function World({ view, color, onPlay, myTurn, crownIcon }: SceneProps) {
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["table radius x", 3, 14, 0.1],
     radiusZ: ["table radius z", 2, 10, 0.1],
@@ -90,6 +92,13 @@ function World({ view, color, onPlay, myTurn }: SceneProps) {
     hoverLift: ["hover lift", 0, 1.5, 0.01],
     trickGap: ["trick spread", 0, 1, 0.01],
   }, { order: 1 })
+  useSettings("Card", CARD_SETTINGS, {
+    flightDuration: ["flight duration (×)", 0.2, 3, 0.01],
+    flightHeight: ["flight height (×)", 0, 3, 0.01],
+    easing: ["flight easing", EASING_NAMES as string[]],
+    foldable: ["bendability", 0, 1, 0.01],
+    shadow: ["shadow", 0, 1, 0.01],
+  } as never, { order: 2 })
   const meId = view.me?.id ?? null
   const slots = useMemo(() => seats(view.players.map((j) => j.id), meId), [view.players, meId])
   const [hovered, setHovered] = useState<string | null>(null)
@@ -124,6 +133,7 @@ function World({ view, color, onPlay, myTurn }: SceneProps) {
           <group key={j.id}>
             <Aura width={3.2} depth={1.6} position={[pos[0], 0.015, pos[2]]} yaw={0} force={active ? 0.9 : winners.includes(j.id) ? 1 : 0} color={color(j.id)} settings={WINNER_AURA_SETTINGS} />
             <TableText text={j.nickname.toUpperCase()} style={{ color: color(j.id), shadow: "rgba(0,0,0,0.6)|12|4" }} height={0.62} position={[pos[0], 0.03, pos[2] - 0.25]} />
+            <TurnCrown show={active} icon={crownIcon} position={[pos[0] - (j.nickname.length * 0.4) / 2 - 0.8, 0.03, pos[2] - 0.25]} />
             <TableText text={`${j.points} pt${j.points > 1 ? "s" : ""}`} style={{ color: "#f5f2ea", weight: 700 }} height={0.42} position={[pos[0], 0.03, pos[2] + 0.35]} />
             {j.id !== meId &&
               Array.from({ length: j.cardCount }, (_, i) => (
@@ -166,6 +176,8 @@ function World({ view, color, onPlay, myTurn }: SceneProps) {
 type SceneProps = {
   view: PlayerView
   color: (id: string) => string
+  /** Icône de la couronne du tour (`hostIcon` de l'habillage) ; sans icône, une couronne dessinée */
+  crownIcon?: string | null
   myTurn: boolean
   onPlay: (cardId: string) => void
 }

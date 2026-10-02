@@ -167,13 +167,26 @@ function load(url: string): Promise<Texture> {
   return promise
 }
 
-async function loadWithFallback(urls: (string | null | undefined)[]): Promise<Texture | null> {
-  for (const url of urls) {
-    if (!url) continue
+export type TextureReport = { texture: string; source: string; url: string; reason: string }
+
+const SOURCES = ["Sanity", "défaut embarqué"]
+
+/** Essaie chaque URL dans l'ordre (Sanity puis défaut) ; chaque échec est consigné dans `report` avec la texture visée. */
+async function loadWithFallback(key: string, urls: (string | null | undefined)[], report: TextureReport[]): Promise<Texture | null> {
+  const tried = new Set<string>()
+  for (const [i, url] of urls.entries()) {
+    const source = SOURCES[i] ?? `source ${i + 1}`
+    if (!url) {
+      if (i === 0) report.push({ texture: key, source, url: "(aucune URL : champ vide dans Sanity ?)", reason: "vide" })
+      continue
+    }
+    if (tried.has(url)) continue
+    tried.add(url)
     try {
       return await load(url)
-    } catch {
-      console.warn(`Image indisponible, essai suivant : ${url}`)
+    } catch (e) {
+      const event = e as { message?: string; type?: string }
+      report.push({ texture: key, source, url, reason: event?.message ?? event?.type ?? "chargement impossible (404, CORS ou format refusé)" })
     }
   }
   return null
@@ -231,8 +244,10 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
 
   useEffect(() => {
     let active = true
+    const report: TextureReport[] = []
+    const jobs: Promise<unknown>[] = []
     for (const { key, urls, text } of sources) {
-      loadWithFallback(urls)
+      const job = loadWithFallback(key, urls, report)
         .then((t) => (t && text ? composedMission(t, text) : t))
         .then((t) => {
           if (t && key === "cloth") {
@@ -244,7 +259,14 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
         .then((t) => {
           if (active && t) setLoaded((c) => (c[key] === t ? c : { ...c, [key]: t }))
         })
+      jobs.push(job)
     }
+    Promise.allSettled(jobs).then(() => {
+      if (!active || !report.length) return
+      console.groupCollapsed(`[textures] ${report.length} image(s) indisponible(s) sur ${sources.length}`)
+      console.table(report)
+      console.groupEnd()
+    })
     return () => {
       active = false
     }

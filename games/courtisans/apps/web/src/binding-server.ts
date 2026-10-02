@@ -11,4 +11,3 @@ export const loadSetupData = () => loadMissions(GAME.maxPlayers)
 export const loadGameData = async () => getClientCatalog(await getLocale())
 
 /** Règles propres à Courtisans (onglets illustrés, rôles, familles) à la place des règles communes. */
-export const loadRules = async () => (await getClientCatalog(await getLocale())).rules

@@ -18,7 +18,6 @@ import { PrimaryButton } from "@pbgo/core/components/home/screen"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import { api } from "@pbgo/core/lib/api"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
-import type { RulesContent } from "@pbgo/core/lib/rules"
 import { Button } from "@pbgo/ui/game/button"
 import { DEFAULT_CATALOG, type ClientCatalog } from "@/lib/catalog"
 import { CourtisansProvider } from "./context"
@@ -41,23 +40,21 @@ const Scene3D = dynamic(() => import("../game3d/scene"), {
 
 const mustRead = (view: PlayerView) => view.phase !== "over" && !!view.me && !view.players.find((j) => j.id === view.me?.id)?.missionsRead
 
-type GameProps = { game: PublicGame; rules: RulesContent; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
+type GameProps = { game: PublicGame; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
 
 /** Plateau de Courtisans branché sur @pbgo/core (`Game` de @pbgo/binding-ui). `data` = catalogue Sanity chargé côté serveur. */
-export function Game({ game, rules, data, onUpdate, onLeave }: GameProps) {
+export function Game({ game, data, onUpdate, onLeave }: GameProps) {
   if (!game.view) return null
-  return <Board game={game} rules={rules} catalog={(data as ClientCatalog | undefined) ?? DEFAULT_CATALOG} onUpdate={onUpdate} onLeave={onLeave} />
+  return <Board game={game} catalog={(data as ClientCatalog | undefined) ?? DEFAULT_CATALOG} onUpdate={onUpdate} onLeave={onLeave} />
 }
 
 function Board({
   game,
-  rules,
   catalog,
   onUpdate,
   onLeave,
 }: {
   game: PublicGame
-  rules: RulesContent
   catalog: ClientCatalog
   onUpdate: (p: PublicGame) => void
   onLeave: () => void
@@ -83,7 +80,12 @@ function Board({
     const [prevPhase, prevActive, prevRead] = marker.split(":")
     setMarker(currentMarker)
     const turnChanged = prevPhase !== view.phase || prevActive !== String(view.activePlayerId)
-    if (view.phase === "playing" && prevPhase === "missions") announce(catalog.banquetStartText, "start", { sound: "victory", first: true })
+    if (view.phase === "playing" && prevPhase === "missions") {
+      // tous les joueurs ont validé : le banquet commence pour tout le monde en même temps
+      setShowMissionsButton(false)
+      setOpeningStep(null)
+      announce(catalog.banquetStartText, "start", { sound: "victory", first: true, replace: ["start", "turn"] })
+    }
     if (turnChanged && view.phase === "playing" && view.me && view.activePlayerId === view.me.id)
       announce(t("yourTurn"), "turn", { sound: "turn", replace: ["turn"] })
     if (mustRead(view) && prevRead !== "1") {
@@ -92,6 +94,9 @@ function Board({
     }
   }
   const intro = openingStep === "missions"
+  const readCount = view.players.filter((j) => j.missionsRead).length
+  const iAmReady = !!view.me && !!view.players.find((j) => j.id === view.me?.id)?.missionsRead
+  const waitingOthers = view.phase === "missions" && iAmReady
   const shownTurn =
     openingStep === "unroll" || openingStep === "deal"
       ? null
@@ -179,10 +184,7 @@ function Board({
   }
 
   function finishIntro() {
-    setShowMissionsButton(false)
-    setOpeningStep(null)
-    announce(catalog.banquetStartText, "start", { sound: "victory", first: true, replace: ["start", "turn"] })
-    if (view.phase === "playing" && view.me && view.activePlayerId === view.me.id) announce(t("yourTurn"), "turn", { sound: "turn" })
+    // on attend les autres : le banquet (annonce, reprise du jeu) démarre quand la phase passe à « playing »
     void markMissionsRead()
   }
 
@@ -260,20 +262,20 @@ function Board({
       <CourtisansProvider catalog={catalog} game={gameView} view={view}>
         <InteractionContext.Provider value={interaction}>
           <GameHud
-            rules={rules}
+           
             onLeave={onLeave}
             ticker={<Ticker activePlayerId={shownTurn} history={history} />}
             overlay={
               <>
-                {intro && showMissionsButton && (
+                {(waitingOthers || (intro && showMissionsButton)) && (
                   <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 160, damping: 20 }}
                     className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center"
                   >
-                    <PrimaryButton onClick={finishIntro} className="w-auto max-w-none px-10">
-                      {catalog.missionsButtonText}
+                    <PrimaryButton onClick={finishIntro} waiting={waitingOthers} className="w-auto max-w-none px-10 whitespace-nowrap">
+                      {waitingOthers ? t("missionsWaiting", { read: readCount, total: playerCount }) : catalog.missionsButtonText}
                     </PrimaryButton>
                   </motion.div>
                 )}

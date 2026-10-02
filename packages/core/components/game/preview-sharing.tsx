@@ -43,14 +43,14 @@ export function SharePreview({ file, text, onClose }: { file: File | null; text:
 
   return (
     <Dialog open={!!file} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[min(94vw,56rem)] max-w-none gap-5 rounded-2xl border border-accent-game/50 bg-surface-dark p-6 text-foreground sm:max-w-none">
+      <DialogContent className="w-[min(94vw,56rem)] max-w-none gap-5 rounded-3xl border-[0.5px] border-accent-game/50 bg-surface-dark p-6 text-foreground sm:max-w-none">
         <div>
           <DialogTitle className="font-display text-2xl tracking-wide">{t("shareResult")}</DialogTitle>
           <DialogDescription className="mt-1 text-foreground/65">{text}</DialogDescription>
         </div>
         {url && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={t("resultAlt")} className="w-full rounded-xl border border-foreground/15 shadow-[0_12px_40px_rgb(0_0_0/50%)]" />
+          <img src={url} alt={t("resultAlt")} className="w-full rounded-3xl border-[0.5px] border-foreground/15 shadow-[0_12px_40px_rgb(0_0_0/50%)]" />
         )}
         <div className="flex flex-wrap items-center justify-center gap-3">
           {native && (

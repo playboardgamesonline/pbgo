@@ -1,7 +1,7 @@
 "use client"
 
-import type { PlayerResult, PlayerView } from "@pbgo/binding"
-import { CrownIcon } from "lucide-react"
+import { GAME, type PlayerResult, type PlayerView } from "@pbgo/binding"
+import { CrownIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { LinkForwardIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { SharePreview } from "./preview-sharing"
@@ -79,7 +79,7 @@ export function GameOver({
   renderDetail?: ResultDetailRenderer
 }) {
   const t = useText()
-  const { hostIcon } = useSkin()
+  const { hostIcon, decor } = useSkin()
   const { view, game, color } = useGame()
   const { title } = useSiteSettings()
   const [sending, setSending] = useState(false)
@@ -132,6 +132,24 @@ export function GameOver({
     }
   }
 
+  const replayButton = (
+    <div className="pointer-events-auto">
+      <PrimaryButton onClick={replay} busy={sending} waiting={alreadyVoted} className="h-14 w-auto max-w-none rounded-t-2xl rounded-b-none px-10 whitespace-nowrap shadow-[0_-6px_24px_rgb(0_0_0/35%)] hover:scale-100 hover:brightness-110">
+        {t("replay")} ({game.replay.length}/{game.players.length})
+      </PrimaryButton>
+    </div>
+  )
+  const created = game.createdAt ? new Date(game.createdAt) : null
+  const ended = game.updatedAt ? new Date(game.updatedAt) : null
+  const minutes = created && ended ? Math.max(1, Math.round((ended.getTime() - created.getTime()) / 60000)) : null
+  const footer = [
+    GAME.name,
+    minutes !== null ? (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`) : null,
+    ended ? `${ended.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })} · ${ended.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : null,
+    "PBGO",
+  ]
+    .filter(Boolean)
+    .join("  ·  ")
   const names = winners.map((v) => info(v.playerId)?.nickname).join(" & ")
   const shareText = t("winsWith", { names, points: winners[0]?.total ?? 0 })
 
@@ -150,9 +168,7 @@ export function GameOver({
           />
         )}
       </AnimatePresence>
-      <div
-        className="pointer-events-none fixed inset-x-0 top-0 bottom-[10rem] z-40 flex flex-col items-center justify-end px-6 pt-6"
-      >
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-28">
         <AnimatePresence mode="popLayout">
           {isOpen && (
             <motion.section
@@ -166,8 +182,11 @@ export function GameOver({
               className="pointer-events-auto relative flex max-h-full w-full max-w-lg flex-col"
             >
 
-              <div className="relative flex min-h-[26rem] flex-1 flex-col overflow-hidden rounded-lg border border-accent-game/70 bg-surface shadow-[0_24px_70px_rgb(0_0_0/65%)]">
-                            <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(255_255_255/8%),transparent_70%)]" />
+              <div className="relative flex min-h-[26rem] flex-1 flex-col overflow-hidden rounded-3xl border-[0.5px] border-accent-game/60 bg-surface shadow-[0_24px_70px_rgb(0_0_0/65%)]">
+              {decor.pattern && (
+                <div aria-hidden className="pointer-events-none absolute inset-0 bg-[length:128px_128px] opacity-[0.07]" style={{ backgroundImage: `url(${decor.pattern})` }} />
+              )}
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(255_255_255/8%),transparent_70%)]" />
               <div className="relative shrink-0 px-8 pt-6 pb-5">
                 <button
                   type="button"
@@ -175,9 +194,9 @@ export function GameOver({
                   disabled={!image}
                   title={t("shareResult")}
                   aria-label={t("shareResult")}
-                  className="group absolute -top-3 -right-10 z-20 w-40 rotate-[5deg] cursor-pointer rounded-[3px] bg-[#f3ecd6] p-[2px] shadow-[0_10px_24px_rgb(0_0_0/55%)] transition-transform duration-200 hover:rotate-[1deg] disabled:cursor-wait"
+                  className="group absolute -top-3 -right-10 z-20 w-40 rotate-[5deg] cursor-pointer rounded-2xl bg-[#f3ecd6] p-[3px] shadow-[0_10px_24px_rgb(0_0_0/55%)] transition-transform duration-200 hover:rotate-[1deg] disabled:cursor-wait"
                 >
-                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[2px] bg-surface-dark">
+                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[13px] bg-surface-dark">
                     {url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={url} alt="" className="size-full scale-[1.35] object-cover" style={{ transformOrigin: "50% 58%" }} />
@@ -211,7 +230,7 @@ export function GameOver({
                 </div>
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 pb-20 [scrollbar-width:thin]">
+              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 pb-6 [scrollbar-width:thin]">
                 <ol className="divide-y divide-foreground/15 border-t border-foreground/15">
                   {ranking
                     .filter((j) => !results.winners.includes(j.playerId))
@@ -232,24 +251,26 @@ export function GameOver({
                     ))}
                 </ol>
               </div>
-
-              </div>
-              <div className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2 translate-y-1/2">
-                <PrimaryButton onClick={replay} busy={sending} disabled={alreadyVoted} className="w-auto max-w-none px-8 whitespace-nowrap">
-                  {t("replay")} ({game.replay.length}/{game.players.length})
-                </PrimaryButton>
+              <footer className="relative shrink-0 border-t border-foreground/10 px-8 py-3 text-center font-sans text-[11px] tracking-[0.12em] text-foreground/40 uppercase">
+                {footer}
+              </footer>
               </div>
             </motion.section>
           )}
         </AnimatePresence>
         </div>
+      <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--spacing)*6)] z-50 flex justify-center">
         <button
           type="button"
           onClick={onToggle}
-          className="pointer-events-auto fixed bottom-8 left-1/2 z-50 h-9 -translate-x-1/2 cursor-pointer px-4 font-display text-sm tracking-wide whitespace-nowrap text-foreground/75 uppercase underline-offset-4 transition-colors duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:text-foreground hover:underline"
+          aria-pressed={isOpen}
+          className="pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm text-white opacity-80 transition-opacity duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:opacity-100"
         >
-          {isOpen ? t("hideScores") : t("showScores")}
+          {isOpen ? <EyeOffIcon strokeWidth={1.6} className="size-5" /> : <EyeIcon strokeWidth={1.6} className="size-5" />}
+          <span className="underline underline-offset-4">{isOpen ? t("hideScores") : t("showScores")}</span>
         </button>
+      </div>
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center">{replayButton}</div>
     </>
   )
 }

@@ -28,4 +28,7 @@ export function copyFolder(name: DebugTab, folder: string) {
   console.info(text)
 }
 
-export const copyButton = (name: DebugTab, folder: string) => ({ "Copy values": button(() => copyFolder(name, folder)) })
+/** Toujours en dernier dans son dossier (order élevé), même quand plusieurs useControls alimentent le même dossier. */
+export const COPY_ORDER = 10000
+export const copyValuesButton = (onClick: (get: (path: string) => unknown) => void) => ({ "Copy values": { ...button(onClick as never), order: COPY_ORDER } })
+export const copyButton = (name: DebugTab, folder: string) => copyValuesButton(() => copyFolder(name, folder))

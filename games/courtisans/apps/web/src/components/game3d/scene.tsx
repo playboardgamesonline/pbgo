@@ -25,12 +25,12 @@ import { useInteraction } from "../game/interaction"
 import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./aura"
 import { CardSettingsPanel } from "./card-settings"
 import { GamePhoto } from "./photo"
-import { Crown3D } from "./crown"
+import { CrownMark } from "./crown"
 import type { EndingState } from "./ending"
-import { Counters, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
+import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { useSettings, useSettingsVersion } from "./settings"
 import { patternTexture } from "./patterns"
-import { roundValue, copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
+import { roundValue, copyButton, debugTab, COPY_ORDER } from "@pbgo/core/components/game/debug-tabs"
 import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
 import {
@@ -42,6 +42,8 @@ import {
   MISSION_H,
   MISSION_W,
   DRAW_PILE,
+  MISSION_PILE,
+  missionPilePose,
   LAYOUT_SETTINGS,
   type Pose,
   MAT_W,
@@ -57,6 +59,7 @@ import {
   tablePose,
   type Seat,
   seats,
+  missionRestPose,
 } from "./layout"
 import { type Textures, useTextures } from "./textures"
 
@@ -126,8 +129,36 @@ const Y_AXIS = new Vector3(0, 1, 0)
 const EMPTY: string[] = []
 const TARGET_TMP = new Vector3()
 
-function CameraRig() {
+const CAMERA_INTRO = { enabled: true, duration: 2.6, zoom: 1.45, rotate: 22, tilt: 12 }
+
+/** Progression 0 → 1 (ease out) de l'intro de caméra, relancée à chaque ouverture (`run`). */
+function useCameraIntro(run: boolean) {
+  const [intro] = useControls(
+    "Camera intro",
+    () => ({
+      enabled: { value: CAMERA_INTRO.enabled, label: "enabled" },
+      duration: { value: CAMERA_INTRO.duration, min: 0.5, max: 8, step: 0.1, label: "duration (s)" },
+      zoom: { value: CAMERA_INTRO.zoom, min: 1, max: 2.5, step: 0.01, label: "start distance ×" },
+      rotate: { value: CAMERA_INTRO.rotate, min: -90, max: 90, step: 1, label: "start yaw °" },
+      tilt: { value: CAMERA_INTRO.tilt, min: -30, max: 40, step: 0.5, label: "start tilt °" },
+    }),
+    { order: 1 },
+    debugTab("SCENE"),
+  )
+  const start = useRef<number | null>(null)
+  useEffect(() => {
+    start.current = run ? performance.now() : null
+  }, [run])
+  return { intro, progress: () => {
+    if (!intro.enabled || start.current === null) return 1
+    const p = Math.min(1, (performance.now() - start.current) / (intro.duration * 1000))
+    return 1 - Math.pow(1 - p, 3)
+  } }
+}
+
+function CameraRig({ introRun }: { introRun: boolean }) {
   const { size } = useThree()
+  const { intro, progress } = useCameraIntro(introRun)
   const [setting, adjust] = useControls(
     "Camera",
     () => ({
@@ -143,7 +174,7 @@ function CameraRig() {
   useControls(
     "Camera",
     {
-      "Copy values": button((get) => {
+      "Copy values": { ...button((get) => {
         const values = {
           tilt: get("Camera.inclinaison"),
           yaw: get("Camera.lacet"),
@@ -153,8 +184,8 @@ function CameraRig() {
         }
         navigator.clipboard?.writeText(JSON.stringify({ Camera: values }, roundValue, 2)).catch(() => null)
         console.info("Camera", values)
-      }),
-      Reset: button(() => adjust(DEFAULT_CAMERA)),
+      }), order: COPY_ORDER },
+      Reset: { ...button(() => adjust(DEFAULT_CAMERA)), order: COPY_ORDER + 1 },
     },
     { order: 0 },
     debugTab("SCENE"),
@@ -163,9 +194,10 @@ function CameraRig() {
   useFrame((makeState) => {
     const cam = makeState.camera as PerspectiveCamera
     const k = Math.max(1, 1.6 / (size.width / size.height))
-    const r = setting.distance * k
-    const incl = setting.tilt * RAD
-    const yaw = setting.yaw * RAD
+    const rest = 1 - progress()
+    const r = setting.distance * k * (1 + (intro.zoom - 1) * rest)
+    const incl = Math.max(0, setting.tilt + intro.tilt * rest) * RAD
+    const yaw = (setting.yaw + intro.rotate * rest) * RAD
     const target = TARGET_TMP.set(setting.target.x, 0, setting.target.y)
     cam.up.set(0, 1, 0)
     cam.position.set(
@@ -519,7 +551,7 @@ function Veil({ active, opacity, fade = 0.2 }: { active: boolean; opacity: numbe
 }
 
 export const ZONE_SETTINGS = {
-  restOpacity: 0.05,
+  restOpacity: 0.12,
   playableOpacity: 0.12,
   hoverOpacity: 0.22,
   playableAura: 0.55,
@@ -558,7 +590,7 @@ function DomainBackground({ zone, playable, hover, color }: { zone: DomainZone; 
     const m = ref.current
     if (!m) return
     easing.damp(m, "opacity", playable ? (hover ? ZONE_SETTINGS.hoverOpacity : ZONE_SETTINGS.playableOpacity) : ZONE_SETTINGS.restOpacity, 0.15, dt)
-    easing.dampC(m.color, playable ? color : "#ffffff", 0.2, dt)
+    easing.dampC(m.color, color, 0.2, dt)
   })
   return (
     <>
@@ -577,13 +609,6 @@ function DomainBackground({ zone, playable, hover, color }: { zone: DomainZone; 
       />
     </>
   )
-}
-
-function crownPosition(zone: DomainZone | undefined, me: boolean) {
-  if (!zone) return null
-  if (me) return new Vector3(zone.labelPos.x, 0, zone.labelPos.z - 0.5)
-  const backOffset = new Vector3(0, 0, -1).applyAxisAngle(new Vector3(0, 1, 0), zone.labelYaw)
-  return zone.labelPos.clone().addScaledVector(backOffset, 2.2).setY(0)
 }
 
 function Badge({
@@ -665,7 +690,6 @@ function Ephemeral({ item, tex, onEnd }: { item: Transient; tex: Textures; onEnd
 }
 
 const HAND_DISTANCE = 6
-const INK = { color: "rgba(4,32,36,0.45)" }
 const SPACING = "18px"
 const QUAT_TMP = new Quaternion()
 const QUAT_GROUP = new Quaternion()
@@ -715,6 +739,16 @@ function World({
   )
   const hand = view.me?.hand ?? []
   const meId = view.me?.id
+  const myZone = meId ? zones.get(meId) : undefined
+  // poses au repos des missions des autres joueurs (dos seulement) : mises en cache pour ne pas relancer l'animation à chaque rendu
+  const restPoses = useMemo(() => new Map<string, Pose>(), [zones])
+  const restPose = (zone: DomainZone, id: string, k: number) => {
+    const key = `${id}:${k}`
+    let p = restPoses.get(key)
+    // eslint-disable-next-line react-hooks/immutability
+    if (!p) restPoses.set(key, (p = missionRestPose(zone, k, id)))
+    return p
+  }
 
   const [prevView, setPrevView] = useState(view)
   const [origins, setOrigins] = useState<Map<string, Pose>>(new Map())
@@ -807,15 +841,18 @@ function World({
       const inverse = cameraOuverture.quaternion.clone().invert()
       setMissionOrigins(
         new Map(
-          missions.map((m, i) => [
-            m.id,
-            {
-              position: cameraOuverture.worldToLocal(new Vector3((i - 0.5) * 0.25, 0.12 + i * 0.01, 0)),
-              quaternion: inverse.clone().multiply(new Quaternion().setFromAxisAngle(Y_AXIS, (i - 0.5) * 0.3).multiply(FACE_DOWN)),
-              scaleFactor: 0.85,
-              delay: 0.35 + i * 0.3,
-            },
-          ]),
+          missions.map((m, i) => {
+            const from = missionPilePose(MISSION_PILE.size + i)
+            return [
+              m.id,
+              {
+                position: cameraOuverture.worldToLocal(from.position.clone()),
+                quaternion: inverse.clone().multiply(from.quaternion),
+                scaleFactor: from.scaleFactor,
+                delay: 0.35 + i * 0.3,
+              },
+            ]
+          }),
         ),
       )
     }
@@ -982,6 +1019,15 @@ function World({
         p.position.set(0, -0.04 * k, -d)
         p.quaternion.setFromEuler(EULER_TMP.set(-pointer.y * rj.focusMouse, pointer.x * rj.focusMouse * 1.3, 0))
         p.scaleFactor = rj.focusScale * k
+      } else if (myZone) {
+        // posées face cachée sur la table, à droite du plateau ; convertie dans le repère de la caméra (les cartes suivent la caméra)
+        const hovered = hover === `mission:${m.id}`
+        const rest = missionRestPose(myZone, i, m.id)
+        camera.updateMatrixWorld()
+        if (hovered) rest.position.y += 0.18
+        p.position.copy(camera.worldToLocal(rest.position))
+        p.quaternion.copy(camera.quaternion).invert().multiply(rest.quaternion)
+        p.scaleFactor = rest.scaleFactor * (hovered ? 1.08 : 1)
       } else {
         const hovered = hover === `mission:${m.id}`
         const jaw = i === 0 ? rj.angles.card1 : rj.angles.card2
@@ -1001,7 +1047,6 @@ function World({
     })
   })
 
-  const active = view.phase === "playing" ? view.activePlayerId : null
   const crownPlayer =
     openingStep === "unroll" || openingStep === "deal"
       ? null
@@ -1011,7 +1056,6 @@ function World({
           ? (view.firstPlayerId ?? null)
           : null
   const results = view.results
-  const myResult = results?.players.find((x) => x.playerId === meId)
   const winnerCenters = useWinnerCenters(results?.winners ?? EMPTY, zones)
 
   const subtle = intro || !!missionFocus
@@ -1022,7 +1066,7 @@ function World({
 
   return (
     <>
-      <CameraRig />
+      <CameraRig introRun={openingStep === "unroll"} />
       <CardSettingsPanel />
       <EndingSettings />
       <ZoneSettings />
@@ -1098,6 +1142,7 @@ function World({
 
       <FollowCamera>
         {visibleMissions &&
+          !ending &&
           missions.map((m: Mission) => (
             <Card3D
               key={m.id}
@@ -1120,7 +1165,7 @@ function World({
               }
               reflectionIntensity={inGameMissionSettings.focusReflection}
               reflection={missionFocus === m.id}
-              glow={ending?.missions && myResult?.missions.find((x) => x.missionId === m.id)?.done ? "gold" : null}
+              glow={null}
               onHover={(s) => setHover(s ? `mission:${m.id}` : null)}
               onClick={(e) => {
                 e.stopPropagation()
@@ -1129,6 +1174,20 @@ function World({
             />
           ))}
       </FollowCamera>
+      {visibleMissions &&
+        !intro &&
+        !ending &&
+        missions.length > 0 &&
+        view.players.map((j) => {
+          const zone = zones.get(j.id)
+          if (!zone || j.id === meId) return null
+          const order = view.players.findIndex((x) => x.id === j.id)
+          return [0, 1].map((k) => {
+            const back = tex.missionBack(missions[k % missions.length]!)
+            const origin = openingStep === "missions" ? { ...missionPilePose(MISSION_PILE.size + 2 + k), delay: 0.9 + (order * 2 + k) * 0.25 } : undefined
+            return <Card3D key={`mission-dos-${j.id}-${k}`} target={restPose(zone, j.id, k)} origin={origin} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow />
+          })
+        })}
       {results && ending && (
         <>
           <FamilyResolution results={results} ending={ending} />
@@ -1148,28 +1207,25 @@ function World({
             ))}
           {view.players.map((j) => {
             const zone = zones.get(j.id)
-            if (!zone || j.id === meId || !j.missions) return null
+            const list = j.id === meId ? missions : j.missions
+            if (!zone || !list) return null
             const r = results.players.find((x) => x.playerId === j.id)
-            const textWidth = nickname(j.id).length * 0.45 + 0.6
-            return j.missions.map((m, k) => {
-              const local = new Vector3(textWidth / 2 + 0.75 + k * 1.05, 0.04, -0.45).applyAxisAngle(Y_AXIS, zone.labelYaw)
-              const yaw = new Quaternion().setFromAxisAngle(Y_AXIS, zone.labelYaw)
-              const target: Pose = {
-                position: zone.labelPos.clone().add(local),
-                quaternion: yaw.multiply(ending.domains ? FACE_UP : FACE_DOWN),
-                scaleFactor: 0.4,
-              }
+            return list.map((m, k) => {
+              const target = missionRestPose(zone, k, m.id, ending.missions)
+              const result = r?.missions.find((x) => x.missionId === m.id)
               return (
-                <Card3D
-                  key={m.id}
-                  target={target}
-                  front={tex.mission(m)}
-                  backFace={tex.missionBack(m)}
-                  width={MISSION_W}
-                  elevation={MISSION_H}
-                  speed={0.22}
-                  glow={ending.missions && r?.missions.find((x) => x.missionId === m.id)?.done ? "gold" : null}
-                />
+                <group key={m.id}>
+                  <Card3D
+                    target={target}
+                    front={tex.mission(m)}
+                    backFace={tex.missionBack(m)}
+                    width={MISSION_W}
+                    elevation={MISSION_H}
+                    speed={0.22}
+                    glow={null}
+                  />
+                  {ending.missions && result && <MissionSign done={result.done} points={result.points} position={[target.position.x, 0.12, target.position.z]} />}
+                </group>
               )
             })
           })}
@@ -1181,6 +1237,12 @@ function World({
         <Ephemeral key={t.id} item={t} tex={tex} onEnd={() => setTransients((l) => l.filter((x) => x.id !== t.id))} />
       ))}
 
+      <Appear active={flow} delay={deckEnd(drawPileSettings)} duration={drawPileSettings.drop} elevation={drawPileSettings.elevation} mask>
+        {Array.from({ length: missions.length > 0 ? MISSION_PILE.size : 0 }, (_, n) => {
+          const back = tex.missionBack(missions[0]!)
+          return <Card3D key={`mission-pile-${n}`} target={missionPilePose(n)} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow={n < MISSION_PILE.size - 1} />
+        })}
+      </Appear>
       <DrawPile count={view.deckCount} active={flow} settings={drawPileSettings} />
       <Appear active={flow} delay={deckEnd(drawPileSettings)} duration={drawPileSettings.drop} elevation={drawPileSettings.elevation} mask>
         {view.deckCount > 0 && (
@@ -1207,30 +1269,41 @@ function World({
         return <DomainBackground key={`fond-${j.id}`} zone={zone} playable={targetDomain(j.id)} hover={hoverPlayer === j.id} color={color(j.id)} />
       })}
 
-      <Appear active={flow} delay={0.2} duration={settings.matDuration * 0.4} elevation={-0.7}>
-        {view.players.map((j) => {
-          const zone = zones.get(j.id)
-          if (!zone || j.id === meId) return null
-          return (
-            <Badge
-              key={j.id}
-              zone={zone}
-              text={nickname(j.id).toUpperCase()}
-              style={
-                hoverPlayer === j.id && targetDomain(j.id)
-                  ? { color: "#fff4dc", relief: color(j.id), aura: color(j.id), spacing: SPACING }
-                  : j.id === active
-                    ? { color: "#fff4dc", relief: color(j.id), aura: "rgba(255,236,190,0.9)", spacing: SPACING }
-                    : { ...INK, spacing: SPACING }
-              }
-              onClick={targetDomain(j.id) ? () => playDomain(j.id) : undefined}
-              onHover={targetDomain(j.id) ? (s) => setHoverPlayer(s ? j.id : null) : undefined}
-            />
-          )
-        })}
-      </Appear>
+      {/* pseudos de tous les joueurs (le sien compris), affichés d'emblée ; leur couleur ne change pas quand c'est leur tour : seule la couronne l'indique */}
+      {view.players.map((j) => {
+        const zone = zones.get(j.id)
+        if (!zone) return null
+        return (
+          <Badge
+            key={j.id}
+            zone={zone}
+            text={nickname(j.id).toUpperCase()}
+            style={
+              hoverPlayer === j.id && targetDomain(j.id)
+                ? { color: "#fff4dc", relief: color(j.id), aura: color(j.id), spacing: SPACING }
+                : { color: color(j.id), spacing: SPACING }
+            }
+            onClick={targetDomain(j.id) ? () => playDomain(j.id) : undefined}
+            onHover={targetDomain(j.id) ? (s) => setHoverPlayer(s ? j.id : null) : undefined}
+          />
+        )
+      })}
 
-      <Crown3D target={crownPlayer ? crownPosition(zones.get(crownPlayer), crownPlayer === meId) : null} />
+      {view.players.map((j) => {
+        const zone = zones.get(j.id)
+        if (!zone) return null
+        // à gauche du pseudo (largeur estimée comme pour les cartes de fin)
+        const x = -((nickname(j.id).length * 0.45 + 0.6) / 2 + 0.8)
+        return (
+          <CrownMark
+            key={`couronne-${j.id}`}
+            show={crownPlayer === j.id}
+            origin={zone.labelPos}
+            offset={[x, -ZONE_SETTINGS.nicknameOffset]}
+            yaw={zone.labelYaw}
+          />
+        )
+      })}
 
       {targetColumn &&
         (["up", "down"] as const).map((level) => (

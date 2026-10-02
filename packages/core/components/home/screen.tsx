@@ -11,7 +11,6 @@ import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pbgo/
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
-import type { RulesContent } from "../../lib/rules"
 import { AUTHOR, CONTACT } from "@pbgo/binding"
 import { cn } from "@pbgo/ui/utils"
 
@@ -24,13 +23,11 @@ export function Screen({
   children,
   cta,
   below,
-  rules,
   onSubmit,
 }: {
   children?: React.ReactNode
   cta?: React.ReactNode
   below?: React.ReactNode
-  rules?: RulesContent
   onSubmit?: (e: React.FormEvent) => void
 }) {
   const { title, logo } = useSiteSettings()
@@ -67,7 +64,7 @@ export function Screen({
         />
       )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
-        <Toolbar rules={rules} />
+        <Toolbar align="right" />
       </div>
 
       <form autoComplete="off" onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
@@ -128,12 +125,15 @@ export function Screen({
 export function PrimaryButton({
   children,
   busy,
+  waiting,
   disabled,
   onClick,
   className,
 }: {
   children: React.ReactNode
   busy?: boolean
+  /** Action déjà envoyée, en attente des autres : fond translucide, texte actif, reflet qui balaie le bouton */
+  waiting?: boolean
   disabled?: boolean
   onClick?: () => void
   className?: string
@@ -141,16 +141,25 @@ export function PrimaryButton({
   return (
     <button
       type={onClick ? "button" : "submit"}
-      disabled={disabled || busy}
+      disabled={disabled || busy || waiting}
       onClick={onClick}
       className={cn(
-        "inline-flex h-16 w-full max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl bg-foreground px-8 font-display text-2xl tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] disabled:cursor-default disabled:hover:scale-100",
-        disabled && "bg-[color-mix(in_oklab,var(--foreground)_62%,var(--background))] shadow-none",
+        "relative inline-flex h-16 w-full overflow-hidden max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl bg-foreground px-8 font-display text-2xl tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] disabled:cursor-default disabled:hover:scale-100",
+        disabled && !waiting && "bg-[color-mix(in_oklab,var(--foreground)_62%,var(--background))] shadow-none",
+        waiting && "border border-foreground/50 bg-foreground/20 text-foreground shadow-none backdrop-blur-sm",
         className,
       )}
     >
-      {busy && <Loader2Icon className="size-5 animate-spin" />}
-      {children}
+      {(busy || waiting) && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-[linear-gradient(100deg,transparent,color-mix(in_oklab,var(--foreground)_38%,transparent),transparent)]"
+          animate={{ x: ["0%", "300%"] }}
+          transition={{ duration: 1.8, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.2 }}
+        />
+      )}
+      {busy && <Loader2Icon className="relative size-5 animate-spin" />}
+      <span className="relative">{children}</span>
     </button>
   )
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { GameClient } from "../components/game/game-client"
 import * as serverBinding from "@pbgo/binding-server"
-import { loadRules } from "../lib/rules-server"
 import { tableTitle } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
 
@@ -16,6 +15,6 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 
 export default async function GamePage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params
-  const [rules, data] = await Promise.all([loadRules(), gameDataLoader?.()])
-  return <GameClient code={code.toUpperCase()} rules={rules} data={data} />
+  const data = await gameDataLoader?.()
+  return <GameClient code={code.toUpperCase()} data={data} />
 }

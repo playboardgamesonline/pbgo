@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
+import "@fontsource-variable/geist-mono"
 import { AppShell } from "@pbgo/core/components/app-shell"
 import { AppToaster } from "@pbgo/core/components/toaster"
 import { TooltipProvider } from "@pbgo/ui/game/tooltip"

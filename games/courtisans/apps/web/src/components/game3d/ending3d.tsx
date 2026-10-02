@@ -3,14 +3,13 @@
 import type { Family, CourtisansResults, PlayerView } from "@courtisans/engine"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   CanvasTexture,
   Color,
   type Group,
   type Mesh,
   SRGBColorSpace,
-  type Texture,
   Vector2,
 } from "three"
 import { useCourtisans } from "../game/context"
@@ -58,7 +57,7 @@ function roundBg() {
   return rond
 }
 
-type Sign = "plus" | "minus" | "equal"
+type Sign = "plus" | "minus" | "equal" | "cross"
 const signs = new Map<Sign, CanvasTexture>()
 
 function signTexture(sign: Sign) {
@@ -81,6 +80,16 @@ function signTexture(sign: Sign) {
             ]
     const trace = () => {
       g.beginPath()
+      if (sign === "cross") {
+        for (const angle of [Math.PI / 4, -Math.PI / 4]) {
+          g.save()
+          g.translate(128, 128)
+          g.rotate(angle)
+          g.roundRect(-80, -24, 160, 48, 9)
+          g.restore()
+        }
+        return
+      }
       for (const [x, y, l, h] of bars) g.roundRect(x, y, l, h, 9)
     }
     g.lineJoin = "round"
@@ -106,12 +115,12 @@ function signTexture(sign: Sign) {
   return t
 }
 
-function Sign({ sign, position }: { sign: Sign; position: [number, number, number] }) {
+function Sign({ sign, position, size = 1.15 }: { sign: Sign; position: [number, number, number]; size?: number }) {
   const [texture] = useState(() => signTexture(sign))
   return (
     <Appear position={position} floating={0}>
       <mesh rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
-        <planeGeometry args={[1.15, 1.15]} />
+        <planeGeometry args={[size, size]} />
         <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
       </mesh>
     </Appear>
@@ -119,7 +128,7 @@ function Sign({ sign, position }: { sign: Sign; position: [number, number, numbe
 }
 
 export const ENDING_SETTINGS = {
-  arrowSize: 1.15,
+  arrowSize: 1.5,
   winnerStrength: 0.4,
   pointsSize: 0.75,
   positiveColor: "#ffd35c",
@@ -127,9 +136,14 @@ export const ENDING_SETTINGS = {
   zeroColor: "#a8b0b2",
   relief: true,
   shadowColor: "#000000",
-  shadowOpacity: 0.75,
-  shadowBlur: 14,
-  shadowOffset: 8,
+  shadowOpacity: 0.05,
+  shadowBlur: 2,
+  shadowOffset: 2,
+  counterBackdrop: 0,
+  counterShadow: 0.3,
+  counterShadowBlur: 14,
+  counterShadowOffset: 5,
+  counterHeight: 1.1,
 }
 
 export const LINE_SETTINGS = {
@@ -188,6 +202,18 @@ export function EndingSettings() {
     } as never,
     { order: 13 },
   )
+  useSettings(
+    "End · Counter",
+    ENDING_SETTINGS,
+    {
+      counterBackdrop: ["dark disc opacity", 0, 1, 0.01],
+      counterShadow: ["text shadow opacity", 0, 1, 0.01],
+      counterShadowBlur: ["text shadow blur", 0, 60, 1],
+      counterShadowOffset: ["text shadow offset", -30, 30, 1],
+      counterHeight: ["height", 0, 3, 0.05],
+    } as never,
+    { order: 13 },
+  )
   return null
 }
 
@@ -240,36 +266,73 @@ export function MatLines({ results, ending }: { results: CourtisansResults | nul
   )
 }
 
-const textures = new Map<string, Texture>()
-function textureUrl(url: string) {
-  let t = textures.get(url)
+const arrows = new Map<"up" | "down", CanvasTexture>()
+
+/** Flèche dessinée en canvas (aucun chargement : toujours visible). Haut = lumière (clair), bas = disgrâce (sombre). */
+function arrowTexture(direction: "up" | "down") {
+  let t = arrows.get(direction)
   if (!t) {
-    const canvasEl = document.createElement("canvas")
-    canvasEl.width = canvasEl.height = 4
-    const texture = new CanvasTexture(canvasEl)
-    texture.colorSpace = SRGBColorSpace
-    texture.anisotropy = 8
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-    img.onload = () => {
-      const l = img.naturalWidth || 512
-      const h = img.naturalHeight || 512
-      const k = 512 / Math.max(l, h)
-      canvasEl.width = Math.round(l * k)
-      canvasEl.height = Math.round(h * k)
-      canvasEl.getContext("2d")!.drawImage(img, 0, 0, canvasEl.width, canvasEl.height)
-      texture.dispose()
-      texture.needsUpdate = true
-    }
-    img.src = url
-    t = texture
-    textures.set(url, t)
+    const c = document.createElement("canvas")
+    c.width = c.height = 256
+    const g = c.getContext("2d")!
+    g.translate(128, 128)
+    if (direction === "down") g.scale(1, -1)
+    g.beginPath()
+    g.moveTo(0, -104)
+    g.lineTo(86, -8)
+    g.lineTo(34, -8)
+    g.lineTo(34, 100)
+    g.lineTo(-34, 100)
+    g.lineTo(-34, -8)
+    g.lineTo(-86, -8)
+    g.closePath()
+    g.lineJoin = "round"
+    g.shadowColor = "rgba(0,0,0,0.3)"
+    g.shadowBlur = 6
+    g.shadowOffsetY = 2
+    g.lineWidth = 16
+    g.strokeStyle = "#cf9400"
+    g.stroke()
+    g.shadowColor = "transparent"
+    g.fillStyle = direction === "up" ? "#efe8cd" : "#002c37"
+    g.fill()
+    t = new CanvasTexture(c)
+    t.colorSpace = SRGBColorSpace
+    t.anisotropy = 8
+    arrows.set(direction, t)
   }
   return t
 }
 
-function Arrow({ url, position }: { url: string; position: [number, number, number] }) {
-  const [texture] = useState(() => textureUrl(url))
+const arrowImages = new Map<string, CanvasTexture>()
+
+/** Rasterise le pictogramme (SVG ou image Sanity) dans un canvas : la taille est fixée avant le dessin, sinon un SVG sans dimensions n'affiche rien. */
+function loadArrow(url: string, onReady: (t: CanvasTexture) => void) {
+  const cached = arrowImages.get(url)
+  if (cached) return onReady(cached)
+  const img = new Image()
+  img.crossOrigin = "anonymous"
+  img.onload = () => {
+    const ratio = (img.naturalWidth || 1) / (img.naturalHeight || 1)
+    const c = document.createElement("canvas")
+    c.width = 512
+    c.height = Math.max(1, Math.round(512 / ratio))
+    c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height)
+    const t = new CanvasTexture(c)
+    t.colorSpace = SRGBColorSpace
+    t.anisotropy = 8
+    arrowImages.set(url, t)
+    onReady(t)
+  }
+  img.src = url
+}
+
+/** Flèche de la colonne : pictogramme du catalogue (Sanity, SVG) ; la flèche dessinée sert d'attente et de secours si l'image ne charge pas. */
+function Arrow({ direction, url, position }: { direction: "up" | "down"; url?: string; position: [number, number, number] }) {
+  const [texture, setTexture] = useState<CanvasTexture>(() => arrowTexture(direction))
+  useEffect(() => {
+    if (url) loadArrow(url, setTexture)
+  }, [url])
   const ref = useRef<Mesh>(null)
   useFrame(() => {
     if (ref.current) ref.current.scale.setScalar(ENDING_SETTINGS.arrowSize)
@@ -286,6 +349,7 @@ function Arrow({ url, position }: { url: string; position: [number, number, numb
 
 export function FamilyResolution({ results, ending }: { results: CourtisansResults; ending: EndingState }) {
   const { catalog } = useCourtisans()
+  useSettingsVersion()
   return (
     <>
       {TABLE_FAMILIES.slice(0, ending.families).map((f) => {
@@ -296,10 +360,7 @@ export function FamilyResolution({ results, ending }: { results: CourtisansResul
         return (
           <group key={f}>
             {light || disgrace ? (
-              <Arrow
-                url={light ? catalog.arrowUpUrl : catalog.arrowDownUrl}
-                position={[x, 0.1, light ? -MAT_D / 2 + 0.2 : MAT_D / 2 - 0.2]}
-              />
+              <Arrow direction={light ? "up" : "down"} url={light ? catalog.arrowUpUrl : catalog.arrowDownUrl} position={[x, 0.12, light ? -MAT_D / 2 + 0.05 : MAT_D / 2 - 0.05]} />
             ) : (
               <Sign sign="equal" position={[x, 0.1, 0]} />
             )}
@@ -352,7 +413,32 @@ export function PilePoints({ view, results, ending, zones }: { view: PlayerView;
   )
 }
 
+/** Mission réussie : « +3 » doré, comme les points des piles ; ratée : croix grise, comme le signe égal. Fixes (pas de flottement ni de clignotement). */
+export function MissionSign({ done, points, position }: { done: boolean; points: number; position: [number, number, number] }) {
+  useSettingsVersion()
+  if (!done) return <Sign sign="cross" size={1} position={position} />
+  return (
+    <group position={position}>
+      <Appear position={[0, 0, 0]} floating={0}>
+        <TableText
+          text={`+${points}`}
+          style={{
+            color: ENDING_SETTINGS.positiveColor,
+            relief: ENDING_SETTINGS.relief ? "#1a1a1a" : undefined,
+            fontWeight: 800,
+            shadow: `${shadowRgba()}|${ENDING_SETTINGS.shadowBlur}|${ENDING_SETTINGS.shadowOffset}`,
+          }}
+          elevation={ENDING_SETTINGS.pointsSize}
+          position={[0, 0, 0]}
+          order={8}
+        />
+      </Appear>
+    </group>
+  )
+}
+
 export function Counters({ view, results, ending, zones }: { view: PlayerView; results: CourtisansResults; ending: EndingState; zones: Map<string, DomainZone> }) {
+  useSettingsVersion()
   if (ending.pile === 0 && !ending.missions) return null
   return (
     <>
@@ -363,12 +449,19 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
         const piles = r.families.slice(0, ending.pile)
         const total = piles.reduce((s, d) => s + d.points, 0) + (ending.missions ? r.missions.reduce((s, m) => s + m.points, 0) : 0)
         return (
-          <Appear key={j.id} position={[zone.center.x, 1.8, zone.center.z]} floating={0}>
-            <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
-              <circleGeometry args={[1.25, 48]} />
-              <meshBasicMaterial map={roundBg()} color="#02151a" transparent opacity={0.85} depthWrite={false} toneMapped={false} />
-            </mesh>
-            <TableText text={`${total}`} style={{ ...HOLO, spacing: "4px" }} elevation={1.5} position={[0, 0, 0]} />
+          <Appear key={j.id} position={[zone.center.x, ENDING_SETTINGS.counterHeight, zone.center.z]} floating={0}>
+            {ENDING_SETTINGS.counterBackdrop > 0.01 && (
+              <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
+                <circleGeometry args={[1.25, 48]} />
+                <meshBasicMaterial map={roundBg()} color="#02151a" transparent opacity={ENDING_SETTINGS.counterBackdrop} depthWrite={false} toneMapped={false} />
+              </mesh>
+            )}
+            <TableText
+              text={`${total}`}
+              style={{ ...HOLO, spacing: "4px", shadow: `rgba(0,0,0,${ENDING_SETTINGS.counterShadow})|${ENDING_SETTINGS.counterShadowBlur}|${ENDING_SETTINGS.counterShadowOffset}` }}
+              elevation={1.5}
+              position={[0, 0, 0]}
+            />
           </Appear>
         )
       })}

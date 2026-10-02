@@ -1,4 +1,4 @@
-import type { OptionDefinitions, OptionValues } from "./options"
+import type { OptionDefinitions, OptionPreset, OptionValues } from "./options"
 
 export type PlayerInfo = { id: string; nickname: string }
 
@@ -23,6 +23,8 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
   minPlayers: number
   maxPlayers: number
   options: OptionDefinitions
+  /** Combinaisons d'options proposées en un clic dans le lobby (facultatif). */
+  presets?: OptionPreset[]
   clientActions: readonly Action["type"][]
   setup: (args: { players: PlayerInfo[]; options: OptionValues; seed?: number; data?: SetupData }) => State
   apply: (state: State, action: Action) => State

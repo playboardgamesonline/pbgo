@@ -1,5 +1,4 @@
 import { Home } from "@pbgo/core/components/home/home"
-import { loadRules } from "@pbgo/core/lib/rules-server"
 import { siteTitle } from "@pbgo/core/lib/settings"
 import { OG_LOCALES } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
@@ -37,7 +36,7 @@ export default async function HomePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData(settings, language)) }} />
       <h1 className="sr-only">{locale === "fr" ? `${siteTitle(settings.title)} · Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis` : `${siteTitle(settings.title)} · ${settings.description}`}</h1>
-      <Home rules={await loadRules()} />
+      <Home />
     </>
   )
 }

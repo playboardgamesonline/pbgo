@@ -1,5 +1,6 @@
 "use client"
 
+import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { CARD_SETTINGS } from "./card3d"
 import { LAYOUT_SETTINGS } from "./layout"
 import { useSettings } from "./settings"
@@ -21,8 +22,9 @@ export function CardSettingsPanel() {
     {
       thickness: ["thickness (× width)", 0.001, 0.03, 0.0005],
       foldable: ["bendability", 0, 1, 0.01],
-      flightDuration: ["flight duration (×)", 0.3, 3, 0.05],
-      flightHeight: ["flight height (×)", 0, 3, 0.05],
+      flightDuration: ["flight duration (×)", 0.2, 3, 0.01],
+      flightHeight: ["flight height (×)", 0, 3, 0.01],
+      easing: ["flight easing", EASING_NAMES as string[]],
       shadow: ["shadow", 0, 1, 0.01],
     } as never,
     { order: 1 },

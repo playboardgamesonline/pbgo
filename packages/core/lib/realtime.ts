@@ -24,3 +24,32 @@ export function subscribeToGame(code: string, onUpdate: (version: number) => voi
     sb.removeChannel(channel)
   }
 }
+
+export const CHAT_EVENT = "chat"
+export const REACTION_EVENT = "reaction"
+
+export type ChatMessage = { id: string; playerId: string; text: string; at: number }
+export type ChatReaction = { id: string; playerId: string; reaction: string }
+
+/** Canal de chat d'une partie (diffusion temps réel Supabase, sans stockage) : messages et réactions n'existent que pour les joueurs connectés. */
+export function openChat(code: string, onMessage: (m: ChatMessage) => void, onReaction?: (r: ChatReaction) => void) {
+  const sb = supabase()
+  if (!sb) return null
+  const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA || "public"
+  const channel = sb
+    .channel(`chat:${schema}:${code}`, { config: { broadcast: { self: false } } })
+    .on("broadcast", { event: CHAT_EVENT }, ({ payload }) => {
+      const m = payload as Partial<ChatMessage>
+      if (typeof m?.id === "string" && typeof m.playerId === "string" && typeof m.text === "string") onMessage({ id: m.id, playerId: m.playerId, text: m.text.slice(0, 240), at: Date.now() })
+    })
+    .on("broadcast", { event: REACTION_EVENT }, ({ payload }) => {
+      const r = payload as Partial<ChatReaction>
+      if (typeof r?.id === "string" && typeof r.playerId === "string" && typeof r.reaction === "string") onReaction?.({ id: r.id, playerId: r.playerId, reaction: r.reaction })
+    })
+    .subscribe()
+  return {
+    send: (m: ChatMessage) => void channel.send({ type: "broadcast", event: CHAT_EVENT, payload: m }),
+    react: (r: ChatReaction) => void channel.send({ type: "broadcast", event: REACTION_EVENT, payload: r }),
+    close: () => void sb.removeChannel(channel),
+  }
+}

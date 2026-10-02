@@ -138,7 +138,9 @@ SITE_URL="$(current NEXT_PUBLIC_SITE_URL)"
 # ---------- Sanity ----------
 title "Sanity"
 def_pid="$(cat .sanity-project-id 2>/dev/null)"
-[ -z "$def_pid" ] && def_pid="$(grep -o 'projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? "[a-z0-9]*"' apps/web/src/sanity/env.ts 2>/dev/null | grep -o '"[a-z0-9]*"' | tr -d '"')"
+# l'ID est écrit dans site.ts (SANITY_PROJECT_ID) et dans le studio ; « __SANITY_PROJECT_ID__ » = go-live pas encore lancé
+[ -z "$def_pid" ] && def_pid="$(grep -o 'SANITY_PROJECT_ID = "[a-z0-9]*"' apps/web/src/lib/site.ts 2>/dev/null | grep -o '"[a-z0-9]*"' | tr -d '"')"
+[ -z "$def_pid" ] && def_pid="$(grep -o 'SANITY_STUDIO_PROJECT_ID ?? "[a-z0-9]*"' apps/studio/sanity.config.ts 2>/dev/null | grep -o '"[a-z0-9]*"' | tr -d '"')"
 ask NEXT_PUBLIC_SANITY_PROJECT_ID "Project ID Sanity" "$def_pid"
 ask NEXT_PUBLIC_SANITY_DATASET "Dataset" "production"
 PID="$(current NEXT_PUBLIC_SANITY_PROJECT_ID)"
@@ -178,7 +180,7 @@ SB_PAT="$(secret SUPABASE_ACCESS_TOKEN)"
 SBAPI="https://api.supabase.com/v1"
 SB() { curl -s -H "Authorization: Bearer $SB_PAT" -H "Content-Type: application/json" "$@"; }
 SCHEMA="$(current NEXT_PUBLIC_SUPABASE_SCHEMA)"
-[ -z "$SCHEMA" ] && SCHEMA="g_$(echo "$SLUG" | tr '-' '_')"
+[ -z "$SCHEMA" ] && { if [ "$SLUG" = courtisans ]; then SCHEMA=public; else SCHEMA="g_$(echo "$SLUG" | tr '-' '_')"; fi; }
 REF="$(current NEXT_PUBLIC_SUPABASE_URL | sed -E 's#https://([^.]+)\..*#\1#')"
 [ -z "$REF" ] && REF="$(secret SUPABASE_PROJECT_REF)"
 

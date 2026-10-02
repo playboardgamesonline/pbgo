@@ -14,11 +14,14 @@ export type GameRow = {
   options: OptionValues
   state: State | null
   replay: string[]
+  /** Votes « jouer à la place du joueur absent » : `<empreinte de l'état>:<joueur>` (voir `takeoverVotes`) */
+  takeover_votes: string[]
   version: number
   updated_at?: string
+  created_at?: string
 }
 
-const COLUMNS = "code, host_id, status, players, options, state, replay, version, updated_at"
+const COLUMNS = "code, host_id, status, players, options, state, replay, takeover_votes, version, updated_at, created_at"
 
 // Écritures concurrentes (ex. tous les joueurs qui valident l'ouverture en même temps) : on réessaie avec une attente aléatoire croissante
 const MAX_ATTEMPTS = 8
@@ -44,6 +47,7 @@ export async function createGame(host: PlayerInfo, options: OptionValues = norma
       options,
       state: null,
       replay: [],
+      takeover_votes: [],
       version: 0,
     }
     const { error } = await db.from("games").insert(row)
@@ -53,14 +57,38 @@ export async function createGame(host: PlayerInfo, options: OptionValues = norma
   throw new ApiError("CODE_UNAVAILABLE", 500)
 }
 
-export async function updateGame(code: string, modifier: (row: GameRow) => Partial<Omit<GameRow, "code" | "version">> | null): Promise<GameRow> {
+/**
+ * Votes « jouer à la place du joueur absent » (colonne `takeover_votes`) : `<empreinte de l'état>:<joueur>`.
+ * Toute action change l'état, donc l'empreinte : les votes périmés sont ignorés sans qu'il faille les purger.
+ */
+export function stateFingerprint(state: unknown): string {
+  const text = JSON.stringify(state ?? null)
+  let h = 5381
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
+/** Votes de relève valables pour l'état courant (identifiants de joueurs). */
+export function takeoverVotes(row: Pick<GameRow, "takeover_votes" | "state">): string[] {
+  const key = `${stateFingerprint(row.state)}:`
+  return (row.takeover_votes ?? []).filter((v) => v.startsWith(key)).map((v) => v.slice(key.length))
+}
+
+export const takeoverEntry = (state: unknown, playerId: string) => `${stateFingerprint(state)}:${playerId}`
+
+export async function updateGame(
+  code: string,
+  modifier: (row: GameRow) => Partial<Omit<GameRow, "code" | "version">> | null,
+  { quiet = false }: { quiet?: boolean } = {},
+): Promise<GameRow> {
   const db = supabaseAdmin()
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     if (attempt > 0) await pause(attempt)
     const row = await readGame(code)
     const patch = modifier(row)
     if (!patch) return row
-    const updatedAt = new Date().toISOString()
+    // `quiet` (votes) : la version change pour rafraîchir les clients, mais pas l'horloge d'inactivité du tour
+    const updatedAt = quiet && !("state" in patch) && row.updated_at ? row.updated_at : new Date().toISOString()
     const next = { ...row, ...patch, version: row.version + 1, updated_at: updatedAt }
     const { data, error } = await db
       .from("games")
@@ -95,9 +123,10 @@ export async function loadSetupData(options: OptionValues = {}): Promise<unknown
   return setupLoader ? setupLoader({ options }) : undefined
 }
 
-export function newGame(row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay"> {
+export function newGame(row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay" | "takeover_votes"> {
   const setup = GAME.setup as (args: { players: PlayerInfo[]; options: OptionValues; data?: unknown }) => State
-  return { status: "playing", state: setup({ players: row.players, options: row.options, data }), replay: [] }
+  const options = normalizeOptions(GAME.options, row.options, { playerCount: row.players.length })
+  return { status: "playing", state: setup({ players: row.players, options, data }), replay: [], takeover_votes: [] }
 }
 
 export function publicGame(row: GameRow, playerId: string | null): PublicGame {
@@ -110,8 +139,10 @@ export function publicGame(row: GameRow, playerId: string | null): PublicGame {
     meId: member ? playerId : null,
     options: row.options ?? normalizeOptions(GAME.options, {}),
     replay: row.replay,
+    takeoverVotes: row.status === "playing" ? takeoverVotes(row) : [],
     version: row.version,
     updatedAt: row.updated_at ?? null,
+    createdAt: row.created_at ?? null,
     view: row.state ? GAME.view(row.state, member ? playerId : null) : null,
   }
 }

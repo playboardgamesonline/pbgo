@@ -70,7 +70,7 @@ function Fps() {
     id = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(id)
   }, [])
-  return <span ref={ref} className="shrink-0 self-center px-3 tabular-nums" />
+  return <span ref={ref} className="w-32 shrink-0 self-center px-2 text-right whitespace-nowrap tabular-nums" />
 }
 
 export function DebugPanel() {
@@ -101,7 +101,7 @@ export function DebugPanel() {
             key={name}
             type="button"
             onClick={() => setActiveTab(name)}
-            className={cn("flex-1 py-2 text-[#8c92a4] hover:text-white", activeTab === name && "bg-[#181c20] text-white")}
+            className={cn("min-w-0 flex-1 basis-0 py-2 text-[#8c92a4] hover:text-white", activeTab === name && "bg-[#181c20] text-white")}
           >
             {name}
           </button>

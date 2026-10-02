@@ -8,13 +8,12 @@ import { PrimaryButton, CodeField, NicknameField, Screen, Paragraph } from "../h
 import { Game } from "@pbgo/binding-ui"
 import { api, gameLink } from "../../lib/api"
 import { useProfile } from "../../lib/profile"
-import type { RulesContent } from "../../lib/rules"
 import { useLiveGame } from "../../lib/use-live-game"
 import { LobbyButton, PlayerList } from "../lobby/lobby"
 import { GameOptions } from "../lobby/game-options"
 import { useText } from "../skin-provider"
 
-export function GameClient({ code, rules, data }: { code: string; rules: RulesContent; data?: unknown }) {
+export function GameClient({ code, data }: { code: string; data?: unknown }) {
   const router = useRouter()
   const t = useText()
   const { game, error, apply } = useLiveGame(code)
@@ -49,7 +48,7 @@ export function GameClient({ code, rules, data }: { code: string; rules: RulesCo
   }
 
   if (game && game.meId && game.status !== "lobby" && game.view) {
-    return <Game game={game} rules={rules} data={data} onUpdate={apply} onLeave={() => router.push("/")} />
+    return <Game game={game} data={data} onUpdate={apply} onLeave={() => router.push("/")} />
   }
 
   const link = typeof window === "undefined" ? "" : gameLink(code)
@@ -57,21 +56,21 @@ export function GameClient({ code, rules, data }: { code: string; rules: RulesCo
 
   if (error)
     return (
-      <Screen rules={rules} cta={backButton}>
+      <Screen cta={backButton}>
         <Paragraph>{t("gameNotFound", { code })}</Paragraph>
       </Screen>
     )
 
   if (!game || !ready || shouldAutoJoin || (game.status !== "lobby" && game.meId))
     return (
-      <Screen rules={rules} below={<CodeField value={code} />}>
+      <Screen below={<CodeField value={code} />}>
         <Loader2Icon className="mt-[6vh] size-8 animate-spin text-accent-game" />
       </Screen>
     )
 
   if (game.meId === null && game.status !== "lobby")
     return (
-      <Screen rules={rules} cta={backButton}>
+      <Screen cta={backButton}>
         <Paragraph>{t("alreadyStarted")}</Paragraph>
       </Screen>
     )
@@ -79,7 +78,7 @@ export function GameClient({ code, rules, data }: { code: string; rules: RulesCo
   if (game.meId === null)
     return (
       <Screen
-        rules={rules}
+       
         onSubmit={async (e) => {
           e.preventDefault()
           if (!valid) {
@@ -98,7 +97,7 @@ export function GameClient({ code, rules, data }: { code: string; rules: RulesCo
     )
 
   return (
-    <Screen rules={rules} cta={<LobbyButton game={game} onUpdate={apply} />} below={<CodeField value={code} copyable={link} />}>
+    <Screen cta={<LobbyButton game={game} onUpdate={apply} />} below={<CodeField value={code} copyable={link} />}>
       <Paragraph>{t("shareInvite")}</Paragraph>
       <PlayerList game={game} />
       <GameOptions game={game} onUpdate={apply} />

@@ -33,7 +33,7 @@ const pick = (d: AdminData): Draft => ({
 })
 
 const MP3 = "audio/mpeg,.mp3"
-const VOLUME_LABELS: Record<keyof Volumes, string> = { master: "Master", music: "Music", effects: "Effects", ambience: "Ambience" }
+const VOLUME_LABELS: Record<keyof Volumes, string> = { master: "Master", music: "Music", effects: "Effects", ambience: "Ambience", alerts: "Alerts", reactions: "Reactions" }
 
 /* Un seul son à la fois dans l'admin */
 let current: HTMLAudioElement | null = null

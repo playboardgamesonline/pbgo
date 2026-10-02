@@ -20,9 +20,12 @@ export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: stri
   const [since, setSince] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
   const [sending, setSending] = useState(false)
+  const votes = game.takeoverVotes ?? []
+  const needed = game.players.filter((p) => p.id !== activePlayerId).length
+  const voted = !!view.me && votes.includes(view.me.id)
 
-  // chaque nouvelle version relance le compte à rebours
-  useEffect(() => setSince(Date.now()), [game.version])
+  // chaque coup relance le compte à rebours (les votes ne bougent pas `updatedAt`)
+  useEffect(() => setSince(Date.now()), [game.updatedAt])
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5000)
     return () => clearInterval(timer)
@@ -46,19 +49,19 @@ export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: stri
     <AnimatePresence>
       {stalled && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm text-foreground shadow-lg backdrop-blur"
+          exit={{ opacity: 0, y: -20 }}
+          className="absolute top-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm text-foreground shadow-lg backdrop-blur"
         >
           <span>{t("takeoverPrompt", { name: nickname(activePlayerId!) })}</span>
           <button
             type="button"
-            disabled={sending}
+            disabled={sending || voted}
             onClick={takeover}
-            className="h-9 cursor-pointer rounded-full bg-foreground px-4 font-display text-background transition-transform hover:scale-105 disabled:opacity-60"
+            className="h-9 cursor-pointer rounded-full bg-foreground px-4 font-display text-background transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
           >
-            {t("takeoverButton")}
+            {voted ? t("missionsWaiting", { read: votes.length, total: needed }) : needed > 1 ? `${t("takeoverButton")} (${votes.length}/${needed})` : t("takeoverButton")}
           </button>
         </motion.div>
       )}

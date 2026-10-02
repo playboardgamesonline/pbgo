@@ -13,9 +13,13 @@ export type PublicGame = {
   meId: string | null
   options: OptionValues
   replay: string[]
+  /** Joueurs ayant voté pour jouer à la place du joueur absent (état courant) */
+  takeoverVotes?: string[]
   version: number
   /** Dernière écriture (ISO) : sert à repérer un tour bloqué par un joueur absent */
   updatedAt?: string | null
+  /** Création de la partie (ISO) : sert au pied du tableau des scores */
+  createdAt?: string | null
   view: PlayerView | null
 }
 

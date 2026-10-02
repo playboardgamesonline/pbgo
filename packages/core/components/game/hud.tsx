@@ -3,10 +3,10 @@
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useState } from "react"
 import { Logo } from "@pbgo/binding-ui"
-import type { RulesContent } from "../../lib/rules"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
+import { Chat } from "./chat"
 import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
 
@@ -133,19 +133,18 @@ export function Ticker({
  * en haut à droite le bandeau (`ticker`) sur un voile sombre ; `overlay` pour les boutons et panneaux propres au jeu.
  */
 export function GameHud({
-  rules,
   onLeave,
   ticker,
   overlay,
   children,
 }: {
-  rules: RulesContent
   onLeave: () => void
   ticker?: React.ReactNode
   overlay?: React.ReactNode
   children: React.ReactNode
 }) {
   const t = useText()
+  const { game } = useGame()
   const { logo, title } = useSiteSettings()
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background text-foreground">
@@ -161,17 +160,16 @@ export function GameHud({
         />
       )}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 px-6 pt-5 pb-8">
-        <div className="pointer-events-auto flex flex-col items-center gap-1">
+        <div className="pointer-events-auto flex flex-col items-center gap-1.5">
           <button type="button" className="w-40 cursor-pointer transition-transform hover:scale-105 sm:w-48" title={t("leave")} onClick={onLeave}>
             {logo ? <Logo src={logo} alt={title} /> : <span className="font-display text-2xl font-black tracking-[0.12em] uppercase">{title}</span>}
           </button>
-          <div className="flex items-center justify-center gap-1">
-            <Toolbar rules={rules} />
-          </div>
+          <Toolbar gameCode={game.code} options={game.options} />
         </div>
         {ticker}
       </header>
       {overlay}
+      <Chat />
     </main>
   )
 }
