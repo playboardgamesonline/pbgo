@@ -38,7 +38,8 @@ export function setupGame({ players, missions, rng = Math.random, courtiers = cr
     activePlayer: Math.floor(rng() * count),
     playedZones: [],
     turnNumber: 1,
-    phase: "playing",
+    // le banquet commence quand tous les joueurs ont lu leurs missions (voir `readMissions`)
+    phase: "missions",
     log: [],
   }
 }

@@ -35,7 +35,8 @@ describe("setupGame", () => {
       expect(j.hand).toHaveLength(3)
       expect(j.missions.map((m) => m.color).sort()).toEqual(["blue", "white"])
     }
-    expect(state.phase).toBe("playing")
+    expect(state.phase).toBe("missions")
+    expect(state.players.every((j) => !j.missionsRead)).toBe(true)
     expect(state.activePlayer).toBeGreaterThanOrEqual(0)
     expect(state.activePlayer).toBeLessThan(n)
   })

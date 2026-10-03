@@ -71,16 +71,16 @@ Conventions de ce document :
 
 #### Lecture des missions (ouverture)
 
-**Piège majeur :** `setupPartie()` démarre directement en `phase: "jeu"`, pas en `"missions"`. La phase `"missions"` existe dans les types et dans `lireMissions()`, mais n'est plus jamais atteinte. L'ouverture est donc pilotée côté client par le drapeau `missionsLues` de chaque joueur.
+**Le banquet attend tous les joueurs.** `setupGame()` démarre en `phase: "missions"` ; chaque joueur envoie `readMissions` (drapeau `missionsRead`, idempotent) et la partie passe à `"playing"` à la lecture du **dernier** joueur, dans la même écriture : c'est ce changement de phase, reçu par tous, qui ferme l'ouverture et déclenche l'annonce du banquet. Tant que la phase est `"missions"`, `playCard` est refusé (`INVALID_PHASE`) et `activePlayerId` vaut `null` ; `firstPlayerId` désigne déjà le premier joueur (couronne). Noms actuels du code (ce document utilise encore les anciens noms français) : `lireMissions` = `readMissions`, `missionsLues` = `missionsRead`, `jeu` = `playing`. Les parties enregistrées avant cette règle sont restées en `"playing"` : la lecture tardive d'un joueur n'y fait qu'enregistrer son drapeau, sans rien attendre.
 
 | Couche | Ce qui se passe |
 |---|---|
-| Client | `Jeu3D` (`web/components/jeu3d/jeu3d.tsx`) : `aLire(vue)` = pas en fin, je suis joueur et `missionsLues` est faux. L'état `etape` enchaîne `"tapis"` (le tapis se déroule, `dureeTapis` 3,2 s + 0,3 s) → `"distribution"` (distribution carte par carte, `0,1 + n×3×pasDistribution` s + 1,3 s) → `"missions"` (missions face à la caméra ; le bouton `texteBoutonMissions` apparaît après `attenteBouton` = 1,6 s) → `null`. Les minuteries ne démarrent qu'après `onPret` (le Canvas est monté). Le clic sur le bouton appelle `finirIntro()`, qui empile les annonces « banquet » et, si c'est mon tour, « C'est votre tour », puis envoie l'action `lireMissions`. |
+| Client | `Jeu3D` (`web/components/jeu3d/jeu3d.tsx`) : `aLire(vue)` = pas en fin, je suis joueur et `missionsLues` est faux. L'état `etape` enchaîne `"tapis"` (le tapis se déroule, `dureeTapis` 3,2 s + 0,3 s) → `"distribution"` (distribution carte par carte, `0,1 + n×3×pasDistribution` s + 1,3 s) → `"missions"` (missions face à la caméra ; le bouton `texteBoutonMissions` apparaît après `attenteBouton` = 1,6 s) → `null`. Les minuteries ne démarrent qu'après `onPret` (le Canvas est monté). Le clic sur le bouton (`confirmMissions()`) envoie `readMissions` (bouton occupé pendant l'envoi, message d'erreur si l'enregistrement échoue) ; le bouton devient alors « En attente des autres joueurs (n/N) ». Rien n'est annoncé au clic : le banquet (et « C'est votre tour » si c'est mon tour) n'est annoncé que lorsque la phase passe de `missions` à `playing`, pour tous en même temps. |
 | Serveur | `POST …/action {type: "lireMissions"}` → `applyAction()` → `missionsLues = true`. |
 | Supabase | Écriture et broadcast. **Tous les joueurs envoient cette action presque en même temps** (voir §3.3 et §8). |
 | Sanity | Textes `texts.missionsButton`, `texts.banquetStarts`, `texts.guestsSettling` ; images des missions (`catalogue.missions[id]`) composées avec leur texte en canvas (`composerMission()`, `web/components/jeu3d/textures.ts`). |
 
-Pendant ce temps, le joueur actif peut déjà jouer côté moteur (la phase est `jeu`). En pratique, la couronne et le bandeau ne s'affichent qu'après l'ouverture (`tourAffiche` vaut `null` pendant `tapis`/`distribution`).
+Tant que tous n'ont pas validé, personne ne peut jouer (phase `missions`) : la couronne et le bandeau désignent le premier joueur après la distribution (`tourAffiche` vaut `null` pendant `tapis`/`distribution`).
 
 #### Partie
 
@@ -189,7 +189,7 @@ Paquet `packages/engine` (`@courtisans/engine`), testé avec Vitest (`*.test.ts`
 3. Distribue 3 cartes à chacun.
 4. Tire une mission blanche et une bleue par joueur. Il faut au moins `n` missions de chaque couleur, sinon `EngineError("MISSIONS_INSUFFISANTES")`, d'où le complément côté serveur.
 5. `joueurActif` aléatoire.
-6. **`phase: "jeu"` directement** (voir §1.2).
+6. **`phase: "missions"`** : la partie attend la lecture de tous les joueurs avant de passer à `playing` (voir §1.2).
 
 ### 2.3 Tour et règles (`engine/actions.ts`)
 
@@ -272,7 +272,7 @@ Le journal est **l'unique canal de « ce qui vient de se passer »**. Le diff d'
 | `pioche` à moi | les nouvelles cartes de la main partent du dessus de la pioche avec les mêmes délais (détection par diff de `moi.main`, pas par le journal) | idem | idem |
 | `finDePartie` | aucune (c'est `useSequenceFin` qui prend le relais) | aucun | « La pioche est vide : fin de la partie ! » |
 
-Les **annonces** plein écran (`web/components/jeu3d/annonce.tsx`) ne sont pas dérivées du journal. Elles viennent du « repère » `phase:joueurActifId:aLire` (`jeu3d.tsx`) : « C'est votre tour » quand le joueur actif devient moi, « banquet » à la fin de l'ouverture (`finirIntro()`), et victoire en fin.
+Les **annonces** plein écran (`web/components/jeu3d/annonce.tsx`) ne sont pas dérivées du journal. Elles viennent du « repère » `phase:joueurActifId:aLire` (`jeu3d.tsx`) : « C'est votre tour » quand le joueur actif devient moi, « banquet » quand la phase passe de `missions` à `playing` (lecture du dernier joueur), et victoire en fin.
 
 Le bandeau (`Bandeau`, `regrouper()`) reconstruit des « tours » à partir du journal : il ouvre un groupe à chaque changement d'auteur et le ferme sur un événement `pioche`.
 
@@ -316,7 +316,7 @@ Pièges du journal :
 
 **Conflits prévisibles :**
 
-- Juste après `lancer`, les n joueurs terminent l'ouverture à quelques centaines de ms d'écart et envoient tous `lireMissions`. Ces écritures concurrentes sur **la même ligne** passent en général grâce aux 5 essais, mais pas toujours. `finirIntro()` avale l'erreur (`.catch(() => null)`). Si l'écriture échoue, `missionsLues` reste faux et **l'ouverture sera rejouée au prochain rechargement**.
+- Juste après `lancer`, les n joueurs terminent l'ouverture à quelques centaines de ms d'écart et envoient tous `lireMissions`. Ces écritures concurrentes sur **la même ligne** passent en général grâce aux 8 essais du serveur, relancés 3 fois côté client. Si l'écriture échoue quand même, le joueur voit un message d'erreur et peut recliquer ; tant qu'elle n'est pas enregistrée, la table attend sa lecture (phase `missions`).
 - `rejouer` : même cas quand tout le monde clique en même temps.
 - Un double clic sur une cible est bloqué côté client par `envoi` (`interaction.envoi`, `jeu3d.tsx`). Côté serveur, le second appel échoue proprement (`CARTE_INCONNUE` ou `ZONE_DEJA_JOUEE`).
 
@@ -1006,7 +1006,7 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 
 ### 8.1 Bugs et risques connus
 
-1. **`lireMissions` en rafale** : juste après le lancement, n écritures concurrentes sur la même ligne passent par le verrou optimiste, avec seulement 5 essais. Si l'une échoue, `finirIntro()` avale l'erreur : le joueur n'est pas marqué « lu » et **rejouera l'ouverture au prochain chargement**. Pistes : relancer l'action avec un backoff aléatoire, ou marquer « lu » côté client en `localStorage` par `code + numéro de partie`.
+1. **`readMissions` en rafale et joueur absent à l'ouverture** : juste après le lancement, n écritures concurrentes passent par le verrou optimiste (8 essais côté serveur, 3 côté client, puis message d'erreur). Comme le banquet attend tous les joueurs, une lecture jamais enregistrée, ou un joueur parti sans valider, **bloque la table** ; la relève d'un joueur absent (`StalledTurn`) ne s'applique pas en phase `missions` (`activePlayerId` vaut `null`). Piste : permettre aux autres de lancer le banquet après le délai d'inactivité.
 2. **Aucun abandon ni timeout** : un joueur parti bloque la partie à son tour. Il n'y a ni exclusion par l'hôte, ni bot de remplacement. `quitter` n'existe qu'en lobby.
 3. **Mobile non supporté** (`EcranOrdinateur` sous 900 px). Toute l'interaction repose sur le survol.
 4. **Journal** : non tronqué, sans `id`, comparé par longueur (`Monde`, `useSonsJeu`). Un journal qui repart de zéro (rejouer) est géré par une condition `>=` fragile.
@@ -1019,7 +1019,7 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 - **Composition du paquet** : `engine/deck.ts` (codé en dur) contre Sanity `role.countPerFamily` et `courtier.quantity`. Le moteur ignore Sanity ; `countPerFamily` n'alimente que l'écran des règles et `quantity` n'est pas lu. Modifier Sanity ne change **pas** le jeu.
 - **Couleurs des familles** : `CATALOGUE_PAR_DEFAUT` / Sanity (3D, badges, partage) contre `--famille-*` dans `globals.css` (quelques classes CSS, `chateau.tsx`). Les valeurs divergent.
 - **Château** : `profil.chateau` est toujours requis par `web/server/profil.ts` et stocké dans `courtisans:profil`, mais il n'est plus choisi ni affiché (les châteaux ont été retirés de Sanity ; `ChateauPicker` est inutilisé). `GAME.setup` passe `chateau: ""`.
-- **Phase `missions`** : présente dans les types, dans `lireMissions()` et dans `tourAffiche` / `couronneJoueur` (via `premierJoueurId`), mais jamais atteinte depuis que `setupPartie()` démarre en `jeu`.
+- **Anciennes parties** : celles créées avant que le banquet n'attende tous les joueurs sont en `playing`, parfois avec des `missionsRead` à `false` ; l'interface les traite sans rien attendre (repère de `game.tsx`).
 - **Contexte de positions DOM** (`enregistrer` / `rect` dans `contexte.tsx`) et `Interaction.origine()` : restes de l'ancienne UI 2D.
 - **`game.decorations`** (Sanity) : jamais lu.
 - **Crédits** codés en dur dans `PiedDePage` (le template les a mis dans Sanity).

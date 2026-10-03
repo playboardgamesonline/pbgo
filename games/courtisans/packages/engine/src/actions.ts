@@ -20,7 +20,8 @@ function readMissions(state: GameState, playerId: string) {
   const player = state.players.find((j) => j.id === playerId)
   if (!player) throw new EngineError("UNKNOWN_PLAYER")
   player.missionsRead = true
-  if (state.players.every((j) => j.missionsRead)) state.phase = "playing"
+  // le banquet commence pour tout le monde en même temps, à la lecture du dernier joueur (lire deux fois ne compte qu'une fois)
+  if (state.phase === "missions" && state.players.every((j) => j.missionsRead)) state.phase = "playing"
 }
 
 export function zoneOfTarget(state: GameState, playerId: string, target: Target): PlayZone {

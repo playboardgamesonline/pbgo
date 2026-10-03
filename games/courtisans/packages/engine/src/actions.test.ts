@@ -1,24 +1,73 @@
 import { describe, expect, it } from "vitest"
-import { applyAction } from "./actions"
+import { activePlayerId, applyAction } from "./actions"
 import { createRng } from "./rng"
 import { setupGame } from "./setup"
 import { card, makeState, player, testMissions, place } from "./test-utils"
 import type { GameState } from "./types"
+import { playerView } from "./view"
 
 describe("readMissions", () => {
-  it("does not block the game: play starts right away and reading only sets a flag", () => {
-    let state = setupGame({
-      players: [
-        { id: "a", nickname: "A" },
-        { id: "b", nickname: "B" },
-      ],
-      missions: testMissions(),
-      rng: createRng(3),
+  const ids = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` }))
+  const newGame = (n = 2) => setupGame({ players: ids(n), missions: testMissions(), rng: createRng(3) })
+  const read = (state: GameState, playerId: string) => applyAction(state, { type: "readMissions", playerId })
+
+  it("starts in the missions phase: nobody is up yet, but the first player is known", () => {
+    const state = newGame()
+    expect(state.phase).toBe("missions")
+    expect(state.players.every((j) => !j.missionsRead)).toBe(true)
+    expect(activePlayerId(state)).toBeNull()
+    const view = playerView(state, "p0")
+    expect(view.activePlayerId).toBeNull()
+    expect(view.firstPlayerId).toBe(state.players[state.activePlayer]!.id)
+  })
+
+  it.each([2, 3, 4, 5])("starts the banquet only once the %i players have read their missions", (n) => {
+    let state = newGame(n)
+    const order = state.players.map((j) => j.id).reverse()
+    order.forEach((id, i) => {
+      state = read(state, id)
+      expect(state.players.filter((j) => j.missionsRead)).toHaveLength(i + 1)
+      expect(state.phase).toBe(i === n - 1 ? "playing" : "missions")
     })
-    expect(state.phase).toBe("playing")
-    state = applyAction(state, { type: "readMissions", playerId: "a" })
-    expect(state.phase).toBe("playing")
-    expect(state.players[0]!.missionsRead).toBe(true)
+    expect(activePlayerId(state)).toBe(state.players[state.activePlayer]!.id)
+  })
+
+  it("counts each player once: reading twice does not start the banquet", () => {
+    let state = newGame(3)
+    state = read(state, "p0")
+    state = read(state, "p0")
+    state = read(state, "p1")
+    expect(state.phase).toBe("missions")
+    expect(playerView(state, "p2").players.map((j) => j.missionsRead)).toEqual([true, true, false])
+  })
+
+  it("does not let anyone play before the banquet starts, not even when only one player is missing", () => {
+    let state = newGame(3)
+    const first = state.players[state.activePlayer]!
+    const play = (s: GameState) =>
+      applyAction(s, { type: "playCard", playerId: first.id, cardId: first.hand[0]!.id, target: { zone: "table", level: "up" } })
+    expect(() => play(state)).toThrow("INVALID_PHASE")
+    state = read(read(state, "p0"), "p1")
+    expect(() => play(state)).toThrow("INVALID_PHASE")
+    state = read(state, "p2")
+    expect(play(state).table).toHaveLength(1)
+  })
+
+  it("refuses an unknown player and leaves the previous state untouched", () => {
+    const state = newGame()
+    expect(() => read(state, "ghost")).toThrow("UNKNOWN_PLAYER")
+    expect(state.players.every((j) => !j.missionsRead)).toBe(true)
+  })
+
+  it("refuses to read once the game is over", () => {
+    expect(() => read(makeState({ phase: "over", players: [player("a"), player("b")] }), "a")).toThrow("INVALID_PHASE")
+  })
+
+  it("keeps a game saved before this rule running: a late reader only sets their flag", () => {
+    const state = makeState({ phase: "playing", players: [player("a"), player("b", { missionsRead: false })] })
+    const next = read(state, "b")
+    expect(next.phase).toBe("playing")
+    expect(next.players[1]!.missionsRead).toBe(true)
   })
 })
 

@@ -72,6 +72,7 @@ function Board({
   const { ending, skip } = useEndingSequence(view)
   const [openingStep, setOpeningStep] = useState<OpeningStep>(() => (mustRead(view) ? "unroll" : null))
   const [showMissionsButton, setShowMissionsButton] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [marker, setMarker] = useState(`${view.phase}:${view.activePlayerId}:${mustRead(view) ? 1 : 0}`)
   const announcementSettings = useAnnouncementSettings()
   const { announce, clear: clearAnnouncements, element: announcementElement } = useAnnouncements(announcementSettings, { paused: openingStep !== null })
@@ -81,10 +82,14 @@ function Board({
     setMarker(currentMarker)
     const turnChanged = prevPhase !== view.phase || prevActive !== String(view.activePlayerId)
     if (view.phase === "playing" && prevPhase === "missions") {
-      // tous les joueurs ont validé : le banquet commence pour tout le monde en même temps
+      // le serveur a reçu la lecture de TOUS les joueurs : le banquet commence pour tout le monde en même temps
       setShowMissionsButton(false)
       setOpeningStep(null)
       announce(catalog.banquetStartText, "start", { sound: "victory", first: true, replace: ["start", "turn"] })
+    } else if (view.phase === "playing" && prevRead === "1" && !mustRead(view)) {
+      // partie déjà lancée (enregistrée avant que le banquet attende tout le monde) : ma lecture n'a personne à attendre
+      setShowMissionsButton(false)
+      setOpeningStep(null)
     }
     if (turnChanged && view.phase === "playing" && view.me && view.activePlayerId === view.me.id)
       announce(t("yourTurn"), "turn", { sound: "turn", replace: ["turn"] })
@@ -183,20 +188,29 @@ function Board({
       .catch((e: Error) => toast.error(e.message))
   }
 
-  function finishIntro() {
-    // on attend les autres : le banquet (annonce, reprise du jeu) démarre quand la phase passe à « playing »
-    void markMissionsRead()
+  // Le clic ne lance pas le banquet : il enregistre ma lecture. C'est le serveur qui passe la partie de « missions » à « playing »
+  // quand le dernier joueur a validé, et ce changement de phase, reçu par tous, ferme l'ouverture et déclenche l'annonce (voir le repère).
+  async function confirmMissions() {
+    if (confirming) return
+    setConfirming(true)
+    try {
+      await markMissionsRead()
+    } finally {
+      setConfirming(false)
+    }
   }
 
-  // Tous les joueurs valident l'ouverture presque en même temps : le serveur réessaie déjà, on retente aussi côté client
+  // Tous les joueurs valident l'ouverture presque en même temps : le serveur réessaie déjà, on retente aussi côté client.
+  // Si la lecture n'est toujours pas enregistrée, le joueur le voit et peut recliquer (sinon la table attendrait pour rien).
   async function markMissionsRead(attempt = 0): Promise<void> {
     try {
       onUpdate(await api.action(game.code, { type: "readMissions" }))
-    } catch {
+    } catch (e) {
       if (attempt < 3) {
         await new Promise((resolve) => setTimeout(resolve, 300 + Math.random() * 700 * (attempt + 1)))
         return markMissionsRead(attempt + 1)
       }
+      toast.error((e as Error).message)
     }
   }
 
@@ -274,7 +288,7 @@ function Board({
                     transition={{ type: "spring", stiffness: 160, damping: 20 }}
                     className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center"
                   >
-                    <PrimaryButton onClick={finishIntro} waiting={waitingOthers} className="w-auto max-w-none px-10 whitespace-nowrap">
+                    <PrimaryButton onClick={confirmMissions} busy={confirming} waiting={waitingOthers} className="w-auto max-w-none px-10 whitespace-nowrap">
                       {waitingOthers ? t("missionsWaiting", { read: readCount, total: playerCount }) : catalog.missionsButtonText}
                     </PrimaryButton>
                   </motion.div>
