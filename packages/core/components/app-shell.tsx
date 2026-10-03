@@ -9,7 +9,7 @@ import { SettingsProvider } from "./settings-provider"
 import { SkinProvider } from "./skin-provider"
 import { SoundEngine } from "./sound/sound"
 
-/** Contexte commun de toutes les pages d'un jeu : réglages, habillage, son, écran « ordinateur uniquement ». */
+/** Contexte commun de toutes les pages d'un jeu : réglages, habillage, son, écran « ordinateur uniquement » (pages de partie). */
 export function AppShell({ settings, skin, sounds, children }: { settings: SiteSettings; skin: Skin; sounds?: SoundConfig; children: React.ReactNode }) {
   if (sounds) configureSounds(sounds)
   const draft = usePreviewDraft()

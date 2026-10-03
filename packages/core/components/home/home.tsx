@@ -6,13 +6,14 @@ import { toast } from "sonner"
 import { TAGLINE } from "@pbgo/binding"
 import { api, gameLink } from "../../lib/api"
 import { useProfile } from "../../lib/profile"
+import { DesktopNotice } from "../desktop-only"
 import { useSkin, useText } from "../skin-provider"
 import { CodeField, Intro, NicknameField, Paragraph, PrimaryButton, Screen } from "./screen"
 
 export function Home() {
   const router = useRouter()
   const t = useText()
-  const { home } = useSkin()
+  const { home, desktopOnly } = useSkin()
   const { profile, setProfile, valid } = useProfile()
   const [code, setCode] = useState("")
   const [pending, setPending] = useState(false)
@@ -51,14 +52,28 @@ export function Home() {
     }
   }
 
+  // sous 900 px, la page de partie est réservée aux ordinateurs : on masque le formulaire (l'avis le remplace) plutôt que de laisser créer une table injouable
+  const form = desktopOnly ? "contents max-[899px]:hidden" : "contents"
+
   return (
     <Screen
       onSubmit={validate}
-      cta={<PrimaryButton busy={pending}>{code.length === 6 ? t("joinButton") : t("createButton")}</PrimaryButton>}
-      below={<CodeField value={code} onChange={setCode} />}
+      cta={
+        <div className={form}>
+          <PrimaryButton busy={pending}>{code.length === 6 ? t("joinButton") : t("createButton")}</PrimaryButton>
+        </div>
+      }
+      below={
+        <div className={form}>
+          <CodeField value={code} onChange={setCode} />
+        </div>
+      }
     >
       {home.intro ? <Intro title={home.title}>{home.intro}</Intro> : <Paragraph>{home.tagline ?? TAGLINE}</Paragraph>}
-      <NicknameField value={profile.nickname} onChange={(nickname) => setProfile({ nickname })} />
+      <DesktopNotice />
+      <div className={form}>
+        <NicknameField value={profile.nickname} onChange={(nickname) => setProfile({ nickname })} />
+      </div>
     </Screen>
   )
 }
