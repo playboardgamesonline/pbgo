@@ -15,6 +15,15 @@ export type SiteConfig = {
   genre?: string[]
   playMode?: "MultiPlayer" | "CoOp" | "SinglePlayer"
   players?: { min: number; max: number }
+  /** Faux (défaut) : le site porte `noindex`, sans sitemap. À passer à `true` quand le jeu est prêt à être référencé. */
+  indexable?: boolean
+}
+
+/** Balise robots des pages publiques : `noindex` tant que le jeu n'est pas prêt. */
+export function createRobotsMeta(indexable = false): NonNullable<Metadata["robots"]> {
+  return indexable
+    ? { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } }
+    : { index: false, follow: false }
 }
 
 export function createMetadata(site: SiteConfig): Metadata {
@@ -30,7 +39,7 @@ export function createMetadata(site: SiteConfig): Metadata {
     alternates: { canonical: "/" },
     openGraph: { type: "website", locale: "fr_FR", url: "/", siteName: site.title, title: site.title, description: site.description },
     twitter: { card: "summary_large_image", title: site.title, description: site.description },
-    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+    robots: createRobotsMeta(site.indexable),
     formatDetection: { telephone: false, email: false, address: false },
     verification: { google: GOOGLE_SITE_VERIFICATION },
   }
@@ -40,12 +49,17 @@ export function createViewport(site: Pick<SiteConfig, "color" | "colorScheme">):
   return { themeColor: site.color, colorScheme: site.colorScheme ?? "dark" }
 }
 
-export function createRobots(url: string, disallow: string[] = ["/api/"]): MetadataRoute.Robots {
-  return { rules: [{ userAgent: "*", allow: "/", disallow }], sitemap: `${url}/sitemap.xml`, host: url }
+/**
+ * robots.txt : l'exploration reste permise même hors référencement, sinon les moteurs ne liraient jamais le `noindex` des pages ;
+ * seul un site `indexable` annonce son sitemap.
+ */
+export function createRobots(url: string, disallow: string[] = ["/api/"], indexable = false): MetadataRoute.Robots {
+  const rules = [{ userAgent: "*", allow: "/", disallow }]
+  return indexable ? { rules, sitemap: `${url}/sitemap.xml`, host: url } : { rules }
 }
 
-export function createSitemap(url: string): MetadataRoute.Sitemap {
-  return [{ url, changeFrequency: "weekly", priority: 1 }]
+export function createSitemap(url: string, indexable = false): MetadataRoute.Sitemap {
+  return indexable ? [{ url, changeFrequency: "weekly", priority: 1 }] : []
 }
 
 export function createManifest(site: Pick<SiteConfig, "name" | "title" | "description" | "color">): MetadataRoute.Manifest {

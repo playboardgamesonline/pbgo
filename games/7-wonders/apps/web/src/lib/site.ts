@@ -4,6 +4,9 @@ export const SITE_URL =
 
 export const SLUG = "7-wonders"
 
+/** Faux tant que le jeu n'est pas prêt : pages en noindex et sitemap vide. À passer à true à la mise en ligne du jeu. */
+export const INDEXABLE = false
+
 // Projet Sanity du jeu (remplacé par pnpm go-live)
 export const SANITY_PROJECT_ID = "__SANITY_PROJECT_ID__"
 

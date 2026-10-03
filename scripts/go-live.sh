@@ -77,3 +77,4 @@ else err "studio (voir /tmp/sanity-$SLUG.log — hôte pris ? change SANITY_STUD
 # ---------- Variables d'env ----------
 if [ -f "$DIR/scripts/setup-env.sh" ]; then title "Variables d'environnement"; bash "$DIR/scripts/setup-env.sh"; fi
 echo; echo "Commit + push sur main pour déployer : https://$DOMAIN"
+echo "Le site reste en noindex tant que INDEXABLE = false dans $DIR/apps/web/src/lib/site.ts : à passer à true quand le jeu est prêt (puis pnpm vercel:ignore-builds <jeux en ligne>)."

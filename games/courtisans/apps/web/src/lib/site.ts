@@ -4,6 +4,9 @@ export const SITE_URL =
 
 export const SLUG = "courtisans"
 
+/** Faux tant que le jeu n'est pas prêt : pages en noindex et sitemap vide. À passer à true à la mise en ligne du jeu. */
+export const INDEXABLE = true
+
 export const SANITY_PROJECT_ID = "2lo2f5sv"
 
 // Valeurs par défaut, remplacées par les réglages de /admin (document Sanity « settings »)

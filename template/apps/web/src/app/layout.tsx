@@ -10,7 +10,8 @@ import { getLocale } from "@pbgo/core/lib/locale-server"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
 import { loadSkin } from "@pbgo/core/lib/skin-server"
 import { loadAudio } from "@pbgo/core/lib/audio-server"
-import { AUTHOR, KEYWORDS, SITE_URL } from "@/lib/site"
+import { createRobotsMeta } from "@pbgo/site"
+import { AUTHOR, INDEXABLE, KEYWORDS, SITE_URL } from "@/lib/site"
 import "./globals.css"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: "/" },
     openGraph: { type: "website", locale: OG_LOCALES[locale], url: "/", siteName: title, title, description },
     twitter: { card: "summary_large_image", title, description },
-    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+    robots: createRobotsMeta(INDEXABLE),
     formatDetection: { telephone: false, email: false, address: false },
   }
 }
