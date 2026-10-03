@@ -45,6 +45,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INVALID_PLAYERS: "Il faut de 2 à 5 joueurs.",
   NOT_ENOUGH_MISSIONS: "Il manque des missions pour lancer la partie.",
   UNKNOWN_PLAYER: "Ce joueur ne fait pas partie du banquet.",
+  NOT_READY: "Validez d'abord vos missions.",
   NOT_ENOUGH_PLAYERS: "Il faut au moins 2 convives pour ouvrir le banquet.",
   GAME_FULL: "Ce banquet est complet (5 convives).",
 }

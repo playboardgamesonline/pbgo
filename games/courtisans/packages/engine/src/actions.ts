@@ -24,6 +24,18 @@ function readMissions(state: GameState, playerId: string) {
   if (state.phase === "missions" && state.players.every((j) => j.missionsRead)) state.phase = "playing"
 }
 
+/**
+ * Les joueurs prêts lancent le banquet sans attendre ceux qui n'ont pas lu leurs missions (le vote est validé côté serveur) :
+ * ces retardataires sont comptés comme ayant lu, ils retrouvent leurs missions sur la table.
+ */
+export function startWithoutWaiting(state: GameState): GameState {
+  if (state.phase !== "missions") throw new EngineError("INVALID_PHASE")
+  const next = structuredClone(state)
+  for (const player of next.players) player.missionsRead = true
+  next.phase = "playing"
+  return next
+}
+
 export function zoneOfTarget(state: GameState, playerId: string, target: Target): PlayZone {
   if (target.zone === "table") return "table"
   if (!state.players.some((j) => j.id === target.playerId)) throw new EngineError("UNKNOWN_PLAYER")

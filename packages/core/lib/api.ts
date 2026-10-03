@@ -68,6 +68,8 @@ export const api = {
   action: (code: string, action: { type: string } & Record<string, unknown>) => post(`/api/games/${code}/action`, action),
   replay: (code: string) => post(`/api/games/${code}/replay`),
   takeover: (code: string) => post(`/api/games/${code}/takeover`),
+  /** Route propre au jeu (`app/api/games/[code]/<route>/route.ts` de l'app) : mêmes erreurs traduites et même neutralisation dans l'aperçu */
+  custom: (code: string, route: string, body?: unknown) => post(`/api/games/${code}/${route}`, body),
   debug: (code: string, command: ClientDebugCommand) => post(`/api/games/${code}/debug`, { command }),
 }
 

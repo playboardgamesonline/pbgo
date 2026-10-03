@@ -23,6 +23,7 @@ import { DEFAULT_CATALOG, type ClientCatalog } from "@/lib/catalog"
 import { CourtisansProvider } from "./context"
 import { renderFamilyCards } from "./score-details"
 import { Message } from "./message"
+import { StalledOpening } from "./stalled-opening"
 import { useEndingSequence } from "../game3d/ending"
 import { useGameSounds } from "../game3d/sounds"
 import { useCheat } from "../game3d/cheat"
@@ -297,6 +298,7 @@ function Board({
                 {announcementElement}
 
                 <StalledTurn activePlayerId={view.activePlayerId} onUpdate={onUpdate} />
+                <StalledOpening onUpdate={onUpdate} />
 
                 <DebugPanel />
 

@@ -14,6 +14,7 @@ Fichiers dans `apps/web/public` nommés en anglais, `EN_MAJUSCULES_AVEC_DES_TIRE
 - `apps/web` — Next.js sur `@pbgo/core` (lobby, temps réel, routes API, /admin viennent de core)
   - `src/binding.ts` (moteur, constantes du site, `SOUNDS`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), `src/binding-ui.ts` (`Logo`, `Game`, `captureGamePhoto`, `RulesButton`), `src/binding-server.ts` (`loadSetupData` = missions, `loadGameData` = catalogue, `loadRules`)
   - `src/components/game` — plateau (`game.tsx` : ouverture, interactions, annonces, fin), messages, pictos, détail des points
+    - ouverture : le banquet attend la lecture des missions de tous les joueurs (phase `missions` du moteur) ; après 60 s sans écriture, les joueurs prêts peuvent voter pour commencer sans les retardataires (`stalled-opening.tsx`, route `app/api/games/[code]/banquet`)
   - `src/components/game3d` — scène react-three-fiber (`layout.ts` calcule les poses, `scene.tsx` anime chaque carte vers sa pose)
   - `src/lib/catalog.ts` (catalogue par défaut), `src/lib/skin.ts` (habillage banquet par défaut), `src/lib/sounds.ts`
 - `apps/studio` — Sanity Studio sur `@pbgo/studio-kit` (`rules` et `texts` propres au jeu remplacent les versions communes)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activePlayerId, applyAction } from "./actions"
+import { activePlayerId, applyAction, startWithoutWaiting } from "./actions"
 import { createRng } from "./rng"
 import { setupGame } from "./setup"
 import { card, makeState, player, testMissions, place } from "./test-utils"
@@ -68,6 +68,38 @@ describe("readMissions", () => {
     const next = read(state, "b")
     expect(next.phase).toBe("playing")
     expect(next.players[1]!.missionsRead).toBe(true)
+  })
+})
+
+describe("startWithoutWaiting", () => {
+  const ids = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` }))
+  const newGame = (n: number) => setupGame({ players: ids(n), missions: testMissions(), rng: createRng(4) })
+  const read = (state: GameState, playerId: string) => applyAction(state, { type: "readMissions", playerId })
+
+  it("starts the banquet for the players who are ready and counts the others as having read", () => {
+    const waiting = read(read(newGame(4), "p0"), "p2")
+    const started = startWithoutWaiting(waiting)
+    expect(started.phase).toBe("playing")
+    expect(started.players.every((j) => j.missionsRead)).toBe(true)
+    expect(activePlayerId(started)).toBe(started.players[started.activePlayer]!.id)
+    // l'état d'origine n'est pas modifié (le serveur peut réessayer l'écriture)
+    expect(waiting.phase).toBe("missions")
+    expect(waiting.players.map((j) => j.missionsRead)).toEqual([true, false, true, false])
+  })
+
+  it("lets the first player play right away, and nobody else", () => {
+    const started = startWithoutWaiting(read(newGame(3), "p1"))
+    const first = started.players[started.activePlayer]!
+    const other = started.players.find((j) => j.id !== first.id)!
+    const play = (playerId: string, cardId: string) =>
+      applyAction(started, { type: "playCard", playerId, cardId, target: { zone: "table", level: "up" } })
+    expect(() => play(other.id, other.hand[0]!.id)).toThrow("NOT_YOUR_TURN")
+    expect(play(first.id, first.hand[0]!.id).table).toHaveLength(1)
+  })
+
+  it("only applies while the missions are being read", () => {
+    expect(() => startWithoutWaiting(makeState({ phase: "playing", players: [player("a"), player("b")] }))).toThrow("INVALID_PHASE")
+    expect(() => startWithoutWaiting(makeState({ phase: "over", players: [player("a"), player("b")] }))).toThrow("INVALID_PHASE")
   })
 })
 
