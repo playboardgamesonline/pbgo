@@ -7,7 +7,7 @@ import { Textarea } from "@pbgo/ui/admin/textarea"
 import { useState } from "react"
 import { LOCALE_NAMES, type Locale } from "../../../lib/i18n"
 import { baseSkin } from "../../../lib/skin"
-import { siteTitle, TITLE_SUFFIX, type SiteSettings } from "../../../lib/settings"
+import { siteTitle, type SiteSettings } from "../../../lib/settings"
 import { LangTabs } from "./lang-tabs"
 import { FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -77,7 +77,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
               <FieldLabel htmlFor="title">Game name</FieldLabel>
               <Input id="title" value={draft.title} maxLength={80} onChange={(e) => set("title", e.target.value)} disabled={disabled} className="h-11 text-lg font-semibold" />
               <FieldDescription>
-                The game’s name only, without “Online”. PBGO adds “{TITLE_SUFFIX}” (browser tab, search results, share card) and “· Table #CODE” during a game.
+                The game’s name only. PBGO writes it “{siteTitle("Name")}” (browser tab, search results, share card) and adds “· Table #CODE” during a game.
               </FieldDescription>
             </Field>
             <Field>
