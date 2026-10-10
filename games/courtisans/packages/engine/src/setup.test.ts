@@ -41,6 +41,14 @@ describe("setupGame", () => {
     expect(state.activePlayer).toBeLessThan(n)
   })
 
+  it("gives every card a unique opaque id, stable for a given seed", () => {
+    const state = setupGame({ players: players(5), missions: testMissions(), seed: 2 ** 33 + 5 })
+    const cards = [...state.deck, ...state.setAside, ...state.players.flatMap((j) => j.hand)]
+    expect(new Set(cards.map((c) => c.id)).size).toBe(90)
+    for (const c of cards) expect(c.id).toMatch(/^c[0-9a-z]{6}$/)
+    expect(setupGame({ players: players(5), missions: testMissions(), seed: 2 ** 33 + 5 })).toEqual(state)
+  })
+
   it("rejects invalid player counts", () => {
     expect(() => setupGame({ players: players(1), missions: testMissions() })).toThrow()
     expect(() => setupGame({ players: players(6), missions: testMissions() })).toThrow()

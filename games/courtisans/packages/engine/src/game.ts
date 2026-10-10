@@ -1,7 +1,6 @@
 import type { GameDefinition } from "@pbgo/engine-kit"
 import { activePlayerId, applyAction } from "./actions"
 import { applyDebug } from "./debug"
-import { createRng } from "./rng"
 import { setupGame } from "./setup"
 import type { Action, GameState, Mission } from "./types"
 import { type PlayerView, playerView } from "./view"
@@ -18,7 +17,8 @@ export const GAME: GameDefinition<GameState, Action, PlayerView, Mission[]> = {
     setupGame({
       players: players.map((p) => ({ id: p.id, nickname: p.nickname })),
       missions: data ?? [],
-      ...(seed === undefined ? {} : { rng: createRng(seed) }),
+      // without a seed (older servers), setupGame draws one: the game stays deterministic from then on
+      seed,
     }),
   apply: applyAction,
   view: playerView,

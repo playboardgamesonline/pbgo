@@ -26,6 +26,10 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
   /** Combinaisons d'options proposées en un clic dans le lobby (facultatif). */
   presets?: OptionPreset[]
   clientActions: readonly Action["type"][]
+  /**
+   * `seed`: an integer below 2^52 drawn by the server for each game; the same seed and the same actions
+   * replay the same game. Optional for backwards compatibility: without one, the game draws its own.
+   */
   setup: (args: { players: PlayerInfo[]; options: OptionValues; seed?: number; data?: SetupData }) => State
   apply: (state: State, action: Action) => State
   view: (state: State, playerId: string | null) => View

@@ -2,7 +2,7 @@ import type { Courtier, Family, GameState, Player, Mission, Placement, Role } fr
 
 let seq = 0
 export function card(family: Family, role: Role | null = null): Courtier {
-  return { id: `t-${family}-${role ?? "c"}-${++seq}`, family, role }
+  return { id: `t${++seq}`, family, role }
 }
 
 export function place(c: Courtier, level: "up" | "down"): Placement {

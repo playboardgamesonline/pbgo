@@ -80,6 +80,8 @@ export type GameState = {
   turnNumber: number
   phase: Phase
   log: GameEvent[]
+  /** Seed the game was set up with (server side only, never in a view). Absent from games started before it existed. */
+  seed?: number
 }
 
 export type Action =

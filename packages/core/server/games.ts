@@ -123,10 +123,20 @@ export async function loadSetupData(options: OptionValues = {}): Promise<unknown
   return setupLoader ? setupLoader({ options }) : undefined
 }
 
+/**
+ * Seed of a new game (crypto random, an integer below 2^52): the engine derives the whole game from it, which
+ * keeps games reproducible. `createRng` only uses the low 32 bits; engines may use the high ones for side streams.
+ * Staying below 2^52 leaves room for engines that add small offsets to it.
+ */
+export function newSeed(): number {
+  const [high, low] = crypto.getRandomValues(new Uint32Array(2))
+  return (high! & 0xfffff) * 2 ** 32 + low!
+}
+
 export function newGame(row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay" | "takeover_votes"> {
-  const setup = GAME.setup as (args: { players: PlayerInfo[]; options: OptionValues; data?: unknown }) => State
+  const setup = GAME.setup as (args: { players: PlayerInfo[]; options: OptionValues; seed?: number; data?: unknown }) => State
   const options = normalizeOptions(GAME.options, row.options, { playerCount: row.players.length })
-  return { status: "playing", state: setup({ players: row.players, options, data }), replay: [], takeover_votes: [] }
+  return { status: "playing", state: setup({ players: row.players, options, seed: newSeed(), data }), replay: [], takeover_votes: [] }
 }
 
 export function publicGame(row: GameRow, playerId: string | null): PublicGame {

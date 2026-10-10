@@ -37,6 +37,7 @@ export type PlayerView = {
   results: CourtisansResults | null
 }
 
+/** A card as others see it: a hidden spy keeps its opaque id (stable when it is revealed) but loses its family. */
 export function visibleCard(card: Courtier, revealed: boolean): VisibleCard {
   if (card.role === "spy" && !revealed) return { id: card.id, family: null, role: "spy" }
   return { id: card.id, family: card.family, role: card.role }

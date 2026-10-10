@@ -1,18 +1,30 @@
 import { applyAction, availableZones } from "./actions"
+import { type Rng, createRng, sideSeed } from "./rng"
 import type { Target, GameState } from "./types"
 
 export type DebugCommand = "missions" | "turn" | "over"
 
-const random = <T>(list: T[]) => list[Math.floor(Math.random() * list.length)]!
+/** Salt of the automatic moves' stream (see `sideSeed`). */
+const AUTO_MOVE_STREAM = 2
+
+/**
+ * Stream of one automatic move, derived from the game seed and the move's position in the game: replaying the
+ * same game always picks the same moves. Games saved without a seed use 0 and stay deterministic.
+ */
+export function autoMoveRng(state: GameState): Rng {
+  return createRng(sideSeed(state.seed ?? 0, AUTO_MOVE_STREAM, state.turnNumber, state.log.length, state.playedZones.length))
+}
 
 export function autoMove(state: GameState): GameState {
+  const rng = autoMoveRng(state)
+  const random = <T>(list: T[]) => list[Math.floor(rng() * list.length)]!
   const player = state.players[state.activePlayer]!
   const card = random(player.hand)
   const zone = availableZones(state)[0]!
   const opponents = state.players.filter((j) => j.id !== player.id)
   const target: Target =
     zone === "table"
-      ? { zone: "table", level: Math.random() < 0.5 ? "up" : "down" }
+      ? { zone: "table", level: rng() < 0.5 ? "up" : "down" }
       : { zone: "domain", playerId: zone === "domain" ? player.id : random(opponents).id }
   let victimId: string | undefined
   if (card.role === "assassin") {
