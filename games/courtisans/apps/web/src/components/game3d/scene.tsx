@@ -20,7 +20,7 @@ import {
   Vector3,
 } from "three"
 import { useCourtisans } from "../game/context"
-import { playSound } from "@pbgo/core/lib/sound"
+import { playSound } from "./sounds"
 import { useInteraction } from "../game/interaction"
 import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./aura"
 import { CardSettingsPanel } from "./card-settings"

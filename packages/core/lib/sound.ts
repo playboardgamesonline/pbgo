@@ -198,12 +198,24 @@ export function persistSoundEnabled(on: boolean) {
   } catch {}
 }
 
+const warnedSounds = new Set<string>()
+
+/** En dev, signale une seule fois un nom d'effet absent de `SOUNDS.effects` (sinon `playSound` se tait sans rien dire). */
+function warnUnknownSound(name: string) {
+  if (process.env.NODE_ENV === "production" || warnedSounds.has(name)) return
+  const known = Object.keys(SOUNDS.effects)
+  if (!known.length) return // jeu sans effets déclarés : les sons communs (click, turn…) sont ignorés en silence
+  warnedSounds.add(name)
+  console.warn(`[sound] Unknown sound effect "${name}". Declared effects: ${known.join(", ")}`)
+}
+
 /**
  * Joue un effet déclaré dans `SOUNDS.effects`. `delay` (s) est programmé sur l'horloge audio, pour caler un son sur une animation.
  * Ignoré si le même son a été programmé il y a moins de `minGap` ; volume réduit si le précédent date de moins de 0,4 s.
  */
 export function playSound(name: string, { volume = 1, delay = 0, bus = "effects" }: { volume?: number; delay?: number; bus?: "effects" | "alerts" } = {}) {
   const def = SOUNDS.effects[name]
+  if (!def) warnUnknownSound(name)
   if (!ctx || !effectsBus || !alertsBus || !enabled || !def) return
   const c = ctx
   const output = bus === "alerts" ? alertsBus : effectsBus

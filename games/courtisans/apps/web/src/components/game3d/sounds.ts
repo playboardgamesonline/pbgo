@@ -2,8 +2,14 @@
 
 import type { PlayerView } from "@courtisans/engine"
 import { useEffect, useRef } from "react"
-import { playSound } from "@pbgo/core/lib/sound"
+import { playSound as playCoreSound } from "@pbgo/core/lib/sound"
+import type { SoundName } from "@/lib/sounds"
 import type { EndingState } from "./ending"
+
+/** `playSound` du core, restreint aux effets déclarés dans `SOUNDS` : une faute de nom ne compile plus. */
+export function playSound(name: SoundName, options?: Parameters<typeof playCoreSound>[1]) {
+  playCoreSound(name, options)
+}
 
 export function useGameSounds(view: PlayerView, ending: EndingState | null, selectionId: string | null, missionFocus: string | null) {
   const logLength = useRef(view.log.length)
@@ -26,7 +32,7 @@ export function useGameSounds(view: PlayerView, ending: EndingState | null, sele
   }, [view.log])
 
   useEffect(() => {
-    if (selectionId) playSound("selection")
+    if (selectionId) playSound("select")
   }, [selectionId])
 
   useEffect(() => {

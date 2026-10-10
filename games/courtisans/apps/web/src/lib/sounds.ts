@@ -1,7 +1,7 @@
 import type { SoundConfig } from "@pbgo/core/lib/sound-config"
 
 /** Sons de Courtisans (/public/sounds). Musiques bouclées sur un nombre entier de mesures, pas sur la durée du fichier. */
-export const SOUNDS: SoundConfig = {
+export const SOUNDS = {
   effects: {
     hover: { file: "HOVER", volume: 0.22, spread: 0.025, minGap: 0.045 },
     select: { file: "SELECT", volume: 0.5, spread: 0.02, minGap: 0.05 },
@@ -24,6 +24,6 @@ export const SOUNDS: SoundConfig = {
   ambience: { file: "AMBIENCE", loopEnd: 48 },
   defaultMusic: "dance",
   volumes: { master: 1, music: 0.1, effects: 0.8, ambience: 0.18 },
-}
+} satisfies SoundConfig
 
 export type SoundName = keyof typeof SOUNDS.effects
