@@ -3,6 +3,8 @@ import sharp from "sharp"
 import { requireAdmin } from "../../../server/admin"
 import { ApiError, handle, readJson } from "../../../server/api"
 import { getPlayerId } from "../../../server/player"
+import { rateLimit } from "../../../server/rate-limit"
+import { clientIp } from "../../../server/rate-limiter"
 import { supabaseAdmin } from "../../../server/supabase"
 import { FEEDBACK_TYPES, type Feedback, type FeedbackType, sanitizeText } from "../../../server/tasks"
 
@@ -16,7 +18,7 @@ const BUCKET = "feedback"
 
 /** Empreinte de l'IP (HMAC avec une clé serveur) : sert uniquement à limiter les envois, l'IP n'est jamais stockée. */
 function ipHash(request: Request) {
-  const ip = (request.headers.get("x-vercel-forwarded-for") ?? request.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim()
+  const ip = clientIp(request.headers)
   if (!ip) return null
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "pbgo"
   return createHmac("sha256", key).update(ip).digest("hex").slice(0, 32)
@@ -53,6 +55,8 @@ async function cleanScreenshot(file: File): Promise<Buffer> {
 /** Retour d'un joueur (bouton feedback) : type, message, e-mail facultatif, capture facultative. Limites : 30 s par joueur, 1 envoi / 10 s et 5 / heure par IP, 300 / heure au total. */
 export const POST = handle(async (request: Request) => {
   assertSameOrigin(request)
+  // Cheap in-memory gate (shared helper, per server instance) before parsing the body; the durable limits are counted in the database below
+  await rateLimit(request, "feedback", { code: "TOO_MANY_REQUESTS" })
   const length = Number(request.headers.get("content-length"))
   if (!length || length > MAX_BODY) throw new ApiError("FILE_TOO_BIG", 413)
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data")) throw new ApiError("INVALID_REQUEST")

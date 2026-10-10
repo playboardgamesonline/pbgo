@@ -3,6 +3,7 @@ import { loadSettings } from "@pbgo/core/lib/settings-server"
 import { ApiError, handle } from "@pbgo/core/server/api"
 import { publicGame, takeoverEntry, takeoverVotes, updateGame } from "@pbgo/core/server/games"
 import { getPlayerId } from "@pbgo/core/server/player"
+import { rateLimit } from "@pbgo/core/server/rate-limit"
 import type { NextRequest } from "next/server"
 
 /**
@@ -11,7 +12,8 @@ import type { NextRequest } from "next/server"
  * Chaque appel enregistre le vote de l'appelant (colonne `takeover_votes`, périmée dès qu'un joueur valide à son tour) ;
  * le dernier vote lance le banquet, les retardataires étant comptés comme ayant lu.
  */
-export const POST = handle(async (_request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+  await rateLimit(request, "vote")
   const { code } = await ctx.params
   const id = await getPlayerId()
   const { turnTimeout } = await loadSettings()

@@ -3,13 +3,15 @@ import type { NextRequest } from "next/server"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { ApiError, handle } from "../../../../../server/api"
 import { getPlayerId } from "../../../../../server/player"
+import { rateLimit } from "../../../../../server/rate-limit"
 import { publicGame, takeoverEntry, takeoverVotes, updateGame } from "../../../../../server/games"
 
 /**
  * Joue le tour d'un joueur absent : vote de tous les autres membres (unanimité), et seulement si la partie n'a pas bougé depuis le délai réglé dans l'admin.
  * Chaque appel enregistre le vote de l'appelant ; le dernier vote déclenche le coup. Utilise `GAME.autoPlay`, sinon `GAME.debug.turn`.
  */
-export const POST = handle(async (_request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+  await rateLimit(request, "vote")
   const { code } = await ctx.params
   const id = await getPlayerId()
   const { turnTimeout } = await loadSettings()

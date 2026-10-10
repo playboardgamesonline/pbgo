@@ -1,9 +1,11 @@
 import type { NextRequest } from "next/server"
 import { handle } from "../../../../../server/api"
 import { getPlayerId } from "../../../../../server/player"
+import { rateLimit } from "../../../../../server/rate-limit"
 import { updateGame, publicGame } from "../../../../../server/games"
 
-export const POST = handle(async (_request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+  await rateLimit(request, "leave")
   const { code } = await ctx.params
   const id = await getPlayerId()
   const row = await updateGame(code, (game) => {

@@ -2,10 +2,12 @@ import type { NextRequest } from "next/server"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { getOrCreatePlayerId } from "../../../../../server/player"
+import { rateLimit } from "../../../../../server/rate-limit"
 import { updateGame, publicGame } from "../../../../../server/games"
 import { type ProfileInput, validateProfile } from "../../../../../server/profile"
 
 export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+  await rateLimit(request, "join")
   const { code } = await ctx.params
   const profile = validateProfile(await readJson<ProfileInput>(request))
   const id = await getOrCreatePlayerId()

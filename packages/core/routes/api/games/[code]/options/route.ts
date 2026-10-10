@@ -3,9 +3,11 @@ import { gameOptions } from "../../../../../lib/settings"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { getPlayerId } from "../../../../../server/player"
+import { rateLimit } from "../../../../../server/rate-limit"
 import { updateGame, publicGame } from "../../../../../server/games"
 
 export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+  await rateLimit(request, "options")
   const { code } = await ctx.params
   const id = await getPlayerId()
   const settings = await loadSettings()

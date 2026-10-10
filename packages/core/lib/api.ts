@@ -25,6 +25,7 @@ export const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
   INVALID_IMAGE: "Cette image n'est pas lisible (PNG, JPG ou WebP).",
   FILE_TOO_BIG: "Cette capture est trop lourde (3 Mo maximum).",
   TOO_MANY_REQUESTS: "Trop d'envois : réessayez dans un instant.",
+  RATE_LIMITED: "Trop de requêtes : patientez quelques secondes avant de réessayer.",
   FORBIDDEN: "Action refusée.",
   TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
   // messages propres au jeu (codes d'erreur du moteur) : export facultatif `ERROR_MESSAGES` de @pbgo/binding

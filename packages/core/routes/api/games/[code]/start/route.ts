@@ -2,9 +2,11 @@ import type { NextRequest } from "next/server"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { ApiError, handle } from "../../../../../server/api"
 import { getPlayerId } from "../../../../../server/player"
+import { rateLimit } from "../../../../../server/rate-limit"
 import { loadSetupData, readGame, updateGame, newGame, publicGame } from "../../../../../server/games"
 
-export const POST = handle(async (_request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+  await rateLimit(request, "start")
   const { code } = await ctx.params
   const id = await getPlayerId()
   const { minPlayers } = await loadSettings()
