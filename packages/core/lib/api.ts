@@ -1,6 +1,7 @@
 import * as binding from "@pbgo/binding"
 import type { OptionValues } from "@pbgo/binding"
 import type { PublicGame } from "./game-types"
+import type { ChatMessage, ChatReaction } from "./chat"
 import { isPreviewWindow } from "./preview"
 import { withBase } from "./base-path"
 
@@ -46,15 +47,15 @@ export class ApiClientError extends Error {
 /** Aperçu de l'admin : les appels ne partent pas (la promesse reste en attente, sans erreur affichée). */
 const isPreview = isPreviewWindow
 
-async function apiRequest(path: string, init?: RequestInit): Promise<PublicGame> {
-  if (isPreview()) return new Promise<PublicGame>(() => {})
+async function apiRequest<T = PublicGame>(path: string, init?: RequestInit): Promise<T> {
+  if (isPreview()) return new Promise<T>(() => {})
   const response = await fetch(withBase(path), { ...init, headers: { "Content-Type": "application/json" }, cache: "no-store" })
   const data = await response.json().catch(() => ({ error: "SERVER_ERROR" }))
   if (!response.ok) throw new ApiClientError(data.error ?? "SERVER_ERROR")
-  return data as PublicGame
+  return data as T
 }
 
-const post = (path: string, body?: unknown) => apiRequest(path, { method: "POST", body: JSON.stringify(body ?? {}) })
+const post = <T = PublicGame>(path: string, body?: unknown) => apiRequest<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) })
 
 export type Profile = { nickname: string }
 export type ClientDebugCommand = "start" | "turn" | "over" | (string & {})
@@ -72,6 +73,8 @@ export const api = {
   /** Route propre au jeu (`app/api/games/[code]/<route>/route.ts` de l'app) : mêmes erreurs traduites et même neutralisation dans l'aperçu */
   custom: (code: string, route: string, body?: unknown) => post(`/api/games/${code}/${route}`, body),
   debug: (code: string, command: ClientDebugCommand) => post(`/api/games/${code}/debug`, { command }),
+  /** Chat message or reaction: the server sets the author from the player cookie and broadcasts it (`id` matches the optimistic copy) */
+  chat: (code: string, body: { id: string } & ({ text: string } | { reaction: string })) => post<ChatMessage | ChatReaction>(`/api/games/${code}/chat`, body),
 }
 
 export const gameLink = (code: string) => `${window.location.origin}${withBase(`/game/${code}`)}`

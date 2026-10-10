@@ -109,6 +109,7 @@ Projet partagé : celui de Courtisans (`SUPABASE_PROJECT_REF`). Courtisans reste
 
 - Menu des réglages (`components/toolbar.tsx`) : un bouton à droite du logo (en haut à droite de l'accueil) ouvre règles, son, feedback et langue.
 - Chat (`components/game/chat.tsx`, monté par `GameHud`) : diffusion temps réel Supabase sans stockage, pseudos dans la couleur du joueur, fondu des anciens messages.
+  - Envoi via `POST /api/games/[code]/chat` (auteur = cookie joueur, membre de la partie, texte ≤ 200 car. ou réaction connue, token bucket en mémoire par instance) ; le serveur diffuse `chat:server` / `reaction:server` (`lib/chat.ts`), les clients ne font qu'écouter. Canal public : la clé anon peut encore y diffuser, seuls des canaux privés (Realtime Authorization) fermeraient ce trou.
 - Couronne du tour : à gauche du pseudo du joueur actif, sans déplacement. Template : `game3d/crown.tsx` (`TurnCrown`, icône `hostIcon` de l'habillage ou couronne dessinée) ; Courtisans : `CrownMark` avec son pictogramme.
 - Missions de Courtisans : posées face cachée à droite de chaque plateau (`missionRestPose` dans `layout.ts`, réglages `MISSION_REST`), retournées au clic.
 - Fin de partie : tableau centré, lien « masquer / afficher » souligné au-dessus du bouton REJOUER centré en bas.

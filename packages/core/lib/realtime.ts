@@ -2,6 +2,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { UPDATE_EVENT, gameChannel } from "./game-types"
+import { CHAT_MAX_LENGTH, CHAT_SERVER_EVENT, REACTION_SERVER_EVENT, chatChannel, type ChatMessage, type ChatReaction } from "./chat"
 
 let client: SupabaseClient | null = null
 
@@ -25,31 +26,26 @@ export function subscribeToGame(code: string, onUpdate: (version: number) => voi
   }
 }
 
-export const CHAT_EVENT = "chat"
-export const REACTION_EVENT = "reaction"
+export type { ChatMessage, ChatReaction } from "./chat"
 
-export type ChatMessage = { id: string; playerId: string; text: string; at: number }
-export type ChatReaction = { id: string; playerId: string; reaction: string }
-
-/** Canal de chat d'une partie (diffusion temps réel Supabase, sans stockage) : messages et réactions n'existent que pour les joueurs connectés. */
+/**
+ * Chat channel of a game (Supabase Realtime broadcast, nothing stored): messages and reactions only exist for connected players.
+ * Listen-only: sending goes through `POST /api/games/[code]/chat`, which sets the author from the player cookie and broadcasts
+ * the `*_SERVER_EVENT` events. Events sent directly by clients (legacy `chat` / `reaction`) are ignored.
+ */
 export function openChat(code: string, onMessage: (m: ChatMessage) => void, onReaction?: (r: ChatReaction) => void) {
   const sb = supabase()
   if (!sb) return null
-  const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA || "public"
   const channel = sb
-    .channel(`chat:${schema}:${code}`, { config: { broadcast: { self: false } } })
-    .on("broadcast", { event: CHAT_EVENT }, ({ payload }) => {
+    .channel(chatChannel(code))
+    .on("broadcast", { event: CHAT_SERVER_EVENT }, ({ payload }) => {
       const m = payload as Partial<ChatMessage>
-      if (typeof m?.id === "string" && typeof m.playerId === "string" && typeof m.text === "string") onMessage({ id: m.id, playerId: m.playerId, text: m.text.slice(0, 240), at: Date.now() })
+      if (typeof m?.id === "string" && typeof m.playerId === "string" && typeof m.text === "string") onMessage({ id: m.id, playerId: m.playerId, text: m.text.slice(0, CHAT_MAX_LENGTH), at: Date.now() })
     })
-    .on("broadcast", { event: REACTION_EVENT }, ({ payload }) => {
+    .on("broadcast", { event: REACTION_SERVER_EVENT }, ({ payload }) => {
       const r = payload as Partial<ChatReaction>
       if (typeof r?.id === "string" && typeof r.playerId === "string" && typeof r.reaction === "string") onReaction?.({ id: r.id, playerId: r.playerId, reaction: r.reaction })
     })
     .subscribe()
-  return {
-    send: (m: ChatMessage) => void channel.send({ type: "broadcast", event: CHAT_EVENT, payload: m }),
-    react: (r: ChatReaction) => void channel.send({ type: "broadcast", event: REACTION_EVENT, payload: r }),
-    close: () => void sb.removeChannel(channel),
-  }
+  return { close: () => void sb.removeChannel(channel) }
 }

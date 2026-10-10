@@ -7,6 +7,8 @@ import { AnimatePresence, motion } from "motion/react"
 import * as binding from "@pbgo/binding"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
+import { api } from "../../lib/api"
+import { CHAT_MAX_LENGTH } from "../../lib/chat"
 import { openChat, type ChatMessage } from "../../lib/realtime"
 import { DEFAULT_REACTIONS, playReaction, prepareSoundboard, type Reaction } from "../../lib/soundboard"
 import { useText } from "../skin-provider"
@@ -14,7 +16,6 @@ import { useGame } from "./context"
 
 const VISIBLE_MS = 9000
 const KEEP = 40
-const MAX_LENGTH = 240
 const MIN_GAP_MS = 700
 const REACTION_GAP_MS = 350
 const PARTICLES = 9
@@ -37,6 +38,7 @@ function burst(emoji: string): Particle[] {
 /**
  * Chat de la partie, en bas à droite : les messages s'affichent puis s'effacent en fondu ; en survolant ou en écrivant, l'historique récent réapparaît.
  * Pseudos dans la couleur du joueur. Diffusion temps réel sans stockage (rien n'est conservé quand la partie est quittée).
+ * Sending goes through the chat API route (author = player cookie); the channel is only listened to.
  */
 export function Chat({ className }: { className?: string }) {
   const t = useText()
@@ -48,9 +50,10 @@ export function Chat({ className }: { className?: string }) {
   const [particles, setParticles] = useState<Particle[]>([])
   const lastReaction = useRef(0)
   const [, tick] = useState(0)
-  const channel = useRef<ReturnType<typeof openChat> | null>(null)
   const last = useRef(0)
   const list = useRef<HTMLUListElement>(null)
+  // ids of our own reactions, already played locally: their server broadcast is skipped
+  const ownReactions = useRef(new Set<string>())
   const meId = game.meId
 
   const showReaction = useCallback((playerId: string, reaction: Reaction, local: boolean) => {
@@ -62,17 +65,15 @@ export function Chat({ className }: { className?: string }) {
   useEffect(() => {
     const c = openChat(
       game.code,
-      (m) => setMessages((all) => [...all, m].slice(-KEEP)),
+      // our own messages are already shown (optimistic copy with the same id)
+      (m) => setMessages((all) => (all.some((x) => x.id === m.id) ? all : [...all, m].slice(-KEEP))),
       (r) => {
+        if (ownReactions.current.delete(r.id)) return
         const reaction = REACTIONS.find((x) => x.id === r.reaction)
         if (reaction) showReaction(r.playerId, reaction, false)
       },
     )
-    channel.current = c
-    return () => {
-      c?.close()
-      channel.current = null
-    }
+    return () => c?.close()
   }, [game.code, showReaction])
 
   // réaffiche périodiquement pour laisser les messages s'effacer
@@ -89,13 +90,17 @@ export function Chat({ className }: { className?: string }) {
 
   function send(e: React.FormEvent) {
     e.preventDefault()
-    const body = text.trim().slice(0, MAX_LENGTH)
+    const body = text.trim().slice(0, CHAT_MAX_LENGTH)
     if (!body || !meId || Date.now() - last.current < MIN_GAP_MS) return
     last.current = Date.now()
     const m: ChatMessage = { id: crypto.randomUUID(), playerId: meId, text: body, at: Date.now() }
-    channel.current?.send(m)
     setMessages((all) => [...all, m].slice(-KEEP))
     setText("")
+    // refused by the server (rate limit, left the game…): withdraw the message and give the text back
+    api.chat(game.code, { id: m.id, text: body }).catch(() => {
+      setMessages((all) => all.filter((x) => x.id !== m.id))
+      setText((current) => current || body)
+    })
   }
 
   function react(reaction: Reaction) {
@@ -103,8 +108,10 @@ export function Chat({ className }: { className?: string }) {
     lastReaction.current = Date.now()
     prepareSoundboard()
     playReaction(reaction)
-    channel.current?.react({ id: crypto.randomUUID(), playerId: meId, reaction: reaction.id })
+    const id = crypto.randomUUID()
+    ownReactions.current.add(id)
     showReaction(meId, reaction, true)
+    api.chat(game.code, { id, reaction: reaction.id }).catch(() => ownReactions.current.delete(id))
   }
 
   // la palette reste ouverte tant qu'on ne clique pas ailleurs (le trajet du bouton vers un emoji ne la ferme plus)
@@ -181,7 +188,7 @@ export function Chat({ className }: { className?: string }) {
           onChange={(e) => setText(e.target.value)}
           onFocus={() => setActive(true)}
           onBlur={() => setActive(false)}
-          maxLength={MAX_LENGTH}
+          maxLength={CHAT_MAX_LENGTH}
           placeholder={t("chatPlaceholder")}
           aria-label={t("chatPlaceholder")}
           autoComplete="off"

@@ -38,6 +38,7 @@ function noise(c: AudioContext, out: AudioNode, t: number, dur: number, gain: nu
   s.start(t)
 }
 
+/** Ids must stay listed in `DEFAULT_REACTION_IDS` (`chat.ts`): the chat route only accepts known reaction ids. */
 export const DEFAULT_REACTIONS: Reaction[] = [
   { id: "clap", emoji: "👏", label: "Bravo", play: (c, o, t) => [0, 0.12, 0.25, 0.4, 0.52].forEach((d) => noise(c, o, t + d, 0.07, 0.5, 2200)) },
   { id: "laugh", emoji: "😂", label: "Haha", play: (c, o, t) => [0, 1, 2, 3].forEach((i) => tone(c, o, t + i * 0.14, { freq: 520 - i * 40, end: 360 - i * 30, dur: 0.11, type: "triangle", gain: 0.3 })) },
