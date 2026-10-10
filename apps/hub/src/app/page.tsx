@@ -1,5 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, DiceIcon, Globe02Icon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,10 +25,10 @@ export default function Home() {
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
-          <a href="/" className="flex items-center gap-2 font-semibold">
+          <Link href="/" className="flex items-center gap-2 font-semibold">
             <HugeiconsIcon icon={DiceIcon} strokeWidth={2} className="size-5" />
             {SITE_NAME}
-          </a>
+          </Link>
           <Button variant="ghost" asChild>
             <a href="#games">Games</a>
           </Button>

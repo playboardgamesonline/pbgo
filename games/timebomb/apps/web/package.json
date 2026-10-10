@@ -2,6 +2,9 @@
   "name": "timebomb-web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,25 +13,27 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@pbgo/core": "workspace:*",
+    "@pbgo/site": "workspace:*",
+    "@sanity/client": "catalog:",
+    "@sanity/image-url": "catalog:",
     "@timebomb/engine": "workspace:*",
-    "@sanity/client": "^7.27.0",
-    "@sanity/image-url": "^2.1.1",
-    "clsx": "^2.1.1",
-    "next": "16.3.6",
-    "next-sanity": "^13.3.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "tailwind-merge": "^3.7.0",
-    "@pbgo/site": "workspace:*"
+    "clsx": "catalog:",
+    "next": "catalog:",
+    "next-sanity": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwind-merge": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^22.20.4",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@pbgo/eslint-config": "workspace:*",
+    "@pbgo/tsconfig": "workspace:*",
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   }
 }

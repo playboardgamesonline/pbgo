@@ -12,16 +12,18 @@
     "schema:deploy": "sanity schemas deploy"
   },
   "dependencies": {
-    "@sanity/icons": "^5.2.2",
-    "@sanity/vision": "^6.16.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "sanity": "^6.16.0",
-    "styled-components": "^6.5.3",
-    "@pbgo/studio-kit": "workspace:*"
+    "@pbgo/studio-kit": "workspace:*",
+    "@sanity/icons": "catalog:",
+    "@sanity/vision": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sanity": "catalog:",
+    "styled-components": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "^19",
-    "typescript": "^5"
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
   }
 }

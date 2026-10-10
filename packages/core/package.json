@@ -5,38 +5,39 @@
   "type": "module",
   "description": "Socle commun des jeux : lobby, parties temps réel, fin de partie, admin (/admin), routes API. Le jeu fournit @pbgo/binding (moteur + constantes du site) et @pbgo/binding-ui (Logo, plateau, photo).",
   "scripts": {
-    "test": "../engine-kit/node_modules/.bin/vitest run"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@hugeicons/core-free-icons": "^4.3.5",
-    "@hugeicons/react": "^1.1.10",
+    "@hugeicons/core-free-icons": "catalog:",
+    "@hugeicons/react": "catalog:",
     "@pbgo/studio-kit": "workspace:*",
     "@pbgo/ui": "workspace:*",
-    "@sanity/client": "^7.27.0",
-    "@sanity/image-url": "^2.1.1",
-    "@supabase/supabase-js": "^2.117.2",
-    "input-otp": "^1.5.0",
-    "leva": "^0.10.1",
-    "lucide-react": "^1.48.0",
-    "motion": "^13.4.4",
-    "next-sanity": "^13.3.4",
-    "server-only": "^0.0.1",
-    "sharp": "^0.35.5",
-    "sonner": "^2.0.8",
-    "wawoff2": "^2.0.1"
+    "@sanity/client": "catalog:",
+    "@sanity/image-url": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "input-otp": "catalog:",
+    "leva": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "next-sanity": "catalog:",
+    "server-only": "catalog:",
+    "sharp": "catalog:",
+    "sonner": "catalog:",
+    "wawoff2": "catalog:"
   },
   "peerDependencies": {
-    "next": "16.3.6",
-    "react": "^19",
-    "react-dom": "^19"
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^22.20.4",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "next": "16.3.6",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "typescript": "^5"
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

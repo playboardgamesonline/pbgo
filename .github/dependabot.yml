@@ -1,0 +1,23 @@
+# Dependency updates (PLT-12). Replaces Renovate for now.
+# One weekly PR groups every minor and patch update; each major gets its own PR.
+# Nothing is merged automatically: Oré reviews and merges.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Paris"
+    versioning-strategy: "increase"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "⬆️(repo)"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"

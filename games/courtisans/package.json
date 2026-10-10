@@ -4,9 +4,9 @@
   "scripts": {
     "dev": "pnpm --filter courtisans-web dev",
     "dev:studio": "pnpm --filter courtisans-studio dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" build",
+    "test": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" test",
+    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" typecheck",
     "deploy:studio": "pnpm --filter courtisans-studio run deploy",
     "sanity:images": "pnpm --filter courtisans-studio run update-images",
     "sanity:clean-png": "pnpm --filter courtisans-studio run clean-png",

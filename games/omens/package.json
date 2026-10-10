@@ -4,9 +4,9 @@
   "scripts": {
     "dev": "pnpm --filter omens-web dev",
     "dev:studio": "pnpm --filter omens-studio dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" build",
+    "test": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" test",
+    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" typecheck",
     "deploy:studio": "pnpm --filter omens-studio run deploy"
   }
 }

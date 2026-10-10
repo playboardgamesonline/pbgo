@@ -14,9 +14,10 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^22.20.4",
-    "typescript": "^5",
-    "vitest": "^5"
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@pbgo/engine-kit": "workspace:*"
