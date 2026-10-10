@@ -1,21 +1,3 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "skipLibCheck": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "esModuleInterop": true
-  },
-  "include": [
-    "src"
-  ]
+  "extends": "@pbgo/tsconfig/react-library.json"
 }

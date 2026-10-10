@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Library: pure TypeScript package without DOM (engines, engine-kit)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["es2022"],
+    "types": ["node"],
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["${configDir}/src"]
+}

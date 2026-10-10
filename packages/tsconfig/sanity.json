@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Sanity Studio (studios and studio-kit)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["dom", "esnext"],
+    "module": "preserve",
+    "jsx": "preserve",
+    "types": ["node"]
+  },
+  "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx"],
+  "exclude": ["${configDir}/node_modules"]
+}

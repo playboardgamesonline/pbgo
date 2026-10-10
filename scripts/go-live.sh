@@ -63,7 +63,7 @@ else ok "Projet Vercel : $SLUG"; fi
 RES="$(V -X POST "https://api.vercel.com/v10/projects/$SLUG/domains?teamId=$VERCEL_TEAM" -d "{\"name\":\"$DOMAIN\"}")"
 if [ -n "$(echo "$RES" | json "o.name")" ] || echo "$RES" | grep -q "already"; then ok "Domaine : $DOMAIN"
 else warn "Domaine $DOMAIN : $(echo "$RES" | json "o.error?.message")"; fi
-IGN="git diff --quiet HEAD^ HEAD -- ':/games/$SLUG' ':/packages' ':/pnpm-lock.yaml'"
+IGN="git diff --quiet HEAD^ HEAD -- ':/games/$SLUG' ':/packages' ':/pnpm-lock.yaml' ':/pnpm-workspace.yaml' ':/package.json'"
 V -X PATCH "https://api.vercel.com/v9/projects/$VID?teamId=$VERCEL_TEAM" -d "{\"commandForIgnoringBuildStep\":\"$IGN\"}" >/dev/null && ok "Build ignoré si le jeu n'a pas changé"
 mkdir -p "$DIR/.vercel" && echo "{\"projectId\":\"$VID\",\"orgId\":\"$VERCEL_TEAM\",\"projectName\":\"$SLUG\"}" > "$DIR/.vercel/project.json"
 

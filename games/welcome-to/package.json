@@ -4,9 +4,9 @@
   "scripts": {
     "dev": "pnpm --filter welcome-to-web dev",
     "dev:studio": "pnpm --filter welcome-to-studio dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" build",
+    "test": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" test",
+    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" typecheck",
     "deploy:studio": "pnpm --filter welcome-to-studio run deploy"
   }
 }

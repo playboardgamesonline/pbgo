@@ -12,19 +12,21 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@sanity/icons": "^5.2.2",
-    "@sanity/vision": "^6.16.0",
-    "sanity": "^6.16.0",
-    "react": "^19"
+    "@sanity/icons": "catalog:",
+    "@sanity/vision": "catalog:",
+    "react": "catalog:",
+    "sanity": "catalog:"
   },
   "devDependencies": {
-    "@sanity/icons": "^5.2.2",
-    "@sanity/vision": "^6.16.0",
-    "sanity": "^6.16.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "styled-components": "^6.5.3",
-    "@types/react": "^19",
-    "typescript": "^5"
+    "@pbgo/tsconfig": "workspace:*",
+    "@sanity/icons": "catalog:",
+    "@sanity/vision": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sanity": "catalog:",
+    "styled-components": "catalog:",
+    "typescript": "catalog:"
   }
 }

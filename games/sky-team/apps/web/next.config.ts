@@ -1,10 +1,3 @@
-import type { NextConfig } from "next"
+import { createNextConfig } from "@pbgo/core/next-config"
 
-const nextConfig: NextConfig = {
-  transpilePackages: ["@sky-team/engine", "@pbgo/site"],
-  images: {
-    remotePatterns: [{ protocol: "https", hostname: "cdn.sanity.io" }],
-  },
-}
-
-export default nextConfig
+export default createNextConfig({ engine: "@sky-team/engine" })

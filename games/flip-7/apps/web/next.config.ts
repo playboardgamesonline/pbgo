@@ -1,10 +1,3 @@
-import type { NextConfig } from "next"
+import { createNextConfig } from "@pbgo/core/next-config"
 
-const nextConfig: NextConfig = {
-  transpilePackages: ["@flip-7/engine", "@pbgo/site"],
-  images: {
-    remotePatterns: [{ protocol: "https", hostname: "cdn.sanity.io" }],
-  },
-}
-
-export default nextConfig
+export default createNextConfig({ engine: "@flip-7/engine" })

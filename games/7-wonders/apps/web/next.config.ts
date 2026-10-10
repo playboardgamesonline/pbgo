@@ -1,14 +1,3 @@
-import type { NextConfig } from "next"
+import { createNextConfig } from "@pbgo/core/next-config"
 
-const nextConfig: NextConfig = {
-  // @pbgo/core importe le jeu via ces alias (binding-server : côté serveur uniquement)
-  turbopack: {
-    resolveAlias: { "@pbgo/binding": "./src/binding.ts", "@pbgo/binding-ui": "./src/binding-ui.ts", "@pbgo/binding-server": "./src/binding-server.ts" },
-  },
-  transpilePackages: ["@pbgo/core", "@7-wonders/engine", "@pbgo/engine-kit", "@pbgo/ui", "@pbgo/studio-kit", "@pbgo/site"],
-  images: {
-    remotePatterns: [{ protocol: "https", hostname: "cdn.sanity.io" }],
-  },
-}
-
-export default nextConfig
+export default createNextConfig({ engine: "@7-wonders/engine", core: true })
