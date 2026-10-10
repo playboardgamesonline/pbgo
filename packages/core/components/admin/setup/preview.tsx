@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo
 import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/admin/tabs"
 import { PREVIEW_MESSAGE, PREVIEW_READY, type PreviewDraft } from "../../../lib/preview"
 import { siteTitle, tableTitle } from "../../../lib/settings"
+import { withBase } from "../../../lib/base-path"
 
 const FRAME = { width: 1440, height: 900 }
 
@@ -42,7 +43,7 @@ export function SiteFrame({ kind, draft }: { kind: "home" | "game"; draft: Previ
       <iframe
         ref={frame}
         key={kind}
-        src={`/preview/${kind}`}
+        src={withBase(`/preview/${kind}`)}
         title={kind === "home" ? "Home preview" : "In-game preview"}
         className="pointer-events-none absolute top-0 left-0 origin-top-left border-0"
         style={{ width: FRAME.width, height: FRAME.height, transform: `scale(${scale})` }}
@@ -115,7 +116,7 @@ export function TabPreview({ title, favicon }: { title: string; favicon: string 
         {tabs.map((t) => (
           <div key={t} className="flex h-9 items-center gap-2 rounded-t-lg border bg-background px-3 shadow-xs">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={favicon ?? "/icon.png"} alt="" className="size-4 shrink-0 rounded-[3px] object-cover" />
+            <img src={favicon ?? withBase("/icons/favicon")} alt="" className="size-4 shrink-0 rounded-[3px] object-cover" />
             <span className="truncate text-xs">{t}</span>
           </div>
         ))}

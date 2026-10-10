@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useRef } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../lib/admin-api"
 import { ADMIN_NAV, type CountKey } from "../../lib/admin-nav"
+import { withBase } from "../../lib/base-path"
 
 /* Modifications non enregistrées : prévient avant de quitter la page (barre latérale, onglet fermé). */
 const DirtyContext = createContext<React.RefObject<boolean> | null>(null)
@@ -95,7 +96,7 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
             ))}
           </nav>
           <div className="flex flex-col gap-0.5 border-t px-3 py-3">
-            <a href="/" target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">
+            <a href={withBase("/")} target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">
               <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-4" />
               View game
             </a>

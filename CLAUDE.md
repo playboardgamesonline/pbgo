@@ -10,6 +10,7 @@ Migrer vers un autre compte : voir `MIGRATION.md`.
 - `games/<jeu>/assets/` — sources (PDF, PSD, visuels HD), ignorées par git
 - `packages/` — code partagé par tous les jeux (voir ci-dessous)
 - `scripts/` — `new-game.sh`, `go-live.sh`, `run.sh`
+- `apps/hub/` — the hub site that owns `playboardgamesonline.app` and serves every game under `/<slug>` (see below)
 
 ## Paquets partagés (`packages/`)
 Une modification ici profite à tous les jeux qui les utilisent au prochain déploiement.
@@ -43,6 +44,14 @@ Une modification ici profite à tous les jeux qui les utilisent au prochain dép
 ## Nommage des paquets
 `<jeu>-web`, `<jeu>-studio`, `@<jeu>/engine` (template : `template-web`, `template-studio`, `@game/engine`). Toujours cibler un paquet avec `--filter`, jamais `--filter web`.
 
+## Single domain: hub + games (multi-zones)
+- `playboardgamesonline.app` is attached only to the Vercel project **hub** (root `apps/hub`). Game projects have no custom domain.
+- Each game is built with `NEXT_PUBLIC_BASE_PATH=/<slug>` (Vercel env var) → `basePath` in its `next.config.ts`; all its pages, assets and API routes live under `/<slug>`.
+- The hub rewrites `/<slug>` and `/<slug>/*` to the game's production URL (`apps/hub/src/games.ts`, override with `GAME_ORIGIN_<SLUG>`). Adding a game = one entry in that registry.
+- In shared code, any root-relative URL built by hand (fetch, `<a>`, `<img>`, `<iframe>`, audio, `window.location`) goes through `withBase()` from `@pbgo/core/lib/base-path`. `<Link>`, `router.push`, `redirect` and metadata files are prefixed by Next.js already. Links from the hub to a game use a plain `<a>` (full page load across zones).
+- The hub's `robots.txt` is the one crawlers read; it disallows `/<slug>/api/`, `/admin`, `/preview`, `/game/` for every game.
+- Game projects must not protect their production `*.vercel.app` URL with Vercel Authentication, otherwise the hub's rewrites get a 401.
+
 ## Déploiement
 - Un projet Vercel par jeu, tous reliés à ce dépôt ; chaque projet a son root directory (`games/<jeu>/apps/web`) et ne se reconstruit que si ses fichiers changent
 - Un projet Sanity par jeu (`<jeu>.sanity.studio`), un projet Supabase par jeu ; secrets dans `apps/web/.env.local` et sur Vercel, jamais commités
@@ -69,7 +78,7 @@ Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo
 - Données Setup : `server/settings.ts` (`readAdminData`, `saveSection(section, values)`, `uploadAsset(slot, file)`), routes `PUT/GET/POST /api/admin/settings` et `/api/admin/upload/[slot]`. Documents Sanity : `settings` (Identity, Mechanics, couleurs et polices), `interface` (images de Visual, couleurs des joueurs, desktopOnly), `audio` (musiques, ambiance, effets, volumes), `texts` (Copy, dont `errorMessages`).
 - Conversions à l'envoi (`server/convert.ts`) : images → WebP (SVG gardé), favicon → PNG 512, image de partage → JPG 1200×630, polices TTF/OTF → WOFF2 (wawoff2). Sons : MP3, 4 Mo max.
 - Aperçus : iframe sur `/preview/home` et `/preview/game` (admin seulement, partie fictive), brouillon envoyé par `postMessage` (`lib/preview.ts`, `components/preview-bridge.tsx`) ; les appels API y sont neutralisés.
-- Favicon / image de partage : `app/icon.tsx`, `app/apple-icon.tsx`, `app/opengraph-image.tsx` → `@pbgo/core/metadata/images` (fichier envoyé dans Identity, sinon généré depuis le logo / l'habillage).
+- Favicon / share image: `app/icons/favicon/route.ts`, `app/icons/apple/route.ts` (route handlers, linked from the root layout metadata with `withBase()` because Next drops the base path from the `icon.tsx` convention) and `app/opengraph-image.tsx` → `@pbgo/core/metadata/images` (file uploaded in Identity, else generated from the logo / skin).
 - Sons : `lib/sound-config.ts` (types, sons déclarés par le jeu), `lib/audio-server.ts` (`loadAudio` fusionne Sanity `audio`), passé à `AppShell` (`sounds`). Admin › Audio › « Import into Sanity » envoie les fichiers de /public/sounds.
 - Joueur absent : `POST /api/games/[code]/takeover` = vote à l'unanimité des autres joueurs (colonne `games.takeover_votes`, entrées `<empreinte de l'état>:<joueur>`, périmées dès qu'un coup est joué) ; migration `…_takeover_votes.sql` à appliquer sur chaque schéma de jeu (sinon les lectures de `games` échouent).
 - Tasks : table `tasks` (colonnes `type` backlog|bug et `priority`), table `feedback` (bouton « Donner votre avis » du jeu, `POST /api/feedback`) — migration `…_admin_tasks_feedback.sql`. Launch = liste vérifiée (`server/launch.ts`).

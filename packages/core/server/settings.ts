@@ -32,6 +32,7 @@ import { client as readClient, sanityConfigure } from "../sanity/client"
 import { writeClient } from "../sanity/write-client"
 import { ApiError } from "./api"
 import { asIs, type Converted, fontToWoff2, imageToIcon, imageToShare, imageToWebp } from "./convert"
+import { withBase } from "../lib/base-path"
 
 /* ------------------------------------------------------------------ données de l'admin */
 
@@ -117,7 +118,7 @@ function copyEntries(texts: TextsDoc | null | undefined): CopyEntry[] {
 
 function audioAdmin(doc: AudioDoc): AudioAdmin {
   const url = (f: { url?: string | null } | null | undefined) => (f?.url ? mediaUrl(f.url) : null)
-  const codeUrl = (file: string) => `/sounds/${file}.mp3`
+  const codeUrl = (file: string) => withBase(`/sounds/${file}.mp3`)
   const effective = toSoundConfig(doc)
   const storedMusic = (doc?.music ?? []).filter((m) => m.key && url(m.file))
   const music = storedMusic.length

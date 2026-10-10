@@ -6,6 +6,7 @@ import { ImageResponse } from "next/og"
 import sharp from "sharp"
 import { loadSettings } from "../lib/settings-server"
 import { loadSkin } from "../lib/skin-server"
+import { BASE_PATH } from "../lib/base-path"
 
 /**
  * Favicon et image de partage générés depuis l'admin : le fichier envoyé (Identity) s'il existe,
@@ -16,10 +17,12 @@ import { loadSkin } from "../lib/skin-server"
 async function loadImage(src: string | null | undefined): Promise<Buffer | null> {
   if (!src) return null
   try {
-    if (src.startsWith("/api/media?url=")) src = decodeURIComponent(src.slice("/api/media?url=".length))
+    const media = `${BASE_PATH}/api/media?url=`
+    if (src.startsWith(media)) src = decodeURIComponent(src.slice(media.length))
     if (src.startsWith("/")) {
       try {
-        return await readFile(path.join(process.cwd(), "public", src.split("?")[0]!))
+        const file = BASE_PATH && src.startsWith(`${BASE_PATH}/`) ? src.slice(BASE_PATH.length) : src
+        return await readFile(path.join(process.cwd(), "public", file.split("?")[0]!))
       } catch {
         src = new URL(src, SITE_URL).toString()
       }

@@ -1,5 +1,6 @@
 "use client"
 
+import { withBase } from "../../../lib/base-path"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
 import { Input } from "@pbgo/ui/admin/input"
@@ -50,7 +51,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
               accept={`${IMAGE_ACCEPT},image/x-icon`}
               aspect="aspect-square"
               custom={!!data.settings.favicon?.startsWith("https://")}
-              preview={<Img src={data.settings.favicon ?? `/icon?v=${s.version}`} className="size-20" />}
+              preview={<Img src={data.settings.favicon ?? withBase(`/icons/favicon?v=${s.version}`)} className="size-20" />}
               busy={s.uploading === "favicon"}
               disabled={disabled}
               onFile={(f) => s.upload("favicon", f)}

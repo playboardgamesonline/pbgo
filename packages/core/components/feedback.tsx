@@ -12,6 +12,7 @@ import { isPreviewWindow } from "../lib/preview"
 import { useProfile } from "../lib/profile"
 import { useSkin, useText } from "./skin-provider"
 import { ICON_BUTTON } from "./sound/sound"
+import { withBase } from "../lib/base-path"
 
 const TYPES = [
   { value: "review", text: "feedbackTypeReview" },
@@ -85,7 +86,7 @@ export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: stri
       body.set("gameCode", gameCode ?? "")
       body.set("page", window.location.pathname)
       if (screenshot) body.set("screenshot", screenshot)
-      const res = await fetch("/api/feedback", { method: "POST", body })
+      const res = await fetch(withBase("/api/feedback"), { method: "POST", body })
       if (!res.ok) throw new ApiClientError(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? "SERVER_ERROR")
       toast.success(t("feedbackThanks"))
       setMessage("")

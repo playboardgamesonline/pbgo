@@ -4,6 +4,7 @@ import { FONT_CHOICES } from "@pbgo/studio-kit/constants"
 import { DESCRIPTION, NAME } from "@pbgo/binding"
 import { LOCALES, type Locale } from "./i18n"
 import { gameI18n } from "./skin"
+import { withBase } from "./base-path"
 
 export { FONT_CHOICES }
 
@@ -186,7 +187,7 @@ const titleFamily = (s: SiteSettings) => (s.files.fontDisplay ? UPLOADED_TITLE_F
 
 const FONT_FORMATS: Record<string, string> = { woff2: "woff2", woff: "woff", ttf: "truetype", otf: "opentype" }
 
-export const mediaUrl = (url: string) => `/api/media?url=${encodeURIComponent(url)}`
+export const mediaUrl = (url: string) => withBase(`/api/media?url=${encodeURIComponent(url)}`)
 
 // @font-face des polices envoyées (servies en same-origin par /api/media)
 export function fontFaceCss(files: SettingsFiles) {

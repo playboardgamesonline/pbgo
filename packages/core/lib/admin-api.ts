@@ -1,3 +1,4 @@
+import { withBase } from "./base-path"
 const MESSAGES: Record<string, string> = {
   ACCESS_DENIED: "Session expired, please log in again.",
   INVALID_CREDENTIALS: "Wrong login or password.",
@@ -23,7 +24,7 @@ export class AdminApiError extends Error {
 
 export async function adminRequest<T>(route: string, init?: RequestInit): Promise<T> {
   const isForm = init?.body instanceof FormData
-  const res = await fetch(route, { ...init, headers: isForm ? undefined : { "Content-Type": "application/json" }, cache: "no-store" })
+  const res = await fetch(withBase(route), { ...init, headers: isForm ? undefined : { "Content-Type": "application/json" }, cache: "no-store" })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new AdminApiError((data as { error?: string }).error ?? "ERROR")
   return data as T

@@ -1,6 +1,11 @@
+import { BASE_PATH } from "@pbgo/core/lib/base-path"
+
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000")
+
+/** Public URL of this game: SITE_URL plus the base path it is served under (e.g. https://playboardgamesonline.app/courtisans). */
+export const GAME_URL = `${SITE_URL}${BASE_PATH}`
 
 export const SLUG = "template"
 

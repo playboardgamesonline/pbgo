@@ -62,19 +62,19 @@ export function createSitemap(url: string, indexable = false): MetadataRoute.Sit
   return indexable ? [{ url, changeFrequency: "weekly", priority: 1 }] : []
 }
 
-export function createManifest(site: Pick<SiteConfig, "name" | "title" | "description" | "color">): MetadataRoute.Manifest {
+export function createManifest(site: Pick<SiteConfig, "name" | "title" | "description" | "color">, basePath = ""): MetadataRoute.Manifest {
   return {
     name: site.title,
     short_name: site.name,
     description: site.description,
-    start_url: "/",
+    start_url: basePath || "/",
     display: "standalone",
     background_color: site.color,
     theme_color: site.color,
     lang: "fr",
     icons: [
-      { src: "/icon.png", sizes: "512x512", type: "image/png" },
-      { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+      { src: `${basePath}/icon.png`, sizes: "512x512", type: "image/png" },
+      { src: `${basePath}/apple-icon.png`, sizes: "180x180", type: "image/png" },
     ],
   }
 }

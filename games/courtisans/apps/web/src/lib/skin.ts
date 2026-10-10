@@ -1,15 +1,16 @@
+import { withBase } from "@pbgo/core/lib/base-path"
 import type { SkinDefaults } from "@pbgo/core/lib/skin"
 import type { SiteSettings, ThemeColors } from "@pbgo/core/lib/settings"
 
 /** Habillage par défaut de Courtisans (images de /public), remplacé champ par champ par Sanity (`interface`, `texts`). */
 export const DEFAULT_SKIN: SkinDefaults = {
   decor: {
-    pattern: "/home/PATTERN.webp",
-    top: { url: "/home/DECORATION_BANQUET_TOP.webp", ratio: null },
-    bottom: { url: "/home/DECORATION_BANQUET_BOTTOM.webp", ratio: 3543 / 525 },
-    hero: "/home/QUEEN.webp",
+    pattern: withBase("/home/PATTERN.webp"),
+    top: { url: withBase("/home/DECORATION_BANQUET_TOP.webp"), ratio: null },
+    bottom: { url: withBase("/home/DECORATION_BANQUET_BOTTOM.webp"), ratio: 3543 / 525 },
+    hero: withBase("/home/QUEEN.webp"),
   },
-  hostIcon: "/pictograms/PICTOGRAM_NOBLE.webp",
+  hostIcon: withBase("/pictograms/PICTOGRAM_NOBLE.webp"),
   playerColors: ["#a8603a", "#6f5b99", "#9c4c72", "#4f6478", "#7a5a3a"],
   desktopOnly: true,
   home: {
@@ -47,8 +48,8 @@ const THEME: ThemeColors = { background: "#0e3940", foreground: "#f0e9ce", accen
 
 /** Réglages par défaut (quand le document Sanity « settings » est vide). */
 export const SETTINGS_DEFAULTS: Partial<Omit<SiteSettings, "theme">> & { theme: ThemeColors } = {
-  logo: "/LOGO.webp",
-  favicon: "/favicon.png",
+  logo: withBase("/LOGO.webp"),
+  favicon: withBase("/favicon.png"),
   theme: THEME,
   credits: {
     authors: "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier",

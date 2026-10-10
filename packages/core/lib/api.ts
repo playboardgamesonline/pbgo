@@ -2,6 +2,7 @@ import * as binding from "@pbgo/binding"
 import type { OptionValues } from "@pbgo/binding"
 import type { PublicGame } from "./game-types"
 import { isPreviewWindow } from "./preview"
+import { withBase } from "./base-path"
 
 /** Messages d'erreur par défaut (core + moteur du jeu), remplaçables dans l'admin (page Copy). */
 export const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
@@ -47,7 +48,7 @@ const isPreview = isPreviewWindow
 
 async function apiRequest(path: string, init?: RequestInit): Promise<PublicGame> {
   if (isPreview()) return new Promise<PublicGame>(() => {})
-  const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json" }, cache: "no-store" })
+  const response = await fetch(withBase(path), { ...init, headers: { "Content-Type": "application/json" }, cache: "no-store" })
   const data = await response.json().catch(() => ({ error: "SERVER_ERROR" }))
   if (!response.ok) throw new ApiClientError(data.error ?? "SERVER_ERROR")
   return data as PublicGame
@@ -73,4 +74,4 @@ export const api = {
   debug: (code: string, command: ClientDebugCommand) => post(`/api/games/${code}/debug`, { command }),
 }
 
-export const gameLink = (code: string) => `${window.location.origin}/game/${code}`
+export const gameLink = (code: string) => `${window.location.origin}${withBase(`/game/${code}`)}`

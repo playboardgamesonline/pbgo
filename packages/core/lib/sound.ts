@@ -8,6 +8,7 @@ import * as binding from "@pbgo/binding"
  * Le jeu déclare ses sons via l'export facultatif `SOUNDS` de @pbgo/binding ; fichiers dans /public/sounds/<file>.mp3.
  */
 import { CODE_SOUNDS, DEFAULT_VOLUMES, type SoundConfig, type Volumes } from "./sound-config"
+import { withBase } from "./base-path"
 
 export * from "./sound-config"
 
@@ -59,7 +60,7 @@ let track: string | null = typeof window === "undefined" ? null : readMusic()
 const buffers = new Map<string, Promise<AudioBuffer | null>>()
 const lastPlayed = new Map<string, number>()
 
-const soundUrl = (s: { file: string; url?: string | null }) => s.url ?? `/sounds/${s.file}.mp3`
+const soundUrl = (s: { file: string; url?: string | null }) => s.url ?? withBase(`/sounds/${s.file}.mp3`)
 
 /** Réglages de l'admin (fichiers Sanity, volumes, musiques) : appelé au rendu de l'AppShell, avant tout son. */
 export function configureSounds(config: SoundConfig) {

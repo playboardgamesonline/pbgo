@@ -2,17 +2,17 @@ import { Home } from "@pbgo/core/components/home/home"
 import { OG_LOCALES } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
-import { AUTHOR, GENRES, SITE_URL } from "@/lib/site"
+import { AUTHOR, GENRES, GAME_URL } from "@/lib/site"
 
 function structuredData({ title, description, minPlayers, maxPlayers }: Awaited<ReturnType<typeof loadSettings>>, language: string) {
   return {
   "@context": "https://schema.org",
   "@graph": [
-    { "@type": "WebSite", "@id": `${SITE_URL}/#site`, url: SITE_URL, name: title, inLanguage: language, description },
+    { "@type": "WebSite", "@id": `${GAME_URL}/#site`, url: GAME_URL, name: title, inLanguage: language, description },
     {
       "@type": "VideoGame",
       name: title,
-      url: SITE_URL,
+      url: GAME_URL,
       description,
       inLanguage: language,
       genre: GENRES,
