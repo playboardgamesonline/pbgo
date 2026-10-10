@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture, TextureLoader } from "three"
 import { DEFAULT_CATALOG, type ClientCatalog, cardKey } from "@/lib/catalog"
 import { DEFAULT_MISSION_IMAGES } from "@/lib/default-missions"
+import { GAME } from "@/lib/i18n"
 
 function textTexture(text: string, bg: string, ink: string, ratio: number) {
   const canvas = document.createElement("canvas")
@@ -31,9 +32,13 @@ function textTexture(text: string, bg: string, ink: string, ratio: number) {
   return t
 }
 
+const escape = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+/** Status words of every language (mission texts are shown in the player's language). */
+const statusPattern = (status: "light" | "disgrace") =>
+  new RegExp(Object.values(GAME).flatMap((d) => [d.status[status], ...(d.statusVariants?.[status] ?? [])]).map(escape).join("|"), "i")
 const BADGES = [
-  { pattern: /en disgrâce|fallen from grace/i, bg: "#002C37", ink: "#CF9400" },
-  { pattern: /dans la lumière|en lumière|esteemed/i, bg: "#EFE8CD", ink: "#B38200" },
+  { pattern: statusPattern("disgrace"), bg: "#002C37", ink: "#CF9400" },
+  { pattern: statusPattern("light"), bg: "#EFE8CD", ink: "#B38200" },
 ]
 const BADGE_PATTERN = new RegExp(BADGES.map((b) => b.pattern.source).join("|"), "gi")
 
@@ -169,7 +174,7 @@ function load(url: string): Promise<Texture> {
 
 export type TextureReport = { texture: string; source: string; url: string; reason: string }
 
-const SOURCES = ["Sanity", "défaut embarqué"]
+const SOURCES = ["Sanity", "bundled default"]
 
 /** Essaie chaque URL dans l'ordre (Sanity puis défaut) ; chaque échec est consigné dans `report` avec la texture visée. */
 async function loadWithFallback(key: string, urls: (string | null | undefined)[], report: TextureReport[]): Promise<Texture | null> {
@@ -177,7 +182,7 @@ async function loadWithFallback(key: string, urls: (string | null | undefined)[]
   for (const [i, url] of urls.entries()) {
     const source = SOURCES[i] ?? `source ${i + 1}`
     if (!url) {
-      if (i === 0) report.push({ texture: key, source, url: "(aucune URL : champ vide dans Sanity ?)", reason: "vide" })
+      if (i === 0) report.push({ texture: key, source, url: "(no URL: empty field in Sanity?)", reason: "empty" })
       continue
     }
     if (tried.has(url)) continue
@@ -186,7 +191,7 @@ async function loadWithFallback(key: string, urls: (string | null | undefined)[]
       return await load(url)
     } catch (e) {
       const event = e as { message?: string; type?: string }
-      report.push({ texture: key, source, url, reason: event?.message ?? event?.type ?? "chargement impossible (404, CORS ou format refusé)" })
+      report.push({ texture: key, source, url, reason: event?.message ?? event?.type ?? "failed to load (404, CORS or unsupported format)" })
     }
   }
   return null
@@ -263,7 +268,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
     }
     Promise.allSettled(jobs).then(() => {
       if (!active || !report.length) return
-      console.groupCollapsed(`[textures] ${report.length} image(s) indisponible(s) sur ${sources.length}`)
+      console.groupCollapsed(`[textures] ${report.length} of ${sources.length} image(s) unavailable`)
       console.table(report)
       console.groupEnd()
     })

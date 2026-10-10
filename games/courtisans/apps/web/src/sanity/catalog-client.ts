@@ -93,13 +93,13 @@ export async function getClientCatalog(locale: Locale): Promise<ClientCatalog> {
       },
       missionTexts: {
         ...d.missionTexts,
-        ...Object.fromEntries(missions.flatMap((m) => (locale !== "fr" && only(m.text, locale)?.trim() ? [[m._id, only(m.text, locale)!.trim()]] : []))),
+        ...Object.fromEntries(missions.flatMap((m) => (only(m.text, locale)?.trim() ? [[m._id, only(m.text, locale)!.trim()]] : []))),
       },
       missionsButtonText: only(texts?.missionsButton, locale)?.trim() || d.missionsButtonText,
       banquetStartText: only(texts?.banquetStarts, locale)?.trim() || d.banquetStartText,
     }
   } catch (error) {
-    console.error("Catalogue Sanity indisponible", error)
+    console.error("Sanity catalog unavailable", error)
     return d
   }
 }

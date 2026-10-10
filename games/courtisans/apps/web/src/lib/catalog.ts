@@ -1,7 +1,7 @@
 import { DEFAULT_PICTO_FRAME, DEFAULT_ROLE_RULES, DEFAULT_RULE_TEXTS, type RuleTexts } from "./default-rules"
 import { FAMILIES, type Family, ROLES, type Role } from "@courtisans/engine"
 import { DEFAULT_MISSION_IMAGES } from "./default-missions"
-import type { Locale } from "@pbgo/core/lib/i18n"
+import { DEFAULT_LOCALE, type Locale } from "@pbgo/core/lib/i18n"
 import { defaultMissionTexts, gameDict } from "./i18n"
 import { ROLE_RULE_TEXTS, RULE_TEXTS } from "./i18n-rules"
 
@@ -10,21 +10,28 @@ export type RoleInfo = { key: Role; name: string; pictogramUrl: string | null }
 
 export const MAT_ORDER: (Family | "queen")[] = ["butterfly", "toad", "nightingale", "queen", "hare", "stag", "carp"]
 
-export const DEFAULT_FAMILIES: Record<Family, FamilyInfo> = {
-  butterfly: { key: "butterfly", name: "Papillon", plural: "Papillons", color: "#a3bcc2", pictogramUrl: "/pictograms/PICTOGRAM_BUTTERFLY.webp" },
-  toad: { key: "toad", name: "Crapaud", plural: "Crapauds", color: "#8d9431", pictogramUrl: "/pictograms/PICTOGRAM_TOAD.webp" },
-  nightingale: { key: "nightingale", name: "Rossignol", plural: "Rossignols", color: "#d2415e", pictogramUrl: "/pictograms/PICTOGRAM_NIGHTINGALE.webp" },
-  hare: { key: "hare", name: "Lièvre", plural: "Lièvres", color: "#f5b935", pictogramUrl: "/pictograms/PICTOGRAM_HARE.webp" },
-  stag: { key: "stag", name: "Cerf", plural: "Cerfs", color: "#0f8a69", pictogramUrl: "/pictograms/PICTOGRAM_STAG.webp" },
-  carp: { key: "carp", name: "Carpe", plural: "Carpes", color: "#4a73b5", pictogramUrl: "/pictograms/PICTOGRAM_CARP.webp" },
+const FR = gameDict(DEFAULT_LOCALE)
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+
+const FAMILY_COLORS: Record<Family, string> = {
+  butterfly: "#a3bcc2",
+  toad: "#8d9431",
+  nightingale: "#d2415e",
+  hare: "#f5b935",
+  stag: "#0f8a69",
+  carp: "#4a73b5",
 }
 
-export const DEFAULT_ROLES: Record<Role, RoleInfo> = {
-  noble: { key: "noble", name: "Noble", pictogramUrl: "/pictograms/PICTOGRAM_NOBLE.webp" },
-  spy: { key: "spy", name: "Espion", pictogramUrl: "/pictograms/PICTOGRAM_SPY.webp" },
-  assassin: { key: "assassin", name: "Assassin", pictogramUrl: "/pictograms/PICTOGRAM_ASSASSIN.webp" },
-  guard: { key: "guard", name: "Garde", pictogramUrl: "/pictograms/PICTOGRAM_GUARD.webp" },
-}
+export const DEFAULT_FAMILIES = Object.fromEntries(
+  FAMILIES.map((f) => [
+    f,
+    { key: f, name: FR.families[f].name, plural: cap(FR.families[f].plural), color: FAMILY_COLORS[f], pictogramUrl: `/pictograms/PICTOGRAM_${f.toUpperCase()}.webp` },
+  ]),
+) as Record<Family, FamilyInfo>
+
+export const DEFAULT_ROLES = Object.fromEntries(
+  ROLES.map((r) => [r, { key: r, name: FR.roles[r].name, pictogramUrl: `/pictograms/PICTOGRAM_${r.toUpperCase()}.webp` }]),
+) as Record<Role, RoleInfo>
 
 const FAMILY_EN: Record<Family, string> = {
   butterfly: "BUTTERFLY",
@@ -108,7 +115,10 @@ export type ClientCatalog = {
   rules: RulesCatalog
   missionsButtonText: string
   banquetStartText: string
-  /** Texte des missions dans la langue du joueur (id → texte) ; vide en français, où le texte de la partie sert */
+  /**
+   * Mission texts in the player's language (id → text), in every language including the default one.
+   * The text frozen into the game state (`Mission.text`) is only a fallback, e.g. for a mission since removed from Sanity.
+   */
   missionTexts: Record<string, string>
 }
 
@@ -127,16 +137,14 @@ export const DEFAULT_CATALOG: ClientCatalog = {
   arrowUpUrl: "/pictograms/PICTOGRAM_ARROW_UP.svg",
   arrowDownUrl: "/pictograms/PICTOGRAM_ARROW_DOWN.svg",
   rules: DEFAULT_RULES,
-  missionsButtonText: "Missions comprises",
-  banquetStartText: "Le banquet peut commencer !",
-  missionTexts: {},
+  missionsButtonText: FR.missionsButton,
+  banquetStartText: FR.banquetStart,
+  missionTexts: defaultMissionTexts(DEFAULT_LOCALE),
 }
-
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
 /** Catalogue par défaut (images du code) avec les textes de la langue : familles, rôles, règles, boutons, missions. */
 export function defaultCatalog(locale: Locale): ClientCatalog {
-  if (locale === "fr") return DEFAULT_CATALOG
+  if (locale === DEFAULT_LOCALE) return DEFAULT_CATALOG
   const d = gameDict(locale)
   const c = DEFAULT_CATALOG
   const families = Object.fromEntries(

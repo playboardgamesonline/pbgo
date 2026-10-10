@@ -1,7 +1,7 @@
 "use client"
 
 import type { PlayerView } from "@courtisans/engine"
-import { button, useControls } from "leva"
+import { button, useControls } from "@pbgo/core/components/game/debug-controls"
 import { useEffect, useState } from "react"
 
 export type EndingState = {

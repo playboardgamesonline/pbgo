@@ -1,43 +1,47 @@
 import type { Family, Mission, Role, Status } from "@courtisans/engine"
+import { DEFAULT_LOCALE } from "@pbgo/core/lib/i18n"
+import { defaultMissionTexts } from "./i18n"
 
 const ORDER: Family[] = ["carp", "stag", "toad", "hare", "butterfly", "nightingale"]
-const PLURALS: Record<Family, string> = { butterfly: "papillons", toad: "crapauds", nightingale: "rossignols", hare: "lièvres", stag: "cerfs", carp: "carpes" }
-const ROLES: [Role, number, string][] = [
-  ["spy", 3, "espions"],
-  ["noble", 3, "nobles"],
-  ["assassin", 2, "assassins"],
-  ["guard", 4, "gardes"],
+const ROLES: [Role, number][] = [
+  ["spy", 3],
+  ["noble", 3],
+  ["assassin", 2],
+  ["guard", 4],
 ]
-const QUEENS: [string, Status, number][] = [
-  ["Au moins 2 familles doivent être en disgrâce à la cour.", "disgrace", 2],
-  ["Au moins 2 familles doivent être dans la lumière.", "light", 2],
-  ["Au moins 3 familles doivent être en disgrâce à la cour.", "disgrace", 3],
-  ["Au moins 1 famille doit être neutre.", "neutral", 1],
+const QUEENS: [Status, number][] = [
+  ["disgrace", 2],
+  ["light", 2],
+  ["disgrace", 3],
+  ["neutral", 1],
 ]
+
+/** Text frozen into the game state: default language. Players read `catalog.missionTexts[id]` in their own language. */
+const TEXTS = defaultMissionTexts(DEFAULT_LOCALE)
 
 export const DEFAULT_MISSIONS: Mission[] = [
   ...ORDER.map((family, i): Mission => ({
     id: `mission-light-${i + 1}`,
     color: "white",
-    text: `Vous devez posséder moins de ${PLURALS[family]} que votre voisin de gauche.`,
+    text: TEXTS[`mission-light-${i + 1}`]!,
     condition: { type: "playerComparison", filter: { family }, comparator: "lt", opponent: "leftNeighbor" },
   })),
-  ...ROLES.map(([role, value, name], i): Mission => ({
+  ...ROLES.map(([role, value], i): Mission => ({
     id: `mission-light-${i + 7}`,
     color: "white",
-    text: `Vous devez posséder au moins ${value} ${name}.`,
+    text: TEXTS[`mission-light-${i + 7}`]!,
     condition: { type: "domainCards", filter: { role }, comparator: "gte", value },
   })),
   ...ORDER.map((family, i): Mission => ({
     id: `mission-dark-${i + 1}`,
     color: "blue",
-    text: `Les ${PLURALS[family]} doivent être en disgrâce à la cour.`,
+    text: TEXTS[`mission-dark-${i + 1}`]!,
     condition: { type: "familyStatus", family, status: "disgrace" },
   })),
-  ...QUEENS.map(([text, status, value], i): Mission => ({
+  ...QUEENS.map(([status, value], i): Mission => ({
     id: `mission-dark-${i + 7}`,
     color: "blue",
-    text,
+    text: TEXTS[`mission-dark-${i + 7}`]!,
     condition: { type: "familiesWithStatus", status, comparator: "gte", value },
   })),
 ]

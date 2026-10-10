@@ -2,7 +2,6 @@
 
 import type { VisibleCard, Mission, PlayerView } from "@courtisans/engine"
 import { useCursor } from "@react-three/drei"
-import { button, useControls } from "leva"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
@@ -30,7 +29,7 @@ import type { EndingState } from "./ending"
 import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { useSettings, useSettingsVersion } from "./settings"
 import { patternTexture } from "./patterns"
-import { roundValue, copyButton, debugTab, COPY_ORDER } from "@pbgo/core/components/game/debug-tabs"
+import { button, roundValue, copyButton, debugTab, COPY_ORDER, useControls } from "@pbgo/core/components/game/debug-controls"
 import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
 import {

@@ -5,12 +5,10 @@ import { Loader2Icon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { button, useControls } from "leva"
 import { toast } from "sonner"
 import { Announcement, useAnnouncementSettings } from "@pbgo/core/components/game/announcement"
 import { GameProvider } from "@pbgo/core/components/game/context"
-import { DebugPanel } from "@pbgo/core/components/game/debug"
-import { copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
+import { button, copyButton, debugTab, DebugSlot, useControls, useDebugTools } from "@pbgo/core/components/game/debug-controls"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
 import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
@@ -20,6 +18,7 @@ import { api } from "@pbgo/core/lib/api"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { Button } from "@pbgo/ui/game/button"
 import { DEFAULT_CATALOG, type ClientCatalog } from "@/lib/catalog"
+import { useDict } from "../use-dict"
 import { CourtisansProvider } from "./context"
 import { renderFamilyCards } from "./score-details"
 import { Message } from "./message"
@@ -45,8 +44,18 @@ type GameProps = { game: PublicGame; data?: unknown; onUpdate: (p: PublicGame) =
 
 /** Plateau de Courtisans branché sur @pbgo/core (`Game` de @pbgo/binding-ui). `data` = catalogue Sanity chargé côté serveur. */
 export function Game({ game, data, onUpdate, onLeave }: GameProps) {
+  // Leva is loaded on demand (debug mode only): the board remounts once with the real controls.
+  const debugTools = useDebugTools()
   if (!game.view) return null
-  return <Board game={game} catalog={(data as ClientCatalog | undefined) ?? DEFAULT_CATALOG} onUpdate={onUpdate} onLeave={onLeave} />
+  return (
+    <Board
+      key={debugTools ? "debug" : "play"}
+      game={game}
+      catalog={(data as ClientCatalog | undefined) ?? DEFAULT_CATALOG}
+      onUpdate={onUpdate}
+      onLeave={onLeave}
+    />
+  )
 }
 
 function Board({
@@ -61,6 +70,7 @@ function Board({
   onLeave: () => void
 }) {
   const t = useText()
+  const dict = useDict()
   const { victoryPhrases } = useSkin()
   const nicknameOf = useCallback((id: string) => game.players.find((j) => j.id === id)?.nickname ?? "?", [game.players])
   const view = useCheat(game.view as PlayerView, nicknameOf)
@@ -135,7 +145,7 @@ function Board({
       "Your turn announcement": button(() => announce(t("yourTurn"), "turn", { sound: "turn" })),
       "Victory announcement": button(() => {
         const { phrase, detail } = winnerAnnouncement(game, view, victoryPhrases)
-        announce(phrase || "Toute la cour s'incline devant", "victory", { subtitle: detail || "Oré · 9 pts", sound: "victory" })
+        announce(phrase || t("winnerTitle"), "victory", { subtitle: detail || `${game.players[0]?.nickname ?? "?"} · 9 pts`, sound: "victory" })
       }),
     },
     { order: 1 },
@@ -300,7 +310,7 @@ function Board({
                 <StalledTurn activePlayerId={view.activePlayerId} onUpdate={onUpdate} />
                 <StalledOpening onUpdate={onUpdate} />
 
-                <DebugPanel />
+                <DebugSlot />
 
                 <AnimatePresence>
                   {assassination && (
@@ -316,7 +326,7 @@ function Board({
                         onClick={() => interaction.eliminate(null)}
                         className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12] px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
                       >
-                        Ne pas assassiner
+                        {dict.noAssassination}
                       </Button>
                     </motion.div>
                   )}
@@ -333,7 +343,7 @@ function Board({
                     className="absolute right-6 bottom-6 z-40 h-10 cursor-pointer rounded-xl bg-foreground px-6 font-display text-base tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
                     onClick={skip}
                   >
-                    Passer
+                    {dict.skip}
                   </button>
                 )}
                 {ending?.scoreboard && (

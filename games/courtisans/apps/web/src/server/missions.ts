@@ -29,7 +29,7 @@ const STATUSES = ["light", "disgrace", "neutral"]
 const COMPARATORS = ["eq", "gte", "lte", "gt", "lt"]
 const OPPONENTS = ["leftNeighbor", "rightNeighbor", "allOpponents", "anyOpponent"]
 const oneOf = (value: unknown, list: readonly string[], field: string) => {
-  if (!list.includes(value as string)) throw new Error(`${field} invalide : ${JSON.stringify(value)}`)
+  if (!list.includes(value as string)) throw new Error(`invalid ${field}: ${JSON.stringify(value)}`)
 }
 
 /** Vérifie les valeurs d'une condition Sanity (une faute de saisie ne doit pas produire une mission impossible). */
@@ -42,8 +42,8 @@ function checkCondition(c: ConditionSanity) {
   if (c.type === "familyStatus") oneOf(c.family, FAMILIES, "family")
   if (c.type === "familyStatus" || c.type === "familiesWithStatus") oneOf(c.status, STATUSES, "status")
   if (c.type === "playerComparison") oneOf(c.opponent, OPPONENTS, "opponent")
-  if ((c.type === "and" || c.type === "or") && (c.conditions?.length ?? 0) < 2) throw new Error(`${c.type} : au moins 2 conditions`)
-  if (c.type === "not" && c.conditions?.length !== 1) throw new Error("not : exactement 1 condition")
+  if ((c.type === "and" || c.type === "or") && (c.conditions?.length ?? 0) < 2) throw new Error(`${c.type}: at least 2 conditions`)
+  if (c.type === "not" && c.conditions?.length !== 1) throw new Error("not: exactly 1 condition")
   c.conditions?.forEach(checkCondition)
 }
 
@@ -74,7 +74,7 @@ export function toCondition(c: ConditionSanity): Condition {
     case "not":
       return { type: "not", condition: toCondition(c.conditions?.[0] ?? {}) }
     default:
-      throw new Error(`Condition inconnue : ${c.type}`)
+      throw new Error(`unknown condition: ${c.type}`)
   }
 }
 
@@ -86,24 +86,26 @@ export async function loadMissions(playerCount: number): Promise<Mission[]> {
     const { missions } = await getCatalog()
     fromSanity = missions.flatMap((m) => {
       try {
-        if (m.color !== "white" && m.color !== "blue") throw new Error(`couleur invalide : ${JSON.stringify(m.color)}`)
+        if (m.color !== "white" && m.color !== "blue") throw new Error(`invalid color: ${JSON.stringify(m.color)}`)
         checkCondition(m.condition as ConditionSanity)
         return [
           {
             id: m._id,
             color: m.color as Mission["color"],
+            // Default-language text, frozen into the game state as a fallback only: clients render
+            // `catalog.missionTexts[id]` in the player's language (see getClientCatalog).
             text: translate(m.text) ?? "",
             condition: toCondition(m.condition as ConditionSanity),
           },
         ]
       } catch (error) {
         // visible dans les logs Vercel : la mission est ignorée et remplacée par une mission par défaut
-        console.warn(`Mission Sanity ${m._id} ignorée : ${(error as Error).message}`)
+        console.warn(`Sanity mission ${m._id} skipped: ${(error as Error).message}`)
         return []
       }
     })
   } catch (error) {
-    console.error("Catalogue Sanity indisponible", error)
+    console.error("Sanity catalog unavailable", error)
   }
 
   return (["white", "blue"] as const).flatMap((color) => {

@@ -9,6 +9,8 @@ type Verbs = { play: string; eliminate: string; draw: (n: number) => string }
 export type GameDict = {
   courtier: string
   status: Record<Status, string>
+  /** Other wordings of a status found in mission texts (highlighted like `status`) */
+  statusVariants?: Partial<Record<Status, string[]>>
   families: Record<Family, { name: string; plural: string; pluralDef: string }>
   roles: Record<Role, { name: string; plural: string }>
   zone: { table: string; mine: string; own: string; other: [string, string] }
@@ -18,6 +20,14 @@ export type GameDict = {
   missionsSucceeded: string
   missionsButton: string
   banquetStart: string
+  /** Assassin played: keep every card (button under the board) */
+  noAssassination: string
+  /** Skips the end-of-game sequence */
+  skip: string
+  /** Hidden home page heading (SEO), after the site title */
+  homeHeading: string
+  /** Structured data (schema.org VideoGame) of the home page */
+  seo: { genres: string[]; platform: string }
   rules: {
     title: string
     subtitle: string
@@ -48,6 +58,7 @@ export const GAME: Record<Locale, GameDict> = {
   fr: {
     courtier: "Courtisan",
     status: { light: "dans la lumière", disgrace: "en disgrâce", neutral: "neutre" },
+    statusVariants: { light: ["en lumière"] },
     families: {
       butterfly: { name: "Papillon", plural: "papillons", pluralDef: "Les papillons" },
       toad: { name: "Crapaud", plural: "crapauds", pluralDef: "Les crapauds" },
@@ -64,6 +75,10 @@ export const GAME: Record<Locale, GameDict> = {
     missionsSucceeded: "Missions réussies",
     missionsButton: "Missions comprises",
     banquetStart: "Le banquet peut commencer !",
+    noAssassination: "Ne pas assassiner",
+    skip: "Passer",
+    homeHeading: "Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis",
+    seo: { genres: ["Jeu de cartes", "Jeu de société", "Jeu de bluff"], platform: "Navigateur web" },
     rules: {
       title: "Règles du jeu",
       subtitle: "2 à 5 joueurs · 30 minutes",
@@ -95,6 +110,7 @@ export const GAME: Record<Locale, GameDict> = {
   en: {
     courtier: "Courtier",
     status: { light: "in the light", disgrace: "in disgrace", neutral: "neutral" },
+    statusVariants: { light: ["esteemed"], disgrace: ["fallen from grace"] },
     families: {
       butterfly: { name: "Butterfly", plural: "butterflies", pluralDef: "The butterflies" },
       toad: { name: "Toad", plural: "toads", pluralDef: "The toads" },
@@ -111,6 +127,10 @@ export const GAME: Record<Locale, GameDict> = {
     missionsSucceeded: "Missions completed",
     missionsButton: "Missions understood",
     banquetStart: "Let the banquet begin!",
+    noAssassination: "Don't assassinate",
+    skip: "Skip",
+    homeHeading: "Welcome to the Queen's banquet: play Courtisans online with your friends",
+    seo: { genres: ["Card game", "Board game", "Bluffing game"], platform: "Web browser" },
     rules: {
       title: "Game rules",
       subtitle: "2 to 5 players · 30 minutes",
@@ -158,6 +178,10 @@ export const GAME: Record<Locale, GameDict> = {
     missionsSucceeded: "Misiones cumplidas",
     missionsButton: "Misiones entendidas",
     banquetStart: "¡Que comience el banquete!",
+    noAssassination: "No asesinar",
+    skip: "Saltar",
+    homeHeading: "Bienvenido al banquete de la Reina: juega a Courtisans en línea con tus amigos",
+    seo: { genres: ["Juego de cartas", "Juego de mesa", "Juego de faroles"], platform: "Navegador web" },
     rules: {
       title: "Reglas del juego",
       subtitle: "De 2 a 5 jugadores · 30 minutos",
@@ -205,6 +229,10 @@ export const GAME: Record<Locale, GameDict> = {
     missionsSucceeded: "Erfüllte Missionen",
     missionsButton: "Missionen verstanden",
     banquetStart: "Das Bankett kann beginnen!",
+    noAssassination: "Niemanden eliminieren",
+    skip: "Überspringen",
+    homeHeading: "Willkommen beim Bankett der Königin: Spiele Courtisans online mit deinen Freunden",
+    seo: { genres: ["Kartenspiel", "Gesellschaftsspiel", "Bluffspiel"], platform: "Webbrowser" },
     rules: {
       title: "Spielregeln",
       subtitle: "2 bis 5 Spieler · 30 Minuten",

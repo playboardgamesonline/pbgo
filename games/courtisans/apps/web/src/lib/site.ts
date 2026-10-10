@@ -36,8 +36,6 @@ export const KEYWORDS = [
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const GENRES = ["Jeu de cartes", "Jeu de société", "Jeu de bluff"]
-
 export const CONTACT = "louvel.aurelien.pro@gmail.com"
 
 export const GOOGLE_SITE_VERIFICATION = "NNqyjwU_KDPRURSnEMUynx4l6Vrl_ELFzR99g8dBudQ"

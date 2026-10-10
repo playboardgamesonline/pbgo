@@ -1,11 +1,10 @@
 "use client"
 
 import { useThree } from "@react-three/fiber"
-import { button, useControls } from "leva"
 import { useEffect } from "react"
 import { type Object3D, PerspectiveCamera, Vector2 } from "three"
 import { useSettings } from "./settings"
-import { debugTab } from "@pbgo/core/components/game/debug-tabs"
+import { button, debugTab, useControls } from "@pbgo/core/components/game/debug-controls"
 
 export const PHOTO_SETTINGS = {
   tilt: 34,
@@ -49,7 +48,7 @@ export function GamePhoto() {
         if (!c) return
         const a = document.createElement("a")
         a.href = c.toDataURL("image/png")
-        a.download = "photo-partie.png"
+        a.download = "game-photo.png"
         a.click()
       }),
     },

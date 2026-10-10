@@ -1,32 +1,10 @@
 "use client"
 
 import { Leva, LevaPanel, button, useControls } from "leva"
-import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { roundValue, DEBUG_STORES, DEBUG_TABS, type DebugTab } from "./debug-tabs"
-
-const STORAGE_KEY = "game:debug"
-const subscribers = new Set<() => void>()
-
-function read() {
-  try {
-    return new URLSearchParams(window.location.search).has("debug") || localStorage.getItem(STORAGE_KEY) === "1"
-  } catch {
-    return false
-  }
-}
-
-function toggle() {
-  try {
-    localStorage.setItem(STORAGE_KEY, read() ? "0" : "1")
-    const url = new URL(window.location.href)
-    if (url.searchParams.has("debug")) {
-      url.searchParams.delete("debug")
-      window.history.replaceState(null, "", url)
-    }
-  } catch {}
-  subscribers.forEach((f) => f())
-}
+import { useDebugRequested, useDebugShortcut } from "./debug-controls"
 
 function copyAll() {
   const values: Record<string, Record<string, unknown>> = {}
@@ -39,7 +17,7 @@ function copyAll() {
   }
   const text = JSON.stringify(values, roundValue, 2)
   navigator.clipboard?.writeText(text).catch(() => null)
-  console.info("Réglages debug", values)
+  console.info("Debug settings", values)
 }
 
 function Fps() {
@@ -76,22 +54,8 @@ function Fps() {
 export function DebugPanel() {
   useControls({ "Copy all settings": button(copyAll) })
   const [activeTab, setActiveTab] = useState<DebugTab>("GAME")
-  const active = useSyncExternalStore(
-    (f) => {
-      subscribers.add(f)
-      return () => subscribers.delete(f)
-    },
-    read,
-    () => false,
-  )
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.shiftKey && e.key.toLowerCase() === "d" && !(e.target instanceof HTMLInputElement)) toggle()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [])
+  const active = useDebugRequested()
+  useDebugShortcut()
 
   return (
     <div className={cn("absolute top-44 left-4 z-40 w-[27rem]", !active && "hidden")}>

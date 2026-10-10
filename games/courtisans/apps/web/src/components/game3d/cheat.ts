@@ -1,7 +1,7 @@
 "use client"
 
 import type { CourtisansResults, PlayerView } from "@courtisans/engine"
-import { useControls } from "leva"
+import { useControls } from "@pbgo/core/components/game/debug-controls"
 import { useMemo } from "react"
 
 export const NONE = "—"
