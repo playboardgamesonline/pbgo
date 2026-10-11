@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { GeistMono } from "geist/font/mono"
 import { GeistSans } from "geist/font/sans"
 import "./globals.css"
@@ -23,7 +24,7 @@ export default function GlobalNotFound() {
             <h1 className="font-heading text-3xl font-semibold tracking-tight">Page not found</h1>
             <p className="max-w-md text-muted-foreground">This page does not exist, or the game is not here.</p>
             <Button asChild>
-              <a href="/">All games</a>
+              <Link href="/">All games</Link>
             </Button>
           </main>
         </ThemeProvider>
