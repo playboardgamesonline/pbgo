@@ -34,8 +34,13 @@ export function getGame(slug: string): Promise<GameModule | null> {
   if (!entry) return Promise.resolve(null)
   let game = modules.get(entry.slug)
   if (!game) {
-    game = LOADERS[entry.slug as GameSlug]().then((binding) => ({ ...entry, binding }))
-    modules.set(entry.slug, game)
+    const loading = LOADERS[entry.slug as GameSlug]().then((binding) => ({ ...entry, binding }))
+    game = loading
+    modules.set(entry.slug, loading)
+    // A failed import (a chunk that did not load) is not kept: the next request loads the game again instead of failing until the next deployment
+    loading.catch(() => {
+      if (modules.get(entry.slug) === loading) modules.delete(entry.slug)
+    })
   }
   return game
 }
