@@ -4,13 +4,13 @@ This document describes what the code does not say: why it is organized this way
 
 Conventions used in this document:
 
-- `web/…` refers to `games/courtisans/apps/web/src/…`
+- `web/…` refers to `games/courtisans/src/…` (the binding package `@pbgo-game/courtisans`). Before PLT-14 these files were in `games/courtisans/apps/web/src/…`, and the document was written before the code was translated to English, so many of them have a new name (`components/jeu3d/` → `components/game3d/`, `components/jeu/` → `components/game/`, `lib/catalogue.ts` → `lib/catalog.ts`, `lib/regles-defaut.ts` → `lib/default-rules.ts`…) or now live in `@pbgo/core` (`packages/core`, see the last column of §7) or in the app's routes (`apps/web/src/app`)
 - `engine/…` refers to `games/courtisans/packages/engine/src/…`
 - `studio/…` refers to `games/courtisans/apps/studio/…`
 - Function names are in backticks and followed by `()`. Leva settings are cited with their folder ("Deck", "Draw Pile"…).
 - The Courtisans code is **in French** (identifiers, files, `/api/parties` routes). The template and `@pbgo/core` are **in English** (`/api/games`, `players`, `view`). All of section 7 is about this gap.
 
-State at the time of writing (commit `392e07b`): `apps/web` is still standalone and imports `@courtisans/engine`; only the engine is wired to `@pbgo/engine-kit` via `engine/game.ts` (`GAME`). `apps/web` does not use `@pbgo/core` yet.
+State at the time of writing (commit `392e07b`): the web side was still a standalone app, `games/courtisans/apps/web`, importing `@courtisans/engine`; only the engine was wired to `@pbgo/engine-kit` via `engine/game.ts` (`GAME`), and the app did not use `@pbgo/core` yet. Since then (PLT-14) the web side is the binding `@pbgo-game/courtisans` (`games/courtisans/src`) on top of `@pbgo/core`, served by the repository's single Next.js app, `apps/web`. Sections 6.2, 7 and 8 still describe the migration as it stood then.
 
 ---
 
