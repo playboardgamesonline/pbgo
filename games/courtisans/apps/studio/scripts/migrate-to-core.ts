@@ -134,16 +134,16 @@ async function main() {
   }
 
   if (!changes.length) {
-    console.log("Rien à migrer : le dataset est déjà à jour.")
+    console.log("Nothing to migrate: the dataset is already up to date.")
     return
   }
   for (const c of changes) {
-    if (c.create) console.log(`+ ${c.id} (création) ${JSON.stringify(c.create).slice(0, 200)}`)
+    if (c.create) console.log(`+ ${c.id} (create) ${JSON.stringify(c.create).slice(0, 200)}`)
     else console.log(`~ ${c.id}${Object.keys(c.set).length ? ` set ${Object.keys(c.set).join(", ")}` : ""}${c.unset.length ? ` unset ${c.unset.join(", ")}` : ""}`)
   }
-  console.log(`\n${changes.length} document(s) à modifier.`)
+  console.log(`\n${changes.length} document(s) to modify.`)
   if (!confirm) {
-    console.log("Simulation uniquement : relance avec --confirm pour appliquer.")
+    console.log("Dry run only: re-run with --confirm to apply.")
     return
   }
   const tx = client.transaction()
@@ -152,7 +152,7 @@ async function main() {
     else tx.patch(c.id, (p) => p.set(c.set).unset(c.unset))
   }
   await tx.commit()
-  console.log("Migration appliquée.")
+  console.log("Migration applied.")
 }
 
 main().catch((error) => {

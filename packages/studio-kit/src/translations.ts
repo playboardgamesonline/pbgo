@@ -354,7 +354,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
   },
 }
 
-/** Shared error messages (code → message) per language; French lives in `DEFAULT_ERROR_MESSAGES`. */
+/** Shared error messages (code → message) per language; French lives in `CORE_ERROR_MESSAGES`. */
 export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>> = {
   en: {
     INVALID_NICKNAME: "Pick a nickname.",
