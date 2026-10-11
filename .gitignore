@@ -1,4 +1,4 @@
-# sources de design et assets lourds (locaux uniquement)
+# design sources and heavy assets (local only)
 games/*/assets/
 template/assets/
 *.psd
@@ -13,7 +13,7 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
-# env et liens locaux
+# env files and local links
 .env
 .env*.local
 .vercel
@@ -26,5 +26,5 @@ next-env.d.ts
 .pnpm-store/
 **/apps/studio/schema.json
 
-# anciens dossiers (avant le monorepo)
+# old folders (before the monorepo)
 _archive/

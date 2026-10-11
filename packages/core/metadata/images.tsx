@@ -1,28 +1,29 @@
 import "server-only"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
-import { SITE_URL } from "@pbgo/binding"
 import { ImageResponse } from "next/og"
 import sharp from "sharp"
+import type { GameModule } from "../lib/binding"
+import { mediaUrl } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
+import { SITE_URL } from "../lib/site-url"
 import { loadSkin } from "../lib/skin-server"
-import { BASE_PATH } from "../lib/base-path"
 
 /**
- * Favicon et image de partage générés depuis l'admin : le fichier envoyé (Identity) s'il existe,
- * sinon une composition faite avec l'habillage (Visual) : fond, motif, décors, personnage, logo et couleurs.
+ * Favicon and share image of a game, generated from its admin: the uploaded file (Identity) when there is one,
+ * else a composition made with the skin (Visual): background, pattern, decors, character, logo and colors.
  */
 
-/** Image de l'habillage : URL Sanity, /api/media, ou fichier de /public (lu sur le disque au build, sinon via le site). */
+const MEDIA = mediaUrl("")
+
+/** Skin image: Sanity URL, /api/media, or a file of /public (read from disk when available, else through the site). */
 async function loadImage(src: string | null | undefined): Promise<Buffer | null> {
   if (!src) return null
   try {
-    const media = `${BASE_PATH}/api/media?url=`
-    if (src.startsWith(media)) src = decodeURIComponent(src.slice(media.length))
+    if (src.startsWith(MEDIA)) src = decodeURIComponent(src.slice(MEDIA.length))
     if (src.startsWith("/")) {
       try {
-        const file = BASE_PATH && src.startsWith(`${BASE_PATH}/`) ? src.slice(BASE_PATH.length) : src
-        return await readFile(path.join(process.cwd(), "public", file.split("?")[0]!))
+        return await readFile(path.join(process.cwd(), "public", src.split("?")[0]!))
       } catch {
         src = new URL(src, SITE_URL).toString()
       }
@@ -51,14 +52,14 @@ const imageResponse = (buffer: Buffer, contentType: string) =>
 
 /* ------------------------------------------------------------------ favicon */
 
-export async function renderIcon(size: number) {
-  const settings = await loadSettings("fr")
+export async function renderIcon(game: GameModule, size: number) {
+  const settings = await loadSettings(game, "fr")
   const favicon = await loadImage(settings.favicon)
   if (favicon) {
     const out = await sharp(favicon).resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
     return imageResponse(out, "image/png")
   }
-  // sans favicon : le logo sur un carré arrondi aux couleurs du thème, sinon l'initiale du titre
+  // no favicon: the logo on a rounded square in the theme colors, else the title's initial
   const logo = await png(await loadImage(settings.logo), Math.round(size * 0.84), Math.round(size * 0.84))
   return new ImageResponse(
     (
@@ -83,12 +84,12 @@ export async function renderIcon(size: number) {
   )
 }
 
-/* ------------------------------------------------------------------ image de partage */
+/* ------------------------------------------------------------------ share image */
 
 export const SHARE_SIZE = { width: 1200, height: 630 }
 
-export async function renderShareImage() {
-  const [settings, skin] = await Promise.all([loadSettings("fr"), loadSkin("fr")])
+export async function renderShareImage(game: GameModule) {
+  const [settings, skin] = await Promise.all([loadSettings(game, "fr"), loadSkin(game, "fr")])
   const custom = await loadImage(settings.shareImage)
   if (custom) return imageResponse(await sharp(custom).resize(1200, 630, { fit: "cover" }).jpeg({ quality: 88 }).toBuffer(), "image/jpeg")
 

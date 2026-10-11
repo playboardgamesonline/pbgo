@@ -9,7 +9,7 @@ import { LOCALE_COOKIE, LOCALE_NAMES, LOCALES, type Locale } from "../lib/i18n"
 import { ICON_BUTTON } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
 
-/** Langue du visiteur : mémorisée dans un cookie d'un an (même URL pour tout le monde), la page est rendue à nouveau dans la nouvelle langue. */
+/** Visitor's language: kept in a one-year cookie (same URL for everyone), the page is rendered again in the new language. */
 export function setLocaleCookie(locale: Locale) {
   document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`
 }

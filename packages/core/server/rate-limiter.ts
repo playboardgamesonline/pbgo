@@ -2,9 +2,9 @@
  * Rate limiting: pure logic (no Next, no cookies), shared by the API routes through `server/rate-limit.ts` and tested in `rate-limiter.test.ts`.
  *
  * Every rule lives in `RATE_LIMITS`. A request is counted against:
- * - its route rule, keyed per player (cookie id) when the route allows it, else per IP — never per table, so a whole table
- *   acting at once (Courtisans opening: every player sends `readMissions`, with client retries) never shares a budget;
- * - a per-IP ceiling across all game routes, so rotating the (unsigned) player cookie doesn't bypass the per-player rules.
+ * - its route rule in its game, keyed per player (cookie id) when the route allows it, else per IP — never per table, so a
+ *   whole table acting at once (Courtisans opening: every player sends `readMissions`, with client retries) never shares a budget;
+ * - a per-IP ceiling across all game routes of every game, so rotating the (unsigned) player cookie doesn't bypass the per-player rules.
  *
  * LIMITATION: `MemoryRateLimitStore` keeps its counters in the memory of one server instance. On Vercel every lambda instance
  * has its own counters (and loses them on cold start), so the effective limit is "per instance": it stops bursts from one client
@@ -93,15 +93,20 @@ export function clientIp(headers: Headers): string | null {
 }
 
 /**
- * Keys to count a request against: the route rule (per player, else per IP) and the per-IP ceiling.
- * Empty when the client can't be identified at all (no cookie, no IP): better not to limit than to put every such client in one bucket.
+ * Keys to count a request against: the route rule (per player, else per IP), within `scope` (the game) when given, and the
+ * per-IP ceiling, shared by every game. Empty when the client can't be identified at all (no cookie, no IP): better not to
+ * limit than to put every such client in one bucket.
  */
-export function rateLimitKeys(name: RateLimitName, client: { playerId?: string | null; ip?: string | null }): [string, RateLimitRule][] {
+export function rateLimitKeys(
+  name: RateLimitName,
+  client: { playerId?: string | null; ip?: string | null },
+  scope?: string,
+): [string, RateLimitRule][] {
   const rule: RateLimitRule = RATE_LIMITS[name]
   const subject = rule.by !== "ip" && client.playerId ? `player:${client.playerId}` : client.ip ? `ip:${client.ip}` : null
   const keys: [string, RateLimitRule][] = []
   if (client.ip) keys.push([`ip:${client.ip}`, RATE_LIMITS.ip])
-  if (subject) keys.push([`${name}:${subject}`, rule])
+  if (subject) keys.push([`${scope ? `${scope}:` : ""}${name}:${subject}`, rule])
   return keys
 }
 

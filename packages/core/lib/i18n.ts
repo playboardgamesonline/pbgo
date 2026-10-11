@@ -1,19 +1,19 @@
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 
-/** Langues du site : à étendre dans `LANGUAGES` (studio-kit), qui alimente aussi les champs Sanity. */
+/** Languages of the site: extend `LANGUAGES` (studio-kit), which also feeds the Sanity fields. */
 export const LOCALES = LANGUAGES.map((l) => l.id) as unknown as readonly ("fr" | "en" | "es" | "de")[]
 export type Locale = (typeof LANGUAGES)[number]["id"]
 
 export const DEFAULT_LOCALE = "fr" as const satisfies Locale
 
-/** Nom de chaque langue dans sa propre langue, et code court affiché dans le sélecteur. */
+/** Name of each language in that language, shown by the language picker. */
 export const LOCALE_NAMES: Record<Locale, string> = Object.fromEntries(LANGUAGES.map((l) => [l.id, l.title])) as Record<Locale, string>
 
 export const LOCALE_COOKIE = "pbgo-locale"
 
 export const isLocale = (v: unknown): v is Locale => typeof v === "string" && (LOCALES as readonly string[]).includes(v)
 
-/** Première langue gérée de l'en-tête Accept-Language (`fr-CA,fr;q=0.9,en;q=0.8` → `fr`), sinon l'anglais (langue non gérée) ou la langue par défaut (pas d'en-tête). */
+/** First supported language of the Accept-Language header (`fr-CA,fr;q=0.9,en;q=0.8` → `fr`), else English (unsupported language) or the default language (no header). */
 export function fromAcceptLanguage(header: string | null | undefined): Locale {
   const wanted = (header ?? "")
     .split(",")
@@ -23,13 +23,13 @@ export function fromAcceptLanguage(header: string | null | undefined): Locale {
     })
     .filter((x) => x.lang && Number.isFinite(x.q))
     .sort((a, b) => b.q - a.q)
-  // navigateur dans une langue non gérée : l'anglais ; sans en-tête (robots) : le français
+  // browser in an unsupported language: English; no header (crawlers): French
   return wanted.map((x) => x.lang).find(isLocale) ?? (wanted.length ? "en" : DEFAULT_LOCALE)
 }
 
 export type Localized<T = string> = Partial<Record<Locale, T | null>> | null | undefined
 
-/** Valeur dans la langue demandée, sinon en français, sinon dans la première langue renseignée. */
+/** Value in the requested language, else in French, else in the first language filled in. */
 export function translate<T>(value: Localized<T>, locale: Locale = DEFAULT_LOCALE): T | undefined {
   if (!value) return undefined
   const has = (v: T | null | undefined) => v != null && (typeof v !== "string" || v.trim() !== "") && !(Array.isArray(v) && v.length === 0)
@@ -41,8 +41,8 @@ export function translate<T>(value: Localized<T>, locale: Locale = DEFAULT_LOCAL
 }
 
 /**
- * Valeur dans la langue demandée uniquement (pas de repli sur le français) pour les autres langues : c'est ce qui laisse jouer
- * les traductions par défaut du code tant que rien n'est saisi dans Sanity. En français, même règle que `translate`.
+ * Value in the requested language only (no French fallback) for the other languages: this lets the code's default
+ * translations apply as long as nothing is entered in Sanity. In French, same rule as `translate`.
  */
 export function only<T>(value: Localized<T>, locale: Locale): T | undefined {
   if (locale === DEFAULT_LOCALE) return translate(value, locale)
@@ -50,5 +50,5 @@ export function only<T>(value: Localized<T>, locale: Locale): T | undefined {
   return v == null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && v.length === 0) ? undefined : v
 }
 
-/** Code OpenGraph (`og:locale`) de chaque langue */
+/** OpenGraph code (`og:locale`) of each language */
 export const OG_LOCALES: Record<Locale, string> = { fr: "fr_FR", en: "en_US", es: "es_ES", de: "de_DE" }

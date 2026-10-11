@@ -3,7 +3,8 @@ import path from "node:path"
 import { getCliClient } from "sanity/cli"
 
 const client = getCliClient({ apiVersion: "2026-09-27" })
-const PUBLIC = path.resolve(process.cwd(), "../web/public")
+// the game's files in the single app (run from games/courtisans/apps/studio)
+const PUBLIC = path.resolve(process.cwd(), "../../../../apps/web/public/courtisans")
 
 const FAMILIES = [
   ["butterfly", "butterfly"],

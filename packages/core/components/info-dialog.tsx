@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@pbgo/ui/game/dialog"
 
-/** Fenêtre de texte simple (cookies, mentions légales) : paragraphes séparés par une ligne vide, retours à la ligne conservés. */
+/** Plain text dialog (cookies, legal notice): paragraphs split on blank lines, line breaks kept. */
 export function InfoDialog({ open, onOpenChange, title, text }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; text: string }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

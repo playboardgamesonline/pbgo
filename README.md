@@ -1,13 +1,21 @@
-# play-board-games-online
+# Play Board Games Online
 
-Monorepo des jeux de société en ligne (`play-<jeu>-online.vercel.app`).
+oré's online board games, served by one Next.js app on [playboardgamesonline.app](https://playboardgamesonline.app): the hub at `/`, each game at `/<slug>` (Courtisans at `/courtisans`).
 
 ```bash
 pnpm install
-pnpm dev skull-king          # site du jeu sur http://localhost:3000
-pnpm dev:studio skull-king   # Sanity Studio
-pnpm new-game the-crew       # nouveau jeu depuis template/
-pnpm go-live the-crew        # Sanity + Vercel + domaine + env
+pnpm dev                     # hub + every game on http://localhost:3100 (apps/web)
+pnpm dev:studio courtisans   # a game's Sanity Studio
+pnpm add-game the-crew       # new game from template/: package, registry entry, Sanity project
+pnpm typecheck && pnpm test && pnpm check:catalog
+pnpm build                   # production build of apps/web
 ```
 
-Voir `CLAUDE.md` pour la structure et les conventions.
+- `apps/web` — the app: hub, game pages, API
+- `games/<slug>` — one game: binding package `@pbgo-game/<slug>`, engine, Sanity Studio
+- `packages/` — shared code, including the games registry `@pbgo/games`
+- `template/` — the game template (demo game "La Plus Haute")
+
+Local settings: `apps/web/.env.local` (never committed), from `apps/web/.env.example` or `pnpm setup-env --no-push`.
+
+See `CLAUDE.md` for the structure, routes and conventions, and `MIGRATION.md` to move the project to another account.

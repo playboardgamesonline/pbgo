@@ -1,12 +1,11 @@
-import type { NextRequest } from "next/server"
+import type { GameRouteContext } from "../../../../lib/binding"
+import { requireAdmin } from "../../../../server/admin"
 import { ApiError, handle, readJson } from "../../../../server/api"
 import { supabaseAdmin } from "../../../../server/supabase"
-import { requireAdmin } from "../../../../server/admin"
 import { PRIORITIES, sanitizeText, type Task, TASK_TYPES } from "../../../../server/tasks"
 
-export const PATCH = handle(async (request: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
+export const PATCH = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await requireAdmin()
-  const { id } = await ctx.params
   const body = await readJson<{ text?: unknown; category?: unknown; done?: unknown; sort_order?: unknown; type?: unknown; priority?: unknown }>(request)
   const patch: Partial<Task> & { updated_at: string } = { updated_at: new Date().toISOString() }
   if (typeof body.done === "boolean") patch.done = body.done
@@ -19,16 +18,25 @@ export const PATCH = handle(async (request: NextRequest, ctx: { params: Promise<
   if (body.category !== undefined) patch.category = sanitizeText(body.category, 60) || "General"
   if (TASK_TYPES.includes(body.type as Task["type"])) patch.type = body.type as Task["type"]
   if (PRIORITIES.includes(body.priority as Task["priority"])) patch.priority = body.priority as Task["priority"]
-  const { data, error } = await supabaseAdmin().from("tasks").update(patch).eq("id", id).select("*").maybeSingle()
+  const { data, error } = await supabaseAdmin()
+    .from("tasks")
+    .update(patch)
+    .eq("game", game.slug)
+    .eq("id", params.id ?? "")
+    .select("*")
+    .maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError("TASK_NOT_FOUND", 404)
   return data as Task
 })
 
-export const DELETE = handle(async (_request: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
+export const DELETE = handle(async (_request: Request, { game, params }: GameRouteContext) => {
   await requireAdmin()
-  const { id } = await ctx.params
-  const { error } = await supabaseAdmin().from("tasks").delete().eq("id", id)
+  const { error } = await supabaseAdmin()
+    .from("tasks")
+    .delete()
+    .eq("game", game.slug)
+    .eq("id", params.id ?? "")
   if (error) throw error
   return { ok: true }
 })

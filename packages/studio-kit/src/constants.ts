@@ -5,7 +5,7 @@ export const LANGUAGES = [
   { id: "de", title: "Deutsch" },
 ] as const
 
-// Keep in sync with FONT_CHOICES in apps/web/src/lib/settings.ts
+// Fonts offered in Admin › Visual and in the studio (single source, re-exported by @pbgo/core/lib/settings)
 export const FONT_CHOICES = [
   "Inter",
   "Nunito",
@@ -26,11 +26,11 @@ export const FONT_CHOICES = [
 ] as const
 
 /**
- * Libellés d'interface communs à tous les jeux, modifiables dans Sanity (document « Texts », onglet « Interface »).
- * `fr` = valeur par défaut. Variables entre accolades : {code}, {name}, {count}, {max}.
+ * Interface labels shared by every game, editable in Sanity (document "Texts", tab "Interface") and in Admin › Copy.
+ * `fr` = default value. Variables in braces: {code}, {name}, {count}, {max}.
  */
 export const UI_TEXTS = [
-  // Accueil
+  // Home
   { key: "nicknamePlaceholder", group: "home", title: "Nickname placeholder", fr: "VOTRE PSEUDO…" },
   { key: "createButton", group: "home", title: "Create button", fr: "Créer une partie" },
   { key: "joinButton", group: "home", title: "Join button (code typed)", fr: "Rejoindre la partie" },
@@ -54,7 +54,12 @@ export const UI_TEXTS = [
   { key: "feedbackScreenshotRemove", group: "home", title: "Feedback: remove screenshot", fr: "Retirer la capture" },
   { key: "feedbackSend", group: "home", title: "Feedback: send button", fr: "Envoyer" },
   { key: "feedbackThanks", group: "home", title: "Feedback: thanks", fr: "Merci, votre message est bien arrivé !" },
-  // Invitation et lobby
+  { key: "homeLink", group: "home", title: "Logo link (screen readers)", fr: "Accueil" },
+  { key: "linkCopyFailed", group: "home", title: "Error: link copy failed", fr: "Impossible de copier le lien" },
+  { key: "comingSoon", group: "home", title: "Game not playable yet: title", fr: "Bientôt jouable en ligne" },
+  { key: "comingSoonHint", group: "home", title: "Game not playable yet: text", fr: "Ce jeu est en préparation. En attendant, découvrez les autres jeux." },
+  { key: "allGames", group: "home", title: "Link to every game", fr: "Tous les jeux" },
+  // Invitation and lobby
   { key: "joinGameButton", group: "lobby", title: "Join button (invitation)", fr: "Rejoindre la partie" },
   { key: "gameNotFound", group: "lobby", title: "Game not found", fr: "Cette partie est introuvable. Vérifiez le code {code} ou créez-en une nouvelle." },
   { key: "alreadyStarted", group: "lobby", title: "Game already started", fr: "Cette partie a déjà commencé." },
@@ -66,7 +71,7 @@ export const UI_TEXTS = [
   { key: "startButton", group: "lobby", title: "Start button (host)", fr: "Lancer la partie" },
   { key: "waitingPlayers", group: "lobby", title: "Start button: not enough players", fr: "En attente de joueurs…" },
   { key: "waitingHost", group: "lobby", title: "Waiting for host", fr: "En attente de l'hôte" },
-  // En partie
+  // In game
   { key: "yourTurn", group: "game", title: "Your turn", fr: "C'est votre tour" },
   { key: "turnOf", group: "game", title: "Turn of a player", fr: "Au tour de {name}" },
   { key: "yourTurnShort", group: "game", title: "History: your turn", fr: "Votre tour" },

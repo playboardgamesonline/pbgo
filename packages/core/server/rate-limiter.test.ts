@@ -58,6 +58,11 @@ describe("rateLimitKeys", () => {
     expect(rateLimitKeys("action", {})).toEqual([])
   })
 
+  it("scopes the route rule to the game, not the IP ceiling", () => {
+    expect(rateLimitKeys("create", { ip: "1.1.1.1" }, "courtisans").map(([k]) => k)).toEqual(["ip:1.1.1.1", "courtisans:create:ip:1.1.1.1"])
+    expect(rateLimitKeys("action", { playerId: "p1", ip: "1.1.1.1" }, "skyjo").map(([k]) => k)).toEqual(["ip:1.1.1.1", "skyjo:action:player:p1"])
+  })
+
   it("keys table creation per IP even with a player cookie", () => {
     expect(rateLimitKeys("create", { playerId: "p1", ip: "1.1.1.1" }).map(([k]) => k)).toEqual(["ip:1.1.1.1", "create:ip:1.1.1.1"])
   })

@@ -1,24 +1,23 @@
-import type { NextRequest } from "next/server"
+import type { GameRouteContext } from "../../../../../lib/binding"
 import { requireAdmin } from "../../../../../server/admin"
 import { ApiError, handle } from "../../../../../server/api"
 import { isUploadSlot, removeAsset, uploadAsset } from "../../../../../server/settings"
 
-async function slotOf(ctx: { params: Promise<{ slot: string }> }) {
-  const { slot } = await ctx.params
-  const decoded = decodeURIComponent(slot)
-  if (!isUploadSlot(decoded)) throw new ApiError("INVALID_REQUEST", 404)
-  return decoded
+function slotOf(params: GameRouteContext["params"]) {
+  const slot = decodeURIComponent(params.slot ?? "")
+  if (!isUploadSlot(slot)) throw new ApiError("INVALID_REQUEST", 404)
+  return slot
 }
 
-export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ slot: string }> }) => {
+export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await requireAdmin()
-  const slot = await slotOf(ctx)
+  const slot = slotOf(params)
   const file = (await request.formData().catch(() => null))?.get("file")
   if (!(file instanceof File)) throw new ApiError("INVALID_FILE")
-  return uploadAsset(slot, file)
+  return uploadAsset(game, slot, file)
 })
 
-export const DELETE = handle(async (_request: NextRequest, ctx: { params: Promise<{ slot: string }> }) => {
+export const DELETE = handle(async (_request: Request, { game, params }: GameRouteContext) => {
   await requireAdmin()
-  return removeAsset(await slotOf(ctx))
+  return removeAsset(game, slotOf(params))
 })

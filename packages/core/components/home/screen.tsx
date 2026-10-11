@@ -6,33 +6,37 @@ import { motion } from "motion/react"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Logo } from "@pbgo/binding-ui"
+import { useBinding } from "../../lib/binding-context"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pbgo/ui/game/input-otp"
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
-import { AUTHOR, CONTACT } from "@pbgo/binding"
 import { cn } from "@pbgo/ui/utils"
 
 /**
- * Écran standard hors partie (accueil, invitation, lobby), repris de Courtisans :
- * fond + motif, décor haut, logo animé, contenu, personnage debout sur le décor bas, bouton principal et code posés sur le décor,
- * son et règles en haut à droite, pied de page. Toutes les images viennent de l'habillage (Sanity `interface`) et sont facultatives.
+ * Standard screen outside a game (home, invitation, lobby), taken from Courtisans:
+ * background + pattern, top decor, animated logo, content, character standing on the bottom decor, main button and code laid on the decor,
+ * sound and rules at the top right, footer. Every image comes from the skin (Sanity `interface`) and is optional.
  */
 export function Screen({
   children,
   cta,
   below,
   onSubmit,
+  feedback,
 }: {
   children?: React.ReactNode
   cta?: React.ReactNode
   below?: React.ReactNode
   onSubmit?: (e: React.FormEvent) => void
+  /** Feedback entry of the menu (default: shown) */
+  feedback?: boolean
 }) {
   const { title, logo } = useSiteSettings()
   const { decor } = useSkin()
-  // hauteur du décor bas = largeur affichée (114vw) / ratio de l'image
+  const { SLUG, Logo } = useBinding()
+  const t = useText()
+  // height of the bottom decor = displayed width (114vw) / image ratio
   const decorHeight = decor.bottom?.ratio ? `calc(114vw / ${decor.bottom.ratio})` : "0px"
   return (
     <main className="relative flex h-dvh flex-col overflow-hidden bg-background" style={{ "--decor-h": decorHeight } as React.CSSProperties}>
@@ -64,7 +68,7 @@ export function Screen({
         />
       )}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
-        <Toolbar align="right" />
+        <Toolbar align="right" feedback={feedback} />
       </div>
 
       <form autoComplete="off" onSubmit={onSubmit ?? ((e) => e.preventDefault())} className="relative z-10 flex min-h-0 flex-1 flex-col items-center">
@@ -74,7 +78,7 @@ export function Screen({
           transition={{ type: "spring", stiffness: 120, damping: 14 }}
           className="mt-[7vh] w-[min(27rem,72vw,32vh)] shrink-0"
         >
-          <Link href="/" aria-label="Accueil" className="block">
+          <Link href={`/${SLUG}`} aria-label={t("homeLink")} className="block">
             {logo ? (
               <Logo src={logo} alt={title} />
             ) : (
@@ -122,6 +126,18 @@ export function Screen({
   )
 }
 
+const PRIMARY =
+  "relative inline-flex h-16 w-full overflow-hidden max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl bg-foreground px-8 font-display text-2xl tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] disabled:cursor-default disabled:hover:scale-100"
+
+/** Main button as a plain link (full page load, e.g. to the hub, which has its own root layout). */
+export function PrimaryLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} className={PRIMARY}>
+      {children}
+    </a>
+  )
+}
+
 export function PrimaryButton({
   children,
   busy,
@@ -132,7 +148,7 @@ export function PrimaryButton({
 }: {
   children: React.ReactNode
   busy?: boolean
-  /** Action déjà envoyée, en attente des autres : fond translucide, texte actif, reflet qui balaie le bouton */
+  /** Action already sent, waiting for the others: translucent background, active text, a sheen sweeping the button */
   waiting?: boolean
   disabled?: boolean
   onClick?: () => void
@@ -144,7 +160,7 @@ export function PrimaryButton({
       disabled={disabled || busy || waiting}
       onClick={onClick}
       className={cn(
-        "relative inline-flex h-16 w-full overflow-hidden max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl bg-foreground px-8 font-display text-2xl tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] disabled:cursor-default disabled:hover:scale-100",
+        PRIMARY,
         disabled && !waiting && "bg-[color-mix(in_oklab,var(--foreground)_62%,var(--background))] shadow-none",
         waiting && "border border-foreground/50 bg-foreground/20 text-foreground shadow-none backdrop-blur-sm",
         className,
@@ -202,7 +218,7 @@ export function CodeField({ value, onChange, copyable }: { value: string; onChan
       toast.success(t("linkCopied"))
       setTimeout(() => setCopied(false), 1600)
     } catch {
-      toast.error("Impossible de copier")
+      toast.error(t("linkCopyFailed"))
     }
   }
   return (
@@ -244,10 +260,10 @@ export function CodeField({ value, onChange, copyable }: { value: string; onChan
   )
 }
 
-// Police d'ambiance (annonces, introduction) : variable CSS --font-accent du jeu, sinon la police des titres
+// Mood font (announcements, intro): the game's --font-accent CSS variable, else the title font
 const ACCENT_FONT = "var(--font-accent, var(--font-title))"
 
-/** Titre + texte d'introduction (accueil). */
+/** Title + intro text (home). */
 export function Intro({ title, children }: { title?: string | null; children: React.ReactNode }) {
   return (
     <motion.div
@@ -283,6 +299,7 @@ export function Paragraph({ children, className }: { children: React.ReactNode; 
 
 function Footer() {
   const { title, credits } = useSiteSettings()
+  const { AUTHOR, CONTACT } = useBinding()
   const t = useText()
   const link = "underline decoration-foreground/30 underline-offset-2 hover:text-foreground"
   const publisher = credits.publisher ? (

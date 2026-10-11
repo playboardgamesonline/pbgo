@@ -1,12 +1,12 @@
-import * as binding from "@pbgo/binding"
-import type { OptionValues } from "@pbgo/binding"
+import type { OptionValues } from "@pbgo/engine-kit"
+import type { GameBinding } from "./binding"
 import type { PublicGame } from "./game-types"
 import type { ChatMessage, ChatReaction } from "./chat"
 import { isPreviewWindow } from "./preview"
-import { withBase } from "./base-path"
+import type { Profile } from "./profile"
 
-/** Messages d'erreur par défaut (core + moteur du jeu), remplaçables dans l'admin (page Copy). */
-export const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
+/** Default error messages of core (French), replaceable in the admin (Copy page). */
+export const CORE_ERROR_MESSAGES: Record<string, string> = {
   INVALID_NICKNAME: "Choisissez un pseudo.",
   INVALID_CODE: "Ce code de partie n'est pas valide.",
   GAME_NOT_FOUND: "Aucune partie ne correspond à ce code.",
@@ -28,29 +28,41 @@ export const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
   RATE_LIMITED: "Trop de requêtes : patientez quelques secondes avant de réessayer.",
   FORBIDDEN: "Action refusée.",
   TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
-  // messages propres au jeu (codes d'erreur du moteur) : export facultatif `ERROR_MESSAGES` de @pbgo/binding
-  ...(binding as { ERROR_MESSAGES?: Record<string, string> }).ERROR_MESSAGES,
 }
 
+const messagesByGame = new WeakMap<GameBinding, Record<string, string>>()
+
+/** Default error messages of a game: core's, plus the messages of its engine's error codes (`ERROR_MESSAGES` of its binding). */
+export function errorMessages(binding: GameBinding): Record<string, string> {
+  let messages = messagesByGame.get(binding)
+  if (!messages) messagesByGame.set(binding, (messages = { ...CORE_ERROR_MESSAGES, ...binding.ERROR_MESSAGES }))
+  return messages
+}
+
+// The page shows one game at a time: `BindingProvider` sets its messages, `SkinProvider` the ones replaced in Sanity.
+let defaults: Record<string, string> = CORE_ERROR_MESSAGES
 let overrides: Record<string, string> = {}
 
-/** Appelé par le SkinProvider avec les messages remplacés dans Sanity. */
+/** Called by `BindingProvider` with the current game (idempotent). */
+export function configureErrors(binding: GameBinding) {
+  defaults = errorMessages(binding)
+}
+
+/** Called by `SkinProvider` with the messages replaced in Sanity. */
 export function setErrorOverrides(messages: Record<string, string>) {
   overrides = messages
 }
 
 export class ApiClientError extends Error {
   constructor(public code: string) {
-    super(overrides[code] ?? DEFAULT_ERROR_MESSAGES[code] ?? overrides.SERVER_ERROR ?? DEFAULT_ERROR_MESSAGES.SERVER_ERROR)
+    super(overrides[code] ?? defaults[code] ?? overrides.SERVER_ERROR ?? defaults.SERVER_ERROR ?? CORE_ERROR_MESSAGES.SERVER_ERROR)
   }
 }
 
-/** Aperçu de l'admin : les appels ne partent pas (la promesse reste en attente, sans erreur affichée). */
-const isPreview = isPreviewWindow
-
+/** Admin previews: calls are not sent (the promise stays pending, no error shown). */
 async function apiRequest<T = PublicGame>(path: string, init?: RequestInit): Promise<T> {
-  if (isPreview()) return new Promise<T>(() => {})
-  const response = await fetch(withBase(path), { ...init, headers: { "Content-Type": "application/json" }, cache: "no-store" })
+  if (isPreviewWindow()) return new Promise<T>(() => {})
+  const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json" }, cache: "no-store" })
   const data = await response.json().catch(() => ({ error: "SERVER_ERROR" }))
   if (!response.ok) throw new ApiClientError(data.error ?? "SERVER_ERROR")
   return data as T
@@ -58,24 +70,40 @@ async function apiRequest<T = PublicGame>(path: string, init?: RequestInit): Pro
 
 const post = <T = PublicGame>(path: string, body?: unknown) => apiRequest<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) })
 
-export type Profile = { nickname: string }
+/** Sends a request to a route of the current game (`/api/<slug>/...`) with the same error handling as the game calls. */
+export const gameRequest = apiRequest
+
 export type ClientDebugCommand = "start" | "turn" | "over" | (string & {})
 
-export const api = {
-  create: (profile: Profile) => post("/api/games", profile),
-  read: (code: string) => apiRequest(`/api/games/${code}`),
-  join: (code: string, profile: Profile) => post(`/api/games/${code}/join`, profile),
-  leave: (code: string) => post(`/api/games/${code}/leave`),
-  options: (code: string, options: OptionValues) => post(`/api/games/${code}/options`, { options }),
-  start: (code: string) => post(`/api/games/${code}/start`),
-  action: (code: string, action: { type: string } & Record<string, unknown>) => post(`/api/games/${code}/action`, action),
-  replay: (code: string) => post(`/api/games/${code}/replay`),
-  takeover: (code: string) => post(`/api/games/${code}/takeover`),
-  /** Route propre au jeu (`app/api/games/[code]/<route>/route.ts` de l'app) : mêmes erreurs traduites et même neutralisation dans l'aperçu */
-  custom: (code: string, route: string, body?: unknown) => post(`/api/games/${code}/${route}`, body),
-  debug: (code: string, command: ClientDebugCommand) => post(`/api/games/${code}/debug`, { command }),
-  /** Chat message or reaction: the server sets the author from the player cookie and broadcasts it (`id` matches the optimistic copy) */
-  chat: (code: string, body: { id: string } & ({ text: string } | { reaction: string })) => post<ChatMessage | ChatReaction>(`/api/games/${code}/chat`, body),
+function buildApi(slug: string) {
+  const games = `/api/${slug}/games`
+  return {
+    create: (profile: Profile) => post(games, profile),
+    read: (code: string) => apiRequest(`${games}/${code}`),
+    join: (code: string, profile: Profile) => post(`${games}/${code}/join`, profile),
+    leave: (code: string) => post(`${games}/${code}/leave`),
+    options: (code: string, options: OptionValues) => post(`${games}/${code}/options`, { options }),
+    start: (code: string) => post(`${games}/${code}/start`),
+    action: (code: string, action: { type: string } & Record<string, unknown>) => post(`${games}/${code}/action`, action),
+    replay: (code: string) => post(`${games}/${code}/replay`),
+    takeover: (code: string) => post(`${games}/${code}/takeover`),
+    /** Route of the game itself (`ROUTES` of its server binding): same translated errors, same neutralization in the preview */
+    custom: (code: string, route: string, body?: unknown) => post(`${games}/${code}/${route}`, body),
+    debug: (code: string, command: ClientDebugCommand) => post(`${games}/${code}/debug`, { command }),
+    /** Chat message or reaction: the server sets the author from the player cookie and broadcasts it (`id` matches the optimistic copy) */
+    chat: (code: string, body: { id: string } & ({ text: string } | { reaction: string })) => post<ChatMessage | ChatReaction>(`${games}/${code}/chat`, body),
+    /** Shareable link of a table */
+    link: (code: string) => `${window.location.origin}/${slug}/game/${code}`,
+  }
 }
 
-export const gameLink = (code: string) => `${window.location.origin}${withBase(`/game/${code}`)}`
+export type GameApi = ReturnType<typeof buildApi>
+
+const apis = new Map<string, GameApi>()
+
+/** API client of a game, memoized per slug. In a component, use `useApi()` from `lib/binding-context`. */
+export function createApi(slug: string): GameApi {
+  let api = apis.get(slug)
+  if (!api) apis.set(slug, (api = buildApi(slug)))
+  return api
+}

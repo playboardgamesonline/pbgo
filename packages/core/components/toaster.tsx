@@ -4,8 +4,10 @@ import { usePathname } from "next/navigation"
 import { Toaster as AdminToaster } from "@pbgo/ui/admin/sonner"
 import { Toaster as GameToaster } from "@pbgo/ui/game/sonner"
 
-/** Toasts : style du jeu partout, style shadcn de l'admin sur /admin (un seul Toaster à la fois, pas de doublon). */
+const ADMIN_PATH = /^\/[^/]+\/admin(\/|$)/
+
+/** Toasts: the game's style everywhere, the admin's shadcn style on /<slug>/admin (a single Toaster at a time, no duplicates). */
 export function AppToaster() {
-  const admin = usePathname()?.startsWith("/admin")
+  const admin = ADMIN_PATH.test(usePathname() ?? "")
   return admin ? <AdminToaster position="bottom-right" /> : <GameToaster position="top-center" />
 }

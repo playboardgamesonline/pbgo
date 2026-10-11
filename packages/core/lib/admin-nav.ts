@@ -31,7 +31,7 @@ export type CountKey = "launch" | "backlog" | "bugs" | "feedback"
 
 export type NavItem = { path: AdminPath; label: string; description: string; icon: typeof IdIcon; count?: CountKey }
 
-/** Barre latérale de l'admin : Setup (réglages du site), Tasks (suivi du projet), Monitoring (état en ligne). */
+/** Admin sidebar: Setup (site settings), Tasks (project follow-up), Monitoring (live status). Paths are relative to `/<slug>/admin`. */
 export const ADMIN_NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Setup",
@@ -65,3 +65,6 @@ export const ADMIN_NAV: { group: string; items: NavItem[] }[] = [
 export const ADMIN_ITEMS = ADMIN_NAV.flatMap((g) => g.items.map((i) => ({ ...i, group: g.group })))
 
 export const findAdminItem = (path: string) => ADMIN_ITEMS.find((i) => i.path === path)
+
+/** URL of an admin page of a game: `/<slug>/admin/<path>` (`/<slug>/admin` for the first page). */
+export const adminHref = (slug: string, path?: AdminPath | "") => (path ? `/${slug}/admin/${path}` : `/${slug}/admin`)

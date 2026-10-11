@@ -5,9 +5,10 @@ import { Badge } from "@pbgo/ui/admin/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
 import { Progress } from "@pbgo/ui/admin/progress"
 import { cn } from "@pbgo/ui/utils"
+import { adminHref } from "../../lib/admin-nav"
 import type { LaunchItem } from "../../server/launch"
 
-export function LaunchPage({ items }: { items: LaunchItem[] }) {
+export function LaunchPage({ slug, items }: { slug: string; items: LaunchItem[] }) {
   const required = items.filter((i) => !i.optional)
   const done = required.filter((i) => i.ok).length
   const groups = [...new Set(items.map((i) => i.group))]
@@ -36,7 +37,7 @@ export function LaunchPage({ items }: { items: LaunchItem[] }) {
                   .filter((i) => i.group === g)
                   .map((i) => (
                     <li key={i.id}>
-                      <Link href={`/admin/${i.fix}`} className="group flex items-center gap-3 px-6 py-3 hover:bg-muted/50">
+                      <Link href={adminHref(slug, i.fix)} className="group flex items-center gap-3 px-6 py-3 hover:bg-muted/50">
                         <span
                           className={cn(
                             "flex size-5 shrink-0 items-center justify-center rounded-full",

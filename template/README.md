@@ -1,28 +1,22 @@
-# play-board-games-online-template
+# Template · La Plus Haute
 
-Base des jeux de société en ligne : lobby avec options de partie, table 3D temps réel, fin de partie partageable, règles Sanity, administration sur `/admin` (Setup, Tasks, Monitoring).
+Shared base of the online board games, served by `apps/web` at `/template`: lobby with game options, realtime 3D table, shareable game over, rules from Sanity, administration at `/template/admin` (Setup, Tasks, Monitoring).
 
-## Démarrer
+## Start
 
 ```bash
-pnpm install
-pnpm go-live                                   # GitHub + Sanity + Vercel, puis setup:env → site en ligne
-pnpm setup:env                                 # questions guidées → .env.local + variables Vercel
-pnpm dev                                       # http://localhost:3000
-pnpm dev:studio                                # Sanity Studio
-pnpm test && pnpm typecheck
+pnpm install                 # once, at the root of the monorepo
+pnpm dev                     # apps/web on http://localhost:3100, this game at /template
+pnpm dev:studio template     # its Sanity Studio
+pnpm --filter @template/engine test
+pnpm typecheck
 ```
 
-`pnpm go-live` (scripts/go-live.sh) : repo GitHub privé + push, projet Sanity + CORS + studio, projet Vercel relié au repo (root `apps/web`) + domaine (`play-board-games-online-template.vercel.app` pour le template, `play-<jeu>-online.vercel.app` pour un jeu), sans modifier les fichiers suivis. Il enchaîne sur `pnpm setup:env`.
+## New game
 
-`pnpm setup:env` (scripts/setup-env.sh) : crée le token d'écriture Sanity et déploie le schéma, demande les clés Supabase et applique les migrations manquantes, crée le compte admin (mot de passe généré), ajoute le token Vercel pour /admin/monitoring, écrit `apps/web/.env.local` puis pousse les variables sur Vercel et redéploie. Relançable : Entrée garde la valeur actuelle.
+```bash
+pnpm new-game <slug>         # copy of this folder in games/<slug>, registered in packages/games
+pnpm add-game <slug>         # the same, plus the Sanity project, its studio and its write token
+```
 
-## Administration
-
-- `/admin` › Setup : paramètres du site enregistrés dans Sanity (titre, description, logo, min/max joueurs, thème, polices, règles PDF FR/EN) + to-do du projet
-- `/admin` › Monitoring : parties en cours, créées, joueurs uniques, dernières parties, audience Vercel Web Analytics, état de la config et liste des sites du compte Vercel
-- Connexion : `ADMIN_LOGIN` / `ADMIN_PASSWORD`. Style shadcn preset `b1VlJAwK` (luma, neutral, Inter, Hugeicons), composants dans `apps/web/src/components/admin/ui`
-
-## Nouveau jeu
-
-Voir `CLAUDE.md` (section « Adapter à un nouveau jeu ») et le guide complet `docs/GUIDE_TEMPLATE_JEU_EN_LIGNE.md`.
+See `CLAUDE.md` ("Adapting to a new game") and the full guide `docs/GAME_GUIDE.md`.

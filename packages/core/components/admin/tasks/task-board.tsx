@@ -17,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@pbgo/ui/admin/skeleton"
 import { Switch } from "@pbgo/ui/admin/switch"
 import { cn } from "@pbgo/ui/utils"
-import { adminRequest } from "../../../lib/admin-api"
+import { AdminApiError, adminRequest } from "../../../lib/admin-api"
+import { useGameSlug } from "../../../lib/binding-context"
 import type { Task, TaskPriority, TaskType } from "../../../server/tasks"
 
 export const PRIORITY: Record<TaskPriority, { label: string; bug: string; className: string }> = {
@@ -27,8 +28,9 @@ export const PRIORITY: Record<TaskPriority, { label: string; bug: string; classN
 }
 const ORDER: TaskPriority[] = ["high", "medium", "low"]
 
-/** Backlog (par catégorie) ou Bugs (par gravité). */
+/** Backlog (by category) or Bugs (by severity). */
 export function TaskBoard({ type }: { type: TaskType }) {
+  const route = `/api/${useGameSlug()}/tasks`
   const bug = type === "bug"
   const [tasks, setTasks] = useState<Task[] | null>(null)
   const [migrated, setMigrated] = useState(true)
@@ -39,14 +41,14 @@ export function TaskBoard({ type }: { type: TaskType }) {
 
   const load = useCallback(async () => {
     try {
-      const res = await adminRequest<{ tasks: Task[]; migrated: boolean }>(`/api/tasks?type=${type}`)
-      setTasks(res.tasks)
-      setMigrated(res.migrated)
-    } catch {
-      toast.error("Could not load the tasks (is the “tasks” table created?)")
+      setTasks(await adminRequest<Task[]>(`${route}?type=${type}`))
+      setMigrated(true)
+    } catch (e) {
+      if (e instanceof AdminApiError && e.code === "MIGRATION_MISSING") setMigrated(false)
+      else toast.error("Could not load the tasks")
       setTasks([])
     }
-  }, [type])
+  }, [route, type])
 
   useEffect(() => {
     void Promise.resolve().then(load)
@@ -80,7 +82,7 @@ export function TaskBoard({ type }: { type: TaskType }) {
     e.preventDefault()
     if (!text.trim()) return
     try {
-      const task = await adminRequest<Task>("/api/tasks", {
+      const task = await adminRequest<Task>(route, {
         method: "POST",
         body: JSON.stringify({ text, category: bug ? "Bugs" : category || categories[0], type, priority }),
       })
@@ -95,7 +97,7 @@ export function TaskBoard({ type }: { type: TaskType }) {
     const before = tasks
     setTasks((l) => l?.map((t) => (t.id === id ? { ...t, ...patch } : t)) ?? null)
     try {
-      await adminRequest(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) })
+      await adminRequest(`${route}/${id}`, { method: "PATCH", body: JSON.stringify(patch) })
       if (patch.type && patch.type !== type) setTasks((l) => l?.filter((t) => t.id !== id) ?? null)
     } catch (err) {
       setTasks(before)
@@ -107,7 +109,7 @@ export function TaskBoard({ type }: { type: TaskType }) {
     const before = tasks
     setTasks((l) => l?.filter((t) => t.id !== id) ?? null)
     try {
-      await adminRequest(`/api/tasks/${id}`, { method: "DELETE" })
+      await adminRequest(`${route}/${id}`, { method: "DELETE" })
     } catch {
       setTasks(before)
       toast.error("Could not delete")
@@ -120,7 +122,7 @@ export function TaskBoard({ type }: { type: TaskType }) {
         <Alert>
           <AlertTitle>Supabase migration missing</AlertTitle>
           <AlertDescription>
-            Apply <code>supabase/migrations/…_admin_tasks_feedback.sql</code> to enable {bug ? "bugs" : "priorities and bugs"}. Until then every task is in the Backlog.
+            Apply <code>supabase/migrations</code> to the Supabase project to store the {bug ? "bugs" : "backlog"}.
           </AlertDescription>
         </Alert>
       )}

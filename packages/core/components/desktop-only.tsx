@@ -4,12 +4,12 @@ import { MonitorIcon } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useSkin, useText } from "./skin-provider"
 
-/** Pages de partie (salle d'attente, plateau) et leur aperçu dans l'admin : les seules que le mur recouvre. */
-const GAME_PAGES = /^\/(game|preview\/game)(\/|$)/
+/** Game pages (lobby, board) and their admin preview, `/<slug>/game/…` and `/<slug>/preview/game`: the only ones the wall covers. */
+const GAME_PAGES = /^\/[^/]+\/(game|preview\/game)(\/|$)/
 
 /**
- * Sous 900 px, recouvre les pages de partie quand l'habillage le demande (`interface.desktopOnly`, vrai par défaut).
- * L'accueil, les règles et le reste du site restent lisibles sur mobile (référencement) : voir `DesktopNotice`.
+ * Below 900 px, covers the game pages when the skin asks for it (`interface.desktopOnly`, true by default).
+ * The home page, the rules and the rest of the site stay readable on mobile (search engines): see `DesktopNotice`.
  */
 export function DesktopOnly() {
   const { desktopOnly, decor } = useSkin()
@@ -27,7 +27,7 @@ export function DesktopOnly() {
   )
 }
 
-/** Avis non bloquant sous 900 px (accueil) : on peut lire la page, mais la partie se joue sur ordinateur (le formulaire est alors masqué). */
+/** Non-blocking notice below 900 px (home page): the page can be read, but the game is played on a computer (the form is hidden). */
 export function DesktopNotice() {
   const { desktopOnly } = useSkin()
   const t = useText()

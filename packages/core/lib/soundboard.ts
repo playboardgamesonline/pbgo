@@ -3,8 +3,8 @@
 import { currentVolumes, readSoundEnabled } from "./sound"
 
 /**
- * Réactions du chat : un emoji + un petit son synthétisé (aucun fichier audio à fournir, donc disponible dans tous les jeux).
- * Un jeu peut en ajouter ou en remplacer via l'export facultatif `REACTIONS` de @pbgo/binding (même forme).
+ * Chat reactions: an emoji + a small synthesized sound (no audio file to provide, so available in every game).
+ * A game can add or replace some through the optional `REACTIONS` of its binding (same shape).
  */
 export type Reaction = { id: string; emoji: string; label: string; play: (c: AudioContext, out: AudioNode, t: number) => void }
 
@@ -50,10 +50,24 @@ export const DEFAULT_REACTIONS: Reaction[] = [
   { id: "love", emoji: "❤️", label: "Love", play: (c, o, t) => [660, 880].forEach((f, i) => tone(c, o, t + i * 0.13, { freq: f, dur: 0.3, type: "sine", gain: 0.25 })) },
 ]
 
+const merged = new WeakMap<Reaction[], Reaction[]>()
+
+/** Reactions of a game: the built-in ones, where the game's `REACTIONS` replace those with the same id and add the others. */
+export function gameReactions(own: Reaction[] | undefined): Reaction[] {
+  if (!own?.length) return DEFAULT_REACTIONS
+  let list = merged.get(own)
+  if (!list) {
+    const byId = new Map(own.map((r) => [r.id, r]))
+    list = [...DEFAULT_REACTIONS.map((r) => byId.get(r.id) ?? r), ...own.filter((r) => !DEFAULT_REACTIONS.some((d) => d.id === r.id))]
+    merged.set(own, list)
+  }
+  return list
+}
+
 let ctx: AudioContext | null = null
 let bus: GainNode | null = null
 
-/** À appeler sur un geste utilisateur (le navigateur bloque l'audio avant). */
+/** Call on a user gesture (the browser blocks audio before one). */
 export function prepareSoundboard() {
   try {
     if (!ctx) {

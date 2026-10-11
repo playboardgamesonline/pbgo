@@ -15,11 +15,12 @@ export function setRateLimitStore(store: RateLimitStore) {
 }
 
 /**
- * Throws `RATE_LIMITED` (429, with `Retry-After`) when the caller went over the `name` rule of `RATE_LIMITS` or the per-IP ceiling.
- * Call it first in the route, before any database work. `code` overrides the error code (feedback keeps `TOO_MANY_REQUESTS`).
+ * Throws `RATE_LIMITED` (429, with `Retry-After`) when the caller went over the `name` rule of `RATE_LIMITS` in this game
+ * (`slug`) or the per-IP ceiling. Call it first in the route, before any database work. `code` overrides the error code
+ * (feedback keeps `TOO_MANY_REQUESTS`).
  */
-export async function rateLimit(request: Request, name: RateLimitName, options: { code?: string } = {}) {
-  const keys = rateLimitKeys(name, { playerId: await getPlayerId(), ip: clientIp(request.headers) })
+export async function rateLimit(slug: string, request: Request, name: RateLimitName, options: { code?: string } = {}) {
+  const keys = rateLimitKeys(name, { playerId: await getPlayerId(slug), ip: clientIp(request.headers) }, slug)
   const result = await checkRateLimit(holder.__pbgoRateLimitStore!, keys)
   if (!result.ok) throw new ApiError(options.code ?? "RATE_LIMITED", 429, { "Retry-After": String(Math.max(1, Math.ceil(result.retryAfterMs / 1000))) })
 }

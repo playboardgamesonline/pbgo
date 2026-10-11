@@ -1,12 +1,39 @@
 {
-  "name": "skull-king",
+  "name": "@pbgo-game/skull-king",
+  "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "description": "Skull King for apps/web: site constants, logo and default look. No engine yet, so its home page says \"coming soon\".",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/ui.tsx",
+    "./server": "./src/server.ts",
+    "./runtime": "./src/runtime.tsx",
+    "./styles.css": "./src/styles.css"
+  },
   "scripts": {
-    "dev": "pnpm --filter skull-king-web dev",
+    "typecheck": "tsc --noEmit",
     "dev:studio": "pnpm --filter skull-king-studio dev",
-    "build": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" build",
-    "test": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" test",
-    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" typecheck",
     "deploy:studio": "pnpm --filter skull-king-studio run deploy"
+  },
+  "dependencies": {
+    "@pbgo/core": "workspace:*",
+    "@pbgo/ui": "workspace:*",
+    "server-only": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:"
   }
 }

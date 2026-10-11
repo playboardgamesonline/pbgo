@@ -1,6 +1,6 @@
 "use client"
 
-import { GAME, type PlayerResult, type PlayerView } from "@pbgo/binding"
+import type { PlayerResult } from "@pbgo/engine-kit"
 import { CrownIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { LinkForwardIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -10,7 +10,8 @@ import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { PrimaryButton } from "../home/screen"
-import { api } from "../../lib/api"
+import type { CoreView } from "../../lib/binding"
+import { useApi, useBinding } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
 import { cn } from "@pbgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
@@ -26,14 +27,14 @@ function hash(text: string) {
 }
 
 /**
- * Phrase de victoire tirée des phrases de l'habillage par un hash déterministe (tout le monde voit la même).
- * Gabarit `{pseudo}` / `{points}` : l'annonce garde ce qui précède `{pseudo}`, les noms et les points passent en sous-titre.
+ * Victory sentence picked from the skin's phrases with a deterministic hash (everyone sees the same one).
+ * Template `{pseudo}` / `{points}`: the announcement keeps what comes before `{pseudo}`, the names and points go in the subtitle.
  */
-export function winnerAnnouncement(game: PublicGame, view: PlayerView, phrases: string[] = DEFAULT_SKIN.victoryPhrases) {
+export function winnerAnnouncement(game: PublicGame, view: CoreView, phrases: string[] = DEFAULT_SKIN.victoryPhrases) {
   const results = view.results
   if (!results) return { phrase: "", detail: "" }
   const winners = results.players.filter((j) => results.winners.includes(j.playerId))
-  const template = phrases[hash(game.code + view.log.length) % phrases.length] ?? ""
+  const template = phrases[hash(game.code + (view.log?.length ?? 0)) % phrases.length] ?? ""
   const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).replace(/[\s:,–-]+$/, "").trim()
   const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
   return { phrase, detail: `${names} · ${winners[0]?.total ?? 0} pts` }
@@ -64,8 +65,8 @@ function Details({ j, large, centered }: { j: PlayerResult; large?: boolean; cen
 export type ResultDetailRenderer = (result: PlayerResult, options: { large: boolean; centered: boolean }) => React.ReactNode
 
 /**
- * Tableau de fin : vainqueur(s), classement, « Rejouer (x/n) », afficher / masquer, vignette de partage.
- * `renderDetail` : rendu propre au jeu du détail des points d'un joueur (par défaut, des pastilles `label +n`).
+ * End-of-game board: winner(s), ranking, "Replay (x/n)", show / hide, share thumbnail.
+ * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips).
  */
 export function GameOver({
   onUpdate,
@@ -79,6 +80,8 @@ export function GameOver({
   renderDetail?: ResultDetailRenderer
 }) {
   const t = useText()
+  const { GAME, NAME, SLUG } = useBinding()
+  const api = useApi()
   const { hostIcon, decor } = useSkin()
   const { view, game, color } = useGame()
   const { title } = useSiteSettings()
@@ -102,7 +105,7 @@ export function GameOver({
         winner: results.winners.includes(j.playerId),
       }))
     const timer = setTimeout(() => {
-      generateShareImage(lines, game.code, title)
+      generateShareImage(lines, SLUG, game.code, title)
         .then((f) => !cancelled && setImage(f))
         .catch(() => !cancelled && toast.error(t("imageError")))
     }, 1200)
@@ -143,7 +146,7 @@ export function GameOver({
   const ended = game.updatedAt ? new Date(game.updatedAt) : null
   const minutes = created && ended ? Math.max(1, Math.round((ended.getTime() - created.getTime()) / 60000)) : null
   const footer = [
-    GAME.name,
+    GAME?.name ?? NAME,
     minutes !== null ? (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`) : null,
     ended ? `${ended.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })} · ${ended.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : null,
     "PBGO",

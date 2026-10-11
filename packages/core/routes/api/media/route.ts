@@ -4,9 +4,9 @@ const ORIGIN = "https://cdn.sanity.io/"
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url")
-  if (!url?.startsWith(ORIGIN)) return new Response("URL non autorisée", { status: 400 })
+  if (!url?.startsWith(ORIGIN)) return new Response("URL not allowed", { status: 400 })
   const res = await fetch(url, { next: { revalidate: 86400 } })
-  if (!res.ok || !res.body) return new Response("Introuvable", { status: 404 })
+  if (!res.ok || !res.body) return new Response("Not found", { status: 404 })
   return new Response(res.body, {
     headers: {
       "Content-Type": res.headers.get("content-type") ?? "application/octet-stream",
