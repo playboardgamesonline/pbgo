@@ -7,4 +7,4 @@ export const SITE_DESCRIPTION = "Play board and card games online with friends, 
 /** Publisher of the site (legal notice); each game's own notice (toolbar menu) names it too. */
 export const PUBLISHER = { name: "oré", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"

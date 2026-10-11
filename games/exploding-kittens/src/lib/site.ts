@@ -15,7 +15,7 @@ export const KEYWORDS = ["Exploding Kittens", "Exploding Kittens en ligne", "jeu
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 /** Genres of the home page's structured data (`SEO` in server.ts). */
 export const GENRES = ["Jeu de cartes"]

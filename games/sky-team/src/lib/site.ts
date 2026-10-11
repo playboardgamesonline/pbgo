@@ -15,7 +15,7 @@ export const KEYWORDS = ["Sky Team", "Sky Team en ligne", "jeu coopératif à de
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://sky-team.sanity.studio"
 

@@ -25,7 +25,7 @@ export const KEYWORDS = [
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 export const GOOGLE_SITE_VERIFICATION = "NNqyjwU_KDPRURSnEMUynx4l6Vrl_ELFzR99g8dBudQ"
 

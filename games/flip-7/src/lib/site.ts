@@ -15,7 +15,7 @@ export const KEYWORDS = ["Flip 7", "Flip 7 en ligne", "jeu de stop ou encore", "
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://flip-7.sanity.studio"
 

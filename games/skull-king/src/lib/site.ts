@@ -15,7 +15,7 @@ export const KEYWORDS = ["Skull King", "Skull King en ligne", "jeu de plis", "je
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://skull-king.sanity.studio"
 

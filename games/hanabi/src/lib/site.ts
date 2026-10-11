@@ -15,7 +15,7 @@ export const KEYWORDS = ["Hanabi", "Hanabi en ligne", "jeu coopératif", "jeu de
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://hanabi.sanity.studio"
 

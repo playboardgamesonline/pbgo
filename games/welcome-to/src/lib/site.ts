@@ -15,7 +15,7 @@ export const KEYWORDS = ["Welcome To", "Welcome To en ligne", "flip and write", 
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://welcome-to.sanity.studio"
 

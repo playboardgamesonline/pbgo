@@ -15,7 +15,7 @@ export const KEYWORDS = ["Trio", "Trio en ligne", "jeu de mémoire", "jeu de dé
 
 export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https://ore.today" }
 
-export const CONTACT = "louvel.aurelien.pro@gmail.com"
+export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://trio-online.sanity.studio"
 
