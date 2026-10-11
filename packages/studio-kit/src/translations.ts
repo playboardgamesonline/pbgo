@@ -1,8 +1,8 @@
 import type { UiTextKey } from "./constants"
 
 /**
- * Traductions par défaut des libellés communs (le français vit dans `UI_TEXTS`). Un libellé saisi dans l'admin (Copy) passe toujours avant.
- * Variables entre accolades : {code}, {name}, {count}, {max}… à conserver telles quelles.
+ * Default translations of the shared labels (French lives in `UI_TEXTS`). A label typed in the admin (Copy) always takes precedence.
+ * Variables in braces: {code}, {name}, {count}, {max}… to be kept as is.
  */
 export type TranslatedLocale = "en" | "es" | "de"
 
@@ -354,7 +354,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
   },
 }
 
-/** Messages d'erreur communs (code → message) par langue ; le français vit dans `DEFAULT_ERROR_MESSAGES`. */
+/** Shared error messages (code → message) per language; French lives in `DEFAULT_ERROR_MESSAGES`. */
 export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>> = {
   en: {
     INVALID_NICKNAME: "Pick a nickname.",

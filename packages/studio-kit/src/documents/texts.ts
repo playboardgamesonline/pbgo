@@ -2,7 +2,7 @@ import { DocumentTextIcon } from "@sanity/icons/DocumentText"
 import { defineField, defineType, type FieldDefinition } from "sanity"
 import { UI_TEXT_GROUPS, UI_TEXTS } from "../constants"
 
-/** Document « Texts » commun ; `extraFields` ajoute des textes propres au jeu (groupe « content » conseillé). */
+/** Shared "Texts" document; `extraFields` adds game-specific texts ("content" group recommended). */
 export const createTexts = (extraFields: FieldDefinition[] = []) =>
   defineType({
   name: "texts",

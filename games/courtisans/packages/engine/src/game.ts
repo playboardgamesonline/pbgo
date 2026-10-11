@@ -5,7 +5,7 @@ import { setupGame } from "./setup"
 import type { Action, GameState, Mission } from "./types"
 import { type PlayerView, playerView } from "./view"
 
-/** Définition du jeu pour @pbgo/core (contrat @pbgo/engine-kit). `data` = missions chargées côté serveur. */
+/** Game definition for @pbgo/core (@pbgo/engine-kit contract). `data` = missions loaded server side. */
 export const GAME: GameDefinition<GameState, Action, PlayerView, Mission[]> = {
   id: "courtisans",
   name: "Courtisans",
@@ -24,7 +24,7 @@ export const GAME: GameDefinition<GameState, Action, PlayerView, Mission[]> = {
   view: playerView,
   isOver: (state) => state.phase === "over",
   activePlayer: activePlayerId,
-  // joueur absent : on joue son tour entier (jusqu'à 3 cartes)
+  // absent player: their whole turn is played (up to 3 cards)
   autoPlay: (state) => applyDebug(state, "turn"),
   debug: {
     turn: (state) => applyDebug(state, "turn"),

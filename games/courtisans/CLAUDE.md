@@ -1,7 +1,7 @@
 # Courtisans Online
 
 Online version of the board game **Courtisans** (Catch Up Games), served by the single app `apps/web` at `/courtisans` on top of `@pbgo/core`.
-Detailed architecture (intentions, tuning, pitfalls): `ARCHITECTURE.md`, written in French before the move to core; its paths and names are outdated.
+Detailed architecture (intentions, tuning, pitfalls): `ARCHITECTURE.md`, a snapshot from before the move to core; it keeps the old French identifiers and paths, which are outdated.
 
 ## Code conventions
 - English everywhere: identifiers, files, engine values, Sanity fields, comments. Player-facing French texts live in `src/lib/site.ts`, `src/lib/i18n.ts` and the defaults (catalog, missions, rules)
