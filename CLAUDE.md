@@ -31,9 +31,11 @@ Moving the project to another account: see `MIGRATION.md`.
 | `/robots.txt`, `/sitemap.xml` | `robots.ts`, `sitemap.ts` | site-wide |
 | `/favicon.ico` | `public/favicon.ico` | the hub's icon: a static file answers before `[game]`, so `favicon.ico` is never read as a slug. Not `app/favicon.ico`: Next adds that one to the head of every page, game pages included, next to their own `/<slug>/icons/*` |
 
-- The hub (`(hub)/layout.tsx`) and the games (`[game]/layout.tsx`) have separate root layouts; `global-not-found.tsx` answers any other URL. Links from the hub to a game are plain `<a>` (full page load).
+- The hub (`(hub)/layout.tsx`) and the games (`[game]/layout.tsx`) have separate root layouts; `global-not-found.tsx` answers any URL that matches no route. Links from the hub to a game are plain `<a>` (full page load).
 - Route files are thin wrappers: pages call `@pbgo/core/pages/*` with the game (`gameOf` / `playableGameOf` from `apps/web/src/lib/game.ts`), API routes wrap the `@pbgo/core/routes/api/**` handler with `gameRoute()` from `@pbgo/games`. Segment configs (`dynamic`, `revalidate`) stay written out in the app (Next does not read them through a re-export).
-- Unknown slug → 404. A game that is not playable here (no engine, or not live in production) keeps its home page ("coming soon"); its table, admin, previews and API answer 404 (`GAME_NOT_FOUND`).
+- 404: a URL that matches no route (`/x/a/b/c`, `/<slug>/not-a-page`) gets `global-not-found.tsx`, rendered on the server. A page that calls `notFound()` (`gameOf` / `playableGameOf`: unknown slug, missing table, admin section or preview) gets `[game]/not-found.tsx` (`GameNotFound`): the game's own 404 for a slug of the registry, the site's 404 for any other slug. Next 16.4 answers a page's `notFound()` with status 404 and `noindex` but renders the not-found UI on the client (the server HTML has an empty body).
+- The `[game]` layout is a root layout, so it must not call `notFound()` itself: nothing sits above it to catch the error and Next answers with its own default 404 page. For an unknown slug it renders a bare `<html>` shell and each page's `gameOf` answers 404. `dynamicParams = false` is not enforced on these dynamic pages.
+- A game that is not playable here (no engine, or not live in production) keeps its home page ("coming soon"); its table, admin, previews and API answer 404 (`GAME_NOT_FOUND`).
 - A game's public files live in `apps/web/public/<slug>/` (URL `/<slug>/...`); build their URLs with `asset()` of the game's `src/lib/site.ts`. Paths derive from the slug: no base path, no `withBase()`.
 
 ## Games registry (`packages/games`, `@pbgo/games`)

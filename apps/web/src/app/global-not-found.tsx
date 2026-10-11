@@ -1,32 +1,25 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { GeistMono } from "geist/font/mono"
 import { GeistSans } from "geist/font/sans"
 import "./globals.css"
+import { SiteNotFound, siteNotFoundMetadata } from "@/components/site-not-found"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { SITE_NAME } from "@/site"
 
-export const metadata: Metadata = { title: `Page not found · ${SITE_NAME}`, robots: { index: false, follow: false } }
+export const metadata: Metadata = siteNotFoundMetadata
 
 /**
  * 404 of the whole site (`experimental.globalNotFound`): the hub and the games have separate root layouts, so there is
- * no shared layout to render a not-found page in. Also served for an unknown game slug.
+ * no shared layout to render a not-found page in. The router renders it for every URL that matches no route (a path
+ * under `/<slug>/` that is not a game page, for instance). A page that calls `notFound()` is answered by the
+ * `not-found.tsx` of its segment instead: `[game]/not-found.tsx`, which shows this same page for a slug that is not a game.
  */
 export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning className={cn("antialiased", GeistSans.variable, GeistMono.variable, "font-sans")}>
       <body>
         <ThemeProvider>
-          <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-4 text-center">
-            <p className="text-sm text-muted-foreground">404</p>
-            <h1 className="font-heading text-3xl font-semibold tracking-tight">Page not found</h1>
-            <p className="max-w-md text-muted-foreground">This page does not exist, or the game is not here.</p>
-            <Button asChild>
-              <Link href="/">All games</Link>
-            </Button>
-          </main>
+          <SiteNotFound />
         </ThemeProvider>
       </body>
     </html>

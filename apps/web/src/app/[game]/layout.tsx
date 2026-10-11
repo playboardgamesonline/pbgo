@@ -12,10 +12,12 @@ import { gameUrl, SITE_URL } from "@pbgo/core/lib/site-url"
 import { loadSkin } from "@pbgo/core/lib/skin-server"
 import { GameRuntime } from "@pbgo/games/runtime"
 import { TooltipProvider } from "@pbgo/ui/game/tooltip"
-import { gameOf } from "@/lib/game"
+import { siteNotFoundMetadata } from "@/components/site-not-found"
+import { findGameOf } from "@/lib/game"
 
 export async function generateMetadata({ params }: LayoutProps<"/[game]">): Promise<Metadata> {
-  const game = await gameOf(params)
+  const game = await findGameOf(params)
+  if (!game) return siteNotFoundMetadata
   const [settings, locale] = await Promise.all([loadSettings(game), getLocale()])
   const { AUTHOR, GOOGLE_SITE_VERIFICATION, KEYWORDS } = game.binding
   const { description } = settings
@@ -47,16 +49,29 @@ export async function generateMetadata({ params }: LayoutProps<"/[game]">): Prom
 }
 
 export async function generateViewport({ params }: LayoutProps<"/[game]">): Promise<Viewport> {
-  const { theme } = await loadSettings(await gameOf(params))
+  const game = await findGameOf(params)
+  if (!game) return {}
+  const { theme } = await loadSettings(game)
   return { themeColor: theme.background, colorScheme: "dark" }
 }
 
 /**
  * Root layout of a game's pages (`/<slug>/...`): its theme and fonts (admin › Visual), its client runtime (styles,
  * binding: only this game's code is loaded) and the shared shell (sound, toolbar, small screens).
+ *
+ * A slug that is not a game must not `notFound()` here: nothing sits above a root layout to catch it, and Next answers
+ * with its own default 404 page. This layout renders a bare shell instead, every page of the slug calls `notFound()`
+ * (`gameOf`), and `./not-found.tsx` fills the shell with the site's 404 (status 404, noindex).
  */
 export default async function GameLayout({ children, params }: LayoutProps<"/[game]">) {
-  const game = await gameOf(params)
+  const game = await findGameOf(params)
+  if (!game) {
+    return (
+      <html lang="en" suppressHydrationWarning>
+        <body>{children}</body>
+      </html>
+    )
+  }
   const [settings, skin, sounds] = await Promise.all([loadSettings(game), loadSkin(game), loadAudio(game)])
   const fonts = googleFontsHref([settings.files.fontBody ? null : settings.bodyFont, settings.files.fontDisplay ? null : settings.displayFont])
   const fontFaces = fontFaceCss(settings.files)
