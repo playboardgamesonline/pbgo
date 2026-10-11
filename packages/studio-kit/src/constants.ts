@@ -59,6 +59,7 @@ export const UI_TEXTS = [
   { key: "comingSoon", group: "home", title: "Game not playable yet: title", fr: "Bientôt jouable en ligne" },
   { key: "comingSoonHint", group: "home", title: "Game not playable yet: text", fr: "Ce jeu est en préparation. En attendant, découvrez les autres jeux." },
   { key: "allGames", group: "home", title: "Link to every game", fr: "Tous les jeux" },
+  { key: "pageNotFound", group: "home", title: "Page not found (404)", fr: "Cette page est introuvable." },
   // Invitation and lobby
   { key: "joinGameButton", group: "lobby", title: "Join button (invitation)", fr: "Rejoindre la partie" },
   { key: "gameNotFound", group: "lobby", title: "Game not found", fr: "Cette partie est introuvable. Vérifiez le code {code} ou créez-en une nouvelle." },

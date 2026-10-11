@@ -23,6 +23,9 @@ export function useBinding(): ClientBinding {
   return binding
 }
 
+/** Whether a game's runtime is mounted above: false under `/<slug>/...` for a slug that is not a game (its 404). */
+export const useHasBinding = () => useContext(BindingContext) !== null
+
 export const useGameSlug = () => useBinding().SLUG
 
 /** API client of the game shown (`/api/<slug>/...`). */

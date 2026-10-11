@@ -297,6 +297,20 @@ export function Paragraph({ children, className }: { children: React.ReactNode; 
   )
 }
 
+/** Short headline under the intro (game not playable yet, page not found). */
+export function Headline({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.p
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="mt-[5vh] shrink-0 px-4 text-center font-display text-2xl tracking-wide uppercase [text-shadow:0_1px_6px_rgb(0_0_0/60%)] md:text-3xl"
+    >
+      {children}
+    </motion.p>
+  )
+}
+
 function Footer() {
   const { title, credits } = useSiteSettings()
   const { AUTHOR, CONTACT } = useBinding()
