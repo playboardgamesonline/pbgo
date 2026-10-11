@@ -145,7 +145,7 @@ function Board({
       "Banquet announcement": button(() => announce(catalog.banquetStartText, "start", { sound: "victory" })),
       "Your turn announcement": button(() => announce(t("yourTurn"), "turn", { sound: "turn" })),
       "Victory announcement": button(() => {
-        const { phrase, detail } = winnerAnnouncement(game, view, victoryPhrases)
+        const { phrase, detail } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }))
         announce(phrase || t("winnerTitle"), "victory", { subtitle: detail || `${game.players[0]?.nickname ?? "?"} · 9 pts`, sound: "victory" })
       }),
     },
@@ -281,7 +281,7 @@ function Board({
       }),
     [view.log],
   )
-  const victory = ending?.text && !ending.scoreboard ? winnerAnnouncement(game, view, victoryPhrases) : null
+  const victory = ending?.text && !ending.scoreboard ? winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points })) : null
 
   return (
     <GameProvider game={gameView} view={view}>
