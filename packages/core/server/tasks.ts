@@ -21,6 +21,11 @@ export function sanitizeText(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : ""
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** `tasks.id` is a uuid: Postgres refuses any other text with a cast error, which would answer 500 instead of "no such task". */
+export const isTaskId = (value: unknown): value is string => typeof value === "string" && UUID.test(value)
+
 /** Table absent: the database migration (`supabase/migrations`) has not been applied yet. */
 export const isMissingTable = (error: { code?: string } | null) => error?.code === "42P01" || error?.code === "PGRST205"
 

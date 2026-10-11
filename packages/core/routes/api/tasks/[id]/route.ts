@@ -2,10 +2,17 @@ import type { GameRouteContext } from "../../../../lib/binding"
 import { requireAdmin } from "../../../../server/admin"
 import { ApiError, handle, readJson } from "../../../../server/api"
 import { supabaseAdmin } from "../../../../server/supabase"
-import { PRIORITIES, sanitizeText, type Task, TASK_TYPES } from "../../../../server/tasks"
+import { isTaskId, PRIORITIES, sanitizeText, type Task, TASK_TYPES } from "../../../../server/tasks"
+
+/** A malformed id matches no task: 404 right away, instead of the 500 of the database cast error. */
+function taskId({ id }: GameRouteContext["params"]) {
+  if (!isTaskId(id)) throw new ApiError("TASK_NOT_FOUND", 404)
+  return id
+}
 
 export const PATCH = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await requireAdmin()
+  const id = taskId(params)
   const body = await readJson<{ text?: unknown; category?: unknown; done?: unknown; sort_order?: unknown; type?: unknown; priority?: unknown }>(request)
   const patch: Partial<Task> & { updated_at: string } = { updated_at: new Date().toISOString() }
   if (typeof body.done === "boolean") patch.done = body.done
@@ -22,7 +29,7 @@ export const PATCH = handle(async (request: Request, { game, params }: GameRoute
     .from("tasks")
     .update(patch)
     .eq("game", game.slug)
-    .eq("id", params.id ?? "")
+    .eq("id", id)
     .select("*")
     .maybeSingle()
   if (error) throw error
@@ -32,11 +39,12 @@ export const PATCH = handle(async (request: Request, { game, params }: GameRoute
 
 export const DELETE = handle(async (_request: Request, { game, params }: GameRouteContext) => {
   await requireAdmin()
+  const id = taskId(params)
   const { error } = await supabaseAdmin()
     .from("tasks")
     .delete()
     .eq("game", game.slug)
-    .eq("id", params.id ?? "")
+    .eq("id", id)
   if (error) throw error
   return { ok: true }
 })
