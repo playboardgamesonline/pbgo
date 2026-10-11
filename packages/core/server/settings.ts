@@ -73,7 +73,7 @@ function writer(game: GameModule) {
 type TextsDoc = NonNullable<NonNullable<SkinDoc>["texts"]>
 
 /** End of game labels: stored in `ui_game` in Sanity, shown apart in the admin. */
-const END_KEYS = ["winnerTitle", "showScores", "hideScores", "shareResult", "replay"]
+const END_KEYS = ["winnerTitle", "showScores", "hideScores", "scoreboard", "shareResult", "replay"]
 
 const gameTagline = (binding: GameBinding, l: Locale) =>
   l === "fr" ? binding.TAGLINE : ((gameI18n(binding)[l]?.skin?.home?.tagline as string | undefined) ?? binding.TAGLINE)
