@@ -1,12 +1,23 @@
 "use client"
 
+import type { UiTextKey } from "@pbgo/studio-kit/constants"
 import { currentVolumes, readSoundEnabled } from "./sound"
 
 /**
  * Chat reactions: an emoji + a small synthesized sound (no audio file to provide, so available in every game).
  * A game can add or replace some through the optional `REACTIONS` of its binding (same shape).
+ * The label is a shared text (`labelKey`: translated, editable in Admin › Copy) or a `label` the game writes itself.
  */
-export type Reaction = { id: string; emoji: string; label: string; play: (c: AudioContext, out: AudioNode, t: number) => void }
+export type Reaction = {
+  id: string
+  emoji: string
+  play: (c: AudioContext, out: AudioNode, t: number) => void
+} & ({ label: string; labelKey?: never } | { labelKey: UiTextKey; label?: never })
+
+/** Label of a reaction (tooltip, screen readers): the shared text in the visitor's language, else the game's own `label`. */
+export function reactionLabel(reaction: Reaction, t: (key: UiTextKey) => string): string {
+  return reaction.labelKey ? t(reaction.labelKey) : reaction.label
+}
 
 function tone(c: AudioContext, out: AudioNode, t: number, { freq, end = freq, dur = 0.15, type = "sine", gain = 0.25, attack = 0.01 }: { freq: number; end?: number; dur?: number; type?: OscillatorType; gain?: number; attack?: number }) {
   const o = c.createOscillator()
@@ -40,14 +51,14 @@ function noise(c: AudioContext, out: AudioNode, t: number, dur: number, gain: nu
 
 /** Ids must stay listed in `DEFAULT_REACTION_IDS` (`chat.ts`): the chat route only accepts known reaction ids. */
 export const DEFAULT_REACTIONS: Reaction[] = [
-  { id: "clap", emoji: "👏", label: "Bravo", play: (c, o, t) => [0, 0.12, 0.25, 0.4, 0.52].forEach((d) => noise(c, o, t + d, 0.07, 0.5, 2200)) },
-  { id: "laugh", emoji: "😂", label: "Haha", play: (c, o, t) => [0, 1, 2, 3].forEach((i) => tone(c, o, t + i * 0.14, { freq: 520 - i * 40, end: 360 - i * 30, dur: 0.11, type: "triangle", gain: 0.3 })) },
-  { id: "wow", emoji: "😱", label: "Oh !", play: (c, o, t) => tone(c, o, t, { freq: 300, end: 900, dur: 0.35, type: "sine", gain: 0.3 }) },
-  { id: "party", emoji: "🎉", label: "Fête", play: (c, o, t) => [523, 659, 784, 1047].forEach((f, i) => tone(c, o, t + i * 0.09, { freq: f, dur: 0.25, type: "square", gain: 0.12 })) },
-  { id: "evil", emoji: "😈", label: "Muahaha", play: (c, o, t) => [0, 1, 2].forEach((i) => tone(c, o, t + i * 0.18, { freq: 150 - i * 15, end: 90, dur: 0.17, type: "sawtooth", gain: 0.2 })) },
-  { id: "sad", emoji: "😢", label: "Snif", play: (c, o, t) => [392, 349, 294].forEach((f, i) => tone(c, o, t + i * 0.22, { freq: f, end: f * 0.96, dur: 0.3, type: "sine", gain: 0.25 })) },
-  { id: "fire", emoji: "🔥", label: "Feu", play: (c, o, t) => { noise(c, o, t, 0.5, 0.35, 900); tone(c, o, t, { freq: 200, end: 500, dur: 0.4, type: "sawtooth", gain: 0.1 }) } },
-  { id: "love", emoji: "❤️", label: "Love", play: (c, o, t) => [660, 880].forEach((f, i) => tone(c, o, t + i * 0.13, { freq: f, dur: 0.3, type: "sine", gain: 0.25 })) },
+  { id: "clap", emoji: "👏", labelKey: "reactionClap", play: (c, o, t) => [0, 0.12, 0.25, 0.4, 0.52].forEach((d) => noise(c, o, t + d, 0.07, 0.5, 2200)) },
+  { id: "laugh", emoji: "😂", labelKey: "reactionLaugh", play: (c, o, t) => [0, 1, 2, 3].forEach((i) => tone(c, o, t + i * 0.14, { freq: 520 - i * 40, end: 360 - i * 30, dur: 0.11, type: "triangle", gain: 0.3 })) },
+  { id: "wow", emoji: "😱", labelKey: "reactionWow", play: (c, o, t) => tone(c, o, t, { freq: 300, end: 900, dur: 0.35, type: "sine", gain: 0.3 }) },
+  { id: "party", emoji: "🎉", labelKey: "reactionParty", play: (c, o, t) => [523, 659, 784, 1047].forEach((f, i) => tone(c, o, t + i * 0.09, { freq: f, dur: 0.25, type: "square", gain: 0.12 })) },
+  { id: "evil", emoji: "😈", labelKey: "reactionEvil", play: (c, o, t) => [0, 1, 2].forEach((i) => tone(c, o, t + i * 0.18, { freq: 150 - i * 15, end: 90, dur: 0.17, type: "sawtooth", gain: 0.2 })) },
+  { id: "sad", emoji: "😢", labelKey: "reactionSad", play: (c, o, t) => [392, 349, 294].forEach((f, i) => tone(c, o, t + i * 0.22, { freq: f, end: f * 0.96, dur: 0.3, type: "sine", gain: 0.25 })) },
+  { id: "fire", emoji: "🔥", labelKey: "reactionFire", play: (c, o, t) => { noise(c, o, t, 0.5, 0.35, 900); tone(c, o, t, { freq: 200, end: 500, dur: 0.4, type: "sawtooth", gain: 0.1 }) } },
+  { id: "love", emoji: "❤️", labelKey: "reactionLove", play: (c, o, t) => [660, 880].forEach((f, i) => tone(c, o, t + i * 0.13, { freq: f, dur: 0.3, type: "sine", gain: 0.25 })) },
 ]
 
 const merged = new WeakMap<Reaction[], Reaction[]>()
