@@ -133,7 +133,7 @@ A change here reaches every game on the next deployment.
 ## Rules of work
 - English everywhere: code, comments, docs, commits, PRs. Only player-facing texts are in other languages (Sanity, `I18N`, a game's defaults)
 - Branch named after the Linear issue (`plt-<n>-<topic>`); the PR description references the issue ID; never merge your own PR
-- Never commit secrets or env files (`.env`, `.env*.local`, `.vercel`, `.sanity-project-id` are git-ignored)
+- Never commit secrets or env files (`.env*` except `.env.example`, `.vercel`, `.sanity-project-id` are git-ignored)
 
 ## Commits
 Git identity: `oré <hey@aurelienlouvel.space>` (GitHub account `aurelienlouvel`), never the work address, or Vercel blocks the deployment.

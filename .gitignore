@@ -14,8 +14,8 @@ coverage/
 next-env.d.ts
 
 # env files and local links
-.env
-.env*.local
+.env*
+!.env.example
 .vercel
 .sanity-project-id
 
