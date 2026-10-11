@@ -29,6 +29,7 @@ Moving the project to another account: see `MIGRATION.md`.
 | `/api/<slug>/games/...`, `/api/<slug>/admin/...`, `/api/<slug>/feedback`, `/api/<slug>/tasks/...` | `api/[game]/...` | the game's API |
 | `/api/admin/login\|logout`, `/api/media` | `api/...` | shared: one admin session for every game, Sanity media proxy |
 | `/robots.txt`, `/sitemap.xml` | `robots.ts`, `sitemap.ts` | site-wide |
+| `/favicon.ico` | `public/favicon.ico` | the hub's icon: a static file answers before `[game]`, so `favicon.ico` is never read as a slug. Not `app/favicon.ico`: Next adds that one to the head of every page, game pages included, next to their own `/<slug>/icons/*` |
 
 - The hub (`(hub)/layout.tsx`) and the games (`[game]/layout.tsx`) have separate root layouts; `global-not-found.tsx` answers any other URL. Links from the hub to a game are plain `<a>` (full page load).
 - Route files are thin wrappers: pages call `@pbgo/core/pages/*` with the game (`gameOf` / `playableGameOf` from `apps/web/src/lib/game.ts`), API routes wrap the `@pbgo/core/routes/api/**` handler with `gameRoute()` from `@pbgo/games`. Segment configs (`dynamic`, `revalidate`) stay written out in the app (Next does not read them through a re-export).
