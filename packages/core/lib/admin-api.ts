@@ -1,6 +1,7 @@
 const MESSAGES: Record<string, string> = {
   ACCESS_DENIED: "Session expired, please log in again.",
   INVALID_CREDENTIALS: "Wrong login or password.",
+  RATE_LIMITED: "Too many login attempts: wait a few minutes before trying again.",
   SANITY_TOKEN_MISSING: "Add this game's SANITY_API_WRITE_TOKEN_<SLUG> to save to Sanity.",
   SANITY_NOT_CONFIGURED: "Sanity is not configured for this game (sanityProjectId in the @pbgo/games registry).",
   INVALID_COLOR: "A color is not in the #rrggbb format.",

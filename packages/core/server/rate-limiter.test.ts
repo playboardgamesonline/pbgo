@@ -66,6 +66,11 @@ describe("rateLimitKeys", () => {
   it("keys table creation per IP even with a player cookie", () => {
     expect(rateLimitKeys("create", { playerId: "p1", ip: "1.1.1.1" }).map(([k]) => k)).toEqual(["ip:1.1.1.1", "create:ip:1.1.1.1"])
   })
+
+  it("keys the admin login per IP only, whatever the player cookie, and does not limit an unidentified client", () => {
+    expect(rateLimitKeys("adminLogin", { playerId: "p1", ip: "1.1.1.1" }).map(([k]) => k)).toEqual(["ip:1.1.1.1", "adminLogin:ip:1.1.1.1"])
+    expect(rateLimitKeys("adminLogin", { playerId: "p1" })).toEqual([])
+  })
 })
 
 describe("checkRateLimit", () => {
@@ -95,5 +100,17 @@ describe("checkRateLimit", () => {
       if (!(await checkRateLimit(store, rateLimitKeys("action", { playerId: `fake-${i}`, ip: "6.6.6.6" }), 0)).ok) refused++
     }
     expect(refused).toBe(10)
+  })
+
+  it("allows 5 admin logins per 10 minutes per IP, rotating cookies or not, then says when to retry", async () => {
+    const minute = 60_000
+    const store = new MemoryRateLimitStore()
+    const attempt = (ip: string, playerId: string, now: number) => checkRateLimit(store, rateLimitKeys("adminLogin", { playerId, ip }), now)
+    expect(RATE_LIMITS.adminLogin).toEqual({ limit: 5, windowMs: 10 * minute, by: "ip" })
+
+    for (let i = 0; i < 5; i++) expect((await attempt("7.7.7.7", `fake-${i}`, i * minute)).ok).toBe(true)
+    expect(await attempt("7.7.7.7", "fake-5", 5 * minute)).toEqual({ ok: false, remaining: 0, retryAfterMs: 5 * minute })
+    expect((await attempt("8.8.8.8", "fake-0", 5 * minute)).ok).toBe(true) // another IP has its own budget
+    expect((await attempt("7.7.7.7", "fake-6", 10 * minute)).ok).toBe(true) // the attempt at 0 left the window
   })
 })

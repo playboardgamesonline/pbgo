@@ -6,6 +6,8 @@
  *   whole table acting at once (Courtisans opening: every player sends `readMissions`, with client retries) never shares a budget;
  * - a per-IP ceiling across all game routes of every game, so rotating the (unsigned) player cookie doesn't bypass the per-player rules.
  *
+ * The admin login belongs to no game (one admin account for all of them): its rule, `adminLogin`, is keyed per IP without a game scope.
+ *
  * LIMITATION: `MemoryRateLimitStore` keeps its counters in the memory of one server instance. On Vercel every lambda instance
  * has its own counters (and loses them on cold start), so the effective limit is "per instance": it stops bursts from one client
  * hitting a warm instance, not a distributed attack. To share counters, implement `RateLimitStore` on a shared backend
@@ -36,6 +38,8 @@ export const RATE_LIMITS = {
   vote: { limit: 10, windowMs: 60_000 },
   /** Feedback form: fast in-memory gate in front of the durable checks done in the database (room to resend after a validation error) */
   feedback: { limit: 3, windowMs: 10_000 },
+  /** Admin login (shared by every game): per IP, whatever the cookies, so a password can't be guessed by a script. A human mistypes it a few times at most */
+  adminLogin: { limit: 5, windowMs: 10 * 60_000, by: "ip" },
   /** Ceiling per IP across every limited route (several players behind one NAT stay well below it) */
   ip: { limit: 200, windowMs: 10_000, by: "ip" },
 } as const satisfies Record<string, RateLimitRule>

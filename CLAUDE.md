@@ -122,6 +122,7 @@ A change here reaches every game on the next deployment.
 
 ## Rate limiting
 - Every mutating game route (create, join, leave, options, start, action, replay, takeover, Courtisans `banquet`) and `POST /api/<slug>/feedback` start with `await rateLimit(game.slug, request, "<rule>")` (`server/rate-limit.ts`). Limits live in `RATE_LIMITS` (`server/rate-limiter.ts`): per player cookie when present, else per IP (create: always per IP), never per table, plus a per-IP ceiling across routes. Over the limit: 429 `RATE_LIMITED` + `Retry-After`. The chat route has its own per-player token bucket
+- `POST /api/admin/login` belongs to no game: it starts with `await rateLimit(null, request, "adminLogin")`, 5 attempts per 10 minutes per IP, counted before the credentials are checked (the right password is refused too once the limit is reached)
 - Counters are in memory, per function instance; to share them, implement `RateLimitStore` and call `setRateLimitStore()`. A new mutating route of a game (`ROUTES`) must call `rateLimit` too
 
 ## Game UI
