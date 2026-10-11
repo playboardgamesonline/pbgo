@@ -143,6 +143,8 @@ export const UI_TEXTS = [
   { key: "optionNeeds", group: "lobby", title: "Lobby: option needs another ({names})", fr: "Nécessite : {names}" },
   { key: "optionConflicts", group: "lobby", title: "Lobby: option conflicts ({names})", fr: "Incompatible avec : {names}" },
   { key: "optionPlayers", group: "lobby", title: "Lobby: option unavailable for this player count", fr: "Indisponible avec {count} joueurs" },
+  { key: "optionLess", group: "lobby", title: "Lobby: number option, decrease button (screen readers)", fr: "Moins" },
+  { key: "optionMore", group: "lobby", title: "Lobby: number option, increase button (screen readers)", fr: "Plus" },
   { key: "chosenByHost", group: "lobby", title: "Lobby: options chosen by the host", fr: "choisies par l'hôte" },
   { key: "resultAlt", group: "game", title: "Share: image description", fr: "Résultat de la partie" },
   { key: "copyImage", group: "game", title: "Share: copy image", fr: "Copier l'image" },

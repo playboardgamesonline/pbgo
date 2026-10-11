@@ -1,5 +1,7 @@
 "use client"
 
+import { formatDateTime } from "../../lib/format-date"
+import type { Locale } from "../../lib/i18n"
 import { captureGamePhoto } from "../../lib/photo"
 
 export type ShareRow = {
@@ -38,7 +40,7 @@ function setSpacing(ctx: CanvasRenderingContext2D, px: number) {
   if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${px}px`
 }
 
-export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | null, title: string): Promise<Blob> {
+export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | null, title: string, locale: Locale): Promise<Blob> {
   await Promise.all([document.fonts?.load(`800 72px ${FONT}`).catch(() => null), document.fonts?.load(`500 28px ${FONT}`).catch(() => null)])
   const W = 1600
   const H = 1200
@@ -126,9 +128,6 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
     })
   }
 
-  const now = new Date()
-  const date = now.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
-  const time = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
   ctx.font = `600 18px ${FONT}`
   setSpacing(ctx, 3)
   ctx.fillStyle = "rgba(243,236,214,0.45)"
@@ -136,13 +135,13 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
   ctx.fillText(title.toUpperCase(), 36, H - 20)
   ctx.textAlign = "right"
   setSpacing(ctx, 1.5)
-  ctx.fillText(`${date} · ${time}`, W - 36, H - 20)
+  ctx.fillText(formatDateTime(new Date(), locale), W - 36, H - 20)
 
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/png"))
 }
 
-export async function generateShareImage(lines: ShareRow[], slug: string, code: string, title: string) {
-  const blob = await shareImage(lines, captureGamePhoto(1600, 1200), title)
+export async function generateShareImage(lines: ShareRow[], slug: string, code: string, title: string, locale: Locale) {
+  const blob = await shareImage(lines, captureGamePhoto(1600, 1200), title, locale)
   return new File([blob], `${slug}-${code}.png`, { type: "image/png" })
 }
 

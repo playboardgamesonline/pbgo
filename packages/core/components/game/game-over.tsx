@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { PrimaryButton } from "../home/screen"
 import type { CoreView } from "../../lib/binding"
 import { useApi, useBinding } from "../../lib/binding-context"
+import { formatDateTime } from "../../lib/format-date"
 import type { PublicGame } from "../../lib/game-types"
 import { cn } from "@pbgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
@@ -82,7 +83,7 @@ export function GameOver({
   const t = useText()
   const { GAME, NAME, SLUG } = useBinding()
   const api = useApi()
-  const { hostIcon, decor } = useSkin()
+  const { hostIcon, decor, locale } = useSkin()
   const { view, game, color } = useGame()
   const { title } = useSiteSettings()
   const [sending, setSending] = useState(false)
@@ -105,7 +106,7 @@ export function GameOver({
         winner: results.winners.includes(j.playerId),
       }))
     const timer = setTimeout(() => {
-      generateShareImage(lines, SLUG, game.code, title)
+      generateShareImage(lines, SLUG, game.code, title, locale)
         .then((f) => !cancelled && setImage(f))
         .catch(() => !cancelled && toast.error(t("imageError")))
     }, 1200)
@@ -114,7 +115,7 @@ export function GameOver({
       clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resultsKey])
+  }, [resultsKey, locale])
 
   const url = useMemo(() => (image ? URL.createObjectURL(image) : null), [image])
   useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url])
@@ -148,7 +149,7 @@ export function GameOver({
   const footer = [
     GAME?.name ?? NAME,
     minutes !== null ? (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`) : null,
-    ended ? `${ended.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })} · ${ended.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : null,
+    ended ? formatDateTime(ended, locale) : null,
     "PBGO",
   ]
     .filter(Boolean)
