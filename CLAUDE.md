@@ -136,5 +136,5 @@ A change here reaches every game on the next deployment.
 - Never commit secrets or env files (`.env`, `.env*.local`, `.vercel`, `.sanity-project-id` are git-ignored)
 
 ## Commits
-Git identity: `oré <louvel.aurelien.perso@gmail.com>` (the project's GitHub and Vercel account), never the work address, or Vercel blocks the deployment.
+Git identity: `oré <hey@aurelienlouvel.space>` (GitHub account `aurelienlouvel`), never the work address, or Vercel blocks the deployment.
 Gitmoji `<emoji>(<scope>): <description>` · scopes: `<slug>`, `template`, `core`, `repo` (e.g. `✨(skull-king): …`, `🔧(repo): …`)
