@@ -77,7 +77,7 @@ A change here reaches every game on the next deployment.
 - `pnpm new-game <slug>` — `games/<slug>` from `template/`, registered in `packages/games` (not live)
 - `pnpm go-live <slug>` — Sanity side: project, public dataset, CORS, studio deployed, project id written in the registry, write token in `apps/web/.env.local`
 - `pnpm add-game <slug> [--push]` — new-game + go-live + setup-env; `--push` commits and pushes a branch for a pull request
-- `pnpm setup-env [--no-push]` — fills `apps/web/.env.local` and pushes the variables to the Vercel project `playboardgamesonline`
+- `pnpm setup-env [--no-push | --check]` — fills `apps/web/.env.local` and pushes the variables to the Vercel project `playboardgamesonline`; aborts, touching neither, when a Supabase value is missing or a project can't be used (see Environment)
 
 ## Package names
 `@pbgo-game/<slug>` (binding), `@<slug>/engine`, `<slug>-studio` (template: `@pbgo-game/template`, `@template/engine`, `template-studio`). Always target a package with `--filter`.
@@ -89,6 +89,7 @@ A change here reaches every game on the next deployment.
 
 ## Environment (`apps/web/.env.example`)
 - Local values in `apps/web/.env.local`, never committed; on Vercel, on the project `playboardgamesonline`. `pnpm setup-env` fills both from `~/.config/pbgo/secrets.env` (outside the repo, `chmod 600`)
+- The secrets file holds `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` (production) and `SUPABASE_PREVIEW_PROJECT_REF` (`pbgo-preview`), all three required: `pnpm setup-env` refuses to run without them. The production project's keys go to the Vercel Production target only; `apps/web/.env.local` and the Vercel Preview and Development targets get the preview project's keys, never production ones. A project that is unreachable, whose keys can't be read, or that still has the one-project-per-game schema (`public.games` without a `game` column) stops the run before anything is written or sent. `--check` only validates the three values
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` · `ADMIN_LOGIN`, `ADMIN_PASSWORD` (one admin account for every game) · optional `VERCEL_TOKEN`, `VERCEL_TEAM_ID` (Admin › Audience and Health), `NEXT_PUBLIC_SITE_URL`, `DEBUG_GAMES=1`
 - `SANITY_API_WRITE_TOKEN_<SLUG>` per game, slug upper-cased with `-` → `_` (`6-nimmt` → `SANITY_API_WRITE_TOKEN_6_NIMMT`); without it, that game's admin is read-only
 

@@ -16,6 +16,6 @@ pnpm build                   # production build of apps/web
 - `packages/` — shared code, including the games registry `@pbgo/games`
 - `template/` — the game template (demo game "La Plus Haute")
 
-Local settings: `apps/web/.env.local` (never committed), from `apps/web/.env.example` or `pnpm setup-env --no-push`.
+Local settings: `apps/web/.env.local` (never committed), copied from `apps/web/.env.example` or filled by `pnpm setup-env --no-push`. The script needs the maintainers' `~/.config/pbgo/secrets.env` (Supabase access token and both project references) and only writes the keys of the preview Supabase project; without that file, copy `.env.example` and fill it in by hand.
 
 See `CLAUDE.md` for the structure, routes and conventions, and `MIGRATION.md` to move the project to another account.

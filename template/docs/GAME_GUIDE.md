@@ -196,6 +196,6 @@ pnpm --filter <slug>-studio run deploy
 
 ### Environment variables (`apps/web/.env.local`, never committed)
 
-`pnpm setup-env` fills them (Supabase keys from `~/.config/pbgo/secrets.env`, admin account, Sanity write tokens) and pushes them to the Vercel project.
+`pnpm setup-env` fills them (Supabase keys of the preview project from `~/.config/pbgo/secrets.env`, admin account, Sanity write tokens) and pushes them to the Vercel project (the production project's keys to the Production target only).
 
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, one `SANITY_API_WRITE_TOKEN_<SLUG>` per game (Editor, for `/<slug>/admin`), optional `NEXT_PUBLIC_SANITY_DATASET` (`production` by default), `VERCEL_TOKEN` (+ `VERCEL_TEAM_ID`) for the stats of Admin › Monitoring, and `DEBUG_GAMES=1`.

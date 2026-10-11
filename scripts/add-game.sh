@@ -9,8 +9,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 SLUG="${1:-}"; PUSH=0
 case "${2:-}" in "") ;; --push) PUSH=1 ;; *) SLUG="" ;; esac
 [ -n "$SLUG" ] && [ $# -le 2 ] || { echo "Usage: pnpm add-game <slug> [--push]"; exit 1; }
-SECRETS="${PBGO_SECRETS:-$HOME/.config/pbgo/secrets.env}"
-[ -f "$SECRETS" ] || echo "! No $SECRETS: setup-env keeps the values already in apps/web/.env.local (see scripts/setup-env.sh)"
+# setup-env runs last (it needs the Sanity project that go-live creates), so check its Supabase prerequisites now, before anything is created
+bash scripts/setup-env.sh --check
 if [ "$PUSH" = 1 ] && [ -n "$(git status --porcelain)" ]; then
   echo "--push needs a clean working tree (the commit holds the new game only): commit or stash first"; exit 1
 fi
