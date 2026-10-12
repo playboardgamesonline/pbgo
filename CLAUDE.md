@@ -160,5 +160,5 @@ Black and white, dark theme only, Geist Sans in semibold with tight line-height 
 - Never commit secrets or env files (`.env*` except `.env.example`, `.vercel`, `.sanity-project-id` are git-ignored)
 
 ## Commits
-Git identity: `oré <hey@aurelienlouvel.space>` (GitHub account `aurelienlouvel`), never the work address, or Vercel blocks the deployment.
+Git identity: `oré ˖ ࣪⊹) <hey@aurelienlouvel.space>` (GitHub account `aurelienlouvel`), never the work address, or Vercel blocks the deployment. Set it once per clone, in the repo-local config, so commits need no `-c` flags: `git config user.name "oré ˖ ࣪⊹)"` and `git config user.email "hey@aurelienlouvel.space"`
 Gitmoji `<emoji>(<scope>): <description>` · scopes: `<slug>`, `template`, `core`, `repo` (e.g. `✨(skull-king): …`, `🔧(repo): …`)
