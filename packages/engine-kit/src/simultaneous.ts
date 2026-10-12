@@ -3,29 +3,30 @@
  * last answer, inside the `apply` that receives it (secret bids, everybody reads their missions, simultaneous card choice…).
  *
  * Keep the submissions in the state as `Submissions<T>` and resolve the step in `apply` as soon as `allSubmitted()` is true.
- * `waitingFor` is `pendingSubmissions(...)`. A view tells WHO submitted (`submittedFlags`), never WHAT, until the step is resolved.
+ * `waitingFor` is `pendingSubmissions(submissions, seats)`. A view tells WHO submitted (`submittedFlags`), never WHAT, until the
+ * step is resolved.
  */
 
 /**
- * What each player submitted: `null` until they did. The keys are the player ids in seat order (build it with
- * `openSubmissions`), so the pending players come out in seat order. Ids must not be integer-like strings (JavaScript
- * orders those first); real ids are UUIDs.
+ * What each player submitted: `null` until they did. A plain object keyed by player id, built with `openSubmissions`.
+ * Never rely on the order of its keys: the state is stored as `jsonb`, which does not keep it. The seat order always comes from
+ * the game's own list of players (see `pendingSubmissions`).
  */
 export type Submissions<T> = Record<string, T | null>
 
-/** An empty step: nobody has submitted yet. `playerIds` in seat order. */
+/** An empty step: nobody has submitted yet. */
 export function openSubmissions<T>(playerIds: readonly string[]): Submissions<T> {
   return Object.fromEntries(playerIds.map((id) => [id, null]))
 }
 
-/** Players who have not submitted yet, in seat order. */
-export function pendingSubmissions<T>(submissions: Submissions<T>): string[] {
-  return Object.keys(submissions).filter((id) => submissions[id] === null)
+/** Players who have not submitted yet, in the order of `playerIds` (all the players of the game, in seat order). */
+export function pendingSubmissions<T>(submissions: Submissions<T>, playerIds: readonly string[]): string[] {
+  return playerIds.filter((id) => submissions[id] === null)
 }
 
 /** True when every player has submitted (a step without players counts as complete). */
 export function allSubmitted<T>(submissions: Submissions<T>): boolean {
-  return pendingSubmissions(submissions).length === 0
+  return Object.values(submissions).every((value) => value !== null)
 }
 
 /** Who submitted, never the value: what a view may show before the step is resolved. */
