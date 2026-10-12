@@ -11,8 +11,13 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@pbgo/ui/platform/fie
 import { Input } from "@pbgo/ui/platform/input"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { adminRequest } from "../../lib/admin-api"
+import { GAMEMASTER_PATH } from "../../lib/admin-nav"
 
-export function LoginForm({ title, configured }: { title: string; configured: boolean }) {
+/**
+ * Sign-in of the gamemaster. `problems`: what keeps the gamemaster closed (a credential or the session secret is missing), empty when
+ * it can be used. `next`: the page to open once signed in, already checked by `safeNext`.
+ */
+export function LoginForm({ problems, next }: { problems: string[]; next: string }) {
   const router = useRouter()
   const [login, setLogin] = useState("")
   const [password, setPassword] = useState("")
@@ -24,7 +29,8 @@ export function LoginForm({ title, configured }: { title: string; configured: bo
     setPending(true)
     setError(null)
     try {
-      await adminRequest("/api/admin/login", { method: "POST", body: JSON.stringify({ login, password }) })
+      await adminRequest(`${GAMEMASTER_PATH}/api/login`, { method: "POST", body: JSON.stringify({ login, password }) })
+      router.replace(next)
       router.refresh()
     } catch (err) {
       setError((err as Error).message)
@@ -33,20 +39,27 @@ export function LoginForm({ title, configured }: { title: string; configured: bo
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
+    <main className="flex min-h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted">
             <HugeiconsIcon icon={LockKeyIcon} strokeWidth={2} className="size-5" />
           </div>
-          <CardTitle>Admin</CardTitle>
-          <CardDescription>{title}</CardDescription>
+          <CardTitle>Gamemaster</CardTitle>
+          <CardDescription>One back office for every game.</CardDescription>
         </CardHeader>
         <CardContent>
-          {!configured ? (
+          {problems.length > 0 ? (
             <Alert>
-              <AlertTitle>Admin account not configured</AlertTitle>
-              <AlertDescription>Add ADMIN_LOGIN and ADMIN_PASSWORD to the environment variables, then redeploy.</AlertDescription>
+              <AlertTitle>Gamemaster not configured</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4">
+                  {problems.map((problem) => (
+                    <li key={problem}>{problem}</li>
+                  ))}
+                </ul>
+                <p className="mt-2">Set them in the environment variables, then redeploy.</p>
+              </AlertDescription>
             </Alert>
           ) : (
             <form onSubmit={submit}>

@@ -1,0 +1,10 @@
+/*
+ * Styles of the gamemaster: the platform layer (../globals.css) plus the utilities of the admin code that lives in
+ * @pbgo/core. The platform stylesheet only scans packages/ui, and Tailwind generates nothing for a class it never sees
+ * (the sidebar would lose `w-64`), so the two folders that render the admin are named here, and only here: the hub does
+ * not pay for them. A new folder of core that renders inside the gamemaster is added to this list.
+ */
+@import "../globals.css";
+
+@source "../../../../../packages/core/components/admin";
+@source "../../../../../packages/core/pages/admin";

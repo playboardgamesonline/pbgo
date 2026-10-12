@@ -1,21 +1,17 @@
 import { createHmac } from "node:crypto"
 import sharp from "sharp"
 import type { GameRouteContext } from "../../../lib/binding"
-import { requireAdmin } from "../../../server/admin"
-import { ApiError, handle, readJson } from "../../../server/api"
+import { ApiError, handle } from "../../../server/api"
 import { getPlayerId } from "../../../server/player"
 import { rateLimit } from "../../../server/rate-limit"
 import { clientIp } from "../../../server/rate-limiter"
 import { supabaseAdmin } from "../../../server/supabase"
-import { FEEDBACK_TYPES, type Feedback, type FeedbackType, isMissingTable, sanitizeText } from "../../../server/tasks"
-
-const STATUSES: Feedback["status"][] = ["new", "read", "archived"]
+import { FEEDBACK_BUCKET, FEEDBACK_TYPES, type FeedbackType, sanitizeText } from "../../../server/tasks"
 
 const MAX_BODY = 4 * 1024 * 1024
 const MAX_FILE = 3 * 1024 * 1024
 const IMAGE_FORMATS = new Set(["png", "jpeg", "webp"])
 const EMAIL = /^[^\s@<>()",;:\\]{1,64}@[^\s@<>()",;:\\]{1,190}\.[^\s@<>()",;:\\]{2,}$/
-const BUCKET = "feedback"
 
 /** Fingerprint of the IP (HMAC with a server key): only used to limit sends, the IP itself is never stored. */
 function ipHash(request: Request) {
@@ -102,7 +98,7 @@ export const POST = handle(async (request: Request, { game }: GameRouteContext) 
   if (file instanceof File && file.size > 0) {
     const image = await cleanScreenshot(file)
     const path = `${game.slug}/${crypto.randomUUID()}.webp`
-    const { error } = await db.storage.from(BUCKET).upload(path, image, { contentType: "image/webp", upsert: false })
+    const { error } = await db.storage.from(FEEDBACK_BUCKET).upload(path, image, { contentType: "image/webp", upsert: false })
     if (error) throw error
     screenshot = path
   }
@@ -121,49 +117,8 @@ export const POST = handle(async (request: Request, { game }: GameRouteContext) 
     user_agent: sanitizeText(request.headers.get("user-agent"), 300) || null,
   })
   if (error) {
-    if (screenshot) await db.storage.from(BUCKET).remove([screenshot])
+    if (screenshot) await db.storage.from(FEEDBACK_BUCKET).remove([screenshot])
     throw error
   }
-  return { ok: true }
-})
-
-export const GET = handle(async (_request: Request, { game }: GameRouteContext) => {
-  await requireAdmin()
-  const { data, error } = await supabaseAdmin()
-    .from("feedback")
-    .select("*")
-    .eq("game", game.slug)
-    .order("created_at", { ascending: false })
-    .limit(500)
-  if (error) throw new ApiError(isMissingTable(error) ? "MIGRATION_MISSING" : "SERVER_ERROR", 409)
-  const rows = data as Feedback[]
-  const paths = rows.map((r) => r.screenshot).filter((p): p is string => !!p)
-  const urls = new Map<string, string>()
-  if (paths.length) {
-    const { data: signed } = await supabaseAdmin().storage.from(BUCKET).createSignedUrls(paths, 3600)
-    for (const item of signed ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl)
-  }
-  return rows.map((r) => ({ ...r, screenshot_url: r.screenshot ? (urls.get(r.screenshot) ?? null) : null }))
-})
-
-export const PATCH = handle(async (request: Request, { game }: GameRouteContext) => {
-  await requireAdmin()
-  const { id, status } = await readJson<{ id?: unknown; status?: unknown }>(request)
-  if (typeof id !== "string" || !STATUSES.includes(status as Feedback["status"])) throw new ApiError("INVALID_REQUEST")
-  const { data, error } = await supabaseAdmin().from("feedback").update({ status }).eq("game", game.slug).eq("id", id).select("*").maybeSingle()
-  if (error) throw error
-  if (!data) throw new ApiError("NOT_FOUND", 404)
-  return data as Feedback
-})
-
-export const DELETE = handle(async (request: Request, { game }: GameRouteContext) => {
-  await requireAdmin()
-  const id = new URL(request.url).searchParams.get("id")
-  if (!id) throw new ApiError("INVALID_REQUEST")
-  const db = supabaseAdmin()
-  const { data: row } = await db.from("feedback").select("screenshot").eq("game", game.slug).eq("id", id).maybeSingle()
-  if (row?.screenshot) await db.storage.from(BUCKET).remove([row.screenshot])
-  const { error } = await db.from("feedback").delete().eq("game", game.slug).eq("id", id)
-  if (error) throw error
   return { ok: true }
 })

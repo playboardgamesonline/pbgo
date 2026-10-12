@@ -94,6 +94,10 @@ export type LoaderContext = { game: GameModule; locale: Locale; sanity: SanityCl
 export type GameRouteContext = { game: PlayableGame; params: Record<string, string> }
 export type GameRouteHandler = (request: Request, ctx: GameRouteContext) => Promise<Response>
 
+/** The gamemaster (`/gamemaster/api/<slug>/...`) manages any game of the registry, playable here or not. */
+export type GamemasterRouteContext = { game: GameModule; params: Record<string, string> }
+export type GamemasterRouteHandler = (request: Request, ctx: GamemasterRouteContext) => Promise<Response>
+
 /** Search engines: genres and platform of the JSON-LD, sentence of the hidden home heading. */
 export type HomeSeo = { genres?: readonly string[]; platform?: string; heading?: string }
 
@@ -119,6 +123,9 @@ export type CoreView = {
   me?: { id: string } | null
 }
 
+/** Whether the game has an engine, live or not: enough to show its table to the gamemaster in an admin preview. */
+export const hasEngine = (game: GameModule): game is PlayableGame => !!game.binding.GAME
+
 /** A game can be played when it has an engine and is live, or anywhere outside production (previews, local). */
 export const isPlayable = (game: GameModule): game is PlayableGame =>
-  !!game.binding.GAME && (game.live || process.env.VERCEL_ENV !== "production")
+  hasEngine(game) && (game.live || process.env.VERCEL_ENV !== "production")
