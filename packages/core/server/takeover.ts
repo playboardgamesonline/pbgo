@@ -21,6 +21,9 @@ export const PRESENCE_WINDOW_MS = 75_000
 /** The server writes a player's last-seen time at most this often, so reads don't turn into writes */
 export const SEEN_WRITE_EVERY_MS = 15_000
 
+/** Taken off the inactivity delay (`turnTimeout`): the clock of the player who votes and the server's differ by a little */
+export const STALL_GRACE_MS = 2_000
+
 type Seat = { id: string }
 
 type Seen = Readonly<Record<string, string>> | null | undefined
@@ -50,6 +53,18 @@ export function presentPlayers(players: readonly Seat[], seen: Seen, now: number
 export function seenNeedsWrite(stored: string | undefined, now: number): boolean {
   const at = Date.parse(stored ?? "")
   return Number.isNaN(at) || now - at >= SEEN_WRITE_EVERY_MS
+}
+
+/** True when the game has not moved (`updated_at`) for `turnTimeout` seconds, less the grace. A table without a readable time counts as stalled. */
+export function isStalled(updatedAt: string | null | undefined, now: number, turnTimeout: number): boolean {
+  const at = Date.parse(updatedAt ?? "")
+  return Number.isNaN(at) || now - at >= turnTimeout * 1000 - STALL_GRACE_MS
+}
+
+/** True when `next` is exactly what is stored, so the votes need no write. */
+export function sameVotes(next: readonly string[], stored: readonly string[] | null | undefined): boolean {
+  const current = stored ?? []
+  return next.length === current.length && next.every((entry, index) => entry === current[index])
 }
 
 /** Votes cast for the current state (`fingerprint`). Stale votes and the old `<fingerprint>:<voter>` format are ignored. */

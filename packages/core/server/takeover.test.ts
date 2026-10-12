@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest"
 import {
   PRESENCE_WINDOW_MS,
   SEEN_WRITE_EVERY_MS,
+  STALL_GRACE_MS,
   TakeoverError,
   castVotes,
+  isStalled,
   parseVotes,
   presentPlayers,
   publicTakeover,
+  sameVotes,
   seenNeedsWrite,
   takeoverStatus,
   voteEntry,
@@ -286,5 +289,58 @@ describe("publicTakeover", () => {
   it("works without seen times", () => {
     expect(publicTakeover({ ...base, seen: undefined, viewer: "c" }).present).toEqual(["c"])
     expect(publicTakeover({ ...base, seen: null }).present).toEqual([])
+  })
+})
+
+describe("isStalled", () => {
+  const TIMEOUT = 60
+
+  it("is false while the game moved less than the delay (less the grace) ago", () => {
+    expect(isStalled(ago(0), NOW, TIMEOUT)).toBe(false)
+    expect(isStalled(ago(TIMEOUT * 1000 - STALL_GRACE_MS - 1), NOW, TIMEOUT)).toBe(false)
+  })
+
+  it("is true from the delay minus the grace on", () => {
+    expect(isStalled(ago(TIMEOUT * 1000 - STALL_GRACE_MS), NOW, TIMEOUT)).toBe(true)
+    expect(isStalled(ago(TIMEOUT * 1000), NOW, TIMEOUT)).toBe(true)
+    expect(isStalled(ago(10 * 60_000), NOW, TIMEOUT)).toBe(true)
+  })
+
+  it("follows the delay of the admin", () => {
+    expect(isStalled(ago(20_000), NOW, 15)).toBe(true)
+    expect(isStalled(ago(20_000), NOW, 120)).toBe(false)
+  })
+
+  it("counts a table with no readable time as stalled", () => {
+    expect(isStalled(undefined, NOW, TIMEOUT)).toBe(true)
+    expect(isStalled(null, NOW, TIMEOUT)).toBe(true)
+    expect(isStalled("not a date", NOW, TIMEOUT)).toBe(true)
+  })
+
+  it("is not stalled when the time is ahead of the clock", () => {
+    expect(isStalled(ago(-5_000), NOW, TIMEOUT)).toBe(false)
+  })
+})
+
+describe("sameVotes", () => {
+  it("is true for identical content, whatever is stored", () => {
+    expect(sameVotes([`${FP}:a:b`], [`${FP}:a:b`])).toBe(true)
+    expect(sameVotes([], [])).toBe(true)
+    expect(sameVotes([], null)).toBe(true)
+    expect(sameVotes([], undefined)).toBe(true)
+  })
+
+  it("is false when an entry is added, dropped or changed", () => {
+    expect(sameVotes([`${FP}:a:b`, `${FP}:c:b`], [`${FP}:a:b`])).toBe(false)
+    expect(sameVotes([`${FP}:a:b`], [`${FP}:a:b`, `old:c:b`])).toBe(false)
+    expect(sameVotes([`${FP}:a:b`], [`${FP}:a:c`])).toBe(false)
+    expect(sameVotes([`${FP}:a:b`], null)).toBe(false)
+  })
+
+  it("is what a repeated vote produces", () => {
+    const players3 = seats("a", "b", "c")
+    const once = castVotes({ players: players3, waiting: ["a"], present: ["b", "c"], entries: [], fingerprint: FP, voter: "b", targets: ["a"] })
+    const twice = castVotes({ players: players3, waiting: ["a"], present: ["b", "c"], entries: once.entries, fingerprint: FP, voter: "b", targets: ["a"] })
+    expect(sameVotes(twice.entries, once.entries)).toBe(true)
   })
 })
