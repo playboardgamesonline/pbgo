@@ -55,6 +55,9 @@ function artLines(result: RunResult): string[] {
   return lines
 }
 
+/** Is anything left for `--apply`: a document to write or an image to upload? */
+const hasWork = ({ plan, art }: RunResult) => plan.some((item) => item.action !== "unchanged") || Boolean(art?.loaded.images.some((image) => !image.exists))
+
 /** The summary printed after a run. It has no access to the token, so it cannot leak it. */
 export function formatReport(result: RunResult, { projectId, dataset, verbose = false }: { projectId: string; dataset: string; verbose?: boolean }): string {
   const { plan } = result
@@ -99,7 +102,8 @@ export function formatReport(result: RunResult, { projectId, dataset, verbose = 
   if (result.orphans.length) lines.push("", `In the dataset but not in the seed (left alone, never deleted): ${listed(result.orphans)}`)
 
   lines.push("")
-  if (result.mode === "dry-run") lines.push("Next: check this summary, then run with --apply. The seed only writes drafts; publishing is done in the Studio.")
-  else lines.push("Verified: planning again after the write finds nothing to do, so running the seed again changes nothing.")
+  if (result.mode === "apply") lines.push("Verified: planning again after the write finds nothing to do, so running the seed again changes nothing.")
+  else if (!hasWork(result)) lines.push("Next: nothing to add, everything the seed selects is already in the dataset.")
+  else lines.push("Next: check this summary, then run with --apply. The seed only writes drafts; publishing is done in the Studio.")
   return lines.join("\n")
 }

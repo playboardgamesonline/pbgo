@@ -63,6 +63,14 @@ describe("a dry run", () => {
     const out = await report(new MemoryStore(), dry, [thing("a")])
     expect(lines(out).at(-1)).toBe("Next: check this summary, then run with --apply. The seed only writes drafts; publishing is done in the Studio.")
   })
+
+  it("says there is nothing to add, instead of pointing to --apply, once everything is in the dataset", async () => {
+    const store = new MemoryStore()
+    await report(store, apply, [thing("a"), other("c")])
+    const out = await report(store, dry, [thing("a"), other("c")])
+    expect(out).toMatch(/^\s+2 {2}nothing to add$/m)
+    expect(lines(out).at(-1)).toBe("Next: nothing to add, everything the seed selects is already in the dataset.")
+  })
 })
 
 describe("an apply", () => {
@@ -227,6 +235,16 @@ describe("the art", () => {
     expect(first).toContain("  uploaded 1 new image(s); 0 were already in the dataset")
     const second = formatReport(await run({ store, docs: [thing("a")], slots: [pic("a-pic")], options }), context)
     expect(second).toContain("  uploaded 0 new image(s); 1 were already in the dataset")
+  })
+
+  it("still points to --apply when an image would be uploaded, even if every document is unchanged", async () => {
+    const dir = await temp.create({ "a-pic.png": await imageOf("#cc2200") })
+    const store = new MemoryStore()
+    store.put({ _id: "drafts.a", _type: "thing", title: "Title a", picture: { _type: "image", asset: { _type: "reference", _ref: "image-edited-in-the-studio" } } })
+    const out = formatReport(await run({ store, docs: [thing("a")], slots: [pic("a-pic")], options: { ...dry, artDir: dir } }), context)
+    expect(out).toMatch(/^\s+1 {2}nothing to add$/m)
+    expect(out).toContain("  would upload 1 new image(s); 0 already in the dataset")
+    expect(lines(out).at(-1)).toMatch(/^Next: check this summary, then run with --apply\./)
   })
 
   it("warns about the proportions, the files that match no slot, and the slots still empty", async () => {
