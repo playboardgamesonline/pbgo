@@ -63,7 +63,7 @@ export function formatReport(result: RunResult, { projectId, dataset, verbose = 
   const { plan } = result
   const lines: string[] = [`Content seed · project ${projectId} · dataset ${dataset}`, ""]
 
-  if (result.mode === "dry-run") lines.push("DRY RUN: nothing was written or uploaded. Run again with --apply to write the drafts.")
+  if (result.mode === "dry-run") lines.push(`DRY RUN: nothing was written or uploaded.${hasWork(result) ? " Run again with --apply to write the drafts." : ""}`)
   else lines.push(`APPLIED: ${result.written} draft(s) written. Nothing is published: review and publish them in the Studio.`)
   lines.push("")
 

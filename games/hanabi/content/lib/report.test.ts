@@ -71,6 +71,14 @@ describe("a dry run", () => {
     expect(out).toMatch(/^\s+2 {2}nothing to add$/m)
     expect(lines(out).at(-1)).toBe("Next: nothing to add, everything the seed selects is already in the dataset.")
   })
+
+  it("does not ask for --apply in its banner either, once everything is in the dataset", async () => {
+    const store = new MemoryStore()
+    await report(store, apply, [thing("a"), other("c")])
+    const out = await report(store, dry, [thing("a"), other("c")])
+    expect(lines(out)[2]).toBe("DRY RUN: nothing was written or uploaded.")
+    expect(out).not.toContain("--apply")
+  })
 })
 
 describe("an apply", () => {
@@ -244,6 +252,7 @@ describe("the art", () => {
     const out = formatReport(await run({ store, docs: [thing("a")], slots: [pic("a-pic")], options: { ...dry, artDir: dir } }), context)
     expect(out).toMatch(/^\s+1 {2}nothing to add$/m)
     expect(out).toContain("  would upload 1 new image(s); 0 already in the dataset")
+    expect(out).toContain("DRY RUN: nothing was written or uploaded. Run again with --apply to write the drafts.")
     expect(lines(out).at(-1)).toMatch(/^Next: check this summary, then run with --apply\./)
   })
 

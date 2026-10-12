@@ -89,7 +89,7 @@ The first lines say which mode ran: `DRY RUN: nothing was written or uploaded`, 
 | `Art (<dir>)` | Slots, matched files, what would be uploaded, warnings, files that match no slot, slots still missing. Without `--art-dir`: `Art: not processed` |
 | `In the dataset but not in the seed` | Documents of the seed's types that it does not know. Left alone, never deleted |
 
-After `--apply` the last line is `Verified: planning again after the write finds nothing to do`.
+After `--apply` the last line is `Verified: planning again after the write finds nothing to do`. A dry run ends with `Next: check this summary, then run with --apply`, or with `Next: nothing to add` when no document and no image is left to write; the `DRY RUN` line at the top asks for `--apply` in the first case only.
 
 ## Guarantees
 
