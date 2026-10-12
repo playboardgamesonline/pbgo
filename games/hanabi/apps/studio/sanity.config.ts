@@ -1,9 +1,14 @@
 import { createStudioConfig } from "@pbgo/studio-kit"
-import { game } from "./schemaTypes/game"
+import { gameTypes } from "./schemaTypes"
 
 export default createStudioConfig({
   title: "Hanabi",
   projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "srffdhjt",
   dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
-  gameTypes: [game],
+  gameTypes,
+  collections: [
+    { type: "suit", title: "Suits" },
+    { type: "card", title: "Cards" },
+    { type: "bonusTile", title: "Bonus tiles" },
+  ],
 })
