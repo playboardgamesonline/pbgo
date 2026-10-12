@@ -23,7 +23,8 @@ import { HUD_PANEL, HUD_TEXT, HudButton } from "./hud-ui"
  * `labels` replaces the default texts of a phase that needs its own wording (Courtisans' opening: "start without waiting").
  * `{names}` (everybody the game waits for) and `{name}` (the first one) are filled in.
  *
- * A flat panel at the top of the screen, centred; on a short viewport it moves next to the logo, clear of the ticker.
+ * A flat panel at the top of the screen, centred; on a short viewport it moves next to the logo, clear of the ticker. It cannot
+ * grow wider than that gap, so there the button sits under the prompt (two lines at most) instead of beside it.
  */
 export function StalledTurn({
   onUpdate,
@@ -107,13 +108,18 @@ export function StalledTurn({
             HUD_TEXT,
             HUD_PANEL,
             "absolute top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 z-30 flex max-w-[calc(100vw-3rem)] -translate-x-1/2 items-center gap-3 rounded-xl py-2 pr-2 pl-4 text-sm whitespace-nowrap",
-            "short:top-[max(0.75rem,env(safe-area-inset-top))] short:left-[8.5rem] short:max-w-[calc(100vw-30rem)] short:translate-x-0",
+            "short:top-[max(0.75rem,env(safe-area-inset-top))] short:left-[8.5rem] short:max-w-[calc(100vw-30rem)] short:translate-x-0 short:flex-col short:items-stretch short:gap-1.5 short:p-2 short:text-xs",
           )}
         >
-          <span className="ph-mask min-w-0 truncate" title={prompt}>
+          <span className="ph-mask min-w-0 truncate short:line-clamp-2 short:px-1 short:whitespace-normal" title={prompt}>
             {prompt}
           </span>
-          <HudButton variant={voted ? "quiet" : "primary"} disabled={sending || voted} onClick={vote}>
+          <HudButton
+            variant={voted ? "quiet" : "primary"}
+            disabled={sending || voted}
+            onClick={vote}
+            className="short:h-auto short:min-h-8 short:px-3 short:py-1 short:text-center short:text-xs short:leading-tight short:whitespace-normal"
+          >
             {voted ? t("missionsWaiting", { read: votes, total }) : total > 1 ? `${label} (${votes}/${total})` : label}
           </HudButton>
         </motion.div>
