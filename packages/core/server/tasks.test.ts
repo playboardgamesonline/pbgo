@@ -19,16 +19,16 @@ vi.mock("server-only", () => ({}))
 vi.mock("./admin", () => ({ requireAdmin: mocks.requireAdmin }))
 vi.mock("./supabase", () => ({ supabaseAdmin: () => mocks.query }))
 
-import type { GameRouteContext } from "../lib/binding"
-import { DELETE, PATCH } from "../routes/api/tasks/[id]/route"
+import type { GamemasterRouteContext } from "../lib/binding"
+import { DELETE, PATCH } from "../routes/gamemaster/tasks/[id]/route"
 import { ApiError } from "./api"
 import { isTaskId } from "./tasks"
 
 const ID = "0b8f6f3e-5c1d-4a52-9d57-2f6c1d9a7e10"
-const game = { slug: "skyjo" } as GameRouteContext["game"]
-const context = (id: string | undefined): GameRouteContext => ({ game, params: id === undefined ? {} : { id } })
-const patch = (body: unknown = { done: true }) => new Request("http://localhost/api/skyjo/tasks/x", { method: "PATCH", body: JSON.stringify(body) })
-const remove = () => new Request("http://localhost/api/skyjo/tasks/x", { method: "DELETE" })
+const game = { slug: "skyjo" } as GamemasterRouteContext["game"]
+const context = (id: string | undefined): GamemasterRouteContext => ({ game, params: id === undefined ? {} : { id } })
+const patch = (body: unknown = { done: true }) => new Request("http://localhost/gamemaster/api/skyjo/tasks/x", { method: "PATCH", body: JSON.stringify(body) })
+const remove = () => new Request("http://localhost/gamemaster/api/skyjo/tasks/x", { method: "DELETE" })
 
 beforeEach(() => {
   mocks.calls.length = 0
@@ -51,7 +51,7 @@ describe("isTaskId", () => {
   })
 })
 
-describe("PATCH and DELETE /api/<slug>/tasks/<id>", () => {
+describe("PATCH and DELETE /gamemaster/api/<slug>/tasks/<id>", () => {
   it("answers 404 TASK_NOT_FOUND to a malformed id without querying the database", async () => {
     for (const id of ["not-a-uuid", "123", "", undefined]) {
       for (const response of [await PATCH(patch(), context(id)), await DELETE(remove(), context(id))]) {

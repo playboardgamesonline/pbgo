@@ -8,8 +8,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Field, FieldDescription, FieldLabel } from "@pbgo/ui/platform/field"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
-import { defaultTheme, FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
-import { useBinding } from "../../../lib/binding-context"
+import { FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
 import { DEFAULT_PLAYER_COLORS } from "../../../lib/skin"
 import { FileTile, IMAGE_ACCEPT, IMAGE_HINT, Img, PreviewCard, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -28,8 +27,8 @@ const IMAGES: Record<VisualSlot, { label: string; hint: string; aspect: string }
   hostIcon: { label: "Host pictogram", hint: "Next to the host in the lobby (SVG or PNG, used as a mask)", aspect: "aspect-16/10" },
 }
 
-export function VisualPage({ initial }: { initial: AdminData }) {
-  const binding = useBinding()
+/** `defaultTheme`: the colors the game ships with (`defaultTheme(binding)`), for the « Default » button. */
+export function VisualPage({ initial, defaultTheme }: { initial: AdminData; defaultTheme: ThemeColors }) {
   const s = useSection("visual", initial, pick)
   const { data, draft, set, disabled } = s
   useFontPreview(draft.bodyFont, draft.displayFont, data.settings.files)
@@ -67,7 +66,7 @@ export function VisualPage({ initial }: { initial: AdminData }) {
           <CardTitle>Colors</CardTitle>
           <CardDescription>Home, lobby and game interface.</CardDescription>
           <CardAction>
-            <Button variant="ghost" size="sm" disabled={disabled} onClick={() => set("theme", defaultTheme(binding))}>
+            <Button variant="ghost" size="sm" disabled={disabled} onClick={() => set("theme", defaultTheme)}>
               <HugeiconsIcon icon={RotateLeft01Icon} strokeWidth={2} data-icon="inline-start" />
               Default
             </Button>

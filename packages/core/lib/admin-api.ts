@@ -1,5 +1,6 @@
 const MESSAGES: Record<string, string> = {
   ACCESS_DENIED: "Session expired, please log in again.",
+  ADMIN_NOT_CONFIGURED: "The gamemaster is not configured: set ADMIN_LOGIN, ADMIN_PASSWORD and ADMIN_SESSION_SECRET.",
   INVALID_CREDENTIALS: "Wrong login or password.",
   RATE_LIMITED: "Too many login attempts: wait a few minutes before trying again.",
   SANITY_TOKEN_MISSING: "Add this game's SANITY_API_WRITE_TOKEN_<SLUG> to save to Sanity.",
@@ -22,7 +23,7 @@ export class AdminApiError extends Error {
   }
 }
 
-/** Admin call: `route` is the full path, e.g. `/api/<slug>/admin/settings` (login and logout are shared: `/api/admin/login`). */
+/** Gamemaster call: `route` is the full path, e.g. `/gamemaster/api/<slug>/settings` (login and logout are shared: `/gamemaster/api/login`). */
 export async function adminRequest<T>(route: string, init?: RequestInit): Promise<T> {
   const isForm = init?.body instanceof FormData
   const res = await fetch(route, { ...init, headers: isForm ? undefined : { "Content-Type": "application/json" }, cache: "no-store" })

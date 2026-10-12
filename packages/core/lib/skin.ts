@@ -1,7 +1,7 @@
 import { UI_TEXTS, type UiTextKey } from "@pbgo/studio-kit/constants"
 import { ERROR_TRANSLATIONS, UI_TRANSLATIONS } from "@pbgo/studio-kit/translations"
 import type { GameBinding } from "./binding"
-import { DEFAULT_LOCALE, type Locale } from "./i18n"
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n"
 
 /** Decor image (ready-to-use URL) and its width / height ratio, to fit the interface on it. */
 export type DecorImage = { url: string; srcSet?: string; ratio: number | null }
@@ -88,6 +88,21 @@ export function baseSkin(binding: GameBinding, locale: Locale): Skin {
   const { texts: _t, home: _h, victoryPhrases: _v, errors: _e, ...visual } = gameDefaults ?? {}
   void [_t, _h, _v, _e]
   return mergeSkin(mergeSkin(generic, visual), { ...i18n?.skin, errors: { ...i18n?.skin?.errors, ...i18n?.errors } })
+}
+
+/** Labels of the credits line of the home footer (« Unofficial, free online adaptation of … »), shown by the admin's Identity preview. */
+export const CREDIT_KEYS = ["creditsAdaptation", "creditsBy", "creditsPublishedBy", "creditsRightsPublisher", "creditsRights", "developedBy"] as const satisfies readonly UiTextKey[]
+
+export type CreditTexts = Record<(typeof CREDIT_KEYS)[number], string>
+
+/** The credits labels of a game in every language, plain data that a server page can hand to the client. */
+export function creditTexts(binding: GameBinding): Record<Locale, CreditTexts> {
+  return Object.fromEntries(
+    LOCALES.map((locale) => {
+      const { texts } = baseSkin(binding, locale)
+      return [locale, Object.fromEntries(CREDIT_KEYS.map((key) => [key, texts[key]]))]
+    }),
+  ) as Record<Locale, CreditTexts>
 }
 
 /** Replaces the `{name}` variables of a label. */

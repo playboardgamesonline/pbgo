@@ -1,6 +1,5 @@
 "use client"
 
-import { useBinding } from "../../../lib/binding-context"
 import { LOCALE_NAMES, LOCALES } from "../../../lib/i18n"
 import { LinkSquare02Icon, Pdf02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -13,7 +12,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 import { Label } from "@pbgo/ui/platform/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Switch } from "@pbgo/ui/platform/switch"
-import { playerBounds, RULES_SLOT, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
+import { RULES_SLOT, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
 import { FileTile, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = Pick<SiteSettings, "minPlayers" | "maxPlayers" | "turnTimeout" | "options" | "rulesPdfLinks"> & { desktopOnly: boolean }
@@ -27,13 +26,20 @@ const pick = (d: AdminData): Draft => ({
   desktopOnly: d.skin.desktopOnly,
 })
 
-export function MechanicsPage({ initial, studioUrl }: { initial: AdminData; studioUrl: string | null }) {
-  const binding = useBinding()
-  const { GAME } = binding
-  const bounds = playerBounds(binding)
+/** `options` and `bounds`: what the game's engine declares (`GAME.options`, `playerBounds`), read on the server because the gamemaster does not run any game. */
+export function MechanicsPage({
+  initial,
+  studioUrl,
+  options,
+  bounds,
+}: {
+  initial: AdminData
+  studioUrl: string | null
+  options: Array<[string, OptionDefinition]>
+  bounds: { min: number; max: number }
+}) {
   const s = useSection("mechanics", initial, pick)
   const { data, draft, set, disabled } = s
-  const options = Object.entries(GAME?.options ?? {})
   const setOption = (key: string, value: OptionValue) => set("options", { ...draft.options, defaults: { ...draft.options.defaults, [key]: value } })
   const toggleHidden = (key: string, visible: boolean) =>
     set("options", { ...draft.options, hidden: visible ? draft.options.hidden.filter((k) => k !== key) : [...draft.options.hidden, key] })

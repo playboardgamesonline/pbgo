@@ -37,7 +37,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `UPPER_SNAKE_CASE` (e.g. `cards/BACK.webp`), folders in lowercase English. Build their URLs with `asset()` from `src/lib/site.ts`.
 
 ## Admin UI
-- `/<slug>/admin` uses the PBGO platform design system (black and white, dark only, Geist, shadcn preset `beEgoY8u` adapted), scoped by the `.platform` class. The reference of every token and component is `/design` (apps/web)
+- `/gamemaster` (every game's admin, `/gamemaster/<slug>/...`) uses the PBGO platform design system (black and white, dark only, Geist, shadcn preset `beEgoY8u` adapted), scoped by the `.platform` class. The reference of every token and component is `/design` (apps/web)
 - Components live in the shared package `@pbgo/ui/platform/*` (`packages/ui/src/platform`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/platform` (or `game`), replace the `@/lib/utils` imports with `../utils`, and keep it dark-only and token-only (no `dark:` variant, no colour, font or size of its own; see "Design system" in the root `CLAUDE.md`)
 - The home page, the lobby and the board keep the game's theme (colors and fonts set in Admin › Visual)
 
@@ -53,7 +53,7 @@ Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own
 4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and the error messages of your own codes in `ERROR_MESSAGES` of `src/lib/site.ts`
-5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), then tune the rest in `/<slug>/admin`; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
+5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), then tune the rest in `/gamemaster/<slug>`; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
 6. Adapt `src/takeover.test.ts` to the new engine: it plays a whole game where players are absent and the others take over (`pnpm --filter @pbgo-game/<slug> test`)
 7. Extend the glossary above
 

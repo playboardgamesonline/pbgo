@@ -49,7 +49,7 @@ export async function launchChecklist(game: GameModule, data: AdminData): Promis
     { id: "theme", group: "Visual", label: "Colors", detail: "Theme changed from the template defaults", ok: customTheme, fix: "visual" },
     { id: "decor", group: "Visual", label: "Decorations", detail: "Top and bottom decorations of the home screen", ok: !!visual.images.decorTop.url && !!visual.images.decorBottom.url, fix: "visual" },
     { id: "sounds", group: "Audio", label: "Sounds in Sanity", detail: audio.pendingImport ? `${audio.pendingImport} still served from the code` : "Everything can be replaced from the admin", ok: audio.pendingImport === 0, optional: true, fix: "audio" },
-    { id: "admin", group: "Services", label: "Admin password", detail: "ADMIN_LOGIN and ADMIN_PASSWORD", ok: adminConfigured(), fix: "monitoring/health" },
+    { id: "admin", group: "Services", label: "Gamemaster account", detail: "ADMIN_LOGIN, ADMIN_PASSWORD and ADMIN_SESSION_SECRET", ok: adminConfigured(), fix: "monitoring/health" },
     { id: "sanity", group: "Services", label: "Sanity", detail: writable ? "Connected, the admin can save" : sanityConfigured(game) ? `${writeTokenName(game.slug)} missing` : "No Sanity project in the registry", ok: writable, fix: "monitoring/health" },
     { id: "supabase", group: "Services", label: "Supabase", detail: "Games table reachable", ok: db.games, fix: "monitoring/health" },
     { id: "migration", group: "Services", label: "Tasks & feedback tables", detail: "Migration supabase/migrations/0001_init.sql applied", ok: db.migrated, fix: "tasks/feedback" },

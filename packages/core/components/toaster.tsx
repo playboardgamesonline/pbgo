@@ -1,13 +1,6 @@
-"use client"
+import { Toaster } from "@pbgo/ui/game/sonner"
 
-import { usePathname } from "next/navigation"
-import { Toaster as PlatformToaster } from "@pbgo/ui/platform/sonner"
-import { Toaster as GameToaster } from "@pbgo/ui/game/sonner"
-
-const ADMIN_PATH = /^\/[^/]+\/admin(\/|$)/
-
-/** Toasts: the game's style everywhere, the platform's style on /<slug>/admin (a single Toaster at a time, no duplicates). */
+/** Toasts of a game, in the game's style. The gamemaster has no game runtime: its layout mounts the platform's `Toaster` itself. */
 export function AppToaster() {
-  const admin = ADMIN_PATH.test(usePathname() ?? "")
-  return admin ? <PlatformToaster position="bottom-right" /> : <GameToaster position="top-center" />
+  return <Toaster position="top-center" />
 }
