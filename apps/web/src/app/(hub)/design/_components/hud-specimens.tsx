@@ -236,11 +236,24 @@ export function TickerSpecimens() {
 
 function Pill({ prompt, action, voted }: { prompt: string; action: string; voted?: boolean }) {
   return (
-    <div role="group" aria-label={prompt} className={cn(HUD_TEXT, HUD_PANEL, "flex w-fit max-w-full items-center gap-3 rounded-xl py-2 pr-2 pl-4 text-sm whitespace-nowrap")}>
-      <span className="min-w-0 truncate" title={prompt}>
+    <div
+      role="group"
+      aria-label={prompt}
+      className={cn(
+        HUD_TEXT,
+        HUD_PANEL,
+        "flex w-fit max-w-full items-center gap-3 rounded-xl py-2 pr-2 pl-4 text-sm whitespace-nowrap",
+        "short:flex-col short:items-stretch short:gap-1.5 short:p-2 short:text-xs",
+      )}
+    >
+      <span className="min-w-0 truncate short:line-clamp-2 short:px-1 short:whitespace-normal" title={prompt}>
         {prompt}
       </span>
-      <HudButton variant={voted ? "quiet" : "primary"} disabled={voted}>
+      <HudButton
+        variant={voted ? "quiet" : "primary"}
+        disabled={voted}
+        className="short:h-auto short:min-h-8 short:px-3 short:py-1 short:text-center short:text-xs short:leading-tight short:whitespace-normal"
+      >
         {action}
       </HudButton>
     </div>
