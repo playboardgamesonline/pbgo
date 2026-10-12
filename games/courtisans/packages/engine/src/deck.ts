@@ -1,4 +1,4 @@
-import type { Rng } from "./rng"
+import { type Rng, issueIds } from "@pbgo/engine-kit"
 import { FAMILIES, type Courtier, type Role } from "./types"
 
 export const FAMILY_COMPOSITION: { role: Role | null; count: number }[] = [
@@ -29,19 +29,16 @@ export function createCourtiers(): Courtier[] {
   )
 }
 
+/** The ids are a number drawn below 36^6, written as six base-36 characters after a `c` (`issueIds` draws them). */
+const ID_SPACE = 36 ** 6
+
 /**
  * Gives each card of a *shuffled* deck an opaque id drawn from `rng`, in deck order: an id only tells a card's
  * position in the secret deal, never its family or role. `rng` must not be the shuffle's stream (see `sideSeed`).
  */
 export function assignOpaqueIds(shuffled: readonly Courtier[], rng: Rng): Courtier[] {
-  const used = new Set<string>()
-  return shuffled.map((card) => {
-    let id: string
-    do id = `c${Math.floor(rng() * 36 ** 6).toString(36).padStart(6, "0")}`
-    while (used.has(id))
-    used.add(id)
-    return { ...card, id }
-  })
+  const ids = issueIds(shuffled.length, rng, ID_SPACE)
+  return shuffled.map((card, i) => ({ ...card, id: `c${ids[i]!.toString(36).padStart(6, "0")}` }))
 }
 
 export function weight(card: Courtier): number {

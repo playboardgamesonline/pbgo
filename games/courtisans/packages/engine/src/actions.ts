@@ -1,3 +1,4 @@
+import { draw } from "@pbgo/engine-kit"
 import { HAND_SIZE } from "./deck"
 import { EngineError } from "./errors"
 import type { Action, Target, Courtier, GameState, PlayZone } from "./types"
@@ -99,7 +100,8 @@ function assassinate(state: GameState, playerId: string, assassin: Courtier, tar
 
 function endTurn(state: GameState) {
   const player = state.players[state.activePlayer]!
-  const drawn = state.deck.splice(0, HAND_SIZE)
+  const { drawn, pile } = draw(state.deck, HAND_SIZE)
+  state.deck = pile
   if (drawn.length > 0) {
     player.hand.push(...drawn)
     state.log.push({ type: "draw", playerId: player.id, count: drawn.length })

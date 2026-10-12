@@ -1,6 +1,5 @@
 export * from "./types"
 export * from "./errors"
-export * from "./rng"
 export * from "./deck"
 export * from "./setup"
 export * from "./actions"

@@ -1,6 +1,6 @@
+import { createRng } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import { activePlayerId, applyAction, waitingPlayerIds } from "./actions"
-import { createRng } from "./rng"
 import { setupGame } from "./setup"
 import { card, makeState, player, testMissions, place } from "./test-utils"
 import type { GameState } from "./types"

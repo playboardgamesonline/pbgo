@@ -37,6 +37,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 9. **DOM UI over the 3D** (header, log, announcements, game over, rules).
 10. **Code split per game.** The hub loads no game code; a game's pages load only that game (`@pbgo/games` imports each binding on demand), and its board (three.js) only on the game page.
 11. **The engine says who the game waits for.** `waitingFor(state)` lists the players the game waits for (one on a classic turn, several on a simultaneous step) and `autoPlayFor(state, playerId)` plays for one of them when they are absent. See below.
+12. **Lean state.** The state holds ids and numbers only: no display data (names, texts, labels, image paths: the catalogue and Sanity have them, the client draws them), no derived values (totals, leaders, pile sizes: compute them), no log (what happened is not what the next move needs). The seeded helpers of the engine-kit for the card games (`rng`, `ids`, `deck`, `log`, `rounds`) are built for it; see `packages/engine-kit/README.md`.
 
 ### Who the game waits for: turns, simultaneous steps, absent players
 
@@ -53,7 +54,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 The demo's secret bids at the start of each round are the reference (`packages/engine/src/demo/game.ts`, the `bids` option; board: `BidPanel` in `src/components/game/game.tsx`).
 
 - **State**: `Submissions<T>` (`bids: Submissions<number>`), built with `openSubmissions(seatIds)` when the step opens; the value is `null` until the player answers. Only ids and numbers, nothing derived.
-- **`apply`**: store the answer; as soon as `allSubmitted(submissions)` is true, resolve the step **inside the same action** (the state never sits between two phases). Letting the players change their answer until the last one arrives is a rule choice (the demo does).
+- **`apply`**: store the answer with `submit(submissions, playerId, value)`; as soon as `allSubmitted(submissions)` is true, resolve the step **inside the same action** (the state never sits between two phases), reading the answers in seat order with `revealSubmissions(submissions, seatIds)`. Letting the players change their answer until the last one arrives is a rule choice (the demo does, and `submit` replaces an answer); a game whose answers are final refuses the second one itself.
 - **`waitingFor`**: `pendingSubmissions(submissions, seatIds)` with the seat list taken from the game's own array of players.
 - **View**: `submittedFlags(submissions)` tells WHO has answered, never WHAT before the step is resolved. A player sees their own answer (`me.bid`).
 - **`autoPlayFor`**: the answer for that player only, so that when several players are absent they are played one after the other, each by its own vote.
