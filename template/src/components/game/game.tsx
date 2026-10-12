@@ -40,7 +40,8 @@ function eventText(e: GameEvent) {
 
 /**
  * The simultaneous step: everybody announces their number of tricks at the same time, in any order. A player who has bid
- * can still change their mind until the last one has, so the buttons stay on; `hasBid` of the others is public, their amount is not.
+ * can still change their mind until the last one has, so the buttons stay on. Who has bid and who is still to is not shown here:
+ * the ticker lists every seat for a step the game waits several players for (`game.waitingFor`).
  */
 function BidPanel({ sending, onBid }: { sending: boolean; onBid: (amount: number) => void }) {
   const { view } = useGame<PlayerView>()
@@ -57,14 +58,6 @@ function BidPanel({ sending, onBid }: { sending: boolean; onBid: (amount: number
             </Button>
           ))}
         </div>
-        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
-          {view.players.map((p) => (
-            <li key={p.id} className="inline-flex items-center gap-1.5">
-              <span aria-hidden>{p.hasBid ? "✓" : "…"}</span>
-              <PlayerName id={p.id} />
-            </li>
-          ))}
-        </ul>
         {me.bid !== null && <p className="text-xs text-foreground/60">Vous pouvez encore changer votre annonce.</p>}
       </div>
     </div>
