@@ -12,8 +12,9 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@p
 import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest, AdminApiError } from "../../../lib/admin-api"
-import { useGameSlug } from "../../../lib/binding-context"
+import { adminApiBase } from "../../../lib/admin-nav"
 import type { Feedback } from "../../../server/tasks"
+import { useAdminSlug } from "../admin-game"
 
 const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
 const TYPE_LABEL: Record<Feedback["type"], string> = { review: "Review", bug: "Bug report", suggestion: "Suggestion", other: "Other" }
@@ -24,8 +25,8 @@ const TABS: { id: Feedback["status"]; label: string }[] = [
 ]
 
 export function FeedbackList() {
-  const slug = useGameSlug()
-  const route = `/api/${slug}/feedback`
+  const api = adminApiBase(useAdminSlug())
+  const route = `${api}/feedback`
   const [items, setItems] = useState<Feedback[] | null>(null)
   const [missing, setMissing] = useState(false)
   const [tab, setTab] = useState<Feedback["status"]>("new")
@@ -58,7 +59,7 @@ export function FeedbackList() {
 
   async function toTask(f: Feedback, type: "bug" | "backlog") {
     try {
-      await adminRequest(`/api/${slug}/tasks`, {
+      await adminRequest(`${api}/tasks`, {
         method: "POST",
         body: JSON.stringify({ text: f.message.slice(0, 300), type: type, category: type === "bug" ? "Bugs" : "Feedback", priority: "medium" }),
       })

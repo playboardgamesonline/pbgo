@@ -4,8 +4,11 @@ import { MonitorIcon } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useSkin, useText } from "./skin-provider"
 
-/** Game pages (lobby, board) and their admin preview, `/<slug>/game/…` and `/<slug>/preview/game`: the only ones the wall covers. */
-const GAME_PAGES = /^\/[^/]+\/(game|preview\/game)(\/|$)/
+/**
+ * Game pages (lobby, board) and their admin preview, `/<slug>/game/…` and `/<slug>/preview/game` (shown by the gamemaster as
+ * `/gamemaster/<slug>/preview/game`): the only ones the wall covers.
+ */
+const GAME_PAGES = /^(?:\/[^/]+\/(?:game|preview\/game)|\/gamemaster\/[^/]+\/preview\/game)(\/|$)/
 
 /**
  * Below 900 px, covers the game pages when the skin asks for it (`interface.desktopOnly`, true by default).

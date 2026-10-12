@@ -3,15 +3,16 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
+import { previewHref } from "../../../lib/admin-nav"
 import { PREVIEW_MESSAGE, PREVIEW_READY, type PreviewDraft } from "../../../lib/preview"
-import { useGameSlug } from "../../../lib/binding-context"
 import { siteTitle, tableTitle } from "../../../lib/settings"
+import { useAdminSlug } from "../admin-game"
 
 const FRAME = { width: 1440, height: 900 }
 
-/** The game's real page (`/<slug>/preview/home` or `/<slug>/preview/game`) in a scaled-down iframe that receives the draft live. */
+/** The game's real page (`previewHref`: its home or an in-game view, with its own layout and skin) in a scaled-down iframe that receives the draft live. */
 export function SiteFrame({ kind, draft }: { kind: "home" | "game"; draft: PreviewDraft }) {
-  const slug = useGameSlug()
+  const slug = useAdminSlug()
   const box = useRef<HTMLDivElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
   const [scale, setScale] = useState(0.25)
@@ -44,7 +45,7 @@ export function SiteFrame({ kind, draft }: { kind: "home" | "game"; draft: Previ
       <iframe
         ref={frame}
         key={kind}
-        src={`/${slug}/preview/${kind}`}
+        src={previewHref(slug, kind)}
         title={kind === "home" ? "Home preview" : "In-game preview"}
         className="pointer-events-none absolute top-0 left-0 origin-top-left border-0"
         style={{ width: FRAME.width, height: FRAME.height, transform: `scale(${scale})` }}
@@ -106,7 +107,7 @@ export function LinkPreview({ image, title, description, domain }: { image: stri
 
 /** Browser tabs: home, then during a game. */
 export function TabPreview({ title, favicon }: { title: string; favicon: string | null }) {
-  const slug = useGameSlug()
+  const slug = useAdminSlug()
   const tabs = [siteTitle(title), tableTitle(title, "4XVXA1")]
   return (
     <Card className="gap-3">

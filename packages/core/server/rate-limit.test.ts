@@ -8,13 +8,13 @@ vi.mock("server-only", () => ({}))
 vi.mock("./player", () => ({ getPlayerId: mocks.getPlayerId }))
 vi.mock("./admin", () => ({ loginAdmin: mocks.loginAdmin }))
 
-import { POST as adminLogin } from "../routes/api/admin/login/route"
+import { POST as adminLogin } from "../routes/gamemaster/login/route"
 import { ApiError } from "./api"
 import { rateLimit, setRateLimitStore } from "./rate-limit"
 import { MemoryRateLimitStore } from "./rate-limiter"
 
 const request = (ip: string, body: unknown = { login: "admin", password: "wrong" }) =>
-  new Request("http://localhost/api/admin/login", { method: "POST", headers: { "x-forwarded-for": ip }, body: JSON.stringify(body) })
+  new Request("http://localhost/gamemaster/api/login", { method: "POST", headers: { "x-forwarded-for": ip }, body: JSON.stringify(body) })
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -52,7 +52,7 @@ describe("rateLimit", () => {
   })
 })
 
-describe("POST /api/admin/login", () => {
+describe("POST /gamemaster/api/login", () => {
   it("counts every attempt before looking at the credentials: the 6th one is refused unchecked", async () => {
     mocks.loginAdmin.mockRejectedValue(new ApiError("INVALID_CREDENTIALS", 401))
     for (let i = 0; i < 5; i++) expect((await adminLogin(request("3.3.3.3"))).status).toBe(401)

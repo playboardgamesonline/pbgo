@@ -3,7 +3,7 @@ export const SLUG = "template"
 /** URL of a file of `apps/web/public/<slug>` (the game's static files, served at /<slug>/...). */
 export const asset = (path: string) => `/${SLUG}${path}`
 
-// Defaults, replaced by the /admin settings (Sanity document "settings")
+// Defaults, replaced by the gamemaster settings (/gamemaster/<slug>, Sanity document "settings")
 export const NAME = "La Plus Haute"
 
 export const TAGLINE = "Le socle commun des jeux de société en ligne"

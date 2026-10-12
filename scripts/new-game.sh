@@ -8,7 +8,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 SLUG="${1:-}"
 [[ "$SLUG" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || { echo "Usage: pnpm new-game <slug>   (lowercase and dashes, e.g. the-crew)"; exit 1; }
-case "$SLUG" in api|legal|design) echo "\"$SLUG\" is a route of apps/web, pick another slug"; exit 1 ;; esac
+case "$SLUG" in api|legal|design|gamemaster|login|logout) echo "\"$SLUG\" is a route of apps/web, pick another slug"; exit 1 ;; esac
 DEST="games/$SLUG"
 [ -e "$DEST" ] && { echo "$DEST already exists"; exit 1; }
 grep -q "slug: \"$SLUG\"," packages/games/src/registry.ts && { echo "\"$SLUG\" is already in packages/games/src/registry.ts"; exit 1; }
@@ -64,7 +64,7 @@ edit(path.join(dest, "CLAUDE.md"), (s) => s.replace(/^[\s\S]*?(?=^## )/m,
   `Full guide: \`template/docs/GAME_GUIDE.md\`.\n\n`))
 fs.writeFileSync(path.join(dest, "README.md"), `# ${title}
 
-Served by \`apps/web\` at \`/${slug}\`, administration at \`/${slug}/admin\`. Created from \`template/\` (\`pnpm new-game ${slug}\`).
+Served by \`apps/web\` at \`/${slug}\`, administered in the gamemaster at \`/gamemaster/${slug}\`. Created from \`template/\` (\`pnpm new-game ${slug}\`).
 
 \`\`\`bash
 pnpm dev                          # apps/web on http://localhost:3100, this game at /${slug}

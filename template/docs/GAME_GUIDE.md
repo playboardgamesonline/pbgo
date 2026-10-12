@@ -18,7 +18,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 | Engine | **pure TypeScript** + **Vitest** (`packages/engine` of the game) | game rules, no UI dependency |
 | Realtime / DB | **Supabase** (Postgres + Realtime), one project for every game | games storage + update broadcast |
 | CMS | **Sanity**, one project and one standalone studio per game (`apps/studio`) | images, texts, rules, cards |
-| Hosting | **Vercel**, one project (`playboardgamesonline`, root `apps/web`), deployed from GitHub `main` | production + previews |
+| Hosting | **Vercel**, one project (`pbgo`, root `apps/web`), deployed from GitHub `main` | production + previews |
 
 ⚠️ Next.js 16 has breaking changes: the AI reads `apps/web/node_modules/next/dist/docs/` before coding (see `apps/web/AGENTS.md`).
 
@@ -70,7 +70,7 @@ apps/web/                          # 🌐 the only Next.js app (hub + every game
 ├─ public/<slug>/                  # the game's static files, served at /<slug>/...
 └─ src/app/
    ├─ (hub)/                       # / (hub), /legal
-   ├─ [game]/                      # /<slug> (home), /<slug>/game/<code>, /<slug>/admin, /<slug>/preview/<kind>
+   ├─ [game]/                      # /<slug> (home), /<slug>/game/<code>, /<slug>/preview/<kind> (the admin lives at /gamemaster/<slug>)
    └─ api/[game]/…                 # /api/<slug>/games/…, tasks, feedback, admin (handlers of @pbgo/core)
 packages/
 ├─ core/                           # everything shared: server, lib, components, pages, route handlers
@@ -185,7 +185,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 - Home, lobby and game options (rendered from `GAME.options`), chat, absent players (per-player takeover votes, `StalledTurn`), game over, sharing
 - Debug: panel, tabs, `useSettings` (Copy values, FPS), START / NEXT TURN / END buttons
 - Rules in tabs (Sanity singleton `rules` + code defaults)
-- SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/<slug>/admin` (Setup, Tasks, Monitoring + Vercel Web Analytics)
+- SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/gamemaster/<slug>` (Setup, Tasks, Monitoring + Vercel Web Analytics)
 
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
@@ -224,4 +224,4 @@ pnpm --filter <slug>-studio run deploy
 
 `pnpm setup-env` fills them (Supabase keys of the preview project from `~/.config/pbgo/secrets.env`, admin account, Sanity write tokens) and pushes them to the Vercel project (the production project's keys to the Production target only).
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, one `SANITY_API_WRITE_TOKEN_<SLUG>` per game (Editor, for `/<slug>/admin`), optional `NEXT_PUBLIC_SANITY_DATASET` (`production` by default), `VERCEL_TOKEN` (+ `VERCEL_TEAM_ID`) for the stats of Admin › Monitoring, and `DEBUG_GAMES=1`.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, one `SANITY_API_WRITE_TOKEN_<SLUG>` per game (Editor, for `/gamemaster/<slug>`), optional `NEXT_PUBLIC_SANITY_DATASET` (`production` by default), `VERCEL_TOKEN` (+ `VERCEL_TEAM_ID`) for the stats of Admin › Monitoring, and `DEBUG_GAMES=1`.

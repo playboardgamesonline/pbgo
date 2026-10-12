@@ -83,7 +83,7 @@ if (cd "$STUDIO" && SANITY_AUTH_TOKEN="$STOKEN" npx sanity deploy -y >"$LOG" 2>&
 else err "studio not deployed, see $LOG (host taken? set another SANITY_STUDIO_HOST in $STUDIO/.env and rerun)"; fi
 
 title "Next"
-echo "  Local:   pnpm dev → http://localhost:3100/$SLUG (admin: /$SLUG/admin)"
-echo "  Vercel:  pnpm setup-env pushes $TOKEN_KEY to the project \"playboardgamesonline\""
+echo "  Local:   pnpm dev → http://localhost:3100/$SLUG (gamemaster: /gamemaster/$SLUG)"
+echo "  Vercel:  pnpm setup-env pushes $TOKEN_KEY to the project \"pbgo\""
 echo "  Commit:  packages/games/src/registry.ts and $STUDIO (project id), then push"
 echo "  Launch:  live: true in packages/games/src/registry.ts when the game is ready, indexable: true for search engines"

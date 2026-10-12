@@ -262,7 +262,7 @@ export function Toasts() {
     <Section
       id="toast"
       module="sonner"
-      intro="A message that confirms something happened and fades by itself. Call `toast()` from anywhere; the `Toaster` is mounted once per layout (`AppToaster` in `packages/core/components/toaster.tsx` uses this style on the admin and the games' own style elsewhere). This page mounts its own."
+      intro="A message that confirms something happened and fades by itself. Call `toast()` from anywhere; the `Toaster` is mounted once per layout: the gamemaster layout mounts this one, the games mount their own style (`AppToaster` in `packages/core/components/toaster.tsx`). This page mounts its own."
     >
       <Demo
         title="Kinds"

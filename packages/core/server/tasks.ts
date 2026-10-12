@@ -41,6 +41,9 @@ export async function listTasks(slug: string, type?: TaskType): Promise<Task[] |
 
 export const FEEDBACK_TYPES = ["review", "bug", "suggestion", "other"] as const
 export type FeedbackType = (typeof FEEDBACK_TYPES)[number]
+export const FEEDBACK_STATUSES = ["new", "read", "archived"] as const
+/** Private Supabase Storage bucket of the feedback screenshots. */
+export const FEEDBACK_BUCKET = "feedback"
 
 export type Feedback = {
   id: string
@@ -50,13 +53,13 @@ export type Feedback = {
   email: string | null
   /** Path in the private `feedback` bucket (never shown to players). */
   screenshot: string | null
-  /** Signed URL (1 h), added by GET /api/<slug>/feedback for the admin. */
+  /** Signed URL (1 h), added by GET /gamemaster/api/<slug>/feedback for the admin. */
   screenshot_url?: string | null
   nickname: string | null
   game_code: string | null
   page: string | null
   user_agent: string | null
-  status: "new" | "read" | "archived"
+  status: (typeof FEEDBACK_STATUSES)[number]
 }
 
 /** Sidebar counters of one game (null = table missing). */

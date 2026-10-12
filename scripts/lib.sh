@@ -4,6 +4,8 @@
 ok()    { printf "  \033[32m✓\033[0m %s\n" "$*"; }
 warn()  { printf "  \033[33m!\033[0m %s\n" "$*"; }
 err()   { printf "  \033[31m✗\033[0m %s\n" "$*"; }
+# skip <what> <reason>: a step left as it is on purpose, neither a success nor a failure
+skip()  { printf "    %s \033[2m– skipped (%s)\033[0m\n" "$1" "$2"; }
 title() { printf "\n\033[1m━━━ %s ━━━\033[0m\n" "$*"; }
 
 # json <expression>: evaluates the expression on the JSON read from stdin (`o`), prints "" on any error
@@ -37,6 +39,9 @@ safe() { [[ "$1" =~ ^[A-Za-z0-9._:/@+=~-]*$ ]]; }
 
 # password: 24 random characters, without look-alikes
 password() { node -e 'const c="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";console.log(Array.from(require("crypto").randomBytes(24),b=>c[b%c.length]).join(""))'; }
+
+# session_secret: 64 random URL-safe characters (48 bytes), the key that signs the gamemaster session cookie
+session_secret() { node -e 'console.log(require("crypto").randomBytes(48).toString("base64url"))'; }
 
 # registry <expression>: evaluates the expression on GAMES (packages/games/src/registry.ts, imported by Node, which
 # strips its types); an array prints one item per line. Pass values through the environment (process.env).

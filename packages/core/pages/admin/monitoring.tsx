@@ -3,7 +3,7 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { BarChart, dayLabel } from "../../components/admin/bar-chart"
-import type { GameEntry, PlayableGame } from "../../lib/binding"
+import type { GameEntry, GameModule } from "../../lib/binding"
 import type { SiteSettings } from "../../lib/settings"
 import { gameUrl } from "../../lib/site-url"
 import { sanityConfigured } from "../../sanity/client"
@@ -173,7 +173,7 @@ export async function AudiencePage() {
   )
 }
 
-type HealthProps = { game: PlayableGame; games: readonly GameEntry[]; settings: SiteSettings; supabaseOk: boolean }
+type HealthProps = { game: GameModule; games: readonly GameEntry[]; settings: SiteSettings; supabaseOk: boolean }
 
 export async function HealthPage({ game, games, settings, supabaseOk }: HealthProps) {
   const analytics = await loadWebAnalytics()
@@ -198,9 +198,13 @@ export async function HealthPage({ game, games, settings, supabaseOk }: HealthPr
           )}
         </CardHeader>
         <CardContent className="divide-y">
-          <Check label="Game" ok detail={`${game.binding.GAME.name} · ${settings.minPlayers}–${settings.maxPlayers} players`} />
+          <Check
+            label="Engine"
+            ok={!!game.binding.GAME}
+            detail={game.binding.GAME ? `${game.binding.GAME.name} · ${settings.minPlayers}–${settings.maxPlayers} players` : "Not playable yet"}
+          />
           <Check label="Live" ok={game.live} detail={game.live ? (game.indexable ? "Indexed" : "Not indexed yet") : "live: false in packages/games"} />
-          <Check label="Admin account" ok={adminConfigured()} />
+          <Check label="Gamemaster account" ok={adminConfigured()} />
           <Check label="Supabase" ok={supabaseOk} />
           <Check label="Sanity" ok={sanity} detail={sanity ? `${game.sanityProjectId} / ${dataset}` : "No project id in packages/games"} />
           <Check label="Sanity writes (admin)" ok={writable} detail={writable ? undefined : writeTokenName(game.slug)} />

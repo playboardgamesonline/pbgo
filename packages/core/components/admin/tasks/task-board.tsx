@@ -18,8 +18,9 @@ import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { Switch } from "@pbgo/ui/platform/switch"
 import { cn } from "@pbgo/ui/utils"
 import { AdminApiError, adminRequest } from "../../../lib/admin-api"
-import { useGameSlug } from "../../../lib/binding-context"
+import { adminApiBase } from "../../../lib/admin-nav"
 import type { Task, TaskPriority, TaskType } from "../../../server/tasks"
+import { useAdminSlug } from "../admin-game"
 
 export const PRIORITY: Record<TaskPriority, { label: string; bug: string; className: string }> = {
   high: { label: "High", bug: "Critical", className: "bg-destructive/10 text-destructive ring-destructive/20" },
@@ -30,7 +31,7 @@ const ORDER: TaskPriority[] = ["high", "medium", "low"]
 
 /** Backlog (by category) or Bugs (by severity). */
 export function TaskBoard({ type }: { type: TaskType }) {
-  const route = `/api/${useGameSlug()}/tasks`
+  const route = `${adminApiBase(useAdminSlug())}/tasks`
   const bug = type === "bug"
   const [tasks, setTasks] = useState<Task[] | null>(null)
   const [migrated, setMigrated] = useState(true)

@@ -1,16 +1,16 @@
 "use client"
 
-import { LinkSquare02Icon, Logout03Icon, PuzzleIcon } from "@hugeicons/core-free-icons"
+import { DashboardSquare01Icon, LinkSquare02Icon, Logout03Icon, PuzzleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useRef } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../lib/admin-api"
-import { ADMIN_NAV, adminHref, type CountKey } from "../../lib/admin-nav"
-import { useGameSlug } from "../../lib/binding-context"
+import { ADMIN_NAV, adminHref, type CountKey, GAMEMASTER_PATH, LOGIN_PATH } from "../../lib/admin-nav"
+import { GameSwitcher, type SwitcherGame } from "./game-switcher"
 
-/* Unsaved changes: warns before leaving the page (sidebar link, closed tab). */
+/* Unsaved changes: warns before leaving the page (sidebar link, game switcher, closed tab). */
 const DirtyContext = createContext<React.RefObject<boolean> | null>(null)
 
 export function useDirtyGuard(dirty: boolean) {
@@ -31,83 +31,80 @@ export function useDirtyGuard(dirty: boolean) {
 }
 
 type Props = {
-  title: string
-  logo: string | null
-  favicon: string | null
-  studioUrl: string | null
-  counts: Partial<Record<CountKey, number | null>>
+  /** Every game of the registry, for the switcher */
+  games: SwitcherGame[]
+  /** The game whose pages the sidebar lists; null on the overview, which has none */
+  game: { slug: string; studioUrl: string | null; counts: Partial<Record<CountKey, number | null>> } | null
   children: React.ReactNode
 }
 
-export function AdminShell({ title, logo, favicon, studioUrl, counts, children }: Props) {
-  const slug = useGameSlug()
+const LINK = "flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
+const ACTIVE = "bg-background text-foreground shadow-surface ring-1 ring-border"
+
+export function AdminShell({ games, game, children }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const dirty = useRef(false)
 
   async function logout() {
-    await adminRequest("/api/admin/logout", { method: "POST" }).catch(() => null)
-    router.refresh()
+    await adminRequest(`${GAMEMASTER_PATH}/api/logout`, { method: "POST" }).catch(() => null)
+    router.replace(LOGIN_PATH)
+  }
+
+  function confirmLeave() {
+    return !dirty.current || window.confirm("You have unsaved changes. Leave this page anyway?")
   }
 
   function guard(e: React.MouseEvent) {
-    if (dirty.current && !window.confirm("You have unsaved changes. Leave this page anyway?")) e.preventDefault()
+    if (!confirmLeave()) e.preventDefault()
   }
 
-  const mark = favicon ?? logo
+  const overview = pathname === GAMEMASTER_PATH
   return (
     <DirtyContext.Provider value={dirty}>
       <div className="flex min-h-dvh">
-        <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r bg-muted/40">
-          <Link href={adminHref(slug, "identity")} onClick={guard} className="flex h-14 items-center gap-2.5 border-b px-4">
-            {mark ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={mark} alt="" className="size-7 rounded-md object-contain" />
-            ) : (
-              <span className="flex size-7 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">{title.slice(0, 1)}</span>
-            )}
-            <span className="truncate">{title}</span>
-          </Link>
+        <aside className="sticky top-0 flex h-dvh w-64 shrink-0 flex-col border-r bg-muted/40">
+          <div className="border-b p-3">
+            <GameSwitcher games={games} slug={game?.slug ?? null} confirmLeave={confirmLeave} />
+          </div>
           <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
-            {ADMIN_NAV.map((g) => (
-              <div key={g.group} className="flex flex-col gap-0.5">
-                <p className="px-2 pb-1 text-xs tracking-wider text-muted-foreground uppercase">{g.group}</p>
-                {g.items.map((item) => {
-                  const href = adminHref(slug, item.path)
-                  const active = pathname === href
-                  const count = item.count ? counts[item.count] : null
-                  return (
-                    <Link
-                      key={item.path}
-                      href={href}
-                      onClick={guard}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 transition-colors hover:bg-muted hover:text-foreground",
-                        active && "bg-background text-foreground shadow-surface ring-1 ring-border",
-                      )}
-                    >
-                      <HugeiconsIcon icon={item.icon} strokeWidth={2} className="size-4 shrink-0" />
-                      <span className="flex-1 truncate">{item.label}</span>
-                      {!!count && <span className="min-w-5 rounded-full bg-muted px-1.5 text-center text-xs tabular-nums text-muted-foreground">{count}</span>}
-                    </Link>
-                  )
-                })}
-              </div>
-            ))}
+            <Link href={GAMEMASTER_PATH} onClick={guard} aria-current={overview ? "page" : undefined} className={cn(LINK, overview && ACTIVE)}>
+              <HugeiconsIcon icon={DashboardSquare01Icon} strokeWidth={2} className="size-4 shrink-0" />
+              Overview
+            </Link>
+            {game &&
+              ADMIN_NAV.map((g) => (
+                <div key={g.group} className="flex flex-col gap-0.5">
+                  <p className="px-2 pb-1 text-xs tracking-wider text-muted-foreground uppercase">{g.group}</p>
+                  {g.items.map((item) => {
+                    const href = adminHref(game.slug, item.path)
+                    const active = pathname === href
+                    const count = item.count ? game.counts[item.count] : null
+                    return (
+                      <Link key={item.path} href={href} onClick={guard} aria-current={active ? "page" : undefined} className={cn(LINK, active && ACTIVE)}>
+                        <HugeiconsIcon icon={item.icon} strokeWidth={2} className="size-4 shrink-0" />
+                        <span className="flex-1 truncate">{item.label}</span>
+                        {!!count && <span className="min-w-5 rounded-full bg-muted px-1.5 text-center text-xs tabular-nums text-muted-foreground">{count}</span>}
+                      </Link>
+                    )
+                  })}
+                </div>
+              ))}
           </nav>
           <div className="flex flex-col gap-0.5 border-t px-3 py-3">
-            <a href={`/${slug}`} target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">
-              <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-4" />
-              View game
-            </a>
-            {studioUrl && (
-              <a href={studioUrl} target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">
+            {game && (
+              <a href={`/${game.slug}`} target="_blank" rel="noreferrer" className={LINK}>
+                <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-4" />
+                View game
+              </a>
+            )}
+            {game?.studioUrl && (
+              <a href={game.studioUrl} target="_blank" rel="noreferrer" className={LINK}>
                 <HugeiconsIcon icon={PuzzleIcon} strokeWidth={2} className="size-4" />
                 Open Studio
               </a>
             )}
-            <button type="button" onClick={logout} className="flex h-8 cursor-pointer items-center gap-2.5 rounded-md px-2 text-left text-sm text-foreground/80 hover:bg-muted">
+            <button type="button" onClick={logout} className={cn(LINK, "cursor-pointer text-left")}>
               <HugeiconsIcon icon={Logout03Icon} strokeWidth={2} className="size-4" />
               Log out
             </button>

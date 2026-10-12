@@ -12,9 +12,10 @@ import { Button } from "@pbgo/ui/platform/button"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../../lib/admin-api"
-import { useGameSlug } from "../../../lib/binding-context"
+import { adminApiBase } from "../../../lib/admin-nav"
 import { writeTokenName } from "../../../sanity/env"
 import type { AdminData, SectionName } from "../../../server/settings"
+import { useAdminSlug } from "../admin-game"
 import { useDirtyGuard } from "../admin-shell"
 
 export type { AdminData }
@@ -25,7 +26,7 @@ export type { AdminData }
  */
 export function useSection<T>(section: SectionName, initial: AdminData, pick: (d: AdminData) => T) {
   const router = useRouter()
-  const admin = `/api/${useGameSlug()}/admin`
+  const admin = adminApiBase(useAdminSlug())
   const [data, setData] = useState(initial)
   const [saved, setSaved] = useState(() => pick(initial))
   const [draft, setDraft] = useState(saved)
@@ -144,7 +145,7 @@ export function SaveBar({ dirty, saving, disabled, onSave, onReset }: { dirty: b
 }
 
 export function ReadOnlyAlert({ writable }: { writable: boolean }) {
-  const slug = useGameSlug()
+  const slug = useAdminSlug()
   if (writable) return null
   return (
     <Alert>

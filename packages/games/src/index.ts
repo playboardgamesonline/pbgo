@@ -1,5 +1,13 @@
 import "server-only"
-import { type GameModule, type GameRouteHandler, isPlayable, type PlayableGame, type ServerBinding } from "@pbgo/core/lib/binding"
+import {
+  type GameModule,
+  type GameRouteHandler,
+  type GamemasterRouteHandler,
+  hasEngine,
+  isPlayable,
+  type PlayableGame,
+  type ServerBinding,
+} from "@pbgo/core/lib/binding"
 import { findGame, type GameSlug } from "./registry"
 
 export { findGame, GAMES, type GameSlug, listedGames } from "./registry"
@@ -51,7 +59,23 @@ export async function getPlayableGame(slug: string): Promise<PlayableGame | null
   return game && isPlayable(game) ? game : null
 }
 
+/**
+ * The game when it has an engine, live or not: for the admin previews, so the gamemaster can set up a game that is not live
+ * yet in production too. Anyone can ask for these URLs, so the page itself answers 404 without the admin session.
+ */
+export async function getPreviewableGame(slug: string): Promise<PlayableGame | null> {
+  const game = await getGame(slug)
+  return game && hasEngine(game) ? game : null
+}
+
 type SegmentParams = Record<string, string | string[] | undefined>
+
+/** The string segments of a route, without the `[game]` one. */
+function segmentsOf(rest: SegmentParams) {
+  const segments: Record<string, string> = {}
+  for (const [key, value] of Object.entries(rest)) if (typeof value === "string") segments[key] = value
+  return segments
+}
 
 /**
  * Next route handler under `/api/[game]/...`: resolves the game from the segment, 404 `GAME_NOT_FOUND` when it is
@@ -62,8 +86,19 @@ export function gameRoute(handler: GameRouteHandler) {
     const { game: slug, ...rest } = await params
     const game = typeof slug === "string" ? await getPlayableGame(slug) : null
     if (!game) return Response.json({ error: "GAME_NOT_FOUND" }, { status: 404 })
-    const segments: Record<string, string> = {}
-    for (const [key, value] of Object.entries(rest)) if (typeof value === "string") segments[key] = value
-    return handler(request, { game, params: segments })
+    return handler(request, { game, params: segmentsOf(rest) })
+  }
+}
+
+/**
+ * Next route handler under `/gamemaster/api/[game]/...`: any game of the registry (the gamemaster also manages the ones
+ * that are not live yet, in production too), 404 `GAME_NOT_FOUND` for an unknown slug. Handlers check the session themselves.
+ */
+export function gamemasterRoute(handler: GamemasterRouteHandler) {
+  return async (request: Request, { params }: { params: Promise<SegmentParams> }) => {
+    const { game: slug, ...rest } = await params
+    const game = typeof slug === "string" ? await getGame(slug) : null
+    if (!game) return Response.json({ error: "GAME_NOT_FOUND" }, { status: 404 })
+    return handler(request, { game, params: segmentsOf(rest) })
   }
 }

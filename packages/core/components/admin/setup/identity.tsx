@@ -5,11 +5,11 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/platfo
 import { Input } from "@pbgo/ui/platform/input"
 import { Textarea } from "@pbgo/ui/platform/textarea"
 import { useState } from "react"
-import { useBinding } from "../../../lib/binding-context"
 import { LOCALE_NAMES, type Locale } from "../../../lib/i18n"
-import { baseSkin } from "../../../lib/skin"
 import { siteTitle, type SiteSettings } from "../../../lib/settings"
 import { shareImagePath } from "../../../lib/site-url"
+import type { CreditTexts } from "../../../lib/skin"
+import { useAdminSlug } from "../admin-game"
 import { LangTabs } from "./lang-tabs"
 import { FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -17,18 +17,19 @@ type Draft = Pick<SiteSettings, "title" | "descriptions" | "creditsAuthors" | "c
 
 const pick = (d: AdminData): Draft => ({ title: d.settings.title, descriptions: d.settings.descriptions, creditsAuthors: d.settings.creditsAuthors, credits: d.settings.credits })
 
-export function IdentityPage({ initial, domain }: { initial: AdminData; domain: string }) {
-  const binding = useBinding()
+/** `credits`: the labels of the home footer in every language (`creditTexts`), for the preview of the credits line. */
+export function IdentityPage({ initial, domain, credits: creditLabels }: { initial: AdminData; domain: string; credits: Record<Locale, CreditTexts> }) {
+  const slug = useAdminSlug()
   const s = useSection("identity", initial, pick)
   const { data, draft, set, disabled } = s
   const [lang, setLang] = useState<Locale>("fr")
   const settings = { ...data.settings, ...draft, description: draft.descriptions[lang] || draft.descriptions.fr, credits: { ...draft.credits, authors: draft.creditsAuthors[lang] || draft.creditsAuthors.fr || null } }
-  const credits = (k: "publisher" | "publisherUrl", v: string) => set("credits", { ...draft.credits, [k]: v || null })
+  const setCredit = (k: "publisher" | "publisherUrl", v: string) => set("credits", { ...draft.credits, [k]: v || null })
   const description = draft.descriptions[lang]
   const authors = draft.creditsAuthors[lang]
   const filled = (m: Record<Locale, string>) => Object.fromEntries((Object.keys(m) as Locale[]).map((l) => [l, !!m[l]])) as Partial<Record<Locale, boolean>>
-  const skin = baseSkin(binding, lang)
-  const shareUrl = settings.shareImage ?? `${shareImagePath(binding.SLUG)}?v=${s.version}`
+  const labels = creditLabels[lang]
+  const shareUrl = settings.shareImage ?? `${shareImagePath(slug)}?v=${s.version}`
 
   return (
     <SetupLayout
@@ -53,7 +54,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
               accept={`${IMAGE_ACCEPT},image/x-icon`}
               aspect="aspect-square"
               custom={!!data.settings.favicon?.startsWith("https://")}
-              preview={<Img src={data.settings.favicon ?? `/${binding.SLUG}/icons/favicon?v=${s.version}`} className="size-20" />}
+              preview={<Img src={data.settings.favicon ?? `/${slug}/icons/favicon?v=${s.version}`} className="size-20" />}
               busy={s.uploading === "favicon"}
               disabled={disabled}
               onFile={(f) => s.upload("favicon", f)}
@@ -145,17 +146,17 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="credits-publisher">Publisher</FieldLabel>
-                <Input id="credits-publisher" placeholder="Catch Up Games" value={draft.credits.publisher ?? ""} onChange={(e) => credits("publisher", e.target.value)} disabled={disabled} />
+                <Input id="credits-publisher" placeholder="Catch Up Games" value={draft.credits.publisher ?? ""} onChange={(e) => setCredit("publisher", e.target.value)} disabled={disabled} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="credits-url">Publisher website</FieldLabel>
-                <Input id="credits-url" type="url" placeholder="https://…" value={draft.credits.publisherUrl ?? ""} onChange={(e) => credits("publisherUrl", e.target.value)} disabled={disabled} />
+                <Input id="credits-url" type="url" placeholder="https://…" value={draft.credits.publisherUrl ?? ""} onChange={(e) => setCredit("publisherUrl", e.target.value)} disabled={disabled} />
               </Field>
             </div>
             <p className="rounded-xl bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
               {settings.credits.authors
-                ? `${skin.texts.creditsAdaptation} ${draft.title || "…"}, ${skin.texts.creditsBy} ${settings.credits.authors}${draft.credits.publisher ? ` ${skin.texts.creditsPublishedBy} ${draft.credits.publisher}` : ""}. ${draft.credits.publisher ? skin.texts.creditsRightsPublisher : skin.texts.creditsRights}`
-                : `Original game: only the “${skin.texts.developedBy} oré” line is shown.`}
+                ? `${labels.creditsAdaptation} ${draft.title || "…"}, ${labels.creditsBy} ${settings.credits.authors}${draft.credits.publisher ? ` ${labels.creditsPublishedBy} ${draft.credits.publisher}` : ""}. ${draft.credits.publisher ? labels.creditsRightsPublisher : labels.creditsRights}`
+                : `Original game: only the “${labels.developedBy} oré” line is shown.`}
             </p>
           </FieldGroup>
         </CardContent>

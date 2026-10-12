@@ -12,8 +12,9 @@ describe("game registry", () => {
   })
 
   it("keeps slugs clear of the app's own routes", () => {
-    // top-level routes of apps/web (and /api/media, /api/admin: global API routes next to /api/<slug>), plus a game's own segments
-    const reserved = ["api", "legal", "design", "media", "admin", "preview", "game", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
+    // top-level routes of apps/web (and /api/media: a global API route next to /api/<slug>), the pages and API routes under /gamemaster
+    // that sit next to /gamemaster/<slug> (login, api, logout), plus a game's own segments
+    const reserved = ["api", "legal", "design", "gamemaster", "login", "logout", "media", "admin", "preview", "game", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
     for (const { slug } of GAMES) expect(reserved).not.toContain(slug)
   })
 

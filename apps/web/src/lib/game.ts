@@ -1,6 +1,6 @@
 import "server-only"
 import { notFound } from "next/navigation"
-import { getGame, getPlayableGame } from "@pbgo/games"
+import { getGame, getPlayableGame, getPreviewableGame } from "@pbgo/games"
 
 type GameParams = Promise<{ game: string }>
 
@@ -17,4 +17,9 @@ export async function gameOf(params: GameParams) {
 /** Game of the `[game]` segment when it can be played here (engine, live in production); else 404. */
 export async function playableGameOf(params: GameParams) {
   return (await getPlayableGame((await params).game)) ?? notFound()
+}
+
+/** Game of the `[game]` segment when it has an engine, live or not, for the admin previews (the page checks the session); else 404. */
+export async function previewableGameOf(params: GameParams) {
+  return (await getPreviewableGame((await params).game)) ?? notFound()
 }

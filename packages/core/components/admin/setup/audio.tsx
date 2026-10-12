@@ -13,8 +13,9 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../../lib/admin-api"
-import { useGameSlug } from "../../../lib/binding-context"
+import { adminApiBase } from "../../../lib/admin-nav"
 import type { Volumes } from "../../../lib/sound-config"
+import { useAdminSlug } from "../admin-game"
 import { ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = {
@@ -87,7 +88,7 @@ function Slider({ value, onChange, disabled, label, className }: { value: number
 }
 
 export function AudioPage({ initial }: { initial: AdminData }) {
-  const slug = useGameSlug()
+  const slug = useAdminSlug()
   const s = useSection("audio", initial, pick)
   const { data, draft, set, disabled } = s
   const player = usePlayer()
@@ -99,7 +100,7 @@ export function AudioPage({ initial }: { initial: AdminData }) {
   async function importSounds() {
     setImporting(true)
     try {
-      s.setData(await adminRequest<AdminData>(`/api/${slug}/admin/settings`, { method: "POST", body: JSON.stringify({ action: "importSounds" }) }))
+      s.setData(await adminRequest<AdminData>(`${adminApiBase(slug)}/settings`, { method: "POST", body: JSON.stringify({ action: "importSounds" }) }))
       toast.success("Sounds imported into Sanity")
     } catch (e) {
       toast.error((e as Error).message)
