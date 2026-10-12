@@ -11,7 +11,7 @@ Moving the project to another account: see `MIGRATION.md`.
   - `packages/engine` — `@<slug>/engine`, the pure TypeScript engine (no UI), tested with Vitest
   - `apps/studio` — `<slug>-studio`, the game's Sanity Studio
   - `content/` — the game's Sanity content as versioned code and a seed script that writes drafts (Hanabi is the pilot, see `docs/content-pipeline.md`)
-  - `assets/` — sources (PDF, PSD, HD visuals), git-ignored; `assets/art/` is the drop folder of the seed's art step
+  - `assets/` — sources (PDF, PSD, HD visuals), git-ignored. The seed's art folder is outside the repo (Hanabi: `~/Companies/PBGO/assets/hanabi`) and is passed with an absolute `--art-dir`
 - `template/` — the game template, itself a game (`@pbgo-game/template`, demo "La Plus Haute", served at `/template`). See `template/CLAUDE.md` and `template/docs/GAME_GUIDE.md`
 - `packages/` — shared code (below)
 - `docs/` — guides: `content-pipeline.md` (seeding a game's Sanity content)

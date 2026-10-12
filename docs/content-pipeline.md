@@ -29,7 +29,7 @@ It does not:
 | 4 | Go | owner | The owner reads the summary and says yes |
 | 5 | Apply | content agent | `content:seed --apply` writes the drafts, then plans again and checks that nothing is left to do |
 | 6 | Publish | owner | Review the drafts in the Studio and publish them |
-| 7 | Art | whoever has it | Drop the files in `games/<slug>/assets/art/`, dry run, apply (see Art) |
+| 7 | Art | whoever has it | Put the files in the game's art folder (outside the repo), dry run with `--art-dir`, apply (see Art) |
 
 Deploy the game's Studio before asking anyone to review in the hosted Studio: a new document type only shows there once the schema is deployed (`pnpm --filter @pbgo-game/<slug> deploy:studio`). The local Studio (`pnpm dev:studio <slug>`) shows it at once.
 
@@ -49,7 +49,6 @@ games/<slug>/content/
     store.ts           the Sanity adapter (the only file that talks to the API)
     memory-store.ts    an in-memory dataset with the same rules, for the tests
     run.ts report.ts cli.ts env.ts locale.ts
-games/<slug>/assets/art/   drop folder for images (git-ignored, see Art)
 ```
 
 The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (suit keys, ranks, rating keys, bonus tile numbers) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
@@ -67,7 +66,7 @@ pnpm --filter @pbgo-game/hanabi content:seed --apply
 | --- | --- |
 | `--dry-run` | Read the dataset and print what would happen. Writes nothing. This is the default |
 | `--apply` | Write the drafts, and upload the art given with `--art-dir` |
-| `--art-dir <dir>` | Normalise the images of this folder and place them. Without it the art is left alone. A relative path is read from the folder the command runs in (`games/hanabi` through `pnpm --filter`) |
+| `--art-dir <dir>` | Normalise the images of this folder and place them. Without it the art is left alone. Give an absolute path: a relative one is read from the folder the command runs in (`games/hanabi` through `pnpm --filter`) |
 | `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only rules,settings`, `--only card-red-3`, `--only card`. A name that matches nothing stops the run |
 | `--overwrite` | Replace the values edited in the Studio with the seed's. Needs `--only` |
 | `--verbose`, `-v` | List every document, not only the ones that change |
@@ -107,10 +106,10 @@ Undoing a first run: discard the drafts it listed in the Studio. Uploaded images
 
 The seed does not make art and does not fetch it. It takes the files someone gives it.
 
-1. Put the images in `games/<slug>/assets/art/`. The folder is git-ignored (`games/*/assets/`); only the top level is read, files starting with a dot are skipped.
+1. Put the images in one folder outside the repo (Hanabi: `~/Companies/PBGO/assets/hanabi`, the same folder as the raw files). The seed only reads it: it never writes, moves or deletes anything there. Only the top level is read, files starting with a dot are skipped, and a file whose name is not a slot is only listed.
 2. Name each file after its slot (table below). Case does not matter, and spaces and underscores count as hyphens: `Card_Red 3.PNG` is `card-red-3.png`.
 3. Accepted formats: `png`, `jpg`, `jpeg`, `webp`, `svg`. Rasters become WebP (quality 86, alpha kept, orientation applied, metadata dropped); they are never enlarged, only reduced to the longest side of the slot. An SVG is kept as it is, and refused if it holds a script or an event handler.
-4. Run `content:seed --dry-run --art-dir assets/art`. The summary says how many slots have a file, which are missing, which files match no slot (a typo in the name) and which images are off the expected proportions (more than 3 %, a warning, not an error). Two files for one slot (`card-red-3.png` next to `card-red-3.jpg`) stop the run: keep one.
+4. Run `content:seed --dry-run --art-dir <the folder>`, with its absolute path (the shell expands `~`). The summary says how many slots have a file, which are missing, which files match no slot (a typo in the name) and which images are off the expected proportions (more than 3 %, a warning, not an error). Two files for one slot (`card-red-3.png` next to `card-red-3.jpg`) stop the run: keep one.
 5. Run it with `--apply`. Missing images are uploaded, the dataset is searched by content first, so the same image is never uploaded twice. The images are placed in the **drafts**.
 
 Image assets have no draft state: an uploaded image is in the media library at once, but nothing uses it until a draft points at it.

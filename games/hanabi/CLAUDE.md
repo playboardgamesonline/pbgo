@@ -15,7 +15,7 @@ Hanabi, served by `apps/web` at `/hanabi`. Not playable yet: without an engine (
 ## Content (Sanity)
 51 documents: 7 suits (5 colours, multicolor, black), 35 cards (one per suit and value, with `quantity`: 70 in all), 6 Flamboyants bonus tiles, and the `game`, `rules` and `settings` singletons. Rules are in our own words in FR, EN, ES and DE; `settings` holds the credits (Antoine Bauza, Cocktail Games, link to the publisher) and the links to the publisher's rulebook PDFs.
 - `pnpm --filter @pbgo-game/hanabi content:seed --dry-run` shows what would change, `--apply` writes the drafts. Nothing is published from code; the owner publishes in the Studio
-- Art (66 slots) is dropped in `assets/art/` (git-ignored) under the slot's name (`card-red-3.png`, `suit-blue.svg`, `card-back.png`, `bonus-2.png`…) and placed with `--art-dir assets/art`. The files that exist today are publisher press visuals, not card faces: none is used
+- Art (66 slots) lives outside the repo, in `~/Companies/PBGO/assets/hanabi` (the folder of the raw files), under the slot's name (`card-red-3.png`, `suit-blue.svg`, `card-back.png`, `bonus-2.png`…) and is placed with an absolute `--art-dir`; the seed only reads that folder. The files that exist today are publisher press visuals, not card faces: none is used
 - The Hanabi binding does not read the `rules` document yet; the toolbar's Rules button opens the publisher's PDF
 - `pnpm --filter @pbgo-game/hanabi test` and `typecheck` cover `content/` (no network, nothing written)
 - The whole process, the options and the art naming: `docs/content-pipeline.md` at the root
