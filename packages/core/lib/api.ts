@@ -19,6 +19,7 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   CONFLICT: "Quelqu'un a joué en même temps, réessayez.",
   DEBUG_DISABLED: "Le debug est désactivé sur ce serveur (DEBUG_GAMES=1).",
   NOT_STALLED: "La partie avance encore : attendez un peu avant de jouer à sa place.",
+  NOT_WAITING: "La partie n'attend plus ce joueur : il a joué entre-temps.",
   SERVER_ERROR: "Une erreur est survenue.",
   EMPTY_TEXT: "Écrivez d'abord votre message.",
   INVALID_EMAIL: "Cette adresse e-mail n'est pas valide.",
@@ -28,6 +29,7 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   RATE_LIMITED: "Trop de requêtes : patientez quelques secondes avant de réessayer.",
   FORBIDDEN: "Action refusée.",
   TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
+  AUTOPLAY_UNSUPPORTED: "Ce jeu ne sait pas jouer à la place de ce joueur.",
 }
 
 const messagesByGame = new WeakMap<GameBinding, Record<string, string>>()
@@ -86,7 +88,8 @@ function buildApi(slug: string) {
     start: (code: string) => post(`${games}/${code}/start`),
     action: (code: string, action: { type: string } & Record<string, unknown>) => post(`${games}/${code}/action`, action),
     replay: (code: string) => post(`${games}/${code}/replay`),
-    takeover: (code: string) => post(`${games}/${code}/takeover`),
+    /** Votes to play for the players the game waits for (`playerIds`, by default all of them): they are played for once every present player has voted */
+    takeover: (code: string, playerIds?: string[]) => post(`${games}/${code}/takeover`, { playerIds }),
     /** Route of the game itself (`ROUTES` of its server binding): same translated errors, same neutralization in the preview */
     custom: (code: string, route: string, body?: unknown) => post(`${games}/${code}/${route}`, body),
     debug: (code: string, command: ClientDebugCommand) => post(`${games}/${code}/debug`, { command }),

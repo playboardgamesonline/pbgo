@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useCallback, useEffect, useState } from "react"
+import { Fragment, useCallback, useEffect, useState } from "react"
 import { useBinding } from "../../lib/binding-context"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
@@ -61,14 +61,40 @@ function TurnLabel({ playerId, short }: { playerId: string; short?: boolean }) {
   )
 }
 
-/** Top-right banner: whose turn it is, then the history (newest first). */
+/** "Waiting for A, B": several players are expected at once (a simultaneous step), each name in its player's color. */
+function WaitingLabel({ playerIds }: { playerIds: readonly string[] }) {
+  const t = useText()
+  const [before, after] = t("waitingFor").split("{names}")
+  return (
+    <>
+      {before}
+      {playerIds.map((id, i) => (
+        <Fragment key={id}>
+          {i > 0 && ", "}
+          <PlayerName id={id} />
+        </Fragment>
+      ))}
+      {after}
+    </>
+  )
+}
+
+/**
+ * Top-right banner: whose turn it is, then the history (newest first).
+ *
+ * `waitingFor` (`game.waitingFor`, what the game waits for) decides the main line when it is given: "Your turn" when I am one of
+ * the players, "Waiting for A, B" when several others are, that player's turn when it is one. A board that holds the
+ * announcement back (Courtisans during its opening animation) leaves it out. Without it, `activePlayerId` is whose turn it is.
+ */
 export function Ticker({
   activePlayerId,
+  waitingFor,
   idle,
   status,
   history,
 }: {
   activePlayerId: string | null
+  waitingFor?: readonly string[]
   /** Text when nobody has to play (default: the "waiting" / "game over" labels) */
   idle?: string
   /** Global information under the main line (round, tokens…) */
@@ -78,16 +104,21 @@ export function Ticker({
   const t = useText()
   const { view } = useGame()
   const waiting = idle ?? (view.phase === "over" ? t("gameOver") : t("waiting"))
+  const me = view.me?.id
+  const mine = me && waitingFor?.includes(me) ? me : null
+  const several = waitingFor && !mine && waitingFor.length > 1 ? waitingFor : null
+  const turn = waitingFor ? (mine ?? (waitingFor.length === 1 ? waitingFor[0]! : null)) : activePlayerId
+  const key = several ? several.join(",") : (turn ?? waiting)
   return (
     <div className="flex max-w-lg flex-col items-end text-right text-foreground [text-shadow:0_1px_4px_rgb(0_0_0/60%)]">
       <motion.p
-        key={activePlayerId ?? waiting}
+        key={key}
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
         className="inline-flex items-center gap-1.5 font-display text-lg tracking-[0.14em] uppercase md:text-xl"
       >
-        {activePlayerId ? <TurnLabel playerId={activePlayerId} /> : waiting}
+        {several ? <WaitingLabel playerIds={several} /> : turn ? <TurnLabel playerId={turn} /> : waiting}
       </motion.p>
       {status && <div className="mt-1 font-display text-sm tracking-[0.18em] text-foreground/60 uppercase tabular-nums">{status}</div>}
       <div className="my-3 h-px w-full min-w-64 bg-white/25" />
