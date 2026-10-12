@@ -158,6 +158,8 @@ export const UI_TEXTS = [
   { key: "missionsSkipPrompt", group: "game", title: "Opening: players still reading (prompt, {names} = who)", fr: "En attente de {names}…" },
   { key: "missionsSkipButton", group: "game", title: "Opening: start without waiting (button)", fr: "Commencer sans attendre" },
   { key: "winsWith", group: "game", title: "Share: text", fr: "{names} remporte la partie avec {points} points !" },
+  { key: "shareHeadline", group: "game", title: "Share: image headline under the winner's name ({points} = their score)", fr: "{points} points · Victoire" },
+  { key: "pointsShort", group: "game", title: "Scoreboard and share image: points of a player, abbreviated ({points} = their score)", fr: "{points} pts" },
 ] as const
 
 export type UiTextKey = (typeof UI_TEXTS)[number]["key"]
