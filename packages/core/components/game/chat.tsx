@@ -9,7 +9,7 @@ import { cn } from "@pbgo/ui/utils"
 import { useApi, useBinding } from "../../lib/binding-context"
 import { CHAT_MAX_LENGTH } from "../../lib/chat"
 import { openChat, type ChatMessage } from "../../lib/realtime"
-import { gameReactions, playReaction, prepareSoundboard, type Reaction } from "../../lib/soundboard"
+import { gameReactions, playReaction, prepareSoundboard, reactionLabel, type Reaction } from "../../lib/soundboard"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
 
@@ -207,7 +207,7 @@ export function Chat({ className }: { className?: string }) {
                 className="absolute right-0 bottom-full grid w-44 grid-cols-4 gap-1 rounded-2xl border border-foreground/20 bg-black/70 p-2 pb-2 backdrop-blur-md [margin-bottom:0.35rem] before:absolute before:inset-x-0 before:-bottom-2 before:h-2 before:content-['']"
               >
                 {reactions.map((r) => (
-                  <button key={r.id} type="button" title={r.label} aria-label={r.label} onClick={() => react(r)} className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-xl transition-transform hover:scale-125 hover:bg-foreground/10 active:scale-95">
+                  <button key={r.id} type="button" title={reactionLabel(r, t)} aria-label={reactionLabel(r, t)} onClick={() => react(r)} className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-xl transition-transform hover:scale-125 hover:bg-foreground/10 active:scale-95">
                     {r.emoji}
                   </button>
                 ))}

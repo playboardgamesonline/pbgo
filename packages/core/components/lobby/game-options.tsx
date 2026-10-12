@@ -135,19 +135,20 @@ export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p
 const BUTTON = "flex size-8 cursor-pointer items-center justify-center rounded-md border border-foreground/20 transition-colors hover:bg-foreground/10 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
 
 function Control({ def, value, editable, onChange }: { def: OptionDefinition; value: OptionValue; editable: boolean; onChange: (v: OptionValue) => void }) {
+  const t = useText()
   if (def.type === "number") {
     const n = Number(value)
     const step = def.step ?? 1
     return (
       <div className="flex shrink-0 items-center gap-2">
         {editable && (
-          <button type="button" aria-label="Moins" className={BUTTON} disabled={n <= def.min} onClick={() => onChange(Math.max(def.min, n - step))}>
+          <button type="button" aria-label={t("optionLess")} className={BUTTON} disabled={n <= def.min} onClick={() => onChange(Math.max(def.min, n - step))}>
             <MinusIcon className="size-4" />
           </button>
         )}
         <span className="w-8 text-center font-display text-xl font-bold tabular-nums">{n}</span>
         {editable && (
-          <button type="button" aria-label="Plus" className={BUTTON} disabled={n >= def.max} onClick={() => onChange(Math.min(def.max, n + step))}>
+          <button type="button" aria-label={t("optionMore")} className={BUTTON} disabled={n >= def.max} onClick={() => onChange(Math.min(def.max, n + step))}>
             <PlusIcon className="size-4" />
           </button>
         )}
