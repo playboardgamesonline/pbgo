@@ -4,26 +4,26 @@ import { Add01Icon, Bug01Icon, Delete02Icon, TaskDone01Icon } from "@hugeicons/c
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/admin/alert"
-import { Badge } from "@pbgo/ui/admin/badge"
-import { Button } from "@pbgo/ui/admin/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Checkbox } from "@pbgo/ui/admin/checkbox"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/admin/empty"
-import { Input } from "@pbgo/ui/admin/input"
-import { Label } from "@pbgo/ui/admin/label"
-import { Progress } from "@pbgo/ui/admin/progress"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/admin/select"
-import { Skeleton } from "@pbgo/ui/admin/skeleton"
-import { Switch } from "@pbgo/ui/admin/switch"
+import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Button } from "@pbgo/ui/platform/button"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Checkbox } from "@pbgo/ui/platform/checkbox"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
+import { Input } from "@pbgo/ui/platform/input"
+import { Label } from "@pbgo/ui/platform/label"
+import { Progress } from "@pbgo/ui/platform/progress"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
+import { Skeleton } from "@pbgo/ui/platform/skeleton"
+import { Switch } from "@pbgo/ui/platform/switch"
 import { cn } from "@pbgo/ui/utils"
 import { AdminApiError, adminRequest } from "../../../lib/admin-api"
 import { useGameSlug } from "../../../lib/binding-context"
 import type { Task, TaskPriority, TaskType } from "../../../server/tasks"
 
 export const PRIORITY: Record<TaskPriority, { label: string; bug: string; className: string }> = {
-  high: { label: "High", bug: "Critical", className: "bg-red-500/10 text-red-700 ring-red-500/20" },
-  medium: { label: "Medium", bug: "Major", className: "bg-amber-500/10 text-amber-700 ring-amber-500/20" },
+  high: { label: "High", bug: "Critical", className: "bg-destructive/10 text-destructive ring-destructive/20" },
+  medium: { label: "Medium", bug: "Major", className: "bg-foreground/10 text-foreground ring-foreground/20" },
   low: { label: "Low", bug: "Minor", className: "bg-muted text-muted-foreground ring-border" },
 }
 const ORDER: TaskPriority[] = ["high", "medium", "low"]
@@ -214,7 +214,7 @@ export function TaskBoard({ type }: { type: TaskType }) {
                             type="button"
                             title="Change priority"
                             onClick={() => update(t.id, { priority: ORDER[(ORDER.indexOf(t.priority) + 1) % 3]! })}
-                            className={cn("cursor-pointer rounded-full px-2 py-0.5 text-[11px] font-medium ring-1", PRIORITY[t.priority].className)}
+                            className={cn("cursor-pointer rounded-full px-2 py-0.5 text-xs ring-1", PRIORITY[t.priority].className)}
                           >
                             {PRIORITY[t.priority].label}
                           </button>

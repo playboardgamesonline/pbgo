@@ -1,12 +1,12 @@
-import type { Metadata } from "next"
-import { GeistMono } from "geist/font/mono"
-import { GeistSans } from "geist/font/sans"
+import type { Metadata, Viewport } from "next"
+import { PLATFORM_THEME_COLOR } from "@pbgo/ui/theme"
 import "./globals.css"
+import { PlatformDocument } from "@/components/platform-document"
 import { SiteNotFound, siteNotFoundMetadata } from "@/components/site-not-found"
-import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils"
 
 export const metadata: Metadata = siteNotFoundMetadata
+
+export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorScheme: "dark" }
 
 /**
  * 404 of the whole site (`experimental.globalNotFound`): the hub and the games have separate root layouts, so there is
@@ -16,12 +16,8 @@ export const metadata: Metadata = siteNotFoundMetadata
  */
 export default function GlobalNotFound() {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("antialiased", GeistSans.variable, GeistMono.variable, "font-sans")}>
-      <body>
-        <ThemeProvider>
-          <SiteNotFound />
-        </ThemeProvider>
-      </body>
-    </html>
+    <PlatformDocument>
+      <SiteNotFound />
+    </PlatformDocument>
   )
 }

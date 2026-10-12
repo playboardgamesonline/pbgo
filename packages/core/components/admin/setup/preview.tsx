@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/admin/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
 import { PREVIEW_MESSAGE, PREVIEW_READY, type PreviewDraft } from "../../../lib/preview"
 import { useGameSlug } from "../../../lib/binding-context"
 import { siteTitle, tableTitle } from "../../../lib/settings"
@@ -90,12 +90,12 @@ export function LinkPreview({ image, title, description, domain }: { image: stri
         <CardDescription>When the game link is shared</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
+        <div className="overflow-hidden rounded-xl border bg-background shadow-surface">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt="" className="aspect-[1200/630] w-full bg-muted object-cover" />
+          <img src={image} alt="" className="aspect-1200/630 w-full bg-muted object-cover" />
           <div className="flex flex-col gap-0.5 p-3">
             <p className="text-xs text-muted-foreground uppercase">{domain}</p>
-            <p className="line-clamp-1 text-sm font-semibold">{title || "Title"}</p>
+            <p className="line-clamp-1 text-sm">{title || "Title"}</p>
             <p className="line-clamp-2 text-xs text-muted-foreground">{description}</p>
           </div>
         </div>
@@ -116,9 +116,9 @@ export function TabPreview({ title, favicon }: { title: string; favicon: string 
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {tabs.map((t) => (
-          <div key={t} className="flex h-9 items-center gap-2 rounded-t-lg border bg-background px-3 shadow-xs">
+          <div key={t} className="flex h-9 items-center gap-2 rounded-t-lg border bg-background px-3 shadow-surface">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={favicon ?? `/${slug}/icons/favicon`} alt="" className="size-4 shrink-0 rounded-[3px] object-cover" />
+            <img src={favicon ?? `/${slug}/icons/favicon`} alt="" className="size-4 shrink-0 rounded-xs object-cover" />
             <span className="truncate text-xs">{t}</span>
           </div>
         ))}

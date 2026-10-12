@@ -4,12 +4,12 @@ import { LockKeyIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/admin/alert"
-import { Button } from "@pbgo/ui/admin/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
-import { Input } from "@pbgo/ui/admin/input"
-import { Spinner } from "@pbgo/ui/admin/spinner"
+import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Button } from "@pbgo/ui/platform/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@pbgo/ui/platform/field"
+import { Input } from "@pbgo/ui/platform/input"
+import { Spinner } from "@pbgo/ui/platform/spinner"
 import { adminRequest } from "../../lib/admin-api"
 
 export function LoginForm({ title, configured }: { title: string; configured: boolean }) {
@@ -33,7 +33,7 @@ export function LoginForm({ title, configured }: { title: string; configured: bo
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-muted/40 p-4">
+    <main className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted">

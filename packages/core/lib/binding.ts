@@ -29,6 +29,10 @@ export type GameEntry = {
   tagline: string
   /** Shown by the hub; absent while the game's rules are not written yet */
   players?: { min: number; max: number }
+  /** Length of a game in minutes, shown by the hub ("30 min", "20–40 min"); absent while unknown */
+  duration?: { min: number; max: number }
+  /** Cover art of the hub card: a public path under `/<slug>/` (apps/web/public); absent: a neutral placeholder */
+  visual?: string
   /** The game's own Sanity project (content, admin settings) */
   sanityProjectId: string
   /** Playable in production. Off: home page "coming soon" only (every page stays playable outside production). */

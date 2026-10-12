@@ -3,11 +3,11 @@
 import { useEffect } from "react"
 import { Add01Icon, Cancel01Icon, RotateLeft01Icon, TextFontIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Button } from "@pbgo/ui/admin/button"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Field, FieldDescription, FieldLabel } from "@pbgo/ui/admin/field"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/admin/input-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/admin/select"
+import { Button } from "@pbgo/ui/platform/button"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Field, FieldDescription, FieldLabel } from "@pbgo/ui/platform/field"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { defaultTheme, FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
 import { useBinding } from "../../../lib/binding-context"
 import { DEFAULT_PLAYER_COLORS } from "../../../lib/skin"
@@ -20,12 +20,12 @@ const pick = (d: AdminData): Draft => ({ theme: d.settings.theme, bodyFont: d.se
 const DEFAULT_FONT = "__default__"
 
 const IMAGES: Record<VisualSlot, { label: string; hint: string; aspect: string }> = {
-  decorTop: { label: "Top", hint: "Full width, at the top of the home and lobby screens", aspect: "aspect-[5/1]" },
-  decorBottom: { label: "Bottom", hint: "Full width, the main button sits on it", aspect: "aspect-[5/1]" },
-  hero: { label: "Character", hint: "Standing on the bottom decoration", aspect: "aspect-[5/2]" },
-  background: { label: "Background", hint: "Full-screen image behind everything", aspect: "aspect-[16/10]" },
-  pattern: { label: "Texture", hint: "Tiled over the background (≈ 512 px)", aspect: "aspect-[16/10]" },
-  hostIcon: { label: "Host pictogram", hint: "Next to the host in the lobby (SVG or PNG, used as a mask)", aspect: "aspect-[16/10]" },
+  decorTop: { label: "Top", hint: "Full width, at the top of the home and lobby screens", aspect: "aspect-5/1" },
+  decorBottom: { label: "Bottom", hint: "Full width, the main button sits on it", aspect: "aspect-5/1" },
+  hero: { label: "Character", hint: "Standing on the bottom decoration", aspect: "aspect-5/2" },
+  background: { label: "Background", hint: "Full-screen image behind everything", aspect: "aspect-16/10" },
+  pattern: { label: "Texture", hint: "Tiled over the background (≈ 512 px)", aspect: "aspect-16/10" },
+  hostIcon: { label: "Host pictogram", hint: "Next to the host in the lobby (SVG or PNG, used as a mask)", aspect: "aspect-16/10" },
 }
 
 export function VisualPage({ initial }: { initial: AdminData }) {
@@ -95,7 +95,7 @@ export function VisualPage({ initial }: { initial: AdminData }) {
                       aria-label={`Remove player ${i + 1} color`}
                       disabled={disabled}
                       onClick={() => set("playerColors", draft.playerColors.filter((_, j) => j !== i))}
-                      className="absolute -top-1.5 -right-1.5 hidden size-5 cursor-pointer items-center justify-center rounded-full bg-background shadow ring-1 ring-border group-hover:flex"
+                      className="absolute -top-1.5 -right-1.5 hidden size-5 cursor-pointer items-center justify-center rounded-full bg-background shadow-surface ring-1 ring-border group-hover:flex"
                     >
                       <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3" />
                     </button>
@@ -209,7 +209,7 @@ function ColorInput({ id, label, value, onChange, disabled, className }: { id?: 
   return (
     <InputGroup className={className}>
       <InputGroupAddon>
-        <label className="relative block size-5 cursor-pointer overflow-hidden rounded-full border shadow-xs" style={{ background: isHex(value) ? value : "transparent" }}>
+        <label className="relative block size-5 cursor-pointer overflow-hidden rounded-full border shadow-surface" style={{ background: isHex(value) ? value : "transparent" }}>
           <input type="color" aria-label={label} value={isHex(value) ? value : "#000000"} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="absolute inset-0 cursor-pointer opacity-0" />
         </label>
       </InputGroupAddon>
