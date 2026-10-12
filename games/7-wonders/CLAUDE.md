@@ -5,7 +5,7 @@
 ## Structure
 - `package.json` — `@pbgo-game/7-wonders`, the binding package that `@pbgo/games` loads on demand
   - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
-  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (none yet: the core theme, and icons generated from the title), replaced by what is set in `/7-wonders/admin`
+  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (none yet: the core theme, and icons generated from the title), replaced by what is set in `/gamemaster/7-wonders`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@7-wonders/engine`, still the template's demo game (La Plus Haute): replace it with the game's engine (pure TypeScript, Vitest)
 - `apps/studio` — `7-wonders-studio`, Sanity Studio of the project `xpof03pw` (not deployed yet: `pnpm go-live 7-wonders`)

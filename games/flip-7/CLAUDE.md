@@ -5,7 +5,7 @@ Flip 7, served by `apps/web` at `/flip-7`. Not playable yet: without an engine (
 ## Structure
 - `package.json` — `@pbgo-game/flip-7`, the binding package that `@pbgo/games` loads on demand
   - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
-  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/flip-7/admin`
+  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/flip-7`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@flip-7/engine`, the engine to write (pure TypeScript, Vitest)
 - `apps/studio` — `flip-7-studio`, Sanity Studio of the project `fj3grahy` (https://flip-7.sanity.studio)

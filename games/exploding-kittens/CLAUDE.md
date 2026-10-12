@@ -5,7 +5,7 @@ Exploding Kittens, served by `apps/web` at `/exploding-kittens`. Not playable ye
 ## Structure
 - `package.json` — `@pbgo-game/exploding-kittens`, the binding package that `@pbgo/games` loads on demand
   - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
-  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (none yet: the core theme, and icons generated from the title), replaced by what is set in `/exploding-kittens/admin`
+  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (none yet: the core theme, and icons generated from the title), replaced by what is set in `/gamemaster/exploding-kittens`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@exploding-kittens/engine`, still the template's demo game (La Plus Haute): replace it with the game's engine (pure TypeScript, Vitest)
 - `apps/studio` — `exploding-kittens-studio`, Sanity Studio of the project `gsfz20b9` (not deployed yet: `pnpm go-live exploding-kittens`)

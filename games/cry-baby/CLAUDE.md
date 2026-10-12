@@ -5,7 +5,7 @@ Cry Baby, served by `apps/web` at `/cry-baby`. Not playable yet: without an engi
 ## Structure
 - `package.json` — `@pbgo-game/cry-baby`, the binding package that `@pbgo/games` loads on demand
   - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
-  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/cry-baby/admin`
+  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/cry-baby`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@cry-baby/engine`, the engine to write (pure TypeScript, Vitest)
 - `apps/studio` — `cry-baby-studio`, Sanity Studio of the project `o2gqqcvf` (https://cry-baby.sanity.studio)
