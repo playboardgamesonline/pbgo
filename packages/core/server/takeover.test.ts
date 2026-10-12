@@ -6,6 +6,7 @@ import {
   castVotes,
   parseVotes,
   presentPlayers,
+  publicTakeover,
   seenNeedsWrite,
   takeoverStatus,
   voteEntry,
@@ -241,5 +242,49 @@ describe("castVotes", () => {
     const result = castVotes({ players, waiting: ["a"], present: ["b"], entries: [], fingerprint: FP, voter: "b", targets: ["a", "c", "unknown"] })
     expect(result.entries).toEqual([`${FP}:b:a`])
     expect(result.play).toEqual(["a"])
+  })
+})
+
+describe("publicTakeover", () => {
+  const base = { players, viewer: null, waiting: ["a"], entries: [], fingerprint: FP, now: NOW }
+
+  it("lists who is present and where the takeover of each waiting player stands", () => {
+    const result = publicTakeover({ ...base, seen: { b: ago(5_000), c: ago(10_000) }, entries: [`${FP}:b:a`] })
+    expect(result.present).toEqual(["b", "c"])
+    expect(result.takeovers).toEqual([{ playerId: "a", voters: ["b", "c"], votes: ["b"] }])
+  })
+
+  it("counts the viewer as present even when they were never seen", () => {
+    const result = publicTakeover({ ...base, seen: {}, viewer: "b" })
+    expect(result.present).toEqual(["b"])
+    expect(result.takeovers).toEqual([{ playerId: "a", voters: ["b"], votes: [] }])
+  })
+
+  it("does not let a stale seen time of the viewer hide them", () => {
+    expect(publicTakeover({ ...base, seen: { b: ago(10 * 60_000) }, viewer: "b" }).present).toEqual(["b"])
+  })
+
+  it("ignores a viewer who is not at the table", () => {
+    expect(publicTakeover({ ...base, seen: { c: ago(1_000) }, viewer: "stranger" }).present).toEqual(["c"])
+    expect(publicTakeover({ ...base, seen: { c: ago(1_000) }, viewer: null }).present).toEqual(["c"])
+  })
+
+  it("is the same for every viewer who is present anyway", () => {
+    const seen = { a: ago(1_000), b: ago(2_000), c: ago(3_000) }
+    const views = ["a", "b", "c", null].map((viewer) => publicTakeover({ ...base, seen, viewer }))
+    expect(views[0]).toEqual(views[1])
+    expect(views[1]).toEqual(views[2])
+    expect(views[2]).toEqual(views[3])
+  })
+
+  it("has no takeover without a waiting player and ignores the votes of another state", () => {
+    expect(publicTakeover({ ...base, seen: { b: ago(1_000) }, waiting: [] }).takeovers).toEqual([])
+    const stale = publicTakeover({ ...base, seen: { b: ago(1_000) }, entries: ["old:b:a"] })
+    expect(stale.takeovers[0]!.votes).toEqual([])
+  })
+
+  it("works without seen times", () => {
+    expect(publicTakeover({ ...base, seen: undefined, viewer: "c" }).present).toEqual(["c"])
+    expect(publicTakeover({ ...base, seen: null }).present).toEqual([])
   })
 })

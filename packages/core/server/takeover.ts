@@ -11,6 +11,10 @@
  * Presence is the per-player last-seen time (`games.seen`), written by `server/presence.ts`.
  */
 
+import type { TakeoverStatus } from "../lib/game-types"
+
+export type { TakeoverStatus }
+
 /** A member counts as present when the server saw them less than this long ago (a hidden tab refreshes about once a minute) */
 export const PRESENCE_WINDOW_MS = 75_000
 
@@ -22,16 +26,6 @@ type Seat = { id: string }
 type Seen = Readonly<Record<string, string>> | null | undefined
 
 export type TakeoverVote = { voter: string; target: string }
-
-/** Where the takeover of one waiting player stands. Public: every viewer of the table gets it. */
-export type TakeoverStatus = {
-  /** A player the game waits for, whom the others can play for */
-  playerId: string
-  /** Players who have to agree: the present players other than `playerId`, in seat order */
-  voters: string[]
-  /** Those of `voters` who already voted for `playerId` */
-  votes: string[]
-}
 
 export class TakeoverError extends Error {
   constructor(
@@ -95,6 +89,34 @@ export function takeoverStatus({
     const voters = requiredVoters(players, present, playerId)
     return { playerId, voters, votes: voters.filter((voter) => votes.some((vote) => vote.voter === voter && vote.target === playerId)) }
   })
+}
+
+/**
+ * What every viewer of the table is shown about the takeover (`PublicGame.present` and `.takeovers`): who is present, and where
+ * the takeover of each waiting player stands. The viewer counts as present when they are at the table: their request is
+ * being served right now, `markSeen` only records it after the response.
+ */
+export function publicTakeover({
+  players,
+  seen,
+  viewer,
+  waiting,
+  entries,
+  fingerprint,
+  now,
+}: {
+  players: readonly Seat[]
+  seen: Seen
+  viewer: string | null
+  /** Players the game waits for now (`waitingPlayers`), none outside a game in progress */
+  waiting: readonly string[]
+  entries: readonly string[] | null | undefined
+  fingerprint: string
+  now: number
+}): { present: string[]; takeovers: TakeoverStatus[] } {
+  const here = viewer && players.some(({ id }) => id === viewer) ? { ...seen, [viewer]: new Date(now).toISOString() } : seen
+  const present = presentPlayers(players, here, now)
+  return { present, takeovers: takeoverStatus({ players, waiting, present, votes: parseVotes(entries, fingerprint) }) }
 }
 
 /**

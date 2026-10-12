@@ -1,5 +1,5 @@
 import "server-only"
-import { normalizeOptions, type OptionValues, type PlayerInfo } from "@pbgo/engine-kit"
+import { normalizeOptions, waitingPlayers, type OptionValues, type PlayerInfo } from "@pbgo/engine-kit"
 import type { GameEntry, PlayableGame } from "../lib/binding"
 import { type PublicGame, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
@@ -7,6 +7,7 @@ import { sanityClient } from "../sanity/client"
 import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
 import { supabaseAdmin } from "./supabase"
+import { publicTakeover } from "./takeover"
 
 /** A table, as stored in `games` (one table per game and code: `(game, code)` is the key). */
 export type GameRow = {
@@ -150,9 +151,24 @@ export function newGame(game: PlayableGame, row: GameRow, data?: unknown): Pick<
   return { status: "playing", state: GAME.setup({ players: row.players, options, seed: newSeed(), data }), replay: [], takeover_votes: [] }
 }
 
-export function publicGame(game: PlayableGame, row: GameRow, playerId: string | null): PublicGame {
+/**
+ * The table as `playerId` sees it. `waitingFor`, `present` and `takeovers` are public information, identical for every viewer
+ * except that the viewer counts as present (their request is being served right now; `markSeen` records it after the response).
+ */
+export function publicGame(game: PlayableGame, row: GameRow, playerId: string | null, now = Date.now()): PublicGame {
   const { GAME } = game.binding
   const member = row.players.some((j) => j.id === playerId)
+  const playing = row.status === "playing" && !!row.state
+  const waitingFor = playing ? waitingPlayers(GAME, row.state) : []
+  const { present, takeovers } = publicTakeover({
+    players: row.players,
+    seen: row.seen,
+    viewer: playerId,
+    waiting: waitingFor,
+    entries: playing ? row.takeover_votes : [],
+    fingerprint: playing ? stateFingerprint(row.state) : "",
+    now,
+  })
   return {
     code: row.code,
     hostId: row.host_id,
@@ -161,7 +177,10 @@ export function publicGame(game: PlayableGame, row: GameRow, playerId: string | 
     meId: member ? playerId : null,
     options: row.options ?? normalizeOptions(GAME.options, {}),
     replay: row.replay,
-    takeoverVotes: row.status === "playing" ? takeoverVotes(row) : [],
+    waitingFor,
+    present,
+    takeovers,
+    takeoverVotes: takeovers[0]?.votes ?? [],
     version: row.version,
     updatedAt: row.updated_at ?? null,
     createdAt: row.created_at ?? null,
