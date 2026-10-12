@@ -5,7 +5,7 @@ Trio, served by `apps/web` at `/trio`. Not playable yet: without an engine (`GAM
 ## Structure
 - `package.json` — `@pbgo-game/trio`, the binding package that `@pbgo/games` loads on demand
   - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
-  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/trio/admin`
+  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/trio`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@trio/engine`, the engine to write (pure TypeScript, Vitest)
 - `apps/studio` — `trio-studio`, Sanity Studio of the project `erf97a0b` (https://trio-online.sanity.studio)

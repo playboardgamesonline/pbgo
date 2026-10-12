@@ -4,7 +4,7 @@ import { asset } from "./lib/site"
 /** The game for @pbgo/core, shared by the server and the client: site constants. No engine (`GAME`) yet, so its home page says "coming soon". */
 export * from "./lib/site"
 
-/** Look of the game until it is set in /<slug>/admin: logo, icons and colors of its former site. */
+/** Look of the game until it is set in /gamemaster/<slug>: logo, icons and colors of its former site. */
 export const SETTINGS_DEFAULTS: SettingsDefaults = {
   logo: asset("/LOGO.png"),
   favicon: asset("/ICON.png"),

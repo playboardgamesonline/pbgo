@@ -5,7 +5,7 @@ Skyjo, served by `apps/web` at `/skyjo`. Not playable yet: without an engine (`G
 ## Structure
 - `package.json` — `@pbgo-game/skyjo`, the binding package that `@pbgo/games` loads on demand
   - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
-  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/skyjo/admin`
+  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/skyjo`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@skyjo/engine`, the engine to write (pure TypeScript, Vitest)
 - `apps/studio` — `skyjo-studio`, Sanity Studio of the project `p5sgvh5w` (https://skyjo.sanity.studio)
