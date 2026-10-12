@@ -57,7 +57,7 @@ function Table({ onUpdate, onLeave }: Props) {
     previous.current = { round: view.round, active: view.activePlayerId, phase: view.phase }
     if (view.phase === "over") {
       if (before?.phase !== "over") {
-        const { phrase, detail } = winnerAnnouncement(game, view, victoryPhrases)
+        const { phrase, detail } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }))
         announce(phrase, "victory", { subtitle: detail, sound: "victory" })
         setScoresOpen(true)
       }

@@ -19,7 +19,7 @@ import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { HostIcon } from "../lobby/lobby"
 import { useGame } from "./context"
-import { DEFAULT_SKIN } from "../../lib/skin"
+import { DEFAULT_SKIN, fill } from "../../lib/skin"
 
 function hash(text: string) {
   let h = 0
@@ -27,18 +27,21 @@ function hash(text: string) {
   return Math.abs(h)
 }
 
+const defaultPointsText = (points: number) => fill(DEFAULT_SKIN.texts.pointsShort, { points })
+
 /**
  * Victory sentence picked from the skin's phrases with a deterministic hash (everyone sees the same one).
  * Template `{pseudo}` / `{points}`: the announcement keeps what comes before `{pseudo}`, the names and points go in the subtitle.
+ * `pointsText` writes the winner's points in that subtitle: pass `(points) => t("pointsShort", { points })` for the visitor's language (default: French).
  */
-export function winnerAnnouncement(game: PublicGame, view: CoreView, phrases: string[] = DEFAULT_SKIN.victoryPhrases) {
+export function winnerAnnouncement(game: PublicGame, view: CoreView, phrases: string[] = DEFAULT_SKIN.victoryPhrases, pointsText = defaultPointsText) {
   const results = view.results
   if (!results) return { phrase: "", detail: "" }
   const winners = results.players.filter((j) => results.winners.includes(j.playerId))
   const template = phrases[hash(game.code + (view.log?.length ?? 0)) % phrases.length] ?? ""
   const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).replace(/[\s:,–-]+$/, "").trim()
   const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
-  return { phrase, detail: `${names} · ${winners[0]?.total ?? 0} pts` }
+  return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}` }
 }
 
 function Details({ j, large, centered }: { j: PlayerResult; large?: boolean; centered?: boolean }) {
@@ -106,7 +109,7 @@ export function GameOver({
         winner: results.winners.includes(j.playerId),
       }))
     const timer = setTimeout(() => {
-      generateShareImage(lines, SLUG, game.code, title, locale)
+      generateShareImage(lines, SLUG, game.code, title, locale, t)
         .then((f) => !cancelled && setImage(f))
         .catch(() => !cancelled && toast.error(t("imageError")))
     }, 1200)
@@ -224,7 +227,7 @@ export function GameOver({
                   </p>
                   <p className="font-display text-2xl text-accent-game tabular-nums">
                     {winners[0]!.total > 0 ? "+" : ""}
-                    {winners[0]!.total} pts
+                    {t("pointsShort", { points: winners[0]!.total })}
                   </p>
                   <div className="mt-2 space-y-2">
                     {winners.map((v) => (
@@ -247,7 +250,7 @@ export function GameOver({
                           </span>
                           <span className="font-display text-3xl leading-none text-foreground/90 tabular-nums">
                             {j.total > 0 ? "+" : ""}
-                            {j.total} pts
+                            {t("pointsShort", { points: j.total })}
                           </span>
                         </div>
                         {renderDetail ? renderDetail(j, { large: false, centered: false }) : <Details j={j} />}

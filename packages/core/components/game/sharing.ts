@@ -12,6 +12,9 @@ export type ShareRow = {
   winner: boolean
 }
 
+/** The texts drawn on the image, in the visitor's language: the page's `useText()`, narrowed to the two keys the image uses. */
+export type ShareText = (key: "shareHeadline" | "pointsShort", params: { points: number }) => string
+
 const FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
 
 function drawCrown(ctx: CanvasRenderingContext2D, cx: number, y: number, l: number) {
@@ -40,7 +43,7 @@ function setSpacing(ctx: CanvasRenderingContext2D, px: number) {
   if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${px}px`
 }
 
-export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | null, title: string, locale: Locale): Promise<Blob> {
+export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | null, title: string, locale: Locale, t: ShareText): Promise<Blob> {
   await Promise.all([document.fonts?.load(`800 72px ${FONT}`).catch(() => null), document.fonts?.load(`500 28px ${FONT}`).catch(() => null)])
   const W = 1600
   const H = 1200
@@ -106,7 +109,7 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
   ctx.fillStyle = "rgba(243,236,214,0.85)"
   ctx.font = `500 30px ${FONT}`
   setSpacing(ctx, 2)
-  ctx.fillText(`${winners[0]?.total ?? 0} points · Victoire`, W / 2, 194)
+  ctx.fillText(t("shareHeadline", { points: winners[0]?.total ?? 0 }), W / 2, 194)
 
   if (others.length) {
     const stride = Math.min(360, (W - 160) / others.length)
@@ -124,7 +127,7 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
       ctx.font = `600 24px ${FONT}`
       setSpacing(ctx, 1)
       ctx.fillStyle = "rgba(243,236,214,0.8)"
-      ctx.fillText(`${j.total} pts`, x, H - 48)
+      ctx.fillText(t("pointsShort", { points: j.total }), x, H - 48)
     })
   }
 
@@ -140,8 +143,8 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/png"))
 }
 
-export async function generateShareImage(lines: ShareRow[], slug: string, code: string, title: string, locale: Locale) {
-  const blob = await shareImage(lines, captureGamePhoto(1600, 1200), title, locale)
+export async function generateShareImage(lines: ShareRow[], slug: string, code: string, title: string, locale: Locale, t: ShareText) {
+  const blob = await shareImage(lines, captureGamePhoto(1600, 1200), title, locale, t)
   return new File([blob], `${slug}-${code}.png`, { type: "image/png" })
 }
 

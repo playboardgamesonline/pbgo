@@ -132,6 +132,8 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     missionsSkipPrompt: "Waiting for {names}…",
     missionsSkipButton: "Start without waiting",
     winsWith: "{names} wins the game with {points} points!",
+    shareHeadline: "{points} points · Victory",
+    pointsShort: "{points} pts",
     desktopOnly: "This game is played on a computer: enlarge the window or come back from a wider screen.",
   },
   es: {
@@ -259,6 +261,8 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     missionsSkipPrompt: "Esperando a {names}…",
     missionsSkipButton: "Empezar sin esperar",
     winsWith: "¡{names} gana la partida con {points} puntos!",
+    shareHeadline: "{points} puntos · Victoria",
+    pointsShort: "{points} pts",
     desktopOnly: "Este juego se juega en ordenador: amplía la ventana o vuelve desde una pantalla más grande.",
   },
   de: {
@@ -386,6 +390,8 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     missionsSkipPrompt: "Warten auf {names}…",
     missionsSkipButton: "Ohne Warten beginnen",
     winsWith: "{names} gewinnt die Partie mit {points} Punkten!",
+    shareHeadline: "{points} Punkte · Sieg",
+    pointsShort: "{points} Pkt.",
     desktopOnly: "Dieses Spiel wird am Computer gespielt: Vergrößere das Fenster oder komm von einem größeren Bildschirm zurück.",
   },
 }
