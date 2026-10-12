@@ -12,6 +12,7 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "dev:studio": "pnpm --filter template-studio dev",
     "deploy:studio": "pnpm --filter template-studio run deploy"
@@ -42,6 +43,7 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

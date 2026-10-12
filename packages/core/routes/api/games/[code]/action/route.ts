@@ -1,7 +1,9 @@
+import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { publicGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
+import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
@@ -17,5 +19,6 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     const state = GAME.apply(row.state, { ...action, playerId: id })
     return { state, status: GAME.isOver(state) ? "over" : "playing" }
   })
+  after(() => markSeen(game, row, id))
   return publicGame(game, row, id)
 })

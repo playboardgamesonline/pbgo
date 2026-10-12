@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import type { GameDefinition, OptionValues, Results } from "@pbgo/engine-kit"
+import type { AnyGameDefinition, OptionValues, Results } from "@pbgo/engine-kit"
 import type { SanityClient } from "@sanity/client"
 import type { PublicGame } from "./game-types"
 import type { Locale } from "./i18n"
@@ -41,8 +41,8 @@ export type GameEntry = {
   indexable: boolean
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyGame = GameDefinition<any, any, any, any>
+/** The engine of any game (`GameDefinition` of the engine-kit with every type parameter open). */
+export type AnyGame = AnyGameDefinition
 
 export type Author = { name: string; signature?: string; url: string }
 
