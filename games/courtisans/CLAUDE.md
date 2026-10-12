@@ -12,11 +12,12 @@ Files in `apps/web/public/courtisans` (served at `/courtisans/...`), named in En
 
 ## Structure
 - `package.json` — `@pbgo-game/courtisans`, the binding package loaded by `@pbgo/games`
-  - `src/index.ts` (engine `GAME`, site constants, `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), `src/ui.tsx` (`Logo`, `Game` loaded on demand), `src/server.ts` (`loadSetupData` = missions, `loadGameData` = catalog, `SEO`), `src/runtime.tsx` (fonts, `styles.css`, `BindingProvider`)
+  - `src/index.ts` (engine `GAME`, site constants, `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `UI_THEME`, `SETTINGS_DEFAULTS`), `src/ui.tsx` (`Logo`, `Game` loaded on demand), `src/server.ts` (`loadSetupData` = missions, `loadGameData` = catalog, `SEO`), `src/runtime.tsx` (fonts, `styles.css`, `BindingProvider`)
   - `src/components/game` — board (`game.tsx`: opening, interactions, announcements, end), messages, pictograms, score detail
     - opening: the banquet waits until every player has read their missions (engine phase `missions`: `GAME.waitingFor` = the players who have not read, `GAME.autoPlayFor` reads for one of them). After the idle delay the players present can vote to read for the latecomers: core's `StalledTurn` with the `missionsSkip*` labels, `POST /api/courtisans/games/<code>/takeover`; the opening has no route of its own
   - `src/components/game3d` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose)
   - `src/lib/catalog.ts` (default catalog), `src/lib/skin.ts` (default banquet skin), `src/lib/sounds.ts`
+  - `src/lib/ui-theme.ts` — `UI_THEME`, how the shared in-game UI (ticker, announcements, takeover pill, chat, game over) keeps the banquet look: gold accent (`--accent-game`) on the navy surface (`--surface-dark`), the accent font for titles, `motion: "lively"` (confetti, springs, emoji burst; reduced motion still wins). The look changes there, never in a copy of a shared component
 - `apps/studio` — Sanity Studio on `@pbgo/studio-kit` (the game's own `rules` and `texts` replace the shared versions)
 - `packages/engine` — pure TypeScript engine (`@courtisans/engine`), `GAME` = `@pbgo/engine-kit` contract, tested with Vitest
 
