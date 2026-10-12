@@ -127,7 +127,7 @@ supabase/migrations/               # the shared schema (table games with a game 
   - `pnpm --filter <slug>-studio schema:deploy` (after a schema change)
   - `pnpm --filter <slug>-studio run deploy` (deploy the studio)
   - content migrations of the game, when it has some
-- **Apply the Supabase SQL migrations** (`supabase/migrations/*.sql`) when they change.
+- **Apply the Supabase SQL migrations** (`supabase/migrations/*.sql`) when they change: `pnpm setup-env` applies the pending ones to preview, then production. A PR that adds a migration says so in its description, and Oré runs `pnpm setup-env` right after merging it.
 - **Provide the assets**: rules PDF, card images, pictograms (SVG), textures, fonts, sounds, named after the convention or dropped in `games/<slug>/assets/` (ignored by git) to be sorted.
 - **Enter / check the content in Sanity** (texts, images).
 - **Play for real with several people** (the AI tests with simulated data).
@@ -222,6 +222,6 @@ pnpm --filter <slug>-studio run deploy
 
 ### Environment variables (`apps/web/.env.local`, never committed)
 
-`pnpm setup-env` fills them (Supabase keys of the preview project from `~/.config/pbgo/secrets.env`, admin account, Sanity write tokens) and pushes them to the Vercel project (the production project's keys to the Production target only).
+`pnpm setup-env` applies the pending Supabase migrations, fills them (Supabase keys of the preview project from `~/.config/pbgo/secrets.env`, admin account and session secret, Sanity write tokens, reused when they exist) and pushes them to the Vercel project (the production project's keys to the Production target only).
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, one `SANITY_API_WRITE_TOKEN_<SLUG>` per game (Editor, for `/gamemaster/<slug>`), optional `NEXT_PUBLIC_SANITY_DATASET` (`production` by default), `VERCEL_TOKEN` (+ `VERCEL_TEAM_ID`) for the stats of Admin › Monitoring, and `DEBUG_GAMES=1`.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, one `SANITY_API_WRITE_TOKEN_<SLUG>` per game (Editor, for `/gamemaster/<slug>`), optional `NEXT_PUBLIC_SANITY_DATASET` (`production` by default), `VERCEL_TOKEN` and `VERCEL_TEAM_ID` (both or neither) for the stats of Admin › Monitoring, and `DEBUG_GAMES=1`.

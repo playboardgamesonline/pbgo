@@ -34,6 +34,14 @@ envset() {
     fs.chmodSync(file, 0o600)' "$1"
 }
 
+# envadd <file> <KEY> <value>: gives KEY its value in a .env file only when the file has none (absent, or empty): a value
+# that is already there is never overwritten. Status 0 when the file now holds a value for KEY (written, or already
+# there), non-zero when the write failed
+envadd() {
+  [ -z "$(envget "$1" "$2")" ] || return 0
+  envset "$1" "$2" "$3"
+}
+
 # A value that can sit unquoted in a .env file and in a JSON string
 safe() { [[ "$1" =~ ^[A-Za-z0-9._:/@+=~-]*$ ]]; }
 
