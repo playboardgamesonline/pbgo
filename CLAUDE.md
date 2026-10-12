@@ -10,9 +10,11 @@ Moving the project to another account: see `MIGRATION.md`.
   - `src/` — the binding package `@pbgo-game/<slug>`: site constants, engine binding, board, server loaders, sounds, defaults, i18n, skin
   - `packages/engine` — `@<slug>/engine`, the pure TypeScript engine (no UI), tested with Vitest
   - `apps/studio` — `<slug>-studio`, the game's Sanity Studio
-  - `assets/` — sources (PDF, PSD, HD visuals), git-ignored
+  - `content/` — the game's Sanity content as versioned code and a seed script that writes drafts (Hanabi is the pilot, see `docs/content-pipeline.md`)
+  - `assets/` — sources (PDF, PSD, HD visuals), git-ignored; `assets/art/` is the drop folder of the seed's art step
 - `template/` — the game template, itself a game (`@pbgo-game/template`, demo "La Plus Haute", served at `/template`). See `template/CLAUDE.md` and `template/docs/GAME_GUIDE.md`
 - `packages/` — shared code (below)
+- `docs/` — guides: `content-pipeline.md` (seeding a game's Sanity content)
 - `supabase/migrations/` — schema of the single Supabase project
 - `scripts/` — `new-game.sh`, `go-live.sh`, `add-game.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`
 
@@ -121,6 +123,7 @@ Black and white, dark theme only, Geist Sans in semibold with tight line-height 
 - One Sanity project per game (`sanityProjectId` in the registry), dataset `production`, studio `<slug>-studio` deployed to `<host>.sanity.studio`
 - The studio reads its project id from `apps/studio/.env` (`SANITY_STUDIO_PROJECT_ID`, see `.env.example`) or from `sanity.cli.ts`
 - A game's own content types: schemas in `apps/studio/schemaTypes`, queries in the binding's `src/sanity/`, then `pnpm --filter <slug>-studio typegen`
+- Seeding: a game's content (cards, rules in four languages, credits, art) is written from `games/<slug>/content/` with `pnpm --filter @pbgo-game/<slug> content:seed --dry-run` then `--apply`. Drafts only (publishing stays in the Studio), idempotent, never overwrites what was edited in the Studio. Token `SANITY_API_WRITE_TOKEN_<SLUG>`, never printed. Process, options, art naming: `docs/content-pipeline.md`
 - Media proxy `GET /api/media?url=` (shared by every game; fonts, sounds, SVG) only serves `https://cdn.sanity.io/(images|files)/<projectId>/…` where `<projectId>` is the `sanityProjectId` of a game of the registry (`sanityAssetUrl` in `packages/core/sanity/media.ts`, which also refuses `%` in the path and fetches the normalized URL). Core never imports the games: `apps/web/src/app/api/media/route.ts` passes the ids to `mediaRoute()`
 
 ## Supabase
