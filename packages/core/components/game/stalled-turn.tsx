@@ -3,12 +3,16 @@
 import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+import { cn } from "@pbgo/ui/utils"
 import { useApi } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
+import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
 import { fill } from "../../lib/skin"
+import { useMotion } from "../../lib/use-motion"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
+import { HUD_PANEL, HUD_TEXT, HudButton } from "./hud-ui"
 
 /**
  * Absent players: when the game has not moved for the delay set in the admin and it waits for players other than me, offers to
@@ -18,6 +22,8 @@ import { useGame } from "./context"
  *
  * `labels` replaces the default texts of a phase that needs its own wording (Courtisans' opening: "start without waiting").
  * `{names}` (everybody the game waits for) and `{name}` (the first one) are filled in.
+ *
+ * A flat panel at the top of the screen, centred; on a short viewport it moves next to the logo, clear of the ticker.
  */
 export function StalledTurn({
   onUpdate,
@@ -30,6 +36,7 @@ export function StalledTurn({
 }) {
   const t = useText()
   const api = useApi()
+  const motionMode = useMotion()
   const { game, view, nickname } = useGame()
   const { turnTimeout } = useSiteSettings()
   const [since, setSince] = useState(() => Date.now())
@@ -89,20 +96,26 @@ export function StalledTurn({
     <AnimatePresence>
       {stalled && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          data-hud="takeover"
+          role="group"
+          aria-label={prompt}
+          initial={{ opacity: 0, y: -travel(motionMode, 12) }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="absolute top-5 left-1/2 z-30 flex max-w-[calc(100vw-3rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm whitespace-nowrap text-foreground shadow-lg backdrop-blur"
+          exit={{ opacity: 0, y: -travel(motionMode, 12) }}
+          transition={{ duration: fade(motionMode, 0.2), ease: EASE_STANDARD }}
+          className={cn(
+            HUD_TEXT,
+            HUD_PANEL,
+            "absolute top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 z-30 flex max-w-[calc(100vw-3rem)] -translate-x-1/2 items-center gap-3 rounded-xl py-2 pr-2 pl-4 text-sm whitespace-nowrap",
+            "short:top-[max(0.75rem,env(safe-area-inset-top))] short:left-[8.5rem] short:max-w-[calc(100vw-30rem)] short:translate-x-0",
+          )}
         >
-          <span className="min-w-0 truncate">{prompt}</span>
-          <button
-            type="button"
-            disabled={sending || voted}
-            onClick={vote}
-            className="h-9 shrink-0 cursor-pointer rounded-full bg-foreground px-4 font-display text-background transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
-          >
+          <span className="min-w-0 truncate" title={prompt}>
+            {prompt}
+          </span>
+          <HudButton variant={voted ? "quiet" : "primary"} disabled={sending || voted} onClick={vote}>
             {voted ? t("missionsWaiting", { read: votes, total }) : total > 1 ? `${label} (${votes}/${total})` : label}
-          </button>
+          </HudButton>
         </motion.div>
       )}
     </AnimatePresence>

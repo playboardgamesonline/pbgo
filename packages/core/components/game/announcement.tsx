@@ -1,42 +1,26 @@
 "use client"
 
 import { motion } from "motion/react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
-import { copyButton, debugTab, useControls } from "./debug-controls"
+import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
 import { playSound } from "../../lib/sound"
-
+import { useMotion } from "../../lib/use-motion"
+import { copyButton, debugTab, useControls } from "./debug-controls"
+import { HUD_PANEL, HUD_TEXT, HUD_TITLE } from "./hud-ui"
 
 const DEFAULTS = {
   duration: 2.4,
   sound: true,
-  overlay: 0.64,
+  /** Strength of the scrim behind the title, 0 to 1 (times the `backdrop` of the game's `UI_THEME`) */
+  overlay: 1,
   fade: 0.3,
-  size: 4.8,
-  subtitleSize: 2,
-  spacing: 0,
-  textColor: "#ffffff",
-  outline: 0.5,
-  outlineColor: "#f2b705",
-  shadow: 4,
-  blur: 18,
-  startScale: 0.85,
-  bounce: 16,
-  lines: true,
-  lineDuration: 3.2,
-  lineThickness: 2,
-  lineColor: "#f5c542",
-  lineGap: 80,
+  size: 4.4,
+  subtitleSize: 1.75,
+  /** A light banner at the top of the screen instead of a title in the middle of it (no scrim) */
   above: false,
-  offsetY: -10,
-  fadeGradient: false,
-  gradientHeight: 52,
+  /** Stars falling behind the title; only a game whose `UI_THEME.motion` is `lively` shows them */
   confetti: false,
-  confettiCount: 70,
-  confettiColor: "#ffd35c",
-  confettiSize: 1,
-  confettiSpeed: 1,
-  confettiGlow: 16,
 }
 export type AnnouncementSettings = typeof DEFAULTS
 
@@ -44,54 +28,19 @@ function schema(defaults: AnnouncementSettings, folder: string) {
   return {
     duration: { value: defaults.duration, min: 0.5, max: 8, step: 0.1, label: "duration (s)" },
     sound: { value: defaults.sound, label: "sound" },
-    overlay: { value: defaults.overlay, min: 0, max: 1, step: 0.01, label: "overlay opacity" },
+    overlay: { value: defaults.overlay, min: 0, max: 1, step: 0.01, label: "scrim strength" },
     fade: { value: defaults.fade, min: 0, max: 2, step: 0.05, label: "fade (s)" },
     size: { value: defaults.size, min: 1, max: 10, step: 0.1, label: "text size (rem)" },
     subtitleSize: { value: defaults.subtitleSize, min: 0.5, max: 6, step: 0.1, label: "subtitle size (rem)" },
-    spacing: { value: defaults.spacing, min: 0, max: 0.5, step: 0.01, label: "letter spacing (em)" },
-    textColor: { value: defaults.textColor, label: "text color" },
-    outline: { value: defaults.outline, min: 0, max: 10, step: 0.5, label: "outline (px)" },
-    outlineColor: { value: defaults.outlineColor, label: "outline color" },
-    shadow: { value: defaults.shadow, min: 0, max: 20, step: 0.5, label: "shadow (px)" },
-    blur: { value: defaults.blur, min: 0, max: 60, step: 1, label: "shadow blur (px)" },
-    startScale: { value: defaults.startScale, min: 0.2, max: 2, step: 0.01, label: "start scale" },
-    bounce: { value: defaults.bounce, min: 4, max: 40, step: 1, label: "damping" },
-    lines: { value: defaults.lines, label: "lines" },
-    lineDuration: { value: defaults.lineDuration, min: 0.3, max: 6, step: 0.1, label: "lines duration (s)" },
-    lineThickness: { value: defaults.lineThickness, min: 1, max: 12, step: 0.5, label: "lines thickness (px)" },
-    lineColor: { value: defaults.lineColor, label: "lines color" },
-    lineGap: { value: defaults.lineGap, min: 0, max: 120, step: 1, label: "lines gap (px)" },
-    above: { value: defaults.above, label: "at top of screen" },
-    offsetY: { value: defaults.offsetY, min: -45, max: 45, step: 0.5, label: "text vertical offset (vh)" },
-    fadeGradient: { value: defaults.fadeGradient, label: "gradient overlay" },
-    gradientHeight: { value: defaults.gradientHeight, min: 5, max: 100, step: 1, label: "gradient height (%)" },
-    confetti: { value: defaults.confetti, label: "confetti" },
-    confettiCount: { value: defaults.confettiCount, min: 0, max: 400, step: 1, label: "confetti count" },
-    confettiColor: { value: defaults.confettiColor, label: "confetti color" },
-    confettiSize: { value: defaults.confettiSize, min: 0.2, max: 4, step: 0.05, label: "confetti size" },
-    confettiSpeed: { value: defaults.confettiSpeed, min: 0.1, max: 4, step: 0.05, label: "confetti speed" },
-    confettiGlow: { value: defaults.confettiGlow, min: 0, max: 60, step: 1, label: "confetti glow" },
+    above: { value: defaults.above, label: "banner at top of screen" },
+    confetti: { value: defaults.confetti, label: "confetti (lively games)" },
     ...copyButton("TRANSITION", folder),
   }
 }
 
 const PRESETS = {
   start: {},
-  turn: {
-    offsetY: 0,
-    above: true,
-    fadeGradient: true,
-    overlay: 0.55,
-    lines: false,
-    size: 2.2,
-    outline: 0,
-    shadow: 2,
-    blur: 12,
-    startScale: 0.96,
-    duration: 2,
-    spacing: 0.06,
-    gradientHeight: 45,
-  },
+  turn: { above: true, size: 1.5, duration: 2 },
   victory: { duration: 4.5, sound: false, size: 3.4, confetti: true },
 } satisfies Record<string, Partial<AnnouncementSettings>>
 
@@ -100,7 +49,7 @@ export type BaseAnnouncementType = keyof typeof PRESETS
 const LABELS: Record<string, string> = { start: "Start", turn: "Your Turn", victory: "Victory" }
 
 /**
- * Leva settings of the announcements (TRANSITION tab). Three shared presets (`start`, `turn`, `victory`);
+ * Leva settings of the announcements (TRANSITION tab, debug only). Three shared presets (`start`, `turn`, `victory`);
  * `extra` adds or overrides the game's own presets (a constant object: do not create it again on each render).
  */
 export function useAnnouncementSettings<X extends string = never>(
@@ -116,21 +65,10 @@ export function useAnnouncementSettings<X extends string = never>(
   return out as Record<BaseAnnouncementType | X, AnnouncementSettings>
 }
 
-function Line({ direction, r }: { direction: 1 | -1; r: AnnouncementSettings }) {
-  return (
-    <div className="relative w-full overflow-hidden" style={{ height: r.lineThickness }}>
-      <motion.div
-        className="absolute inset-y-0 w-[70%]"
-        style={{ background: `linear-gradient(90deg, transparent, ${r.lineColor} 30%, #fff4d6 50%, ${r.lineColor} 70%, transparent)` }}
-        initial={{ x: direction === 1 ? "-100%" : "145%" }}
-        animate={{ x: direction === 1 ? "145%" : "-100%" }}
-        transition={{ duration: r.lineDuration, ease: [0.45, 0, 0.2, 1] }}
-      />
-    </div>
-  )
-}
-
 type Particle = { x: number; y: number; vx: number; vy: number; size: number; angle: number; spin: number; phase: number; freq: number }
+
+const CONFETTI_COUNT = 70
+const CONFETTI_GLOW = 16
 
 function sprite(color: string, glow: number) {
   const radius = 32
@@ -155,12 +93,13 @@ function sprite(color: string, glow: number) {
   ctx.fillStyle = color
   star(radius)
   ctx.shadowBlur = 0
-  ctx.fillStyle = "#fffbe8"
+  ctx.fillStyle = "#fff"
   star(radius * 0.35)
   return { image: c, scale: side / (radius * 2) }
 }
 
-function Confetti({ r }: { r: AnnouncementSettings }) {
+/** Falling stars in the accent color of the game's theme (`--hud-accent`, read from the page: a canvas takes no `var()`) */
+function Confetti() {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = ref.current
@@ -172,15 +111,16 @@ function Confetti({ r }: { r: AnnouncementSettings }) {
       canvas.height = Math.round(canvas.clientHeight * dpr)
     }
     resize()
-    const { image, scale } = sprite(r.confettiColor, r.confettiGlow)
+    const color = getComputedStyle(canvas).getPropertyValue("--hud-accent").trim() || "#fff"
+    const { image, scale } = sprite(color, CONFETTI_GLOW)
     const W = () => canvas.width
     const H = () => canvas.height
-    const particles: Particle[] = Array.from({ length: r.confettiCount }, () => ({
+    const particles: Particle[] = Array.from({ length: CONFETTI_COUNT }, () => ({
       x: Math.random() * W(),
       y: -Math.random() * H() * 0.8,
       vx: (Math.random() - 0.5) * 40 * dpr,
       vy: (60 + Math.random() * 90) * dpr,
-      size: (3 + Math.random() * 6) * dpr * r.confettiSize,
+      size: (3 + Math.random() * 6) * dpr,
       angle: Math.random() * Math.PI,
       spin: (Math.random() - 0.5) * 3,
       phase: Math.random() * Math.PI * 2,
@@ -190,7 +130,7 @@ function Confetti({ r }: { r: AnnouncementSettings }) {
     let previous = start
     let id = 0
     const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - previous) / 1000) * r.confettiSpeed
+      const dt = Math.min(0.05, (now - previous) / 1000)
       previous = now
       const elapsed = (now - start) / 1000
       ctx.setTransform(1, 0, 0, 1, 0, 0)
@@ -221,50 +161,87 @@ function Confetti({ r }: { r: AnnouncementSettings }) {
       cancelAnimationFrame(id)
       window.removeEventListener("resize", resize)
     }
-  }, [r.confettiCount, r.confettiColor, r.confettiSize, r.confettiSpeed, r.confettiGlow])
+  }, [])
   return <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0 size-full" />
 }
 
-/** `sound`: effect declared in the game's `SOUNDS`, played when it shows up if the "sound" setting is on. */
-export function Announcement({ text, subtitle, settings: r, sound }: { text: string; subtitle?: string; settings: AnnouncementSettings; sound?: string }) {
+/** A size in rem that also follows the height of the viewport, so a title shrinks by itself on a short screen (a phone held sideways) */
+const fontSize = (rem: number) => `min(${rem}rem, ${rem * 2.4}vh)`
+
+/**
+ * An announcement over the table: a centred title on a soft scrim, or (`above`) a light banner at the top of the screen.
+ * `sound`: effect declared in the game's `SOUNDS`, played when it shows up if the "sound" setting is on.
+ *
+ * The visual is hidden from assistive technology and read out through a polite live region instead, so it is spoken once whatever
+ * the animation does. `live={false}` leaves that to the caller, which already keeps a live region for a queue (`useAnnouncements`).
+ */
+export function Announcement({
+  text,
+  subtitle,
+  settings: r,
+  sound,
+  live = true,
+}: {
+  text: string
+  subtitle?: string
+  settings: AnnouncementSettings
+  sound?: string
+  live?: boolean
+}) {
+  const motionMode = useMotion()
+  const lively = motionMode === "lively"
+  // The live region exists empty first and is filled once mounted: a region inserted with its text is not always read out
+  const [spoken, setSpoken] = useState("")
   useEffect(() => {
     if (sound && r.sound) playSound(sound, { bus: "alerts" })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const style = {
-    color: r.textColor,
-    WebkitTextStroke: r.outline ? `${r.outline}px ${r.outlineColor}` : undefined,
-    paintOrder: "stroke fill",
-    filter: `drop-shadow(0 ${r.shadow}px 0 rgb(0 0 0 / 85%)) drop-shadow(0 ${r.shadow * 2.5}px ${r.blur}px rgb(0 0 0 / 60%))`,
-  } as const
+  useEffect(() => {
+    if (!live) return
+    const frame = requestAnimationFrame(() => setSpoken([text, subtitle].filter(Boolean).join(". ")))
+    return () => cancelAnimationFrame(frame)
+  }, [live, text, subtitle])
+  const enter = lively ? { type: "spring" as const, stiffness: 180, damping: 18, delay: 0.1 } : { duration: fade(motionMode, r.fade), ease: EASE_STANDARD }
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: r.fade + 0.2 } }}
-      transition={{ duration: r.fade }}
-      className={cn("pointer-events-none absolute inset-0 z-40 flex justify-center", r.above ? "items-start pt-[9vh]" : "items-center")}
-      style={
-        r.fadeGradient
-          ? { background: `linear-gradient(to bottom, rgb(0 0 0 / ${r.overlay}) 0%, transparent ${r.gradientHeight}%)` }
-          : { backgroundColor: `rgb(0 0 0 / ${r.overlay})` }
-      }
-    >
-      {r.confetti && <Confetti r={r} />}
-      <div className="relative flex w-full flex-col items-center" style={{ gap: r.lineGap, transform: r.offsetY ? `translateY(${r.offsetY}vh)` : undefined }}>
-        {r.lines && <Line direction={1} r={r} />}
+    <>
+      <motion.div
+        aria-hidden
+        data-hud="announcement"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, transition: { duration: fade(motionMode, r.fade) } }}
+        transition={{ duration: fade(motionMode, r.fade), ease: EASE_STANDARD }}
+        className={cn(
+          "pointer-events-none absolute inset-0 z-40 flex justify-center",
+          r.above ? "items-start pt-[max(1.25rem,env(safe-area-inset-top))] short:pt-[max(0.75rem,env(safe-area-inset-top))]" : "items-center",
+        )}
+      >
+        {!r.above && <div className="absolute inset-0 bg-hud-backdrop" style={{ opacity: r.overlay }} />}
+        {r.confetti && lively && <Confetti />}
         <motion.div
-          initial={{ opacity: 0, scale: r.startScale, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 180, damping: r.bounce, delay: 0.1 }}
-          className="flex max-w-full flex-col items-center gap-2 px-6 text-center text-balance uppercase"
-          style={{ fontFamily: "var(--font-accent, var(--font-title))" }}
+          initial={{ opacity: 0, y: travel(motionMode, r.above ? -12 : 12), scale: lively ? 0.92 : 1 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={enter}
+          className={cn(
+            "relative flex max-w-full flex-col items-center gap-2 text-center text-balance",
+            r.above ? cn(HUD_TEXT, HUD_PANEL, "rounded-full px-5 py-2") : "px-6",
+          )}
         >
-          <h2 style={{ ...style, fontSize: `${r.size}rem`, lineHeight: 1.1, letterSpacing: `${r.spacing}em` }}>{text}</h2>
-          {subtitle && <p style={{ ...style, fontSize: `${r.subtitleSize}rem`, lineHeight: 1.1, letterSpacing: `${r.spacing}em` }}>{subtitle}</p>}
+          <h2 className={cn(r.above ? HUD_TEXT : HUD_TITLE, "leading-[1.05] text-hud-accent")} style={{ fontSize: fontSize(r.size) }}>
+            {text}
+          </h2>
+          {subtitle && (
+            <p className={cn(HUD_TEXT, "leading-tight text-hud-foreground")} style={{ fontSize: fontSize(r.subtitleSize) }}>
+              {subtitle}
+            </p>
+          )}
         </motion.div>
-        {r.lines && <Line direction={-1} r={r} />}
-      </div>
-    </motion.div>
+      </motion.div>
+      {live && (
+        <div role="status" aria-live="polite" className="sr-only">
+          {spoken}
+        </div>
+      )}
+    </>
   )
 }
