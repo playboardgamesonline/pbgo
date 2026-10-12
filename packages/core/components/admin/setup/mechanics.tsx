@@ -5,14 +5,14 @@ import { LOCALE_NAMES, LOCALES } from "../../../lib/i18n"
 import { LinkSquare02Icon, Pdf02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import type { OptionDefinition, OptionValue } from "@pbgo/engine-kit"
-import { Badge } from "@pbgo/ui/admin/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Field, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
-import { Input } from "@pbgo/ui/admin/input"
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@pbgo/ui/admin/input-group"
-import { Label } from "@pbgo/ui/admin/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/admin/select"
-import { Switch } from "@pbgo/ui/admin/switch"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Field, FieldGroup, FieldLabel } from "@pbgo/ui/platform/field"
+import { Input } from "@pbgo/ui/platform/input"
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@pbgo/ui/platform/input-group"
+import { Label } from "@pbgo/ui/platform/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
+import { Switch } from "@pbgo/ui/platform/switch"
 import { playerBounds, RULES_SLOT, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
 import { FileTile, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -118,7 +118,7 @@ export function MechanicsPage({ initial, studioUrl }: { initial: AdminData; stud
                 return (
                   <li key={key} className="grid items-center gap-4 py-3 sm:grid-cols-[minmax(0,1fr)_14rem_9rem]">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium">{def.label}</p>
+                      <p className="text-sm">{def.label}</p>
                       {def.help && <p className="text-xs text-muted-foreground">{def.help}</p>}
                     </div>
                     <OptionControl def={def} value={draft.options.defaults[key] ?? def.defaultValue} onChange={(v) => setOption(key, v)} disabled={disabled} />
@@ -220,7 +220,7 @@ export function MechanicsPage({ initial, studioUrl }: { initial: AdminData; stud
           </CardHeader>
           <CardContent>
             {studioUrl ? (
-              <a href={studioUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
+              <a href={studioUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm underline-offset-4 hover:underline">
                 Open the Studio
                 <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-3.5" />
               </a>

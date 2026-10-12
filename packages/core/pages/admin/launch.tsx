@@ -1,9 +1,9 @@
 import { ArrowRight01Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
-import { Badge } from "@pbgo/ui/admin/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Progress } from "@pbgo/ui/admin/progress"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Progress } from "@pbgo/ui/platform/progress"
 import { cn } from "@pbgo/ui/utils"
 import { adminHref } from "../../lib/admin-nav"
 import type { LaunchItem } from "../../server/launch"
@@ -41,15 +41,15 @@ export function LaunchPage({ slug, items }: { slug: string; items: LaunchItem[] 
                         <span
                           className={cn(
                             "flex size-5 shrink-0 items-center justify-center rounded-full",
-                            i.ok ? "text-emerald-600" : "border-2 border-dashed border-muted-foreground/40",
+                            i.ok ? "text-foreground" : "border-2 border-dashed border-muted-foreground/40",
                           )}
                         >
                           {i.ok && <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-5" />}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="flex items-center gap-2 text-sm font-medium">
+                          <span className="flex items-center gap-2 text-sm">
                             {i.label}
-                            {i.optional && <Badge variant="outline" className="text-[10px]">Optional</Badge>}
+                            {i.optional && <Badge variant="outline">Optional</Badge>}
                           </span>
                           <span className="block truncate text-xs text-muted-foreground">{i.detail}</span>
                         </span>

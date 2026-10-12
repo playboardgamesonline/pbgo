@@ -5,11 +5,14 @@
   "type": "module",
   "exports": {
     "./game/*": "./src/game/*.tsx",
-    "./admin/*": "./src/admin/*.tsx",
+    "./platform/*": "./src/platform/*.tsx",
+    "./styles/*": "./src/styles/*",
+    "./theme": "./src/theme.ts",
     "./utils": "./src/utils.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "catalog:",
@@ -29,10 +32,13 @@
   },
   "devDependencies": {
     "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "typescript": "catalog:"
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

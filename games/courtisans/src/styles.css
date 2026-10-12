@@ -44,8 +44,8 @@
   --color-carp: var(--family-carp);
 }
 
-/* Uppercase, spaced buttons (not in the admin) */
-:where(button, [role="button"]):not(.admin *, .admin-portal *) {
+/* Uppercase, spaced buttons (not on the platform: admin, dialogs and menus carry `.platform`) */
+:where(button, [role="button"]):not(.platform *) {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

@@ -3,11 +3,11 @@
 import { Add01Icon, Cancel01Icon, RotateLeft01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useMemo, useState } from "react"
-import { Button } from "@pbgo/ui/admin/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Input } from "@pbgo/ui/admin/input"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/admin/input-group"
-import { Textarea } from "@pbgo/ui/admin/textarea"
+import { Button } from "@pbgo/ui/platform/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Input } from "@pbgo/ui/platform/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
+import { Textarea } from "@pbgo/ui/platform/textarea"
 import { cn } from "@pbgo/ui/utils"
 import { LOCALES, type Locale } from "../../../lib/i18n"
 import type { CopyEntry, CopyGroup } from "../../../server/settings"
@@ -67,11 +67,11 @@ export function CopyPage({ initial }: { initial: AdminData }) {
               onClick={() => (setGroup(g.id), setQuery(""))}
               className={cn(
                 "flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:text-foreground",
-                group === g.id && !q && "bg-background font-medium text-foreground shadow-xs",
+                group === g.id && !q && "bg-background text-foreground shadow-surface",
               )}
             >
               {g.title}
-              {edited(g.id) > 0 && <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground tabular-nums">{edited(g.id)}</span>}
+              {edited(g.id) > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground tabular-nums">{edited(g.id)}</span>}
             </button>
           ))}
         </div>
@@ -156,8 +156,8 @@ function CopyRow({ entry, lang, value, onChange, disabled }: { entry: CopyEntry;
   return (
     <li className="grid gap-2 py-3 sm:grid-cols-[13rem_minmax(0,1fr)_2rem] sm:items-start">
       <div className="pt-1.5">
-        <p className="text-sm font-medium">{entry.label}</p>
-        {vars.length > 0 && <p className="font-mono text-[11px] text-muted-foreground">{vars.join(" ")}</p>}
+        <p className="text-sm">{entry.label}</p>
+        {vars.length > 0 && <p className="font-mono text-xs text-muted-foreground">{vars.join(" ")}</p>}
       </div>
       <div className="flex flex-col gap-1">
         <Field
@@ -168,7 +168,7 @@ function CopyRow({ entry, lang, value, onChange, disabled }: { entry: CopyEntry;
           onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => onChange(e.target.value || null)}
           disabled={disabled}
         />
-        {missing.length > 0 && <p className="text-xs text-amber-600">Missing {missing.join(", ")}</p>}
+        {missing.length > 0 && <p className="text-xs text-destructive">Missing {missing.join(", ")}</p>}
       </div>
       {value ? (
         <Button variant="ghost" size="icon-sm" aria-label="Back to default" title="Back to default" disabled={disabled} onClick={() => onChange(null)}>
