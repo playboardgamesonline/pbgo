@@ -9,6 +9,7 @@ import {
   openSubmissions,
   pendingSubmissions,
   shuffle,
+  submit,
   submittedFlags,
 } from "@pbgo/engine-kit"
 import { type Action, type Card, CARD_COLORS, type State, type DemoOptions, MAX_VALUE, type PlayerState, type PlayerView } from "./types"
@@ -59,7 +60,7 @@ function bid(state: State, action: Bid): State {
   if (!player) throw new EngineError("UNKNOWN_PLAYER")
   if (!Number.isInteger(action.amount) || action.amount < 0 || action.amount > player.hand.length) throw new EngineError("INVALID_BID")
   // a bid can be changed until the last player has bid
-  const bids = { ...state.bids, [player.id]: action.amount }
+  const bids = submit(state.bids, player.id, action.amount)
   return allSubmitted(bids) ? { ...state, bids, phase: "playing" } : { ...state, bids }
 }
 

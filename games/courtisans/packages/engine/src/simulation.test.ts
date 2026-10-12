@@ -1,6 +1,6 @@
+import { type Rng, createRng } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import { applyAction, availableZones } from "./actions"
-import { type Rng, createRng } from "./rng"
 import { setupGame } from "./setup"
 import { testMissions } from "./test-utils"
 import type { Target, GameState } from "./types"

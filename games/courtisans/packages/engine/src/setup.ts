@@ -1,6 +1,6 @@
+import { type Rng, createRng, deal, draw, randomSeed, shuffle, sideSeed } from "@pbgo/engine-kit"
 import { SET_ASIDE_CARDS, HAND_SIZE, assignOpaqueIds, createCourtiers } from "./deck"
 import { EngineError } from "./errors"
-import { type Rng, createRng, randomSeed, shuffle, sideSeed } from "./rng"
 import type { Courtier, GameState, PlayerInfo, Mission } from "./types"
 
 /** Salt of the stream that draws the opaque card ids (see `sideSeed`). */
@@ -28,17 +28,18 @@ export function setupGame({ players, missions, seed = randomSeed(), rng = create
 
   // ids are given after the shuffle, from a separate stream: they reveal neither the family nor the deal's stream
   const shuffled = assignOpaqueIds(shuffle(courtiers, rng), createRng(sideSeed(seed, IDS_STREAM)))
-  const setAside = shuffled.splice(0, toSetAside)
+  const { drawn: setAside, pile: rest } = draw(shuffled, toSetAside)
+  const { hands, pile: deck } = deal(rest, count, HAND_SIZE)
 
   return {
     players: players.map((player, i) => ({
       ...player,
-      hand: shuffled.splice(0, HAND_SIZE),
+      hand: hands[i]!,
       domain: [],
       missions: [whites[i] as Mission, blues[i] as Mission],
       missionsRead: false,
     })),
-    deck: shuffled,
+    deck,
     setAside,
     eliminated: [],
     table: [],
