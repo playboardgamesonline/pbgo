@@ -9,7 +9,7 @@ export const NAME = "Hanabi"
 export const TAGLINE = "Le jeu coopératif de feux d'artifice d'Antoine Bauza"
 
 export const DESCRIPTION =
-  "Jouez à Hanabi en ligne avec vos amis : le jeu de cartes coopératif d'Antoine Bauza où l'on compose ensemble un feu d'artifice sans voir ses propres cartes. De 2 à 5 joueurs, dès 10 ans."
+  "Jouez à Hanabi en ligne avec vos amis : le jeu de cartes coopératif d'Antoine Bauza où l'on compose ensemble un feu d'artifice sans voir ses propres cartes. De 2 à 5 joueurs, dès 8 ans."
 
 export const KEYWORDS = ["Hanabi", "Hanabi en ligne", "jeu coopératif", "jeu de cartes", "feux d'artifice", "Antoine Bauza", "jeu de société en ligne", "jouer entre amis"]
 

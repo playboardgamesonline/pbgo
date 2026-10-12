@@ -12,7 +12,9 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p content",
+    "test": "vitest run",
+    "content:seed": "node --disable-warning=ExperimentalWarning content/seed.ts",
     "dev:studio": "pnpm --filter hanabi-studio dev",
     "deploy:studio": "pnpm --filter hanabi-studio run deploy"
   },
@@ -27,13 +29,17 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
+    "@sanity/client": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "typescript": "catalog:"
+    "sharp": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
