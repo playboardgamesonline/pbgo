@@ -24,8 +24,10 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
   - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
   - `src/components/game3d` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose, `card3d.tsx`, textures, aura, crown, photo for sharing)
 - `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
-  - `@pbgo/engine-kit`: `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`), declarative game options (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`
-  - `src/demo/` is the demo game; `src/index.ts` exports `GAME` = the active game
+  - `@pbgo/engine-kit`: `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug`), declarative game options (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`
+    - Turns (engine contract v2): `waitingFor(state)` = the players the game waits for (several on a simultaneous step), `autoPlayFor(state, playerId)` = plays for one of them; `activePlayer` and `autoPlay` are `@deprecated`. Read them through `waitingPlayers`, `currentPlayer`, `canPlayFor`, `playFor`, `playOn`, never call the hooks directly
+    - Simultaneous step: `Submissions<T>`, `openSubmissions`, `pendingSubmissions(submissions, seatIds)`, `allSubmitted`, `submittedFlags`
+  - `src/demo/` is the demo game (with a simultaneous step: the secret bids of the `bids` option); `src/index.ts` exports `GAME` = the active game
 - `apps/studio` — `template-studio`, Sanity Studio built with `createStudioConfig` of `@pbgo/studio-kit` (shared singletons `settings`, `interface`, `rules`, `texts`); only `schemaTypes/game.ts` is the game's own
 - Everything else (home, lobby, game page, chat, game over, sharing, admin, API routes) comes from `@pbgo/core` and is the same for every game
 
@@ -48,14 +50,25 @@ Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `
 1. `pnpm new-game <slug>` (or `pnpm add-game <slug>` to also create the Sanity project and studio): copies this folder, renames the packages and registers the game in `packages/games`
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own
-4. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), then tune the rest in `/<slug>/admin`; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
-5. Extend the glossary above
+4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and the error messages of your own codes in `ERROR_MESSAGES` of `src/lib/site.ts`
+5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), then tune the rest in `/<slug>/admin`; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
+6. Adapt `src/takeover.test.ts` to the new engine: it plays a whole game where players are absent and the others take over (`pnpm --filter @pbgo-game/<slug> test`)
+7. Extend the glossary above
+
+## Turns and absent players
+- `waitingFor(state)`: ids of the players the game waits for, in seat order, no duplicates; one player per classic turn, several on a simultaneous step, none when the game is over. **Public**: the server sends it to every viewer, so never drop a player from it when that would reveal something hidden
+- `autoPlayFor(state, playerId)`: completes the current step of that one player. Legal, deterministic (seeded streams only, no `Math.random` or `Date.now`), `EngineError("NOT_WAITING")` if they are not waiting. The server uses it for an absent player
+- Absent player (core): after `settings.turnTimeout` without a move, the present players vote per absent player (`POST /api/<slug>/games/<code>/takeover`, `StalledTurn`); a player is played for once every other member seen in the last 75 s voted for them. The game has nothing else to write
+- Simultaneous step (see the secret bids of `src/demo/game.ts`): `Submissions<T>` in the state, resolved inside the `apply` of the last answer, `waitingFor` = `pendingSubmissions(submissions, seatIds)`, the view only says who answered (`submittedFlags`). The state is `jsonb`: never take an order from the keys of an object, take it from an array (`state.players`)
+- Board: `<Ticker waitingFor={game.waitingFor} …/>` and `<StalledTurn onUpdate={onUpdate} />`; a player can leave `waitingFor` without acting (someone played for them), so the board follows the view
+- Details and rationale: `template/docs/GAME_GUIDE.md` (section 2)
 
 ## Supabase (realtime)
 - One Supabase project for every game: table `games` with a `game` column (the slug), primary key `(game, code)`; RLS on without policies, only the server (secret key) reads and writes it
 - `state` = the engine's full state (secret); clients only get `GAME.view(state, playerId)` through `GET /api/<slug>/games/<code>`
 - After each write, the server broadcasts `update` on `game:<slug>:<code>`; the client refetches
 - Player identity = httpOnly cookie `<slug>_player`
+- Presence: the server writes a per-player last-seen timestamp (`games.seen`, throttled) on reads and writes; the takeover only counts members seen in the last 75 s
 - Routes: `POST /api/<slug>/games`, `GET /api/<slug>/games/<code>`, `POST .../join|leave|options|start|action|replay|takeover|chat|debug`
 
 ## Sanity
