@@ -19,3 +19,9 @@ export const CONTACT = "hey@playboardgamesonline.app"
 
 /** Genres of the home page's structured data (`SEO` in server.ts). */
 export const GENRES = ["Jeu de cartes", "Jeu de plis"]
+
+/** French messages of the codes the engine throws and core does not know (core has its own for the common ones: not your turn, unknown card…). */
+export const ERROR_MESSAGES: Record<string, string> = {
+  INVALID_PHASE: "Ce n'est plus le moment de faire ça.",
+  INVALID_BID: "Cette annonce n'est pas valide.",
+}

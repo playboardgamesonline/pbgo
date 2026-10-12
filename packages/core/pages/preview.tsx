@@ -1,3 +1,4 @@
+import { canPlayFor, playFor, waitingPlayers } from "@pbgo/engine-kit"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Home } from "../components/home/home"
@@ -28,13 +29,15 @@ async function previewGame(game: PlayableGame) {
     state: null,
     replay: [],
     takeover_votes: [],
+    seen: {},
     version: 1,
   }
   const started = { ...row, ...newGame(game, row, await loadSetupData(game, row.options)) }
-  const play = GAME.autoPlay ?? GAME.debug?.turn
   let state = started.state
-  for (let i = 0; play && i < count * 2; i++) {
-    const next = play(state)
+  for (let i = 0; canPlayFor(GAME) && i < count * 2; i++) {
+    const [waiting] = waitingPlayers(GAME, state)
+    if (waiting === undefined) break
+    const next = playFor(GAME, state, waiting)
     if (GAME.isOver(next)) break
     state = next
   }

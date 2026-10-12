@@ -24,18 +24,6 @@ function readMissions(state: GameState, playerId: string) {
   if (state.phase === "missions" && state.players.every((j) => j.missionsRead)) state.phase = "playing"
 }
 
-/**
- * The ready players start the banquet without waiting for those who have not read their missions (the vote is validated server side):
- * these latecomers are counted as having read, and find their missions on the table.
- */
-export function startWithoutWaiting(state: GameState): GameState {
-  if (state.phase !== "missions") throw new EngineError("INVALID_PHASE")
-  const next = structuredClone(state)
-  for (const player of next.players) player.missionsRead = true
-  next.phase = "playing"
-  return next
-}
-
 export function zoneOfTarget(state: GameState, playerId: string, target: Target): PlayZone {
   if (target.zone === "table") return "table"
   if (!state.players.some((j) => j.id === target.playerId)) throw new EngineError("UNKNOWN_PLAYER")
@@ -48,6 +36,16 @@ export function availableZones(state: GameState): PlayZone[] {
 
 export function activePlayerId(state: GameState): string | null {
   return state.phase === "playing" ? (state.players[state.activePlayer]?.id ?? null) : null
+}
+
+/**
+ * Players the game waits for (`GAME.waitingFor`, public information): while the missions are being read, those who have not
+ * read theirs yet, in seat order; during the banquet, the player whose turn it is; nobody once the game is over.
+ */
+export function waitingPlayerIds(state: GameState): string[] {
+  if (state.phase === "missions") return state.players.filter((j) => !j.missionsRead).map((j) => j.id)
+  const active = activePlayerId(state)
+  return active ? [active] : []
 }
 
 function playCard(state: GameState, playerId: string, cardId: string, target: Target, victimId?: string) {

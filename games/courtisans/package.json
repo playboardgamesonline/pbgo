@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Courtisans for apps/web: engine binding, 3D board, Sanity loaders, banquet route, sounds, translations and default skin.",
+  "description": "Courtisans for apps/web: engine binding, 3D board, Sanity loaders, sounds, translations and default skin.",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",

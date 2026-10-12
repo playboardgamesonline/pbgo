@@ -1,6 +1,6 @@
 import type { GameDefinition } from "@pbgo/engine-kit"
-import { activePlayerId, applyAction } from "./actions"
-import { applyDebug } from "./debug"
+import { applyAction, waitingPlayerIds } from "./actions"
+import { applyDebug, autoPlayFor } from "./debug"
 import { setupGame } from "./setup"
 import type { Action, GameState, Mission } from "./types"
 import { type PlayerView, playerView } from "./view"
@@ -23,9 +23,10 @@ export const GAME: GameDefinition<GameState, Action, PlayerView, Mission[]> = {
   apply: applyAction,
   view: playerView,
   isOver: (state) => state.phase === "over",
-  activePlayer: activePlayerId,
-  // absent player: their whole turn is played (up to 3 cards)
-  autoPlay: (state) => applyDebug(state, "turn"),
+  // the opening waits for the players who have not read their missions, the banquet for the active player
+  waitingFor: waitingPlayerIds,
+  // absent player: their missions are read for them, or their whole turn is played (up to 3 cards)
+  autoPlayFor,
   debug: {
     turn: (state) => applyDebug(state, "turn"),
     over: (state) => applyDebug(state, "over"),

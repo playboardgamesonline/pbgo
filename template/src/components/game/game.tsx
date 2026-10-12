@@ -10,12 +10,13 @@ import { GameProvider, useGame } from "@pbgo/core/components/game/context"
 import { DebugPanel } from "@pbgo/core/components/game/debug"
 import { debugTab } from "@pbgo/core/components/game/debug-tabs"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
-import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
+import { GameHud, groupTurns, PlayerName, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
 import { useApi } from "@pbgo/core/lib/binding-context"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
+import { Button } from "@pbgo/ui/game/button"
 
 const Scene = dynamic(() => import("../game3d/scene").then((m) => m.Scene), { ssr: false })
 
@@ -35,6 +36,63 @@ function eventText(e: GameEvent) {
   if (e.type === "cardPlayed") return `joue ${e.card.value}`
   if (e.type === "trickWon") return "remporte le pli"
   return null
+}
+
+/**
+ * The simultaneous step: everybody announces their number of tricks at the same time, in any order. A player who has bid
+ * can still change their mind until the last one has, so the buttons stay on; `hasBid` of the others is public, their amount is not.
+ */
+function BidPanel({ sending, onBid }: { sending: boolean; onBid: (amount: number) => void }) {
+  const { view } = useGame<PlayerView>()
+  const me = view.me
+  if (view.phase !== "bidding" || !me) return null
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-[32%] z-30 flex justify-center px-4">
+      <div className="pointer-events-auto flex max-w-full flex-col items-center gap-3 rounded-2xl bg-black/60 px-6 py-4 text-center text-foreground shadow-lg backdrop-blur">
+        <p className="font-display text-lg tracking-[0.14em] uppercase">Combien de plis allez-vous remporter ?</p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {Array.from({ length: me.hand.length + 1 }, (_, amount) => (
+            <Button key={amount} size="icon-lg" variant={me.bid === amount ? "default" : "secondary"} aria-pressed={me.bid === amount} disabled={sending} onClick={() => onBid(amount)}>
+              {amount}
+            </Button>
+          ))}
+        </div>
+        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
+          {view.players.map((p) => (
+            <li key={p.id} className="inline-flex items-center gap-1.5">
+              <span aria-hidden>{p.hasBid ? "✓" : "…"}</span>
+              <PlayerName id={p.id} />
+            </li>
+          ))}
+        </ul>
+        {me.bid !== null && <p className="text-xs text-foreground/60">Vous pouvez encore changer votre annonce.</p>}
+      </div>
+    </div>
+  )
+}
+
+/** Under the main line of the ticker: the round, and once the bids are revealed what each player won out of what they announced. */
+function RoundStatus() {
+  const { view } = useGame<PlayerView>()
+  const revealed = view.phase === "playing" && view.players.some((p) => p.bid !== null)
+  return (
+    <>
+      {`Manche ${view.round}/${view.options.rounds}${view.options.inverse ? " · la plus basse gagne" : ""}`}
+      {revealed && (
+        <div className="mt-1.5 flex flex-wrap items-baseline justify-end gap-x-4 gap-y-1 text-xs tracking-[0.12em]">
+          <span className="text-foreground/50">Plis / annonces</span>
+          {view.players.map((p) => (
+            <span key={p.id} className="inline-flex items-baseline gap-1.5">
+              <PlayerName id={p.id} />
+              <span>
+                {p.pointsPerRound.at(-1) ?? 0}/{p.bid}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  )
 }
 
 function Table({ onUpdate, onLeave }: Props) {
@@ -96,16 +154,23 @@ function Table({ onUpdate, onLeave }: Props) {
     debugTab("TRANSITION"),
   )
 
-  async function play(cardId: string) {
-    if (!myTurn || sending || !meId) return
+  async function send(action: { type: string } & Record<string, unknown>) {
     setSending(true)
     try {
-      onUpdate(await api.action(game.code, { type: "playCard", cardId }))
+      onUpdate(await api.action(game.code, action))
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
       setSending(false)
     }
+  }
+
+  async function play(cardId: string) {
+    if (myTurn && !sending) await send({ type: "playCard", cardId })
+  }
+
+  async function bid(amount: number) {
+    if (view.phase === "bidding" && meId && !sending) await send({ type: "bid", amount })
   }
 
   const history = useMemo(
@@ -124,14 +189,16 @@ function Table({ onUpdate, onLeave }: Props) {
       ticker={
         <Ticker
           activePlayerId={ended ? null : view.activePlayerId}
-          status={!ended && `Manche ${view.round}/${view.options.rounds}${view.options.inverse ? " · la plus basse gagne" : ""}`}
+          waitingFor={ended ? undefined : game.waitingFor}
+          status={!ended && <RoundStatus />}
           history={history}
         />
       }
       overlay={
         <>
           {announcement}
-          <StalledTurn activePlayerId={ended ? null : view.activePlayerId} onUpdate={onUpdate} />
+          <BidPanel sending={sending} onBid={bid} />
+          <StalledTurn onUpdate={onUpdate} />
           {ended && !current && <GameOver onUpdate={onUpdate} isOpen={scoresOpen} onToggle={() => setScoresOpen((o) => !o)} />}
           <DebugPanel />
         </>

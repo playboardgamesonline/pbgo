@@ -78,6 +78,7 @@ export const UI_TEXTS = [
   { key: "yourTurnShort", group: "game", title: "History: your turn", fr: "Votre tour" },
   { key: "turnOfShort", group: "game", title: "History: turn of a player", fr: "Tour de {name}" },
   { key: "waiting", group: "game", title: "Waiting (no active player)", fr: "La partie se prépare…" },
+  { key: "waitingFor", group: "game", title: "Waiting for several players", fr: "En attente de {names}" },
   { key: "gameOver", group: "game", title: "Game over (ticker)", fr: "Fin de la partie" },
   { key: "leave", group: "game", title: "Leave button", fr: "Quitter" },
   { key: "takeoverPrompt", group: "game", title: "Absent player: prompt", fr: "{name} ne répond plus ?" },

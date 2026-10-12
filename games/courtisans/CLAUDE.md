@@ -12,9 +12,9 @@ Files in `apps/web/public/courtisans` (served at `/courtisans/...`), named in En
 
 ## Structure
 - `package.json` — `@pbgo-game/courtisans`, the binding package loaded by `@pbgo/games`
-  - `src/index.ts` (engine `GAME`, site constants, `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), `src/ui.tsx` (`Logo`, `Game` loaded on demand), `src/server.ts` (`loadSetupData` = missions, `loadGameData` = catalog, `ROUTES.banquet`, `SEO`), `src/runtime.tsx` (fonts, `styles.css`, `BindingProvider`)
+  - `src/index.ts` (engine `GAME`, site constants, `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), `src/ui.tsx` (`Logo`, `Game` loaded on demand), `src/server.ts` (`loadSetupData` = missions, `loadGameData` = catalog, `SEO`), `src/runtime.tsx` (fonts, `styles.css`, `BindingProvider`)
   - `src/components/game` — board (`game.tsx`: opening, interactions, announcements, end), messages, pictograms, score detail
-    - opening: the banquet waits until every player has read their missions (engine phase `missions`); after the idle delay, ready players can vote to start without the latecomers (`stalled-opening.tsx`, `POST /api/courtisans/games/<code>/banquet`, `src/server/banquet.ts`)
+    - opening: the banquet waits until every player has read their missions (engine phase `missions`: `GAME.waitingFor` = the players who have not read, `GAME.autoPlayFor` reads for one of them). After the idle delay the players present can vote to read for the latecomers: core's `StalledTurn` with the `missionsSkip*` labels, `POST /api/courtisans/games/<code>/takeover`; the opening has no route of its own
   - `src/components/game3d` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose)
   - `src/lib/catalog.ts` (default catalog), `src/lib/skin.ts` (default banquet skin), `src/lib/sounds.ts`
 - `apps/studio` — Sanity Studio on `@pbgo/studio-kit` (the game's own `rules` and `texts` replace the shared versions)

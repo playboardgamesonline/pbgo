@@ -1,19 +1,33 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useApi } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
+import { fill } from "../../lib/skin"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
 
 /**
- * Absent player: when the game has not moved for the delay set in the admin and it is not my turn,
- * offers the others to play in their place (route /takeover, which checks everything again on the server).
+ * Absent players: when the game has not moved for the delay set in the admin and it waits for players other than me, offers to
+ * play in their place (route /takeover, which checks everything again on the server). The players are the ones the game waits
+ * for (`game.takeovers`, from `GAME.waitingFor`): one button votes for all of them at once, and they are played for as soon as
+ * every PRESENT player has voted, an absent one never blocks.
+ *
+ * `labels` replaces the default texts of a phase that needs its own wording (Courtisans' opening: "start without waiting").
+ * `{names}` (everybody the game waits for) and `{name}` (the first one) are filled in.
  */
-export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: string | null; onUpdate: (g: PublicGame) => void }) {
+export function StalledTurn({
+  onUpdate,
+  labels,
+}: {
+  onUpdate: (g: PublicGame) => void
+  /** @deprecated ignored: the players come from `game.takeovers`, which the server computes from `GAME.waitingFor` */
+  activePlayerId?: string | null
+  labels?: { prompt?: string; button?: string }
+}) {
   const t = useText()
   const api = useApi()
   const { game, view, nickname } = useGame()
@@ -21,9 +35,16 @@ export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: stri
   const [since, setSince] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
   const [sending, setSending] = useState(false)
-  const votes = game.takeoverVotes ?? []
-  const needed = game.players.filter((p) => p.id !== activePlayerId).length
-  const voted = !!view.me && votes.includes(view.me.id)
+  const retried = useRef(false)
+
+  const me = view.me?.id
+  // the players the game waits for and that I take part in playing for: I am one of the voters required for them (never myself)
+  const targets = me && game.status === "playing" ? (game.takeovers ?? []).filter((target) => target.voters.includes(me)) : []
+  const first = targets[0]
+  const ids = targets.map((target) => target.playerId)
+  const voted = !!me && targets.length > 0 && targets.every((target) => target.votes.includes(me))
+  // everyone required has voted and the game still did not move: a voter has left since (the server only plays when a vote comes in)
+  const complete = voted && targets.every((target) => target.votes.length >= target.voters.length)
 
   // every move restarts the countdown (votes do not change `updatedAt`)
   useEffect(() => setSince(Date.now()), [game.updatedAt])
@@ -32,19 +53,37 @@ export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: stri
     return () => clearInterval(timer)
   }, [])
 
-  const stalled =
-    game.status === "playing" && !!activePlayerId && activePlayerId !== view.me?.id && !!view.me && now - since >= turnTimeout * 1000
+  const stalled = targets.length > 0 && now - since >= turnTimeout * 1000
 
-  async function takeover() {
+  async function vote() {
     setSending(true)
     try {
-      onUpdate(await api.takeover(game.code))
+      onUpdate(await api.takeover(game.code, ids))
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
       setSending(false)
     }
   }
+
+  // Votes complete but nothing played: send mine again, once per such period, so the server counts the voters present now.
+  // Silent: losing the race against a move or another voter has nothing to say, the table is up to date at the next read.
+  const idsKey = ids.join(",")
+  useEffect(() => {
+    if (!stalled || !complete) {
+      retried.current = false
+      return
+    }
+    if (retried.current) return
+    retried.current = true
+    api.takeover(game.code, idsKey.split(",")).then(onUpdate, () => {})
+  }, [api, game.code, idsKey, complete, onUpdate, stalled])
+
+  const names = targets.map((target) => nickname(target.playerId)).join(", ")
+  const prompt = fill(labels?.prompt ?? (targets.length > 1 ? t("waitingFor") : t("takeoverPrompt")), { names, name: first ? nickname(first.playerId) : "" })
+  const label = labels?.button ?? t("takeoverButton")
+  const votes = first?.votes.length ?? 0
+  const total = first?.voters.length ?? 0
 
   return (
     <AnimatePresence>
@@ -53,16 +92,16 @@ export function StalledTurn({ activePlayerId, onUpdate }: { activePlayerId: stri
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="absolute top-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm text-foreground shadow-lg backdrop-blur"
+          className="absolute top-5 left-1/2 z-30 flex max-w-[calc(100vw-3rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm whitespace-nowrap text-foreground shadow-lg backdrop-blur"
         >
-          <span>{t("takeoverPrompt", { name: nickname(activePlayerId!) })}</span>
+          <span className="min-w-0 truncate">{prompt}</span>
           <button
             type="button"
             disabled={sending || voted}
-            onClick={takeover}
-            className="h-9 cursor-pointer rounded-full bg-foreground px-4 font-display text-background transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
+            onClick={vote}
+            className="h-9 shrink-0 cursor-pointer rounded-full bg-foreground px-4 font-display text-background transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
           >
-            {voted ? t("missionsWaiting", { read: votes.length, total: needed }) : needed > 1 ? `${t("takeoverButton")} (${votes.length}/${needed})` : t("takeoverButton")}
+            {voted ? t("missionsWaiting", { read: votes, total }) : total > 1 ? `${label} (${votes}/${total})` : label}
           </button>
         </motion.div>
       )}

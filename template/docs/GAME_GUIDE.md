@@ -26,7 +26,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 
 ## 2. Architecture (the principles every game keeps)
 
-1. **The engine is the only source of the rules.** Everything that is a rule (setup, turn, legal actions, score, end) lives in `packages/engine`, in pure TypeScript, tested. It implements the `GameDefinition<State, Action, View>` contract (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`). The front and the server only call `GAME`.
+1. **The engine is the only source of the rules.** Everything that is a rule (setup, turn, legal actions, score, end) lives in `packages/engine`, in pure TypeScript, tested. It implements the `GameDefinition<State, Action, View>` contract (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug`). The front and the server only call `GAME`.
 2. **Authoritative server.** The client only sends *intents* (`POST /api/<slug>/games/<code>/action`). The server loads the state, calls the engine, saves, broadcasts.
 3. **View filtered per player.** The full state (`State`) is secret (hands, hidden cards). Each player only gets `GAME.view(state, playerId)` through `GET /api/<slug>/games/<code>`.
 4. **"Ping + refetch" realtime.** After each write (optimistic lock on `version`), the server broadcasts `update` on the Supabase channel `game:<slug>:<code>`; clients refetch their view. No sensitive data in the channel.
@@ -36,6 +36,29 @@ How to build a new multiplayer online board game on this monorepo, starting from
 8. **3D = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` animates each object to its pose. Same React key = same object ⇒ real moves (hand → table).
 9. **DOM UI over the 3D** (header, log, announcements, game over, rules).
 10. **Code split per game.** The hub loads no game code; a game's pages load only that game (`@pbgo/games` imports each binding on demand), and its board (three.js) only on the game page.
+11. **The engine says who the game waits for.** `waitingFor(state)` lists the players the game waits for (one on a classic turn, several on a simultaneous step) and `autoPlayFor(state, playerId)` plays for one of them when they are absent. See below.
+
+### Who the game waits for: turns, simultaneous steps, absent players
+
+`waitingFor(state)` returns the ids of the players the server waits for, in seat order, without duplicates: one player on a classic turn, **several on a simultaneous step** (secret bids, everybody reads their missions, simultaneous card choice…), nobody when the game is over (or when the engine itself is waiting, e.g. for a deadline). `autoPlayFor(state, playerId)` completes the current step of ONE waiting player. They replace `activePlayer` and `autoPlay`, which still work but are `@deprecated`.
+
+- **Read them through the helpers of `@pbgo/engine-kit`**, never call the hooks directly: `waitingPlayers(GAME, state)`, `currentPlayer`, `canPlayFor`, `playFor(GAME, state, playerId)`, `playOn` (plays until the end, for tests). They keep an engine written for the previous contract working.
+- **`waitingFor` is public information**: the server sends it to every viewer (`PublicGame.waitingFor`), and the ticker and the takeover prompt display it. It must never reveal something hidden. Do not drop a player from it when that would tell something (a player who may still respond to an action stays listed until the window closes).
+- **`autoPlayFor` is deterministic and always legal**: seeded streams only (never `Math.random` or `Date.now`, a replay must stay exact), afterwards the player is no longer waiting for THAT step (they may be waiting for the next one), and `EngineError("NOT_WAITING")` when they are not in `waitingFor(state)`. It is a fallback to keep the table moving, not an AI: the simplest legal play (the demo plays its first card, and announces the average number of tricks).
+- **Absent players** are handled by `@pbgo/core`, nothing else to write in the game: after `settings.turnTimeout` without a move, the other players can vote to play for the players the game waits for (`POST /api/<slug>/games/<code>/takeover`, `StalledTurn` on the board). A vote is `(voter, target)`. The required voters for a target are the members seen at the table in the last 75 s, other than the target, so an absent player never blocks. The server then plays with `playFor`.
+- **Board**: `Ticker` takes `waitingFor={game.waitingFor}` (the "Your turn" line is shown when I am among them), `StalledTurn` only needs `onUpdate`. A player may leave `waitingFor` without having acted (somebody played for them): the board must be driven by the view, not by what the player did.
+
+#### A simultaneous step (`simultaneous.ts` of the engine-kit)
+
+The demo's secret bids at the start of each round are the reference (`packages/engine/src/demo/game.ts`, the `bids` option; board: `BidPanel` in `src/components/game/game.tsx`).
+
+- **State**: `Submissions<T>` (`bids: Submissions<number>`), built with `openSubmissions(seatIds)` when the step opens; the value is `null` until the player answers. Only ids and numbers, nothing derived.
+- **`apply`**: store the answer; as soon as `allSubmitted(submissions)` is true, resolve the step **inside the same action** (the state never sits between two phases). Letting the players change their answer until the last one arrives is a rule choice (the demo does).
+- **`waitingFor`**: `pendingSubmissions(submissions, seatIds)` with the seat list taken from the game's own array of players.
+- **View**: `submittedFlags(submissions)` tells WHO has answered, never WHAT before the step is resolved. A player sees their own answer (`me.bid`).
+- **`autoPlayFor`**: the answer for that player only, so that when several players are absent they are played one after the other, each by its own vote.
+- ⚠️ **Key order**: `games.state` is `jsonb`, and Postgres does not keep the order of the keys of an object. A list that depends on the order (who is pending, who plays next) is built from an array of the state (`state.players`), never from `Object.keys(submissions)`.
+- Test it: `src/takeover.test.ts` plays a 3-player game where two players are absent at the simultaneous step and the third finishes the game alone (engine `playFor` + the pure voting rules of `@pbgo/core/server/takeover`). When the demo engine is replaced, adapt it to the new game's simultaneous step (or its turns); a game with no simultaneous step still keeps the turn-by-turn version.
 
 ---
 
@@ -129,7 +152,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 | 1 | Read the rules, write **`plan-v1.md`** (formalized rules, components, edge cases, hidden information, FR → EN glossary of the game's words) | 🤖 | plan |
 | ⭐ | **Validate the interpretation of the rules** (the most critical point: a misread rule spreads everywhere) | 👤 | ok / fixes |
 | 2 | `pnpm add-game <slug>` (copy of the template, registry entry, Sanity project, studio, write token), adapt `src/lib/site.ts` and `CLAUDE.md` (glossary) | 🤖 + 👤 (accounts) | clean package |
-| 3 | **Engine**: types, setup, actions, scoring, filtered view, tests + simulation | 🤖 | green tests |
+| 3 | **Engine**: types, setup, actions, scoring, filtered view, `waitingFor` / `autoPlayFor`, tests + simulation | 🤖 | green tests |
 | ⭐ | Validate the engine through a summary of the coded rules (and, if possible, a simulated text game) | 👤 | ok |
 | 4 | Sanity schemas + migration + seed (images extracted from the PDF if needed) | 🤖 | studio |
 | 5 | `schema:deploy`, migration, studio deploy, check the content | 👤 | content online |
@@ -158,20 +181,22 @@ supabase/migrations/               # the shared schema (table games with a game 
 
 **Shared (`@pbgo/core`, nothing to copy)**
 - Server (Supabase, games with optimistic lock, player cookie, `handle` / `ApiError`, rate limiting), API routes `api/[game]/games/*`, `lib/api.ts`, `use-live-game.ts`, `realtime.ts`
-- Home, lobby and game options (rendered from `GAME.options`), chat, stalled turn, game over, sharing
+- Home, lobby and game options (rendered from `GAME.options`), chat, absent players (per-player takeover votes, `StalledTurn`), game over, sharing
 - Debug: panel, tabs, `useSettings` (Copy values, FPS), START / NEXT TURN / END buttons
 - Rules in tabs (Sanity singleton `rules` + code defaults)
 - SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/<slug>/admin` (Setup, Tasks, Monitoring + Vercel Web Analytics)
 
 **Specific (written per game, in `games/<slug>`)**
-- `packages/engine/src/<game>/` (rules, view, options, debug) and the `GAME` export
-- `layout.ts` (where the cards go), `scene.tsx` (zones, interactions), `textures.ts`, `game.tsx` (header, the game's announcements)
-- `src/lib/site.ts`, `DEFAULT_SKIN`, texts, assets, the game's own Sanity content types
+- `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
+- `layout.ts` (where the cards go), `scene.tsx` (zones, interactions), `textures.ts`, `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
+- `src/lib/site.ts` (with `ERROR_MESSAGES`, the player-facing text of the error codes the engine throws and core does not know), `DEFAULT_SKIN`, texts, assets, the game's own Sanity content types
 
 ---
 
 ## 8. Known pitfalls (to give to the AI)
 - **Opening phase**: in Courtisans, the opening was first triggered on the client by "missions not read" while the engine started straight in the play phase. Check that UI triggers match the engine's real states (a bug found late because the simulated data did not reflect the engine) → **always generate mocks from the engine**.
+- **Order in `jsonb`**: the state is stored as `jsonb`, which does not keep the order of the keys of an object (shortest key first, then alphabetical). Anything that depends on an order (seats, who is pending, who plays next) comes from an array, never from `Object.keys` of a record. A test that builds the state from `JSON.parse` of keys in database order catches it (see `game.test.ts` of the demo).
+- **`waitingFor` is public**: it is shown to everybody. If knowing who is still pending reveals something hidden, keep the player in the list until the information is public anyway.
 - **Sanity images in a CSS mask**: blocked cross-origin → go through `/api/media` (same origin). `next/image` only accepts the configured qualities (75 by default).
 - **SVGs with a small intrinsic size** (24×24) as a 3D texture → blurry: rasterize them at 512 px before `CanvasTexture`.
 - **React effects** depending on objects recreated on each render (filtered view, settings) → depend on a stable key (string), otherwise timers get cancelled in a loop.

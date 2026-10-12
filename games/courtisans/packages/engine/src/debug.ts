@@ -1,4 +1,5 @@
-import { applyAction, availableZones } from "./actions"
+import { applyAction, availableZones, waitingPlayerIds } from "./actions"
+import { EngineError } from "./errors"
 import { type Rng, createRng, sideSeed } from "./rng"
 import type { Target, GameState } from "./types"
 
@@ -48,4 +49,14 @@ export function applyDebug(state: GameState, command: DebugCommand): GameState {
   }
   if (command === "over") for (let i = 0; i < 400 && s.phase === "playing"; i++) s = autoMove(s)
   return s
+}
+
+/**
+ * Plays for an absent player (`GAME.autoPlayFor`). While the missions are being read, theirs are read for them (the last one
+ * to read starts the banquet); during the banquet, their whole turn is played (up to 3 cards).
+ * `NOT_WAITING` when the game is not waiting for that player.
+ */
+export function autoPlayFor(state: GameState, playerId: string): GameState {
+  if (!waitingPlayerIds(state).includes(playerId)) throw new EngineError("NOT_WAITING")
+  return state.phase === "missions" ? applyAction(state, { type: "readMissions", playerId }) : applyDebug(state, "turn")
 }

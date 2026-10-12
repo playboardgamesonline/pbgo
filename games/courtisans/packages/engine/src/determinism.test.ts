@@ -1,3 +1,4 @@
+import { playFor, waitingPlayers } from "@pbgo/engine-kit"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { autoMove } from "./debug"
 import { GAME } from "./game"
@@ -12,13 +13,16 @@ const players = [
 ]
 const SEED = 2 ** 40 + 12345
 
-/** Plays a whole game with `autoPlay`, recording the actions it took (rebuilt from the log). */
+/** What the server does for an absent player: plays for the first player the game waits for. */
+const autoPlay = (state: GameState) => playFor(GAME, state, waitingPlayers(GAME, state)[0]!)
+
+/** Plays a whole game for the absent players, recording the actions it took (rebuilt from the log). */
 function playToEnd(seed: number) {
   let state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed, data: testMissions() }))
   const actions: Action[] = []
   while (!GAME.isOver(state)) {
     const before = state.log.length
-    state = GAME.autoPlay!(state)
+    state = autoPlay(state)
     state.log.forEach((e, i) => {
       if (i < before || e.type !== "cardPlayed") return
       // an assassination is logged right after the assassin is played
@@ -40,16 +44,16 @@ describe("determinism (GAM-5)", () => {
     expect(setup(SEED).seed).toBe(SEED)
   })
 
-  it("never calls Math.random once a seed is given (setup, autoPlay, debug)", () => {
+  it("never calls Math.random once a seed is given (setup, autoPlayFor, debug)", () => {
     const random = vi.spyOn(Math, "random")
     const state = GAME.setup({ players, options: {}, seed: SEED, data: testMissions() })
-    GAME.debug!.over!(GAME.autoPlay!(state))
+    GAME.debug!.over!(autoPlay(state))
     expect(random).not.toHaveBeenCalled()
   })
 
-  it("autoPlay picks the same moves for the same state", () => {
+  it("autoPlayFor picks the same moves for the same state", () => {
     const state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed: SEED, data: testMissions() }))
-    expect(GAME.autoPlay!(state)).toEqual(GAME.autoPlay!(structuredClone(state)))
+    expect(autoPlay(state)).toEqual(autoPlay(structuredClone(state)))
     expect(playToEnd(SEED).state).toEqual(playToEnd(SEED).state)
   })
 
@@ -67,7 +71,7 @@ describe("determinism (GAM-5)", () => {
       delete state.seed
       return GAME.debug!.missions!(state)
     }
-    expect(GAME.autoPlay!(legacy())).toEqual(GAME.autoPlay!(legacy()))
+    expect(autoPlay(legacy())).toEqual(autoPlay(legacy()))
     let state = legacy()
     for (let i = 0; i < 200 && !GAME.isOver(state); i++) state = autoMove(state)
     expect(GAME.isOver(state)).toBe(true)

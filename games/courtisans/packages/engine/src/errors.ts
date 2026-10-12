@@ -8,6 +8,7 @@ export type EngineErrorCode =
   | "INVALID_TARGET"
   | "INVALID_ASSASSINATION"
   | "UNKNOWN_PLAYER"
+  | "NOT_WAITING"
 
 export class EngineError extends Error {
   constructor(

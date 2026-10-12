@@ -22,7 +22,6 @@ import { useDict } from "../use-dict"
 import { CourtisansProvider } from "./context"
 import { renderFamilyCards } from "./score-details"
 import { Message } from "./message"
-import { StalledOpening } from "./stalled-opening"
 import { useEndingSequence } from "../game3d/ending"
 import { useGameSounds } from "../game3d/sounds"
 import { useCheat } from "../game3d/cheat"
@@ -114,14 +113,15 @@ function Board({
   const readCount = view.players.filter((j) => j.missionsRead).length
   const iAmReady = !!view.me && !!view.players.find((j) => j.id === view.me?.id)?.missionsRead
   const waitingOthers = view.phase === "missions" && iAmReady
-  const shownTurn =
-    openingStep === "unroll" || openingStep === "deal"
-      ? null
-      : view.phase === "playing"
-        ? view.activePlayerId
-        : view.phase === "missions"
-          ? (view.firstPlayerId ?? null)
-          : null
+  // the unroll and the deal hold the announcement back: no turn is shown until the missions can be read
+  const openingHolds = openingStep === "unroll" || openingStep === "deal"
+  const shownTurn = openingHolds
+    ? null
+    : view.phase === "playing"
+      ? view.activePlayerId
+      : view.phase === "missions"
+        ? (view.firstPlayerId ?? null)
+        : null
   const playerCount = view.players.length
 
   const [openingSettings] = useControls(
@@ -289,7 +289,7 @@ function Board({
         <InteractionContext.Provider value={interaction}>
           <GameHud
             onLeave={onLeave}
-            ticker={<Ticker activePlayerId={shownTurn} history={history} />}
+            ticker={<Ticker activePlayerId={shownTurn} waitingFor={openingHolds ? undefined : game.waitingFor} history={history} />}
             overlay={
               <>
                 {(waitingOthers || (intro && showMissionsButton)) && (
@@ -307,8 +307,10 @@ function Board({
 
                 {announcementElement}
 
-                <StalledTurn activePlayerId={view.activePlayerId} onUpdate={onUpdate} />
-                <StalledOpening onUpdate={onUpdate} />
+                <StalledTurn
+                  onUpdate={onUpdate}
+                  labels={view.phase === "missions" ? { prompt: t("missionsSkipPrompt"), button: t("missionsSkipButton") } : undefined}
+                />
 
                 <DebugSlot />
 

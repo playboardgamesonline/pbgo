@@ -34,7 +34,7 @@ export const RATE_LIMITS = {
   /** Game moves (including Courtisans `readMissions` and its retries): per player, never per table */
   action: { limit: 20, windowMs: 10_000 },
   replay: { limit: 10, windowMs: 60_000 },
-  /** Votes to play for an absent player (core `takeover`, Courtisans `banquet`) */
+  /** Votes to play for the players the game waits for and who don't play (core `takeover`) */
   vote: { limit: 10, windowMs: 60_000 },
   /** Feedback form: fast in-memory gate in front of the durable checks done in the database (room to resend after a validation error) */
   feedback: { limit: 3, windowMs: 10_000 },
