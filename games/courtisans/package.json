@@ -1,15 +1,54 @@
 {
-  "name": "courtisans",
+  "name": "@pbgo-game/courtisans",
+  "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "description": "Courtisans for apps/web: engine binding, 3D board, Sanity loaders, banquet route, sounds, translations and default skin.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/ui.tsx",
+    "./server": "./src/server.ts",
+    "./runtime": "./src/runtime.tsx",
+    "./styles.css": "./src/styles.css"
+  },
   "scripts": {
-    "dev": "pnpm --filter courtisans-web dev",
+    "typecheck": "tsc --noEmit",
     "dev:studio": "pnpm --filter courtisans-studio dev",
-    "build": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" build",
-    "test": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" test",
-    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" typecheck",
     "deploy:studio": "pnpm --filter courtisans-studio run deploy",
     "sanity:images": "pnpm --filter courtisans-studio run update-images",
     "sanity:clean-png": "pnpm --filter courtisans-studio run clean-png",
     "sanity:migrate-core": "pnpm --filter courtisans-studio run migrate:core"
+  },
+  "dependencies": {
+    "@courtisans/engine": "workspace:*",
+    "@fontsource-variable/alegreya": "catalog:",
+    "@pbgo/core": "workspace:*",
+    "@pbgo/ui": "workspace:*",
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
+    "@sanity/client": "catalog:",
+    "lucide-react": "catalog:",
+    "maath": "catalog:",
+    "motion": "catalog:",
+    "next-sanity": "catalog:",
+    "server-only": "catalog:",
+    "sonner": "catalog:",
+    "three": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:"
   }
 }

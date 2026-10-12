@@ -14,11 +14,11 @@ function supabase() {
   return client
 }
 
-export function subscribeToGame(code: string, onUpdate: (version: number) => void): () => void {
+export function subscribeToGame(slug: string, code: string, onUpdate: (version: number) => void): () => void {
   const sb = supabase()
   if (!sb) return () => {}
   const channel = sb
-    .channel(gameChannel(code))
+    .channel(gameChannel(slug, code))
     .on("broadcast", { event: UPDATE_EVENT }, ({ payload }) => onUpdate((payload as { version: number }).version))
     .subscribe()
   return () => {
@@ -30,14 +30,14 @@ export type { ChatMessage, ChatReaction } from "./chat"
 
 /**
  * Chat channel of a game (Supabase Realtime broadcast, nothing stored): messages and reactions only exist for connected players.
- * Listen-only: sending goes through `POST /api/games/[code]/chat`, which sets the author from the player cookie and broadcasts
+ * Listen-only: sending goes through `POST /api/<slug>/games/[code]/chat`, which sets the author from the player cookie and broadcasts
  * the `*_SERVER_EVENT` events. Events sent directly by clients (legacy `chat` / `reaction`) are ignored.
  */
-export function openChat(code: string, onMessage: (m: ChatMessage) => void, onReaction?: (r: ChatReaction) => void) {
+export function openChat(slug: string, code: string, onMessage: (m: ChatMessage) => void, onReaction?: (r: ChatReaction) => void) {
   const sb = supabase()
   if (!sb) return null
   const channel = sb
-    .channel(chatChannel(code))
+    .channel(chatChannel(slug, code))
     .on("broadcast", { event: CHAT_SERVER_EVENT }, ({ payload }) => {
       const m = payload as Partial<ChatMessage>
       if (typeof m?.id === "string" && typeof m.playerId === "string" && typeof m.text === "string") onMessage({ id: m.id, playerId: m.playerId, text: m.text.slice(0, CHAT_MAX_LENGTH), at: Date.now() })

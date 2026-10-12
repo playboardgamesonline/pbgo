@@ -1,15 +1,15 @@
 /**
- * Passage de Courtisans sur @pbgo/core : valeurs en anglais et habillage commun.
- *   pnpm sanity:migrate-core              → simulation (affiche les changements)
- *   pnpm sanity:migrate-core --confirm    → applique (une transaction)
+ * Moves Courtisans onto @pbgo/core: English values and the shared skin.
+ *   pnpm sanity:migrate-core              → dry run (shows the changes)
+ *   pnpm sanity:migrate-core --confirm    → applies them (one transaction)
  *
- * - familles, rôles : `key` en anglais (papillon → butterfly, espion → spy…)
- * - missions : couleur (blanche → white) et conditions (types, statuts, niveaux, adversaires, comptage)
- * - interface → habillage commun : banquetTop → decorTop, banquetBottom → decorBottom, queen → hero ;
- *   logo → settings.logo ; paper, pictogramFrame, arrowUp, arrowDown → game
- * - texts : winnerPhrases → victoryPhrases, guestsSettling → ui_game.waiting
- * - game : suppression de `decorations` (jamais lu)
- * Idempotent : relancer ne change plus rien. Traite aussi les brouillons (drafts.*).
+ * - families, roles: `key` in English (papillon → butterfly, espion → spy…)
+ * - missions: color (blanche → white) and conditions (types, statuses, levels, opponents, counting)
+ * - interface → shared skin: banquetTop → decorTop, banquetBottom → decorBottom, queen → hero;
+ *   logo → settings.logo; paper, pictogramFrame, arrowUp, arrowDown → game
+ * - texts: winnerPhrases → victoryPhrases, guestsSettling → ui_game.waiting
+ * - game: removal of `decorations` (never read)
+ * Idempotent: running it again changes nothing. Also handles drafts (drafts.*).
  */
 import { getCliClient } from "sanity/cli"
 
@@ -108,7 +108,7 @@ async function main() {
           unset.push(from)
         }
       }
-      // vers le document « game »
+      // to the "game" document
       const gameId = draft ? "drafts.game" : "game"
       const toGame: Record<string, unknown> = {}
       for (const f of ["paper", "pictogramFrame", "arrowUp", "arrowDown"]) {
@@ -121,7 +121,7 @@ async function main() {
         if (byId.has(gameId)) change(gameId, toGame)
         else changes.push({ id: gameId, set: {}, unset: [], create: { _id: gameId, _type: "game", ...toGame } })
       }
-      // vers le document « settings »
+      // to the "settings" document
       if (d.logo) {
         const settingsId = draft ? "drafts.settings" : "settings"
         if (byId.has(settingsId)) {
@@ -134,16 +134,16 @@ async function main() {
   }
 
   if (!changes.length) {
-    console.log("Rien à migrer : le dataset est déjà à jour.")
+    console.log("Nothing to migrate: the dataset is already up to date.")
     return
   }
   for (const c of changes) {
-    if (c.create) console.log(`+ ${c.id} (création) ${JSON.stringify(c.create).slice(0, 200)}`)
+    if (c.create) console.log(`+ ${c.id} (create) ${JSON.stringify(c.create).slice(0, 200)}`)
     else console.log(`~ ${c.id}${Object.keys(c.set).length ? ` set ${Object.keys(c.set).join(", ")}` : ""}${c.unset.length ? ` unset ${c.unset.join(", ")}` : ""}`)
   }
-  console.log(`\n${changes.length} document(s) à modifier.`)
+  console.log(`\n${changes.length} document(s) to modify.`)
   if (!confirm) {
-    console.log("Simulation uniquement : relance avec --confirm pour appliquer.")
+    console.log("Dry run only: re-run with --confirm to apply.")
     return
   }
   const tx = client.transaction()
@@ -152,7 +152,7 @@ async function main() {
     else tx.patch(c.id, (p) => p.set(c.set).unset(c.unset))
   }
   await tx.commit()
-  console.log("Migration appliquée.")
+  console.log("Migration applied.")
 }
 
 main().catch((error) => {

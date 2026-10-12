@@ -1,14 +1,15 @@
 "use client"
 
-import { withBase } from "../../../lib/base-path"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
 import { Input } from "@pbgo/ui/admin/input"
 import { Textarea } from "@pbgo/ui/admin/textarea"
 import { useState } from "react"
+import { useBinding } from "../../../lib/binding-context"
 import { LOCALE_NAMES, type Locale } from "../../../lib/i18n"
 import { baseSkin } from "../../../lib/skin"
 import { siteTitle, type SiteSettings } from "../../../lib/settings"
+import { shareImagePath } from "../../../lib/site-url"
 import { LangTabs } from "./lang-tabs"
 import { FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -17,6 +18,7 @@ type Draft = Pick<SiteSettings, "title" | "descriptions" | "creditsAuthors" | "c
 const pick = (d: AdminData): Draft => ({ title: d.settings.title, descriptions: d.settings.descriptions, creditsAuthors: d.settings.creditsAuthors, credits: d.settings.credits })
 
 export function IdentityPage({ initial, domain }: { initial: AdminData; domain: string }) {
+  const binding = useBinding()
   const s = useSection("identity", initial, pick)
   const { data, draft, set, disabled } = s
   const [lang, setLang] = useState<Locale>("fr")
@@ -25,8 +27,8 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
   const description = draft.descriptions[lang]
   const authors = draft.creditsAuthors[lang]
   const filled = (m: Record<Locale, string>) => Object.fromEntries((Object.keys(m) as Locale[]).map((l) => [l, !!m[l]])) as Partial<Record<Locale, boolean>>
-  const skin = baseSkin(lang)
-  const shareUrl = settings.shareImage ?? `/opengraph-image?v=${s.version}`
+  const skin = baseSkin(binding, lang)
+  const shareUrl = settings.shareImage ?? `${shareImagePath(binding.SLUG)}?v=${s.version}`
 
   return (
     <SetupLayout
@@ -51,7 +53,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
               accept={`${IMAGE_ACCEPT},image/x-icon`}
               aspect="aspect-square"
               custom={!!data.settings.favicon?.startsWith("https://")}
-              preview={<Img src={data.settings.favicon ?? withBase(`/icons/favicon?v=${s.version}`)} className="size-20" />}
+              preview={<Img src={data.settings.favicon ?? `/${binding.SLUG}/icons/favicon?v=${s.version}`} className="size-20" />}
               busy={s.uploading === "favicon"}
               disabled={disabled}
               onFile={(f) => s.upload("favicon", f)}

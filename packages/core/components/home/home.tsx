@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
-import { TAGLINE } from "@pbgo/binding"
-import { api, gameLink } from "../../lib/api"
+import { useApi, useBinding } from "../../lib/binding-context"
 import { useProfile } from "../../lib/profile"
 import { DesktopNotice } from "../desktop-only"
 import { useSkin, useText } from "../skin-provider"
@@ -12,6 +11,8 @@ import { CodeField, Intro, NicknameField, Paragraph, PrimaryButton, Screen } fro
 
 export function Home() {
   const router = useRouter()
+  const api = useApi()
+  const { SLUG, TAGLINE } = useBinding()
   const t = useText()
   const { home, desktopOnly } = useSkin()
   const { profile, setProfile, valid } = useProfile()
@@ -34,25 +35,25 @@ export function Home() {
     }
     setPending(true)
     if (code.length === 6) {
-      router.push(`/game/${code}`)
+      router.push(`/${SLUG}/game/${code}`)
       return
     }
     try {
       const game = await api.create(profile)
       try {
-        await navigator.clipboard.writeText(gameLink(game.code))
+        await navigator.clipboard.writeText(api.link(game.code))
         toast.success(t("linkCopied"), { description: t("linkCopiedHint") })
       } catch {
         toast.success(t("gameCreated", { code: game.code }))
       }
-      router.push(`/game/${game.code}`)
+      router.push(`/${SLUG}/game/${game.code}`)
     } catch (error) {
       toast.error((error as Error).message)
       setPending(false)
     }
   }
 
-  // sous 900 px, la page de partie est réservée aux ordinateurs : on masque le formulaire (l'avis le remplace) plutôt que de laisser créer une table injouable
+  // under 900 px the game page is for computers only: hide the form (the notice replaces it) rather than let people create a table they cannot play
   const form = desktopOnly ? "contents max-[899px]:hidden" : "contents"
 
   return (

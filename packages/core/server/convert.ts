@@ -7,7 +7,7 @@ export type Converted = { buffer: Buffer; filename: string; contentType: string 
 const base = (name: string) => name.replace(/\.[^.]+$/, "") || "file"
 const isSvg = (file: File) => file.type === "image/svg+xml" || /\.svg$/i.test(file.name)
 
-/** Images de l'habillage : SVG gardé tel quel, le reste converti en WebP (transparence et animation conservées). */
+/** Skin images: SVG kept as is, anything else converted to WebP (transparency and animation kept). */
 export async function imageToWebp(file: File): Promise<Converted> {
   const input = Buffer.from(await file.arrayBuffer())
   if (isSvg(file)) return { buffer: input, filename: file.name, contentType: "image/svg+xml" }
@@ -19,7 +19,7 @@ export async function imageToWebp(file: File): Promise<Converted> {
   }
 }
 
-/** Favicon : SVG gardé, sinon PNG carré 512 px (fond transparent) — les navigateurs et iOS n'acceptent pas le WebP ici. */
+/** Favicon: SVG kept, else a 512 px square PNG (transparent background); browsers and iOS do not accept WebP here. */
 export async function imageToIcon(file: File): Promise<Converted> {
   const input = Buffer.from(await file.arrayBuffer())
   if (isSvg(file)) return { buffer: input, filename: file.name, contentType: "image/svg+xml" }
@@ -31,7 +31,7 @@ export async function imageToIcon(file: File): Promise<Converted> {
   }
 }
 
-/** Image de partage : JPEG 1200×630 recadré au centre — lu par WhatsApp, iMessage, LinkedIn, Discord… */
+/** Share image: 1200×630 JPEG cropped at the center, read by WhatsApp, iMessage, LinkedIn, Discord… */
 export async function imageToShare(file: File): Promise<Converted> {
   const input = Buffer.from(await file.arrayBuffer())
   try {
@@ -42,7 +42,7 @@ export async function imageToShare(file: File): Promise<Converted> {
   }
 }
 
-/** Polices : WOFF2 / WOFF gardés, TTF / OTF compressés en WOFF2. */
+/** Fonts: WOFF2 / WOFF kept, TTF / OTF compressed to WOFF2. */
 export async function fontToWoff2(file: File): Promise<Converted> {
   const input = Buffer.from(await file.arrayBuffer())
   const ext = file.name.split(".").pop()?.toLowerCase()
@@ -50,7 +50,7 @@ export async function fontToWoff2(file: File): Promise<Converted> {
   if (ext === "woff") return { buffer: input, filename: file.name, contentType: "font/woff" }
   if (ext !== "ttf" && ext !== "otf") throw new ApiError("INVALID_FILE")
   try {
-    // @ts-expect-error wawoff2 n'a pas de types
+    // @ts-expect-error wawoff2 has no types
     const { compress } = (await import("wawoff2")) as { compress: (b: Uint8Array) => Promise<Uint8Array> }
     const buffer = Buffer.from(await compress(input))
     return { buffer, filename: `${base(file.name)}.woff2`, contentType: "font/woff2" }

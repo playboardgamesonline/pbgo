@@ -1,12 +1,13 @@
 import { createHmac } from "node:crypto"
 import sharp from "sharp"
+import type { GameRouteContext } from "../../../lib/binding"
 import { requireAdmin } from "../../../server/admin"
 import { ApiError, handle, readJson } from "../../../server/api"
 import { getPlayerId } from "../../../server/player"
 import { rateLimit } from "../../../server/rate-limit"
 import { clientIp } from "../../../server/rate-limiter"
 import { supabaseAdmin } from "../../../server/supabase"
-import { FEEDBACK_TYPES, type Feedback, type FeedbackType, sanitizeText } from "../../../server/tasks"
+import { FEEDBACK_TYPES, type Feedback, type FeedbackType, isMissingTable, sanitizeText } from "../../../server/tasks"
 
 const STATUSES: Feedback["status"][] = ["new", "read", "archived"]
 
@@ -16,7 +17,7 @@ const IMAGE_FORMATS = new Set(["png", "jpeg", "webp"])
 const EMAIL = /^[^\s@<>()",;:\\]{1,64}@[^\s@<>()",;:\\]{1,190}\.[^\s@<>()",;:\\]{2,}$/
 const BUCKET = "feedback"
 
-/** Empreinte de l'IP (HMAC avec une clé serveur) : sert uniquement à limiter les envois, l'IP n'est jamais stockée. */
+/** Fingerprint of the IP (HMAC with a server key): only used to limit sends, the IP itself is never stored. */
 function ipHash(request: Request) {
   const ip = clientIp(request.headers)
   if (!ip) return null
@@ -24,7 +25,7 @@ function ipHash(request: Request) {
   return createHmac("sha256", key).update(ip).digest("hex").slice(0, 32)
 }
 
-/** Même origine obligatoire : le formulaire n'est envoyé que depuis le site lui-même. */
+/** Same origin required: the form is only sent from the site itself. */
 function assertSameOrigin(request: Request) {
   const origin = request.headers.get("origin")
   if (!origin) return
@@ -37,7 +38,7 @@ function assertSameOrigin(request: Request) {
   if (host !== (request.headers.get("host") ?? new URL(request.url).host)) throw new ApiError("FORBIDDEN", 403)
 }
 
-/** Vérifie que le fichier est bien une image (décodée, pas seulement son extension), la réduit et la ré-encode en WebP : métadonnées (EXIF, GPS) et contenu caché supprimés. */
+/** Checks that the file really is an image (decoded, not just its extension), shrinks it and re-encodes it as WebP: metadata (EXIF, GPS) and hidden content are dropped. */
 async function cleanScreenshot(file: File): Promise<Buffer> {
   if (file.size > MAX_FILE) throw new ApiError("FILE_TOO_BIG", 413)
   try {
@@ -52,11 +53,14 @@ async function cleanScreenshot(file: File): Promise<Buffer> {
   }
 }
 
-/** Retour d'un joueur (bouton feedback) : type, message, e-mail facultatif, capture facultative. Limites : 30 s par joueur, 1 envoi / 10 s et 5 / heure par IP, 300 / heure au total. */
-export const POST = handle(async (request: Request) => {
+/**
+ * Player feedback (feedback button): type, message, optional e-mail, optional screenshot. Limits: 30 s per player,
+ * 1 send / 10 s and 5 / hour per IP (across every game), 300 / hour per game.
+ */
+export const POST = handle(async (request: Request, { game }: GameRouteContext) => {
   assertSameOrigin(request)
   // Cheap in-memory gate (shared helper, per server instance) before parsing the body; the durable limits are counted in the database below
-  await rateLimit(request, "feedback", { code: "TOO_MANY_REQUESTS" })
+  await rateLimit(game.slug, request, "feedback", { code: "TOO_MANY_REQUESTS" })
   const length = Number(request.headers.get("content-length"))
   if (!length || length > MAX_BODY) throw new ApiError("FILE_TOO_BIG", 413)
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data")) throw new ApiError("INVALID_REQUEST")
@@ -65,7 +69,7 @@ export const POST = handle(async (request: Request) => {
   })
   const field = (name: string) => (typeof form.get(name) === "string" ? (form.get(name) as string) : "")
 
-  // Champ piège invisible pour les humains : rempli = robot, on répond OK sans rien enregistrer
+  // Honeypot field, invisible to humans: filled in = robot, answer OK without storing anything
   if (field("website")) return { ok: true }
 
   const type = field("type") as FeedbackType
@@ -75,20 +79,21 @@ export const POST = handle(async (request: Request) => {
   const emailRaw = field("email").trim()
   if (emailRaw && (emailRaw.length > 254 || !EMAIL.test(emailRaw))) throw new ApiError("INVALID_EMAIL")
 
-  const playerId = await getPlayerId()
+  const playerId = await getPlayerId(game.slug)
   const hash = ipHash(request)
   const db = supabaseAdmin()
-  const recent = async (ms: number, column?: "player_id" | "ip_hash", value?: string | null) => {
+  // player and total limits count within this game; IP limits across every game
+  const recent = async (ms: number, filter: { game?: string; player_id?: string; ip_hash?: string }) => {
     let q = db.from("feedback").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - ms).toISOString())
-    if (column && value) q = q.eq(column, value)
+    for (const [column, value] of Object.entries(filter)) q = q.eq(column, value)
     const { count } = await q
     return count ?? 0
   }
   const [byPlayer, byIpShort, byIpHour, total] = await Promise.all([
-    playerId ? recent(30_000, "player_id", playerId) : 0,
-    hash ? recent(10_000, "ip_hash", hash) : 0,
-    hash ? recent(3_600_000, "ip_hash", hash) : 0,
-    recent(3_600_000),
+    playerId ? recent(30_000, { game: game.slug, player_id: playerId }) : 0,
+    hash ? recent(10_000, { ip_hash: hash }) : 0,
+    hash ? recent(3_600_000, { ip_hash: hash }) : 0,
+    recent(3_600_000, { game: game.slug }),
   ])
   if (byPlayer || byIpShort || byIpHour >= 5 || total >= 300) throw new ApiError("TOO_MANY_REQUESTS", 429)
 
@@ -96,13 +101,14 @@ export const POST = handle(async (request: Request) => {
   const file = form.get("screenshot")
   if (file instanceof File && file.size > 0) {
     const image = await cleanScreenshot(file)
-    const path = `${crypto.randomUUID()}.webp`
+    const path = `${game.slug}/${crypto.randomUUID()}.webp`
     const { error } = await db.storage.from(BUCKET).upload(path, image, { contentType: "image/webp", upsert: false })
     if (error) throw error
     screenshot = path
   }
 
   const { error } = await db.from("feedback").insert({
+    game: game.slug,
     type,
     message,
     email: emailRaw || null,
@@ -121,10 +127,15 @@ export const POST = handle(async (request: Request) => {
   return { ok: true }
 })
 
-export const GET = handle(async () => {
+export const GET = handle(async (_request: Request, { game }: GameRouteContext) => {
   await requireAdmin()
-  const { data, error } = await supabaseAdmin().from("feedback").select("*").order("created_at", { ascending: false }).limit(500)
-  if (error) throw new ApiError(error.code === "42P01" || error.code === "PGRST205" ? "MIGRATION_MISSING" : "SERVER_ERROR", 409)
+  const { data, error } = await supabaseAdmin()
+    .from("feedback")
+    .select("*")
+    .eq("game", game.slug)
+    .order("created_at", { ascending: false })
+    .limit(500)
+  if (error) throw new ApiError(isMissingTable(error) ? "MIGRATION_MISSING" : "SERVER_ERROR", 409)
   const rows = data as Feedback[]
   const paths = rows.map((r) => r.screenshot).filter((p): p is string => !!p)
   const urls = new Map<string, string>()
@@ -135,24 +146,24 @@ export const GET = handle(async () => {
   return rows.map((r) => ({ ...r, screenshot_url: r.screenshot ? (urls.get(r.screenshot) ?? null) : null }))
 })
 
-export const PATCH = handle(async (request: Request) => {
+export const PATCH = handle(async (request: Request, { game }: GameRouteContext) => {
   await requireAdmin()
   const { id, status } = await readJson<{ id?: unknown; status?: unknown }>(request)
   if (typeof id !== "string" || !STATUSES.includes(status as Feedback["status"])) throw new ApiError("INVALID_REQUEST")
-  const { data, error } = await supabaseAdmin().from("feedback").update({ status }).eq("id", id).select("*").maybeSingle()
+  const { data, error } = await supabaseAdmin().from("feedback").update({ status }).eq("game", game.slug).eq("id", id).select("*").maybeSingle()
   if (error) throw error
   if (!data) throw new ApiError("NOT_FOUND", 404)
   return data as Feedback
 })
 
-export const DELETE = handle(async (request: Request) => {
+export const DELETE = handle(async (request: Request, { game }: GameRouteContext) => {
   await requireAdmin()
   const id = new URL(request.url).searchParams.get("id")
   if (!id) throw new ApiError("INVALID_REQUEST")
   const db = supabaseAdmin()
-  const { data: row } = await db.from("feedback").select("screenshot").eq("id", id).maybeSingle()
+  const { data: row } = await db.from("feedback").select("screenshot").eq("game", game.slug).eq("id", id).maybeSingle()
   if (row?.screenshot) await db.storage.from(BUCKET).remove([row.screenshot])
-  const { error } = await db.from("feedback").delete().eq("id", id)
+  const { error } = await db.from("feedback").delete().eq("game", game.slug).eq("id", id)
   if (error) throw error
   return { ok: true }
 })

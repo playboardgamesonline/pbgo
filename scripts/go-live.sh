@@ -1,80 +1,89 @@
 #!/usr/bin/env bash
-# Met un jeu du monorepo en ligne : projet Sanity + CORS + studio, projet Vercel relié au monorepo
-# (root games/<jeu>/apps/web) + domaine play-<jeu>-online.vercel.app, puis variables d'env (setup-env).
-# Usage : pnpm go-live <jeu>      Relançable : chaque étape déjà faite est sautée.
+# pnpm go-live <slug>   e.g. pnpm go-live the-crew
+# Sanity side of a game registered in packages/games (apps/web serves every game: no Vercel project, domain or
+# database per game). Its Sanity project (the registry's projectId, else found by name or created), public dataset,
+# CORS, studio .env, project id written in the registry and the studio, write token SANITY_API_WRITE_TOKEN_<SLUG> in
+# apps/web/.env.local, studio deployed to <host>.sanity.studio. Rerunnable: every step already done is skipped.
+# Then: pnpm setup-env (pushes the token to Vercel); live and indexable stay false until set in the registry.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
-SLUG="${1:-}"; DIR="games/$SLUG"
-[ -n "$SLUG" ] && [ -d "$DIR/apps/web" ] || { echo "Usage : pnpm go-live <jeu>  (games/<jeu>/apps/web doit exister)"; exit 1; }
-GH_REPO="${GH_REPO:-aurelienlouvel/play-board-games-online}"
-VERCEL_TEAM="${VERCEL_TEAM:-team_5AgMIBlJbSmZXWxmJ1pDPHQi}"
-SANITY_API="https://api.sanity.io/v2021-06-07"
-DOMAIN="play-$SLUG-online.vercel.app"
+source scripts/lib.sh
+SLUG="${1:-}"; DIR="games/$SLUG"; STUDIO="$DIR/apps/studio"
+[[ "$SLUG" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] && [ -d "$STUDIO" ] || { echo "Usage: pnpm go-live <slug>   (games/<slug>/apps/studio must exist)"; exit 1; }
+for t in node pnpm curl; do command -v "$t" >/dev/null || { echo "$t is missing"; exit 1; }; done
+export SLUG
+[ -n "$(registry 'GAMES.find((g) => g.slug === process.env.SLUG)?.slug')" ] \
+  || { echo "\"$SLUG\" is not in packages/games/src/registry.ts (pnpm new-game registers it)"; exit 1; }
+SITE="https://playboardgamesonline.app"
+ENV_FILE="apps/web/.env.local"
+TOKEN_KEY="$(token_name "$SLUG")"
+echo "Game: $SLUG  ·  $SITE/$SLUG"
 
-ok()    { printf "  \033[32m✓\033[0m %s\n" "$*"; }
-warn()  { printf "  \033[33m!\033[0m %s\n" "$*"; }
-err()   { printf "  \033[31m✗\033[0m %s\n" "$*"; }
-title() { printf "\n\033[1m━━━ %s ━━━\033[0m\n" "$*"; }
-json()  { node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const o=JSON.parse(d);const v=($1);console.log(v??'')}catch{console.log('')}})"; }
-for t in node pnpm git curl; do command -v "$t" >/dev/null || { echo "$t manquant (brew install $t)"; exit 1; }; done
-echo "Jeu : $SLUG  ·  site : https://$DOMAIN"
-
-# ---------- Sanity ----------
+# ---------- Sanity project ----------
 title "Sanity"
-sanity_token() { node -e 'try{console.log(require(require("os").homedir()+"/.config/sanity/config.json").authToken||"")}catch{console.log("")}'; }
 STOKEN="$(sanity_token)"; [ -z "$STOKEN" ] && { npx -y sanity@latest login; STOKEN="$(sanity_token)"; }
-[ -z "$STOKEN" ] && { err "Token Sanity introuvable"; exit 1; }
-S() { curl -s -H "Authorization: Bearer $STOKEN" -H "Content-Type: application/json" "$@"; }
-PID="$(cat "$DIR/.sanity-project-id" 2>/dev/null)"
-if [ -z "$PID" ]; then
-  ORG_ID="$(S "$SANITY_API/organizations" | json "o.find(x=>[x.name,x.slug].some(n=>(n||'').toLowerCase()==='main'))?.id")"
-  [ -z "$ORG_ID" ] && ORG_ID="$(S "$SANITY_API/projects/2lo2f5sv" | json "o.organizationId")"
-  PID="$(S "$SANITY_API/projects" | json "o.find(p=>p.displayName==='$SLUG')?.id")"
-  if [ -z "$PID" ]; then
+[ -n "$STOKEN" ] || { err "no Sanity login (npx sanity login)"; exit 1; }
+PID="$(registry 'GAMES.find((g) => g.slug === process.env.SLUG).sanityProjectId')"
+is_project_id "$PID" || PID="$(cat "$DIR/.sanity-project-id" 2>/dev/null)"
+if is_project_id "$PID"; then
+  ok "Sanity project: $PID"
+else
+  PID="$(S "$SANITY_API/projects" | json "o.find((p) => p.displayName === '$SLUG')?.id")"
+  if [ -n "$PID" ]; then ok "Sanity project found: $SLUG ($PID)"
+  else
+    ORG_ID="$(S "$SANITY_API/organizations" | json "o.find((x) => [x.name, x.slug].some((n) => (n || '').toLowerCase() === 'main'))?.id")"
+    [ -z "$ORG_ID" ] && ORG_ID="$(S "$SANITY_API/projects/2lo2f5sv" | json "o.organizationId")"
     RES="$(S -X POST "$SANITY_API/projects" -d "{\"displayName\":\"$SLUG\",\"organizationId\":\"$ORG_ID\"}")"
     PID="$(echo "$RES" | json "o.id")"
-    [ -n "$PID" ] || { err "création du projet Sanity impossible (max 5 nouveaux projets par heure) : $RES"; exit 1; }
+    is_project_id "$PID" || { err "Sanity project not created (5 new projects per hour at most): $(echo "$RES" | json "o.message ?? o.error")"; exit 1; }
+    ok "Sanity project created: $SLUG ($PID)"
   fi
 fi
-ok "Projet Sanity : $SLUG ($PID)"
 echo "$PID" > "$DIR/.sanity-project-id"
 S -X PUT "$SANITY_API/projects/$PID/datasets/production" -d '{"aclMode":"public"}' >/dev/null
-for origin in "https://$DOMAIN" "http://localhost:3000"; do
+for origin in "$SITE" "http://localhost:3100"; do
   S -X POST "$SANITY_API/projects/$PID/cors" -d "{\"origin\":\"$origin\",\"allowCredentials\":false}" >/dev/null
 done
-[ -f "$DIR/apps/studio/.env" ] || printf "SANITY_STUDIO_PROJECT_ID=%s\nSANITY_STUDIO_DATASET=production\nSANITY_STUDIO_HOST=%s\n" "$PID" "$SLUG" > "$DIR/apps/studio/.env"
-ok "Dataset production + CORS"
-SITE_TS="$DIR/apps/web/src/lib/site.ts"
-if [ -f "$SITE_TS" ] && grep -q "__SANITY_PROJECT_ID__" "$SITE_TS"; then perl -pi -e "s/__SANITY_PROJECT_ID__/$PID/g" "$SITE_TS" && ok "Projet Sanity renseigné dans apps/web/src/lib/site.ts"; fi
+ok "Dataset production (public), CORS for $SITE and http://localhost:3100"
 
-# ---------- Vercel ----------
-title "Vercel"
-vercel_token() { for f in "$HOME/Library/Application Support/com.vercel.cli/auth.json" "$HOME/.local/share/com.vercel.cli/auth.json"; do
-  [ -f "$f" ] && node -e 'console.log(require(process.argv[1]).token||"")' "$f" && return; done; }
-npx -y vercel@latest whoami >/dev/null 2>&1 || npx -y vercel@latest login
-VTOKEN="$(vercel_token)"; [ -z "$VTOKEN" ] && { err "Token Vercel introuvable"; exit 1; }
-V() { curl -s -H "Authorization: Bearer $VTOKEN" -H "Content-Type: application/json" "$@"; }
-VID="$(V "https://api.vercel.com/v9/projects/$SLUG?teamId=$VERCEL_TEAM" | json "o.id")"
-if [ -z "$VID" ]; then
-  RES="$(V -X POST "https://api.vercel.com/v11/projects?teamId=$VERCEL_TEAM" -d "{\"name\":\"$SLUG\",\"framework\":\"nextjs\",\"rootDirectory\":\"$DIR/apps/web\",\"enableAffectedProjectsDeployments\":true,\"gitRepository\":{\"type\":\"github\",\"repo\":\"$GH_REPO\"}}")"
-  VID="$(echo "$RES" | json "o.id")"
-  [ -n "$VID" ] && ok "Projet Vercel créé : $SLUG (relié à $GH_REPO)" || { err "projet Vercel : $RES"; exit 1; }
-else ok "Projet Vercel : $SLUG"; fi
-RES="$(V -X POST "https://api.vercel.com/v10/projects/$SLUG/domains?teamId=$VERCEL_TEAM" -d "{\"name\":\"$DOMAIN\"}")"
-if [ -n "$(echo "$RES" | json "o.name")" ] || echo "$RES" | grep -q "already"; then ok "Domaine : $DOMAIN"
-else warn "Domaine $DOMAIN : $(echo "$RES" | json "o.error?.message")"; fi
-IGN="git diff --quiet HEAD^ HEAD -- ':/games/$SLUG' ':/packages' ':/pnpm-lock.yaml' ':/pnpm-workspace.yaml' ':/package.json'"
-V -X PATCH "https://api.vercel.com/v9/projects/$VID?teamId=$VERCEL_TEAM" -d "{\"commandForIgnoringBuildStep\":\"$IGN\"}" >/dev/null && ok "Build ignoré si le jeu n'a pas changé"
-mkdir -p "$DIR/.vercel" && echo "{\"projectId\":\"$VID\",\"orgId\":\"$VERCEL_TEAM\",\"projectName\":\"$SLUG\"}" > "$DIR/.vercel/project.json"
+# ---------- Project id and studio host in the code ----------
+# Studio host: its .env, else the one written in sanity.cli.ts, else the slug
+HOST="$(envget "$STUDIO/.env" SANITY_STUDIO_HOST)"
+[ -z "$HOST" ] && HOST="$(sed -nE 's/.*studioHost:[^"]*"([a-z0-9-]+)".*/\1/p' "$STUDIO/sanity.cli.ts" | head -1)"
+[ -z "$HOST" ] && HOST="$SLUG"
+envset "$STUDIO/.env" SANITY_STUDIO_PROJECT_ID "$PID"
+envset "$STUDIO/.env" SANITY_STUDIO_DATASET production
+envset "$STUDIO/.env" SANITY_STUDIO_HOST "$HOST"
+PID="$PID" HOST="$HOST" node - "$DIR" "$SLUG" <<'JS' && ok "Project id in the registry and the studio, studio host: $HOST"
+const fs = require("fs"), path = require("path")
+const [dir, slug] = process.argv.slice(2), { PID, HOST } = process.env
+const sub = (file, fn) => { if (fs.existsSync(file)) { const s = fs.readFileSync(file, "utf8"), t = fn(s); if (t !== s) fs.writeFileSync(file, t) } }
+// Registry: only this game's entry, from its `slug:` line to the next one
+sub("packages/games/src/registry.ts", (s) => {
+  const lines = s.split("\n"), start = lines.findIndex((l) => l.trim() === `slug: "${slug}",`)
+  if (start < 0) throw new Error(`${slug} not found in the registry`)
+  for (let i = start + 1; i < lines.length && !/^\s*slug: /.test(lines[i]); i++)
+    lines[i] = lines[i].replace('sanityProjectId: "__SANITY_PROJECT_ID__"', `sanityProjectId: "${PID}"`)
+  return lines.join("\n")
+})
+for (const file of ["sanity.cli.ts", "sanity.config.ts", ".env.example"])
+  sub(path.join(dir, "apps/studio", file), (s) => s.replaceAll("__SANITY_PROJECT_ID__", PID).replaceAll("__SANITY_STUDIO_HOST__", HOST))
+JS
+
+# ---------- Write token of apps/web (admin saves) ----------
+if [ -n "$(envget "$ENV_FILE" "$TOKEN_KEY")" ]; then ok "$TOKEN_KEY already in $ENV_FILE"
+elif sanity_write_token "$PID" "$ENV_FILE" "$TOKEN_KEY"; then ok "$TOKEN_KEY created (editor) in $ENV_FILE"
+else err "write token not created: create an Editor token in sanity.io/manage → API → Tokens, as $TOKEN_KEY in $ENV_FILE"; fi
 
 # ---------- Studio ----------
-title "Studio Sanity"
-pnpm install --silent >/dev/null 2>&1 || warn "pnpm install a signalé une erreur"
-if (cd "$DIR/apps/studio" && SANITY_AUTH_TOKEN="$STOKEN" npx sanity deploy -y >/tmp/sanity-$SLUG.log 2>&1); then
-  ok "Studio : https://$(grep SANITY_STUDIO_HOST "$DIR/apps/studio/.env" | cut -d= -f2).sanity.studio"
-else err "studio (voir /tmp/sanity-$SLUG.log — hôte pris ? change SANITY_STUDIO_HOST dans $DIR/apps/studio/.env)"; fi
+title "Studio"
+pnpm install --silent >/dev/null 2>&1 || warn "pnpm install reported an error"
+LOG="${TMPDIR:-/tmp}/pbgo-studio-$SLUG.log"
+if (cd "$STUDIO" && SANITY_AUTH_TOKEN="$STOKEN" npx sanity deploy -y >"$LOG" 2>&1); then ok "Studio: https://$HOST.sanity.studio"
+else err "studio not deployed, see $LOG (host taken? set another SANITY_STUDIO_HOST in $STUDIO/.env and rerun)"; fi
 
-# ---------- Variables d'env ----------
-if [ -f "$DIR/scripts/setup-env.sh" ]; then title "Variables d'environnement"; bash "$DIR/scripts/setup-env.sh"; fi
-echo; echo "Commit + push sur main pour déployer : https://$DOMAIN"
-echo "Le site reste en noindex tant que INDEXABLE = false dans $DIR/apps/web/src/lib/site.ts : à passer à true quand le jeu est prêt (puis pnpm vercel:ignore-builds <jeux en ligne>)."
+title "Next"
+echo "  Local:   pnpm dev → http://localhost:3100/$SLUG (admin: /$SLUG/admin)"
+echo "  Vercel:  pnpm setup-env pushes $TOKEN_KEY to the project \"playboardgamesonline\""
+echo "  Commit:  packages/games/src/registry.ts and $STUDIO (project id), then push"
+echo "  Launch:  live: true in packages/games/src/registry.ts when the game is ready, indexable: true for search engines"

@@ -3,7 +3,8 @@ import path from "node:path"
 import { getCliClient } from "sanity/cli"
 
 const client = getCliClient({ apiVersion: "2026-09-27" })
-const PUBLIC = path.resolve(process.cwd(), "../web/public")
+// the game's files in the single app (run from games/courtisans/apps/studio)
+const PUBLIC = path.resolve(process.cwd(), "../../../../apps/web/public/courtisans")
 
 const FAMILIES = [
   ["butterfly", "butterfly"],
@@ -62,7 +63,7 @@ async function main() {
     const docs = ids.filter((id) => existing.has(id))
     const filePath = path.join(PUBLIC, file)
     if (docs.length === 0 || !existsSync(filePath)) {
-      console.log(`⏭  ${file} ignoré (${docs.length === 0 ? "document absent" : "fichier absent"})`)
+      console.log(`⏭  ${file} skipped (${docs.length === 0 ? "document missing" : "file missing"})`)
       continue
     }
     const asset = await client.assets.upload("image", createReadStream(filePath), { filename: path.basename(file) })
@@ -74,7 +75,7 @@ async function main() {
     updated += docs.length
     console.log(`✓ ${file} → ${docs.join(", ")}`)
   }
-  console.log(`\n${updated} image(s) mise(s) à jour. Pour supprimer les anciens PNG devenus inutiles : pnpm sanity:nettoyer-png`)
+  console.log(`\n${updated} image(s) updated. To delete the old PNGs that are no longer used: pnpm sanity:clean-png`)
 }
 
 main().catch((error) => {

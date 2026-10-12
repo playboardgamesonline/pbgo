@@ -1,9 +1,10 @@
 "use client"
 
+import { useBinding } from "../../../lib/binding-context"
 import { LOCALE_NAMES, LOCALES } from "../../../lib/i18n"
 import { LinkSquare02Icon, Pdf02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { GAME, type OptionDefinition, type OptionValue } from "@pbgo/binding"
+import type { OptionDefinition, OptionValue } from "@pbgo/engine-kit"
 import { Badge } from "@pbgo/ui/admin/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
 import { Field, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
@@ -12,7 +13,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 import { Label } from "@pbgo/ui/admin/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/admin/select"
 import { Switch } from "@pbgo/ui/admin/switch"
-import { PLAYER_BOUNDS, RULES_SLOT, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
+import { playerBounds, RULES_SLOT, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
 import { FileTile, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = Pick<SiteSettings, "minPlayers" | "maxPlayers" | "turnTimeout" | "options" | "rulesPdfLinks"> & { desktopOnly: boolean }
@@ -27,9 +28,12 @@ const pick = (d: AdminData): Draft => ({
 })
 
 export function MechanicsPage({ initial, studioUrl }: { initial: AdminData; studioUrl: string | null }) {
+  const binding = useBinding()
+  const { GAME } = binding
+  const bounds = playerBounds(binding)
   const s = useSection("mechanics", initial, pick)
   const { data, draft, set, disabled } = s
-  const options = Object.entries(GAME.options)
+  const options = Object.entries(GAME?.options ?? {})
   const setOption = (key: string, value: OptionValue) => set("options", { ...draft.options, defaults: { ...draft.options.defaults, [key]: value } })
   const toggleHidden = (key: string, visible: boolean) =>
     set("options", { ...draft.options, hidden: visible ? draft.options.hidden.filter((k) => k !== key) : [...draft.options.hidden, key] })
@@ -43,18 +47,18 @@ export function MechanicsPage({ initial, studioUrl }: { initial: AdminData; stud
           <CardHeader>
             <CardTitle>Players</CardTitle>
             <CardDescription>
-              The engine allows {PLAYER_BOUNDS.min} to {PLAYER_BOUNDS.max} players.
+              The engine allows {bounds.min} to {bounds.max} players.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="minPlayers">Minimum to start</FieldLabel>
-                <Input id="minPlayers" type="number" min={PLAYER_BOUNDS.min} max={draft.maxPlayers} value={draft.minPlayers} onChange={(e) => set("minPlayers", Number(e.target.value))} disabled={disabled} />
+                <Input id="minPlayers" type="number" min={bounds.min} max={draft.maxPlayers} value={draft.minPlayers} onChange={(e) => set("minPlayers", Number(e.target.value))} disabled={disabled} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="maxPlayers">Maximum per game</FieldLabel>
-                <Input id="maxPlayers" type="number" min={draft.minPlayers} max={PLAYER_BOUNDS.max} value={draft.maxPlayers} onChange={(e) => set("maxPlayers", Number(e.target.value))} disabled={disabled} />
+                <Input id="maxPlayers" type="number" min={draft.minPlayers} max={bounds.max} value={draft.maxPlayers} onChange={(e) => set("maxPlayers", Number(e.target.value))} disabled={disabled} />
               </Field>
             </div>
           </CardContent>
@@ -221,7 +225,7 @@ export function MechanicsPage({ initial, studioUrl }: { initial: AdminData; stud
                 <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-3.5" />
               </a>
             ) : (
-              <p className="text-sm text-muted-foreground">Set NEXT_PUBLIC_SANITY_STUDIO_URL to link the Studio here.</p>
+              <p className="text-sm text-muted-foreground">Add the game's Sanity project to the @pbgo/games registry (or STUDIO_URL to its binding) to link the Studio here.</p>
             )}
           </CardContent>
         </Card>

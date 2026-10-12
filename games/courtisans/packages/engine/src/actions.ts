@@ -20,13 +20,13 @@ function readMissions(state: GameState, playerId: string) {
   const player = state.players.find((j) => j.id === playerId)
   if (!player) throw new EngineError("UNKNOWN_PLAYER")
   player.missionsRead = true
-  // le banquet commence pour tout le monde en même temps, à la lecture du dernier joueur (lire deux fois ne compte qu'une fois)
+  // the banquet starts for everyone at the same time, when the last player has read (reading twice only counts once)
   if (state.phase === "missions" && state.players.every((j) => j.missionsRead)) state.phase = "playing"
 }
 
 /**
- * Les joueurs prêts lancent le banquet sans attendre ceux qui n'ont pas lu leurs missions (le vote est validé côté serveur) :
- * ces retardataires sont comptés comme ayant lu, ils retrouvent leurs missions sur la table.
+ * The ready players start the banquet without waiting for those who have not read their missions (the vote is validated server side):
+ * these latecomers are counted as having read, and find their missions on the table.
  */
 export function startWithoutWaiting(state: GameState): GameState {
   if (state.phase !== "missions") throw new EngineError("INVALID_PHASE")

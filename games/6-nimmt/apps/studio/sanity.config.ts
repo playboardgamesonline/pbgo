@@ -2,8 +2,8 @@ import { createStudioConfig } from "@pbgo/studio-kit"
 import { game } from "./schemaTypes/game"
 
 export default createStudioConfig({
-  title: "Play Game Online",
-  projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "__SANITY_PROJECT_ID__",
+  title: "6 qui prend !",
+  projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "t5dwtve1",
   dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
   gameTypes: [game],
 })

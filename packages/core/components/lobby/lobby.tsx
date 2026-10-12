@@ -6,11 +6,11 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { PrimaryButton } from "../home/screen"
 import { usePlayerColor, useSkin, useText } from "../skin-provider"
-import { api } from "../../lib/api"
+import { useApi } from "../../lib/binding-context"
 import { useSiteSettings } from "../settings-provider"
 import type { PublicGame } from "../../lib/game-types"
 
-/** Pictogramme de l'hôte : image de l'habillage (masque teinté à la couleur du joueur), sinon une couronne. */
+/** Host pictogram: the skin's image (a mask tinted with the player's color), else a crown. */
 export function HostIcon({ className }: { className?: string }) {
   const { hostIcon } = useSkin()
   const t = useText()
@@ -58,6 +58,7 @@ export function PlayerList({ game }: { game: PublicGame }) {
 }
 
 export function LobbyButton({ game, onUpdate }: { game: PublicGame; onUpdate: (p: PublicGame) => void }) {
+  const api = useApi()
   const { minPlayers } = useSiteSettings()
   const t = useText()
   const [launching, setLaunching] = useState(false)

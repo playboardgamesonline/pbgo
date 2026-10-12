@@ -16,7 +16,7 @@ const confirm = args.includes("--confirm")
 
 async function main() {
   if (!before || Number.isNaN(Date.parse(before))) {
-    console.error('Indique quand revenir : --minutes 60  ou  --avant "2026-09-27T10:30:00+02:00"')
+    console.error('Specify when to roll back to: --minutes 60  or  --before "2026-09-27T10:30:00+02:00"')
     process.exit(1)
   }
   const ids: string[] = readFileSync(SEED, "utf8")
@@ -43,21 +43,21 @@ async function main() {
       const { _rev, _updatedAt, _createdAt, ...doc } = old
       transaction.createOrReplace(doc as { _id: string; _type: string })
       restored++
-      console.log(`↺ ${id} restauré`)
+      console.log(`↺ ${id} restored`)
     } else {
       transaction.delete(id)
       deleted++
-      console.log(`✕ ${id} supprimé (il n'existait pas le ${before})`)
+      console.log(`✕ ${id} deleted (it did not exist at ${before})`)
     }
   }
 
-  console.log(`\n${restored} document(s) à restaurer, ${deleted} à supprimer (état au ${before}).`)
+  console.log(`\n${restored} document(s) to restore, ${deleted} to delete (state at ${before}).`)
   if (!confirm) {
-    console.log("Simulation uniquement : relance avec --confirm pour appliquer.")
+    console.log("Dry run only: re-run with --confirm to apply.")
     return
   }
   await transaction.commit()
-  console.log("C'est fait.")
+  console.log("Done.")
 }
 
 main().catch((error) => {

@@ -1,14 +1,47 @@
 {
-  "name": "template",
+  "name": "@pbgo-game/template",
+  "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "description": "Template of a game for apps/web (demo: La Plus Haute): engine binding, 3D board, site constants. `pnpm new-game <slug>` copies it to games/<slug>.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/ui.tsx",
+    "./server": "./src/server.ts",
+    "./runtime": "./src/runtime.tsx",
+    "./styles.css": "./src/styles.css"
+  },
   "scripts": {
-    "dev": "pnpm --filter template-web dev",
+    "typecheck": "tsc --noEmit",
     "dev:studio": "pnpm --filter template-studio dev",
-    "build": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" build",
-    "test": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" test",
-    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" typecheck",
-    "deploy:studio": "pnpm --filter template-studio run deploy",
-    "setup:env": "bash scripts/setup-env.sh",
-    "go-live": "bash scripts/go-live.sh"
+    "deploy:studio": "pnpm --filter template-studio run deploy"
+  },
+  "dependencies": {
+    "@template/engine": "workspace:*",
+    "@pbgo/core": "workspace:*",
+    "@pbgo/ui": "workspace:*",
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
+    "leva": "catalog:",
+    "maath": "catalog:",
+    "server-only": "catalog:",
+    "sonner": "catalog:",
+    "three": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:"
   }
 }

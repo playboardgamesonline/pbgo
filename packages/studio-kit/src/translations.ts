@@ -1,8 +1,8 @@
 import type { UiTextKey } from "./constants"
 
 /**
- * Traductions par défaut des libellés communs (le français vit dans `UI_TEXTS`). Un libellé saisi dans l'admin (Copy) passe toujours avant.
- * Variables entre accolades : {code}, {name}, {count}, {max}… à conserver telles quelles.
+ * Default translations of the shared labels (French lives in `UI_TEXTS`). A label typed in the admin (Copy) always takes precedence.
+ * Variables in braces: {code}, {name}, {count}, {max}… to be kept as is.
  */
 export type TranslatedLocale = "en" | "es" | "de"
 
@@ -31,6 +31,12 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     feedbackScreenshotRemove: "Remove the screenshot",
     feedbackSend: "Send",
     feedbackThanks: "Thank you, your message has arrived!",
+    homeLink: "Home",
+    linkCopyFailed: "Couldn't copy the link",
+    comingSoon: "Coming soon online",
+    comingSoonHint: "This game is being prepared. Meanwhile, try the other games.",
+    allGames: "All games",
+    pageNotFound: "This page can't be found.",
     creditsAdaptation: "Unofficial, free online adaptation of",
     creditsBy: "a game by",
     creditsPublishedBy: "and published by",
@@ -141,6 +147,12 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     feedbackScreenshotRemove: "Quitar la captura",
     feedbackSend: "Enviar",
     feedbackThanks: "¡Gracias, tu mensaje ha llegado!",
+    homeLink: "Inicio",
+    linkCopyFailed: "No se pudo copiar el enlace",
+    comingSoon: "Pronto se podrá jugar en línea",
+    comingSoonHint: "Este juego está en preparación. Mientras tanto, descubre los demás juegos.",
+    allGames: "Todos los juegos",
+    pageNotFound: "No se encuentra esta página.",
     creditsAdaptation: "Adaptación en línea no oficial y gratuita de",
     creditsBy: "un juego de",
     creditsPublishedBy: "y editado por",
@@ -251,6 +263,12 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     feedbackScreenshotRemove: "Screenshot entfernen",
     feedbackSend: "Senden",
     feedbackThanks: "Danke, deine Nachricht ist angekommen!",
+    homeLink: "Startseite",
+    linkCopyFailed: "Der Link konnte nicht kopiert werden",
+    comingSoon: "Bald online spielbar",
+    comingSoonHint: "Dieses Spiel ist in Vorbereitung. Entdecke solange die anderen Spiele.",
+    allGames: "Alle Spiele",
+    pageNotFound: "Diese Seite wurde nicht gefunden.",
     creditsAdaptation: "Inoffizielle, kostenlose Online-Adaption von",
     creditsBy: "ein Spiel von",
     creditsPublishedBy: "und veröffentlicht von",
@@ -339,7 +357,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
   },
 }
 
-/** Messages d'erreur communs (code → message) par langue ; le français vit dans `DEFAULT_ERROR_MESSAGES`. */
+/** Shared error messages (code → message) per language; French lives in `CORE_ERROR_MESSAGES`. */
 export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>> = {
   en: {
     INVALID_NICKNAME: "Pick a nickname.",

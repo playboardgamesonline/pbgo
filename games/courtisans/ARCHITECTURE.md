@@ -1,824 +1,824 @@
-# Courtisans Online : architecture, intentions et pièges
+# Courtisans Online: architecture, intentions and pitfalls
 
-Ce document décrit ce que le code ne dit pas : pourquoi il est organisé ainsi, ce qui a été réglé à la main, où sont les pièges, et comment en tirer des briques `@pbgo/*` réutilisables par d'autres jeux de cartes (Skull King, Flip 7, Love Letter, Hanabi, Skyjo…).
+This document describes what the code does not say: why it is organized this way, what was tuned by hand, where the pitfalls are, and how to extract reusable `@pbgo/*` building blocks for other card games (Skull King, Flip 7, Love Letter, Hanabi, Skyjo…).
 
-Conventions de ce document :
+Conventions used in this document:
 
-- `web/…` désigne `games/courtisans/apps/web/src/…`
-- `engine/…` désigne `games/courtisans/packages/engine/src/…`
-- `studio/…` désigne `games/courtisans/apps/studio/…`
-- Les noms de fonctions sont entre backticks et suivis de `()`. Les réglages Leva sont cités avec leur dossier (« Deck », « Draw Pile »…).
-- Le code de Courtisans est **en français** (identifiants, fichiers, routes `/api/parties`). Le template et `@pbgo/core` sont **en anglais** (`/api/games`, `players`, `view`). Toute la section 7 parle de cet écart.
+- `web/…` refers to `games/courtisans/src/…` (the binding package `@pbgo-game/courtisans`). Before PLT-14 these files were in `games/courtisans/apps/web/src/…`, and the document was written before the code was translated to English, so many of them have a new name (`components/jeu3d/` → `components/game3d/`, `components/jeu/` → `components/game/`, `lib/catalogue.ts` → `lib/catalog.ts`, `lib/regles-defaut.ts` → `lib/default-rules.ts`…) or now live in `@pbgo/core` (`packages/core`, see the last column of §7) or in the app's routes (`apps/web/src/app`)
+- `engine/…` refers to `games/courtisans/packages/engine/src/…`
+- `studio/…` refers to `games/courtisans/apps/studio/…`
+- Function names are in backticks and followed by `()`. Leva settings are cited with their folder ("Deck", "Draw Pile"…).
+- The Courtisans code is **in French** (identifiers, files, `/api/parties` routes). The template and `@pbgo/core` are **in English** (`/api/games`, `players`, `view`). All of section 7 is about this gap.
 
-État au moment de la rédaction (commit `392e07b`) : `apps/web` est encore autonome et importe `@courtisans/engine` ; seul le moteur est branché sur `@pbgo/engine-kit` via `engine/game.ts` (`GAME`). `apps/web` n'utilise pas encore `@pbgo/core`.
+State at the time of writing (commit `392e07b`): the web side was still a standalone app, `games/courtisans/apps/web`, importing `@courtisans/engine`; only the engine was wired to `@pbgo/engine-kit` via `engine/game.ts` (`GAME`), and the app did not use `@pbgo/core` yet. Since then (PLT-14) the web side is the binding `@pbgo-game/courtisans` (`games/courtisans/src`) on top of `@pbgo/core`, served by the repository's single Next.js app, `apps/web`. Sections 6.2, 7 and 8 still describe the migration as it stood then.
 
 ---
 
-## Sommaire
+## Contents
 
-1. [Vue d'ensemble](#1-vue-densemble)
-2. [Moteur](#2-moteur)
-3. [Serveur et temps réel](#3-serveur-et-temps-réel)
-4. [Scène 3D](#4-scène-3d)
-5. [UI hors 3D](#5-ui-hors-3d)
+1. [Overview](#1-overview)
+2. [Engine](#2-engine)
+3. [Server and realtime](#3-server-and-realtime)
+4. [3D scene](#4-3d-scene)
+5. [UI outside the 3D scene](#5-ui-outside-the-3d-scene)
 6. [Sanity](#6-sanity)
-7. [Classement générique / configurable / spécifique et API proposée](#7-classement-et-api-proposée)
-8. [Dette et pièges](#8-dette-et-pièges)
+7. [Generic / configurable / specific classification and proposed API](#7-classification-and-proposed-api)
+8. [Technical debt and pitfalls](#8-technical-debt-and-pitfalls)
 
 ---
 
-## 1. Vue d'ensemble
+## 1. Overview
 
-### 1.1 Principes
+### 1.1 Principles
 
-- **Le serveur est la seule source de vérité.** L'état complet (`GameState`, avec la pioche, les mains et les missions de tous) vit dans la colonne `etat` de la table Supabase `parties`. Il n'est jamais envoyé au client. Chaque joueur reçoit uniquement `vueJoueur(etat, joueurId)` (`engine/view.ts`).
-- **Les règles vivent uniquement dans le moteur** (`packages/engine`, TypeScript pur, sans React ni Next). Le client ne fait que *pré-filtrer* ce qui est cliquable (`zonesDisponibles` vient de la vue). Il ne valide rien.
-- **Le temps réel est un simple « ping ».** Après chaque écriture, le serveur diffuse `maj {version}` sur le canal `partie:{code}`, puis chaque client refait un `GET`. Aucune donnée de jeu ne transite par le canal.
-- **Sanity est un catalogue de contenu** (images, textes, missions), jamais une source de règles, à une exception près : les **conditions des missions** sont modélisées dans Sanity puis converties en `Condition` moteur (`web/server/missions.ts`, `versCondition()`).
-- **Tout a une valeur par défaut locale.** Si Sanity tombe, `getCatalogueClient()` renvoie `CATALOGUE_PAR_DEFAUT` (assets dans `web/public`) et `chargerMissions()` complète avec `MISSIONS_PROVISOIRES`. Le jeu reste jouable sans Sanity.
+- **The server is the only source of truth.** The full state (`GameState`, including the draw pile, hands and everyone's missions) lives in the `etat` column of the Supabase table `parties`. It is never sent to the client. Each player receives only `vueJoueur(etat, joueurId)` (`engine/view.ts`).
+- **The rules live only in the engine** (`packages/engine`, pure TypeScript, no React or Next). The client only *pre-filters* what is clickable (`zonesDisponibles` comes from the view). It validates nothing.
+- **Realtime is a simple "ping".** After each write, the server broadcasts `maj {version}` on the channel `partie:{code}`, then each client issues a new `GET`. No game data goes through the channel.
+- **Sanity is a content catalog** (images, texts, missions), never a source of rules, with one exception: the **mission conditions** are modeled in Sanity, then converted into the engine's `Condition` (`web/server/missions.ts`, `versCondition()`).
+- **Everything has a local default value.** If Sanity goes down, `getCatalogueClient()` returns `CATALOGUE_PAR_DEFAUT` (assets in `web/public`) and `chargerMissions()` tops up the missions with `MISSIONS_PROVISOIRES`. The game stays playable without Sanity.
 
-### 1.2 Parcours joueur, étape par étape
+### 1.2 Player journey, step by step
 
-#### Accueil (`/`)
+#### Home (`/`)
 
-| Couche | Ce qui se passe |
+| Layer | What happens |
 |---|---|
-| Client | `web/app/page.tsx` (RSC, `revalidate = 60`, JSON-LD `VideoGame`) rend `Accueil` (`web/components/accueil/accueil.tsx`). Le profil vient de `useProfil()` (`web/lib/profil.ts`, `useSyncExternalStore` sur le localStorage `courtisans:profil`, soit `{pseudo, chateau}`). Le champ « Vôtre prénommée » (`ChampAppellation`, `web/components/banquet/ecran-banquet.tsx`) met en majuscules et coupe à 20 caractères. Le code est saisi dans `ChampCode` (InputOTP 6 cases, `REGEXP_ONLY_DIGITS_AND_CHARS`). Le bouton unique « Courtiser au banquet » appelle `courtiser()` : **code vide → création**, code de 6 caractères → `router.push('/partie/CODE')`, sinon toast d'erreur. |
-| Serveur | `creer()` → `api.creer(profil)` → `POST /api/parties` → `creerPartie()` (`web/server/parties.ts`) : génère un code (`web/server/code.ts`, 6 caractères sans I/O/0/1), pose le cookie joueur (`web/server/joueur.ts`, `courtisans_joueur`, UUID, 30 jours, httpOnly) et insère la ligne (5 essais si collision `23505`). |
-| Supabase | `insert` dans `parties` (`statut = 'lobby'`, `joueurs = [hôte]`, `etat = null`, `version = 0`). |
-| Sanity | `getCatalogueClient()` est appelé par `web/app/layout.tsx` **et** par `page.tsx` (cache Next `revalidate: 60`, tag `catalogue`, `web/sanity/catalogue.ts`). Il fournit le logo, le décor du banquet, la reine, le motif et le papier (variables CSS `--image-motif` / `--image-papier` posées sur `<html>`), et les règles. |
-| Autre | Après la création, le lien est copié dans le presse-papiers (`lienPartie()`, `web/lib/api.ts`) avec le toast « Lien du banquet copié ! ». `EcranOrdinateur` (`web/components/ecran-ordinateur.tsx`) recouvre tout l'écran sous 900 px : **le jeu n'est pas jouable sur mobile**, c'est voulu. |
+| Client | `web/app/page.tsx` (RSC, `revalidate = 60`, JSON-LD `VideoGame`) renders `Accueil` (`web/components/accueil/accueil.tsx`). The profile comes from `useProfil()` (`web/lib/profil.ts`, `useSyncExternalStore` on the localStorage key `courtisans:profil`, i.e. `{pseudo, chateau}`). The field « Vôtre prénommée » (`ChampAppellation`, `web/components/banquet/ecran-banquet.tsx`) uppercases its input and truncates it to 20 characters. The code is entered in `ChampCode` (InputOTP, 6 boxes, `REGEXP_ONLY_DIGITS_AND_CHARS`). The single button « Courtiser au banquet » calls `courtiser()`: **empty code → creation**, 6-character code → `router.push('/partie/CODE')`, otherwise an error toast. |
+| Server | `creer()` → `api.creer(profil)` → `POST /api/parties` → `creerPartie()` (`web/server/parties.ts`): generates a code (`web/server/code.ts`, 6 characters without I/O/0/1), sets the player cookie (`web/server/joueur.ts`, `courtisans_joueur`, UUID, 30 days, httpOnly) and inserts the row (5 attempts on a `23505` collision). |
+| Supabase | `insert` into `parties` (`statut = 'lobby'`, `joueurs = [hôte]`, `etat = null`, `version = 0`). |
+| Sanity | `getCatalogueClient()` is called by `web/app/layout.tsx` **and** by `page.tsx` (Next cache `revalidate: 60`, tag `catalogue`, `web/sanity/catalogue.ts`). It provides the logo, the banquet backdrop, the Queen, the pattern and the paper (CSS variables `--image-motif` / `--image-papier` set on `<html>`), and the rules. |
+| Other | After creation, the link is copied to the clipboard (`lienPartie()`, `web/lib/api.ts`) with the toast « Lien du banquet copié ! ». `EcranOrdinateur` (`web/components/ecran-ordinateur.tsx`) covers the whole screen below 900 px: **the game is not playable on mobile**, by design. |
 
-#### Rejoindre (`/partie/[code]`)
+#### Joining (`/partie/[code]`)
 
-| Couche | Ce qui se passe |
+| Layer | What happens |
 |---|---|
-| Client | `web/app/partie/[code]/page.tsx` met le code en majuscules, pose `robots: noindex` et rend `PartieClient` (`web/components/partie/partie-client.tsx`). `usePartie(code)` (`web/lib/use-partie.ts`) charge la partie. Une petite machine à états `autoJoin` (`idle` → `encours` → `echec` \| `manuel`) décide : si je ne suis pas membre (`partie.moiId === null`), que la partie est en lobby **et que j'ai déjà un profil valide enregistré**, je rejoins automatiquement. Sinon (`manuel`), j'ai le formulaire « Rejoindre le banquet ». |
-| Serveur | `POST /api/parties/[code]/rejoindre` : ajoute le joueur, ou **met à jour son profil** s'il est déjà dans le lobby. Refus si la partie n'est plus en lobby ou si elle est pleine (`MAX_JOUEURS = 5`, `web/lib/partie-types.ts`). |
-| Supabase | `modifierPartie()` (verrou optimiste, voir §3), puis broadcast `maj`. |
-| Sanity | Rien de plus que l'accueil. |
+| Client | `web/app/partie/[code]/page.tsx` uppercases the code, sets `robots: noindex` and renders `PartieClient` (`web/components/partie/partie-client.tsx`). `usePartie(code)` (`web/lib/use-partie.ts`) loads the game. A small `autoJoin` state machine (`idle` → `encours` → `echec` \| `manuel`) decides: if I am not a member (`partie.moiId === null`), the game is in the lobby **and I already have a valid saved profile**, I join automatically. Otherwise (`manuel`), I get the form « Rejoindre le banquet ». |
+| Server | `POST /api/parties/[code]/rejoindre`: adds the player, or **updates their profile** if they are already in the lobby. Refused if the game is no longer in the lobby or if it is full (`MAX_JOUEURS = 5`, `web/lib/partie-types.ts`). |
+| Supabase | `modifierPartie()` (optimistic lock, see §3), then broadcast `maj`. |
+| Sanity | Nothing beyond the home page. |
 
-Écrans d'erreur, tous dans `EcranBanquet` : partie introuvable, « Ce banquet a déjà commencé » (non-membre et statut ≠ lobby), et un loader tant que `!pret || doitAutoJoin`.
+Error screens, all in `EcranBanquet`: game not found, « Ce banquet a déjà commencé » (non-member and status ≠ lobby), and a loader while `!pret || doitAutoJoin`.
 
 #### Lobby
 
-| Couche | Ce qui se passe |
+| Layer | What happens |
 |---|---|
-| Client | `ListeConvives` (`web/components/partie/lobby.tsx`) : couleur de siège `COULEURS_JOUEURS[i]`, couronne de l'hôte (`Couronne`, masque CSS sur `/pictograms/PICTOGRAM_NOBLE.webp`), « (vous) ». `BoutonLobby` : seul l'hôte voit « Ouvrir le banquet », actif à partir de `MIN_JOUEURS = 2`. `ChampCode` en lecture seule, avec un bouton pour copier le lien. |
-| Serveur | `POST …/lancer` : hôte uniquement, au moins 2 joueurs. `chargerMissions()` puis `setupPartie()` (`engine/setup.ts`), `statut = 'jeu'`. `POST …/quitter` n'est possible qu'en lobby ; si l'hôte part, l'hôte est transféré au joueur suivant. |
-| Supabase | Écriture de `etat`, `statut`, `version + 1` ; broadcast. |
-| Sanity | `chargerMissions()` (`web/server/missions.ts`) lit les missions Sanity **côté serveur**, écarte celles dont la condition est invalide et complète chaque couleur avec `MISSIONS_PROVISOIRES` jusqu'au nombre de joueurs. |
+| Client | `ListeConvives` (`web/components/partie/lobby.tsx`): seat color `COULEURS_JOUEURS[i]`, host crown (`Couronne`, CSS mask on `/pictograms/PICTOGRAM_NOBLE.webp`), « (vous) ». `BoutonLobby`: only the host sees « Ouvrir le banquet », enabled from `MIN_JOUEURS = 2`. `ChampCode` read-only, with a button to copy the link. |
+| Server | `POST …/lancer`: host only, at least 2 players. `chargerMissions()` then `setupPartie()` (`engine/setup.ts`), `statut = 'jeu'`. `POST …/quitter` is only possible in the lobby; if the host leaves, the next player becomes the host. |
+| Supabase | Writes `etat`, `statut`, `version + 1`; broadcast. |
+| Sanity | `chargerMissions()` (`web/server/missions.ts`) reads the Sanity missions **server-side**, discards those whose condition is invalid and tops up each color with `MISSIONS_PROVISOIRES` up to the number of players. |
 
-#### Lecture des missions (ouverture)
+#### Reading the missions (opening)
 
-**Le banquet attend tous les joueurs.** `setupGame()` démarre en `phase: "missions"` ; chaque joueur envoie `readMissions` (drapeau `missionsRead`, idempotent) et la partie passe à `"playing"` à la lecture du **dernier** joueur, dans la même écriture : c'est ce changement de phase, reçu par tous, qui ferme l'ouverture et déclenche l'annonce du banquet. Tant que la phase est `"missions"`, `playCard` est refusé (`INVALID_PHASE`) et `activePlayerId` vaut `null` ; `firstPlayerId` désigne déjà le premier joueur (couronne). Noms actuels du code (ce document utilise encore les anciens noms français) : `lireMissions` = `readMissions`, `missionsLues` = `missionsRead`, `jeu` = `playing`. Les parties enregistrées avant cette règle sont restées en `"playing"` : la lecture tardive d'un joueur n'y fait qu'enregistrer son drapeau, sans rien attendre.
+**The banquet waits for all players.** `setupGame()` starts in `phase: "missions"`; each player sends `readMissions` (flag `missionsRead`, idempotent) and the game moves to `"playing"` when the **last** player has read, in the same write: it is this phase change, received by everyone, that closes the opening and triggers the banquet announcement. As long as the phase is `"missions"`, `playCard` is refused (`INVALID_PHASE`) and `activePlayerId` is `null`; `firstPlayerId` already identifies the first player (crown). Current names in the code (this document still uses the old French names): `lireMissions` = `readMissions`, `missionsLues` = `missionsRead`, `jeu` = `playing`. Games saved before this rule stayed in `"playing"`: a player's late read there only records their flag, with nothing to wait for.
 
-**Joueur qui ne valide pas.** Si la partie n'a pas bougé depuis le délai d'inactivité (`turnTimeout`, 60 s par défaut, Admin › Mechanics, le même que pour un joueur absent), les joueurs déjà prêts voient en haut de l'écran « En attente de X… » et un bouton « Commencer sans attendre (n/N) » (`StalledOpening`, `components/game/stalled-opening.tsx`). Il faut le vote de **tous** les joueurs prêts (N = nombre de joueurs prêts) : `POST /api/games/[code]/banquet` (`app/api/games/[code]/banquet/route.ts`, vérifie tout côté serveur : joueur prêt, délai écoulé) enregistre les votes dans `takeover_votes` (périmés dès qu'un joueur valide à son tour, ce qui relance le délai) ; le dernier vote appelle `startWithoutWaiting()` du moteur, qui compte les retardataires comme ayant lu (ils retrouvent leurs missions sur la table). Si un joueur déjà prêt est lui-même parti, le vote ne peut pas aboutir.
+**Player who does not confirm.** If the game has not progressed for the inactivity timeout (`turnTimeout`, 60 s by default, Admin › Mechanics, the same one as for an absent player), the players who are already ready see « En attente de X… » at the top of the screen and a button « Commencer sans attendre (n/N) » (`StalledOpening`, `components/game/stalled-opening.tsx`). The vote of **all** the ready players is required (N = number of ready players): `POST /api/games/[code]/banquet` (`app/api/games/[code]/banquet/route.ts`, checks everything server-side: player ready, timeout elapsed) records the votes in `takeover_votes` (stale as soon as a further player confirms, which restarts the timeout); the last vote calls the engine's `startWithoutWaiting()`, which counts the stragglers as having read (they find their missions on the table). If a player who was already ready has left, the vote cannot succeed.
 
-| Couche | Ce qui se passe |
+| Layer | What happens |
 |---|---|
-| Client | `Jeu3D` (`web/components/jeu3d/jeu3d.tsx`) : `aLire(vue)` = pas en fin, je suis joueur et `missionsLues` est faux. L'état `etape` enchaîne `"tapis"` (le tapis se déroule, `dureeTapis` 3,2 s + 0,3 s) → `"distribution"` (distribution carte par carte, `0,1 + n×3×pasDistribution` s + 1,3 s) → `"missions"` (missions face à la caméra ; le bouton `texteBoutonMissions` apparaît après `attenteBouton` = 1,6 s) → `null`. Les minuteries ne démarrent qu'après `onPret` (le Canvas est monté). Le clic sur le bouton (`confirmMissions()`) envoie `readMissions` (bouton occupé pendant l'envoi, message d'erreur si l'enregistrement échoue) ; le bouton devient alors « En attente des autres joueurs (n/N) ». Rien n'est annoncé au clic : le banquet (et « C'est votre tour » si c'est mon tour) n'est annoncé que lorsque la phase passe de `missions` à `playing`, pour tous en même temps. |
-| Serveur | `POST …/action {type: "lireMissions"}` → `applyAction()` → `missionsLues = true`. |
-| Supabase | Écriture et broadcast. **Tous les joueurs envoient cette action presque en même temps** (voir §3.3 et §8). |
-| Sanity | Textes `texts.missionsButton`, `texts.banquetStarts`, `texts.guestsSettling` ; images des missions (`catalogue.missions[id]`) composées avec leur texte en canvas (`composerMission()`, `web/components/jeu3d/textures.ts`). |
+| Client | `Jeu3D` (`web/components/jeu3d/jeu3d.tsx`): `aLire(vue)` = game not over, I am a player and `missionsLues` is false. The `etape` state goes through `"tapis"` (the mat unrolls, `dureeTapis` 3.2 s + 0.3 s) → `"distribution"` (cards dealt one by one, `0,1 + n×3×pasDistribution` s + 1.3 s) → `"missions"` (missions facing the camera; the `texteBoutonMissions` button appears after `attenteBouton` = 1.6 s) → `null`. The timers only start after `onPret` (the Canvas is mounted). Clicking the button (`confirmMissions()`) sends `readMissions` (button busy while sending, error message if saving fails); the button then becomes « En attente des autres joueurs (n/N) ». Nothing is announced on click: the banquet (and « C'est votre tour » if it is my turn) is announced only when the phase changes from `missions` to `playing`, for everyone at the same time. |
+| Server | `POST …/action {type: "lireMissions"}` → `applyAction()` → `missionsLues = true`. |
+| Supabase | Write and broadcast. **All players send this action almost at the same time** (see §3.3 and §8). |
+| Sanity | Texts `texts.missionsButton`, `texts.banquetStarts`, `texts.guestsSettling`; mission images (`catalogue.missions[id]`) composed with their text on a canvas (`composerMission()`, `web/components/jeu3d/textures.ts`). |
 
-Tant que tous n'ont pas validé, personne ne peut jouer (phase `missions`) : la couronne et le bandeau désignent le premier joueur après la distribution (`tourAffiche` vaut `null` pendant `tapis`/`distribution`).
+Until everyone has confirmed, nobody can play (phase `missions`): the crown and the banner indicate the first player after the deal (`tourAffiche` is `null` during `tapis`/`distribution`).
 
-#### Partie
+#### Playing
 
-| Couche | Ce qui se passe |
+| Layer | What happens |
 |---|---|
-| Client | Sélection d'une carte de la main (`it.selectionner`), puis choix d'une cible : colonne haut/bas de la table (`Cible`), domaine personnel ou adverse (`ZoneCliquable`, `Badge` du pseudo, clic sur une carte du domaine). Pour un assassin, une deuxième étape « choisir la victime » (`Assassinat`) s'ouvre, avec le bouton « Ne pas assassiner ». L'envoi passe par `api.action(code, {type: "jouerCarte", carteId, cible, cibleAssassinat?})`. |
-| Serveur | `POST …/action` n'accepte que `lireMissions` et `jouerCarte`. `modifierPartie()` → `applyAction()`. Le `statut` SQL est recalculé depuis `etat.phase` (`fin` → `'fin'`). |
-| Supabase | Écriture, `version + 1`, broadcast ; les autres clients refont un `GET`. |
-| Sanity | Rien de dynamique : les textures sont déjà chargées. |
+| Client | Selecting a card from the hand (`it.selectionner`), then choosing a target: top/bottom column of the table (`Cible`), own or opponent's domain (`ZoneCliquable`, nickname `Badge`, click on a card of the domain). For an Assassin, a second step "choose the victim" (`Assassinat`) opens, with the button « Ne pas assassiner ». Sending goes through `api.action(code, {type: "jouerCarte", carteId, cible, cibleAssassinat?})`. |
+| Server | `POST …/action` only accepts `lireMissions` and `jouerCarte`. `modifierPartie()` → `applyAction()`. The SQL `statut` is recomputed from `etat.phase` (`fin` → `'fin'`). |
+| Supabase | Write, `version + 1`, broadcast; the other clients issue a new `GET`. |
+| Sanity | Nothing dynamic: the textures are already loaded. |
 
-#### Fin
+#### Game over
 
-| Couche | Ce qui se passe |
+| Layer | What happens |
 |---|---|
-| Client | `vue.phase === "fin"` et `vue.resultats` présents → `useSequenceFin()` (`web/components/jeu3d/fin.ts`) déroule une chorégraphie d'environ 20 s (voir §4.4) que l'on peut passer (« Passer »). Viennent ensuite l'annonce de victoire (`annonceVainqueur()`), puis le tableau des scores `FinDePartie` (`web/components/jeu/fin-de-partie.tsx`) avec la vignette de partage. |
-| Serveur | `finirTour()` met `phase = "fin"` et pousse `finDePartie` ; la route passe le statut SQL à `'fin'`. `vueJoueur()` révèle alors les missions de tous, les espions et `resultats` (`calculerResultats()`). |
+| Client | `vue.phase === "fin"` and `vue.resultats` present → `useSequenceFin()` (`web/components/jeu3d/fin.ts`) plays a choreography of about 20 s (see §4.4) that can be skipped (« Passer »). Then come the victory announcement (`annonceVainqueur()`), then the `FinDePartie` scoreboard (`web/components/jeu/fin-de-partie.tsx`) with the sharing thumbnail. |
+| Server | `finirTour()` sets `phase = "fin"` and pushes `finDePartie`; the route sets the SQL status to `'fin'`. `vueJoueur()` then reveals everyone's missions, the Spies and `resultats` (`calculerResultats()`). |
 | Supabase | `statut = 'fin'`. |
-| Sanity | `texts.winnerPhrases` (phrase choisie par un hash déterministe de `code + journal.length`, pour que tout le monde voie la même). |
+| Sanity | `texts.winnerPhrases` (phrase chosen by a deterministic hash of `code + journal.length`, so that everyone sees the same one). |
 
-#### Rejouer
+#### Play again
 
-| Couche | Ce qui se passe |
+| Layer | What happens |
 |---|---|
-| Client | Bouton « Rejouer (x/n) » dans `FinDePartie` → `api.rejouer()`. Le bouton est désactivé si j'ai déjà voté. |
-| Serveur | `web/app/api/parties/[code]/rejouer/route.ts` : vote idempotent. Quand tous ont voté : `setupPartie({joueurs, missions})`, `statut = 'jeu'`, `rejouer = []`. |
-| Supabase | Nouvel `etat` dans la même ligne (même code, même lien). |
-| Sanity | `chargerMissions(MAX_JOUEURS)` est appelé **à chaque vote**, pas seulement au dernier. |
+| Client | Button « Rejouer (x/n) » in `FinDePartie` → `api.rejouer()`. The button is disabled if I have already voted. |
+| Server | `web/app/api/parties/[code]/rejouer/route.ts`: idempotent vote. When everyone has voted: `setupPartie({joueurs, missions})`, `statut = 'jeu'`, `rejouer = []`. |
+| Supabase | New `etat` in the same row (same code, same link). |
+| Sanity | `chargerMissions(MAX_JOUEURS)` is called **on every vote**, not only on the last one. |
 
-Côté client, le passage à une nouvelle partie est détecté par le « repère » `phase:joueurActif:aLire` dans `Jeu3D` : quand `aLire` redevient vrai, `etape` repasse à `"tapis"` et l'ouverture complète est rejouée.
+On the client side, the switch to a new game is detected by the "marker" `phase:joueurActif:aLire` in `Jeu3D`: when `aLire` becomes true again, `etape` goes back to `"tapis"` and the full opening is replayed.
 
-### 1.3 Schéma des flux de données
+### 1.3 Data flow diagram
 
 ```
-                       ┌─────────────────────────── Sanity (projet 2lo2f5sv / production) ──┐
+                       ┌────────────────────────── Sanity (project 2lo2f5sv / production) ──┐
                        │ interface · game · rules · texts · family · role · courtier · mission│
                        └──────────────┬───────────────────────────────┬───────────────────────┘
-                   GROQ CATALOGUE_QUERY│ (revalidate 60, tag catalogue) │ GROQ missions (serveur)
+                   GROQ CATALOGUE_QUERY│ (revalidate 60, tag catalogue) │  GROQ missions (server)
                                       ▼                               ▼
-┌──────────── Navigateur ────────────┐        ┌──────────── Next.js (Vercel) ─────────────────┐
+┌───────────── Browser ──────────────┐        ┌──────────── Next.js (Vercel) ─────────────────┐
 │ layout/page RSC → CatalogueClient  │◀──HTML─│ getCatalogueClient()  (web/sanity/…)          │
 │                                    │        │                                               │
 │ usePartie(code)                    │──GET──▶│ /api/parties/[code]  → partiePublique()       │
-│   ├─ applique si version > locale  │◀─JSON──│      vueJoueur(etat, cookie)                  │
-│   ├─ poll 8 s, refetch au focus    │        │                                               │
-│   └─ canal broadcast partie:{code} │        │ POST /api/parties/[code]/action|lancer|…      │
-│         « maj {version} » ─────────┼─┐      │   modifierPartie(): lit → applyAction()       │
-│                                    │ │      │   → update … where version = v (5 essais)     │
+│   ├─ applies if version > local    │◀─JSON──│      vueJoueur(etat, cookie)                  │
+│   ├─ poll 8 s, refetch on focus    │        │                                               │
+│   └─ broadcast chan. partie:{code} │        │ POST /api/parties/[code]/action|lancer|…      │
+│         "maj {version}" ───────────┼─┐      │   modifierPartie(): reads → applyAction()     │
+│                                    │ │      │   → update … where version = v (5 attempts)   │
 │ Jeu3D / Scene3D (R3F)              │ │      │   → notifier(): httpSend("maj")               │
-│   diff vue précédente / nouvelle   │ │      └──────────────┬───────────────▲────────────────┘
-│   + journal → animations, sons     │ │                     │ service role  │
+│   diff previous / new view         │ │      └──────────────┬───────────────▲────────────────┘
+│   + log → animations, sounds       │ │                     │ service role  │
 └────────────────────────────────────┘ │                     ▼               │
               ▲                        │      ┌──────────── Supabase ────────┴─────────────────┐
-              └────── Realtime ────────┴──────│ table parties (RLS sans policy)                │
-                 (clé anon/publishable,        │ Realtime broadcast (pas de postgres_changes)   │
-                  broadcast uniquement)        └────────────────────────────────────────────────┘
+              └────── Realtime ────────┴──────│ table parties (RLS without policy)             │
+                 (anon/publishable key,        │ Realtime broadcast (no postgres_changes)       │
+                  broadcast only)              └────────────────────────────────────────────────┘
 ```
 
-Séquence d'un coup :
+Sequence of a move:
 
 ```mermaid
 sequenceDiagram
-  participant A as Client A (joueur actif)
+  participant A as Client A (active player)
   participant N as Next /api/parties/[code]/action
   participant S as Supabase parties
   participant R as Realtime partie:{code}
   participant B as Client B
   A->>N: POST {type: jouerCarte, carteId, cible, cibleAssassinat?}
   N->>S: select * where code
-  N->>N: applyAction(etat, action) (moteur, structuredClone)
+  N->>N: applyAction(etat, action) (engine, structuredClone)
   N->>S: update … where code and version = v
-  alt conflit (0 ligne)
-    N->>S: relit et réessaie (jusqu'à 5 fois) sinon 409 CONFLIT
+  alt conflict (0 rows)
+    N->>S: re-reads and retries (up to 5 times), otherwise 409 CONFLIT
   end
   N->>R: httpSend "maj" {version}
-  N-->>A: PartiePublique (vue de A)
-  A->>A: appliquer() puis diff/journal → animations
+  N-->>A: PartiePublique (A's view)
+  A->>A: appliquer() then diff/log → animations
   R-->>B: maj {version}
   B->>N: GET /api/parties/[code]
-  N-->>B: PartiePublique (vue de B)
-  B->>B: diff/journal → animations
+  N-->>B: PartiePublique (B's view)
+  B->>B: diff/log → animations
 ```
 
 ---
 
-## 2. Moteur
+## 2. Engine
 
-Paquet `packages/engine` (`@courtisans/engine`), testé avec Vitest (`*.test.ts`, dont `simulation.test.ts` qui joue des parties entières). Aucune dépendance runtime, hormis `@pbgo/engine-kit` pour l'adaptateur `game.ts`.
+Package `packages/engine` (`@courtisans/engine`), tested with Vitest (`*.test.ts`, including `simulation.test.ts`, which plays entire games). No runtime dependency, except `@pbgo/engine-kit` for the `game.ts` adapter.
 
-### 2.1 Données (`engine/types.ts`, `engine/deck.ts`)
+### 2.1 Data (`engine/types.ts`, `engine/deck.ts`)
 
-- `FAMILLES` : `papillon, crapaud, rossignol, lievre, cerf, carpe` (6). `ROLES` : `noble, espion, assassin, garde`.
-- `Courtisan = { id, famille, role: Role | null }`. Id stable : `${famille}-${role ?? "courtisan"}-${i}`. **Il sert aussi de clé React et de clé d'animation** ; ne jamais le rendre aléatoire.
-- Composition par famille (`deck.ts`) : noble ×4, espion ×2, assassin ×2, garde ×3, sans rôle ×4, soit 15 cartes par famille et **90 cartes**.
-- `CARTES_ECARTEES = {2: 30, 3: 18, 4: 6, 5: 0}` : cartes retirées face cachée selon le nombre de joueurs (`ecartees`).
-- `TAILLE_MAIN = 3`, `POINTS_MISSION = 3`, `poids(carte)` = 2 pour un noble, 1 sinon.
-- `Niveau = "haut" | "bas"` (moitié lumière / moitié disgrâce du tapis), `Statut = "lumiere" | "disgrace" | "neutre"`.
-- `ZoneJeu = "table" | "domaine" | "domaineAdverse"` : les trois « emplacements » qu'un joueur doit remplir à chaque tour, un de chaque.
-- `Cible = {zone: "table", niveau} | {zone: "domaine", joueurId}`. Le domaine adverse est un `domaine` avec un autre `joueurId` ; la distinction se fait dans `zoneDeCible()`.
-- `GameState` : `joueurs[]` (`main`, `domaine`, `missions` [1 blanche + 1 bleue], `missionsLues`), `pioche`, `ecartees`, `eliminees`, `table: Placement[]` (`{carte, niveau}` ; la **colonne n'est pas stockée**, elle se déduit de la famille), `joueurActif` (index), `zonesJouees: ZoneJeu[]`, `numeroTour`, `phase`, `journal: Evenement[]`.
-- `Evenement` : `carteJouee {joueurId, carte, cible}`, `carteEliminee {joueurId, carte, cible}` (le `joueurId` est l'assassin), `pioche {joueurId, nombre}`, `finDePartie`.
+- `FAMILLES`: `papillon, crapaud, rossignol, lievre, cerf, carpe` (6). `ROLES`: `noble, espion, assassin, garde`.
+- `Courtisan = { id, famille, role: Role | null }`. Stable id: `${famille}-${role ?? "courtisan"}-${i}`. **It is also used as a React key and as an animation key**; never make it random.
+- Composition per family (`deck.ts`): Noble ×4, Spy ×2, Assassin ×2, Guard ×3, no role ×4, i.e. 15 cards per family and **90 cards**.
+- `CARTES_ECARTEES = {2: 30, 3: 18, 4: 6, 5: 0}`: cards removed face down depending on the number of players (`ecartees`).
+- `TAILLE_MAIN = 3`, `POINTS_MISSION = 3`, `poids(carte)` = 2 for a Noble, 1 otherwise.
+- `Niveau = "haut" | "bas"` (the light half / the disgrace half of the mat), `Statut = "lumiere" | "disgrace" | "neutre"`.
+- `ZoneJeu = "table" | "domaine" | "domaineAdverse"`: the three "slots" a player must fill each turn, one of each.
+- `Cible = {zone: "table", niveau} | {zone: "domaine", joueurId}`. The opponent's domain is a `domaine` with a different `joueurId`; the distinction is made in `zoneDeCible()`.
+- `GameState`: `joueurs[]` (`main`, `domaine`, `missions` [1 white + 1 blue], `missionsLues`), `pioche`, `ecartees`, `eliminees`, `table: Placement[]` (`{carte, niveau}`; the **column is not stored**, it is derived from the family), `joueurActif` (index), `zonesJouees: ZoneJeu[]`, `numeroTour`, `phase`, `journal: Evenement[]`.
+- `Evenement`: `carteJouee {joueurId, carte, cible}`, `carteEliminee {joueurId, carte, cible}` (the `joueurId` is the assassin), `pioche {joueurId, nombre}`, `finDePartie`.
 
-### 2.2 Mise en place (`engine/setup.ts`, `setupPartie()`)
+### 2.2 Setup (`engine/setup.ts`, `setupPartie()`)
 
-1. Mélange (RNG injectable, `engine/rng.ts` ; `GAME.setup` passe `createRng(seed)` si un `seed` est fourni).
-2. Retire `CARTES_ECARTEES[n]` cartes.
-3. Distribue 3 cartes à chacun.
-4. Tire une mission blanche et une bleue par joueur. Il faut au moins `n` missions de chaque couleur, sinon `EngineError("MISSIONS_INSUFFISANTES")`, d'où le complément côté serveur.
-5. `joueurActif` aléatoire.
-6. **`phase: "missions"`** : la partie attend la lecture de tous les joueurs avant de passer à `playing` (voir §1.2).
+1. Shuffle (injectable RNG, `engine/rng.ts`; `GAME.setup` passes `createRng(seed)` if a `seed` is provided).
+2. Remove `CARTES_ECARTEES[n]` cards.
+3. Deal 3 cards to each player.
+4. Draw one white and one blue mission per player. At least `n` missions of each color are required, otherwise `EngineError("MISSIONS_INSUFFISANTES")`, hence the top-up on the server side.
+5. Random `joueurActif`.
+6. **`phase: "missions"`**: the game waits for all players to read before moving to `playing` (see §1.2).
 
-### 2.3 Tour et règles (`engine/actions.ts`)
+### 2.3 Turn and rules (`engine/actions.ts`)
 
-`applyAction(state, action)` commence toujours par un `structuredClone(state)` : le moteur est **pur** vis-à-vis de l'appelant, ce qui permet à `modifierPartie()` de réessayer sans effet de bord.
+`applyAction(state, action)` always starts with a `structuredClone(state)`: the engine is **pure** with respect to its caller, which lets `modifierPartie()` retry without side effects.
 
-- `lireMissions(joueurId)` : refusé en fin ; `missionsLues = true` ; si tous ont lu, `phase = "jeu"` (sans effet aujourd'hui, la phase l'est déjà).
-- `jouerCarte(joueurId, carteId, cible, cibleAssassinat?)`, dans l'ordre :
-  1. phase `jeu`, sinon `PHASE_INVALIDE` ;
-  2. c'est bien le joueur actif, sinon `PAS_TON_TOUR` ;
-  3. la carte est dans sa main, sinon `CARTE_INCONNUE` ;
-  4. `zoneDeCible()` ; la zone n'a pas déjà été jouée ce tour, sinon `ZONE_DEJA_JOUEE` ;
-  5. `cibleAssassinat` n'est accepté que pour un assassin, sinon `ASSASSINAT_INVALIDE` ;
-  6. la carte est posée (`table.push` ou `domaine.push`) et `carteJouee` est journalisé **avant** l'assassinat, ce qui donne l'ordre des animations ;
-  7. assassinat éventuel ;
-  8. `zonesJouees.push(zone)` ; le tour se termine si 3 zones ont été jouées **ou** si la main est vide.
-- `finirTour()` : pioche `min(3, pioche.length)` cartes pour le joueur qui termine (journal `pioche` seulement si > 0), vide `zonesJouees`, puis cherche le prochain joueur **qui a encore des cartes** (tour de table `+1`). S'il n'y en a aucun : `phase = "fin"` et `finDePartie`. `numeroTour` compte les tours de joueur, pas les tours de table.
-- Helpers exportés : `zonesDisponibles(state)`, `joueurActifId(state)` (null hors phase `jeu`), `zoneDeCible()`.
+- `lireMissions(joueurId)`: refused once the game is over; `missionsLues = true`; if everyone has read, `phase = "jeu"` (no effect today, the phase already has that value).
+- `jouerCarte(joueurId, carteId, cible, cibleAssassinat?)`, in order:
+  1. phase `jeu`, otherwise `PHASE_INVALIDE`;
+  2. the player is the active player, otherwise `PAS_TON_TOUR`;
+  3. the card is in their hand, otherwise `CARTE_INCONNUE`;
+  4. `zoneDeCible()`; the zone has not already been played this turn, otherwise `ZONE_DEJA_JOUEE`;
+  5. `cibleAssassinat` is only accepted for an Assassin, otherwise `ASSASSINAT_INVALIDE`;
+  6. the card is placed (`table.push` or `domaine.push`) and `carteJouee` is logged **before** the assassination, which sets the order of the animations;
+  7. assassination, if any;
+  8. `zonesJouees.push(zone)`; the turn ends if 3 zones have been played **or** if the hand is empty.
+- `finirTour()`: draws `min(3, pioche.length)` cards for the player who finishes (logs a `pioche` event only if > 0), empties `zonesJouees`, then looks for the next player **who still has cards** (going around the table, `+1`). If there is none: `phase = "fin"` and `finDePartie`. `numeroTour` counts player turns, not laps around the table.
+- Exported helpers: `zonesDisponibles(state)`, `joueurActifId(state)` (null outside the `jeu` phase), `zoneDeCible()`.
 
-#### Cas limites
+#### Edge cases
 
-- **Assassin** (`assassiner()`) :
-  - La victime est cherchée **dans la zone où l'assassin vient d'être posé** : n'importe quelle carte de la table (toutes colonnes et tous niveaux confondus) si l'assassin va à la table, sinon n'importe quelle carte du domaine ciblé (le sien ou celui d'un adversaire).
-  - Interdits : la victime est un **garde** ; la victime est l'assassin lui-même.
-  - Un **espion caché** peut être assassiné, même dans un domaine où sa famille n'est pas visible : le client propose sa carte de dos.
-  - L'assassinat est **optionnel** : un assassin sans `cibleAssassinat` est simplement posé.
-  - La victime part dans `eliminees` ; le journal reçoit `carteEliminee` avec la cible d'origine de la victime (`{zone: "table", niveau}` ou la cible du domaine), ce qui permet d'animer le départ depuis le bon endroit.
-  - Côté client (`jeu3d.tsx`, `interaction.jouer()`) : si l'assassin n'a **aucun candidat** (zone vide ou uniquement des gardes), l'étape de choix est sautée et la carte est envoyée directement.
-- **Garde** : il ne protège que lui-même, pas sa famille. Rien d'autre dans le moteur.
-- **Espion** :
-  - Dans un domaine, il est vu de dos par **tout le monde, y compris son propriétaire**, jusqu'à la fin (`carteVisible()`, `engine/view.ts`). Il reste lisible dans la main.
-  - À la table, il compte **pour sa vraie famille** dans `calculerStatuts()` (poids 1) alors qu'il est affiché dans la colonne de la Reine : c'est une influence cachée voulue.
-  - Au décompte, les espions d'un domaine comptent avec leur vraie famille.
-- **Zones jouées** : exactement une carte par zone et par tour. Avec 2 cartes en main, le tour se termine après 2 poses, sans obligation de couvrir les 3 zones. La vue expose `zonesDisponibles` ; le client grise le reste (`it.peutJouer(zone)`).
-- **Fin de pioche** : la partie ne s'arrête pas quand la pioche est vide. Chacun joue ses dernières cartes, les joueurs à main vide sont sautés, et la fin arrive quand **plus personne** n'a de carte.
+- **Assassin** (`assassiner()`):
+  - The victim is looked up **in the zone where the Assassin has just been placed**: any card on the table (all columns and levels combined) if the Assassin goes to the table, otherwise any card in the targeted domain (one's own or an opponent's).
+  - Forbidden: the victim is a **Guard**; the victim is the Assassin itself.
+  - A **hidden Spy** can be assassinated, even in a domain where its family is not visible: the client offers its card face down.
+  - The assassination is **optional**: an Assassin without `cibleAssassinat` is simply placed.
+  - The victim goes into `eliminees`; the log receives `carteEliminee` with the victim's original target (`{zone: "table", niveau}` or the domain target), which makes it possible to animate the departure from the right place.
+  - On the client side (`jeu3d.tsx`, `interaction.jouer()`): if the Assassin has **no candidate** (empty zone or only Guards), the choice step is skipped and the card is sent directly.
+- **Guard**: it protects only itself, not its family. Nothing else in the engine.
+- **Spy**:
+  - In a domain, it is shown face down to **everyone, including its owner**, until the end (`carteVisible()`, `engine/view.ts`). It stays readable in the hand.
+  - On the table, it counts **for its true family** in `calculerStatuts()` (weight 1) although it is displayed in the Queen's column: this is a deliberate hidden influence.
+  - When scores are tallied, Spies in a domain count as their true family.
+- **Played zones**: exactly one card per zone and per turn. With 2 cards in hand, the turn ends after 2 placements, with no obligation to cover the 3 zones. The view exposes `zonesDisponibles`; the client grays out the rest (`it.peutJouer(zone)`).
+- **End of the draw pile**: the game does not stop when the draw pile is empty. Everyone plays their last cards, players with an empty hand are skipped, and the end comes when **no one** has any cards left.
 
-### 2.4 Scores et missions (`engine/scoring.ts`, `engine/missions.ts`)
+### 2.4 Scores and missions (`engine/scoring.ts`, `engine/missions.ts`)
 
-- `calculerStatuts(table)` : pour chaque famille, somme des poids en `haut` et en `bas`. `haut > bas` donne `lumiere`, `bas > haut` donne `disgrace`, l'égalité donne `neutre`.
-- `pointsDomaine(domaine, statuts)` : par famille présente, `poids × valeurStatut` (+1 / −1 / 0). Les familles de poids nul sont filtrées de `detail`.
-- `calculerResultats(state)` : `total = domaine + 3 × missions validées`, puis tri. `rang = 1 + nombre de joueurs strictement meilleurs` (les ex æquo partagent le rang) ; `vainqueurs` = tous ceux au meilleur total. Il n'y a **pas de départage**.
-- Missions : `Mission {id, couleur: "blanche" | "bleue", texte, condition}`. `evaluerCondition(condition, {state, joueurIndex, statuts})` évalue un arbre :
-  - `statutFamille {famille, statut}` ;
-  - `nombreFamillesStatut {statut, comparateur, valeur}` ;
-  - `nombreCartesDomaine {filtre famille/role/sansRole, comparateur, valeur, mode: "cartes" | "poids"}` ;
-  - `nombreCartesTable {…, niveau?}` ;
-  - `comparaisonJoueurs {filtre, comparateur, adversaire: voisinGauche | voisinDroite | tousLesAdversaires | auMoinsUnAdversaire, mode}` ;
+- `calculerStatuts(table)`: for each family, sum of the weights in `haut` and in `bas`. `haut > bas` gives `lumiere`, `bas > haut` gives `disgrace`, a tie gives `neutre`.
+- `pointsDomaine(domaine, statuts)`: for each family present, `poids × valeurStatut` (+1 / −1 / 0). Families with zero weight are filtered out of `detail`.
+- `calculerResultats(state)`: `total = domaine + 3 × missions validées`, then sorting. `rang = 1 + nombre de joueurs strictement meilleurs` (tied players share the rank); `vainqueurs` = all those with the best total. There is **no tie-break**.
+- Missions: `Mission {id, couleur: "blanche" | "bleue", texte, condition}`. `evaluerCondition(condition, {state, joueurIndex, statuts})` evaluates a tree:
+  - `statutFamille {famille, statut}`;
+  - `nombreFamillesStatut {statut, comparateur, valeur}`;
+  - `nombreCartesDomaine {filtre famille/role/sansRole, comparateur, valeur, mode: "cartes" | "poids"}`;
+  - `nombreCartesTable {…, niveau?}`;
+  - `comparaisonJoueurs {filtre, comparateur, adversaire: voisinGauche | voisinDroite | tousLesAdversaires | auMoinsUnAdversaire, mode}`;
   - `et` / `ou` / `non`.
-- Helpers : `comparer()`, `correspond()` (famille, rôle, `sansRole`), `compter()`.
-- Voisins : **gauche = index + 1**, **droite = index − 1** (modulo). C'est l'ordre du tableau `joueurs`, qui est l'ordre d'arrivée au lobby. La scène place les adversaires dans le même ordre, en commençant après moi (`sieges()`). Il ne faut pas changer l'un sans l'autre.
+- Helpers: `comparer()`, `correspond()` (family, role, `sansRole`), `compter()`.
+- Neighbors: **left = index + 1**, **right = index − 1** (modulo). This is the order of the `joueurs` array, which is the order of arrival in the lobby. The scene places the opponents in the same order, starting after me (`sieges()`). Never change one without the other.
 
-### 2.5 La vue joueur (`engine/view.ts`, `vueJoueur()`)
+### 2.5 The player view (`engine/view.ts`, `vueJoueur()`)
 
-- `moi` (si membre) : `{id, main, missions}`.
-- `joueurs[]` :
-  - `id` ;
-  - `domaine` (espions masqués) ;
-  - `nombreCartesMain` ;
-  - `missionsLues` ;
-  - `missions` (**seulement en fin**).
-- Données de table :
-  - `table` ;
-  - `nombreCartesPioche` ;
-  - `joueurActifId` ;
-  - `premierJoueurId` (en pratique `joueurs[joueurActif]`, utilisé pour la couronne pendant une phase `missions` qui n'arrive plus) ;
-  - `zonesDisponibles` ;
+- `moi` (if a member): `{id, main, missions}`.
+- `joueurs[]`:
+  - `id`;
+  - `domaine` (Spies hidden);
+  - `nombreCartesMain`;
+  - `missionsLues`;
+  - `missions` (**only at the end**).
+- Table data:
+  - `table`;
+  - `nombreCartesPioche`;
+  - `joueurActifId`;
+  - `premierJoueurId` (in practice `joueurs[joueurActif]`, used for the crown during a `missions` phase that no longer occurs);
+  - `zonesDisponibles`;
   - `numeroTour`.
-- Déroulé : `phase`, `journal` (filtré : les cartes y passent par `carteVisible()`, donc un espion posé dans un domaine reste masqué dans l'historique), `resultats` (en fin seulement).
-- Les **mains adverses ne sont jamais envoyées**, seulement leur taille. La vue d'un spectateur (`joueurId = null`) existe, mais le serveur ne la sert qu'aux membres.
+- Game flow: `phase`, `journal` (filtered: cards go through `carteVisible()`, so a Spy placed in a domain stays hidden in the history), `resultats` (at the end only).
+- **Opponents' hands are never sent**, only their size. A spectator's view (`joueurId = null`) exists, but the server serves it only to members.
 
-### 2.6 Journal : animations, annonces, sons
+### 2.6 Log: animations, announcements, sounds
 
-Le journal est **l'unique canal de « ce qui vient de se passer »**. Le diff d'état donne *où sont* les cartes ; le journal donne *d'où elles viennent* et dans quel ordre.
+The log is **the only channel for "what just happened"**. The state diff tells *where the cards are*; the log tells *where they come from* and in what order.
 
-| Événement | Animation (`scene.tsx`, `Monde`) | Son (`web/components/jeu3d/sons.ts`, `useSonsJeu`) | Texte (`web/components/jeu/bandeau.tsx`, `message.tsx`) |
+| Event | Animation (`scene.tsx`, `Monde`) | Sound (`web/components/jeu3d/sons.ts`, `useSonsJeu`) | Text (`web/components/jeu/bandeau.tsx`, `message.tsx`) |
 |---|---|---|---|
-| `carteJouee` par un autre | départ depuis `poseSiege(zone)` (siège de l'auteur) | `glisse` à t, `pose` à t + 0,95 s, `assassin` à t + 1,05 s si c'est un assassin ; t += 0,15 s par événement | « X joue [badge] à la table de la Reine / chez Y / chez lui » |
-| `carteJouee` par moi | départ depuis la pose de la carte **dans ma main** (`posesCamera.get(id)`, pose collée à la caméra) | idem | « Vous jouez … » |
-| `carteEliminee` | carte transitoire (`Ephemere`) qui part de son ancienne pose, monte (+6 en y, −2 en z) et rétrécit (échelle 0,2) | `elimine` à t + 1,2 s | « X élimine [badge] … » |
-| `pioche` d'un autre | `nombre` cartes de dos, de `poseDessusPioche()` vers `poseSousTable(zone)`, délais 0,35 + 0,28·i | `glisse` ×nombre, mêmes délais | regroupé : marque la fin du tour dans le bandeau |
-| `pioche` à moi | les nouvelles cartes de la main partent du dessus de la pioche avec les mêmes délais (détection par diff de `moi.main`, pas par le journal) | idem | idem |
-| `finDePartie` | aucune (c'est `useSequenceFin` qui prend le relais) | aucun | « La pioche est vide : fin de la partie ! » |
+| `carteJouee` by another player | starts from `poseSiege(zone)` (the author's seat) | `glisse` at t, `pose` at t + 0.95 s, `assassin` at t + 1.05 s if it is an Assassin; t += 0.15 s per event | « X joue [badge] à la table de la Reine / chez Y / chez lui » |
+| `carteJouee` by me | starts from the pose of the card **in my hand** (`posesCamera.get(id)`, pose attached to the camera) | same | « Vous jouez … » |
+| `carteEliminee` | transient card (`Ephemere`) that leaves its previous pose, rises (+6 in y, −2 in z) and shrinks (scale 0.2) | `elimine` at t + 1.2 s | « X élimine [badge] … » |
+| `pioche` by another player | `nombre` face-down cards, from `poseDessusPioche()` to `poseSousTable(zone)`, delays 0.35 + 0.28·i | `glisse` ×nombre, same delays | grouped: marks the end of the turn in the banner |
+| `pioche` by me | the new cards in the hand leave from the top of the draw pile with the same delays (detected by diffing `moi.main`, not through the log) | same | same |
+| `finDePartie` | none (`useSequenceFin` takes over) | none | « La pioche est vide : fin de la partie ! » |
 
-Les **annonces** plein écran (`web/components/jeu3d/annonce.tsx`) ne sont pas dérivées du journal. Elles viennent du « repère » `phase:joueurActifId:aLire` (`jeu3d.tsx`) : « C'est votre tour » quand le joueur actif devient moi, « banquet » quand la phase passe de `missions` à `playing` (lecture du dernier joueur), et victoire en fin.
+The full-screen **announcements** (`web/components/jeu3d/annonce.tsx`) are not derived from the log. They come from the "marker" `phase:joueurActifId:aLire` (`jeu3d.tsx`): « C'est votre tour » when the active player becomes me, "banquet" when the phase changes from `missions` to `playing` (last player's reading), and victory at the end.
 
-Le bandeau (`Bandeau`, `regrouper()`) reconstruit des « tours » à partir du journal : il ouvre un groupe à chaque changement d'auteur et le ferme sur un événement `pioche`.
+The banner (`Bandeau`, `regrouper()`) rebuilds "turns" from the log: it opens a group at each change of author and closes it on a `pioche` event.
 
-Pièges du journal :
+Log pitfalls:
 
-- **Il n'est jamais tronqué** : il grossit toute la partie et part intégralement à chaque `GET` (quelques centaines d'entrées au maximum, c'est acceptable).
-- Le client compare des **longueurs** (`vue.journal.slice(precedente.journal.length)` dans `Monde`, `longueur.current` dans `useSonsJeu`). Si le journal repart de zéro (rejouer), `vue.journal.length < precedente.journal.length`, et `Monde` saute alors volontairement le calcul des départs (`if (vue.journal.length >= precedente.journal.length)`).
-- Il n'y a **pas d'id d'événement**. Deux refetchs qui arrivent dans le désordre sont protégés par la garde de version de `usePartie`, pas par le journal.
+- **It is never truncated**: it grows throughout the game and is sent in full on every `GET` (a few hundred entries at most, which is acceptable).
+- The client compares **lengths** (`vue.journal.slice(precedente.journal.length)` in `Monde`, `longueur.current` in `useSonsJeu`). If the log restarts from zero (play again), `vue.journal.length < precedente.journal.length`, and `Monde` then deliberately skips the computation of the departures (`if (vue.journal.length >= precedente.journal.length)`).
+- There is **no event id**. Two refetches arriving out of order are protected by the version guard of `usePartie`, not by the log.
 
 ---
 
-## 3. Serveur et temps réel
+## 3. Server and realtime
 
-### 3.1 Identité et cookie
+### 3.1 Identity and cookie
 
-- `web/server/joueur.ts` : cookie `courtisans_joueur`, UUID v4, 30 jours, `httpOnly`. Il est créé à la première création ou au premier rejoindre, puis relu par `getJoueurId()`. **C'est la seule identité** : pas de compte, pas de mot de passe. Changer de navigateur, c'est devenir un autre joueur.
-- Le pseudo et le château sont stockés **côté client** (`courtisans:profil`) et copiés dans `joueurs[]` à chaque rejoindre (`web/server/profil.ts` valide un pseudo de 20 caractères au plus et un château obligatoire). Le « château » est un reliquat : il n'est plus affiché nulle part (voir §8).
-- `partiePublique(row, id)` (`web/server/parties.ts`) ne construit `vue` que si `id` fait partie des joueurs ; sinon `moiId: null, vue: null`.
+- `web/server/joueur.ts`: cookie `courtisans_joueur`, UUID v4, 30 days, `httpOnly`. It is created on the first create or join, then read back by `getJoueurId()`. **It is the only identity**: no account, no password. Switching browsers means becoming another player.
+- The nickname and the castle are stored **client-side** (`courtisans:profil`) and copied into `joueurs[]` on every join (`web/server/profil.ts` validates a nickname of at most 20 characters and a required castle). The "castle" is a leftover: it is no longer displayed anywhere (see §8).
+- `partiePublique(row, id)` (`web/server/parties.ts`) builds `vue` only if `id` is one of the players; otherwise `moiId: null, vue: null`.
 
-### 3.2 Écriture : verrou optimiste
+### 3.2 Writing: optimistic lock
 
-`modifierPartie(code, maj)` (`web/server/parties.ts`) :
+`modifierPartie(code, maj)` (`web/server/parties.ts`):
 
-1. `select` de la ligne ;
-2. `maj(partie)` renvoie un patch partiel, `null` (rien à faire, on renvoie la ligne telle quelle), ou lève une erreur (`ApiError` ou `EngineError`) ;
-3. `update … set …, version = version + 1 where code = ? and version = ?` ;
-4. si 0 ligne n'est modifiée, un autre écrivain est passé entre-temps : on recommence (5 tentatives), puis `ApiError("CONFLIT", 409)` ;
-5. `notifier(code, version)` : `supabase.channel('partie:{code}').httpSend('maj', {version})`. C'est un **envoi REST** : pas de websocket à ouvrir côté serveur, ce qui convient aux fonctions serverless. `EVENEMENT_MAJ = "maj"`, `canalPartie()` dans `web/lib/partie-types.ts`.
+1. `select` the row;
+2. `maj(partie)` returns a partial patch, `null` (nothing to do, the row is returned as is), or throws an error (`ApiError` or `EngineError`);
+3. `update … set …, version = version + 1 where code = ? and version = ?`;
+4. if 0 rows are modified, another writer got in between: we start over (5 attempts), then `ApiError("CONFLIT", 409)`;
+5. `notifier(code, version)`: `supabase.channel('partie:{code}').httpSend('maj', {version})`. It is a **REST send**: no websocket to open on the server side, which suits serverless functions. `EVENEMENT_MAJ = "maj"`, `canalPartie()` in `web/lib/partie-types.ts`.
 
-`web/server/api.ts`, `handle()` : enveloppe chaque route et convertit `ApiError` et `EngineError` en `{erreur: CODE}` avec un statut HTTP. Les messages en français sont traduits côté client (`web/lib/api.ts`).
+`web/server/api.ts`, `handle()`: wraps every route and converts `ApiError` and `EngineError` into `{erreur: CODE}` with an HTTP status. The codes are translated into French messages on the client side (`web/lib/api.ts`).
 
-### 3.3 Lecture et réception
+### 3.3 Reading and receiving
 
-`usePartie(code)` (`web/lib/use-partie.ts`) :
+`usePartie(code)` (`web/lib/use-partie.ts`):
 
-- `appliquer(p)` n'accepte une partie que si `p.version >= version locale`. Cette garde empêche une réponse lente d'écraser une plus récente. Toutes les réponses POST passent aussi par `appliquer` (via `onMaj`), ce qui rend l'acteur à jour sans attendre le broadcast.
-- Abonnement Realtime (`web/lib/realtime.ts`, clé anon/publishable, broadcast uniquement) : à la réception de `maj {version}` avec `version > locale`, on refait un `GET`.
-- Filets de sécurité : **poll toutes les 8 s** (`setInterval(recharger, 8000)`) et **refetch sur `window.focus`**. Ils couvrent un canal Realtime muet, un onglet en veille ou une coupure réseau. Seules les erreurs `PARTIE_INTROUVABLE` et `CODE_INVALIDE` remontent en `erreur` ; les autres échecs de `recharger()` sont ignorés.
+- `appliquer(p)` accepts a game only if `p.version >= version locale`. This guard prevents a slow response from overwriting a more recent one. Every POST response also goes through `appliquer` (via `onMaj`), which brings the actor up to date without waiting for the broadcast.
+- Realtime subscription (`web/lib/realtime.ts`, anon/publishable key, broadcast only): on receiving `maj {version}` with `version > locale`, we issue a new `GET`.
+- Safety nets: **poll every 8 s** (`setInterval(recharger, 8000)`) and **refetch on `window.focus`**. They cover a silent Realtime channel, a sleeping tab or a network drop. Only the errors `PARTIE_INTROUVABLE` and `CODE_INVALIDE` surface as `erreur`; other `recharger()` failures are ignored.
 
-**Reconnexion** : il n'y a pas de notion de présence. Un joueur qui recharge la page retrouve sa partie grâce au cookie. `Jeu3D` recalcule `etape` : si `missionsLues` est déjà vrai, pas d'ouverture ; sinon l'ouverture est rejouée. Un joueur qui ferme l'onglet en cours de partie **bloque la table** quand vient son tour : il n'y a ni timeout, ni bot, ni abandon (voir §8).
+**Reconnection**: there is no notion of presence. A player who reloads the page gets their game back thanks to the cookie. `Jeu3D` recomputes `etape`: if `missionsLues` is already true, there is no opening; otherwise the opening is replayed. A player who closes the tab during a game **blocks the table** when their turn comes: there is no timeout, no bot and no forfeit (see §8).
 
-**Conflits prévisibles :**
+**Predictable conflicts:**
 
-- Juste après `lancer`, les n joueurs terminent l'ouverture à quelques centaines de ms d'écart et envoient tous `lireMissions`. Ces écritures concurrentes sur **la même ligne** passent en général grâce aux 8 essais du serveur, relancés 3 fois côté client. Si l'écriture échoue quand même, le joueur voit un message d'erreur et peut recliquer ; tant qu'elle n'est pas enregistrée, la table attend sa lecture (phase `missions`).
-- `rejouer` : même cas quand tout le monde clique en même temps.
-- Un double clic sur une cible est bloqué côté client par `envoi` (`interaction.envoi`, `jeu3d.tsx`). Côté serveur, le second appel échoue proprement (`CARTE_INCONNUE` ou `ZONE_DEJA_JOUEE`).
+- Right after `lancer`, the n players finish the opening a few hundred ms apart and all send `lireMissions`. These concurrent writes on **the same row** usually go through thanks to the server's 8 attempts, retried 3 times on the client side. If the write still fails, the player sees an error message and can click again; until it is recorded, the table waits for their reading (phase `missions`).
+- `rejouer`: same case when everyone clicks at the same time.
+- A double click on a target is blocked on the client side by `envoi` (`interaction.envoi`, `jeu3d.tsx`). On the server side, the second call fails cleanly (`CARTE_INCONNUE` or `ZONE_DEJA_JOUEE`).
 
 ### 3.4 Routes
 
-Toutes sont sous `web/app/api/parties/` :
+All are under `web/app/api/parties/`:
 
-| Route | Rôle | Garde |
+| Route | Role | Guard |
 |---|---|---|
-| `POST /api/parties` | créer (`creerPartie`) | profil valide |
-| `GET /api/parties/[code]` | `partiePublique` | aucune (un non-membre reçoit `vue: null`) |
-| `POST …/rejoindre` | ajouter ou mettre à jour le profil | statut lobby, 5 joueurs max |
-| `POST …/quitter` | retirer ; si l'hôte part, l'hôte devient `joueurs[0]` restant | lobby uniquement |
-| `POST …/lancer` | `chargerMissions` + `setupPartie` | hôte, 2 joueurs min., missions chargées |
-| `POST …/action` | `applyAction` (`lireMissions`, `jouerCarte`) | membre ; le moteur fait le reste |
-| `POST …/rejouer` | vote puis relance | statut fin, membre |
-| `POST …/debug` | `debut` / `missions` / `tour` / `fin` (`engine/debug.ts`, `appliquerDebug()`, `coupAutomatique()`) | désactivé en production sauf `DEBUG_PARTIES=1` |
-| `GET /api/media?url=` (`web/app/api/media/route.ts`) | proxy same-origin de `cdn.sanity.io` (fetch mis en cache 1 jour, `Cache-Control` immutable, CSP `sandbox`, `nosniff`) | l'URL doit commencer par `https://cdn.sanity.io/` |
+| `POST /api/parties` | create (`creerPartie`) | valid profile |
+| `GET /api/parties/[code]` | `partiePublique` | none (a non-member receives `vue: null`) |
+| `POST …/rejoindre` | add or update the profile | lobby status, 5 players max |
+| `POST …/quitter` | remove; if the host leaves, the new host is the remaining `joueurs[0]` | lobby only |
+| `POST …/lancer` | `chargerMissions` + `setupPartie` | host, 2 players min., missions loaded |
+| `POST …/action` | `applyAction` (`lireMissions`, `jouerCarte`) | member; the engine does the rest |
+| `POST …/rejouer` | vote then restart | game-over status, member |
+| `POST …/debug` | `debut` / `missions` / `tour` / `fin` (`engine/debug.ts`, `appliquerDebug()`, `coupAutomatique()`) | disabled in production unless `DEBUG_PARTIES=1` |
+| `GET /api/media?url=` (`web/app/api/media/route.ts`) | same-origin proxy of `cdn.sanity.io` (fetch cached for 1 day, `Cache-Control` immutable, CSP `sandbox`, `nosniff`) | the URL must start with `https://cdn.sanity.io/` |
 
-`engine/debug.ts` :
+`engine/debug.ts`:
 
-- `coupAutomatique()` : carte au hasard, première zone disponible, assassinat au hasard.
-- `missions` : tout le monde a lu.
-- `tour` : joue jusqu'au changement de joueur.
-- `fin` : joue jusqu'à 400 coups automatiques.
+- `coupAutomatique()`: random card, first available zone, random assassination.
+- `missions`: everyone has read.
+- `tour`: plays until the player changes.
+- `fin`: plays up to 400 automatic moves.
 
-Ces commandes sont reliées aux boutons Leva « Phases » (`jeu3d.tsx`, `commandeDebug()`). `debut` relance aussi l'ouverture côté client.
+These commands are wired to the Leva "Phases" buttons (`jeu3d.tsx`, `commandeDebug()`). `debut` also restarts the opening on the client side.
 
-### 3.5 Catalogue et missions Sanity, avec repli
+### 3.5 Sanity catalog and missions, with fallback
 
-- **Catalogue client** (`web/sanity/catalogue-client.ts`, `getCatalogueClient()`, `import "server-only"`) : fusionne Sanity **par-dessus** `CATALOGUE_PAR_DEFAUT` (`web/lib/catalogue.ts`), champ par champ.
-  - Familles (nom localisé, couleur, picto), rôles (nom, picto, `countPerFamily` et règle pour l'écran des règles uniquement, lettering).
-  - Cartes : clé `cleCarte(famille, role)` = `${role ?? "base"}-${famille}`, image de largeur 360.
-  - Missions par `_id` Sanity (largeur 520), tapis (2000), texture de tissu (1024), dos (360 et 520), décor (3000, avec `srcSet` 1600 construit par `srcSetDecor()`), reine (1400), motif (512), papier (1600), flèches (256).
-  - Textes de règles (`TEXTES_REGLES_DEFAUT` champ par champ, une chaîne vide retombe sur le défaut), phrases de victoire, textes d'interface.
-  - Toute exception renvoie `CATALOGUE_PAR_DEFAUT` et logge « Catalogue Sanity indisponible ».
-- **Missions serveur** (`web/server/missions.ts`, `chargerMissions(n)`) : lit les documents `mission`, les convertit avec `versCondition()` (champs Sanity anglais → `Condition` moteur française) et **écarte en silence** toute mission dont la condition ne se convertit pas. Il complète chaque couleur avec `MISSIONS_PROVISOIRES` (défini à partir de `MISSIONS_PAR_DEFAUT`, `web/lib/missions-par-defaut.ts`) pour atteindre `n`.
-  - Les ids Sanity et les ids par défaut coexistent.
-  - Côté client, l'image d'une mission par défaut vient de `IMAGES_MISSIONS_PAR_DEFAUT[id]`, et son texte est dessiné dessus par `composerMission()`.
-- **Images** : `urlFor()` (`web/sanity/image.ts`, `@sanity/image-url`). Les textures 3D sont chargées avec `crossOrigin = "anonymous"` depuis `cdn.sanity.io`, qui envoie les en-têtes CORS. Les SVG et les pictos affichés en `<img>` ou via `mask-image` passent par `/api/media` (voir §3.6).
+- **Catalog client** (`web/sanity/catalogue-client.ts`, `getCatalogueClient()`, `import "server-only"`): merges Sanity **on top of** `CATALOGUE_PAR_DEFAUT` (`web/lib/catalogue.ts`), field by field.
+  - Families (localized name, color, pictogram), roles (name, pictogram, `countPerFamily` and rule for the rules screen only, lettering).
+  - Cards: key `cleCarte(famille, role)` = `${role ?? "base"}-${famille}`, 360-wide image.
+  - Missions by Sanity `_id` (width 520), mat (2000), cloth texture (1024), backs (360 and 520), decor (3000, with `srcSet` 1600 built by `srcSetDecor()`), queen (1400), pattern (512), paper (1600), arrows (256).
+  - Rule texts (`TEXTES_REGLES_DEFAUT` field by field, an empty string falls back to the default), victory phrases, interface texts.
+  - Any exception returns `CATALOGUE_PAR_DEFAUT` and logs "Sanity catalog unavailable".
+- **Server missions** (`web/server/missions.ts`, `chargerMissions(n)`): reads the `mission` documents, converts them with `versCondition()` (English Sanity fields → French engine `Condition`) and **silently discards** any mission whose condition cannot be converted. It tops up each color with `MISSIONS_PROVISOIRES` (defined from `MISSIONS_PAR_DEFAUT`, `web/lib/missions-par-defaut.ts`) to reach `n`.
+  - Sanity ids and default ids coexist.
+  - On the client side, the image of a default mission comes from `IMAGES_MISSIONS_PAR_DEFAUT[id]`, and its text is drawn on it by `composerMission()`.
+- **Images**: `urlFor()` (`web/sanity/image.ts`, `@sanity/image-url`). The 3D textures are loaded with `crossOrigin = "anonymous"` from `cdn.sanity.io`, which sends the CORS headers. SVGs and pictograms displayed as `<img>` or via `mask-image` go through `/api/media` (see §3.6).
 
-### 3.6 Problèmes rencontrés en production, et leurs correctifs
+### 3.6 Production problems and their fixes
 
-| Problème | Cause | Correctif (où) |
+| Problem | Cause | Fix (where) |
 |---|---|---|
-| Un invité rejoignait avec un pseudo vide ou celui d'un autre onglet | auto-join déclenché avant la saisie du profil | auto-join seulement si un profil valide était **déjà** enregistré à l'ouverture de l'invitation ; sinon formulaire manuel (`partie-client.tsx`, état `manuel`) |
-| Cartes noires ou manquantes quand une image Sanity échoue | chargement de texture sans repli | `chargerAvecSecours(urls)` essaie Sanity puis `/public`, `cache.delete` en cas d'échec, textures de secours dessinées en canvas (`textureTexte()`), `textures.ts` |
-| Pictos SVG Sanity cassés et erreur `next/image` (qualité 90 refusée pour un SVG) ; masques CSS bloqués | SVG non optimisable par `next/image`, CORS sur les masques | proxy same-origin `/api/media` pour les pictos et les flèches ; `<img>` simple |
-| Rendu figé pendant les confettis de victoire | `shadowBlur` recalculé pour chaque particule à chaque frame | sprite étoile pré-rendu une seule fois (`sprite()` dans `annonce.tsx`), dpr plafonné à 1,25, `globalCompositeOperation = "lighter"` |
-| Image de partage régénérée en boucle et toasts d'erreur | dépendances instables de l'effet | clé stable `cleResultats` (`fin-de-partie.tsx`) + délai de 1,2 s |
-| Photo de partage noire | le buffer WebGL est vidé après composition | `gl={{ preserveDrawingBuffer: true }}` (`Scene3D`) + rendu dédié (`photo.tsx`) |
-| Assets lourds | PNG | WebP partout + `pnpm nettoyer-png` pour purger les anciens PNG Sanity |
-| Catalogue vide si Sanity est en panne ou si le token est absent | — | repli `CATALOGUE_PAR_DEFAUT` et `MISSIONS_PROVISOIRES` |
-| Modifications invisibles en local | anciens processus `next-server` encore actifs | tuer les anciens serveurs avant de relancer un build |
+| A guest joined with an empty nickname or another tab's nickname | auto-join triggered before the profile was entered | auto-join only if a valid profile was **already** saved when the invitation was opened; otherwise manual form (`partie-client.tsx`, state `manuel`) |
+| Black or missing cards when a Sanity image fails | texture loading without fallback | `chargerAvecSecours(urls)` tries Sanity then `/public`, `cache.delete` on failure, backup textures drawn on a canvas (`textureTexte()`), `textures.ts` |
+| Broken Sanity SVG pictograms and `next/image` error (quality 90 rejected for an SVG); blocked CSS masks | SVG cannot be optimized by `next/image`, CORS on the masks | same-origin `/api/media` proxy for the pictograms and the arrows; plain `<img>` |
+| Rendering froze during the victory confetti | `shadowBlur` recomputed for every particle on every frame | star sprite pre-rendered only once (`sprite()` in `annonce.tsx`), dpr capped at 1.25, `globalCompositeOperation = "lighter"` |
+| Share image regenerated in a loop and error toasts | unstable dependencies of the effect | stable key `cleResultats` (`fin-de-partie.tsx`) + 1.2 s delay |
+| Black share photo | the WebGL buffer is cleared after compositing | `gl={{ preserveDrawingBuffer: true }}` (`Scene3D`) + dedicated render (`photo.tsx`) |
+| Heavy assets | PNG | WebP everywhere + `pnpm nettoyer-png` to purge the old Sanity PNGs |
+| Empty catalog if Sanity is down or the token is missing | — | fallback to `CATALOGUE_PAR_DEFAUT` and `MISSIONS_PROVISOIRES` |
+| Changes not visible locally | old `next-server` processes still running | kill the old servers before rerunning a build |
 
 ---
 
-## 4. Scène 3D
+## 4. 3D scene
 
-Stack : three + `@react-three/fiber` + drei (`useCursor`, `Billboard`) + maath (`easing.damp*`) + leva. Toute la scène est chargée par `dynamic(() => import("./scene"), { ssr: false })` dans `jeu3d.tsx`.
+Stack: three + `@react-three/fiber` + drei (`useCursor`, `Billboard`) + maath (`easing.damp*`) + leva. The whole scene is loaded by `dynamic(() => import("./scene"), { ssr: false })` in `jeu3d.tsx`.
 
-### 4.1 Rôle de chaque fichier (`web/components/jeu3d/`)
+### 4.1 Role of each file (`web/components/jeu3d/`)
 
-| Fichier | Rôle | Fonctions ou exports clés |
+| File | Role | Key functions or exports |
 |---|---|---|
-| `jeu3d.tsx` | **Chef d'orchestre hors Canvas.** Il tient l'état d'interaction (sélection, assassinat, envoi, mission en focus), l'ouverture (`etape`), la file d'annonces, la séquence de fin, les boutons de debug de phase ; il rend la surcouche HTML (logo, son, règles, bandeau, bouton missions, « Ne pas assassiner », « Passer », tableau de fin). | `Jeu3D`, `aLire()`, `finirIntro()`, `commandeDebug()`, `interaction` (`useMemo<Interaction>`), leva « Opening », « Replay », « Phases » |
-| `scene.tsx` | **Le monde 3D.** Il calcule les poses de toutes les cartes à partir de la vue, diffuse les départs d'animation (diff + journal), gère caméra, tapis, pioche, zones, cibles, main et missions collées à la caméra, et la fin. | `Scene3D` (Canvas), `Monde`, `disposer()`, `poseSousTable()`, `poseSiege()`, `CameraRig`, `Table`, `avecFondu()`, `Apparition`, `SuitCamera`, `Pioche`, `Voile`, `FondDomaine`, `Badge`, `ZoneCliquable`, `Cible`, `Ephemere`, `positionCouronne()`, `CAMERA_DEFAUT`, `REGLAGES_ZONE`, `MODES_FUSION` |
-| `carte3d.tsx` | **Une carte**, générique. Géométrie arrondie, tranche extrudée, recto/verso, ombre, halos (or, rouge), cadre de sélection, reflet, scintillement ; **vol en courbe de Bézier** depuis `depart` puis amortissement vers `cible` ; pliage de la carte en vol par shader. | `Carte3D`, `geometrieCarte()`, `geometrieTranche()`, `REGLAGES_CARTE`, `Lueur`, `lancer()`, `plier()`, `pliable()` |
-| `colonne.tsx` | Rectangle lumineux au sol (shader), cliquable : cibles haut/bas d'une colonne et lignes lumière/disgrâce de fin. | `Colonne` |
-| `disposition.ts` | **Géométrie pure** (aucun React) : dimensions, colonnes du tapis, poses de table, pioche, sièges, disposition des domaines. | `TAPIS_L`, `TAPIS_P`, `PAS`, `CARTE_L/H`, `MISSION_L/H`, `DOMAINE_ECHELLE`, `DECALAGE`, `REGLAGES_DISPOSITION`, `FACE_HAUT/BAS`, `alea()`, `penche()`, `colonneX()`, `poseTable()`, `colonneDe()`, `PIOCHE`, `poseDessusPioche()`, `SIEGES`, `MON_SIEGE`, `sieges()`, `disposerDomaine()`, `cleGroupe()`, `DL`, `DH` |
-| `fin.ts` | Minutage de la séquence de fin (état `EtatFin`), avec rejouer et pas-à-pas dans leva. | `useSequenceFin()`, `EtatFin`, `programme()`, `NOMBRE_FAMILLES_TABLE` |
-| `fin3d.tsx` | Éléments 3D de la fin : flèches ou « = » par famille, lignes du tapis, points par pile, compteurs par joueur, centres des gagnants. | `ResolutionFamilles`, `LignesTapis`, `LigneTapis`, `PointsPiles`, `Compteurs`, `useCentresGagnants()`, `ReglagesFin`, `REGLAGES_FIN`, `REGLAGES_LIGNES` |
-| `annonce.tsx` | Annonces plein écran HTML (motion) : voile, texte, lignes dorées, confettis canvas. Trois préréglages. | `Annonce`, `useReglagesAnnonces()`, `TypeAnnonce`, `Confettis`, `sprite()` |
-| `aura.tsx` | Shader d'aura rectangulaire (bord, halo, étoiles scintillantes) sous une zone de joueur ou sous le gagnant. | `Aura`, `REGLAGES_AURA_ZONE`, `REGLAGES_AURA_GAGNANT`, `CHAMPS_AURA` |
-| `texte-table.tsx` | Texte posé à plat sur la table, rendu en canvas → texture (police Alegreya, relief, aura, holo, ombre). Pseudos, compteur de pioche, points. | `TexteTable`, `StyleTexte`, `dessiner()`, `usePolicePrete()` |
-| `textures.ts` | Chargement et cache des textures (faces, dos, tapis, tissu, missions) avec **repli** ; composition du texte des missions sur leur image. | `useTextures()`, `Textures`, `charger()`, `chargerAvecSecours()`, `composerMission()`, `missionComposee()`, `textureTexte()`, `decouper()` (badges « en disgrâce » / « dans la lumière ») |
-| `motifs.ts` | Motif procédural (losanges dorés + grain) répété autour du tapis. | `textureMotif("losanges")` |
-| `photo.tsx` | Photo de partage : **caméra dédiée**, rendu hors écran à 1600×1200, objets `userData.horsPhoto` masqués. | `PhotoPartie`, `photographierPartie()`, `REGLAGES_PHOTO` |
-| `reglages.ts` | Pont objets mutables ↔ leva : un réglage modifie l'objet sans rerender React, et `signalerReglages()` incrémente une version quand il le faut. | `useReglages()`, `signalerReglages()`, `useVersionReglages()`, `Champ` |
-| `reglages-cartes.tsx` | Branche `REGLAGES_DISPOSITION` et `REGLAGES_CARTE` dans leva (« Card », « Card Effects »). | `ReglagesCartes` |
-| `onglets-debug.ts` | Quatre magasins leva séparés (GAME, SCENE, AUDIO, TRANSITION), copie JSON arrondie d'un dossier. | `ONGLETS_DEBUG`, `MAGASINS_DEBUG`, `onglet()`, `boutonCopie()`, `copierDossier()`, `arrondir()` |
-| `debug.tsx` | Panneau debug (Shift+D ou `?debug`, mémorisé dans `courtisans:debug`), onglets, compteur FPS et pire frame, réglages son, « Copy all settings ». | `PanneauDebug`, `Fps`, `copierTout()` |
-| `triche.ts` | Leva « Cheat » : forcer un gagnant **localement** pour tester la fin (ajoute une mission fictive `triche`). | `useTriche()`, `tricher()` |
-| `sons.ts` | Sons déclenchés par le journal, la sélection, le focus de mission et les étapes de fin. | `useSonsJeu()` |
-| `couronne.tsx` | Couronne dorée en billboard qui sort de sous la table au-dessus du joueur actif et y replonge. | `Couronne3D` |
+| `jeu3d.tsx` | **Orchestrator outside the Canvas.** It holds the interaction state (selection, assassination, sending, focused mission), the opening (`etape`), the announcement queue, the end sequence, the phase debug buttons; it renders the HTML overlay (logo, sound, rules, banner, missions button, « Ne pas assassiner », « Passer », game-over table). | `Jeu3D`, `aLire()`, `finirIntro()`, `commandeDebug()`, `interaction` (`useMemo<Interaction>`), leva "Opening", "Replay", "Phases" |
+| `scene.tsx` | **The 3D world.** It computes the poses of all the cards from the view, distributes the animation start points (diff + log), handles the camera, mat, draw pile, zones, targets, the hand and the missions attached to the camera, and the end. | `Scene3D` (Canvas), `Monde`, `disposer()`, `poseSousTable()`, `poseSiege()`, `CameraRig`, `Table`, `avecFondu()`, `Apparition`, `SuitCamera`, `Pioche`, `Voile`, `FondDomaine`, `Badge`, `ZoneCliquable`, `Cible`, `Ephemere`, `positionCouronne()`, `CAMERA_DEFAUT`, `REGLAGES_ZONE`, `MODES_FUSION` |
+| `carte3d.tsx` | **One card**, generic. Rounded geometry, extruded edge, front/back, shadow, halos (gold, red), selection frame, reflection, sparkle; **flight along a Bézier curve** from `depart` then damping toward `cible`; shader-based folding of the card in flight. | `Carte3D`, `geometrieCarte()`, `geometrieTranche()`, `REGLAGES_CARTE`, `Lueur`, `lancer()`, `plier()`, `pliable()` |
+| `colonne.tsx` | Glowing rectangle on the ground (shader), clickable: top/bottom targets of a column and end-of-game light/disgrace lines. | `Colonne` |
+| `disposition.ts` | **Pure geometry** (no React): dimensions, mat columns, table poses, draw pile, seats, domain layout. | `TAPIS_L`, `TAPIS_P`, `PAS`, `CARTE_L/H`, `MISSION_L/H`, `DOMAINE_ECHELLE`, `DECALAGE`, `REGLAGES_DISPOSITION`, `FACE_HAUT/BAS`, `alea()`, `penche()`, `colonneX()`, `poseTable()`, `colonneDe()`, `PIOCHE`, `poseDessusPioche()`, `SIEGES`, `MON_SIEGE`, `sieges()`, `disposerDomaine()`, `cleGroupe()`, `DL`, `DH` |
+| `fin.ts` | Timing of the end sequence (state `EtatFin`), with replay and step-by-step in leva. | `useSequenceFin()`, `EtatFin`, `programme()`, `NOMBRE_FAMILLES_TABLE` |
+| `fin3d.tsx` | 3D elements of the end: arrows or "=" per family, mat lines, points per pile, counters per player, winners' centers. | `ResolutionFamilles`, `LignesTapis`, `LigneTapis`, `PointsPiles`, `Compteurs`, `useCentresGagnants()`, `ReglagesFin`, `REGLAGES_FIN`, `REGLAGES_LIGNES` |
+| `annonce.tsx` | Full-screen HTML announcements (motion): veil, text, golden lines, canvas confetti. Three presets. | `Annonce`, `useReglagesAnnonces()`, `TypeAnnonce`, `Confettis`, `sprite()` |
+| `aura.tsx` | Rectangular aura shader (edge, halo, twinkling stars) under a player zone or under the winner. | `Aura`, `REGLAGES_AURA_ZONE`, `REGLAGES_AURA_GAGNANT`, `CHAMPS_AURA` |
+| `texte-table.tsx` | Text laid flat on the table, rendered in canvas → texture (Alegreya font, relief, aura, holo, shadow). Nicknames, draw pile counter, points. | `TexteTable`, `StyleTexte`, `dessiner()`, `usePolicePrete()` |
+| `textures.ts` | Loading and caching of the textures (faces, backs, mat, cloth, missions) with **fallback**; composition of the mission text on their image. | `useTextures()`, `Textures`, `charger()`, `chargerAvecSecours()`, `composerMission()`, `missionComposee()`, `textureTexte()`, `decouper()` (badges « en disgrâce » / « dans la lumière ») |
+| `motifs.ts` | Procedural pattern (golden diamonds + grain) repeated around the mat. | `textureMotif("losanges")` |
+| `photo.tsx` | Share photo: **dedicated camera**, offscreen render at 1600×1200, `userData.horsPhoto` objects hidden. | `PhotoPartie`, `photographierPartie()`, `REGLAGES_PHOTO` |
+| `reglages.ts` | Mutable objects ↔ leva bridge: a setting modifies the object without a React rerender, and `signalerReglages()` increments a version when needed. | `useReglages()`, `signalerReglages()`, `useVersionReglages()`, `Champ` |
+| `reglages-cartes.tsx` | Plugs `REGLAGES_DISPOSITION` and `REGLAGES_CARTE` into leva ("Card", "Card Effects"). | `ReglagesCartes` |
+| `onglets-debug.ts` | Four separate leva stores (GAME, SCENE, AUDIO, TRANSITION), rounded JSON copy of a folder. | `ONGLETS_DEBUG`, `MAGASINS_DEBUG`, `onglet()`, `boutonCopie()`, `copierDossier()`, `arrondir()` |
+| `debug.tsx` | Debug panel (Shift+D or `?debug`, remembered in `courtisans:debug`), tabs, FPS counter and worst frame, sound settings, "Copy all settings". | `PanneauDebug`, `Fps`, `copierTout()` |
+| `triche.ts` | Leva "Cheat": force a winner **locally** to test the end (adds a fake `triche` mission). | `useTriche()`, `tricher()` |
+| `sons.ts` | Sounds triggered by the log, the selection, the mission focus and the end steps. | `useSonsJeu()` |
+| `couronne.tsx` | Golden crown as a billboard that rises from under the table above the active player and dives back under it. | `Couronne3D` |
 
-### 4.2 Disposition : table, main, domaines, caméra
+### 4.2 Layout: table, hand, domains, camera
 
-Repère : y vers le haut ; le joueur local est en **+z** (bas de l'écran) ; la table de la Reine est centrée en 0.
+Coordinate system: y up; the local player is at **+z** (bottom of the screen); the Queen's table is centered at 0.
 
-**Tapis** (`disposition.ts`) :
+**Mat** (`disposition.ts`):
 
-- `TAPIS_L = 12`, `TAPIS_P = 12 / (2362/579)` (ratio de l'image du tapis, soit environ 2,94).
-- 7 colonnes : `ORDRE_TAPIS = [papillon, crapaud, rossignol, reine, lievre, cerf, carpe]` (`web/lib/catalogue.ts`), `PAS = (TAPIS_L − 2·MARGE) / 7` avec `MARGE = 0,033·TAPIS_L`.
-- **Les cartes de la table ne sont pas posées sur le tapis mais au-delà de ses bords** : `poseTable(col, niveau, rang)` place la carte à `z = ∓(TAPIS_P/2 + CARTE_H/2 + rang·DECALAGE)`, soit en **haut (−z) pour la lumière** et en **bas (+z) pour la disgrâce**. Chaque nouvelle carte d'une colonne s'éloigne de 0,42 (`DECALAGE`) et monte de `espacementPile` (0,02), ce qui forme un éventail en escalier.
-- La colonne se déduit de la carte (`colonneDe()` : famille, ou `"reine"` si la famille est masquée, c'est-à-dire pour un espion). Le `rang` est recompté à chaque `disposer()`. Retirer une carte (assassinat) **fait glisser** les suivantes, ce qui est voulu.
+- `TAPIS_L = 12`, `TAPIS_P = 12 / (2362/579)` (ratio of the mat image, i.e. about 2.94).
+- 7 columns: `ORDRE_TAPIS = [papillon, crapaud, rossignol, reine, lievre, cerf, carpe]` (`web/lib/catalogue.ts`), `PAS = (TAPIS_L − 2·MARGE) / 7` with `MARGE = 0,033·TAPIS_L`.
+- **The table cards are not placed on the mat but beyond its edges**: `poseTable(col, niveau, rang)` places the card at `z = ∓(TAPIS_P/2 + CARTE_H/2 + rang·DECALAGE)`, that is at the **top (−z) for the light** and at the **bottom (+z) for disgrace**. Each new card of a column moves 0.42 further away (`DECALAGE`) and rises by `espacementPile` (0.02), forming a staircase fan.
+- The column is derived from the card (`colonneDe()`: family, or `"reine"` if the family is hidden, that is for a Spy). The `rang` is recounted on each `disposer()`. Removing a card (assassination) **slides** the following ones, which is intended.
 
-**Cartes** : `CARTE_L = PAS × 0,92`, `CARTE_H = CARTE_L × 890/472` (ratio des scans). Missions : `MISSION_L = 2,4`, `MISSION_H` au ratio 452/688. Chaque carte reçoit une petite rotation stable en lacet, `penche(id)` (hash FNV `alea()`, amplitude 0,017 rad) : elle ne « danse » pas d'un rendu à l'autre.
+**Cards**: `CARTE_L = PAS × 0,92`, `CARTE_H = CARTE_L × 890/472` (ratio of the scans). Missions: `MISSION_L = 2,4`, `MISSION_H` at the 452/688 ratio. Each card gets a small, stable yaw rotation, `penche(id)` (FNV hash `alea()`, amplitude 0.017 rad): it does not "dance" from one render to the next.
 
-**Pioche** : `PIOCHE = (TAPIS_L/2 + 1,2, 0, 0)`, à droite du tapis. La pile affiche au plus 60 tranches (`Pioche`), plus une vraie `Carte3D` de dessus (`poseDessusPioche(n)`) et un compteur `TexteTable` en dessous. `poseDessusPioche(n)` sert aussi de **point de départ** de toute carte piochée ou distribuée.
+**Draw pile**: `PIOCHE = (TAPIS_L/2 + 1,2, 0, 0)`, to the right of the mat. The draw pile displays at most 60 slices (`Pioche`), plus a real `Carte3D` on top (`poseDessusPioche(n)`) and a `TexteTable` counter below. `poseDessusPioche(n)` also serves as the **starting point** of any drawn or dealt card.
 
-**Sièges** (`sieges(vue)`) :
+**Seats** (`sieges(vue)`):
 
-- Les adversaires sont pris **dans l'ordre du tableau `joueurs`, en commençant après moi**, puis placés selon `SIEGES[nombre d'adversaires]` :
-  - 1 → en haut ;
-  - 2 → gauche et droite (x = ±13,2, z = −2,2) ;
-  - 3 → gauche, haut, droite ;
-  - 4 → gauche, haut-gauche (x −6), haut-droite (x 6), droite.
-- Le haut est à z = −10,6.
-- `largeurMax` : 12 en haut seul, 9,5 à deux en haut, 10 sur les côtés.
-- Moi : `MON_SIEGE = (0, 0, 5,4)`, orientation `bas`, `largeurMax` 11.
-- Ordre gauche/droite **cohérent avec les voisins des missions** (§2.4).
+- The opponents are taken **in the order of the `joueurs` array, starting after me**, then placed according to `SIEGES[nombre d'adversaires]`:
+  - 1 → at the top;
+  - 2 → left and right (x = ±13.2, z = −2.2);
+  - 3 → left, top, right;
+  - 4 → left, top-left (x −6), top-right (x 6), right.
+- The top is at z = −10.6.
+- `largeurMax`: 12 when alone at the top, 9.5 when two are at the top, 10 on the sides.
+- Me: `MON_SIEGE = (0, 0, 5,4)`, orientation `bas`, `largeurMax` 11.
+- Left/right order **consistent with the mission neighbors** (§2.4).
 
-**Domaines** (`disposerDomaine(siege, domaine, deplie, caches, pileLevee)`) :
+**Domains** (`disposerDomaine(siege, domaine, deplie, caches, pileLevee)`):
 
-- Groupes par famille dans l'ordre de `FAMILLES_PAR_DEFAUT`, puis un groupe « masqué » (espions) en dernier.
-- Dans un groupe, les cartes se chevauchent de `CHEVAUCHEMENT = 0,42` ; entre deux groupes, `ECART = 0,35`.
-- Si la largeur naturelle dépasse `largeurMax`, **seuls les chevauchements et les écarts sont compressés** (facteur `f` ≥ 0,3) : la largeur d'une carte ne change jamais.
-- Pour les sièges latéraux, les axes sont permutés (`lateral`) et la zone tourne de ±90° (`LACET`).
-- `deplie` (clé `joueurId:famille`) : pendant un assassinat, survoler une pile l'**ouvre en éventail** (écart `DL×0,6`, soulevée à y 0,35) pour que chaque carte soit cliquable. La fermeture est retardée de 180 ms (`survolGroupe()` dans `Monde`) pour éviter le clignotement en passant d'une carte à l'autre.
-- `pileLevee` : en fin, la pile dont on affiche les points se soulève de 0,45.
-- La fonction renvoie aussi une `ZoneDomaine` :
-  - `centre`, `largeur` (au moins 3 cartes + 0,6), `profondeur`, `lacet` ;
-  - `etiquette` (position du pseudo, côté table) et `lacetEtiquette` (π pour le haut, pour que le pseudo se lise depuis le joueur local) ;
-  - `piles[]` : position de chaque pile, utilisée pour les points de fin.
+- Groups by family in the order of `FAMILLES_PAR_DEFAUT`, then a "hidden" group (Spies) last.
+- Within a group, the cards overlap by `CHEVAUCHEMENT = 0,42`; between two groups, `ECART = 0,35`.
+- If the natural width exceeds `largeurMax`, **only the overlaps and the gaps are compressed** (factor `f` ≥ 0.3): the width of a card never changes.
+- For the side seats, the axes are swapped (`lateral`) and the zone rotates by ±90° (`LACET`).
+- `deplie` (key `joueurId:famille`): during an assassination, hovering over a pile **fans it out** (gap `DL×0,6`, lifted to y 0.35) so that each card is clickable. Closing is delayed by 180 ms (`survolGroupe()` in `Monde`) to avoid flickering when moving from one card to another.
+- `pileLevee`: at the end, the pile whose points are displayed lifts by 0.45.
+- The function also returns a `ZoneDomaine`:
+  - `centre`, `largeur` (at least 3 cards + 0.6), `profondeur`, `lacet`;
+  - `etiquette` (position of the nickname, table side) and `lacetEtiquette` (π for the top, so that the nickname is readable from the local player's side);
+  - `piles[]`: position of each pile, used for the end points.
 
-**Cartes adverses « en main »** : elles ne sont pas représentées. Une carte jouée par un adversaire part de `poseSiege(zone)` (au-dessus de son pseudo, y 3,5, face cachée) ; une carte piochée par un adversaire **plonge sous la table** vers `poseSousTable(zone)` (y −1,6, derrière son domaine). C'est ce qui donne l'impression de mains hors champ.
+**Opponents' cards "in hand"**: they are not represented. A card played by an opponent starts from `poseSiege(zone)` (above their nickname, y 3.5, face down); a card drawn by an opponent **dives under the table** toward `poseSousTable(zone)` (y −1.6, behind their domain). This is what gives the impression of hands out of view.
 
-**Main du joueur local** (`useFrame` de `Monde`) : elle n'est pas dans le monde mais **collée à la caméra**, dans le repère caméra à la distance `D_MAIN = 6`.
+**Local player's hand** (`useFrame` of `Monde`): it is not in the world but **attached to the camera**, in camera space at the distance `D_MAIN = 6`.
 
-- Taille et position sont calculées à partir de la projection (`h = D_MAIN / proj[5]`, `w = D_MAIN / proj[0]`), donc **indépendantes du FOV et de l'aspect**.
-- Chaque frame écrit la pose de chaque carte dans `posesCamera` (Map mutable, pas d'état React) : éventail (`eventail`), courbure (`courbe`), levée au survol ou à la sélection, avance et échelle de la carte sélectionnée.
-- Carte jouée : sa pose caméra est **clonée en pose monde** et devient le `depart` de l'animation vers la table.
+- Size and position are computed from the projection (`h = D_MAIN / proj[5]`, `w = D_MAIN / proj[0]`), hence **independent of the FOV and the aspect ratio**.
+- Each frame writes the pose of each card into `posesCamera` (mutable Map, no React state): fan (`eventail`), curvature (`courbe`), lift on hover or selection, forward shift and scale of the selected card.
+- Played card: its camera pose is **cloned into a world pose** and becomes the `depart` of the animation toward the table.
 
-**Missions** : dans `SuitCamera` (un groupe qui recopie position et rotation de la caméra à chaque frame) :
+**Missions**: in `SuitCamera` (a group that copies the camera's position and rotation on every frame):
 
-- **Ouverture** (`intro`) : les deux missions sont grandes, face caméra, avec un léger tilt suivant la souris.
-- **En jeu** : elles sont rangées en bas à droite de l'écran, comme deux cartes tenues en pince (`angles.carte1/2`).
-- **Focus** (clic) : une mission vient au centre, agrandie, avec un reflet qui suit la souris, et le `Voile` s'assombrit derrière.
+- **Opening** (`intro`): the two missions are large, facing the camera, with a slight tilt following the mouse.
+- **In game**: they are stowed at the bottom right of the screen, like two cards held in a pinch grip (`angles.carte1/2`).
+- **Focus** (click): a mission comes to the center, enlarged, with a reflection that follows the mouse, and the `Voile` darkens behind it.
 
-Le facteur `k = (distance/8) / (proj[5]·tan(19°))` compense le FOV pour garder une taille apparente constante.
+The factor `k = (distance/8) / (proj[5]·tan(19°))` compensates for the FOV to keep a constant apparent size.
 
-**Caméra** (`CameraRig`) : orbite autour de `cible` (x = 0, z = 0,6) avec `CAMERA_DEFAUT = {inclinaison 40°, lacet 0°, distance 37,6, fov 26,5}`. **Correctif pour les écrans étroits** : la distance est multipliée par `k = max(1, 1,6 / aspect)`, ce qui fait reculer la caméra quand la fenêtre est plus étroite que 16:10. La caméra est **fixe** en jeu : ni orbit controls ni zoom. `Scene3D` : `camera={{fov: 26.5, position: [0, 23, 13.5]}}` (écrasé dès la première frame), `dpr={[1, 2]}`, `preserveDrawingBuffer`.
+**Camera** (`CameraRig`): orbits around `cible` (x = 0, z = 0.6) with `CAMERA_DEFAUT = {inclinaison 40°, lacet 0°, distance 37,6, fov 26,5}`. **Fix for narrow screens**: the distance is multiplied by `k = max(1, 1,6 / aspect)`, which moves the camera back when the window is narrower than 16:10. The camera is **fixed** during the game: no orbit controls and no zoom. `Scene3D`: `camera={{fov: 26.5, position: [0, 23, 13.5]}}` (overridden from the first frame), `dpr={[1, 2]}`, `preserveDrawingBuffer`.
 
-**Tapis** (`Table`) :
+**Mat** (`Table`):
 
-- Plan au ratio de l'image, avec une tranche extrudée d'épaisseur `EPAISSEUR_TAPIS = 0,018`.
-- Matériau `MeshBasicMaterial` patché (`onBeforeCompile`, `GLSL_TAPIS` / `FRAGMENT_TAPIS`) :
-  - **déroulé** : `discard` si `uv.x > uDeroule`, avec une courbe ease-out cubique sur `dureeTapis` ;
-  - désaturation ;
-  - mélange avec une texture de **tissu** en tuiles (`MODES_FUSION` : multiply, screen, overlay, soft light) calculé en espace gamma.
-- Un **cylindre** (le rouleau) suit le bord du déroulé et rétrécit.
-- Autour du tapis : un sol en dégradé radial (`vignetteTexture()`) et le motif `textureMotif()` à 12 % d'opacité.
+- Plane at the image ratio, with an extruded edge of thickness `EPAISSEUR_TAPIS = 0,018`.
+- Material: patched `MeshBasicMaterial` (`onBeforeCompile`, `GLSL_TAPIS` / `FRAGMENT_TAPIS`):
+  - **unrolling**: `discard` if `uv.x > uDeroule`, with a cubic ease-out curve over `dureeTapis`;
+  - desaturation;
+  - blending with a tiled **cloth** texture (`MODES_FUSION`: multiply, screen, overlay, soft light) computed in gamma space.
+- A **cylinder** (the roller) follows the edge of the unrolling and shrinks.
+- Around the mat: a floor with a radial gradient (`vignetteTexture()`) and the `textureMotif()` pattern at 12% opacity.
 
 ### 4.3 Interactions
 
-Contrat : `Interaction` (`web/components/jeu/interaction.tsx`), fourni par `InteractionContexte` depuis `jeu3d.tsx`.
+Contract: `Interaction` (`web/components/jeu/interaction.tsx`), provided by `InteractionContexte` from `jeu3d.tsx`.
 
 - `monTour`, `selection`, `selectionner()`, `assassinat`, `peutJouer(zone)`, `jouer(cible)`, `eliminer(carteId | null)`, `envoi`.
-- `origine()` existe mais renvoie toujours `null` (reliquat).
+- `origine()` exists but always returns `null` (leftover).
 
-**Sélection** : **clic** sur une carte de la main (pas de glisser-déposer). Un second clic sur la même carte désélectionne. La sélection est validée à chaque rendu (`selection = selectionBrute` seulement si la carte est encore dans ma main et que c'est mon tour), ce qui évite une sélection fantôme après une mise à jour serveur. Son `selection`.
+**Selection**: **click** on a card in the hand (no drag and drop). A second click on the same card deselects it. The selection is validated on every render (`selection = selectionBrute` only if the card is still in my hand and it is my turn), which avoids a ghost selection after a server update. Sound `selection`.
 
-**Survol** : la carte de la main se lève et reçoit un reflet ; son `survol`. Survoler une zone jouable (fond, pseudo, carte d'un domaine) allume le `FondDomaine` et l'`Aura` à la couleur du joueur, et colore le pseudo. Survoler une mission la soulève légèrement. `useCursor` passe le curseur en pointeur.
+**Hover**: the card in the hand rises and gets a reflection; sound `survol`. Hovering over a playable zone (background, nickname, card of a domain) lights up the `FondDomaine` and the `Aura` in the player's color, and colors the nickname. Hovering over a mission lifts it slightly. `useCursor` switches the cursor to a pointer.
 
-**Cibles**, affichées seulement quand une carte est sélectionnée et que la zone est disponible :
+**Targets**, displayed only when a card is selected and the zone is available:
 
-- **Table** : `colCible` = colonne de la famille de la carte, ou `"reine"` pour un espion. Deux `Cible` (`LigneTapis` → `Colonne`) apparaissent, une vers le haut (lumière, additive, dorée) et une vers le bas (disgrâce, noire). Clic → `it.jouer({zone: "table", niveau})`.
-- **Domaine** (le mien ou celui d'un adversaire) : clic sur le fond (`ZoneCliquable`, un plan invisible un peu plus profond que la zone), sur le pseudo (`Badge`) ou sur **n'importe quelle carte déjà posée** dans ce domaine.
-- **Assassinat** : si la carte est un assassin et que la zone contient au moins un non-garde, `jouer()` n'envoie rien. Il ouvre l'étape `assassinat {carteId, cible, candidats}` :
-  - les candidats reçoivent la lueur **rouge** (halo pulsé + contour plein) ;
-  - survoler une pile l'ouvre (`deplie`) ;
-  - cliquer sur un candidat → `it.eliminer(id)` ;
-  - le bouton HTML « Ne pas assassiner » → `eliminer(null)`, qui pose l'assassin sans victime.
-  - Pendant cette étape, cliquer dans le vide ne désélectionne pas (`onVide` teste `!assassinat`).
-- **Confirmation** : aucune. Le clic sur une cible envoie tout de suite. `envoi` bloque les doubles envois ; la main est non jouable pendant l'envoi (`jouable = monTour && !assassinat && !envoi`).
-- **Erreurs** : `toast.error(message)` (sonner) avec un message français issu du code d'erreur (`web/lib/api.ts`). La sélection est conservée pour réessayer.
-- **Clic dans le vide** (`onPointerMissed` du Canvas → `onVide`) : ferme le focus de mission et désélectionne (sauf pendant un assassinat).
-- **Mobile / desktop** : **desktop uniquement**. Sous 900 px, `EcranOrdinateur` masque tout. Rien n'est prévu pour le tactile : le survol (ouverture des piles, lueurs) n'a pas d'équivalent, et les cibles sont dimensionnées pour une souris.
+- **Table**: `colCible` = column of the card's family, or `"reine"` for a Spy. Two `Cible` (`LigneTapis` → `Colonne`) appear, one toward the top (light, additive, golden) and one toward the bottom (disgrace, black). Click → `it.jouer({zone: "table", niveau})`.
+- **Domain** (mine or an opponent's): click on the background (`ZoneCliquable`, an invisible plane slightly deeper than the zone), on the nickname (`Badge`) or on **any card already placed** in that domain.
+- **Assassination**: if the card is an Assassin and the zone contains at least one non-Guard, `jouer()` sends nothing. It opens the step `assassinat {carteId, cible, candidats}`:
+  - the candidates get the **red** glow (pulsing halo + solid outline);
+  - hovering over a pile opens it (`deplie`);
+  - clicking a candidate → `it.eliminer(id)`;
+  - the HTML button « Ne pas assassiner » → `eliminer(null)`, which places the Assassin without a victim.
+  - During this step, clicking on empty space does not deselect (`onVide` tests `!assassinat`).
+- **Confirmation**: none. Clicking a target sends immediately. `envoi` blocks double sends; the hand is not playable while sending (`jouable = monTour && !assassinat && !envoi`).
+- **Errors**: `toast.error(message)` (sonner) with a French message derived from the error code (`web/lib/api.ts`). The selection is kept so that the player can retry.
+- **Click on empty space** (`onPointerMissed` of the Canvas → `onVide`): closes the mission focus and deselects (except during an assassination).
+- **Mobile / desktop**: **desktop only**. Below 900 px, `EcranOrdinateur` hides everything. Nothing is provided for touch: hovering (opening piles, glows) has no equivalent, and the targets are sized for a mouse.
 
-### 4.4 Animations : déclencheurs et comment éviter les sauts
+### 4.4 Animations: triggers and how to avoid jumps
 
-Trois mécanismes coexistent. Il faut savoir lequel utiliser.
+Three mechanisms coexist. You need to know which one to use.
 
-1. **Amortissement continu vers la pose cible** (`Carte3D`, branche sans vol) : `easing.damp3` / `dampQ` à la `vitesse` de la carte (0,16 par défaut, 0,12 pour la main). Toute carte **suit** sa pose calculée, donc un changement de disposition (compression d'un domaine, glissement d'une colonne après un assassinat, ouverture d'une pile) est animé gratuitement.
-2. **Vol explicite** (`lancer()` dans `Carte3D`) :
-   - Déclenché **au montage** si `depart` est fourni. Le composant est alors placé directement à `depart`, dans un `useLayoutEffect`, pour éviter une frame à la position cible.
-   - Déclenché aussi **automatiquement** si la cible saute de plus de 4 unités d'un coup alors que la carte est à plus de 4 unités.
-   - Trajectoire : Bézier cubique `p0 → p0 + élan·Y → cible + 0,85·élan·Y → cible`, avec `élan = min(5,5, 1,8 + d·0,3) × hauteurVol`. L'élan est nul si l'extrémité est haute (y > 8), ce qui évite les boucles.
-   - Easing `douceur()` (cubique in-out) ; rotation par `slerp` plus un lacet sinusoïdal de ±0,45 rad (sens aléatoire) ; échelle interpolée avec un gonflement de 14 % ; **pliage** de la carte (`uPli`) en sinus.
-   - Durée `min(1,6, max(1,05, 0,95 + d·0,04)) × dureeVol`.
-   - `delai` (dans la `Pose`) décale le départ sans masquer la carte.
-3. **Transitoires** (`Ephemere`) : cartes qui n'existent plus dans la vue (éliminées) ou qui n'y sont pas représentées (pioche et distribution adverses). Elles volent de `depart` à `cible`, puis sont retirées à l'arrivée (`onArrivee`) ou après 3 s + délai.
+1. **Continuous damping toward the target pose** (`Carte3D`, no-flight branch): `easing.damp3` / `dampQ` at the card's `vitesse` (0.16 by default, 0.12 for the hand). Every card **follows** its computed pose, so a layout change (compression of a domain, sliding of a column after an assassination, opening of a pile) is animated for free.
+2. **Explicit flight** (`lancer()` in `Carte3D`):
+   - Triggered **on mount** if `depart` is provided. The component is then placed directly at `depart`, in a `useLayoutEffect`, to avoid one frame at the target position.
+   - Also triggered **automatically** if the target jumps by more than 4 units at once while the card is more than 4 units away.
+   - Trajectory: cubic Bézier `p0 → p0 + élan·Y → cible + 0,85·élan·Y → cible`, with `élan = min(5,5, 1,8 + d·0,3) × hauteurVol`. The lift is zero if the end point is high (y > 8), which avoids loops.
+   - Easing `douceur()` (cubic in-out); rotation by `slerp` plus a sinusoidal yaw of ±0.45 rad (random direction); scale interpolated with a 14% swell; **folding** of the card (`uPli`) as a sine curve.
+   - Duration `min(1,6, max(1,05, 0,95 + d·0,04)) × dureeVol`.
+   - `delai` (in the `Pose`) delays the start without hiding the card.
+3. **Transients** (`Ephemere`): cards that no longer exist in the view (eliminated) or that are not represented in it (opponents' draws and deals). They fly from `depart` to `cible`, then are removed on arrival (`onArrivee`) or after 3 s + delay.
 
-**Qui calcule `depart` ?** Le diff de `Monde`. Il s'exécute **pendant le rendu** (`if (precedente !== vue) {…; setPrecedente(vue)}`, motif React « ajuster l'état quand une prop change ») et non dans un effet, pour que les nouveaux `Carte3D` montent **dans le même rendu** avec leur `depart`. Sinon la carte apparaîtrait une frame à la cible avant de sauter au départ. Règles :
+**Who computes `depart`?** The diff in `Monde`. It runs **during render** (`if (precedente !== vue) {…; setPrecedente(vue)}`, the React pattern "adjust state when a prop changes") and not in an effect, so that the new `Carte3D` mount **in the same render** with their `depart`. Otherwise the card would appear for one frame at the target before jumping to the start. Rules:
 
-- **Journal** (nouvelles entrées) : `carteJouee` des autres → `poseSiege(zone)` ; `carteJouee` à moi → clone de `posesCamera.get(id)` ; `carteEliminee` → transitoire depuis l'**ancienne** disposition (`disposer(precedente, sieges(precedente))`) ; `pioche` des autres → transitoires de dos.
-- **Diff** : toute carte de `moi.main` absente de la main précédente part du dessus de la pioche **telle qu'elle était avant** (`precedente.nombreCartesPioche - rang`), avec les délais 0,35 + 0,28·rang.
-- `departs` est remplacé (et non fusionné) à chaque changement de vue : un `depart` ne sert qu'au montage, jamais à une carte déjà présente.
-- Ouverture `distribution` : `3 × n` cartes partent de la pioche **reconstituée** (`nombreCartesPioche + total − k`), une toutes les `pasDistribution` secondes, dans l'ordre de table. Les miennes vont en main (`distribution` Map), celles des autres sous la table (transitoires). Un `glisse` par carte.
-- Ouverture `missions` : départs calculés **dans le repère caméra** (`worldToLocal`), parce que les missions sont dans `SuitCamera`.
+- **Log** (new entries): `carteJouee` by the others → `poseSiege(zone)`; `carteJouee` by me → clone of `posesCamera.get(id)`; `carteEliminee` → transient from the **old** layout (`disposer(precedente, sieges(precedente))`); `pioche` by the others → face-down transients.
+- **Diff**: any card of `moi.main` absent from the previous hand starts from the top of the draw pile **as it was before** (`precedente.nombreCartesPioche - rang`), with the delays 0.35 + 0.28·rang.
+- `departs` is replaced (not merged) on every view change: a `depart` is only used at mount, never for a card that is already present.
+- Opening `distribution`: `3 × n` cards start from the **reconstructed** draw pile (`nombreCartesPioche + total − k`), one every `pasDistribution` seconds, in table order. Mine go to the hand (`distribution` Map), those of the others under the table (transients). One `glisse` per card.
+- Opening `missions`: start points computed **in camera space** (`worldToLocal`), because the missions are in `SuitCamera`.
 
-**Clés React** : l'id de la carte. Une carte qui passe de la main (rendue dans le bloc « main ») au plateau (bloc `plateau`) **change de parent**, donc remonte. C'est pour cela que le départ « depuis la main » passe par `posesCamera` et non par la continuité du composant.
+**React keys**: the card id. A card that moves from the hand (rendered in the "hand" block) to the board (`plateau` block) **changes parent**, hence remounts. That is why the start "from the hand" goes through `posesCamera` and not through the continuity of the component.
 
-**Couronne** (`Couronne3D`) : elle ne se téléporte jamais. Quand la cible change, elle **redescend sous la table** (y −1,8), change de position une fois cachée, puis remonte.
+**Crown** (`Couronne3D`): it never teleports. When the target changes, it **goes back down under the table** (y −1.8), changes position once hidden, then rises again.
 
-**Apparitions** (`Apparition` dans `scene.tsx`) : montée depuis `hauteur` avec une opacité progressive. En mode `masque`, un fondu en hauteur (`avecFondu()`, uniforms partagés `FONDU`) donne l'effet « sort de la table ». Les matériaux ne sont remis opaques qu'**une fois** l'animation finie (drapeau `fini`), pour ne pas payer la transparence en permanence.
+**Appearances** (`Apparition` in `scene.tsx`): rise from `hauteur` with a progressive opacity. In `masque` mode, a height fade (`avecFondu()`, shared `FONDU` uniforms) gives the "coming out of the table" effect. Materials are set back to opaque only **once** the animation is finished (`fini` flag), to avoid paying for transparency permanently.
 
-**Séquence de fin** (`fin.ts`, `programme(piles)`), en millisecondes depuis l'entrée en phase `fin` :
+**End sequence** (`fin.ts`, `programme(piles)`), in milliseconds since entering phase `fin`:
 
-| t (ms) | État | Effet |
+| t (ms) | State | Effect |
 |---|---|---|
-| 0 | `DEPART` | espions de la table face cachée dans la colonne Reine |
-| 900 | `espionsTable: "retourne"` | les espions se retournent sur place (son `revele` ×4) |
-| 2 100 | `espionsTable: "range"` | les espions volent vers leur vraie colonne |
-| 2 200 + i·950 (i = 1…6) | `familles: i` | flèche ou « = » et ligne lumineuse pour chaque famille, de gauche à droite (son `pose`) |
-| +1 300 | `domaines: true` | les espions des domaines se révèlent et se regroupent |
-| +1 500, puis +750 par pile | `pile: p` | pile p soulevée et points « +n / −n » (son `clic`) ; compteur total par joueur |
-| +400 | `missions: true` | missions de tous visibles près des pseudos, lueur **or** si validées (son `mission`) |
-| +1 800 | `noir` | (réservé) |
-| +3 000 | `projecteur` | aura du ou des gagnants (`useCentresGagnants`) |
-| +4 000 | `texte` | annonce de victoire (son `victoire`) + bouton « Passer » |
-| +8 500 | `tableau` | `FinDePartie` (tableau des scores) |
+| 0 | `DEPART` | the table Spies face down in the Queen column |
+| 900 | `espionsTable: "retourne"` | the Spies flip over in place (sound `revele` ×4) |
+| 2,100 | `espionsTable: "range"` | the Spies fly to their real column |
+| 2,200 + i·950 (i = 1…6) | `familles: i` | arrow or "=" and glowing line for each family, from left to right (sound `pose`) |
+| +1,300 | `domaines: true` | the Spies in the domains reveal themselves and regroup |
+| +1,500, then +750 per pile | `pile: p` | pile p lifted and points "+n / −n" (sound `clic`); total counter per player |
+| +400 | `missions: true` | everyone's missions visible near the nicknames, **gold** glow if fulfilled (sound `mission`) |
+| +1,800 | `noir` | (reserved) |
+| +3,000 | `projecteur` | aura of the winner(s) (`useCentresGagnants`) |
+| +4,000 | `texte` | victory announcement (sound `victoire`) + « Passer » button |
+| +8,500 | `tableau` | `FinDePartie` (score table) |
 
-« Passer » saute directement à `FINAL`. Leva « End Sequence » propose Replay et un curseur `step` pour déboguer image par image (il suspend le minuteur : `lecture` négatif).
+« Passer » jumps straight to `FINAL`. Leva "End Sequence" offers Replay and a `step` slider to debug frame by frame (it suspends the timer: negative `lecture`).
 
-### 4.5 Valeurs Leva retenues (valeurs par défaut en production)
+### 4.5 Leva values in use (production defaults)
 
-Ces valeurs ont été réglées à la main, à l'œil, puis recopiées dans le code avec « Copy values ». Changer une dimension (`CARTE_L`, `TAPIS_L`…) oblige à les revoir.
+These values were tuned by hand, by eye, then copied back into the code with "Copy values". Changing a dimension (`CARTE_L`, `TAPIS_L`…) means revisiting them.
 
-- **Camera** (SCENE) : `inclinaison 40`, `lacet 0`, `distance 37,6`, `fov 26,5`, `cible {x 0, y(=z) 0,6}`.
-- **Opening** (TRANSITION) : `dureeTapis 3,2`, `pasDistribution 0,4`, `attenteBouton 1,6`.
-- **Deck** (la main, SCENE) :
-  - `taille 0,66` (fraction de la hauteur de vue), `pas 0,9`, `position {0, 0,22}`, `rotation {−0,11, 0,15, −0,1}` ;
-  - `eventail 0,09`, `courbe 0,045` ;
+- **Camera** (SCENE): `inclinaison 40`, `lacet 0`, `distance 37,6`, `fov 26,5`, `cible {x 0, y(=z) 0,6}`.
+- **Opening** (TRANSITION): `dureeTapis 3,2`, `pasDistribution 0,4`, `attenteBouton 1,6`.
+- **Deck** (the hand, SCENE):
+  - `taille 0,66` (fraction of the view height), `pas 0,9`, `position {0, 0,22}`, `rotation {−0,11, 0,15, −0,1}`;
+  - `eventail 0,09`, `courbe 0,045`;
   - `leveeSurvol 0,08`, `echelleSurvol 1`, `leveeSelection 0,32`, `echelleSelection 1,12`, `avanceSelection 0,15`, `rotationSelection 0`.
-- **Missions** (ouverture) :
-  - `distance 4,4`, `position {0, 0,32}`, `rotation 0`, `echelle 1,4`, `ecart 0,3` ;
-  - `angles {y 0,06, z 0,01}`, `carte1/2 {0,0}`, `recul 0`, `souris 0,1` ;
+- **Missions** (opening):
+  - `distance 4,4`, `position {0, 0,32}`, `rotation 0`, `echelle 1,4`, `ecart 0,3`;
+  - `angles {y 0,06, z 0,01}`, `carte1/2 {0,0}`, `recul 0`, `souris 0,1`;
   - `voile 0,24`, `voileFocus 0,24`, `fonduVoile 0,8`.
-- **Missions · In Game** :
-  - `taille 0,36`, `position {0,0}`, `angles {carte1 0,08, carte2 0,01}`, `carte1 {0,1, 0,085}`, `carte2 {0,04, −0,07}` ;
-  - `leveeSurvol 0,02`, `echelleSurvol 1,01`, `dureeSurvol 0,05`, `dureeRetour 0,12`, `dureeDefocus 0,4` ;
+- **Missions · In Game**:
+  - `taille 0,36`, `position {0,0}`, `angles {carte1 0,08, carte2 0,01}`, `carte1 {0,1, 0,085}`, `carte2 {0,04, −0,07}`;
+  - `leveeSurvol 0,02`, `echelleSurvol 1,01`, `dureeSurvol 0,05`, `dureeRetour 0,12`, `dureeDefocus 0,4`;
   - `refletFocus 0,06`, `distanceFocus 3,6`, `echelleFocus 1,4`, `sourisFocus 0,16`.
-- **Draw Pile** : `delai 0,15`, `duree 1,4`, `chute 0,35`, `hauteur 3`, `easing "ease out"`, `fonduBas 0,8`, `fonduHaut 4`, `delaiCompteur 0,1`.
-- **Mat** : `opacite (motif) 0,12`, `desaturation 0,06`, `fusion 3 (soft light)`, `force 0,8`, `echelle 0,5` tuile par unité, `epaisseur 0,018`.
-- **Card** (`REGLAGES_DISPOSITION`) : `rotationAleatoire 0,017`, `espacementPile 0,02`, `espacementPioche 0,017`.
-- **Card** (`REGLAGES_CARTE`) : `epaisseur 0,005 × largeur`, `pliable 0,04`, `dureeVol 1,2`, `hauteurVol 1,9`, `ombre 0,06`.
-- **Card Effects** :
-  - assassin : `couleurAssassin #ff4d4d`, `haloAssassin 0,75`, `pulsationAssassin 0,06`, `contourAssassin true` ;
-  - mission validée : `couleurOr #f2c14e`, `haloOr 0,35`, `pulsationOr 0,03`, `scintillement 0,55`, `vitesseScintillement 0,35`, `vitessePulsation 1,6` ;
-  - cadre de sélection : `couleurSelection #fff`, `opaciteCadre 0,75`, `pulsationCadre 0,2`, `respirationCadre 0,012`, `vitesseCadre 3` ;
-  - reflet : `reflet 0,5`, `mouvementReflet 0,45`.
-- **Player Zone** (`REGLAGES_ZONE`) : opacités `0,05` (repos) / `0,12` (jouable) / `0,22` (survol), aura `0,55` / `1`, `arrondi 0,35`, `taillePseudo 0,62`, `reculPseudo 0,45`. Aura (`AURA_DEFAUT`) : `intensite 1`, `bord 1`, `halo 1`, `etoiles 0,5`, `densite 2,2`, `taille 1`, `vitesse 0,4` (mêmes valeurs pour la zone et pour le gagnant).
-- **Mat Lines** (`REGLAGES_LIGNES`, communes aux cibles et à la fin) :
-  - `largeur 0,96 × colonne`, `longueur 2,1 × CARTE_H`, `hauteur 0,07`, `fondu 1,6` ;
-  - lumière `#ffe8a3` / bord `#fff` / `0,85` ;
-  - disgrâce `#000` / `#000` / `0,85` ;
+- **Draw Pile**: `delai 0,15`, `duree 1,4`, `chute 0,35`, `hauteur 3`, `easing "ease out"`, `fonduBas 0,8`, `fonduHaut 4`, `delaiCompteur 0,1`.
+- **Mat**: `opacite (motif) 0,12`, `desaturation 0,06`, `fusion 3 (soft light)`, `force 0,8`, `echelle 0,5` tile per unit, `epaisseur 0,018`.
+- **Card** (`REGLAGES_DISPOSITION`): `rotationAleatoire 0,017`, `espacementPile 0,02`, `espacementPioche 0,017`.
+- **Card** (`REGLAGES_CARTE`): `epaisseur 0,005 × largeur`, `pliable 0,04`, `dureeVol 1,2`, `hauteurVol 1,9`, `ombre 0,06`.
+- **Card Effects**:
+  - Assassin: `couleurAssassin #ff4d4d`, `haloAssassin 0,75`, `pulsationAssassin 0,06`, `contourAssassin true`;
+  - validated mission: `couleurOr #f2c14e`, `haloOr 0,35`, `pulsationOr 0,03`, `scintillement 0,55`, `vitesseScintillement 0,35`, `vitessePulsation 1,6`;
+  - selection frame: `couleurSelection #fff`, `opaciteCadre 0,75`, `pulsationCadre 0,2`, `respirationCadre 0,012`, `vitesseCadre 3`;
+  - reflection: `reflet 0,5`, `mouvementReflet 0,45`.
+- **Player Zone** (`REGLAGES_ZONE`): opacities `0,05` (idle) / `0,12` (playable) / `0,22` (hover), aura `0,55` / `1`, `arrondi 0,35`, `taillePseudo 0,62`, `reculPseudo 0,45`. Aura (`AURA_DEFAUT`): `intensite 1`, `bord 1`, `halo 1`, `etoiles 0,5`, `densite 2,2`, `taille 1`, `vitesse 0,4` (same values for the zone and for the winner).
+- **Mat Lines** (`REGLAGES_LIGNES`, shared by the targets and the end):
+  - `largeur 0,96 × colonne`, `longueur 2,1 × CARTE_H`, `hauteur 0,07`, `fondu 1,6`;
+  - light `#ffe8a3` / edge `#fff` / `0,85`;
+  - disgrace `#000` / `#000` / `0,85`;
   - `pulsation 0,15`, `vitesse 1,6`.
-- **End** (`REGLAGES_FIN`) : `tailleFleche 1,15`, `forceGagnant 0,4`, `taillePoints 0,75`, couleurs `#ffd35c` / `#ff5a5a` / `#a8b0b2`, `relief true`, ombre `#000` à `0,75`, flou `14`, décalage `8`.
-- **Share Photo** (`REGLAGES_PHOTO`) : `inclinaison 34`, `lacet 0`, `distance 50`, `fov 28`, `cibleX 0`, `cibleZ −0,8`.
-- **Announcements** (`DEFAUT`, `annonce.tsx`) :
-  - `duree 2,4`, `voile 0,64`, `fondu 0,3`, `taille 4,8rem`, `contour 0,5px #f2b705`, `ombre 4`, `flou 18`, `echelleDepart 0,85`, `rebond 16` ;
-  - lignes `3,2 s` / `2px` / `#f5c542` / écart `80` ;
-  - confettis : 70, `#ffd35c`, lueur `16`.
-  - Surcharges « Your Turn » : `haut`, `degrade 45 %`, `voile 0,55`, sans lignes, `taille 2,2`, `contour 0`, `ombre 2`, `flou 12`, `echelleDepart 0,96`, `duree 2`, `espacement 0,06`.
-  - Surcharges « Victory » : `duree 4,5`, `son false` (le son vient de `useSonsJeu`), `taille 3,4`, `confettis true`.
-- **Sound** (AUDIO) : `general 1`, `musique 0,1`, `effets 0,8`, `ambiance 0,18` (`VOLUMES_DEFAUT`, `web/lib/son.ts`).
+- **End** (`REGLAGES_FIN`): `tailleFleche 1,15`, `forceGagnant 0,4`, `taillePoints 0,75`, colors `#ffd35c` / `#ff5a5a` / `#a8b0b2`, `relief true`, shadow `#000` at `0,75`, blur `14`, offset `8`.
+- **Share Photo** (`REGLAGES_PHOTO`): `inclinaison 34`, `lacet 0`, `distance 50`, `fov 28`, `cibleX 0`, `cibleZ −0,8`.
+- **Announcements** (`DEFAUT`, `annonce.tsx`):
+  - `duree 2,4`, `voile 0,64`, `fondu 0,3`, `taille 4,8rem`, `contour 0,5px #f2b705`, `ombre 4`, `flou 18`, `echelleDepart 0,85`, `rebond 16`;
+  - lines `3,2 s` / `2px` / `#f5c542` / gap `80`;
+  - confetti: 70, `#ffd35c`, glow `16`.
+  - Overrides "Your Turn": `haut`, `degrade 45 %`, `voile 0,55`, no lines, `taille 2,2`, `contour 0`, `ombre 2`, `flou 12`, `echelleDepart 0,96`, `duree 2`, `espacement 0,06`.
+  - Overrides "Victory": `duree 4,5`, `son false` (the sound comes from `useSonsJeu`), `taille 3,4`, `confettis true`.
+- **Sound** (AUDIO): `general 1`, `musique 0,1`, `effets 0,8`, `ambiance 0,18` (`VOLUMES_DEFAUT`, `web/lib/son.ts`).
 
-### 4.6 Performances
+### 4.6 Performance
 
-- Un seul Canvas, `dpr [1, 2]`. `preserveDrawingBuffer: true` coûte un peu, mais il est indispensable pour la photo (§3.6).
-- **Tout est en `MeshBasicMaterial`** (sans éclairage, `toneMapped={false}`) : le rendu est une composition 2D en 3D. Les lumières de `Monde` ne servent qu'au cylindre du rouleau (`meshStandardMaterial`).
-- **Géométries partagées** : caches `Map` par dimensions (`geometrieCarte()`, `geometrieTranche()`, `geometrieCadre()`, `pliable()`). La tessellation pour le pliage (`TessellateModifier`, arête max. = `min(l, h)/5`) n'est faite **qu'une fois par taille**.
-- **Textures partagées** : `charger()` met en cache les promesses par URL ; les textures canvas (ombre, reflet, halo, motif, signes, flèches) sont des singletons de module. `missionComposee()` est en `WeakMap` par image.
-- **Réglages mutables** : `REGLAGES_*` sont des objets modifiés en place et lus dans `useFrame`. Déplacer un curseur leva **ne fait pas de rerender**. Seuls les réglages qui changent la disposition appellent `signalerReglages()` → `useVersionReglages()` → `disposer()` est recalculé.
-- `useFrame` par carte (jusqu'à environ 90 cartes plus les transitoires) : le coût est acceptable. Les effets inutiles sont coupés via `visible = false` (reflet, scintillement, aura dont l'opacité est ≈ 0).
-- `Apparition` ne parcourt (`traverse`) ses enfants que pendant l'animation.
-- `TexteTable` régénère son canvas seulement si le texte ou le style change. La police est attendue (`document.fonts.load`) pour éviter de figer une police de repli dans la texture.
-- Confettis : sprite pré-rendu, `requestAnimationFrame` propre, dpr ≤ 1,25.
-- Mesure : compteur FPS + pire frame dans le panneau debug (`Fps`).
+- A single Canvas, `dpr [1, 2]`. `preserveDrawingBuffer: true` costs a little, but it is essential for the photo (§3.6).
+- **Everything is `MeshBasicMaterial`** (unlit, `toneMapped={false}`): the rendering is a 2D composition in 3D. The lights of `Monde` are only used for the roller cylinder (`meshStandardMaterial`).
+- **Shared geometries**: `Map` caches keyed by dimensions (`geometrieCarte()`, `geometrieTranche()`, `geometrieCadre()`, `pliable()`). The tessellation for folding (`TessellateModifier`, max edge = `min(l, h)/5`) is done **only once per size**.
+- **Shared textures**: `charger()` caches the promises by URL; the canvas textures (shadow, reflection, halo, pattern, signs, arrows) are module singletons. `missionComposee()` is a `WeakMap` per image.
+- **Mutable settings**: `REGLAGES_*` are objects modified in place and read in `useFrame`. Moving a leva slider **does not rerender**. Only the settings that change the layout call `signalerReglages()` → `useVersionReglages()` → `disposer()` is recomputed.
+- `useFrame` per card (up to about 90 cards plus the transient ones): the cost is acceptable. Useless effects are switched off via `visible = false` (reflection, sparkle, aura whose opacity is ≈ 0).
+- `Apparition` only traverses (`traverse`) its children during the animation.
+- `TexteTable` regenerates its canvas only if the text or the style changes. The font is awaited (`document.fonts.load`) to avoid freezing a fallback font into the texture.
+- Confetti: pre-rendered sprite, its own `requestAnimationFrame`, dpr ≤ 1.25.
+- Measurement: FPS counter + worst frame in the debug panel (`Fps`).
 
 ---
 
-## 5. UI hors 3D
+## 5. UI outside the 3D scene
 
-### 5.1 Écrans « banquet » (accueil, invitation, lobby)
+### 5.1 "Banquet" screens (home, invitation, lobby)
 
-`web/components/banquet/ecran-banquet.tsx` contient tout le décor et les primitives des écrans hors partie :
+`web/components/banquet/ecran-banquet.tsx` contains all the decor and the primitives of the screens outside the game:
 
-- `EcranBanquet` : un `<form>` plein écran, avec le décor haut (optionnel), le logo animé (motion spring), le contenu, la Reine, le décor bas (`srcSetDecor()` pour 1600/3000 px), la zone `bouton` et `bas`, les boutons son et règles, et le `PiedDePage`.
-- `decorBanquet(catalogue)` : extrait les URL du décor du catalogue.
-- `BoutonCour` : **le** bouton du jeu (h-16, texte `font-display` 2xl, fond crème). `type="submit"` s'il n'a pas de `onClick` : le formulaire se soumet avec Entrée. Il accepte un état `occupe`.
-- `ChampCode` : InputOTP de 6 cases, avec les attributs `data-1p-ignore`, `data-lpignore` et `data-bwignore` pour que les gestionnaires de mots de passe ne proposent rien. Il accepte un lien à copier.
-- `ChampAppellation` : pseudo en majuscules, 20 caractères, mêmes attributs anti-gestionnaires, `autoFocus`.
-- `Introduction`, `Description` : textes animés.
-- `PiedDePage` : crédits **codés en dur** (auteurs, illustratrice, éditeur Catch Up Games, signature « oré ˖ ࣪⊹ », e-mail de contact). Le template les a déplacés dans Sanity (`creditsAuthors`, `publisher`, `publisherUrl`).
+- `EcranBanquet`: a full-screen `<form>`, with the top decor (optional), the animated logo (motion spring), the content, the Queen, the bottom decor (`srcSetDecor()` for 1600/3000 px), the `bouton` and `bas` areas, the sound and rules buttons, and the `PiedDePage`.
+- `decorBanquet(catalogue)`: extracts the decor URLs from the catalog.
+- `BoutonCour`: **the** game button (h-16, `font-display` 2xl text, cream background). `type="submit"` when it has no `onClick`: the form submits with Enter. It accepts an `occupe` state.
+- `ChampCode`: a 6-slot InputOTP, with the `data-1p-ignore`, `data-lpignore` and `data-bwignore` attributes so that password managers offer nothing. It accepts a link to copy.
+- `ChampAppellation`: uppercase nickname, 20 characters, same anti-password-manager attributes, `autoFocus`.
+- `Introduction`, `Description`: animated texts.
+- `PiedDePage`: **hardcoded** credits (authors, illustrator, publisher Catch Up Games, signature « oré ˖ ࣪⊹ », contact email). The template moved them into Sanity (`creditsAuthors`, `publisher`, `publisherUrl`).
 
-Écrans : `Accueil` (`web/components/accueil/accueil.tsx`), `PartieClient` (`web/components/partie/partie-client.tsx`), `ListeConvives` et `BoutonLobby` (`web/components/partie/lobby.tsx`, qui exporte aussi `Couronne`, réutilisée par la fin).
+Screens: `Accueil` (`web/components/accueil/accueil.tsx`), `PartieClient` (`web/components/partie/partie-client.tsx`), `ListeConvives` and `BoutonLobby` (`web/components/partie/lobby.tsx`, which also exports `Couronne`, reused by the game over screen).
 
-### 5.2 En jeu
+### 5.2 In game
 
-- **Bandeau** (`web/components/jeu/bandeau.tsx`, `Bandeau`) : en haut à droite. La ligne principale affiche « C'est votre tour » / « C'est au tour de X » ou le texte d'attente (`catalogue.texteConvives`, « Fin du banquet » en fin), avec une animation par changement de clé. En dessous, l'historique groupé par tour (`regrouper()`), du plus récent au plus ancien, avec un masque dégradé en bas, une hauteur max. de 12,5rem et une barre de défilement cachée. Un voile radial sombre est posé derrière (`jeu3d.tsx`) pour la lisibilité sur le tapis.
-- **Messages** (`web/components/jeu/message.tsx`) : `Message` (par type d'événement), `BadgeCarte` (couleur de la famille, picto du rôle, filigrane de la famille ; gris « disgrâce » pour une carte masquée), `Zone` (« à la table de la Reine », « chez vous », « chez lui », « chez X »), `Sujet` (conjugaison « Vous jouez / éliminez / piochez » via `VOUS`).
-- **Pictos** (`web/components/jeu/pictos.tsx`) : `PictoRole` (picto Sanity sur pastille, repli sur des icônes lucide Crown / VenetianMask / Sword / Shield), `PictoFamille` (pastille colorée + picto, repli sur l'initiale).
-- **Pseudo** (`web/components/jeu/pseudo.tsx`) : `Pseudo` et `PseudoJoueur` (majuscules, graisse black, espacement 0,12em, couleur du siège).
-- **Contexte** (`web/components/jeu/contexte.tsx`) : `JeuProvider` / `useJeu()` exposent `catalogue`, `partie`, `vue`, `pseudo(id)`, `couleur(id)`, et un registre de positions DOM (`enregistrer`, `rect`), reliquat de l'ancienne UI 2D.
-- **Couleurs des joueurs** : `COULEURS_JOUEURS = ["#a8603a", "#6f5b99", "#9c4c72", "#4f6478", "#7a5a3a"]`, attribuées **par index dans `partie.joueurs`** (ordre d'arrivée), donc identiques pour tous. Elles sont volontairement sourdes et éclaircies à l'affichage (`brightness-150`) pour ne pas se confondre avec les couleurs de famille.
-- **Règles** (`web/components/regles.tsx`) :
-  - `ReglesButton` : bouton icône ou texte ouvrant une modale à onglets (`ONGLETS` : but, déroulement, tour, rôles, fin ; plus une vidéo YouTube nocookie `videoId`), indicateur animé `layoutId="onglet-regles"`.
-  - Le contenu vient de `catalogue.regles` (Sanity, repli `REGLES_PAR_DEFAUT` / `TEXTES_REGLES_DEFAUT` dans `web/lib/regles-defaut.ts`).
-  - Mini-balisage maison dans les textes : `{lumiere}`, `{disgrace}`, `{neutre}` → étiquettes colorées (`Etiquette`) ; `**gras**` ; un paragraphe vide sépare les blocs (`Riche`, `Ligne`).
-  - **Les textes sont paraphrasés, pas recopiés du livret** (droits d'auteur). `ANCIENS_TEXTES_REGLES` garde les versions précédentes pour la migration.
-- **Fin** (`web/components/jeu/fin-de-partie.tsx`) :
-  - `FinDePartie` : overlay sombre, carte « La cour s'incline devant » + couronne + pseudo(s) du ou des vainqueurs + total + `CartesFamilles` (points par famille en mini-cartes colorées, missions réussies en cartes blanche et bleue superposées), puis classement des autres (rang partagé en cas d'égalité).
-  - Bouton « Rejouer (x/n) » à cheval sur le cadre, bascule « Afficher / Masquer le tableau des scores », vignette photo inclinée « Partager le résultat ».
-  - `phraseVainqueur()` et `annonceVainqueur()` : phrase tirée de `phrasesVainqueur` par un hash déterministe, gabarit `{pseudo}` / `{points}`. L'annonce 3D coupe la phrase avant `{pseudo}` et met « noms · N pts » en sous-titre.
-- **Partage** (`web/components/jeu/partage.ts`, `web/components/jeu/apercu-partage.tsx`) :
-  - `genererPartage()` → `imagePartage(lignes, photographierPartie(1600, 1200))` : canvas 1600×1200 = photo 3D + vignettage elliptique + dégradés + couronne teintée (`teinter()`) + noms des gagnants + « N points · Favori de la cour » + autres joueurs + « COURTISANS ONLINE » + date et heure (fr-FR).
-  - Si la photo échoue, l'image se rabat sur le canvas visible `#scene-3d canvas`.
-  - `ApercuPartage` : modale avec « Partager » (Web Share API si `navigator.canShare({files})`), « Copier l'image » (`ClipboardItem`) et « Télécharger ». Le bouton principal est blanc, les autres sont en contour, selon ce que le navigateur supporte.
+- **Banner** (`web/components/jeu/bandeau.tsx`, `Bandeau`): top right. The main line shows « C'est votre tour » / « C'est au tour de X » or the waiting text (`catalogue.texteConvives`, « Fin du banquet » at the end), with one animation per key change. Below it, the history grouped by turn (`regrouper()`), from newest to oldest, with a gradient mask at the bottom, a max height of 12.5rem and a hidden scrollbar. A dark radial veil is laid behind it (`jeu3d.tsx`) for legibility on the mat.
+- **Messages** (`web/components/jeu/message.tsx`): `Message` (per event type), `BadgeCarte` (family color, role pictogram, family watermark; gray "disgrace" for a hidden card), `Zone` (« à la table de la Reine », « chez vous », « chez lui », « chez X »), `Sujet` (conjugation « Vous jouez / éliminez / piochez » via `VOUS`).
+- **Pictograms** (`web/components/jeu/pictos.tsx`): `PictoRole` (Sanity pictogram on a badge, fallback to lucide icons Crown / VenetianMask / Sword / Shield), `PictoFamille` (colored badge + pictogram, fallback to the initial).
+- **Nickname** (`web/components/jeu/pseudo.tsx`): `Pseudo` and `PseudoJoueur` (uppercase, black weight, spacing 0.12em, seat color).
+- **Context** (`web/components/jeu/contexte.tsx`): `JeuProvider` / `useJeu()` expose `catalogue`, `partie`, `vue`, `pseudo(id)`, `couleur(id)`, and a registry of DOM positions (`enregistrer`, `rect`), a leftover from the old 2D UI.
+- **Player colors**: `COULEURS_JOUEURS = ["#a8603a", "#6f5b99", "#9c4c72", "#4f6478", "#7a5a3a"]`, assigned **by index in `partie.joueurs`** (order of arrival), hence identical for everyone. They are deliberately muted and lightened at display time (`brightness-150`) so they are not confused with the family colors.
+- **Rules** (`web/components/regles.tsx`):
+  - `ReglesButton`: icon or text button opening a tabbed modal (`ONGLETS`: goal, flow, turn, roles, end; plus a YouTube nocookie video `videoId`), animated indicator `layoutId="onglet-regles"`.
+  - The content comes from `catalogue.regles` (Sanity, fallback `REGLES_PAR_DEFAUT` / `TEXTES_REGLES_DEFAUT` in `web/lib/regles-defaut.ts`).
+  - Home-grown mini-markup in the texts: `{lumiere}`, `{disgrace}`, `{neutre}` → colored labels (`Etiquette`); `**gras**`; an empty paragraph separates the blocks (`Riche`, `Ligne`).
+  - **The texts are paraphrased, not copied from the rulebook** (copyright). `ANCIENS_TEXTES_REGLES` keeps the previous versions for the migration.
+- **Game over** (`web/components/jeu/fin-de-partie.tsx`):
+  - `FinDePartie`: dark overlay, card « La cour s'incline devant » + crown + nickname(s) of the winner(s) + total + `CartesFamilles` (points per family as colored mini-cards, successful missions as overlapping white and blue cards), then the ranking of the others (shared rank in case of a tie).
+  - « Rejouer (x/n) » button straddling the frame, « Afficher / Masquer le tableau des scores » toggle, tilted photo thumbnail « Partager le résultat ».
+  - `phraseVainqueur()` and `annonceVainqueur()`: phrase drawn from `phrasesVainqueur` by a deterministic hash, template `{pseudo}` / `{points}`. The 3D announcement cuts the phrase before `{pseudo}` and puts "names · N pts" in the subtitle.
+- **Sharing** (`web/components/jeu/partage.ts`, `web/components/jeu/apercu-partage.tsx`):
+  - `genererPartage()` → `imagePartage(lignes, photographierPartie(1600, 1200))`: 1600×1200 canvas = 3D photo + elliptical vignetting + gradients + tinted crown (`teinter()`) + winners' names + « N points · Favori de la cour » + other players + « COURTISANS ONLINE » + date and time (fr-FR).
+  - If the photo fails, the image falls back to the visible canvas `#scene-3d canvas`.
+  - `ApercuPartage`: modal with « Partager » (Web Share API if `navigator.canShare({files})`), « Copier l'image » (`ClipboardItem`) and « Télécharger ». The main button is white, the others are outlined, depending on what the browser supports.
 
-### 5.3 Son et musique
+### 5.3 Sound and music
 
-- **Moteur** (`web/lib/son.ts`) :
-  - WebAudio avec des bus `master` → `effets`, `musique`, `ambiance`.
-  - `initialiserSon()` crée le contexte au **premier geste** (`MoteurSon`, `web/components/son.tsx`, écoute `pointerdown` / `keydown`), à cause de la politique d'autoplay.
-  - Les tampons sont préchargés (`charger()`), les fichiers étant nommés par `FICHIERS_SONS` (anglais, MAJUSCULES : `HOVER`, `SELECT`, `PLACE`, `SLIDE`, `CLICK`, `TURN`, `MISSION`, `ASSASSIN`, `ELIMINATE`, `VICTORY`, `REVEAL`, `AMBIENCE`, `MUSIC_*`).
-- `jouerSon(nom, {volume, delai})` :
-  - programmé sur l'horloge audio (`ctx.currentTime + delai`), ce qui permet de **caler un son sur une animation** sans `setTimeout` ;
-  - **anti-rafale** : ignoré si le même son a été programmé il y a moins de `delaiMin` ;
-  - volume réduit de 15 % si le précédent date de moins de 0,4 s ;
-  - variation aléatoire de hauteur (`ecart`) et de volume (±12 %) pour éviter l'effet « mitraillette ».
-- `REGLAGES` par son (`volume` / `ecart` / `delaiMin`) :
+- **Engine** (`web/lib/son.ts`):
+  - WebAudio with `master` → `effets`, `musique`, `ambiance` buses.
+  - `initialiserSon()` creates the context on the **first gesture** (`MoteurSon`, `web/components/son.tsx`, listens to `pointerdown` / `keydown`), because of the autoplay policy.
+  - The buffers are preloaded (`charger()`), the files being named by `FICHIERS_SONS` (English, UPPERCASE: `HOVER`, `SELECT`, `PLACE`, `SLIDE`, `CLICK`, `TURN`, `MISSION`, `ASSASSIN`, `ELIMINATE`, `VICTORY`, `REVEAL`, `AMBIENCE`, `MUSIC_*`).
+- `jouerSon(nom, {volume, delai})`:
+  - scheduled on the audio clock (`ctx.currentTime + delai`), which makes it possible to **sync a sound with an animation** without `setTimeout`;
+  - **anti-burst**: ignored if the same sound was scheduled less than `delaiMin` ago;
+  - volume reduced by 15% if the previous sound is less than 0.4 s old;
+  - random variation of pitch (`ecart`) and volume (±12%) to avoid the "machine gun" effect.
+- `REGLAGES` per sound (`volume` / `ecart` / `delaiMin`):
 
-  | Son | volume | ecart | delaiMin |
+  | Sound | volume | ecart | delaiMin |
   |---|---|---|---|
-  | survol | 0,22 | 0,025 | 0,045 |
-  | selection | 0,5 | 0,02 | 0,05 |
-  | pose | 0,65 | 0,03 | 0,03 |
-  | glisse | 0,45 | 0,03 | 0,03 |
-  | clic | 0,35 | 0,015 | 0,04 |
-  | tour | 0,45 | 0 | 0,5 |
-  | mission | 0,4 | 0 | 0,2 |
-  | assassin | 0,5 | 0,015 | 0,2 |
-  | elimine | 0,5 | 0,02 | 0,1 |
-  | victoire | 0,55 | 0 | 1 |
-  | revele | 0,45 | 0,03 | 0,03 |
+  | survol | 0.22 | 0.025 | 0.045 |
+  | selection | 0.5 | 0.02 | 0.05 |
+  | pose | 0.65 | 0.03 | 0.03 |
+  | glisse | 0.45 | 0.03 | 0.03 |
+  | clic | 0.35 | 0.015 | 0.04 |
+  | tour | 0.45 | 0 | 0.5 |
+  | mission | 0.4 | 0 | 0.2 |
+  | assassin | 0.5 | 0.015 | 0.2 |
+  | elimine | 0.5 | 0.02 | 0.1 |
+  | victoire | 0.55 | 0 | 1 |
+  | revele | 0.45 | 0.03 | 0.03 |
 
-- **Musique** : 4 pistes de danse de la Renaissance, en boucle **à un point de fin musical précis** (`MUSIQUES` : danse 68,5714 s, estampie 60,6316 s, pavane 120 s, branle 66,2069 s, soit des mesures entières). Les fichiers contiennent une queue de réverbération après ce point : ne pas boucler sur `duration`. Ambiance de repas bouclée sur 48 s (`DUREE_AMBIANCE`).
-- Préférences en localStorage : `courtisans:son` (on/off, `BoutonSon` / `useSonActif()`, `web/components/son.tsx`), `courtisans:volumes`, `courtisans:musique` (piste choisie dans le debug, onglet AUDIO).
-- `MoteurSon` joue aussi `clic` sur **tout** `button`, `a` ou `[role=button]` (écouteur en phase de capture sur `window`).
-- **Sons de jeu** (`web/components/jeu3d/sons.ts`) : tableau en §2.6. Les délais (0,95 s pour `pose`, 1,2 s pour `elimine`) sont **calés à la main sur `dureeVol`** (1,2 × environ 1,05 s). Si on change la durée de vol, les sons tombent à côté (§8).
-- Les annonces jouent leur propre son (`Annonce`, prop `son`), sauf « Victory » (`son: false`), déjà couvert par `useSonsJeu`.
+- **Music**: 4 Renaissance dance tracks, looped **at a precise musical end point** (`MUSIQUES`: dance 68.5714 s, estampie 60.6316 s, pavane 120 s, branle 66.2069 s, i.e. whole bars). The files contain a reverb tail after that point: do not loop on `duration`. Meal ambience looped on 48 s (`DUREE_AMBIANCE`).
+- Preferences in localStorage: `courtisans:son` (on/off, `BoutonSon` / `useSonActif()`, `web/components/son.tsx`), `courtisans:volumes`, `courtisans:musique` (track chosen in the debug panel, AUDIO tab).
+- `MoteurSon` also plays `clic` on **any** `button`, `a` or `[role=button]` (listener in the capture phase on `window`).
+- **Game sounds** (`web/components/jeu3d/sons.ts`): table in §2.6. The delays (0.95 s for `pose`, 1.2 s for `elimine`) are **synced by hand to `dureeVol`** (1.2 × about 1.05 s). If the flight duration is changed, the sounds miss their mark (§8).
+- Announcements play their own sound (`Annonce`, prop `son`), except "Victory" (`son: false`), already covered by `useSonsJeu`.
 
-### 5.4 Thème, polices, couleurs, i18n
+### 5.4 Theme, fonts, colors, i18n
 
-- **Thème** (`web/app/globals.css`) : variables shadcn en oklch, teintées bleu-vert (`--background oklch(0.29 0.05 205)`), texte crème `#f0e9ce`, primaire doré `oklch(0.76 0.13 85)`, `--lumiere`, `--disgrace`, et une variable par famille (`--famille-papillon`…) exposée en classes Tailwind (`bg-papillon`…). `viewport.themeColor = #0e3940`, `colorScheme: dark`. Pas de mode clair.
-- **Polices** :
-  - **Alegreya Variable** (`@fontsource-variable/alegreya`) pour `--font-sans` **et** `--font-display` ; elle est aussi utilisée en dur dans les canvas (`POLICE` dans `texte-table.tsx`, `textures.ts`, `partage.ts`).
-  - **Typey** en police locale (`web/fonts/typey*.woff2`, `next/font/local`, `--police-typey`, classe `font-typey`) pour les annonces plein écran et l'introduction de l'accueil.
-  - Cinzel a été supprimée.
-- **Images d'ambiance** : `--image-motif` et `--image-papier` sont posées sur `<html>` par `layout.tsx` depuis Sanity, et utilisées en `bg-(image:--image-motif)` (tableau des scores, écran ordinateur).
-- **Couleurs des familles** : **deux sources** ! Le catalogue (`CATALOGUE_PAR_DEFAUT.familles[f].couleur`, surchargeable par Sanity `family.color`) est utilisé par la 3D, les badges et le partage. `globals.css` (`--famille-*`) est utilisé par quelques classes CSS et `chateau.tsx`. Les valeurs diffèrent (papillon `#a3bcc2` contre `#c9d6de`). Voir §8.
-- **i18n** (`web/lib/i18n.ts`) : `LANGUES = ["fr", "en"]`, `traduire(valeur, langue)` avec repli sur fr puis sur la première langue non vide ; `Localise<T>`. **Seul le contenu Sanity est localisé** (`localeString`, `localeText`, `localeStringList`). La langue est toujours `LANGUE_PAR_DEFAUT = "fr"`. Les textes d'interface sont en dur dans les composants, en français. Le debug leva est en anglais.
+- **Theme** (`web/app/globals.css`): shadcn variables in oklch, tinted blue-green (`--background oklch(0.29 0.05 205)`), cream text `#f0e9ce`, golden primary `oklch(0.76 0.13 85)`, `--lumiere`, `--disgrace`, and one variable per family (`--famille-papillon`…) exposed as Tailwind classes (`bg-papillon`…). `viewport.themeColor = #0e3940`, `colorScheme: dark`. No light mode.
+- **Fonts**:
+  - **Alegreya Variable** (`@fontsource-variable/alegreya`) for `--font-sans` **and** `--font-display`; it is also hardcoded in the canvases (`POLICE` in `texte-table.tsx`, `textures.ts`, `partage.ts`).
+  - **Typey** as a local font (`web/fonts/typey*.woff2`, `next/font/local`, `--police-typey`, class `font-typey`) for the full-screen announcements and the home introduction.
+  - Cinzel was removed.
+- **Ambient images**: `--image-motif` and `--image-papier` are set on `<html>` by `layout.tsx` from Sanity, and used as `bg-(image:--image-motif)` (scoreboard, desktop screen).
+- **Family colors**: **two sources**! The catalog (`CATALOGUE_PAR_DEFAUT.familles[f].couleur`, overridable by Sanity `family.color`) is used by the 3D, the badges and sharing. `globals.css` (`--famille-*`) is used by a few CSS classes and `chateau.tsx`. The values differ (Butterfly `#a3bcc2` versus `#c9d6de`). See §8.
+- **i18n** (`web/lib/i18n.ts`): `LANGUES = ["fr", "en"]`, `traduire(valeur, langue)` with fallback to fr then to the first non-empty language; `Localise<T>`. **Only the Sanity content is localized** (`localeString`, `localeText`, `localeStringList`). The language is always `LANGUE_PAR_DEFAUT = "fr"`. The interface texts are hardcoded in the components, in French. The leva debug panel is in English.
 
 ---
 
 ## 6. Sanity
 
-Projet `2lo2f5sv`, dataset `production`. Studio autonome dans `apps/studio` (il ne doit pas être embarqué dans Next). Structure (`studio/structure.ts`) : les singletons `interface`, `game`, `rules` et `texts` (`SINGLETONS`), puis les listes `family`, `role`, `courtier`, `mission`. Constantes partagées : `studio/schemaTypes/constants.ts` (`LANGUAGES`, `FAMILIES`, `ROLES` avec les clés moteur françaises comme `value` et des titres anglais).
+Project `2lo2f5sv`, dataset `production`. Standalone studio in `apps/studio` (it must not be embedded in Next). Structure (`studio/structure.ts`): the singletons `interface`, `game`, `rules` and `texts` (`SINGLETONS`), then the lists `family`, `role`, `courtier`, `mission`. Shared constants: `studio/schemaTypes/constants.ts` (`LANGUAGES`, `FAMILIES`, `ROLES` with the French engine keys as `value` and English titles).
 
-Côté web : `web/sanity/queries.ts` (`CATALOGUE_QUERY`, une seule requête GROQ), `web/sanity/catalogue.ts` (`getCatalogue()`, revalidate 60, tag `catalogue`), `web/sanity/catalogue-client.ts` (fusion avec les défauts), `web/sanity/image.ts` (`urlFor`), `web/sanity/types.ts` (typegen : `pnpm typegen` dans le studio).
+Web side: `web/sanity/queries.ts` (`CATALOGUE_QUERY`, a single GROQ query), `web/sanity/catalogue.ts` (`getCatalogue()`, revalidate 60, tag `catalogue`), `web/sanity/catalogue-client.ts` (merge with the defaults), `web/sanity/image.ts` (`urlFor`), `web/sanity/types.ts` (typegen: `pnpm typegen` in the studio).
 
-### 6.1 Types de documents
+### 6.1 Document types
 
-| Document | Champs | Usage web |
+| Document | Fields | Web usage |
 |---|---|---|
-| `interface` (singleton) | `logo`, `banquetTop`, `banquetBottom`, `queen`, `pattern`, `paper`, `pictogramFrame`, `arrowUp`, `arrowDown` (images) | logo (1000 px), décor du banquet (3000 px + srcSet 1600), reine (1400), motif (512) et papier (1600) en variables CSS, cadre des pictos des règles (240), flèches de fin de partie (256, **SVG** via `/api/media` pour le canvas) |
-| `game` (singleton, groupes Board / Card backs) | `mat`, `matTexture`, `decorations[] {name, image}`, `courtierBack`, `whiteMissionBack`, `blueMissionBack` | tapis (2000), tissu en tuiles (1024), dos des courtisans (360) et des missions (520). **`decorations` n'est pas lu** |
-| `rules` (singleton, groupes video / goal / flow / turn / roles / scoring) | `videoId` + textes localisés : titres (`localeString`) `videoTitle`, `goalTitle`, `flowTitle`, `turnTitle`, `rolesTitle`, `scoringTitle` ; corps (`localeText`) `goalIntro`, `goalFamilies`, `goalMissions`, `flowIntro`, `flowMat`, `flowHand`, `flowMissions`, `flowStart`, `turnIntro`, `turnTable`, `turnDomain`, `turnOpponent`, `turnEnd`, `rolesIntro`, `scoringIntro`, `scoringReveal`, `scoringStatus`, `scoringPoints` | `regles.textes` (repli champ par champ sur `TEXTES_REGLES_DEFAUT`) |
-| `texts` (singleton) | `missionsButton`, `guestsSettling`, `banquetStarts` (`localeString`), `winnerPhrases` (`localeStringList`) | bouton de fin d'ouverture, texte d'attente du bandeau, annonce « banquet », phrases de victoire (`{pseudo}`, `{points}`) |
-| `family` | `name` (localisé), `key` (liste `FAMILIES`, obligatoire), `color` (hex obligatoire), `pictogram` (obligatoire) | nom, couleur (3D, badges, partage), picto (128). **La clé relie à l'enum moteur** : on ne peut pas ajouter de famille depuis Sanity |
-| `role` | `name`, `key` (`ROLES`), `countPerFamily` (entier ≥ 0), `pictogram`, `lettering` (SVG), `rule` (localisé) | nom et picto (UI) ; `countPerFamily`, `rule` et `lettering` **uniquement pour l'écran des règles**. `countPerFamily` n'alimente pas le moteur (`deck.ts` est codé en dur) |
-| `courtier` | `family` (réf.), `role` (réf., vide = sans rôle), `card` (image), `quantity` | image de face par `cleCarte(famille, role)` (360). **`quantity` n'est pas lu** |
-| `mission` | `color` (`blanche` / `bleue`), `text` (`localeText`), `card` (image), `condition` (objet `condition`) | serveur : `chargerMissions()` → `versCondition()` ; client : image (520) composée avec le texte (`composerMission()`) |
+| `interface` (singleton) | `logo`, `banquetTop`, `banquetBottom`, `queen`, `pattern`, `paper`, `pictogramFrame`, `arrowUp`, `arrowDown` (images) | logo (1000 px), banquet decor (3000 px + srcSet 1600), queen (1400), pattern (512) and paper (1600) as CSS variables, frame of the rules pictograms (240), game over arrows (256, **SVG** via `/api/media` for the canvas) |
+| `game` (singleton, groups Board / Card backs) | `mat`, `matTexture`, `decorations[] {name, image}`, `courtierBack`, `whiteMissionBack`, `blueMissionBack` | mat (2000), tiled fabric (1024), backs of the courtiers (360) and of the missions (520). **`decorations` is not read** |
+| `rules` (singleton, groups video / goal / flow / turn / roles / scoring) | `videoId` + localized texts: titles (`localeString`) `videoTitle`, `goalTitle`, `flowTitle`, `turnTitle`, `rolesTitle`, `scoringTitle`; bodies (`localeText`) `goalIntro`, `goalFamilies`, `goalMissions`, `flowIntro`, `flowMat`, `flowHand`, `flowMissions`, `flowStart`, `turnIntro`, `turnTable`, `turnDomain`, `turnOpponent`, `turnEnd`, `rolesIntro`, `scoringIntro`, `scoringReveal`, `scoringStatus`, `scoringPoints` | `regles.textes` (field-by-field fallback to `TEXTES_REGLES_DEFAUT`) |
+| `texts` (singleton) | `missionsButton`, `guestsSettling`, `banquetStarts` (`localeString`), `winnerPhrases` (`localeStringList`) | end-of-opening button, waiting text of the banner, "banquet" announcement, victory phrases (`{pseudo}`, `{points}`) |
+| `family` | `name` (localized), `key` (list `FAMILIES`, required), `color` (required hex), `pictogram` (required) | name, color (3D, badges, sharing), pictogram (128). **The key is tied to the engine enum**: a family cannot be added from Sanity |
+| `role` | `name`, `key` (`ROLES`), `countPerFamily` (integer ≥ 0), `pictogram`, `lettering` (SVG), `rule` (localized) | name and pictogram (UI); `countPerFamily`, `rule` and `lettering` **only for the rules screen**. `countPerFamily` does not feed the engine (`deck.ts` is hardcoded) |
+| `courtier` | `family` (ref.), `role` (ref., empty = no role), `card` (image), `quantity` | front image by `cleCarte(famille, role)` (360). **`quantity` is not read** |
+| `mission` | `color` (`blanche` / `bleue`), `text` (`localeText`), `card` (image), `condition` (`condition` object) | server: `chargerMissions()` → `versCondition()`; client: image (520) composed with the text (`composerMission()`) |
 
-Objets :
+Objects:
 
-- `localeString`, `localeText`, `localeStringList` (`studio/schemaTypes/objects/locale.ts`) : un champ par langue de `LANGUAGES`.
-- `condition` (`studio/schemaTypes/objects/condition.ts`), récursif :
-  - `type` : `statutFamille`, `nombreFamillesStatut`, `nombreCartesDomaine`, `nombreCartesTable`, `comparaisonJoueurs`, `et`, `ou`, `non` ;
-  - champs `family`, `status`, `familyFilter`, `roleFilter` (+ `sansRole`), `level` (haut/bas), `comparator` (gte, lte, eq, gt, lt), `value`, `opponent`, `mode`, `conditions[]` ;
-  - visibilité et obligation selon le type (`visibleFor()`, `requiredFor()`) ;
-  - **les valeurs sont les clés moteur françaises** ; seuls les titres affichés sont en anglais.
+- `localeString`, `localeText`, `localeStringList` (`studio/schemaTypes/objects/locale.ts`): one field per language of `LANGUAGES`.
+- `condition` (`studio/schemaTypes/objects/condition.ts`), recursive:
+  - `type`: `statutFamille`, `nombreFamillesStatut`, `nombreCartesDomaine`, `nombreCartesTable`, `comparaisonJoueurs`, `et`, `ou`, `non`;
+  - fields `family`, `status`, `familyFilter`, `roleFilter` (+ `sansRole`), `level` (haut/bas), `comparator` (gte, lte, eq, gt, lt), `value`, `opponent`, `mode`, `conditions[]`;
+  - visibility and required status depending on the type (`visibleFor()`, `requiredFor()`);
+  - **the values are the French engine keys**; only the displayed titles are in English.
 
-### 6.2 Scripts du studio (`studio/scripts/`, lancés par `sanity exec … --with-user-token`)
+### 6.2 Studio scripts (`studio/scripts/`, run with `sanity exec … --with-user-token`)
 
-- `migrate.ts` (`pnpm migrate`) : migration **idempotente** de l'ancien schéma français (`famille`, `courtisan`, `textes`, `chateau`, `reglages`, `assets`, `board`) vers le schéma anglais.
-  - Ids stables, `createOrReplace` dans une **transaction**.
-  - Textes des règles : `LEGACY_TEXT` associe chaque champ à ses anciens noms (`butIntro` → `goalIntro`, `decompteIntro` → `scoringIntro`…). Un texte encore égal à une ancienne valeur par défaut (`ANCIENS_TEXTES_REGLES`) est remplacé par la nouvelle (`TEXTES_REGLES_DEFAUT`), importées **depuis le web** (`../../web/src/lib/regles-defaut`).
-  - `countPerFamily` est initialisé avec `COUNT_PER_FAMILY` (noble 4, garde 3, espion 2, assassin 2).
-  - Conditions converties par `convertCondition()`.
-  - Supprime les brouillons, les documents obsolètes et les singletons hérités.
-  - Lecture en `perspective: "raw"`.
-- `maj-images.ts` (`pnpm maj-images`) : téléverse les images WebP de `apps/web/public` (familles, cartes par rôle, pictos des rôles, avec correspondance des noms français → fichiers anglais, par exemple `papillon` → `butterfly`, `espion` → `spy`) et remplace l'image des documents correspondants. Il affiche ce qui est ignoré (document ou fichier absent).
-- `nettoyer-png.ts` (`pnpm nettoyer-png`, `--confirmer` pour appliquer) : liste les assets PNG **plus référencés** et les supprime. En simulation par défaut.
-- `annuler-import.ts` (`pnpm annuler-import -- --minutes 60` ou `--avant "…"`, `--confirmer`, `--seed <ndjson>`) : ramène les documents d'un seed (par défaut `../../../Assets/sanity-seed/data.ndjson`, **chemin d'avant le monorepo**, à corriger) à leur état à une date donnée via l'historique, ou les supprime s'ils n'existaient pas. En simulation par défaut.
-- Autres scripts du paquet : `typegen` (extraction du schéma + `sanity typegen generate`), `schema:deploy`, `deploy`.
-- Hors studio : `games/courtisans/scripts/extraire-cartes.py` et `generer-seed-sanity.py` (découpe des planches de cartes et génération du seed ndjson à partir de `assets/`). À documenter à part si on les réutilise.
+- `migrate.ts` (`pnpm migrate`): **idempotent** migration of the old French schema (`famille`, `courtisan`, `textes`, `chateau`, `reglages`, `assets`, `board`) to the English schema.
+  - Stable ids, `createOrReplace` in a **transaction**.
+  - Rules texts: `LEGACY_TEXT` maps each field to its old names (`butIntro` → `goalIntro`, `decompteIntro` → `scoringIntro`…). A text still equal to an old default value (`ANCIENS_TEXTES_REGLES`) is replaced by the new one (`TEXTES_REGLES_DEFAUT`), both imported **from the web side** (`../../web/src/lib/regles-defaut`).
+  - `countPerFamily` is initialized with `COUNT_PER_FAMILY` (Noble 4, Guard 3, Spy 2, Assassin 2).
+  - Conditions converted by `convertCondition()`.
+  - Deletes the drafts, the obsolete documents and the legacy singletons.
+  - Reads with `perspective: "raw"`.
+- `maj-images.ts` (`pnpm maj-images`): uploads the WebP images from `apps/web/public` (families, cards by role, role pictograms, with a mapping of French names → English files, for example `papillon` → `butterfly`, `espion` → `spy`) and replaces the image of the matching documents. It prints what is skipped (missing document or file).
+- `nettoyer-png.ts` (`pnpm nettoyer-png`, `--confirmer` to apply): lists the PNG assets that are **no longer referenced** and deletes them. Dry run by default.
+- `annuler-import.ts` (`pnpm annuler-import -- --minutes 60` or `--avant "…"`, `--confirmer`, `--seed <ndjson>`): brings the documents of a seed (by default `../../../Assets/sanity-seed/data.ndjson`, **a path from before the monorepo**, to be fixed) back to their state at a given date through the history, or deletes them if they did not exist. Dry run by default.
+- Other scripts of the package: `typegen` (schema extraction + `sanity typegen generate`), `schema:deploy`, `deploy`.
+- Outside the studio: `games/courtisans/scripts/extraire-cartes.py` and `generer-seed-sanity.py` (cutting the card sheets and generating the ndjson seed from `assets/`). To be documented separately if they are reused.
 
 ---
 
-## 7. Classement et API proposée
+## 7. Classification and proposed API
 
-Légende :
+Legend:
 
-- **GÉNÉRIQUE** : utilisable tel quel par n'importe quel jeu de cartes (à renommer en anglais).
-- **CONFIGURABLE** : la mécanique est générique, mais des paramètres ou un point d'extension sont nécessaires.
-- **SPÉCIFIQUE** : propre à Courtisans ; reste dans `games/courtisans`.
+- **GENERIC**: usable as is by any card game (to be renamed in English).
+- **CONFIGURABLE**: the mechanics are generic, but parameters or an extension point are needed.
+- **SPECIFIC**: specific to Courtisans; stays in `games/courtisans`.
 
-Destination proposée : `@pbgo/engine-kit` (contrats purs), `@pbgo/core` (serveur, lobby, UI hors 3D, déjà amorcé), un nouveau `@pbgo/scene` (3D), `@pbgo/ui`, `@pbgo/studio-kit`.
+Proposed destination: `@pbgo/engine-kit` (pure contracts), `@pbgo/core` (server, lobby, UI outside the 3D scene, already started), a new `@pbgo/scene` (3D), `@pbgo/ui`, `@pbgo/studio-kit`.
 
-### 7.1 Moteur et serveur
+### 7.1 Engine and server
 
-| Élément | Classe | Paramètres / points d'extension | Source Courtisans → cible |
+| Item | Class | Parameters / extension points | Courtisans source → target |
 |---|---|---|---|
-| Contrat moteur pur (`setup` / `apply` / `view` / `isOver`, `structuredClone`, `EngineError`) | GÉNÉRIQUE | déjà `GameDefinition` | `engine/game.ts` → `@pbgo/engine-kit` |
-| RNG injectable, `seed` | GÉNÉRIQUE | — | `engine/rng.ts` → déjà dans `engine-kit` |
-| Options de partie | GÉNÉRIQUE | `OptionDefinitions` (`number` / `choice` / `boolean`) ; ajouter `visibleIf`, presets de variantes | Courtisans : `options: {}` |
-| `SetupData` chargé côté serveur (missions Sanity) | CONFIGURABLE | `loadSetupData(players, options)` exporté par le binding | `web/server/missions.ts` `chargerMissions()` |
-| Vue filtrée par joueur | CONFIGURABLE | `view(state, playerId)` ; ajouter `toTable()` (§7.4) | `engine/view.ts` |
-| Journal d'événements | CONFIGURABLE | à normaliser : `id` croissant, événements `move` / `reveal` / `remove` / `announce` / `turnEnd` / `roundEnd` (§7.4) | `Evenement` |
-| Résultats (`rank` partagé, `winners` multiples, `detail[]`) | GÉNÉRIQUE | `PlayerResult.detail {key, label, points}` | `calculerResultats()` → adapter vers `Results` |
-| Tour de table « suivant qui a encore des cartes » | CONFIGURABLE | `nextPlayer(state, {skipIf, direction})` : helper à ajouter dans `engine-kit` | `finirTour()` |
-| « Une action par zone et par tour » (`zonesJouees`) | CONFIGURABLE | quotas par tour : `turnSlots: {zone, max}[]` | `zonesJouees`, `zonesDisponibles()` |
-| Règles, rôles, assassinat, espion, statuts, missions | SPÉCIFIQUE | — | `engine/actions.ts`, `scoring.ts`, `missions.ts` |
-| Code de partie, cookie joueur, verrou optimiste, `notifier`, `handle` | GÉNÉRIQUE | nom du cookie = `SLUG` | `web/server/*` → déjà `@pbgo/core/server/games.ts`, `player.ts`, `code.ts`, `api.ts` |
-| Routes créer / rejoindre / quitter / lancer / action / rejouer / debug | GÉNÉRIQUE | `clientActions`, `debug` | `web/app/api/parties/**` → `@pbgo/core/routes/api/games/**` |
-| `usePartie` (garde de version, broadcast, poll, focus) | GÉNÉRIQUE | intervalle de poll | `web/lib/use-partie.ts` → `@pbgo/core/lib/use-live-game.ts` |
-| Proxy `/api/media` | GÉNÉRIQUE | hôtes autorisés | `web/app/api/media/route.ts` → `@pbgo/core` |
-| Catalogue Sanity + repli par défaut | CONFIGURABLE | partie commune (logo, décor, dos, tapis, règles, textes) + extension par jeu (`extendCatalogue(query, merge)`) | `web/sanity/catalogue-client.ts` |
+| Pure engine contract (`setup` / `apply` / `view` / `isOver`, `structuredClone`, `EngineError`) | GENERIC | already `GameDefinition` | `engine/game.ts` → `@pbgo/engine-kit` |
+| Injectable RNG, `seed` | GENERIC | — | `engine/rng.ts` → already in `engine-kit` |
+| Game options | GENERIC | `OptionDefinitions` (`number` / `choice` / `boolean`); add `visibleIf`, variant presets | Courtisans: `options: {}` |
+| `SetupData` loaded server-side (Sanity missions) | CONFIGURABLE | `loadSetupData(players, options)` exported by the binding | `web/server/missions.ts` `chargerMissions()` |
+| View filtered per player | CONFIGURABLE | `view(state, playerId)`; add `toTable()` (§7.4) | `engine/view.ts` |
+| Event log | CONFIGURABLE | to be normalized: increasing `id`, events `move` / `reveal` / `remove` / `announce` / `turnEnd` / `roundEnd` (§7.4) | `Evenement` |
+| Results (shared `rank`, multiple `winners`, `detail[]`) | GENERIC | `PlayerResult.detail {key, label, points}` | `calculerResultats()` → adapt to `Results` |
+| Going around the table, "next player who still has cards" | CONFIGURABLE | `nextPlayer(state, {skipIf, direction})`: helper to add in `engine-kit` | `finirTour()` |
+| "One action per zone and per turn" (`zonesJouees`) | CONFIGURABLE | per-turn quotas: `turnSlots: {zone, max}[]` | `zonesJouees`, `zonesDisponibles()` |
+| Rules, roles, assassination, Spy, statuses, missions | SPECIFIC | — | `engine/actions.ts`, `scoring.ts`, `missions.ts` |
+| Game code, player cookie, optimistic lock, `notifier`, `handle` | GENERIC | cookie name = `SLUG` | `web/server/*` → already `@pbgo/core/server/games.ts`, `player.ts`, `code.ts`, `api.ts` |
+| Create / join / leave / start / action / play again / debug routes | GENERIC | `clientActions`, `debug` | `web/app/api/parties/**` → `@pbgo/core/routes/api/games/**` |
+| `usePartie` (version guard, broadcast, poll, focus) | GENERIC | poll interval | `web/lib/use-partie.ts` → `@pbgo/core/lib/use-live-game.ts` |
+| `/api/media` proxy | GENERIC | allowed hosts | `web/app/api/media/route.ts` → `@pbgo/core` |
+| Sanity catalog + default fallback | CONFIGURABLE | common part (logo, decor, card back, mat, rules, texts) + per-game extension (`extendCatalogue(query, merge)`) | `web/sanity/catalogue-client.ts` |
 
-### 7.2 UI hors 3D
+### 7.2 UI outside the 3D scene
 
-| Élément | Classe | Paramètres / points d'extension | Source |
+| Item | Class | Parameters / extension points | Source |
 |---|---|---|---|
-| Écran d'accueil (pseudo, code OTP, création / rejoindre) | GÉNÉRIQUE | textes d'intro, décor (images haut / bas / personnage) | `accueil.tsx`, `ecran-banquet.tsx` → `@pbgo/core/components/home` |
-| Auto-join avec profil déjà enregistré | GÉNÉRIQUE | — | `partie-client.tsx` |
-| Lobby (liste, hôte, lancer, min / max, options) | GÉNÉRIQUE | `GAME.options` (déjà `game-options.tsx` dans core) | `lobby.tsx` |
-| Couleurs par siège | CONFIGURABLE | palette | `COULEURS_JOUEURS` |
-| Bandeau « tour de X » + historique groupé | CONFIGURABLE | `renderEvent(event)`, événement de fin de tour | `bandeau.tsx`, `message.tsx` |
-| Annonces plein écran (voile, lignes, confettis) | GÉNÉRIQUE | types d'annonce = clés libres + préréglages leva | `annonce.tsx` |
-| File d'annonces pilotée par un « repère » d'état | CONFIGURABLE | `announcementsFor(prevView, view)` | `jeu3d.tsx` |
-| Fin de partie (tableau, rejouer, vignette) | CONFIGURABLE | rendu de `detail[]` par jeu (`CartesFamilles` est spécifique) | `fin-de-partie.tsx` → `@pbgo/core/components/game/game-over.tsx` |
-| Image de partage + aperçu (Share / Copier / Télécharger) | GÉNÉRIQUE | titre du site, couleurs, photo fournie par la scène | `partage.ts`, `apercu-partage.tsx` → déjà `sharing.ts` / `preview-sharing.tsx` dans core |
-| Règles à onglets + vidéo + mini-balisage | CONFIGURABLE | onglets = champs Sanity (`@pbgo/studio-kit` `rules`), balises `{token}` par jeu | `regles.tsx` |
-| Moteur de son (bus, anti-rafale, boucles musicales) | GÉNÉRIQUE | liste des sons et des pistes, `REGLAGES` par son | `web/lib/son.ts`, `web/components/son.tsx` |
-| Sons liés aux événements | CONFIGURABLE | `soundFor(event) → {name, delay}[]` | `jeu3d/sons.ts` |
-| Écran « jouez sur ordinateur » | GÉNÉRIQUE | seuil de largeur, texte | `ecran-ordinateur.tsx` |
-| Panneau debug leva (onglets, copie, FPS) | GÉNÉRIQUE | — | `debug.tsx`, `onglets-debug.ts`, `reglages.ts` |
-| Pictos rôle / famille, badges de carte | SPÉCIFIQUE (motif réutilisable) | — | `pictos.tsx`, `message.tsx` |
-| Château (`chateau.tsx`, `profil.chateau`) | SPÉCIFIQUE, **mort** | à supprimer | — |
+| Home screen (nickname, OTP code, create / join) | GENERIC | intro texts, decor (top / bottom / character images) | `accueil.tsx`, `ecran-banquet.tsx` → `@pbgo/core/components/home` |
+| Auto-join with an already saved profile | GENERIC | — | `partie-client.tsx` |
+| Lobby (list, host, start, min / max, options) | GENERIC | `GAME.options` (already `game-options.tsx` in core) | `lobby.tsx` |
+| Colors per seat | CONFIGURABLE | palette | `COULEURS_JOUEURS` |
+| "X's turn" banner + grouped history | CONFIGURABLE | `renderEvent(event)`, end-of-turn event | `bandeau.tsx`, `message.tsx` |
+| Full-screen announcements (veil, lines, confetti) | GENERIC | announcement types = free keys + leva presets | `annonce.tsx` |
+| Announcement queue driven by a state "marker" | CONFIGURABLE | `announcementsFor(prevView, view)` | `jeu3d.tsx` |
+| Game over (scoreboard, play again, thumbnail) | CONFIGURABLE | per-game rendering of `detail[]` (`CartesFamilles` is specific) | `fin-de-partie.tsx` → `@pbgo/core/components/game/game-over.tsx` |
+| Share image + preview (Share / Copy / Download) | GENERIC | site title, colors, photo supplied by the scene | `partage.ts`, `apercu-partage.tsx` → already `sharing.ts` / `preview-sharing.tsx` in core |
+| Tabbed rules + video + mini-markup | CONFIGURABLE | tabs = Sanity fields (`@pbgo/studio-kit` `rules`), per-game `{token}` tags | `regles.tsx` |
+| Sound engine (bus, anti-burst, music loops) | GENERIC | list of sounds and tracks, `REGLAGES` per sound | `web/lib/son.ts`, `web/components/son.tsx` |
+| Sounds tied to events | CONFIGURABLE | `soundFor(event) → {name, delay}[]` | `jeu3d/sons.ts` |
+| "Play on a computer" screen | GENERIC | width threshold, text | `ecran-ordinateur.tsx` |
+| Leva debug panel (tabs, copy, FPS) | GENERIC | — | `debug.tsx`, `onglets-debug.ts`, `reglages.ts` |
+| Role / family icons, card badges | SPECIFIC (reusable pattern) | — | `pictos.tsx`, `message.tsx` |
+| Castle (`chateau.tsx`, `profil.chateau`) | SPECIFIC, **dead** | to be removed | — |
 
-### 7.3 Scène 3D
+### 7.3 3D scene
 
-| Élément | Classe | Paramètres / points d'extension | Source |
+| Item | Class | Parameters / extension points | Source |
 |---|---|---|---|
-| `Carte3D` (géométrie, recto/verso, vol Bézier, pli, lueurs, reflet, ombre) | GÉNÉRIQUE | dimensions, textures, `lueur` (clé → couleur), `REGLAGES_CARTE` | `carte3d.tsx` |
-| Caméra orbitale fixe + correction d'aspect | GÉNÉRIQUE | `CAMERA_DEFAUT`, ratio de référence 1,6 | `CameraRig` |
-| Main collée à la caméra (éventail, survol, sélection) | GÉNÉRIQUE | réglages « Deck », mode caché (Skyjo : grille face cachée) | `Monde` / `useFrame` |
-| Objets collés à la caméra + focus + voile | GÉNÉRIQUE | — | `SuitCamera`, `Voile` |
-| Sièges autour d'une table | CONFIGURABLE | table `SIEGES[n]` jusqu'à `maxPlayers − 1` adversaires (Skull King : 7) | `sieges()` |
-| Pioche (pile, chute initiale, compteur, dessus) | GÉNÉRIQUE | position, max. de tranches, réglages « Draw Pile » | `Pioche`, `poseDessusPioche()` |
-| Défausse / pile visible | CONFIGURABLE | à écrire, même principe que la pioche, face visible | — |
-| Zone de joueur regroupée (piles par clé, compression, ouverture au survol) | CONFIGURABLE | `groupBy(card)`, ordre des groupes, faces cachées, `largeurMax` | `disposerDomaine()` |
-| Zone partagée en colonnes haut/bas au-delà des bords du tapis | SPÉCIFIQUE (le principe « colonnes par clé » est configurable) | colonnes, sens d'empilement | `poseTable()`, `colonneX()` |
-| Tapis (shader de déroulé, tissu, motif autour) | CONFIGURABLE | textures, dimensions, durée | `Table`, `motifs.ts` |
-| Apparitions / fondu en hauteur | GÉNÉRIQUE | — | `Apparition`, `avecFondu()` |
-| Texte posé sur la table | GÉNÉRIQUE | police, style | `texte-table.tsx` |
-| Aura de zone, zone cliquable, fond coloré | GÉNÉRIQUE | couleur du joueur, `REGLAGES_ZONE` | `aura.tsx`, `FondDomaine`, `ZoneCliquable`, `Badge` |
-| Rectangles de cible au sol | GÉNÉRIQUE | couleur, sens, fondu | `colonne.tsx` |
-| Couronne du joueur actif | GÉNÉRIQUE | texture (jeton de premier joueur, dealer…) | `couronne.tsx` |
-| Ouverture tapis → distribution → objectifs | CONFIGURABLE | liste d'étapes, nombre de cartes distribuées, bouton de fin | `jeu3d.tsx` + `Monde` |
-| Diff vue + journal → départs d'animation | CONFIGURABLE (c'est **le** cœur à généraliser) | événements `move {from, to}` (§7.4) | `Monde` |
-| Séquence de fin minutée + « Passer » + pas-à-pas | CONFIGURABLE | `steps: {at, patch}[]` | `fin.ts` |
-| Résolution par famille, points par pile, compteurs | SPÉCIFIQUE (compteurs génériques) | — | `fin3d.tsx` |
-| Photo de partage | GÉNÉRIQUE | caméra photo, objets `horsPhoto` | `photo.tsx` |
-| Textures avec repli + cache | GÉNÉRIQUE | `faceKey(card)`, URL Sanity → URL locale | `textures.ts` (`charger`, `chargerAvecSecours`) |
-| Composition du texte des missions sur l'image | SPÉCIFIQUE (utile pour des cartes à texte : Love Letter) | — | `composerMission()` |
-| Triche (forcer un gagnant) | GÉNÉRIQUE si `Results` est normalisé | — | `triche.ts` |
+| `Carte3D` (geometry, front/back, Bézier flight, fold, glows, reflection, shadow) | GENERIC | dimensions, textures, `lueur` (key → color), `REGLAGES_CARTE` | `carte3d.tsx` |
+| Fixed orbital camera + aspect correction | GENERIC | `CAMERA_DEFAUT`, reference ratio 1.6 | `CameraRig` |
+| Hand attached to the camera (fan, hover, selection) | GENERIC | "Deck" settings, hidden mode (Skyjo: face-down grid) | `Monde` / `useFrame` |
+| Objects attached to the camera + focus + veil | GENERIC | — | `SuitCamera`, `Voile` |
+| Seats around a table | CONFIGURABLE | `SIEGES[n]` table up to `maxPlayers − 1` opponents (Skull King: 7) | `sieges()` |
+| Draw pile (stack, initial drop, counter, top) | GENERIC | position, max. number of slices, "Draw Pile" settings | `Pioche`, `poseDessusPioche()` |
+| Discard pile / visible stack | CONFIGURABLE | to be written, same principle as the draw pile, face up | — |
+| Grouped player zone (stacks by key, compression, opens on hover) | CONFIGURABLE | `groupBy(card)`, group order, hidden faces, `largeurMax` | `disposerDomaine()` |
+| Shared zone in top/bottom columns beyond the edges of the mat | SPECIFIC (the "columns by key" principle is configurable) | columns, stacking direction | `poseTable()`, `colonneX()` |
+| Mat (unrolling shader, cloth, surrounding pattern) | CONFIGURABLE | textures, dimensions, duration | `Table`, `motifs.ts` |
+| Appearances / height fade | GENERIC | — | `Apparition`, `avecFondu()` |
+| Text placed on the table | GENERIC | font, style | `texte-table.tsx` |
+| Zone aura, clickable zone, colored background | GENERIC | player color, `REGLAGES_ZONE` | `aura.tsx`, `FondDomaine`, `ZoneCliquable`, `Badge` |
+| Target rectangles on the ground | GENERIC | color, direction, fade | `colonne.tsx` |
+| Active player's crown | GENERIC | texture (first player token, dealer…) | `couronne.tsx` |
+| Opening: mat → deal → objectives | CONFIGURABLE | list of steps, number of cards dealt, end button | `jeu3d.tsx` + `Monde` |
+| View + log diff → animation departure points | CONFIGURABLE (this is **the** core to generalize) | `move {from, to}` events (§7.4) | `Monde` |
+| Timed end sequence + « Passer » + step-by-step | CONFIGURABLE | `steps: {at, patch}[]` | `fin.ts` |
+| Resolution per family, points per stack, counters | SPECIFIC (generic counters) | — | `fin3d.tsx` |
+| Share photo | GENERIC | photo camera, `horsPhoto` objects | `photo.tsx` |
+| Textures with fallback + cache | GENERIC | `faceKey(card)`, Sanity URL → local URL | `textures.ts` (`charger`, `chargerAvecSecours`) |
+| Composing the mission text onto the image | SPECIFIC (useful for text cards: Love Letter) | — | `composerMission()` |
+| Cheat (force a winner) | GENERIC if `Results` is normalized | — | `triche.ts` |
 
-### 7.4 API proposée pour brancher un jeu
+### 7.4 Proposed API for plugging in a game
 
-Objectif : qu'un jeu **décrive** ses emplacements de cartes et ses informations globales, et que `@pbgo/core` et `@pbgo/scene` s'occupent du lobby, du HUD, des animations et des interactions. Le moteur reste propriétaire des règles.
+Goal: for a game to **describe** its card locations and its global information, while `@pbgo/core` and `@pbgo/scene` take care of the lobby, the HUD, animations and interactions. The engine remains the owner of the rules.
 
-#### a) Paramètres de partie (lobby), dans `@pbgo/engine-kit`
+#### a) Game settings (lobby), in `@pbgo/engine-kit`
 
 ```ts
-// étend l'existant (options.ts)
+// extends what already exists (options.ts)
 export type OptionDefinition =
   | { type: "number"; label: string; help?: string; defaultValue: number; min: number; max: number; step?: number; visibleIf?: Condition }
   | { type: "choice"; label: string; help?: string; defaultValue: string; choices: { value: string; label: string }[]; visibleIf?: Condition }
@@ -826,71 +826,71 @@ export type OptionDefinition =
 type Condition = { option: string; equals: OptionValue }
 
 export type GameDefinition<State, Action, View, SetupData = undefined> = {
-  // … existant …
-  /** Variantes nommées = jeux d'options préremplis (ex. Skull King « Rascal », Hanabi « 6 couleurs »). */
+  // … existing …
+  /** Named variants = sets of prefilled options (e.g. Skull King "Rascal", Hanabi "6 colors"). */
   presets?: { id: string; label: string; values: OptionValues }[]
-  /** Bornes de joueurs qui dépendent des options (Hanabi 2–5, variante 6 couleurs…). */
+  /** Player count bounds that depend on the options (Hanabi 2–5, 6-color variant…). */
   playerBounds?: (options: OptionValues) => { min: number; max: number }
-  /** Données serveur avant setup (missions Sanity pour Courtisans). */
+  /** Server data before setup (Sanity missions for Courtisans). */
   loadSetupData?: (args: { players: PlayerInfo[]; options: OptionValues }) => Promise<SetupData>
-  /** Description plateau pour @pbgo/scene et le HUD. */
+  /** Board description for @pbgo/scene and the HUD. */
   board?: BoardDefinition<View>
 }
 ```
 
-Le lobby (`@pbgo/core/components/lobby/game-options.tsx`) affiche déjà `options`. Il faudrait y ajouter les presets, `visibleIf` et un résumé en lecture seule pour les non-hôtes.
+The lobby (`@pbgo/core/components/lobby/game-options.tsx`) already displays `options`. It would need presets, `visibleIf` and a read-only summary for non-hosts.
 
-#### b) Emplacements de cartes
+#### b) Card locations
 
 ```ts
 export type Visibility = "public" | "owner" | "hidden" | "countOnly"
 export type ZoneKind = "deck" | "discard" | "hand" | "shared" | "playerArea" | "trick" | "objectives"
 export type LayoutId =
-  | "stack"          // pioche / défausse (poseDessusPioche)
-  | "fanCamera"      // main collée à la caméra (Monde, réglages « Deck »)
-  | "cameraPair"     // objectifs en bas à droite + focus (missions)
-  | "groupedRow"     // disposerDomaine : piles par clé, compression, ouverture au survol
-  | "columns"        // colonnes par clé × niveau (table de la Reine)
-  | "grid"           // Skyjo : grille 3×4 face cachée
-  | "trickCenter"    // Skull King / plis : une carte par joueur vers le centre
-  | "row"            // Hanabi : cartes posées en ligne, face visible pour les autres
-  | (string & {})    // layouts propres à un jeu
+  | "stack"          // draw pile / discard pile (poseDessusPioche)
+  | "fanCamera"      // hand attached to the camera (Monde, "Deck" settings)
+  | "cameraPair"     // objectives at the bottom right + focus (missions)
+  | "groupedRow"     // disposerDomaine: stacks by key, compression, opens on hover
+  | "columns"        // columns by key × level (the Queen's table)
+  | "grid"           // Skyjo: 3×4 face-down grid
+  | "trickCenter"    // Skull King / tricks: one card per player towards the center
+  | "row"            // Hanabi: cards laid out in a row, face up for the others
+  | (string & {})    // game-specific layouts
 
 export type ZoneSpec = {
   id: string                       // "deck", "hand", "domain", "queenTable"…
   kind: ZoneKind
-  perPlayer: boolean               // une instance par joueur (hand, domain) ou une seule (deck)
-  visibility: Visibility           // appliquée par le moteur dans view(), rappelée ici pour l'UI
+  perPlayer: boolean               // one instance per player (hand, domain) or a single one (deck)
+  visibility: Visibility           // applied by the engine in view(), repeated here for the UI
   layout: LayoutId
-  layoutOptions?: Record<string, unknown> // ex. { groupBy: "family", maxWidth: 10 } | { columns: [...], levels: ["up","down"] }
+  layoutOptions?: Record<string, unknown> // e.g. { groupBy: "family", maxWidth: 10 } | { columns: [...], levels: ["up","down"] }
   label?: string
-  /** Hanabi : ma main est cachée POUR MOI mais visible des autres. */
+  /** Hanabi: my hand is hidden FROM ME but visible to the others. */
   hiddenFromOwner?: boolean
 }
 
 export type CardView = {
-  id: string                       // stable : clé React ET clé d'animation
-  face: string | null              // clé de texture ; null = dos
-  back?: string                    // clé de dos (missions blanche / bleue)
-  group?: string                   // clé de regroupement (famille)
-  slot?: string                    // colonne / niveau / case de grille
+  id: string                       // stable: React key AND animation key
+  face: string | null              // texture key; null = card back
+  back?: string                    // card back key (white / blue missions)
+  group?: string                   // grouping key (family)
+  slot?: string                    // column / level / grid cell
   glow?: "gold" | "red" | "select" | (string & {})
 }
 
 export type ZoneView = { zoneId: string; ownerId: string | null; cards: CardView[]; count: number }
 ```
 
-#### c) Informations globales
+#### c) Global information
 
 ```ts
 export type GlobalInfo = {
   key: string                      // "round", "score", "tokens.hint", "deckCount", "direction", "bid"
   label: string
   value: number | string | boolean
-  max?: number                     // jetons 8/8, manche 3/10
+  max?: number                     // tokens 8/8, round 3/10
   scope: "game" | { playerId: string }
   display: "hud" | "seatBadge" | "tableText" | "hidden"
-  icon?: string                    // clé de picto Sanity
+  icon?: string                    // Sanity icon key
 }
 
 export type TableView = {
@@ -898,8 +898,8 @@ export type TableView = {
   zones: ZoneView[]
   globals: GlobalInfo[]
   activePlayerId: string | null
-  firstPlayerId?: string | null    // couronne / jeton de donneur
-  direction: 1 | -1                // sens du tour (Uno-like, Love Letter non)
+  firstPlayerId?: string | null    // crown / dealer token
+  direction: 1 | -1                // turn direction (Uno-like, not Love Letter)
   turn: number
   round?: { index: number; total: number | null }
   log: LogEvent[]
@@ -907,80 +907,80 @@ export type TableView = {
 }
 ```
 
-Exemples :
+Examples:
 
-- Courtisans : `globals = [{key: "turnSlots", value: "table,domaine", display: "hidden"}]` ; le compteur de pioche vient de la zone `deck` (`count`).
-- Skull King : `round`, `bid` par joueur (`seatBadge`), plis gagnés, score cumulé.
-- Flip 7 : score cumulé et état « busted » (`seatBadge`).
-- Love Letter : jetons d'affection.
-- Hanabi : jetons d'indice et d'erreur (`hud`, `max`), taille de la pioche.
-- Skyjo : score de manche et score cumulé.
+- Courtisans: `globals = [{key: "turnSlots", value: "table,domaine", display: "hidden"}]`; the draw pile counter comes from the `deck` zone (`count`).
+- Skull King: `round`, `bid` per player (`seatBadge`), tricks won, cumulative score.
+- Flip 7: cumulative score and "busted" state (`seatBadge`).
+- Love Letter: affection tokens.
+- Hanabi: hint and error tokens (`hud`, `max`), draw pile size.
+- Skyjo: round score and cumulative score.
 
-#### d) Journal normalisé : le point d'extension des animations
+#### d) Normalized log: the animation extension point
 
 ```ts
 export type ZoneRef = { zoneId: string; ownerId?: string | null; slot?: string }
 export type LogEvent =
   | { id: number; type: "move"; cardId: string; card?: CardView; from: ZoneRef; to: ZoneRef; by?: string }
   | { id: number; type: "reveal"; cardId: string; face: string }
-  | { id: number; type: "remove"; cardId: string; card?: CardView; from: ZoneRef; by?: string }   // éliminée, hors jeu
+  | { id: number; type: "remove"; cardId: string; card?: CardView; from: ZoneRef; by?: string }   // eliminated, out of the game
   | { id: number; type: "turnEnd"; playerId: string }
   | { id: number; type: "roundEnd"; index: number }
   | { id: number; type: "announce"; key: string; params?: Record<string, string | number> }
   | { id: number; type: "custom"; name: string; data: unknown }
 ```
 
-Correspondance Courtisans :
+Courtisans mapping:
 
-- `carteJouee` → `move {from: {zoneId: "hand", ownerId}, to: {zoneId: "queenTable", slot: "papillon:up"} | {zoneId: "domain", ownerId}}` ;
-- `carteEliminee` → `remove` ;
-- `pioche` → n × `move {from: deck, to: hand}` puis `turnEnd` ;
+- `carteJouee` → `move {from: {zoneId: "hand", ownerId}, to: {zoneId: "queenTable", slot: "papillon:up"} | {zoneId: "domain", ownerId}}`;
+- `carteEliminee` → `remove`;
+- `pioche` → n × `move {from: deck, to: hand}` then `turnEnd`;
 - `finDePartie` → `announce "gameOver"`.
 
-La scène généralise alors ce que fait `Monde` :
+The scene then generalizes what `Monde` does:
 
-- **départ** = dernière pose connue de la carte si elle était visible ; sinon l'**ancre** de la zone `from` (`anchor(zone, owner)`) : dessus de la pioche, siège de l'adversaire pour sa main cachée, caméra pour ma main ;
-- **arrivée** = pose calculée par le layout de `to` ;
-- une zone `to` non représentée (main adverse) produit un transitoire vers `anchorHidden(zone, owner)` (l'actuel `poseSousTable`) ;
-- `id` d'événement : `lastSeenLogId` remplace la comparaison de longueurs.
+- **departure** = last known pose of the card if it was visible; otherwise the **anchor** of the `from` zone (`anchor(zone, owner)`): top of the draw pile, the opponent's seat for their hidden hand, the camera for my hand;
+- **arrival** = pose computed by the layout of `to`;
+- a `to` zone that is not represented (opponent's hand) produces a transient card towards `anchorHidden(zone, owner)` (the current `poseSousTable`);
+- event `id`: `lastSeenLogId` replaces the comparison of lengths.
 
-#### e) Plateau et interactions
+#### e) Board and interactions
 
 ```ts
 export type BoardDefinition<View> = {
   zones: ZoneSpec[]
   toTable: (view: View, meId: string | null) => TableView
-  /** Cibles légales pour une carte sélectionnée (le moteur reste juge au final). */
+  /** Legal targets for a selected card (the engine remains the final judge). */
   targets: (view: View, cardId: string) => TargetSpec[]
-  /** Construit l'action à envoyer quand l'interaction est complète. */
+  /** Builds the action to send once the interaction is complete. */
   toAction: (sel: { cardId: string; target: TargetSpec; choices: Record<string, string | null> }) => { type: string } & Record<string, unknown>
-  seats?: SeatPreset                // "aroundTable" (défaut) | custom
+  seats?: SeatPreset                // "aroundTable" (default) | custom
 }
 
 export type TargetSpec = {
   id: string
   zone: ZoneRef
-  display: "zoneArea" | "slotBeam" | "card"   // FondDomaine+ZoneCliquable | Colonne haut/bas | clic sur une carte
-  followUp?: Choice                            // étape supplémentaire (assassinat)
+  display: "zoneArea" | "slotBeam" | "card"   // FondDomaine+ZoneCliquable | Colonne top/bottom | click on a card
+  followUp?: Choice                            // extra step (assassination)
 }
 export type Choice =
   | { kind: "pickCard"; key: string; candidates: string[]; optional: boolean; skipLabel?: string; glow?: string }
-  | { kind: "pickPlayer"; key: string; candidates: string[]; optional: boolean }   // Love Letter : Garde, Prince…
-  | { kind: "pickValue"; key: string; options: { value: string; label: string }[] } // Love Letter : deviner une carte ; Skull King : enchère
+  | { kind: "pickPlayer"; key: string; candidates: string[]; optional: boolean }   // Love Letter: Guard, Prince…
+  | { kind: "pickValue"; key: string; options: { value: string; label: string }[] } // Love Letter: guess a card; Skull King: bid
 ```
 
-L'assassinat de Courtisans devient `followUp: {kind: "pickCard", key: "victim", candidates, optional: true, skipLabel: "Ne pas assassiner", glow: "red"}`, et `toAction` produit `{type: "jouerCarte", carteId, cible, cibleAssassinat: choices.victim}`.
+The assassination in Courtisans becomes `followUp: {kind: "pickCard", key: "victim", candidates, optional: true, skipLabel: "Ne pas assassiner", glow: "red"}`, and `toAction` produces `{type: "jouerCarte", carteId, cible, cibleAssassinat: choices.victim}`.
 
-Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `BoardDefinition.actions?: (view) => { id, label, choice? }[]`, rendues en boutons HUD.
+Actions without a card (Skull King bid, Flip 7 "stop", Hanabi hint): `BoardDefinition.actions?: (view) => { id, label, choice? }[]`, rendered as HUD buttons.
 
-#### f) Scène (`@pbgo/scene`)
+#### f) Scene (`@pbgo/scene`)
 
 ```tsx
 <BoardScene
   game={GAME}                          // board + zones
   view={view}
   textures={{ face: (key) => url, back: (key) => url, mat, cloth }}
-  layouts={{ columns: queenTableLayout }}          // layouts spécifiques en plus des génériques
+  layouts={{ columns: queenTableLayout }}          // specific layouts in addition to the generic ones
   opening={[{ step: "unrollMat" }, { step: "deal", count: 3 }, { step: "objectives", button: texts.missionsButton }]}
   ending={courtisansEnding}            // { steps: {at, patch}[], render: (state) => ReactNode }
   sounds={(event) => [...]}
@@ -988,87 +988,87 @@ Actions sans carte (enchère Skull King, « stop » Flip 7, indice Hanabi) : `Bo
 />
 ```
 
-- Layout = fonction pure `(ctx: {zone, cards, seat, settings, camera?}) => Map<cardId, Pose>` plus `anchor()` et `anchorHidden()`. `disposerDomaine()` devient le layout `groupedRow`, `poseTable()` le layout spécifique `columns`.
-- Sièges : `seats(n, meIndex, preset)` généralise `SIEGES` jusqu'à 8 joueurs, en conservant « moi en bas » et l'ordre = ordre du tableau `players`.
-- Réglages : `useSettings(folder, object, fields)` (l'actuel `useReglages`) et les objets mutables `CARD_SETTINGS`, `ZONE_SETTINGS`… restent la convention.
+- Layout = pure function `(ctx: {zone, cards, seat, settings, camera?}) => Map<cardId, Pose>` plus `anchor()` and `anchorHidden()`. `disposerDomaine()` becomes the `groupedRow` layout, `poseTable()` the specific `columns` layout.
+- Seats: `seats(n, meIndex, preset)` generalizes `SIEGES` up to 8 players, keeping "me at the bottom" and the order = order of the `players` array.
+- Settings: `useSettings(folder, object, fields)` (the current `useReglages`) and the mutable objects `CARD_SETTINGS`, `ZONE_SETTINGS`… remain the convention.
 
-#### g) Binding actuel à combler
+#### g) Current binding to complete
 
-`@pbgo/core` attend déjà `@pbgo/binding` (`GAME`, `State`, `PlayerView`, `SLUG`, `TAGLINE`, `NAME`, `DESCRIPTION`, `AUTHOR`, `CONTACT`, `SITE_URL`, `EngineError`, `PlayerInfo`, `normalizeOptions`) et `@pbgo/binding-ui` (`Logo`, `Game`, `captureGamePhoto`). Pour brancher Courtisans :
+`@pbgo/core` already expects `@pbgo/binding` (`GAME`, `State`, `PlayerView`, `SLUG`, `TAGLINE`, `NAME`, `DESCRIPTION`, `AUTHOR`, `CONTACT`, `SITE_URL`, `EngineError`, `PlayerInfo`, `normalizeOptions`) and `@pbgo/binding-ui` (`Logo`, `Game`, `captureGamePhoto`). To plug in Courtisans:
 
-1. un adaptateur de vue : `VueJoueur.resultats` → `PlayerView.results` (`players[].playerId/total/rank/detail[{key, label, points}]`, `winners`) et `phase "fin"` → `"over"` (`game-over.tsx` teste `view.phase === "over"`) ;
-2. `Game` = `Jeu3D` sans sa gestion de fin ni son contexte (fournis par core) ;
-3. `captureGamePhoto` = `photographierPartie` ;
-4. `loadSetupData` = `chargerMissions` ;
-5. routes `/api/parties` → `/api/games`, `statut lobby/jeu/fin` → `status lobby/playing/over`, table `parties` → `games` (migration SQL et données).
+1. a view adapter: `VueJoueur.resultats` → `PlayerView.results` (`players[].playerId/total/rank/detail[{key, label, points}]`, `winners`) and `phase "fin"` → `"over"` (`game-over.tsx` checks `view.phase === "over"`);
+2. `Game` = `Jeu3D` without its game-over handling or its context (provided by core);
+3. `captureGamePhoto` = `photographierPartie`;
+4. `loadSetupData` = `chargerMissions`;
+5. routes `/api/parties` → `/api/games`, `statut lobby/jeu/fin` → `status lobby/playing/over`, table `parties` → `games` (SQL migration and data).
 
 ---
 
-## 8. Dette et pièges
+## 8. Technical debt and pitfalls
 
-### 8.1 Bugs et risques connus
+### 8.1 Known bugs and risks
 
-1. **`readMissions` en rafale et joueur absent à l'ouverture** : juste après le lancement, n écritures concurrentes passent par le verrou optimiste (8 essais côté serveur, 3 côté client, puis message d'erreur). Comme le banquet attend tous les joueurs, une lecture jamais enregistrée, ou un joueur parti sans valider, bloque la table jusqu'au vote « Commencer sans attendre » des joueurs prêts, possible après le délai d'inactivité (voir §1.2) ; la relève d'un joueur absent (`StalledTurn`) ne s'applique pas en phase `missions` (`activePlayerId` vaut `null`).
-2. **Aucun abandon ni timeout** : un joueur parti bloque la partie à son tour. Il n'y a ni exclusion par l'hôte, ni bot de remplacement. `quitter` n'existe qu'en lobby.
-3. **Mobile non supporté** (`EcranOrdinateur` sous 900 px). Toute l'interaction repose sur le survol.
-4. **Journal** : non tronqué, sans `id`, comparé par longueur (`Monde`, `useSonsJeu`). Un journal qui repart de zéro (rejouer) est géré par une condition `>=` fragile.
-5. **Missions Sanity invalides écartées en silence** par `chargerMissions()`. Une faute de saisie dans le studio fait disparaître une mission sans alerte. Il faudrait au moins un `console.warn` et une validation dans le studio.
-6. **`rejouer`** appelle `chargerMissions(MAX_JOUEURS)` (requête Sanity) à **chaque vote**, et relance avec `setupPartie()` directement, pas via `GAME.setup`.
-7. **`annuler-import.ts`** pointe vers `../../../Assets/sanity-seed/data.ndjson`, chemin d'avant le monorepo. Le seed est maintenant dans `games/courtisans/assets/sanity-seed/`.
+1. **`readMissions` in bursts and an absent player at the opening**: just after the start, n concurrent writes go through the optimistic lock (8 attempts server-side, 3 client-side, then an error message). Since the banquet waits for all players, a reading that was never recorded, or a player who left without validating, blocks the table until the ready players vote « Commencer sans attendre », which becomes possible after the inactivity delay (see §1.2); the takeover of an absent player (`StalledTurn`) does not apply in the `missions` phase (`activePlayerId` is `null`).
+2. **No abandonment or timeout**: a player who left blocks the game on their turn. There is neither exclusion by the host nor a replacement bot. `quitter` only exists in the lobby.
+3. **Mobile not supported** (`EcranOrdinateur` below 900 px). All the interaction relies on hover.
+4. **Log**: not truncated, without `id`, compared by length (`Monde`, `useSonsJeu`). A log that restarts from zero (play again) is handled by a fragile `>=` condition.
+5. **Invalid Sanity missions silently discarded** by `chargerMissions()`. A typo in the studio makes a mission disappear without any alert. There should be at least a `console.warn` and a validation in the studio.
+6. **`rejouer`** calls `chargerMissions(MAX_JOUEURS)` (Sanity query) on **every vote**, and restarts with `setupPartie()` directly, not via `GAME.setup`.
+7. **`annuler-import.ts`** points to `../../../Assets/sanity-seed/data.ndjson`, a path from before the monorepo. The seed is now in `games/courtisans/assets/sanity-seed/`.
 
-### 8.2 Doubles sources de vérité et reliquats
+### 8.2 Duplicated sources of truth and leftovers
 
-- **Composition du paquet** : `engine/deck.ts` (codé en dur) contre Sanity `role.countPerFamily` et `courtier.quantity`. Le moteur ignore Sanity ; `countPerFamily` n'alimente que l'écran des règles et `quantity` n'est pas lu. Modifier Sanity ne change **pas** le jeu.
-- **Couleurs des familles** : `CATALOGUE_PAR_DEFAUT` / Sanity (3D, badges, partage) contre `--famille-*` dans `globals.css` (quelques classes CSS, `chateau.tsx`). Les valeurs divergent.
-- **Château** : `profil.chateau` est toujours requis par `web/server/profil.ts` et stocké dans `courtisans:profil`, mais il n'est plus choisi ni affiché (les châteaux ont été retirés de Sanity ; `ChateauPicker` est inutilisé). `GAME.setup` passe `chateau: ""`.
-- **Anciennes parties** : celles créées avant que le banquet n'attende tous les joueurs sont en `playing`, parfois avec des `missionsRead` à `false` ; l'interface les traite sans rien attendre (repère de `game.tsx`).
-- **Contexte de positions DOM** (`enregistrer` / `rect` dans `contexte.tsx`) et `Interaction.origine()` : restes de l'ancienne UI 2D.
-- **`game.decorations`** (Sanity) : jamais lu.
-- **Crédits** codés en dur dans `PiedDePage` (le template les a mis dans Sanity).
-- **Nommage** : Courtisans est en français (`parties`, `joueurs`, `etat`, `vue`), alors que `@pbgo/core` et le template sont en anglais. Tant que `apps/web` n'est pas migré, il existe **deux implémentations du serveur de parties**.
+- **Deck composition**: `engine/deck.ts` (hardcoded) versus Sanity `role.countPerFamily` and `courtier.quantity`. The engine ignores Sanity; `countPerFamily` only feeds the rules screen and `quantity` is not read. Changing Sanity does **not** change the game.
+- **Family colors**: `CATALOGUE_PAR_DEFAUT` / Sanity (3D, badges, sharing) versus `--famille-*` in `globals.css` (a few CSS classes, `chateau.tsx`). The values diverge.
+- **Castle**: `profil.chateau` is still required by `web/server/profil.ts` and stored in `courtisans:profil`, but it is no longer chosen or displayed (the castles were removed from Sanity; `ChateauPicker` is unused). `GAME.setup` passes `chateau: ""`.
+- **Old games**: those created before the banquet waited for all players are in `playing`, sometimes with `missionsRead` at `false`; the interface handles them without waiting for anything (marker in `game.tsx`).
+- **DOM position context** (`enregistrer` / `rect` in `contexte.tsx`) and `Interaction.origine()`: leftovers of the old 2D UI.
+- **`game.decorations`** (Sanity): never read.
+- **Credits** hardcoded in `PiedDePage` (the template put them in Sanity).
+- **Naming**: Courtisans is in French (`parties`, `joueurs`, `etat`, `vue`), whereas `@pbgo/core` and the template are in English. As long as `apps/web` is not migrated, there are **two implementations of the game server**.
 
-### 8.3 Réglages faits à la main, et couplés entre eux
+### 8.3 Hand-tuned settings, and how they depend on each other
 
-- **Délais des sons ↔ durée de vol** : `pose` à +0,95 s et `elimine` à +1,2 s (`useSonsJeu`) supposent `REGLAGES_CARTE.dureeVol = 1,2` et une distance moyenne. Changer la vitesse des vols décale les sons.
-- **Minuteries d'ouverture ↔ animations** : `jeu3d.tsx` recalcule seul la durée de la distribution (`0,1 + n×3×pasDistribution + 1,3` s) et du tapis (`dureeTapis + 0,3`), en parallèle de `Monde` et `Table`. Changer l'un sans l'autre fait apparaître le bouton trop tôt ou trop tard.
-- **Séquence de fin** : `programme()` suppose 6 familles (`NOMBRE_FAMILLES_TABLE`) et un nombre de piles égal au maximum de `detail.length`. Les délais sont absolus.
-- **Toutes les valeurs leva** (§4.5) dépendent des dimensions `TAPIS_L`, `CARTE_L` et `D_MAIN`, et de `CAMERA_DEFAUT`. Changer une dimension oblige à tout revoir.
-- **Sièges** (`SIEGES`) : positions à la main pour 1 à 4 adversaires uniquement. Au-delà, repli sur une place par défaut qui superpose les joueurs.
-- **Voisins des missions ↔ sièges** : gauche = i + 1 dans `missions.ts`, et la scène place les adversaires à partir de i + 1 dans `sieges()`. Les deux doivent rester alignés.
+- **Sound delays ↔ flight duration**: `pose` at +0.95 s and `elimine` at +1.2 s (`useSonsJeu`) assume `REGLAGES_CARTE.dureeVol = 1,2` and an average distance. Changing the flight speed shifts the sounds.
+- **Opening timers ↔ animations**: `jeu3d.tsx` recomputes on its own the duration of the deal (`0,1 + n×3×pasDistribution + 1,3` s) and of the mat (`dureeTapis + 0,3`), in parallel with `Monde` and `Table`. Changing one without the other makes the button appear too early or too late.
+- **End sequence**: `programme()` assumes 6 families (`NOMBRE_FAMILLES_TABLE`) and a number of stacks equal to the maximum of `detail.length`. The delays are absolute.
+- **All the leva values** (§4.5) depend on the dimensions `TAPIS_L`, `CARTE_L` and `D_MAIN`, and on `CAMERA_DEFAUT`. Changing a dimension forces everything to be reviewed.
+- **Seats** (`SIEGES`): hand-placed positions for 1 to 4 opponents only. Beyond that, it falls back to a default position that makes the players overlap.
+- **Mission neighbors ↔ seats**: left = i + 1 in `missions.ts`, and the scene places the opponents starting from i + 1 in `sieges()`. The two must stay aligned.
 
-### 8.4 Ce qu'il ne faut pas casser
+### 8.4 What must not be broken
 
-- **L'id de carte** est la clé React et la clé d'animation. Ne pas le régénérer, ne pas le dériver d'un index.
-- **Le diff de `Monde` se fait pendant le rendu**, pas dans un `useEffect`. Sinon les cartes apparaissent une frame à leur cible avant de sauter au départ.
-- **`posesCamera`** est une `Map` mutable écrite dans `useFrame`. C'est elle qui permet à une carte jouée depuis la main de partir de l'écran. Ne pas la transformer en état React.
-- **`useLayoutEffect` initial de `Carte3D`** : il place la carte à `depart` avant la première frame.
-- **`preserveDrawingBuffer: true`** et **`userData.horsPhoto`** (voiles, apparitions) sont indispensables pour la photo de partage.
-- **La vue filtrée** : ne jamais ajouter au `GET` un champ de `etat` (pioche, mains adverses, missions adverses avant la fin, famille des espions).
-- **La garde de version** de `usePartie.appliquer()` : sans elle, un poll lent écrase un coup plus récent.
-- **Les replis** (`CATALOGUE_PAR_DEFAUT`, `MISSIONS_PROVISOIRES`, `chargerAvecSecours()`, textures canvas de secours) : le jeu doit démarrer sans Sanity.
-- **Le moteur pur** (`structuredClone` en entrée de `applyAction()`) : `modifierPartie()` réessaie avec le même état.
-- **La politique d'autoplay** : `initialiserSon()` ne doit être appelé que sur un geste utilisateur.
-- **Les textes des règles** restent paraphrasés, pas copiés du livret.
-- **Le pied de page** garde les crédits des auteurs, de l'illustratrice et de l'éditeur, et la mention « non officielle ».
+- **The card id** is the React key and the animation key. Do not regenerate it, and do not derive it from an index.
+- **The `Monde` diff happens during render**, not in a `useEffect`. Otherwise the cards appear at their target for one frame before jumping to their departure point.
+- **`posesCamera`** is a mutable `Map` written in `useFrame`. It is what allows a card played from the hand to start from the screen. Do not turn it into React state.
+- **Initial `useLayoutEffect` of `Carte3D`**: it places the card at `depart` before the first frame.
+- **`preserveDrawingBuffer: true`** and **`userData.horsPhoto`** (veils, appearances) are essential for the share photo.
+- **The filtered view**: never add to the `GET` a field of `etat` (draw pile, opponents' hands, opponents' missions before the end, the Spies' family).
+- **The version guard** of `usePartie.appliquer()`: without it, a slow poll overwrites a more recent move.
+- **The fallbacks** (`CATALOGUE_PAR_DEFAUT`, `MISSIONS_PROVISOIRES`, `chargerAvecSecours()`, fallback canvas textures): the game must start without Sanity.
+- **The pure engine** (`structuredClone` on entry to `applyAction()`): `modifierPartie()` retries with the same state.
+- **The autoplay policy**: `initialiserSon()` must only be called on a user gesture.
+- **The texts of the rules** remain paraphrased, not copied from the rulebook.
+- **The footer** keeps the credits of the authors, the illustrator and the publisher, and the "unofficial" notice.
 
-### 8.5 Choix à refaire dans la version `@pbgo`
+### 8.5 Choices to revisit in the `@pbgo` version
 
-1. **`scene.tsx` fait 1 279 lignes** : séparer layouts (purs), animations (diff + journal), interactions (cibles) et décor (tapis, pioche). Voir §7.4 f.
-2. **Journal normalisé** (`move` / `reveal` / `remove` avec `from` / `to` et `id`) à la place des événements métier interprétés par la scène.
-3. **Ouverture et fin décrites comme des listes d'étapes**, avec des durées lues depuis les mêmes réglages que les animations, et les sons calés sur `onArrivee` plutôt que sur des délais fixes.
-4. **Cibles légales fournies par le moteur** (`targets()`) au lieu d'être recalculées dans le client (`jouer()` refait le calcul des candidats de l'assassinat).
-5. **Composition du paquet** : soit depuis Sanity (`quantity`) avec validation, soit uniquement dans le moteur. Retirer l'autre source.
-6. **Une seule source de couleurs** (Sanity → variables CSS injectées comme `--image-motif`).
-7. **i18n de l'interface** : dictionnaires `fr` / `en`, comme prévu dans le template. Aujourd'hui seul Sanity est localisé.
-8. **Présence et abandon** : présence Realtime, et après N minutes d'absence, jeu automatique (`coupAutomatique()` existe déjà) ou exclusion par l'hôte.
-9. **Leva en production** : le panneau est accessible via `?debug` (les commandes serveur restent protégées par `DEBUG_PARTIES`, et la triche ne modifie que la vue locale), mais leva et ses stores sont chargés dans le bundle. On pourrait les charger dynamiquement.
-10. **Tests** : le moteur est bien couvert (`*.test.ts`, simulations complètes). Rien ne teste l'UI ni les layouts, alors que les layouts, purs, s'y prêteraient facilement (snapshots de poses par nombre de joueurs).
+1. **`scene.tsx` is 1,279 lines long**: separate layouts (pure), animations (diff + log), interactions (targets) and decor (mat, draw pile). See §7.4 f.
+2. **Normalized log** (`move` / `reveal` / `remove` with `from` / `to` and `id`) instead of the game-specific events interpreted by the scene.
+3. **Opening and ending described as lists of steps**, with durations read from the same settings as the animations, and sounds synchronized with `onArrivee` rather than with fixed delays.
+4. **Legal targets provided by the engine** (`targets()`) instead of being recomputed in the client (`jouer()` redoes the computation of the assassination candidates).
+5. **Deck composition**: either from Sanity (`quantity`) with validation, or only in the engine. Remove the other source.
+6. **A single source of colors** (Sanity → CSS variables injected like `--image-motif`).
+7. **UI i18n**: `fr` / `en` dictionaries, as planned in the template. Today only Sanity is localized.
+8. **Presence and abandonment**: Realtime presence, and after N minutes of absence, automatic play (`coupAutomatique()` already exists) or exclusion by the host.
+9. **Leva in production**: the panel is accessible via `?debug` (the server commands remain protected by `DEBUG_PARTIES`, and cheating only changes the local view), but leva and its stores are loaded in the bundle. They could be loaded dynamically.
+10. **Tests**: the engine is well covered (`*.test.ts`, full simulations). Nothing tests the UI or the layouts, even though the layouts, being pure, would lend themselves to it easily (snapshots of poses per number of players).
 
-### 8.6 État après le passage sur `@pbgo/core` (branche `courtisans-core`)
+### 8.6 State after the move to `@pbgo/core` (branch `courtisans-core`)
 
-Le document ci-dessus décrit le code d'avant la migration, en français. Correspondances et points réglés depuis :
+The document above describes the code before the migration, when it was in French. Mappings and points resolved since:
 
-- **Nommage** : tout le code est en anglais (`Monde` → `World`, `Carte3D` → `Card3D`, `jeu3d/` → `game3d/`, `disposition.ts` → `layout.ts`, `posesCamera` → `cameraPoses`, `depart` → `origin`, `horsPhoto` → `hideInPhoto`, `dureeVol` → `flightDuration`, `useSonsJeu` → `useGameSounds`, `setupPartie` → `setupGame`, `vueJoueur` → `playerView`…). Valeurs du moteur et de Sanity en anglais (`butterfly`, `spy`, `up` / `down`, `light` / `neutral`, `white` / `blue`). Le serveur de parties n'existe plus qu'une fois, dans `@pbgo/core` (8.2, dernier point).
-- **Réglé** : chemin du seed de `undo-import.ts` (8.1 §7) ; château supprimé (8.2) ; contexte de positions DOM supprimé (8.2) ; `game.decorations` supprimé (8.2) ; crédits dans Sanity `settings` et par défaut dans `SETTINGS_DEFAULTS` (8.2) ; la relance passe par `GAME.setup` avec les missions de `loadSetupData` (8.1 §6, mais les missions sont toujours relues à chaque vote, en cache Next 60 s) ; son, écrans du banquet, bandeau, annonces, tableau de fin et debug sont désormais communs (`@pbgo/core`).
-- **Toujours ouvert** : 8.1 §1 à §5, couleurs des familles en double (`--family-*` dans `globals.css` contre le catalogue), phase `missions` et `Interaction.originOf()` toujours présents, tout le 8.3, et le 8.5 (prévu pour la 2e passe `@pbgo/scene`).
-- **Ne pas casser (8.4), en plus** : les alias `@pbgo/binding*` ; les clés de textures (`back`, `cloth`, `mat`…) doivent rester alignées avec les propriétés de `Textures` ; les chaînes de sons (`hover`, `place`, `slide`…) avec `SOUNDS` dans `lib/sounds.ts`.
+- **Naming**: all the code is in English (`Monde` → `World`, `Carte3D` → `Card3D`, `jeu3d/` → `game3d/`, `disposition.ts` → `layout.ts`, `posesCamera` → `cameraPoses`, `depart` → `origin`, `horsPhoto` → `hideInPhoto`, `dureeVol` → `flightDuration`, `useSonsJeu` → `useGameSounds`, `setupPartie` → `setupGame`, `vueJoueur` → `playerView`…). Engine and Sanity values are in English (`butterfly`, `spy`, `up` / `down`, `light` / `neutral`, `white` / `blue`). The game server now exists only once, in `@pbgo/core` (8.2, last point).
+- **Resolved**: seed path of `undo-import.ts` (8.1 §7); castle removed (8.2); DOM position context removed (8.2); `game.decorations` removed (8.2); credits in Sanity `settings` and defaults in `SETTINGS_DEFAULTS` (8.2); the restart goes through `GAME.setup` with the missions from `loadSetupData` (8.1 §6, but the missions are still re-read at every vote, with a 60 s Next cache); sound, banquet screens, banner, announcements, game-over scoreboard and debug are now shared (`@pbgo/core`).
+- **Still open**: 8.1 §1 to §5, duplicated family colors (`--family-*` in `globals.css` versus the catalog), `missions` phase and `Interaction.originOf()` still present, all of 8.3, and 8.5 (planned for the 2nd `@pbgo/scene` pass).
+- **Do not break (8.4), in addition**: the `@pbgo/binding*` aliases; the texture keys (`back`, `cloth`, `mat`…) must stay aligned with the properties of `Textures`; the sound strings (`hover`, `place`, `slide`…) with `SOUNDS` in `lib/sounds.ts`.

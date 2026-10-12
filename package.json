@@ -8,16 +8,14 @@
   "scripts": {
     "dev": "bash scripts/run.sh dev",
     "dev:studio": "bash scripts/run.sh dev:studio",
-    "build": "pnpm -r --filter \"!./games/*\" --filter \"!./template\" build",
-    "test": "pnpm -r --filter \"!./games/*\" --filter \"!./template\" test",
-    "typecheck": "pnpm -r --filter \"!./games/*\" --filter \"!./template\" typecheck",
-    "lint": "pnpm -r --filter \"!./games/*\" --filter \"!./template\" lint",
+    "build": "pnpm --filter web build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
     "check:catalog": "node scripts/check-catalog.mjs",
     "new-game": "bash scripts/new-game.sh",
     "go-live": "bash scripts/go-live.sh",
     "add-game": "bash scripts/add-game.sh",
-    "setup-env": "bash scripts/setup-env.sh",
-    "vercel:ignore-builds": "bash scripts/vercel-ignore-builds.sh",
-    "check-games": "bash scripts/check-games.sh"
+    "setup-env": "bash scripts/setup-env.sh"
   }
 }

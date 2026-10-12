@@ -1,12 +1,39 @@
 {
-  "name": "love-letter",
+  "name": "@pbgo-game/love-letter",
+  "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "description": "Love Letter for apps/web: site constants, logo and default look. No engine yet, so its home page says \"coming soon\".",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/ui.tsx",
+    "./server": "./src/server.ts",
+    "./runtime": "./src/runtime.tsx",
+    "./styles.css": "./src/styles.css"
+  },
   "scripts": {
-    "dev": "pnpm --filter love-letter-web dev",
+    "typecheck": "tsc --noEmit",
     "dev:studio": "pnpm --filter love-letter-studio dev",
-    "build": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" build",
-    "test": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" test",
-    "typecheck": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" typecheck",
     "deploy:studio": "pnpm --filter love-letter-studio run deploy"
+  },
+  "dependencies": {
+    "@pbgo/core": "workspace:*",
+    "@pbgo/ui": "workspace:*",
+    "server-only": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:"
   }
 }

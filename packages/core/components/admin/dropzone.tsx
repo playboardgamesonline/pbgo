@@ -20,7 +20,7 @@ type Props = {
   removeLabel?: string
 }
 
-// Zone de dépôt : clic, glisser-déposer ou coller (⌘V) quand elle a le focus
+// Drop zone: click, drag and drop, or paste (⌘V) while focused
 export function Dropzone({ accept, title, hint, busy, disabled, size = "sm", current, onFile, onRemove, removeLabel = "Retirer" }: Props) {
   const input = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)

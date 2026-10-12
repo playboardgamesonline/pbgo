@@ -36,7 +36,7 @@ describe("GAME (@pbgo/engine-kit contract)", () => {
   })
 })
 
-describe("GAME.autoPlay (joueur absent)", () => {
+describe("GAME.autoPlay (absent player)", () => {
   it("plays the whole turn of the active player once the banquet has started", () => {
     const state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed: 5, data: testMissions() }))
     const active = GAME.activePlayer!(state)
@@ -58,7 +58,7 @@ describe("GAME.autoPlay (joueur absent)", () => {
   })
 })
 
-describe("GAME.debug.missions (tout le monde a lu)", () => {
+describe("GAME.debug.missions (everyone has read)", () => {
   it("marks every player as ready, which starts the banquet", () => {
     const state = GAME.setup({ players, options: {}, seed: 2, data: testMissions() })
     expect(state.phase).toBe("missions")

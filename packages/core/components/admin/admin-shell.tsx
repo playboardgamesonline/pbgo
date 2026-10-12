@@ -7,10 +7,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useRef } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../lib/admin-api"
-import { ADMIN_NAV, type CountKey } from "../../lib/admin-nav"
-import { withBase } from "../../lib/base-path"
+import { ADMIN_NAV, adminHref, type CountKey } from "../../lib/admin-nav"
+import { useGameSlug } from "../../lib/binding-context"
 
-/* Modifications non enregistrées : prévient avant de quitter la page (barre latérale, onglet fermé). */
+/* Unsaved changes: warns before leaving the page (sidebar link, closed tab). */
 const DirtyContext = createContext<React.RefObject<boolean> | null>(null)
 
 export function useDirtyGuard(dirty: boolean) {
@@ -40,6 +40,7 @@ type Props = {
 }
 
 export function AdminShell({ title, logo, favicon, studioUrl, counts, children }: Props) {
+  const slug = useGameSlug()
   const pathname = usePathname()
   const router = useRouter()
   const dirty = useRef(false)
@@ -58,7 +59,7 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
     <DirtyContext.Provider value={dirty}>
       <div className="flex min-h-dvh">
         <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r bg-muted/40">
-          <Link href="/admin/identity" onClick={guard} className="flex h-14 items-center gap-2.5 border-b px-4 font-semibold">
+          <Link href={adminHref(slug, "identity")} onClick={guard} className="flex h-14 items-center gap-2.5 border-b px-4 font-semibold">
             {mark ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={mark} alt="" className="size-7 rounded-md object-contain" />
@@ -72,7 +73,7 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
               <div key={g.group} className="flex flex-col gap-0.5">
                 <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{g.group}</p>
                 {g.items.map((item) => {
-                  const href = `/admin/${item.path}`
+                  const href = adminHref(slug, item.path)
                   const active = pathname === href
                   const count = item.count ? counts[item.count] : null
                   return (
@@ -96,7 +97,7 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
             ))}
           </nav>
           <div className="flex flex-col gap-0.5 border-t px-3 py-3">
-            <a href={withBase("/")} target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">
+            <a href={`/${slug}`} target="_blank" rel="noreferrer" className="flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 hover:bg-muted">
               <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-4" />
               View game
             </a>

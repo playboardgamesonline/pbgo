@@ -1,8 +1,9 @@
 "use client"
 
-import { GAME, optionGroup, type OptionDefinition, type OptionValues } from "@pbgo/binding"
+import { optionGroup, type OptionDefinition, type OptionValues } from "@pbgo/engine-kit"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@pbgo/ui/game/dialog"
 import { cn } from "@pbgo/ui/utils"
+import { useBinding } from "../lib/binding-context"
 import { useSiteSettings } from "./settings-provider"
 import { useText } from "./skin-provider"
 
@@ -12,11 +13,12 @@ function display(def: OptionDefinition, value: unknown, t: ReturnType<typeof use
   return String(value)
 }
 
-/** Fenêtre en lecture seule : paramètres et extensions de la partie en cours (les options masquées par l'admin ne sont pas listées). */
+/** Read-only dialog: parameters and extensions of the current game (options hidden by the admin are not listed). */
 export function GameSettingsDialog({ open, onOpenChange, options }: { open: boolean; onOpenChange: (o: boolean) => void; options: OptionValues }) {
   const t = useText()
+  const { GAME } = useBinding()
   const { options: settings } = useSiteSettings()
-  const entries = Object.entries(GAME.options).filter(([key]) => !settings.hidden.includes(key))
+  const entries = Object.entries(GAME?.options ?? {}).filter(([key]) => !settings.hidden.includes(key))
   const parameters = entries.filter(([, def]) => optionGroup(def) === "parameter")
   const extensions = entries.filter(([, def]) => optionGroup(def) === "extension")
   const standard = entries.every(([key, def]) => (options[key] ?? def.defaultValue) === def.defaultValue)

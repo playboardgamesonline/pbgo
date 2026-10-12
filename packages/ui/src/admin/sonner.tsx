@@ -4,7 +4,7 @@ import { Alert02Icon, CheckmarkCircle02Icon, InformationCircleIcon, Loading03Ico
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-/** Toasts de l'admin : style shadcn (luma), icônes Hugeicons. `admin-portal` porte les variables du thème de l'admin. */
+/** Admin toasts: shadcn (luma) style, Hugeicons icons. `admin-portal` carries the admin theme variables. */
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
