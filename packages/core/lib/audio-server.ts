@@ -1,10 +1,12 @@
 import "server-only"
 import { cache } from "react"
-import { client } from "../sanity/client"
+import { sanityClient } from "../sanity/client"
+import type { GameModule } from "./binding"
 import { mediaUrl } from "./settings"
-import { CODE_SOUNDS, DEFAULT_VOLUMES, type EffectSound, type LoopSound, type SoundConfig, type Volumes } from "./sound-config"
+import { codeSounds, DEFAULT_VOLUMES, type EffectSound, type LoopSound, type SoundConfig, type Volumes } from "./sound-config"
 
-export const AUDIO_TAG = "audio"
+/** Cache tag of a game's audio (revalidated when the admin saves). */
+export const audioTag = (slug: string) => `${slug}:audio`
 
 type FileRef = { url?: string | null } | null | undefined
 
@@ -27,8 +29,8 @@ const fileUrl = (f: FileRef) => (f?.url ? mediaUrl(f.url) : null)
 const volume = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : null)
 const seconds = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null)
 
-/** Sons effectifs : ceux déclarés par le jeu, fichiers et volumes remplacés par le document Sanity « audio ». */
-export function toSoundConfig(doc: AudioDoc, base: SoundConfig = CODE_SOUNDS): SoundConfig {
+/** Effective sounds: the ones declared by the game (`base`), files and volumes replaced by the Sanity "audio" document. */
+export function toSoundConfig(doc: AudioDoc, base: SoundConfig): SoundConfig {
   const effects: Record<string, EffectSound> = Object.fromEntries(
     Object.entries(base.effects).map(([key, def]) => {
       const over = doc?.effects?.find((e) => e.key === key)
@@ -50,11 +52,14 @@ export function toSoundConfig(doc: AudioDoc, base: SoundConfig = CODE_SOUNDS): S
   return { effects, music, ambience, defaultMusic, volumes }
 }
 
-export const loadAudio = cache(async (): Promise<SoundConfig> => {
-  if (!client) return toSoundConfig(null)
+/** Sounds of a game: its own (`SOUNDS` of its binding), completed by its Sanity "audio" document. */
+export const loadAudio = cache(async (game: GameModule): Promise<SoundConfig> => {
+  const base = codeSounds(game.binding)
+  const client = sanityClient(game)
+  if (!client) return toSoundConfig(null, base)
   try {
-    return toSoundConfig(await client.fetch<AudioDoc>(AUDIO_QUERY, {}, { next: { tags: [AUDIO_TAG], revalidate: 60 } }))
+    return toSoundConfig(await client.fetch<AudioDoc>(AUDIO_QUERY, {}, { next: { tags: [audioTag(game.slug)], revalidate: 60 } }), base)
   } catch {
-    return toSoundConfig(null)
+    return toSoundConfig(null, base)
   }
 })

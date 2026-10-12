@@ -3,7 +3,7 @@
 import { cn } from "@pbgo/ui/utils"
 import { LOCALES, type Locale } from "../../../lib/i18n"
 
-/** Sélecteur de langue des pages Setup (FR / EN / ES / DE) : `filled` marque les langues déjà renseignées. */
+/** Language picker of the Setup pages (FR / EN / ES / DE): `filled` marks the languages already filled in. */
 export function LangTabs({ value, onChange, filled, className }: { value: Locale; onChange: (l: Locale) => void; filled?: Partial<Record<Locale, number | boolean>>; className?: string }) {
   return (
     <div role="tablist" aria-label="Language" className={cn("inline-flex gap-1 rounded-lg bg-muted p-1", className)}>

@@ -1,12 +1,14 @@
 import "server-only"
 import { cache } from "react"
-import { client } from "../sanity/client"
-import { fixedUrlFor, urlFor } from "../sanity/image"
+import { sanityClient } from "../sanity/client"
+import { fixedUrlFor, type SanityImageSource, urlFor } from "../sanity/image"
+import type { GameModule } from "./binding"
 import type { Locale, Localized } from "./i18n"
 import { getLocale } from "./locale-server"
-import { byLocale, clampPlayers, RULES_FIELD, clampTimeout, cleanOptions, DEFAULT_SETTINGS, DEFAULT_THEME, isFont, isHex, type SiteSettings, type ThemeColors, type UploadedFile } from "./settings"
+import { byLocale, clampPlayers, RULES_FIELD, clampTimeout, cleanOptions, defaultSettings, defaultTheme, isFont, isHex, type SiteSettings, type ThemeColors, type UploadedFile } from "./settings"
 
-export const SETTINGS_TAG = "settings"
+/** Cache tag of a game's settings (revalidated when the admin saves). */
+export const settingsTag = (slug: string) => `${slug}:settings`
 
 export type SettingsDoc = {
   title?: string
@@ -39,7 +41,7 @@ export type SettingsDoc = {
 } | null
 
 type FileRef = { url?: string; name?: string } | null
-type ImageRef = (Parameters<typeof urlFor>[0] & { asset?: { _ref?: string }; mime?: string }) | null | undefined
+type ImageRef = (SanityImageSource & { asset?: { _ref?: string }; mime?: string }) | null | undefined
 
 const hasImage = (i: ImageRef): i is NonNullable<ImageRef> => !!i?.asset?._ref
 
@@ -53,7 +55,7 @@ function parseJson(v: unknown) {
 
 export const SETTINGS_QUERY = `*[_id == "settings"][0]{ title, description, descriptionI18n, creditsAuthorsI18n, logo, "favicon": favicon{asset, crop, hotspot, "mime": asset->mimeType}, shareImage, turnTimeout, gameOptions, minPlayers, maxPlayers, theme, bodyFont, displayFont, rulesPdfFr, rulesPdfEn, rulesPdfEs, rulesPdfDe, creditsAuthors, publisher, publisherUrl, "rulesPdfFrFile": rulesPdfFrFile.asset->{url, "name": originalFilename}, "rulesPdfEnFile": rulesPdfEnFile.asset->{url, "name": originalFilename}, "rulesPdfEsFile": rulesPdfEsFile.asset->{url, "name": originalFilename}, "rulesPdfDeFile": rulesPdfDeFile.asset->{url, "name": originalFilename}, "bodyFontFile": bodyFontFile.asset->{url, "name": originalFilename}, "displayFontFile": displayFontFile.asset->{url, "name": originalFilename} }`
 
-const file = (f: FileRef | undefined): UploadedFile | null => (f?.url ? { url: f.url, name: f.name || f.url.split("/").pop() || "fichier" } : null)
+const file = (f: FileRef | undefined): UploadedFile | null => (f?.url ? { url: f.url, name: f.name || f.url.split("/").pop() || "file" } : null)
 
 const url = (v: unknown) => (typeof v === "string" && /^https?:\/\//.test(v) ? v : null)
 
@@ -62,27 +64,28 @@ const pickText = (v: Localized, l: Locale) => {
   return typeof x === "string" && x.trim() ? x.trim() : ""
 }
 
-export function toSettings(doc: SettingsDoc, locale: Locale = "fr"): SiteSettings {
-  if (!doc) return { ...DEFAULT_SETTINGS, description: DEFAULT_SETTINGS.descriptions[locale] || DEFAULT_SETTINGS.descriptions.fr, credits: { ...DEFAULT_SETTINGS.credits, authors: DEFAULT_SETTINGS.creditsAuthors[locale] || DEFAULT_SETTINGS.credits.authors } }
-  const descriptions = byLocale((l) => pickText(doc.descriptionI18n, l) || (l === "fr" ? doc.description?.trim() || "" : "") || DEFAULT_SETTINGS.descriptions[l])
-  const authors = byLocale((l) => pickText(doc.creditsAuthorsI18n, l) || (l === "fr" ? doc.creditsAuthors?.trim() || "" : "") || (l === "fr" ? (DEFAULT_SETTINGS.credits.authors ?? "") : DEFAULT_SETTINGS.creditsAuthors[l]))
+export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = "fr"): SiteSettings {
+  const defaults = defaultSettings(game.binding)
+  if (!doc) return { ...defaults, description: defaults.descriptions[locale] || defaults.descriptions.fr, credits: { ...defaults.credits, authors: defaults.creditsAuthors[locale] || defaults.credits.authors } }
+  const descriptions = byLocale((l) => pickText(doc.descriptionI18n, l) || (l === "fr" ? doc.description?.trim() || "" : "") || defaults.descriptions[l])
+  const authors = byLocale((l) => pickText(doc.creditsAuthorsI18n, l) || (l === "fr" ? doc.creditsAuthors?.trim() || "" : "") || (l === "fr" ? (defaults.credits.authors ?? "") : defaults.creditsAuthors[l]))
   const theme = Object.fromEntries(
-    Object.entries(DEFAULT_THEME).map(([k, d]) => [k, isHex(doc.theme?.[k as keyof ThemeColors]) ? doc.theme![k as keyof ThemeColors]! : d]),
+    Object.entries(defaultTheme(game.binding)).map(([k, d]) => [k, isHex(doc.theme?.[k as keyof ThemeColors]) ? doc.theme![k as keyof ThemeColors]! : d]),
   ) as ThemeColors
   return {
-    title: doc.title?.trim() || DEFAULT_SETTINGS.title,
+    title: doc.title?.trim() || defaults.title,
     description: descriptions[locale] || descriptions.fr,
     descriptions,
     creditsAuthors: authors,
-    logo: hasImage(doc.logo) ? urlFor(doc.logo).width(1200).url() : DEFAULT_SETTINGS.logo,
-    favicon: hasImage(doc.favicon) ? (doc.favicon.mime === "image/svg+xml" ? fixedUrlFor(doc.favicon).url() : fixedUrlFor(doc.favicon).width(512).height(512).fit("fill").format("png").url()) : DEFAULT_SETTINGS.favicon,
-    shareImage: hasImage(doc.shareImage) ? fixedUrlFor(doc.shareImage).width(1200).height(630).fit("crop").format("jpg").quality(88).url() : DEFAULT_SETTINGS.shareImage,
-    turnTimeout: doc.turnTimeout == null ? DEFAULT_SETTINGS.turnTimeout : clampTimeout(doc.turnTimeout),
-    options: doc.gameOptions ? cleanOptions({ defaults: parseJson(doc.gameOptions.defaults), hidden: doc.gameOptions.hidden }) : DEFAULT_SETTINGS.options,
-    ...clampPlayers(doc.minPlayers, doc.maxPlayers),
+    logo: hasImage(doc.logo) ? urlFor(game, doc.logo).width(1200).url() : defaults.logo,
+    favicon: hasImage(doc.favicon) ? (doc.favicon.mime === "image/svg+xml" ? fixedUrlFor(game, doc.favicon).url() : fixedUrlFor(game, doc.favicon).width(512).height(512).fit("fill").format("png").url()) : defaults.favicon,
+    shareImage: hasImage(doc.shareImage) ? fixedUrlFor(game, doc.shareImage).width(1200).height(630).fit("crop").format("jpg").quality(88).url() : defaults.shareImage,
+    turnTimeout: doc.turnTimeout == null ? defaults.turnTimeout : clampTimeout(doc.turnTimeout),
+    options: doc.gameOptions ? cleanOptions(game.binding, { defaults: parseJson(doc.gameOptions.defaults), hidden: doc.gameOptions.hidden }) : defaults.options,
+    ...clampPlayers(game.binding, doc.minPlayers, doc.maxPlayers),
     theme,
-    bodyFont: isFont(doc.bodyFont) ? doc.bodyFont : DEFAULT_SETTINGS.bodyFont,
-    displayFont: isFont(doc.displayFont) ? doc.displayFont : DEFAULT_SETTINGS.displayFont,
+    bodyFont: isFont(doc.bodyFont) ? doc.bodyFont : defaults.bodyFont,
+    displayFont: isFont(doc.displayFont) ? doc.displayFont : defaults.displayFont,
     rulesPdf: byLocale((l) => file(doc[`${RULES_FIELD[l]}File`])?.url ?? url(doc[RULES_FIELD[l]])),
     rulesPdfLinks: byLocale((l) => url(doc[RULES_FIELD[l]])),
     files: {
@@ -95,21 +98,22 @@ export function toSettings(doc: SettingsDoc, locale: Locale = "fr"): SiteSetting
     },
     credits: {
       authors: authors[locale] || authors.fr || null,
-      publisher: doc.publisher?.trim() || DEFAULT_SETTINGS.credits.publisher,
-      publisherUrl: url(doc.publisherUrl) ?? DEFAULT_SETTINGS.credits.publisherUrl,
+      publisher: doc.publisher?.trim() || defaults.credits.publisher,
+      publisherUrl: url(doc.publisherUrl) ?? defaults.credits.publisherUrl,
     },
   }
 }
 
-const settingsFor = cache(async (locale: Locale): Promise<SiteSettings> => {
-  if (!client) return toSettings(null, locale)
+const settingsFor = cache(async (game: GameModule, locale: Locale): Promise<SiteSettings> => {
+  const client = sanityClient(game)
+  if (!client) return toSettings(game, null, locale)
   try {
-    const doc = await client.withConfig({ useCdn: false }).fetch<SettingsDoc>(SETTINGS_QUERY, {}, { next: { tags: [SETTINGS_TAG], revalidate: 60 } })
-    return toSettings(doc, locale)
+    const doc = await client.withConfig({ useCdn: false }).fetch<SettingsDoc>(SETTINGS_QUERY, {}, { next: { tags: [settingsTag(game.slug)], revalidate: 60 } })
+    return toSettings(game, doc, locale)
   } catch {
-    return toSettings(null, locale)
+    return toSettings(game, null, locale)
   }
 })
 
-/** Réglages dans la langue du visiteur ; `locale` explicite pour les rendus indépendants de la requête (icônes, image de partage). */
-export const loadSettings = async (locale?: Locale): Promise<SiteSettings> => settingsFor(locale ?? (await getLocale()))
+/** Settings of a game in the visitor's language; explicit `locale` for renders that do not depend on the request (icons, share image). */
+export const loadSettings = async (game: GameModule, locale?: Locale): Promise<SiteSettings> => settingsFor(game, locale ?? (await getLocale()))

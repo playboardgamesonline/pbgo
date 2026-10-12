@@ -1,0 +1,3 @@
+/* The game's styles: core's shared styles (theme tokens, admin preset), then the game's own tokens and fonts. */
+@import "@pbgo/core/styles/game.css";
+@source ".";

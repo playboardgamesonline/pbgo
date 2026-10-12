@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { isPreviewWindow, PREVIEW_MESSAGE, PREVIEW_READY, type PreviewDraft } from "../lib/preview"
 import { fontFaceCss, googleFontsHref, themeStyle } from "../lib/settings"
 
-/** Dans l'iframe d'aperçu de l'admin : reçoit le brouillon (réglages + habillage) et l'applique sans enregistrer. */
+/** In the admin's preview iframe: receives the draft (settings + skin) and applies it without saving. */
 export function usePreviewDraft(): PreviewDraft | null {
   const [draft, setDraft] = useState<PreviewDraft | null>(null)
   useEffect(() => {

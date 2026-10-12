@@ -1,74 +1,74 @@
-# Play Game Online · Template
+# Play Board Games Online · Template
 
-Base commune des jeux de société en ligne (`<slug>-online`). La démo « La Plus Haute » (jeu de plis minimal) montre le contrat moteur ↔ web ; on la remplace par le vrai jeu.
+Shared base of the online board games. `pnpm new-game <slug>` copies this folder to `games/<slug>`. The demo game "La Plus Haute" (a minimal trick-taking game) shows the engine ↔ web contract; a new game replaces it.
 
-## Conventions de code
-- **Tout le code est en anglais**, vocabulaire du jeu compris : fonctions, variables, types, fichiers, dossiers, routes API, URL, tables/colonnes SQL, clés de stockage, codes d'erreur, commentaires.
-- **Prévu pour le multilingue** : seuls les textes affichés au joueur sont en français (Sanity `{ fr, en }` lus avec `translate()`, ou textes d'interface dans les composants en attendant des dictionnaires `fr` / `en`). Jamais de mot français dans un identifiant.
-- Peu de commentaires, noms explicites.
-- Glossaire du jeu (FR → EN), à compléter pour chaque nouveau jeu :
+The template is itself a game of the single app `apps/web`: `@pbgo-game/template`, served at `/template` (not live, so playable outside production only).
+
+## Code conventions
+- **All code is in English**, the game's vocabulary included: functions, variables, types, files, folders, API routes, URLs, SQL tables and columns, storage keys, error codes, comments.
+- **Multilingual by design**: only player-facing texts are in French (or another language). They live in Sanity (`localeString` / `localeText` fields), in `I18N` (see `@pbgo/core/lib/binding`) or in the game's defaults. Never a French word in an identifier.
+- Few comments, explicit names.
+- Game glossary (FR → EN), to extend for each new game:
   - partie → `game` · joueur → `player` · pseudo → `nickname` · hôte → `host` · moi → `me`
   - manche → `round` · tour → `turn` · pli → `trick` · main → `hand` · paquet/pioche → `deck` · carte → `card`
   - vue → `view` · état → `state` · résultats → `results` · vainqueur → `winner` · journal → `log`
   - règles → `rules` · réglages → `settings` · annonce → `announcement` · partage → `sharing` · tâche → `task`
 
-## UI admin
-- L'admin `/admin` utilise le preset shadcn `b1VlJAwK` (style luma, neutral, Inter, Hugeicons), scopé par la classe `.admin` dans `globals.css`
-- Composants dans le paquet partagé `@pbgo/ui/admin/*` (`packages/ui/src/admin`) ; ceux du jeu dans `@pbgo/ui/game/*`. Pour en ajouter : `pnpm dlx shadcn@latest add <comp>` puis déplacer dans `packages/ui/src/admin` (ou `game`) et remplacer les imports `@/lib/utils` par `../utils`
-- L'accueil, le lobby et le jeu gardent le thème du jeu (couleurs et polices réglées dans /admin/visual)
+## Structure
+- `package.json` — `@pbgo-game/template`, the binding package that `@pbgo/games` loads on demand
+  - `src/index.ts` — shared by the server and the client: engine `GAME`, site constants (`src/lib/site.ts`); optional `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`, `ERROR_MESSAGES`, `REACTIONS`, `STUDIO_URL`
+  - `src/ui.tsx` — client components: `Logo`, `Game` (the board, loaded with the first game so the home page does not pull in three.js)
+  - `src/server.ts` — server only: everything of `index.ts` plus the optional `loadSetupData` (data given to `GAME.setup`), `loadGameData` (`data` prop of the board), `ROUTES` (the game's own API routes, `/api/<slug>/games/<code>/<route>`), `SEO`
+  - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
+  - `src/lib/site.ts` — `SLUG`, `asset()` (URL of a file of `apps/web/public/<slug>`), name, tagline, description, keywords, author, contact
+  - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
+  - `src/components/game3d` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose, `card3d.tsx`, textures, aura, crown, photo for sharing)
+- `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
+  - `@pbgo/engine-kit`: `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`), declarative game options (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`
+  - `src/demo/` is the demo game; `src/index.ts` exports `GAME` = the active game
+- `apps/studio` — `template-studio`, Sanity Studio built with `createStudioConfig` of `@pbgo/studio-kit` (shared singletons `settings`, `interface`, `rules`, `texts`); only `schemaTypes/game.ts` is the game's own
+- Everything else (home, lobby, game page, chat, game over, sharing, admin, API routes) comes from `@pbgo/core` and is the same for every game
 
 ## Assets
-Fichiers dans `apps/web/public` nommés en anglais, `UPPER_SNAKE_CASE` (ex. `cards/BACK.webp`), dossiers en anglais minuscules.
+Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `UPPER_SNAKE_CASE` (e.g. `cards/BACK.webp`), folders in lowercase English. Build their URLs with `asset()` from `src/lib/site.ts`.
 
-## Stack technique
+## Admin UI
+- `/<slug>/admin` uses the shadcn preset `b1VlJAwK` (luma style, neutral, Inter, Hugeicons), scoped by the `.admin` class
+- Components live in the shared package `@pbgo/ui/admin/*` (`packages/ui/src/admin`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/admin` (or `game`) and replace the `@/lib/utils` imports with `../utils`
+- The home page, the lobby and the board keep the game's theme (colors and fonts set in Admin › Visual)
+
+## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner
-- 3D : three + @react-three/fiber + drei, réglages leva (panneau debug `Shift+D`)
-- Temps réel : Supabase (Postgres + Realtime broadcast), logique autoritaire côté serveur (routes API Next.js)
-- Sanity (studio autonome `apps/studio`) pour règles/textes/médias
-- Vitest pour le moteur · pnpm workspaces · Vercel
+- 3D: three + @react-three/fiber + drei, leva settings (debug panel `Shift+D`)
+- Realtime: Supabase (Postgres + Realtime broadcast), authoritative logic on the server (Next.js API routes of apps/web)
+- Sanity (standalone studio `apps/studio`) for rules, texts and media
+- Vitest for the engine · pnpm workspaces · Vercel
 
-## Structure
-- `packages/engine` (`@game/engine`) — moteur pur TypeScript, sans UI ; ré-exporte `@pbgo/engine-kit` (paquet partagé à la racine du monorepo)
-  - `@pbgo/engine-kit` : `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `debug`), options de partie déclaratives (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`
-  - `demo/` : le jeu démo ; `index.ts` exporte `GAME` = le jeu actif
-- `apps/web/src`
-  - `server/games.ts` : `createGame`, `newGame`, `updateGame` (verrou optimiste), `publicGame` ; routes `app/api/games/[code]/*`
-  - `components/home` : accueil (`home.tsx`) et primitives d'écran (`screen.tsx`)
-  - `components/lobby` : `lobby.tsx`, `game-options.tsx` (rendues depuis `GAME.options`, éditables par l'hôte)
-  - `components/game` : `game-client.tsx` (lobby → jeu), `game.tsx` (table, annonces, debug), `game-over.tsx`, `sharing.ts`, `preview-sharing.tsx`
-  - `components/game3d` : `scene.tsx`, poses (`layout.ts`), `card3d.tsx`, textures, annonces, debug leva
-  - `app/(admin)/admin/[[...section]]` : admin (Setup, Tasks, Monitoring — voir le CLAUDE.md racine) ; `app/preview/[kind]` : aperçus de l'admin 
-  - Admin protégé par `ADMIN_LOGIN` / `ADMIN_PASSWORD` (`server/admin.ts`), écriture Sanity via `SANITY_API_WRITE_TOKEN` (`server/settings.ts`)
-  - `lib/settings.ts` / `lib/settings-server.ts` : réglages du site (titre, description, logo, min/max joueurs, thème, polices, règles PDF) lus depuis Sanity avec les valeurs par défaut de `lib/site.ts`, fournis aux composants client par `useSiteSettings()`
-- `apps/studio` — Sanity Studio via `createStudioConfig` de `@pbgo/studio-kit` (singletons communs `settings`, `interface`, `rules`, `texts`) ; seul `schemaTypes/game.ts` est propre au jeu
-- `supabase/migrations` — `0001_games.sql`, `0002_tasks.sql`
+## Adapting to a new game
+1. `pnpm new-game <slug>` (or `pnpm add-game <slug>` to also create the Sanity project and studio): copies this folder, renames the packages and registers the game in `packages/games`
+2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
+3. Declare the game options in `options`: the lobby renders them on its own
+4. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), then tune the rest in `/<slug>/admin`; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
+5. Extend the glossary above
 
-## Adapter à un nouveau jeu
-1. Écrire le moteur dans `packages/engine/src/<game>/` (types, `GameDefinition`, tests) puis `export { myGame as GAME }` dans `index.ts`
-2. Déclarer les options de partie dans `options` : le lobby les affiche seul
-3. Adapter les valeurs par défaut (`lib/site.ts`, `DEFAULT_THEME` dans `lib/settings.ts`) puis régler le reste dans `/admin` ; adapter `game3d/scene.tsx`, `layout.ts` et `game/game.tsx`
-4. Remplacer `__SANITY_PROJECT_ID__` / `__SANITY_STUDIO_HOST__` (fait par `setup-games.sh`)
-5. Compléter le glossaire ci-dessus
+## Supabase (realtime)
+- One Supabase project for every game: table `games` with a `game` column (the slug), primary key `(game, code)`; RLS on without policies, only the server (secret key) reads and writes it
+- `state` = the engine's full state (secret); clients only get `GAME.view(state, playerId)` through `GET /api/<slug>/games/<code>`
+- After each write, the server broadcasts `update` on `game:<slug>:<code>`; the client refetches
+- Player identity = httpOnly cookie `<slug>_player`
+- Routes: `POST /api/<slug>/games`, `GET /api/<slug>/games/<code>`, `POST .../join|leave|options|start|action|replay|takeover|chat|debug`
 
-## Supabase (temps réel)
-- Table `games` (`code`, `host_id`, `status`, `players`, `options`, `state`, `replay`, `version`), RLS activée sans policy : seul le serveur (clé service role) la lit/écrit
-- `state` = état complet du moteur (secret) ; les clients reçoivent uniquement `GAME.view(state, playerId)` via `GET /api/games/[code]`
-- Après chaque écriture, le serveur diffuse `maj` sur `game:{code}` ; le client refetch
-- Identité joueur = cookie httpOnly `<slug>_player`
-- Routes : `POST /api/games`, `GET /api/games/[code]`, `POST .../join|leave|options|start|action|replay|debug`
+## Sanity
+- The game's project id is in the `@pbgo/games` registry (`sanityProjectId`), the dataset is `production`
+- Admin writes use `SANITY_API_WRITE_TOKEN_<SLUG>` (`6-nimmt` → `SANITY_API_WRITE_TOKEN_6_NIMMT`), set in `apps/web/.env.local` and on Vercel
+- The game's own content types: schemas in `apps/studio/schemaTypes`, queries in `src/sanity/`, then `pnpm --filter <slug>-studio typegen` (writes `src/sanity/types.ts`)
 
-## Variables d'environnement
-- `pnpm go-live` (`scripts/go-live.sh`) met le repo en ligne (GitHub, Sanity, Vercel) puis lance `pnpm setup:env`
-- Le projet Sanity du repo est lu depuis les variables d'env (`apps/studio/.env`, `NEXT_PUBLIC_SANITY_PROJECT_ID`) : ne pas remplacer les placeholders `__SANITY_*__` dans le template
-- `pnpm setup:env` (`scripts/setup-env.sh`) les renseigne toutes (questions guidées, secrets masqués) : `.env.local` + Vercel. Ne jamais demander de secret dans le chat
-
-## Principes
-- Le serveur est la seule source de vérité ; chaque joueur ne reçoit qu'une vue filtrée
-- Les règles du jeu vivent uniquement dans le moteur
-- `debug` (START / NEXT TURN / END) désactivé en production sauf `DEBUG_GAMES=1`
+## Principles
+- The server is the only source of truth; each player only gets a filtered view
+- The game's rules live in the engine only
+- `debug` (START / NEXT TURN / END) is off in production unless `DEBUG_GAMES=1`
 
 ## Commits
-Format gitmoji : `<emoji>(<scope>): <description>`
-Scopes : `nextjs` · `studio` · `engine`
+Gitmoji format: `<emoji>(<slug>): <description>`
 
-Commiter souvent, à chaque feature significative.
+Commit often, one commit per significant feature.

@@ -22,13 +22,13 @@ describe("playerView", () => {
     expect(view.deckCount).toBe(1)
   })
 
-  it("hides the famille of played espions, even from their owner and in the journal", () => {
+  it("hides the family of played spies, even from their owner and in the log", () => {
     const view = playerView(after, "a")
     expect(view.table[0]!.card).toEqual({ id: spy.id, family: null, role: "spy" })
     expect(view.log[0]).toMatchObject({ type: "cardPlayed", card: { family: null, role: "spy" } })
   })
 
-  it("gives masked espions an id that says nothing about their famille, in domains and at the table", () => {
+  it("gives masked spies an id that says nothing about their family, in domains and at the table", () => {
     const hidden = card("hare", "spy")
     const state = makeState({
       players: [player("a", { hand: [hidden, card("stag")], domain: [] }), player("b", { hand: [card("carp")] })],
@@ -50,7 +50,7 @@ describe("playerView", () => {
     expect(playerView({ ...after, phase: "over" }, "b").table[0]!.card).toEqual({ id: hiddenId, family: "hare", role: "spy" })
   })
 
-  it("reveals everything at the end with resultats", () => {
+  it("reveals everything at the end with results", () => {
     const view = playerView({ ...after, phase: "over" }, "b")
     expect(view.table[0]!.card.family).toBe("hare")
     expect(view.results?.players).toHaveLength(2)
@@ -84,12 +84,12 @@ describe("playerView leaks (full games)", () => {
     // cards nobody may see: other hands, the deck, the cards set aside
     const secret = [...state.deck, ...state.setAside, ...state.players.filter((j) => j.id !== viewer).flatMap((j) => j.hand)]
     for (const c of secret) if (json.includes(c.id)) found.push(`secret card ${c.id}`)
-    // spies in play keep their famille hidden until the end, wherever they show up (domains, table, log)
+    // spies in play keep their family hidden until the end, wherever they show up (domains, table, log)
     const spies = new Set(
       [...state.table.map((p) => p.card), ...state.players.flatMap((j) => j.domain), ...state.eliminated].filter((c) => c.role === "spy").map((c) => c.id),
     )
     for (const c of cardsIn({ ...view, me: null })) if (!over && spies.has(c.id) && c.family !== null) found.push(`spy ${c.id} shows ${c.family}`)
-    // ids are opaque: no famille or role name inside
+    // ids are opaque: no family or role name inside
     for (const c of cardsIn(view)) if (words.some((w) => c.id.includes(w))) found.push(`id ${c.id}`)
     if (json.includes(String(state.seed)) || "seed" in view) found.push("seed")
     return found
@@ -107,7 +107,7 @@ describe("playerView leaks (full games)", () => {
     }
   })
 
-  it("does not tie an id to a famille across games", () => {
+  it("does not tie an id to a family across games", () => {
     const families = new Map<string, Set<string>>()
     for (let seed = 1; seed <= 30; seed++) {
       const state = setupGame({ players: players(5), missions: testMissions(), seed })

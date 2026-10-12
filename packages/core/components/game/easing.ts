@@ -1,11 +1,11 @@
-/** Courbes d'easing partagées (u de 0 à 1). Utilisées pour les vols de cartes et réglables dans le debug (onglet SCENE → Card → easing). */
+/** Shared easing curves (u from 0 to 1). Used for card flights and tunable in the debug panel (SCENE tab → Card → easing). */
 const c1 = 1.70158
 const c3 = c1 + 1
 const c4 = (2 * Math.PI) / 3
 
 export const EASINGS = {
   linear: (u: number) => u,
-  /** Départ et arrivée très doux, vitesse quasi constante au milieu : le réglage par défaut des vols de cartes. */
+  /** Very soft start and end, almost constant speed in between: the default for card flights. */
   gentle: (u: number) => u + (u * u * (3 - 2 * u) - u) * 0.55,
   smoothstep: (u: number) => u * u * (3 - 2 * u),
   easeInOutSine: (u: number) => -(Math.cos(Math.PI * u) - 1) / 2,

@@ -1,10 +1,8 @@
-import * as binding from "@pbgo/binding"
-import { defaultOptions, GAME, normalizeOptions, type OptionContext, type OptionValues } from "@pbgo/binding"
+import { defaultOptions, normalizeOptions, type OptionContext, type OptionValues } from "@pbgo/engine-kit"
 import { FONT_CHOICES } from "@pbgo/studio-kit/constants"
-import { DESCRIPTION, NAME } from "@pbgo/binding"
+import type { GameBinding } from "./binding"
 import { LOCALES, type Locale } from "./i18n"
 import { gameI18n } from "./skin"
-import { withBase } from "./base-path"
 
 export { FONT_CHOICES }
 
@@ -23,10 +21,10 @@ const FONT_WEIGHTS: Record<string, string> = {
   Alegreya: "400..900",
 }
 
-// Crédits du jeu original, affichés dans le pied de page (vides : pas de mention d'adaptation)
-// authors : texte libre après « un jeu de », ex. « Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier »
+// Credits of the original game, shown in the footer (empty: no adaptation notice)
+// authors: free text after "un jeu de", e.g. "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier"
 export type Credits = {
-  /** Dans la langue de la requête (repli sur le français) */
+  /** In the language of the request (falls back to French) */
   authors: string | null
   publisher: string | null
   publisherUrl: string | null
@@ -34,10 +32,10 @@ export type Credits = {
 
 export type UploadedFile = { url: string; name: string }
 
-// Fichiers envoyés depuis l'admin (stockés dans Sanity) : réglages (`settings`) et habillage (`interface`)
+// Files uploaded from the admin (stored in Sanity): settings (`settings`) and skin (`interface`)
 export const SETTINGS_FILE_SLOTS = ["rulesFr", "rulesEn", "rulesEs", "rulesDe", "fontBody", "fontDisplay"] as const
 
-/** Emplacement (et champ Sanity) du PDF des règles de chaque langue */
+/** Slot (and Sanity field) of the rules PDF of each language */
 export const RULES_SLOT = { fr: "rulesFr", en: "rulesEn", es: "rulesEs", de: "rulesDe" } as const satisfies Record<Locale, (typeof SETTINGS_FILE_SLOTS)[number]>
 export const RULES_FIELD = { fr: "rulesPdfFr", en: "rulesPdfEn", es: "rulesPdfEs", de: "rulesPdfDe" } as const satisfies Record<Locale, string>
 
@@ -49,7 +47,7 @@ export type VisualSlot = (typeof VISUAL_IMAGE_SLOTS)[number]
 export type UploadSlot = (typeof SETTINGS_FILE_SLOTS)[number] | (typeof SETTINGS_IMAGE_SLOTS)[number] | VisualSlot
 export type SettingsFiles = Record<(typeof SETTINGS_FILE_SLOTS)[number], UploadedFile | null>
 
-/** Options du moteur : valeur par défaut choisie dans l'admin et options masquées dans le lobby (gardent leur défaut). */
+/** Engine options: default value chosen in the admin, and options hidden in the lobby (they keep their default). */
 export type OptionSettings = { defaults: OptionValues; hidden: string[] }
 
 export const TURN_TIMEOUT_BOUNDS = { min: 20, max: 600, default: 60 }
@@ -58,27 +56,27 @@ export type ThemeColors = { background: string; foreground: string; accent: stri
 
 export type SiteSettings = {
   title: string
-  /** Dans la langue de la requête (repli sur le français) */
+  /** In the language of the request (falls back to French) */
   description: string
-  /** Toutes les langues, telles qu'enregistrées (ou par défaut) : pour l'admin */
+  /** Every language, as saved (or default): for the admin */
   descriptions: ByLocale<string>
   creditsAuthors: ByLocale<string>
   logo: string | null
-  /** Icône d'onglet (PNG ou SVG) ; sans elle, générée depuis le logo */
+  /** Tab icon (PNG or SVG); without it, generated from the logo */
   favicon: string | null
-  /** Image de partage 1200×630 ; sans elle, générée depuis l'habillage */
+  /** Share image 1200×630; without it, generated from the skin */
   shareImage: string | null
   minPlayers: number
   maxPlayers: number
   theme: ThemeColors
   bodyFont: string | null
   displayFont: string | null
-  // lien effectif (PDF envoyé, sinon lien saisi)
+  // effective link (uploaded PDF, else the link typed in)
   rulesPdf: ByLocale<string | null>
   rulesPdfLinks: ByLocale<string | null>
   files: SettingsFiles
   credits: Credits
-  /** Secondes d'inactivité avant de pouvoir jouer à la place d'un joueur absent */
+  /** Seconds of inactivity before the others can play for an absent player */
   turnTimeout: number
   options: OptionSettings
 }
@@ -99,14 +97,22 @@ const CORE_THEME: ThemeColors = {
   surfaceDark: "#0d1729",
 }
 
-export const DEFAULT_THEME: ThemeColors = { ...CORE_THEME, ...(binding as { SETTINGS_DEFAULTS?: { theme?: Partial<ThemeColors> } }).SETTINGS_DEFAULTS?.theme }
+/** One value per game binding, computed once. */
+function perGame<T>(compute: (binding: GameBinding) => T): (binding: GameBinding) => T {
+  const cache = new WeakMap<GameBinding, T>()
+  return (binding) => {
+    if (!cache.has(binding)) cache.set(binding, compute(binding))
+    return cache.get(binding)!
+  }
+}
 
-export const PLAYER_BOUNDS = { min: GAME.minPlayers, max: GAME.maxPlayers }
+/** Theme of a game when Sanity has none: core colors, then `SETTINGS_DEFAULTS.theme` of the game. */
+export const defaultTheme = perGame((binding): ThemeColors => ({ ...CORE_THEME, ...binding.SETTINGS_DEFAULTS?.theme }))
 
-/** Valeurs par défaut propres au jeu (thème, polices, crédits…) quand Sanity n'a rien : export facultatif `SETTINGS_DEFAULTS` de @pbgo/binding. */
-const gameDefaults = (binding as { SETTINGS_DEFAULTS?: Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> } }).SETTINGS_DEFAULTS ?? {}
+/** Player counts allowed by the engine (a game without engine yet has no real bounds). */
+export const playerBounds = (binding: GameBinding) => ({ min: binding.GAME?.minPlayers ?? 2, max: binding.GAME?.maxPlayers ?? 8 })
 
-/** Préfixe et suffixe ajoutés au nom du jeu dans l'onglet du navigateur, les résultats de recherche et les cartes de partage. */
+/** Prefix and suffix added to the game name in the browser tab, search results and share cards. */
 export const TITLE_PREFIX = "Play"
 export const TITLE_SUFFIX = "Online [PBGO]"
 
@@ -119,36 +125,42 @@ export const tableTitle = (title: string, code: string) => {
   return `${siteTitle(title)} · Table #${c.length === 6 ? `${c.slice(0, 3)}-${c.slice(3)}` : c}`
 }
 
-export const DEFAULT_SETTINGS: SiteSettings = {
-  title: NAME,
-  description: DESCRIPTION,
-  descriptions: byLocale((l) => (l === "fr" ? DESCRIPTION : (gameI18n[l]?.description ?? ""))),
-  creditsAuthors: byLocale((l) => (l === "fr" ? "" : (gameI18n[l]?.authors ?? ""))),
-  logo: null,
-  favicon: null,
-  shareImage: null,
-  minPlayers: GAME.minPlayers,
-  maxPlayers: GAME.maxPlayers,
-  bodyFont: null,
-  displayFont: null,
-  rulesPdf: byLocale(() => null),
-  rulesPdfLinks: byLocale(() => null),
-  files: { rulesFr: null, rulesEn: null, rulesEs: null, rulesDe: null, fontBody: null, fontDisplay: null },
-  credits: { authors: null, publisher: null, publisherUrl: null },
-  turnTimeout: TURN_TIMEOUT_BOUNDS.default,
-  options: { defaults: defaultOptions(GAME.options), hidden: [] },
-  ...gameDefaults,
-  theme: { ...DEFAULT_THEME, ...gameDefaults.theme },
-}
+/** Settings of a game when Sanity has nothing: its constants, then `SETTINGS_DEFAULTS` of its binding. */
+export const defaultSettings = perGame((binding): SiteSettings => {
+  const i18n = gameI18n(binding)
+  const bounds = playerBounds(binding)
+  return {
+    title: binding.NAME,
+    description: binding.DESCRIPTION,
+    descriptions: byLocale((l) => (l === "fr" ? binding.DESCRIPTION : (i18n[l]?.description ?? ""))),
+    creditsAuthors: byLocale((l) => (l === "fr" ? "" : (i18n[l]?.authors ?? ""))),
+    logo: null,
+    favicon: null,
+    shareImage: null,
+    minPlayers: bounds.min,
+    maxPlayers: bounds.max,
+    bodyFont: null,
+    displayFont: null,
+    rulesPdf: byLocale(() => null),
+    rulesPdfLinks: byLocale(() => null),
+    files: { rulesFr: null, rulesEn: null, rulesEs: null, rulesDe: null, fontBody: null, fontDisplay: null },
+    credits: { authors: null, publisher: null, publisherUrl: null },
+    turnTimeout: TURN_TIMEOUT_BOUNDS.default,
+    options: { defaults: binding.GAME ? defaultOptions(binding.GAME.options) : {}, hidden: [] },
+    ...binding.SETTINGS_DEFAULTS,
+    theme: defaultTheme(binding),
+  }
+})
 
 const HEX = /^#[0-9a-fA-F]{6}$/
 
 export const isHex = (v: unknown): v is string => typeof v === "string" && HEX.test(v)
 
-export function clampPlayers(min: unknown, max: unknown) {
+export function clampPlayers(binding: GameBinding, min: unknown, max: unknown) {
+  const bounds = playerBounds(binding)
   const toInt = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v) : d)
-  const lo = Math.min(PLAYER_BOUNDS.max, Math.max(PLAYER_BOUNDS.min, toInt(min, PLAYER_BOUNDS.min)))
-  const hi = Math.min(PLAYER_BOUNDS.max, Math.max(lo, toInt(max, PLAYER_BOUNDS.max)))
+  const lo = Math.min(bounds.max, Math.max(bounds.min, toInt(min, bounds.min)))
+  const hi = Math.min(bounds.max, Math.max(lo, toInt(max, bounds.max)))
   return { minPlayers: lo, maxPlayers: hi }
 }
 
@@ -157,18 +169,20 @@ export function clampTimeout(v: unknown) {
   return Math.min(TURN_TIMEOUT_BOUNDS.max, Math.max(TURN_TIMEOUT_BOUNDS.min, n))
 }
 
-export function cleanOptions(v: unknown): OptionSettings {
+const engineOptions = (binding: GameBinding) => binding.GAME?.options ?? {}
+
+export function cleanOptions(binding: GameBinding, v: unknown): OptionSettings {
   const raw = (v && typeof v === "object" ? v : {}) as { defaults?: unknown; hidden?: unknown }
-  const keys = Object.keys(GAME.options)
+  const keys = Object.keys(engineOptions(binding))
   return {
-    defaults: normalizeOptions(GAME.options, raw.defaults),
+    defaults: normalizeOptions(engineOptions(binding), raw.defaults),
     hidden: Array.isArray(raw.hidden) ? raw.hidden.filter((k): k is string => typeof k === "string" && keys.includes(k)) : [],
   }
 }
 
-/** Options d'une nouvelle partie : défauts de l'admin. Options d'une partie modifiées par l'hôte : les masquées restent au défaut. */
-export function gameOptions(settings: OptionSettings, values: unknown = {}, ctx: OptionContext = {}): OptionValues {
-  const merged = normalizeOptions(GAME.options, { ...settings.defaults, ...(values as object) }, ctx)
+/** Options of a new game: the admin defaults. Options changed by the host: the hidden ones keep their default. */
+export function gameOptions(binding: GameBinding, settings: OptionSettings, values: unknown = {}, ctx: OptionContext = {}): OptionValues {
+  const merged = normalizeOptions(engineOptions(binding), { ...settings.defaults, ...(values as object) }, ctx)
   for (const k of settings.hidden) merged[k] = settings.defaults[k]!
   return merged
 }
@@ -187,9 +201,10 @@ const titleFamily = (s: SiteSettings) => (s.files.fontDisplay ? UPLOADED_TITLE_F
 
 const FONT_FORMATS: Record<string, string> = { woff2: "woff2", woff: "woff", ttf: "truetype", otf: "opentype" }
 
-export const mediaUrl = (url: string) => withBase(`/api/media?url=${encodeURIComponent(url)}`)
+/** Sanity file served same-origin (fonts, sounds, SVG): the `/api/media` route is shared by every game. */
+export const mediaUrl = (url: string) => `/api/media?url=${encodeURIComponent(url)}`
 
-// @font-face des polices envoyées (servies en same-origin par /api/media)
+// @font-face of the uploaded fonts (served same-origin by /api/media)
 export function fontFaceCss(files: SettingsFiles) {
   const entries: [string, UploadedFile | null][] = [
     [UPLOADED_BODY_FONT, files.fontBody],
@@ -218,7 +233,7 @@ export function themeStyle(s: SiteSettings): Record<string, string> {
     "--secondary-foreground": s.theme.background,
     "--muted": `color-mix(in oklab, ${s.theme.surface}, ${s.theme.foreground} 8%)`,
     "--accent": `color-mix(in oklab, ${s.theme.surface}, ${s.theme.foreground} 8%)`,
-    // sans police choisie, on garde celles du CSS du jeu (:root --font-body / --font-title)
+    // without a chosen font, keep the ones of the game CSS (:root --font-body / --font-title)
     ...(bodyFamily(s) ? { "--font-body": fontStack(bodyFamily(s), BODY_FALLBACK) } : {}),
     ...((titleFamily(s) ?? bodyFamily(s)) ? { "--font-title": fontStack(titleFamily(s) ?? bodyFamily(s), BODY_FALLBACK) } : {}),
   }

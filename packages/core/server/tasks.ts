@@ -21,22 +21,22 @@ export function sanitizeText(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : ""
 }
 
-/** Colonnes `type` / `priority` absentes tant que la migration 0003/0004 n'est pas passée : tout est alors du Backlog. */
-export const isMissingColumn = (error: { code?: string } | null) => error?.code === "42703" || error?.code === "PGRST204"
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export async function listTasks(type?: TaskType): Promise<{ tasks: Task[]; migrated: boolean }> {
-  const db = supabaseAdmin()
-  let query = db.from("tasks").select("*").order("category").order("sort_order")
+/** `tasks.id` is a uuid: Postgres refuses any other text with a cast error, which would answer 500 instead of "no such task". */
+export const isTaskId = (value: unknown): value is string => typeof value === "string" && UUID.test(value)
+
+/** Table absent: the database migration (`supabase/migrations`) has not been applied yet. */
+export const isMissingTable = (error: { code?: string } | null) => error?.code === "42P01" || error?.code === "PGRST205"
+
+/** Tasks of one game (`slug`), all types or one. */
+export async function listTasks(slug: string, type?: TaskType): Promise<Task[] | null> {
+  let query = supabaseAdmin().from("tasks").select("*").eq("game", slug).order("category").order("sort_order")
   if (type) query = query.eq("type", type)
   const { data, error } = await query
-  if (isMissingColumn(error)) {
-    if (type === "bug") return { tasks: [], migrated: false }
-    const legacy = await db.from("tasks").select("*").order("category").order("sort_order")
-    if (legacy.error) throw legacy.error
-    return { tasks: (legacy.data as Task[]).map((t) => ({ ...t, type: "backlog", priority: "medium" })), migrated: false }
-  }
+  if (isMissingTable(error)) return null
   if (error) throw error
-  return { tasks: data as Task[], migrated: true }
+  return data as Task[]
 }
 
 export const FEEDBACK_TYPES = ["review", "bug", "suggestion", "other"] as const
@@ -48,9 +48,9 @@ export type Feedback = {
   type: FeedbackType
   message: string
   email: string | null
-  /** Chemin dans le bucket privé « feedback » (jamais exposé aux joueurs). */
+  /** Path in the private `feedback` bucket (never shown to players). */
   screenshot: string | null
-  /** URL signée (1 h), ajoutée par GET /api/feedback pour l'admin. */
+  /** Signed URL (1 h), added by GET /api/<slug>/feedback for the admin. */
   screenshot_url?: string | null
   nickname: string | null
   game_code: string | null
@@ -59,17 +59,17 @@ export type Feedback = {
   status: "new" | "read" | "archived"
 }
 
-/** Compteurs de la barre latérale (null = table ou colonne absente). */
-export async function taskCounts() {
+/** Sidebar counters of one game (null = table missing). */
+export async function taskCounts(slug: string) {
   const db = supabaseAdmin()
   const count = async (q: PromiseLike<{ count: number | null; error: unknown }>) => {
     const { count, error } = await q
     return error ? null : (count ?? 0)
   }
   const [backlog, bugs, feedback] = await Promise.all([
-    count(db.from("tasks").select("id", { count: "exact", head: true }).eq("type", "backlog").eq("done", false)),
-    count(db.from("tasks").select("id", { count: "exact", head: true }).eq("type", "bug").eq("done", false)),
-    count(db.from("feedback").select("id", { count: "exact", head: true }).eq("status", "new")),
+    count(db.from("tasks").select("id", { count: "exact", head: true }).eq("game", slug).eq("type", "backlog").eq("done", false)),
+    count(db.from("tasks").select("id", { count: "exact", head: true }).eq("game", slug).eq("type", "bug").eq("done", false)),
+    count(db.from("feedback").select("id", { count: "exact", head: true }).eq("game", slug).eq("status", "new")),
   ])
   return { backlog, bugs, feedback }
 }

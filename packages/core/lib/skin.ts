@@ -1,17 +1,17 @@
-import * as binding from "@pbgo/binding"
 import { UI_TEXTS, type UiTextKey } from "@pbgo/studio-kit/constants"
 import { ERROR_TRANSLATIONS, UI_TRANSLATIONS } from "@pbgo/studio-kit/translations"
+import type { GameBinding } from "./binding"
 import { DEFAULT_LOCALE, type Locale } from "./i18n"
 
-/** Image de décor (URL prête à l'emploi) et son ratio largeur / hauteur, pour caler l'interface dessus. */
+/** Decor image (ready-to-use URL) and its width / height ratio, to fit the interface on it. */
 export type DecorImage = { url: string; srcSet?: string; ratio: number | null }
 
 /**
- * Habillage d'un jeu : tout ce qui change l'apparence des écrans communs sans toucher au code.
- * Source : Sanity (`interface` + `texts`), puis valeurs par défaut du jeu (`DEFAULT_SKIN` exporté par @pbgo/binding), puis celles de core.
+ * Skin of a game: everything that changes the look of the shared screens without touching code.
+ * Source: Sanity (`interface` + `texts`), then the game defaults (`DEFAULT_SKIN` of its binding), then core's.
  */
 export type Skin = {
-  /** Langue dans laquelle cet habillage (textes) a été résolu */
+  /** Language in which this skin (texts) was resolved */
   locale: Locale
   decor: {
     background: string | null
@@ -26,7 +26,7 @@ export type Skin = {
   home: { title: string | null; intro: string | null; tagline: string | null }
   victoryPhrases: string[]
   texts: UiTexts
-  /** Messages d'erreur remplacés dans l'admin (code → message) */
+  /** Error messages replaced in the admin (code → message) */
   errors: Record<string, string>
 }
 
@@ -61,33 +61,36 @@ const VICTORY_PHRASES: Record<Exclude<Locale, "fr">, string[]> = {
   de: ["Sieg für", "Glückwunsch an", "Die Partie gewinnt", "Champion des Tages:"],
 }
 
-/** Ce qu'un jeu fournit pour chaque langue autre que le français : export facultatif `I18N` de @pbgo/binding. */
+/** What a game provides for each language other than French: optional `I18N` of its binding. */
 export type GameI18n = {
   skin?: SkinDefaults
-  /** Description par défaut (SEO, partage) */
+  /** Default description (SEO, sharing) */
   description?: string
-  /** Auteurs par défaut du pied de page (« un jeu de … ») */
+  /** Default authors of the footer ("un jeu de …") */
   authors?: string
-  /** Messages d'erreur du moteur */
+  /** Error messages of the engine */
   errors?: Record<string, string>
 }
 
-export const gameI18n = (binding as { I18N?: Partial<Record<Locale, GameI18n>> }).I18N ?? {}
+const NO_I18N: Partial<Record<Locale, GameI18n>> = {}
+
+export const gameI18n = (binding: GameBinding) => binding.I18N ?? NO_I18N
 
 /**
- * Habillage de base d'une langue : libellés communs traduits, puis valeurs du jeu. Les textes français du jeu (`DEFAULT_SKIN` du jeu)
- * ne s'appliquent qu'en français ; dans les autres langues, seul `I18N[langue].skin` du jeu compte pour les textes.
+ * Base skin of a language: shared labels translated, then the game values. The game's French texts (`DEFAULT_SKIN` of the game)
+ * only apply in French; in the other languages, only `I18N[language].skin` of the game counts for texts.
  */
-export function baseSkin(locale: Locale): Skin {
-  const gameDefaults = (binding as { DEFAULT_SKIN?: SkinDefaults }).DEFAULT_SKIN
+export function baseSkin(binding: GameBinding, locale: Locale): Skin {
+  const gameDefaults = binding.DEFAULT_SKIN
   if (locale === DEFAULT_LOCALE) return mergeSkin(DEFAULT_SKIN, gameDefaults)
+  const i18n = gameI18n(binding)[locale]
   const generic: Skin = { ...DEFAULT_SKIN, locale, texts: { ...DEFAULT_TEXTS, ...UI_TRANSLATIONS[locale] }, victoryPhrases: VICTORY_PHRASES[locale], errors: ERROR_TRANSLATIONS[locale] }
   const { texts: _t, home: _h, victoryPhrases: _v, errors: _e, ...visual } = gameDefaults ?? {}
   void [_t, _h, _v, _e]
-  return mergeSkin(mergeSkin(generic, visual), { ...gameI18n[locale]?.skin, errors: { ...gameI18n[locale]?.skin?.errors, ...gameI18n[locale]?.errors } })
+  return mergeSkin(mergeSkin(generic, visual), { ...i18n?.skin, errors: { ...i18n?.skin?.errors, ...i18n?.errors } })
 }
 
-/** Remplace les variables `{nom}` d'un libellé. */
+/** Replaces the `{name}` variables of a label. */
 export function fill(text: string, params: Record<string, string | number> = {}) {
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m))
 }

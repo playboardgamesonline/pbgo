@@ -1,7 +1,6 @@
 "use client"
 
-import { captureGamePhoto } from "@pbgo/binding-ui"
-import { SLUG } from "@pbgo/binding"
+import { captureGamePhoto } from "../../lib/photo"
 
 export type ShareRow = {
   rank: number
@@ -142,9 +141,9 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/png"))
 }
 
-export async function generateShareImage(lines: ShareRow[], code: string, title: string) {
+export async function generateShareImage(lines: ShareRow[], slug: string, code: string, title: string) {
   const blob = await shareImage(lines, captureGamePhoto(1600, 1200), title)
-  return new File([blob], `${SLUG}-${code}.png`, { type: "image/png" })
+  return new File([blob], `${slug}-${code}.png`, { type: "image/png" })
 }
 
 export function canShare(file: File) {

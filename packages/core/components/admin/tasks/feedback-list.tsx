@@ -12,6 +12,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@p
 import { Skeleton } from "@pbgo/ui/admin/skeleton"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest, AdminApiError } from "../../../lib/admin-api"
+import { useGameSlug } from "../../../lib/binding-context"
 import type { Feedback } from "../../../server/tasks"
 
 const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
@@ -23,19 +24,21 @@ const TABS: { id: Feedback["status"]; label: string }[] = [
 ]
 
 export function FeedbackList() {
+  const slug = useGameSlug()
+  const route = `/api/${slug}/feedback`
   const [items, setItems] = useState<Feedback[] | null>(null)
   const [missing, setMissing] = useState(false)
   const [tab, setTab] = useState<Feedback["status"]>("new")
 
   const load = useCallback(async () => {
     try {
-      setItems(await adminRequest<Feedback[]>("/api/feedback"))
+      setItems(await adminRequest<Feedback[]>(route))
     } catch (e) {
       if (e instanceof AdminApiError && e.code === "MIGRATION_MISSING") setMissing(true)
       else toast.error((e as Error).message)
       setItems([])
     }
-  }, [])
+  }, [route])
 
   useEffect(() => {
     void Promise.resolve().then(load)
@@ -45,17 +48,17 @@ export function FeedbackList() {
 
   async function setStatus(id: string, status: Feedback["status"]) {
     setItems((l) => l?.map((f) => (f.id === id ? { ...f, status } : f)) ?? null)
-    await adminRequest("/api/feedback", { method: "PATCH", body: JSON.stringify({ id, status }) }).catch((e) => toast.error((e as Error).message))
+    await adminRequest(route, { method: "PATCH", body: JSON.stringify({ id, status }) }).catch((e) => toast.error((e as Error).message))
   }
 
   async function remove(id: string) {
     setItems((l) => l?.filter((f) => f.id !== id) ?? null)
-    await adminRequest(`/api/feedback?id=${id}`, { method: "DELETE" }).catch((e) => toast.error((e as Error).message))
+    await adminRequest(`${route}?id=${id}`, { method: "DELETE" }).catch((e) => toast.error((e as Error).message))
   }
 
   async function toTask(f: Feedback, type: "bug" | "backlog") {
     try {
-      await adminRequest("/api/tasks", {
+      await adminRequest(`/api/${slug}/tasks`, {
         method: "POST",
         body: JSON.stringify({ text: f.message.slice(0, 300), type: type, category: type === "bug" ? "Bugs" : "Feedback", priority: "medium" }),
       })
@@ -74,7 +77,7 @@ export function FeedbackList() {
       <Alert>
         <AlertTitle>Supabase migration missing</AlertTitle>
         <AlertDescription>
-          Apply <code>supabase/migrations/…_admin_tasks_feedback.sql</code> to create the feedback table. The feedback button of the game needs it too.
+          Apply <code>supabase/migrations</code> to the Supabase project to create the feedback table. The feedback button of the game needs it too.
         </AlertDescription>
       </Alert>
     )

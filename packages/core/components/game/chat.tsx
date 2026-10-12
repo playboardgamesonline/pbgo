@@ -4,13 +4,12 @@ import { Sent02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { SmilePlusIcon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
-import * as binding from "@pbgo/binding"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
-import { api } from "../../lib/api"
+import { useApi, useBinding } from "../../lib/binding-context"
 import { CHAT_MAX_LENGTH } from "../../lib/chat"
 import { openChat, type ChatMessage } from "../../lib/realtime"
-import { DEFAULT_REACTIONS, playReaction, prepareSoundboard, type Reaction } from "../../lib/soundboard"
+import { gameReactions, playReaction, prepareSoundboard, type Reaction } from "../../lib/soundboard"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
 
@@ -19,7 +18,6 @@ const KEEP = 40
 const MIN_GAP_MS = 700
 const REACTION_GAP_MS = 350
 const PARTICLES = 9
-const REACTIONS: Reaction[] = (binding as { REACTIONS?: Reaction[] }).REACTIONS ?? DEFAULT_REACTIONS
 
 type Particle = { id: string; emoji: string; x: number; drift: number; size: number; delay: number; duration: number }
 
@@ -36,12 +34,15 @@ function burst(emoji: string): Particle[] {
 }
 
 /**
- * Chat de la partie, en bas à droite : les messages s'affichent puis s'effacent en fondu ; en survolant ou en écrivant, l'historique récent réapparaît.
- * Pseudos dans la couleur du joueur. Diffusion temps réel sans stockage (rien n'est conservé quand la partie est quittée).
+ * Chat of the game, bottom right: messages show up then fade out; hovering or typing brings the recent history back.
+ * Nicknames in the player's color. Realtime broadcast without storage (nothing is kept once the game is left).
  * Sending goes through the chat API route (author = player cookie); the channel is only listened to.
  */
 export function Chat({ className }: { className?: string }) {
   const t = useText()
+  const { SLUG, REACTIONS: own } = useBinding()
+  const api = useApi()
+  const reactions = gameReactions(own)
   const { game, nickname, color } = useGame()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState("")
@@ -64,19 +65,20 @@ export function Chat({ className }: { className?: string }) {
 
   useEffect(() => {
     const c = openChat(
+      SLUG,
       game.code,
       // our own messages are already shown (optimistic copy with the same id)
       (m) => setMessages((all) => (all.some((x) => x.id === m.id) ? all : [...all, m].slice(-KEEP))),
       (r) => {
         if (ownReactions.current.delete(r.id)) return
-        const reaction = REACTIONS.find((x) => x.id === r.reaction)
+        const reaction = reactions.find((x) => x.id === r.reaction)
         if (reaction) showReaction(r.playerId, reaction, false)
       },
     )
     return () => c?.close()
-  }, [game.code, showReaction])
+  }, [SLUG, game.code, reactions, showReaction])
 
-  // réaffiche périodiquement pour laisser les messages s'effacer
+  // re-renders periodically so the messages fade out
   const recent = messages.some((m) => Date.now() - m.at < VISIBLE_MS)
   useEffect(() => {
     if (!recent) return
@@ -114,7 +116,7 @@ export function Chat({ className }: { className?: string }) {
     api.chat(game.code, { id, reaction: reaction.id }).catch(() => ownReactions.current.delete(id))
   }
 
-  // la palette reste ouverte tant qu'on ne clique pas ailleurs (le trajet du bouton vers un emoji ne la ferme plus)
+  // the palette stays open until a click elsewhere (moving from the button to an emoji no longer closes it)
   const boardRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!board) return
@@ -204,7 +206,7 @@ export function Chat({ className }: { className?: string }) {
                 transition={{ duration: 0.15 }}
                 className="absolute right-0 bottom-full grid w-44 grid-cols-4 gap-1 rounded-2xl border border-foreground/20 bg-black/70 p-2 pb-2 backdrop-blur-md [margin-bottom:0.35rem] before:absolute before:inset-x-0 before:-bottom-2 before:h-2 before:content-['']"
               >
-                {REACTIONS.map((r) => (
+                {reactions.map((r) => (
                   <button key={r.id} type="button" title={r.label} aria-label={r.label} onClick={() => react(r)} className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-xl transition-transform hover:scale-125 hover:bg-foreground/10 active:scale-95">
                     {r.emoji}
                   </button>

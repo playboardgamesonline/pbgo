@@ -1,0 +1,51 @@
+{
+  "name": "@pbgo/games",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Registry of the games served by apps/web: slug → metadata and on-demand loaders (server binding, client runtime). Adding a game = one @pbgo-game/<slug> package + one entry in each map.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./registry": "./src/registry.ts",
+    "./runtime": "./src/runtime.tsx"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pbgo-game/6-nimmt": "workspace:*",
+    "@pbgo-game/7-wonders": "workspace:*",
+    "@pbgo-game/courtisans": "workspace:*",
+    "@pbgo-game/cry-baby": "workspace:*",
+    "@pbgo-game/dracula-vs-van-helsing": "workspace:*",
+    "@pbgo-game/exploding-kittens": "workspace:*",
+    "@pbgo-game/flip-7": "workspace:*",
+    "@pbgo-game/hanabi": "workspace:*",
+    "@pbgo-game/love-letter": "workspace:*",
+    "@pbgo-game/odin": "workspace:*",
+    "@pbgo-game/omens": "workspace:*",
+    "@pbgo-game/skull-king": "workspace:*",
+    "@pbgo-game/sky-team": "workspace:*",
+    "@pbgo-game/skyjo": "workspace:*",
+    "@pbgo-game/template": "workspace:*",
+    "@pbgo-game/timebomb": "workspace:*",
+    "@pbgo-game/trio": "workspace:*",
+    "@pbgo-game/welcome-to": "workspace:*",
+    "@pbgo/core": "workspace:*",
+    "server-only": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,8 +1,0 @@
-{
-  "extends": "@pbgo/tsconfig/nextjs.json",
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
-}

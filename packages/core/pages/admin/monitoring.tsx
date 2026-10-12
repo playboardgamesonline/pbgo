@@ -1,16 +1,17 @@
-import { GAME, SITE_URL } from "@pbgo/binding"
 import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/admin/alert"
 import { Badge } from "@pbgo/ui/admin/badge"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/admin/table"
 import { BarChart, dayLabel } from "../../components/admin/bar-chart"
+import type { GameEntry, PlayableGame } from "../../lib/binding"
 import type { SiteSettings } from "../../lib/settings"
-import { dataset, projectId } from "../../sanity/env"
-import { sanityConfigure } from "../../sanity/client"
-import { sanityWritable } from "../../sanity/write-client"
+import { gameUrl } from "../../lib/site-url"
+import { sanityConfigured } from "../../sanity/client"
+import { dataset } from "../../sanity/env"
+import { sanityWritable, writeTokenName } from "../../sanity/write-client"
 import { adminConfigured } from "../../server/admin"
 import { type GameStats, loadGameStats } from "../../server/stats"
-import { loadGames, loadWebAnalytics, vercelConfigured } from "../../server/vercel"
+import { loadWebAnalytics } from "../../server/vercel"
 
 const NUM = new Intl.NumberFormat("en-GB")
 const DATE_TIME = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
@@ -44,17 +45,17 @@ function Check({ label, ok, detail }: { label: string; ok: boolean; detail?: str
   )
 }
 
-async function gameStats(): Promise<GameStats | { error: string }> {
+async function gameStats(slug: string): Promise<GameStats | { error: string }> {
   try {
-    return await loadGameStats()
+    return await loadGameStats(slug)
   } catch (e) {
     return { error: (e as Error).message }
   }
 }
 
-
-export async function GamesPage() {
-  const stats = await gameStats()
+/** Tables of one game. */
+export async function GamesPage({ slug }: { slug: string }) {
+  const stats = await gameStats(slug)
   if ("error" in stats)
     return (
       <Alert>
@@ -122,6 +123,7 @@ export async function GamesPage() {
   )
 }
 
+/** Visitors of the whole site: the hub and every game share one Vercel project. */
 export async function AudiencePage() {
   const analytics = await loadWebAnalytics()
   if (analytics === null)
@@ -171,10 +173,14 @@ export async function AudiencePage() {
   )
 }
 
-export async function HealthPage({ settings, supabaseOk }: { settings: SiteSettings; supabaseOk: boolean }) {
-  const [analytics, games] = await Promise.all([loadWebAnalytics(), loadGames()])
+type HealthProps = { game: PlayableGame; games: readonly GameEntry[]; settings: SiteSettings; supabaseOk: boolean }
+
+export async function HealthPage({ game, games, settings, supabaseOk }: HealthProps) {
+  const analytics = await loadWebAnalytics()
   const env = process.env.VERCEL_ENV ?? process.env.NODE_ENV
   const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7)
+  const sanity = sanityConfigured(game)
+  const writable = sanityWritable(game)
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
@@ -182,7 +188,7 @@ export async function HealthPage({ settings, supabaseOk }: { settings: SiteSetti
           <CardTitle className="flex items-center gap-2">
             This game <Badge variant="outline">{env}</Badge>
           </CardTitle>
-          <CardDescription>{SITE_URL}</CardDescription>
+          <CardDescription>{gameUrl(game.slug)}</CardDescription>
           {commit && (
             <CardAction>
               <Badge variant="outline" className="font-mono">
@@ -192,11 +198,12 @@ export async function HealthPage({ settings, supabaseOk }: { settings: SiteSetti
           )}
         </CardHeader>
         <CardContent className="divide-y">
-          <Check label="Game" ok detail={`${GAME.name} · ${settings.minPlayers}–${settings.maxPlayers} players`} />
+          <Check label="Game" ok detail={`${game.binding.GAME.name} · ${settings.minPlayers}–${settings.maxPlayers} players`} />
+          <Check label="Live" ok={game.live} detail={game.live ? (game.indexable ? "Indexed" : "Not indexed yet") : "live: false in packages/games"} />
           <Check label="Admin account" ok={adminConfigured()} />
           <Check label="Supabase" ok={supabaseOk} />
-          <Check label="Sanity" ok={sanityConfigure} detail={sanityConfigure ? `${projectId} / ${dataset}` : undefined} />
-          <Check label="Sanity writes (admin)" ok={sanityWritable} />
+          <Check label="Sanity" ok={sanity} detail={sanity ? `${game.sanityProjectId} / ${dataset}` : "No project id in packages/games"} />
+          <Check label="Sanity writes (admin)" ok={writable} detail={writable ? undefined : writeTokenName(game.slug)} />
           <Check label="Vercel Web Analytics" ok={!!analytics && !("error" in analytics)} />
           {process.env.VERCEL_GIT_COMMIT_MESSAGE && <p className="truncate pt-2.5 text-sm text-muted-foreground">{process.env.VERCEL_GIT_COMMIT_MESSAGE}</p>}
         </CardContent>
@@ -204,44 +211,33 @@ export async function HealthPage({ settings, supabaseOk }: { settings: SiteSetti
       <Card>
         <CardHeader>
           <CardTitle>PBGO games</CardTitle>
-          <CardDescription>Games of the Play Board Games Online repository · visitors over 7 days</CardDescription>
+          <CardDescription>Every game of the registry (packages/games)</CardDescription>
         </CardHeader>
         <CardContent>
-          {!vercelConfigured || games === null ? (
-            <p className="text-sm text-muted-foreground">Add VERCEL_TOKEN to list your games.</p>
-          ) : "error" in games ? (
-            <p className="text-sm text-muted-foreground">List unavailable: {games.error}</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Game</TableHead>
-                  <TableHead>Deployment</TableHead>
-                  <TableHead className="text-right">Visitors</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Game</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Sanity</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {games.map((g) => (
+                <TableRow key={g.slug}>
+                  <TableCell className="max-w-48 truncate">
+                    <a href={`/${g.slug}`} target="_blank" rel="noreferrer" className="font-medium underline-offset-4 hover:underline">
+                      {g.name}
+                    </a>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={g.live ? "secondary" : "outline"}>{g.live ? (g.indexable ? "Live · indexed" : "Live") : "Coming soon"}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs text-muted-foreground">{g.sanityProjectId || "—"}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {games.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="max-w-48 truncate">
-                      {s.url ? (
-                        <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline">
-                          {s.name}
-                        </a>
-                      ) : (
-                        s.name
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {s.state && <Badge variant={s.state === "READY" ? "secondary" : "outline"}>{s.state === "READY" ? "Live" : s.state.toLowerCase()}</Badge>}{" "}
-                      {s.deployedAt ? DATE_TIME.format(new Date(s.deployedAt)) : ""}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{s.visitors7d === null ? "—" : NUM.format(s.visitors7d)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

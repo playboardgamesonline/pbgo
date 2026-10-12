@@ -1,5 +1,5 @@
 import "server-only"
-import type { PlayerInfo } from "@pbgo/binding"
+import type { PlayerInfo } from "@pbgo/engine-kit"
 import { supabaseAdmin } from "./supabase"
 
 type Row = { code: string; status: string; players: PlayerInfo[]; created_at: string; updated_at: string }
@@ -23,15 +23,18 @@ export type GameStats = {
 const HOUR = 3600_000
 const DAY = 24 * HOUR
 
-export async function loadGameStats(): Promise<GameStats> {
+/** Tables of one game (`slug`) for the Monitoring › Games page. */
+export async function loadGameStats(slug: string): Promise<GameStats> {
   const db = supabaseAdmin()
   const now = Date.now()
   const iso = (ms: number) => new Date(now - ms).toISOString()
+  const games = () => db.from("games")
+  const count = () => games().select("code", { count: "exact", head: true }).eq("game", slug)
   const [total, active, lobbies, window] = await Promise.all([
-    db.from("games").select("code", { count: "exact", head: true }),
-    db.from("games").select("code", { count: "exact", head: true }).eq("status", "playing").gte("updated_at", iso(2 * HOUR)),
-    db.from("games").select("code", { count: "exact", head: true }).eq("status", "lobby").gte("updated_at", iso(HOUR)),
-    db.from("games").select("code, status, players, created_at, updated_at").gte("created_at", iso(30 * DAY)).order("created_at", { ascending: false }).limit(5000),
+    count(),
+    count().eq("status", "playing").gte("updated_at", iso(2 * HOUR)),
+    count().eq("status", "lobby").gte("updated_at", iso(HOUR)),
+    games().select("code, status, players, created_at, updated_at").eq("game", slug).gte("created_at", iso(30 * DAY)).order("created_at", { ascending: false }).limit(5000),
   ])
   for (const r of [total, active, lobbies, window]) if (r.error) throw r.error
   const rows = (window.data ?? []) as Row[]

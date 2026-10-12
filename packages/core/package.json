@@ -3,13 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Socle commun des jeux : lobby, parties temps réel, fin de partie, admin (/admin), routes API. Le jeu fournit @pbgo/binding (moteur + constantes du site) et @pbgo/binding-ui (Logo, plateau, photo).",
+  "description": "Shared base of every game: home, lobby, real-time games, game over, admin, API handlers. The app gives it the game shown (`@pbgo/games` registry); core never imports a game.",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
+    "@pbgo/engine-kit": "workspace:*",
     "@pbgo/studio-kit": "workspace:*",
     "@pbgo/ui": "workspace:*",
     "@sanity/client": "catalog:",
@@ -21,8 +23,11 @@
     "motion": "catalog:",
     "next-sanity": "catalog:",
     "server-only": "catalog:",
+    "shadcn": "catalog:",
     "sharp": "catalog:",
     "sonner": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:",
     "wawoff2": "catalog:"
   },
   "peerDependencies": {
@@ -31,6 +36,7 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

@@ -28,7 +28,7 @@ function bookletTable() {
 }
 
 describe("computeStatuses", () => {
-  it("matches the rulebook example (nobles count double, spies count by famille)", () => {
+  it("matches the rulebook example (nobles count double, spies count by family)", () => {
     const statuses = computeStatuses(bookletTable())
     expect(statuses.butterfly.status).toBe("light")
     expect(statuses.toad).toEqual({ up: 4, down: 0, status: "light" })

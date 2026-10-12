@@ -1,25 +1,26 @@
+import type { GameRouteContext } from "../../../../lib/binding"
 import { requireAdmin } from "../../../../server/admin"
 import { ApiError, handle, readJson } from "../../../../server/api"
 import { importCodeSounds, isSection, readAdminData, saveSection } from "../../../../server/settings"
 
-/** Données de toutes les pages Setup de l'admin. */
-export const GET = handle(async () => {
+/** Data of every Setup page of the admin. */
+export const GET = handle(async (_request: Request, { game }: GameRouteContext) => {
   await requireAdmin()
-  return readAdminData()
+  return readAdminData(game)
 })
 
-/** Enregistre une page : `{ section: "identity" | "mechanics" | "visual" | "audio" | "copy", values }`. */
-export const PUT = handle(async (request: Request) => {
+/** Saves one page: `{ section: "identity" | "mechanics" | "visual" | "audio" | "copy", values }`. */
+export const PUT = handle(async (request: Request, { game }: GameRouteContext) => {
   await requireAdmin()
   const { section, values } = await readJson<{ section?: string; values?: Record<string, unknown> }>(request)
   if (!section || !isSection(section)) throw new ApiError("INVALID_REQUEST")
-  return saveSection(section, values ?? {})
+  return saveSection(game, section, values ?? {})
 })
 
-/** Actions : `{ action: "importSounds" }` envoie dans Sanity les sons encore servis par le code. */
-export const POST = handle(async (request: Request) => {
+/** Actions: `{ action: "importSounds" }` sends to Sanity the sounds still served by the code. */
+export const POST = handle(async (request: Request, { game }: GameRouteContext) => {
   await requireAdmin()
   const { action } = await readJson<{ action?: string }>(request)
-  if (action === "importSounds") return importCodeSounds(new URL(request.url).origin)
+  if (action === "importSounds") return importCodeSounds(game, new URL(request.url).origin)
   throw new ApiError("INVALID_REQUEST")
 })

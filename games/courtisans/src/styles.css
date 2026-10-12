@@ -1,0 +1,51 @@
+/* Courtisans: core's shared styles (theme tokens, admin preset), plus the game's own fonts, colors and images. */
+@import "@pbgo/core/styles/game.css";
+@source ".";
+
+/* Font of the full-screen announcements and of the mood titles */
+@font-face {
+  font-family: "Typey";
+  src: url("./fonts/typey.woff2") format("woff2");
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Typey";
+  src: url("./fonts/typey-italic.woff2") format("woff2");
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --font-body: "Alegreya Variable", Georgia, serif;
+  --font-accent: "Typey", Georgia, serif;
+  --family-butterfly: #c9d6de;
+  --family-toad: #8a9a3c;
+  --family-nightingale: #c8364a;
+  --family-hare: #e9b634;
+  --family-stag: #1f7a52;
+  --family-carp: #4a73c4;
+  --light: oklch(0.86 0.12 88);
+  --disgrace: oklch(0.24 0.04 220);
+  --image-pattern: url("/courtisans/home/PATTERN.webp");
+  --image-paper: url("/courtisans/home/PAPER.webp");
+}
+
+@theme inline {
+  --font-typey: var(--font-accent);
+  --color-light: var(--light);
+  --color-disgrace: var(--disgrace);
+  --color-butterfly: var(--family-butterfly);
+  --color-toad: var(--family-toad);
+  --color-nightingale: var(--family-nightingale);
+  --color-hare: var(--family-hare);
+  --color-stag: var(--family-stag);
+  --color-carp: var(--family-carp);
+}
+
+/* Uppercase, spaced buttons (not in the admin) */
+:where(button, [role="button"]):not(.admin *, .admin-portal *) {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

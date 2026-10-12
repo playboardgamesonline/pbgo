@@ -1,26 +1,39 @@
 "use client"
 
-import { type OptionDefinition, GAME, type OptionValue, type OptionValues, applyPreset, normalizeOptions, optionGroup, optionStatus, presetMatches } from "@pbgo/binding"
+import {
+  type OptionDefinition,
+  type OptionDefinitions,
+  type OptionValue,
+  type OptionValues,
+  applyPreset,
+  normalizeOptions,
+  optionGroup,
+  optionStatus,
+  presetMatches,
+} from "@pbgo/engine-kit"
 import { MinusIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { api } from "../../lib/api"
+import { useApi, useBinding } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
 import { cn } from "@pbgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 
 export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p: PublicGame) => void }) {
+  const { GAME } = useBinding()
+  const api = useApi()
+  const definitions: OptionDefinitions = GAME?.options ?? {}
   const editable = game.meId === game.hostId && game.status !== "playing"
   const [local, setLocal] = useState<{ version: number; values: OptionValues } | null>(null)
   const values = local && local.version >= game.version ? local.values : game.options
   const { options: optionSettings } = useSiteSettings()
   const t = useText()
   const ctx = { playerCount: game.players.length }
-  const visible = Object.entries(GAME.options).filter(([key]) => !optionSettings.hidden.includes(key))
+  const visible = Object.entries(definitions).filter(([key]) => !optionSettings.hidden.includes(key))
   const parameters = visible.filter(([, def]) => optionGroup(def) === "parameter")
   const extensions = visible.filter(([, def]) => optionGroup(def) === "extension")
-  const presets = (GAME.presets ?? []).filter((p) => Object.keys(p.values).every((k) => !optionSettings.hidden.includes(k)))
+  const presets = (GAME?.presets ?? []).filter((p) => Object.keys(p.values).every((k) => !optionSettings.hidden.includes(k)))
   if (visible.length === 0) return null
 
   async function send(nextValues: OptionValues) {
@@ -32,11 +45,11 @@ export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p
       toast.error((e as Error).message)
     }
   }
-  const change = (key: string, value: OptionValue) => send(normalizeOptions(GAME.options, { ...values, [key]: value }, ctx))
-  const label = (k: string) => GAME.options[k]?.label ?? k
+  const change = (key: string, value: OptionValue) => send(normalizeOptions(definitions, { ...values, [key]: value }, ctx))
+  const label = (k: string) => definitions[k]?.label ?? k
 
   function reason(key: string): string | null {
-    const status = optionStatus(GAME.options, values, key, ctx)
+    const status = optionStatus(definitions, values, key, ctx)
     if (status.available) return null
     const names = (status.with ?? []).map(label).join(", ")
     if (status.reason === "players") return t("optionPlayers", { count: ctx.playerCount })
@@ -56,7 +69,7 @@ export function GameOptions({ game, onUpdate }: { game: PublicGame; onUpdate: (p
                 type="button"
                 disabled={!editable}
                 title={preset.help}
-                onClick={() => send(applyPreset(GAME.options, preset, ctx))}
+                onClick={() => send(applyPreset(definitions, preset, ctx))}
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-sm transition-colors disabled:cursor-default",
                   presetMatches(preset, values) ? "border-transparent bg-accent-game font-semibold text-background" : "border-foreground/20",

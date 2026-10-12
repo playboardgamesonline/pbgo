@@ -316,14 +316,32 @@ importers:
 
   .: {}
 
-  apps/hub:
+  apps/web:
     dependencies:
+      '@fontsource-variable/geist-mono':
+        specifier: 'catalog:'
+        version: 5.3.0
+      '@fontsource-variable/inter':
+        specifier: 'catalog:'
+        version: 5.3.0
       '@hugeicons/core-free-icons':
         specifier: 'catalog:'
         version: 4.3.5
       '@hugeicons/react':
         specifier: 'catalog:'
         version: 1.1.10(react@19.3.0)
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/games':
+        specifier: workspace:*
+        version: link:../../packages/games
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@vercel/analytics':
+        specifier: 'catalog:'
+        version: 2.0.1(next@16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -348,6 +366,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.0(react@19.3.0)
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
       shadcn:
         specifier: 'catalog:'
         version: 4.21.4(supports-color@8.1.1)
@@ -383,7 +404,42 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/6-nimmt: {}
+  games/6-nimmt:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/6-nimmt/apps/studio:
     dependencies:
@@ -422,139 +478,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/6-nimmt/apps/web:
-    dependencies:
-      '@6-nimmt/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@fontsource-variable/inter':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@hugeicons/core-free-icons':
-        specifier: 'catalog:'
-        version: 4.3.5
-      '@hugeicons/react':
-        specifier: 'catalog:'
-        version: 1.1.10(react@19.3.0)
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@pbgo/studio-kit':
-        specifier: workspace:*
-        version: link:../../../../packages/studio-kit
-      '@pbgo/ui':
-        specifier: workspace:*
-        version: link:../../../../packages/ui
-      '@react-three/drei':
-        specifier: 'catalog:'
-        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@react-three/fiber':
-        specifier: 'catalog:'
-        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@supabase/supabase-js':
-        specifier: 'catalog:'
-        version: 2.117.3
-      '@vercel/analytics':
-        specifier: 'catalog:'
-        version: 2.0.1(next@16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      class-variance-authority:
-        specifier: 'catalog:'
-        version: 0.7.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      input-otp:
-        specifier: 'catalog:'
-        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      leva:
-        specifier: 'catalog:'
-        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.54.0(@types/react@19.3.0)(react@19.3.0)
-      maath:
-        specifier: 'catalog:'
-        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
-      motion:
-        specifier: 'catalog:'
-        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      radix-ui:
-        specifier: 'catalog:'
-        version: 1.7.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      server-only:
-        specifier: 'catalog:'
-        version: 0.0.1
-      shadcn:
-        specifier: 'catalog:'
-        version: 4.21.4(supports-color@8.1.1)
-      sonner:
-        specifier: 'catalog:'
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-      three:
-        specifier: 'catalog:'
-        version: 0.186.1
-      vaul:
-        specifier: 'catalog:'
-        version: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      '@types/three':
-        specifier: 'catalog:'
-        version: 0.186.0
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      tw-animate-css:
-        specifier: 'catalog:'
-        version: 1.4.0
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/6-nimmt/packages/engine:
     dependencies:
       '@pbgo/engine-kit':
@@ -574,7 +497,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/7-wonders: {}
+  games/7-wonders:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/7-wonders/apps/studio:
     dependencies:
@@ -613,139 +571,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/7-wonders/apps/web:
-    dependencies:
-      '@7-wonders/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@fontsource-variable/inter':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@hugeicons/core-free-icons':
-        specifier: 'catalog:'
-        version: 4.3.5
-      '@hugeicons/react':
-        specifier: 'catalog:'
-        version: 1.1.10(react@19.3.0)
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@pbgo/studio-kit':
-        specifier: workspace:*
-        version: link:../../../../packages/studio-kit
-      '@pbgo/ui':
-        specifier: workspace:*
-        version: link:../../../../packages/ui
-      '@react-three/drei':
-        specifier: 'catalog:'
-        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@react-three/fiber':
-        specifier: 'catalog:'
-        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@supabase/supabase-js':
-        specifier: 'catalog:'
-        version: 2.117.3
-      '@vercel/analytics':
-        specifier: 'catalog:'
-        version: 2.0.1(next@16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      class-variance-authority:
-        specifier: 'catalog:'
-        version: 0.7.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      input-otp:
-        specifier: 'catalog:'
-        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      leva:
-        specifier: 'catalog:'
-        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.54.0(@types/react@19.3.0)(react@19.3.0)
-      maath:
-        specifier: 'catalog:'
-        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
-      motion:
-        specifier: 'catalog:'
-        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      radix-ui:
-        specifier: 'catalog:'
-        version: 1.7.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      server-only:
-        specifier: 'catalog:'
-        version: 0.0.1
-      shadcn:
-        specifier: 'catalog:'
-        version: 4.21.4(supports-color@8.1.1)
-      sonner:
-        specifier: 'catalog:'
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-      three:
-        specifier: 'catalog:'
-        version: 0.186.1
-      vaul:
-        specifier: 'catalog:'
-        version: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      '@types/three':
-        specifier: 'catalog:'
-        version: 0.186.0
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      tw-animate-css:
-        specifier: 'catalog:'
-        version: 1.4.0
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/7-wonders/packages/engine:
     dependencies:
       '@pbgo/engine-kit':
@@ -765,7 +590,78 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/courtisans: {}
+  games/courtisans:
+    dependencies:
+      '@courtisans/engine':
+        specifier: workspace:*
+        version: link:packages/engine
+      '@fontsource-variable/alegreya':
+        specifier: 'catalog:'
+        version: 5.3.0
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@react-three/drei':
+        specifier: 'catalog:'
+        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
+      '@react-three/fiber':
+        specifier: 'catalog:'
+        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
+      '@sanity/client':
+        specifier: 'catalog:'
+        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.54.0(@types/react@19.3.0)(react@19.3.0)
+      maath:
+        specifier: 'catalog:'
+        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
+      motion:
+        specifier: 'catalog:'
+        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      next-sanity:
+        specifier: 'catalog:'
+        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+      sonner:
+        specifier: 'catalog:'
+        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      three:
+        specifier: 'catalog:'
+        version: 0.186.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      '@types/three':
+        specifier: 'catalog:'
+        version: 0.186.0
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/courtisans/apps/studio:
     dependencies:
@@ -804,127 +700,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/courtisans/apps/web:
-    dependencies:
-      '@courtisans/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@fontsource-variable/alegreya':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@fontsource-variable/geist-mono':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@fontsource-variable/inter':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@hugeicons/core-free-icons':
-        specifier: 'catalog:'
-        version: 4.3.5
-      '@hugeicons/react':
-        specifier: 'catalog:'
-        version: 1.1.10(react@19.3.0)
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/engine-kit':
-        specifier: workspace:*
-        version: link:../../../../packages/engine-kit
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@pbgo/studio-kit':
-        specifier: workspace:*
-        version: link:../../../../packages/studio-kit
-      '@pbgo/ui':
-        specifier: workspace:*
-        version: link:../../../../packages/ui
-      '@react-three/drei':
-        specifier: 'catalog:'
-        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@react-three/fiber':
-        specifier: 'catalog:'
-        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@vercel/analytics':
-        specifier: 'catalog:'
-        version: 2.0.1(next@16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      leva:
-        specifier: 'catalog:'
-        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.54.0(@types/react@19.3.0)(react@19.3.0)
-      maath:
-        specifier: 'catalog:'
-        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
-      motion:
-        specifier: 'catalog:'
-        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      server-only:
-        specifier: 'catalog:'
-        version: 0.0.1
-      shadcn:
-        specifier: 'catalog:'
-        version: 4.21.4(supports-color@8.1.1)
-      sonner:
-        specifier: 'catalog:'
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      three:
-        specifier: 'catalog:'
-        version: 0.186.1
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      '@types/three':
-        specifier: 'catalog:'
-        version: 0.186.0
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      tw-animate-css:
-        specifier: 'catalog:'
-        version: 1.4.0
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/courtisans/packages/engine:
     dependencies:
       '@pbgo/engine-kit':
@@ -944,7 +719,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/cry-baby: {}
+  games/cry-baby:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/cry-baby/apps/studio:
     dependencies:
@@ -983,70 +793,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/cry-baby/apps/web:
-    dependencies:
-      '@cry-baby/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/cry-baby/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -1062,7 +808,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/dracula-vs-van-helsing: {}
+  games/dracula-vs-van-helsing:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/dracula-vs-van-helsing/apps/studio:
     dependencies:
@@ -1101,70 +882,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/dracula-vs-van-helsing/apps/web:
-    dependencies:
-      '@dracula-vs-van-helsing/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/dracula-vs-van-helsing/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -1180,7 +897,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/exploding-kittens: {}
+  games/exploding-kittens:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/exploding-kittens/apps/studio:
     dependencies:
@@ -1219,139 +971,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/exploding-kittens/apps/web:
-    dependencies:
-      '@exploding-kittens/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@fontsource-variable/inter':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@hugeicons/core-free-icons':
-        specifier: 'catalog:'
-        version: 4.3.5
-      '@hugeicons/react':
-        specifier: 'catalog:'
-        version: 1.1.10(react@19.3.0)
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@pbgo/studio-kit':
-        specifier: workspace:*
-        version: link:../../../../packages/studio-kit
-      '@pbgo/ui':
-        specifier: workspace:*
-        version: link:../../../../packages/ui
-      '@react-three/drei':
-        specifier: 'catalog:'
-        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@react-three/fiber':
-        specifier: 'catalog:'
-        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@supabase/supabase-js':
-        specifier: 'catalog:'
-        version: 2.117.3
-      '@vercel/analytics':
-        specifier: 'catalog:'
-        version: 2.0.1(next@16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      class-variance-authority:
-        specifier: 'catalog:'
-        version: 0.7.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      input-otp:
-        specifier: 'catalog:'
-        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      leva:
-        specifier: 'catalog:'
-        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.54.0(@types/react@19.3.0)(react@19.3.0)
-      maath:
-        specifier: 'catalog:'
-        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
-      motion:
-        specifier: 'catalog:'
-        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      radix-ui:
-        specifier: 'catalog:'
-        version: 1.7.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      server-only:
-        specifier: 'catalog:'
-        version: 0.0.1
-      shadcn:
-        specifier: 'catalog:'
-        version: 4.21.4(supports-color@8.1.1)
-      sonner:
-        specifier: 'catalog:'
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-      three:
-        specifier: 'catalog:'
-        version: 0.186.1
-      vaul:
-        specifier: 'catalog:'
-        version: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      '@types/three':
-        specifier: 'catalog:'
-        version: 0.186.0
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      tw-animate-css:
-        specifier: 'catalog:'
-        version: 1.4.0
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/exploding-kittens/packages/engine:
     dependencies:
       '@pbgo/engine-kit':
@@ -1371,7 +990,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/flip-7: {}
+  games/flip-7:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/flip-7/apps/studio:
     dependencies:
@@ -1410,70 +1064,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/flip-7/apps/web:
-    dependencies:
-      '@flip-7/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/flip-7/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -1489,7 +1079,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/hanabi: {}
+  games/hanabi:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/hanabi/apps/studio:
     dependencies:
@@ -1528,70 +1153,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/hanabi/apps/web:
-    dependencies:
-      '@hanabi/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/hanabi/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -1607,7 +1168,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/love-letter: {}
+  games/love-letter:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/love-letter/apps/studio:
     dependencies:
@@ -1646,70 +1242,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/love-letter/apps/web:
-    dependencies:
-      '@love-letter/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/love-letter/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -1725,7 +1257,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/odin: {}
+  games/odin:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/odin/apps/studio:
     dependencies:
@@ -1764,70 +1331,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/odin/apps/web:
-    dependencies:
-      '@odin/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/odin/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -1843,7 +1346,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/omens: {}
+  games/omens:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/omens/apps/studio:
     dependencies:
@@ -1882,70 +1420,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/omens/apps/web:
-    dependencies:
-      '@omens/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/omens/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -1961,7 +1435,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/skull-king: {}
+  games/skull-king:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/skull-king/apps/studio:
     dependencies:
@@ -2000,70 +1509,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/skull-king/apps/web:
-    dependencies:
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@skull-king/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/skull-king/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -2079,7 +1524,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/sky-team: {}
+  games/sky-team:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/sky-team/apps/studio:
     dependencies:
@@ -2118,70 +1598,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/sky-team/apps/web:
-    dependencies:
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@sky-team/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/sky-team/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -2197,7 +1613,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/skyjo: {}
+  games/skyjo:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/skyjo/apps/studio:
     dependencies:
@@ -2236,70 +1687,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/skyjo/apps/web:
-    dependencies:
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@skyjo/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/skyjo/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -2315,7 +1702,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/timebomb: {}
+  games/timebomb:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/timebomb/apps/studio:
     dependencies:
@@ -2354,70 +1776,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/timebomb/apps/web:
-    dependencies:
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@timebomb/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/timebomb/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -2433,7 +1791,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/trio: {}
+  games/trio:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/trio/apps/studio:
     dependencies:
@@ -2472,70 +1865,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/trio/apps/web:
-    dependencies:
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@trio/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/trio/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -2551,7 +1880,42 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/welcome-to: {}
+  games/welcome-to:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   games/welcome-to/apps/studio:
     dependencies:
@@ -2590,70 +1954,6 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/welcome-to/apps/web:
-    dependencies:
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../../packages/site
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@welcome-to/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   games/welcome-to/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
@@ -2677,6 +1977,9 @@ importers:
       '@hugeicons/react':
         specifier: 'catalog:'
         version: 1.1.10(react@19.3.0)
+      '@pbgo/engine-kit':
+        specifier: workspace:*
+        version: link:../engine-kit
       '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../studio-kit
@@ -2710,16 +2013,28 @@ importers:
       server-only:
         specifier: 'catalog:'
         version: 0.0.1
+      shadcn:
+        specifier: 'catalog:'
+        version: 4.21.4(supports-color@8.1.1)
       sharp:
         specifier: 'catalog:'
         version: 0.35.5(@types/node@24.19.1)
       sonner:
         specifier: 'catalog:'
         version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 4.3.3
+      tw-animate-css:
+        specifier: 'catalog:'
+        version: 1.4.0
       wawoff2:
         specifier: 'catalog:'
         version: 2.0.1
     devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.1
@@ -2773,11 +2088,75 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  packages/site:
+  packages/games:
+    dependencies:
+      '@pbgo-game/6-nimmt':
+        specifier: workspace:*
+        version: link:../../games/6-nimmt
+      '@pbgo-game/7-wonders':
+        specifier: workspace:*
+        version: link:../../games/7-wonders
+      '@pbgo-game/courtisans':
+        specifier: workspace:*
+        version: link:../../games/courtisans
+      '@pbgo-game/cry-baby':
+        specifier: workspace:*
+        version: link:../../games/cry-baby
+      '@pbgo-game/dracula-vs-van-helsing':
+        specifier: workspace:*
+        version: link:../../games/dracula-vs-van-helsing
+      '@pbgo-game/exploding-kittens':
+        specifier: workspace:*
+        version: link:../../games/exploding-kittens
+      '@pbgo-game/flip-7':
+        specifier: workspace:*
+        version: link:../../games/flip-7
+      '@pbgo-game/hanabi':
+        specifier: workspace:*
+        version: link:../../games/hanabi
+      '@pbgo-game/love-letter':
+        specifier: workspace:*
+        version: link:../../games/love-letter
+      '@pbgo-game/odin':
+        specifier: workspace:*
+        version: link:../../games/odin
+      '@pbgo-game/omens':
+        specifier: workspace:*
+        version: link:../../games/omens
+      '@pbgo-game/skull-king':
+        specifier: workspace:*
+        version: link:../../games/skull-king
+      '@pbgo-game/sky-team':
+        specifier: workspace:*
+        version: link:../../games/sky-team
+      '@pbgo-game/skyjo':
+        specifier: workspace:*
+        version: link:../../games/skyjo
+      '@pbgo-game/template':
+        specifier: workspace:*
+        version: link:../../template
+      '@pbgo-game/timebomb':
+        specifier: workspace:*
+        version: link:../../games/timebomb
+      '@pbgo-game/trio':
+        specifier: workspace:*
+        version: link:../../games/trio
+      '@pbgo-game/welcome-to':
+        specifier: workspace:*
+        version: link:../../games/welcome-to
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../core
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
     devDependencies:
       '@pbgo/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -2787,12 +2166,12 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/studio-kit:
     devDependencies:
@@ -2881,7 +2260,66 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  template: {}
+  template:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@pbgo/ui':
+        specifier: workspace:*
+        version: link:../packages/ui
+      '@react-three/drei':
+        specifier: 'catalog:'
+        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
+      '@react-three/fiber':
+        specifier: 'catalog:'
+        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
+      '@template/engine':
+        specifier: workspace:*
+        version: link:packages/engine
+      leva:
+        specifier: 'catalog:'
+        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      maath:
+        specifier: 'catalog:'
+        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+      sonner:
+        specifier: 'catalog:'
+        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      three:
+        specifier: 'catalog:'
+        version: 0.186.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../packages/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      '@types/three':
+        specifier: 'catalog:'
+        version: 0.186.0
+      next:
+        specifier: 'catalog:'
+        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   template/apps/studio:
     dependencies:
@@ -2916,142 +2354,6 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
-  template/apps/web:
-    dependencies:
-      '@fontsource-variable/geist-mono':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@fontsource-variable/inter':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@game/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
-      '@hugeicons/core-free-icons':
-        specifier: 'catalog:'
-        version: 4.3.5
-      '@hugeicons/react':
-        specifier: 'catalog:'
-        version: 1.1.10(react@19.3.0)
-      '@pbgo/core':
-        specifier: workspace:*
-        version: link:../../../packages/core
-      '@pbgo/site':
-        specifier: workspace:*
-        version: link:../../../packages/site
-      '@pbgo/studio-kit':
-        specifier: workspace:*
-        version: link:../../../packages/studio-kit
-      '@pbgo/ui':
-        specifier: workspace:*
-        version: link:../../../packages/ui
-      '@react-three/drei':
-        specifier: 'catalog:'
-        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@react-three/fiber':
-        specifier: 'catalog:'
-        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
-      '@sanity/client':
-        specifier: 'catalog:'
-        version: 8.9.0(vitest@5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1)))
-      '@sanity/image-url':
-        specifier: 'catalog:'
-        version: 2.1.1
-      '@supabase/supabase-js':
-        specifier: 'catalog:'
-        version: 2.117.3
-      '@vercel/analytics':
-        specifier: 'catalog:'
-        version: 2.0.1(next@16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      class-variance-authority:
-        specifier: 'catalog:'
-        version: 0.7.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
-      input-otp:
-        specifier: 'catalog:'
-        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      leva:
-        specifier: 'catalog:'
-        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      lucide-react:
-        specifier: 'catalog:'
-        version: 1.54.0(@types/react@19.3.0)(react@19.3.0)
-      maath:
-        specifier: 'catalog:'
-        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
-      motion:
-        specifier: 'catalog:'
-        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next:
-        specifier: 'catalog:'
-        version: 16.4.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-sanity:
-        specifier: 'catalog:'
-        version: 13.3.4(20ff6b7e25e14024cc6fb1f14eff1a52)
-      radix-ui:
-        specifier: 'catalog:'
-        version: 1.7.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
-      server-only:
-        specifier: 'catalog:'
-        version: 0.0.1
-      shadcn:
-        specifier: 'catalog:'
-        version: 4.21.4(supports-color@8.1.1)
-      sonner:
-        specifier: 'catalog:'
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
-      three:
-        specifier: 'catalog:'
-        version: 0.186.1
-      vaul:
-        specifier: 'catalog:'
-        version: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    devDependencies:
-      '@pbgo/eslint-config':
-        specifier: workspace:*
-        version: link:../../../packages/eslint-config
-      '@pbgo/tsconfig':
-        specifier: workspace:*
-        version: link:../../../packages/tsconfig
-      '@tailwindcss/postcss':
-        specifier: 'catalog:'
-        version: 4.3.3
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.1
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      '@types/three':
-        specifier: 'catalog:'
-        version: 0.186.0
-      eslint:
-        specifier: 'catalog:'
-        version: 10.12.0(jiti@2.7.0)(supports-color@8.1.1)
-      tailwindcss:
-        specifier: 'catalog:'
-        version: 4.3.3
-      tw-animate-css:
-        specifier: 'catalog:'
-        version: 1.4.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

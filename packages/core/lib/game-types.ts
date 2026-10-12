@@ -1,11 +1,10 @@
-import { type State, GAME, type PlayerInfo, type OptionValues, type PlayerView } from "@pbgo/binding"
-
-export const MAX_PLAYERS = GAME.maxPlayers
-export const MIN_PLAYERS = GAME.minPlayers
+import type { OptionValues, PlayerInfo } from "@pbgo/engine-kit"
+import type { CoreView } from "./binding"
 
 export type GameStatus = "lobby" | "playing" | "over"
 
-export type PublicGame = {
+/** A game as a player sees it. `View` is the game's player view (`GAME.view`); core only reads `CoreView`. */
+export type PublicGame<View = CoreView> = {
   code: string
   hostId: string
   status: GameStatus
@@ -13,19 +12,16 @@ export type PublicGame = {
   meId: string | null
   options: OptionValues
   replay: string[]
-  /** Joueurs ayant voté pour jouer à la place du joueur absent (état courant) */
+  /** Players who voted to play for the absent player (current state) */
   takeoverVotes?: string[]
   version: number
-  /** Dernière écriture (ISO) : sert à repérer un tour bloqué par un joueur absent */
+  /** Last write (ISO): spots a turn blocked by an absent player */
   updatedAt?: string | null
-  /** Création de la partie (ISO) : sert au pied du tableau des scores */
+  /** Creation of the game (ISO): shown under the score table */
   createdAt?: string | null
-  view: PlayerView | null
+  view: View | null
 }
 
-export type GameState = State
-
-// Le schéma évite qu'un même code de partie croise deux jeux sur le projet Supabase partagé.
-export const gameChannel = (code: string) => `game:${process.env.NEXT_PUBLIC_SUPABASE_SCHEMA || "public"}:${code}`
-export const UPDATE_EVENT = "maj"
-
+// The slug keeps two games with the same table code apart on the shared Supabase project.
+export const gameChannel = (slug: string, code: string) => `game:${slug}:${code}`
+export const UPDATE_EVENT = "update"

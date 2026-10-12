@@ -14,8 +14,8 @@ export type PlayerResult = {
 export type Results = { players: PlayerResult[]; winners: string[] }
 
 /**
- * `SetupData` : données chargées côté serveur avant le lancement (ex. missions depuis Sanity).
- * Le web les fournit via `loadSetupData` exporté par `@pbgo/binding` ; absent → `undefined`.
+ * `SetupData`: data loaded on the server before the game starts (e.g. missions from Sanity).
+ * The game's server binding provides it through `loadSetupData`; without one it is `undefined`.
  */
 export type GameDefinition<State, Action extends PlayerAction, View, SetupData = undefined> = {
   id: string
@@ -23,7 +23,7 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
   minPlayers: number
   maxPlayers: number
   options: OptionDefinitions
-  /** Combinaisons d'options proposées en un clic dans le lobby (facultatif). */
+  /** Option combinations offered in one click in the lobby (optional). */
   presets?: OptionPreset[]
   clientActions: readonly Action["type"][]
   /**
@@ -35,11 +35,11 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
   view: (state: State, playerId: string | null) => View
   isOver: (state: State) => boolean
   debug?: Partial<Record<DebugCommand, (state: State) => State>>
-  /** Joue le tour du joueur actif à sa place (joueur absent). Par défaut : `debug.turn`. */
+  /** Plays the active player's turn for them (absent player). Default: `debug.turn`. */
   autoPlay?: (state: State) => State
-  /** Id du joueur qui doit jouer (null si personne). Nécessaire pour jouer à la place d'un absent. */
+  /** Id of the player who must play (null if nobody). Needed to play for an absent player. */
   activePlayer?: (state: State) => string | null
 }
 
-/** Commandes de debug : `turn` (tour automatique) et `over` (jusqu'à la fin) sont communes ; un jeu peut en ajouter (ex. `missions`). */
+/** Debug commands: `turn` (automatic turn) and `over` (play to the end) are shared; a game can add its own (e.g. `missions`). */
 export type DebugCommand = "turn" | "over" | (string & {})

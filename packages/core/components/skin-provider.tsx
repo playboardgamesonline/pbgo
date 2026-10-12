@@ -16,7 +16,7 @@ export function useSkin() {
   return useContext(SkinContext)
 }
 
-/** `t("turnOf", { name })` → libellé Sanity ou par défaut, variables remplacées. */
+/** `t("turnOf", { name })` → Sanity or default label, variables replaced. */
 export function useText() {
   const { texts } = useSkin()
   return useCallback((key: UiTextKey, params?: Record<string, string | number>) => fill(texts[key], params), [texts])

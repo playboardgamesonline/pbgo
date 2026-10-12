@@ -1,15 +1,18 @@
 import "server-only"
 import { cache } from "react"
-import { client } from "../sanity/client"
-import { urlFor } from "../sanity/image"
+import { sanityClient } from "../sanity/client"
+import { type SanityImageSource, urlFor } from "../sanity/image"
+import type { GameEntry, GameModule } from "./binding"
 import { type Locale, only, type Localized } from "./i18n"
 import { getLocale } from "./locale-server"
 import { mediaUrl } from "./settings"
 import { baseSkin, type DecorImage, mergeSkin, type Skin, type SkinDefaults } from "./skin"
 
-export const SKIN_TAG = "skin"
+/** Cache tag of a game's skin and texts (revalidated when the admin saves). */
+export const skinTag = (slug: string) => `${slug}:skin`
 
-type ImageRef = (Parameters<typeof urlFor>[0] & { asset?: { _ref?: string }; ratio?: number; mime?: string }) | null | undefined
+type ImageRef = (SanityImageSource & { asset?: { _ref?: string }; ratio?: number; mime?: string }) | null | undefined
+type SanityGame = Pick<GameEntry, "sanityProjectId">
 
 type SkinDoc = {
   interface?: {
@@ -40,22 +43,22 @@ export const SKIN_QUERY = `{
 
 const has = (i: ImageRef): i is NonNullable<ImageRef> => !!i?.asset?._ref
 
-const image = (i: ImageRef, width: number) => (has(i) ? urlFor(i).width(width).url() : null)
+const image = (game: SanityGame, i: ImageRef, width: number) => (has(i) ? urlFor(game, i).width(width).url() : null)
 
-// SVG (pictos, masques) : servi en same-origin, sans redimensionnement
-const picto = (i: ImageRef) => (has(i) ? (i.mime === "image/svg+xml" ? mediaUrl(urlFor(i).url()) : mediaUrl(urlFor(i).width(256).url())) : null)
+// SVG (icons, masks): served same-origin, not resized
+const picto = (game: SanityGame, i: ImageRef) => (has(i) ? (i.mime === "image/svg+xml" ? mediaUrl(urlFor(game, i).url()) : mediaUrl(urlFor(game, i).width(256).url())) : null)
 
-function decor(i: ImageRef): DecorImage | null {
+function decor(game: SanityGame, i: ImageRef): DecorImage | null {
   if (!has(i)) return null
-  const full = urlFor(i).width(3000).url()
-  return { url: full, srcSet: `${urlFor(i).width(1600).url()} 1600w, ${full} 3000w`, ratio: i.ratio ?? null }
+  const full = urlFor(game, i).width(3000).url()
+  return { url: full, srcSet: `${urlFor(game, i).width(1600).url()} 1600w, ${full} 3000w`, ratio: i.ratio ?? null }
 }
 
 const HEX = /^#[0-9a-fA-F]{6}$/
 
 export type { SkinDoc }
 
-export function toSkin(doc: SkinDoc, locale: Locale = "fr"): Partial<SkinDefaults> {
+export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = "fr"): Partial<SkinDefaults> {
   const ui = doc?.interface
   const t = doc?.texts
   const labels = Object.fromEntries(
@@ -65,13 +68,13 @@ export function toSkin(doc: SkinDoc, locale: Locale = "fr"): Partial<SkinDefault
   const phrases = (only(t?.victoryPhrases, locale) ?? []).filter((p) => p.trim())
   return {
     decor: {
-      background: image(ui?.background, 2400),
-      pattern: image(ui?.pattern, 512),
-      top: decor(ui?.decorTop),
-      bottom: decor(ui?.decorBottom),
-      hero: image(ui?.hero, 1400),
+      background: image(game, ui?.background, 2400),
+      pattern: image(game, ui?.pattern, 512),
+      top: decor(game, ui?.decorTop),
+      bottom: decor(game, ui?.decorBottom),
+      hero: image(game, ui?.hero, 1400),
     },
-    hostIcon: picto(ui?.hostIcon),
+    hostIcon: picto(game, ui?.hostIcon),
     ...(colors.length ? { playerColors: colors } : {}),
     ...(typeof ui?.desktopOnly === "boolean" ? { desktopOnly: ui.desktopOnly } : {}),
     home: { title: only(t?.homeTitle, locale)?.trim() || null, intro: only(t?.homeIntro, locale)?.trim() || null, tagline: only(t?.tagline, locale)?.trim() || null },
@@ -81,16 +84,17 @@ export function toSkin(doc: SkinDoc, locale: Locale = "fr"): Partial<SkinDefault
   }
 }
 
-const skinFor = cache(async (locale: Locale): Promise<Skin> => {
-  const base = baseSkin(locale)
+const skinFor = cache(async (game: GameModule, locale: Locale): Promise<Skin> => {
+  const base = baseSkin(game.binding, locale)
+  const client = sanityClient(game)
   if (!client) return base
   try {
-    const doc = await client.fetch<SkinDoc>(SKIN_QUERY, {}, { next: { tags: [SKIN_TAG], revalidate: 60 } })
-    return mergeSkin(base, toSkin(doc, locale))
+    const doc = await client.fetch<SkinDoc>(SKIN_QUERY, {}, { next: { tags: [skinTag(game.slug)], revalidate: 60 } })
+    return mergeSkin(base, toSkin(game, doc, locale))
   } catch {
     return base
   }
 })
 
-/** Habillage dans la langue du visiteur ; `locale` explicite pour les rendus indépendants de la requête. */
-export const loadSkin = async (locale?: Locale): Promise<Skin> => skinFor(locale ?? (await getLocale()))
+/** Skin of a game in the visitor's language; explicit `locale` for renders that do not depend on the request. */
+export const loadSkin = async (game: GameModule, locale?: Locale): Promise<Skin> => skinFor(game, locale ?? (await getLocale()))

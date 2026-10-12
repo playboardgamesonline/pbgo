@@ -3,7 +3,7 @@ import { defineField, defineType } from "sanity"
 
 const HEX = /^#[0-9a-fA-F]{6}$/
 
-/** Habillage commun à tous les jeux : décor des écrans hors partie, pictos, palette des joueurs. */
+/** Skin shared by every game: decor of the screens outside a game, pictograms, player palette. */
 export const interfaceDoc = defineType({
   name: "interface",
   title: "Visual",

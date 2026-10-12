@@ -1,21 +1,21 @@
-import type { NextRequest } from "next/server"
+import type { GameRouteContext } from "../../../../../lib/binding"
 import { ApiError, handle } from "../../../../../server/api"
+import { loadSetupData, newGame, publicGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
-import { loadSetupData, readGame, updateGame, newGame, publicGame } from "../../../../../server/games"
 
-export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
-  await rateLimit(request, "replay")
-  const { code } = await ctx.params
-  const id = await getPlayerId()
-  const data = await loadSetupData((await readGame(code)).options)
-  const row = await updateGame(code, (game) => {
-    if (game.status !== "over") throw new ApiError("GAME_NOT_OVER", 409)
-    if (!id || !game.players.some((j) => j.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
-    if (game.replay.includes(id)) return null
-    const replay = [...game.replay, id]
-    if (replay.length < game.players.length) return { replay }
-    return newGame(game, data)
+export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
+  await rateLimit(game.slug, request, "replay")
+  const code = params.code ?? ""
+  const id = await getPlayerId(game.slug)
+  const data = await loadSetupData(game, (await readGame(game, code)).options)
+  const row = await updateGame(game, code, (row) => {
+    if (row.status !== "over") throw new ApiError("GAME_NOT_OVER", 409)
+    if (!id || !row.players.some((j) => j.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
+    if (row.replay.includes(id)) return null
+    const replay = [...row.replay, id]
+    if (replay.length < row.players.length) return { replay }
+    return newGame(game, row, data)
   })
-  return publicGame(row, id)
+  return publicGame(game, row, id)
 })

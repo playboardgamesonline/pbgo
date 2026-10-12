@@ -1,14 +1,18 @@
 "use client"
 
 import { Volume2Icon, VolumeXIcon } from "lucide-react"
-import { useEffect, useState, useSyncExternalStore } from "react"
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useText } from "../skin-provider"
-import { currentVolumes, initSound, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, setVolumes, SOUNDS } from "../../lib/sound"
+import { currentVolumes, initSound, NO_SOUNDS, persistSoundEnabled, playSound, readSoundEnabled, setSoundOn, setVolumes, type SoundConfig } from "../../lib/sound"
 import { MENU_FONT } from "../menu-style"
 import { DEFAULT_REACTIONS, playReaction } from "../../lib/soundboard"
 
 const listeners = new Set<() => void>()
+
+/** Sounds of the game shown (code, then admin › Audio), given by `AppShell`: the same on the server and the client. */
+const SoundsContext = createContext<SoundConfig>(NO_SOUNDS)
+export const SoundsProvider = SoundsContext.Provider
 
 export function setSoundEnabled(on: boolean) {
   persistSoundEnabled(on)
@@ -27,11 +31,11 @@ export function useSoundEnabled() {
   )
 }
 
-/** Bouton rond commun (son, règles…) des écrans et de la partie. */
+/** Shared round button (sound, rules…) of the screens and the game. */
 export const ICON_BUTTON =
   "flex size-11 cursor-pointer items-center justify-center rounded-full text-foreground transition-transform hover:scale-110 drop-shadow-[0_1px_3px_rgb(0_0_0/60%)]"
 
-/** Bouton du son : ouvre le panneau de réglages (`SoundPanel`) ; l'icône reflète l'état activé / coupé. */
+/** Sound button: opens the settings panel (`SoundPanel`); the icon shows whether sound is on or muted. */
 export function SoundButton({
   className,
   iconClass = "size-7",
@@ -47,7 +51,8 @@ export function SoundButton({
 }) {
   const on = useSoundEnabled()
   const t = useText()
-  if (!Object.keys(SOUNDS.effects).length && !SOUNDS.music && !SOUNDS.ambience) return null
+  const sounds = useContext(SoundsContext)
+  if (!Object.keys(sounds.effects).length && !sounds.music && !sounds.ambience) return null
   const label = t("soundSettings")
   return (
     <button type="button" aria-label={label} title={label} aria-haspopup="dialog" aria-expanded={open} className={cn(ICON_BUTTON, className)} onClick={onClick}>
@@ -64,16 +69,17 @@ const SLIDER =
 
 type Channel = "music" | "ambience" | "effects" | "alerts" | "reactions"
 
-/** Panneau de réglages : activer / couper, puis un curseur par catégorie (musique, ambiance, effets, alertes, réactions). */
+/** Settings panel: on / mute, then one slider per category (music, ambience, effects, alerts, reactions). */
 export function SoundPanel({ open, className }: { open: boolean; className?: string }) {
   const t = useText()
   const on = useSoundEnabled()
   const [volumes, setLocal] = useState(currentVolumes)
-  const tracks = Object.entries(SOUNDS.music ?? {})
+  const sounds = useContext(SoundsContext)
+  const tracks = Object.entries(sounds.music ?? {})
   const rows: { key: Channel; label: string; show: boolean; preview: () => void }[] = [
     { key: "music", label: t("soundMusic"), show: tracks.length > 0, preview: () => undefined },
-    { key: "ambience", label: t("soundAmbience"), show: !!SOUNDS.ambience, preview: () => undefined },
-    { key: "effects", label: t("soundEffects"), show: Object.keys(SOUNDS.effects).length > 0, preview: () => playSound("click") },
+    { key: "ambience", label: t("soundAmbience"), show: !!sounds.ambience, preview: () => undefined },
+    { key: "effects", label: t("soundEffects"), show: Object.keys(sounds.effects).length > 0, preview: () => playSound("click") },
     { key: "alerts", label: t("soundAlerts"), show: true, preview: () => playSound("turn", { bus: "alerts" }) },
     { key: "reactions", label: t("soundReactions"), show: true, preview: () => playReaction(DEFAULT_REACTIONS[0]!) },
   ]
@@ -132,7 +138,7 @@ export function SoundPanel({ open, className }: { open: boolean; className?: str
   )
 }
 
-/** À monter une fois dans le layout : réveille l'audio au premier geste et joue `click` sur tout bouton ou lien. */
+/** Mount once in the layout: wakes the audio up on the first gesture and plays `click` on every button or link. */
 export function SoundEngine() {
   useEffect(() => {
     setSoundOn(readSoundEnabled())

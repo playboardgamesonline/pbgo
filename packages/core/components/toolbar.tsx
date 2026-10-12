@@ -5,7 +5,8 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { CookieIcon, LanguagesIcon, ScaleIcon, SlidersHorizontalIcon, SquareArrowOutUpRightIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
-import { AUTHOR, CONTACT, type OptionValues } from "@pbgo/binding"
+import type { OptionValues } from "@pbgo/engine-kit"
+import { useBinding } from "../lib/binding-context"
 import { LOCALES } from "../lib/i18n"
 import { MENU_FONT } from "./menu-style"
 import { FeedbackButton } from "./feedback"
@@ -17,18 +18,30 @@ import { SoundButton, SoundPanel } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
 import { useRouter } from "next/navigation"
 
-/** Traits d'1 px partout : le liseré du cercle et les icônes (vector-effect) ont exactement la même épaisseur. Ni fond, ni dégradé. */
+/** 1 px strokes everywhere: the circle's border and the icons (vector-effect) have exactly the same width. No background, no gradient. */
 const HAIRLINE = "[&_svg_*]:[vector-effect:non-scaling-stroke]"
 const BADGE = `flex size-10 cursor-pointer items-center justify-center rounded-full border border-foreground/70 bg-transparent text-foreground drop-shadow-none transition-[transform,border-color] duration-200 hover:scale-105 hover:border-foreground active:scale-95 ${HAIRLINE}`
 const ROW = `flex w-full normal-case! tracking-normal! cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-foreground/10 ${HAIRLINE}`
 const SEPARATOR = <div role="separator" className="my-1 h-px bg-foreground/15" />
 
 /**
- * Deux boutons discrets : le son et un menu déroulant (langue, règles [lien externe], paramètres de la partie · cookies, mentions légales · feedback).
- * Les fenêtres (feedback, paramètres…) restent montées même menu fermé pour conserver leur état.
+ * Two discreet buttons: the sound and a drop-down menu (language, rules [external link], game settings · cookies, legal notice · feedback).
+ * The dialogs (feedback, settings…) stay mounted while the menu is closed to keep their state.
+ * `feedback`: false on a game that cannot be played yet (its API answers 404).
  */
-export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: string; options?: OptionValues; align?: "left" | "right" }) {
+export function Toolbar({
+  gameCode,
+  options,
+  align = "left",
+  feedback = true,
+}: {
+  gameCode?: string
+  options?: OptionValues
+  align?: "left" | "right"
+  feedback?: boolean
+}) {
   const t = useText()
+  const { AUTHOR, CONTACT } = useBinding()
   const { locale } = useSkin()
   const { credits, rulesPdf } = useSiteSettings()
   const router = useRouter()
@@ -46,7 +59,7 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
     const close = (e: Event) => {
       if (e instanceof KeyboardEvent) return void (e.key === "Escape" && hide())
       const target = e.target as Element | null
-      // les fenêtres (règles, feedback…) sont rendues hors du menu : cliquer dedans ne le referme pas
+      // the dialogs (rules, feedback…) are rendered outside the menu: clicking in them does not close it
       if (!root.current?.contains(target) && !target?.closest?.("[role=dialog], [data-radix-popper-content-wrapper]")) hide()
     }
     document.addEventListener("pointerdown", close)
@@ -67,7 +80,7 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
     setOpen(false)
     setDialog(d)
   }
-  // règles : lien vers le PDF de la langue du joueur ; à défaut la version anglaise, puis la première disponible
+  // rules: link to the PDF in the player's language, else the English one, then the first available
   const rulesUrl = [locale, "en" as const, ...LOCALES].map((l) => rulesPdf[l]).find((u): u is string => !!u) ?? null
 
   const label = open ? t("closeMenu") : t("menu")
@@ -148,8 +161,12 @@ export function Toolbar({ gameCode, options, align = "left" }: { gameCode?: stri
           <ScaleIcon strokeWidth={1} className="size-4.5" />
           {t("legalMenu")}
         </button>
-        {SEPARATOR}
-        <FeedbackButton gameCode={gameCode} asRow />
+        {feedback && (
+          <>
+            {SEPARATOR}
+            <FeedbackButton gameCode={gameCode} asRow />
+          </>
+        )}
       </div>
       </div>
       {options && <GameSettingsDialog open={dialog === "settings"} onOpenChange={(o) => setDialog(o ? "settings" : null)} options={options} />}

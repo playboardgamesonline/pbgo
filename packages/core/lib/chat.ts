@@ -1,14 +1,14 @@
 /**
  * Chat constants shared by the client (`realtime.ts`, `components/game/chat.tsx`) and the chat API route.
  *
- * Messages and reactions go through `POST /api/games/[code]/chat`: the server reads the player from the cookie,
+ * Messages and reactions go through `POST /api/<slug>/games/[code]/chat`: the server reads the player from the cookie,
  * then broadcasts on the chat channel. Clients only listen to the `*_SERVER_EVENT` events and never send them.
  */
 
 export const CHAT_MAX_LENGTH = 200
 
-/** Realtime channel of a game's chat (the schema keeps two games sharing a code apart on the shared Supabase project). */
-export const chatChannel = (code: string) => `chat:${process.env.NEXT_PUBLIC_SUPABASE_SCHEMA || "public"}:${code}`
+/** Realtime channel of a table's chat (the slug keeps two games sharing a table code apart on the shared Supabase project). */
+export const chatChannel = (slug: string, code: string) => `chat:${slug}:${code}`
 
 /**
  * Event names broadcast by the server only. Older clients sent `chat` / `reaction` themselves: those events are now ignored.
@@ -18,7 +18,7 @@ export const chatChannel = (code: string) => `chat:${process.env.NEXT_PUBLIC_SUP
 export const CHAT_SERVER_EVENT = "chat:server"
 export const REACTION_SERVER_EVENT = "reaction:server"
 
-/** Ids of the built-in reactions (`DEFAULT_REACTIONS` in `soundboard.ts`, keep in sync). A game adds its own through `REACTIONS` in @pbgo/binding. */
+/** Ids of the built-in reactions (`DEFAULT_REACTIONS` in `soundboard.ts`, keep in sync). A game adds its own through `REACTIONS` in its binding. */
 export const DEFAULT_REACTION_IDS = ["clap", "laugh", "wow", "party", "evil", "sad", "fire", "love"] as const
 
 export type ChatMessage = { id: string; playerId: string; text: string; at: number }

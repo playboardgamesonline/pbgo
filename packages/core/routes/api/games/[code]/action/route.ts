@@ -1,22 +1,21 @@
-import { type Action, GAME } from "@pbgo/binding"
-import type { NextRequest } from "next/server"
+import type { GameRouteContext } from "../../../../../lib/binding"
 import { ApiError, handle, readJson } from "../../../../../server/api"
+import { publicGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
-import { updateGame, publicGame } from "../../../../../server/games"
 
-export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
-  await rateLimit(request, "action")
-  const { code } = await ctx.params
-  const id = await getPlayerId()
+export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
+  await rateLimit(game.slug, request, "action")
+  const { GAME } = game.binding
+  const id = await getPlayerId(game.slug)
   if (!id) throw new ApiError("UNKNOWN_PLAYER", 401)
   const action = await readJson<{ type?: string }>(request)
   if (!action.type || !(GAME.clientActions as readonly string[]).includes(action.type)) throw new ApiError("INVALID_ACTION")
 
-  const row = await updateGame(code, (game) => {
-    if (!game.state || game.status !== "playing") throw new ApiError("GAME_NOT_STARTED", 409)
-    const state = GAME.apply(game.state, { ...action, playerId: id } as Action)
+  const row = await updateGame(game, params.code ?? "", (row) => {
+    if (!row.state || row.status !== "playing") throw new ApiError("GAME_NOT_STARTED", 409)
+    const state = GAME.apply(row.state, { ...action, playerId: id })
     return { state, status: GAME.isOver(state) ? "over" : "playing" }
   })
-  return publicGame(row, id)
+  return publicGame(game, row, id)
 })

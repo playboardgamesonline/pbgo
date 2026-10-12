@@ -4,7 +4,7 @@ import { defineField, defineType } from "sanity"
 const volume = (name: string, title: string) => defineField({ name, title, type: "number", validation: (r) => r.min(0).max(1) })
 const mp3 = { accept: "audio/mpeg,.mp3" }
 
-/** Sons du jeu : musiques, ambiance et fichiers des effets (les effets eux-mêmes sont déclarés par le code du jeu). */
+/** Game sounds: music, ambience and effect files (the effects themselves are declared by the game code). */
 export const audio = defineType({
   name: "audio",
   title: "Audio",

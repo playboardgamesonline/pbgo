@@ -100,8 +100,8 @@ export type BaseAnnouncementType = keyof typeof PRESETS
 const LABELS: Record<string, string> = { start: "Start", turn: "Your Turn", victory: "Victory" }
 
 /**
- * Réglages leva des annonces (onglet TRANSITION). Trois préréglages communs (`start`, `turn`, `victory`) ;
- * `extra` ajoute ou surcharge des préréglages propres au jeu (objet constant : ne pas le recréer à chaque rendu).
+ * Leva settings of the announcements (TRANSITION tab). Three shared presets (`start`, `turn`, `victory`);
+ * `extra` adds or overrides the game's own presets (a constant object: do not create it again on each render).
  */
 export function useAnnouncementSettings<X extends string = never>(
   extra?: Record<X, Partial<AnnouncementSettings>>,
@@ -110,7 +110,7 @@ export function useAnnouncementSettings<X extends string = never>(
   const out: Record<string, AnnouncementSettings> = {}
   Object.entries(presets).forEach(([key, preset], i) => {
     const folder = `Announcement · ${LABELS[key] ?? key}`
-    // eslint-disable-next-line react-hooks/rules-of-hooks -- nombre de préréglages constant
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- the number of presets is constant
     out[key] = useControls(folder, schema({ ...DEFAULTS, ...preset }, folder), { collapsed: true, order: 2 + i }, debugTab("TRANSITION")) as AnnouncementSettings
   })
   return out as Record<BaseAnnouncementType | X, AnnouncementSettings>
@@ -225,7 +225,7 @@ function Confetti({ r }: { r: AnnouncementSettings }) {
   return <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0 size-full" />
 }
 
-/** `sound` : effet déclaré dans `SOUNDS` du jeu, joué à l'apparition si le réglage « sound » est actif. */
+/** `sound`: effect declared in the game's `SOUNDS`, played when it shows up if the "sound" setting is on. */
 export function Announcement({ text, subtitle, settings: r, sound }: { text: string; subtitle?: string; settings: AnnouncementSettings; sound?: string }) {
   useEffect(() => {
     if (sound && r.sound) playSound(sound, { bus: "alerts" })

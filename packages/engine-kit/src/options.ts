@@ -1,13 +1,13 @@
 /**
- * Options de partie déclaratives.
+ * Declarative game options.
  *
- * - `group: "parameter"` (défaut) : réglage de la partie (nombre de manches, mode…).
- * - `group: "extension"` : module optionnel du jeu (extension, variante, règle avancée). Toujours un booléen, désactivé par défaut.
+ * - `group: "parameter"` (default): a setting of the game (number of rounds, mode…).
+ * - `group: "extension"`: an optional module of the game (expansion, variant, advanced rule). Always a boolean, off by default.
  *
- * Contraintes (toutes facultatives, appliquées par `normalizeOptions`) :
- * - `requires`     : clés d'options qui doivent être actives pour que celle-ci le soit.
- * - `conflictsWith`: clés incompatibles ; la première déclarée dans le jeu gagne.
- * - `players`      : nombre de joueurs pour lequel l'option est disponible.
+ * Constraints (all optional, applied by `normalizeOptions`):
+ * - `requires`     : option keys that must be active for this one to be.
+ * - `conflictsWith`: incompatible keys; the one declared first in the game wins.
+ * - `players`      : number of players for which the option is available.
  */
 type OptionBase = {
   label: string
@@ -29,7 +29,7 @@ export type OptionDefinitions = Record<string, OptionDefinition>
 export type OptionValue = number | string | boolean
 export type OptionValues = Record<string, OptionValue>
 
-/** Combinaison d'options nommée, proposée en un clic dans le lobby (ex. « Partie rapide », « Expert »). */
+/** Named combination of options, offered in one click in the lobby (e.g. "Quick game", "Expert"). */
 export type OptionPreset = { id: string; label: string; help?: string; values: OptionValues }
 
 export type OptionContext = { playerCount?: number }
@@ -63,7 +63,7 @@ function coerce(def: OptionDefinition, v: unknown): OptionValue {
   }
 }
 
-/** Pourquoi une option est (in)disponible avec ces valeurs et ce nombre de joueurs. Sert au lobby (grisé + raison) et à la normalisation. */
+/** Why an option is (un)available with these values and this number of players. Used by the lobby (greyed out + reason) and by normalization. */
 export function optionStatus(definitions: OptionDefinitions, values: OptionValues, key: string, ctx: OptionContext = {}): OptionStatus {
   const def = definitions[key]
   if (!def) return { available: false }
@@ -85,7 +85,7 @@ export function optionStatus(definitions: OptionDefinitions, values: OptionValue
 export function normalizeOptions(definitions: OptionDefinitions, entry: unknown, ctx: OptionContext = {}): OptionValues {
   const raw = entry && typeof entry === "object" ? (entry as Record<string, unknown>) : {}
   const values: OptionValues = Object.fromEntries(Object.entries(definitions).map(([key, def]) => [key, coerce(def, raw[key])]))
-  // Les contraintes se propagent dans l'ordre de déclaration : à répéter tant qu'une option est ramenée à son défaut.
+  // Constraints propagate in declaration order: repeat while an option is reset to its default.
   for (let pass = 0; pass < Object.keys(definitions).length + 1; pass++) {
     let changed = false
     for (const [key, def] of Object.entries(definitions)) {
@@ -99,12 +99,12 @@ export function normalizeOptions(definitions: OptionDefinitions, entry: unknown,
   return values
 }
 
-/** Preset appliqué sur les valeurs courantes puis normalisé (un preset ne peut pas contourner les contraintes). */
+/** Preset applied over the defaults, then normalized (a preset cannot bypass the constraints). */
 export function applyPreset(definitions: OptionDefinitions, preset: OptionPreset, ctx: OptionContext = {}): OptionValues {
   return normalizeOptions(definitions, { ...defaultOptions(definitions), ...preset.values }, ctx)
 }
 
-/** Un preset est « actif » quand toutes ses valeurs sont déjà celles de la partie. */
+/** A preset is "active" when all its values are already the game's. */
 export function presetMatches(preset: OptionPreset, values: OptionValues): boolean {
   return Object.entries(preset.values).every(([k, v]) => values[k] === v)
 }

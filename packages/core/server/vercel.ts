@@ -27,9 +27,10 @@ export type WebAnalytics = {
 
 type Aggregate<T> = { data: (T & { pageviews: number; visitors: number })[] }
 
+/** Web Analytics of the whole site (every game shares the one Vercel project), last 30 days. */
 export async function loadWebAnalytics(): Promise<WebAnalytics | { error: string } | null> {
   if (!token) return null
-  if (!projectId) return { error: "VERCEL_PROJECT_ID introuvable (ajoutez VERCEL_ANALYTICS_PROJECT_ID)." }
+  if (!projectId) return { error: "VERCEL_PROJECT_ID not found (set VERCEL_ANALYTICS_PROJECT_ID)." }
   const range = { projectId, since: day(29), until: day(0) }
   try {
     const [daily, pages, countries] = await Promise.all([
@@ -42,46 +43,10 @@ export async function loadWebAnalytics(): Promise<WebAnalytics | { error: string
       pageviews: perDay.reduce((t, d) => t + d.pageviews, 0),
       visitors: perDay.reduce((t, d) => t + d.visitors, 0),
       perDay,
-      topPages: pages.data.map((p) => ({ route: p.route || "(autre)", pageviews: p.pageviews })),
-      countries: countries.data.map((c) => ({ country: c.country || "(autre)", visitors: c.visitors })),
+      topPages: pages.data.map((p) => ({ route: p.route || "(other)", pageviews: p.pageviews })),
+      countries: countries.data.map((c) => ({ country: c.country || "(other)", visitors: c.visitors })),
     }
   } catch (e) {
-    return { error: `${(e as Error).message} — Web Analytics est-il activé sur le projet ?` }
-  }
-}
-
-export type Game = { id: string; name: string; url: string | null; state: string | null; deployedAt: number | null; visitors7d: number | null }
-
-type Project = {
-  id: string
-  name: string
-  link?: { repo?: string; repoId?: number | string }
-  targets?: { production?: { alias?: string[]; url?: string; readyState?: string; createdAt?: number } }
-  latestDeployments?: { readyState?: string; createdAt?: number; url?: string; target?: string | null }[]
-}
-
-/** Dépôt PBGO : celui de ce déploiement (VERCEL_GIT_REPO_ID / _SLUG, fournis par Vercel), sinon le nom par défaut. Le numéro de dépôt résiste à un renommage. */
-const repoId = process.env.VERCEL_GIT_REPO_ID
-const repoSlug = process.env.VERCEL_GIT_REPO_SLUG ?? process.env.PBGO_REPO ?? "play-board-games-online"
-const inPbgo = (p: Project) => (repoId && p.link?.repoId !== undefined ? String(p.link.repoId) === repoId : p.link?.repo === repoSlug)
-
-/** Les jeux du dépôt PBGO uniquement (les autres projets du compte Vercel sont ignorés). */
-export async function loadGames(): Promise<Game[] | { error: string } | null> {
-  if (!token) return null
-  try {
-    const { projects } = await get<{ projects: Project[] }>("/v10/projects", { limit: "100" })
-    return await Promise.all(
-      projects.filter(inPbgo).map(async (p) => {
-        const prod = p.targets?.production
-        const latest = prod ?? p.latestDeployments?.find((d) => d.target === "production") ?? p.latestDeployments?.[0]
-        const host = prod?.alias?.find((a) => !a.includes("-git-")) ?? prod?.alias?.[0] ?? latest?.url
-        const visitors7d = await get<{ data: { visitors: number } }>("/v1/query/web-analytics/visits/count", { projectId: p.id, since: day(6), until: day(0) })
-          .then((r) => r.data.visitors)
-          .catch(() => null)
-        return { id: p.id, name: p.name, url: host ? `https://${host}` : null, state: latest?.readyState ?? null, deployedAt: latest?.createdAt ?? null, visitors7d }
-      }),
-    )
-  } catch (e) {
-    return { error: (e as Error).message }
+    return { error: `${(e as Error).message}. Is Web Analytics enabled on the project?` }
   }
 }

@@ -8,7 +8,7 @@ export type Statuses = Record<Family, FamilyStatus>
 
 export type FamilyDetail = { family: Family; weight: number; points: number }
 
-/** Résultat d'un joueur : contrat commun (`detail` générique) + détail propre à Courtisans (familles, missions). */
+/** A player's result: shared contract (generic `detail`) + Courtisans' own detail (families, missions). */
 export type CourtisansPlayerResult = PlayerResult & {
   domainPoints: number
   families: FamilyDetail[]

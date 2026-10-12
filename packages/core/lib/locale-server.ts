@@ -4,8 +4,8 @@ import { cache } from "react"
 import { DEFAULT_LOCALE, fromAcceptLanguage, isLocale, LOCALE_COOKIE, type Locale } from "./i18n"
 
 /**
- * Langue du visiteur : choix mémorisé (cookie), sinon langue du navigateur (Accept-Language), sinon le français.
- * Même URL pour tout le monde : la page est rendue dans la langue de la requête.
+ * Language of the visitor: remembered choice (cookie), else the browser's language (Accept-Language), else French.
+ * Same URL for everyone: the page is rendered in the language of the request.
  */
 export const getLocale = cache(async (): Promise<Locale> => {
   try {

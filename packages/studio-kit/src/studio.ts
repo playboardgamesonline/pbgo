@@ -16,7 +16,7 @@ import { localeString, localeStringList, localeText } from "./objects/locale"
 
 export const commonSchemaTypes: SchemaTypeDefinition[] = [settings, interfaceDoc, audio, rules, texts, localeString, localeText, localeStringList]
 
-// Même découpage que l'admin du site : Identity · Mechanics (settings), Visual (interface), Audio, Copy (texts), puis le contenu du jeu
+// Same breakdown as the site admin: Identity · Mechanics (settings), Visual (interface), Audio, Copy (texts), then the game's content
 const COMMON_SINGLETONS = [
   { id: "settings", title: "Identity & Mechanics", icon: CogIcon },
   { id: "interface", title: "Visual", icon: ImagesIcon },
@@ -30,14 +30,14 @@ type StudioOptions = {
   title: string
   projectId: string
   dataset?: string
-  /** Types propres au jeu (ex. le singleton `game`, les cartes…) ; même nom qu'un type commun = remplacement */
+  /** Game-specific types (e.g. the `game` singleton, the cards…); same name as a shared type = replacement */
   gameTypes?: SchemaTypeDefinition[]
-  /** Documents non-singletons listés sous les singletons (ex. ["card", "role"]) */
+  /** Non-singleton documents listed under the singletons (e.g. ["card", "role"]) */
   collections?: { type: string; title: string }[]
 }
 
 export function createStudioConfig({ title, projectId, dataset = "production", gameTypes = [], collections = [] }: StudioOptions) {
-  // un type du jeu portant le même nom qu'un type commun le remplace (ex. des règles propres au jeu)
+  // A game type with the same name as a shared type replaces it (e.g. game-specific rules)
   const gameNames = new Set(gameTypes.map((t) => t.name))
   const types = [...commonSchemaTypes.filter((t) => !gameNames.has(t.name)), ...gameTypes]
   const names = new Set(types.map((t) => t.name))

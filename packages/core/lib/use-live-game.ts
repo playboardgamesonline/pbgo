@@ -1,11 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ApiClientError, api } from "./api"
+import { ApiClientError } from "./api"
+import { useApi, useGameSlug } from "./binding-context"
 import type { PublicGame } from "./game-types"
 import { subscribeToGame } from "./realtime"
 
 export function useLiveGame(code: string) {
+  const slug = useGameSlug()
+  const api = useApi()
   const [game, setGame] = useState<PublicGame | null>(null)
   const [error, setError] = useState<string | null>(null)
   const version = useRef(-1)
@@ -23,11 +26,11 @@ export function useLiveGame(code: string) {
     } catch (e) {
       if (e instanceof ApiClientError && (e.code === "GAME_NOT_FOUND" || e.code === "INVALID_CODE")) setError(e.code)
     }
-  }, [code, apply])
+  }, [api, code, apply])
 
   useEffect(() => {
     void Promise.resolve().then(reload)
-    const stop = subscribeToGame(code, (v) => {
+    const stop = subscribeToGame(slug, code, (v) => {
       if (v > version.current) reload()
     })
     const poll = setInterval(reload, 8000)
@@ -38,7 +41,7 @@ export function useLiveGame(code: string) {
       clearInterval(poll)
       window.removeEventListener("focus", onFocus)
     }
-  }, [code, reload])
+  }, [slug, code, reload])
 
   return { game, error, apply, reload }
 }

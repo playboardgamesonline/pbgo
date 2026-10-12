@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { PrimaryButton, CodeField, NicknameField, Screen, Paragraph } from "../home/screen"
-import { Game } from "@pbgo/binding-ui"
-import { api, gameLink } from "../../lib/api"
+import { useApi, useBinding } from "../../lib/binding-context"
 import { useProfile } from "../../lib/profile"
 import { useLiveGame } from "../../lib/use-live-game"
 import { LobbyButton, PlayerList } from "../lobby/lobby"
@@ -16,6 +15,8 @@ import { useText } from "../skin-provider"
 export function GameClient({ code, data }: { code: string; data?: unknown }) {
   const router = useRouter()
   const t = useText()
+  const { SLUG, Game } = useBinding()
+  const api = useApi()
   const { game, error, apply } = useLiveGame(code)
   const { profile, setProfile, ready, valid } = useProfile()
   const [autoJoin, setAutoJoin] = useState<"idle" | "pending" | "failed" | "manual">("idle")
@@ -44,14 +45,14 @@ export function GameClient({ code, data }: { code: string; data?: unknown }) {
 
   async function leave() {
     if (game?.status === "lobby" && game.meId) await api.leave(code).catch(() => null)
-    router.push("/")
+    router.push(`/${SLUG}`)
   }
 
-  if (game && game.meId && game.status !== "lobby" && game.view) {
-    return <Game game={game} data={data} onUpdate={apply} onLeave={() => router.push("/")} />
+  if (Game && game && game.meId && game.status !== "lobby" && game.view) {
+    return <Game game={game} data={data} onUpdate={apply} onLeave={() => router.push(`/${SLUG}`)} />
   }
 
-  const link = typeof window === "undefined" ? "" : gameLink(code)
+  const link = typeof window === "undefined" ? "" : api.link(code)
   const backButton = <PrimaryButton onClick={leave}>{t("backHome")}</PrimaryButton>
 
   if (error)

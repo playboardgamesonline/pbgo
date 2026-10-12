@@ -1,116 +1,146 @@
-# Play Game Online · monorepo
+# Play Board Games Online · monorepo
 
-Tous les jeux de société en ligne d'oré dans un seul dépôt (`aurelienlouvel/play-board-games-online`), un workspace pnpm.
+oré's online board games in one repository (`playboardgamesonline/playboardgamesonline`), a pnpm workspace served by **one Next.js app** on `playboardgamesonline.app`: the hub at `/`, each game at `/<slug>`.
 
-Migrer vers un autre compte : voir `MIGRATION.md`.
+Moving the project to another account: see `MIGRATION.md`.
 
 ## Structure
-- `template/` — le template de jeu (voir `template/CLAUDE.md` pour l'architecture : moteur, lobby, temps réel Supabase, 3D, admin /admin)
-- `games/<jeu>/` — un jeu = `apps/web` (Next.js), `apps/studio` (Sanity), `packages/engine` (moteur pur TS).
-- `games/<jeu>/assets/` — sources (PDF, PSD, visuels HD), ignorées par git
-- `packages/` — code partagé par tous les jeux (voir ci-dessous)
-- `scripts/` — `new-game.sh`, `go-live.sh`, `run.sh`
-- `apps/hub/` — the hub site that owns `playboardgamesonline.app` and serves every game under `/<slug>` (see below)
+- `apps/web/` — `web`, the only Next.js app (hub + every game). Vercel project `playboardgamesonline`, root directory `apps/web`
+- `games/<slug>/` — one game = packages only, no app of its own:
+  - `src/` — the binding package `@pbgo-game/<slug>`: site constants, engine binding, board, server loaders, sounds, defaults, i18n, skin
+  - `packages/engine` — `@<slug>/engine`, the pure TypeScript engine (no UI), tested with Vitest
+  - `apps/studio` — `<slug>-studio`, the game's Sanity Studio
+  - `assets/` — sources (PDF, PSD, HD visuals), git-ignored
+- `template/` — the game template, itself a game (`@pbgo-game/template`, demo "La Plus Haute", served at `/template`). See `template/CLAUDE.md` and `template/docs/GAME_GUIDE.md`
+- `packages/` — shared code (below)
+- `supabase/migrations/` — schema of the single Supabase project
+- `scripts/` — `new-game.sh`, `go-live.sh`, `add-game.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`
 
-## Paquets partagés (`packages/`)
-Une modification ici profite à tous les jeux qui les utilisent au prochain déploiement.
-- `@pbgo/engine-kit` — contrat moteur ↔ web (`GameDefinition`, `Results`…), options de partie (`defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`. Le moteur d'un jeu le ré-exporte : `export * from "@pbgo/engine-kit"`
-- `@pbgo/ui` — composants shadcn + `cn` : `@pbgo/ui/game/<comp>` (thème du jeu), `@pbgo/ui/admin/<comp>` (preset luma de l'admin /admin), `@pbgo/ui/utils`
-- `@pbgo/studio-kit` — schémas Sanity communs (`settings`, `interface`, `rules`, `texts` via `createTexts(extra)`, `localeString`…) et `createStudioConfig({ title, projectId, gameTypes })` (un type du jeu de même nom remplace le commun) ; `@pbgo/studio-kit/constants` (langues, `FONT_CHOICES`) importable côté web
-- `@pbgo/site` — référencement : `createMetadata`, `createViewport`, `createRobots`, `createSitemap`, `createManifest`, `gameJsonLd` à partir d'un `SiteConfig` (`lib/site.ts` du jeu)
-  - **`noindex` par défaut** : tant que `INDEXABLE` (jeux sur `@pbgo/core` : `export const INDEXABLE` dans `lib/site.ts`, transmis à `createRobotsMeta`, `createRobots`, `createSitemap`) ou `SiteConfig.indexable` (jeux « coquille ») n'est pas `true`, les pages portent `noindex`, le sitemap est vide et robots.txt n'annonce pas de sitemap (l'exploration reste permise, sinon les moteurs ne liraient pas le `noindex`). Passer à `true` à la mise en ligne du jeu, avec la liste `pnpm vercel:ignore-builds <jeux en ligne>` : un projet hors liste ne se reconstruit pas, donc ne reçoit un changement qu'après un déploiement manuel. Seul Courtisans est indexable.
-- Utiliser un paquet dans un jeu : l'ajouter aux `dependencies` (`"@pbgo/ui": "workspace:*"`) et à `transpilePackages` dans `next.config.ts` ; pour Tailwind, `@source` vers `packages/ui/src` dans `globals.css`
-- `@pbgo/core` — socle commun des jeux : serveur (`server/*` : parties Supabase avec verrou de version, joueur, admin, stats, tâches), `lib/*` (api, realtime, settings, rules, i18n), composants (accueil, lobby, contexte de partie, fin de partie, partage, admin), pages (`pages/game|admin|preview`, `setup`/`status` = redirections) et routes API (`routes/api/**/route.ts`)
-  - Le jeu branche son code via trois alias déclarés dans `next.config.ts` (`turbopack.resolveAlias`) **et** `tsconfig.json` (`paths`) :
-    - `@pbgo/binding` → `src/binding.ts` : moteur (`GAME`, types), constantes de `lib/site.ts` ; facultatif : `SOUNDS`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`, `ERROR_MESSAGES` (textes des erreurs du moteur), `SANITY_PROJECT_ID`
-    - `@pbgo/binding-ui` → `src/binding-ui.ts` : `Logo`, `Game` (plateau), `captureGamePhoto` ; facultatif : `RulesButton` (règles propres au jeu)
-    - `@pbgo/binding-server` → `src/binding-server.ts` (serveur uniquement), tout facultatif : `loadSetupData` (données de `GAME.setup`), `loadGameData` (prop `data` du plateau), `loadRules`
-  - Écrans et partie standard (repris de Courtisans) : `Screen` (accueil, invitation, lobby), `GameHud` + `Ticker` + `groupTurns` + `useAnnouncements` (partie), `GameOver` (`renderDetail` pour le détail des points), son (`lib/sound.ts`, `SoundButton`, `SoundEngine`), `DesktopOnly`, panneau debug leva — le tout monté par `AppShell` dans le layout
-    - `DesktopOnly` : mur plein écran sous 900 px, limité aux pages de partie (`/game/*`, aperçu admin compris) ; l'accueil et les pages publiques restent lisibles sur mobile (référencement), avec `DesktopNotice` (avis non bloquant) et sans création de table depuis un écran étroit
-  - Habillage (`lib/skin.ts`, `loadSkin`, `useSkin`, `useText`) : Sanity `interface` (décor haut/bas, personnage, motif, picto de l'hôte, couleurs des joueurs, ordinateur uniquement) + `texts` (intro de l'accueil, phrases de victoire, libellés d'interface `UI_TEXTS` de `@pbgo/studio-kit/constants`) ; valeurs par défaut du jeu dans `DEFAULT_SKIN`
-  - Les fichiers de `app/` sont de simples ré-exports (`export { POST } from "@pbgo/core/routes/api/games/[code]/join/route"`) ; les configs de segment (`dynamic`, `revalidate`) restent écrites en toutes lettres dans l'app (Next ne les lit pas à travers un ré-export)
-  - Joueur absent : après `settings.turnTimeout` (60 s par défaut, réglable dans Admin › Mechanics) sans écriture, `StalledTurn` propose aux autres de jouer à sa place (route `/takeover`, qui utilise `GAME.autoPlay` ou `GAME.debug.turn` et `GAME.activePlayer`)
-  - Écritures concurrentes : `updateGame` réessaie jusqu'à 8 fois avec une attente aléatoire croissante
-  - Tailwind : `@source` vers `packages/core` dans `globals.css` ; police d'ambiance (annonces, intro) : variable CSS `--font-accent`
-  - Utilisé par : template (et donc tout jeu créé avec `new-game`), Courtisans
+## Routes (`apps/web/src/app`)
+| URL | File | |
+| --- | --- | --- |
+| `/` | `(hub)/page.tsx` | hub: the live games of the registry |
+| `/legal` | `(hub)/legal/page.tsx` | legal notice |
+| `/<slug>` | `[game]/page.tsx` | game home ("coming soon" when the game is not playable here) |
+| `/<slug>/game/<code>` | `[game]/game/[code]/page.tsx` | table (lobby, board, game over) |
+| `/<slug>/admin/...` | `[game]/admin/[[...section]]/page.tsx` | the game's admin |
+| `/<slug>/preview/home\|game` | `[game]/preview/[kind]/page.tsx` | admin previews (iframe) |
+| `/<slug>/icons/favicon\|apple`, `/<slug>/manifest.webmanifest`, `/<slug>/opengraph-image/share` | `[game]/...` | the game's metadata files |
+| `/api/<slug>/games/...`, `/api/<slug>/admin/...`, `/api/<slug>/feedback`, `/api/<slug>/tasks/...` | `api/[game]/...` | the game's API |
+| `/api/admin/login\|logout`, `/api/media` | `api/...` | shared: one admin session for every game, Sanity media proxy |
+| `/robots.txt`, `/sitemap.xml` | `robots.ts`, `sitemap.ts` | site-wide |
+| `/favicon.ico` | `public/favicon.ico` | the hub's icon: a static file answers before `[game]`, so `favicon.ico` is never read as a slug. Not `app/favicon.ico`: Next adds that one to the head of every page, game pages included, next to their own `/<slug>/icons/*` |
 
-## Commandes (depuis la racine)
-- `pnpm install` — une seule fois pour tout le monorepo
-- `pnpm dev <jeu>` / `pnpm dev:studio <jeu>` — ex. `pnpm dev skull-king`
-- `pnpm --filter <jeu>-web build` · `pnpm --filter @<jeu>/engine test`
-- `pnpm new-game <jeu>` — copie `template/` dans `games/<jeu>` et renomme les paquets
-- `pnpm go-live <jeu>` — projet Sanity + studio, projet Vercel relié au monorepo (root `games/<jeu>/apps/web`) + domaine `play-<jeu>-online.vercel.app`, variables d'env
+- The hub (`(hub)/layout.tsx`) and the games (`[game]/layout.tsx`) have separate root layouts; `global-not-found.tsx` answers any URL that matches no route. Links from the hub to a game are plain `<a>` (full page load).
+- Route files are thin wrappers: pages call `@pbgo/core/pages/*` with the game (`gameOf` / `playableGameOf` from `apps/web/src/lib/game.ts`), API routes wrap the `@pbgo/core/routes/api/**` handler with `gameRoute()` from `@pbgo/games`. Segment configs (`dynamic`, `revalidate`) stay written out in the app (Next does not read them through a re-export).
+- 404: a URL that matches no route (`/x/a/b/c`, `/<slug>/not-a-page`) gets `global-not-found.tsx`, rendered on the server. A page that calls `notFound()` (`gameOf` / `playableGameOf`: unknown slug, missing table, admin section or preview) gets `[game]/not-found.tsx` (`GameNotFound`): the game's own 404 for a slug of the registry, the site's 404 for any other slug. Next 16.4 answers a page's `notFound()` with status 404 and `noindex` but renders the not-found UI on the client (the server HTML has an empty body).
+- The `[game]` layout is a root layout, so it must not call `notFound()` itself: nothing sits above it to catch the error and Next answers with its own default 404 page. For an unknown slug it renders a bare `<html>` shell and each page's `gameOf` answers 404. `dynamicParams = false` is not enforced on these dynamic pages.
+- A game that is not playable here (no engine, or not live in production) keeps its home page ("coming soon"); its table, admin, previews and API answer 404 (`GAME_NOT_FOUND`).
+- A game's public files live in `apps/web/public/<slug>/` (URL `/<slug>/...`); build their URLs with `asset()` of the game's `src/lib/site.ts`. Paths derive from the slug: no base path, no `withBase()`.
 
-## Nommage des paquets
-`<jeu>-web`, `<jeu>-studio`, `@<jeu>/engine` (template : `template-web`, `template-studio`, `@game/engine`). Toujours cibler un paquet avec `--filter`, jamais `--filter web`.
+## Games registry (`packages/games`, `@pbgo/games`)
+- `src/registry.ts` — `GAMES`, pure data read by the hub, the sitemap, the router, `next.config.ts` and the scripts: `slug`, `name`, `tagline`, `players`, `sanityProjectId`, `live` (playable in production; every game stays playable outside production), `indexable` (sitemap, no `noindex`)
+- `src/index.ts` (server) — `LOADERS`: slug → `() => import("@pbgo-game/<slug>/server")`; `getGame`, `getPlayableGame`, `gameRoute`
+- `src/runtime.tsx` (client) — `RUNTIMES`: slug → `dynamic(() => import("@pbgo-game/<slug>/runtime"))`, mounted by the `[game]` layout
+- Code splitting: a page loads only its game's code; the hub loads none (no three.js). Never import a game package statically from shared code.
+- Adding a game = one `@pbgo-game/<slug>` package + one entry in `GAMES`, `LOADERS` and `RUNTIMES` + the dependency in `packages/games/package.json` (`pnpm new-game` does all of it)
 
-## Single domain: hub + games (multi-zones)
-- `playboardgamesonline.app` is attached only to the Vercel project **hub** (root `apps/hub`). Game projects have no custom domain.
-- Each game is built with `NEXT_PUBLIC_BASE_PATH=/<slug>` (Vercel env var) → `basePath` in its `next.config.ts`; all its pages, assets and API routes live under `/<slug>`.
-- The hub rewrites `/<slug>` and `/<slug>/*` to the game's production URL (`apps/hub/src/games.ts`, override with `GAME_ORIGIN_<SLUG>`). Adding a game = one entry in that registry.
-- In shared code, any root-relative URL built by hand (fetch, `<a>`, `<img>`, `<iframe>`, audio, `window.location`) goes through `withBase()` from `@pbgo/core/lib/base-path`. `<Link>`, `router.push`, `redirect` and metadata files are prefixed by Next.js already. Links from the hub to a game use a plain `<a>` (full page load across zones).
-- The hub's `robots.txt` is the one crawlers read; it disallows `/<slug>/api/`, `/admin`, `/preview`, `/game/` for every game.
-- Game projects must not protect their production `*.vercel.app` URL with Vercel Authentication, otherwise the hub's rewrites get a 401.
+## A game's binding package (`@pbgo-game/<slug>`)
+Contract types in `@pbgo/core/lib/binding` (`GameBinding`, `UiBinding`, `ServerBinding`):
+- `.` (`src/index.ts`, isomorphic) — `SLUG`, `NAME`, `TAGLINE`, `DESCRIPTION`, `AUTHOR`, `CONTACT`… (from `src/lib/site.ts`), the engine `GAME` (absent: not playable yet); optional `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`, `ERROR_MESSAGES`, `REACTIONS`, `STUDIO_URL`
+- `./ui` (`src/ui.tsx`, client) — `Logo`, `Game` (the board, loaded lazily so the home page does not pull in three.js)
+- `./server` (`src/server.ts`, server only) — everything of `.` plus optional `loadSetupData` (data for `GAME.setup`), `loadGameData` (`data` prop of the board), `ROUTES` (the game's own routes, `/api/<slug>/games/<code>/<route>`), `SEO`
+- `./runtime` (`src/runtime.tsx`, client) — the game's styles and fonts and `BindingProvider`
+- `./styles.css` — the game's Tailwind entry: imports `@pbgo/core/styles/game.css` (theme tokens, `@source` to `packages/core` and `packages/ui`), then `@source "."` and the game's own tokens and fonts
+- Core never imports a game: pages and API handlers receive the `GameModule`, client components read it with `useBinding()`
 
-## Déploiement
-- Un projet Vercel par jeu, tous reliés à ce dépôt ; chaque projet a son root directory (`games/<jeu>/apps/web`) et ne se reconstruit que si ses fichiers changent
-- Un projet Sanity par jeu (`<jeu>.sanity.studio`), un projet Supabase par jeu ; secrets dans `apps/web/.env.local` et sur Vercel, jamais commités
-- Push sur `main` = mise en production des jeux touchés
+## Shared packages (`packages/`)
+A change here reaches every game on the next deployment.
+- `@pbgo/core` — the shared base: server (`server/*`: Supabase games with a version lock, players, admin, stats, tasks, rate limiting), `lib/*` (binding contract, api, realtime, settings, rules, i18n, skin, sound, site URLs), components (home, lobby, game context, HUD, chat, game over, sharing, admin, toolbar), pages (`pages/home|game|admin|preview`), route handlers (`routes/api/**/route.ts`), metadata images
+  - Standard screens and game flow (from Courtisans): `Screen` (home, invitation, lobby), `GameHud` + `Ticker` + `groupTurns` + `useAnnouncements`, `GameOver` (`renderDetail` for the score detail), sound (`lib/sound.ts`, `SoundButton`, `SoundEngine`), `DesktopOnly`, leva debug panel, all mounted by `AppShell` in the `[game]` layout
+  - `DesktopOnly`: full-screen wall under 900 px on game pages only (`/<slug>/game/…`, admin preview included); the home and public pages stay readable on mobile (SEO), with `DesktopNotice` and no table creation from a narrow screen
+  - Skin (`lib/skin.ts`, `loadSkin`, `useSkin`, `useText`): Sanity `interface` (top/bottom art, character, pattern, host icon, player colors, desktop only) + `texts` (home intro, victory lines, `UI_TEXTS` labels of `@pbgo/studio-kit/constants`); a game's defaults in `DEFAULT_SKIN`
+  - Absent player: after `settings.turnTimeout` (60 s by default, Admin › Mechanics) without a write, `StalledTurn` offers the others to play for them (`/takeover`, which uses `GAME.autoPlay` or `GAME.debug.turn` and `GAME.activePlayer`)
+  - Concurrent writes: `updateGame` retries up to 8 times with a growing random wait
+  - Accent font (announcements, intro): CSS variable `--font-accent`
+- `@pbgo/games` — the registry (above)
+- `@pbgo/engine-kit` — engine ↔ web contract (`GameDefinition`, `Results`…), game options (`defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`. A game's engine re-exports it: `export * from "@pbgo/engine-kit"`
+- `@pbgo/ui` — shadcn components + `cn`: `@pbgo/ui/game/<comp>` (game theme), `@pbgo/ui/admin/<comp>` (luma preset of the admin), `@pbgo/ui/utils`
+- `@pbgo/studio-kit` — shared Sanity schemas (`settings`, `interface`, `rules`, `texts` via `createTexts(extra)`, `localeString`…) and `createStudioConfig({ title, projectId, gameTypes })` (a game type with the same name replaces the shared one); `@pbgo/studio-kit/constants` (languages, `FONT_CHOICES`) importable on the web side
+- `@pbgo/tsconfig`, `@pbgo/eslint-config` — shared TypeScript and ESLint configs
+- Every external dependency comes from the pnpm catalog (`catalog:` in `package.json`, versions in `pnpm-workspace.yaml`); `pnpm check:catalog` enforces it
+- A new workspace package used by apps/web goes into `transpilePackages` (`apps/web/next.config.ts`; game packages are added from the registry)
 
-## Faire évoluer le socle
-Les jeux créés depuis le template en sont une copie : une amélioration faite dans `template/` se reporte dans les jeux concernés (même chemin de fichier) ; à terme, le code commun sortira dans `packages/` partagés.
+## Commands (from the root)
+- `pnpm install` — once for the whole monorepo
+- `pnpm dev` — apps/web on http://localhost:3100 (hub + every game; `pnpm dev <slug>` prints its URL)
+- `pnpm dev:studio <slug>` — the game's Sanity Studio
+- `pnpm build` (= `pnpm --filter web build`) · `pnpm typecheck` · `pnpm test` · `pnpm lint` · `pnpm check:catalog`
+- `pnpm --filter @<slug>/engine test` · `pnpm --filter @pbgo/core test`
+- `pnpm new-game <slug>` — `games/<slug>` from `template/`, registered in `packages/games` (not live)
+- `pnpm go-live <slug>` — Sanity side: project, public dataset, CORS, studio deployed, project id written in the registry, write token in `apps/web/.env.local`
+- `pnpm add-game <slug> [--push]` — new-game + go-live + setup-env; `--push` commits and pushes a branch for a pull request
+- `pnpm setup-env [--no-push | --check]` — fills `apps/web/.env.local` and pushes the variables to the Vercel project `playboardgamesonline`; aborts, touching neither, when a Supabase value is missing or a project can't be used (see Environment)
+
+## Package names
+`@pbgo-game/<slug>` (binding), `@<slug>/engine`, `<slug>-studio` (template: `@pbgo-game/template`, `@template/engine`, `template-studio`). Always target a package with `--filter`.
+
+## Deployment
+- One Vercel project, `playboardgamesonline` (root directory `apps/web`), owns the domain `playboardgamesonline.app`. Push to `main` = production; every pull request gets a preview
+- A game reaches production when `live: true` in the registry; `indexable: true` lets search engines in. Only Courtisans is live and indexable
+- `robots.txt` disallows `/api/`, `/*/admin`, `/*/preview`, `/*/game/`; the sitemap lists the hub and the indexable games; non-indexable game pages carry `noindex`
+
+## Environment (`apps/web/.env.example`)
+- Local values in `apps/web/.env.local`, never committed; on Vercel, on the project `playboardgamesonline`. `pnpm setup-env` fills both from `~/.config/pbgo/secrets.env` (outside the repo, `chmod 600`)
+- The secrets file holds `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` (production) and `SUPABASE_PREVIEW_PROJECT_REF` (`pbgo-preview`), all three required: `pnpm setup-env` refuses to run without them. The production project's keys go to the Vercel Production target only; `apps/web/.env.local` and the Vercel Preview and Development targets get the preview project's keys, never production ones. A project that is unreachable, whose keys can't be read, or that still has the one-project-per-game schema (`public.games` without a `game` column) stops the run before anything is written or sent. `--check` only validates the three values
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` · `ADMIN_LOGIN`, `ADMIN_PASSWORD` (one admin account for every game) · optional `VERCEL_TOKEN`, `VERCEL_TEAM_ID` (Admin › Audience and Health), `NEXT_PUBLIC_SITE_URL`, `DEBUG_GAMES=1`
+- `SANITY_API_WRITE_TOKEN_<SLUG>` per game, slug upper-cased with `-` → `_` (`6-nimmt` → `SANITY_API_WRITE_TOKEN_6_NIMMT`); without it, that game's admin is read-only
+
+## Sanity
+- One Sanity project per game (`sanityProjectId` in the registry), dataset `production`, studio `<slug>-studio` deployed to `<host>.sanity.studio`
+- The studio reads its project id from `apps/studio/.env` (`SANITY_STUDIO_PROJECT_ID`, see `.env.example`) or from `sanity.cli.ts`
+- A game's own content types: schemas in `apps/studio/schemaTypes`, queries in the binding's `src/sanity/`, then `pnpm --filter <slug>-studio typegen`
+- Media proxy `GET /api/media?url=` (shared by every game; fonts, sounds, SVG) only serves `https://cdn.sanity.io/(images|files)/<projectId>/…` where `<projectId>` is the `sanityProjectId` of a game of the registry (`sanityAssetUrl` in `packages/core/sanity/media.ts`, which also refuses `%` in the path and fetches the normalized URL). Core never imports the games: `apps/web/src/app/api/media/route.ts` passes the ids to `mediaRoute()`
+
+## Supabase
+- One project for every game (production), plus `pbgo-preview` for local development and Vercel previews. Schema: `supabase/migrations` (`games`, `tasks`, `feedback`, each with a `game` column = the slug; RLS on without policies, only the server reads and writes)
+- Realtime is broadcast only: after each write the server sends `update` on `game:<slug>:<code>`, clients refetch their view (`GET /api/<slug>/games/<code>`)
+- Player identity: httpOnly cookie `<slug>_player`
+
+## Languages (FR / EN / ES / DE)
+- `LANGUAGES` in `packages/studio-kit/src/constants.ts` is the single source (it also feeds the Sanity `localeString` fields). Adding a language = add it there, then the translations below (TypeScript flags what is missing)
+- Visitor language: cookie `pbgo-locale` (selector in the toolbar), else `Accept-Language` (unsupported language: English; no header: French). Same URL for everyone; `getLocale()` (`lib/locale-server.ts`) reads cookie and headers, so pages render on demand (Sanity data still cached 60 s)
+- Shared texts: French in `UI_TEXTS`, default translations in `packages/studio-kit/src/translations.ts` (labels + errors). A text typed in the admin (Copy) wins, language by language; without one in that language, the code's translation applies (never Sanity's French)
+- A game provides its non-French texts through the optional `I18N` of its binding (`skin`, `description`, `authors`, `errors`); Courtisans adds `src/lib/i18n.ts` (board, missions, families, roles) and `src/lib/i18n-rules.ts` (rules)
+- Rules: Sanity in the language, else Sanity in French, else the default rules of the language
+
+## Admin (`/<slug>/admin`, all in English)
+- Sidebar (`lib/admin-nav.ts`): **Setup** (Identity, Mechanics, Visual, Audio, Copy) · **Tasks** (Launch, Backlog, Bugs, Feedback) · **Monitoring** (Games, Audience, Health)
+- Setup data: `server/settings.ts` (`readAdminData`, `saveSection(section, values)`, `uploadAsset(slot, file)`), routes `/api/<slug>/admin/settings` and `/api/<slug>/admin/upload/[slot]`. Sanity documents: `settings` (Identity, Mechanics, colors and fonts), `interface` (Visual images, player colors, desktopOnly), `audio` (music, ambience, effects, volumes), `texts` (Copy, including `errorMessages`)
+- Upload conversions (`server/convert.ts`): images → WebP (SVG kept), favicon → PNG 512, share image → JPG 1200×630, TTF/OTF fonts → WOFF2. Sounds: MP3, 4 MB max
+- Previews: iframe on `/<slug>/preview/home` and `/<slug>/preview/game` (admin only, fake game), draft sent by `postMessage` (`lib/preview.ts`, `components/preview-bridge.tsx`); API calls are neutralized there
+- Favicon and share image: `app/[game]/icons/*/route.ts`, `app/[game]/opengraph-image.tsx` → `@pbgo/core/metadata/images` (file uploaded in Identity, else generated from the logo and skin)
+- Sounds: `lib/sound-config.ts` (types, sounds declared by the game), `lib/audio-server.ts` (`loadAudio` merges Sanity `audio`); files in `apps/web/public/<slug>/sounds`, Admin › Audio › "Import into Sanity" uploads them
+- Absent player: `POST /api/<slug>/games/<code>/takeover` = unanimous vote of the other players (`games.takeover_votes`, stale as soon as a move is played)
+- Tasks: table `tasks` (`type` backlog|bug, `priority`), table `feedback` (the game's feedback button, `POST /api/<slug>/feedback`). Launch = checklist checked against the site (`server/launch.ts`)
+- Game options: defaults and hidden options set in Mechanics (`settings.options`, `gameOptions()` in `lib/settings.ts`)
+
+## Rate limiting
+- Every mutating game route (create, join, leave, options, start, action, replay, takeover, Courtisans `banquet`) and `POST /api/<slug>/feedback` start with `await rateLimit(game.slug, request, "<rule>")` (`server/rate-limit.ts`). Limits live in `RATE_LIMITS` (`server/rate-limiter.ts`): per player cookie when present, else per IP (create: always per IP), never per table, plus a per-IP ceiling across routes. Over the limit: 429 `RATE_LIMITED` + `Retry-After`. The chat route has its own per-player token bucket
+- `POST /api/admin/login` belongs to no game: it starts with `await rateLimit(null, request, "adminLogin")`, 5 attempts per 10 minutes per IP, counted before the credentials are checked (the right password is refused too once the limit is reached)
+- Counters are in memory, per function instance; to share them, implement `RateLimitStore` and call `setRateLimitStore()`. A new mutating route of a game (`ROUTES`) must call `rateLimit` too
+
+## Game UI
+- Settings menu (`components/toolbar.tsx`): a button next to the logo opens rules, sound, feedback and language
+- Chat (`components/game/chat.tsx`, mounted by `GameHud`): Supabase realtime broadcast without storage; sent through `POST /api/<slug>/games/<code>/chat` (author = player cookie, member of the game, ≤ 200 characters or a known reaction), the server broadcasts (`lib/chat.ts`), clients only listen
+- Turn crown left of the active player's nickname (template: `game3d/crown.tsx`; Courtisans: `CrownMark`)
+- Game over: centered table, "hide / show" link above the centered PLAY AGAIN button
+
+## Rules of work
+- English everywhere: code, comments, docs, commits, PRs. Only player-facing texts are in other languages (Sanity, `I18N`, a game's defaults)
+- Branch named after the Linear issue (`plt-<n>-<topic>`); the PR description references the issue ID; never merge your own PR
+- Never commit secrets or env files (`.env*` except `.env.example`, `.vercel`, `.sanity-project-id` are git-ignored)
 
 ## Commits
-Identité git : `oré <louvel.aurelien.perso@gmail.com>` (compte GitHub/Vercel du projet) — jamais l'adresse pro, sinon Vercel bloque le déploiement.
-Gitmoji `<emoji>(<scope>): <description>` · scopes : `<jeu>`, `template`, `repo` (ex. `✨(skull-king): …`, `🔧(repo): …`)
-
-## Langues (FR / EN / ES / DE)
-
-- Langues : `LANGUAGES` dans `packages/studio-kit/src/constants.ts` (source unique, alimente aussi les champs Sanity `localeString`). Ajouter une langue = l'ajouter là, puis les traductions ci-dessous (TypeScript signale ce qui manque).
-- Langue du visiteur : cookie `pbgo-locale` (sélecteur dans la barre d'outils), sinon `Accept-Language` (langue non gérée : anglais ; pas d'en-tête : français). Même URL pour tous ; `getLocale()` (`lib/locale-server.ts`) lit cookie et en-têtes, donc les pages sont rendues à la demande (données Sanity toujours en cache 60 s).
-- Textes communs : français dans `UI_TEXTS`, traductions par défaut dans `packages/studio-kit/src/translations.ts` (libellés + erreurs). Un texte saisi dans l'admin (Copy) passe avant, langue par langue ; sans saisie dans la langue, la traduction du code s'applique (jamais le français de Sanity).
-- Un jeu fournit ses textes non français via l'export facultatif `I18N` de `@pbgo/binding` (`skin`, `description`, `authors`, `errors`) ; Courtisans y ajoute `lib/i18n.ts` (plateau, missions, familles, rôles) et `lib/i18n-rules.ts` (règles).
-- Identité (description, « un jeu de »), PDF des règles et Copy s'éditent par langue dans l'admin ; le nom du jeu et le suffixe d'onglet sont communs.
-- Règles : Sanity dans la langue, sinon Sanity en français, sinon règles par défaut de la langue.
-
-## Admin (`/admin`, tout en anglais)
-- Barre latérale (`lib/admin-nav.ts`) : **Setup** (Identity, Mechanics, Visual, Audio, Copy) · **Tasks** (Launch, Backlog, Bugs, Feedback) · **Monitoring** (Games, Audience, Health). Une seule route par app : `app/(admin)/admin/[[...section]]/page.tsx` → `@pbgo/core/pages/admin`.
-- Données Setup : `server/settings.ts` (`readAdminData`, `saveSection(section, values)`, `uploadAsset(slot, file)`), routes `PUT/GET/POST /api/admin/settings` et `/api/admin/upload/[slot]`. Documents Sanity : `settings` (Identity, Mechanics, couleurs et polices), `interface` (images de Visual, couleurs des joueurs, desktopOnly), `audio` (musiques, ambiance, effets, volumes), `texts` (Copy, dont `errorMessages`).
-- Conversions à l'envoi (`server/convert.ts`) : images → WebP (SVG gardé), favicon → PNG 512, image de partage → JPG 1200×630, polices TTF/OTF → WOFF2 (wawoff2). Sons : MP3, 4 Mo max.
-- Aperçus : iframe sur `/preview/home` et `/preview/game` (admin seulement, partie fictive), brouillon envoyé par `postMessage` (`lib/preview.ts`, `components/preview-bridge.tsx`) ; les appels API y sont neutralisés.
-- Favicon / share image: `app/icons/favicon/route.ts`, `app/icons/apple/route.ts` (route handlers, linked from the root layout metadata with `withBase()` because Next drops the base path from the `icon.tsx` convention) and `app/opengraph-image.tsx` → `@pbgo/core/metadata/images` (file uploaded in Identity, else generated from the logo / skin).
-- Sons : `lib/sound-config.ts` (types, sons déclarés par le jeu), `lib/audio-server.ts` (`loadAudio` fusionne Sanity `audio`), passé à `AppShell` (`sounds`). Admin › Audio › « Import into Sanity » envoie les fichiers de /public/sounds.
-- Joueur absent : `POST /api/games/[code]/takeover` = vote à l'unanimité des autres joueurs (colonne `games.takeover_votes`, entrées `<empreinte de l'état>:<joueur>`, périmées dès qu'un coup est joué) ; migration `…_takeover_votes.sql` à appliquer sur chaque schéma de jeu (sinon les lectures de `games` échouent).
-- Tasks : table `tasks` (colonnes `type` backlog|bug et `priority`), table `feedback` (bouton « Donner votre avis » du jeu, `POST /api/feedback`) — migration `…_admin_tasks_feedback.sql`. Launch = liste vérifiée (`server/launch.ts`).
-- Rate limiting: every mutating game route (create, join, leave, options, start, action, replay, takeover, Courtisans `banquet`) and `POST /api/feedback` start with `await rateLimit(request, "<rule>")` (`server/rate-limit.ts`). All limits live in `RATE_LIMITS` (`server/rate-limiter.ts`): per player cookie when present, else per IP (create: always per IP), never per table (a whole Courtisans table sends `readMissions` at once), plus a per-IP ceiling across routes against cookie rotation. Over the limit: 429 `RATE_LIMITED` + `Retry-After` (message in `DEFAULT_ERROR_MESSAGES` / `ERROR_TRANSLATIONS`). **Limitation:** counters are in memory, per lambda instance (reset on cold start, not shared between instances); to share them, implement `RateLimitStore` (Upstash Redis, Supabase…) and call `setRateLimitStore()`. Feedback keeps its durable limits in the database. A new game-specific mutating route must call `rateLimit` too. Tests: `pnpm --filter @pbgo/core test` (borrows engine-kit's vitest).
-- Options du moteur : défauts et options masquées réglés dans Mechanics (`settings.options`, `gameOptions()` dans `lib/settings.ts`).
-
-## Nouveau jeu en une commande
-
-`pnpm add-game <slug> [--push]` enchaîne new-game, go-live (Sanity, Vercel, domaine, studio) et setup-env en mode automatique : schéma Supabase du jeu créé dans le projet partagé, migrations appliquées, schéma exposé, token Sanity créé, compte admin et variables poussés sur Vercel.
-
-Le mode automatique s'active si `~/.config/pbgo/secrets.env` existe (hors repo, `chmod 600`) :
-
-```
-ADMIN_LOGIN=...
-ADMIN_PASSWORD=...
-SUPABASE_ACCESS_TOKEN=...
-SUPABASE_PROJECT_REF=...
-```
-
-Un seul projet Supabase pour tous les jeux : un schéma Postgres par jeu (`NEXT_PUBLIC_SUPABASE_SCHEMA`, `public` pour Courtisans, `g_<jeu>` pour les autres). Sans `SUPABASE_PROJECT_REF`, le projet « pbgo » est trouvé ou créé.
-
-Facultatifs : `SUPABASE_ORG_ID`, `SUPABASE_REGION` (création du projet partagé), `VERCEL_TOKEN`, `VERCEL_TEAM_ID`. Ne jamais mettre ces valeurs dans le repo.
-
-## Supabase partagé : état
-
-Projet partagé : celui de Courtisans (`SUPABASE_PROJECT_REF`). Courtisans reste dans le schéma `public` ; les autres jeux ont chacun leur schéma `g_<jeu>` (déjà créé, tables games, tasks, feedback, exposé à l'API). Chaque jeu a `scripts/setup-env.sh` : `pnpm setup-env <jeu>` ou `pnpm setup-env --all` renseigne URL, clés, schéma, admin et pousse les variables sur Vercel. L'ancien projet `play-game-online-template` n'est plus utilisé par les jeux.
-
-## Interface de partie (chat, menu, couronne, fin)
-
-- Menu des réglages (`components/toolbar.tsx`) : un bouton à droite du logo (en haut à droite de l'accueil) ouvre règles, son, feedback et langue.
-- Chat (`components/game/chat.tsx`, monté par `GameHud`) : diffusion temps réel Supabase sans stockage, pseudos dans la couleur du joueur, fondu des anciens messages.
-  - Envoi via `POST /api/games/[code]/chat` (auteur = cookie joueur, membre de la partie, texte ≤ 200 car. ou réaction connue, token bucket en mémoire par instance) ; le serveur diffuse `chat:server` / `reaction:server` (`lib/chat.ts`), les clients ne font qu'écouter. Canal public : la clé anon peut encore y diffuser, seuls des canaux privés (Realtime Authorization) fermeraient ce trou.
-- Couronne du tour : à gauche du pseudo du joueur actif, sans déplacement. Template : `game3d/crown.tsx` (`TurnCrown`, icône `hostIcon` de l'habillage ou couronne dessinée) ; Courtisans : `CrownMark` avec son pictogramme.
-- Missions de Courtisans : posées face cachée à droite de chaque plateau (`missionRestPose` dans `layout.ts`, réglages `MISSION_REST`), retournées au clic.
-- Fin de partie : tableau centré, lien « masquer / afficher » souligné au-dessus du bouton REJOUER centré en bas.
+Git identity: `oré <hey@aurelienlouvel.space>` (GitHub account `aurelienlouvel`), never the work address, or Vercel blocks the deployment.
+Gitmoji `<emoji>(<scope>): <description>` · scopes: `<slug>`, `template`, `core`, `repo` (e.g. `✨(skull-king): …`, `🔧(repo): …`)

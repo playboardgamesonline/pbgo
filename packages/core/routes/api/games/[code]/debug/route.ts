@@ -1,24 +1,25 @@
-import { type DebugCommand, GAME } from "@pbgo/binding"
-import type { NextRequest } from "next/server"
+import type { DebugCommand } from "@pbgo/engine-kit"
+import type { GameRouteContext } from "../../../../../lib/binding"
 import { ApiError, handle, readJson } from "../../../../../server/api"
+import { loadSetupData, newGame, publicGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
-import { loadSetupData, readGame, updateGame, newGame, publicGame } from "../../../../../server/games"
 
-export const POST = handle(async (request: NextRequest, ctx: { params: Promise<{ code: string }> }) => {
+export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   if (process.env.NODE_ENV === "production" && process.env.DEBUG_GAMES !== "1") throw new ApiError("DEBUG_DISABLED", 403)
-  const { code } = await ctx.params
-  const id = await getPlayerId()
+  const { GAME } = game.binding
+  const code = params.code ?? ""
+  const id = await getPlayerId(game.slug)
   const { command } = await readJson<{ command: "start" | DebugCommand }>(request)
 
-  const data = await loadSetupData((await readGame(code)).options)
-  const row = await updateGame(code, (game) => {
-    if (!id || !game.players.some((j) => j.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
-    if (command === "start") return newGame(game, data)
+  const data = await loadSetupData(game, (await readGame(game, code)).options)
+  const row = await updateGame(game, code, (row) => {
+    if (!id || !row.players.some((j) => j.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
+    if (command === "start") return newGame(game, row, data)
     const step = GAME.debug?.[command]
     if (!step) throw new ApiError("INVALID_ACTION")
-    if (!game.state) throw new ApiError("GAME_NOT_STARTED", 409)
-    const state = step(game.state)
+    if (!row.state) throw new ApiError("GAME_NOT_STARTED", 409)
+    const state = step(row.state)
     return { state, status: GAME.isOver(state) ? "over" : "playing" }
   })
-  return publicGame(row, id)
+  return publicGame(game, row, id)
 })

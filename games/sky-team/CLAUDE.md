@@ -1,46 +1,18 @@
-# Sky Team Online
+# Sky Team · Play Board Games Online
 
-Version en ligne du jeu de société **Sky Team**, sur le même modèle que Courtisans Online.
-
-## Conventions de code
-Code en anglais avec peu de commentaires
-Mot "métier" en français
-
-## Assets
-Fichiers dans `apps/web/public` nommés en anglais, `EN_MAJUSCULES_AVEC_DES_TIRETS_DU_BAS` (ex. `LOGO.webp`, `cards/BACK.webp`, `sounds/HOVER.mp3`), dossiers en anglais minuscules.
-Les sources (PDF, PSD, visuels HD) restent dans `../ASSETS`, hors du dépôt.
-
-## Stack Technique
-- Nextjs
-- Sanity
-- Package manager : **pnpm**
-- UI : shadcn/ui, Tailwind CSS, motion (motion.dev)
-- Temps réel : Supabase (Postgres + Realtime), logique autoritaire côté serveur (routes API Next.js)
-- Déploiement : Vercel (auto depuis GitHub, root directory `apps/web`)
+Sky Team, served by `apps/web` at `/sky-team`. Not playable yet: without an engine (`GAME`), its home page says "coming soon" and its table pages answer 404. Listed nowhere until `live` is set in the registry.
 
 ## Structure
-- `apps/web` — front Next.js
-- `apps/studio` — Sanity Studio
-- `packages/engine` — moteur de jeu pur TypeScript (règles, tours, score), testé avec Vitest, sans dépendance UI
+- `package.json` — `@pbgo-game/sky-team`, the binding package that `@pbgo/games` loads on demand
+  - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
+  - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/sky-team/admin`
+  - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
+- `packages/engine` — `@sky-team/engine`, the engine to write (pure TypeScript, Vitest)
+- `apps/studio` — `sky-team-studio`, Sanity Studio of the project `3hw190ly` (https://sky-team.sanity.studio)
+- Static files: `apps/web/public/sky-team/` (served at `/sky-team/...`)
 
-## Sanity
-- Projet `3hw190ly`, dataset `production`
-- Studio autonome dans `apps/studio` (ne pas l'embarquer dans Next.js), déployé sur `sky-team.sanity.studio`
-- Studio entièrement en anglais : singletons `interface`, `game`, `rules`, `texts` ; textes localisés via `localeString` / `localeText` / `localeStringList` (`{ fr, en }`), lus côté Next avec `traduire()` (`src/lib/i18n.ts`)
-- `pnpm --filter sky-team-studio schema:deploy` après chaque changement de schéma
-
-## Site
-- URL : `https://play-sky-team-online.vercel.app`
-- Nom, titre et description dans `apps/web/src/lib/site.ts`
-- Référencement : `layout.tsx` (métadonnées), `robots.ts`, `sitemap.ts`, `manifest.ts`, `icon.png`, `apple-icon.png`, `opengraph-image.png`
-
-## Principes
-- Le serveur est la seule source de vérité ; chaque joueur ne reçoit qu'une vue filtrée.
-- Les règles du jeu vivent uniquement dans `packages/engine`.
+## Making it playable
+Follow `template/CLAUDE.md` ("Adapting to a new game"): write the engine, export it as `GAME` from `src/index.ts`, add the board (`Game` in `src/ui.tsx`, loaded lazily as in the template), then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`.
 
 ## Commits
-
-Format gitmoji : `<emoji>(<scope>): <description>`
-Scopes : `nextjs` · `studio` · `engine`
-
-Commiter souvent, à chaque feature significative, pour garder un historique.
+Gitmoji format: `<emoji>(sky-team): <description>`

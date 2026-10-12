@@ -82,7 +82,7 @@ describe("startWithoutWaiting", () => {
     expect(started.phase).toBe("playing")
     expect(started.players.every((j) => j.missionsRead)).toBe(true)
     expect(activePlayerId(started)).toBe(started.players[started.activePlayer]!.id)
-    // l'état d'origine n'est pas modifié (le serveur peut réessayer l'écriture)
+    // the original state is not modified (the server can retry the write)
     expect(waiting.phase).toBe("missions")
     expect(waiting.players.map((j) => j.missionsRead)).toEqual([true, false, true, false])
   })
@@ -179,7 +179,7 @@ describe("assassin", () => {
     expect(next.log.at(-1)).toMatchObject({ type: "cardEliminated", target: { zone: "table", level: "up" } })
   })
 
-  it("only targets cards in the same domaine", () => {
+  it("only targets cards in the same domain", () => {
     const assassin = card("nightingale", "assassin")
     const victim = card("stag", "noble")
     const state = makeState({
@@ -198,7 +198,7 @@ describe("assassin", () => {
     expect(next.players[0]!.domain.map((c) => c.id)).toEqual([assassin.id])
   })
 
-  it("cannot eliminate a garde nor act for a non-assassin", () => {
+  it("cannot eliminate a guard nor act for a non-assassin", () => {
     const assassin = card("nightingale", "assassin")
     const guard = card("stag", "guard")
     const simple = card("carp")
@@ -223,7 +223,7 @@ describe("assassin", () => {
 })
 
 describe("game over", () => {
-  it("ends when the pioche is empty and every main is empty", () => {
+  it("ends when the deck is empty and every hand is empty", () => {
     const a = [card("stag"), card("stag"), card("stag")]
     const b = [card("carp"), card("carp"), card("carp")]
     let state = makeState({ players: [player("a", { hand: a }), player("b", { hand: b })] })

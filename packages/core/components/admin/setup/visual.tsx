@@ -8,7 +8,8 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Field, FieldDescription, FieldLabel } from "@pbgo/ui/admin/field"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/admin/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/admin/select"
-import { DEFAULT_THEME, FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
+import { defaultTheme, FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
+import { useBinding } from "../../../lib/binding-context"
 import { DEFAULT_PLAYER_COLORS } from "../../../lib/skin"
 import { FileTile, IMAGE_ACCEPT, IMAGE_HINT, Img, PreviewCard, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -28,6 +29,7 @@ const IMAGES: Record<VisualSlot, { label: string; hint: string; aspect: string }
 }
 
 export function VisualPage({ initial }: { initial: AdminData }) {
+  const binding = useBinding()
   const s = useSection("visual", initial, pick)
   const { data, draft, set, disabled } = s
   useFontPreview(draft.bodyFont, draft.displayFont, data.settings.files)
@@ -65,7 +67,7 @@ export function VisualPage({ initial }: { initial: AdminData }) {
           <CardTitle>Colors</CardTitle>
           <CardDescription>Home, lobby and game interface.</CardDescription>
           <CardAction>
-            <Button variant="ghost" size="sm" disabled={disabled} onClick={() => set("theme", DEFAULT_THEME)}>
+            <Button variant="ghost" size="sm" disabled={disabled} onClick={() => set("theme", defaultTheme(binding))}>
               <HugeiconsIcon icon={RotateLeft01Icon} strokeWidth={2} data-icon="inline-start" />
               Default
             </Button>
@@ -216,7 +218,7 @@ function ColorInput({ id, label, value, onChange, disabled, className }: { id?: 
   )
 }
 
-/** Charge dans l'admin les polices choisies ou envoyées, pour les aperçus « Aa ». */
+/** Loads the chosen or uploaded fonts in the admin, for the "Aa" previews. */
 function useFontPreview(body: string | null, display: string | null, files: SiteSettings["files"]) {
   const href = googleFontsHref([body, display])
   const faces = fontFaceCss(files)

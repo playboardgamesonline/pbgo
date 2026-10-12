@@ -1,28 +1,25 @@
 "use client"
 
-import * as binding from "@pbgo/binding"
-
 /**
- * Moteur de son commun (WebAudio) : bus effets / musique / ambiance, anti-rafale, variations de hauteur et de volume,
- * musiques bouclées sur un point de fin musical (pas sur la durée du fichier, qui contient la queue de réverbération).
- * Le jeu déclare ses sons via l'export facultatif `SOUNDS` de @pbgo/binding ; fichiers dans /public/sounds/<file>.mp3.
+ * Shared sound engine (WebAudio): effects / music / ambience buses, anti-burst, pitch and volume variations,
+ * music looped on a musical end point (not on the file duration, which holds the reverb tail).
+ * A game declares its sounds through the optional `SOUNDS` of its binding; files in `public/<slug>/sounds/<file>.mp3`.
+ * A page shows one game: `AppShell` calls `configureSounds` with it on the client, before any sound.
  */
-import { CODE_SOUNDS, DEFAULT_VOLUMES, type SoundConfig, type Volumes } from "./sound-config"
-import { withBase } from "./base-path"
+import { DEFAULT_VOLUMES, NO_SOUNDS, soundUrl, type SoundConfig, type Volumes } from "./sound-config"
 
 export * from "./sound-config"
 
-const { SLUG } = binding
-export let SOUNDS: SoundConfig = CODE_SOUNDS
-const VOLUMES_KEY = `${SLUG}:volumes`
-const MUSIC_KEY = `${SLUG}:music`
-const ENABLED_KEY = `${SLUG}:sound`
+let slug = ""
+let SOUNDS: SoundConfig = NO_SOUNDS
+let baseVolumes: Volumes = { ...DEFAULT_VOLUMES }
 
-let baseVolumes = { ...DEFAULT_VOLUMES, ...SOUNDS.volumes }
+/** Preferences are kept per game: `<slug>:volumes`, `<slug>:music`, `<slug>:sound`. */
+const storageKey = (name: "volumes" | "music" | "sound") => `${slug}:${name}`
 
 function readVolumes(): Volumes {
   try {
-    return { ...baseVolumes, ...JSON.parse(localStorage.getItem(VOLUMES_KEY) ?? "{}") }
+    return { ...baseVolumes, ...JSON.parse(localStorage.getItem(storageKey("volumes")) ?? "{}") }
   } catch {
     return { ...baseVolumes }
   }
@@ -32,7 +29,7 @@ const musicNames = () => Object.keys(SOUNDS.music ?? {})
 
 function readMusic(): string | null {
   try {
-    const m = localStorage.getItem(MUSIC_KEY)
+    const m = localStorage.getItem(storageKey("music"))
     if (m && SOUNDS.music?.[m]) return m
   } catch {}
   return SOUNDS.defaultMusic ?? musicNames()[0] ?? null
@@ -40,7 +37,7 @@ function readMusic(): string | null {
 
 export function readSoundEnabled() {
   try {
-    return localStorage.getItem(ENABLED_KEY) === "on" // coupé par défaut : le joueur l'active lui-même
+    return localStorage.getItem(storageKey("sound")) === "on" // off by default: players turn it on themselves
   } catch {
     return false
   }
@@ -55,16 +52,22 @@ let alertsBus: GainNode | null = null
 let music: { name: string; source: AudioBufferSourceNode; gain: GainNode } | null = null
 let ambience: AudioBufferSourceNode | null = null
 let enabled = false
-let volumes: Volumes = typeof window === "undefined" ? baseVolumes : readVolumes()
-let track: string | null = typeof window === "undefined" ? null : readMusic()
+let volumes: Volumes = baseVolumes
+let track: string | null = null
 const buffers = new Map<string, Promise<AudioBuffer | null>>()
 const lastPlayed = new Map<string, number>()
 
-const soundUrl = (s: { file: string; url?: string | null }) => s.url ?? withBase(`/sounds/${s.file}.mp3`)
-
-/** Réglages de l'admin (fichiers Sanity, volumes, musiques) : appelé au rendu de l'AppShell, avant tout son. */
-export function configureSounds(config: SoundConfig) {
-  if (config === SOUNDS) return
+/** Sounds of the game shown (code, then admin settings: Sanity files, volumes, music). Idempotent; a new game stops the loops of the previous one. */
+export function configureSounds(game: string, config: SoundConfig) {
+  if (game === slug && config === SOUNDS) return
+  if (game !== slug) {
+    music?.source.stop()
+    ambience?.stop()
+    music = null
+    ambience = null
+    lastPlayed.clear()
+    slug = game
+  }
   SOUNDS = config
   baseVolumes = { ...DEFAULT_VOLUMES, ...config.volumes }
   if (typeof window === "undefined") return
@@ -73,7 +76,7 @@ export function configureSounds(config: SoundConfig) {
 }
 
 function load(sound: { file: string; url?: string | null }) {
-  const file = soundUrl(sound)
+  const file = soundUrl(slug, sound)
   let p = buffers.get(file)
   if (!p && ctx) {
     const c = ctx
@@ -136,7 +139,7 @@ function applyVolumes(smoothing = 0.15) {
   alertsBus.gain.setTargetAtTime(volumes.alerts, t, smoothing)
 }
 
-/** À appeler sur un geste utilisateur (politique d'autoplay) : crée le contexte, précharge les effets, lance musique et ambiance. */
+/** Call on a user gesture (autoplay policy): creates the context, preloads the effects, starts music and ambience. */
 export function initSound() {
   if (typeof window === "undefined") return
   if (!ctx) {
@@ -174,7 +177,7 @@ export function currentVolumes() {
 export function setVolumes(v: Partial<Volumes>) {
   volumes = { ...volumes, ...v }
   try {
-    localStorage.setItem(VOLUMES_KEY, JSON.stringify(volumes))
+    localStorage.setItem(storageKey("volumes"), JSON.stringify(volumes))
   } catch {}
   applyVolumes()
 }
@@ -187,31 +190,31 @@ export function setMusic(name: string) {
   if (!SOUNDS.music?.[name]) return
   track = name
   try {
-    localStorage.setItem(MUSIC_KEY, name)
+    localStorage.setItem(storageKey("music"), name)
   } catch {}
   startMusic()
 }
 
 export function persistSoundEnabled(on: boolean) {
   try {
-    localStorage.setItem(ENABLED_KEY, on ? "on" : "off")
+    localStorage.setItem(storageKey("sound"), on ? "on" : "off")
   } catch {}
 }
 
 const warnedSounds = new Set<string>()
 
-/** En dev, signale une seule fois un nom d'effet absent de `SOUNDS.effects` (sinon `playSound` se tait sans rien dire). */
+/** In dev, reports once an effect name missing from `SOUNDS.effects` (otherwise `playSound` stays silent without a word). */
 function warnUnknownSound(name: string) {
   if (process.env.NODE_ENV === "production" || warnedSounds.has(name)) return
   const known = Object.keys(SOUNDS.effects)
-  if (!known.length) return // jeu sans effets déclarés : les sons communs (click, turn…) sont ignorés en silence
+  if (!known.length) return // game without declared effects: the shared sounds (click, turn…) are skipped silently
   warnedSounds.add(name)
   console.warn(`[sound] Unknown sound effect "${name}". Declared effects: ${known.join(", ")}`)
 }
 
 /**
- * Joue un effet déclaré dans `SOUNDS.effects`. `delay` (s) est programmé sur l'horloge audio, pour caler un son sur une animation.
- * Ignoré si le même son a été programmé il y a moins de `minGap` ; volume réduit si le précédent date de moins de 0,4 s.
+ * Plays an effect declared in `SOUNDS.effects`. `delay` (s) is scheduled on the audio clock, to sync a sound with an animation.
+ * Skipped if the same sound was scheduled less than `minGap` ago; quieter if the previous one is less than 0.4 s old.
  */
 export function playSound(name: string, { volume = 1, delay = 0, bus = "effects" }: { volume?: number; delay?: number; bus?: "effects" | "alerts" } = {}) {
   const def = SOUNDS.effects[name]

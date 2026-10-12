@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useState } from "react"
-import { Logo } from "@pbgo/binding-ui"
+import { useBinding } from "../../lib/binding-context"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { Toolbar } from "../toolbar"
@@ -10,13 +10,13 @@ import { Chat } from "./chat"
 import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
 
-/** Un tour de l'historique : l'auteur et les actions affichées (le rendu de chaque action appartient au jeu). */
+/** One turn of the history: its author and the actions shown (each action is rendered by the game). */
 export type HistoryTurn = { key: string | number; playerId: string; entries: { key: string | number; node: React.ReactNode }[] }
 
 /**
- * Regroupe un journal en tours : un nouveau tour à chaque changement d'auteur ou après un événement qui clôt le tour.
- * `actor(e)` : auteur de l'événement (null = ignoré) ; `closes(e)` : l'événement termine le tour de son auteur (ex. pioche) ;
- * `render(e)` : rendu de l'action (null = pas affichée).
+ * Groups a log into turns: a new turn on each change of author or after an event that ends the turn.
+ * `actor(e)`: author of the event (null = ignored); `closes(e)`: the event ends its author's turn (e.g. a draw);
+ * `render(e)`: rendering of the action (null = not shown).
  */
 export function groupTurns<E>(
   log: E[],
@@ -61,7 +61,7 @@ function TurnLabel({ playerId, short }: { playerId: string; short?: boolean }) {
   )
 }
 
-/** Bandeau en haut à droite : à qui le tour, puis l'historique (du plus récent au plus ancien). */
+/** Top-right banner: whose turn it is, then the history (newest first). */
 export function Ticker({
   activePlayerId,
   idle,
@@ -69,9 +69,9 @@ export function Ticker({
   history,
 }: {
   activePlayerId: string | null
-  /** Texte quand personne n'a la main (par défaut « La partie se prépare… » / « Fin de la partie ») */
+  /** Text when nobody has to play (default: the "waiting" / "game over" labels) */
   idle?: string
-  /** Informations globales sous la ligne principale (manche, jetons…) */
+  /** Global information under the main line (round, tokens…) */
   status?: React.ReactNode
   history: HistoryTurn[]
 }) {
@@ -129,8 +129,8 @@ export function Ticker({
 }
 
 /**
- * Écran de partie standard : la table (children) en plein écran ; en haut à gauche le logo (qui quitte la partie) avec son et règles dessous ;
- * en haut à droite le bandeau (`ticker`) sur un voile sombre ; `overlay` pour les boutons et panneaux propres au jeu.
+ * Standard game screen: the table (children) full screen; top left the logo (which leaves the game) with sound and rules below it;
+ * top right the banner (`ticker`) on a dark veil; `overlay` for the game's own buttons and panels.
  */
 export function GameHud({
   onLeave,
@@ -144,6 +144,7 @@ export function GameHud({
   children: React.ReactNode
 }) {
   const t = useText()
+  const { Logo } = useBinding()
   const { game } = useGame()
   const { logo, title } = useSiteSettings()
   return (
@@ -178,12 +179,12 @@ type Queued<T extends string> = { id: number; text: string; subtitle?: string; t
 let counter = 0
 
 /**
- * File d'annonces plein écran : `announce(text, type, { subtitle, sound, replace })`, une à la fois, chacune pendant la durée de son préréglage.
- * `replace` retire de la file les annonces des types donnés (ex. « votre tour » périmé) ; `first` la place en tête.
+ * Queue of full-screen announcements: `announce(text, type, { subtitle, sound, replace })`, one at a time, each for its preset's duration.
+ * `replace` drops the queued announcements of the given types (e.g. a stale "your turn"); `first` puts it at the front.
  */
 export function useAnnouncements<T extends string>(settings: Record<T, AnnouncementSettings>, { paused = false }: { paused?: boolean } = {}) {
   const [queue, setQueue] = useState<Queued<T>[]>([])
-  // en pause (ex. pendant l'ouverture), la file attend sans rien afficher
+  // paused (e.g. during the opening), the queue waits without showing anything
   const current = paused ? null : (queue[0] ?? null)
   const announce = useCallback((text: string, type: T, options: { subtitle?: string; sound?: string; replace?: T[]; first?: boolean } = {}) => {
     const item = { id: ++counter, text, type, subtitle: options.subtitle, sound: options.sound }

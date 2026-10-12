@@ -1,9 +1,10 @@
 "use client"
 
-import { Game } from "@pbgo/binding-ui"
+import { useBinding } from "../lib/binding-context"
 import type { PublicGame } from "../lib/game-types"
 
-/** Plateau de l'aperçu de l'admin : partie fictive, aucune action n'est envoyée. */
+/** Board of the admin preview: a sample game, no action is sent. */
 export function PreviewGame({ game, data }: { game: PublicGame; data?: unknown }) {
-  return <Game game={game} data={data} onUpdate={() => {}} onLeave={() => {}} />
+  const { Game } = useBinding()
+  return Game ? <Game game={game} data={data} onUpdate={() => {}} onLeave={() => {}} /> : null
 }

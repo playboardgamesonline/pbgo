@@ -45,7 +45,7 @@ export function setupGame({ players, missions, seed = randomSeed(), rng = create
     activePlayer: Math.floor(rng() * count),
     playedZones: [],
     turnNumber: 1,
-    // le banquet commence quand tous les joueurs ont lu leurs missions (voir `readMissions`)
+    // the banquet starts once every player has read their missions (see `readMissions`)
     phase: "missions",
     log: [],
     seed,

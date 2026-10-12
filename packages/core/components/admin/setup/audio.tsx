@@ -13,6 +13,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/admin/inp
 import { Spinner } from "@pbgo/ui/admin/spinner"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../../lib/admin-api"
+import { useGameSlug } from "../../../lib/binding-context"
 import type { Volumes } from "../../../lib/sound-config"
 import { ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -35,7 +36,7 @@ const pick = (d: AdminData): Draft => ({
 const MP3 = "audio/mpeg,.mp3"
 const VOLUME_LABELS: Record<keyof Volumes, string> = { master: "Master", music: "Music", effects: "Effects", ambience: "Ambience", alerts: "Alerts", reactions: "Reactions" }
 
-/* Un seul son à la fois dans l'admin */
+/* One sound at a time in the admin */
 let current: HTMLAudioElement | null = null
 
 function usePlayer() {
@@ -86,6 +87,7 @@ function Slider({ value, onChange, disabled, label, className }: { value: number
 }
 
 export function AudioPage({ initial }: { initial: AdminData }) {
+  const slug = useGameSlug()
   const s = useSection("audio", initial, pick)
   const { data, draft, set, disabled } = s
   const player = usePlayer()
@@ -97,7 +99,7 @@ export function AudioPage({ initial }: { initial: AdminData }) {
   async function importSounds() {
     setImporting(true)
     try {
-      s.setData(await adminRequest<AdminData>("/api/admin/settings", { method: "POST", body: JSON.stringify({ action: "importSounds" }) }))
+      s.setData(await adminRequest<AdminData>(`/api/${slug}/admin/settings`, { method: "POST", body: JSON.stringify({ action: "importSounds" }) }))
       toast.success("Sounds imported into Sanity")
     } catch (e) {
       toast.error((e as Error).message)

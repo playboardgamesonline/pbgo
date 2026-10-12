@@ -2,7 +2,7 @@ import { defineCliConfig } from "sanity/cli"
 
 export default defineCliConfig({
   api: {
-    projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "__SANITY_PROJECT_ID__",
+    projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "gsfz20b9",
     dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
   },
   studioHost: process.env.SANITY_STUDIO_HOST ?? "__SANITY_STUDIO_HOST__",
@@ -11,9 +11,9 @@ export default defineCliConfig({
   },
   typegen: {
     enabled: true,
-    path: "../web/src/**/*.{ts,tsx}",
+    path: "../../src/**/*.{ts,tsx}",
     schema: "schema.json",
-    generates: "../web/src/sanity/types.ts",
+    generates: "../../src/sanity/types.ts",
     overloadClientMethods: true,
   },
 })

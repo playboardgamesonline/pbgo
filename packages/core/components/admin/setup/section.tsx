@@ -12,17 +12,20 @@ import { Button } from "@pbgo/ui/admin/button"
 import { Spinner } from "@pbgo/ui/admin/spinner"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../../lib/admin-api"
+import { useGameSlug } from "../../../lib/binding-context"
+import { writeTokenName } from "../../../sanity/env"
 import type { AdminData, SectionName } from "../../../server/settings"
 import { useDirtyGuard } from "../admin-shell"
 
 export type { AdminData }
 
 /**
- * État d'une page Setup : brouillon, enregistrement (bouton flottant, ⌘S), envoi de fichiers.
- * Les fichiers sont enregistrés tout de suite ; le reste attend « Save ».
+ * State of a Setup page: draft, saving (floating button, ⌘S), file uploads.
+ * Files are saved right away; the rest waits for "Save".
  */
 export function useSection<T>(section: SectionName, initial: AdminData, pick: (d: AdminData) => T) {
   const router = useRouter()
+  const admin = `/api/${useGameSlug()}/admin`
   const [data, setData] = useState(initial)
   const [saved, setSaved] = useState(() => pick(initial))
   const [draft, setDraft] = useState(saved)
@@ -45,7 +48,7 @@ export function useSection<T>(section: SectionName, initial: AdminData, pick: (d
     if (!dirty || saving || !data.writable) return
     setSaving(true)
     try {
-      apply(await adminRequest<AdminData>("/api/admin/settings", { method: "PUT", body: JSON.stringify({ section, values: draft }) }), false)
+      apply(await adminRequest<AdminData>(`${admin}/settings`, { method: "PUT", body: JSON.stringify({ section, values: draft }) }), false)
       toast.success("Saved")
     } catch (e) {
       toast.error((e as Error).message)
@@ -59,7 +62,7 @@ export function useSection<T>(section: SectionName, initial: AdminData, pick: (d
     form.append("file", file)
     setUploading(slot)
     try {
-      apply(await adminRequest<AdminData>(`/api/admin/upload/${encodeURIComponent(slot)}`, { method: "POST", body: form }), true)
+      apply(await adminRequest<AdminData>(`${admin}/upload/${encodeURIComponent(slot)}`, { method: "POST", body: form }), true)
       toast.success(`${file.name} uploaded`)
     } catch (e) {
       toast.error((e as Error).message)
@@ -71,7 +74,7 @@ export function useSection<T>(section: SectionName, initial: AdminData, pick: (d
   async function remove(slot: string) {
     setUploading(slot)
     try {
-      apply(await adminRequest<AdminData>(`/api/admin/upload/${encodeURIComponent(slot)}`, { method: "DELETE" }), true)
+      apply(await adminRequest<AdminData>(`${admin}/upload/${encodeURIComponent(slot)}`, { method: "DELETE" }), true)
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -141,16 +144,17 @@ export function SaveBar({ dirty, saving, disabled, onSave, onReset }: { dirty: b
 }
 
 export function ReadOnlyAlert({ writable }: { writable: boolean }) {
+  const slug = useGameSlug()
   if (writable) return null
   return (
     <Alert>
       <AlertTitle>Read only</AlertTitle>
-      <AlertDescription>Add a Sanity token with Editor rights in SANITY_API_WRITE_TOKEN to save from the admin. The values shown are the defaults from the code.</AlertDescription>
+      <AlertDescription>Add a Sanity token with Editor rights in {writeTokenName(slug)} to save from the admin. The values shown are the defaults from the code.</AlertDescription>
     </Alert>
   )
 }
 
-/** Deux colonnes : réglages à gauche, aperçus collants à droite. */
+/** Two columns: settings on the left, sticky previews on the right. */
 export function SetupLayout({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
   return (
     <div className={cn("grid gap-6 pb-24", aside && "xl:grid-cols-[minmax(0,1fr)_26rem]")}>
@@ -161,8 +165,8 @@ export function SetupLayout({ children, aside }: { children: React.ReactNode; as
 }
 
 /**
- * Fichier (image, police, PDF, son) : clic, glisser-déposer ou coller. `custom` = envoyé dans Sanity ;
- * sinon la valeur par défaut du jeu est affichée avec un badge « Default ».
+ * File (image, font, PDF, sound): click, drag and drop or paste. `custom` = uploaded to Sanity;
+ * otherwise the game's default value is shown with a "Default" badge.
  */
 export function FileTile({
   accept,
@@ -191,7 +195,7 @@ export function FileTile({
   className?: string
   aspect?: string
   checker?: boolean
-  /** Badge « Default » quand rien n'est envoyé (images) ; inutile pour polices et PDF */
+  /** "Default" badge when nothing is uploaded (images); useless for fonts and PDFs */
   showDefault?: boolean
 }) {
   const input = useRef<HTMLInputElement>(null)

@@ -8,11 +8,11 @@ import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@pbgo/ui/game/dialog"
 import { cn } from "@pbgo/ui/utils"
 import { ApiClientError } from "../lib/api"
+import { useGameSlug } from "../lib/binding-context"
 import { isPreviewWindow } from "../lib/preview"
 import { useProfile } from "../lib/profile"
 import { useSkin, useText } from "./skin-provider"
 import { ICON_BUTTON } from "./sound/sound"
-import { withBase } from "../lib/base-path"
 
 const TYPES = [
   { value: "review", text: "feedbackTypeReview" },
@@ -26,7 +26,7 @@ const MAX_INPUT = 12 * 1024 * 1024
 const FIELD =
   "w-full rounded-xl border border-foreground/20 bg-surface-dark/80 px-3 text-base outline-none placeholder:text-foreground/40 focus:border-foreground/60"
 
-/** Réduit la capture (1600 px max) et la ré-encode côté navigateur : un envoi léger, quelle que soit la taille d'origine. */
+/** Shrinks the screenshot (1600 px max) and re-encodes it in the browser: a light upload whatever the original size. */
 async function shrink(file: File): Promise<File> {
   const bitmap = await createImageBitmap(file)
   const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
@@ -40,8 +40,9 @@ async function shrink(file: File): Promise<File> {
   return new File([blob], "screenshot.webp", { type: "image/webp" })
 }
 
-/** Bouton « feedback » (hors jeu, séparé des boutons de partie) : type, message, e-mail et capture facultatifs → admin, Tasks › Feedback. */
+/** "Feedback" button (outside the game, apart from the game buttons): type, message, optional e-mail and screenshot → admin, Tasks › Feedback. */
 export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: string; className?: string; asRow?: boolean }) {
+  const slug = useGameSlug()
   const t = useText()
   const { errors } = useSkin()
   const { profile } = useProfile()
@@ -86,7 +87,7 @@ export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: stri
       body.set("gameCode", gameCode ?? "")
       body.set("page", window.location.pathname)
       if (screenshot) body.set("screenshot", screenshot)
-      const res = await fetch(withBase("/api/feedback"), { method: "POST", body })
+      const res = await fetch(`/api/${slug}/feedback`, { method: "POST", body })
       if (!res.ok) throw new ApiClientError(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? "SERVER_ERROR")
       toast.success(t("feedbackThanks"))
       setMessage("")
@@ -158,7 +159,7 @@ export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: stri
             placeholder={t("feedbackEmail")}
             className={cn(FIELD, "h-12")}
           />
-          {/* Champ piège : invisible pour les humains, rempli par les robots */}
+          {/* Honeypot: invisible to humans, filled in by bots */}
           <input
             tabIndex={-1}
             aria-hidden
