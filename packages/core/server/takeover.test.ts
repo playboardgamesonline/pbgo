@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest"
-import { PRESENCE_WINDOW_MS, TakeoverError, castVotes, parseVotes, presentPlayers, takeoverStatus, voteEntry } from "./takeover"
+import {
+  PRESENCE_WINDOW_MS,
+  SEEN_WRITE_EVERY_MS,
+  TakeoverError,
+  castVotes,
+  parseVotes,
+  presentPlayers,
+  seenNeedsWrite,
+  takeoverStatus,
+  voteEntry,
+} from "./takeover"
 
 const NOW = Date.parse("2026-10-12T10:00:00.000Z")
 const ago = (ms: number) => new Date(NOW - ms).toISOString()
@@ -35,6 +45,32 @@ describe("presentPlayers", () => {
 
   it("reads the times Postgres writes (microseconds, numeric offset)", () => {
     expect(presentPlayers(players, { a: "2026-10-12T09:59:30.123456+00:00" }, NOW)).toEqual(["a"])
+  })
+})
+
+describe("seenNeedsWrite", () => {
+  it("writes when the player was never seen or the stored time is unreadable", () => {
+    expect(seenNeedsWrite(undefined, NOW)).toBe(true)
+    expect(seenNeedsWrite("", NOW)).toBe(true)
+    expect(seenNeedsWrite("not a date", NOW)).toBe(true)
+  })
+
+  it("skips the write while the stored time is younger than the write interval", () => {
+    expect(seenNeedsWrite(ago(0), NOW)).toBe(false)
+    expect(seenNeedsWrite(ago(SEEN_WRITE_EVERY_MS - 1), NOW)).toBe(false)
+  })
+
+  it("writes again once the interval has passed", () => {
+    expect(seenNeedsWrite(ago(SEEN_WRITE_EVERY_MS), NOW)).toBe(true)
+    expect(seenNeedsWrite(ago(PRESENCE_WINDOW_MS), NOW)).toBe(true)
+  })
+
+  it("keeps a player who is seen more often than the window present", () => {
+    expect(SEEN_WRITE_EVERY_MS).toBeLessThan(PRESENCE_WINDOW_MS)
+  })
+
+  it("skips the write for a time ahead of the clock", () => {
+    expect(seenNeedsWrite(ago(-5_000), NOW)).toBe(false)
   })
 })
 

@@ -20,6 +20,8 @@ export type GameRow = {
   replay: string[]
   /** Votes to play for the absent player: `<state fingerprint>:<player>` (see `takeoverVotes`) */
   takeover_votes: string[]
+  /** Last time the server saw each player (player id → ISO time), written by `markSeen` (`presence.ts`) without a new version */
+  seen?: Record<string, string>
   version: number
   updated_at?: string
   created_at?: string
@@ -27,7 +29,7 @@ export type GameRow = {
 
 type GameRef = Pick<GameEntry, "slug">
 
-const COLUMNS = "code, host_id, status, players, options, state, replay, takeover_votes, version, updated_at, created_at"
+const COLUMNS = "code, host_id, status, players, options, state, replay, takeover_votes, seen, version, updated_at, created_at"
 
 // Concurrent writes (e.g. every player confirming the opening at once): retry after a growing random pause
 const MAX_ATTEMPTS = 8
@@ -54,6 +56,7 @@ export async function createGame(game: PlayableGame, host: PlayerInfo, options: 
       state: null,
       replay: [],
       takeover_votes: [],
+      seen: {},
       version: 0,
     }
     const { error } = await db.from("games").insert({ game: game.slug, ...row })

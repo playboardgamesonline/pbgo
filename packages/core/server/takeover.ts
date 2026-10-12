@@ -52,6 +52,12 @@ export function presentPlayers(players: readonly Seat[], seen: Seen, now: number
   return present
 }
 
+/** True when the stored last-seen time of a player is missing or old enough that the server should write it again (`SEEN_WRITE_EVERY_MS`). */
+export function seenNeedsWrite(stored: string | undefined, now: number): boolean {
+  const at = Date.parse(stored ?? "")
+  return Number.isNaN(at) || now - at >= SEEN_WRITE_EVERY_MS
+}
+
 /** Votes cast for the current state (`fingerprint`). Stale votes and the old `<fingerprint>:<voter>` format are ignored. */
 export function parseVotes(entries: readonly string[] | null | undefined, fingerprint: string): TakeoverVote[] {
   const votes: TakeoverVote[] = []
