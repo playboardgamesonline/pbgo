@@ -78,9 +78,10 @@ export function Principles() {
 }
 
 /*
- * A deliberate illustration of the game layer, the only place of this page that names a colour or a font: a real skin
- * sets these same names on <html> (`themeStyle()` in `@pbgo/core/lib/settings` from the game's Sanity settings, and the
- * `:root` of `packages/core/styles/game.css`). The values are made up and exist on this page only.
+ * A deliberate illustration of the game layer, one of the two places of this page that name a colour or a font (the other
+ * is `SIMULATED_THEME` of the in-game UI, in `_components/hud-specimens.tsx`): a real skin sets these same names on <html>
+ * (`themeStyle()` in `@pbgo/core/lib/settings` from the game's Sanity settings, and the `:root` of
+ * `packages/core/styles/game.css`). The values are made up and exist on this page only.
  */
 const SIMULATED_SKIN = {
   "--primary": "oklch(0.78 0.14 75)",

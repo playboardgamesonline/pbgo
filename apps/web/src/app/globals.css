@@ -1,9 +1,15 @@
 /*
  * Styles of the platform pages (hub, legal, 404, /design): the platform layer of the design system, nothing else.
  * Tokens, utilities and the boundary with the games' own themes: packages/ui/src/styles/platform.css.
+ *
+ * /design also shows the in-game UI (`hud.css`: its variables, `.hud` defaults and the `short` variant) and draws it with the
+ * hook-free primitives of the game components, so Tailwind has to read those two files.
  */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 @import "@pbgo/ui/styles/platform.css";
+@import "@pbgo/ui/styles/hud.css";
+@source "../../../../packages/core/components/game/hud-ui.tsx";
+@source "../../../../packages/core/components/game/players-strip-view.tsx";
