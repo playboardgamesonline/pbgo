@@ -31,8 +31,6 @@ export type PublicGame<View = CoreView> = {
   present: string[]
   /** Takeover of each waiting player: who has to agree to play for them, who already did. Empty outside a game in progress. */
   takeovers: TakeoverStatus[]
-  /** @deprecated Use `takeovers`. Voters who agreed to play for the first waiting player. */
-  takeoverVotes?: string[]
   version: number
   /** Last write (ISO): spots a turn blocked by an absent player */
   updatedAt?: string | null

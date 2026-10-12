@@ -19,7 +19,7 @@ export type GameRow = {
   /** Engine state (the game's own type), null in the lobby */
   state: unknown
   replay: string[]
-  /** Votes to play for the absent player: `<state fingerprint>:<player>` (see `takeoverVotes`) */
+  /** Votes to play for the players the game waits for: `<state fingerprint>:<voter>:<target>` (see `takeover.ts`) */
   takeover_votes: string[]
   /** Last time the server saw each player (player id → ISO time), written by `markSeen` (`presence.ts`) without a new version */
   seen?: Record<string, string>
@@ -68,7 +68,7 @@ export async function createGame(game: PlayableGame, host: PlayerInfo, options: 
 }
 
 /**
- * Votes to play for the absent player (`takeover_votes` column): `<state fingerprint>:<player>`.
+ * Fingerprint of a state, the stamp of the takeover votes (`takeover_votes` column, see `takeover.ts`).
  * Every move changes the state, so its fingerprint: stale votes are ignored without having to purge them.
  */
 export function stateFingerprint(state: unknown): string {
@@ -77,14 +77,6 @@ export function stateFingerprint(state: unknown): string {
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
   return (h >>> 0).toString(36)
 }
-
-/** Takeover votes valid for the current state (player ids). */
-export function takeoverVotes(row: Pick<GameRow, "takeover_votes" | "state">): string[] {
-  const key = `${stateFingerprint(row.state)}:`
-  return (row.takeover_votes ?? []).filter((v) => v.startsWith(key)).map((v) => v.slice(key.length))
-}
-
-export const takeoverEntry = (state: unknown, playerId: string) => `${stateFingerprint(state)}:${playerId}`
 
 export async function updateGame(
   game: GameRef,
@@ -180,7 +172,6 @@ export function publicGame(game: PlayableGame, row: GameRow, playerId: string | 
     waitingFor,
     present,
     takeovers,
-    takeoverVotes: takeovers[0]?.votes ?? [],
     version: row.version,
     updatedAt: row.updated_at ?? null,
     createdAt: row.created_at ?? null,
