@@ -33,8 +33,8 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `UPPER_SNAKE_CASE` (e.g. `cards/BACK.webp`), folders in lowercase English. Build their URLs with `asset()` from `src/lib/site.ts`.
 
 ## Admin UI
-- `/<slug>/admin` uses the shadcn preset `b1VlJAwK` (luma style, neutral, Inter, Hugeicons), scoped by the `.admin` class
-- Components live in the shared package `@pbgo/ui/admin/*` (`packages/ui/src/admin`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/admin` (or `game`) and replace the `@/lib/utils` imports with `../utils`
+- `/<slug>/admin` uses the PBGO platform design system (black and white, dark only, Geist, shadcn preset `beEgoY8u` adapted), scoped by the `.platform` class. The reference of every token and component is `/design` (apps/web)
+- Components live in the shared package `@pbgo/ui/platform/*` (`packages/ui/src/platform`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/platform` (or `game`), replace the `@/lib/utils` imports with `../utils`, and keep it dark-only and token-only (no `dark:` variant, no colour, font or size of its own; see "Design system" in the root `CLAUDE.md`)
 - The home page, the lobby and the board keep the game's theme (colors and fonts set in Admin › Visual)
 
 ## Tech stack

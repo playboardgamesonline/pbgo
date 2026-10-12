@@ -14,6 +14,8 @@ export const GAMES = [
     name: "Courtisans",
     tagline: "The Queen's banquet, online with friends.",
     players: { min: 2, max: 5 },
+    duration: { min: 30, max: 30 },
+    visual: "/courtisans/home/QUEEN.webp",
     sanityProjectId: "2lo2f5sv",
     live: true,
     indexable: true,

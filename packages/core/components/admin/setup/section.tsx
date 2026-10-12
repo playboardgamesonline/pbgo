@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "motion/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/admin/alert"
-import { Badge } from "@pbgo/ui/admin/badge"
-import { Button } from "@pbgo/ui/admin/button"
-import { Spinner } from "@pbgo/ui/admin/spinner"
+import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Button } from "@pbgo/ui/platform/button"
+import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../../lib/admin-api"
 import { useGameSlug } from "../../../lib/binding-context"
@@ -126,7 +126,7 @@ export function SaveBar({ dirty, saving, disabled, onSave, onReset }: { dirty: b
           animate={{ opacity: 1, y: 0, x: "-50%" }}
           exit={{ opacity: 0, y: 24, x: "-50%" }}
           transition={{ type: "spring", stiffness: 420, damping: 32 }}
-          className="fixed bottom-6 left-[calc(50%+7.5rem)] z-40 flex items-center gap-3 rounded-full border bg-background/90 py-2 pr-2 pl-4 shadow-lg ring-1 ring-black/5 backdrop-blur"
+          className="fixed bottom-6 left-[calc(50%+7.5rem)] z-40 flex items-center gap-3 rounded-full border bg-background/90 py-2 pr-2 pl-4 shadow-float ring-1 ring-foreground/10 backdrop-blur"
         >
           <Badge variant="secondary">Unsaved changes</Badge>
           <span className="hidden text-xs text-muted-foreground sm:inline">⌘S to save</span>
@@ -179,7 +179,7 @@ export function FileTile({
   onFile,
   onRemove,
   className,
-  aspect = "aspect-[16/7]",
+  aspect = "aspect-16/7",
   checker = true,
   showDefault = true,
 }: {
@@ -208,7 +208,7 @@ export function FileTile({
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">{label}</p>
+        <p className="text-sm">{label}</p>
         {custom ? (
           onRemove && (
             <button
@@ -223,7 +223,7 @@ export function FileTile({
             </button>
           )
         ) : (
-          preview && showDefault && <Badge variant="outline" className="text-[10px]">Default</Badge>
+          preview && showDefault && <Badge variant="outline">Default</Badge>
         )}
       </div>
       <div
@@ -256,7 +256,7 @@ export function FileTile({
         className={cn(
           "group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border bg-muted/40 outline-none transition-colors",
           "hover:border-ring/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30",
-          checker && "bg-[conic-gradient(#0000000a_25%,transparent_0_50%,#0000000a_0_75%,transparent_0)] bg-[length:16px_16px]",
+          checker && "pattern-checker",
           aspect,
           over && "border-ring bg-muted",
           inactive && "cursor-not-allowed opacity-60",
@@ -264,11 +264,11 @@ export function FileTile({
       >
         <input ref={input} type="file" accept={accept} hidden onChange={(e) => (take(e.target.files), (e.target.value = ""))} />
         {preview ?? (
-          <span className="flex size-9 items-center justify-center rounded-full bg-background shadow-xs ring-1 ring-border">
+          <span className="flex size-9 items-center justify-center rounded-full bg-background shadow-surface ring-1 ring-border">
             <HugeiconsIcon icon={Upload04Icon} strokeWidth={2} className="size-4" />
           </span>
         )}
-        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs font-medium opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100">
+        <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs opacity-0 backdrop-blur-xs transition-opacity group-hover:opacity-100">
           {busy ? <Spinner /> : preview ? "Replace" : "Upload"}
         </span>
         {busy && (

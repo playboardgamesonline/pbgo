@@ -1,0 +1,51 @@
+import { readdirSync, readFileSync } from "node:fs"
+import { describe, expect, it } from "vitest"
+
+/**
+ * Guard of the design system: the platform components (`platform/*.tsx`) read tokens and never name a colour, a weight,
+ * a shadow or a duration of their own. A hard-coded value here would reach the hub, the admin and every account page,
+ * and would not follow the next change of `styles/platform.css`. Add the token first, then use it.
+ */
+
+const DIRECTORY = new URL("./platform/", import.meta.url)
+const FILES = readdirSync(DIRECTORY).filter((file) => file.endsWith(".tsx"))
+
+const PALETTE =
+  "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose"
+
+const FORBIDDEN: ReadonlyArray<{ rule: string; pattern: RegExp }> = [
+  { rule: "dark only: no `dark:` or `not-dark:` variant", pattern: /\bdark:/ },
+  {
+    rule: "one weight, set on `.platform`: no `font-<weight>` class",
+    pattern: /\bfont-(?:thin|extralight|light|normal|medium|bold|extrabold|black)\b/,
+  },
+  { rule: "the `admin` and `admin-portal` classes are gone: use `platform`", pattern: /\badmin\b/ },
+  { rule: "shadows are `shadow-surface`, `shadow-float` and `shadow-overlay`", pattern: /\bshadow-(?:xs|sm|md|lg|xl|2xl)\b/ },
+  { rule: "durations are `duration-fast`, `duration-base` and `duration-slow`", pattern: /\bduration-\d+\b/ },
+  { rule: "radii come from `--radius` (`rounded-md`, `rounded-4xl`…), or `rounded-[inherit]`", pattern: /rounded-\[(?!inherit\])/ },
+  { rule: "no arbitrary ring, text size, tracking or leading", pattern: /\b(?:ring|text|tracking|leading)-\[/ },
+  { rule: "no colour literal: use a token (`bg-card`, `text-muted-foreground`…)", pattern: /#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch)\(/ },
+  { rule: "no pure black or white: use `background` / `foreground`", pattern: /\b(?:bg|text|border|ring|fill|stroke)-(?:black|white)\b/ },
+  {
+    rule: "no Tailwind palette colour: use a token",
+    pattern: new RegExp(`\\b(?:bg|text|border|ring|fill|stroke|from|via|to|divide|outline|decoration|accent|caret)-(?:${PALETTE})-\\d{2,3}\\b`),
+  },
+  { rule: "a platform component does not know about games", pattern: /from\s+["'](?:\.\.\/game\/|@pbgo\/ui\/game\/)/ },
+]
+
+describe("platform components", () => {
+  it("are found", () => {
+    expect(FILES.length).toBeGreaterThan(20)
+  })
+
+  for (const { rule, pattern } of FORBIDDEN) {
+    it(rule, () => {
+      const hits = FILES.flatMap((file) =>
+        readFileSync(new URL(file, DIRECTORY), "utf8")
+          .split("\n")
+          .flatMap((line, index) => (pattern.test(line) ? [`${file}:${index + 1}  ${line.trim()}`] : [])),
+      )
+      expect(hits, hits.join("\n")).toEqual([])
+    })
+  }
+})

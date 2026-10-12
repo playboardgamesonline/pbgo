@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Separator } from "@/components/ui/separator"
+import { Separator } from "@pbgo/ui/platform/separator"
 import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 
 export const metadata: Metadata = { title: "Legal notice", alternates: { canonical: "/legal" } }
@@ -11,14 +11,14 @@ const SECTIONS = [
     body: [
       <>
         {SITE_NAME} is published by{" "}
-        <a className="underline underline-offset-4" href={PUBLISHER.url}>
+        <a className="text-foreground underline underline-offset-4" href={PUBLISHER.url}>
           {PUBLISHER.name}
         </a>
         .
       </>,
       <>
         Contact:{" "}
-        <a className="underline underline-offset-4" href={`mailto:${CONTACT}`}>
+        <a className="text-foreground underline underline-offset-4" href={`mailto:${CONTACT}`}>
           {CONTACT}
         </a>
       </>,
@@ -43,17 +43,17 @@ const SECTIONS = [
 
 export default function Legal() {
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-8 px-4 py-16">
+    <main className="mx-auto flex min-h-svh w-full max-w-reading flex-col gap-8 px-gutter py-section">
       <div className="flex flex-col gap-2">
         <Link href="/" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
           {SITE_NAME}
         </Link>
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">Legal notice</h1>
+        <h1 className="font-heading text-3xl">Legal notice</h1>
       </div>
       {SECTIONS.map((section, i) => (
         <section key={section.title} className="flex flex-col gap-3">
           {i > 0 && <Separator className="mb-5" />}
-          <h2 className="font-heading text-lg font-semibold">{section.title}</h2>
+          <h2 className="font-heading text-lg">{section.title}</h2>
           {section.body.map((paragraph, j) => (
             <p key={j} className="text-muted-foreground">
               {paragraph}

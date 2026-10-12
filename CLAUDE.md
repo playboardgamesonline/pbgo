@@ -21,6 +21,7 @@ Moving the project to another account: see `MIGRATION.md`.
 | --- | --- | --- |
 | `/` | `(hub)/page.tsx` | hub: the live games of the registry |
 | `/legal` | `(hub)/legal/page.tsx` | legal notice |
+| `/design` | `(hub)/design/page.tsx` | design system reference: every token and component (noindex, not in the sitemap) |
 | `/<slug>` | `[game]/page.tsx` | game home ("coming soon" when the game is not playable here) |
 | `/<slug>/game/<code>` | `[game]/game/[code]/page.tsx` | table (lobby, board, game over) |
 | `/<slug>/admin/...` | `[game]/admin/[[...section]]/page.tsx` | the game's admin |
@@ -37,9 +38,10 @@ Moving the project to another account: see `MIGRATION.md`.
 - The `[game]` layout is a root layout, so it must not call `notFound()` itself: nothing sits above it to catch the error and Next answers with its own default 404 page. For an unknown slug it renders a bare `<html>` shell and each page's `gameOf` answers 404. `dynamicParams = false` is not enforced on these dynamic pages.
 - A game that is not playable here (no engine, or not live in production) keeps its home page ("coming soon"); its table, admin, previews and API answer 404 (`GAME_NOT_FOUND`).
 - A game's public files live in `apps/web/public/<slug>/` (URL `/<slug>/...`); build their URLs with `asset()` of the game's `src/lib/site.ts`. Paths derive from the slug: no base path, no `withBase()`.
+- `api`, `legal` and `design` are routes of `apps/web`, so none of them can be a game slug (`registry.test.ts`, `pnpm new-game`)
 
 ## Games registry (`packages/games`, `@pbgo/games`)
-- `src/registry.ts` — `GAMES`, pure data read by the hub, the sitemap, the router, `next.config.ts` and the scripts: `slug`, `name`, `tagline`, `players`, `sanityProjectId`, `live` (playable in production; every game stays playable outside production), `indexable` (sitemap, no `noindex`)
+- `src/registry.ts` — `GAMES`, pure data read by the hub, the sitemap, the router, `next.config.ts` and the scripts: `slug`, `name`, `tagline`, `players`, `duration` (minutes), `visual` (cover art of the hub card, a public path under `/<slug>/`), `sanityProjectId`, `live` (playable in production; every game stays playable outside production), `indexable` (sitemap, no `noindex`)
 - `src/index.ts` (server) — `LOADERS`: slug → `() => import("@pbgo-game/<slug>/server")`; `getGame`, `getPlayableGame`, `gameRoute`
 - `src/runtime.tsx` (client) — `RUNTIMES`: slug → `dynamic(() => import("@pbgo-game/<slug>/runtime"))`, mounted by the `[game]` layout
 - Code splitting: a page loads only its game's code; the hub loads none (no three.js). Never import a game package statically from shared code.
@@ -65,11 +67,21 @@ A change here reaches every game on the next deployment.
   - Accent font (announcements, intro): CSS variable `--font-accent`
 - `@pbgo/games` — the registry (above)
 - `@pbgo/engine-kit` — engine ↔ web contract (`GameDefinition`, `Results`…), game options (`defaultOptions`, `normalizeOptions`), `EngineError`, `createRng` / `shuffle`. A game's engine re-exports it: `export * from "@pbgo/engine-kit"`
-- `@pbgo/ui` — shadcn components + `cn`: `@pbgo/ui/game/<comp>` (game theme), `@pbgo/ui/admin/<comp>` (luma preset of the admin), `@pbgo/ui/utils`
+- `@pbgo/ui` — shadcn components + `cn`: `@pbgo/ui/game/<comp>` (game theme), `@pbgo/ui/platform/<comp>` (platform theme: hub, account, legal, admin, 404), `@pbgo/ui/styles/platform.css` (platform tokens), `@pbgo/ui/theme` (`PLATFORM_THEME_COLOR`), `@pbgo/ui/utils`. See Design system
 - `@pbgo/studio-kit` — shared Sanity schemas (`settings`, `interface`, `rules`, `texts` via `createTexts(extra)`, `localeString`…) and `createStudioConfig({ title, projectId, gameTypes })` (a game type with the same name replaces the shared one); `@pbgo/studio-kit/constants` (languages, `FONT_CHOICES`) importable on the web side
 - `@pbgo/tsconfig`, `@pbgo/eslint-config` — shared TypeScript and ESLint configs
 - Every external dependency comes from the pnpm catalog (`catalog:` in `package.json`, versions in `pnpm-workspace.yaml`); `pnpm check:catalog` enforces it
 - A new workspace package used by apps/web goes into `transpilePackages` (`apps/web/next.config.ts`; game packages are added from the registry)
+
+## Design system (`@pbgo/ui`)
+Black and white, dark theme only, Geist Sans in semibold with tight line-height and letter-spacing. No accent colour, no gradient: game art is the only colour on the platform. Every token and component is shown on the internal page `/design` (`(hub)/design/page.tsx`, noindex, not in the sitemap): it is the reference, check it before building a screen.
+- Two layers share the token names (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--radius`, `--font-body`…):
+  - Platform layer (hub, account, legal, admin, 404): values in `packages/ui/src/styles/platform.css`, scoped to the class `.platform`. The class sits on `<html>` (hub and 404, through `PlatformDocument`), on the admin wrapper and on the root of every portal (select, dropdown, dialog, sheet, tooltip, toast), which React renders outside the wrapper. Components: `@pbgo/ui/platform/*`
+  - Game layer: the `:root` values of `packages/core/styles/game.css`, overridden at runtime by the game's Sanity skin (inline style on `<html>`, `themeStyle()`). Components: `@pbgo/ui/game/*`. A game changes its look by changing token values, never a component
+- Boundary: the platform never sets a value on `:root` and a game never sets one on `.platform`. In `platform.css`, `@theme` only defines new names (`shadow-surface|float|overlay`, `duration-fast|base|slow`, `ease-standard`, `bg-scrim`, `max-w-page|reading`, `px-gutter`, `py-section`); a name Tailwind already has (type-scale line-heights, `--tracking-tight`, `--default-transition-*`, `--font-weight-*`) gets its platform value inside `.platform`, or every game would inherit it
+- Palette: Tailwind's `neutral` scale (chroma 0) and `destructive`, nothing else. One font weight (600): `font-medium`, `font-bold`… resolve to it, so don't write them. Depth: `shadow-surface|float|overlay` and `ring-1 ring-foreground/10`. Motion: `duration-fast|base|slow`, `ease-standard`. Shapes: `rounded-*`, scaled from `--radius`
+- `PLATFORM_THEME_COLOR` (`@pbgo/ui/theme`) is the browser colour of platform pages; `theme.test.ts` keeps it equal to `--background`. `platform.test.ts` rejects `dark:`, palette and hard-coded colours, arbitrary sizes and the old `admin` names in `packages/ui/src/platform/*`
+- A new component: `pnpm dlx shadcn@latest add <comp>` (preset `beEgoY8u`), move it to `packages/ui/src/platform`, import `cn` from `../utils`, make it dark-only and token-only, show it on `/design`, then use it
 
 ## Commands (from the root)
 - `pnpm install` — once for the whole monorepo
@@ -138,6 +150,7 @@ A change here reaches every game on the next deployment.
 
 ## Rules of work
 - English everywhere: code, comments, docs, commits, PRs. Only player-facing texts are in other languages (Sanity, `I18N`, a game's defaults)
+- Platform UI (hub, account, legal, admin, 404) uses only `@pbgo/ui` tokens and components, never a hard-coded colour, font or spacing; a new component goes into `@pbgo/ui` first (see Design system)
 - Branch named after the Linear issue (`plt-<n>-<topic>`); the PR description references the issue ID; never merge your own PR
 - Never commit secrets or env files (`.env*` except `.env.example`, `.vercel`, `.sanity-project-id` are git-ignored)
 

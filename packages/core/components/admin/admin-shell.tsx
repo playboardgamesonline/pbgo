@@ -59,7 +59,7 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
     <DirtyContext.Provider value={dirty}>
       <div className="flex min-h-dvh">
         <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r bg-muted/40">
-          <Link href={adminHref(slug, "identity")} onClick={guard} className="flex h-14 items-center gap-2.5 border-b px-4 font-semibold">
+          <Link href={adminHref(slug, "identity")} onClick={guard} className="flex h-14 items-center gap-2.5 border-b px-4">
             {mark ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={mark} alt="" className="size-7 rounded-md object-contain" />
@@ -71,7 +71,7 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
           <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
             {ADMIN_NAV.map((g) => (
               <div key={g.group} className="flex flex-col gap-0.5">
-                <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{g.group}</p>
+                <p className="px-2 pb-1 text-xs tracking-wider text-muted-foreground uppercase">{g.group}</p>
                 {g.items.map((item) => {
                   const href = adminHref(slug, item.path)
                   const active = pathname === href
@@ -84,12 +84,12 @@ export function AdminShell({ title, logo, favicon, studioUrl, counts, children }
                       aria-current={active ? "page" : undefined}
                       className={cn(
                         "flex h-8 items-center gap-2.5 rounded-md px-2 text-sm text-foreground/80 transition-colors hover:bg-muted hover:text-foreground",
-                        active && "bg-background font-medium text-foreground shadow-xs ring-1 ring-border",
+                        active && "bg-background text-foreground shadow-surface ring-1 ring-border",
                       )}
                     >
                       <HugeiconsIcon icon={item.icon} strokeWidth={2} className="size-4 shrink-0" />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {!!count && <span className="min-w-5 rounded-full bg-muted px-1.5 text-center text-[11px] font-medium tabular-nums text-muted-foreground">{count}</span>}
+                      {!!count && <span className="min-w-5 rounded-full bg-muted px-1.5 text-center text-xs tabular-nums text-muted-foreground">{count}</span>}
                     </Link>
                   )
                 })}
@@ -125,7 +125,7 @@ export function PageHeader({ title, description, actions }: { title: React.React
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="flex items-center gap-3 text-2xl">{title}</h1>
         {description && <p className="mt-1 text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

@@ -4,12 +4,12 @@ import { Archive01Icon, Bug01Icon, Delete02Icon, MailOpen01Icon, Message01Icon, 
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
-import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/admin/alert"
-import { Badge } from "@pbgo/ui/admin/badge"
-import { Button } from "@pbgo/ui/admin/button"
-import { Card, CardContent } from "@pbgo/ui/admin/card"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/admin/empty"
-import { Skeleton } from "@pbgo/ui/admin/skeleton"
+import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Button } from "@pbgo/ui/platform/button"
+import { Card, CardContent } from "@pbgo/ui/platform/card"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
+import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest, AdminApiError } from "../../../lib/admin-api"
 import { useGameSlug } from "../../../lib/binding-context"
@@ -92,7 +92,7 @@ export function FeedbackList() {
             onClick={() => setTab(t.id)}
             className={cn(
               "flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground",
-              tab === t.id && "bg-background font-medium text-foreground shadow-xs",
+              tab === t.id && "bg-background text-foreground shadow-surface",
             )}
           >
             {t.label}

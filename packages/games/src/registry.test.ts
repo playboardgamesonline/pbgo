@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import { isProjectId } from "@pbgo/core/sanity/env"
 import { GAMES, listedGames } from "./registry"
@@ -11,7 +13,7 @@ describe("game registry", () => {
 
   it("keeps slugs clear of the app's own routes", () => {
     // top-level routes of apps/web (and /api/media, /api/admin: global API routes next to /api/<slug>), plus a game's own segments
-    const reserved = ["api", "legal", "media", "admin", "preview", "game", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
+    const reserved = ["api", "legal", "design", "media", "admin", "preview", "game", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
     for (const { slug } of GAMES) expect(reserved).not.toContain(slug)
   })
 
@@ -31,6 +33,25 @@ describe("game registry", () => {
     for (const g of GAMES) {
       const players = "players" in g ? g.players : undefined
       if (players) expect(players.min, g.slug).toBeLessThanOrEqual(players.max)
+    }
+  })
+
+  it("has consistent durations", () => {
+    for (const g of GAMES) {
+      const duration = "duration" in g ? g.duration : undefined
+      if (!duration) continue
+      expect(Number.isInteger(duration.min) && duration.min > 0, g.slug).toBe(true)
+      expect(duration.min, g.slug).toBeLessThanOrEqual(duration.max)
+    }
+  })
+
+  it("points the cover art at an existing file of the game's own public folder", () => {
+    const publicDir = fileURLToPath(new URL("../../../apps/web/public", import.meta.url))
+    for (const g of GAMES) {
+      const visual = "visual" in g ? g.visual : undefined
+      if (!visual) continue
+      expect(visual.startsWith(`/${g.slug}/`), g.slug).toBe(true)
+      expect(existsSync(publicDir + visual), `${g.slug}: ${visual}`).toBe(true)
     }
   })
 

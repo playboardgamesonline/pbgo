@@ -4,13 +4,13 @@ import { CloudUploadIcon, Delete02Icon, PauseIcon, PlayIcon, Upload04Icon } from
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/admin/alert"
-import { Badge } from "@pbgo/ui/admin/badge"
-import { Button } from "@pbgo/ui/admin/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Input } from "@pbgo/ui/admin/input"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/admin/input-group"
-import { Spinner } from "@pbgo/ui/admin/spinner"
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Button } from "@pbgo/ui/platform/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Input } from "@pbgo/ui/platform/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
+import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../../lib/admin-api"
 import { useGameSlug } from "../../../lib/binding-context"
@@ -135,7 +135,7 @@ export function AudioPage({ initial }: { initial: AdminData }) {
         <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {(Object.keys(VOLUME_LABELS) as (keyof Volumes)[]).map((k) => (
             <div key={k} className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium">{VOLUME_LABELS[k]}</p>
+              <p className="text-sm">{VOLUME_LABELS[k]}</p>
               <Slider label={VOLUME_LABELS[k]} value={draft.volumes[k]} onChange={(v) => set("volumes", { ...draft.volumes, [k]: v })} disabled={disabled} />
             </div>
           ))}

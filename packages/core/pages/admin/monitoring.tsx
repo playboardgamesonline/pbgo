@@ -1,7 +1,7 @@
-import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/admin/alert"
-import { Badge } from "@pbgo/ui/admin/badge"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/admin/table"
+import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { BarChart, dayLabel } from "../../components/admin/bar-chart"
 import type { GameEntry, PlayableGame } from "../../lib/binding"
 import type { SiteSettings } from "../../lib/settings"
@@ -226,7 +226,7 @@ export async function HealthPage({ game, games, settings, supabaseOk }: HealthPr
               {games.map((g) => (
                 <TableRow key={g.slug}>
                   <TableCell className="max-w-48 truncate">
-                    <a href={`/${g.slug}`} target="_blank" rel="noreferrer" className="font-medium underline-offset-4 hover:underline">
+                    <a href={`/${g.slug}`} target="_blank" rel="noreferrer" className="underline-offset-4 hover:underline">
                       {g.name}
                     </a>
                   </TableCell>
@@ -248,7 +248,7 @@ function Ranking({ title, rows }: { title: string; rows: { label: string; value:
   const max = Math.max(1, ...rows.map((r) => r.value))
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs font-medium text-muted-foreground">{title}</p>
+      <p className="text-xs text-muted-foreground">{title}</p>
       {rows.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
       {rows.map((r) => (
         <div key={r.label} className="relative flex items-center justify-between gap-3 overflow-hidden rounded-md px-2 py-1 text-sm">

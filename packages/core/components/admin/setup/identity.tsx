@@ -1,9 +1,9 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/admin/card"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/admin/field"
-import { Input } from "@pbgo/ui/admin/input"
-import { Textarea } from "@pbgo/ui/admin/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/platform/field"
+import { Input } from "@pbgo/ui/platform/input"
+import { Textarea } from "@pbgo/ui/platform/textarea"
 import { useState } from "react"
 import { useBinding } from "../../../lib/binding-context"
 import { LOCALE_NAMES, type Locale } from "../../../lib/i18n"
@@ -78,7 +78,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="title">Game name</FieldLabel>
-              <Input id="title" value={draft.title} maxLength={80} onChange={(e) => set("title", e.target.value)} disabled={disabled} className="h-11 text-lg font-semibold" />
+              <Input id="title" value={draft.title} maxLength={80} onChange={(e) => set("title", e.target.value)} disabled={disabled} className="h-11 text-lg" />
               <FieldDescription>
                 The game’s name only. PBGO writes it “{siteTitle("Name")}” (browser tab, search results, share card) and adds “· Table #CODE” during a game.
               </FieldDescription>
@@ -112,7 +112,7 @@ export function IdentityPage({ initial, domain }: { initial: AdminData; domain: 
           <FileTile
             label="Image · 1200 × 630"
             accept={IMAGE_ACCEPT}
-            aspect="aspect-[1200/630]"
+            aspect="aspect-1200/630"
             checker={false}
             custom={!!data.settings.shareImage?.startsWith("https://")}
             preview={<Img src={shareUrl} className="size-full object-cover" />}

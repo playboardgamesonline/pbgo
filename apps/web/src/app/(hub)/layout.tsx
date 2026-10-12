@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next"
-import { GeistMono } from "geist/font/mono"
-import { GeistSans } from "geist/font/sans"
+import { PLATFORM_THEME_COLOR } from "@pbgo/ui/theme"
 import "../globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils"
+import { PlatformDocument } from "@/components/platform-document"
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/site"
 
 export const metadata: Metadata = {
@@ -14,20 +12,9 @@ export const metadata: Metadata = {
   openGraph: { type: "website", siteName: SITE_NAME, url: SITE_URL },
 }
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c0a09" },
-  ],
-}
+export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorScheme: "dark" }
 
-/** Root layout of the hub pages (`/`, `/legal`). Each game has its own root layout, `app/[game]/layout.tsx`. */
+/** Root layout of the hub pages (`/`, `/legal`, `/design`). Each game has its own root layout, `app/[game]/layout.tsx`. */
 export default function HubLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="en" suppressHydrationWarning className={cn("antialiased", GeistSans.variable, GeistMono.variable, "font-sans")}>
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
-      </body>
-    </html>
-  )
+  return <PlatformDocument>{children}</PlatformDocument>
 }

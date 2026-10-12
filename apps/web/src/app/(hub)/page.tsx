@@ -1,15 +1,17 @@
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon, DiceIcon, Globe02Icon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { Badge } from "@pbgo/ui/platform/badge"
+import { Button } from "@pbgo/ui/platform/button"
+import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { GameCard } from "@pbgo/ui/platform/game-card"
+import { Separator } from "@pbgo/ui/platform/separator"
+import { gameCardProps } from "@/lib/game-card-props"
 import { SITE_DESCRIPTION, SITE_NAME } from "@/site"
 import { listedGames } from "@pbgo/games/registry"
 
-// Plain <a> to the games (via Button asChild): the hub and the games have separate root layouts, so this is a full
+// Plain <a> to the games (GameCard, Button asChild): the hub and the games have separate root layouts, so this is a full
 // page load anyway, and the hub never prefetches a game's code.
 
 const STEPS = [
@@ -24,9 +26,9 @@ export default function Home() {
 
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+        <div className="mx-auto flex h-14 w-full max-w-page items-center justify-between px-gutter">
+          <Link href="/" className="flex items-center gap-2">
             <HugeiconsIcon icon={DiceIcon} strokeWidth={2} className="size-5" />
             {SITE_NAME}
           </Link>
@@ -37,11 +39,9 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto flex w-full max-w-5xl flex-col items-start gap-6 px-4 py-16 md:py-24">
+        <section className="mx-auto flex w-full max-w-page flex-col items-start gap-6 px-gutter py-section">
           <Badge variant="secondary">Free · No sign-up · In your browser</Badge>
-          <h1 className="max-w-2xl font-heading text-4xl font-semibold tracking-tight text-balance md:text-6xl">
-            Board games online, with friends.
-          </h1>
+          <h1 className="max-w-2xl font-heading text-4xl md:text-6xl">Board games online, with friends.</h1>
           <p className="max-w-xl text-lg text-muted-foreground">{SITE_DESCRIPTION}</p>
           <div className="flex flex-wrap gap-3">
             {first && (
@@ -58,42 +58,17 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="games" className="mx-auto w-full max-w-5xl scroll-mt-20 px-4 pb-16">
-          <h2 className="mb-6 font-heading text-2xl font-semibold tracking-tight">Games</h2>
+        <section id="games" className="mx-auto w-full max-w-page scroll-mt-20 px-gutter pb-section">
+          <h2 className="mb-6 font-heading text-2xl">Games</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {games.map((game) => (
-              <Card key={game.slug}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{game.name}</CardTitle>
-                  <CardDescription>{game.tagline}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  {game.players && (
-                    <Badge variant="outline">
-                      <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
-                      {game.players.min}–{game.players.max} players
-                    </Badge>
-                  )}
-                  <Badge variant="outline">
-                    <HugeiconsIcon icon={Globe02Icon} strokeWidth={2} />
-                    Online
-                  </Badge>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full" asChild>
-                    <a href={`/${game.slug}`}>
-                      Play
-                      <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                    </a>
-                  </Button>
-                </CardFooter>
-              </Card>
+              <GameCard key={game.slug} {...gameCardProps(game)} />
             ))}
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-5xl px-4 pb-24">
-          <h2 className="mb-6 font-heading text-2xl font-semibold tracking-tight">How it works</h2>
+        <section className="mx-auto w-full max-w-page px-gutter pb-section">
+          <h2 className="mb-6 font-heading text-2xl">How it works</h2>
           <div className="grid gap-4 md:grid-cols-3">
             {STEPS.map((step) => (
               <Card key={step.title} size="sm">
@@ -110,7 +85,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="mx-auto w-full max-w-5xl px-4 pb-10">
+      <footer className="mx-auto w-full max-w-page px-gutter pb-10">
         <Separator className="mb-6" />
         <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>Unofficial, free online adaptations. Every game belongs to its authors and publisher.</p>

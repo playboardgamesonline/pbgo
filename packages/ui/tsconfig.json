@@ -1,3 +1,6 @@
 {
-  "extends": "@pbgo/tsconfig/react-library.json"
+  "extends": "@pbgo/tsconfig/react-library.json",
+  "compilerOptions": {
+    "types": ["node"]
+  }
 }

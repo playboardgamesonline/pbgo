@@ -3,8 +3,8 @@
 import { Delete02Icon, Upload04Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useRef, useState } from "react"
-import { Button } from "@pbgo/ui/admin/button"
-import { Spinner } from "@pbgo/ui/admin/spinner"
+import { Button } from "@pbgo/ui/platform/button"
+import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
 
 type Props = {
@@ -70,12 +70,12 @@ export function Dropzone({ accept, title, hint, busy, disabled, size = "sm", cur
       >
         <input ref={input} type="file" accept={accept} hidden onChange={(e) => (take(e.target.files), (e.target.value = ""))} />
         {current ?? (
-          <span className="flex size-10 items-center justify-center rounded-full bg-background shadow-xs ring-1 ring-border">
+          <span className="flex size-10 items-center justify-center rounded-full bg-background shadow-surface ring-1 ring-border">
             {busy ? <Spinner /> : <HugeiconsIcon icon={Upload04Icon} strokeWidth={2} className="size-4" />}
           </span>
         )}
         <div className="flex flex-col gap-0.5">
-          <p className="text-sm font-medium">{busy ? "Envoi en cours…" : title}</p>
+          <p className="text-sm">{busy ? "Envoi en cours…" : title}</p>
           <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
       </div>
