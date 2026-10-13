@@ -41,7 +41,8 @@ export function groupTurns<E>(
 export function PlayerName({ id }: { id: string }) {
   const { nickname, color } = useGame()
   return (
-    <span className="font-black brightness-150" style={{ color: color(id) }}>
+    // a nickname is typed by its player: session recordings show it masked (`ph-mask`)
+    <span className="ph-mask font-black brightness-150" style={{ color: color(id) }}>
       {nickname(id)}
     </span>
   )
