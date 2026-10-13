@@ -1,5 +1,6 @@
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
+import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { publicGame, updateGame } from "../../../../../server/games"
 import { getOrCreatePlayerId } from "../../../../../server/player"
@@ -12,7 +13,10 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   const id = await getOrCreatePlayerId(game.slug)
   const { maxPlayers } = await loadSettings(game)
 
+  // Set by the run of the modifier that the write came from: renaming oneself in the lobby is not a join
+  const seat = { added: false }
   const row = await updateGame(game, params.code ?? "", (row) => {
+    seat.added = false
     const existing = row.players.find((j) => j.id === id)
     if (existing) {
       if (row.status !== "lobby") return null
@@ -20,7 +24,9 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     }
     if (row.status !== "lobby") throw new ApiError("GAME_IN_PROGRESS", 409)
     if (row.players.length >= maxPlayers) throw new ApiError("GAME_FULL", 409)
+    seat.added = true
     return { players: [...row.players, { id, ...profile }] }
   })
+  if (seat.added) trackAfter("player_joined", id, { game: game.slug, seat: row.players.findIndex((j) => j.id === id), players: row.players.length })
   return publicGame(game, row, id)
 })
