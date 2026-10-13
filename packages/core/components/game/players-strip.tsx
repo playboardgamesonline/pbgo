@@ -12,10 +12,10 @@ import { PlayersStripView, type StripData, type StripLabels } from "./players-st
  */
 export function PlayersStrip({ waitingFor, className }: { waitingFor: readonly string[]; className?: string }) {
   const t = useText()
-  const { game, color } = useGame()
+  const { game, color, avatarUrl } = useGame()
   const pending = pendingSeats({ players: game.players, waitingFor, present: game.present, meId: game.meId })
   if (!pending) return null
-  const strip: StripData = { ...pending, seats: pending.seats.map((seat) => ({ ...seat, color: color(seat.id) })) }
+  const strip: StripData = { ...pending, seats: pending.seats.map((seat) => ({ ...seat, color: color(seat.id), imageUrl: avatarUrl(seat.id) })) }
   const labels: StripLabels = {
     players: t("players"),
     ready: t("playersReady", { ready: pending.ready, total: pending.total }),

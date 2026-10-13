@@ -57,6 +57,17 @@ export type SettingsDefaults = Partial<Omit<SiteSettings, "theme">> & { theme?: 
 export type UiTheme = {
   /** "calm" (default): fades only · "lively": also confetti, springs and the emoji burst. Reduced motion always wins. */
   motion?: "calm" | "lively"
+  /** The seat label: the avatar and the nickname next to it, on the table, in the strip, the lobby, the announcements and the game over */
+  seat?: {
+    /** "disc" (default) or "square" (rounded corners) */
+    shape?: "disc" | "square"
+    /** Line around the avatar: a CSS colour */
+    ring?: string
+    /** Font of the initial in the avatar: a CSS font-family value (default: the skin's title font) */
+    font?: string
+    /** Colour of the nickname where the UI writes it (lobby, game over): "seat" (default) is the seat colour, "ink" the text colour around it */
+    name?: "seat" | "ink"
+  }
 }
 
 /** Isomorphic part of a game (`@pbgo-game/<slug>`). */

@@ -10,6 +10,8 @@ export type GameContextValue<V extends CoreView = CoreView> = {
   view: V
   nickname: (playerId: string) => string
   color: (playerId: string) => string
+  /** The player's account picture (PLT-13); null until accounts exist: the seat label then generates the avatar */
+  avatarUrl: (playerId: string) => string | null
 }
 
 const GameContext = createContext<GameContextValue | null>(null)
@@ -22,6 +24,7 @@ export function GameProvider<V extends CoreView>({ game, view, children }: { gam
       view,
       nickname: (id) => game.players.find((j) => j.id === id)?.nickname ?? "?",
       color: (id) => playerColors[Math.max(0, game.players.findIndex((j) => j.id === id)) % playerColors.length]!,
+      avatarUrl: (id) => game.players.find((j) => j.id === id)?.avatarUrl ?? null,
     }),
     [game, view, playerColors],
   )
