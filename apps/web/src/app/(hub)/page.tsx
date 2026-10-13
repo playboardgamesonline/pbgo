@@ -2,6 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 
+import { ConsentLink } from "@pbgo/analytics/client"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
@@ -46,7 +47,7 @@ export default function Home() {
           <div className="flex flex-wrap gap-3">
             {first && (
               <Button size="lg" asChild>
-                <a href={`/${first.slug}`}>
+                <a href={`/${first.slug}`} data-game={first.slug}>
                   Play {first.name}
                   <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
                 </a>
@@ -62,7 +63,7 @@ export default function Home() {
           <h2 className="mb-6 font-heading text-2xl">Games</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {games.map((game) => (
-              <GameCard key={game.slug} {...gameCardProps(game)} />
+              <GameCard key={game.slug} {...gameCardProps(game)} data-game={game.slug} />
             ))}
           </div>
         </section>
@@ -89,9 +90,13 @@ export default function Home() {
         <Separator className="mb-6" />
         <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>Unofficial, free online adaptations. Every game belongs to its authors and publisher.</p>
-          <Link href="/legal" className="underline-offset-4 hover:underline">
-            Legal notice
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Only where analytics are on: it reopens the choice of the cookie banner */}
+            <ConsentLink className="cursor-pointer underline-offset-4 hover:underline">Cookies</ConsentLink>
+            <Link href="/legal" className="underline-offset-4 hover:underline">
+              Legal notice
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

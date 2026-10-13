@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "@pbgo/ui/platform/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@pbgo/ui/platform/tooltip"
+import { CookieBannerDemo } from "../_components/cookie-banner-demo"
 import { MenuDemo } from "../_components/menu-demo"
 import { Demo, Section } from "../_components/layout"
 import { ToastDemo } from "../_components/toast-demo"
@@ -275,6 +276,42 @@ toast.error("The table could not be saved")
 toast.promise(save(), { loading: "Saving…", success: "Saved", error: "Not saved" })`}
       >
         <ToastDemo />
+      </Demo>
+    </Section>
+  )
+}
+
+export function CookieBanners() {
+  return (
+    <Section
+      id="cookie-banner"
+      module="cookie-banner"
+      intro="The question about statistics and recordings, a compact card at the bottom centre of the screen. Accept and Refuse are the same button side by side, so refusing is as easy and as visible as accepting. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the card carries the `platform` class itself, since it also sits over a game page. The frames below hold it with `absolute`, where a page holds it with `fixed`."
+    >
+      <Demo
+        title="First visit"
+        description="No close button: the banner stays until the visitor answers. Try either button."
+        code={`<CookieBanner
+  texts={BANNER_TEXTS[locale]}
+  moreHref="/legal#cookies"
+  onAccept={() => consentStore.choose("accepted")}
+  onRefuse={() => consentStore.choose("refused")}
+/>`}
+      >
+        <CookieBannerDemo />
+      </Demo>
+      <Demo
+        title="Reopened from the Cookies link"
+        description="A visitor who already answered can change their mind from the footer or the settings menu. The card then has a close button, closes on Escape and takes the focus, and closing it keeps the answer."
+        code={`<CookieBanner
+  texts={BANNER_TEXTS[locale]}
+  moreHref="/legal#cookies"
+  onAccept={…}
+  onRefuse={…}
+  onClose={consentStore.dismiss}
+/>`}
+      >
+        <CookieBannerDemo reopened />
       </Demo>
     </Section>
   )

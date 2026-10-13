@@ -6,7 +6,7 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
 import { Badges, Buttons, Checks, Inputs, Selects, TabsSection } from "./_sections/controls"
-import { Dialogs, Dropdowns, Sheets, Toasts, Tooltips } from "./_sections/overlays"
+import { CookieBanners, Dialogs, Dropdowns, Sheets, Toasts, Tooltips } from "./_sections/overlays"
 import { Layers, Principles } from "./_sections/principles"
 import {
   Alerts,
@@ -100,6 +100,7 @@ export default function DesignPage() {
             <Dropdowns />
             <Tooltips />
             <Toasts />
+            <CookieBanners />
             <Cards />
             <GameCards />
             <Avatars />
