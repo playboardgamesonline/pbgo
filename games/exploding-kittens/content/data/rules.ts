@@ -4,7 +4,7 @@ import type { Localized, SeedDoc } from "@pbgo/content-kit"
 export const RULES_ID = "rules"
 
 // The rules page of the shared `rules` document, in PBGO's own words: the official rulebook is linked from `settings`, never copied.
-// It covers the standard rules, the Nope window and the optional five-different combination (off by default).
+// It covers the standard rules, the Nope window and the five-different combination (on by default, as in the engine's `fiveDifferent`; the host can turn it off).
 // Registers follow the site's translations: vous (fr), you (en), tú (es), du (de). A group is never addressed directly in Spanish and German.
 
 type Section = { key: string; title: Localized; body: Localized }
@@ -178,25 +178,25 @@ const SECTIONS: Section[] = [
         "Des cartes de même titre peuvent se jouer ensemble en combinaison. Leurs effets imprimés sont alors ignorés, et n’importe quelle carte peut en faire partie, Kit de désamorçage et Non compris : deux Attaques jouées ensemble n’attaquent personne.",
         "**Deux pareilles.** Jouez 2 cartes de même titre et désignez un autre joueur qui a au moins une carte : vous lui prenez une carte au hasard, tirée par le jeu et non choisie par vous.",
         "**Trois pareilles.** Jouez 3 cartes de même titre, désignez un autre joueur qui a au moins une carte et annoncez un titre de carte (sauf Exploding Kitten). S’il en possède une, il doit vous la donner ; sinon, il ne se passe rien, mais la combinaison est perdue. Le titre annoncé et le résultat sont visibles de tous.",
-        "**Cinq différentes.** Option, désactivée par défaut. Jouez 5 cartes aux titres tous différents et prenez dans la défausse la carte de votre choix, sauf une de celles que vous venez de jouer ou un Exploding Kitten. Impossible s’il n’y a aucune carte à prendre. Les cinq chats comptent comme des titres différents, un Kit de désamorçage peut être pris, et si la fenêtre de Non annule la combinaison, rien n’est pris.",
+        "**Cinq différentes.** Option, activée par défaut ; l’hôte peut la désactiver avant la partie. Jouez 5 cartes aux titres tous différents et prenez dans la défausse la carte de votre choix, sauf une de celles que vous venez de jouer ou un Exploding Kitten. Impossible s’il n’y a aucune carte à prendre. Les cinq chats comptent comme des titres différents, un Kit de désamorçage peut être pris, et si la fenêtre de Non annule la combinaison, rien n’est pris.",
       ),
       en: p(
         "Cards with the same title can be played together as a combination. Their printed effects are then ignored, and any card can be part of one, Defuse and Nope included: two Attacks played together attack nobody.",
         "**Pair.** Play 2 cards with the same title and choose another player who has at least one card: you take a random card from their hand, drawn by the game rather than chosen by you.",
         "**Three of a kind.** Play 3 cards with the same title, choose another player who has at least one card and name a card title (any except Exploding Kitten). If they hold one, they must give it to you; if not, nothing happens, but the combination is spent. The named title and the result are visible to everyone.",
-        "**Five different.** An option, off by default. Play 5 cards that all have different titles and take any card you like from the discard pile, except one of those you just played or an Exploding Kitten. You can’t play it if there is nothing to take. The five cats count as different titles, a Defuse may be taken, and if the Nope window cancels the combination, nothing is taken.",
+        "**Five different.** An option, on by default; the host can turn it off before the game. Play 5 cards that all have different titles and take any card you like from the discard pile, except one of those you just played or an Exploding Kitten. You can’t play it if there is nothing to take. The five cats count as different titles, a Defuse may be taken, and if the Nope window cancels the combination, nothing is taken.",
       ),
       es: p(
         "Las cartas con el mismo título pueden jugarse juntas como combinación. Sus efectos impresos se ignoran, y cualquier carta puede formar parte de una, incluidas la Desactivación y el Nope: dos Ataques jugados juntos no atacan a nadie.",
         "**Pareja.** Juega 2 cartas con el mismo título y elige a otro jugador que tenga al menos una carta: le quitas una carta al azar; la saca el juego, no la eliges tú.",
         "**Trío.** Juega 3 cartas con el mismo título, elige a otro jugador que tenga al menos una carta y nombra un título de carta (cualquiera menos Exploding Kitten). Si la tiene, debe dártela; si no, no pasa nada, pero la combinación se pierde. El título nombrado y el resultado son visibles para todos.",
-        "**Cinco distintas.** Es una opción, desactivada por defecto. Juega 5 cartas con títulos todos distintos y toma del descarte la carta que quieras, salvo una de las que acabas de jugar o un Exploding Kitten. No se puede jugar si no hay nada que tomar. Los cinco gatos cuentan como títulos distintos, se puede tomar una Desactivación, y si la ventana de Nope anula la combinación, no se toma nada.",
+        "**Cinco distintas.** Es una opción, activada por defecto; el anfitrión puede desactivarla antes de la partida. Juega 5 cartas con títulos todos distintos y toma del descarte la carta que quieras, salvo una de las que acabas de jugar o un Exploding Kitten. No se puede jugar si no hay nada que tomar. Los cinco gatos cuentan como títulos distintos, se puede tomar una Desactivación, y si la ventana de Nope anula la combinación, no se toma nada.",
       ),
       de: p(
         "Karten mit demselben Titel lassen sich gemeinsam als Kombination ausspielen. Ihre aufgedruckten Wirkungen zählen dann nicht, und jede Karte kann dazugehören, auch die Entschärfung und das NÖ!: Zwei zusammen gespielte Angriffe greifen niemanden an.",
         "**Pärchen.** Spiele 2 Karten mit demselben Titel aus und wähle eine andere Person mit mindestens einer Karte: Du nimmst ihr eine Karte aus der Hand, die das Spiel zufällig bestimmt – du suchst sie nicht selbst aus.",
         "**Drilling.** Spiele 3 Karten mit demselben Titel aus, wähle eine andere Person mit mindestens einer Karte und nenne einen Kartentitel (außer Exploding Kitten). Besitzt sie eine solche Karte, muss sie sie dir geben; sonst passiert nichts, die Kombination ist aber verbraucht. Der genannte Titel und das Ergebnis sind für alle sichtbar.",
-        "**Fünfling.** Eine Option, standardmäßig aus. Spiele 5 Karten mit lauter verschiedenen Titeln aus und nimm dir eine beliebige Karte vom Ablagestapel, nur keine der soeben gespielten und kein Exploding Kitten. Liegt keine passende Karte im Ablagestapel, lässt sich die Kombination nicht spielen. Die fünf Katzen zählen als verschiedene Titel, auch eine Entschärfung darf genommen werden, und wird die Kombination im Nö-Fenster aufgehoben, wird nichts genommen.",
+        "**Fünfling.** Eine Option, standardmäßig an; der Gastgeber kann sie vor dem Spiel ausschalten. Spiele 5 Karten mit lauter verschiedenen Titeln aus und nimm dir eine beliebige Karte vom Ablagestapel, nur keine der soeben gespielten und kein Exploding Kitten. Liegt keine passende Karte im Ablagestapel, lässt sich die Kombination nicht spielen. Die fünf Katzen zählen als verschiedene Titel, auch eine Entschärfung darf genommen werden, und wird die Kombination im Nö-Fenster aufgehoben, wird nichts genommen.",
       ),
     },
   },

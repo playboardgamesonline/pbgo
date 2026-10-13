@@ -188,10 +188,10 @@ Three of them are singletons, addressed in the Studio by the name of their type:
 
 | Id | Type | Count | Holds |
 | --- | --- | --- | --- |
-| `card-type-<key>` | `cardType` | 13 | One per kind of card, keyed like the engine's catalogue (kebab-case: `exploding-kitten`, `defuse`, `attack`, `skip`, `favor`, `shuffle`, `see-the-future`, `nope`, `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`). Its kind (bomb, defuse, action, reaction, cat), its name and a one-sentence effect in four languages, and one `illustrations` entry per printed illustration (41 in all) that the art fills |
+| `card-type-<key>` | `cardType` | 13 | One per kind of card, keyed like the engine's catalogue (kebab-case: `exploding-kitten`, `defuse`, `attack`, `skip`, `favor`, `shuffle`, `see-the-future`, `nope`, `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`). Its kind, under the engine's names (`kitten`, `defuse`, `nope`, `action`, `cat`), its name and a one-sentence effect in four languages, and one `illustrations` entry per printed illustration (41 in all) that the art fills |
 | `edition-original` | `edition` | 1 | The Original Edition, 56 cards: each line is a card type and its copies (4 Exploding Kitten, 6 Defuse, 4 Attack, 4 Skip, 4 Favor, 4 Shuffle, 5 See the Future, 5 Nope, 4 of each of the five cats). Name in four languages |
 | `game` | `game` | 1 | Empty: the card back, the box and the mat come with the art |
-| `rules` | `rules` | 1 | Our own rules text: an introduction and 10 sections (goal, setup, turn, explosion, cards, combos, nope, attack, end, online), each in FR, EN, ES and DE. The standard rules, the Nope reaction window and the optional five-different combination (off by default) |
+| `rules` | `rules` | 1 | Our own rules text: an introduction and 10 sections (goal, setup, turn, explosion, cards, combos, nope, attack, end, online), each in FR, EN, ES and DE. The standard rules, the Nope window and the five-different combination (on by default like the engine's `fiveDifferent`; the host can turn it off) |
 | `settings` | `settings` | 1 | Credits (Elan Lee, Matthew Inman and Shane Small; publisher Exploding Kittens Inc. with its link) and the link to the publisher's English rulebook. French, Spanish and German have none, the toolbar's Rules button then opens the English one. No illustrator line until the art arrives |
 
 Three of them are singletons: `game`, `rules`, `settings`.

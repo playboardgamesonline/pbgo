@@ -24,7 +24,7 @@ const CAT_EFFECT: Localized = {
 
 const SPECS: Record<CardTypeKey, CardTypeSpec> = {
   "exploding-kitten": {
-    kind: "bomb",
+    kind: "kitten",
     name: { fr: "Exploding Kitten", en: "Exploding Kitten", es: "Exploding Kitten", de: "Exploding Kitten" },
     effect: {
       fr: "Qui la pioche explose et quitte la partie, à moins de jouer aussitôt un Kit de désamorçage.",
@@ -101,7 +101,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 5,
   },
   nope: {
-    kind: "reaction",
+    kind: "nope",
     name: { fr: "Non", en: "Nope", es: "Nope", de: "NÖ!" },
     effect: {
       fr: "Annule une action qui vient d’être jouée, ou un autre Non. Peut se jouer hors de votre tour, tant que la fenêtre de Non est ouverte.",

@@ -37,15 +37,15 @@ export const CARD_TYPES: { title: string; value: CardTypeKey }[] = [
   { title: "Rainbow-Ralphing Cat", value: "rainbow-ralphing-cat" },
 ]
 
-/** What a card is for the rules: the kitten that eliminates, the card that saves from it, an action of one's own turn, a reaction played out of turn, or a cat (combos only). */
-export const KIND_KEYS = ["bomb", "defuse", "action", "reaction", "cat"] as const
+/** What a card is for the rules, under the engine's own names and in its order (GAM-7 `CardKind`): the kitten that eliminates, the Defuse that saves from it, the Nope played out of turn, an action of one's own turn, or a cat (combos only). */
+export const KIND_KEYS = ["kitten", "defuse", "nope", "action", "cat"] as const
 export type KindKey = (typeof KIND_KEYS)[number]
 
 export const KINDS: { title: string; value: KindKey }[] = [
-  { title: "Bomb (eliminates)", value: "bomb" },
-  { title: "Defuse (saves from the bomb)", value: "defuse" },
+  { title: "Kitten (eliminates)", value: "kitten" },
+  { title: "Defuse (saves from the kitten)", value: "defuse" },
+  { title: "Nope (played out of turn)", value: "nope" },
   { title: "Action (played on your turn)", value: "action" },
-  { title: "Reaction (played out of turn)", value: "reaction" },
   { title: "Cat (combos only)", value: "cat" },
 ]
 

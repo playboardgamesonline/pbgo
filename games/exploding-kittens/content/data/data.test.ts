@@ -66,14 +66,14 @@ const ENGINE_KEYS = [
 const CATS = ["tacocat", "cattermelon", "hairy-potato-cat", "beard-cat", "rainbow-ralphing-cat"] as const
 
 const KIND_OF: Record<CardTypeKey, string> = {
-  "exploding-kitten": "bomb",
+  "exploding-kitten": "kitten",
   defuse: "defuse",
   attack: "action",
   skip: "action",
   favor: "action",
   shuffle: "action",
   "see-the-future": "action",
-  nope: "reaction",
+  nope: "nope",
   tacocat: "cat",
   cattermelon: "cat",
   "hairy-potato-cat": "cat",
@@ -190,17 +190,19 @@ describe("the card types", () => {
     for (const doc of cardTypes()) expect(doc._type, doc.key).toBe("cardType")
   })
 
-  it("have the kind of their role: a bomb, a defuse, five actions, a reaction and five cats", () => {
+  it("have the kind of their role, under the engine's names: a kitten, a defuse, a nope, five actions and five cats", () => {
     for (const key of CARD_TYPE_KEYS) expect(typeOf(key).kind, key).toBe(KIND_OF[key])
     for (const doc of cardTypes()) expect(KIND_KEYS as readonly string[], doc.key).toContain(doc.kind)
     const count = (kind: string) => cardTypes().filter((doc) => doc.kind === kind).length
-    expect({ bomb: count("bomb"), defuse: count("defuse"), action: count("action"), reaction: count("reaction"), cat: count("cat") }).toEqual({
-      bomb: 1,
+    expect({ kitten: count("kitten"), defuse: count("defuse"), nope: count("nope"), action: count("action"), cat: count("cat") }).toEqual({
+      kitten: 1,
       defuse: 1,
+      nope: 1,
       action: 5,
-      reaction: 1,
       cat: 5,
     })
+    // The engine's CardKind (GAM-7), same names and same order
+    expect([...KIND_KEYS]).toEqual(["kitten", "defuse", "nope", "action", "cat"])
   })
 
   it("list one illustration per printed face, numbered from 1", () => {
@@ -475,8 +477,8 @@ describe("the rules", () => {
       fr: [
         // the Nope window: 5 seconds by default, 3, 5 or 8 chosen in the lobby
         "Elle dure 5 secondes par défaut ; l’hôte peut choisir 3, 5 ou 8 secondes avant la partie.",
-        // the combination of five different cards is an option, off by default
-        "**Cinq différentes.** Option, désactivée par défaut.",
+        // the combination of five different cards is on by default, like the engine's `fiveDifferent`; the host can turn it off
+        "**Cinq différentes.** Option, activée par défaut ; l’hôte peut la désactiver avant la partie.",
         "le joueur suivant doit jouer 4 tours",
         "4 exemplaires",
         "Il n’y a pas de points",
@@ -484,7 +486,7 @@ describe("the rules", () => {
       ],
       en: [
         "It lasts 5 seconds by default; the host can pick 3, 5 or 8 seconds before the game.",
-        "**Five different.** An option, off by default.",
+        "**Five different.** An option, on by default; the host can turn it off before the game.",
         "the next player takes 4 turns",
         "4 copies of each",
         "There are no points",
@@ -492,7 +494,7 @@ describe("the rules", () => {
       ],
       es: [
         "Dura 5 segundos por defecto; el anfitrión puede elegir 3, 5 u 8 segundos antes de la partida.",
-        "**Cinco distintas.** Es una opción, desactivada por defecto.",
+        "**Cinco distintas.** Es una opción, activada por defecto; el anfitrión puede desactivarla antes de la partida.",
         "debe jugar 4 turnos",
         "4 copias de cada una",
         "No hay puntos",
@@ -500,7 +502,7 @@ describe("the rules", () => {
       ],
       de: [
         "Standardmäßig dauert es 5 Sekunden; der Gastgeber kann vor dem Spiel 3, 5 oder 8 Sekunden wählen.",
-        "**Fünfling.** Eine Option, standardmäßig aus.",
+        "**Fünfling.** Eine Option, standardmäßig an; der Gastgeber kann sie vor dem Spiel ausschalten.",
         "muss die nächste Person 4 Züge spielen",
         "jeweils 4 Exemplare",
         "Punkte gibt es nicht",
