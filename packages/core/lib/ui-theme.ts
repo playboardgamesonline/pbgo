@@ -15,6 +15,25 @@ function over<T extends object>(defaults: T, theme: Partial<T> | undefined): T {
   return merged
 }
 
+export type AnnouncementTheme = Required<NonNullable<UiTheme["announcement"]>>
+
+/** What the announcements looked like before games could tune them: white letters with a thin gold outline, gold hairlines and stars, a black veil. */
+export const DEFAULT_ANNOUNCEMENT_THEME: AnnouncementTheme = {
+  font: "var(--font-accent, var(--font-title))",
+  color: "#ffffff",
+  outline: "#f2b705",
+  shadow: "#000000",
+  veil: "#000000",
+  rule: "#f5c542",
+  confetti: { color: "#ffd35c", shape: "star" },
+}
+
+/** The announcements' look: `UI_THEME.announcement` of the game over the defaults. `null` (outline, rule, confetti) switches the part off. */
+export function announcementTheme(theme?: UiTheme["announcement"]): AnnouncementTheme {
+  const merged = over(DEFAULT_ANNOUNCEMENT_THEME, theme)
+  return { ...merged, confetti: merged.confetti && { ...merged.confetti } }
+}
+
 export type SeatTheme = Required<NonNullable<UiTheme["seat"]>>
 
 export const DEFAULT_SEAT_THEME: SeatTheme = {

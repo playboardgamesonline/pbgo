@@ -6,6 +6,7 @@ import { Fragment, useCallback, useEffect, useId, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useBinding } from "../../lib/binding-context"
 import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
+import type { SeatAvatarInput } from "../../lib/seat-avatar"
 import { useMotion } from "../../lib/use-motion"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
@@ -249,11 +250,12 @@ export function GameHud({
   )
 }
 
-type Queued<T extends string> = { id: number; text: string; subtitle?: string; type: T; sound?: string }
+type Queued<T extends string> = { id: number; text: string; subtitle?: string; type: T; sound?: string; seats?: SeatAvatarInput[] }
 let counter = 0
 
 /**
- * Queue of full-screen announcements: `announce(text, type, { subtitle, sound, replace })`, one at a time, each for its preset's duration.
+ * Queue of full-screen announcements: `announce(text, type, { subtitle, sound, seats, replace })`, one at a time, each for its preset's duration.
+ * `seats` are the players shown with it (`seatsOf` in `lib/seat-avatar`): the viewer for "your turn", the winners for a victory.
  * `replace` drops the queued announcements of the given types (e.g. a stale "your turn"); `first` puts it at the front.
  * The current one is also read out in a polite live region, for visitors who do not see the screen.
  */
@@ -261,8 +263,8 @@ export function useAnnouncements<T extends string>(settings: Record<T, Announcem
   const [queue, setQueue] = useState<Queued<T>[]>([])
   // paused (e.g. during the opening), the queue waits without showing anything
   const current = paused ? null : (queue[0] ?? null)
-  const announce = useCallback((text: string, type: T, options: { subtitle?: string; sound?: string; replace?: T[]; first?: boolean } = {}) => {
-    const item = { id: ++counter, text, type, subtitle: options.subtitle, sound: options.sound }
+  const announce = useCallback((text: string, type: T, options: { subtitle?: string; sound?: string; seats?: SeatAvatarInput[]; replace?: T[]; first?: boolean } = {}) => {
+    const item = { id: ++counter, text, type, subtitle: options.subtitle, sound: options.sound, seats: options.seats }
     setQueue((q) => {
       const kept = options.replace ? q.filter((x) => !options.replace!.includes(x.type)) : q
       return options.first ? [item, ...kept] : [...kept, item]
@@ -281,7 +283,9 @@ export function useAnnouncements<T extends string>(settings: Record<T, Announcem
         {current && [current.text, current.subtitle].filter(Boolean).join(". ")}
       </div>
       <AnimatePresence>
-        {current && <Announcement key={current.id} text={current.text} subtitle={current.subtitle} settings={settings[current.type]} sound={current.sound} live={false} />}
+        {current && (
+          <Announcement key={current.id} text={current.text} subtitle={current.subtitle} settings={settings[current.type]} sound={current.sound} seats={current.seats} live={false} />
+        )}
       </AnimatePresence>
     </>
   )

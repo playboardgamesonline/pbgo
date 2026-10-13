@@ -95,3 +95,18 @@ export function readableOn(background: string): string {
 export function seatAvatar({ nickname, color, imageUrl }: SeatAvatarInput): SeatAvatar {
   return { initial: initialOf(nickname), color, ink: readableOn(color), imageUrl: imageUrl?.trim() || null }
 }
+
+type Seated = { id: string; nickname: string; avatarUrl?: string }
+
+/** The colour of a seat: the palette (the skin's `playerColors`) in seat order, wrapping around. A player who is not seated gets the first one. */
+export function seatColor(players: readonly { id: string }[], id: string, palette: readonly string[]): string {
+  return palette[Math.max(0, players.findIndex((player) => player.id === id)) % palette.length]!
+}
+
+/** The seat label inputs of some players, in the order of `ids` (a full table, the winners…). An id that is not seated is skipped. */
+export function seatsOf(players: readonly Seated[], ids: readonly string[], palette: readonly string[]): SeatAvatarInput[] {
+  return ids.flatMap((id) => {
+    const player = players.find((candidate) => candidate.id === id)
+    return player ? [{ nickname: player.nickname, color: seatColor(players, id, palette), imageUrl: player.avatarUrl ?? null }] : []
+  })
+}

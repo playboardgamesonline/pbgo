@@ -33,15 +33,21 @@ const defaultPointsText = (points: number) => fill(DEFAULT_SKIN.texts.pointsShor
  * Victory sentence picked from the skin's phrases with a deterministic hash (everyone sees the same one).
  * Template `{pseudo}` / `{points}`: the announcement keeps what comes before `{pseudo}`, the names and points go in the subtitle.
  * `pointsText` writes the winner's points in that subtitle: pass `(points) => t("pointsShort", { points })` for the visitor's language (default: French).
+ * `winners`: their player ids, in ranking order (for the medallions of the victory announcement, `seatsOf`).
  */
-export function winnerAnnouncement(game: PublicGame, view: CoreView, phrases: string[] = DEFAULT_SKIN.victoryPhrases, pointsText = defaultPointsText) {
+export function winnerAnnouncement(
+  game: PublicGame,
+  view: CoreView,
+  phrases: string[] = DEFAULT_SKIN.victoryPhrases,
+  pointsText = defaultPointsText,
+): { phrase: string; detail: string; winners: string[] } {
   const results = view.results
-  if (!results) return { phrase: "", detail: "" }
+  if (!results) return { phrase: "", detail: "", winners: [] }
   const winners = results.players.filter((j) => results.winners.includes(j.playerId))
   const template = phrases[hash(game.code + (view.log?.length ?? 0)) % phrases.length] ?? ""
   const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).replace(/[\s:,–-]+$/, "").trim()
   const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
-  return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}` }
+  return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}`, winners: winners.map((v) => v.playerId) }
 }
 
 function Details({ j, large, centered }: { j: PlayerResult; large?: boolean; centered?: boolean }) {

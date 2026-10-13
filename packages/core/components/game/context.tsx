@@ -3,6 +3,7 @@
 import { createContext, useContext, useMemo } from "react"
 import type { CoreView } from "../../lib/binding"
 import type { PublicGame } from "../../lib/game-types"
+import { seatColor } from "../../lib/seat-avatar"
 import { useSkin } from "../skin-provider"
 
 export type GameContextValue<V extends CoreView = CoreView> = {
@@ -23,7 +24,7 @@ export function GameProvider<V extends CoreView>({ game, view, children }: { gam
       game,
       view,
       nickname: (id) => game.players.find((j) => j.id === id)?.nickname ?? "?",
-      color: (id) => playerColors[Math.max(0, game.players.findIndex((j) => j.id === id)) % playerColors.length]!,
+      color: (id) => seatColor(game.players, id, playerColors),
       avatarUrl: (id) => game.players.find((j) => j.id === id)?.avatarUrl ?? null,
     }),
     [game, view, playerColors],

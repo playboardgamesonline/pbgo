@@ -50,13 +50,31 @@ export type Author = { name: string; signature?: string; url: string }
 export type SettingsDefaults = Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> }
 
 /**
- * How a game tunes the shared in-game UI (ticker, announcements, takeover pill, chat, game over): its look, never its logic.
+ * How a game tunes the shared in-game UI: its look, never its logic. The announcements and the seat label have a group each;
+ * the ticker, the takeover pill, the chat and the toolbar have no setting, they take the game's skin.
  * Every field is optional and a CSS value, so a game can point at its own tokens (`"var(--accent-game)"`). Nothing set: the
  * look the game's skin already gives the UI (`--foreground`, `--surface`, `--accent-game`, `--font-accent`…).
  */
 export type UiTheme = {
   /** "calm" (default): fades only · "lively": also confetti, springs and the emoji burst. Reduced motion always wins. */
   motion?: "calm" | "lively"
+  /** The full-screen announcements (start, round, your turn, victory): their type, colours, veil over the table, hairlines and confetti */
+  announcement?: {
+    /** Font of the title and the subtitle: a CSS font-family value (default: the skin's accent font, else its title font) */
+    font?: string
+    /** Colour of the letters: a CSS colour (default: white) */
+    color?: string
+    /** Line drawn around the letters: a CSS colour, null for none (default: gold) */
+    outline?: string | null
+    /** Tint of the shadow under the letters: a CSS colour (default: black) */
+    shadow?: string
+    /** Colour of the veil that dims the table behind the text: a CSS colour (default: black) */
+    veil?: string
+    /** The two hairlines that frame the title: a CSS colour, null for none (default: gold) */
+    rule?: string | null
+    /** Confetti of the victory, lively motion only: its colour and shape, null for none (default: gold stars) */
+    confetti?: { color: string; shape: "star" | "dot" } | null
+  }
   /** The seat label: the avatar and the nickname next to it, on the table, in the strip, the lobby, the announcements and the game over */
   seat?: {
     /** "disc" (default) or "square" (rounded corners) */

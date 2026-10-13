@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { INK_DARK, INK_LIGHT, initialOf, readableOn, seatAvatar } from "./seat-avatar"
+import { INK_DARK, INK_LIGHT, initialOf, readableOn, seatAvatar, seatColor, seatsOf } from "./seat-avatar"
 
 describe("initialOf", () => {
   it("is the first letter, upper-cased", () => {
@@ -104,5 +104,48 @@ describe("seatAvatar", () => {
     expect(seatAvatar({ nickname: "Bob", color: "#4f6478", imageUrl: "https://cdn.example/bob.webp" }).imageUrl).toBe("https://cdn.example/bob.webp")
     expect(seatAvatar({ nickname: "Bob", color: "#4f6478", imageUrl: "  " }).imageUrl).toBeNull()
     expect(seatAvatar({ nickname: "Bob", color: "#4f6478", imageUrl: null }).imageUrl).toBeNull()
+  })
+})
+
+const PALETTE = ["#a8603a", "#4f6478", "#6f5b99"]
+const TABLE = [
+  { id: "p1", nickname: "alice" },
+  { id: "p2", nickname: "Bob", avatarUrl: "https://cdn.example/bob.webp" },
+  { id: "p3", nickname: "Camille" },
+  { id: "p4", nickname: "Dan" },
+]
+
+describe("seatColor", () => {
+  it("follows the seat order", () => {
+    expect(seatColor(TABLE, "p1", PALETTE)).toBe("#a8603a")
+    expect(seatColor(TABLE, "p2", PALETTE)).toBe("#4f6478")
+    expect(seatColor(TABLE, "p3", PALETTE)).toBe("#6f5b99")
+  })
+
+  it("wraps around the palette when there are more seats than colours", () => {
+    expect(seatColor(TABLE, "p4", PALETTE)).toBe("#a8603a")
+  })
+
+  it("gives the first colour to someone who is not seated", () => {
+    expect(seatColor(TABLE, "ghost", PALETTE)).toBe("#a8603a")
+    expect(seatColor([], "p1", PALETTE)).toBe("#a8603a")
+  })
+})
+
+describe("seatsOf", () => {
+  it("builds the inputs of the seat label in the order asked", () => {
+    expect(seatsOf(TABLE, ["p3", "p1"], PALETTE)).toEqual([
+      { nickname: "Camille", color: "#6f5b99", imageUrl: null },
+      { nickname: "alice", color: "#a8603a", imageUrl: null },
+    ])
+  })
+
+  it("carries the account picture of a player", () => {
+    expect(seatsOf(TABLE, ["p2"], PALETTE)).toEqual([{ nickname: "Bob", color: "#4f6478", imageUrl: "https://cdn.example/bob.webp" }])
+  })
+
+  it("skips an id that is not seated", () => {
+    expect(seatsOf(TABLE, ["ghost", "p2"], PALETTE)).toHaveLength(1)
+    expect(seatsOf(TABLE, [], PALETTE)).toEqual([])
   })
 })
