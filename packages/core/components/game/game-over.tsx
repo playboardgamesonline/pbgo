@@ -222,7 +222,7 @@ export function GameOver({
                   ) : (
                     <CrownIcon aria-hidden className="relative z-10 -mt-1 size-9 fill-accent-game text-accent-game drop-shadow-[0_0_12px_var(--accent-game)]" />
                   )}
-                  <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: color(winners[0]!.playerId) }}>
+                  <p className="ph-mask font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: color(winners[0]!.playerId) }}>
                     {names}
                   </p>
                   <p className="font-display text-2xl text-accent-game tabular-nums">
@@ -245,7 +245,7 @@ export function GameOver({
                       <li key={j.playerId} className="space-y-2 py-3.5">
                         <div className="flex items-baseline gap-2">
                           <span className="font-display text-lg text-foreground/45 tabular-nums">{j.rank}.</span>
-                          <span className="min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: color(j.playerId) }}>
+                          <span className="ph-mask min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: color(j.playerId) }}>
                             {info(j.playerId)?.nickname}
                           </span>
                           <span className="font-display text-3xl leading-none text-foreground/90 tabular-nums">
