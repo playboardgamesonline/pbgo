@@ -179,8 +179,9 @@ export function GameHud({
   const { Logo } = useBinding()
   const { game } = useGame()
   const { logo, title } = useSiteSettings()
+  // The screen is what is left above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-background text-foreground">
+    <main className="relative h-[calc(100dvh-var(--consent-h,0px))] w-full overflow-hidden bg-background text-foreground">
       <div className="absolute inset-0">{children}</div>
       {ticker && (
         <div

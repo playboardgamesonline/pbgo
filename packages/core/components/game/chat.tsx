@@ -137,7 +137,10 @@ export function Chat({ className }: { className?: string }) {
   return (
     <div
       // what players write is theirs: the recordings and the autocapture leave the whole chat out (`ph-no-capture`)
-      className={cn("ph-no-capture pointer-events-none fixed right-5 bottom-5 z-30 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col gap-2", className)}
+      className={cn(
+        "ph-no-capture pointer-events-none fixed right-5 bottom-[calc(var(--spacing)*5+var(--consent-h,0px))] z-30 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col gap-2",
+        className,
+      )}
       onPointerEnter={() => setActive(true)}
       onPointerLeave={() => setActive(false)}
     >

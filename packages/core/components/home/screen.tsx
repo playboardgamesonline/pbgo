@@ -39,8 +39,12 @@ export function Screen({
   const t = useText()
   // height of the bottom decor = displayed width (114vw) / image ratio
   const decorHeight = decor.bottom?.ratio ? `calc(114vw / ${decor.bottom.ratio})` : "0px"
+  // The screen is what is left above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-background" style={{ "--decor-h": decorHeight } as React.CSSProperties}>
+    <main
+      className="relative flex h-[calc(100dvh-var(--consent-h,0px))] flex-col overflow-hidden bg-background"
+      style={{ "--decor-h": decorHeight } as React.CSSProperties}
+    >
       {decor.background && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={decor.background} alt="" aria-hidden draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover select-none" />

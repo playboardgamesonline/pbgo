@@ -175,7 +175,7 @@ export function GameOver({
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-28">
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-[calc(var(--spacing)*28+var(--consent-h,0px))]">
         <AnimatePresence mode="popLayout">
           {isOpen && (
             <motion.section
@@ -277,7 +277,7 @@ export function GameOver({
           <span className="underline underline-offset-4">{isOpen ? t("hideScores") : t("showScores")}</span>
         </button>
       </div>
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center">{replayButton}</div>
+      <div className="pointer-events-none fixed inset-x-0 bottom-[var(--consent-h,0px)] z-50 flex justify-center">{replayButton}</div>
     </>
   )
 }

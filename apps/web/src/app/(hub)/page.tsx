@@ -25,8 +25,9 @@ export default function Home() {
   const games = listedGames()
   const first = games[0]
 
+  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 w-full max-w-page items-center justify-between px-gutter">
           <Link href="/" className="flex items-center gap-2">
