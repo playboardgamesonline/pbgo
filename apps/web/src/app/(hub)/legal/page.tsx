@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Legal notice", alternates: { canonic
 const lead = "text-foreground"
 
 /**
- * What the site measures, in the words of the cookie banner. Only on a deployment that has the analytics key: without it nothing
- * below happens, and the notice must not say it does.
+ * What the site measures, in full: the cookie banner is a single line that says the essentials and links here. Only on a
+ * deployment that has the analytics key: without it nothing below happens, and the notice must not say it does.
  */
 const STATISTICS = [
   "We use PostHog, on its European cloud, to see how the site is used and to fix what breaks. IP addresses are discarded. Two kinds of counts run whatever you choose, and neither stores anything on your device:",
@@ -66,7 +66,7 @@ const SECTIONS: { id?: string; title: string; body: React.ReactNode[] }[] = [
     ],
   },
   {
-    // The banner's "More" link lands here (`/legal#cookies`)
+    // The banner's "Details" link lands here (`/legal#cookies`)
     id: "cookies",
     title: "Cookies, storage and statistics",
     body: [
@@ -79,7 +79,7 @@ const SECTIONS: { id?: string; title: string; body: React.ReactNode[] }[] = [
 
 export default function Legal() {
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-reading flex-col gap-8 px-gutter py-section">
+    <main className="mx-auto flex min-h-[calc(100svh-var(--consent-h,0px))] w-full max-w-reading flex-col gap-8 px-gutter py-section">
       <div className="flex flex-col gap-2">
         <Link href="/" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
           {SITE_NAME}
