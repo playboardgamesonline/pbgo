@@ -17,6 +17,7 @@ import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
 import { useApi } from "@pbgo/core/lib/binding-context"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
+import { seatsOf } from "@pbgo/core/lib/seat-avatar"
 import { Button } from "@pbgo/ui/game/button"
 
 const Scene = dynamic(() => import("../game3d/scene").then((m) => m.Scene), { ssr: false })
@@ -92,7 +93,7 @@ function RoundStatus() {
 function Table({ onUpdate, onLeave }: Props) {
   const t = useText()
   const api = useApi()
-  const { victoryPhrases, hostIcon } = useSkin()
+  const { victoryPhrases, hostIcon, playerColors } = useSkin()
   const { game, view, color, avatarUrl } = useGame<PlayerView>()
   const seat = useSeatTheme()
   const settings = useAnnouncementSettings()
@@ -104,21 +105,24 @@ function Table({ onUpdate, onLeave }: Props) {
   const meId = view.me?.id ?? null
   const myTurn = view.phase === "playing" && !!meId && view.activePlayerId === meId
   const ended = view.phase === "over"
+  // The players shown with an announcement: the viewer for "your turn", the winners for the victory
+  const seatsFor = (ids: readonly string[]) => seatsOf(game.players, ids, playerColors)
 
   useEffect(() => {
     const before = previous.current
     previous.current = { round: view.round, active: view.activePlayerId, phase: view.phase }
     if (view.phase === "over") {
       if (before?.phase !== "over") {
-        const { phrase, detail } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }))
-        announce(phrase, "victory", { subtitle: detail, sound: "victory" })
+        const { phrase, detail, winners } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }))
+        announce(phrase, "victory", { subtitle: detail, sound: "victory", seats: seatsFor(winners) })
         setScoresOpen(true)
       }
       return
     }
     if (!before || before.phase === "over") announce("C'est parti !", "start", { subtitle: `${view.options.rounds} manche${view.options.rounds > 1 ? "s" : ""}` })
-    else if (before.round !== view.round) announce(`Manche ${view.round}`, "start")
-    if (myTurn && (before?.active !== view.activePlayerId || before?.round !== view.round)) announce(t("yourTurn"), "turn", { sound: "turn", replace: ["turn"] })
+    else if (before.round !== view.round) announce(`Manche ${view.round}`, "round")
+    if (myTurn && (before?.active !== view.activePlayerId || before?.round !== view.round))
+      announce(t("yourTurn"), "turn", { sound: "turn", replace: ["turn"], seats: seatsFor(meId ? [meId] : []) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.phase, view.round, view.activePlayerId])
 
@@ -142,8 +146,9 @@ function Table({ onUpdate, onLeave }: Props) {
     "Replay",
     {
       "Start announcement": button(() => announce("C'est parti !", "start", { subtitle: "3 manches" })),
-      "Your turn announcement": button(() => announce(t("yourTurn"), "turn")),
-      "Victory announcement": button(() => announce("Victoire de", "victory", { subtitle: "Oré · 9 pts" })),
+      "Round announcement": button(() => announce("Manche 2", "round")),
+      "Your turn announcement": button(() => announce(t("yourTurn"), "turn", { seats: seatsFor(meId ? [meId] : []) })),
+      "Victory announcement": button(() => announce("Victoire de", "victory", { subtitle: "Oré · 9 pts", seats: seatsFor(game.players.slice(0, 1).map((p) => p.id)) })),
     },
     { order: 1 },
     debugTab("TRANSITION"),
