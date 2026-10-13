@@ -10,6 +10,7 @@ import {
   type ChatMessage,
   type ChatReaction,
 } from "../../../../../lib/chat"
+import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { readGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
@@ -85,5 +86,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
 
   const result = await supabaseAdmin().channel(chatChannel(game.slug, row.code)).httpSend(event, payload)
   if (!result.success) throw new Error(`Chat broadcast failed (${result.status}): ${result.error}`)
+  // Only that a message or a reaction was sent: never its text or which reaction
+  trackAfter("chat_message_sent", playerId, { game: game.slug, kind: event === REACTION_SERVER_EVENT ? "reaction" : "text" })
   return payload
 })

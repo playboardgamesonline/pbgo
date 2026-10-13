@@ -1,5 +1,6 @@
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
+import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle } from "../../../../../server/api"
 import { loadSetupData, newGame, publicGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
@@ -17,5 +18,6 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     if (row.players.length < minPlayers) throw new ApiError("NOT_ENOUGH_PLAYERS")
     return newGame(game, row, data)
   })
+  trackAfter("game_started", id, { game: game.slug, players: row.players.length, options: row.options })
   return publicGame(game, row, id)
 })
