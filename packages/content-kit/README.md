@@ -26,6 +26,7 @@ await runSeedCli({ slug: SLUG, projectId: PROJECT_ID, dataset: DATASET, envFile:
 | `data/art-manifest.ts` | `ART_SLOTS: ArtSlot[]`, every image the content needs and where it goes |
 | `data/*.test.ts`, `seed.test.ts` | The game's data, against the Studio's own types and through the runner |
 | `tsconfig.json` | Typechecks `content/` on its own (`tsc -p content`) |
+| `parity/` (optional) | Tests of the seed against the game's engine, read by Vitest only, with their own `tsconfig.json` (`tsc -p content/parity`). Exploding Kittens |
 
 Everything else (the options, the token, the plan, the art, the report) is the kit's. A game never talks to Sanity itself.
 

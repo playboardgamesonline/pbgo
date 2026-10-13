@@ -63,6 +63,7 @@ games/<slug>/content/
   config.ts            slug, Sanity project id, dataset (fixed), env file
   tsconfig.json        typechecks content/ on its own (tsc -p content)
   seed.test.ts         the paths of the command that end before the token is read
+  parity/              optional, Exploding Kittens: the seed against the game's engine, with its own tsconfig.json
   data/                WHAT to write, specific to the game
     index.ts           buildSeedDocs(): every document of the game
     suits.ts cards.ts bonus-tiles.ts game.ts rules.ts settings.ts          Hanabi
@@ -238,10 +239,11 @@ In each game:
 - `content/data/schema.test.ts` loads the real Studio configuration and checks every seed document against the Studio's own types (field names, option lists, validation rules), and every art slot against a real image field. A field renamed or a rule tightened in the Studio fails here, not in front of an editor.
 - `content/data/run.test.ts` runs the game's seed and art slots through the kit's runner against an in-memory dataset: drafts only, nothing the second time, nothing after a publication, art placed by slot.
 - `content/seed.test.ts` runs the command itself for the paths that end before the token is read.
+- Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the `kind` of each, the kinds the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
 
 Each guarantee was checked by breaking it on purpose and watching a test fail.
 
-Code in the kit and in `content/` runs directly with Node (type stripping, no build): relative imports carry their `.ts` extension, type-only imports use `import type`, and only syntax that can be erased is used (`erasableSyntaxOnly`). The root `pnpm lint` does not cover game packages or the kit; they are linted with the shared config when needed.
+Code in the kit and in `content/` runs directly with Node (type stripping, no build): relative imports carry their `.ts` extension, type-only imports use `import type`, and only syntax that can be erased is used (`erasableSyntaxOnly`; the tests in `content/parity/` are the exception, Vitest alone reads them). The root `pnpm lint` does not cover game packages or the kit; they are linted with the shared config when needed.
 
 ## Starting the pipeline for another game
 

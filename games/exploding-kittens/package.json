@@ -12,7 +12,7 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit && tsc --noEmit -p content",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p content && tsc --noEmit -p content/parity",
     "test": "vitest run",
     "content:seed": "node --disable-warning=ExperimentalWarning content/seed.ts",
     "dev:studio": "pnpm --filter exploding-kittens-studio dev",
@@ -29,6 +29,7 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@exploding-kittens/engine": "workspace:*",
     "@pbgo/content-kit": "workspace:*",
     "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
