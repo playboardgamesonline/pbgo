@@ -203,6 +203,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 - **React effects** depending on objects recreated on each render (filtered view, settings) → depend on a stable key (string), otherwise timers get cancelled in a loop.
 - **Costly 2D canvas** (`shadowBlur` per frame) → pre-render the sprites.
 - **WebGL capture**: `preserveDrawingBuffer: true` + a dedicated camera; hide the objects attached to the camera.
+- **Nicknames in the board's HTML** (analytics): players who accepted cookies have their session recorded, with every input masked and the nicknames printed by core (`ph-mask`). A nickname the game prints itself in HTML (the 3D canvas is not recorded) needs the class `ph-mask`, and `ph-no-capture` as well when it sits inside a button or a link: a click is captured with the text of the element. Table codes never go into an event (`scrub.ts` removes them from addresses and titles).
 - **Booklet texts**: the AI rephrases them (copyright); Oré can paste the official text in Sanity directly.
 - **Git locks**: if the AI cannot delete files in the folder, git may leave `.lock` files → allow deletion or remove them by hand.
 
