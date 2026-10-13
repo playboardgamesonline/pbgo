@@ -1,0 +1,28 @@
+{
+  "name": "@pbgo/content-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The seed pipeline of a game's Sanity content: drafts only, idempotent, art included. A game keeps its data and config in games/<slug>/content.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./seed": "./src/seed.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pbgo/core": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
+    "@sanity/client": "catalog:",
+    "sharp": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

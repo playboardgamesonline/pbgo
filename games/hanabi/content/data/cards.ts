@@ -1,6 +1,6 @@
+import type { SeedDoc } from "@pbgo/content-kit"
 import { RANKS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import type { Rank, SuitKey } from "../../apps/studio/schemaTypes/constants.ts"
-import type { SeedDoc } from "../lib/types.ts"
 import { directionOf } from "./suits.ts"
 
 /** Copies of each value in a firework built upwards: three 1s, two each of 2, 3 and 4, one 5. */

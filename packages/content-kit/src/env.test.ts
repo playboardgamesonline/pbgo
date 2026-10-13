@@ -58,42 +58,42 @@ describe("parseEnv", () => {
 })
 
 describe("readToken", () => {
-  const NAME = "SANITY_API_WRITE_TOKEN_HANABI"
+  const NAME = "SANITY_API_WRITE_TOKEN_SKYJO"
   const SECRET = "sk-test-secret-value-1234567890"
 
   const fileWith = async (content: string) => join(await temp.create({ ".env.local": content }), ".env.local")
 
   it("reads the token of the game from the environment", async () => {
     const envFile = await fileWith("")
-    expect(readToken({ slug: "hanabi", envFile, env: { [NAME]: SECRET } })).toBe(SECRET)
+    expect(readToken({ slug: "skyjo", envFile, env: { [NAME]: SECRET } })).toBe(SECRET)
   })
 
   it("trims it", async () => {
     const envFile = await fileWith("")
-    expect(readToken({ slug: "hanabi", envFile, env: { [NAME]: `  ${SECRET}\n` } })).toBe(SECRET)
+    expect(readToken({ slug: "skyjo", envFile, env: { [NAME]: `  ${SECRET}\n` } })).toBe(SECRET)
   })
 
   it("reads it from the env file when the environment has none", async () => {
     const envFile = await fileWith(`OTHER=1\n${NAME}="${SECRET}"\n`)
-    expect(readToken({ slug: "hanabi", envFile, env: {} })).toBe(SECRET)
+    expect(readToken({ slug: "skyjo", envFile, env: {} })).toBe(SECRET)
   })
 
   it("prefers the environment to the file", async () => {
     const envFile = await fileWith(`${NAME}=from-the-file`)
-    expect(readToken({ slug: "hanabi", envFile, env: { [NAME]: "from-the-environment" } })).toBe("from-the-environment")
+    expect(readToken({ slug: "skyjo", envFile, env: { [NAME]: "from-the-environment" } })).toBe("from-the-environment")
   })
 
   it("falls back to the file when the variable of the environment is empty", async () => {
     const envFile = await fileWith(`${NAME}=from-the-file`)
-    expect(readToken({ slug: "hanabi", envFile, env: { [NAME]: "   " } })).toBe("from-the-file")
+    expect(readToken({ slug: "skyjo", envFile, env: { [NAME]: "   " } })).toBe("from-the-file")
   })
 
   it("uses the variable of the game, not another game's", async () => {
     const envFile = await fileWith(`SANITY_API_WRITE_TOKEN_COURTISANS=not-mine\n${NAME}=mine`)
-    expect(readToken({ slug: "hanabi", envFile, env: {} })).toBe("mine")
-    expect(() => readToken({ slug: "hanabi", envFile, env: { SANITY_API_WRITE_TOKEN_COURTISANS: "not-mine" } })).not.toThrow()
+    expect(readToken({ slug: "skyjo", envFile, env: {} })).toBe("mine")
+    expect(() => readToken({ slug: "skyjo", envFile, env: { SANITY_API_WRITE_TOKEN_COURTISANS: "not-mine" } })).not.toThrow()
     const onlyOthers = await fileWith("SANITY_API_WRITE_TOKEN_COURTISANS=not-mine")
-    expect(() => readToken({ slug: "hanabi", envFile: onlyOthers, env: { SANITY_API_WRITE_TOKEN_COURTISANS: "not-mine" } })).toThrow(`${NAME} is not set`)
+    expect(() => readToken({ slug: "skyjo", envFile: onlyOthers, env: { SANITY_API_WRITE_TOKEN_COURTISANS: "not-mine" } })).toThrow(`${NAME} is not set`)
   })
 
   it("names the variable of a slug with a dash the way the admin does", async () => {
@@ -104,23 +104,23 @@ describe("readToken", () => {
   describe("when there is no token", () => {
     it("says which variable is missing and where it looked", async () => {
       const envFile = await fileWith("OTHER=1")
-      expect(() => readToken({ slug: "hanabi", envFile, env: {} })).toThrow(`${NAME} is not set (looked in the environment and in ${envFile})`)
+      expect(() => readToken({ slug: "skyjo", envFile, env: {} })).toThrow(`${NAME} is not set (looked in the environment and in ${envFile})`)
     })
 
     it("treats a missing env file as an empty one", async () => {
       const envFile = join(await temp.create(), "absent.env")
-      expect(() => readToken({ slug: "hanabi", envFile, env: {} })).toThrow(`${NAME} is not set`)
+      expect(() => readToken({ slug: "skyjo", envFile, env: {} })).toThrow(`${NAME} is not set`)
     })
 
     it("does not accept an empty value in the file", async () => {
       const envFile = await fileWith(`${NAME}=`)
-      expect(() => readToken({ slug: "hanabi", envFile, env: {} })).toThrow("is not set")
+      expect(() => readToken({ slug: "skyjo", envFile, env: {} })).toThrow("is not set")
     })
 
     it("says so when the file cannot be read, without hiding it behind a missing token", async () => {
       const dir = await temp.create()
       await mkdir(join(dir, "folder.env"))
-      expect(() => readToken({ slug: "hanabi", envFile: join(dir, "folder.env"), env: {} })).toThrow(`Cannot read ${join(dir, "folder.env")}`)
+      expect(() => readToken({ slug: "skyjo", envFile: join(dir, "folder.env"), env: {} })).toThrow(`Cannot read ${join(dir, "folder.env")}`)
     })
   })
 
@@ -130,7 +130,7 @@ describe("readToken", () => {
       await mkdir(join(dir, "folder.env"))
       const error = (() => {
         try {
-          readToken({ slug: "hanabi", envFile: join(dir, "folder.env"), env: { OTHER: SECRET } })
+          readToken({ slug: "skyjo", envFile: join(dir, "folder.env"), env: { OTHER: SECRET } })
         } catch (caught) {
           return caught as Error
         }
@@ -143,7 +143,7 @@ describe("readToken", () => {
       const envFile = await fileWith(`SOMETHING_ELSE=${SECRET}`)
       const error = (() => {
         try {
-          readToken({ slug: "hanabi", envFile, env: {} })
+          readToken({ slug: "skyjo", envFile, env: {} })
         } catch (caught) {
           return caught as Error
         }
@@ -155,7 +155,7 @@ describe("readToken", () => {
 
     it("leaves the file it reads as it was", async () => {
       const envFile = await fileWith(`${NAME}=${SECRET}`)
-      readToken({ slug: "hanabi", envFile, env: {} })
+      readToken({ slug: "skyjo", envFile, env: {} })
       expect(await readFile(envFile, "utf8")).toBe(`${NAME}=${SECRET}`)
     })
   })
@@ -165,7 +165,7 @@ describe("readToken", () => {
     const previous = process.env[NAME]
     process.env[NAME] = "from-process"
     try {
-      expect(readToken({ slug: "hanabi", envFile })).toBe("from-process")
+      expect(readToken({ slug: "skyjo", envFile })).toBe("from-process")
     } finally {
       if (previous === undefined) delete process.env[NAME]
       else process.env[NAME] = previous

@@ -1,8 +1,7 @@
+import { localeString } from "@pbgo/content-kit"
+import type { Localized, SeedDoc } from "@pbgo/content-kit"
 import { RANKS, RATING_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import type { Rank, RatingKey } from "../../apps/studio/schemaTypes/constants.ts"
-import { localeString } from "../lib/locale.ts"
-import type { Localized } from "../lib/locale.ts"
-import type { SeedDoc } from "../lib/types.ts"
 
 type RatingSpec = { minScore: number; label: Localized; line: Localized }
 

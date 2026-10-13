@@ -1,7 +1,6 @@
+import { localeString, localeText } from "@pbgo/content-kit"
+import type { LanguageId, Localized, SeedDoc } from "@pbgo/content-kit"
 import { BONUS_TILE_NUMBERS } from "../../apps/studio/schemaTypes/constants.ts"
-import { localeString, localeText } from "../lib/locale.ts"
-import type { LanguageId, Localized } from "../lib/locale.ts"
-import type { SeedDoc } from "../lib/types.ts"
 import { TILE_SPECS } from "./bonus-tiles.ts"
 import { ratingScale } from "./game.ts"
 

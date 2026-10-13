@@ -1,5 +1,5 @@
-import { localeString } from "../lib/locale.ts"
-import type { SeedDoc } from "../lib/types.ts"
+import { localeString } from "@pbgo/content-kit"
+import type { SeedDoc } from "@pbgo/content-kit"
 
 export const SETTINGS_ID = "settings"
 

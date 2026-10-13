@@ -1,0 +1,10 @@
+// The runner side, for a game's `content/seed.ts` and its command tests: reads the options and the token, talks to Sanity, writes drafts.
+export { HELP, parseCli, UsageError } from "./cli.ts"
+export type { CliOptions } from "./cli.ts"
+export { readToken } from "./env.ts"
+export { formatReport } from "./report.ts"
+export { run } from "./run.ts"
+export type { RunOptions, RunResult } from "./run.ts"
+export { runSeedCli } from "./seed-cli.ts"
+export type { SeedConfig } from "./seed-cli.ts"
+export { connect } from "./store.ts"
