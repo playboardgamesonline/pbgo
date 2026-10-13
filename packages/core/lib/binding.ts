@@ -52,19 +52,9 @@ export type SettingsDefaults = Partial<Omit<SiteSettings, "theme">> & { theme?: 
 /**
  * How a game tunes the shared in-game UI (ticker, announcements, takeover pill, chat, game over): its look, never its logic.
  * Every field is optional and a CSS value, so a game can point at its own tokens (`"var(--accent-game)"`). Nothing set: the
- * neutral black and white look of the platform. `lib/ui-theme.ts` turns it into the `--hud-*` variables of `GameHud`.
+ * look the game's skin already gives the UI (`--foreground`, `--surface`, `--accent-game`, `--font-accent`…).
  */
 export type UiTheme = {
-  /** Current player, primary button, winner line · default white */
-  accent?: string
-  /** Text on top of `accent` · default black */
-  onAccent?: string
-  /** Ticker, takeover pill, chat, game over · default neutral-950 */
-  surface?: string
-  /** Announcements and the game-over title · default Geist */
-  titleFont?: string
-  /** Scrim behind full-screen overlays · default black at 60% */
-  backdrop?: string
   /** "calm" (default): fades only · "lively": also confetti, springs and the emoji burst. Reduced motion always wins. */
   motion?: "calm" | "lively"
 }
@@ -88,7 +78,7 @@ export type GameBinding = {
   /** Texts of the game in the languages other than French */
   I18N?: Partial<Record<Locale, GameI18n>>
   DEFAULT_SKIN?: SkinDefaults
-  /** Look of the shared in-game UI; absent: neutral */
+  /** How the shared in-game UI is tuned to this game; absent: the look the game's skin gives it (`--foreground`, `--surface`, `--accent-game`…) */
   UI_THEME?: UiTheme
   SETTINGS_DEFAULTS?: SettingsDefaults
   /** French messages of the engine's error codes */

@@ -4,7 +4,6 @@ import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { useId, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import type { PendingSeat, PendingSeats } from "../../lib/pending-seats"
-import { HUD_TEXT, HUD_TRANSITION, PlayerDot } from "./hud-ui"
 
 export type StripSeat = PendingSeat & { /** The player's color on the board */ color: string }
 export type StripData = Omit<PendingSeats, "seats"> & { seats: StripSeat[] }
@@ -28,13 +27,13 @@ function SeatChip({ seat, labels }: { seat: StripSeat; labels: StripLabels }) {
       title={`${seat.nickname} · ${state}`}
       className={cn(
         "inline-flex max-w-36 min-w-0 items-center gap-1.5 text-sm short:text-xs",
-        seat.waiting ? "text-hud-foreground" : "text-hud-muted",
+        seat.waiting ? "text-foreground" : "text-foreground/60",
         seat.waiting && seat.away && "opacity-50",
       )}
     >
-      <PlayerDot color={seat.color} />
+      <span aria-hidden className="size-2.5 shrink-0 rounded-full ring-1 ring-white/40" style={{ backgroundColor: seat.color }} />
       <span className="truncate">{seat.nickname}</span>
-      {seat.me && <span className="shrink-0 text-hud-muted">{labels.you}</span>}
+      {seat.me && <span className="shrink-0 text-foreground/60">{labels.you}</span>}
       {!seat.waiting && <CheckIcon aria-hidden className="size-3.5 shrink-0" />}
       <span className="sr-only">{state}</span>
     </span>
@@ -58,10 +57,10 @@ function CollapsedStrip({ strip, labels, defaultOpen }: { strip: StripData; labe
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         onClick={() => setPinned((p) => !p)}
-        className={cn(HUD_TRANSITION, "inline-flex cursor-pointer items-center gap-1 text-sm text-hud-muted hover:text-hud-foreground short:text-xs")}
+        className="inline-flex cursor-pointer items-center gap-1 text-sm text-foreground/60 transition-colors duration-200 hover:text-foreground motion-reduce:transition-none short:text-xs"
       >
         {labels.ready}
-        <ChevronDownIcon aria-hidden className={cn("size-3.5 transition-transform duration-fast ease-standard motion-reduce:transition-none", open && "rotate-180")} />
+        <ChevronDownIcon aria-hidden className={cn("size-3.5 transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")} />
       </button>
       {open && (
         <ul id={listId} aria-label={labels.players} className="mt-1.5 flex max-h-40 flex-col items-end gap-1 overflow-y-auto pr-1 short:max-h-24">
@@ -77,13 +76,14 @@ function CollapsedStrip({ strip, labels, defaultOpen }: { strip: StripData; labe
 }
 
 /**
- * Seat by seat, who a simultaneous step still waits for. Pure presentation, no game context: `PlayersStrip` feeds it from the
- * game, `/design` with samples. Up to 8 seats every player is a chip, beyond that it collapses to "n/N ready"
- * (`defaultOpen`: with the full list already showing, as `/design` draws it).
+ * Seat by seat, who a simultaneous step still waits for, in the ticker's own look (it inherits the text color and shadow of the
+ * banner it sits in). Pure presentation, no game context: `PlayersStrip` feeds it from the game, `/design` with samples. Up to 8
+ * seats every player is a chip, beyond that it collapses to "n/N ready" (`defaultOpen`: with the full list already showing, as
+ * `/design` draws it).
  */
 export function PlayersStripView({ strip, labels, className, defaultOpen = false }: { strip: StripData; labels: StripLabels; className?: string; defaultOpen?: boolean }) {
   return (
-    <div className={cn(HUD_TEXT, className)}>
+    <div className={className}>
       {strip.collapsed ? (
         <CollapsedStrip strip={strip} labels={labels} defaultOpen={defaultOpen} />
       ) : (

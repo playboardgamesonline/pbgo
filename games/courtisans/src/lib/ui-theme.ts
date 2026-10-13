@@ -1,14 +1,9 @@
 import type { UiTheme } from "@pbgo/core/lib/binding"
 
 /**
- * Look of the shared in-game UI (scores, announcements, ticker, takeover, chat): the gold of the banquet on the deep navy of
- * its skin, announcements in the accent font, lively motion (confetti, springs, emoji burst). Values are CSS strings, so the
- * colors follow the skin edited in the admin (Visual).
+ * Look of the shared in-game UI (announcements, ticker, takeover, chat, game over): the banquet. The colors and fonts come from
+ * the skin edited in the admin (Visual), so only what the skin cannot say is set here: lively motion (confetti, springs, emoji burst).
  */
 export const UI_THEME: UiTheme = {
-  accent: "var(--accent-game)",
-  onAccent: "var(--surface-dark)",
-  surface: "var(--surface-dark)",
-  titleFont: "var(--font-accent, var(--font-title))",
   motion: "lively",
 }

@@ -8,13 +8,11 @@ import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useApi, useBinding } from "../../lib/binding-context"
 import { CHAT_MAX_LENGTH } from "../../lib/chat"
-import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
 import { openChat, type ChatMessage } from "../../lib/realtime"
 import { gameReactions, playReaction, prepareSoundboard, reactionLabel, type Reaction } from "../../lib/soundboard"
 import { useMotion } from "../../lib/use-motion"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
-import { HUD_PANEL, HUD_TEXT, HUD_TRANSITION, readableColor } from "./hud-ui"
 
 const VISIBLE_MS = 9000
 const KEEP = 40
@@ -159,7 +157,6 @@ export function Chat({ className }: { className?: string }) {
 
   if (!meId) return null
   const now = Date.now()
-  const enter = { duration: fade(motionMode, 0.2), ease: EASE_STANDARD }
   return (
     <div
       // what players write is theirs: the recordings and the autocapture leave the whole chat out (`ph-no-capture`)
@@ -187,37 +184,33 @@ export function Chat({ className }: { className?: string }) {
         ))}
       </div>
       <div className={cn("relative h-60 [mask-image:linear-gradient(to_bottom,transparent_0%,black_55%)]", open ? "short:h-32" : "short:h-24")}>
-        <ul
-          ref={list}
-          aria-live="polite"
-          aria-label={t("chat")}
-          className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-full flex-col justify-end gap-1 overflow-y-auto pr-1 [scrollbar-width:none]",
-            !history && "pointer-events-none",
-          )}
-        >
-          {messages.map((m) => {
-            const shown = history || now - m.at < VISIBLE_MS
-            return (
-              <motion.li
-                key={m.id}
-                initial={{ opacity: 0, y: travel(motionMode, 6) }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={enter}
-                className={cn(
-                  HUD_TEXT,
-                  "w-fit max-w-full rounded-lg bg-hud-surface/85 px-3 py-1.5 text-sm leading-snug text-hud-foreground ring-1 ring-hud-border",
-                  !shown && "hidden",
-                )}
-              >
-                <span className="mr-1.5" style={{ color: readableColor(color(m.playerId)) }}>
-                  {nickname(m.playerId)}
-                </span>
-                <span className="break-words">{m.text}</span>
-              </motion.li>
-            )
-          })}
-        </ul>
+      <ul
+        ref={list}
+        aria-live="polite"
+        aria-label={t("chat")}
+        className={cn(
+          "pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-full flex-col justify-end gap-1 overflow-y-auto pr-1 [scrollbar-width:none]",
+          !history && "pointer-events-none",
+        )}
+      >
+        {messages.map((m) => {
+          const shown = history || now - m.at < VISIBLE_MS
+          return (
+            <li
+              key={m.id}
+              className={cn(
+                "w-fit max-w-full rounded-lg bg-black/45 px-3 py-1.5 text-sm leading-snug text-foreground backdrop-blur-[2px] transition-opacity duration-700 [text-shadow:0_1px_4px_rgb(0_0_0/70%)]",
+                shown ? "opacity-100" : "hidden opacity-0",
+              )}
+            >
+              <span className="mr-1.5 font-black tracking-wide uppercase brightness-150" style={{ color: color(m.playerId) }}>
+                {nickname(m.playerId)}
+              </span>
+              <span className="break-words">{m.text}</span>
+            </li>
+          )
+        })}
+      </ul>
       </div>
       <div className="flex items-center justify-end gap-2">
         <form
@@ -225,11 +218,7 @@ export function Chat({ className }: { className?: string }) {
           onSubmit={send}
           onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
           className={cn(
-            HUD_TEXT,
-            HUD_PANEL,
-            "pointer-events-auto flex min-w-0 flex-1 items-center gap-1 rounded-full py-1 pr-1 pl-4 opacity-80 transition-opacity duration-fast ease-standard focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none",
-            // the palette is a child of the row: dimmed with it, the messages behind would show through
-            board && "opacity-100",
+            "pointer-events-auto flex min-w-0 flex-1 items-center gap-1 rounded-full border border-foreground/20 bg-black/40 py-1 pr-1 pl-4 opacity-60 backdrop-blur-sm transition-opacity duration-200 focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none",
             !open && "short:hidden",
           )}
         >
@@ -243,64 +232,31 @@ export function Chat({ className }: { className?: string }) {
             placeholder={t("chatPlaceholder")}
             aria-label={t("chatPlaceholder")}
             autoComplete="off"
-            className="min-w-0 flex-1 bg-transparent text-sm text-hud-foreground outline-none placeholder:text-hud-muted"
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/50"
           />
           <div ref={boardRef} className="relative">
             <AnimatePresence>
               {board && (
                 <motion.div
-                  initial={{ opacity: 0, y: travel(motionMode, 6) }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: travel(motionMode, 6) }}
-                  transition={{ duration: fade(motionMode, 0.15), ease: EASE_STANDARD }}
-                  className="absolute right-0 bottom-full mb-2 grid w-44 grid-cols-4 gap-1 rounded-xl bg-hud-surface p-2 shadow-overlay ring-1 ring-hud-border"
+                  initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 bottom-full grid w-44 grid-cols-4 gap-1 rounded-2xl border border-foreground/20 bg-black/70 p-2 pb-2 backdrop-blur-md [margin-bottom:0.35rem] before:absolute before:inset-x-0 before:-bottom-2 before:h-2 before:content-['']"
                 >
                   {reactions.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      title={reactionLabel(r, t)}
-                      aria-label={reactionLabel(r, t)}
-                      onClick={() => react(r)}
-                      className={cn(
-                        HUD_TRANSITION,
-                        "flex size-9 cursor-pointer items-center justify-center rounded-lg text-xl outline-none hover:bg-hud-foreground/10 focus-visible:ring-2 focus-visible:ring-hud-foreground/70",
-                      )}
-                    >
+                    <button key={r.id} type="button" title={reactionLabel(r, t)} aria-label={reactionLabel(r, t)} onClick={() => react(r)} className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-xl transition-transform hover:scale-125 hover:bg-foreground/10 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100">
                       {r.emoji}
                     </button>
                   ))}
                 </motion.div>
               )}
             </AnimatePresence>
-            <button
-              type="button"
-              aria-label={t("chatReactions")}
-              aria-expanded={board}
-              title={t("chatReactions")}
-              onClick={() => {
-                prepareSoundboard()
-                setBoard((b) => !b)
-              }}
-              className={cn(
-                HUD_TRANSITION,
-                "flex size-8 cursor-pointer items-center justify-center rounded-full text-hud-foreground outline-none hover:bg-hud-foreground/10 focus-visible:ring-2 focus-visible:ring-hud-foreground/70",
-                board && "bg-hud-foreground/15",
-              )}
-            >
-              <SmilePlusIcon aria-hidden className="size-4.5" strokeWidth={1.8} />
+            <button type="button" aria-label={t("chatReactions")} aria-expanded={board} title={t("chatReactions")} onClick={() => { prepareSoundboard(); setBoard((b) => !b) }} className={cn("flex size-8 cursor-pointer items-center justify-center rounded-full text-foreground transition-colors hover:bg-foreground/10", board && "bg-foreground/15")}>
+              <SmilePlusIcon className="size-4.5" strokeWidth={1.8} />
             </button>
           </div>
-          <button
-            type="submit"
-            disabled={!text.trim()}
-            aria-label={t("chatSend")}
-            title={t("chatSend")}
-            className={cn(
-              HUD_TRANSITION,
-              "flex size-8 cursor-pointer items-center justify-center rounded-full text-hud-foreground outline-none hover:bg-hud-foreground/10 focus-visible:ring-2 focus-visible:ring-hud-foreground/70 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent",
-            )}
-          >
+          <button type="submit" disabled={!text.trim()} aria-label={t("chatSend")} title={t("chatSend")} className="flex size-8 cursor-pointer items-center justify-center rounded-full text-foreground transition-opacity disabled:cursor-default disabled:opacity-30">
             <HugeiconsIcon icon={Sent02Icon} strokeWidth={1.8} className="size-4.5" />
           </button>
         </form>
@@ -312,13 +268,9 @@ export function Chat({ className }: { className?: string }) {
           aria-controls={formId}
           title={t("chat")}
           onClick={() => setOpen((o) => !o)}
-          className={cn(
-            HUD_PANEL,
-            HUD_TRANSITION,
-            "pointer-events-auto hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none hover:bg-hud-raised focus-visible:ring-2 focus-visible:ring-hud-foreground/70 short:flex",
-          )}
+          className="pointer-events-auto hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-foreground/20 bg-black/40 text-foreground backdrop-blur-sm transition-colors hover:bg-black/60 motion-reduce:transition-none short:flex"
         >
-          {open ? <XIcon aria-hidden className="size-4.5" strokeWidth={1.8} /> : <MessageCircleIcon aria-hidden className="size-4.5" strokeWidth={1.8} />}
+          {open ? <XIcon className="size-4.5" strokeWidth={1.8} /> : <MessageCircleIcon className="size-4.5" strokeWidth={1.8} />}
         </button>
       </div>
     </div>

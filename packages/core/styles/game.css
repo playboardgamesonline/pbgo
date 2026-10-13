@@ -4,15 +4,16 @@
  *
  * Game layer of the design system: the tokens below are the game's theme, overridden at runtime by its Sanity skin
  * (inline style on <html>). The platform layer (`.platform`, used by the admin) comes from `@pbgo/ui/styles/platform.css`,
- * which also maps every token to a Tailwind utility; see its header for the boundary between the two. The in-game UI (ticker,
- * announcements, chat, game over) is a third scope, `.hud` of `@pbgo/ui/styles/hud.css`, tuned by the game's `UI_THEME`.
+ * which also maps every token to a Tailwind utility; see its header for the boundary between the two.
  */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@pbgo/ui/styles/platform.css";
-@import "@pbgo/ui/styles/hud.css";
 @source "..";
+
+/* Compact layout of the in-game UI, keyed on the HEIGHT of the viewport: a phone held sideways (844×390) is wide but short */
+@custom-variant short (@media (max-height: 30rem));
 
 /* Game theme: defaults, overridden at runtime by the admin settings (inline style on <html>) */
 :root {

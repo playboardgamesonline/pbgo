@@ -6,7 +6,6 @@ import { Fragment, useCallback, useEffect, useId, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useBinding } from "../../lib/binding-context"
 import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
-import { hudStyle } from "../../lib/ui-theme"
 import { useMotion } from "../../lib/use-motion"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
@@ -14,7 +13,6 @@ import { Toolbar } from "../toolbar"
 import { Chat } from "./chat"
 import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
-import { HUD_TRANSITION, HudPanel, readableColor } from "./hud-ui"
 import { PlayersStrip } from "./players-strip"
 
 /** One turn of the history: its author and the actions shown (each action is rendered by the game). */
@@ -45,12 +43,11 @@ export function groupTurns<E>(
   return turns.reverse()
 }
 
-/** A player's nickname in their color, lightened to stay readable on the dark panels (`readableColor`) */
 export function PlayerName({ id }: { id: string }) {
   const { nickname, color } = useGame()
   return (
     // a nickname is typed by its player: session recordings show it masked (`ph-mask`)
-    <span className="ph-mask" style={{ color: readableColor(color(id)) }}>
+    <span className="ph-mask font-black brightness-150" style={{ color: color(id) }}>
       {nickname(id)}
     </span>
   )
@@ -89,12 +86,12 @@ function WaitingLabel({ playerIds }: { playerIds: readonly string[] }) {
 }
 
 /**
- * Top-right panel: whose turn it is, the global status, who a simultaneous step still waits for, then the history (newest first).
+ * Top-right banner: whose turn it is, then the history (newest first).
  *
  * `waitingFor` (`game.waitingFor`, what the game waits for) decides the main line when it is given: "Your turn" when I am one of
  * the players, "Waiting for A, B" when several others are, that player's turn when it is one. A board that holds the
  * announcement back (Courtisans during its opening animation) leaves it out. Without it, `activePlayerId` is whose turn it is.
- * When the game waits for two players or more, the panel also lists every seat (`PlayersStrip`): done, still waiting, away.
+ * When the game waits for two players or more, the banner also lists every seat (`PlayersStrip`): done, still waiting, away.
  *
  * On a short viewport (a phone held sideways) the history sits behind a toggle.
  */
@@ -126,39 +123,44 @@ export function Ticker({
   const key = several ? several.join(",") : (turn ?? waiting)
   const enter = { duration: fade(motionMode, 0.25), ease: EASE_STANDARD }
   return (
-    <HudPanel className="pointer-events-auto flex w-96 max-w-full flex-col items-end gap-1.5 rounded-xl p-4 text-right short:w-80 short:gap-1 short:p-3">
+    <div className="flex max-w-lg flex-col items-end text-right text-foreground [text-shadow:0_1px_4px_rgb(0_0_0/60%)] short:max-w-80">
       <motion.p
         key={key}
         initial={{ opacity: 0, y: -travel(motionMode, 6) }}
         animate={{ opacity: 1, y: 0 }}
         transition={enter}
-        className="text-lg leading-snug text-balance short:text-base"
+        className="inline-flex items-center gap-1.5 font-display text-lg tracking-[0.14em] uppercase md:text-xl short:text-base"
       >
         {several ? <WaitingLabel playerIds={several} /> : turn ? <TurnLabel playerId={turn} /> : waiting}
       </motion.p>
-      {status && <div className="text-sm text-hud-muted tabular-nums short:text-xs">{status}</div>}
-      {waitingFor && <PlayersStrip waitingFor={waitingFor} className="mt-0.5" />}
+      {status && <div className="mt-1 font-display text-sm tracking-[0.18em] text-foreground/60 uppercase tabular-nums short:text-xs">{status}</div>}
+      {waitingFor && <PlayersStrip waitingFor={waitingFor} className="mt-2" />}
+      <div className="my-3 h-px w-full min-w-64 bg-white/25 short:my-2 short:min-w-0" />
       {history.length > 0 && (
-        <div className="mt-1.5 flex w-full flex-col items-end border-t border-hud-border pt-3 short:mt-1 short:pt-2">
+        <>
           <button
             type="button"
             aria-expanded={historyOpen}
             aria-controls={historyId}
             onClick={() => setHistoryOpen((open) => !open)}
-            className={cn(HUD_TRANSITION, "hidden cursor-pointer items-center gap-1 text-xs text-hud-muted hover:text-hud-foreground short:inline-flex")}
+            className="pointer-events-auto hidden cursor-pointer items-center gap-1 font-display text-xs tracking-[0.18em] text-foreground/60 uppercase transition-colors hover:text-foreground motion-reduce:transition-none short:inline-flex"
           >
             {t("history")}
-            <ChevronDownIcon aria-hidden className={cn("size-3.5 transition-transform duration-fast ease-standard motion-reduce:transition-none", historyOpen && "rotate-180")} />
+            <ChevronDownIcon aria-hidden className={cn("size-3.5 transition-transform motion-reduce:transition-none", historyOpen && "rotate-180")} />
           </button>
           <div
             id={historyId}
             className={cn(
-              "max-h-48 w-full overflow-y-auto pr-1 pb-4 [mask-image:linear-gradient(to_bottom,black_calc(100%-1rem),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-              "short:mt-2 short:max-h-32",
+              "pointer-events-auto max-h-[12.5rem] w-full overflow-y-auto pr-1 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              "short:mt-2 short:max-h-32 short:pb-4",
               !historyOpen && "short:hidden",
             )}
+            style={{
+              maskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
+            }}
           >
-            <ol className="flex flex-col items-end gap-3 text-base short:gap-2 short:text-sm">
+            <ol className="flex flex-col items-end gap-5 text-lg md:text-xl short:gap-3 short:text-base">
               {history.map((turn) => (
                 <motion.li
                   key={turn.key}
@@ -166,9 +168,9 @@ export function Ticker({
                   initial={{ opacity: 0, y: -travel(motionMode, 8) }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={enter}
-                  className="flex flex-col items-end gap-1.5"
+                  className="flex flex-col items-end gap-2.5 short:gap-1.5"
                 >
-                  <span className="text-xs text-hud-muted">
+                  <span className="inline-flex items-center gap-1 font-display text-xs tracking-[0.18em] text-foreground/55 uppercase md:text-sm">
                     <TurnLabel playerId={turn.playerId} short />
                   </span>
                   {turn.entries.map((entry) => (
@@ -180,18 +182,17 @@ export function Ticker({
               ))}
             </ol>
           </div>
-        </div>
+        </>
       )}
-    </HudPanel>
+    </div>
   )
 }
 
 /**
  * Standard game screen: the table (children) full screen; top left the logo (which leaves the game) with sound and rules below it;
- * top right the panel (`ticker`); `overlay` for the game's own buttons and panels.
+ * top right the banner (`ticker`) on a dark veil; `overlay` for the game's own buttons and panels.
  *
- * The root is the `.hud` scope (`@pbgo/ui/styles/hud.css`): everything in it reads the `--hud-*` variables, tuned by the game's
- * `UI_THEME`. `MotionConfig` makes every `motion` component below it follow the visitor's `prefers-reduced-motion`.
+ * `MotionConfig` makes every `motion` component below it follow the visitor's `prefers-reduced-motion`.
  *
  * The root clips (`overflow-clip`), it does not hide: a board may run past the screen on purpose (Courtisans' hand peeks from the
  * bottom), and an `overflow-hidden` box is still a scroll container, so focusing a card or a `scrollIntoView` would scroll the
@@ -209,19 +210,29 @@ export function GameHud({
   children: React.ReactNode
 }) {
   const t = useText()
-  const { Logo, UI_THEME } = useBinding()
+  const { Logo } = useBinding()
   const { game } = useGame()
   const { logo, title } = useSiteSettings()
   // The screen is what is left above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
     <MotionConfig reducedMotion="user">
-      <main className="hud relative h-[calc(100dvh-var(--consent-h,0px))] w-full overflow-clip bg-background text-foreground" style={hudStyle(UI_THEME)}>
+      <main className="relative h-[calc(100dvh-var(--consent-h,0px))] w-full overflow-clip bg-background text-foreground">
         <div className="absolute inset-0">{children}</div>
+        {ticker && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 right-0 z-10 h-[30rem] w-[52rem] max-w-full"
+            style={{
+              background:
+                "radial-gradient(ellipse 100% 100% at 100% 0%, rgb(0 0 0 / 62%) 0%, rgb(0 0 0 / 40%) 35%, rgb(0 0 0 / 14%) 65%, transparent 100%)",
+            }}
+          />
+        )}
         <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 pt-[max(1.25rem,env(safe-area-inset-top))] pr-[max(1.5rem,env(safe-area-inset-right))] pb-8 pl-[max(1.5rem,env(safe-area-inset-left))] short:gap-2 short:pt-[max(0.75rem,env(safe-area-inset-top))] short:pr-[max(1rem,env(safe-area-inset-right))] short:pl-[max(1rem,env(safe-area-inset-left))]">
           <div className="pointer-events-auto flex flex-col items-center gap-1.5">
             <button
               type="button"
-              className={cn("w-40 cursor-pointer transition-transform hover:scale-105 motion-reduce:transition-none motion-reduce:hover:scale-100 sm:w-48 short:w-28")}
+              className="w-40 cursor-pointer transition-transform hover:scale-105 motion-reduce:transition-none motion-reduce:hover:scale-100 sm:w-48 short:w-28"
               title={t("leave")}
               onClick={onLeave}
             >
