@@ -1,6 +1,6 @@
+import { setField, setItemField } from "@pbgo/content-kit"
+import type { ArtSlot } from "@pbgo/content-kit"
 import { BONUS_TILE_NUMBERS, RANKS, RATING_KEYS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
-import type { ArtSlot } from "../lib/art.ts"
-import type { ImageValue, SeedDoc } from "../lib/types.ts"
 import { bonusTileId } from "./bonus-tiles.ts"
 import { cardId } from "./cards.ts"
 import { GAME_ID, ratingItemKey, valueGlyphKey } from "./game.ts"
@@ -14,20 +14,6 @@ const CARD_RATIO: [number, number] = [5, 7]
 
 /** Other names accepted for a suit in a file name. */
 const SUIT_ALIASES: Partial<Record<(typeof SUIT_KEYS)[number], string>> = { multi: "rainbow" }
-
-type ListItem = { _key?: string; [field: string]: unknown }
-
-const setField = (field: string) => (doc: SeedDoc, image: ImageValue) => {
-  doc[field] = image
-}
-
-/** Sets a field of one item of an array, found by its `_key` (the `game` document keeps its glyphs and ratings in arrays). */
-const setItemField = (list: string, key: string, field: string) => (doc: SeedDoc, image: ImageValue) => {
-  const items = Array.isArray(doc[list]) ? (doc[list] as ListItem[]) : []
-  const item = items.find((candidate) => candidate._key === key)
-  if (!item) throw new Error(`"${doc._id}" has no item "${key}" in "${list}"`)
-  item[field] = image
-}
 
 const suitSlots: ArtSlot[] = SUIT_KEYS.map((suit) => ({
   name: `suit-${suit}`,

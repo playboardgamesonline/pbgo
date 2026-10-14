@@ -1,0 +1,8 @@
+{
+  "extends": "@pbgo/tsconfig/library.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true
+  }
+}

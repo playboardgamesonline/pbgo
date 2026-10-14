@@ -1,4 +1,4 @@
-import type { SeedDoc } from "../lib/types.ts"
+import type { SeedDoc } from "@pbgo/content-kit"
 import { buildBonusTiles } from "./bonus-tiles.ts"
 import { buildCards } from "./cards.ts"
 import { buildGame } from "./game.ts"

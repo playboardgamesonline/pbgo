@@ -1,8 +1,6 @@
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-export { apiVersion } from "@pbgo/core/sanity/env.ts"
-
 /**
  * The game this folder seeds, and the one dataset it writes to.
  * The project id is also `sanityProjectId` in `packages/games/src/registry.ts`: this folder cannot import the registry (it depends on

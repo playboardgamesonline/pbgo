@@ -13,10 +13,10 @@ const existing = (...docs: StoredDoc[]) => new Map(docs.map((doc) => [doc._id, d
 
 describe("ids", () => {
   it("builds the draft id", () => {
-    expect(draftIdOf("card-red-3")).toBe("drafts.card-red-3")
+    expect(draftIdOf("card-3")).toBe("drafts.card-3")
   })
 
-  it.each(["rules", "card-red-3", "bonus_tile-1", "Settings", "x"])("accepts the seed id %s", (id) => {
+  it.each(["rules", "card-3", "card_type-1", "Settings", "x"])("accepts the seed id %s", (id) => {
     expect(() => assertSeedId(id)).not.toThrow()
   })
 

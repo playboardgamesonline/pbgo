@@ -1,8 +1,7 @@
+import { localeString } from "@pbgo/content-kit"
+import type { Localized, SeedDoc } from "@pbgo/content-kit"
 import { SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import type { DirectionKey, ExtensionKey, PatternKey, SuitKey } from "../../apps/studio/schemaTypes/constants.ts"
-import { localeString } from "../lib/locale.ts"
-import type { Localized } from "../lib/locale.ts"
-import type { SeedDoc } from "../lib/types.ts"
 
 type SuitSpec = {
   name: Localized

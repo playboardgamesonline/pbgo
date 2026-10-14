@@ -1,5 +1,5 @@
 // A small checker of documents against the definitions of a Sanity schema (what `defineType` and `defineField` return).
-// It knows the kinds of field, the option lists and the validation rules the Hanabi types use, and it throws on a
+// It knows the kinds of field, the option lists and the validation rules the types of a game use, and it throws on a
 // rule it does not know rather than skipping it, so that a new kind of rule cannot slip through unchecked.
 
 type Shape = {

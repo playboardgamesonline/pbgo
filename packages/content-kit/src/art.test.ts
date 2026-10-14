@@ -22,22 +22,22 @@ afterEach(() => temp.cleanUp())
 
 describe("scanArtDir", () => {
   it("matches the files to the slots by name, whatever the case, the spaces and the underscores", async () => {
-    const dir = await temp.create({ "Card_Red 3.PNG": "x", "suit-blue.jpg": "x", "VALUE_4.webp": "x" })
-    const scan = await scanArtDir(dir, [slot("card-red-3"), slot("suit-blue"), slot("value-4"), slot("clue-token")])
+    const dir = await temp.create({ "Card_Front 3.PNG": "x", "logo.jpg": "x", "ICON_4.webp": "x" })
+    const scan = await scanArtDir(dir, [slot("card-front-3"), slot("logo"), slot("icon-4"), slot("token")])
     expect(scan.found.map((entry) => [entry.slot.name, entry.file])).toEqual([
-      ["card-red-3", "Card_Red 3.PNG"],
-      ["suit-blue", "suit-blue.jpg"],
-      ["value-4", "VALUE_4.webp"],
+      ["card-front-3", "Card_Front 3.PNG"],
+      ["logo", "logo.jpg"],
+      ["icon-4", "ICON_4.webp"],
     ])
-    expect(scan.missing.map((entry) => entry.name)).toEqual(["clue-token"])
+    expect(scan.missing.map((entry) => entry.name)).toEqual(["token"])
     expect(scan.unmatched).toEqual([])
     expect(scan.duplicates).toEqual([])
   })
 
   it("accepts the other names of a slot", async () => {
-    const dir = await temp.create({ "suit-rainbow.png": "x" })
-    const scan = await scanArtDir(dir, [slot("suit-multi", { aliases: ["suit-rainbow"] })])
-    expect(scan.found.map((entry) => entry.file)).toEqual(["suit-rainbow.png"])
+    const dir = await temp.create({ "box-cover.png": "x" })
+    const scan = await scanArtDir(dir, [slot("box-front", { aliases: ["box-cover"] })])
+    expect(scan.found.map((entry) => entry.file)).toEqual(["box-cover.png"])
     expect(scan.missing).toEqual([])
   })
 
@@ -48,9 +48,9 @@ describe("scanArtDir", () => {
   })
 
   it("reports the image files that match no slot", async () => {
-    const dir = await temp.create({ "typo.png": "x", "card-red-3.png.png": "x", "a.png": "x" })
+    const dir = await temp.create({ "typo.png": "x", "card-front-3.png.png": "x", "a.png": "x" })
     const scan = await scanArtDir(dir, [slot("a")])
-    expect(scan.unmatched).toEqual(["card-red-3.png.png", "typo.png"])
+    expect(scan.unmatched).toEqual(["card-front-3.png.png", "typo.png"])
     expect(scan.found.map((entry) => entry.file)).toEqual(["a.png"])
   })
 
@@ -69,30 +69,30 @@ describe("scanArtDir", () => {
   })
 
   it("ignores hidden files and sub-folders", async () => {
-    const dir = await temp.create({ ".DS_Store": "x", ".card-red-3.png": "x" })
+    const dir = await temp.create({ ".DS_Store": "x", ".card-front-3.png": "x" })
     await mkdir(join(dir, "old"))
-    await writeFile(join(dir, "old", "card-red-3.png"), "x")
-    await mkdir(join(dir, "card-blue-1.png"))
-    const scan = await scanArtDir(dir, [slot("card-red-3"), slot("card-blue-1")])
+    await writeFile(join(dir, "old", "card-front-3.png"), "x")
+    await mkdir(join(dir, "card-back-1.png"))
+    const scan = await scanArtDir(dir, [slot("card-front-3"), slot("card-back-1")])
     expect(scan.found).toEqual([])
     expect(scan.unmatched).toEqual([])
     expect(scan.missing).toHaveLength(2)
   })
 
   it("does not choose between several files for one slot", async () => {
-    const dir = await temp.create({ "card-red-3.png": "x", "card-red-3.jpg": "x", "ok.png": "x" })
-    const target = slot("card-red-3")
+    const dir = await temp.create({ "card-front-3.png": "x", "card-front-3.jpg": "x", "ok.png": "x" })
+    const target = slot("card-front-3")
     const scan = await scanArtDir(dir, [target, slot("ok")])
-    expect(scan.duplicates).toEqual([{ slot: target, files: ["card-red-3.jpg", "card-red-3.png"] }])
+    expect(scan.duplicates).toEqual([{ slot: target, files: ["card-front-3.jpg", "card-front-3.png"] }])
     expect(scan.found.map((entry) => entry.slot.name)).toEqual(["ok"])
     expect(scan.missing).toEqual([])
   })
 
   it("sees two spellings of one name, and a name next to its alias, as several files", async () => {
-    const spelled = await temp.create({ "Card_Red_3.png": "x", "card-red-3.png": "x" })
-    expect((await scanArtDir(spelled, [slot("card-red-3")])).duplicates).toHaveLength(1)
-    const aliased = await temp.create({ "suit-multi.png": "x", "suit-rainbow.png": "x" })
-    expect((await scanArtDir(aliased, [slot("suit-multi", { aliases: ["suit-rainbow"] })])).duplicates).toHaveLength(1)
+    const spelled = await temp.create({ "Card_Front_3.png": "x", "card-front-3.png": "x" })
+    expect((await scanArtDir(spelled, [slot("card-front-3")])).duplicates).toHaveLength(1)
+    const aliased = await temp.create({ "box-front.png": "x", "box-cover.png": "x" })
+    expect((await scanArtDir(aliased, [slot("box-front", { aliases: ["box-cover"] })])).duplicates).toHaveLength(1)
   })
 
   it("calls every slot missing in an empty folder", async () => {

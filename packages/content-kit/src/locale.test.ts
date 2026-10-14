@@ -33,9 +33,9 @@ describe("localeString", () => {
   })
 
   it("keeps the texts as they are, spaces and typographic signs included", () => {
-    const value = localeString(all((id) => (id === "de" ? "„Feuerwerk“ " : " 5 Flamboyants ")))
-    expect(value.de).toBe("„Feuerwerk“ ")
-    expect(value.fr).toBe(" 5 Flamboyants ")
+    const value = localeString(all((id) => (id === "de" ? "„Titel“ " : " 5 cartes ")))
+    expect(value.de).toBe("„Titel“ ")
+    expect(value.fr).toBe(" 5 cartes ")
   })
 
   it("does not keep a key it does not know", () => {

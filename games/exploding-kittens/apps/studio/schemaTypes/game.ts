@@ -8,7 +8,9 @@ export const game = defineType({
   icon: ThLargeIcon,
   fields: [
     defineField({ name: "mat", title: "Game mat", type: "image" }),
-    defineField({ name: "cardBack", title: "Card back", type: "image" }),
+    defineField({ name: "cardBack", title: "Card back", description: "The same back for every card", type: "image" }),
+    defineField({ name: "boxFront", title: "Box (front)", type: "image" }),
+    defineField({ name: "boxBack", title: "Box (back)", type: "image" }),
   ],
   preview: { prepare: () => ({ title: "Game" }) },
 })
