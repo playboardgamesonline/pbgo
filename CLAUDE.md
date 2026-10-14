@@ -10,7 +10,7 @@ Moving the project to another account: see `MIGRATION.md`.
   - `src/` — the binding package `@pbgo-game/<slug>`: site constants, engine binding, board, server loaders, sounds, defaults, i18n, skin
   - `packages/engine` — `@<slug>/engine`, the pure TypeScript engine (no UI), tested with Vitest
   - `apps/studio` — `<slug>-studio`, the game's Sanity Studio
-  - `content/` — the game's Sanity content as versioned code and a seed script that writes drafts (Hanabi is the pilot, see `docs/content-pipeline.md`)
+  - `content/` — the game's Sanity content as versioned code (its data and its config) and a seed script that writes drafts, run by the shared `@pbgo/content-kit` (Hanabi and Exploding Kittens, see `docs/content-pipeline.md`)
   - `assets/` — sources (PDF, PSD, HD visuals), git-ignored. The seed's art folder is outside the repo (Hanabi: `~/Companies/PBGO/assets/hanabi`) and is passed with an absolute `--art-dir`
 - `template/` — the game template, itself a game (`@pbgo-game/template`, demo "La Plus Haute", served at `/template`). See `template/CLAUDE.md` and `template/docs/GAME_GUIDE.md`
 - `packages/` — shared code (below)
@@ -79,6 +79,7 @@ A change here reaches every game on the next deployment.
   - The state is stored as `jsonb`, which does not keep the order of the keys: an order (seats, turns) always comes from an array of the state, never from `Object.keys`
 - `@pbgo/ui` — shadcn components + `cn`: `@pbgo/ui/game/<comp>` (game theme), `@pbgo/ui/platform/<comp>` (platform theme: hub, account, legal, admin, 404), `@pbgo/ui/styles/platform.css` (platform tokens), `@pbgo/ui/theme` (`PLATFORM_THEME_COLOR`), `@pbgo/ui/utils`. See Design system
 - `@pbgo/studio-kit` — shared Sanity schemas (`settings`, `interface`, `rules`, `texts` via `createTexts(extra)`, `localeString`…) and `createStudioConfig({ title, projectId, gameTypes })` (a game type with the same name replaces the shared one); `@pbgo/studio-kit/constants` (languages, `FONT_CHOICES`) importable on the web side
+- `@pbgo/content-kit` — the seed pipeline of a game's Sanity content, shared by every game: options and token, plan, art (scan, WebP, upload, place), drafts-only writes, report, plus the test helpers (in-memory dataset, Studio-schema checker). A game keeps only its data and its config in `games/<slug>/content` and calls `runSeedCli`. Three entry points: `.` (what the data files import: `localeString`, `localeText`, `setField`, `setItemField`, `ArtSlot`, `SeedDoc`), `./seed` (the runner) and `./testing`. Consumed as source and run by Node (type stripping): relative imports carry `.ts`, type imports are `import type`, erasable syntax only, and the kit declares its own dependencies. Documented in `packages/content-kit/README.md`; `apps/web` does not use it
 - `@pbgo/tsconfig`, `@pbgo/eslint-config` — shared TypeScript and ESLint configs
 - Every external dependency comes from the pnpm catalog (`catalog:` in `package.json`, versions in `pnpm-workspace.yaml`); `pnpm check:catalog` enforces it
 - A new workspace package used by apps/web goes into `transpilePackages` (`apps/web/next.config.ts`; game packages are added from the registry)
@@ -123,7 +124,7 @@ Black and white, dark theme only, Geist Sans in semibold with tight line-height 
 - One Sanity project per game (`sanityProjectId` in the registry), dataset `production`, studio `<slug>-studio` deployed to `<host>.sanity.studio`
 - The studio reads its project id from `apps/studio/.env` (`SANITY_STUDIO_PROJECT_ID`, see `.env.example`) or from `sanity.cli.ts`
 - A game's own content types: schemas in `apps/studio/schemaTypes`, queries in the binding's `src/sanity/`, then `pnpm --filter <slug>-studio typegen`
-- Seeding: a game's content (cards, rules in four languages, credits, art) is written from `games/<slug>/content/` with `pnpm --filter @pbgo-game/<slug> content:seed --dry-run` then `--apply`. Drafts only (publishing stays in the Studio), idempotent, never overwrites what was edited in the Studio. Token `SANITY_API_WRITE_TOKEN_<SLUG>`, never printed. Process, options, art naming: `docs/content-pipeline.md`
+- Seeding: a game's content (cards, rules in four languages, credits, art) is described in `games/<slug>/content/` (data and config) and written by the shared `@pbgo/content-kit` with `pnpm --filter @pbgo-game/<slug> content:seed --dry-run` then `--apply`. Drafts only (publishing stays in the Studio), idempotent, never overwrites what was edited in the Studio. Token `SANITY_API_WRITE_TOKEN_<SLUG>`, never printed. Process, options, art naming: `docs/content-pipeline.md`
 - Media proxy `GET /api/media?url=` (shared by every game; fonts, sounds, SVG) only serves `https://cdn.sanity.io/(images|files)/<projectId>/…` where `<projectId>` is the `sanityProjectId` of a game of the registry (`sanityAssetUrl` in `packages/core/sanity/media.ts`, which also refuses `%` in the path and fetches the normalized URL). Core never imports the games: `apps/web/src/app/api/media/route.ts` passes the ids to `mediaRoute()`
 
 ## Supabase

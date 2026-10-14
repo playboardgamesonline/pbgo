@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process"
+import { HELP } from "@pbgo/content-kit/seed"
 import { describe, expect, it } from "vitest"
 import { GAME_DIR } from "./config.ts"
-import { HELP } from "./lib/cli.ts"
 
 // The command as a developer types it. Only the paths that end before the token is read are run here:
 // a run that gets further would reach the real dataset.

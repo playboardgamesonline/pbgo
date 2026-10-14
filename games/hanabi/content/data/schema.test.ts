@@ -1,12 +1,11 @@
 import { join } from "node:path"
+import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields, imagesOf, imageValue } from "@pbgo/content-kit/testing"
+import type { Doc, FieldDef, TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
 import { BONUS_TILE_NUMBERS, DIRECTION_KEYS, EXTENSION_KEYS, PATTERN_KEYS, RANKS, RATING_KEYS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import { DATASET, GAME_DIR, PROJECT_ID } from "../config.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
-import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields } from "./schema-check.ts"
-import type { FieldDef, TypeDef, Types } from "./schema-check.ts"
-import { imagesOf, imageValue, seedDocs } from "./test-fixtures.ts"
-import type { Doc } from "./test-fixtures.ts"
+import { seedDocs } from "./test-fixtures.ts"
 
 // The seed documents against the Studio schemas as the Studio itself builds them (apps/studio/sanity.config.ts):
 // a field renamed, a list changed or a rule tightened in the Studio fails here, not in front of the editor.

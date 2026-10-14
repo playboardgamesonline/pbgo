@@ -168,9 +168,9 @@ describe("uploadImage", () => {
   it("uploads the bytes as an image with the name and the type of the file, and returns the id only", async () => {
     const { client, store } = setup()
     const data = Buffer.from("not really a picture")
-    const result = await store.uploadImage({ data, filename: "card-red-3.webp", contentType: "image/webp" })
+    const result = await store.uploadImage({ data, filename: "card-3.webp", contentType: "image/webp" })
     expect(result).toEqual({ _id: "image-abc-40x56-webp" })
-    expect(client.uploads).toEqual([{ type: "image", data, options: { filename: "card-red-3.webp", contentType: "image/webp" } }])
+    expect(client.uploads).toEqual([{ type: "image", data, options: { filename: "card-3.webp", contentType: "image/webp" } }])
   })
 
   it("lets a failed upload through", async () => {

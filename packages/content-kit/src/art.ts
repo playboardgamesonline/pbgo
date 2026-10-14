@@ -6,7 +6,7 @@ import type { ImageValue, SeedDoc, SeedStore } from "./types.ts"
 
 /** One image the content needs, and where it goes. */
 export type ArtSlot = {
-  /** File name, without extension, that fills the slot: `card-red-3` */
+  /** File name, without extension, that fills the slot: `card-front-3` */
   name: string
   /** Other file names accepted for the slot */
   aliases?: string[]
@@ -25,7 +25,7 @@ const RASTER_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"])
 const IMAGE_EXTENSIONS = new Set([...RASTER_EXTENSIONS, ".svg"])
 const RATIO_TOLERANCE = 0.03
 
-/** `Card_Red 3.PNG` and `card-red-3.png` are the same name. */
+/** `Card_Front 3.PNG` and `card-front-3.png` are the same name. */
 const stemOf = (file: string) => file.slice(0, file.length - extname(file).length).toLowerCase().replace(/[\s_]+/g, "-")
 
 export type ArtScan = {
@@ -34,7 +34,7 @@ export type ArtScan = {
   missing: ArtSlot[]
   /** Image files that match no slot: a typo in the name? */
   unmatched: string[]
-  /** Slots with several files, such as `card-red-3.png` next to `card-red-3.jpg` */
+  /** Slots with several files, such as `card-front-3.png` next to `card-front-3.jpg` */
   duplicates: { slot: ArtSlot; files: string[] }[]
 }
 

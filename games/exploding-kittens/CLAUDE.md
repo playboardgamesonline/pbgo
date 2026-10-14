@@ -8,7 +8,8 @@ Exploding Kittens, served by `apps/web` at `/exploding-kittens`. The engine of t
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (none yet: the core theme, and icons generated from the title), replaced by what is set in `/gamemaster/exploding-kittens`. No `GAME` yet
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@exploding-kittens/engine`, the Original Edition: pure TypeScript, tested with Vitest (see Engine)
-- `apps/studio` — `exploding-kittens-studio`, Sanity Studio of the project `gsfz20b9` (not deployed yet: `pnpm go-live exploding-kittens`)
+- `apps/studio` — `exploding-kittens-studio`, Sanity Studio of the project `gsfz20b9` (not deployed yet: `pnpm go-live exploding-kittens`). Its own document types (`cardType`, `edition`, and the `game` singleton) are in `schemaTypes/`, the lists they share with the seed (card type keys, kinds, edition keys) in `schemaTypes/constants.ts`
+- `content/` — the Sanity content as versioned code (the game's data and config) and the seed script, run by the shared `@pbgo/content-kit` (see below); `vitest.config.ts` runs its tests
 - Static files: `apps/web/public/exploding-kittens/` (served at `/exploding-kittens/...`)
 
 ## Engine (`packages/engine/src`)
@@ -70,6 +71,16 @@ What data cannot do: a choice from a player that the game has no step for needs 
 
 ### Tests
 `pnpm --filter @exploding-kittens/engine test` and `typecheck`. One test file per part of the game (catalogue, setup, turns, cards, explosion, combos, nope, game, view, debug), `simulation.test.ts` for whole games played at random with the invariants checked after every step, and `extend.test.ts` for a second deck.
+
+## Content (Sanity)
+17 documents, for the Original Edition: 13 card types (`card-type-<key>`, keyed like the engine's catalogue, in kebab-case: `exploding-kitten`, `defuse`, `attack`, `skip`, `favor`, `shuffle`, `see-the-future`, `nope`, `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`) each with the engine's `kind` (`kitten`, `defuse`, `nope`, `action`, `cat`), the edition `edition-original` (56 cards, each line a card type and its copies), and the `game`, `rules` and `settings` singletons. Rules are in our own words in FR, EN, ES and DE (the standard rules, the Nope window, the five-different combination, on by default like the engine's `fiveDifferent`); `settings` holds the credits (Elan Lee, Matthew Inman, Shane Small; Exploding Kittens Inc. with a link) and the link to the publisher's English rulebook PDF. The five cats and the Exploding Kitten keep their English name in every language; the FR, ES and DE texts are meant for a native read. The other editions and the expansions are not in the seed: `docs/content-pipeline.md` lists them
+- The pipeline itself (options, token, plan, art, drafts-only writes, report) is `@pbgo/content-kit` (`packages/content-kit`, shared with the other games); `content/` keeps only the data (`content/data/`: card types, edition, `game`, `rules`, `settings`, the art slots) and the config
+- `pnpm --filter @pbgo-game/exploding-kittens content:seed --dry-run` shows what would change, `--apply` writes the drafts. Nothing is published from code; the owner publishes in the Studio
+- Art (46 slots: the 41 card faces, one per printed illustration, then the card back, the box front and back, the table mat and the logo) lives outside the repo, in one flat folder `~/Companies/PBGO/assets/exploding-kittens`, under the slot's name (`defuse-3.png`, `tacocat.png`, `card-back.png`…), and is placed with an absolute `--art-dir`; the seed only reads that folder
+- The Exploding Kittens binding does not read the `rules` document yet; the toolbar's Rules button opens the publisher's PDF
+- `pnpm --filter @pbgo-game/exploding-kittens test` and `typecheck` cover `content/` (no network, nothing written); the pipeline's own tests are `pnpm --filter @pbgo/content-kit test`
+- `content/parity/engine.test.ts` checks the seed against the engine, read from `@exploding-kittens/engine` itself (a dev dependency that only Vitest loads: the seed never imports it): the card type keys and their order, the `kind` of each, the kinds the Studio lists (also at compile time, so a new `CardKind` in the engine is a type error until the Studio has it), the lines of each edition against the deck of the same key in `DECKS`, and `fiveDifferent` on by default. The folder has its own `tsconfig.json` and `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of the rest of `content/` refuses
+- The whole process, the options and the art naming: `docs/content-pipeline.md` at the root
 
 ## Making it playable
 The engine is done. What is left (GAM-8): export `GAME` from `src/index.ts`, write the messages of the engine's codes in `ERROR_MESSAGES`, add the board (`Game` in `src/ui.tsx`, loaded lazily as in the template), then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`. See `template/CLAUDE.md` ("Adapting to a new game").

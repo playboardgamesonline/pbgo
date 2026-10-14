@@ -1,11 +1,12 @@
 import { existsSync, readFileSync } from "node:fs"
 import { basename, join } from "node:path"
+import { assertSeedId, LANGUAGE_IDS } from "@pbgo/content-kit"
+import type { LanguageId } from "@pbgo/content-kit"
+import { imagesOf, imageValue } from "@pbgo/content-kit/testing"
+import type { Doc } from "@pbgo/content-kit/testing"
 import { describe, expect, it } from "vitest"
 import { BONUS_TILE_NUMBERS, DIRECTION_KEYS, EXTENSION_KEYS, PATTERN_KEYS, RANKS, RATING_KEYS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import { CONTENT_DIR, DATASET, ENV_FILE, GAME_DIR, PROJECT_ID, REPO_ROOT, SLUG } from "../config.ts"
-import { LANGUAGE_IDS } from "../lib/locale.ts"
-import type { LanguageId } from "../lib/locale.ts"
-import { assertSeedId } from "../lib/plan.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
 import { bonusTileId, buildBonusTiles, TILE_SPECS } from "./bonus-tiles.ts"
 import { buildCards, cardId, quantityOf } from "./cards.ts"
@@ -13,8 +14,7 @@ import { buildGame, GAME_ID, ratingItemKey, ratingScale, valueGlyphKey } from ".
 import { buildRules, RULES_ID, RULES_SECTION_KEYS } from "./rules.ts"
 import { buildSettings, RULES_PDF, SETTINGS_ID } from "./settings.ts"
 import { buildSuits, directionOf, extensionOf, suitId } from "./suits.ts"
-import { imagesOf, imageValue, seedDocs } from "./test-fixtures.ts"
-import type { Doc } from "./test-fixtures.ts"
+import { seedDocs } from "./test-fixtures.ts"
 
 type LocaleObject = { _type: "localeString" | "localeText" } & Record<LanguageId, string>
 // The tests read documents of every shape without a type for each of them

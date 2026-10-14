@@ -1,8 +1,7 @@
+import { localeString, localeText } from "@pbgo/content-kit"
+import type { Localized, SeedDoc } from "@pbgo/content-kit"
 import { BONUS_TILE_NUMBERS } from "../../apps/studio/schemaTypes/constants.ts"
 import type { BonusTileNumber } from "../../apps/studio/schemaTypes/constants.ts"
-import { localeString, localeText } from "../lib/locale.ts"
-import type { Localized } from "../lib/locale.ts"
-import type { SeedDoc } from "../lib/types.ts"
 
 export type TileSpec = { name: Localized; effect: Localized }
 
