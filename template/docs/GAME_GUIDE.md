@@ -34,7 +34,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 6. **Declarative game options.** The game declares `options` (`number` / `choice` / `boolean`); the lobby renders them and the host edits them (`POST /api/<slug>/games/<code>/options`, values passed through `normalizeOptions`).
 7. **Content in Sanity, defaults in the code.** The site works with an empty Sanity project (default rules, skin and texts); Sanity overrides them.
 8. **3D = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` animates each object to its pose. Same React key = same object ⇒ real moves (hand → table).
-9. **DOM UI over the 3D** (header, log, announcements, game over, rules).
+9. **DOM UI over the 3D** (header, log, announcements, game over, rules). The ticker, players strip, announcements, takeover pill, chat and game over are the shared in-game UI: one look for every game, tuned through `UI_THEME` (see "In-game UI" below).
 10. **Code split per game.** The hub loads no game code; a game's pages load only that game (`@pbgo/games` imports each binding on demand), and its board (three.js) only on the game page.
 11. **The engine says who the game waits for.** `waitingFor(state)` lists the players the game waits for (one on a classic turn, several on a simultaneous step) and `autoPlayFor(state, playerId)` plays for one of them when they are absent. See below.
 12. **Lean state.** The state holds ids and numbers only: no display data (names, texts, labels, image paths: the catalogue and Sanity have them, the client draws them), no derived values (totals, leaders, pile sizes: compute them), no log (what happened is not what the next move needs). The seeded helpers of the engine-kit for the card games (`rng`, `ids`, `deck`, `log`, `rounds`) are built for it; see `packages/engine-kit/README.md`.
@@ -44,14 +44,14 @@ How to build a new multiplayer online board game on this monorepo, starting from
 `waitingFor(state)` returns the ids of the players the server waits for, in seat order, without duplicates: one player on a classic turn, **several on a simultaneous step** (secret bids, everybody reads their missions, simultaneous card choice…), nobody when the game is over (or when the engine itself is waiting, e.g. for a deadline). `autoPlayFor(state, playerId)` completes the current step of ONE waiting player. They replace `activePlayer` and `autoPlay`, which still work but are `@deprecated`.
 
 - **Read them through the helpers of `@pbgo/engine-kit`**, never call the hooks directly: `waitingPlayers(GAME, state)`, `currentPlayer`, `canPlayFor`, `playFor(GAME, state, playerId)`, `playOn` (plays until the end, for tests). They keep an engine written for the previous contract working.
-- **`waitingFor` is public information**: the server sends it to every viewer (`PublicGame.waitingFor`), and the ticker and the takeover prompt display it. It must never reveal something hidden. Do not drop a player from it when that would tell something (a player who may still respond to an action stays listed until the window closes).
+- **`waitingFor` is public information**: the server sends it to every viewer (`PublicGame.waitingFor`), and the ticker, its players strip and the takeover prompt display it. It must never reveal something hidden. Do not drop a player from it when that would tell something (a player who may still respond to an action stays listed until the window closes).
 - **`autoPlayFor` is deterministic and always legal**: seeded streams only (never `Math.random` or `Date.now`, a replay must stay exact), afterwards the player is no longer waiting for THAT step (they may be waiting for the next one), and `EngineError("NOT_WAITING")` when they are not in `waitingFor(state)`. It is a fallback to keep the table moving, not an AI: the simplest legal play (the demo plays its first card, and announces the average number of tricks).
 - **Absent players** are handled by `@pbgo/core`, nothing else to write in the game: after `settings.turnTimeout` without a move, the other players can vote to play for the players the game waits for (`POST /api/<slug>/games/<code>/takeover`, `StalledTurn` on the board). A vote is `(voter, target)`. The required voters for a target are the members seen at the table in the last 75 s, other than the target, so an absent player never blocks. The server then plays with `playFor`.
-- **Board**: `Ticker` takes `waitingFor={game.waitingFor}` (the "Your turn" line is shown when I am among them), `StalledTurn` only needs `onUpdate`. A player may leave `waitingFor` without having acted (somebody played for them): the board must be driven by the view, not by what the player did.
+- **Board**: `Ticker` takes `waitingFor={game.waitingFor}` (the "Your turn" line is shown when I am among them), `StalledTurn` only needs `onUpdate`. A player may leave `waitingFor` without having acted (somebody played for them): the board must be driven by the view, not by what the player did. When `waitingFor` holds two players or more, the ticker lists every seat itself (`PlayersStrip`: done, waiting, away), so the board draws no "who has played" list.
 
 #### A simultaneous step (`simultaneous.ts` of the engine-kit)
 
-The demo's secret bids at the start of each round are the reference (`packages/engine/src/demo/game.ts`, the `bids` option; board: `BidPanel` in `src/components/game/game.tsx`).
+The demo's secret bids at the start of each round are the reference (`packages/engine/src/demo/game.ts`, the `bids` option; board: `BidPanel` in `src/components/game/game.tsx`, which only draws the bid itself: the ticker already shows who has answered).
 
 - **State**: `Submissions<T>` (`bids: Submissions<number>`), built with `openSubmissions(seatIds)` when the step opens; the value is `null` until the player answers. Only ids and numbers, nothing derived.
 - **`apply`**: store the answer with `submit(submissions, playerId, value)`; as soon as `allSubmitted(submissions)` is true, resolve the step **inside the same action** (the state never sits between two phases), reading the answers in seat order with `revealSubmissions(submissions, seatIds)`. Letting the players change their answer until the last one arrives is a rule choice (the demo does, and `submit` replaces an answer); a game whose answers are final refuses the second one itself.
@@ -60,6 +60,19 @@ The demo's secret bids at the start of each round are the reference (`packages/e
 - **`autoPlayFor`**: the answer for that player only, so that when several players are absent they are played one after the other, each by its own vote.
 - ⚠️ **Key order**: `games.state` is `jsonb`, and Postgres does not keep the order of the keys of an object. A list that depends on the order (who is pending, who plays next) is built from an array of the state (`state.players`), never from `Object.keys(submissions)`.
 - Test it: `src/takeover.test.ts` plays a 3-player game where two players are absent at the simultaneous step and the third finishes the game alone (engine `playFor` + the pure voting rules of `@pbgo/core/server/takeover`). When the demo engine is replaced, adapt it to the new game's simultaneous step (or its turns); a game with no simultaneous step still keeps the turn-by-turn version.
+
+### In-game UI: shared logic, per-game look
+
+The ticker, the players strip, the announcements (start, your turn, victory), the takeover pill, the chat and the game-over panel are written once, in `@pbgo/core/components/game`, and look the same in every game: flat dark panels, Geist semibold, depth from a ring and a shadow, the game's art stays the hero. A game never copies or restyles them. It adjusts the look through ONE optional export of its binding.
+
+- **`UI_THEME`** (`src/index.ts`, type `UiTheme` of `@pbgo/core/lib/binding`): `accent` (current player, primary button, winner line · default white), `onAccent` (text on the accent · black), `surface` (ticker, takeover pill, chat, game over · neutral-950), `titleFont` (announcements and game-over title · Geist), `backdrop` (scrim · black at 60 %), `motion` (`"calm"` · fades only; `"lively"` · also confetti, springs and the emoji burst). Plain CSS strings, so `var(--accent-game)` works. Declare nothing and you get the neutral look (the template does). Courtisans keeps its gold, navy, accent font and lively motion in `games/courtisans/src/lib/ui-theme.ts`. When the contract lacks something, add a field to `UiTheme` (every game gets it) instead of overriding the CSS.
+- **How it works**: `GameHud` carries the class `.hud` and writes the theme as `--hud-*` variables on its root (`hudStyle()` of `lib/ui-theme.ts`); the neutral defaults live once in `packages/ui/src/styles/hud.css`. The shared tokens (`--primary`, `--card`…) are not remapped, so the toolbar and the board keep the game's own look. Never put `.platform` on the HUD.
+- **The strip**: when `waitingFor` holds two players or more, the ticker lists every seat under its main line: colour dot and name; done (muted ✓), still waited for (full contrast), away (dimmed: not seen in the last 75 s); me marked. Beyond 8 seats it shrinks to "n/N ready" with the full list on hover or tap. A one-player turn shows no strip. The logic is `pendingSeats()` (`lib/pending-seats.ts`, pure and tested).
+- **Small screens**: the variant `short` (`@media (max-height: 30rem)`) is keyed on the HEIGHT, because a phone held sideways (844×390) is wide but short. The HUD switches to its compact layout: history behind a toggle, smaller announcements, chat collapsed to an icon, scrollable game over, takeover pill stacked next to the logo, safe-area insets. Use it in the board's own overlays too. The `DesktopOnly` wall still hides game pages under 900 px: to check the board at 844×390, hide the wall with CSS injected in the browser, never in the code.
+- **Motion**: any `motion/react` animation reads `useMotion()` (`"reduced" | "calm" | "lively"`); `GameHud` already mounts `MotionConfig reducedMotion="user"`. Reduced motion always wins over the theme: fades of 150 ms at most, no confetti, emoji burst, spring or looping effect. CSS transitions use `duration-*`, `ease-standard` and `motion-reduce:transition-none`.
+- **Texts**: every label of the shared UI is a `UI_TEXTS` key (`@pbgo/studio-kit`), translated in fr / en / es / de (the strip uses `players`, `playersReady`, `seatDone`, `seatWaiting`, `seatAway`, the ticker `history`). No copy hard-coded in a shared component.
+- **Debug**: Shift+D, TRANSITION tab: the announcement presets (`start`, `turn`, `victory`: duration, sound, scrim, sizes, banner, confetti). Nothing else of the in-game UI is tunable there.
+- **Reference**: `/design` › In-game UI shows the tokens, the primitives and every part with its states. Card and table motion is not part of it.
 
 ---
 
@@ -80,7 +93,7 @@ games/<slug>/                      # one game
 ├─ CLAUDE.md                       # project rules for the AI (FR → EN glossary of the game included)
 ├─ package.json                    # @pbgo-game/<slug>, the binding package
 ├─ src/
-│  ├─ index.ts                     # GAME, site constants, SOUNDS, I18N, DEFAULT_SKIN… (server + client)
+│  ├─ index.ts                     # GAME, site constants, SOUNDS, I18N, DEFAULT_SKIN, UI_THEME… (server + client)
 │  ├─ ui.tsx                       # Logo, Game (board, loaded on demand)
 │  ├─ server.ts                    # loadSetupData, loadGameData, ROUTES, SEO (server only)
 │  ├─ runtime.tsx                  # styles, fonts, BindingProvider (client)
@@ -183,6 +196,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 **Shared (`@pbgo/core`, nothing to copy)**
 - Server (Supabase, games with optimistic lock, player cookie, `handle` / `ApiError`, rate limiting), API routes `api/[game]/games/*`, `lib/api.ts`, `use-live-game.ts`, `realtime.ts`
 - Home, lobby and game options (rendered from `GAME.options`), chat, absent players (per-player takeover votes, `StalledTurn`), game over, sharing
+- The in-game UI (ticker, players strip, announcements, takeover pill, chat, game over): one look, tuned per game by `UI_THEME` only
 - Debug: panel, tabs, `useSettings` (Copy values, FPS), START / NEXT TURN / END buttons
 - Rules in tabs (Sanity singleton `rules` + code defaults)
 - SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/gamemaster/<slug>` (Setup, Tasks, Monitoring + Vercel Web Analytics)
@@ -190,7 +204,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
 - `layout.ts` (where the cards go), `scene.tsx` (zones, interactions), `textures.ts`, `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
-- `src/lib/site.ts` (with `ERROR_MESSAGES`, the player-facing text of the error codes the engine throws and core does not know), `DEFAULT_SKIN`, texts, assets, the game's own Sanity content types
+- `src/lib/site.ts` (with `ERROR_MESSAGES`, the player-facing text of the error codes the engine throws and core does not know), `DEFAULT_SKIN`, `UI_THEME` (optional), texts, assets, the game's own Sanity content types
 
 ---
 

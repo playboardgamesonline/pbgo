@@ -161,6 +161,12 @@ export const UI_TEXTS = [
   { key: "winsWith", group: "game", title: "Share: text", fr: "{names} remporte la partie avec {points} points !" },
   { key: "shareHeadline", group: "game", title: "Share: image headline under the winner's name ({points} = their score)", fr: "{points} points · Victoire" },
   { key: "pointsShort", group: "game", title: "Scoreboard and share image: points of a player, abbreviated ({points} = their score)", fr: "{points} pts" },
+  { key: "players", group: "game", title: "Players strip: name (screen readers)", fr: "Joueurs" },
+  { key: "playersReady", group: "game", title: "Players strip: seats that are done, when there are too many to list ({ready} of {total})", fr: "{ready}/{total} prêts" },
+  { key: "seatDone", group: "game", title: "Players strip: this player is done", fr: "Prêt" },
+  { key: "seatWaiting", group: "game", title: "Players strip: the game waits for this player", fr: "En attente" },
+  { key: "seatAway", group: "game", title: "Players strip: this player has left the table for now", fr: "Absent" },
+  { key: "history", group: "game", title: "Ticker: history toggle (small screens)", fr: "Historique" },
 ] as const
 
 export type UiTextKey = (typeof UI_TEXTS)[number]["key"]

@@ -1,3 +1,4 @@
+import "@fontsource-variable/geist"
 import "@fontsource-variable/geist-mono"
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
