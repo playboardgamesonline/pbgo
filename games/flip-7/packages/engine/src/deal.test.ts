@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { step } from "./actions"
-import { deal, deckTitles, give, kinds, layout, lineTitles, problems, refusal, statusOf, viewOf, waiting } from "./test-utils"
+import { deal, deckTitles, decisionOf, give, kinds, layout, lineTitles, problems, refusal, statusOf, viewOf, waiting } from "./test-utils"
 
 // "How to play" (booklet page 4): the Dealer deals one card face up to each player including themself. If an Action card comes up,
 // dealing pauses to resolve it. Once any Action cards are resolved, dealing goes on until everyone has been dealt a card.
@@ -126,6 +126,21 @@ describe("an action card in the deal", () => {
     expect(lineTitles(done, "ana")).toEqual([])
     expect(lineTitles(done, "bob")).toEqual(["flip-three", "number-1", "number-2", "number-3", "number-4"])
     expect(lineTitles(done, "cleo")).toEqual(["number-6"])
+  })
+
+  it("holds a Freeze flipped by a Flip Three of the deal until the three cards are done, then deals on", () => {
+    const paused = give(deal(table(["flip-three", "freeze", "number-1", "number-2", "number-3", "number-4"]), "cleo"), "ana", "bob")
+    // bob flipped a Freeze, a 1 and a 2; the Freeze is his to play before the deal goes on
+    expect(waiting(paused)).toBe("bob")
+    expect(decisionOf(paused)).toMatchObject({ player: "bob", card: { type: "freeze" }, targets: ["ana", "bob", "cleo"] })
+    expect(problems(paused)).toEqual([])
+    const done = give(paused, "bob", "cleo")
+    // cleo, not dealt yet, is frozen and gets no card; bob, who flipped, is dealt his own card
+    expect(statusOf(done, "cleo")).toBe("frozen")
+    expect(lineTitles(done, "bob")).toEqual(["flip-three", "number-1", "number-2", "number-3"])
+    expect(lineTitles(done, "ana")).toEqual([])
+    expect(waiting(done)).toBe("ana")
+    expect(problems(done)).toEqual([])
   })
 
   it("busts a player whose Flip Three flips a duplicate, and carries on with the deal", () => {

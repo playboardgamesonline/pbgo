@@ -207,6 +207,47 @@ describe("Flip Three", () => {
     expect(problems(afterFlip)).toEqual([])
   })
 
+  it("lets the player play a Flip Three they flipped on themselves: a second flip starts inside the first, and the first goes on after it", () => {
+    const flipped = give(hit(layout({ deck: ["flip-three", "flip-three", "number-1", "number-2", "number-3", "number-4", "number-5", "number-9"] }), "ana"), "ana", "bob")
+    expect(lineTitles(flipped, "bob")).toEqual(["flip-three", "number-1", "number-2"])
+    expect(waiting(flipped)).toBe("bob")
+    const done = give(flipped, "bob", "bob")
+    expect(lineTitles(done, "bob")).toEqual(["flip-three", "number-1", "number-2", "flip-three", "number-3", "number-4", "number-5"])
+    expect(deckTitles(done)[0]).toBe("number-9")
+    expect(waiting(done)).toBe("bob")
+    expect(problems(done)).toEqual([])
+  })
+
+  it("plays a Freeze flipped by the only player still in on that player, which ends the round", () => {
+    const state = hit(
+      layout({
+        lines: { ana: ["number-1"], bob: ["number-5"], cleo: ["number-6"] },
+        status: { bob: "stayed", cleo: "stayed" },
+        deck: ["flip-three", "freeze", "number-2", "number-3", "number-9"],
+      }),
+      "ana",
+    )
+    // the Flip Three is forced on her, she flips a Freeze, a 2 and a 3, and the Freeze is forced on her too: nobody is left in
+    expect(lineTitles(state, "ana")).toEqual(["number-1", "flip-three", "number-2", "number-3", "freeze"])
+    expect(statusOf(state, "ana")).toBe("frozen")
+    expect(state.rounds).toEqual([[6, 5, 6]])
+    expect(problems(state)).toEqual([])
+  })
+
+  it("leaves the cards flipped on the way to their holder after they froze themselves: it is still theirs to play", () => {
+    const flipped = give(hit(layout({ lines: { bob: ["number-2"], cleo: ["number-3"] }, deck: ["flip-three", "freeze", "freeze", "number-7", "number-9"] }), "ana"), "ana", "bob")
+    expect(decisionOf(flipped)).toMatchObject({ player: "bob", targets: ["ana", "bob", "cleo"] })
+    const after = give(flipped, "bob", "bob")
+    expect(statusOf(after, "bob")).toBe("frozen")
+    // frozen himself, he still has the second Freeze to play, on one of the players who are still in
+    expect(waiting(after)).toBe("bob")
+    expect(decisionOf(after).targets).toEqual(["ana", "cleo"])
+    expect(problems(after)).toEqual([])
+    const end = give(after, "bob", "cleo")
+    expect(statusOf(end, "cleo")).toBe("frozen")
+    expect(problems(end)).toEqual([])
+  })
+
   it("lets a Second Chance flipped on the way be kept and used by a duplicate later in the same Flip Three (page 6)", () => {
     const state = give(hit(layout({ lines: { bob: ["number-5"] }, deck: ["flip-three", "second-chance", "number-5", "number-8", "number-9"] }), "ana"), "ana", "bob")
     // the Second Chance cancels the second 5, and the third card is flipped as usual
