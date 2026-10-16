@@ -35,7 +35,7 @@ describe("a Flip 7", () => {
     })
     const result = step(before, { type: "hit", playerId: "bob" })
     expect(kinds(result)).toEqual(["draw", "flip7", "end"])
-    // bob: 1 + … + 7 = 28, and 15. ana, still in, banks what she holds; cleo busted: nothing
+    // bob: 1 + … + 7 = 28, and 15. ana, still in, banks what she holds (a reading: the booklet only says the round ends for everyone); cleo busted: nothing
     expect(result.state.rounds).toEqual([[6, 43, 0]])
     expect(result.state.status).toEqual(["stayed", "stayed", "busted"])
     expect(result.state.stats[1]).toEqual({ busts: 0, flip7: 1 })
@@ -240,6 +240,23 @@ describe("the end of the game (page 12)", () => {
     expect(viewOf(state, null).results).toBeNull()
     const next = deal(state, "ana")
     expect(problems(next)).toEqual([])
+  })
+
+  it("keeps playing rounds while the tie lasts, until one player is alone at the top (the booklet does not say)", () => {
+    const again = (cards: readonly [string, string, string], from: { rounds: readonly (readonly number[])[] }) =>
+      roundOf(cards, from.rounds.map((round) => [...round]))
+    // ana and bob at 200, then at 210: the same points twice, still tied
+    const tied = roundOf(["number-10", "number-10", "number-1"], [[190, 190, 0]])
+    expect(GAME.isOver(tied)).toBe(false)
+    const stillTied = again(["number-10", "number-10", "number-1"], tied)
+    expect(stillTied.rounds.at(-1)).toEqual([10, 10, 1])
+    expect(GAME.isOver(stillTied)).toBe(false)
+    expect(waiting(stillTied)).toBe("ana")
+    expect(viewOf(stillTied, null).results).toBeNull()
+    // ana 222, bob 219: one player is alone at the top
+    const broken = again(["number-12", "number-9", "number-1"], stillTied)
+    expect(GAME.isOver(broken)).toBe(true)
+    expect(viewOf(broken, null).results?.winners).toEqual(["ana"])
   })
 
   it("takes the score of the table's option: a lower target is a shorter game", () => {

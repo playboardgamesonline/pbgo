@@ -4,7 +4,7 @@ import type { State } from "./types"
 
 /**
  * The ranking of a finished game: the totals, best first. Players with the same total share a rank, in seat order. The winners are the
- * ones the rules name: the best total at or above the target (a tie for it was played off with one more round, so there is one).
+ * ones the rules name: the best total at or above the target (a tie for it was played off, round after round, so there is one).
  * Gives `null` while the game is on.
  */
 export function results(s: State): Results | null {

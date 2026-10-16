@@ -150,7 +150,7 @@ export function targetOf(s: State): number {
   return typeof value === "number" ? value : DEFAULT_TARGET
 }
 
-/** The game ends at the end of the first round that leaves a player at the target, or above: the best total wins, and a tie plays one more round. */
+/** The game ends at the end of the first round that leaves a player at the target, or above: the best total wins, and a tie for it plays on, round after round, until one player is alone at the top. */
 export function rulesOf(s: State): RoundsRule {
   return { target: targetOf(s), wins: "high", tie: "playOn" }
 }
