@@ -990,6 +990,15 @@ importers:
         specifier: 'catalog:'
         version: 0.0.1
     devDependencies:
+      '@flip-7/engine':
+        specifier: workspace:*
+        version: link:packages/engine
+      '@pbgo/content-kit':
+        specifier: workspace:*
+        version: link:../../packages/content-kit
+      '@pbgo/studio-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-kit
       '@pbgo/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
@@ -1014,6 +1023,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
   games/flip-7/apps/studio:
     dependencies:

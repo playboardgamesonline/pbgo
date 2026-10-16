@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Flip 7 for apps/web: site constants, logo and default look. No engine yet, so its home page says \"coming soon\".",
+  "description": "Flip 7 for apps/web: site constants, logo and default look. The engine is written, but the binding does not export it yet, so its home page says \"coming soon\".",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",
@@ -12,7 +12,9 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p content && tsc --noEmit -p content/parity",
+    "test": "vitest run",
+    "content:seed": "node --disable-warning=ExperimentalWarning content/seed.ts",
     "dev:studio": "pnpm --filter flip-7-studio dev",
     "deploy:studio": "pnpm --filter flip-7-studio run deploy"
   },
@@ -27,6 +29,9 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@flip-7/engine": "workspace:*",
+    "@pbgo/content-kit": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
@@ -34,6 +39,7 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
