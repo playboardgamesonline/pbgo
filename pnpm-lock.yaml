@@ -1053,6 +1053,10 @@ importers:
         version: 6.0.3
 
   games/flip-7/packages/engine:
+    dependencies:
+      '@pbgo/engine-kit':
+        specifier: workspace:*
+        version: link:../../../../packages/engine-kit
     devDependencies:
       '@pbgo/tsconfig':
         specifier: workspace:*
