@@ -107,7 +107,9 @@ function checkMove(move: Move): void {
       const removed = line.filter((id) => !now.includes(id))
       for (const id of removed) {
         const face = facesOf(before, [id])[0]
-        ok("a card left a line that was not a spent Second Chance", face === "second-chance" && after.discard.includes(id), () => `${who}: ${face}`)
+        // a spent Second Chance goes to the discard, which a later flip of the same step may shuffle into a new pile
+        const spent = eventsOf(events, "saved").some((saved) => saved.secondChance.id === id)
+        ok("a card left a line that was not a spent Second Chance", face === "second-chance" && spent && (kinds.includes("reshuffle") || after.discard.includes(id)), () => `${who}: ${face}`)
       }
       ok("a line lost its order", isDeepStrictEqual(now.filter((id) => line.includes(id)), line.filter((id) => now.includes(id))), () => who)
       if (before.status[seat] !== "active" && !ended) ok("the line of a player who is out changed", isDeepStrictEqual(now, line), () => who)
@@ -128,7 +130,9 @@ function checkMove(move: Move): void {
   ok("the busts are not counted", after.stats.reduce((sum, stats) => sum + stats.busts, 0) - before.stats.reduce((sum, stats) => sum + stats.busts, 0) === eventsOf(events, "bust").length)
   ok("the Flip 7s are not counted", after.stats.reduce((sum, stats) => sum + stats.flip7, 0) - before.stats.reduce((sum, stats) => sum + stats.flip7, 0) === eventsOf(events, "flip7").length)
   for (const saved of eventsOf(events, "saved")) {
-    ok("a Second Chance that cancelled nothing", saved.secondChance.type === "second-chance" && numberOf(saved.card.type) !== null && after.discard.slice(0, 2).length === 2)
+    // the Second Chance and the duplicate go to the discard, unless a later flip of the same step shuffled the discard into a new pile
+    const discarded = after.discard.includes(saved.secondChance.id) && after.discard.includes(saved.card.id)
+    ok("a Second Chance that cancelled nothing", saved.secondChance.type === "second-chance" && numberOf(saved.card.type) !== null && (kinds.includes("reshuffle") || discarded))
   }
   for (const flip7 of eventsOf(events, "flip7")) {
     ok("a Flip 7 that does not end the round", ended && kinds.indexOf("flip7") < kinds.indexOf("end"))
