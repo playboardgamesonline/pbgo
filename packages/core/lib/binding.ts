@@ -49,6 +49,61 @@ export type Author = { name: string; signature?: string; url: string }
 /** Settings defaults of a game when Sanity has nothing (theme, fonts, credits…). */
 export type SettingsDefaults = Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> }
 
+/**
+ * How a game tunes the shared in-game UI: its look, never its logic. The announcements, the seat label and the game over have a
+ * group each; the ticker, the takeover pill, the chat and the toolbar have no setting, they take the game's skin.
+ * Every field is optional and a CSS value, so a game can point at its own tokens (`"var(--accent-game)"`). Nothing set: the
+ * defaults of `lib/ui-theme.ts`, the look the games had before they could tune it, drawn with the game's skin (`--surface`,
+ * `--accent-game`, `--font-title`, `--font-accent`…).
+ */
+export type UiTheme = {
+  /** "calm" (default): fades and short slides · "lively": also confetti, springs and the emoji burst. Reduced motion always wins. */
+  motion?: "calm" | "lively"
+  /** The full-screen announcements (start, round, your turn, victory): their type, colours, veil over the table, hairlines and confetti */
+  announcement?: {
+    /** Font of the title and the subtitle: a CSS font-family value (default: the skin's accent font, else its title font) */
+    font?: string
+    /** Colour of the letters: a CSS colour (default: white) */
+    color?: string
+    /** Line drawn around the letters: a CSS colour, null for none (default: gold) */
+    outline?: string | null
+    /** Tint of the shadow under the letters: a CSS colour (default: black) */
+    shadow?: string
+    /** Colour of the veil that dims the table behind the text: a CSS colour (default: black) */
+    veil?: string
+    /** The two hairlines that frame the title: a CSS colour, null for none (default: gold) */
+    rule?: string | null
+    /** Confetti of the victory, lively motion only: its colour and shape, null for none (default: gold stars) */
+    confetti?: { color: string; shape: "star" | "dot" } | null
+  }
+  /** The seat label: the avatar and the nickname next to it, on the table, in the strip, the lobby, the announcements and the game over */
+  seat?: {
+    /** "disc" (default) or "square" (rounded corners) */
+    shape?: "disc" | "square"
+    /** Line around the avatar: a CSS colour */
+    ring?: string
+    /** Font of the initial in the avatar: a CSS font-family value (default: the skin's title font) */
+    font?: string
+    /** Colour of the nickname where the UI writes it (lobby, game over): "seat" (default) is the seat colour, "ink" the text colour around it */
+    name?: "seat" | "ink"
+  }
+  /** The end-of-game panel (winner, ranking, share thumbnail): its surface, line, corners and colours */
+  gameOver?: {
+    /** Background of the panel: any CSS `background` value, so a colour, a gradient or a texture (default: the skin's surface) */
+    surface?: string
+    /** Line around the panel: a CSS colour (default: the skin's accent at 60%) */
+    border?: string
+    /** Corner radius of the panel: a CSS length (default: 1.5rem) */
+    radius?: string
+    /** Colour of the text on the panel, the score chips included: a CSS colour (default: the skin's foreground) */
+    ink?: string
+    /** Colour of the crown and of the winner's points: a CSS colour (default: the skin's accent) */
+    accent?: string
+    /** Frame of the share thumbnail, the polaroid on the panel's corner: a CSS colour (default: cream) */
+    frame?: string
+  }
+}
+
 /** Isomorphic part of a game (`@pbgo-game/<slug>`). */
 export type GameBinding = {
   SLUG: string
@@ -68,6 +123,8 @@ export type GameBinding = {
   /** Texts of the game in the languages other than French */
   I18N?: Partial<Record<Locale, GameI18n>>
   DEFAULT_SKIN?: SkinDefaults
+  /** How the shared in-game UI is tuned to this game; absent: the look the game's skin gives it (`--foreground`, `--surface`, `--accent-game`…) */
+  UI_THEME?: UiTheme
   SETTINGS_DEFAULTS?: SettingsDefaults
   /** French messages of the engine's error codes */
   ERROR_MESSAGES?: Record<string, string>

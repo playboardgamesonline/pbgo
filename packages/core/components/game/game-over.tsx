@@ -2,8 +2,7 @@
 
 import type { PlayerResult } from "@pbgo/engine-kit"
 import { CrownIcon, EyeIcon, EyeOffIcon } from "lucide-react"
-import { LinkForwardIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { GameOverPanel, type ResultDetailRenderer } from "./game-over-panel"
 import { SharePreview } from "./preview-sharing"
 import { generateShareImage, type ShareRow } from "./sharing"
 import { AnimatePresence, motion } from "motion/react"
@@ -13,13 +12,20 @@ import { PrimaryButton } from "../home/screen"
 import type { CoreView } from "../../lib/binding"
 import { useApi, useBinding } from "../../lib/binding-context"
 import { formatDateTime } from "../../lib/format-date"
+import { pointsLine, sectionMotion, splitResults, type GameOverEntry } from "../../lib/game-over"
 import type { PublicGame } from "../../lib/game-types"
+import { fade } from "../../lib/motion-preference"
+import { gameOverTheme } from "../../lib/ui-theme"
+import { useMotion } from "../../lib/use-motion"
 import { cn } from "@pbgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
 import { HostIcon } from "../lobby/lobby"
 import { useGame } from "./context"
+import { useSeatTheme } from "./seat-label"
 import { DEFAULT_SKIN, fill } from "../../lib/skin"
+
+export type { GameOverLabels, GameOverPanelProps, ResultDetailRenderer } from "./game-over-panel"
 
 function hash(text: string) {
   let h = 0
@@ -33,44 +39,27 @@ const defaultPointsText = (points: number) => fill(DEFAULT_SKIN.texts.pointsShor
  * Victory sentence picked from the skin's phrases with a deterministic hash (everyone sees the same one).
  * Template `{pseudo}` / `{points}`: the announcement keeps what comes before `{pseudo}`, the names and points go in the subtitle.
  * `pointsText` writes the winner's points in that subtitle: pass `(points) => t("pointsShort", { points })` for the visitor's language (default: French).
+ * `winners`: their player ids, in ranking order (for the medallions of the victory announcement, `seatsOf`).
  */
-export function winnerAnnouncement(game: PublicGame, view: CoreView, phrases: string[] = DEFAULT_SKIN.victoryPhrases, pointsText = defaultPointsText) {
+export function winnerAnnouncement(
+  game: PublicGame,
+  view: CoreView,
+  phrases: string[] = DEFAULT_SKIN.victoryPhrases,
+  pointsText = defaultPointsText,
+): { phrase: string; detail: string; winners: string[] } {
   const results = view.results
-  if (!results) return { phrase: "", detail: "" }
+  if (!results) return { phrase: "", detail: "", winners: [] }
   const winners = results.players.filter((j) => results.winners.includes(j.playerId))
   const template = phrases[hash(game.code + (view.log?.length ?? 0)) % phrases.length] ?? ""
   const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).replace(/[\s:,–-]+$/, "").trim()
   const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
-  return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}` }
+  return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}`, winners: winners.map((v) => v.playerId) }
 }
-
-function Details({ j, large, centered }: { j: PlayerResult; large?: boolean; centered?: boolean }) {
-  const sign = (n: number) => `${n > 0 ? "+" : ""}${n}`
-  return (
-    <div className={cn("flex flex-wrap items-center", centered ? "justify-center" : "justify-start", large ? "gap-2" : "gap-1.5")}>
-      {j.detail.map((d) => (
-        <span
-          key={d.key}
-          title={`${d.label} : ${sign(d.points)}`}
-          className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-white/10 font-display font-bold text-white/90 tabular-nums",
-            large ? "h-8 px-3 text-sm" : "h-7 px-2.5 text-xs",
-          )}
-          style={{ opacity: d.points === 0 ? 0.45 : 1 }}
-        >
-          <span className="font-sans font-medium text-white/60">{d.label}</span>
-          {sign(d.points)}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-export type ResultDetailRenderer = (result: PlayerResult, options: { large: boolean; centered: boolean }) => React.ReactNode
 
 /**
  * End-of-game board: winner(s), ranking, "Replay (x/n)", show / hide, share thumbnail.
  * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips).
+ * The look is the game's `UI_THEME.gameOver` and `UI_THEME.seat`, how much it moves its `UI_THEME.motion`.
  */
 export function GameOver({
   onUpdate,
@@ -84,16 +73,19 @@ export function GameOver({
   renderDetail?: ResultDetailRenderer
 }) {
   const t = useText()
-  const { GAME, NAME, SLUG } = useBinding()
+  const { GAME, NAME, SLUG, UI_THEME } = useBinding()
   const api = useApi()
   const { hostIcon, decor, locale } = useSkin()
-  const { view, game, color } = useGame()
+  const { view, game, nickname, color, avatarUrl } = useGame()
   const { title } = useSiteSettings()
+  const seat = useSeatTheme()
+  const mode = useMotion()
+  const theme = useMemo(() => gameOverTheme(UI_THEME?.gameOver), [UI_THEME?.gameOver])
   const [sending, setSending] = useState(false)
   const [image, setImage] = useState<File | null>(null)
   const [preview, setPreview] = useState(false)
+  const [seenKey, setSeenKey] = useState<string | null>(null)
   const results = view.phase === "over" ? view.results : null
-  const info = (id: string) => game.players.find((j) => j.id === id)
 
   const resultsKey = results ? `${game.code}|${results.winners.join()}|${results.players.map((j) => `${j.playerId}:${j.total}`).join()}` : null
   useEffect(() => {
@@ -120,12 +112,25 @@ export function GameOver({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultsKey, locale])
 
+  // The first opening plays the panel's flourish; hiding the scores and showing them back does not play it again
+  const shown = isOpen && !!resultsKey
+  useEffect(() => {
+    if (!shown) return
+    const id = setTimeout(() => setSeenKey(resultsKey), 2000)
+    return () => clearTimeout(id)
+  }, [shown, resultsKey])
+
   const url = useMemo(() => (image ? URL.createObjectURL(image) : null), [image])
   useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url])
 
   if (!results) return null
-  const winners = results.players.filter((j) => results.winners.includes(j.playerId))
-  const ranking = [...results.players].sort((a, b) => a.rank - b.rank)
+  const { winners, others } = splitResults(results)
+  const entry = (result: PlayerResult): GameOverEntry => ({
+    result,
+    nickname: nickname(result.playerId),
+    color: color(result.playerId),
+    imageUrl: avatarUrl(result.playerId),
+  })
   const alreadyVoted = !!game.meId && game.replay.includes(game.meId)
 
   async function replay() {
@@ -141,7 +146,7 @@ export function GameOver({
 
   const replayButton = (
     <div className="pointer-events-auto">
-      <PrimaryButton onClick={replay} busy={sending} waiting={alreadyVoted} className="h-14 w-auto max-w-none rounded-t-2xl rounded-b-none px-10 whitespace-nowrap shadow-[0_-6px_24px_rgb(0_0_0/35%)] hover:scale-100 hover:brightness-110">
+      <PrimaryButton onClick={replay} busy={sending} waiting={alreadyVoted} className="h-14 w-auto max-w-none rounded-t-2xl rounded-b-none px-10 whitespace-nowrap shadow-[0_-6px_24px_rgb(0_0_0/35%)] hover:scale-100 hover:brightness-110 short:h-11">
         {t("replay")} ({game.replay.length}/{game.players.length})
       </PrimaryButton>
     </div>
@@ -157,7 +162,7 @@ export function GameOver({
   ]
     .filter(Boolean)
     .join("  ·  ")
-  const names = winners.map((v) => info(v.playerId)?.nickname).join(" & ")
+  const names = winners.map((v) => nickname(v.playerId)).join(" & ")
   const shareText = t("winsWith", { names, points: winners[0]?.total ?? 0 })
 
   return (
@@ -170,108 +175,58 @@ export function GameOver({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: fade(mode, 0.3) }}
             className="fixed inset-0 z-40 bg-black/80 backdrop-blur-[2px]"
             onClick={onToggle}
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-[calc(var(--spacing)*28+var(--consent-h,0px))]">
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-[calc(var(--spacing)*28+var(--consent-h,0px))] short:pt-12 short:pb-[calc(var(--spacing)*14+var(--consent-h,0px))]">
         <AnimatePresence mode="popLayout">
           {isOpen && (
             <motion.section
               key="scoreboard"
               role="dialog"
               aria-label={t("scoreboard")}
-              initial={{ opacity: 0, y: 24, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 24, scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 200, damping: 24 }}
-              className="pointer-events-auto relative flex max-h-full w-full max-w-lg flex-col"
+              {...sectionMotion(mode)}
+              className="pointer-events-auto relative flex max-h-full w-full max-w-lg flex-col short:max-w-2xl"
             >
-
-              <div className="relative flex min-h-[26rem] flex-1 flex-col overflow-hidden rounded-3xl border-[0.5px] border-accent-game/60 bg-surface shadow-[0_24px_70px_rgb(0_0_0/65%)]">
-              {decor.pattern && (
-                <div aria-hidden className="pointer-events-none absolute inset-0 bg-[length:128px_128px] opacity-[0.07]" style={{ backgroundImage: `url(${decor.pattern})` }} />
-              )}
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(255_255_255/8%),transparent_70%)]" />
-              <div className="relative shrink-0 px-8 pt-6 pb-5">
-                <button
-                  type="button"
-                  onClick={() => setPreview(true)}
-                  disabled={!image}
-                  title={t("shareResult")}
-                  aria-label={t("shareResult")}
-                  className="group absolute -top-3 -right-10 z-20 w-40 rotate-[5deg] cursor-pointer rounded-2xl bg-[#f3ecd6] p-[3px] shadow-[0_10px_24px_rgb(0_0_0/55%)] transition-transform duration-200 hover:rotate-[1deg] disabled:cursor-wait"
-                >
-                  <span className="relative block aspect-[4/3] overflow-hidden rounded-[13px] bg-surface-dark">
-                    {url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt="" className="size-full scale-[1.35] object-cover" style={{ transformOrigin: "50% 58%" }} />
-                    ) : (
-                      <span className="block size-full animate-pulse bg-surface" />
-                    )}
-                  </span>
-                  <span className="absolute top-1/2 left-[30%] flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#f3ecd6]/50 bg-surface-dark text-foreground shadow-md transition-transform group-hover:scale-110">
-                    <HugeiconsIcon icon={LinkForwardIcon} strokeWidth={1.8} className="size-4" />
-                  </span>
-                </button>
-                <div className="relative flex flex-col items-center gap-1.5 px-20 text-center">
-                  <p className="-mx-16 font-display text-sm tracking-[0.18em] whitespace-nowrap text-foreground/55 uppercase">{t("winnerTitle")}</p>
-                  {hostIcon ? (
-                    <HostIcon className="relative z-10 -mt-1 inline-block size-9 shrink-0 bg-accent-game drop-shadow-[0_0_12px_var(--accent-game)]" />
+              <GameOverPanel
+                theme={theme}
+                seat={seat}
+                motion={mode}
+                winners={winners.map(entry)}
+                others={others.map(entry)}
+                labels={{
+                  scoreboard: t("scoreboard"),
+                  winnerTitle: t("winnerTitle"),
+                  shareResult: t("shareResult"),
+                  points: (n) => pointsLine(n, (points) => t("pointsShort", { points })),
+                }}
+                pattern={decor.pattern}
+                crown={(size) =>
+                  hostIcon ? (
+                    <HostIcon className={cn("inline-block shrink-0 bg-current", size)} />
                   ) : (
-                    <CrownIcon aria-hidden className="relative z-10 -mt-1 size-9 fill-accent-game text-accent-game drop-shadow-[0_0_12px_var(--accent-game)]" />
-                  )}
-                  <p className="ph-mask font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: color(winners[0]!.playerId) }}>
-                    {names}
-                  </p>
-                  <p className="font-display text-2xl text-accent-game tabular-nums">
-                    {winners[0]!.total > 0 ? "+" : ""}
-                    {t("pointsShort", { points: winners[0]!.total })}
-                  </p>
-                  <div className="mt-2 space-y-2">
-                    {winners.map((v) => (
-                      <div key={v.playerId}>{renderDetail ? renderDetail(v, { large: true, centered: true }) : <Details j={v} large centered />}</div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative min-h-0 flex-1 overflow-y-auto px-8 pb-6 [scrollbar-width:thin]">
-                <ol className="divide-y divide-foreground/15 border-t border-foreground/15">
-                  {ranking
-                    .filter((j) => !results.winners.includes(j.playerId))
-                    .map((j) => (
-                      <li key={j.playerId} className="space-y-2 py-3.5">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-display text-lg text-foreground/45 tabular-nums">{j.rank}.</span>
-                          <span className="ph-mask min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: color(j.playerId) }}>
-                            {info(j.playerId)?.nickname}
-                          </span>
-                          <span className="font-display text-3xl leading-none text-foreground/90 tabular-nums">
-                            {j.total > 0 ? "+" : ""}
-                            {t("pointsShort", { points: j.total })}
-                          </span>
-                        </div>
-                        {renderDetail ? renderDetail(j, { large: false, centered: false }) : <Details j={j} />}
-                      </li>
-                    ))}
-                </ol>
-              </div>
-              <footer className="relative shrink-0 border-t border-foreground/10 px-8 py-3 text-center font-sans text-[11px] tracking-[0.12em] text-foreground/40 uppercase">
-                {footer}
-              </footer>
-              </div>
+                    <CrownIcon aria-hidden className={cn("fill-current text-current", size)} />
+                  )
+                }
+                footer={footer}
+                thumbnail={url}
+                onShare={image ? () => setPreview(true) : undefined}
+                renderDetail={renderDetail}
+                entrance={seenKey !== resultsKey}
+              />
             </motion.section>
           )}
         </AnimatePresence>
-        </div>
-      <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--spacing)*6)] z-50 flex justify-center">
+      </div>
+      <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--spacing)*6)] z-50 flex justify-center short:top-[calc(var(--spacing)*2)]">
         <button
           type="button"
           onClick={onToggle}
           aria-pressed={isOpen}
-          className="pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm text-white opacity-80 transition-opacity duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:opacity-100"
+          className="pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm text-white opacity-80 transition-opacity duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:opacity-100 motion-reduce:transition-none"
         >
           {isOpen ? <EyeOffIcon strokeWidth={1.6} className="size-5" /> : <EyeIcon strokeWidth={1.6} className="size-5" />}
           <span className="underline underline-offset-4">{isOpen ? t("hideScores") : t("showScores")}</span>

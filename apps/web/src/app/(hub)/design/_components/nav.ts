@@ -40,6 +40,16 @@ export const NAV = [
       { id: "table", title: "Table" },
     ],
   },
+  {
+    group: "In-game UI",
+    items: [
+      { id: "game-themes", title: "Game themes" },
+      { id: "seat-label", title: "Seat label" },
+      { id: "players-strip", title: "Players strip" },
+      { id: "announcements", title: "Announcements" },
+      { id: "game-over", title: "Game over" },
+    ],
+  },
 ] as const
 
 export type SectionId = (typeof NAV)[number]["items"][number]["id"]
