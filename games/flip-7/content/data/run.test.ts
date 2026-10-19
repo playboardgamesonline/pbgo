@@ -3,7 +3,7 @@ import type { RunOptions } from "@pbgo/content-kit/seed"
 import { MemoryStore, TempFolders, imageOf } from "@pbgo/content-kit/testing"
 import { afterEach, describe, expect, it } from "vitest"
 import { ART_SLOTS } from "./art-manifest.ts"
-import { cardTypeId } from "./card-types.ts"
+import { cardId } from "./cards.ts"
 import { GAME_ID } from "./game.ts"
 import { buildSeedDocs } from "./index.ts"
 import { SETTINGS_ID } from "./settings.ts"
@@ -73,12 +73,12 @@ describe("the Flip 7 seed", () => {
   it("never replaces what an editor typed in the Studio", async () => {
     const store = new MemoryStore()
     await everything(store, apply)
-    store.edit(`drafts.${cardTypeId("freeze")}`, (doc) => {
+    store.edit(`drafts.${cardId("action", "freeze")}`, (doc) => {
       doc.copies = 4
     })
     const again = await everything(store, apply)
     expect(again.written).toBe(0)
-    expect(store.docs.get(`drafts.${cardTypeId("freeze")}`)?.copies).toBe(4)
+    expect(store.docs.get(`drafts.${cardId("action", "freeze")}`)?.copies).toBe(4)
   })
 
   describe("with art", () => {
@@ -100,10 +100,10 @@ describe("the Flip 7 seed", () => {
 
       const draft = (id: string) => store.docs.get(`drafts.${id}`)
       const isImage = (value: unknown) => expect(value).toMatchObject({ _type: "image", asset: { _type: "reference" } })
-      isImage(draft(cardTypeId("number-7"))?.image)
-      isImage(draft(cardTypeId("plus-4"))?.image)
-      isImage(draft(cardTypeId("times-2"))?.image)
-      isImage(draft(cardTypeId("flip-three"))?.image)
+      isImage(draft(cardId("number", "7"))?.image)
+      isImage(draft(cardId("modifier", "plus-4"))?.image)
+      isImage(draft(cardId("modifier", "times-2"))?.image)
+      isImage(draft(cardId("action", "flip-three"))?.image)
       isImage(draft(GAME_ID)?.cardBack)
       isImage(draft(SETTINGS_ID)?.logo)
 
@@ -112,7 +112,7 @@ describe("the Flip 7 seed", () => {
       expect(result.art?.loaded.scan.unmatched).toEqual(["typo-card.png"])
       expect(result.art?.loaded.scan.missing).toHaveLength(ART_SLOTS.length - 6)
       // Unfilled slots leave the documents without an image: nothing is invented
-      expect(draft(cardTypeId("number-8"))?.image).toBeUndefined()
+      expect(draft(cardId("number", "8"))?.image).toBeUndefined()
       expect(draft(GAME_ID)?.boxFront).toBeUndefined()
     })
 

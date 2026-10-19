@@ -1,8 +1,8 @@
 import { setField } from "@pbgo/content-kit"
 import type { ArtSlot } from "@pbgo/content-kit"
-import { CARD_TYPE_KEYS, CARD_TYPES, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
-import type { CardTypeKey } from "../../apps/studio/schemaTypes/constants.ts"
-import { cardTypeId } from "./card-types.ts"
+import { CATEGORIES, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
+import type { CategoryKey } from "../../apps/studio/schemaTypes/constants.ts"
+import { CARD_LIST } from "./cards.ts"
 import { GAME_ID } from "./game.ts"
 import { SETTINGS_ID } from "./settings.ts"
 
@@ -13,22 +13,22 @@ import { SETTINGS_ID } from "./settings.ts"
 /** A card is 5:7 (the proportions of the printed cards). */
 const CARD_RATIO: [number, number] = [5, 7]
 
-/** The other names a face answers to: the figure printed on the card. */
-function aliasesOf(key: CardTypeKey): string[] | undefined {
-  if (key.startsWith("number-")) return [key.slice("number-".length)]
+/** The other names a card answers to: the figure printed on it. */
+function aliasesOf(category: CategoryKey, key: string): string[] | undefined {
+  if (category === "number") return [key]
   if (key.startsWith("plus-")) return [`+${key.slice("plus-".length)}`]
   if (key === "times-2") return ["x2"]
   return undefined
 }
 
-/** One slot per face of the box: 22 faces for the 94 cards, since every copy of a card shares its picture. */
-const faceSlots: ArtSlot[] = CARD_TYPE_KEYS.map((key) => ({
-  name: key,
-  aliases: aliasesOf(key),
-  label: `Face of the ${titleOf(CARD_TYPES, key) ?? key}`,
+/** One slot per card of the box: 22 cards for the 94, since every copy of a card shares its picture. The slot is named after the key of the engine catalogue. */
+const faceSlots: ArtSlot[] = CARD_LIST.map(({ category, key, id, engineKey }) => ({
+  name: engineKey,
+  aliases: aliasesOf(category, key),
+  label: `Face of the ${CATEGORIES[category].title.toLowerCase()} ${titleOf(CATEGORIES[category].choices, key) ?? key}`,
   ratio: CARD_RATIO,
   maxSize: 1400,
-  docId: cardTypeId(key),
+  docId: id,
   place: setField("image"),
 }))
 

@@ -5,11 +5,10 @@ import type { LanguageId } from "@pbgo/content-kit"
 import { imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc } from "@pbgo/content-kit/testing"
 import { describe, expect, it } from "vitest"
-import { CARD_TYPE_KEYS, CARD_TYPES, KIND_KEYS, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
-import type { CardTypeKey } from "../../apps/studio/schemaTypes/constants.ts"
+import { CATEGORIES, CATEGORY_KEYS, engineKeyOf, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
 import { CONTENT_DIR, DATASET, ENV_FILE, GAME_DIR, PROJECT_ID, REPO_ROOT, SLUG } from "../config.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
-import { buildCardTypes, cardTypeId, COPIES } from "./card-types.ts"
+import { buildCards, CARD_LIST, cardId } from "./cards.ts"
 import { buildGame, GAME_ID } from "./game.ts"
 import { buildSettings, SETTINGS_ID } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
@@ -47,16 +46,31 @@ const ENGINE_KEYS = [
   "flip-three",
   "second-chance",
 ]
-const MODIFIERS = ["plus-2", "plus-4", "plus-6", "plus-8", "plus-10", "times-2"]
+// The cards of each category under the key the Studio lists, each in the order of the engine catalogue.
+const NUMBERS = Array.from({ length: 13 }, (_, value) => String(value))
 const ACTIONS = ["freeze", "flip-three", "second-chance"]
+const MODIFIERS = ["plus-2", "plus-4", "plus-6", "plus-8", "plus-10", "times-2"]
+const TYPES = { number: "numberCard", action: "actionCard", modifier: "modifierCard" }
 
 describe("the seed documents", () => {
   const count = (type: string) => docs().filter((doc) => doc._type === type).length
 
-  it("are the 24 documents of the Flip 7 seed: 22 card faces, the game and the settings", () => {
+  it("are the 24 documents of the Flip 7 seed: 22 cards in three categories, the game and the settings", () => {
     expect(docs()).toHaveLength(24)
-    expect({ cardType: count("cardType"), game: count("game"), settings: count("settings") }).toEqual({ cardType: 22, game: 1, settings: 1 })
-    expect(docs().map((doc) => doc._id)).toEqual([...ENGINE_KEYS.map((key) => `card-type-${key}`), "game", "settings"])
+    expect({ numberCard: count("numberCard"), actionCard: count("actionCard"), modifierCard: count("modifierCard"), game: count("game"), settings: count("settings") }).toEqual({
+      numberCard: 13,
+      actionCard: 3,
+      modifierCard: 6,
+      game: 1,
+      settings: 1,
+    })
+    expect(docs().map((doc) => doc._id)).toEqual([
+      ...NUMBERS.map((key) => `number-card-${key}`),
+      ...ACTIONS.map((key) => `action-card-${key}`),
+      ...MODIFIERS.map((key) => `modifier-card-${key}`),
+      "game",
+      "settings",
+    ])
   })
 
   it("have unique ids", () => {
@@ -94,15 +108,15 @@ describe("the seed documents", () => {
     expect(second).toStrictEqual(first)
 
     // The number cards share one effect text in the data: changing one must not touch the others
-    const three = first.find((doc) => doc._id === cardTypeId("number-3")) as Doc
-    const four = first.find((doc) => doc._id === cardTypeId("number-4")) as Doc
+    const three = first.find((doc) => doc._id === cardId("number", "3")) as Doc
+    const four = first.find((doc) => doc._id === cardId("number", "4")) as Doc
     const effect = four.effect.fr
     three.name.fr = "changed"
     three.effect.fr = "changed"
     three.extra = true
 
     expect(four.effect.fr).toBe(effect)
-    const untouched = second.find((doc) => doc._id === cardTypeId("number-3")) as Doc
+    const untouched = second.find((doc) => doc._id === cardId("number", "3")) as Doc
     expect(untouched.name.fr).toBe("3")
     expect(untouched.effect.fr).toBe(effect)
     expect(untouched).not.toHaveProperty("extra")
@@ -110,81 +124,102 @@ describe("the seed documents", () => {
   })
 })
 
-describe("the card faces", () => {
-  const cardTypes = () => buildCardTypes() as Doc[]
-  const typeOf = (key: string) => cardTypes().find((doc) => doc.key === key) as Doc
+describe("the cards", () => {
+  const cards = () => buildCards() as Doc[]
+  const ofType = (type: string) => cards().filter((doc) => doc._type === type)
+  const cardOf = (type: string, key: string) => ofType(type).find((doc) => doc.key === key) as Doc
+  const label = (doc: Doc) => `${doc._type} ${doc.key}`
 
-  it("are the 22 faces of the engine catalogue, under its kebab-case keys, in its order", () => {
-    expect(cardTypes().map((doc) => doc.key)).toEqual(ENGINE_KEYS)
-    expect([...CARD_TYPE_KEYS]).toEqual(ENGINE_KEYS)
-    for (const key of ENGINE_KEYS) expect(key, key).toMatch(/^[a-z]+(-[a-z0-9]+)*$/)
-    expect(CARD_TYPES.map((type) => type.value)).toEqual(ENGINE_KEYS)
+  it("come in three categories, one document type each, listed in this order in the Studio: number, action, modifier", () => {
+    expect([...CATEGORY_KEYS]).toEqual(["number", "action", "modifier"])
+    expect(CATEGORY_KEYS.map((category) => CATEGORIES[category].type)).toEqual(Object.values(TYPES))
+    expect(cards().map((doc) => doc._type)).toEqual([...NUMBERS.map(() => "numberCard"), ...ACTIONS.map(() => "actionCard"), ...MODIFIERS.map(() => "modifierCard")])
   })
 
-  it("get the id card-type-<key>", () => {
-    expect(cardTypes().map((doc) => doc._id)).toEqual(ENGINE_KEYS.map((key) => `card-type-${key}`))
-    for (const key of CARD_TYPE_KEYS) expect(cardTypeId(key)).toBe(`card-type-${key}`)
-    for (const doc of cardTypes()) expect(doc._type, doc.key).toBe("cardType")
+  it("are the 22 cards of the engine catalogue: 13 numbers, 3 action cards and 6 score modifiers", () => {
+    expect({ numberCard: ofType("numberCard").length, actionCard: ofType("actionCard").length, modifierCard: ofType("modifierCard").length }).toEqual({ numberCard: 13, actionCard: 3, modifierCard: 6 })
+    // Every key of the engine catalogue is there once, whatever the category it sits in
+    expect(CARD_LIST.map((card) => card.engineKey).sort()).toEqual([...ENGINE_KEYS].sort())
   })
 
-  it("have the kind the engine reads: 13 numbers, 6 score modifiers and 3 action cards", () => {
-    for (const doc of cardTypes()) {
-      const expected = doc.key.startsWith("number-") ? "number" : ACTIONS.includes(doc.key) ? "action" : "modifier"
-      expect(doc.kind, doc.key).toBe(expected)
-      expect(KIND_KEYS as readonly string[], doc.key).toContain(doc.kind)
+  it("are listed under the simplest key of their category: the figure of a number, the key of the catalogue for an action card or a modifier", () => {
+    expect(ofType("numberCard").map((doc) => doc.key)).toEqual(NUMBERS)
+    expect(ofType("actionCard").map((doc) => doc.key)).toEqual(ACTIONS)
+    expect(ofType("modifierCard").map((doc) => doc.key)).toEqual(MODIFIERS)
+    for (const doc of ofType("numberCard")) expect(doc.key, label(doc)).toMatch(/^(0|[1-9]\d*)$/)
+    for (const doc of [...ofType("actionCard"), ...ofType("modifierCard")]) expect(doc.key, label(doc)).toMatch(/^[a-z]+(-[a-z0-9]+)*$/)
+  })
+
+  it("map back to the key of the engine catalogue, and follow its order within their category", () => {
+    expect(engineKeyOf("number", "7")).toBe("number-7")
+    expect(engineKeyOf("action", "freeze")).toBe("freeze")
+    expect(engineKeyOf("modifier", "plus-4")).toBe("plus-4")
+    const engineKeys = (category: string) => CARD_LIST.filter((card) => card.category === category).map((card) => card.engineKey)
+    expect(engineKeys("number")).toEqual(ENGINE_KEYS.filter((key) => key.startsWith("number-")))
+    expect(engineKeys("modifier")).toEqual(ENGINE_KEYS.filter((key) => MODIFIERS.includes(key)))
+    expect(engineKeys("action")).toEqual(ENGINE_KEYS.filter((key) => ACTIONS.includes(key)))
+  })
+
+  it("get the id <category>-card-<key>", () => {
+    expect(cards().map((doc) => doc._id)).toEqual([...NUMBERS.map((key) => `number-card-${key}`), ...ACTIONS.map((key) => `action-card-${key}`), ...MODIFIERS.map((key) => `modifier-card-${key}`)])
+    expect(cardId("number", "7")).toBe("number-card-7")
+    expect(cardId("action", "freeze")).toBe("action-card-freeze")
+    expect(cardId("modifier", "plus-4")).toBe("modifier-card-plus-4")
+    expect(CARD_LIST.map((card) => card.id)).toEqual(cards().map((doc) => doc._id))
+  })
+
+  it("have no kind: the category says it", () => {
+    for (const doc of cards()) expect(doc, label(doc)).not.toHaveProperty("kind")
+  })
+
+  it("carry their place in their category, from 0, so that the Studio lists them in the order of the deck", () => {
+    for (const type of Object.values(TYPES)) {
+      const orders = ofType(type).map((doc) => doc.order)
+      expect(orders, type).toEqual(orders.map((_, index) => index))
     }
-    const count = (kind: string) => cardTypes().filter((doc) => doc.kind === kind).length
-    expect({ number: count("number"), modifier: count("modifier"), action: count("action") }).toEqual({ number: 13, modifier: 6, action: 3 })
-    expect([...KIND_KEYS]).toEqual(["number", "modifier", "action"])
-    expect(cardTypes().filter((doc) => doc.kind === "modifier").map((doc) => doc.key)).toEqual(MODIFIERS)
-  })
-
-  it("carry their place in the box, from 0, so that the Studio lists them in the order of the deck", () => {
-    expect(cardTypes().map((doc) => doc.order)).toEqual(ENGINE_KEYS.map((_, index) => index))
   })
 
   it("carry the copies of the box: as many of a number as its value and a single 0, one of each modifier, three of each action card", () => {
-    for (let value = 1; value <= 12; value++) expect(typeOf(`number-${value}`).copies, `number-${value}`).toBe(value)
-    expect(typeOf("number-0").copies).toBe(1)
-    for (const key of MODIFIERS) expect(typeOf(key).copies, key).toBe(1)
-    for (const key of ACTIONS) expect(typeOf(key).copies, key).toBe(3)
+    for (let value = 1; value <= 12; value++) expect(cardOf("numberCard", String(value)).copies, `number ${value}`).toBe(value)
+    expect(cardOf("numberCard", "0").copies).toBe(1)
+    for (const key of MODIFIERS) expect(cardOf("modifierCard", key).copies, key).toBe(1)
+    for (const key of ACTIONS) expect(cardOf("actionCard", key).copies, key).toBe(3)
   })
 
-  it("make the 94 cards of the box: 79 numbers, 6 score modifiers and 9 action cards (booklet pages 2 and 3)", () => {
-    const sum = (keys: readonly string[]) => keys.reduce((total, key) => total + (COPIES[key as CardTypeKey] ?? 0), 0)
-    expect(sum(ENGINE_KEYS)).toBe(94)
-    expect(sum(ENGINE_KEYS.filter((key) => key.startsWith("number-")))).toBe(79)
-    expect(sum(MODIFIERS)).toBe(6)
-    expect(sum(ACTIONS)).toBe(9)
-    expect(cardTypes().reduce((total, doc) => total + (doc.copies as number), 0)).toBe(94)
+  it("make the 94 cards of the box: 79 numbers, 9 action cards and 6 score modifiers (booklet pages 2 and 3)", () => {
+    const copies = (type: string) => ofType(type).reduce((total, doc) => total + (doc.copies as number), 0)
+    expect({ numberCard: copies("numberCard"), actionCard: copies("actionCard"), modifierCard: copies("modifierCard") }).toEqual({ numberCard: 79, actionCard: 9, modifierCard: 6 })
+    expect(cards().reduce((total, doc) => total + (doc.copies as number), 0)).toBe(94)
   })
 
   describe("names", () => {
     it("are a localeString for the name and a localeText for the effect", () => {
-      for (const doc of cardTypes()) {
-        expect(doc.name._type, doc.key).toBe("localeString")
-        expect(doc.effect._type, doc.key).toBe("localeText")
+      for (const doc of cards()) {
+        expect(doc.name._type, label(doc)).toBe("localeString")
+        expect(doc.effect._type, label(doc)).toBe("localeText")
       }
     })
 
     it("are the figure on the card for the numbers and the modifiers, and the printed English title for the action cards, in every language", () => {
       for (const language of LANGUAGE_IDS) {
-        for (let value = 0; value <= 12; value++) expect(typeOf(`number-${value}`).name[language], `number-${value} ${language}`).toBe(String(value))
-        for (const points of [2, 4, 6, 8, 10]) expect(typeOf(`plus-${points}`).name[language], `plus-${points} ${language}`).toBe(`+${points}`)
-        expect(typeOf("times-2").name[language]).toBe("x2")
-        expect(typeOf("freeze").name[language]).toBe("Freeze")
-        expect(typeOf("flip-three").name[language]).toBe("Flip Three")
-        expect(typeOf("second-chance").name[language]).toBe("Second Chance")
+        for (let value = 0; value <= 12; value++) expect(cardOf("numberCard", String(value)).name[language], `number ${value} ${language}`).toBe(String(value))
+        for (const points of [2, 4, 6, 8, 10]) expect(cardOf("modifierCard", `plus-${points}`).name[language], `plus-${points} ${language}`).toBe(`+${points}`)
+        expect(cardOf("modifierCard", "times-2").name[language]).toBe("x2")
+        expect(cardOf("actionCard", "freeze").name[language]).toBe("Freeze")
+        expect(cardOf("actionCard", "flip-three").name[language]).toBe("Flip Three")
+        expect(cardOf("actionCard", "second-chance").name[language]).toBe("Second Chance")
       }
     })
 
-    it("are, for the action cards, the titles the Studio lists", () => {
-      for (const key of ACTIONS) expect(typeOf(key).name.en, key).toBe(titleOf(CARD_TYPES, key))
+    it("are the titles the Studio lists for the key of the card", () => {
+      for (const category of CATEGORY_KEYS) {
+        for (const doc of ofType(CATEGORIES[category].type)) expect(doc.name.en, label(doc)).toBe(titleOf(CATEGORIES[category].choices, doc.key))
+      }
     })
 
     it("are unique within a language", () => {
       for (const language of LANGUAGE_IDS) {
-        const names = cardTypes().map((doc) => doc.name[language] as string)
+        const names = cards().map((doc) => doc.name[language] as string)
         expect(new Set(names).size, language).toBe(names.length)
       }
     })
@@ -192,45 +227,69 @@ describe("the card faces", () => {
 
   describe("effects", () => {
     it("are one short paragraph that ends with a full stop", () => {
-      for (const doc of cardTypes()) {
+      for (const doc of cards()) {
         for (const language of LANGUAGE_IDS) {
           const text = doc.effect[language] as string
-          expect(text, `${doc.key} ${language}`).not.toContain("\n")
-          expect(text, `${doc.key} ${language}`).toMatch(/\.$/)
-          expect(text.length, `${doc.key} ${language}`).toBeLessThan(340)
+          expect(text, `${label(doc)} ${language}`).not.toContain("\n")
+          expect(text, `${label(doc)} ${language}`).toMatch(/\.$/)
+          expect(text.length, `${label(doc)} ${language}`).toBeLessThan(340)
         }
       }
     })
 
     it("give the same figures in every language: the points of a modifier, the seven numbers of a Flip 7", () => {
-      const expected = (key: string): number[] => {
-        if (key === "number-0" || key === "flip-three") return [7]
-        if (key.startsWith("plus-")) return [Number(key.slice("plus-".length)), 7].sort((a, b) => a - b)
-        if (key === "times-2") return [2, 7, 10]
+      const expected = (doc: Doc): number[] => {
+        if ((doc._type === "numberCard" && doc.key === "0") || doc.key === "flip-three") return [7]
+        if (doc.key.startsWith("plus-")) return [Number(doc.key.slice("plus-".length)), 7].sort((a, b) => a - b)
+        if (doc.key === "times-2") return [2, 7, 10]
         return []
       }
-      for (const doc of cardTypes()) for (const language of LANGUAGE_IDS) expect(digitsOf(doc.effect[language]), `${doc.key} ${language}`).toEqual(expected(doc.key))
+      for (const doc of cards()) for (const language of LANGUAGE_IDS) expect(digitsOf(doc.effect[language]), `${label(doc)} ${language}`).toEqual(expected(doc))
     })
 
-    it("are one and the same for the twelve numbers that carry points, and their own for the 10 other faces", () => {
-      for (let value = 2; value <= 12; value++) expect(typeOf(`number-${value}`).effect, `number-${value}`).toEqual(typeOf("number-1").effect)
+    it("are one and the same for the twelve numbers that carry points, and their own for the 10 other cards", () => {
+      for (let value = 2; value <= 12; value++) expect(cardOf("numberCard", String(value)).effect, `number ${value}`).toEqual(cardOf("numberCard", "1").effect)
       for (const language of LANGUAGE_IDS) {
-        const effects = cardTypes().map((doc) => doc.effect[language] as string)
-        // 1 shared by the numbers 1 to 12, then the zero, five +N, the x2 and the three action cards
+        const effects = cards().map((doc) => doc.effect[language] as string)
+        // 1 shared by the numbers 1 to 12, then the zero, the three action cards, five +N and the x2
         expect(new Set(effects).size, language).toBe(11)
       }
     })
 
     it("say what the booklet says of each kind of card", () => {
-      const words: Record<LanguageId, Record<string, string[]>> = {
-        fr: { "number-5": ["déjà devant vous", "élimine"], "second-chance": ["défaussez", "Second Chance"], freeze: ["met ses points en banque"], "flip-three": ["trois cartes", "Flip 7"], "times-2": ["Double"] },
-        en: { "number-5": ["already have", "busts"], "second-chance": ["discard", "Second Chance"], freeze: ["bank their points"], "flip-three": ["three cards", "Flip 7"], "times-2": ["Doubles"] },
-        es: { "number-5": ["ya tienes", "eliminado"], "second-chance": ["descarta", "Second Chance"], freeze: ["guarda sus puntos"], "flip-three": ["tres cartas", "Flip 7"], "times-2": ["Duplica"] },
-        de: { "number-5": ["schon vor dir", "scheidest"], "second-chance": ["doppelte Karte", "Second Chance"], freeze: ["sichert ihre Punkte"], "flip-three": ["drei Karten", "Flip 7"], "times-2": ["Verdoppelt"] },
+      const words: Record<LanguageId, [type: string, key: string, terms: string[]][]> = {
+        fr: [
+          ["numberCard", "5", ["déjà devant vous", "élimine"]],
+          ["actionCard", "second-chance", ["défaussez", "Second Chance"]],
+          ["actionCard", "freeze", ["met ses points en banque"]],
+          ["actionCard", "flip-three", ["trois cartes", "Flip 7"]],
+          ["modifierCard", "times-2", ["Double"]],
+        ],
+        en: [
+          ["numberCard", "5", ["already have", "busts"]],
+          ["actionCard", "second-chance", ["discard", "Second Chance"]],
+          ["actionCard", "freeze", ["bank their points"]],
+          ["actionCard", "flip-three", ["three cards", "Flip 7"]],
+          ["modifierCard", "times-2", ["Doubles"]],
+        ],
+        es: [
+          ["numberCard", "5", ["ya tienes", "eliminado"]],
+          ["actionCard", "second-chance", ["descarta", "Second Chance"]],
+          ["actionCard", "freeze", ["guarda sus puntos"]],
+          ["actionCard", "flip-three", ["tres cartas", "Flip 7"]],
+          ["modifierCard", "times-2", ["Duplica"]],
+        ],
+        de: [
+          ["numberCard", "5", ["schon vor dir", "scheidest"]],
+          ["actionCard", "second-chance", ["doppelte Karte", "Second Chance"]],
+          ["actionCard", "freeze", ["sichert ihre Punkte"]],
+          ["actionCard", "flip-three", ["drei Karten", "Flip 7"]],
+          ["modifierCard", "times-2", ["Verdoppelt"]],
+        ],
       }
       for (const language of LANGUAGE_IDS) {
-        for (const [key, terms] of Object.entries(words[language])) {
-          for (const term of terms) expect(typeOf(key).effect[language], `${key} ${language}: ${term}`).toContain(term)
+        for (const [type, key, terms] of words[language]) {
+          for (const term of terms) expect(cardOf(type, key).effect[language], `${type} ${key} ${language}: ${term}`).toContain(term)
         }
       }
     })
@@ -283,7 +342,7 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // 22 card faces (name, effect) and the credits
+    // 22 cards (name, effect) and the credits
     expect(objects).toHaveLength(45)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
@@ -353,19 +412,20 @@ describe("the configuration", () => {
 
 describe("the art slots", () => {
   const image = imageValue
-  const faces = ART_SLOTS.filter((slot) => slot.docId.startsWith("card-type-"))
+  const isFace = (slot: (typeof ART_SLOTS)[number]) => slot.docId.includes("-card-")
+  const faces = ART_SLOTS.filter(isFace)
   const docOf = (slot: (typeof ART_SLOTS)[number]) => docs().find((candidate) => candidate._id === slot.docId) as Doc
 
-  it("are 27: a face per card face (22), the card back, the box (front and back), the mat and the logo", () => {
+  it("are 27: one per card (22), the card back, the box (front and back), the mat and the logo", () => {
     expect(ART_SLOTS).toHaveLength(27)
     expect(faces).toHaveLength(22)
     expect(ART_SLOTS.filter((slot) => slot.docId === GAME_ID).map((slot) => slot.name)).toEqual(["card-back", "box-front", "box-back", "mat"])
     expect(ART_SLOTS.filter((slot) => slot.docId === SETTINGS_ID).map((slot) => slot.name)).toEqual(["logo"])
   })
 
-  it("name each face after its key, in the order of the catalogue (number-7, plus-4, times-2, freeze…)", () => {
-    expect(faces.map((slot) => slot.name)).toEqual(ENGINE_KEYS)
-    expect(faces.map((slot) => slot.docId)).toEqual(ENGINE_KEYS.map((key) => `card-type-${key}`))
+  it("name each face after the key of the engine catalogue (number-7, plus-4, times-2, freeze…), category by category as the Studio lists them", () => {
+    expect(faces.map((slot) => slot.name)).toEqual([...NUMBERS.map((key) => `number-${key}`), ...ACTIONS, ...MODIFIERS])
+    expect(faces.map((slot) => slot.docId)).toEqual([...NUMBERS.map((key) => `number-card-${key}`), ...ACTIONS.map((key) => `action-card-${key}`), ...MODIFIERS.map((key) => `modifier-card-${key}`)])
   })
 
   it("also accept the figure printed on the card (7, +4, x2) and `back` for the card back", () => {
@@ -403,7 +463,7 @@ describe("the art slots", () => {
 
   it("ask for the proportions of a card (5:7) on the faces and the back, and for none on the rest", () => {
     for (const slot of ART_SLOTS) {
-      if (slot.docId.startsWith("card-type-") || slot.name === "card-back") expect(slot.ratio, slot.name).toEqual([5, 7])
+      if (isFace(slot) || slot.name === "card-back") expect(slot.ratio, slot.name).toEqual([5, 7])
       else expect(slot.ratio, slot.name).toBeUndefined()
     }
   })
@@ -441,8 +501,12 @@ describe("the art slots", () => {
       return `${doc._type}:${imagesOf(doc)[0]?.path}`
     }
 
-    it("the image of the card face that carries its key", () => {
-      for (const name of ["number-7", "plus-4", "times-2", "freeze", "flip-three", "second-chance"]) expect(where(name)).toBe("cardType:$.image")
+    it("the image of the card face that carries its key, in the document type of its category", () => {
+      expect(where("number-0")).toBe("numberCard:$.image")
+      expect(where("number-7")).toBe("numberCard:$.image")
+      expect(where("number-12")).toBe("numberCard:$.image")
+      for (const name of ["freeze", "flip-three", "second-chance"]) expect(where(name)).toBe("actionCard:$.image")
+      for (const name of ["plus-2", "plus-4", "plus-10", "times-2"]) expect(where(name)).toBe("modifierCard:$.image")
     })
 
     it("the images of the game singleton and the shared logo of the settings", () => {

@@ -1,8 +1,9 @@
+import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields, imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc, FieldDef, TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
-import { CARD_TYPE_KEYS, KIND_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
+import { CATEGORIES, CATEGORY_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import { DATASET, GAME_DIR, PROJECT_ID } from "../config.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
 import { seedDocs } from "./test-fixtures.ts"
@@ -41,7 +42,9 @@ beforeAll(async () => {
 
 /** The kinds of document the seed writes, and the ones whose fields the Flip 7 Studio defines itself (the others are shared with every game). */
 const SEED_TYPES = [...new Set(seedDocs().map((doc) => doc._type))]
-const OWN_TYPES = ["cardType", "game"]
+/** One document type per category of cards, in the order the Studio lists them: number, action, modifier. */
+const CARD_TYPES = CATEGORY_KEYS.map((category) => CATEGORIES[category].type)
+const OWN_TYPES = [...CARD_TYPES, "game"]
 /** The image fields of the shared types that an art slot fills: the logo is the same field in every game. */
 const SHARED_IMAGE_FIELDS = ["settings.logo"]
 
@@ -76,6 +79,23 @@ describe("the Studio", () => {
     expect(SEED_TYPES.map((type) => [type, types.get(type)?.type])).toEqual(SEED_TYPES.map((type) => [type, "document"]))
   })
 
+  it("has one document type per category of cards, and no longer a single list of them all", () => {
+    expect(CARD_TYPES).toEqual(["numberCard", "actionCard", "modifierCard"])
+    expect(CARD_TYPES.map((type) => [type, types.get(type)?.type])).toEqual(CARD_TYPES.map((type) => [type, "document"]))
+    expect(types.has("cardType")).toBe(false)
+  })
+
+  it("lists the categories of cards in this order, each under its own heading: number, action, modifier", () => {
+    const source = readFileSync(join(GAME_DIR, "apps/studio/sanity.config.ts"), "utf8")
+    const listed = [...source.matchAll(/\{ type: "(\w+)", title: "([^"]+)" \}/g)].map(([, type, title]) => [type, title])
+    expect(listed).toEqual([
+      ["numberCard", "Number cards"],
+      ["actionCard", "Action cards"],
+      ["modifierCard", "Modifier cards"],
+    ])
+    expect(listed.map(([type]) => type)).toEqual(CARD_TYPES)
+  })
+
   it("lets an editor create a new document of a type exactly when the seed gives its documents ids of their own", () => {
     // the Studio offers no "new document" template for a singleton, which it opens by the name of its type
     const creatable = studio.schema.templates(SEED_TYPES.map((schemaType) => ({ schemaType }))).map(({ schemaType }) => schemaType)
@@ -102,32 +122,34 @@ describe("the seed documents", () => {
 
   it("read the validation rules of the real fields, which is what makes the checks above bite", () => {
     const names = (field: FieldDef) => constraintsOf(field.validation).map((constraint) => constraint.name)
-    expect(names(fieldOf("cardType", "key"))).toEqual(expect.arrayContaining(["required"]))
-    expect(names(fieldOf("cardType", "kind"))).toEqual(expect.arrayContaining(["required"]))
-    expect(names(fieldOf("cardType", "order"))).toEqual(expect.arrayContaining(["required", "integer", "min"]))
-    expect(names(fieldOf("cardType", "copies"))).toEqual(expect.arrayContaining(["required", "integer", "min"]))
+    for (const type of CARD_TYPES) {
+      expect(names(fieldOf(type, "key")), `${type}.key`).toEqual(expect.arrayContaining(["required"]))
+      expect(names(fieldOf(type, "order")), `${type}.order`).toEqual(expect.arrayContaining(["required", "integer", "min"]))
+      expect(names(fieldOf(type, "copies")), `${type}.copies`).toEqual(expect.arrayContaining(["required", "integer", "min"]))
+    }
     expect(names(fieldOf("game", "mat"))).toEqual([])
   })
 
   describe("break the rules of the Studio, and are caught", () => {
     it.each<[string, string, (doc: Doc) => void, string]>([
-      ["a card face key outside the list", "card-type-number-7", (doc) => (doc.key = "pink"), 'card-type-number-7.key is "pink", not one of'],
-      ["a kind outside the list", "card-type-number-7", (doc) => (doc.kind = "monster"), 'card-type-number-7.kind is "monster", not one of'],
-      ["a missing key", "card-type-number-7", (doc) => delete doc.key, "card-type-number-7.key is required"],
-      ["a missing kind", "card-type-number-7", (doc) => delete doc.kind, "card-type-number-7.kind is required"],
-      ["a missing place in the box", "card-type-number-7", (doc) => delete doc.order, "card-type-number-7.order is required"],
-      ["a negative place in the box", "card-type-number-7", (doc) => (doc.order = -1), "card-type-number-7.order must be at least 0"],
-      ["a place with a fraction", "card-type-number-7", (doc) => (doc.order = 1.5), "card-type-number-7.order must be an integer"],
-      ["a missing number of copies", "card-type-number-7", (doc) => delete doc.copies, "card-type-number-7.copies is required"],
-      ["no copy of a card", "card-type-number-7", (doc) => (doc.copies = 0), "card-type-number-7.copies must be at least 1"],
-      ["a fraction of a copy", "card-type-number-7", (doc) => (doc.copies = 1.5), "card-type-number-7.copies must be an integer"],
-      ["copies written as text", "card-type-number-7", (doc) => (doc.copies = "7"), "card-type-number-7.copies should be a number"],
-      ["a card face that is not an image", "card-type-number-7", (doc) => (doc.image = "7.webp"), "card-type-number-7.image should be an image"],
-      ["a name that is not a localeString", "card-type-freeze", (doc) => (doc.name = "Freeze"), "card-type-freeze.name should be an object"],
-      ["a name typed as a localeText", "card-type-freeze", (doc) => (doc.name._type = "localeText"), 'card-type-freeze.name._type is "localeText", expected "localeString"'],
-      ["a name in a language the Studio does not have", "card-type-freeze", (doc) => (doc.name.it = "Congelare"), "card-type-freeze.name.it is not a field"],
-      ["an effect that is not a localeText", "card-type-freeze", (doc) => (doc.effect = "Freezes."), "card-type-freeze.effect should be an object"],
-      ["a field the Studio does not have", "card-type-freeze", (doc) => (doc.colour = "#ff0000"), 'card-type-freeze.colour is not a field of "cardType"'],
+      ["a number outside the list", "number-card-7", (doc) => (doc.key = "13"), 'number-card-7.key is "13", not one of'],
+      ["the key of another category", "action-card-freeze", (doc) => (doc.key = "plus-2"), 'action-card-freeze.key is "plus-2", not one of'],
+      ["a modifier outside the list", "modifier-card-plus-4", (doc) => (doc.key = "plus-3"), 'modifier-card-plus-4.key is "plus-3", not one of'],
+      ["a missing key", "number-card-7", (doc) => delete doc.key, "number-card-7.key is required"],
+      ["a kind, which the category now says", "number-card-7", (doc) => (doc.kind = "number"), 'number-card-7.kind is not a field of "numberCard"'],
+      ["a missing place in the category", "number-card-7", (doc) => delete doc.order, "number-card-7.order is required"],
+      ["a negative place in the category", "number-card-7", (doc) => (doc.order = -1), "number-card-7.order must be at least 0"],
+      ["a place with a fraction", "number-card-7", (doc) => (doc.order = 1.5), "number-card-7.order must be an integer"],
+      ["a missing number of copies", "number-card-7", (doc) => delete doc.copies, "number-card-7.copies is required"],
+      ["no copy of a card", "number-card-7", (doc) => (doc.copies = 0), "number-card-7.copies must be at least 1"],
+      ["a fraction of a copy", "number-card-7", (doc) => (doc.copies = 1.5), "number-card-7.copies must be an integer"],
+      ["copies written as text", "number-card-7", (doc) => (doc.copies = "7"), "number-card-7.copies should be a number"],
+      ["a card face that is not an image", "number-card-7", (doc) => (doc.image = "7.webp"), "number-card-7.image should be an image"],
+      ["a name that is not a localeString", "action-card-freeze", (doc) => (doc.name = "Freeze"), "action-card-freeze.name should be an object"],
+      ["a name typed as a localeText", "action-card-freeze", (doc) => (doc.name._type = "localeText"), 'action-card-freeze.name._type is "localeText", expected "localeString"'],
+      ["a name in a language the Studio does not have", "action-card-freeze", (doc) => (doc.name.it = "Congelare"), "action-card-freeze.name.it is not a field"],
+      ["an effect that is not a localeText", "action-card-freeze", (doc) => (doc.effect = "Freezes."), "action-card-freeze.effect should be an object"],
+      ["a field the Studio does not have", "modifier-card-times-2", (doc) => (doc.colour = "#ff0000"), 'modifier-card-times-2.colour is not a field of "modifierCard"'],
       ["a card back that is not an image", "game", (doc) => (doc.cardBack = "back.webp"), "game.cardBack should be an image"],
       ["a mat that is not an image", "game", (doc) => (doc.mat = "mat.webp"), "game.mat should be an image"],
       ["a publisher link that is not an address", "settings", (doc) => (doc.publisherUrl = "theopgames"), "settings.publisherUrl should be a URL"],
@@ -140,15 +162,16 @@ describe("the seed documents", () => {
 })
 
 describe("the option lists of the Studio", () => {
-  it.each<[string, () => unknown[], readonly unknown[]]>([
-    ["cardType.key", () => listOf(fieldOf("cardType", "key")), CARD_TYPE_KEYS],
-    ["cardType.kind", () => listOf(fieldOf("cardType", "kind")), KIND_KEYS],
-  ])("of %s offers the values the seed is built from, in the same order", (_name, offered, expected) => {
-    expect(offered()).toEqual([...expected])
+  it.each(CATEGORY_KEYS)("of the %s cards offers the keys the seed is built from, in the same order", (category) => {
+    const { type } = CATEGORIES[category]
+    const choices: { value: string }[] = CATEGORIES[category].choices
+    const offered = listOf(fieldOf(type, "key"))
+    expect(offered).toEqual(choices.map((choice) => choice.value))
+    expect(offered).toEqual(seedDocs().filter((doc) => doc._type === type).map((doc) => doc.key))
   })
 
-  it("sorts the card faces on their place in the box by default", () => {
-    const { orderings } = typeOf("cardType") as TypeDef & { orderings?: { by: unknown[] }[] }
+  it.each(CARD_TYPES)("of %s sorts its cards on their place in the category by default", (type) => {
+    const { orderings } = typeOf(type) as TypeDef & { orderings?: { by: unknown[] }[] }
     expect(orderings?.[0]?.by).toEqual([{ field: "order", direction: "asc" }])
   })
 })

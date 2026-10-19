@@ -68,12 +68,12 @@ games/<slug>/content/
     index.ts           buildSeedDocs(): every document of the game
     suits.ts cards.ts bonus-tiles.ts game.ts rules.ts settings.ts          Hanabi
     card-types.ts edition.ts game.ts rules.ts settings.ts                  Exploding Kittens
-    card-types.ts game.ts settings.ts                                      Flip 7 (no rules text yet)
+    cards.ts game.ts settings.ts                                           Flip 7
     art-manifest.ts    every image the content needs, and where it goes
     *.test.ts          the documents, against the Studio's types, through the runner
 ```
 
-The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; Exploding Kittens: card type keys, kinds, edition keys) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
+The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; Exploding Kittens: card type keys, kinds, edition keys; Flip 7: the card categories and the keys of each) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
 
 ## Running it
 
@@ -89,7 +89,7 @@ pnpm --filter @pbgo-game/<slug> content:seed --apply
 | `--dry-run` | Read the dataset and print what would happen. Writes nothing. This is the default |
 | `--apply` | Write the drafts, and upload the art given with `--art-dir` |
 | `--art-dir <dir>` | Normalise the images of this folder and place them. Without it the art is left alone. Give an absolute path: a relative one is read from the folder the command runs in (`games/<slug>` through `pnpm --filter`) |
-| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only rules,settings`, `--only card-red-3` (a Hanabi card), `--only card-type-defuse` (an Exploding Kittens card type), `--only card-type-number-7` (a Flip 7 card face), `--only cardType` (all of them). A name that matches nothing stops the run |
+| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only rules,settings`, `--only card-red-3` (a Hanabi card), `--only card-type-defuse` (an Exploding Kittens card type), `--only cardType` (all of them), `--only number-card-7` (a Flip 7 number card), `--only numberCard` (all the Flip 7 number cards). A name that matches nothing stops the run |
 | `--overwrite` | Replace the values edited in the Studio with the seed's. Needs `--only` |
 | `--verbose`, `-v` | List every document, not only the ones that change |
 | `--help`, `-h` | The usage |
@@ -171,14 +171,14 @@ The card faces carry no text of their own in these slots: whether the printed ar
 
 ### Flip 7 slots (27)
 
-One picture per card face, not per card: the 94 cards of the box share 22 faces (a number has as many copies as its value, and they all look alike). Besides the key, a face also answers to the figure printed on the card: `7.png`, `+4.png`, `x2.png`.
+One picture per card of the Studio, not per card of the box: the 94 cards of the box are 22 different cards (a number has as many copies as its value, and they all look alike). The file is named after the key of the engine's catalogue, which is not the key of the Studio for a number (`number-7.png` fills the card listed as `7`), and it also answers to the figure printed on the card: `7.png`, `+4.png`, `x2.png`.
 
 | File name (without extension) | Count | Placed in | Proportions | Longest side |
 | --- | --- | --- | --- | --- |
-| `number-0` … `number-12` (`0` … `12` also accepted) | 13 | `card-type-number-<n>` › `image` | 5:7 | 1400 |
-| `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10` (`+2` … `+10` also accepted) | 5 | `card-type-plus-<n>` › `image` | 5:7 | 1400 |
-| `times-2` (`x2` also accepted) | 1 | `card-type-times-2` › `image` | 5:7 | 1400 |
-| `freeze`, `flip-three`, `second-chance` | 3 | `card-type-<key>` › `image` | 5:7 | 1400 |
+| `number-0` … `number-12` (`0` … `12` also accepted) | 13 | `number-card-<n>` › `image` | 5:7 | 1400 |
+| `freeze`, `flip-three`, `second-chance` | 3 | `action-card-<key>` › `image` | 5:7 | 1400 |
+| `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10` (`+2` … `+10` also accepted) | 5 | `modifier-card-plus-<n>` › `image` | 5:7 | 1400 |
+| `times-2` (`x2` also accepted) | 1 | `modifier-card-times-2` › `image` | 5:7 | 1400 |
 | `card-back` (`back` also accepted) | 1 | `game` › `cardBack` | 5:7 | 1400 |
 | `box-front` | 1 | `game` › `boxFront` | any | 2000 |
 | `box-back` (optional) | 1 | `game` › `boxBack` | any | 2000 |
@@ -220,11 +220,13 @@ Three of them are singletons: `game`, `rules`, `settings`.
 
 | Id | Type | Count | Holds |
 | --- | --- | --- | --- |
-| `card-type-<key>` | `cardType` | 22 | One per face, keyed like the engine's catalogue (kebab-case: `number-0` … `number-12`, `plus-2` … `plus-10`, `times-2`, `freeze`, `flip-three`, `second-chance`). Its kind, under the engine's names (`number`, `modifier`, `action`), its place in the box (`order`, which the Studio sorts on), its copies (94 cards in all: 79 numbers, 6 modifiers, 9 action cards), its name and a one-sentence effect in four languages, and the picture of the card, which the art fills |
+| `number-card-<n>` | `numberCard` | 13 | One per figure, `number-card-0` … `number-card-12`, listed under the figure itself as its key (`0` … `12`; the engine calls the card `number-<n>`). Its place in the category (`order`, which the Studio sorts on), its copies (as many as the figure, one for the 0), its name, which is the figure, and a one-sentence effect in four languages, and the picture of the card, which the art fills |
+| `action-card-<key>` | `actionCard` | 3 | `freeze`, `flip-three`, `second-chance`, the keys of the engine's catalogue, in the order of the deck, with three copies each. The same fields |
+| `modifier-card-<key>` | `modifierCard` | 6 | `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10`, `times-2`, the keys of the engine's catalogue, with one copy each. The same fields |
 | `game` | `game` | 1 | Empty: the card back, the box and the mat come with the art |
 | `settings` | `settings` | 1 | Credits (Eric Olsen; publisher The OP Games with its link). No rulebook link: the booklet has no address of its own to link, one can be set in the Studio |
 
-Two of them are singletons: `game` and `settings`. There is no `rules` document yet: the in-game rules text (four languages, in our own words) is a separate piece of work, and the binding does not read it yet.
+The 22 cards come in three categories, the engine's kinds (79 number cards, 9 action cards and 6 modifiers in the box, 94 in all), and each category is a document type of its own, so the Studio lists them apart (Number cards, Action cards, Modifier cards) and an editor looks for a 7 among the 13 numbers. A card has no `kind` field: its category says it. Two of the documents are singletons: `game` and `settings`. There is no `rules` document: the rules are links to PDFs, set in `settings`.
 
 ### Editions that are not in the seed
 
@@ -268,7 +270,7 @@ In each game:
 - `content/data/schema.test.ts` loads the real Studio configuration and checks every seed document against the Studio's own types (field names, option lists, validation rules), and every art slot against a real image field. A field renamed or a rule tightened in the Studio fails here, not in front of an editor.
 - `content/data/run.test.ts` runs the game's seed and art slots through the kit's runner against an in-memory dataset: drafts only, nothing the second time, nothing after a publication, art placed by slot.
 - `content/seed.test.ts` runs the command itself for the paths that end before the token is read.
-- Flip 7 has the same files without `edition` and `rules`: its `data.test.ts` checks the 22 faces (keys, kinds, order, copies, which add up to the 94 cards of the box, names, effects with the same figures in every language), the credits and the 27 art slots (a face also answers to the figure printed on the card), its `parity/engine.test.ts` the keys, kinds, copies and names against the engine's `CARDS` and `DECK`.
+- Flip 7 has the same files without `edition` and `rules`: its `data.test.ts` checks the 22 cards (the three categories and their keys, order, copies, which add up to the 94 cards of the box, names, effects with the same figures in every language), the credits and the 27 art slots (a card also answers to the figure printed on it), its `parity/engine.test.ts` the categories, keys, copies and names against the engine's `CARDS` and `DECK`.
 - Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the `kind` of each, the kinds the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
 
 Each guarantee was checked by breaking it on purpose and watching a test fail.
@@ -278,7 +280,7 @@ Code in the kit and in `content/` runs directly with Node (type stripping, no bu
 ## Starting the pipeline for another game
 
 1. `pnpm new-game <slug>` and `pnpm go-live <slug>` give the game its package, its Sanity project and its write token (`apps/web/.env.local`).
-2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar).
+2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar). Cards are filed by category, one document type (and so one list in the Studio) per kind of card, as Flip 7 does with its Number, Action and Modifier cards. Within a category the key is the simplest one, which is what the editor sees and what the art files are named after (the engine's own key is derived from it where the two differ).
 3. Add `@pbgo/content-kit` and `@pbgo/studio-kit` (`workspace:*`) and `vitest` (`catalog:`) to the game's dev dependencies, with the `typecheck` (`tsc --noEmit && tsc --noEmit -p content`), `test` (`vitest run`) and `content:seed` (`node --disable-warning=ExperimentalWarning content/seed.ts`) scripts and a `vitest.config.ts` that includes `content/**/*.test.ts`. `games/exploding-kittens` is the smallest model.
 4. Write `content/config.ts` (slug, project id), `content/seed.ts` (`runSeedCli` with the game's `buildSeedDocs` and `ART_SLOTS`), `content/tsconfig.json` and `content/data/`: the game's documents, and `art-manifest.ts` with its image slots. There is nothing to copy from the kit: it stays where it is.
 5. Run the tests, then follow the process above.

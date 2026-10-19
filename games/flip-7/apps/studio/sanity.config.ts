@@ -6,5 +6,9 @@ export default createStudioConfig({
   projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "ky3exlhe",
   dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
   gameTypes,
-  collections: [{ type: "cardType", title: "Card faces" }],
+  collections: [
+    { type: "numberCard", title: "Number cards" },
+    { type: "actionCard", title: "Action cards" },
+    { type: "modifierCard", title: "Modifier cards" },
+  ],
 })

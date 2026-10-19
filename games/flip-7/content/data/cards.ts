@@ -1,11 +1,10 @@
 import { localeString, localeText } from "@pbgo/content-kit"
 import type { Localized, SeedDoc } from "@pbgo/content-kit"
-import { CARD_TYPE_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
-import type { CardTypeKey, KindKey } from "../../apps/studio/schemaTypes/constants.ts"
+import { CATEGORIES, CATEGORY_KEYS, engineKeyOf } from "../../apps/studio/schemaTypes/constants.ts"
+import type { CategoryKey, KeyOf } from "../../apps/studio/schemaTypes/constants.ts"
 
-type CardTypeSpec = {
-  kind: KindKey
-  /** Copies of the face in the box: 94 cards in all (79 numbers, 6 score modifiers, 9 action cards). */
+type CardSpec = {
+  /** Copies of the card in the box: 94 cards in all (79 numbers, 9 action cards, 6 score modifiers). */
   copies: number
   name: Localized
   /** A short summary of the effect in PBGO's own words, never copied from the booklet. */
@@ -67,52 +66,74 @@ const SECOND_CHANCE_EFFECT: Localized = {
   de: "Behalte sie vor dir. Wenn du eine Zahl ziehst, die du schon hast, legst du die Second Chance und die doppelte Karte ab: Du bleibst in der Runde. Du kannst nur eine haben; eine zweite geht an eine andere Person, die noch in der Runde ist.",
 }
 
-const numberSpec = (value: number): CardTypeSpec => ({
-  kind: "number",
+const numberSpec = (value: number): CardSpec => ({
   copies: Math.max(value, 1),
   name: same(String(value)),
   effect: value === 0 ? ZERO_EFFECT : NUMBER_EFFECT,
 })
 
-const SPECS: Record<CardTypeKey, CardTypeSpec> = {
-  "number-0": numberSpec(0),
-  "number-1": numberSpec(1),
-  "number-2": numberSpec(2),
-  "number-3": numberSpec(3),
-  "number-4": numberSpec(4),
-  "number-5": numberSpec(5),
-  "number-6": numberSpec(6),
-  "number-7": numberSpec(7),
-  "number-8": numberSpec(8),
-  "number-9": numberSpec(9),
-  "number-10": numberSpec(10),
-  "number-11": numberSpec(11),
-  "number-12": numberSpec(12),
-  "plus-2": { kind: "modifier", copies: 1, name: same("+2"), effect: plusEffect(2) },
-  "plus-4": { kind: "modifier", copies: 1, name: same("+4"), effect: plusEffect(4) },
-  "plus-6": { kind: "modifier", copies: 1, name: same("+6"), effect: plusEffect(6) },
-  "plus-8": { kind: "modifier", copies: 1, name: same("+8"), effect: plusEffect(8) },
-  "plus-10": { kind: "modifier", copies: 1, name: same("+10"), effect: plusEffect(10) },
-  "times-2": { kind: "modifier", copies: 1, name: same("x2"), effect: TIMES_EFFECT },
-  freeze: { kind: "action", copies: 3, name: same("Freeze"), effect: FREEZE_EFFECT },
-  "flip-three": { kind: "action", copies: 3, name: same("Flip Three"), effect: FLIP_THREE_EFFECT },
-  "second-chance": { kind: "action", copies: 3, name: same("Second Chance"), effect: SECOND_CHANCE_EFFECT },
+// The cards of each category, under the key the Studio lists (`schemaTypes/constants.ts`).
+const SPECS: { [C in CategoryKey]: Record<KeyOf[C], CardSpec> } = {
+  number: {
+    "0": numberSpec(0),
+    "1": numberSpec(1),
+    "2": numberSpec(2),
+    "3": numberSpec(3),
+    "4": numberSpec(4),
+    "5": numberSpec(5),
+    "6": numberSpec(6),
+    "7": numberSpec(7),
+    "8": numberSpec(8),
+    "9": numberSpec(9),
+    "10": numberSpec(10),
+    "11": numberSpec(11),
+    "12": numberSpec(12),
+  },
+  action: {
+    freeze: { copies: 3, name: same("Freeze"), effect: FREEZE_EFFECT },
+    "flip-three": { copies: 3, name: same("Flip Three"), effect: FLIP_THREE_EFFECT },
+    "second-chance": { copies: 3, name: same("Second Chance"), effect: SECOND_CHANCE_EFFECT },
+  },
+  modifier: {
+    "plus-2": { copies: 1, name: same("+2"), effect: plusEffect(2) },
+    "plus-4": { copies: 1, name: same("+4"), effect: plusEffect(4) },
+    "plus-6": { copies: 1, name: same("+6"), effect: plusEffect(6) },
+    "plus-8": { copies: 1, name: same("+8"), effect: plusEffect(8) },
+    "plus-10": { copies: 1, name: same("+10"), effect: plusEffect(10) },
+    "times-2": { copies: 1, name: same("x2"), effect: TIMES_EFFECT },
+  },
 }
 
-export const cardTypeId = (key: CardTypeKey) => `card-type-${key}`
+const idOf = (category: CategoryKey, key: string) => `${category}-card-${key}`
 
-/** Copies of each face in the box, by key: the engine's `DECK` (`parity/engine.test.ts` checks it). */
-export const COPIES = Object.fromEntries(CARD_TYPE_KEYS.map((key) => [key, SPECS[key].copies])) as Record<CardTypeKey, number>
+/** The `_id` of a card: `number-card-7`, `action-card-freeze`, `modifier-card-plus-4`. */
+export const cardId = <C extends CategoryKey>(category: C, key: KeyOf[C]) => idOf(category, key)
 
-/** The 22 faces, in the order of the engine catalogue. `order` is the place in it, from 0. */
-export function buildCardTypes(): SeedDoc[] {
-  return CARD_TYPE_KEYS.map((key, order) => {
-    const spec = SPECS[key]
+/** A card of the game: its place in the Studio (category and key), its `_id` and the key the engine catalogue gives it. */
+export type CardRef = {
+  category: CategoryKey
+  key: string
+  /** Place of the card in its category, from 0: the order of the engine catalogue (`parity/engine.test.ts` checks it). */
+  order: number
+  id: string
+  engineKey: string
+}
+
+/** The 22 cards, category by category, in the order of the Studio lists. */
+export const CARD_LIST: CardRef[] = CATEGORY_KEYS.flatMap((category) => {
+  const choices: { value: string }[] = CATEGORIES[category].choices
+  return choices.map(({ value }, order) => ({ category, key: value, order, id: idOf(category, value), engineKey: engineKeyOf(category, value) }))
+})
+
+/** The seed documents of the three categories of cards: 13 number cards, 3 action cards and 6 modifier cards. */
+export function buildCards(): SeedDoc[] {
+  return CARD_LIST.map(({ category, key, order, id }) => {
+    const spec = (SPECS[category] as Record<string, CardSpec>)[key]
+    if (!spec) throw new Error(`No text for the ${category} card "${key}"`)
     return {
-      _id: cardTypeId(key),
-      _type: "cardType",
+      _id: id,
+      _type: CATEGORIES[category].type,
       key,
-      kind: spec.kind,
       order,
       copies: spec.copies,
       name: localeString(spec.name),
