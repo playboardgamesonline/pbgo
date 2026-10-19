@@ -344,14 +344,14 @@ export function GameOverPanel({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: rowDelay(i), ease: EASE_STANDARD }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 short:gap-2">
                   <span className="font-display text-lg tabular-nums opacity-45">{entry.result.rank}.</span>
                   <SeatLabel
                     nickname={entry.nickname}
                     color={entry.color}
                     imageUrl={entry.imageUrl}
                     theme={seat}
-                    className="min-w-0 flex-1 gap-3 font-sans text-lg font-black tracking-[0.14em] uppercase"
+                    className="min-w-0 flex-1 gap-3 font-sans text-lg font-black tracking-[0.14em] uppercase short:gap-2 short:text-base short:tracking-[0.1em]"
                     nameClassName={seat.name === "seat" ? "brightness-150" : undefined}
                   />
                   <span className="font-display text-3xl leading-none tabular-nums opacity-90 short:text-2xl">{labels.points(entry.result.total)}</span>
