@@ -1,8 +1,23 @@
 import type { NextConfig } from "next"
+import { CONFIG, INGEST_PATH } from "@pbgo/analytics/config"
 import { GAMES } from "@pbgo/games/registry"
 
 /** The slugs of the registry as a path-to-regexp alternative: `skyjo|trio|6-nimmt|…`. */
 const SLUGS = GAMES.map((game) => game.slug).join("|")
+
+/**
+ * PostHog behind the site's own domain (PLT-52): the browser talks to `/ingest`, so a blocker that lists PostHog's hosts does not
+ * cut the statistics off and no request leaves for a third-party domain. Only with a valid key and host (`@pbgo/analytics/config`):
+ * without them `/ingest` is not a route at all. PostHog's scripts and remote config come from its assets host, everything else
+ * (events, recordings) from its ingest host. The order matters: the first match wins.
+ */
+const INGEST_REWRITES = CONFIG
+  ? [
+      { source: `${INGEST_PATH}/static/:path*`, destination: `${CONFIG.assetsHost}/static/:path*` },
+      { source: `${INGEST_PATH}/array/:path*`, destination: `${CONFIG.assetsHost}/array/:path*` },
+      { source: `${INGEST_PATH}/:path*`, destination: `${CONFIG.ingestHost}/:path*` },
+    ]
+  : []
 
 /**
  * The only Next.js app: the hub (`/`, `/legal`), every game of the registry under `/<slug>` and the gamemaster, the back
@@ -11,6 +26,7 @@ const SLUGS = GAMES.map((game) => game.slug).join("|")
  */
 const nextConfig: NextConfig = {
   transpilePackages: [
+    "@pbgo/analytics",
     "@pbgo/core",
     "@pbgo/engine-kit",
     "@pbgo/games",
@@ -18,6 +34,13 @@ const nextConfig: NextConfig = {
     "@pbgo/ui",
     ...GAMES.flatMap((game) => [`@pbgo-game/${game.slug}`, `@${game.slug}/engine`]),
   ],
+  // Which deployment an analytics event comes from (production, preview or development), inlined at build time so the browser
+  // knows it too. Outside Vercel there is no VERCEL_ENV: a local run is "development".
+  env: { NEXT_PUBLIC_APP_ENV: process.env.VERCEL_ENV ?? "development" },
+  // PostHog's endpoints end with a slash (`/ingest/e/`): the default redirect would strip it before the rewrite and break them.
+  // It applies to the whole site: `/legal/` now answers like `/legal` instead of redirecting, and every page's canonical URL
+  // (`alternates.canonical`, the sitemap) is an explicit string without the slash, so search engines still see one address.
+  skipTrailingSlashRedirect: true,
   images: {
     remotePatterns: [{ protocol: "https", hostname: "cdn.sanity.io" }],
   },
@@ -38,7 +61,11 @@ const nextConfig: NextConfig = {
       // The previews of Setup (iframes) are served below /gamemaster, where the session cookie is sent, but they are pages of the
       // game and render in its layout and skin: /gamemaster/<slug>/preview/<kind> → app/[game]/preview/[kind]. Before the files,
       // or the gamemaster's own /gamemaster/[game]/[[...section]] page would answer first.
-      beforeFiles: [{ source: `/gamemaster/:game(${SLUGS})/preview/:kind(home|game)`, destination: "/:game/preview/:kind" }],
+      beforeFiles: [
+        { source: `/gamemaster/:game(${SLUGS})/preview/:kind(home|game)`, destination: "/:game/preview/:kind" },
+        // Before the files too, or `/ingest/...` would be read as the `[game]` route of a game called "ingest".
+        ...INGEST_REWRITES,
+      ],
     }
   },
   async headers() {

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import { AnalyticsProvider } from "@pbgo/analytics/client"
 import { PLATFORM_THEME_COLOR } from "@pbgo/ui/theme"
 import "../globals.css"
 import { PlatformDocument } from "@/components/platform-document"
@@ -14,7 +15,15 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorScheme: "dark" }
 
-/** Root layout of the hub pages (`/`, `/legal`, `/design`). Each game has its own root layout, `app/[game]/layout.tsx`. */
+/**
+ * Root layout of the hub pages (`/`, `/legal`, `/design`). Each game has its own root layout, `app/[game]/layout.tsx`.
+ * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports.
+ */
 export default function HubLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <PlatformDocument>{children}</PlatformDocument>
+  return (
+    <PlatformDocument>
+      {children}
+      <AnalyticsProvider />
+    </PlatformDocument>
+  )
 }

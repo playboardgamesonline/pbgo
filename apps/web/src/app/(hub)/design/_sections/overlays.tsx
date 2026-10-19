@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "@pbgo/ui/platform/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@pbgo/ui/platform/tooltip"
+import { CookieBannerDemo } from "../_components/cookie-banner-demo"
 import { MenuDemo } from "../_components/menu-demo"
 import { Demo, Section } from "../_components/layout"
 import { ToastDemo } from "../_components/toast-demo"
@@ -275,6 +276,48 @@ toast.error("The table could not be saved")
 toast.promise(save(), { loading: "Saving…", success: "Saved", error: "Not saved" })`}
       >
         <ToastDemo />
+      </Demo>
+    </Section>
+  )
+}
+
+export function CookieBanners() {
+  return (
+    <Section
+      id="cookie-banner"
+      module="cookie-banner"
+      intro="The question about statistics and recordings: one line docked to the bottom of the screen, a sentence that ends with a link to the details, then Refuse and Accept. They are the same button side by side, so refusing is as easy and as visible as accepting. The bar never sits over the page: its caller measures it and makes the room (`@pbgo/analytics` publishes its height as `--consent-h` on `<body>`), so the page ends above it and a screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the bar carries the `platform` class itself, since it also sits over a game page. The frames below dock it with `absolute` and make the room on the frame, where a page docks it with `fixed` and makes it on `<body>`."
+    >
+      <Demo
+        title="First visit"
+        description="No close button: the banner stays until the visitor answers. Try either button, and watch the button at the bottom of the page: it rises above the bar and drops back when the bar closes."
+        code={`const bar = useRef<HTMLDivElement>(null)
+
+// the page ends above the bar (--consent-h)
+useLayoutEffect(() => reserveSpace(bar.current, document.body), [])
+
+<CookieBanner
+  ref={bar}
+  texts={BANNER_TEXTS[locale]}
+  moreHref="/legal#cookies"
+  onAccept={() => consentStore.choose("accepted")}
+  onRefuse={() => consentStore.choose("refused")}
+/>`}
+      >
+        <CookieBannerDemo />
+      </Demo>
+      <Demo
+        title="Reopened from the Cookies link"
+        description="A visitor who already answered can change their mind from the footer or the settings menu. The bar then has a close button, closes on Escape and takes the focus, and closing it keeps the answer."
+        code={`<CookieBanner
+  texts={BANNER_TEXTS[locale]}
+  moreHref="/legal#cookies"
+  onAccept={…}
+  onRefuse={…}
+  onClose={consentStore.dismiss}
+/>`}
+      >
+        <CookieBannerDemo reopened />
       </Demo>
     </Section>
   )

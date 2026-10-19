@@ -175,7 +175,7 @@ export function GameOver({
           />
         )}
       </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-28">
+      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-[calc(var(--spacing)*28+var(--consent-h,0px))]">
         <AnimatePresence mode="popLayout">
           {isOpen && (
             <motion.section
@@ -222,7 +222,7 @@ export function GameOver({
                   ) : (
                     <CrownIcon aria-hidden className="relative z-10 -mt-1 size-9 fill-accent-game text-accent-game drop-shadow-[0_0_12px_var(--accent-game)]" />
                   )}
-                  <p className="font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: color(winners[0]!.playerId) }}>
+                  <p className="ph-mask font-sans text-4xl font-black tracking-[0.16em] uppercase brightness-150" style={{ color: color(winners[0]!.playerId) }}>
                     {names}
                   </p>
                   <p className="font-display text-2xl text-accent-game tabular-nums">
@@ -245,7 +245,7 @@ export function GameOver({
                       <li key={j.playerId} className="space-y-2 py-3.5">
                         <div className="flex items-baseline gap-2">
                           <span className="font-display text-lg text-foreground/45 tabular-nums">{j.rank}.</span>
-                          <span className="min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: color(j.playerId) }}>
+                          <span className="ph-mask min-w-0 flex-1 truncate font-sans text-lg font-black tracking-[0.14em] uppercase brightness-150" style={{ color: color(j.playerId) }}>
                             {info(j.playerId)?.nickname}
                           </span>
                           <span className="font-display text-3xl leading-none text-foreground/90 tabular-nums">
@@ -277,7 +277,7 @@ export function GameOver({
           <span className="underline underline-offset-4">{isOpen ? t("hideScores") : t("showScores")}</span>
         </button>
       </div>
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center">{replayButton}</div>
+      <div className="pointer-events-none fixed inset-x-0 bottom-[var(--consent-h,0px)] z-50 flex justify-center">{replayButton}</div>
     </>
   )
 }
