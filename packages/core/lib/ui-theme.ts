@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import type { UiTheme } from "./binding"
 
 /**
@@ -45,3 +46,33 @@ export const DEFAULT_SEAT_THEME: SeatTheme = {
 
 /** The seat label's look: `UI_THEME.seat` of the game over the defaults. */
 export const seatTheme = (theme?: UiTheme["seat"]): SeatTheme => over(DEFAULT_SEAT_THEME, theme)
+
+export type GameOverTheme = Required<NonNullable<UiTheme["gameOver"]>>
+
+/** What the game over looked like before games could tune it: the skin's surface with a thin accent line, rounded corners, a cream polaroid. */
+export const DEFAULT_GAME_OVER_THEME: GameOverTheme = {
+  surface: "var(--surface)",
+  border: "color-mix(in oklab, var(--accent-game) 60%, transparent)",
+  radius: "1.5rem",
+  ink: "var(--foreground)",
+  accent: "var(--accent-game)",
+  frame: "#f3ecd6",
+}
+
+/** The game over's look: `UI_THEME.gameOver` of the game over the defaults. */
+export const gameOverTheme = (theme?: UiTheme["gameOver"]): GameOverTheme => over(DEFAULT_GAME_OVER_THEME, theme)
+
+/**
+ * Inline style of the game-over panel: the theme as CSS, plus the two variables its parts read, `--go-accent` (crown, winner's
+ * points) and `--go-frame` (polaroid). The panel and the `/design` specimens both set it, so a game's value never lands on `:root`.
+ */
+export function gameOverStyle(theme: GameOverTheme): CSSProperties {
+  return {
+    background: theme.surface,
+    borderColor: theme.border,
+    borderRadius: theme.radius,
+    color: theme.ink,
+    "--go-accent": theme.accent,
+    "--go-frame": theme.frame,
+  } as CSSProperties
+}

@@ -50,8 +50,8 @@ export type Author = { name: string; signature?: string; url: string }
 export type SettingsDefaults = Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> }
 
 /**
- * How a game tunes the shared in-game UI: its look, never its logic. The announcements and the seat label have a group each;
- * the ticker, the takeover pill, the chat and the toolbar have no setting, they take the game's skin.
+ * How a game tunes the shared in-game UI: its look, never its logic. The announcements, the seat label and the game over have a
+ * group each; the ticker, the takeover pill, the chat and the toolbar have no setting, they take the game's skin.
  * Every field is optional and a CSS value, so a game can point at its own tokens (`"var(--accent-game)"`). Nothing set: the
  * look the game's skin already gives the UI (`--foreground`, `--surface`, `--accent-game`, `--font-accent`…).
  */
@@ -85,6 +85,21 @@ export type UiTheme = {
     font?: string
     /** Colour of the nickname where the UI writes it (lobby, game over): "seat" (default) is the seat colour, "ink" the text colour around it */
     name?: "seat" | "ink"
+  }
+  /** The end-of-game panel (winner, ranking, share thumbnail): its surface, line, corners and colours */
+  gameOver?: {
+    /** Background of the panel: any CSS `background` value, so a colour, a gradient or a texture (default: the skin's surface) */
+    surface?: string
+    /** Line around the panel: a CSS colour (default: the skin's accent at 60%) */
+    border?: string
+    /** Corner radius of the panel: a CSS length (default: 1.5rem) */
+    radius?: string
+    /** Colour of the text on the panel, the score chips included: a CSS colour (default: the skin's foreground) */
+    ink?: string
+    /** Colour of the crown and of the winner's points: a CSS colour (default: the skin's accent) */
+    accent?: string
+    /** Frame of the share thumbnail, the polaroid on the panel's corner: a CSS colour (default: cream) */
+    frame?: string
   }
 }
 

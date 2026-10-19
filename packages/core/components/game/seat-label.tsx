@@ -91,12 +91,14 @@ export type SeatLabelProps = {
   corner?: ReactNode
   className?: string
   avatarClassName?: string
+  /** On the nickname alone (a filter that lifts a dark seat colour, say) */
+  nameClassName?: string
   /** After the nickname ("you", a ✓…) */
   children?: ReactNode
 }
 
 /** Avatar then nickname on one line; the nickname truncates, what follows it does not. */
-export function SeatLabel({ nickname, color, imageUrl, theme, size = "md", name, corner, className, avatarClassName, children }: SeatLabelProps) {
+export function SeatLabel({ nickname, color, imageUrl, theme, size = "md", name, corner, className, avatarClassName, nameClassName, children }: SeatLabelProps) {
   const own = useSeatTheme()
   const resolved = theme ?? own
   const avatar = useMemo(() => seatAvatar({ nickname, color, imageUrl }), [nickname, color, imageUrl])
@@ -106,7 +108,7 @@ export function SeatLabel({ nickname, color, imageUrl, theme, size = "md", name,
         {corner}
       </SeatAvatarMark>
       {/* a nickname is typed by its player: session recordings show it masked (`ph-mask`) */}
-      <span className="ph-mask truncate" style={(name ?? resolved.name) === "seat" ? { color } : undefined}>
+      <span className={cn("ph-mask truncate", nameClassName)} style={(name ?? resolved.name) === "seat" ? { color } : undefined}>
         {nickname}
       </span>
       {children}

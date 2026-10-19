@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DEFAULT_ANNOUNCEMENT_THEME, DEFAULT_SEAT_THEME, announcementTheme, seatTheme } from "./ui-theme"
+import { DEFAULT_ANNOUNCEMENT_THEME, DEFAULT_GAME_OVER_THEME, DEFAULT_SEAT_THEME, announcementTheme, gameOverStyle, gameOverTheme, seatTheme } from "./ui-theme"
 
 describe("announcementTheme", () => {
   it("is the look the announcements had before games could tune them", () => {
@@ -70,5 +70,49 @@ describe("seatTheme", () => {
     theme.shape = "square"
     expect(DEFAULT_SEAT_THEME.shape).toBe("disc")
     expect(seatTheme().shape).toBe("disc")
+  })
+})
+
+describe("gameOverTheme", () => {
+  it("is the look the game over had before games could tune it", () => {
+    expect(gameOverTheme()).toEqual(DEFAULT_GAME_OVER_THEME)
+    expect(gameOverTheme({})).toEqual(DEFAULT_GAME_OVER_THEME)
+    expect(DEFAULT_GAME_OVER_THEME).toMatchObject({ surface: "var(--surface)", radius: "1.5rem", ink: "var(--foreground)", frame: "#f3ecd6" })
+  })
+
+  it("lets a game override some fields and keeps the others", () => {
+    expect(gameOverTheme({ surface: "#f4ecd8", ink: "#1b1b1b" })).toEqual({ ...DEFAULT_GAME_OVER_THEME, surface: "#f4ecd8", ink: "#1b1b1b" })
+    expect(gameOverTheme({ radius: "0.25rem", frame: "white" })).toEqual({ ...DEFAULT_GAME_OVER_THEME, radius: "0.25rem", frame: "white" })
+  })
+
+  it("keeps the default of a field set to undefined", () => {
+    expect(gameOverTheme({ border: undefined, accent: "#c8321e" })).toEqual({ ...DEFAULT_GAME_OVER_THEME, accent: "#c8321e" })
+  })
+
+  it("never hands out the defaults themselves", () => {
+    const theme = gameOverTheme()
+    theme.surface = "red"
+    expect(DEFAULT_GAME_OVER_THEME.surface).toBe("var(--surface)")
+    expect(gameOverTheme().surface).toBe("var(--surface)")
+  })
+})
+
+describe("gameOverStyle", () => {
+  it("writes the theme as the panel's inline style", () => {
+    const style = gameOverStyle(gameOverTheme({ surface: "#f4ecd8", border: "#14110d", radius: "0.25rem", ink: "#14110d", accent: "#c8321e", frame: "#fff" }))
+    expect(style).toMatchObject({ background: "#f4ecd8", borderColor: "#14110d", borderRadius: "0.25rem", color: "#14110d" })
+  })
+
+  it("hands the accent and the frame to the parts of the panel through two variables", () => {
+    const style = gameOverStyle(gameOverTheme({ accent: "#c8321e", frame: "#fff" })) as Record<string, string>
+    expect(style["--go-accent"]).toBe("#c8321e")
+    expect(style["--go-frame"]).toBe("#fff")
+  })
+
+  it("points at the tokens of the game's skin by default, so the panel follows them", () => {
+    const style = gameOverStyle(gameOverTheme()) as Record<string, string>
+    expect(style.background).toBe("var(--surface)")
+    expect(style["--go-accent"]).toBe("var(--accent-game)")
+    expect(style.borderColor).toContain("var(--accent-game)")
   })
 })
