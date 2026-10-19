@@ -82,7 +82,7 @@ const RATINGS: Record<RatingKey, RatingSpec> = {
 
 export type ScaleStep = { key: RatingKey; from: number; to: number; label: Localized }
 
-/** The scale as score ranges (0–5, 6–10…), derived from the thresholds so the rules page cannot drift from the `game` document. The top rating has a single value. */
+/** The scale as score ranges (0–5, 6–10…), derived from the thresholds, so the tests can check the `game` document against it. The top rating has a single value. */
 export function ratingScale(): ScaleStep[] {
   return RATING_KEYS.map((key, index) => {
     const next = RATING_KEYS[index + 1]

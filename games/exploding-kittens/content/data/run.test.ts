@@ -4,9 +4,9 @@ import { MemoryStore, TempFolders, imageOf } from "@pbgo/content-kit/testing"
 import { afterEach, describe, expect, it } from "vitest"
 import { ART_SLOTS } from "./art-manifest.ts"
 import { cardTypeId, illustrationKey } from "./card-types.ts"
+import { EDITION_ORIGINAL_ID } from "./edition.ts"
 import { GAME_ID } from "./game.ts"
 import { buildSeedDocs } from "./index.ts"
-import { RULES_ID } from "./rules.ts"
 import { SETTINGS_ID } from "./settings.ts"
 
 // The runner itself is tested in @pbgo/content-kit; these tests run the Exploding Kittens seed and art slots through it.
@@ -59,16 +59,16 @@ describe("the Exploding Kittens seed", () => {
     const store = new MemoryStore()
     await everything(store, apply)
     for (const doc of seed) store.publish(doc._id)
-    store.edit(RULES_ID, (doc) => {
-      delete doc.intro
+    store.edit(EDITION_ORIGINAL_ID, (doc) => {
+      delete doc.name
     })
-    const published = structuredClone(store.docs.get(RULES_ID))
+    const published = structuredClone(store.docs.get(EDITION_ORIGINAL_ID))
 
     const result = await everything(store, apply)
 
-    expect(result.plan.filter((item) => item.action !== "unchanged").map((item) => [item.id, item.action])).toEqual([[RULES_ID, "create-from-published"]])
-    expect(store.docs.get(RULES_ID)).toEqual(published)
-    expect(store.docs.get(`drafts.${RULES_ID}`)?.intro).toEqual(seed.find((doc) => doc._id === RULES_ID)?.intro)
+    expect(result.plan.filter((item) => item.action !== "unchanged").map((item) => [item.id, item.action])).toEqual([[EDITION_ORIGINAL_ID, "create-from-published"]])
+    expect(store.docs.get(EDITION_ORIGINAL_ID)).toEqual(published)
+    expect(store.docs.get(`drafts.${EDITION_ORIGINAL_ID}`)?.name).toEqual(seed.find((doc) => doc._id === EDITION_ORIGINAL_ID)?.name)
   })
 
   describe("with art", () => {
