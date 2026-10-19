@@ -13,12 +13,24 @@ export type TakeoverStatus = {
   votes: string[]
 }
 
+/**
+ * A seated player as the table shows them: the engine's `PlayerInfo` plus what accounts will add. Both are optional and nothing
+ * fills them before PLT-13 (profiles), PLT-16 and PLT-17: the seat label (`components/game/seat-label.tsx`) already reads them,
+ * so an account only has to set them for its picture to replace the generated avatar everywhere.
+ */
+export type PublicPlayer = PlayerInfo & {
+  /** The account's picture; absent: the avatar is generated from the nickname and the seat colour */
+  avatarUrl?: string
+  /** Account badge (PLT-17), meant for the label next to the nickname; read by nothing yet */
+  badge?: string
+}
+
 /** A game as a player sees it. `View` is the game's player view (`GAME.view`); core only reads `CoreView`. */
 export type PublicGame<View = CoreView> = {
   code: string
   hostId: string
   status: GameStatus
-  players: PlayerInfo[]
+  players: PublicPlayer[]
   meId: string | null
   options: OptionValues
   replay: string[]

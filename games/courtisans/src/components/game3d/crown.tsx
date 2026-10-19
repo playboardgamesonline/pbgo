@@ -12,10 +12,11 @@ let crown: Texture | null = null
 const crownTexture = () => (crown ??= new TextureLoader().load(asset("/pictograms/PICTOGRAM_NOBLE.webp")))
 
 /**
- * Crown of the player whose turn it is: placed left of their nickname (or instead of the nickname for oneself), without moving around the table.
+ * Crown of the player whose turn it is: placed left of their nickname, without moving around the table.
  * It scales in and out; the pictogram (`/courtisans/pictograms/PICTOGRAM_NOBLE.webp`) is the one of the game's skin.
+ * `origin` and `yaw` place the frame of `offset`; inside a `TableText` (which already is that frame) they are left out.
  */
-export function CrownMark({ show, origin, yaw, offset, size = 1.1 }: { show: boolean; origin: Vector3; yaw: number; offset: [number, number]; size?: number }) {
+export function CrownMark({ show, origin, yaw = 0, offset, size = 1.1 }: { show: boolean; origin?: Vector3; yaw?: number; offset: [number, number]; size?: number }) {
   const ref = useRef<Group>(null)
   const material = useRef<MeshBasicMaterial>(null)
   const [texture] = useState(crownTexture)

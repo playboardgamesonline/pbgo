@@ -12,6 +12,8 @@ type CourtisansContextValue = {
   view: PlayerView
   nickname: (playerId: string) => string
   color: (playerId: string) => string
+  /** The account's picture (PLT-13); null: the avatar is generated */
+  avatarUrl: (playerId: string) => string | null
 }
 
 const CourtisansContext = createContext<CourtisansContextValue | null>(null)
@@ -20,8 +22,8 @@ const CourtisansContext = createContext<CourtisansContextValue | null>(null)
 export function CourtisansProvider({ catalog, view, children }: { catalog: ClientCatalog; game?: PublicGame; view: PlayerView; children: React.ReactNode }) {
   const core = useGame<PlayerView>()
   const value = useMemo<CourtisansContextValue>(
-    () => ({ catalog, game: core.game, view, nickname: core.nickname, color: core.color }),
-    [catalog, core.game, view, core.nickname, core.color],
+    () => ({ catalog, game: core.game, view, nickname: core.nickname, color: core.color, avatarUrl: core.avatarUrl }),
+    [catalog, core.game, view, core.nickname, core.color, core.avatarUrl],
   )
   return <CourtisansContext.Provider value={value}>{children}</CourtisansContext.Provider>
 }

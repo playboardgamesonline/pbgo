@@ -25,11 +25,13 @@ import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./a
 import { CardSettingsPanel } from "./card-settings"
 import { GamePhoto } from "./photo"
 import { CrownMark } from "./crown"
+import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import type { EndingState } from "./ending"
 import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { useSettings, useSettingsVersion } from "./settings"
 import { patternTexture } from "./patterns"
 import { button, roundValue, copyButton, debugTab, COPY_ORDER, useControls } from "@pbgo/core/components/game/debug-controls"
+import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
 import {
@@ -558,6 +560,8 @@ export const ZONE_SETTINGS = {
   rounding: 0.35,
   nicknameSize: 0.62,
   nicknameOffset: 0.45,
+  avatarSize: 0.7,
+  avatarGap: 0.2,
 }
 
 function ZoneSettings() {
@@ -573,6 +577,8 @@ function ZoneSettings() {
       rounding: ["corner radius", 0, 1.5, 0.01],
       nicknameSize: ["name size", 0.2, 2, 0.01],
       nicknameOffset: ["name offset", -2, 2, 0.01],
+      avatarSize: ["avatar size", 0.2, 2, 0.01],
+      avatarGap: ["avatar gap", 0, 1.5, 0.01],
     },
     { order: 6 },
   )
@@ -616,12 +622,15 @@ function Badge({
   style,
   onClick,
   onHover,
+  children,
 }: {
   zone: DomainZone
   text: string
   style: TextStyle
   onClick?: () => void
   onHover?: (s: boolean) => void
+  /** What sits left of the nickname (the seat avatar, the turn crown), in a frame whose origin is the first letter's left edge */
+  children?: React.ReactNode
 }) {
   return (
     <group position={zone.labelPos} rotation-y={zone.labelYaw}>
@@ -632,7 +641,9 @@ function Badge({
         position={[0, 0, -ZONE_SETTINGS.nicknameOffset]}
         onClick={onClick}
         onHover={onHover}
-      />
+      >
+        {children}
+      </TableText>
     </group>
   )
 }
@@ -714,7 +725,8 @@ function World({
   settings: OpeningSettings
 }) {
   useEffect(() => onReady(), [onReady])
-  const { view, catalog, nickname, color } = useCourtisans()
+  const { view, catalog, nickname, color, avatarUrl } = useCourtisans()
+  const seat = useSeatTheme()
   const it = useInteraction()
   const missions = useMemo(() => view.me?.missions ?? [], [view.me?.missions])
   const allMissions = useMemo(
@@ -1284,23 +1296,17 @@ function World({
             }
             onClick={targetDomain(j.id) ? () => playDomain(j.id) : undefined}
             onHover={targetDomain(j.id) ? (s) => setHoverPlayer(s ? j.id : null) : undefined}
-          />
-        )
-      })}
-
-      {view.players.map((j) => {
-        const zone = zones.get(j.id)
-        if (!zone) return null
-        // left of the nickname (width estimated as for the end cards)
-        const x = -((nickname(j.id).length * 0.45 + 0.6) / 2 + 0.8)
-        return (
-          <CrownMark
-            key={`couronne-${j.id}`}
-            show={crownPlayer === j.id}
-            origin={zone.labelPos}
-            offset={[x, -ZONE_SETTINGS.nicknameOffset]}
-            yaw={zone.labelYaw}
-          />
+          >
+            <SeatAvatarMesh
+              nickname={nickname(j.id)}
+              color={color(j.id)}
+              imageUrl={avatarUrl(j.id)}
+              theme={seat}
+              size={ZONE_SETTINGS.avatarSize}
+              position={[-(ZONE_SETTINGS.avatarGap + ZONE_SETTINGS.avatarSize / 2), 0, 0]}
+            />
+            <CrownMark show={crownPlayer === j.id} offset={[-(ZONE_SETTINGS.avatarGap + ZONE_SETTINGS.avatarSize + 0.8), 0]} />
+          </Badge>
         )
       })}
 

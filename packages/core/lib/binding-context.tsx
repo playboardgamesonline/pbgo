@@ -23,8 +23,11 @@ export function useBinding(): ClientBinding {
   return binding
 }
 
+/** The binding above, or null outside a game's runtime (the hub, the gamemaster, the `/design` specimens). */
+export const useOptionalBinding = () => useContext(BindingContext)
+
 /** Whether a game's runtime is mounted above: false under `/<slug>/...` for a slug that is not a game (its 404). */
-export const useHasBinding = () => useContext(BindingContext) !== null
+export const useHasBinding = () => useOptionalBinding() !== null
 
 export const useGameSlug = () => useBinding().SLUG
 

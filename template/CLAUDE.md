@@ -16,7 +16,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 
 ## Structure
 - `package.json` — `@pbgo-game/template`, the binding package that `@pbgo/games` loads on demand
-  - `src/index.ts` — shared by the server and the client: engine `GAME`, site constants (`src/lib/site.ts`); optional `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`, `ERROR_MESSAGES`, `REACTIONS`, `STUDIO_URL`
+  - `src/index.ts` — shared by the server and the client: engine `GAME`, site constants (`src/lib/site.ts`); optional `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `UI_THEME`, `SETTINGS_DEFAULTS`, `ERROR_MESSAGES`, `REACTIONS`, `STUDIO_URL`
   - `src/ui.tsx` — client components: `Logo`, `Game` (the board, loaded with the first game so the home page does not pull in three.js)
   - `src/server.ts` — server only: everything of `index.ts` plus the optional `loadSetupData` (data given to `GAME.setup`), `loadGameData` (`data` prop of the board), `ROUTES` (the game's own API routes, `/api/<slug>/games/<code>/<route>`), `SEO`
   - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
@@ -41,6 +41,16 @@ Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `
 - Components live in the shared package `@pbgo/ui/platform/*` (`packages/ui/src/platform`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/platform` (or `game`), replace the `@/lib/utils` imports with `../utils`, and keep it dark-only and token-only (no `dark:` variant, no colour, font or size of its own; see "Design system" in the root `CLAUDE.md`)
 - The home page, the lobby and the board keep the game's theme (colors and fonts set in Admin › Visual)
 
+## In-game UI
+Ticker, announcements, takeover pill, chat, players strip, seat label and game over are shared: same markup and logic for every game (`@pbgo/core/components/game`), drawn in the game's own look, never the platform's. The ticker, takeover pill, chat and toolbar take the game's skin; the announcements, the seat label and the game over are tuned by `UI_THEME`.
+- Through `UI_THEME` (optional, exported by `src/index.ts`, type `UiTheme` of `@pbgo/core/lib/binding`): `motion` (`"calm"` by default, `"lively"` adds confetti, springs and the emoji burst), `announcement` (`font`, `color`, `outline`, `shadow`, `veil`, `rule`, `confetti`), `seat` (`shape`, `ring`, `font`, `name`), `gameOver` (`surface`, `border`, `radius`, `ink`, `accent`, `frame`). CSS values, `var(--…)` works
+- The template's look is "paper & ink", a universe of its own next to Courtisans' banquet: `src/lib/ui-theme.ts` (the in-game UI), `THEME` of `src/lib/skin.ts` (cream on ink, vermilion accent: the skin tokens the rest of the UI reads) and `src/styles.css` (fonts). The 3D floor follows `surfaceDark`. Colours saved in the gamemaster (Sanity `settings`) override these code defaults; a new game replaces the three files with its own palette
+- Never fork or restyle one of these components, and never override their CSS from the game: ask for a field in `UiTheme` instead
+- The board's own overlays use the variant `short` (`@media (max-height: 30rem)`, keyed on height) for a phone held sideways, and `useMotion()` (`@pbgo/core/lib/use-motion`) before any `motion/react` animation: reduced motion means fades only
+- New player-facing labels of the shared UI are `UI_TEXTS` keys of `@pbgo/studio-kit`, translated in the four languages, never text in a component
+- A player's name on the board is the shared seat label: `SeatLabel` in the DOM, `SeatAvatarMesh` (`src/components/game3d/seat-avatar-mesh.tsx`) in the 3D scene, with `imageUrl` for an account picture later (PLT-13)
+- The reference is `/design` › In-game UI: the template and Courtisans side by side (seat label, players strip, the four announcements, game over)
+
 ## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner
 - 3D: three + @react-three/fiber + drei, leva settings (debug panel `Shift+D`)
@@ -62,7 +72,7 @@ Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `
 - `autoPlayFor(state, playerId)`: completes the current step of that one player. Legal, deterministic (seeded streams only, no `Math.random` or `Date.now`), `EngineError("NOT_WAITING")` if they are not waiting. The server uses it for an absent player
 - Absent player (core): after `settings.turnTimeout` without a move, the present players vote per absent player (`POST /api/<slug>/games/<code>/takeover`, `StalledTurn`); a player is played for once every other member seen in the last 75 s voted for them. The game has nothing else to write
 - Simultaneous step (see the secret bids of `src/demo/game.ts`): `Submissions<T>` in the state, resolved inside the `apply` of the last answer, `waitingFor` = `pendingSubmissions(submissions, seatIds)`, the view only says who answered (`submittedFlags`). The state is `jsonb`: never take an order from the keys of an object, take it from an array (`state.players`)
-- Board: `<Ticker waitingFor={game.waitingFor} …/>` and `<StalledTurn onUpdate={onUpdate} />`; a player can leave `waitingFor` without acting (someone played for them), so the board follows the view
+- Board: `<Ticker waitingFor={game.waitingFor} …/>` and `<StalledTurn onUpdate={onUpdate} />`; a player can leave `waitingFor` without acting (someone played for them), so the board follows the view. On a simultaneous step the ticker lists every seat on its own (`PlayersStrip`: done, waiting, away), so the board does not draw a "who has played" list
 - Details and rationale: `template/docs/GAME_GUIDE.md` (section 2)
 
 ## Supabase (realtime)

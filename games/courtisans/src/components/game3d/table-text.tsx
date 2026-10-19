@@ -2,7 +2,7 @@
 
 import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, type MeshBasicMaterial, SRGBColorSpace } from "three"
 
 const FONT = '"Alegreya Variable", "Alegreya", Georgia, serif'
@@ -26,8 +26,9 @@ function draw(text: string, style: TextStyle) {
   measure.font = `${style.fontWeight ?? 900} ${SIZE}px ${FONT}`
   measure.letterSpacing = style.spacing ?? "0px"
   const margin = style.bloom || style.aura ? 110 : 60
+  const textWidth = measure.measureText(text).width
   const canvas = document.createElement("canvas")
-  canvas.width = Math.ceil(measure.measureText(text).width + margin * 2)
+  canvas.width = Math.ceil(textWidth + margin * 2)
   canvas.height = Math.ceil(SIZE * 1.35 + margin)
   const ctx = canvas.getContext("2d")!
   ctx.font = measure.font
@@ -111,7 +112,7 @@ function draw(text: string, style: TextStyle) {
   const texture = new CanvasTexture(canvas)
   texture.colorSpace = SRGBColorSpace
   texture.anisotropy = 8
-  return { texture, ratio: canvas.width / canvas.height, scaleFactor: canvas.height / 155 }
+  return { texture, ratio: canvas.width / canvas.height, scaleFactor: canvas.height / 155, textWidth }
 }
 
 function useFontReady() {
@@ -137,6 +138,7 @@ export function TableText({
   onClick,
   onHover,
   order = 0,
+  children,
 }: {
   text: string
   style: TextStyle
@@ -146,10 +148,12 @@ export function TableText({
   onClick?: () => void
   onHover?: (hover: boolean) => void
   order?: number
+  /** What sits beside the text, in a frame whose origin is the text's left edge (x grows to the right: `-0.2` is just left of the first letter) */
+  children?: ReactNode
 }) {
   const sceneIsReady = useFontReady()
   const { color, outline, glow, spacing, fontWeight, bloom, holo, relief, aura, shadow } = style
-  const { texture, ratio, scaleFactor } = useMemo(
+  const { texture, ratio, scaleFactor, textWidth } = useMemo(
     () => draw(text, { color, outline, glow, spacing, fontWeight, bloom, holo, relief, aura, shadow }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [text, color, outline, glow, spacing, fontWeight, bloom, holo, relief, aura, shadow, sceneIsReady],
@@ -193,6 +197,8 @@ export function TableText({
         <planeGeometry args={[totalHeight * ratio, totalHeight]} />
         <meshBasicMaterial ref={material} map={texture} transparent depthWrite={false} toneMapped={false} />
       </mesh>
+      {/* a canvas pixel is `elevation / 155` world units: the left edge of the text, whatever the glyphs measured */}
+      {children && <group position-x={-(textWidth * elevation) / 155 / 2}>{children}</group>}
     </group>
   )
 }

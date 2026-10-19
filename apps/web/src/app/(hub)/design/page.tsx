@@ -6,6 +6,7 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
 import { Badges, Buttons, Checks, Inputs, Selects, TabsSection } from "./_sections/controls"
+import { InGameUi } from "./_sections/in-game-ui"
 import { CookieBanners, Dialogs, Dropdowns, Sheets, Toasts, Tooltips } from "./_sections/overlays"
 import { Layers, Principles } from "./_sections/principles"
 import {
@@ -33,7 +34,9 @@ export const metadata: Metadata = {
 /**
  * Every token and every component of `@pbgo/ui/platform`, live. A platform screen is built from what is shown here,
  * and a piece that is missing is added to `@pbgo/ui` and to this page before it is used. The sections follow the
- * order of `_components/nav.ts`.
+ * order of `_components/nav.ts`. The last group, In-game UI, is the one exception: it draws the components every game
+ * shares (seat label, players strip, announcements, game over) in the theme of two games, side by side, each inside
+ * its own `GameScope` (see `_components/game-scope.tsx`).
  */
 export default function DesignPage() {
   return (
@@ -62,7 +65,8 @@ export default function DesignPage() {
             <h1 className="font-heading text-4xl md:text-5xl">Design system</h1>
             <p className="max-w-reading text-lg text-muted-foreground">
               The tokens and components of the platform, as they render today. Hub, account, legal, admin and 404 are built from
-              these and from nothing else.
+              these and from nothing else. The in-game UI is not: the last group draws the components every game shares in the
+              look of two games, because each game owns its universe.
             </p>
             <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <Code>@pbgo/ui/platform/*</Code>
@@ -110,6 +114,8 @@ export default function DesignPage() {
             <Empties />
             <Items />
             <Tables />
+
+            <InGameUi />
           </div>
         </main>
       </div>
