@@ -131,7 +131,7 @@ export function Announcement({
         crown={settings.seat === "hero" ? <HostIcon size="size-[1em]" /> : undefined}
       />
       {live && (
-        <div role="status" aria-live="polite" className="sr-only">
+        <div role="status" aria-live="polite" className="ph-mask sr-only">
           {spoken}
         </div>
       )}

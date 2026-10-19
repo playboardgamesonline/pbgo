@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { toast } from "sonner"
 import { cn } from "@pbgo/ui/utils"
 import { useApi } from "../../lib/binding-context"
@@ -43,6 +43,7 @@ export function StalledTurn({
   const [now, setNow] = useState(() => Date.now())
   const [sending, setSending] = useState(false)
   const retried = useRef(false)
+  const promptId = useId()
 
   const me = view.me?.id
   // the players the game waits for and that I take part in playing for: I am one of the voters required for them (never myself)
@@ -98,7 +99,8 @@ export function StalledTurn({
         <motion.div
           data-hud="takeover"
           role="group"
-          aria-label={prompt}
+          // named by the (masked) text itself: an `aria-label` would copy the nicknames into an attribute, which PostHog does not mask
+          aria-labelledby={promptId}
           initial={{ opacity: 0, y: -travel(motionMode, 20) }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -travel(motionMode, 20) }}
@@ -108,7 +110,7 @@ export function StalledTurn({
             "short:top-[max(0.75rem,env(safe-area-inset-top))] short:left-[8.5rem] short:max-w-[calc(100vw-30rem)] short:translate-x-0 short:flex-col short:items-stretch short:gap-1.5 short:rounded-2xl short:p-2 short:text-xs",
           )}
         >
-          <span className="ph-mask min-w-0 truncate short:line-clamp-2 short:px-1 short:whitespace-normal" title={prompt}>
+          <span id={promptId} className="ph-mask min-w-0 truncate short:line-clamp-2 short:px-1 short:whitespace-normal">
             {prompt}
           </span>
           <button

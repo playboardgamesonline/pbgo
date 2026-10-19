@@ -305,7 +305,10 @@ export function AnnouncementView({
               exit={{ ...subtitleTargets.out, transition: { duration: t.exit * 0.7, ease: EASE_STANDARD } }}
               transition={calm ? tween(0, t.veil) : tween(t.subtitle.delay, t.subtitle.duration)}
             >
-              <p style={{ ...textStyle(r), ...letters, fontSize: fontSize(r.subtitleSize) }}>{subtitle}</p>
+              {/* the subtitle carries the winners' nicknames: session recordings show it masked (`ph-mask`) */}
+              <p className="ph-mask" style={{ ...textStyle(r), ...letters, fontSize: fontSize(r.subtitleSize) }}>
+                {subtitle}
+              </p>
             </motion.div>
           )}
         </div>

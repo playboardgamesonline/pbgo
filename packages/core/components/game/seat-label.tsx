@@ -67,7 +67,9 @@ export function SeatAvatarMark({
           // eslint-disable-next-line @next/next/no-img-element -- a profile picture from wherever the account stores it, decorative
           <img src={avatar.imageUrl} alt="" draggable={false} className="size-full object-cover" />
         ) : (
-          <span aria-hidden>{avatar.initial}</span>
+          <span aria-hidden className="ph-mask">
+            {avatar.initial}
+          </span>
         )}
       </span>
       {children && <span className="absolute -top-1 -right-1.5 grid place-items-center">{children}</span>}

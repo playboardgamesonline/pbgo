@@ -279,7 +279,7 @@ export function useAnnouncements<T extends string>(settings: Record<T, Announcem
   }, [current, duration])
   const element = (
     <>
-      <div role="status" aria-live="polite" className="sr-only">
+      <div role="status" aria-live="polite" className="ph-mask sr-only">
         {current && [current.text, current.subtitle].filter(Boolean).join(". ")}
       </div>
       <AnimatePresence>

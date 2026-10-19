@@ -31,7 +31,8 @@ function SeatChip({ seat, labels, theme }: { seat: StripSeat; labels: StripLabel
   const state = !seat.waiting ? labels.done : seat.away ? labels.away : labels.waiting
   return (
     <span
-      title={`${seat.nickname} · ${state}`}
+      // the state only: PostHog masks the text of a nickname, not an attribute that would copy it
+      title={state}
       className={cn(
         "inline-flex max-w-36 min-w-0 items-center text-sm short:text-xs",
         seat.waiting ? "text-foreground" : "text-foreground/60",
