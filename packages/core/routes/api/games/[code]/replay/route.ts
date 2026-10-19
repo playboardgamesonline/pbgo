@@ -1,4 +1,5 @@
 import type { GameRouteContext } from "../../../../../lib/binding"
+import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle } from "../../../../../server/api"
 import { loadSetupData, newGame, publicGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
@@ -17,5 +18,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     if (replay.length < row.players.length) return { replay }
     return newGame(game, row, data)
   })
+  // `newGame` is the only way out of `over`: a repeated vote, or one still waiting for the others, leaves the table over
+  if (row.status === "playing") trackAfter("rematch_started", id, { game: game.slug })
   return publicGame(game, row, id)
 })

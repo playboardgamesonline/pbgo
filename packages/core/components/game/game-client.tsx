@@ -4,6 +4,7 @@ import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { useIdentifyPlayer } from "@pbgo/analytics/client"
 import { PrimaryButton, CodeField, NicknameField, Screen, Paragraph } from "../home/screen"
 import { useApi, useBinding } from "../../lib/binding-context"
 import { useProfile } from "../../lib/profile"
@@ -19,6 +20,7 @@ export function GameClient({ code, data }: { code: string; data?: unknown }) {
   const api = useApi()
   const { game, error, apply } = useLiveGame(code)
   const { profile, setProfile, ready, valid } = useProfile()
+  useIdentifyPlayer(game?.meId ?? null)
   const [autoJoin, setAutoJoin] = useState<"idle" | "pending" | "failed" | "manual">("idle")
   const isGuest = !!game && ready && game.meId === null && game.status === "lobby"
   if (isGuest && !valid && autoJoin === "idle") setAutoJoin("manual")

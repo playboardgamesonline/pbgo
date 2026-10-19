@@ -1,6 +1,9 @@
+// Geist for the platform's own pieces inside a game page (the cookie banner): it only downloads where a `.platform` element uses it
+import "@fontsource-variable/geist"
 import "@fontsource-variable/geist-mono"
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
+import { AnalyticsProvider } from "@pbgo/analytics/client"
 import { AppShell } from "@pbgo/core/components/app-shell"
 import { AppToaster } from "@pbgo/core/components/toaster"
 import { loadAudio } from "@pbgo/core/lib/audio-server"
@@ -95,6 +98,8 @@ export default async function GameLayout({ children, params }: LayoutProps<"/[ga
           <AppToaster />
         </GameRuntime>
         <Analytics />
+        {/* PostHog and the cookie banner (off without a configuration, and on a game's preview pages, which are the gamemaster's) */}
+        <AnalyticsProvider />
       </body>
     </html>
   )

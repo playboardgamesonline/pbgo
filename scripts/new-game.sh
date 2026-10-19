@@ -8,7 +8,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 SLUG="${1:-}"
 [[ "$SLUG" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || { echo "Usage: pnpm new-game <slug>   (lowercase and dashes, e.g. the-crew)"; exit 1; }
-case "$SLUG" in api|legal|design|gamemaster|login|logout) echo "\"$SLUG\" is a route of apps/web, pick another slug"; exit 1 ;; esac
+case "$SLUG" in api|legal|design|gamemaster|ingest|login|logout) echo "\"$SLUG\" is a route of apps/web, pick another slug"; exit 1 ;; esac
 DEST="games/$SLUG"
 [ -e "$DEST" ] && { echo "$DEST already exists"; exit 1; }
 grep -q "slug: \"$SLUG\"," packages/games/src/registry.ts && { echo "\"$SLUG\" is already in packages/games/src/registry.ts"; exit 1; }

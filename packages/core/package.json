@@ -11,6 +11,7 @@
   "dependencies": {
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
+    "@pbgo/analytics": "workspace:*",
     "@pbgo/engine-kit": "workspace:*",
     "@pbgo/studio-kit": "workspace:*",
     "@pbgo/ui": "workspace:*",

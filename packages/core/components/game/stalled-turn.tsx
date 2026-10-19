@@ -94,7 +94,7 @@ export function StalledTurn({
           exit={{ opacity: 0, y: -20 }}
           className="absolute top-5 left-1/2 z-30 flex max-w-[calc(100vw-3rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm whitespace-nowrap text-foreground shadow-lg backdrop-blur"
         >
-          <span className="min-w-0 truncate">{prompt}</span>
+          <span className="ph-mask min-w-0 truncate">{prompt}</span>
           <button
             type="button"
             disabled={sending || voted}

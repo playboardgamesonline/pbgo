@@ -1,5 +1,6 @@
 import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
+import { trackGameFinished } from "../../../../../server/analytics"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { publicGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
@@ -20,5 +21,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     return { state, status: GAME.isOver(state) ? "over" : "playing" }
   })
   after(() => markSeen(game, row, id))
+  // The modifier only runs on a table in play, so an `over` table is the one this move has just ended
+  if (row.status === "over") trackGameFinished(game.slug, row, id)
   return publicGame(game, row, id)
 })

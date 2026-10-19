@@ -4,6 +4,7 @@ import { Menu09Icon, Scroll01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CookieIcon, LanguagesIcon, ScaleIcon, SlidersHorizontalIcon, SquareArrowOutUpRightIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { reopenConsent, trackClient, useReporting } from "@pbgo/analytics/client"
 import { cn } from "@pbgo/ui/utils"
 import type { OptionValues } from "@pbgo/engine-kit"
 import { useBinding } from "../lib/binding-context"
@@ -41,9 +42,10 @@ export function Toolbar({
   feedback?: boolean
 }) {
   const t = useText()
-  const { AUTHOR, CONTACT } = useBinding()
+  const { SLUG, AUTHOR, CONTACT } = useBinding()
   const { locale } = useSkin()
   const { credits, rulesPdf } = useSiteSettings()
+  const reporting = useReporting()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [soundOpen, setSoundOpen] = useState(false)
@@ -72,6 +74,7 @@ export function Toolbar({
 
   const choose = (l: (typeof LOCALES)[number]) => {
     if (l === locale) return
+    trackClient("language_changed", { from: locale, to: l })
     setLocaleCookie(l)
     document.documentElement.lang = l
     router.refresh()
@@ -79,6 +82,12 @@ export function Toolbar({
   const openDialog = (d: "settings" | "cookies" | "legal") => {
     setOpen(false)
     setDialog(d)
+  }
+  // Where analytics are active this row is the way back to the choice of the banner; elsewhere it explains the storage.
+  const openCookies = () => {
+    if (!reporting) return openDialog("cookies")
+    setOpen(false)
+    reopenConsent()
   }
   // rules: link to the PDF in the player's language, else the English one, then the first available
   const rulesUrl = [locale, "en" as const, ...LOCALES].map((l) => rulesPdf[l]).find((u): u is string => !!u) ?? null
@@ -146,14 +155,25 @@ export function Toolbar({
           </button>
         )}
         {rulesUrl && (
-          <a href={rulesUrl} target="_blank" rel="noopener noreferrer" role="menuitem" tabIndex={tab} className={ROW} onClick={() => setOpen(false)}>
+          <a
+            href={rulesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            role="menuitem"
+            tabIndex={tab}
+            className={ROW}
+            onClick={() => {
+              setOpen(false)
+              trackClient("rules_opened", { game: SLUG })
+            }}
+          >
             <HugeiconsIcon icon={Scroll01Icon} strokeWidth={1} className="size-4.5" />
             <span className="flex-1">{t("rulesTitle")}</span>
             <SquareArrowOutUpRightIcon strokeWidth={1} className="size-4 text-foreground/60" />
           </a>
         )}
         {SEPARATOR}
-        <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={() => openDialog("cookies")}>
+        <button type="button" role="menuitem" tabIndex={tab} className={ROW} onClick={openCookies}>
           <CookieIcon strokeWidth={1} className="size-4.5" />
           {t("cookiesMenu")}
         </button>

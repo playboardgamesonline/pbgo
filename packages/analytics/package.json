@@ -1,0 +1,39 @@
+{
+  "name": "@pbgo/analytics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PostHog analytics of the hub and every game: typed server events, the consent-aware browser provider and the consent store. Core and the app import it; it never imports core or a game.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/config.ts",
+    "./server": "./src/server.ts",
+    "./client": "./src/client.tsx"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pbgo/studio-kit": "workspace:*",
+    "@pbgo/ui": "workspace:*",
+    "posthog-js": "catalog:",
+    "posthog-node": "catalog:",
+    "server-only": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

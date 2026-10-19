@@ -19,6 +19,11 @@
 #                                   prj_bsk7OjC3wkJrI6ElHFa8bfD71xfs, the project "pbgo". The project is looked up by this
 #                                   id, never by its name (a name can change, an id can't), through the API alone: no
 #                                   .vercel/project.json and no Vercel CLI, so it works from any worktree
+#   NEXT_PUBLIC_POSTHOG_KEY         optional, both or neither with NEXT_PUBLIC_POSTHOG_HOST: the public key of the PostHog
+#   NEXT_PUBLIC_POSTHOG_HOST        project (phc_…) and its ingest host (https://eu.i.posthog.com, no trailing slash).
+#                                   Written to .env.local and pushed to every Vercel target. Without them the analytics and
+#                                   the cookie banner are off; a pair of the wrong shape (the one @pbgo/analytics refuses)
+#                                   is neither written nor pushed
 #   SANITY_API_WRITE_TOKEN_<SLUG>   optional, one per game: a token found here is reused, see Sanity below
 # The three Supabase values are required. The production keys go to the Vercel production target only: .env.local and
 # the Vercel preview/development targets get the preview project's keys, never production ones. The script exits with
@@ -333,6 +338,29 @@ for k in VERCEL_TOKEN VERCEL_TEAM_ID; do
   if [ -z "$v" ]; then warn "$k not set"; elif safe "$v"; then envset "$ENV_FILE" "$k" "$v"; ok "$k"; else err "$k: unexpected characters"; fi
 done
 
+# ---------- PostHog (optional) ----------
+# Both values or neither (the key is public: it ships to the browser). The pair is checked with the app's own resolveConfig
+# (packages/analytics/src/config.ts, imported by Node like the registry): one it refuses would deploy a site that reports
+# nothing and shows no cookie banner, with no error anywhere. Values travel through the environment, never printed
+posthog_valid() {
+  POSTHOG_CONFIG="$ROOT/packages/analytics/src/config.ts" node --input-type=module -e "
+    const { pathToFileURL } = await import('node:url')
+    const { resolveConfig } = await import(pathToFileURL(process.env.POSTHOG_CONFIG).href)
+    process.exit(resolveConfig({ key: process.env.PH_KEY, host: process.env.PH_HOST }) ? 0 : 1)" 2>/dev/null
+}
+title "PostHog analytics (optional)"
+PH_KEY="$(setting NEXT_PUBLIC_POSTHOG_KEY)"; PH_HOST="$(setting NEXT_PUBLIC_POSTHOG_HOST)"; PH_OK=0
+if [ -z "$PH_KEY" ] && [ -z "$PH_HOST" ]; then warn "NEXT_PUBLIC_POSTHOG_KEY and NEXT_PUBLIC_POSTHOG_HOST not set: analytics and the cookie banner stay off"
+elif [ -z "$PH_KEY" ]; then warn "NEXT_PUBLIC_POSTHOG_KEY not set (the two go together): analytics and the cookie banner stay off"
+elif [ -z "$PH_HOST" ]; then warn "NEXT_PUBLIC_POSTHOG_HOST not set (the two go together): analytics and the cookie banner stay off"
+elif safe "$PH_KEY" && safe "$PH_HOST" && PH_KEY="$PH_KEY" PH_HOST="$PH_HOST" posthog_valid; then
+  envset "$ENV_FILE" NEXT_PUBLIC_POSTHOG_KEY "$PH_KEY"; envset "$ENV_FILE" NEXT_PUBLIC_POSTHOG_HOST "$PH_HOST"
+  PH_OK=1; ok "NEXT_PUBLIC_POSTHOG_KEY, NEXT_PUBLIC_POSTHOG_HOST"
+else
+  # No value in the message: a key pasted on the wrong line must not end up in a log
+  err "NEXT_PUBLIC_POSTHOG_KEY / NEXT_PUBLIC_POSTHOG_HOST: a project key (phc_…) and an ingest host (https://eu.i.posthog.com, no trailing slash) are expected; neither is written nor pushed"
+fi
+
 # ---------- Vercel project ----------
 # Looked up before the Sanity tokens: the project already holds them. The API alone is used, with the project's id: no
 # .vercel/project.json, no Vercel CLI login, so any worktree will do. The project id comes from the secrets file only (not
@@ -433,11 +461,12 @@ if [ "$PUSH" = 1 ] && [ -n "$VID" ]; then
   # Supabase: the production project's keys to the production target only, the preview project's to preview and development
   push_supabase "$TMP/production.env" '["production"]'; push_supabase "$TMP/preview.env" '["preview","development"]'
   # The rest, the same everywhere (not NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_SANITY_DATASET nor DEBUG_GAMES: local settings). A
-  # Sanity token that came from the Vercel project is not sent back
+  # Sanity token that came from the Vercel project is not sent back. PostHog only when its pair passed the check above (a
+  # refused one may still sit in .env.local): the browser value is inlined at build, so it applies from the next deployment
   while read -r k; do
     [[ "$FROM_VERCEL" == *"|$k|"* ]] && continue
     v="$(envget "$ENV_FILE" "$k")"; [ -n "$v" ] && push "$k" "$v" "$ALL"
-  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
+  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
   [ -z "$(envget "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID)" ] && envset "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID "$VID"
   PUSHED=1
 fi

@@ -6,6 +6,7 @@ import { motion } from "motion/react"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
+import { ConsentLink, trackClient, useReporting } from "@pbgo/analytics/client"
 import { useBinding } from "../../lib/binding-context"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pbgo/ui/game/input-otp"
 import { useSiteSettings } from "../settings-provider"
@@ -38,8 +39,12 @@ export function Screen({
   const t = useText()
   // height of the bottom decor = displayed width (114vw) / image ratio
   const decorHeight = decor.bottom?.ratio ? `calc(114vw / ${decor.bottom.ratio})` : "0px"
+  // The screen is what is left above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-background" style={{ "--decor-h": decorHeight } as React.CSSProperties}>
+    <main
+      className="relative flex h-[calc(100dvh-var(--consent-h,0px))] flex-col overflow-hidden bg-background"
+      style={{ "--decor-h": decorHeight } as React.CSSProperties}
+    >
       {decor.background && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={decor.background} alt="" aria-hidden draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover select-none" />
@@ -209,11 +214,13 @@ const SLOT = "size-11 bg-surface-dark/80 font-display text-lg uppercase"
 
 export function CodeField({ value, onChange, copyable }: { value: string; onChange?: (v: string) => void; copyable?: string }) {
   const t = useText()
+  const { SLUG } = useBinding()
   const [copied, setCopied] = useState(false)
   async function copy() {
     if (!copyable) return
     try {
       await navigator.clipboard.writeText(copyable)
+      trackClient("invite_link_copied", { game: SLUG })
       setCopied(true)
       toast.success(t("linkCopied"))
       setTimeout(() => setCopied(false), 1600)
@@ -224,6 +231,8 @@ export function CodeField({ value, onChange, copyable }: { value: string; onChan
   return (
     <div className="relative flex items-center">
       <InputOTP
+        // a table code is how someone joins: the recordings show stars where it is displayed or typed
+        containerClassName="ph-mask"
         maxLength={6}
         pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
         value={value}
@@ -315,6 +324,7 @@ function Footer() {
   const { title, credits } = useSiteSettings()
   const { AUTHOR, CONTACT } = useBinding()
   const t = useText()
+  const reporting = useReporting()
   const link = "underline decoration-foreground/30 underline-offset-2 hover:text-foreground"
   const publisher = credits.publisher ? (
     credits.publisherUrl ? (
@@ -342,6 +352,13 @@ function Footer() {
         <a href={`mailto:${CONTACT}`} className={link}>
           {CONTACT}
         </a>
+        {reporting && (
+          <>
+            {" "}
+            ·{" "}
+            <ConsentLink className={cn(link, "cursor-pointer")}>{t("cookiesMenu")}</ConsentLink>
+          </>
+        )}
       </p>
     </footer>
   )

@@ -11,7 +11,7 @@ export const siteNotFoundMetadata: Metadata = { title: `Page not found · ${SITE
  */
 export function SiteNotFound() {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-gutter text-center">
+    <main className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col items-center justify-center gap-4 px-gutter text-center">
       <p className="text-sm text-muted-foreground">404</p>
       <h1 className="font-heading text-3xl">Page not found</h1>
       <p className="max-w-md text-muted-foreground">This page does not exist, or the game is not here.</p>

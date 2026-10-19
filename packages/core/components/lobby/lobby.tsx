@@ -47,7 +47,7 @@ export function PlayerList({ game }: { game: PublicGame }) {
               style={{ color: color(i) }}
             >
               {j.id === game.hostId && <HostIcon />}
-              <span>{j.nickname}</span>
+              <span className="ph-mask">{j.nickname}</span>
               {j.id === game.meId && <span className="text-sm font-semibold tracking-normal text-foreground/60 normal-case">{t("you")}</span>}
             </motion.li>
           ))}

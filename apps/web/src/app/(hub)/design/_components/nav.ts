@@ -28,6 +28,7 @@ export const NAV = [
       { id: "dropdown-menu", title: "Dropdown menu" },
       { id: "tooltip", title: "Tooltip" },
       { id: "toast", title: "Toast" },
+      { id: "cookie-banner", title: "Cookie banner" },
       { id: "card", title: "Card" },
       { id: "game-card", title: "Game card" },
       { id: "avatar", title: "Avatar" },
