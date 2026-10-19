@@ -331,7 +331,7 @@ describe("the configuration", () => {
     const entries = GAMES.filter((game) => game.slug === SLUG)
     expect(entries).toHaveLength(1)
     expect(entries[0]?.sanityProjectId).toBe(PROJECT_ID)
-    expect(PROJECT_ID).toBe("fj3grahy")
+    expect(PROJECT_ID).toBe("ky3exlhe")
   })
 
   it("points at the same project as the studio", () => {

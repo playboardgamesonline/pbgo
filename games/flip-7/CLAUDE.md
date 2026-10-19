@@ -8,7 +8,7 @@ Flip 7 (Eric Olsen, The OP Games), served by `apps/web` at `/flip-7`. The engine
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/flip-7`. No `GAME` yet
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@flip-7/engine`, the whole game: pure TypeScript on the engine-kit helpers, tested with Vitest (see Engine)
-- `apps/studio` — `flip-7-studio`, Sanity Studio of the project `fj3grahy` (https://flip-7.sanity.studio). Its own document types (`cardType`, and the `game` singleton) are in `schemaTypes/`, the lists they share with the seed (card face keys, kinds) in `schemaTypes/constants.ts`
+- `apps/studio` — `flip-7-studio`, Sanity Studio of the project `ky3exlhe` (https://flip-7.sanity.studio). Its own document types (`cardType`, and the `game` singleton) are in `schemaTypes/`, the lists they share with the seed (card face keys, kinds) in `schemaTypes/constants.ts`
 - `content/` — the Sanity content as versioned code (the game's data and config) and the seed script, run by the shared `@pbgo/content-kit` (see Content); `vitest.config.ts` runs its tests
 - Static files: `apps/web/public/flip-7/` (served at `/flip-7/...`)
 
@@ -73,7 +73,7 @@ The 22 keys of `CARDS` (`number-0` … `number-12`, `plus-2`, `plus-4`, `plus-6`
 - The whole process, the options and the art naming: `docs/content-pipeline.md` at the root
 
 ## Sanity project
-The registry gives the project `fj3grahy` (Studio `https://flip-7.sanity.studio`). It is created and configured by `pnpm go-live flip-7` (rerunnable: it finds or creates the project, makes the `production` dataset public, sets CORS, writes `SANITY_API_WRITE_TOKEN_FLIP_7` to `apps/web/.env.local` and deploys the Studio), which needs `npx sanity login` on the machine. After a change of the Studio's schema, deploy it (`pnpm --filter @pbgo-game/flip-7 deploy:studio`) before reviewing in the hosted Studio: the new `cardType` type only shows there once deployed. The local Studio (`pnpm dev:studio flip-7`) shows it at once
+The registry gives the project `ky3exlhe` (Studio `https://flip-7.sanity.studio`). It is created and configured by `pnpm go-live flip-7` (rerunnable: it finds or creates the project, makes the `production` dataset public, sets CORS, writes `SANITY_API_WRITE_TOKEN_FLIP_7` to `apps/web/.env.local` and deploys the Studio), which needs `npx sanity login` on the machine. After a change of the Studio's schema, deploy it (`pnpm --filter @pbgo-game/flip-7 deploy:studio`) before reviewing in the hosted Studio: the new `cardType` type only shows there once deployed. The local Studio (`pnpm dev:studio flip-7`) shows it at once
 - The Studio's host is `flip-7` unless `SANITY_STUDIO_HOST` in `apps/studio/.env` says otherwise (`sanity.cli.ts` reads it; go-live writes it there on its first run). The hosts of `*.sanity.studio` are global: when one is taken, go-live ends on "studio not deployed" and the reason is in the log it names. Pick another one (Odin and Trio added `-online`), change that line of `.env`, rerun `pnpm go-live flip-7`, then set the same host in `STUDIO_URL` (`src/lib/site.ts`)
 
 ## Making it playable
