@@ -52,14 +52,14 @@ function CameraRig() {
   return null
 }
 
-function Table() {
+function Table({ floor }: { floor: string }) {
   const R = LAYOUT_SETTINGS
   const [tex] = useState(matTexture)
   return (
     <group>
       <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
         <planeGeometry args={[120, 80]} />
-        <meshBasicMaterial color="#0d1729" toneMapped={false} />
+        <meshBasicMaterial color={floor} toneMapped={false} />
       </mesh>
       <mesh rotation-x={-Math.PI / 2} scale={[R.radiusX + 1.6, R.radiusZ + 1.6, 1]} raycast={() => null}>
         <circleGeometry args={[1, 96]} />
@@ -85,7 +85,7 @@ function useCollect(view: PlayerView) {
   return state.phase
 }
 
-function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: SceneProps) {
+function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon }: SceneProps) {
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["table radius x", 3, 14, 0.1],
     radiusZ: ["table radius z", 2, 10, 0.1],
@@ -129,7 +129,7 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
   return (
     <>
       <CameraRig />
-      <Table />
+      <Table floor={floor} />
       {view.players.map((j) => {
         const s = slots.get(j.id)!
         const active = view.activePlayerId === j.id
@@ -195,6 +195,8 @@ type SceneProps = {
   seat: SeatTheme
   /** Icon of the turn crown (the skin's `hostIcon`); without one, a drawn crown */
   crownIcon?: string | null
+  /** The floor around the table: the skin's dark surface, so the room matches the page behind the canvas */
+  floor: string
   myTurn: boolean
   onPlay: (cardId: string) => void
 }

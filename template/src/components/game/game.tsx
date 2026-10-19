@@ -13,6 +13,7 @@ import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-ov
 import { GameHud, groupTurns, PlayerName, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
 import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
+import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
 import { useApi } from "@pbgo/core/lib/binding-context"
@@ -96,6 +97,7 @@ function Table({ onUpdate, onLeave }: Props) {
   const { victoryPhrases, hostIcon, playerColors } = useSkin()
   const { game, view, color, avatarUrl } = useGame<PlayerView>()
   const seat = useSeatTheme()
+  const { theme } = useSiteSettings()
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings)
   const [scoresOpen, setScoresOpen] = useState(true)
@@ -204,7 +206,7 @@ function Table({ onUpdate, onLeave }: Props) {
         </>
       }
     >
-      <Scene view={view} color={color} avatarUrl={avatarUrl} seat={seat} crownIcon={hostIcon} myTurn={myTurn && !sending} onPlay={play} />
+      <Scene view={view} color={color} avatarUrl={avatarUrl} seat={seat} floor={theme.surfaceDark} crownIcon={hostIcon} myTurn={myTurn && !sending} onPlay={play} />
     </GameHud>
   )
 }

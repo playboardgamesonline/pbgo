@@ -1,3 +1,9 @@
 /* The game's styles: core's shared styles (theme tokens, admin preset), then the game's own tokens and fonts. */
 @import "@pbgo/core/styles/game.css";
 @source ".";
+
+/* Paper & ink: a serif from the system for the text and the titles, no download. A font chosen in the gamemaster (Visual) wins. */
+:root {
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-title: var(--font-body);
+}
