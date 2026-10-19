@@ -53,10 +53,11 @@ export type SettingsDefaults = Partial<Omit<SiteSettings, "theme">> & { theme?: 
  * How a game tunes the shared in-game UI: its look, never its logic. The announcements, the seat label and the game over have a
  * group each; the ticker, the takeover pill, the chat and the toolbar have no setting, they take the game's skin.
  * Every field is optional and a CSS value, so a game can point at its own tokens (`"var(--accent-game)"`). Nothing set: the
- * look the game's skin already gives the UI (`--foreground`, `--surface`, `--accent-game`, `--font-accent`…).
+ * defaults of `lib/ui-theme.ts`, the look the games had before they could tune it, drawn with the game's skin (`--surface`,
+ * `--accent-game`, `--font-title`, `--font-accent`…).
  */
 export type UiTheme = {
-  /** "calm" (default): fades only · "lively": also confetti, springs and the emoji burst. Reduced motion always wins. */
+  /** "calm" (default): fades and short slides · "lively": also confetti, springs and the emoji burst. Reduced motion always wins. */
   motion?: "calm" | "lively"
   /** The full-screen announcements (start, round, your turn, victory): their type, colours, veil over the table, hairlines and confetti */
   announcement?: {
