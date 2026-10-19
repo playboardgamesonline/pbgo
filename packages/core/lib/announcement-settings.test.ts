@@ -13,6 +13,7 @@ import {
   ruleStyles,
   textStyle,
   veilStyle,
+  vh,
 } from "./announcement-settings"
 import { REDUCED_FADE } from "./motion-preference"
 import { DEFAULT_ANNOUNCEMENT_THEME } from "./ui-theme"
@@ -146,8 +147,12 @@ describe("the shared presets", () => {
 
 describe("fontSize and lineGap", () => {
   it("also follow the height of the viewport, so a short screen shrinks them", () => {
-    expect(fontSize(5)).toBe("min(5rem, 12vh)")
-    expect(lineGap(80)).toBe("min(80px, 12vh)")
+    expect(fontSize(5)).toBe("min(5rem, calc(var(--vh, 1vh) * 12))")
+    expect(lineGap(80)).toBe("min(80px, calc(var(--vh, 1vh) * 12))")
+  })
+
+  it("read the height of the stage when a specimen sets --vh, the viewport (1vh) otherwise", () => {
+    expect(vh(9)).toBe("calc(var(--vh, 1vh) * 9)")
   })
 })
 

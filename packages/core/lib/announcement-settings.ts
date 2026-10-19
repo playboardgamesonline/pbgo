@@ -183,11 +183,17 @@ export function announcementSettings(preset: Partial<AnnouncementSettings> = {},
 
 // ─── What the browser is told to draw ──────────────────────────────────────
 
+/**
+ * `percent` of the height of the screen. A game reads the viewport (`--vh` is not set, so it is `1vh`); a specimen drawn on a stage
+ * of its own (`/design`, scaled down) sets `--vh` on the stage to a hundredth of the stage's height, and sizes like a screen of that height.
+ */
+export const vh = (percent: number) => `calc(var(--vh, 1vh) * ${percent})`
+
 /** A size in rem that also follows the height of the viewport, so a title shrinks by itself on a short screen (a phone held sideways) */
-export const fontSize = (rem: number) => `min(${rem}rem, ${rem * 2.4}vh)`
+export const fontSize = (rem: number) => `min(${rem}rem, ${vh(rem * 2.4)})`
 
 /** The space between a hairline and the title: `px` on a tall screen, in proportion to the height of a short one */
-export const lineGap = (px: number) => `min(${px}px, ${px * 0.15}vh)`
+export const lineGap = (px: number) => `min(${px}px, ${vh(px * 0.15)})`
 
 /** A colour at some percent of its opacity */
 const tint = (color: string, percent: number) => `color-mix(in srgb, ${color} ${percent}%, transparent)`

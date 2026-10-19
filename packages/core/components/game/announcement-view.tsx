@@ -12,6 +12,7 @@ import {
   ruleStyles,
   textStyle,
   veilStyle,
+  vh,
   type AnnouncementSettings,
   type AnnouncementTimeline,
 } from "../../lib/announcement-settings"
@@ -182,7 +183,7 @@ function Hairline({ r, t, direction }: { r: AnnouncementSettings; t: Announcemen
 }
 
 /** The crown sits on a medallion: a size in em that follows the viewport height like the title does, so it keeps its proportion on a short screen */
-const CROWN_SIZE = { lg: "min(1.5rem, 5.5vh)", xl: "min(2.25rem, 8vh)" } as const
+const CROWN_SIZE = { lg: `min(1.5rem, ${vh(5.5)})`, xl: `min(2.25rem, ${vh(8)})` } as const
 
 /**
  * `motion`: how much it moves (`useMotion()` in a game, picked by hand in a specimen). `seats` are the players shown with the
@@ -227,7 +228,8 @@ export function AnnouncementView({
       data-hud="announcement"
       className={cn(
         "pointer-events-none absolute inset-0 z-40 flex justify-center",
-        r.above ? "items-start pt-[max(9vh,env(safe-area-inset-top))] short:pt-[max(0.75rem,env(safe-area-inset-top))]" : "items-center",
+        // the 9 % of the screen's height of `vh(9)`, written for Tailwind
+        r.above ? "items-start pt-[max(calc(var(--vh,1vh)*9),env(safe-area-inset-top))] short:pt-[max(0.75rem,env(safe-area-inset-top))]" : "items-center",
       )}
     >
       <motion.div
@@ -249,7 +251,7 @@ export function AnnouncementView({
           <Confetti r={r} />
         </motion.div>
       )}
-      <div className="relative flex w-full flex-col items-center" style={{ gap: lineGap(r.lineGap), transform: r.offsetY ? `translateY(${r.offsetY}vh)` : undefined }}>
+      <div className="relative flex w-full flex-col items-center" style={{ gap: lineGap(r.lineGap), transform: r.offsetY ? `translateY(${vh(r.offsetY)})` : undefined }}>
         {t.rule.show && <Hairline r={r} t={t} direction={1} />}
         <div className="flex max-w-full flex-col items-center gap-3 px-6 text-center text-balance uppercase" style={{ fontFamily: r.font }}>
           {r.seat === "hero" && avatars.length > 0 && (
