@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, type TargetAndTransition } from "motion/react"
+import { AnimatePresence, motion, type TargetAndTransition } from "motion/react"
 import { useEffect, useRef, type ReactNode } from "react"
 import { cn } from "@pbgo/ui/utils"
 import {
@@ -185,29 +185,24 @@ function Hairline({ r, t, direction }: { r: AnnouncementSettings; t: Announcemen
 /** The crown sits on a medallion: a size in em that follows the viewport height like the title does, so it keeps its proportion on a short screen */
 const CROWN_SIZE = { lg: `min(1.5rem, ${vh(5.5)})`, xl: `min(2.25rem, ${vh(8)})` } as const
 
-/**
- * `motion`: how much it moves (`useMotion()` in a game, picked by hand in a specimen). `seats` are the players shown with the
- * announcement: the first one beside the title ("your turn", `seat: "inline"`), up to `HERO_MAX` above it (the winners, `seat: "hero"`);
- * the preset decides, a game without avatars to show passes none. `crown` sits on each medallion of a victory.
- */
-export function AnnouncementView({
-  text,
-  subtitle,
-  settings: r,
-  motion: mode,
-  seats,
-  seatTheme,
-  crown,
-}: {
+export type AnnouncementViewProps = {
   text: string
   subtitle?: string
   settings: AnnouncementSettings
+  /** How much it moves: `useMotion()` in a game, picked by hand in a specimen */
   motion: Motion
+  /** The players shown with it: the first one beside the title ("your turn", `seat: "inline"`), up to `HERO_MAX` above it (the winners, `seat: "hero"`) */
   seats?: readonly SeatAvatarInput[]
   /** Default: the one of the game shown */
   seatTheme?: SeatTheme
+  /** Sits on each medallion of a victory */
   crown?: ReactNode
-}) {
+}
+
+/**
+ * One announcement. The preset (`settings.seat`) decides which of the `seats` show; a game without avatars to show passes none.
+ */
+export function AnnouncementView({ text, subtitle, settings: r, motion: mode, seats, seatTheme, crown }: AnnouncementViewProps) {
   const shown = r.seat === "hero" ? (seats ?? []).slice(0, HERO_MAX) : r.seat === "inline" ? (seats ?? []).slice(0, 1) : []
   const t = announcementTimeline(r, mode, shown.length)
   const avatars = shown.map(seatAvatar)
@@ -324,4 +319,12 @@ export function AnnouncementView({
 function seatMove(t: AnnouncementTimeline, i: number, lead = t.seat.delay) {
   const delay = lead + i * 0.08
   return t.title.spring ? { type: "spring" as const, stiffness: 180, damping: 14, delay } : tween(delay, t.seat.duration)
+}
+
+/**
+ * The announcement with the `AnimatePresence` its parts need to play their exit. In a game the HUD mounts and unmounts it; a
+ * page that has no `motion` of its own (the `/design` specimens) flips `show` instead, and the parts leave in order as in a game.
+ */
+export function AnnouncementPresence({ show, ...view }: AnnouncementViewProps & { show: boolean }) {
+  return <AnimatePresence>{show && <AnnouncementView {...view} />}</AnimatePresence>
 }
