@@ -1,11 +1,14 @@
 "use client"
 
 import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { toast } from "sonner"
+import { cn } from "@pbgo/ui/utils"
 import { useApi } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
+import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
 import { fill } from "../../lib/skin"
+import { useMotion } from "../../lib/use-motion"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
@@ -18,6 +21,9 @@ import { useGame } from "./context"
  *
  * `labels` replaces the default texts of a phase that needs its own wording (Courtisans' opening: "start without waiting").
  * `{names}` (everybody the game waits for) and `{name}` (the first one) are filled in.
+ *
+ * A pill at the top of the screen, centred; on a short viewport it moves next to the logo, clear of the ticker. It cannot grow
+ * wider than that gap, so there the button sits under the prompt (two lines at most) instead of beside it.
  */
 export function StalledTurn({
   onUpdate,
@@ -30,12 +36,14 @@ export function StalledTurn({
 }) {
   const t = useText()
   const api = useApi()
+  const motionMode = useMotion()
   const { game, view, nickname } = useGame()
   const { turnTimeout } = useSiteSettings()
   const [since, setSince] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
   const [sending, setSending] = useState(false)
   const retried = useRef(false)
+  const promptId = useId()
 
   const me = view.me?.id
   // the players the game waits for and that I take part in playing for: I am one of the voters required for them (never myself)
@@ -89,17 +97,27 @@ export function StalledTurn({
     <AnimatePresence>
       {stalled && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          data-hud="takeover"
+          role="group"
+          // named by the (masked) text itself: an `aria-label` would copy the nicknames into an attribute, which PostHog does not mask
+          aria-labelledby={promptId}
+          initial={{ opacity: 0, y: -travel(motionMode, 20) }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="absolute top-5 left-1/2 z-30 flex max-w-[calc(100vw-3rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm whitespace-nowrap text-foreground shadow-lg backdrop-blur"
+          exit={{ opacity: 0, y: -travel(motionMode, 20) }}
+          transition={{ duration: fade(motionMode, 0.3), ease: EASE_STANDARD }}
+          className={cn(
+            "absolute top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 z-30 flex max-w-[calc(100vw-3rem)] -translate-x-1/2 items-center gap-3 rounded-full bg-black/60 py-2 pr-2 pl-5 text-sm whitespace-nowrap text-foreground shadow-lg backdrop-blur",
+            "short:top-[max(0.75rem,env(safe-area-inset-top))] short:left-[8.5rem] short:max-w-[calc(100vw-30rem)] short:translate-x-0 short:flex-col short:items-stretch short:gap-1.5 short:rounded-2xl short:p-2 short:text-xs",
+          )}
         >
-          <span className="min-w-0 truncate">{prompt}</span>
+          <span id={promptId} className="ph-mask min-w-0 truncate short:line-clamp-2 short:px-1 short:whitespace-normal">
+            {prompt}
+          </span>
           <button
             type="button"
             disabled={sending || voted}
             onClick={vote}
-            className="h-9 shrink-0 cursor-pointer rounded-full bg-foreground px-4 font-display text-background transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
+            className="h-9 shrink-0 cursor-pointer rounded-full bg-foreground px-4 font-display text-background transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100 motion-reduce:transition-none motion-reduce:hover:scale-100 short:h-auto short:min-h-8 short:px-3 short:py-1 short:text-center short:text-xs short:leading-tight short:whitespace-normal"
           >
             {voted ? t("missionsWaiting", { read: votes, total }) : total > 1 ? `${label} (${votes}/${total})` : label}
           </button>

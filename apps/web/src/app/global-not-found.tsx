@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import { AnalyticsProvider } from "@pbgo/analytics/client"
 import { PLATFORM_THEME_COLOR } from "@pbgo/ui/theme"
 import "./globals.css"
 import { PlatformDocument } from "@/components/platform-document"
@@ -18,6 +19,7 @@ export default function GlobalNotFound() {
   return (
     <PlatformDocument>
       <SiteNotFound />
+      <AnalyticsProvider />
     </PlatformDocument>
   )
 }

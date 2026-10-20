@@ -28,6 +28,7 @@ export const NAV = [
       { id: "dropdown-menu", title: "Dropdown menu" },
       { id: "tooltip", title: "Tooltip" },
       { id: "toast", title: "Toast" },
+      { id: "cookie-banner", title: "Cookie banner" },
       { id: "card", title: "Card" },
       { id: "game-card", title: "Game card" },
       { id: "avatar", title: "Avatar" },
@@ -37,6 +38,16 @@ export const NAV = [
       { id: "empty", title: "Empty" },
       { id: "item", title: "Item" },
       { id: "table", title: "Table" },
+    ],
+  },
+  {
+    group: "In-game UI",
+    items: [
+      { id: "game-themes", title: "Game themes" },
+      { id: "seat-label", title: "Seat label" },
+      { id: "players-strip", title: "Players strip" },
+      { id: "announcements", title: "Announcements" },
+      { id: "game-over", title: "Game over" },
     ],
   },
 ] as const

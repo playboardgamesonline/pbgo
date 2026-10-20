@@ -177,7 +177,7 @@ describe("the option lists of the Studio", () => {
   })
 })
 
-// The rules every game's cards follow (CLAUDE.md, "Studio forms"; the model is Hanabi's schema.test.ts). The game singleton only holds the
+// The rules every game's cards follow (the skill `game-sanity-create`; the model is Hanabi's schema.test.ts). The game singleton only holds the
 // pictures of the card back, the box and the mat, so it follows the one about descriptions too, and the one about tabs.
 describe("the forms of the cards", () => {
   const FORM_TYPES = [...CARD_TYPES, "game"]

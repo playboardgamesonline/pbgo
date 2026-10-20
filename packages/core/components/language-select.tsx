@@ -4,6 +4,7 @@ import { Globe02Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { trackClient } from "@pbgo/analytics/client"
 import { cn } from "@pbgo/ui/utils"
 import { LOCALE_COOKIE, LOCALE_NAMES, LOCALES, type Locale } from "../lib/i18n"
 import { ICON_BUTTON } from "./sound/sound"
@@ -37,6 +38,7 @@ export function LanguageSelect({ className }: { className?: string }) {
   const choose = (l: Locale) => {
     setOpen(false)
     if (l === locale) return
+    trackClient("language_changed", { from: locale, to: l })
     setLocaleCookie(l)
     document.documentElement.lang = l
     router.refresh()

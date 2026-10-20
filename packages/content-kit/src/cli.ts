@@ -10,14 +10,14 @@ export type CliOptions = {
 /** A wrong command line: reported with the usage, not with a stack trace. */
 export class UsageError extends Error {}
 
-export const HELP = `Seeds the game's Sanity content as DRAFTS (cards, rules, credits, art). Safe to run again.
+export const HELP = `Seeds the game's Sanity content as DRAFTS (cards, credits, art). Safe to run again.
 
 Usage: node content/seed.ts [options]
 
   --dry-run          Read the dataset and print what would happen. Writes nothing. This is the default.
   --apply            Write the drafts (and upload the art given with --art-dir). Publishing stays a Studio action.
   --art-dir <dir>    Normalize the images of this folder (WebP) and place them. Without it the art is left alone.
-  --only <a,b>       Limit the run to documents, by id or by type (repeatable): --only rules,settings
+  --only <a,b>       Limit the run to documents, by id or by type (repeatable): --only game,settings
   --overwrite        Replace values edited in the Studio with the seed's (needs --only). Without it they are kept.
   --verbose, -v      List every document, not only the ones that change
   --help, -h         This text

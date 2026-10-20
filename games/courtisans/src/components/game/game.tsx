@@ -16,6 +16,7 @@ import { PrimaryButton } from "@pbgo/core/components/home/screen"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import { useApi } from "@pbgo/core/lib/binding-context"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
+import { seatsOf } from "@pbgo/core/lib/seat-avatar"
 import { Button } from "@pbgo/ui/game/button"
 import { DEFAULT_CATALOG, type ClientCatalog } from "../../lib/catalog"
 import { useDict } from "../use-dict"
@@ -71,10 +72,13 @@ function Board({
   const t = useText()
   const api = useApi()
   const dict = useDict()
-  const { victoryPhrases } = useSkin()
+  const { victoryPhrases, playerColors } = useSkin()
   const nicknameOf = useCallback((id: string) => game.players.find((j) => j.id === id)?.nickname ?? "?", [game.players])
   const view = useCheat(game.view as PlayerView, nicknameOf)
   const gameView = useMemo(() => ({ ...game, view }), [game, view])
+  // The players shown with an announcement (the viewer for "your turn", the winners for the victory). `GameProvider` is mounted below,
+  // so `useGame()` is not available here: the seats come straight from the players and the skin's palette.
+  const seatsFor = (ids: readonly string[]) => seatsOf(game.players, ids, playerColors)
   const [scoresOpen, setScoresOpen] = useState(true)
   const [rawSelection, setSelection] = useState<Courtier | null>(null)
   const [assassination, setAssassination] = useState<Assassination | null>(null)
@@ -103,7 +107,7 @@ function Board({
       setOpeningStep(null)
     }
     if (turnChanged && view.phase === "playing" && view.me && view.activePlayerId === view.me.id)
-      announce(t("yourTurn"), "turn", { sound: "turn", replace: ["turn"] })
+      announce(t("yourTurn"), "turn", { sound: "turn", replace: ["turn"], seats: seatsFor([view.me.id]) })
     if (mustRead(view) && prevRead !== "1") {
       setShowMissionsButton(false)
       setOpeningStep("unroll")
@@ -143,10 +147,14 @@ function Board({
         setOpeningStep("unroll")
       }),
       "Banquet announcement": button(() => announce(catalog.banquetStartText, "start", { sound: "victory" })),
-      "Your turn announcement": button(() => announce(t("yourTurn"), "turn", { sound: "turn" })),
+      "Your turn announcement": button(() => announce(t("yourTurn"), "turn", { sound: "turn", seats: seatsFor(view.me ? [view.me.id] : []) })),
       "Victory announcement": button(() => {
-        const { phrase, detail } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }))
-        announce(phrase || t("winnerTitle"), "victory", { subtitle: detail || `${game.players[0]?.nickname ?? "?"} · 9 pts`, sound: "victory" })
+        const { phrase, detail, winners } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }))
+        announce(phrase || t("winnerTitle"), "victory", {
+          subtitle: detail || `${game.players[0]?.nickname ?? "?"} · 9 pts`,
+          sound: "victory",
+          seats: seatsFor(winners.length ? winners : game.players.slice(0, 1).map((p) => p.id)),
+        })
       }),
     },
     { order: 1 },
@@ -336,7 +344,14 @@ function Board({
 
                 <AnimatePresence>
                   {victory && (
-                    <Announcement key="victory" text={victory.phrase} subtitle={victory.detail} sound="victory" settings={announcementSettings.victory} />
+                    <Announcement
+                      key="victory"
+                      text={victory.phrase}
+                      subtitle={victory.detail}
+                      sound="victory"
+                      seats={seatsFor(victory.winners)}
+                      settings={announcementSettings.victory}
+                    />
                   )}
                 </AnimatePresence>
                 {ending && !ending.scoreboard && (

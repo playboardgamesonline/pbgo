@@ -13,6 +13,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: false
+  core-js: false # posthog-js: its install script only prints a funding message
 
 # eslint-config-next supports ESLint 10, but these plugins it bundles still list ESLint 9
 # as their latest peer (see "Good to know" in the Next.js ESLint docs).
@@ -84,3 +85,8 @@ catalog:
   "@supabase/supabase-js": ^2.117.3
   sharp: ^0.35.5
   wawoff2: ^2.0.1
+
+  # Analytics (PostHog): pinned exactly, not on the newest release. They publish several times a day and the
+  # options of `init` change, so an upgrade is a decision (`packages/analytics` checks the option names).
+  posthog-js: 1.437.0
+  posthog-node: 5.55.1

@@ -8,7 +8,7 @@ const ICONS = { number: NumberIcon, action: BoltIcon, modifier: AddIcon }
 
 // One document per card of a category (a 7, a +4, the Freeze…): 22 cards for the 94 of the box. Every copy of a card shares its picture,
 // so a card holds one picture. Drop it on the "Visual" field, or let the seed place the art files (docs/content-pipeline.md).
-// The form follows the rules every game's cards follow (CLAUDE.md, "Studio forms"): no Effect or Rule field, no description under a field,
+// The form follows the rules every game's cards follow (the skill `game-sanity-create`): no Effect or Rule field, no description under a field,
 // an English game key next to the localized name, the copies second to last and the visual last.
 const cardCategory = (category: CategoryKey) => {
   const { type, title, choices } = CATEGORIES[category]
