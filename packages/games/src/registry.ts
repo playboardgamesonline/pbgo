@@ -87,7 +87,7 @@ export const GAMES = [
     name: "Hanabi",
     tagline: "The cooperative fireworks card game by Antoine Bauza.",
     players: { min: 2, max: 5 },
-    sanityProjectId: "srffdhjt",
+    sanityProjectId: "ho5ap9a6",
     live: false,
     indexable: false,
   },

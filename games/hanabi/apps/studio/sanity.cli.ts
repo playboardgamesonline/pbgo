@@ -2,10 +2,10 @@ import { defineCliConfig } from "sanity/cli"
 
 export default defineCliConfig({
   api: {
-    projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "srffdhjt",
+    projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "ho5ap9a6",
     dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
   },
-  studioHost: "hanabi",
+  studioHost: process.env.SANITY_STUDIO_HOST ?? "hanabi",
   deployment: {
     autoUpdates: true,
   },

@@ -2,7 +2,7 @@ import { join } from "node:path"
 import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields, imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc, FieldDef, TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
-import { BONUS_TILE_NUMBERS, DIRECTION_KEYS, EXTENSION_KEYS, PATTERN_KEYS, RANKS, RATING_KEYS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
+import { BONUS_TILE_KEYS, BONUS_TILE_NUMBERS, DIRECTION_KEYS, EXTENSION_KEYS, PATTERN_KEYS, RANKS, RATING_KEYS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import { DATASET, GAME_DIR, PROJECT_ID } from "../config.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
 import { seedDocs } from "./test-fixtures.ts"
@@ -157,11 +157,39 @@ describe("the option lists of the Studio", () => {
     ["suit.pattern", () => listOf(fieldOf("suit", "pattern")), PATTERN_KEYS],
     ["card.suit", () => listOf(fieldOf("card", "suit")), SUIT_KEYS],
     ["card.rank", () => listOf(fieldOf("card", "rank")), RANKS],
+    ["bonusTile.key", () => listOf(fieldOf("bonusTile", "key")), BONUS_TILE_KEYS],
     ["bonusTile.number", () => listOf(fieldOf("bonusTile", "number")), BONUS_TILE_NUMBERS],
     ["game.valueGlyphs[].rank", () => listOf(itemFieldOf("game", "valueGlyphs", "rank")), RANKS],
     ["game.scoreScale[].key", () => listOf(itemFieldOf("game", "scoreScale", "key")), RATING_KEYS],
   ])("of %s offers the values the seed is built from, in the same order", (_name, offered, expected) => {
     expect(offered()).toEqual([...expected])
+  })
+})
+
+// The Studio form rules of every game (root CLAUDE.md, "Studio forms"), checked on the card-like types of Hanabi, each with its image field:
+// no Effect or Rule field, no `description` under a field, an English game key next to a localized name, the visual last and the quantity right before it
+describe("the forms of the cards", () => {
+  const CARD_FORMS: Record<string, string> = { suit: "symbolImage", card: "card", bonusTile: "icon" }
+  const fieldNames = (type: string) => (typeOf(type).fields ?? []).map((field) => field.name)
+
+  it.each(Object.keys(CARD_FORMS))("of the type %s have no Effect or Rule field, and no description under any field", (type) => {
+    expect(fieldNames(type).filter((name) => ["effect", "rule"].includes(name.toLowerCase()))).toEqual([])
+    expect((typeOf(type).fields ?? []).filter((field) => "description" in field).map((field) => field.name)).toEqual([])
+  })
+
+  it.each(Object.entries(CARD_FORMS))("of the type %s end with the visual, and the quantity comes right before it", (type, image) => {
+    expect(fieldNames(type).at(-1)).toBe(image)
+    expect(fieldOf(type, image).type).toBe("image")
+    if (fieldNames(type).includes("quantity")) expect(fieldNames(type).at(-2)).toBe("quantity")
+  })
+
+  it.each(Object.keys(CARD_FORMS))("of the type %s have an English game key whenever they have a name", (type) => {
+    if (fieldNames(type).includes("name")) {
+      expect(fieldOf(type, "name").type).toBe("localeString")
+      expect(fieldNames(type)).toContain("key")
+      expect(fieldOf(type, "key").type).toBe("string")
+      expect(listOf(fieldOf(type, "key")).length).toBeGreaterThan(0)
+    }
   })
 })
 

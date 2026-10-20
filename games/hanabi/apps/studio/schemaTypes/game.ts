@@ -9,7 +9,7 @@ export const game = defineType({
   icon: ThLargeIcon,
   fields: [
     defineField({ name: "mat", title: "Game mat", type: "image" }),
-    defineField({ name: "cardBack", title: "Card back", description: "Must not give the suit away", type: "image" }),
+    defineField({ name: "cardBack", title: "Card back", type: "image" }),
     defineField({ name: "clueToken", title: "Clue token", type: "image" }),
     defineField({ name: "clueTokenSpent", title: "Clue token (spent)", type: "image" }),
     defineField({ name: "fuseToken", title: "Fuse token", type: "image" }),
