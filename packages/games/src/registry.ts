@@ -69,7 +69,7 @@ export const GAMES = [
     name: "Exploding Kittens",
     tagline: "The kitty-powered card game, online.",
     players: { min: 2, max: 5 },
-    sanityProjectId: "gsfz20b9",
+    sanityProjectId: "iz9kkgyd",
     live: false,
     indexable: false,
   },
