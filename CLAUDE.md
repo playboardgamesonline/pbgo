@@ -10,7 +10,7 @@ Moving the project to another account: see `MIGRATION.md`.
   - `src/` — the binding package `@pbgo-game/<slug>`: site constants, engine binding, board, server loaders, sounds, defaults, i18n, skin
   - `packages/engine` — `@<slug>/engine`, the pure TypeScript engine (no UI), tested with Vitest
   - `apps/studio` — `<slug>-studio`, the game's Sanity Studio
-  - `content/` — the game's Sanity content as versioned code (its data and its config) and a seed script that writes drafts, run by the shared `@pbgo/content-kit` (Hanabi, Exploding Kittens and Courtisans, see `docs/content-pipeline.md`)
+  - `content/` — the game's Sanity content as versioned code (its data and its config) and a seed script that writes drafts, run by the shared `@pbgo/content-kit` (Hanabi, Exploding Kittens, Flip 7 and Courtisans, see `docs/content-pipeline.md`)
   - `assets/` — sources (PDF, PSD, HD visuals), git-ignored. The seed's art folder is outside the repo (Hanabi: `~/Companies/PBGO/assets/hanabi`) and is passed with an absolute `--art-dir`
 - `template/` — the game template, itself a game (`@pbgo-game/template`, demo "La Plus Haute", served at `/template`). See `template/CLAUDE.md` and `template/docs/GAME_GUIDE.md`
 - `packages/` — shared code (below)

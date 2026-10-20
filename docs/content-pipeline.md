@@ -1,6 +1,6 @@
 # Content pipeline
 
-How a game's Sanity content (cards, credits, rulebook links, art) is created from code instead of typed by hand. The generic part is one shared package, `@pbgo/content-kit` (`packages/content-kit`, see its README); a game keeps only its data and its config in `games/<slug>/content`. First built for Hanabi (GAM-11), shared with Exploding Kittens (GAM-12), then used by Courtisans (GAM-20) for its translations; the next game starts from the same two pieces.
+How a game's Sanity content (cards, credits, rulebook links, art) is created from code instead of typed by hand. The generic part is one shared package, `@pbgo/content-kit` (`packages/content-kit`, see its README); a game keeps only its data and its config in `games/<slug>/content`. First built for Hanabi (GAM-11), shared with Exploding Kittens (GAM-12) and Flip 7, then used by Courtisans (GAM-20) for its translations; the next game starts from the same two pieces.
 
 The content is described in versioned TypeScript. A seed script writes it to the game's Sanity project as **drafts**. Running it again is safe: it never replaces what someone edited in the Studio, and nothing is published until a human publishes it there.
 
@@ -64,17 +64,18 @@ games/<slug>/content/
   config.ts            slug, Sanity project id, dataset (fixed), env file
   tsconfig.json        typechecks content/ on its own (tsc -p content)
   seed.test.ts         the paths of the command that end before the token is read
-  parity/              optional: the seed against the game's engine (Exploding Kittens) or against the texts of its code (Courtisans), with its own tsconfig.json
+  parity/              optional: the seed against the game's engine (Exploding Kittens, Flip 7) or against the texts of its code (Courtisans), with its own tsconfig.json
   data/                WHAT to write, specific to the game
     index.ts           buildSeedDocs(): every document of the game
     suits.ts cards.ts bonus-tiles.ts game.ts settings.ts                   Hanabi
     card-types.ts edition.ts game.ts settings.ts                           Exploding Kittens
+    cards.ts game.ts settings.ts                                           Flip 7
     families.ts roles.ts missions.ts texts.ts                              Courtisans
     art-manifest.ts    every image the content needs, and where it goes (none for Courtisans, whose images are already in the Studio)
     *.test.ts          the documents, against the Studio's types, through the runner
 ```
 
-The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; Exploding Kittens: card type keys, kinds, edition keys) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
+The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; a game that files its cards by category: the categories and the keys of each; a game with editions: the edition keys) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
 
 ## Running it
 
@@ -90,7 +91,7 @@ pnpm --filter @pbgo-game/<slug> content:seed --apply
 | `--dry-run` | Read the dataset and print what would happen. Writes nothing. This is the default |
 | `--apply` | Write the drafts, and upload the art given with `--art-dir` |
 | `--art-dir <dir>` | Normalise the images of this folder and place them. Without it the art is left alone. Give an absolute path: a relative one is read from the folder the command runs in (`games/<slug>` through `pnpm --filter`) |
-| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only game,settings`, `--only card-red-3` (a Hanabi card), `--only card-type-defuse` (an Exploding Kittens card type), `--only cardType` (all of them). A name that matches nothing stops the run |
+| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only game,settings`, `--only card-red-3` (a Hanabi card), `--only card` (every Hanabi card); the Id and Type columns of the "What … gets" tables below give the ids and types of the other games. A name that matches nothing stops the run |
 | `--overwrite` | Replace the values edited in the Studio with the seed's. Needs `--only` |
 | `--verbose`, `-v` | List every document, not only the ones that change |
 | `--help`, `-h` | The usage |
@@ -156,12 +157,12 @@ The seed does not know where an image comes from. Publisher press visuals are no
 
 ### Exploding Kittens slots (46)
 
-Card faces are numbered from 1, one per printed illustration of the card type: the same card can be drawn several ways. The five cats have a single illustration each.
+Card faces are numbered from 1, one per printed illustration of the card type: the same card can be drawn several ways. The five cats have a single illustration each. A card type is filed in the category of its kind, and its document says so in its id: `kitten-card-exploding-kitten`, `defuse-card-defuse`, `action-card-attack`, `nope-card-nope`, `cat-card-tacocat` (see "What Exploding Kittens gets").
 
 | File name (without extension) | Count | Placed in | Proportions | Longest side |
 | --- | --- | --- | --- | --- |
-| `<card-type>-<1..n>`, card type in exploding-kitten (4), defuse (6), attack (4), skip (4), favor (4), shuffle (4), see-the-future (5), nope (5) | 36 | `card-type-<key>` › `illustrations` › item `art-<n>` › `image` | 5:7 | 1400 |
-| `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat` (`<key>-1` also accepted) | 5 | `card-type-<key>` › `illustrations` › item `art-1` › `image` | 5:7 | 1400 |
+| `<card-type>-<1..n>`, card type in exploding-kitten (4), defuse (6), attack (4), skip (4), favor (4), shuffle (4), see-the-future (5), nope (5) | 36 | `<category>-card-<key>` › `illustrations` › item `art-<n>` › `image` | 5:7 | 1400 |
+| `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat` (`<key>-1` also accepted) | 5 | `cat-card-<key>` › `illustrations` › item `art-1` › `image` | 5:7 | 1400 |
 | `card-back` (`back` also accepted) | 1 | `game` › `cardBack` | 5:7 | 1400 |
 | `box-front` | 1 | `game` › `boxFront` | any | 2000 |
 | `box-back` (optional) | 1 | `game` › `boxBack` | any | 2000 |
@@ -169,6 +170,22 @@ Card faces are numbered from 1, one per printed illustration of the card type: t
 | `logo` | 1 | `settings` › `logo` | any | 1024 |
 
 The card faces carry no text of their own in these slots: whether the printed art is the publisher's localised scans or the English art with PBGO's titles drawn over it is undecided, and the slots are the same either way. Localised scans would need one slot per language.
+
+### Flip 7 slots (27)
+
+One picture per card of the Studio, not per card of the box: the 94 cards of the box are 22 different cards (a number has as many copies as its value, and they all look alike). The file is named after the key of the engine's catalogue, which is not the key of the Studio for a number (`number-7.png` fills the card listed as `7`), and it also answers to the figure printed on the card: `7.png`, `+4.png`, `x2.png`.
+
+| File name (without extension) | Count | Placed in | Proportions | Longest side |
+| --- | --- | --- | --- | --- |
+| `number-0` … `number-12` (`0` … `12` also accepted) | 13 | `number-card-<n>` › `image` | 5:7 | 1400 |
+| `freeze`, `flip-three`, `second-chance` | 3 | `action-card-<key>` › `image` | 5:7 | 1400 |
+| `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10` (`+2` … `+10` also accepted) | 5 | `modifier-card-plus-<n>` › `image` | 5:7 | 1400 |
+| `times-2` (`x2` also accepted) | 1 | `modifier-card-times-2` › `image` | 5:7 | 1400 |
+| `card-back` (`back` also accepted) | 1 | `game` › `cardBack` | 5:7 | 1400 |
+| `box-front` | 1 | `game` › `boxFront` | any | 2000 |
+| `box-back` (optional) | 1 | `game` › `boxBack` | any | 2000 |
+| `mat` (optional) | 1 | `game` › `mat` | any | 2400 |
+| `logo` | 1 | `settings` › `logo` | any | 1024 |
 
 ## What Hanabi gets
 
@@ -190,7 +207,7 @@ Two of them are singletons, addressed in the Studio by the name of their type: `
 
 | Id | Type | Count | Holds |
 | --- | --- | --- | --- |
-| `card-type-<key>` | `cardType` | 13 | One per kind of card, keyed like the engine's catalogue (kebab-case: `exploding-kitten`, `defuse`, `attack`, `skip`, `favor`, `shuffle`, `see-the-future`, `nope`, `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`). Its kind, under the engine's names (`kitten`, `defuse`, `nope`, `action`, `cat`), its name and a one-sentence effect in four languages, and one `illustrations` entry per printed illustration (41 in all) that the art fills |
+| `<category>-card-<key>` (`action-card-attack`) | `kittenCard` (1), `defuseCard` (1), `actionCard` (5), `nopeCard` (1), `catCard` (5) | 13 | One per kind of card, in the document type of its category: the kinds of the engine (`kitten`, `defuse`, `action`, `nope`, `cat`), each a list of its own in the Studio. Keyed like the engine's catalogue (kebab-case: `exploding-kitten`; `defuse`; `attack`, `skip`, `favor`, `shuffle`, `see-the-future`; `nope`; `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`). Its place in the category (`order`, read only, from 0), its name in four languages (no effect text: what a card does is the engine's and the publisher's rules), and one `illustrations` entry per printed illustration (41 in all), the last field, that the art fills |
 | `edition-original` | `edition` | 1 | The Original Edition, 56 cards: each line is a card type and its copies (4 Exploding Kitten, 6 Defuse, 4 Attack, 4 Skip, 4 Favor, 4 Shuffle, 5 See the Future, 5 Nope, 4 of each of the five cats). Name in four languages |
 | `game` | `game` | 1 | Empty: the card back, the box and the mat come with the art |
 | `settings` | `settings` | 1 | Credits (Elan Lee, Matthew Inman and Shane Small; publisher Exploding Kittens Inc. with its link) and the link to the publisher's English rulebook. French, Spanish and German have none, the toolbar's Rules button then opens the English one. No illustrator line until the art arrives |
@@ -199,7 +216,7 @@ Two of them are singletons: `game`, `settings`.
 
 ### Editions that are not in the seed
 
-The seed holds the Original Edition only. Each of the others would be one more `edition` document (and the card types it adds), written the same way. Their rulebooks, for when that work starts:
+The seed holds the Original Edition only. Each of the others would be one more `edition` document (and the card types it adds, each in the category of its kind), written the same way. Their rulebooks, for when that work starts:
 
 | Edition | Cards | Differs from the Original | Rulebook |
 | --- | --- | --- | --- |
@@ -213,6 +230,20 @@ The seed holds the Original Edition only. Each of the others would be one more `
 | Imploding Kittens (expansion) | 20 | Up to 6 players; Imploding Kitten, Reverse, Alter the Future | `https://dumekj556jp75.cloudfront.net/imploding-kittens/imploding-english.pdf` (image-only PDF) |
 | Streaking Kittens (expansion) | 15 | Streaking Kitten, Catomic Bomb, Curse of the Cat Butt | `https://ek-instructions.s3.amazonaws.com/streaking-kittens/streaking-kittens-rules.pdf` |
 | Barking Kittens (expansion) | 20 | Barking Kitten, Bury, Personal Attack | `https://dumekj556jp75.cloudfront.net/barking-kittens/barking-kittens-rules.pdf` (image-only PDF) |
+
+## What Flip 7 gets
+
+24 documents.
+
+| Id | Type | Count | Holds |
+| --- | --- | --- | --- |
+| `number-card-<n>` | `numberCard` | 13 | One per figure, `number-card-0` … `number-card-12`, listed under the figure itself as its key (`0` … `12`; the engine calls the card `number-<n>`). The fields, in the order of the Studio form: the English game key (a dropdown), its place in the category (`order`, which the Studio sorts on), its copies (as many as the figure, one for the 0) and, last, the visual, which the art fills. A card has no name: the figure printed on it is its key, so there is nothing to translate and the Studio lists it under that figure. A card holds no effect text: what it does is the engine's, and the rules are the publisher's PDFs |
+| `action-card-<key>` | `actionCard` | 3 | `freeze`, `flip-three`, `second-chance`, the keys of the engine's catalogue, in the order of the deck, with three copies each. The same fields, plus a name in four languages (the action cards are named by words): the seed gives them their English titles in every language, for the owner to translate in the Studio |
+| `modifier-card-<key>` | `modifierCard` | 6 | `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10`, `times-2`, the keys of the engine's catalogue, with one copy each. The same fields as the number cards: no name, the sign printed on the card is its key |
+| `game` | `game` | 1 | Empty: the card back, the box and the mat come with the art |
+| `settings` | `settings` | 1 | Credits (Eric Olsen; publisher The OP Games with its link). No rulebook link: the booklet has no address of its own to link, one can be set in the Studio |
+
+The 22 cards come in three categories, the engine's kinds (79 number cards, 9 action cards and 6 modifiers in the box, 94 in all), and each category is a document type of its own, so the Studio lists them apart (Number cards, Action cards, Modifier cards) and an editor looks for a 7 among the 13 numbers. A card has no `kind` field: its category says it. Two of the documents are singletons: `game` and `settings`. There is no `rules` document: the rules are links to PDFs, set in `settings`.
 
 ## What Courtisans gets
 
@@ -261,11 +292,13 @@ In the kit (`packages/content-kit/src/*.test.ts`, 416 tests): the guarantees abo
 
 In each game:
 - `content/data/data.test.ts` checks the documents themselves, and every text in them: it exists in the four languages and is written in its own, no stray space or straight apostrophe, no placeholder, at most 4 000 characters. Hanabi: the deck is the one of the rulebook (50 / 60 / 70 cards, the black firework counted the other way round), the score scale covers 0 to 30 once. Exploding Kittens: the card types are the engine's thirteen keys, the Original Edition is the 56 cards of the box and deals as the rulebook says (35 / 29 / 23 / 16 cards in the pile for 2 to 5 players). Both also check that no `rules` document is seeded. Courtisans: the 28 documents (6 families, 4 roles, 17 missions, the `texts` singleton) and the three missions left out, the 12 error codes in the shape the gamemaster writes (the code is the key of the item), three victory sentences per language that each name the winner and the points, the same placeholders in every language; it does not check the apostrophe, since the texts are the code's.
-- `content/data/schema.test.ts` loads the real Studio configuration and checks every seed document against the Studio's own types (field names, option lists, validation rules), and every art slot against a real image field. A field renamed or a rule tightened in the Studio fails here, not in front of an editor.
+- `content/data/schema.test.ts` loads the real Studio configuration and checks every seed document against the Studio's own types (field names, option lists, validation rules), and every art slot against a real image field. A field renamed or a rule tightened in the Studio fails here, not in front of an editor. Exploding Kittens also keeps the forms of its cards there (no Effect or Rule field, no description under a field, the illustrations last with the visual closing each of them, an English game key beside the name): the rules every game's cards follow, see the skill `game-sanity-create`.
 - `content/data/run.test.ts` runs the game's seed and art slots through the kit's runner against an in-memory dataset: drafts only, nothing the second time, nothing after a publication, art placed by slot. Courtisans has no art, but its run test also plays the seed on a dataset like the live one (every document published, French only, with the fields the seed does not write): a draft of each, the translations added around those fields, the Studio's values kept where they differ, the three missions listed as not in the seed, and nothing the second time.
 - `content/seed.test.ts` runs the command itself for the paths that end before the token is read.
-- Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the `kind` of each, the kinds the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
+- Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the category each is filed in (the engine's `kind`, so the document type) and its place there, the categories the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has a category for it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
 - Courtisans has `content/parity/code.test.ts`, which reads the dictionaries of the game's own code (`GAME`, `I18N` and `defaultMissionTexts` of `src/lib/i18n.ts`, `ROLE_RULE_TEXTS`, `DEFAULT_SKIN`, `ERROR_MESSAGES`, `TAGLINE`; Vitest only, the seed never imports them) and checks the seed against them word for word, language by language. It also lists what the code keeps beyond the seed (the board and the rules page), so a text added to the code's dictionary has to be seeded or listed. The folder has its own `tsconfig.json`, with DOM types and JSX because the code it imports pulls in `@pbgo/core`, and the game's `typecheck` runs a third `tsc -p content/parity`. It goes away with the code's fallbacks; the seed stays as the record of what was written.
+
+Flip 7 has the same files as the list above, without `edition` and `rules`: its `data.test.ts` checks the 22 cards (the three categories and their keys, order, copies, which add up to the 94 cards of the box, a name on the action cards alone, no effect or rule text), the credits and the 27 art slots (a card also answers to the figure printed on it), its `schema.test.ts` also keeps the forms of the cards (no Effect or Rule field, no description under a field, an English game key, a name on the action cards alone, the copies second to last and the visual last), its `parity/engine.test.ts` the categories, keys, copies and the titles of the figure cards against the engine's `CARDS` and `DECK`.
 
 Each guarantee was checked by breaking it on purpose and watching a test fail.
 
@@ -274,7 +307,7 @@ Code in the kit and in `content/` runs directly with Node (type stripping, no bu
 ## Starting the pipeline for another game
 
 1. `pnpm add-game` (or `pnpm new-game <slug>` then `pnpm go-live <slug>`; the skill `game-new` runs it for the owner) gives the game its package, its Sanity project, its Studio, its rulebook PDFs and its write token (`apps/web/.env.local`). A rulebook that comes later goes in with `pnpm game-rules <slug>`.
-2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar). The skill `game-sanity-create` (`.claude/skills/`) asks the owner which lists the game needs before any schema and holds the rules of the forms.
+2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar). The skill `game-sanity-create` (`.claude/skills/`) asks the owner which lists the game needs before any schema and holds the rules of the forms. Cards are filed by category, one document type (and so one list in the Studio) per kind of card, never one type with a `kind` field. Within a category the key is the simplest one, the one the editor reads in the list (a 7, a +4); where the engine's own key differs, the seed maps one to the other.
 3. Add `@pbgo/content-kit` and `@pbgo/studio-kit` (`workspace:*`) and `vitest` (`catalog:`) to the game's dev dependencies, with the `typecheck` (`tsc --noEmit && tsc --noEmit -p content`), `test` (`vitest run`) and `content:seed` (`node --disable-warning=ExperimentalWarning content/seed.ts`) scripts and a `vitest.config.ts` that includes `content/**/*.test.ts`. `games/exploding-kittens` is the smallest model; `games/courtisans/content` is the one for a game whose documents already exist in the Studio and only need translations (no art, `slots: []`, each document seeded under its existing id with just the fields to fill).
 4. Write `content/config.ts` (slug, project id), `content/seed.ts` (`runSeedCli` with the game's `buildSeedDocs` and `ART_SLOTS`), `content/tsconfig.json` and `content/data/`: the game's documents, and `art-manifest.ts` with its image slots. There is nothing to copy from the kit: it stays where it is.
 5. Run the tests, then follow the process above.

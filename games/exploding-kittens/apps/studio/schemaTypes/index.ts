@@ -1,6 +1,6 @@
-import { cardType } from "./cardType"
+import { actionCard, catCard, defuseCard, kittenCard, nopeCard } from "./cards"
 import { edition } from "./edition"
 import { game } from "./game"
 
-/** Exploding Kittens' own types; `settings` is the shared one of @pbgo/studio-kit. */
-export const gameTypes = [game, cardType, edition]
+/** Exploding Kittens' own types, the cards in five categories; `settings` is the shared one of @pbgo/studio-kit. */
+export const gameTypes = [game, kittenCard, defuseCard, actionCard, nopeCard, catCard, edition]
