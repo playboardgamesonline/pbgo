@@ -5,7 +5,7 @@ import type { LanguageId } from "@pbgo/content-kit"
 import { imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc } from "@pbgo/content-kit/testing"
 import { describe, expect, it } from "vitest"
-import { BONUS_TILE_NUMBERS, DIRECTION_KEYS, EXTENSION_KEYS, PATTERN_KEYS, RANKS, RATING_KEYS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
+import { BONUS_TILE_KEYS, BONUS_TILE_NUMBERS, BONUS_TILES, DIRECTION_KEYS, EXTENSION_KEYS, PATTERN_KEYS, RANKS, RATING_KEYS, SUIT_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import { CONTENT_DIR, DATASET, ENV_FILE, GAME_DIR, PROJECT_ID, REPO_ROOT, SLUG } from "../config.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
 import { bonusTileId, buildBonusTiles, TILE_SPECS } from "./bonus-tiles.ts"
@@ -224,26 +224,30 @@ describe("the bonus tiles", () => {
     expect(Object.keys(TILE_SPECS).map(Number)).toEqual([...BONUS_TILE_NUMBERS])
   })
 
-  it("have a name and an effect in each language", () => {
+  it("have a name in each language", () => {
     for (const tile of tiles()) {
       expect(tile.name._type).toBe("localeString")
-      expect(tile.effect._type).toBe("localeText")
-      for (const language of LANGUAGE_IDS) {
-        expect(tile.name[language].length, `${tile._id} name ${language}`).toBeGreaterThan(2)
-        expect(tile.effect[language].length, `${tile._id} effect ${language}`).toBeGreaterThan(30)
-      }
+      for (const language of LANGUAGE_IDS) expect(tile.name[language].length, `${tile._id} name ${language}`).toBeGreaterThan(2)
     }
   })
 
   it("differ from one another", () => {
-    for (const language of LANGUAGE_IDS) {
-      expect(new Set(tiles().map((tile) => tile.name[language])).size, `names ${language}`).toBe(6)
-      expect(new Set(tiles().map((tile) => tile.effect[language])).size, `effects ${language}`).toBe(6)
+    for (const language of LANGUAGE_IDS) expect(new Set(tiles().map((tile) => tile.name[language])).size, `names ${language}`).toBe(6)
+  })
+
+  it("each have an English game key, the stable id of the tile, listed by the Studio in the order of the numbers", () => {
+    expect(tiles().map((tile) => tile.key)).toEqual([...BONUS_TILE_KEYS])
+    expect(BONUS_TILES.map((entry) => entry.value)).toEqual([...BONUS_TILE_KEYS])
+    for (const tile of tiles()) {
+      expect(tile.key, tile._id).toBe(TILE_SPECS[tile.number as keyof typeof TILE_SPECS].key)
+      expect(tile.key, tile._id).toMatch(/^[a-z][A-Za-z]+$/)
+      // the Studio shows the key as the title of the tile in the English of its name
+      expect(BONUS_TILES.find((entry) => entry.value === tile.key)?.title, tile._id).toBe(tile.name.en)
     }
   })
 
-  it("keep an effect on one line of text per paragraph, with no list marker of its own", () => {
-    for (const tile of tiles()) for (const language of LANGUAGE_IDS) expect(tile.effect[language], `${tile._id} ${language}`).not.toMatch(/^\s*[-*•]/m)
+  it("hold no effect text: the rules are the rulebook's PDF links", () => {
+    for (const tile of tiles()) expect(Object.keys(tile).sort(), tile._id).toEqual(["_id", "_type", "key", "name", "number"])
   })
 })
 
@@ -344,8 +348,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // 7 suit names, 6 tiles (name, effect), 7 ratings (label, line) and the credits
-    expect(objects).toHaveLength(34)
+    // 7 color names, 6 tile names, 7 ratings (label, line) and the credits
+    expect(objects).toHaveLength(28)
     for (const { path, value } of objects) {
       expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
     }
@@ -399,7 +403,7 @@ describe("the configuration", () => {
     const entries = GAMES.filter((game) => game.slug === SLUG)
     expect(entries).toHaveLength(1)
     expect(entries[0]?.sanityProjectId).toBe(PROJECT_ID)
-    expect(PROJECT_ID).toBe("srffdhjt")
+    expect(PROJECT_ID).toBe("ho5ap9a6")
   })
 
   it("points at the same project as the studio", () => {
