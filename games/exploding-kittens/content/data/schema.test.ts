@@ -160,11 +160,12 @@ describe("the seed documents", () => {
       ["an illustration without a key", "defuse-card-defuse", (doc) => delete doc.illustrations[0]._key, "defuse-card-defuse.illustrations[0] has no _key"],
       ["two illustrations with the same key", "defuse-card-defuse", (doc) => (doc.illustrations[1]._key = doc.illustrations[0]._key), "defuse-card-defuse.illustrations[1] repeats the _key"],
       ["an illustration typed as a deck card", "defuse-card-defuse", (doc) => (doc.illustrations[0]._type = "deckCard"), 'defuse-card-defuse.illustrations[0] has the type "deckCard", which the array does not accept'],
-      ["a card face that is not an image", "defuse-card-defuse", (doc) => (doc.illustrations[0].image = "defuse-1.webp"), "defuse-card-defuse.illustrations[0].image should be an image"],
+      ["a visual that is not an image", "defuse-card-defuse", (doc) => (doc.illustrations[0].image = "defuse-1.webp"), "defuse-card-defuse.illustrations[0].image should be an image"],
       ["a name that is not a localeString", "defuse-card-defuse", (doc) => (doc.name = "Defuse"), "defuse-card-defuse.name should be an object"],
       ["a name typed as a localeText", "defuse-card-defuse", (doc) => (doc.name._type = "localeText"), 'defuse-card-defuse.name._type is "localeText", expected "localeString"'],
       ["a name in a language the Studio does not have", "defuse-card-defuse", (doc) => (doc.name.it = "Disinnescare"), "defuse-card-defuse.name.it is not a field"],
-      ["an effect that is not a localeText", "defuse-card-defuse", (doc) => (doc.effect = "Saves you."), "defuse-card-defuse.effect should be an object"],
+      ["an effect, which a card no longer has", "defuse-card-defuse", (doc) => (doc.effect = "Saves you."), 'defuse-card-defuse.effect is not a field of "defuseCard"'],
+      ["a rule, which a card never has", "action-card-attack", (doc) => (doc.rule = "Ends your turn."), 'action-card-attack.rule is not a field of "actionCard"'],
       ["a field the Studio does not have", "cat-card-tacocat", (doc) => (doc.colour = "#ff0000"), 'cat-card-tacocat.colour is not a field of "catCard"'],
       ["an edition key outside the list", "edition-original", (doc) => (doc.key = "deluxe"), 'edition-original.key is "deluxe", not one of'],
       ["a deck card of a card type that does not exist", "edition-original", (doc) => (doc.cards[0].cardType = "unicorn"), 'edition-original.cards[0].cardType is "unicorn", not one of'],
@@ -212,6 +213,42 @@ describe("the option lists of the Studio", () => {
     ["edition.cards[].cardType", () => listOf(itemFieldOf("edition", "cards", "cardType")), CARD_TYPE_KEYS],
   ])("of %s offers the values the seed is built from, in the same order", (_name, offered, expected) => {
     expect(offered()).toEqual([...expected])
+  })
+})
+
+// The rules every game's cards follow (CLAUDE.md, "Studio forms"), kept by the same tests in every game: Hanabi's schema.test.ts is the model
+describe("the forms of the cards", () => {
+  const FORM_TYPES = [...CARD_TYPES, "edition", "game"]
+  const fieldNames = (type: string) => (typeOf(type).fields ?? []).map((field) => field.name)
+
+  /** Every field of a type, the fields of the members of its arrays included, with the path where it sits (`edition.cards[].copies`). */
+  function fieldsUnder(shape: Pick<FieldDef, "fields" | "of">, path = ""): { path: string; field: FieldDef }[] {
+    const own = (shape.fields ?? []).flatMap((field) => {
+      const at = path ? `${path}.${field.name}` : field.name
+      return [{ path: at, field }, ...fieldsUnder(field, at)]
+    })
+    const members = (shape.of ?? []).flatMap((member) => fieldsUnder(member, `${path}[]`))
+    return [...own, ...members]
+  }
+
+  it.each(FORM_TYPES)("of the type %s have no Effect or Rule field, and no description under any field, those of the lists included", (type) => {
+    const fields = fieldsUnder(typeOf(type))
+    expect(fields.filter(({ field }) => ["effect", "rule"].includes(field.name.toLowerCase())).map(({ path }) => path)).toEqual([])
+    expect(fields.filter(({ field }) => "description" in field).map(({ path }) => path)).toEqual([])
+  })
+
+  it.each(CARD_TYPES)("of the type %s end with the illustrations, and the visual closes each of them", (type) => {
+    expect(fieldNames(type).at(-1)).toBe("illustrations")
+    const illustration = (fieldOf(type, "illustrations").of ?? []).flatMap((member) => member.fields ?? [])
+    expect(illustration.at(-1)?.name).toBe("image")
+    expect(illustration.at(-1)?.type).toBe("image")
+  })
+
+  it.each([...CARD_TYPES, "edition"])("of the type %s have a multilingual name and an English game key", (type) => {
+    expect(fieldOf(type, "name").type).toBe("localeString")
+    expect(fieldNames(type)).toContain("key")
+    expect(fieldOf(type, "key").type).toBe("string")
+    expect(listOf(fieldOf(type, "key")).length).toBeGreaterThan(0)
   })
 })
 

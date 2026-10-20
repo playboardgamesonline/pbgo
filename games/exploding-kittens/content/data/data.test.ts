@@ -171,21 +171,19 @@ describe("the seed documents", () => {
     const second = docs()
     expect(second).toStrictEqual(first)
 
-    // The five cats share one effect text in the data: changing one cat must not touch the others
+    // Changing one cat must not touch the others
     const tacocat = first.find((doc) => doc._id === cardTypeId("tacocat")) as Doc
     const beardCat = first.find((doc) => doc._id === cardTypeId("beard-cat")) as Doc
-    const effect = beardCat.effect.fr
+    const beardCatName = beardCat.name.fr
     tacocat.name.fr = "changed"
-    tacocat.effect.fr = "changed"
     tacocat.illustrations[0].number = 99
     tacocat.extra = true
     ;(first.find((doc) => doc._id === RULES_ID) as Doc).intro.fr = "changed"
 
-    expect(beardCat.effect.fr).toBe(effect)
+    expect(beardCat.name.fr).toBe(beardCatName)
     expect(second).not.toBe(first)
     const untouched = second.find((doc) => doc._id === cardTypeId("tacocat")) as Doc
     expect(untouched.name.fr).toBe("Tacocat")
-    expect(untouched.effect.fr).toBe(effect)
     expect(untouched.illustrations[0].number).toBe(1)
     expect(untouched).not.toHaveProperty("extra")
     expect(docs()).toStrictEqual(second)
@@ -276,11 +274,8 @@ describe("the card types", () => {
   })
 
   describe("names", () => {
-    it("are a localeString for the name and a localeText for the effect", () => {
-      for (const doc of cardTypes()) {
-        expect(doc.name._type, doc.key).toBe("localeString")
-        expect(doc.effect._type, doc.key).toBe("localeText")
-      }
+    it("are a localeString", () => {
+      for (const doc of cardTypes()) expect(doc.name._type, doc.key).toBe("localeString")
     })
 
     it("are, in English, the titles the Studio lists", () => {
@@ -314,33 +309,15 @@ describe("the card types", () => {
     })
   })
 
-  describe("effects", () => {
-    it("are one short paragraph that ends with a full stop", () => {
-      for (const doc of cardTypes()) {
-        for (const language of LANGUAGE_IDS) {
-          const text = doc.effect[language] as string
-          expect(text, `${doc.key} ${language}`).not.toContain("\n")
-          expect(text, `${doc.key} ${language}`).toMatch(/\.$/)
-          expect(text.length, `${doc.key} ${language}`).toBeLessThan(300)
-        }
-      }
+  describe("fields", () => {
+    it("are the ones of the Studio form and nothing else: the key, the order, the name and the illustrations", () => {
+      for (const doc of cardTypes()) expect(Object.keys(doc).sort(), doc.key).toEqual(["_id", "_type", "illustrations", "key", "name", "order"])
     })
 
-    it("give the same figures in every language: the 2 turns of the Attack, the 3 cards of See the Future", () => {
+    it("have no effect or rule text: what a card does is the engine's and the publisher's rules", () => {
       for (const doc of cardTypes()) {
-        const expected = doc.key === "attack" ? [2] : doc.key === "see-the-future" ? [3] : []
-        for (const language of LANGUAGE_IDS) expect(digitsOf(doc.effect[language]), `${doc.key} ${language}`).toEqual(expected)
-      }
-    })
-
-    it("are one and the same for the five cats, and their own for the eight other types", () => {
-      for (const key of CATS) expect(typeOf(key).effect, key).toEqual(typeOf("tacocat").effect)
-      for (const language of LANGUAGE_IDS) {
-        const others = cardTypes()
-          .filter((doc) => doc._type !== "catCard")
-          .map((doc) => doc.effect[language] as string)
-        expect(others, language).toHaveLength(8)
-        expect(new Set([...others, typeOf("tacocat").effect[language]]).size, language).toBe(9)
+        expect(doc, doc.key).not.toHaveProperty("effect")
+        expect(doc, doc.key).not.toHaveProperty("rule")
       }
     })
   })
@@ -670,8 +647,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // 13 card types (name, effect), the edition name, the introduction of the rules, 10 sections (title, body), the credits
-    expect(objects).toHaveLength(49)
+    // 13 card types (name), the edition name, the introduction of the rules, 10 sections (title, body), the credits
+    expect(objects).toHaveLength(36)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 
