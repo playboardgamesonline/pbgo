@@ -216,7 +216,8 @@ describe("the option lists of the Studio", () => {
   })
 })
 
-// The rules every game's cards follow (CLAUDE.md, "Studio forms"), kept by the same tests in every game: Hanabi's schema.test.ts is the model
+// The rules every game's cards follow (CLAUDE.md, "Studio forms"), kept by the same tests in every game: Hanabi's schema.test.ts is the model.
+// The game singleton only holds the pictures of the card back, the box and the mat, so it follows the one about descriptions too, and the one about tabs.
 describe("the forms of the cards", () => {
   const FORM_TYPES = [...CARD_TYPES, "edition", "game"]
   const fieldNames = (type: string) => (typeOf(type).fields ?? []).map((field) => field.name)
@@ -235,6 +236,22 @@ describe("the forms of the cards", () => {
     const fields = fieldsUnder(typeOf(type))
     expect(fields.filter(({ field }) => ["effect", "rule"].includes(field.name.toLowerCase())).map(({ path }) => path)).toEqual([])
     expect(fields.filter(({ field }) => "description" in field).map(({ path }) => path)).toEqual([])
+  })
+
+  it("files the game document in tabs, as Courtisans' is: exactly one open by default, every field in a tab it declares", () => {
+    const { groups = [], fields = [] } = typeOf("game") as Omit<TypeDef, "fields"> & {
+      groups?: { name: string; default?: boolean }[]
+      fields?: (FieldDef & { group?: string })[]
+    }
+    const tabs = groups.map((group) => group.name)
+    expect(tabs).toEqual(["board", "backs", "box"])
+    expect(groups.filter((group) => group.default).map((group) => group.name)).toEqual(["board"])
+    expect(fields.map((field) => [field.name, field.group])).toEqual([
+      ["mat", "board"],
+      ["cardBack", "backs"],
+      ["boxFront", "box"],
+      ["boxBack", "box"],
+    ])
   })
 
   it.each(CARD_TYPES)("of the type %s end with the illustrations, and the visual closes each of them", (type) => {
