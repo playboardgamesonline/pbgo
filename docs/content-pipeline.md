@@ -42,6 +42,7 @@ packages/content-kit/src/        @pbgo/content-kit: HOW to write it
   index.ts                       entry ".": what a game's data files import (localeString, localeText, setField, setItemField, assertSeedId, the types)
   seed.ts                        entry "./seed": what content/seed.ts and its tests import (runSeedCli, run, parseCli, HELP…)
   testing.ts                     entry "./testing": MemoryStore, the schema checker, the image and folder fixtures
+  form-rules.ts                  entry "./form-rules": the rules of the Studio forms (formProblems, studioTypes), for a Studio's own test
   seed-cli.ts                    runSeedCli(config): the command, from the options to the report
   cli.ts env.ts report.ts        the options, the token (never printed), the summary
   run.ts                         one run: plan, write, plan again

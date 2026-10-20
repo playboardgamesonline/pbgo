@@ -1,4 +1,5 @@
 import { join } from "node:path"
+import { formProblems } from "@pbgo/content-kit/form-rules"
 import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields, imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc, FieldDef, TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
@@ -166,15 +167,22 @@ describe("the option lists of the Studio", () => {
   })
 })
 
-// The Studio form rules of every game (root CLAUDE.md, "Studio forms"), checked on the card-like types of Hanabi, each with its image field:
-// no Effect or Rule field, no `description` under a field, an English game key next to a localized name, the visual last and the quantity right before it
+// The Studio form rules of every game (root CLAUDE.md, "Studio forms"). Two hold for the whole Studio, the shared singletons included:
+// no `description` (the grey sub-label) under any field, and a `game` document split into tabs
+describe("the forms of the Studio", () => {
+  it("have no description under any field, and a game document split into tabs", () => {
+    expect(formProblems(types)).toEqual([])
+  })
+})
+
+// The others are checked on the card-like types of Hanabi, each with its image field:
+// no Effect or Rule field, an English game key next to a localized name, the visual last and the quantity right before it
 describe("the forms of the cards", () => {
   const CARD_FORMS: Record<string, string> = { suit: "symbolImage", card: "card", bonusTile: "icon" }
   const fieldNames = (type: string) => (typeOf(type).fields ?? []).map((field) => field.name)
 
-  it.each(Object.keys(CARD_FORMS))("of the type %s have no Effect or Rule field, and no description under any field", (type) => {
+  it.each(Object.keys(CARD_FORMS))("of the type %s have no Effect or Rule field", (type) => {
     expect(fieldNames(type).filter((name) => ["effect", "rule"].includes(name.toLowerCase()))).toEqual([])
-    expect((typeOf(type).fields ?? []).filter((field) => "description" in field).map((field) => field.name)).toEqual([])
   })
 
   it.each(Object.entries(CARD_FORMS))("of the type %s end with the visual, and the quantity comes right before it", (type, image) => {

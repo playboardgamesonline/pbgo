@@ -7,18 +7,25 @@ export const game = defineType({
   title: "Game",
   type: "document",
   icon: ThLargeIcon,
+  groups: [
+    { name: "board", title: "Board", default: true },
+    { name: "backs", title: "Card backs" },
+    { name: "tokens", title: "Tokens" },
+    { name: "glyphs", title: "Value glyphs" },
+    { name: "score", title: "Score ratings" },
+  ],
   fields: [
-    defineField({ name: "mat", title: "Game mat", type: "image" }),
-    defineField({ name: "cardBack", title: "Card back", type: "image" }),
-    defineField({ name: "clueToken", title: "Clue token", type: "image" }),
-    defineField({ name: "clueTokenSpent", title: "Clue token (spent)", type: "image" }),
-    defineField({ name: "fuseToken", title: "Fuse token", type: "image" }),
-    defineField({ name: "fuseTokenExploded", title: "Fuse token (exploded)", type: "image" }),
+    defineField({ name: "mat", title: "Game mat", type: "image", group: "board" }),
+    defineField({ name: "cardBack", title: "Card back", type: "image", group: "backs" }),
+    defineField({ name: "clueToken", title: "Clue token", type: "image", group: "tokens" }),
+    defineField({ name: "clueTokenSpent", title: "Clue token (spent)", type: "image", group: "tokens" }),
+    defineField({ name: "fuseToken", title: "Fuse token", type: "image", group: "tokens" }),
+    defineField({ name: "fuseTokenExploded", title: "Fuse token (exploded)", type: "image", group: "tokens" }),
     defineField({
       name: "valueGlyphs",
       title: "Value glyphs",
-      description: "One glyph per card value, used on the cards and in the clue buttons",
       type: "array",
+      group: "glyphs",
       of: [
         defineArrayMember({
           type: "object",
@@ -34,8 +41,8 @@ export const game = defineType({
     defineField({
       name: "scoreScale",
       title: "Score ratings",
-      description: "The final score is turned into a rating: it applies from its minimum score up to the next rating",
       type: "array",
+      group: "score",
       of: [
         defineArrayMember({
           type: "object",
@@ -44,7 +51,7 @@ export const game = defineType({
             defineField({ name: "key", title: "Game key", type: "string", options: { list: RATING_KEYS.map((key) => ({ title: key.charAt(0).toUpperCase() + key.slice(1), value: key })), layout: "dropdown" }, validation: (r) => r.required() }),
             defineField({ name: "minScore", title: "From score", type: "number", validation: (r) => r.required().integer().min(0) }),
             defineField({ name: "label", title: "Rating", type: "localeString" }),
-            defineField({ name: "line", title: "Line", description: "One short sentence shown with the rating", type: "localeString" }),
+            defineField({ name: "line", title: "Sentence", type: "localeString" }),
             defineField({ name: "badge", title: "Badge", type: "image" }),
           ],
           preview: {

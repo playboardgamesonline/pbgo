@@ -34,11 +34,12 @@ Everything else (the options, the token, the plan, the art, the report) is the k
 
 - **Drafts only.** The one function that writes (`writeDrafts` of `store.ts`) refuses any id that is not `drafts.<id>`. A seed id is a plain document id (`assertSeedId`): a dot would make it a draft, a release version or a private path.
 - **`store.ts` is the only file that talks to the API.** Everything else works against the `SeedStore` interface (`types.ts`), which `MemoryStore` implements for the tests with the same rules (drafts only, `createIfNotExists`, `ifRevisionID`).
-- **Three entry points**, so that a data file does not load what it does not need:
+- **Four entry points**, so that a data file does not load what it does not need:
   - `.` (`index.ts`): the data side. No Sanity client, no `sharp`
   - `./seed` (`seed.ts`): the runner side, for `content/seed.ts` and the tests of the command
   - `./testing` (`testing.ts`): for the game's content tests
-- **Run by Node, as source.** Relative imports carry their `.ts` extension, type-only imports are `import type` (or `export type … from`, which is erased: `index.ts` re-exports `ArtSlot` without loading `sharp`), and only erasable syntax is used (no `enum`, no parameter properties). The tsconfig of the kit and the one of each game's `content/` set the same three flags (`allowImportingTsExtensions`, `verbatimModuleSyntax`, `erasableSyntaxOnly`), because TypeScript compiles the kit's sources under the options of the project that imports them.
+  - `./form-rules` (`form-rules.ts`): the rules of the Studio forms, for a Studio's own test. Pure, no Sanity client, no `sharp`, nothing else of the kit
+- **Run by Node, as source.** Relative imports carry their `.ts` extension, type-only imports are `import type` (or `export type … from`, which is erased: `index.ts` re-exports `ArtSlot` without loading `sharp`), and only erasable syntax is used (no `enum`, no parameter properties). The tsconfig of the kit and the one of each game's `content/` set the same three flags (`allowImportingTsExtensions`, `verbatimModuleSyntax`, `erasableSyntaxOnly`), because TypeScript compiles the kit's sources under the options of the project that imports them. A Studio that imports `./form-rules` for its test only needs `allowImportingTsExtensions` (its tsconfig).
 - **The kit declares its own dependencies** (`@sanity/client`, `sharp`, `@pbgo/core`, `@pbgo/studio-kit`). Node refuses to strip types under `node_modules`; pnpm's workspace links resolve to their real path, outside it, and a bare import is resolved from the importing file's real path, so the kit's own imports must resolve from the kit.
 - **Two imports of other packages are deliberate**: `@pbgo/core/sanity/env.ts` (the API version and the name of the write token, one definition for the web app and the seed) and `@pbgo/studio-kit/constants` (the site languages). Both are data only. Core never imports a game, and the kit never imports a game either: the game hands it everything.
 - **Games stay out of each other's way.** A game's `content/` typechecks without the Studio graph or the engine: the tests that need the Studio configuration load it by a computed path.
@@ -83,6 +84,25 @@ Everything else (the options, the token, the plan, the art, the report) is the k
 - **`MemoryStore`**: an in-memory dataset. `docs` (a `Map`), `writes` (each transaction), `uploads`, and the Studio's gestures: `edit(id, fn)` changes a document, `publish(id)` turns a draft into a published document.
 - **`documentProblems(doc, types)`**, **`problemsOf(value, def, path, types)`**, **`constraintsOf(validation)`**, **`emptyFields(…)`**, **`imageFields(typeName, types)`**, **`imageFieldOf(typeName, path)`**: the emulator of the Studio's validation. It checks a seed document against the types of the game's own Studio (field names, kinds, option lists, `required`, `min`, `max`…), and lists the fields a form shows and the seed forgot. It does not follow `reference` fields: a type that points at another uses a plain key.
 - **`imageOf(color, size?, format?)`**, **`imageValue(name)`**, **`imagesOf(value)`**, **`TempFolders`** (temporary art folders, removed by `cleanUp()` from `afterEach`), **`Doc`** (a seed document read loosely), **`Size`**.
+
+### The rules of the Studio forms
+
+`import … from "@pbgo/content-kit/form-rules"`
+
+- **`formProblems(types)`**: what breaks the "Studio forms" rules of the root `CLAUDE.md` in a schema, as a list of sentences (empty when the forms are right): a `description` on any type, field or array member (the grey sub-label, shared singletons included), and a `game` document that is not split into tabs (no `groups`, not exactly one default tab, a field in no tab or in a tab the document does not declare).
+- **`studioTypes(config)`**: the types a Studio registers, by name, from the default export of its `sanity.config.ts`.
+
+A Studio keeps them in a test of its own, `studio-forms.test.ts` (the template's is copied by `pnpm new-game`):
+
+```ts
+import { formProblems, studioTypes } from "@pbgo/content-kit/form-rules"
+import { expect, it } from "vitest"
+import studio from "./sanity.config"
+
+it("follows the rules of the Studio forms", () => {
+  expect(formProblems(studioTypes(studio))).toEqual([])
+})
+```
 
 ## Adding a game
 

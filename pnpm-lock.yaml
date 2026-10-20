@@ -672,6 +672,9 @@ importers:
         specifier: 'catalog:'
         version: 6.5.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
+      '@pbgo/content-kit':
+        specifier: workspace:*
+        version: link:../../../../packages/content-kit
       '@pbgo/tsconfig':
         specifier: workspace:*
         version: link:../../../../packages/tsconfig
@@ -684,6 +687,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
   games/courtisans/packages/engine:
     dependencies:
@@ -2440,6 +2446,9 @@ importers:
         specifier: 'catalog:'
         version: 6.5.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
+      '@pbgo/content-kit':
+        specifier: workspace:*
+        version: link:../../../packages/content-kit
       '@pbgo/tsconfig':
         specifier: workspace:*
         version: link:../../../packages/tsconfig
@@ -2452,6 +2461,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
   template/packages/engine:
     dependencies:
