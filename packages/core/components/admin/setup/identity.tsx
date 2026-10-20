@@ -11,7 +11,7 @@ import { shareImagePath } from "../../../lib/site-url"
 import type { CreditTexts } from "../../../lib/skin"
 import { useAdminSlug } from "../admin-game"
 import { LangTabs } from "./lang-tabs"
-import { FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
+import { DraftAlert, FileTile, IMAGE_ACCEPT, Img, LinkPreviewAside, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = Pick<SiteSettings, "title" | "descriptions" | "creditsAuthors" | "credits">
 
@@ -36,6 +36,7 @@ export function IdentityPage({ initial, domain, credits: creditLabels }: { initi
       aside={<LinkPreviewAside draft={{ settings, skin: data.skin }} share={{ image: shareUrl, title: siteTitle(settings.title), description: settings.description, domain }} tab={{ title: settings.title, favicon: settings.favicon }} />}
     >
       <ReadOnlyAlert writable={data.writable} />
+      <DraftAlert drafts={data.drafts} docs={["settings"]} />
 
       <div className="flex flex-wrap items-center gap-3">
         <LangTabs value={lang} onChange={setLang} filled={filled(draft.descriptions)} />

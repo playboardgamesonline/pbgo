@@ -53,7 +53,12 @@ function parseJson(v: unknown) {
   }
 }
 
-export const SETTINGS_QUERY = `*[_id == "settings"][0]{ title, description, descriptionI18n, creditsAuthorsI18n, logo, "favicon": favicon{asset, crop, hotspot, "mime": asset->mimeType}, shareImage, turnTimeout, gameOptions, minPlayers, maxPlayers, theme, bodyFont, displayFont, rulesPdfFr, rulesPdfEn, rulesPdfEs, rulesPdfDe, creditsAuthors, publisher, publisherUrl, "rulesPdfFrFile": rulesPdfFrFile.asset->{url, "name": originalFilename}, "rulesPdfEnFile": rulesPdfEnFile.asset->{url, "name": originalFilename}, "rulesPdfEsFile": rulesPdfEsFile.asset->{url, "name": originalFilename}, "rulesPdfDeFile": rulesPdfDeFile.asset->{url, "name": originalFilename}, "bodyFontFile": bodyFontFile.asset->{url, "name": originalFilename}, "displayFontFile": displayFontFile.asset->{url, "name": originalFilename} }`
+const SETTINGS_PROJECTION = `{ title, description, descriptionI18n, creditsAuthorsI18n, logo, "favicon": favicon{asset, crop, hotspot, "mime": asset->mimeType}, shareImage, turnTimeout, gameOptions, minPlayers, maxPlayers, theme, bodyFont, displayFont, rulesPdfFr, rulesPdfEn, rulesPdfEs, rulesPdfDe, creditsAuthors, publisher, publisherUrl, "rulesPdfFrFile": rulesPdfFrFile.asset->{url, "name": originalFilename}, "rulesPdfEnFile": rulesPdfEnFile.asset->{url, "name": originalFilename}, "rulesPdfEsFile": rulesPdfEsFile.asset->{url, "name": originalFilename}, "rulesPdfDeFile": rulesPdfDeFile.asset->{url, "name": originalFilename}, "bodyFontFile": bodyFontFile.asset->{url, "name": originalFilename}, "displayFontFile": displayFontFile.asset->{url, "name": originalFilename} }`
+
+/** GROQ of the settings document `id`: the published one by default, `drafts.settings` when the admin reads what the Studio shows. `id` is a constant of the server, never user input. */
+export const settingsQuery = (id = "settings") => `*[_id == "${id}"][0]${SETTINGS_PROJECTION}`
+
+export const SETTINGS_QUERY = settingsQuery()
 
 const file = (f: FileRef | undefined): UploadedFile | null => (f?.url ? { url: f.url, name: f.name || f.url.split("/").pop() || "file" } : null)
 

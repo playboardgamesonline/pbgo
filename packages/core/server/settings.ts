@@ -2,7 +2,7 @@ import "server-only"
 import { UI_TEXTS } from "@pbgo/studio-kit/constants"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { errorMessages } from "../lib/api"
-import { AUDIO_QUERY, audioTag, type AudioDoc, toSoundConfig } from "../lib/audio-server"
+import { audioQuery, audioTag, type AudioDoc, toSoundConfig } from "../lib/audio-server"
 import type { GameBinding, GameModule } from "../lib/binding"
 import { LOCALES, type Locale, type Localized } from "../lib/i18n"
 import {
@@ -21,14 +21,15 @@ import {
   VISUAL_IMAGE_SLOTS,
   type VisualSlot,
 } from "../lib/settings"
-import { SETTINGS_QUERY, settingsTag, type SettingsDoc, toSettings } from "../lib/settings-server"
+import { settingsQuery, settingsTag, type SettingsDoc, toSettings } from "../lib/settings-server"
 import { baseSkin, gameI18n, mergeSkin, type Skin } from "../lib/skin"
-import { SKIN_QUERY, type SkinDoc, skinTag, toSkin } from "../lib/skin-server"
+import { type SkinDoc, skinQuery, skinTag, toSkin } from "../lib/skin-server"
 import { codeSounds, DEFAULT_VOLUMES, soundUrl, type Volumes } from "../lib/sound-config"
 import { sanityClient, sanityConfigured } from "../sanity/client"
 import { sanityWritable, writeClient } from "../sanity/write-client"
 import { ApiError } from "./api"
 import { asIs, type Converted, fontToWoff2, imageToIcon, imageToShare, imageToWebp } from "./convert"
+import { DOCS, type DocName, draftState, type DraftState, eachVersion, fetchDoc, RAW_PERSPECTIVE, readId, readVersions } from "./sanity-docs"
 
 /* ------------------------------------------------------------------ admin data */
 
@@ -57,6 +58,8 @@ export type AdminData = {
   audio: AudioAdmin
   copy: { entries: CopyEntry[]; victoryPhrases: { values: Record<Locale, string[] | null>; fallbacks: Record<Locale, string[]> } }
   writable: boolean
+  /** Documents the Studio holds a draft of that the admin does not simply follow: older than the published one ("stale") or never published ("unpublished") */
+  drafts: Partial<Record<DocName, DraftState>>
 }
 
 /** Uncached reads of the game's Sanity project (the write client when there is a token). */
@@ -151,10 +154,13 @@ export async function readAdminData(game: GameModule): Promise<AdminData> {
   const c = reader(game)
   // Sanity unreachable: the admin shows the default values (and stays read-only if writing fails)
   const safe = <T,>(p: Promise<T> | undefined) => (p ? p.catch((e) => (console.error("Sanity (admin)", e), null)) : Promise.resolve(null))
+  // The admin shows what the Studio shows: the draft of a document when it has a fresh one, else the published document
+  const versions = await safe(c ? readVersions(c, DOCS) : undefined)
+  const at = (id: DocName) => readId(id, versions?.[id])
   const [settingsDoc, skinDoc, audioDoc] = await Promise.all([
-    safe(c?.fetch<SettingsDoc>(SETTINGS_QUERY)),
-    safe(c?.fetch<SkinDoc>(SKIN_QUERY)),
-    safe(c?.fetch<AudioDoc>(AUDIO_QUERY)),
+    safe(c?.fetch<SettingsDoc>(settingsQuery(at("settings")), {}, RAW_PERSPECTIVE)),
+    safe(c?.fetch<SkinDoc>(skinQuery({ interface: at("interface"), texts: at("texts") }), {}, RAW_PERSPECTIVE)),
+    safe(c?.fetch<AudioDoc>(audioQuery(at("audio")), {}, RAW_PERSPECTIVE)),
   ])
   const partial = toSkin(game, skinDoc)
   const skin = mergeSkin(baseSkin(game.binding, "fr"), partial)
@@ -166,6 +172,11 @@ export async function readAdminData(game: GameModule): Promise<AdminData> {
     }),
   ) as Record<VisualSlot, ImageInfo>
   const texts = skinDoc?.texts
+  const drafts: AdminData["drafts"] = {}
+  for (const id of DOCS) {
+    const state = draftState(versions?.[id])
+    if (state) drafts[id] = state
+  }
   return {
     settings: toSettings(game, settingsDoc),
     skin,
@@ -182,6 +193,7 @@ export async function readAdminData(game: GameModule): Promise<AdminData> {
       },
     },
     writable: sanityWritable(game),
+    drafts,
   }
 }
 
@@ -203,14 +215,41 @@ const httpUrl = (v: unknown) => {
   return s
 }
 
-async function patchDoc(game: GameModule, id: string, type: string, set: Record<string, unknown>, unset: string[] = [], setIfMissing: Record<string, unknown> = {}) {
+type DocPatch = { setIfMissing?: Record<string, unknown>; set?: Record<string, unknown>; unset?: string[] }
+
+const isEmpty = (o: object | undefined) => !o || !Object.keys(o).length
+
+/**
+ * Applies the patches, one after the other, to every version of the document that the save must reach (`eachVersion`: its published
+ * document and the draft the Studio shows, in one transaction). A path whose parent object may not exist yet goes in the patch
+ * after the one that creates the parent: the operations of one patch have an order of their own. An edit that only removes
+ * things never creates the document.
+ */
+async function patchDoc(game: GameModule, id: DocName, ...patches: DocPatch[]) {
   const c = writer(game)
-  await c.createIfNotExists({ _id: id, _type: type })
-  let p = c.patch(id)
-  if (Object.keys(setIfMissing).length) p = p.setIfMissing(setIfMissing)
-  if (Object.keys(set).length) p = p.set(set)
-  if (unset.length) p = p.unset(unset)
-  await p.commit()
+  const steps = patches.filter((p) => !isEmpty(p.setIfMissing) || !isEmpty(p.set) || p.unset?.length)
+  await eachVersion(
+    c,
+    id,
+    (target, tx) => {
+      for (const step of steps) {
+        tx.patch(target, (p) => {
+          if (!isEmpty(step.setIfMissing)) p = p.setIfMissing(step.setIfMissing!)
+          if (!isEmpty(step.set)) p = p.set(step.set!)
+          if (step.unset?.length) p = p.unset(step.unset)
+          return p
+        })
+      }
+    },
+    { create: steps.some((p) => !isEmpty(p.setIfMissing) || !isEmpty(p.set)) },
+  )
+}
+
+type Keyed = { _key: string; key?: string }
+
+/** The `_key` and `key` of the entries of a list of the audio document (tracks or effects), as the version `target` of it holds them. */
+async function keysOf(c: ReturnType<typeof writer>, target: string, list: "music" | "effects"): Promise<Keyed[]> {
+  return (await fetchDoc<Record<string, Keyed[] | null>>(c, target, `{ ${list}[]{ _key, key } }`))?.[list] ?? []
 }
 
 /** Splits the empty values (to remove) from the others (to write). */
@@ -244,27 +283,23 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
       publisher: text(s.credits?.publisher, 80),
       publisherUrl: httpUrl(s.credits?.publisherUrl),
     })
-    await patchDoc(game, "settings", "settings", {}, [], { descriptionI18n: { _type: "localeText" }, creditsAuthorsI18n: { _type: "localeString" } })
-    await patchDoc(game, "settings", "settings", set, unset)
+    await patchDoc(game, "settings", { setIfMissing: { descriptionI18n: { _type: "localeText" }, creditsAuthorsI18n: { _type: "localeString" } } }, { set, unset })
   },
 
   async mechanics(game, input) {
     const s = input as Partial<SiteSettings> & { desktopOnly?: unknown }
     const options = cleanOptions(game.binding, s.options)
     const { set, unset } = split(Object.fromEntries(LOCALES.map((l) => [RULES_FIELD[l], httpUrl(s.rulesPdfLinks?.[l])])))
-    await patchDoc(
-      game,
-      "settings",
-      "settings",
-      {
+    await patchDoc(game, "settings", {
+      set: {
         ...set,
         ...clampPlayers(game.binding, s.minPlayers, s.maxPlayers),
         turnTimeout: clampTimeout(s.turnTimeout),
         gameOptions: { defaults: JSON.stringify(options.defaults), hidden: options.hidden },
       },
       unset,
-    )
-    if (typeof s.desktopOnly === "boolean") await patchDoc(game, "interface", "interface", { desktopOnly: s.desktopOnly })
+    })
+    if (typeof s.desktopOnly === "boolean") await patchDoc(game, "interface", { set: { desktopOnly: s.desktopOnly } })
   },
 
   async visual(game, input) {
@@ -280,13 +315,15 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
       bodyFont: isFont(s.bodyFont) ? s.bodyFont : null,
       displayFont: isFont(s.displayFont) ? s.displayFont : null,
     })
-    await patchDoc(game, "settings", "settings", { ...set, theme }, unset)
+    // Every colour is checked before the first write: a refused save leaves both documents as they were
+    let colors: string[] | null = null
     if (s.playerColors !== undefined) {
-      const colors = Array.isArray(s.playerColors) ? s.playerColors.filter(isHex).map((c) => c.toLowerCase()).slice(0, 12) : []
+      colors = Array.isArray(s.playerColors) ? s.playerColors.filter(isHex).map((c) => c.toLowerCase()).slice(0, 12) : []
       if (Array.isArray(s.playerColors) && colors.length !== s.playerColors.length) throw new ApiError("INVALID_COLOR")
-      if (colors.length) await patchDoc(game, "interface", "interface", { playerColors: colors })
-      else await patchDoc(game, "interface", "interface", {}, ["playerColors"])
     }
+    await patchDoc(game, "settings", { set: { ...set, theme }, unset })
+    if (colors?.length) await patchDoc(game, "interface", { set: { playerColors: colors } })
+    else if (colors) await patchDoc(game, "interface", { unset: ["playerColors"] })
   },
 
   async audio(game, input) {
@@ -300,69 +337,61 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
     const num = (v: unknown, min: number, max: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : null)
     const c = writer(game)
     const codeEffects = codeSounds(game.binding).effects
-    const current = await c.fetch<{ music?: { _key: string; key?: string }[]; effects?: { _key: string; key?: string }[] } | null>(
-      `*[_id == "audio"][0]{ music[]{ _key, key }, effects[]{ _key, key } }`,
-    )
-    const set: Record<string, unknown> = {
-      volumes: Object.fromEntries(Object.keys(DEFAULT_VOLUMES).map((k) => [k, num(s.volumes?.[k as keyof Volumes], 0, 1) ?? DEFAULT_VOLUMES[k as keyof Volumes]])),
-    }
-    const unset: string[] = []
-    if (typeof s.defaultMusic === "string" && s.defaultMusic) set.defaultMusic = s.defaultMusic
+    const volumes = Object.fromEntries(Object.keys(DEFAULT_VOLUMES).map((k) => [k, num(s.volumes?.[k as keyof Volumes], 0, 1) ?? DEFAULT_VOLUMES[k as keyof Volumes]]))
     const loop = num(s.ambienceLoopEnd, 0.1, 3600)
-    if (loop) set["ambience.loopEnd"] = loop
-    // tracks: order, titles and loop ends; the ones missing from the list are removed
-    if (Array.isArray(s.music) && current?.music?.length) {
-      const byKey = new Map(current.music.map((m) => [m.key, m]))
-      const kept = s.music.filter((m) => typeof m.key === "string" && byKey.has(m.key))
-      for (const m of current.music) if (!kept.some((k) => k.key === m.key)) unset.push(`music[_key=="${m._key}"]`)
-      for (const m of kept) {
-        const k = byKey.get(m.key as string)!._key
-        set[`music[_key=="${k}"].title`] = text(m.title, 60) || (m.key as string)
-        const end = num(m.loopEnd, 0.1, 3600)
-        if (end) set[`music[_key=="${k}"].loopEnd`] = end
-        else unset.push(`music[_key=="${k}"].loopEnd`)
+    // The tracks and effects are addressed by `_key`, which is not the same in the published document and in its draft: each version is read and patched on its own
+    await eachVersion(c, "audio", async (target, tx) => {
+      const current = await fetchDoc<{ music?: Keyed[]; effects?: Keyed[] }>(c, target, "{ music[]{ _key, key }, effects[]{ _key, key } }")
+      const set: Record<string, unknown> = { volumes }
+      const unset: string[] = []
+      if (typeof s.defaultMusic === "string" && s.defaultMusic) set.defaultMusic = s.defaultMusic
+      if (loop) set["ambience.loopEnd"] = loop
+      // tracks: order, titles and loop ends; the ones missing from the list are removed
+      if (Array.isArray(s.music) && current?.music?.length) {
+        const byKey = new Map(current.music.map((m) => [m.key, m]))
+        const kept = s.music.filter((m) => typeof m.key === "string" && byKey.has(m.key))
+        for (const m of current.music) if (!kept.some((k) => k.key === m.key)) unset.push(`music[_key=="${m._key}"]`)
+        for (const m of kept) {
+          const k = byKey.get(m.key as string)!._key
+          set[`music[_key=="${k}"].title`] = text(m.title, 60) || (m.key as string)
+          const end = num(m.loopEnd, 0.1, 3600)
+          if (end) set[`music[_key=="${k}"].loopEnd`] = end
+          else unset.push(`music[_key=="${k}"].loopEnd`)
+        }
       }
-    }
-    // effect volumes: the entry is created when needed (the file can stay the game's own)
-    const effects = [...(current?.effects ?? [])]
-    const missing: { _key: string; _type: string; key: string; volume: number }[] = []
-    for (const [key, v] of Object.entries(s.effects ?? {})) {
-      if (!(key in codeEffects)) continue
-      const vol = num(v, 0, 1)
-      if (vol === null) continue
-      const entry = effects.find((e) => e.key === key)
-      if (entry) set[`effects[_key=="${entry._key}"].volume`] = vol
-      else missing.push({ _key: key, _type: "audioEffect", key, volume: vol })
-    }
-    await c.createIfNotExists({ _id: "audio", _type: "audio" })
-    let p = c.patch("audio").setIfMissing({ effects: [], ambience: { _type: "audioLoop" } })
-    if (missing.length) p = p.append("effects", missing)
-    await p.commit()
-    let q = c.patch("audio").set(set)
-    if (unset.length) q = q.unset(unset)
-    await q.commit()
+      // effect volumes: the entry is created when needed (the file can stay the game's own)
+      const effects = current?.effects ?? []
+      const missing: { _key: string; _type: string; key: string; volume: number }[] = []
+      for (const [key, v] of Object.entries(s.effects ?? {})) {
+        if (!(key in codeEffects)) continue
+        const vol = num(v, 0, 1)
+        if (vol === null) continue
+        const entry = effects.find((e) => e.key === key)
+        if (entry) set[`effects[_key=="${entry._key}"].volume`] = vol
+        else missing.push({ _key: key, _type: "audioEffect", key, volume: vol })
+      }
+      // the lists and the loop first, then the entries added to them, then the values
+      tx.patch(target, (p) => p.setIfMissing({ effects: [], ambience: { _type: "audioLoop" } }))
+      if (missing.length) tx.patch(target, (p) => p.append("effects", missing))
+      tx.patch(target, (p) => (unset.length ? p.set(set).unset(unset) : p.set(set)))
+    })
   },
 
   async copy(game, input) {
     const s = input as { values?: Record<string, Partial<Record<Locale, unknown>>>; victoryPhrases?: Partial<Record<Locale, unknown>> }
     const c = writer(game)
     const codes = errorMessages(game.binding)
-    const current = await c.fetch<{ errorMessages?: { code?: string; message?: Record<string, string> }[] } | null>(`*[_id == "texts"][0]{ errorMessages }`)
     const set: Record<string, unknown> = {}
     const unset: string[] = []
     const setIfMissing: Record<string, unknown> = {}
-    const errors = new Map((current?.errorMessages ?? []).map((e) => [e.code, e.message ?? {}]))
+    const errorEdits: { code: string; locale: Locale; value: string | null }[] = []
     for (const [key, byLang] of Object.entries(s.values ?? {})) {
       for (const l of LOCALES) {
         if (!(byLang && l in byLang)) continue
         const value = text(byLang[l], 600) || null
         if (key.startsWith("error.")) {
           const code = key.slice(6)
-          if (!(code in codes)) continue
-          const message: Record<string, string> = { ...(errors.get(code) ?? {}) }
-          if (value) message[l] = value
-          else delete message[l]
-          errors.set(code, message)
+          if (code in codes) errorEdits.push({ code, locale: l, value })
           continue
         }
         let path: string
@@ -379,9 +408,6 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
         } else unset.push(`${path}.${l}`)
       }
     }
-    set.errorMessages = [...errors.entries()]
-      .filter(([code, m]) => code && Object.values(m).some(Boolean))
-      .map(([code, message]) => ({ _key: code, _type: "errorMessage", code, message: { _type: "localeString", ...message } }))
     if (s.victoryPhrases) {
       setIfMissing.victoryPhrases = { _type: "localeStringList" }
       for (const l of LOCALES) {
@@ -392,14 +418,29 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
         else unset.push(`victoryPhrases.${l}`)
       }
     }
-    await c.createIfNotExists({ _id: "texts", _type: "texts" })
-    // parent objects first (setIfMissing), then the values
     const parents = Object.fromEntries(Object.entries(setIfMissing).filter(([k]) => !k.includes(".")))
     const children = Object.fromEntries(Object.entries(setIfMissing).filter(([k]) => k.includes(".")))
-    await c.patch("texts").setIfMissing(parents).commit()
-    let p = c.patch("texts").setIfMissing(children).set(set)
-    if (unset.length) p = p.unset(unset)
-    await p.commit()
+    await eachVersion(c, "texts", async (target, tx) => {
+      // the error messages are one list, written whole: from what this version holds now
+      const current = await fetchDoc<{ errorMessages?: { code?: string; message?: Record<string, string> }[] }>(c, target, "{ errorMessages }")
+      const errors = new Map((current?.errorMessages ?? []).map((e) => [e.code, e.message ?? {}]))
+      for (const { code, locale, value } of errorEdits) {
+        const message: Record<string, string> = { ...(errors.get(code) ?? {}) }
+        if (value) message[locale] = value
+        else delete message[locale]
+        errors.set(code, message)
+      }
+      const messages = [...errors.entries()]
+        .filter(([code, m]) => code && Object.values(m).some(Boolean))
+        .map(([code, message]) => ({ _key: code, _type: "errorMessage", code, message: { _type: "localeString", ...message } }))
+      // parent objects first (setIfMissing), then the values
+      if (!isEmpty(parents)) tx.patch(target, (p) => p.setIfMissing(parents))
+      tx.patch(target, (p) => {
+        const q = isEmpty(children) ? p : p.setIfMissing(children)
+        const r = q.set({ ...set, errorMessages: messages })
+        return unset.length ? r.unset(unset) : r
+      })
+    })
   },
 }
 
@@ -466,27 +507,33 @@ async function uploadAudio(game: GameModule, slot: string, buffer: Buffer, filen
   const c = writer(game)
   const asset = await c.assets.upload("file", buffer, { filename, contentType: "audio/mpeg" })
   const file = { _type: "file", asset: { _type: "reference", _ref: asset._id } }
-  await c.createIfNotExists({ _id: "audio", _type: "audio" })
   if (slot === "audio.ambience") {
-    await c.patch("audio").setIfMissing({ ambience: { _type: "audioLoop" } }).set({ "ambience.file": file }).commit()
+    await eachVersion(c, "audio", (target, tx) => {
+      tx.patch(target, (p) => p.setIfMissing({ ambience: { _type: "audioLoop" } }))
+      tx.patch(target, (p) => p.set({ "ambience.file": file }))
+    })
     return
   }
   const [, kind, key] = slot.split(".") as [string, "effect" | "music", string]
   const list = kind === "effect" ? "effects" : "music"
-  const current = await c.fetch<{ _key: string; key?: string }[] | null>(`*[_id == "audio"][0].${list}[]{ _key, key }`)
-  const existing = key === "new" ? undefined : current?.find((e) => e.key === key)
-  if (existing) {
-    await c.patch("audio").set({ [`${list}[_key=="${existing._key}"].file`]: file }).commit()
-    return
-  }
-  if (kind === "effect" && !(key in codeSounds(game.binding).effects)) throw new ApiError("INVALID_REQUEST", 404)
-  let newKey = key === "new" ? trackKey(filename) : key
-  while (current?.some((e) => e.key === newKey)) newKey = `${newKey}-2`
-  const entry =
-    kind === "effect"
-      ? { _key: newKey, _type: "audioEffect", key: newKey, file }
-      : { _key: newKey, _type: "audioTrack", key: newKey, title: title ?? newKey, file }
-  await c.patch("audio").setIfMissing({ [list]: [] }).append(list, [entry]).commit()
+  // The `_key` of an entry differs from one version of the document to another: each is read and patched on its own
+  await eachVersion(c, "audio", async (target, tx) => {
+    const current = await keysOf(c, target, list)
+    const existing = key === "new" ? undefined : current.find((e) => e.key === key)
+    if (existing) {
+      tx.patch(target, (p) => p.set({ [`${list}[_key=="${existing._key}"].file`]: file }))
+      return
+    }
+    if (kind === "effect" && !(key in codeSounds(game.binding).effects)) throw new ApiError("INVALID_REQUEST", 404)
+    let newKey = key === "new" ? trackKey(filename) : key
+    while (current.some((e) => e.key === newKey)) newKey = `${newKey}-2`
+    const entry =
+      kind === "effect"
+        ? { _key: newKey, _type: "audioEffect", key: newKey, file }
+        : { _key: newKey, _type: "audioTrack", key: newKey, title: title ?? newKey, file }
+    tx.patch(target, (p) => p.setIfMissing({ [list]: [] }))
+    tx.patch(target, (p) => p.append(list, [entry]))
+  })
 }
 
 export async function uploadAsset(game: GameModule, slot: string, file: File) {
@@ -500,7 +547,7 @@ export async function uploadAsset(game: GameModule, slot: string, file: File) {
     const converted = await conf.convert(file)
     const c = writer(game)
     const asset = await c.assets.upload(conf.asset, converted.buffer, { filename: converted.filename, contentType: converted.contentType })
-    await patchDoc(game, conf.doc, conf.doc, { [conf.field]: { _type: conf.asset, asset: { _type: "reference", _ref: asset._id } } })
+    await patchDoc(game, conf.doc, { set: { [conf.field]: { _type: conf.asset, asset: { _type: "reference", _ref: asset._id } } } })
   }
   refresh(game.slug)
   return readAdminData(game)
@@ -510,16 +557,25 @@ export async function removeAsset(game: GameModule, slot: string) {
   if (!isUploadSlot(slot)) throw new ApiError("INVALID_REQUEST", 404)
   if (slot.startsWith("audio.")) {
     const c = writer(game)
-    if (slot === "audio.ambience") await c.patch("audio").unset(["ambience.file"]).commit()
-    else {
-      const [, kind, key] = slot.split(".") as [string, "effect" | "music", string]
-      const list = kind === "effect" ? "effects" : "music"
-      const entry = (await c.fetch<{ _key: string; key?: string }[] | null>(`*[_id == "audio"][0].${list}[]{ _key, key }`))?.find((e) => e.key === key)
-      if (entry) await c.patch("audio").unset([kind === "effect" ? `${list}[_key=="${entry._key}"].file` : `${list}[_key=="${entry._key}"]`]).commit()
-    }
+    // Nothing to remove from a document that does not exist: no empty one is created
+    await eachVersion(
+      c,
+      "audio",
+      async (target, tx) => {
+        if (slot === "audio.ambience") {
+          tx.patch(target, (p) => p.unset(["ambience.file"]))
+          return
+        }
+        const [, kind, key] = slot.split(".") as [string, "effect" | "music", string]
+        const list = kind === "effect" ? "effects" : "music"
+        const entry = (await keysOf(c, target, list)).find((e) => e.key === key)
+        if (entry) tx.patch(target, (p) => p.unset([kind === "effect" ? `${list}[_key=="${entry._key}"].file` : `${list}[_key=="${entry._key}"]`]))
+      },
+      { create: false },
+    )
   } else {
     const conf = SLOTS[slot as UploadSlot]
-    await patchDoc(game, conf.doc, conf.doc, {}, [conf.field])
+    await patchDoc(game, conf.doc, { unset: [conf.field] })
   }
   refresh(game.slug)
   return readAdminData(game)
@@ -542,18 +598,26 @@ export async function importCodeSounds(game: GameModule, origin: string) {
   if (!data.audio.music.some((m) => m.stored)) {
     for (const m of data.audio.music) await uploadAudio(game, `audio.music.${m.key}`, await get(m.url), `${m.key}.mp3`, m.title)
     const c = writer(game)
-    const keys = await c.fetch<{ _key: string; key: string }[]>(`*[_id == "audio"][0].music[]{ _key, key }`)
-    const set: Record<string, unknown> = {}
-    for (const m of data.audio.music) {
-      const k = keys.find((x) => x.key === m.key)?._key
-      if (k && m.loopEnd) set[`music[_key=="${k}"].loopEnd`] = m.loopEnd
-    }
-    if (data.audio.defaultMusic) set.defaultMusic = data.audio.defaultMusic
-    if (Object.keys(set).length) await c.patch("audio").set(set).commit()
+    await eachVersion(
+      c,
+      "audio",
+      async (target, tx) => {
+        const keys = await keysOf(c, target, "music")
+        const set: Record<string, unknown> = {}
+        for (const m of data.audio.music) {
+          const k = keys.find((x) => x.key === m.key)?._key
+          if (k && m.loopEnd) set[`music[_key=="${k}"].loopEnd`] = m.loopEnd
+        }
+        if (data.audio.defaultMusic) set.defaultMusic = data.audio.defaultMusic
+        if (!isEmpty(set)) tx.patch(target, (p) => p.set(set))
+      },
+      { create: false },
+    )
   }
   if (data.audio.ambience && !data.audio.ambience.stored) {
     await uploadAudio(game, "audio.ambience", await get(data.audio.ambience.url), "ambience.mp3")
-    if (data.audio.ambience.loopEnd) await writer(game).patch("audio").set({ "ambience.loopEnd": data.audio.ambience.loopEnd }).commit()
+    const loopEnd = data.audio.ambience.loopEnd
+    if (loopEnd) await eachVersion(writer(game), "audio", (target, tx) => void tx.patch(target, (p) => p.set({ "ambience.loopEnd": loopEnd })), { create: false })
   }
   refresh(game.slug)
   return readAdminData(game)

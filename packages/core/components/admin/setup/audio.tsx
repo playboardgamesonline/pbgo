@@ -16,7 +16,7 @@ import { adminRequest } from "../../../lib/admin-api"
 import { adminApiBase } from "../../../lib/admin-nav"
 import type { Volumes } from "../../../lib/sound-config"
 import { useAdminSlug } from "../admin-game"
-import { ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
+import { DraftAlert, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = {
   volumes: Volumes
@@ -112,6 +112,7 @@ export function AudioPage({ initial }: { initial: AdminData }) {
   return (
     <SetupLayout>
       <ReadOnlyAlert writable={data.writable} />
+      <DraftAlert drafts={data.drafts} docs={["audio"]} />
       {audio.pendingImport > 0 && (
         <Alert>
           <HugeiconsIcon icon={CloudUploadIcon} strokeWidth={2} />

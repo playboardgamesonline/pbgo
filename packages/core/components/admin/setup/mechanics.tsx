@@ -13,7 +13,7 @@ import { Label } from "@pbgo/ui/platform/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Switch } from "@pbgo/ui/platform/switch"
 import { RULES_SLOT, type SiteSettings, TURN_TIMEOUT_BOUNDS } from "../../../lib/settings"
-import { FileTile, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
+import { DraftAlert, FileTile, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = Pick<SiteSettings, "minPlayers" | "maxPlayers" | "turnTimeout" | "options" | "rulesPdfLinks"> & { desktopOnly: boolean }
 
@@ -47,6 +47,7 @@ export function MechanicsPage({
   return (
     <SetupLayout>
       <ReadOnlyAlert writable={data.writable} />
+      <DraftAlert drafts={data.drafts} docs={["settings", "interface"]} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
