@@ -17,6 +17,7 @@ Moving the project to another account: see `MIGRATION.md`.
 - `docs/` — guides: `content-pipeline.md` (seeding a game's Sanity content)
 - `supabase/migrations/` — schema of the single Supabase project
 - `scripts/` — `new-game.sh`, `go-live.sh`, `add-game.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`
+- `.claude/skills/` — the agents' skills by category (`game-`, `engine-`, `platform-`): the questions, rules and commands of a recurring job, written once. `README.md` lists them
 
 ## Routes (`apps/web/src/app`)
 | URL | File | |
@@ -132,14 +133,7 @@ Black and white, dark theme only, Geist Sans in semibold with tight line-height 
 - One Sanity project per game (`sanityProjectId` in the registry), dataset `production`, studio `<slug>-studio` deployed to `<host>.sanity.studio`
 - The studio reads its project id from `apps/studio/.env` (`SANITY_STUDIO_PROJECT_ID`, see `.env.example`) or from `sanity.cli.ts`
 - A game's own content types: schemas in `apps/studio/schemaTypes`, queries in the binding's `src/sanity/`, then `pnpm --filter <slug>-studio typegen`
-- Studio forms (what a game's owner fills in, in every game and in the template). A form is short and in the same order everywhere:
-  - One document type, hence one list of the Studio (`collections` of `sanity.config.ts`), per kind of card (Number, Action, Modifier), never one type with a `kind` field. A game whose cards are the faces of one deck (Hanabi) has one `card` list, next to the list of its colors
-  - No `Effect` or `Rule` field on a card: the rules reach players as the publisher's PDF links in `settings`, and what a card does is the engine's
-  - No `description` (the grey sub-label under a field) anywhere in a Studio schema: not on a card, a color or a tile, and not on the shared singletons (`settings`, `interface`, `audio`, `texts`) or the `game` document either. The `title` says it, and a format hint goes into the validation message (`.error("One letter")`). The subtitle of the list preview stays (`× 3`)
-  - The `game` document (board, card backs, tokens…) is split into tabs, the Sanity `groups`, as Courtisans' is (Board, Card backs, Pictograms & paper): one tab open by default, and every field sits in one
-  - The identity of the card comes first (game key, name, or value and color), then the quantity (`quantity` or `copies`), and the visual (image) is always the last field of the form
-  - A `name` may be multilingual (`localeString`), but the document always has an English game key (`key`, titled "Game key", a dropdown of the keys the engine knows): the engine, the seed and the board read the key, the name is only shown. A card with no name (Hanabi) is identified by its English keys, value and color
-  - The rules are tested, not remembered: `studio-forms.test.ts`, next to the `sanity.config.ts` of the template (`pnpm new-game` copies it into the new game's Studio) and of Courtisans, runs `formProblems(studioTypes(studio))` of `@pbgo/content-kit/form-rules`, which lists a `description` anywhere (the shared singletons included) and a `game` document that is not in tabs. A game with a seed also keeps the rules of its cards in its `schema.test.ts` (Hanabi: "the forms of the cards", and `formProblems` on its Studio). Courtisans predates the card rules (its board reads `role.rule`): it follows in a later change
+- Studio forms (what a game's owner fills in): the questions to ask the owner first, the rules and the don'ts are written once, in the skill `game-sanity-create` (`.claude/skills/`, see Rules of work); `studio-forms.test.ts`, next to each `sanity.config.ts` (the template's, copied by `pnpm new-game`, and Courtisans'), keeps the rules that hold for the whole Studio true
 - Seeding: a game's content (cards, credits, rulebook links, art) is described in `games/<slug>/content/` (data and config) and written by the shared `@pbgo/content-kit` with `pnpm --filter @pbgo-game/<slug> content:seed --dry-run` then `--apply`. Drafts only (publishing stays in the Studio), idempotent, never overwrites what was edited in the Studio. Token `SANITY_API_WRITE_TOKEN_<SLUG>`, never printed. Process, options, art naming: `docs/content-pipeline.md`
 - Media proxy `GET /api/media?url=` (shared by every game; fonts, sounds, SVG) only serves `https://cdn.sanity.io/(images|files)/<projectId>/…` where `<projectId>` is the `sanityProjectId` of a game of the registry (`sanityAssetUrl` in `packages/core/sanity/media.ts`, which also refuses `%` in the path and fetches the normalized URL). Core never imports the games: `apps/web/src/app/api/media/route.ts` passes the ids to `mediaRoute()`
 
@@ -210,6 +204,7 @@ Optional: without `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` nothi
 - Platform UI (hub, account, legal, admin, 404) uses only `@pbgo/ui` tokens and components, never a hard-coded colour, font or spacing; a new component goes into `@pbgo/ui` first (see Design system)
 - Branch named after the Linear issue (`plt-<n>-<topic>`); the PR description references the issue ID; never merge your own PR
 - A PR that adds a migration says so in its description: Oré runs `pnpm setup-env` right after merging it, which applies the migration to preview, then to production (see Supabase)
+- A recurring job is a skill of the agent that carries it out, `.claude/skills/<game|engine|platform>-<job>/SKILL.md`, listed in `.claude/skills/README.md`: its questions, rules and commands are written there once and other docs point to it. `CLAUDE.md` describes the codebase, it holds no procedure
 - Never commit secrets or env files (`.env*` except `.env.example`, `.vercel`, `.sanity-project-id` are git-ignored)
 
 ## Commits

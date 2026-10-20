@@ -89,7 +89,7 @@ Everything else (the options, the token, the plan, the art, the report) is the k
 
 `import … from "@pbgo/content-kit/form-rules"`
 
-- **`formProblems(types)`**: what breaks the "Studio forms" rules of the root `CLAUDE.md` in a schema, as a list of sentences (empty when the forms are right): a `description` on any type, field or array member (the grey sub-label, shared singletons included), and a `game` document that is not split into tabs (no `groups`, not exactly one default tab, a field in no tab or in a tab the document does not declare).
+- **`formProblems(types)`**: what breaks the Studio-form rules of the skill `game-sanity-create` in a schema, as a list of sentences (empty when the forms are right): a `description` on any type, field or array member (the grey sub-label, shared singletons included), and a `game` document that is not split into tabs (no `groups`, not exactly one default tab, a field in no tab or in a tab the document does not declare).
 - **`studioTypes(config)`**: the types a Studio registers, by name, from the default export of its `sanity.config.ts`.
 
 A Studio keeps them in a test of its own, `studio-forms.test.ts` (the template's is copied by `pnpm new-game`):

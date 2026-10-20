@@ -167,7 +167,7 @@ describe("the option lists of the Studio", () => {
   })
 })
 
-// The Studio form rules of every game (root CLAUDE.md, "Studio forms"). Two hold for the whole Studio, the shared singletons included:
+// The Studio form rules of every game (skill `game-sanity-create`). Two hold for the whole Studio, the shared singletons included:
 // no `description` (the grey sub-label) under any field, and a `game` document split into tabs
 describe("the forms of the Studio", () => {
   it("have no description under any field, and a game document split into tabs", () => {

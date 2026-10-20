@@ -1,6 +1,6 @@
 import type { FieldDef, MemberDef, TypeDef, Types } from "./schema-check.ts"
 
-// The rules every Studio form follows, in every game ("Studio forms" in the root CLAUDE.md), read from the schema itself.
+// The rules every Studio form follows, in every game (skill `game-sanity-create`), read from the schema itself.
 
 type Described = { description?: unknown; fields?: FieldDef[]; of?: MemberDef[] }
 

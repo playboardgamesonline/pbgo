@@ -128,13 +128,8 @@ supabase/migrations/               # the shared schema (table games with a game 
 - URLs built with `asset()` from `src/lib/site.ts` (`asset("/cards/BACK.webp")` → `/<slug>/cards/BACK.webp`).
 
 ### Studio forms (what the owner fills in)
-The owner fills the cards, colors and tiles one by one in the Studio, so every game's forms are short and in the same order (the root `CLAUDE.md` has the same list, under Sanity):
-- **No `Effect` or `Rule` field** on a card: the rules are the publisher's PDF links in `settings`, and what a card does is the engine's.
-- **No `description` (grey sub-label)** anywhere in the Studio: not under a field of a card, color or tile, and not on `settings`, `interface`, `audio`, `texts` or `game` either. The `title` says what to enter, and a format hint goes into the validation message (`.error("One letter")`). The subtitle of the list preview (`× 3`) stays.
-- **Identity, then quantity, then the visual last.** A card's first fields are its game key and name, or its value and color; `quantity` (or `copies`) comes right before the image, and the image is always the last field.
-- **A `name` may be multilingual, the game key is always English** (`key`, "Game key", a dropdown of the keys the engine knows). The engine, the seed and the board read the key; the name is only shown. A card with no name (Hanabi) is identified by its English keys, value and color.
-- **The `game` document is in tabs** (Sanity `groups`): Board (open by default), Card backs, then one tab per other family of images (box, tokens, pictograms…), and every field has a `group`. `schemaTypes/game.ts` of the template is the starting point, Courtisans' `game` the full model.
-- **`studio-forms.test.ts`** (next to `sanity.config.ts`, copied by `pnpm new-game`) keeps the second and the last rule for the whole Studio: `formProblems(studioTypes(studio))` of `@pbgo/content-kit/form-rules` fails on a `description` anywhere and on a `game` document that is not in tabs. A game with a seed also keeps the rules of its cards in its `schema.test.ts` (model: "the forms of the cards" in `games/hanabi/content/data/schema.test.ts`).
+The owner fills the cards, colors and tiles one by one in the Studio, so every game's forms are short and in the same order. What to ask the owner first (which kinds, which categories, which pictures), the rules and the don'ts are written once, in the skill `game-sanity-create` (`.claude/skills/`): follow it, do not copy it here. `schemaTypes/game.ts` of the template is the starting point for the `game` document (in tabs), Courtisans' `game` the full model.
+- **`studio-forms.test.ts`** (next to `sanity.config.ts`, copied by `pnpm new-game`) keeps the rules that hold for the whole Studio: `formProblems(studioTypes(studio))` of `@pbgo/content-kit/form-rules` fails on a `description` anywhere and on a `game` document that is not in tabs. A game with a seed also keeps the rules of its cards in its `schema.test.ts` (model: "the forms of the cards" in `games/hanabi/content/data/schema.test.ts`).
 
 ### Commits
 - Gitmoji: `<emoji>(<slug>): <description>`; `core`, `web` or `repo` for shared code.
