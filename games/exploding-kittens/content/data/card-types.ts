@@ -6,7 +6,7 @@ import type { CardTypeKey, KindKey } from "../../apps/studio/schemaTypes/constan
 type CardTypeSpec = {
   kind: KindKey
   name: Localized
-  /** A short summary of the effect in PBGO's own words; the rules page has the full version. */
+  /** A short summary of the effect in PBGO's own words; the publisher's rulebook has the full version. */
   effect: Localized
   /** Different illustrations the Original Edition prints for this type (the art slots follow this count). */
   illustrations: number

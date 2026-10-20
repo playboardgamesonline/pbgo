@@ -45,8 +45,7 @@ describe("the seed against the engine", () => {
     }
   })
 
-  it("turns the five-different combination on by default, as the rules text says", () => {
-    // If the engine's default changes, the "Five different" paragraphs of rules.ts (four languages) and the wording test of data.test.ts change with it
+  it("turns the five-different combination on by default, as the official Original rules do", () => {
     expect(defaultOptions(OPTIONS).fiveDifferent).toBe(true)
   })
 })
