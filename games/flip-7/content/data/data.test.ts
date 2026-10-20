@@ -16,7 +16,6 @@ import { seedDocs } from "./test-fixtures.ts"
 type LocaleObject = { _type: "localeString" | "localeText" } & Record<LanguageId, string>
 
 const docs = seedDocs
-const digitsOf = (text: string) => (text.match(/\d+/g) ?? []).map(Number).sort((a, b) => a - b)
 
 /** Every localeString and localeText of a value, with the path where it sits. */
 function localeObjects(value: unknown, path: string): { path: string; value: LocaleObject }[] {
@@ -107,18 +106,15 @@ describe("the seed documents", () => {
     const second = docs()
     expect(second).toStrictEqual(first)
 
-    // The number cards share one effect text in the data: changing one must not touch the others
+    // Changing a card of a run must touch neither another card of that run nor the data the next run is built from
     const three = first.find((doc) => doc._id === cardId("number", "3")) as Doc
     const four = first.find((doc) => doc._id === cardId("number", "4")) as Doc
-    const effect = four.effect.fr
     three.name.fr = "changed"
-    three.effect.fr = "changed"
     three.extra = true
 
-    expect(four.effect.fr).toBe(effect)
+    expect(four.name.fr).toBe("4")
     const untouched = second.find((doc) => doc._id === cardId("number", "3")) as Doc
     expect(untouched.name.fr).toBe("3")
-    expect(untouched.effect.fr).toBe(effect)
     expect(untouched).not.toHaveProperty("extra")
     expect(docs()).toStrictEqual(second)
   })
@@ -172,6 +168,17 @@ describe("the cards", () => {
     for (const doc of cards()) expect(doc, label(doc)).not.toHaveProperty("kind")
   })
 
+  it("have no effect text: what a card does is the engine's, and the rules are the publisher's PDFs", () => {
+    for (const doc of cards()) {
+      expect(doc, label(doc)).not.toHaveProperty("effect")
+      expect(doc, label(doc)).not.toHaveProperty("rule")
+    }
+  })
+
+  it("hold the fields of the Studio form and nothing else", () => {
+    for (const doc of cards()) expect(Object.keys(doc).sort(), label(doc)).toEqual(["_id", "_type", "copies", "key", "name", "order"])
+  })
+
   it("carry their place in their category, from 0, so that the Studio lists them in the order of the deck", () => {
     for (const type of Object.values(TYPES)) {
       const orders = ofType(type).map((doc) => doc.order)
@@ -193,11 +200,8 @@ describe("the cards", () => {
   })
 
   describe("names", () => {
-    it("are a localeString for the name and a localeText for the effect", () => {
-      for (const doc of cards()) {
-        expect(doc.name._type, label(doc)).toBe("localeString")
-        expect(doc.effect._type, label(doc)).toBe("localeText")
-      }
+    it("are a localeString", () => {
+      for (const doc of cards()) expect(doc.name._type, label(doc)).toBe("localeString")
     })
 
     it("are the figure on the card for the numbers and the modifiers, and the printed English title for the action cards, in every language", () => {
@@ -221,76 +225,6 @@ describe("the cards", () => {
       for (const language of LANGUAGE_IDS) {
         const names = cards().map((doc) => doc.name[language] as string)
         expect(new Set(names).size, language).toBe(names.length)
-      }
-    })
-  })
-
-  describe("effects", () => {
-    it("are one short paragraph that ends with a full stop", () => {
-      for (const doc of cards()) {
-        for (const language of LANGUAGE_IDS) {
-          const text = doc.effect[language] as string
-          expect(text, `${label(doc)} ${language}`).not.toContain("\n")
-          expect(text, `${label(doc)} ${language}`).toMatch(/\.$/)
-          expect(text.length, `${label(doc)} ${language}`).toBeLessThan(340)
-        }
-      }
-    })
-
-    it("give the same figures in every language: the points of a modifier, the seven numbers of a Flip 7", () => {
-      const expected = (doc: Doc): number[] => {
-        if ((doc._type === "numberCard" && doc.key === "0") || doc.key === "flip-three") return [7]
-        if (doc.key.startsWith("plus-")) return [Number(doc.key.slice("plus-".length)), 7].sort((a, b) => a - b)
-        if (doc.key === "times-2") return [2, 7, 10]
-        return []
-      }
-      for (const doc of cards()) for (const language of LANGUAGE_IDS) expect(digitsOf(doc.effect[language]), `${label(doc)} ${language}`).toEqual(expected(doc))
-    })
-
-    it("are one and the same for the twelve numbers that carry points, and their own for the 10 other cards", () => {
-      for (let value = 2; value <= 12; value++) expect(cardOf("numberCard", String(value)).effect, `number ${value}`).toEqual(cardOf("numberCard", "1").effect)
-      for (const language of LANGUAGE_IDS) {
-        const effects = cards().map((doc) => doc.effect[language] as string)
-        // 1 shared by the numbers 1 to 12, then the zero, the three action cards, five +N and the x2
-        expect(new Set(effects).size, language).toBe(11)
-      }
-    })
-
-    it("say what the booklet says of each kind of card", () => {
-      const words: Record<LanguageId, [type: string, key: string, terms: string[]][]> = {
-        fr: [
-          ["numberCard", "5", ["déjà devant vous", "élimine"]],
-          ["actionCard", "second-chance", ["défaussez", "Second Chance"]],
-          ["actionCard", "freeze", ["met ses points en banque"]],
-          ["actionCard", "flip-three", ["trois cartes", "Flip 7"]],
-          ["modifierCard", "times-2", ["Double"]],
-        ],
-        en: [
-          ["numberCard", "5", ["already have", "busts"]],
-          ["actionCard", "second-chance", ["discard", "Second Chance"]],
-          ["actionCard", "freeze", ["bank their points"]],
-          ["actionCard", "flip-three", ["three cards", "Flip 7"]],
-          ["modifierCard", "times-2", ["Doubles"]],
-        ],
-        es: [
-          ["numberCard", "5", ["ya tienes", "eliminado"]],
-          ["actionCard", "second-chance", ["descarta", "Second Chance"]],
-          ["actionCard", "freeze", ["guarda sus puntos"]],
-          ["actionCard", "flip-three", ["tres cartas", "Flip 7"]],
-          ["modifierCard", "times-2", ["Duplica"]],
-        ],
-        de: [
-          ["numberCard", "5", ["schon vor dir", "scheidest"]],
-          ["actionCard", "second-chance", ["doppelte Karte", "Second Chance"]],
-          ["actionCard", "freeze", ["sichert ihre Punkte"]],
-          ["actionCard", "flip-three", ["drei Karten", "Flip 7"]],
-          ["modifierCard", "times-2", ["Verdoppelt"]],
-        ],
-      }
-      for (const language of LANGUAGE_IDS) {
-        for (const [type, key, terms] of words[language]) {
-          for (const term of terms) expect(cardOf(type, key).effect[language], `${type} ${key} ${language}: ${term}`).toContain(term)
-        }
       }
     })
   })
@@ -342,8 +276,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // 22 cards (name, effect) and the credits
-    expect(objects).toHaveLength(45)
+    // the names of the 22 cards and the credits
+    expect(objects).toHaveLength(23)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 

@@ -144,11 +144,12 @@ describe("the seed documents", () => {
       ["no copy of a card", "number-card-7", (doc) => (doc.copies = 0), "number-card-7.copies must be at least 1"],
       ["a fraction of a copy", "number-card-7", (doc) => (doc.copies = 1.5), "number-card-7.copies must be an integer"],
       ["copies written as text", "number-card-7", (doc) => (doc.copies = "7"), "number-card-7.copies should be a number"],
-      ["a card face that is not an image", "number-card-7", (doc) => (doc.image = "7.webp"), "number-card-7.image should be an image"],
+      ["a visual that is not an image", "number-card-7", (doc) => (doc.image = "7.webp"), "number-card-7.image should be an image"],
       ["a name that is not a localeString", "action-card-freeze", (doc) => (doc.name = "Freeze"), "action-card-freeze.name should be an object"],
       ["a name typed as a localeText", "action-card-freeze", (doc) => (doc.name._type = "localeText"), 'action-card-freeze.name._type is "localeText", expected "localeString"'],
       ["a name in a language the Studio does not have", "action-card-freeze", (doc) => (doc.name.it = "Congelare"), "action-card-freeze.name.it is not a field"],
-      ["an effect that is not a localeText", "action-card-freeze", (doc) => (doc.effect = "Freezes."), "action-card-freeze.effect should be an object"],
+      ["an effect, which a card no longer has", "action-card-freeze", (doc) => (doc.effect = "Freezes."), 'action-card-freeze.effect is not a field of "actionCard"'],
+      ["a rule, which a card does not have either", "modifier-card-times-2", (doc) => (doc.rule = "Doubles."), 'modifier-card-times-2.rule is not a field of "modifierCard"'],
       ["a field the Studio does not have", "modifier-card-times-2", (doc) => (doc.colour = "#ff0000"), 'modifier-card-times-2.colour is not a field of "modifierCard"'],
       ["a card back that is not an image", "game", (doc) => (doc.cardBack = "back.webp"), "game.cardBack should be an image"],
       ["a mat that is not an image", "game", (doc) => (doc.mat = "mat.webp"), "game.mat should be an image"],
@@ -173,6 +174,31 @@ describe("the option lists of the Studio", () => {
   it.each(CARD_TYPES)("of %s sorts its cards on their place in the category by default", (type) => {
     const { orderings } = typeOf(type) as TypeDef & { orderings?: { by: unknown[] }[] }
     expect(orderings?.[0]?.by).toEqual([{ field: "order", direction: "asc" }])
+  })
+})
+
+// The rules every game's cards follow (CLAUDE.md, "Studio forms"; the model is Hanabi's schema.test.ts). The game singleton only holds the
+// pictures of the card back, the box and the mat, so it follows the one about descriptions too.
+describe("the forms of the cards", () => {
+  const FORM_TYPES = [...CARD_TYPES, "game"]
+  const fieldNames = (type: string) => (typeOf(type).fields ?? []).map((field) => field.name)
+
+  it.each(FORM_TYPES)("of the type %s have no Effect or Rule field, and no description under any field", (type) => {
+    expect(fieldNames(type).filter((name) => ["effect", "rule"].includes(name.toLowerCase()))).toEqual([])
+    expect((typeOf(type).fields ?? []).filter((field) => "description" in field).map((field) => field.name)).toEqual([])
+  })
+
+  it.each(CARD_TYPES)("of the type %s end with the visual, and the copies come right before it", (type) => {
+    expect(fieldNames(type).at(-1)).toBe("image")
+    expect(fieldOf(type, "image").type).toBe("image")
+    expect(fieldNames(type).at(-2)).toBe("copies")
+  })
+
+  it.each(CARD_TYPES)("of the type %s have a multilingual name and an English game key", (type) => {
+    expect(fieldOf(type, "name").type).toBe("localeString")
+    expect(fieldNames(type)).toContain("key")
+    expect(fieldOf(type, "key").type).toBe("string")
+    expect(listOf(fieldOf(type, "key")).length).toBeGreaterThan(0)
   })
 })
 
