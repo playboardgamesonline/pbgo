@@ -20,6 +20,7 @@ Files in `apps/web/public/courtisans` (served at `/courtisans/...`), named in En
   - `src/lib/ui-theme.ts` — `UI_THEME`, how the shared in-game UI keeps the banquet look: announcements in the accent font, white with a gold outline and gold hairlines, gold star confetti; round seat discs with a pale ring and the title font; a game over on the navy surface with a gold line and a cream polaroid; `motion: "lively"` (confetti, springs, emoji burst; reduced motion still wins). The look changes there, never in a copy of a shared component
 - `apps/studio` — Sanity Studio on `@pbgo/studio-kit` (the game's own `texts` replaces the shared version)
 - `packages/engine` — pure TypeScript engine (`@courtisans/engine`), `GAME` = `@pbgo/engine-kit` contract, tested with Vitest
+- `content/` — the game's translations in Sanity as versioned code (its data and its config) and the seed script, run by the shared `@pbgo/content-kit` (see Content below); `vitest.config.ts` runs its tests
 
 ## Sanity
 - Project `2lo2f5sv`, dataset `production`, studio `courtisans.sanity.studio`; admin writes use `SANITY_API_WRITE_TOKEN_COURTISANS`
@@ -27,6 +28,15 @@ Files in `apps/web/public/courtisans` (served at `/courtisans/...`), named in En
 - Game-specific: `game` (mat, backs, pictograms, arrows, paper), `family`, `role`, `courtier`, `mission` + recursive `condition` object (values = engine keys). No `rules` document: the rules are PDF links, set in `settings` (Gamemaster › Mechanics)
 - Queries in `src/sanity/queries.ts`, then `pnpm --filter courtisans-studio typegen`
 - Migration to core (English values, shared skin): `pnpm --filter @pbgo-game/courtisans sanity:migrate-core` (dry run) then `--confirm`, then the studio's `schema:deploy` and `deploy`
+
+## Content (Sanity)
+28 documents, all translations (GAM-20): the name of the 6 families, the name and rule of the 4 roles, the text of 17 of the 20 missions, and the `texts` singleton (tagline, home title and introduction, victory sentences, the 17 interface labels, the 12 error messages, the missions button and the start of the banquet). Each one already exists, published, in the Studio with its colour, card, condition and pictogram, so the seed makes a draft of it and fills the languages it misses: no document is created from nothing, no image is placed (`slots: []`), the 30 courtiers and every other document are not touched
+- Every text is copied word for word from what the game shows today when Sanity has none (`src/lib/i18n.ts`, `i18n-rules.ts`, `skin.ts`, `site.ts`), nothing is invented: the straight apostrophes and trailing `…` of the code stay (the other games' seeds use the typographic ’). What the Studio already says wins: a French value that differs from the code's (the four role rules, the victory sentences, the missions button) is reported as "Kept as edited in Sanity" and the other languages are filled around it
+- Left out on purpose: `mission-dark-8`, `-9` and `-10`. The French text and the condition the Studio holds are not the ones the code translates, so copying the code's English, Spanish and German would give players another mission than the one the engine checks. They need translations of the Studio's French, read by the owner
+- Strings with no field in the Studio stay in the code for now: the board vocabulary (`courtier`, `status`, `zone`, the verbs, the game over log…), the plural forms of the family and role names, the home page's hidden heading and structured data, and the rules page. `content/parity/code.test.ts` lists them, so a new text of the dictionary has to be seeded or listed
+- `pnpm --filter @pbgo-game/courtisans content:seed --dry-run` shows what would change, `--apply` writes the drafts. Nothing is published from code; the owner reviews and publishes in the Studio, and only then do the code fallbacks go
+- `pnpm --filter @pbgo-game/courtisans test` and `typecheck` cover `content/` (no network, nothing written). `content/parity/code.test.ts` reads the code's own dictionaries and checks the seed against them word for word; it has its own `tsconfig.json` (DOM types and JSX: the code it imports pulls in `@pbgo/core`), so `typecheck` runs a third `tsc -p content/parity`. It goes away with the fallbacks; the seed stays as the record of what was written
+- The pipeline itself is `@pbgo/content-kit` (`packages/content-kit`); the whole process and what Courtisans gets: `docs/content-pipeline.md` at the root
 
 ## Commits
 Gitmoji format: `<emoji>(courtisans): <description>`

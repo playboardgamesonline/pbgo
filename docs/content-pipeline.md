@@ -1,6 +1,6 @@
 # Content pipeline
 
-How a game's Sanity content (cards, credits, rulebook links, art) is created from code instead of typed by hand. The generic part is one shared package, `@pbgo/content-kit` (`packages/content-kit`, see its README); a game keeps only its data and its config in `games/<slug>/content`. First built for Hanabi (GAM-11), shared with Exploding Kittens (GAM-12); the next game starts from the same two pieces.
+How a game's Sanity content (cards, credits, rulebook links, art) is created from code instead of typed by hand. The generic part is one shared package, `@pbgo/content-kit` (`packages/content-kit`, see its README); a game keeps only its data and its config in `games/<slug>/content`. First built for Hanabi (GAM-11), shared with Exploding Kittens (GAM-12), then used by Courtisans (GAM-20) for its translations; the next game starts from the same two pieces.
 
 The content is described in versioned TypeScript. A seed script writes it to the game's Sanity project as **drafts**. Running it again is safe: it never replaces what someone edited in the Studio, and nothing is published until a human publishes it there.
 
@@ -64,12 +64,13 @@ games/<slug>/content/
   config.ts            slug, Sanity project id, dataset (fixed), env file
   tsconfig.json        typechecks content/ on its own (tsc -p content)
   seed.test.ts         the paths of the command that end before the token is read
-  parity/              optional, Exploding Kittens: the seed against the game's engine, with its own tsconfig.json
+  parity/              optional: the seed against the game's engine (Exploding Kittens) or against the texts of its code (Courtisans), with its own tsconfig.json
   data/                WHAT to write, specific to the game
     index.ts           buildSeedDocs(): every document of the game
     suits.ts cards.ts bonus-tiles.ts game.ts settings.ts                   Hanabi
     card-types.ts edition.ts game.ts settings.ts                           Exploding Kittens
-    art-manifest.ts    every image the content needs, and where it goes
+    families.ts roles.ts missions.ts texts.ts                              Courtisans
+    art-manifest.ts    every image the content needs, and where it goes (none for Courtisans, whose images are already in the Studio)
     *.test.ts          the documents, against the Studio's types, through the runner
 ```
 
@@ -213,6 +214,24 @@ The seed holds the Original Edition only. Each of the others would be one more `
 | Streaking Kittens (expansion) | 15 | Streaking Kitten, Catomic Bomb, Curse of the Cat Butt | `https://ek-instructions.s3.amazonaws.com/streaking-kittens/streaking-kittens-rules.pdf` |
 | Barking Kittens (expansion) | 20 | Barking Kitten, Bury, Personal Attack | `https://dumekj556jp75.cloudfront.net/barking-kittens/barking-kittens-rules.pdf` (image-only PDF) |
 
+## What Courtisans gets
+
+28 documents, all translations (GAM-20). Courtisans predates the pipeline: its families, roles, missions, courtiers and settings were typed in the Studio, in French, while the game showed its English, Spanish and German from texts kept in the code. The seed writes those texts into Sanity so that the code's copy can go once the owner has published them. It creates nothing from scratch and places no image (`slots: []`).
+
+| Id | Type | Count | Holds |
+| --- | --- | --- | --- |
+| `family-<key>` | `family` | 6 | Name in four languages (`butterfly`, `toad`, `nightingale`, `hare`, `stag`, `carp`) |
+| `role-<key>` | `role` | 4 | Name and rule in four languages (`noble`, `spy`, `assassin`, `guard`) |
+| `mission-light-<1..10>`, `mission-dark-<1..7>` | `mission` | 17 | Text in four languages |
+| `texts` | `texts` | 1 | Tagline, home title and introduction, the victory sentences, the 17 interface labels (`ui_home` 7, `ui_lobby` 6, `ui_game` 4), the 12 error messages (the code is the key of the item), the missions button and the start of the banquet |
+
+`texts` is a singleton, addressed in the Studio by the name of its type. Each document already exists, published, in the Studio with the fields the seed does not write (colour, card, condition, pictogram), so the first run makes a draft of it (`new draft made from the published document, gaps filled`) and publishing that draft keeps everything else. The 30 courtiers, `game`, `settings` and `interface` are not touched.
+
+- **The values are the code's.** Every text is copied word for word from what the game shows today when Sanity has none (`GAME`, `I18N` and `defaultMissionTexts` of `src/lib/i18n.ts`, `ROLE_RULE_TEXTS`, `DEFAULT_SKIN`, `ERROR_MESSAGES`, `TAGLINE`). Nothing is written by the content agent, so the straight apostrophes and the trailing `…` of the code stay, unlike the typographic ’ of the other seeds (see Written texts).
+- **What the Studio says wins.** On the live dataset six values differ from the code's and are reported as `Kept as edited in Sanity`, the other languages being filled around them: the four French role rules, the French victory sentences (six in Sanity, three in the code; English, Spanish and German get the code's three) and the French missions button. The seed does not touch a language an editor added, such as a Studio-only `feedbackSend` label.
+- **Three missions are left out.** `mission-dark-8`, `-9` and `-10` have another French text, and another condition, in the Studio than the one the code translates. Copying the code's English, Spanish and German would give players another mission than the one the engine checks, so they are listed under `In the dataset but not in the seed`. They need translations of the Studio's French, read by the owner.
+- **What stays in the code.** The board vocabulary (`courtier`, `status`, `zone`, the verbs, the game over log…), the plural forms of the family and role names (the code composes the default missions from them), the home page's hidden heading and structured data, and the rules page have no field in the Studio. `content/parity/code.test.ts` lists them, so a text added to the code's dictionary has to be seeded or listed.
+
 ## Rules
 
 There is no `rules` document in Sanity (GAM-14). The rules reach players as the publisher's rulebook, a link or an uploaded PDF per language in the shared `settings` document (Gamemaster › Mechanics). The toolbar's Rules button opens the visitor's language, else English, else the first other language that has one; a game with no link has no button. The seed only fills the links it knows, as plain links to the publisher's own PDF (Hanabi: French and English; Exploding Kittens: English), and an editor adds the others in the Studio.
@@ -225,6 +244,7 @@ The seeds write short texts of their own: names, effects, ratings, credits. They
 - One register per language: FR "vous", EN "you", ES "tú", DE "du". Typographic apostrophe (’), never the straight one.
 - Hanabi: the French text is the reference. EN, ES and DE are written by the content agent and are meant for a native read before the game goes live: terms of the game (clue, fuse, firework, avalanche…) are the first thing to check.
 - Exploding Kittens: the spec is in English, so the four languages were written side by side from it. FR, ES and DE are meant for a native read. The five cats keep their English names in every language; the other cards take the spec's glossary (a Defuse is a Kit de désamorçage, a Desactivación, an Entschärfung). One German word comes from that glossary and is worth a look: Pärchen for a pair, in the effect of the cats.
+- Courtisans: the game predates the pipeline, so its texts are not written by the content agent. They are copied word for word from what the code shows today (`src/lib/i18n.ts`, `i18n-rules.ts`, `skin.ts`, `site.ts`), in the code's own wording. The rules above do not apply to them: the straight apostrophes and the trailing `…` of the code stay, and the data test does not ask for the typographic ’. They are meant for the owner's read in the Studio, since the code's copy goes once they are published.
 - A text only describes the game as the spec defines it, variants and options included. What the engine does is a separate piece of work.
 
 ## Tests
@@ -240,11 +260,12 @@ They need no network and write nothing. A game's `typecheck` covers `content/` t
 In the kit (`packages/content-kit/src/*.test.ts`, 416 tests): the guarantees above, checked against an in-memory dataset that refuses what the real API refuses (`memory-store.ts`); the options, the token, the art folder, the report and the command.
 
 In each game:
-- `content/data/data.test.ts` checks the documents themselves, and every text in them: it exists in the four languages and is written in its own, no stray space or straight apostrophe, no placeholder, at most 4 000 characters. Hanabi: the deck is the one of the rulebook (50 / 60 / 70 cards, the black firework counted the other way round), the score scale covers 0 to 30 once. Exploding Kittens: the card types are the engine's thirteen keys, the Original Edition is the 56 cards of the box and deals as the rulebook says (35 / 29 / 23 / 16 cards in the pile for 2 to 5 players). Both also check that no `rules` document is seeded.
+- `content/data/data.test.ts` checks the documents themselves, and every text in them: it exists in the four languages and is written in its own, no stray space or straight apostrophe, no placeholder, at most 4 000 characters. Hanabi: the deck is the one of the rulebook (50 / 60 / 70 cards, the black firework counted the other way round), the score scale covers 0 to 30 once. Exploding Kittens: the card types are the engine's thirteen keys, the Original Edition is the 56 cards of the box and deals as the rulebook says (35 / 29 / 23 / 16 cards in the pile for 2 to 5 players). Both also check that no `rules` document is seeded. Courtisans: the 28 documents (6 families, 4 roles, 17 missions, the `texts` singleton) and the three missions left out, the 12 error codes in the shape the gamemaster writes (the code is the key of the item), three victory sentences per language that each name the winner and the points, the same placeholders in every language; it does not check the apostrophe, since the texts are the code's.
 - `content/data/schema.test.ts` loads the real Studio configuration and checks every seed document against the Studio's own types (field names, option lists, validation rules), and every art slot against a real image field. A field renamed or a rule tightened in the Studio fails here, not in front of an editor.
-- `content/data/run.test.ts` runs the game's seed and art slots through the kit's runner against an in-memory dataset: drafts only, nothing the second time, nothing after a publication, art placed by slot.
+- `content/data/run.test.ts` runs the game's seed and art slots through the kit's runner against an in-memory dataset: drafts only, nothing the second time, nothing after a publication, art placed by slot. Courtisans has no art, but its run test also plays the seed on a dataset like the live one (every document published, French only, with the fields the seed does not write): a draft of each, the translations added around those fields, the Studio's values kept where they differ, the three missions listed as not in the seed, and nothing the second time.
 - `content/seed.test.ts` runs the command itself for the paths that end before the token is read.
 - Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the `kind` of each, the kinds the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
+- Courtisans has `content/parity/code.test.ts`, which reads the dictionaries of the game's own code (`GAME`, `I18N` and `defaultMissionTexts` of `src/lib/i18n.ts`, `ROLE_RULE_TEXTS`, `DEFAULT_SKIN`, `ERROR_MESSAGES`, `TAGLINE`; Vitest only, the seed never imports them) and checks the seed against them word for word, language by language. It also lists what the code keeps beyond the seed (the board and the rules page), so a text added to the code's dictionary has to be seeded or listed. The folder has its own `tsconfig.json`, with DOM types and JSX because the code it imports pulls in `@pbgo/core`, and the game's `typecheck` runs a third `tsc -p content/parity`. It goes away with the code's fallbacks; the seed stays as the record of what was written.
 
 Each guarantee was checked by breaking it on purpose and watching a test fail.
 
@@ -254,7 +275,7 @@ Code in the kit and in `content/` runs directly with Node (type stripping, no bu
 
 1. `pnpm add-game` (or `pnpm new-game <slug>` then `pnpm go-live <slug>`; the skill `game-new` runs it for the owner) gives the game its package, its Sanity project, its Studio, its rulebook PDFs and its write token (`apps/web/.env.local`). A rulebook that comes later goes in with `pnpm game-rules <slug>`.
 2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar). The skill `game-sanity-create` (`.claude/skills/`) asks the owner which lists the game needs before any schema and holds the rules of the forms.
-3. Add `@pbgo/content-kit` and `@pbgo/studio-kit` (`workspace:*`) and `vitest` (`catalog:`) to the game's dev dependencies, with the `typecheck` (`tsc --noEmit && tsc --noEmit -p content`), `test` (`vitest run`) and `content:seed` (`node --disable-warning=ExperimentalWarning content/seed.ts`) scripts and a `vitest.config.ts` that includes `content/**/*.test.ts`. `games/exploding-kittens` is the smallest model.
+3. Add `@pbgo/content-kit` and `@pbgo/studio-kit` (`workspace:*`) and `vitest` (`catalog:`) to the game's dev dependencies, with the `typecheck` (`tsc --noEmit && tsc --noEmit -p content`), `test` (`vitest run`) and `content:seed` (`node --disable-warning=ExperimentalWarning content/seed.ts`) scripts and a `vitest.config.ts` that includes `content/**/*.test.ts`. `games/exploding-kittens` is the smallest model; `games/courtisans/content` is the one for a game whose documents already exist in the Studio and only need translations (no art, `slots: []`, each document seeded under its existing id with just the fields to fill).
 4. Write `content/config.ts` (slug, project id), `content/seed.ts` (`runSeedCli` with the game's `buildSeedDocs` and `ART_SLOTS`), `content/tsconfig.json` and `content/data/`: the game's documents, and `art-manifest.ts` with its image slots. There is nothing to copy from the kit: it stays where it is.
 5. Run the tests, then follow the process above.
 
