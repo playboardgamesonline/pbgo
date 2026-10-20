@@ -12,7 +12,7 @@ import { cn } from "@pbgo/ui/utils"
 import { LOCALES, type Locale } from "../../../lib/i18n"
 import type { CopyEntry, CopyGroup } from "../../../server/settings"
 import { LangTabs } from "./lang-tabs"
-import { ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
+import { DraftAlert, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = { values: Record<string, Record<Locale, string | null>>; victoryPhrases: Record<Locale, string[] | null> }
 
@@ -57,6 +57,7 @@ export function CopyPage({ initial }: { initial: AdminData }) {
   return (
     <SetupLayout>
       <ReadOnlyAlert writable={data.writable} />
+      <DraftAlert drafts={data.drafts} docs={["texts"]} />
       <div className="flex flex-wrap items-center gap-3">
         <LangTabs value={lang} onChange={setLang} filled={Object.fromEntries(LOCALES.map((l) => [l, countFor(l)]))} />
         <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
