@@ -74,7 +74,7 @@ games/<slug>/content/
     *.test.ts          the documents, against the Studio's types, through the runner
 ```
 
-The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; Exploding Kittens: card type keys, kinds, edition keys; Flip 7: the card categories and the keys of each) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
+The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; a game that files its cards by category: the categories and the keys of each; a game with editions: the edition keys) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
 
 ## Running it
 
@@ -90,7 +90,7 @@ pnpm --filter @pbgo-game/<slug> content:seed --apply
 | `--dry-run` | Read the dataset and print what would happen. Writes nothing. This is the default |
 | `--apply` | Write the drafts, and upload the art given with `--art-dir` |
 | `--art-dir <dir>` | Normalise the images of this folder and place them. Without it the art is left alone. Give an absolute path: a relative one is read from the folder the command runs in (`games/<slug>` through `pnpm --filter`) |
-| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only game,settings`, `--only card-red-3` (a Hanabi card), `--only card-type-defuse` (an Exploding Kittens card type), `--only cardType` (all of them), `--only number-card-7` (a Flip 7 number card), `--only numberCard` (all the Flip 7 number cards). A name that matches nothing stops the run |
+| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only game,settings`, `--only card-red-3` (a Hanabi card), `--only card` (every Hanabi card); the Id and Type columns of the "What … gets" tables below give the ids and types of the other games. A name that matches nothing stops the run |
 | `--overwrite` | Replace the values edited in the Studio with the seed's. Needs `--only` |
 | `--verbose`, `-v` | List every document, not only the ones that change |
 | `--help`, `-h` | The usage |
@@ -275,8 +275,9 @@ In each game:
 - `content/data/schema.test.ts` loads the real Studio configuration and checks every seed document against the Studio's own types (field names, option lists, validation rules), and every art slot against a real image field. A field renamed or a rule tightened in the Studio fails here, not in front of an editor.
 - `content/data/run.test.ts` runs the game's seed and art slots through the kit's runner against an in-memory dataset: drafts only, nothing the second time, nothing after a publication, art placed by slot.
 - `content/seed.test.ts` runs the command itself for the paths that end before the token is read.
-- Flip 7 has the same files without `edition` and `rules`: its `data.test.ts` checks the 22 cards (the three categories and their keys, order, copies, which add up to the 94 cards of the box, a name on the action cards alone, no effect or rule text), the credits and the 27 art slots (a card also answers to the figure printed on it), its `schema.test.ts` also keeps the forms of the cards (no Effect or Rule field, no description under a field, an English game key, a name on the action cards alone, the copies second to last and the visual last), its `parity/engine.test.ts` the categories, keys, copies and the titles of the figure cards against the engine's `CARDS` and `DECK`.
 - Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the `kind` of each, the kinds the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
+
+Flip 7 has the same files as the list above, without `edition` and `rules`: its `data.test.ts` checks the 22 cards (the three categories and their keys, order, copies, which add up to the 94 cards of the box, a name on the action cards alone, no effect or rule text), the credits and the 27 art slots (a card also answers to the figure printed on it), its `schema.test.ts` also keeps the forms of the cards (no Effect or Rule field, no description under a field, an English game key, a name on the action cards alone, the copies second to last and the visual last), its `parity/engine.test.ts` the categories, keys, copies and the titles of the figure cards against the engine's `CARDS` and `DECK`.
 
 Each guarantee was checked by breaking it on purpose and watching a test fail.
 
