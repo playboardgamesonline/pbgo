@@ -107,14 +107,14 @@ describe("the seed documents", () => {
     expect(second).toStrictEqual(first)
 
     // Changing a card of a run must touch neither another card of that run nor the data the next run is built from
-    const three = first.find((doc) => doc._id === cardId("number", "3")) as Doc
-    const four = first.find((doc) => doc._id === cardId("number", "4")) as Doc
-    three.name.fr = "changed"
-    three.extra = true
+    const freeze = first.find((doc) => doc._id === cardId("action", "freeze")) as Doc
+    const flipThree = first.find((doc) => doc._id === cardId("action", "flip-three")) as Doc
+    freeze.name.fr = "changed"
+    freeze.extra = true
 
-    expect(four.name.fr).toBe("4")
-    const untouched = second.find((doc) => doc._id === cardId("number", "3")) as Doc
-    expect(untouched.name.fr).toBe("3")
+    expect(flipThree.name.fr).toBe("Flip Three")
+    const untouched = second.find((doc) => doc._id === cardId("action", "freeze")) as Doc
+    expect(untouched.name.fr).toBe("Freeze")
     expect(untouched).not.toHaveProperty("extra")
     expect(docs()).toStrictEqual(second)
   })
@@ -175,8 +175,11 @@ describe("the cards", () => {
     }
   })
 
-  it("hold the fields of the Studio form and nothing else", () => {
-    for (const doc of cards()) expect(Object.keys(doc).sort(), label(doc)).toEqual(["_id", "_type", "copies", "key", "name", "order"])
+  it("hold the fields of the Studio form and nothing else: a name on the action cards alone", () => {
+    for (const doc of cards()) {
+      const fields = ["_id", "_type", "copies", "key", "order", ...(doc._type === "actionCard" ? ["name"] : [])]
+      expect(Object.keys(doc).sort(), label(doc)).toEqual(fields.sort())
+    }
   })
 
   it("carry their place in their category, from 0, so that the Studio lists them in the order of the deck", () => {
@@ -200,15 +203,17 @@ describe("the cards", () => {
   })
 
   describe("names", () => {
-    it("are a localeString", () => {
-      for (const doc of cards()) expect(doc.name._type, label(doc)).toBe("localeString")
+    it("belong to the action cards alone: a number or a modifier is the figure printed on it, which its key already says", () => {
+      for (const doc of [...ofType("numberCard"), ...ofType("modifierCard")]) expect(doc, label(doc)).not.toHaveProperty("name")
+      for (const doc of ofType("actionCard")) expect(doc, label(doc)).toHaveProperty("name")
     })
 
-    it("are the figure on the card for the numbers and the modifiers, and the printed English title for the action cards, in every language", () => {
+    it("are a localeString", () => {
+      for (const doc of ofType("actionCard")) expect(doc.name._type, label(doc)).toBe("localeString")
+    })
+
+    it("are the printed English title of the action cards in every language, for the owner to translate", () => {
       for (const language of LANGUAGE_IDS) {
-        for (let value = 0; value <= 12; value++) expect(cardOf("numberCard", String(value)).name[language], `number ${value} ${language}`).toBe(String(value))
-        for (const points of [2, 4, 6, 8, 10]) expect(cardOf("modifierCard", `plus-${points}`).name[language], `plus-${points} ${language}`).toBe(`+${points}`)
-        expect(cardOf("modifierCard", "times-2").name[language]).toBe("x2")
         expect(cardOf("actionCard", "freeze").name[language]).toBe("Freeze")
         expect(cardOf("actionCard", "flip-three").name[language]).toBe("Flip Three")
         expect(cardOf("actionCard", "second-chance").name[language]).toBe("Second Chance")
@@ -216,16 +221,20 @@ describe("the cards", () => {
     })
 
     it("are the titles the Studio lists for the key of the card", () => {
-      for (const category of CATEGORY_KEYS) {
-        for (const doc of ofType(CATEGORIES[category].type)) expect(doc.name.en, label(doc)).toBe(titleOf(CATEGORIES[category].choices, doc.key))
-      }
+      for (const doc of ofType("actionCard")) expect(doc.name.en, label(doc)).toBe(titleOf(CATEGORIES.action.choices, doc.key))
     })
 
     it("are unique within a language", () => {
       for (const language of LANGUAGE_IDS) {
-        const names = cards().map((doc) => doc.name[language] as string)
+        const names = ofType("actionCard").map((doc) => doc.name[language] as string)
         expect(new Set(names).size, language).toBe(names.length)
       }
+    })
+
+    it("are not needed on the figure cards: the Studio lists a number or a modifier under the figure printed on it", () => {
+      for (const doc of ofType("numberCard")) expect(titleOf(CATEGORIES.number.choices, doc.key), label(doc)).toBe(String(doc.key))
+      for (const points of [2, 4, 6, 8, 10]) expect(titleOf(CATEGORIES.modifier.choices, `plus-${points}`), `plus-${points}`).toBe(`+${points}`)
+      expect(titleOf(CATEGORIES.modifier.choices, "times-2")).toBe("x2")
     })
   })
 })
@@ -276,8 +285,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // the names of the 22 cards and the credits
-    expect(objects).toHaveLength(23)
+    // the names of the 3 action cards and the credits
+    expect(objects).toHaveLength(4)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 

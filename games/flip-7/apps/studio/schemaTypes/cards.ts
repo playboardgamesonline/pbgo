@@ -9,7 +9,8 @@ const ICONS = { number: NumberIcon, action: BoltIcon, modifier: AddIcon }
 // One document per card of a category (a 7, a +4, the Freeze…): 22 cards for the 94 of the box. Every copy of a card shares its picture,
 // so a card holds one picture. Drop it on the "Visual" field, or let the seed place the art files (docs/content-pipeline.md).
 // The form follows the rules every game's cards follow (the skill `game-sanity-create`): no Effect or Rule field, no description under a field,
-// an English game key next to the localized name, the copies second to last and the visual last.
+// an English game key, the copies second to last and the visual last. A card named by its figure (a 7, a +4, the x2) has no name to translate:
+// the figure is the key. Only the three action cards, named by words, carry a name in the four languages.
 const cardCategory = (category: CategoryKey) => {
   const { type, title, choices } = CATEGORIES[category]
   return defineType({
@@ -20,7 +21,7 @@ const cardCategory = (category: CategoryKey) => {
     fields: [
       defineField({ name: "key", title: "Game key", type: "string", options: { list: choices, layout: "dropdown" }, validation: (r) => r.required() }),
       defineField({ name: "order", title: "Order", type: "number", readOnly: true, validation: (r) => r.required().integer().min(0) }),
-      defineField({ name: "name", title: "Name", type: "localeString" }),
+      ...(category === "action" ? [defineField({ name: "name", title: "Name", type: "localeString" })] : []),
       defineField({ name: "copies", title: "Copies", type: "number", validation: (r) => r.required().integer().min(1) }),
       defineField({ name: "image", title: "Visual", type: "image" }),
     ],

@@ -1,7 +1,7 @@
 import { CARDS, DECK, defaultOptions, OPTIONS } from "@flip-7/engine"
 import type { CardKind } from "@flip-7/engine"
 import { describe, expect, expectTypeOf, it } from "vitest"
-import { CATEGORY_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
+import { CATEGORIES, CATEGORY_KEYS, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
 import type { CategoryKey } from "../../apps/studio/schemaTypes/constants.ts"
 import { CARD_LIST } from "../data/cards.ts"
 import { seedDocs } from "../data/test-fixtures.ts"
@@ -51,18 +51,18 @@ describe("the seed against the engine", () => {
     expect(total).toBe(DECK.reduce((sum, { copies }) => sum + copies, 0))
   })
 
-  it("keys and names the cards as they read: the value of a number, the sign of a modifier", () => {
-    const byId = docsById()
+  it("keys and titles the cards as they read: the value of a number, the sign of a modifier", () => {
     for (const card of CARD_LIST) {
       const engine = engineCard(card.engineKey)
-      const doc = byId.get(card.id)
+      // A number and a modifier have no name: the Studio lists them under the title of their key, which is the figure printed on the card
+      const title = titleOf(CATEGORIES[card.category].choices, card.key)
       if (engine.kind === "number") {
         expect(card.key, card.engineKey).toBe(String(engine.value))
-        expect(doc?.name.en, card.engineKey).toBe(String(engine.value))
+        expect(title, card.engineKey).toBe(String(engine.value))
       }
       if (engine.kind === "modifier") {
         expect(card.key, card.engineKey).toBe(engine.times > 1 ? `times-${engine.times}` : `plus-${engine.plus}`)
-        expect(doc?.name.en, card.engineKey).toBe(engine.times > 1 ? `x${engine.times}` : `+${engine.plus}`)
+        expect(title, card.engineKey).toBe(engine.times > 1 ? `x${engine.times}` : `+${engine.plus}`)
       }
       if (engine.kind === "action") expect(card.key, card.engineKey).toBe(card.engineKey)
     }

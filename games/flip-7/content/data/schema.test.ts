@@ -148,6 +148,8 @@ describe("the seed documents", () => {
       ["a name that is not a localeString", "action-card-freeze", (doc) => (doc.name = "Freeze"), "action-card-freeze.name should be an object"],
       ["a name typed as a localeText", "action-card-freeze", (doc) => (doc.name._type = "localeText"), 'action-card-freeze.name._type is "localeText", expected "localeString"'],
       ["a name in a language the Studio does not have", "action-card-freeze", (doc) => (doc.name.it = "Congelare"), "action-card-freeze.name.it is not a field"],
+      ["a name on a number, which its figure names", "number-card-7", (doc) => (doc.name = { _type: "localeString", fr: "7", en: "7", es: "7", de: "7" }), 'number-card-7.name is not a field of "numberCard"'],
+      ["a name on a modifier, which its figure names too", "modifier-card-times-2", (doc) => (doc.name = { _type: "localeString", fr: "x2", en: "x2", es: "x2", de: "x2" }), 'modifier-card-times-2.name is not a field of "modifierCard"'],
       ["an effect, which a card no longer has", "action-card-freeze", (doc) => (doc.effect = "Freezes."), 'action-card-freeze.effect is not a field of "actionCard"'],
       ["a rule, which a card does not have either", "modifier-card-times-2", (doc) => (doc.rule = "Doubles."), 'modifier-card-times-2.rule is not a field of "modifierCard"'],
       ["a field the Studio does not have", "modifier-card-times-2", (doc) => (doc.colour = "#ff0000"), 'modifier-card-times-2.colour is not a field of "modifierCard"'],
@@ -210,11 +212,17 @@ describe("the forms of the cards", () => {
     expect(fieldNames(type).at(-2)).toBe("copies")
   })
 
-  it.each(CARD_TYPES)("of the type %s have a multilingual name and an English game key", (type) => {
-    expect(fieldOf(type, "name").type).toBe("localeString")
+  it.each(CARD_TYPES)("of the type %s have an English game key", (type) => {
     expect(fieldNames(type)).toContain("key")
     expect(fieldOf(type, "key").type).toBe("string")
     expect(listOf(fieldOf(type, "key")).length).toBeGreaterThan(0)
+  })
+
+  // A 7, a +4 and the x2 are named by the figure printed on them, which is their key: there is nothing to translate, so no name. Only the three
+  // action cards, named by words, carry a name in the four languages.
+  it("give a name in the four languages to the action cards alone: a figure card is named by its key", () => {
+    expect(fieldOf("actionCard", "name").type).toBe("localeString")
+    for (const type of CARD_TYPES.filter((candidate) => candidate !== "actionCard")) expect(fieldNames(type), type).not.toContain("name")
   })
 })
 

@@ -6,19 +6,17 @@ import type { CategoryKey, KeyOf } from "../../apps/studio/schemaTypes/constants
 type CardSpec = {
   /** Copies of the card in the box: 94 cards in all (79 numbers, 9 action cards, 6 score modifiers). */
   copies: number
-  name: Localized
+  /** Only the action cards have one: the other cards are named by their figure, which is their key, so there is nothing to translate. */
+  name?: Localized
 }
 
-// A card holds no text of its own besides its name: what a card does is the engine's, and the rules are the publisher's PDFs linked in
-// `settings`. The names of the numbers and of the modifiers are the figures of the cards. The three action cards keep their English names
-// in every language, as printed on the cards.
+// A card holds no text of its own: what a card does is the engine's, and the rules are the publisher's PDFs linked in `settings`. A number or a
+// modifier is the figure printed on it (a 7, a +4, the x2), which its key already says: it has no name. The three action cards, named by words,
+// carry their English names in every language, as printed on the cards, for the owner to translate in the Studio.
 
 const same = (text: string): Localized => ({ fr: text, en: text, es: text, de: text })
 
-const numberSpec = (value: number): CardSpec => ({
-  copies: Math.max(value, 1),
-  name: same(String(value)),
-})
+const numberSpec = (value: number): CardSpec => ({ copies: Math.max(value, 1) })
 
 // The cards of each category, under the key the Studio lists (`schemaTypes/constants.ts`).
 const SPECS: { [C in CategoryKey]: Record<KeyOf[C], CardSpec> } = {
@@ -43,12 +41,12 @@ const SPECS: { [C in CategoryKey]: Record<KeyOf[C], CardSpec> } = {
     "second-chance": { copies: 3, name: same("Second Chance") },
   },
   modifier: {
-    "plus-2": { copies: 1, name: same("+2") },
-    "plus-4": { copies: 1, name: same("+4") },
-    "plus-6": { copies: 1, name: same("+6") },
-    "plus-8": { copies: 1, name: same("+8") },
-    "plus-10": { copies: 1, name: same("+10") },
-    "times-2": { copies: 1, name: same("x2") },
+    "plus-2": { copies: 1 },
+    "plus-4": { copies: 1 },
+    "plus-6": { copies: 1 },
+    "plus-8": { copies: 1 },
+    "plus-10": { copies: 1 },
+    "times-2": { copies: 1 },
   },
 }
 
@@ -77,13 +75,14 @@ export const CARD_LIST: CardRef[] = CATEGORY_KEYS.flatMap((category) => {
 export function buildCards(): SeedDoc[] {
   return CARD_LIST.map(({ category, key, order, id }) => {
     const spec = (SPECS[category] as Record<string, CardSpec>)[key]
-    if (!spec) throw new Error(`No name for the ${category} card "${key}"`)
+    if (!spec) throw new Error(`No spec for the ${category} card "${key}"`)
+    // The key is absent, not undefined, when a card has no name: the seed writes the fields a document has and nothing else
     return {
       _id: id,
       _type: CATEGORIES[category].type,
       key,
       order,
-      name: localeString(spec.name),
+      ...(spec.name ? { name: localeString(spec.name) } : {}),
       copies: spec.copies,
     }
   })
