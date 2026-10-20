@@ -1,5 +1,6 @@
-# Helpers shared by go-live.sh and setup-env.sh (sourced, needs ROOT): output, JSON, .env files, the games registry,
-# Sanity. Secret values are never printed: they go from an API response or a file straight into a file.
+# Helpers shared by new-game.sh, go-live.sh, add-game.sh, game-rules.sh and setup-env.sh (sourced, needs ROOT): output,
+# JSON, .env files, the games registry and the rules of a slug and a name, Sanity, the rulebook tool. Secret values are
+# never printed: they go from an API response or a file straight into a file.
 
 ok()    { printf "  \033[32m✓\033[0m %s\n" "$*"; }
 warn()  { printf "  \033[33m!\033[0m %s\n" "$*"; }
@@ -61,6 +62,48 @@ registry() {
     console.log(Array.isArray(v) ? v.join('\n') : (v ?? ''))"
 }
 
+# slug_rules <expression>: evaluates the expression on the exports of packages/games/src/slug.ts (`m`) and on GAMES. That
+# file is the one definition of what a game's slug and name can be (the registry test reads it too), so the scripts and the
+# tests cannot disagree. Prints the result, "" for undefined. Pass values through the environment (process.env).
+slug_rules() {
+  SLUG_RULES="$ROOT/packages/games/src/slug.ts" REGISTRY="$ROOT/packages/games/src/registry.ts" node --input-type=module -e "
+    const { pathToFileURL } = await import('node:url')
+    const m = await import(pathToFileURL(process.env.SLUG_RULES).href)
+    const { GAMES } = await import(pathToFileURL(process.env.REGISTRY).href)
+    const v = ($1)
+    console.log(v ?? '')"
+}
+# slug_of_name <name>: the slug a name makes (The Crew → the-crew), "" when it makes none
+slug_of_name() { NAME_IN="$1" slug_rules 'm.slugFromName(process.env.NAME_IN)'; }
+# clean_name <name>: the name as it is kept (trimmed, single spaces)
+clean_name() { NAME_IN="$1" slug_rules 'm.cleanName(process.env.NAME_IN)'; }
+# name_of_slug <slug>: the name a slug makes (the-crew → The Crew)
+name_of_slug() { SLUG_IN="$1" slug_rules 'm.nameFromSlug(process.env.SLUG_IN)'; }
+# name_problem <name>, slug_problem <slug>: what is wrong with the name or the slug of a new game, in a sentence; "" when
+# nothing is (a slug also fails when a game of the registry has it)
+name_problem() { NAME_IN="$1" slug_rules 'm.nameProblem(process.env.NAME_IN)'; }
+slug_problem() { SLUG_IN="$1" slug_rules 'm.slugProblem(process.env.SLUG_IN, GAMES.map((g) => g.slug))'; }
+
+# resolve_game: settles SLUG and NAME of a new game from what was given (either may be empty, not both): the slug a name makes,
+# the name a slug makes, the name cleaned. Succeeds with both set. On a problem it fails and sets GAME_PROBLEM to a sentence
+# (not printed: the caller decides where it goes). Not run in a subshell, or the variables would be lost.
+resolve_game() {
+  GAME_PROBLEM=""
+  if [ -n "$NAME" ]; then
+    GAME_PROBLEM="$(name_problem "$NAME")"
+    [ -z "$GAME_PROBLEM" ] || return 1
+    NAME="$(clean_name "$NAME")"
+  fi
+  if [ -z "$SLUG" ]; then
+    SLUG="$(slug_of_name "$NAME")"
+    [ -n "$SLUG" ] || { GAME_PROBLEM="\"$NAME\" makes no slug (no Latin letter or digit): give the slug as well"; return 1; }
+  fi
+  GAME_PROBLEM="$(slug_problem "$SLUG")"
+  [ -z "$GAME_PROBLEM" ] || return 1
+  [ ! -e "$ROOT/games/$SLUG" ] || { GAME_PROBLEM="games/$SLUG already exists"; return 1; }
+  [ -n "$NAME" ] || NAME="$(name_of_slug "$SLUG")"
+}
+
 # A real Sanity project id (not empty, not the __SANITY_PROJECT_ID__ placeholder), as isProjectId in @pbgo/core
 is_project_id() { [[ "$1" =~ ^[a-z0-9-]+$ ]]; }
 
@@ -78,4 +121,42 @@ sanity_write_token() {
   key="$(S -X POST "$SANITY_API/projects/$1/tokens" -d '{"label":"apps/web admin (editor)","roleName":"editor"}' | json "o.key")"
   [ -n "$key" ] || return 1
   envset "$2" "$3" "$key"
+}
+
+# studio_host <slug>: the host of the game's Studio (<host>.sanity.studio): its .env, else the one written in
+# sanity.cli.ts, else the slug
+studio_host() {
+  local studio="$ROOT/games/$1/apps/studio" host
+  host="$(envget "$studio/.env" SANITY_STUDIO_HOST)"
+  [ -n "$host" ] || host="$(sed -nE 's/.*studioHost:[^"]*"([a-z0-9-]+)".*/\1/p' "$studio/sanity.cli.ts" 2>/dev/null | head -1 || true)"
+  [ -n "$host" ] || host="$1"
+  printf "%s" "$host"
+}
+
+# studio_deployed <project id> <host>: succeeds when <host>.sanity.studio is a Studio deployed in the project (needs
+# STOKEN). Read from the list of the project's studios: the address of a Studio answers 404 to curl whatever happens
+studio_deployed() {
+  [ "$(curl -s -H "Authorization: Bearer $STOKEN" "https://$1.api.sanity.io/v2024-08-01/user-applications?appType=studio" \
+    | json "o.some((a) => a.appHost === '$2' && a.activeDeployment) ? 'yes' : ''")" = yes ]
+}
+
+# rulebook <args…>: the rulebook tool of @pbgo/content-kit (check or place the rules PDFs of a game), run by Node, which
+# strips its types. See packages/content-kit/README.md
+rulebook() { node --disable-warning=ExperimentalWarning "$ROOT/packages/content-kit/src/rulebook-bin.ts" "$@"; }
+
+# languages: the languages of the site, one "<id> <title>" per line (fr Français…), from @pbgo/studio-kit/constants, the one
+# list the Studio fields and the translations read
+languages() {
+  CONSTANTS="$ROOT/packages/studio-kit/src/constants.ts" node --input-type=module -e "
+    const { pathToFileURL } = await import('node:url')
+    const { LANGUAGES } = await import(pathToFileURL(process.env.CONSTANTS).href)
+    for (const { id, title } of LANGUAGES) console.log(id + ' ' + title)"
+}
+
+# quote <text>: the text as a shell would take it back (single quotes unless it is plain), for a command printed to be typed
+quote() {
+  case "$1" in
+    ""|*[!A-Za-z0-9._/=:@%+,-]*) printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")" ;;
+    *) printf '%s' "$1" ;;
+  esac
 }

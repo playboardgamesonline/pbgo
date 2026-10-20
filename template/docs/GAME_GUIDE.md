@@ -176,7 +176,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 | 0 | Provide the rules PDF + raw assets + name of the game | 👤 | `games/<slug>/assets/` |
 | 1 | Read the rules, write **`plan-v1.md`** (formalized rules, components, edge cases, hidden information, FR → EN glossary of the game's words) | 🤖 | plan |
 | ⭐ | **Validate the interpretation of the rules** (the most critical point: a misread rule spreads everywhere) | 👤 | ok / fixes |
-| 2 | `pnpm add-game <slug>` (copy of the template, registry entry, Sanity project, studio, write token), adapt `src/lib/site.ts` and `CLAUDE.md` (glossary) | 🤖 + 👤 (accounts) | clean package |
+| 2 | `pnpm add-game` (asks the name and the rules PDFs; copy of the template, registry entry, Sanity project, Studio, rules PDFs, write token; the skill `game-new` runs it), adapt `src/lib/site.ts` and `CLAUDE.md` (glossary) | 🤖 + 👤 (accounts) | clean package |
 | 3 | **Engine**: types, setup, actions, scoring, filtered view, `waitingFor` / `autoPlayFor`, tests + simulation | 🤖 | green tests |
 | ⭐ | Validate the engine through a summary of the coded rules (and, if possible, a simulated text game) | 👤 | ok |
 | 4 | Sanity schemas + migration + seed (images extracted from the PDF if needed) | 🤖 | studio |

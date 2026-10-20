@@ -17,6 +17,14 @@ const publishedIdOf = (id: string) => id.replace(/^drafts\./, "").replace(/^vers
 
 /** The seed's view of a dataset. Every write is a draft write: ids are checked before anything is sent. */
 export function createSanityStore(client: SanityClient): SeedStore {
+  const findAssets = async (type: "sanity.imageAsset" | "sanity.fileAsset", sha1s: string[]) => {
+    const found = new Map<string, string>()
+    if (!sha1s.length) return found
+    const assets = await client.fetch<{ _id: string; sha1hash: string }[]>(`*[_type == "${type}" && sha1hash in $sha1s]{ _id, sha1hash }`, { sha1s })
+    for (const asset of assets) found.set(asset.sha1hash, asset._id)
+    return found
+  }
+
   return {
     async getDocuments(ids) {
       const found = new Map<string, StoredDoc>()
@@ -31,16 +39,17 @@ export function createSanityStore(client: SanityClient): SeedStore {
       return [...new Set(ids.map(publishedIdOf))]
     },
 
-    async findImageAssets(sha1s) {
-      const found = new Map<string, string>()
-      if (!sha1s.length) return found
-      const assets = await client.fetch<{ _id: string; sha1hash: string }[]>(`*[_type == "sanity.imageAsset" && sha1hash in $sha1s]{ _id, sha1hash }`, { sha1s })
-      for (const asset of assets) found.set(asset.sha1hash, asset._id)
-      return found
-    },
+    findImageAssets: (sha1s) => findAssets("sanity.imageAsset", sha1s),
 
     async uploadImage(file) {
       const asset = await client.assets.upload("image", file.data, { filename: file.filename, contentType: file.contentType })
+      return { _id: asset._id }
+    },
+
+    findFileAssets: (sha1s) => findAssets("sanity.fileAsset", sha1s),
+
+    async uploadFile(file) {
+      const asset = await client.assets.upload("file", file.data, { filename: file.filename, contentType: file.contentType })
       return { _id: asset._id }
     },
 

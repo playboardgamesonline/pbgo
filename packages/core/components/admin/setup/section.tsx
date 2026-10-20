@@ -14,6 +14,7 @@ import { cn } from "@pbgo/ui/utils"
 import { adminRequest } from "../../../lib/admin-api"
 import { adminApiBase } from "../../../lib/admin-nav"
 import { writeTokenName } from "../../../sanity/env"
+import type { DocName } from "../../../server/sanity-docs"
 import type { AdminData, SectionName } from "../../../server/settings"
 import { useAdminSlug } from "../admin-game"
 import { useDirtyGuard } from "../admin-shell"
@@ -152,6 +153,37 @@ export function ReadOnlyAlert({ writable }: { writable: boolean }) {
       <AlertTitle>Read only</AlertTitle>
       <AlertDescription>Add a Sanity token with Editor rights in {writeTokenName(slug)} to save from the admin. The values shown are the defaults from the code.</AlertDescription>
     </Alert>
+  )
+}
+
+/** The documents as the Studio titles them, so the owner finds the same name there. */
+const DOC_TITLES: Record<DocName, string> = { settings: "Settings", interface: "Visual", audio: "Audio", texts: "Copy" }
+
+const titles = (docs: DocName[]) => docs.map((d) => DOC_TITLES[d]).join(" and ")
+
+/** Tells the owner about a draft in the Studio that the admin does not simply follow (`draftState`): `docs` are the documents of the page. */
+export function DraftAlert({ drafts, docs }: { drafts: AdminData["drafts"]; docs: DocName[] }) {
+  const stale = docs.filter((d) => drafts[d] === "stale")
+  const unpublished = docs.filter((d) => drafts[d] === "unpublished")
+  return (
+    <>
+      {stale.length > 0 && (
+        <Alert>
+          <AlertTitle>Older draft in the Studio</AlertTitle>
+          <AlertDescription>
+            {titles(stale)}: the Studio holds a draft older than the published version, so the admin shows and saves the published one. Discard that draft in the Studio, because publishing it would bring back older values.
+          </AlertDescription>
+        </Alert>
+      )}
+      {unpublished.length > 0 && (
+        <Alert>
+          <AlertTitle>Draft not published yet</AlertTitle>
+          <AlertDescription>
+            {titles(unpublished)}: only a draft exists in the Studio. The admin shows and saves that draft; publish it from the Studio to put the values on the site.
+          </AlertDescription>
+        </Alert>
+      )}
+    </>
   )
 }
 

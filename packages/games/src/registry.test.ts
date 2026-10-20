@@ -3,19 +3,18 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import { isProjectId } from "@pbgo/core/sanity/env"
 import { GAMES, listedGames } from "./registry"
+import { RESERVED_SLUGS, SLUG_PATTERN } from "./slug"
 
 describe("game registry", () => {
   it("has unique, URL-safe slugs", () => {
     const slugs = GAMES.map((g) => g.slug)
     expect(new Set(slugs).size).toBe(slugs.length)
-    for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+    for (const slug of slugs) expect(slug).toMatch(SLUG_PATTERN)
   })
 
   it("keeps slugs clear of the app's own routes", () => {
-    // top-level routes of apps/web (and /api/media: a global API route next to /api/<slug>), the pages and API routes under /gamemaster
-    // that sit next to /gamemaster/<slug> (login, api, logout), plus a game's own segments. `ingest` is the PostHog proxy (a rewrite)
-    const reserved = ["api", "legal", "design", "gamemaster", "ingest", "login", "logout", "media", "admin", "preview", "game", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
-    for (const { slug } of GAMES) expect(reserved).not.toContain(slug)
+    // RESERVED_SLUGS (slug.ts) lists them, and slug.test.ts keeps that list equal to the folders of apps/web
+    for (const { slug } of GAMES) expect(RESERVED_SLUGS).not.toContain(slug)
   })
 
   it("gives every game a Sanity project id, or the placeholder of a game created by new-game", () => {

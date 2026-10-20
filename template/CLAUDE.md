@@ -59,7 +59,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - Vitest for the engine · pnpm workspaces · Vercel
 
 ## Adapting to a new game
-1. `pnpm new-game <slug>` (or `pnpm add-game <slug>` to also create the Sanity project and studio): copies this folder, renames the packages and registers the game in `packages/games`
+1. `pnpm new-game <slug>` (or `pnpm add-game`, which asks the name and the rules PDFs and also creates the Sanity project and Studio; the skill `game-new` runs it for the owner): copies this folder, renames the packages and registers the game in `packages/games`
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own
 4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and the error messages of your own codes in `ERROR_MESSAGES` of `src/lib/site.ts`
