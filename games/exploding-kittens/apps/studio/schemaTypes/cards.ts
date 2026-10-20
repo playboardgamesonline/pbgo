@@ -10,7 +10,7 @@ const ICONS = { kitten: WarningOutlineIcon, defuse: WrenchIcon, action: BoltIcon
 
 // One document per card type of a category (the Attack, the Nope, the Tacocat…), shared by every edition: an edition says how many copies of each
 // type its deck holds. A type has one illustration per printed copy (the Defuse has six), numbered from 1 like the art files (`defuse-1`, `defuse-2`…),
-// and the illustrations are the last field. The form follows the rules every game's cards follow (CLAUDE.md, "Studio forms"): no Effect or Rule
+// and the illustrations are the last field. The form follows the rules every game's cards follow (the skill `game-sanity-create`): no Effect or Rule
 // field, no description under a field, an English game key next to the localized name, and the visual last.
 const cardCategory = (category: CategoryKey) => {
   const { type, title, choices } = CATEGORIES[category]

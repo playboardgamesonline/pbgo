@@ -12,7 +12,6 @@ import { ART_SLOTS } from "./art-manifest.ts"
 import { buildCardTypes, cardTypeId, illustrationCount, illustrationKey } from "./card-types.ts"
 import { buildOriginalEdition, EDITION_ORIGINAL_ID, ORIGINAL_COPIES } from "./edition.ts"
 import { buildGame, GAME_ID } from "./game.ts"
-import { buildRules, RULES_ID, RULES_SECTION_KEYS } from "./rules.ts"
 import { buildSettings, RULES_PDF, SETTINGS_ID } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
 
@@ -22,11 +21,6 @@ type LocaleObject = { _type: "localeString" | "localeText" } & Record<LanguageId
 type Item = { _key: string; _type: string } & Record<string, any>
 
 const docs = seedDocs
-const sorted = (numbers: number[]) => [...numbers].sort((a, b) => a - b)
-const digitsOf = (text: string) => sorted((text.match(/\d+/g) ?? []).map(Number))
-const paragraphsOf = (text: string) => text.split("\n\n")
-/** The bold label that opens a paragraph, without its closing full stop (`Hops!` and `NÖ!` keep their own mark). */
-const labelOf = (paragraph: string) => (paragraph.match(/^\*\*(.+?)\*\*/)?.[1] ?? "").replace(/\.$/, "")
 
 /** Every localeString and localeText of a value, with the path where it sits. */
 function localeObjects(value: unknown, path: string): { path: string; value: LocaleObject }[] {
@@ -42,10 +36,6 @@ const allLocaleObjects = () => docs().flatMap((doc) => localeObjects(doc, doc._i
 /** Every single text, with the document, field and language it belongs to. */
 const allTexts = () =>
   allLocaleObjects().flatMap(({ path, value }) => LANGUAGE_IDS.map((language) => ({ where: `${path}.${language}`, language, kind: value._type, text: value[language] })))
-
-const rulesDoc = () => buildRules() as Doc
-const sectionOf = (key: string) => (rulesDoc().sections as Item[]).find((section) => section._key === key) as Item
-const wholeRules = (language: LanguageId) => [rulesDoc().intro[language], ...(rulesDoc().sections as Item[]).map((section) => section.body[language])].join("\n\n")
 
 // The keys of GAM-12 and of the engine catalogue (GAM-7): kebab-case, in this order
 const ENGINE_KEYS = [
@@ -110,8 +100,8 @@ const PILE = { 2: pileAtStart(2), 3: pileAtStart(3), 4: pileAtStart(4), 5: pileA
 describe("the seed documents", () => {
   const count = (type: string) => docs().filter((doc) => doc._type === type).length
 
-  it("are the 17 documents of the Original Edition seed", () => {
-    expect(docs()).toHaveLength(17)
+  it("are the 16 documents of the Original Edition seed", () => {
+    expect(docs()).toHaveLength(16)
     expect({
       kittenCard: count("kittenCard"),
       defuseCard: count("defuseCard"),
@@ -120,7 +110,6 @@ describe("the seed documents", () => {
       catCard: count("catCard"),
       edition: count("edition"),
       game: count("game"),
-      rules: count("rules"),
       settings: count("settings"),
     }).toEqual({
       kittenCard: 1,
@@ -130,10 +119,13 @@ describe("the seed documents", () => {
       catCard: 5,
       edition: 1,
       game: 1,
-      rules: 1,
       settings: 1,
     })
-    expect(docs().map((doc) => doc._id)).toEqual([...CARD_IDS, "edition-original", "game", "rules", "settings"])
+    expect(docs().map((doc) => doc._id)).toEqual([...CARD_IDS, "edition-original", "game", "settings"])
+  })
+
+  it("seed no rules document: the rules are a link to the publisher's PDF, in the settings", () => {
+    expect(docs().filter((doc) => doc._type === "rules" || doc._id === "rules")).toEqual([])
   })
 
   it("have unique ids", () => {
@@ -148,9 +140,9 @@ describe("the seed documents", () => {
     }
   })
 
-  it("keep the game, the rules and the settings as singletons under the id of their type", () => {
-    expect({ [GAME_ID]: "game", [RULES_ID]: "rules", [SETTINGS_ID]: "settings" }).toEqual({ game: "game", rules: "rules", settings: "settings" })
-    for (const type of ["game", "rules", "settings"]) expect(docs().find((doc) => doc._type === type)?._id).toBe(type)
+  it("keep the game and the settings as singletons under the id of their type", () => {
+    expect({ [GAME_ID]: "game", [SETTINGS_ID]: "settings" }).toEqual({ game: "game", settings: "settings" })
+    for (const type of ["game", "settings"]) expect(docs().find((doc) => doc._type === type)?._id).toBe(type)
     expect(EDITION_ORIGINAL_ID).toBe("edition-original")
   })
 
@@ -178,7 +170,7 @@ describe("the seed documents", () => {
     tacocat.name.fr = "changed"
     tacocat.illustrations[0].number = 99
     tacocat.extra = true
-    ;(first.find((doc) => doc._id === RULES_ID) as Doc).intro.fr = "changed"
+    ;(first.find((doc) => doc._id === EDITION_ORIGINAL_ID) as Doc).name.fr = "changed"
 
     expect(beardCat.name.fr).toBe(beardCatName)
     expect(second).not.toBe(first)
@@ -392,214 +384,6 @@ describe("the game", () => {
   })
 })
 
-describe("the rules", () => {
-  const keys = ["intro", ...RULES_SECTION_KEYS]
-  const textOf = (key: string, language: LanguageId): string => (key === "intro" ? rulesDoc().intro[language] : sectionOf(key).body[language])
-
-  // Figures of each paragraph, in French; the other languages must agree with them
-  const FIGURES: Record<string, number[][]> = {
-    intro: [[2, 5, 15]],
-    goal: [[], []],
-    setup: [[2, 4, 5, 6], [7, 8], [2, 4, 5], [2, 3, 4, 5, 16, 23, 29, 35]],
-    turn: [[], [], []],
-    explosion: [[], [], []],
-    cards: [[], [2], [], [], [], [3], [], [4]],
-    combos: [[], [2], [3], [5]],
-    nope: [[], [], [3, 5, 5, 8], [], [], []],
-    attack: [[2, 2], [2, 3, 4, 4, 6], []],
-    end: [[2], [], [], []],
-    online: [[], [3], [], []],
-  }
-
-  it("is one document with an introduction and ten sections, in this order", () => {
-    expect(Object.keys(rulesDoc()).sort()).toEqual(["_id", "_type", "intro", "sections"])
-    expect(rulesDoc()._id).toBe(RULES_ID)
-    expect(rulesDoc().intro._type).toBe("localeText")
-    expect((rulesDoc().sections as Item[]).map((section) => section._key)).toEqual(["goal", "setup", "turn", "explosion", "cards", "combos", "nope", "attack", "end", "online"])
-    expect(RULES_SECTION_KEYS).toEqual((rulesDoc().sections as Item[]).map((section) => section._key))
-    expect(Object.keys(FIGURES)).toEqual(keys)
-  })
-
-  it("gives every section a title and a body, in the four languages", () => {
-    for (const section of rulesDoc().sections as Item[]) {
-      expect(section._type, section._key).toBe("section")
-      expect(section.title._type, section._key).toBe("localeString")
-      expect(section.body._type, section._key).toBe("localeText")
-      for (const language of LANGUAGE_IDS) {
-        expect(section.title[language].length, `${section._key} ${language}`).toBeGreaterThan(2)
-        expect(section.body[language].length, `${section._key} ${language}`).toBeGreaterThan(40)
-      }
-    }
-  })
-
-  it.each([
-    ["goal", "But du jeu", "Goal", "Objetivo", "Ziel"],
-    ["setup", "Mise en place", "Setup", "Preparación", "Vorbereitung"],
-    ["turn", "Le tour de jeu", "Your turn", "El turno", "Der Spielzug"],
-    ["explosion", "Explosion et désamorçage", "Exploding and defusing", "Explosión y desactivación", "Explosion und Entschärfung"],
-    ["cards", "Les cartes", "The cards", "Las cartas", "Die Karten"],
-    ["combos", "Les combinaisons", "Combinations", "Combinaciones", "Kombinationen"],
-    ["nope", "La fenêtre de Non", "The Nope window", "La ventana de Nope", "Das Nö-Fenster"],
-    ["attack", "Attaques en chaîne", "Stacked attacks", "Ataques en cadena", "Angriffe in Serie"],
-    ["end", "Fin de partie", "End of the game", "Fin de la partida", "Spielende"],
-    ["online", "Jouer en ligne", "Playing online", "Jugar en línea", "Online spielen"],
-  ] as const)("titles the section %s", (key, fr, en, es, de) => {
-    expect(sectionOf(key).title).toEqual({ _type: "localeString", fr, en, es, de })
-  })
-
-  describe("in the four languages", () => {
-    it.each(Object.entries(FIGURES))("%s has the paragraphs and the figures of the rules", (key, expected) => {
-      expect(paragraphsOf(textOf(key, "fr")).map(digitsOf)).toEqual(expected)
-    })
-
-    it.each(keys)("%s has the same number of paragraphs", (key) => {
-      const expected = paragraphsOf(textOf(key, "fr")).length
-      for (const language of LANGUAGE_IDS) expect(paragraphsOf(textOf(key, language)), `${key} ${language}`).toHaveLength(expected)
-    })
-
-    it.each(keys)("%s has the same number of bold marks", (key) => {
-      const marks = (language: LanguageId) => (textOf(key, language).match(/\*\*/g) ?? []).length
-      expect(marks("fr") % 2).toBe(0)
-      for (const language of LANGUAGE_IDS) expect(marks(language), `${key} ${language}`).toBe(marks("fr"))
-    })
-
-    it.each(keys)("%s gives the same figures in each paragraph", (key) => {
-      const paragraphs = (language: LanguageId) => paragraphsOf(textOf(key, language))
-      paragraphs("fr").forEach((paragraph, index) => {
-        for (const language of LANGUAGE_IDS) expect(digitsOf(paragraphs(language)[index] as string), `${key} ¶${index + 1} ${language}`).toEqual(digitsOf(paragraph))
-      })
-    })
-
-    it("keeps the bold for the labels of the cards and of the combinations, one label at the head of each entry", () => {
-      const bold = Object.fromEntries(keys.map((key) => [key, (textOf(key, "fr").match(/\*\*/g) ?? []).length]))
-      expect(bold).toEqual({ intro: 0, goal: 0, setup: 0, turn: 0, explosion: 0, cards: 14, combos: 6, nope: 0, attack: 0, end: 0, online: 0 })
-      for (const language of LANGUAGE_IDS) {
-        for (const key of ["cards", "combos"]) {
-          const [lead, ...entries] = paragraphsOf(textOf(key, language))
-          expect(lead, `${key} ${language}`).not.toContain("**")
-          for (const entry of entries) {
-            expect(entry, `${key} ${language}`).toMatch(/^\*\*[^*]+\*\* \S/)
-            expect((entry.match(/\*\*/g) ?? []).length, `${key} ${language}`).toBe(2)
-          }
-        }
-      }
-    })
-
-    it.each([
-      ["fr", ["pioche", "défausse", "fenêtre de Non", "Deux pareilles", "Trois pareilles", "Kit de désamorçage"]],
-      ["en", ["draw pile", "discard pile", "Nope window", "Pair", "Three of a kind"]],
-      ["es", ["mazo", "descarte", "ventana de Nope", "Pareja", "Trío"]],
-      ["de", ["Spielstapel", "Ablagestapel", "Nö-Fenster", "Pärchen", "Drilling", "Fünfling"]],
-    ] as const)("uses the vocabulary of the glossary in %s", (language, terms) => {
-      for (const term of terms) expect(wholeRules(language), term).toContain(term)
-    })
-  })
-
-  describe("figures and options that the engine and the lobby rely on", () => {
-    const DEAL: Record<LanguageId, string> = {
-      fr: `${PILE[2]} cartes avec 2 joueurs, ${PILE[3]} avec 3 joueurs, ${PILE[4]} avec 4 joueurs et ${PILE[5]} avec 5 joueurs`,
-      en: `${PILE[2]} cards with 2 players, ${PILE[3]} with 3, ${PILE[4]} with 4 and ${PILE[5]} with 5`,
-      es: `${PILE[2]} cartas con 2 jugadores, ${PILE[3]} con 3, ${PILE[4]} con 4 y ${PILE[5]} con 5`,
-      de: `${PILE[2]} Karten bei 2 Personen, ${PILE[3]} bei 3, ${PILE[4]} bei 4 und ${PILE[5]} bei 5`,
-    }
-    const SETUP: Record<LanguageId, string[]> = {
-      fr: [`${KITTENS} Exploding Kittens`, `${DEFUSES} Kits de désamorçage`, `chaque joueur en reçoit ${HAND}`, `compte donc ${HAND + 1} cartes`],
-      en: [`the ${KITTENS} Exploding Kittens and the ${DEFUSES} Defuses`, `every player is dealt ${HAND} of them`, `a starting hand has ${HAND + 1} cards`],
-      es: [`los ${KITTENS} Exploding Kittens y las ${DEFUSES} Desactivaciones`, `cada jugador recibe ${HAND}`, `la mano inicial tiene ${HAND + 1} cartas`],
-      de: [`die ${KITTENS} Exploding Kittens und die ${DEFUSES} Entschärfungen`, `jede Person bekommt ${HAND}`, `die Starthand also aus ${HAND + 1} Karten`],
-    }
-    const WORDING: Record<LanguageId, string[]> = {
-      fr: [
-        // the Nope window: 5 seconds by default, 3, 5 or 8 chosen in the lobby
-        "Elle dure 5 secondes par défaut ; l’hôte peut choisir 3, 5 ou 8 secondes avant la partie.",
-        // the combination of five different cards is on by default, like the engine's `fiveDifferent`; the host can turn it off
-        "**Cinq différentes.** Option, activée par défaut ; l’hôte peut la désactiver avant la partie.",
-        "le joueur suivant doit jouer 4 tours",
-        "4 exemplaires",
-        "Il n’y a pas de points",
-        "Il n’y a jamais d’égalité",
-      ],
-      en: [
-        "It lasts 5 seconds by default; the host can pick 3, 5 or 8 seconds before the game.",
-        "**Five different.** An option, on by default; the host can turn it off before the game.",
-        "the next player takes 4 turns",
-        "4 copies of each",
-        "There are no points",
-        "There are never any ties",
-      ],
-      es: [
-        "Dura 5 segundos por defecto; el anfitrión puede elegir 3, 5 u 8 segundos antes de la partida.",
-        "**Cinco distintas.** Es una opción, activada por defecto; el anfitrión puede desactivarla antes de la partida.",
-        "debe jugar 4 turnos",
-        "4 copias de cada una",
-        "No hay puntos",
-        "Nunca hay empates",
-      ],
-      de: [
-        "Standardmäßig dauert es 5 Sekunden; der Gastgeber kann vor dem Spiel 3, 5 oder 8 Sekunden wählen.",
-        "**Fünfling.** Eine Option, standardmäßig an; der Gastgeber kann sie vor dem Spiel ausschalten.",
-        "muss die nächste Person 4 Züge spielen",
-        "jeweils 4 Exemplare",
-        "Punkte gibt es nicht",
-        "Gleichstände gibt es nie",
-      ],
-    }
-
-    it.each(LANGUAGE_IDS)("state the deal of the Original Edition in %s", (language) => {
-      const setup = sectionOf("setup").body[language] as string
-      expect(setup).toContain(DEAL[language])
-      for (const phrase of SETUP[language]) expect(setup, phrase).toContain(phrase)
-    })
-
-    it.each(LANGUAGE_IDS)("keep the wording of the options, the stacked attacks and the end of the game in %s", (language) => {
-      for (const phrase of WORDING[language]) expect(wholeRules(language), phrase).toContain(phrase)
-    })
-
-    it("leave out what is not decided: the faster game and the classic deal", () => {
-      expect(wholeRules("fr")).not.toMatch(/partie rapide|distribution classique/i)
-      expect(wholeRules("en")).not.toMatch(/faster game|classic/i)
-      expect(wholeRules("es")).not.toMatch(/partida rápida|reparto clásico/i)
-      expect(wholeRules("de")).not.toMatch(/schnelles spiel|klassische/i)
-    })
-
-    it("make no claim about counting cards", () => {
-      expect(wholeRules("fr")).not.toMatch(/compter les cartes|bonne guerre|fair-?play/i)
-      expect(wholeRules("en")).not.toMatch(/counting cards|fair play/i)
-      expect(wholeRules("es")).not.toMatch(/contar (las )?cartas|juego limpio/i)
-      expect(wholeRules("de")).not.toMatch(/Karten (mit)?zählen|Fairplay|Fair Play/i)
-    })
-  })
-
-  describe("and the other documents", () => {
-    const names = (key: CardTypeKey, language: LanguageId): string => (buildCardTypes() as Doc[]).find((doc) => doc.key === key)?.name[language]
-
-    it("calls the six action cards by the names of their card types, in every language", () => {
-      const sixKeys = CARD_TYPE_KEYS.slice(2, 8)
-      expect(sixKeys).toEqual(["attack", "skip", "favor", "shuffle", "see-the-future", "nope"])
-      for (const language of LANGUAGE_IDS) {
-        const labels = paragraphsOf(sectionOf("cards").body[language]).slice(1, 7).map(labelOf)
-        expect(labels, language).toEqual(sixKeys.map((key) => names(key, language)))
-      }
-    })
-
-    it("names the five cats as their card types do", () => {
-      for (const language of LANGUAGE_IDS) {
-        const cats = paragraphsOf(sectionOf("cards").body[language]).at(-1) as string
-        for (const key of CATS) expect(cats, `${key} ${language}`).toContain(names(key, language))
-      }
-    })
-
-    it.each([
-      ["fr", ["Deux pareilles", "Trois pareilles", "Cinq différentes"]],
-      ["en", ["Pair", "Three of a kind", "Five different"]],
-      ["es", ["Pareja", "Trío", "Cinco distintas"]],
-      ["de", ["Pärchen", "Drilling", "Fünfling"]],
-    ] as const)("calls the three combinations by the glossary in %s", (language, labels) => {
-      expect(paragraphsOf(sectionOf("combos").body[language]).slice(1).map(labelOf)).toEqual(labels)
-    })
-  })
-})
-
 describe("the settings", () => {
   const settings = () => buildSettings() as Doc
   const CONJUNCTION: Record<LanguageId, string> = { fr: "et", en: "and", es: "y", de: "und" }
@@ -647,8 +431,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // 13 card types (name), the edition name, the introduction of the rules, 10 sections (title, body), the credits
-    expect(objects).toHaveLength(36)
+    // 13 card types (name), the edition name, the credits
+    expect(objects).toHaveLength(15)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 

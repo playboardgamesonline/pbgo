@@ -112,7 +112,7 @@ describe("the Studio", () => {
     // the Studio offers no "new document" template for a singleton, which it opens by the name of its type
     const creatable = studio.schema.templates(SEED_TYPES.map((schemaType) => ({ schemaType }))).map(({ schemaType }) => schemaType)
     const singletons = SEED_TYPES.filter((type) => !creatable.includes(type))
-    expect([...singletons].sort()).toEqual(["game", "rules", "settings"])
+    expect([...singletons].sort()).toEqual(["game", "settings"])
     for (const doc of seedDocs()) expect(doc._id === doc._type, doc._id).toBe(singletons.includes(doc._type))
   })
 })
@@ -180,8 +180,6 @@ describe("the seed documents", () => {
       ["a mat that is not an image", "game", (doc) => (doc.mat = "mat.webp"), "game.mat should be an image"],
       ["a publisher link that is not an address", "settings", (doc) => (doc.publisherUrl = "explodingkittens"), "settings.publisherUrl should be a URL"],
       ["a rulebook link with a scheme the Studio refuses", "settings", (doc) => (doc.rulesPdfEn = "ftp://example.com/rules.pdf"), "settings.rulesPdfEn should be a URL"],
-      ["an introduction that is not a localeText", "rules", (doc) => (doc.intro = "Exploding Kittens"), "rules.intro should be an object"],
-      ["a section typed as something else", "rules", (doc) => (doc.sections[0]._type = "chapter"), 'rules.sections[0] has the type "chapter"'],
     ])("%s", (_name, id, change, expected) => {
       const doc = docOf(id)
       change(doc)
@@ -216,7 +214,7 @@ describe("the option lists of the Studio", () => {
   })
 })
 
-// The rules every game's cards follow (CLAUDE.md, "Studio forms"), kept by the same tests in every game: Hanabi's schema.test.ts is the model.
+// The rules every game's cards follow (the skill `game-sanity-create`), kept by the same tests in every game: Hanabi's schema.test.ts is the model.
 // The game singleton only holds the pictures of the card back, the box and the mat, so it follows the one about descriptions too, and the one about tabs.
 describe("the forms of the cards", () => {
   const FORM_TYPES = [...CARD_TYPES, "edition", "game"]
