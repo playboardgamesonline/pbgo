@@ -14,7 +14,6 @@ export const audio = defineType({
     defineField({
       name: "volumes",
       title: "Default volumes",
-      description: "0 to 1 — players can change them in the game",
       type: "object",
       fields: [volume("master", "Master"), volume("music", "Music"), volume("effects", "Effects"), volume("ambience", "Ambience")],
     }),
@@ -31,7 +30,7 @@ export const audio = defineType({
             defineField({ name: "key", title: "Key", type: "string", validation: (r) => r.required() }),
             defineField({ name: "title", title: "Title", type: "string" }),
             defineField({ name: "file", title: "File (MP3)", type: "file", options: mp3 }),
-            defineField({ name: "loopEnd", title: "Loop end (s)", description: "Musical end of the loop, before the reverb tail", type: "number" }),
+            defineField({ name: "loopEnd", title: "Loop end (s)", type: "number" }),
           ],
           preview: { select: { title: "title", subtitle: "key" } },
         },
@@ -49,7 +48,6 @@ export const audio = defineType({
     defineField({
       name: "effects",
       title: "Effects",
-      description: "Keys are declared by the game code",
       type: "array",
       of: [
         {

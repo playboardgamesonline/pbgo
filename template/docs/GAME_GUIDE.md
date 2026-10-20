@@ -127,6 +127,10 @@ supabase/migrations/               # the shared schema (table games with a game 
 - Formats: `.webp` for images, `.svg` for pictograms, `.mp3` for sounds.
 - URLs built with `asset()` from `src/lib/site.ts` (`asset("/cards/BACK.webp")` → `/<slug>/cards/BACK.webp`).
 
+### Studio forms (what the owner fills in)
+The owner fills the cards, colors and tiles one by one in the Studio, so every game's forms are short and in the same order. What to ask the owner first (which kinds, which categories, which pictures), the rules and the don'ts are written once, in the skill `game-sanity-create` (`.claude/skills/`): follow it, do not copy it here. `schemaTypes/game.ts` of the template is the starting point for the `game` document (in tabs), Courtisans' `game` the full model.
+- **`studio-forms.test.ts`** (next to `sanity.config.ts`, copied by `pnpm new-game`) keeps the rules that hold for the whole Studio: `formProblems(studioTypes(studio))` of `@pbgo/content-kit/form-rules` fails on a `description` anywhere and on a `game` document that is not in tabs. A game with a seed also keeps the rules of its cards in its `schema.test.ts` (model: "the forms of the cards" in `games/hanabi/content/data/schema.test.ts`).
+
 ### Commits
 - Gitmoji: `<emoji>(<slug>): <description>`; `core`, `web` or `repo` for shared code.
 - Frequent commits, one per significant feature.

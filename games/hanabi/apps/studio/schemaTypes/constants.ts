@@ -58,4 +58,17 @@ export type RatingKey = (typeof RATING_KEYS)[number]
 export const BONUS_TILE_NUMBERS = [1, 2, 3, 4, 5, 6] as const
 export type BonusTileNumber = (typeof BONUS_TILE_NUMBERS)[number]
 
+/** English game keys of the six tiles, in the order of their numbers: the stable id of a tile (its name is localized). */
+export const BONUS_TILE_KEYS = ["extraClue", "repair", "colorClue", "numberClue", "recycle", "secondChance"] as const
+export type BonusTileKey = (typeof BONUS_TILE_KEYS)[number]
+
+export const BONUS_TILES: { title: string; value: BonusTileKey }[] = [
+  { title: "Extra clue", value: "extraClue" },
+  { title: "Repair", value: "repair" },
+  { title: "Color clue", value: "colorClue" },
+  { title: "Number clue", value: "numberClue" },
+  { title: "Recycle", value: "recycle" },
+  { title: "Second chance", value: "secondChance" },
+]
+
 export const titleOf = (list: { title: string; value: string }[], value: unknown) => list.find((i) => i.value === value)?.title

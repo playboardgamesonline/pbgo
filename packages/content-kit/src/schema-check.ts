@@ -4,20 +4,24 @@
 
 type Shape = {
   type: string
+  description?: unknown
   fields?: FieldDef[]
   of?: MemberDef[]
   options?: { list?: unknown[] }
   validation?: unknown
 }
 
-/** A field, as `defineField` returns it. */
-export type FieldDef = Shape & { name: string }
+/** A tab of a document form (a Sanity group). */
+export type GroupDef = { name: string; title?: string; default?: boolean }
+
+/** A field, as `defineField` returns it. `group` is the tab(s) of the document form it appears in. */
+export type FieldDef = Shape & { name: string; group?: string | string[] }
 
 /** An array member, as `defineArrayMember` returns it. */
 export type MemberDef = Shape & { name?: string }
 
-/** A registered type: a document, or a reusable object such as `localeString`. */
-export type TypeDef = Shape & { name: string }
+/** A registered type: a document, or a reusable object such as `localeString`. A document lists its tabs in `groups`. */
+export type TypeDef = Shape & { name: string; groups?: GroupDef[] }
 
 export type Types = ReadonlyMap<string, TypeDef>
 
