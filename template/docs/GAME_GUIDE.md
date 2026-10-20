@@ -17,7 +17,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 | Debug | **leva** (settings panels, custom tabs) | live settings, copyable |
 | Engine | **pure TypeScript** + **Vitest** (`packages/engine` of the game) | game rules, no UI dependency |
 | Realtime / DB | **Supabase** (Postgres + Realtime), one project for every game | games storage + update broadcast |
-| CMS | **Sanity**, one project and one standalone studio per game (`apps/studio`) | images, texts, rules, cards |
+| CMS | **Sanity**, one project and one standalone studio per game (`apps/studio`) | images, texts, cards (the rules are a PDF link) |
 | Hosting | **Vercel**, one project (`pbgo`, root `apps/web`), deployed from GitHub `main` | production + previews |
 
 ⚠️ Next.js 16 has breaking changes: the AI reads `apps/web/node_modules/next/dist/docs/` before coding (see `apps/web/AGENTS.md`).
@@ -32,9 +32,9 @@ How to build a new multiplayer online board game on this monorepo, starting from
 4. **"Ping + refetch" realtime.** After each write (optimistic lock on `version`), the server broadcasts `update` on the Supabase channel `game:<slug>:<code>`; clients refetch their view. No sensitive data in the channel.
 5. **Identity without an account.** httpOnly cookie (`<slug>_player`) = player id. Nickname kept in the local profile (`<slug>:profile`).
 6. **Declarative game options.** The game declares `options` (`number` / `choice` / `boolean`); the lobby renders them and the host edits them (`POST /api/<slug>/games/<code>/options`, values passed through `normalizeOptions`).
-7. **Content in Sanity, defaults in the code.** The site works with an empty Sanity project (default rules, skin and texts); Sanity overrides them.
+7. **Content in Sanity, defaults in the code.** The site works with an empty Sanity project (default skin and texts); Sanity overrides them.
 8. **3D = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` animates each object to its pose. Same React key = same object ⇒ real moves (hand → table).
-9. **DOM UI over the 3D** (header, log, announcements, game over, rules). The ticker, players strip, announcements, takeover pill, chat, seat label and game over are the shared in-game UI: written once, drawn in the game's own look, tuned through `UI_THEME` (see "In-game UI" below).
+9. **DOM UI over the 3D** (header, log, announcements, game over). The ticker, players strip, announcements, takeover pill, chat, seat label and game over are the shared in-game UI: written once, drawn in the game's own look, tuned through `UI_THEME` (see "In-game UI" below).
 10. **Code split per game.** The hub loads no game code; a game's pages load only that game (`@pbgo/games` imports each binding on demand), and its board (three.js) only on the game page.
 11. **The engine says who the game waits for.** `waitingFor(state)` lists the players the game waits for (one on a classic turn, several on a simultaneous step) and `autoPlayFor(state, playerId)` plays for one of them when they are absent. See below.
 12. **Lean state.** The state holds ids and numbers only: no display data (names, texts, labels, image paths: the catalogue and Sanity have them, the client draws them), no derived values (totals, leaders, pile sizes: compute them), no log (what happened is not what the next move needs). The seeded helpers of the engine-kit for the card games (`rng`, `ids`, `deck`, `log`, `rounds`) are built for it; see `packages/engine-kit/README.md`.
@@ -156,7 +156,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 - Write and test the **engine** (rules + Vitest tests, full game simulations included).
 - Sanity schemas, GROQ queries, `typegen`, idempotent content migration scripts.
 - The game's binding: board, game data loaders, the game's own API routes when it needs some.
-- 3D scene, animations, DOM UI, rules, game over, sharing.
+- 3D scene, animations, DOM UI, game over, sharing.
 - Expose **every visual setting in the debug panel** with "Copy values".
 - Check each change: `pnpm typecheck`, `pnpm lint`, `pnpm --filter web build`, screenshots (headless 3D rendering is slow: screenshots check the layout, not the FPS).
 - Commit (gitmoji); never commit `.env.local` or unrelated local changes.
@@ -183,7 +183,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 | 8 | Opening (animated setup), turn announcements | 🤖 | |
 | 9 | Game over: scoring sequence, score table, replay, image sharing | 🤖 | |
 | ⭐ | **Game over & sharing** (the emotional moment of the game) | 👤 | feedback |
-| 10 | In-app rules (Sanity texts, illustrations), SEO, share image | 🤖 + 👤 (texts) | |
+| 10 | Rules: the publisher's PDF linked per language in Setup › Mechanics (no rules text in Sanity), SEO, share image | 🤖 + 👤 (the PDF) | |
 | 11 | **Real multiplayer test** (2 → max players, reconnection, leaving mid-game) | 👤 | reported bugs |
 | 12 | Performance (FPS on an average machine), accessibility, mobile | 🤖 | |
 | 13 | Sound (last) | 🤖 + 👤 (sounds) | |
@@ -204,7 +204,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 - Home, lobby and game options (rendered from `GAME.options`), chat, absent players (per-player takeover votes, `StalledTurn`), game over, sharing
 - The in-game UI (ticker, players strip, announcements, takeover pill, chat, game over): one look, tuned per game by `UI_THEME` only
 - Debug: panel, tabs, `useSettings` (Copy values, FPS), START / NEXT TURN / END buttons
-- Rules in tabs (Sanity singleton `rules` + code defaults)
+- Rules: the toolbar's Rules button opens the PDF set per language in `settings` (Setup › Mechanics), the visitor's language, else English, else the first one set
 - SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/gamemaster/<slug>` (Setup, Tasks, Monitoring + Vercel Web Analytics)
 
 **Specific (written per game, in `games/<slug>`)**

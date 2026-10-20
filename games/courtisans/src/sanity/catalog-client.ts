@@ -1,10 +1,9 @@
 import "server-only"
 import type { Family, Role } from "@courtisans/engine"
 import type { LoaderContext } from "@pbgo/core/lib/binding"
-import { type Localized, only } from "@pbgo/core/lib/i18n"
+import { only } from "@pbgo/core/lib/i18n"
 import { type SanityImageSource, urlFor } from "@pbgo/core/sanity/image"
 import { defaultCatalog, type ClientCatalog, cardKey, ROLE_VISUAL_FAMILIES, RULES_MISSION_VISUALS, type RoleRules } from "../lib/catalog"
-import type { RuleTexts } from "../lib/default-rules"
 import { getCatalog } from "./catalog"
 
 /** Catalog given to the board (card images, families, roles, game texts): Sanity, completed by the defaults of the code. */
@@ -16,7 +15,7 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
   const url = (source: SanityImageSource | null | undefined, width: number) =>
     source ? (isSvg(source) ? urlFor(module, source).url() : urlFor(module, source).width(width).url()) : null
   try {
-    const { game, rules, texts, families, roles, courtiers, missions } = await getCatalog(sanity)
+    const { game, texts, families, roles, courtiers, missions } = await getCatalog(sanity)
 
     const familiesMap = { ...d.families }
     for (const f of families) {
@@ -72,14 +71,7 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       arrowUpUrl: url(game?.arrowUp, 256) ?? d.arrowUpUrl,
       arrowDownUrl: url(game?.arrowDown, 256) ?? d.arrowDownUrl,
       rules: {
-        texts: Object.fromEntries(
-          Object.entries(d.rules.texts).map(([key, defaultValue]) => {
-            const raw = rules?.[key as keyof typeof rules] as unknown
-            // plain text in Sanity = the French version
-            const value = typeof raw === "string" ? (locale === "fr" ? raw : undefined) : only(raw as Localized, locale)
-            return [key, value?.trim() ? value : defaultValue]
-          }),
-        ) as RuleTexts,
+        texts: d.rules.texts,
         roles: roleRules,
         families: d.rules.families.map((f) => ({
           ...f,

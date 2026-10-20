@@ -12,6 +12,8 @@ Conventions used in this document:
 
 State at the time of writing (commit `392e07b`): the web side was still a standalone app, `games/courtisans/apps/web`, importing `@courtisans/engine`; only the engine was wired to `@pbgo/engine-kit` via `engine/game.ts` (`GAME`), and the app did not use `@pbgo/core` yet. Since then (PLT-14) the web side is the binding `@pbgo-game/courtisans` (`games/courtisans/src`) on top of `@pbgo/core`, served by the repository's single Next.js app, `apps/web`. Sections 6.2, 7 and 8 still describe the migration as it stood then.
 
+The Sanity `rules` document (the illustrated rules tabs of §5.2, the `rules` row of the table in §6.1, `LEGACY_TEXT`) no longer exists (GAM-14): the rules reach players as PDF links, set in `settings`. Wherever this snapshot mentions that document, read it as history.
+
 ---
 
 ## Contents

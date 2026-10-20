@@ -28,7 +28,7 @@ describe("node content/seed.ts", () => {
 
   it.each<[string, string[], string]>([
     ["an option it does not know", ["--frobnicate"], "Error: Unknown option --frobnicate"],
-    ["a word that is not an option", ["rules"], 'Error: Unexpected argument "rules"'],
+    ["a word that is not an option", ["cards"], 'Error: Unexpected argument "cards"'],
     ["an option that needs a value and gets none", ["--only"], "Error: --only needs a value"],
     ["an option whose value looks like another option", ["--art-dir", "--apply"], "Error: --art-dir needs a value"],
     ["--apply together with --dry-run", ["--apply", "--dry-run"], "Error: --apply and --dry-run exclude each other"],

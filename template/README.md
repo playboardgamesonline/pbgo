@@ -1,6 +1,6 @@
 # Template · La Plus Haute
 
-Shared base of the online board games, served by `apps/web` at `/template`: lobby with game options, realtime 3D table, shareable game over, rules from Sanity, administration at `/gamemaster/template` (Setup, Tasks, Monitoring).
+Shared base of the online board games, served by `apps/web` at `/template`: lobby with game options, realtime 3D table, shareable game over, administration at `/gamemaster/template` (Setup, Tasks, Monitoring).
 
 ## Start
 

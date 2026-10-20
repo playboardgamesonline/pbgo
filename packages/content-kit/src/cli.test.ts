@@ -67,16 +67,16 @@ describe("parseCli", () => {
 
   describe("--only", () => {
     it("takes ids and types separated by commas", () => {
-      expect(parseCli(["--only", "rules,settings"]).only).toEqual(["rules", "settings"])
-      expect(parseCli(["--only=rules,settings"]).only).toEqual(["rules", "settings"])
+      expect(parseCli(["--only", "game,settings"]).only).toEqual(["game", "settings"])
+      expect(parseCli(["--only=game,settings"]).only).toEqual(["game", "settings"])
     })
 
     it("trims the tokens and drops the empty ones", () => {
-      expect(parseCli(["--only", " rules , ,settings,"]).only).toEqual(["rules", "settings"])
+      expect(parseCli(["--only", " game , ,settings,"]).only).toEqual(["game", "settings"])
     })
 
     it("can be repeated", () => {
-      expect(parseCli(["--only", "rules", "--only=settings,card"]).only).toEqual(["rules", "settings", "card"])
+      expect(parseCli(["--only", "game", "--only=settings,card"]).only).toEqual(["game", "settings", "card"])
     })
 
     it.each([[["--only"]], [["--only="]], [["--only", "--apply"]]])("needs a value: %j", (argv) => {
@@ -96,8 +96,8 @@ describe("parseCli", () => {
     })
 
     it("is accepted with --only, wherever the flags are", () => {
-      expect(parseCli(["--overwrite", "--only", "rules"])).toMatchObject({ overwrite: true, only: ["rules"] })
-      expect(parseCli(["--only", "rules", "--overwrite"])).toMatchObject({ overwrite: true, only: ["rules"] })
+      expect(parseCli(["--overwrite", "--only", "game"])).toMatchObject({ overwrite: true, only: ["game"] })
+      expect(parseCli(["--only", "game", "--overwrite"])).toMatchObject({ overwrite: true, only: ["game"] })
     })
 
     it("lets --help through, so that the options can be read", () => {
@@ -121,7 +121,7 @@ describe("parseCli", () => {
     })
 
     it("refuses a loose argument, so that a forgotten -- is noticed", () => {
-      expect((usage(["rules"]) as Error).message).toBe('Unexpected argument "rules"')
+      expect((usage(["game"]) as Error).message).toBe('Unexpected argument "game"')
     })
 
     it("reports the first problem it meets", () => {
@@ -130,7 +130,7 @@ describe("parseCli", () => {
   })
 
   it("never modifies the array it reads", () => {
-    const argv = ["--", "--only", "rules", "--apply"]
+    const argv = ["--", "--only", "game", "--apply"]
     const copy = [...argv]
     parseCli(argv)
     expect(argv).toEqual(copy)

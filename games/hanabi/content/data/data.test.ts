@@ -11,7 +11,6 @@ import { ART_SLOTS } from "./art-manifest.ts"
 import { bonusTileId, buildBonusTiles, TILE_SPECS } from "./bonus-tiles.ts"
 import { buildCards, cardId, quantityOf } from "./cards.ts"
 import { buildGame, GAME_ID, ratingItemKey, ratingScale, valueGlyphKey } from "./game.ts"
-import { buildRules, RULES_ID, RULES_SECTION_KEYS } from "./rules.ts"
 import { buildSettings, RULES_PDF, SETTINGS_ID } from "./settings.ts"
 import { buildSuits, directionOf, extensionOf, suitId } from "./suits.ts"
 import { seedDocs } from "./test-fixtures.ts"
@@ -22,9 +21,6 @@ type LocaleObject = { _type: "localeString" | "localeText" } & Record<LanguageId
 type Item = { _key: string; _type: string } & Record<string, any>
 
 const docs = seedDocs
-const sorted = (numbers: number[]) => [...numbers].sort((a, b) => a - b)
-const digitsOf = (text: string) => sorted((text.match(/\d+/g) ?? []).map(Number))
-const paragraphsOf = (text: string) => text.split("\n\n")
 
 /** Every localeString and localeText of a value, with the path where it sits. */
 function localeObjects(value: unknown, path: string): { path: string; value: LocaleObject }[] {
@@ -42,23 +38,18 @@ const allLocaleObjects = () => docs().flatMap((doc) => localeObjects(doc, doc._i
 /** Every single text, with the document, field and language it belongs to. */
 const allTexts = () => allLocaleObjects().flatMap(({ path, value }) => LANGUAGE_IDS.map((language) => ({ where: `${path}.${language}`, language, kind: value._type, text: value[language] })))
 
-const rulesDoc = () => buildRules() as Doc
-const sectionOf = (key: string) => (rulesDoc().sections as Item[]).find((section) => section._key === key) as Item
-const wholeRules = (language: LanguageId) => [rulesDoc().intro[language], ...(rulesDoc().sections as Item[]).map((section) => section.body[language])].join("\n\n")
-
 const ASCENDING = { 1: 3, 2: 2, 3: 2, 4: 2, 5: 1 }
 
 describe("the seed documents", () => {
-  it("are 51: 7 suits, 35 cards, 6 bonus tiles, and the game, rules and settings singletons", () => {
+  it("are 50: 7 suits, 35 cards, 6 bonus tiles, and the game and settings singletons", () => {
     const all = docs()
-    expect(all).toHaveLength(51)
+    expect(all).toHaveLength(50)
     const count = (type: string) => all.filter((doc) => doc._type === type).length
-    expect({ suit: count("suit"), card: count("card"), bonusTile: count("bonusTile"), game: count("game"), rules: count("rules"), settings: count("settings") }).toEqual({
+    expect({ suit: count("suit"), card: count("card"), bonusTile: count("bonusTile"), game: count("game"), settings: count("settings") }).toEqual({
       suit: 7,
       card: 35,
       bonusTile: 6,
       game: 1,
-      rules: 1,
       settings: 1,
     })
   })
@@ -75,9 +66,13 @@ describe("the seed documents", () => {
     }
   })
 
-  it("keep the three singletons under the name of their type, which is how the Studio addresses them", () => {
-    expect({ [GAME_ID]: "game", [RULES_ID]: "rules", [SETTINGS_ID]: "settings" }).toEqual({ game: "game", rules: "rules", settings: "settings" })
-    for (const type of ["game", "rules", "settings"]) expect(docs().find((doc) => doc._type === type)?._id).toBe(type)
+  it("keep the two singletons under the name of their type, which is how the Studio addresses them", () => {
+    expect({ [GAME_ID]: "game", [SETTINGS_ID]: "settings" }).toEqual({ game: "game", settings: "settings" })
+    for (const type of ["game", "settings"]) expect(docs().find((doc) => doc._type === type)?._id).toBe(type)
+  })
+
+  it("seed no rules document: the rules are a link to the publisher's PDF, in the settings", () => {
+    expect(docs().filter((doc) => doc._type === "rules" || doc._id === "rules")).toEqual([])
   })
 
   it("carry nothing but content: no revision, no date, no image reference", () => {
@@ -306,125 +301,6 @@ describe("the game", () => {
   })
 })
 
-describe("the rules", () => {
-  it("are the shared rules document, with an introduction and 13 sections in a fixed order", () => {
-    const rules = rulesDoc()
-    expect(rules._id).toBe("rules")
-    expect(rules._type).toBe("rules")
-    expect(Object.keys(rules).sort()).toEqual(["_id", "_type", "intro", "sections"])
-    expect(rules.intro._type).toBe("localeText")
-    expect((rules.sections as Item[]).map((section) => section._key)).toEqual([
-      "goal",
-      "setup",
-      "turn",
-      "clue",
-      "discard",
-      "play",
-      "end",
-      "score",
-      "avalanche",
-      "blackPowder",
-      "flamboyants",
-      "bouquetFinal",
-      "online",
-    ])
-    expect(RULES_SECTION_KEYS).toEqual((rules.sections as Item[]).map((section) => section._key))
-  })
-
-  it("give every section a title on one line and a body, in each language", () => {
-    for (const section of rulesDoc().sections as Item[]) {
-      expect(section._type).toBe("section")
-      expect(section.title._type).toBe("localeString")
-      expect(section.body._type).toBe("localeText")
-      for (const language of LANGUAGE_IDS) {
-        expect(section.title[language].length, `${section._key} title ${language}`).toBeGreaterThan(2)
-        expect(section.body[language].length, `${section._key} body ${language}`).toBeGreaterThan(40)
-      }
-    }
-  })
-
-  describe("in the four languages", () => {
-    const keys = ["intro", ...RULES_SECTION_KEYS]
-    const textOf = (key: string, language: LanguageId): string => (key === "intro" ? rulesDoc().intro[language] : sectionOf(key).body[language])
-
-    it.each(keys)("%s has the same number of paragraphs", (key) => {
-      const expected = paragraphsOf(textOf(key, "fr")).length
-      for (const language of LANGUAGE_IDS) expect(paragraphsOf(textOf(key, language)), `${key} ${language}`).toHaveLength(expected)
-    })
-
-    it.each(keys)("%s has the same number of bold marks", (key) => {
-      const marks = (language: LanguageId) => (textOf(key, language).match(/\*\*/g) ?? []).length
-      expect(marks("fr") % 2).toBe(0)
-      for (const language of LANGUAGE_IDS) expect(marks(language), `${key} ${language}`).toBe(marks("fr"))
-    })
-
-    // The first paragraph of "flamboyants" says the name of the extension: it is French, so English, Spanish and German add a gloss, which has a figure of its own in German (“flamboyanten 5er”).
-    const NAMES_THE_EXTENSION: Record<string, number> = { flamboyants: 0 }
-
-    it.each(keys)("%s gives the same figures in each paragraph", (key) => {
-      const paragraphs = (language: LanguageId) => paragraphsOf(textOf(key, language))
-      paragraphs("fr").forEach((paragraph, index) => {
-        if (NAMES_THE_EXTENSION[key] === index) return
-        for (const language of LANGUAGE_IDS) expect(digitsOf(paragraphs(language)[index] as string), `${key} ¶${index + 1} ${language}`).toEqual(digitsOf(paragraph))
-      })
-    })
-
-    it("glosses the extension name once, in the first paragraph of its section, for the three languages that do not read French", () => {
-      const first = (language: LanguageId) => paragraphsOf(sectionOf("flamboyants").body[language])[0] as string
-      expect(first("fr")).not.toContain("5 Flamboyants")
-      for (const language of ["en", "es", "de"] as const) expect(first(language), language).toContain("5 Flamboyants")
-    })
-
-    it.each(LANGUAGE_IDS)("keeps the French name 5 Flamboyants in %s", (language) => {
-      expect(wholeRules(language)).toContain("5 Flamboyants")
-    })
-
-    it.each([
-      ["fr", ["jeton Indice", "tuile Erreur", "tuile Bonus"]],
-      ["en", ["clue token", "fuse token", "bonus tile"]],
-      ["es", ["ficha de pista", "ficha de error", "loseta de bonificación"]],
-      ["de", ["Hinweisplättchen", "Fehlerplättchen", "Bonusplättchen"]],
-    ] as const)("uses the vocabulary of the glossary in %s", (language, terms) => {
-      for (const term of terms) expect(wholeRules(language), term).toContain(term)
-    })
-
-    it("pins the hard numbers of the base game", () => {
-      expect(digitsOf(paragraphsOf(sectionOf("setup").body.fr).join(" "))).toEqual(sorted([10, 1, 2, 3, 4, 5, 50, 10, 60, 70, 8, 3, 5, 2, 3, 4, 4, 5]))
-      expect(sectionOf("setup").body.fr).toContain("8 jetons Indice")
-      expect(sectionOf("setup").body.fr).toContain("3 tuiles Erreur")
-      expect(sectionOf("setup").body.fr).toContain("5 cartes à 2 ou 3 joueurs, 4 cartes à 4 ou 5 joueurs")
-      expect(sectionOf("goal").body.fr).toContain("25 points")
-      expect(sectionOf("end").body.fr).toContain("0 point")
-    })
-
-    it("pins the tokens and the hands in each language, not only in French", () => {
-      expect(sectionOf("setup").body.en).toContain("8 clue tokens")
-      expect(sectionOf("setup").body.en).toContain("3 fuse tokens")
-      expect(sectionOf("setup").body.es).toContain("8 fichas de pista")
-      expect(sectionOf("setup").body.es).toContain("3 fichas de error")
-      expect(sectionOf("setup").body.de).toContain("8 Hinweisplättchen")
-      expect(sectionOf("setup").body.de).toContain("3 Fehlerplättchen")
-    })
-  })
-
-  describe("and the other documents", () => {
-    it("write the score scale of the game document into the score section", () => {
-      const scale = (language: LanguageId) => ratingScale().map(({ from, to, label }) => `**${from === to ? from : `${from}–${to}`}** ${label[language]}`).join(" · ")
-      for (const language of LANGUAGE_IDS) expect(sectionOf("score").body[language], language).toContain(scale(language))
-      expect(sectionOf("score").body.fr).toContain("**0–5** Risible · **6–10** Médiocre · **11–15** Honorable · **16–20** Excellente · **21–24** Extraordinaire · **25–29** Légendaire · **30** Divine")
-      expect(sectionOf("score").body.en).toContain("**0–5** Laughable · **6–10** Mediocre")
-    })
-
-    it("write the six bonus tiles of the bonus tile documents into the 5 Flamboyants section", () => {
-      for (const language of LANGUAGE_IDS) {
-        for (const tile of buildBonusTiles() as Doc[]) {
-          expect(sectionOf("flamboyants").body[language], `${tile._id} ${language}`).toContain(`**${tile.number}. ${tile.name[language]}.** ${tile.effect[language]}`)
-        }
-      }
-    })
-  })
-})
-
 describe("the settings", () => {
   const settings = () => buildSettings() as Doc
 
@@ -468,7 +344,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    expect(objects.length).toBeGreaterThan(50)
+    // 7 suit names, 6 tiles (name, effect), 7 ratings (label, line) and the credits
+    expect(objects).toHaveLength(34)
     for (const { path, value } of objects) {
       expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
     }

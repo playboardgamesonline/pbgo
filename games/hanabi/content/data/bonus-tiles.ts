@@ -7,7 +7,7 @@ export type TileSpec = { name: Localized; effect: Localized }
 
 // The rulebook numbers the six tiles and describes their effects; it gives them no name. The names are a first proposal.
 // Whether the two clue tiles (3 and 4) cost a clue token is not stated in the rulebook or the spec, so the wording stays neutral.
-// Exported so the rules page lists the same effects, by tile number.
+// Exported so the tests can check the effects by tile number.
 export const TILE_SPECS: Record<BonusTileNumber, TileSpec> = {
   1: {
     name: { fr: "Jeton en plus", en: "Extra clue", es: "Pista extra", de: "Extra-Hinweis" },

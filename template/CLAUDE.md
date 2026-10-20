@@ -30,7 +30,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
     - Card games, seeded and pure: `createSaveableRng` / `restoreRng` / `shuffle` / `sideSeed` (a stream carried from one action to the next), `issueIds` / `reissueId` (numeric opaque card ids; a card that goes back into hiding gets a new one), `draw` / `peek` / `insertAt` / `reshuffleDiscard` / `drawWithReshuffle` / `deal` (piles, top first), `viewLog` (a log filtered per viewer), `roundsOutcome` / `sumRounds` / `ranks` (scores over rounds until a target)
     - Lean state (every game): the state holds ids and numbers only, no display data, no derived values, no log
   - `src/demo/` is the demo game (with a simultaneous step: the secret bids of the `bids` option); `src/index.ts` exports `GAME` = the active game
-- `apps/studio` — `template-studio`, Sanity Studio built with `createStudioConfig` of `@pbgo/studio-kit` (shared singletons `settings`, `interface`, `rules`, `texts`); only `schemaTypes/game.ts` is the game's own
+- `apps/studio` — `template-studio`, Sanity Studio built with `createStudioConfig` of `@pbgo/studio-kit` (shared singletons `settings`, `interface`, `audio`, `texts`, no rules document); only `schemaTypes/game.ts` is the game's own
 - Everything else (home, lobby, game page, chat, game over, sharing, admin, API routes) comes from `@pbgo/core` and is the same for every game
 
 ## Assets
@@ -55,7 +55,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner
 - 3D: three + @react-three/fiber + drei, leva settings (debug panel `Shift+D`)
 - Realtime: Supabase (Postgres + Realtime broadcast), authoritative logic on the server (Next.js API routes of apps/web)
-- Sanity (standalone studio `apps/studio`) for rules, texts and media
+- Sanity (standalone studio `apps/studio`) for texts and media; the rules are a link to the publisher's PDF, per language, in `settings` (Gamemaster › Mechanics)
 - Vitest for the engine · pnpm workspaces · Vercel
 
 ## Adapting to a new game

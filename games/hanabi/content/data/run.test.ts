@@ -6,7 +6,6 @@ import { ART_SLOTS } from "./art-manifest.ts"
 import { cardId } from "./cards.ts"
 import { GAME_ID } from "./game.ts"
 import { buildSeedDocs } from "./index.ts"
-import { RULES_ID } from "./rules.ts"
 import { suitId } from "./suits.ts"
 
 // The runner itself is tested in @pbgo/content-kit; these tests run Hanabi's own seed and art slots through it.
@@ -59,16 +58,17 @@ describe("the Hanabi seed", () => {
     const store = new MemoryStore()
     await everything(store, apply)
     for (const doc of seed) store.publish(doc._id)
-    store.edit(RULES_ID, (doc) => {
-      delete doc.intro
+    const id = suitId("red")
+    store.edit(id, (doc) => {
+      delete doc.name
     })
-    const published = structuredClone(store.docs.get(RULES_ID))
+    const published = structuredClone(store.docs.get(id))
 
     const result = await everything(store, apply)
 
-    expect(result.plan.filter((item) => item.action !== "unchanged").map((item) => [item.id, item.action])).toEqual([[RULES_ID, "create-from-published"]])
-    expect(store.docs.get(RULES_ID)).toEqual(published)
-    expect(store.docs.get(`drafts.${RULES_ID}`)?.intro).toEqual(seed.find((doc) => doc._id === RULES_ID)?.intro)
+    expect(result.plan.filter((item) => item.action !== "unchanged").map((item) => [item.id, item.action])).toEqual([[id, "create-from-published"]])
+    expect(store.docs.get(id)).toEqual(published)
+    expect(store.docs.get(`drafts.${id}`)?.name).toEqual(seed.find((doc) => doc._id === id)?.name)
   })
 
   describe("with art", () => {

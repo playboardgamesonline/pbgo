@@ -87,7 +87,7 @@ describe("the Studio", () => {
     // the Studio offers no "new document" template for a singleton, which it opens by the name of its type
     const creatable = studio.schema.templates(SEED_TYPES.map((schemaType) => ({ schemaType }))).map(({ schemaType }) => schemaType)
     const singletons = SEED_TYPES.filter((type) => !creatable.includes(type))
-    expect([...singletons].sort()).toEqual(["game", "rules", "settings"])
+    expect([...singletons].sort()).toEqual(["game", "settings"])
     for (const doc of seedDocs()) expect(doc._id === doc._type, doc._id).toBe(singletons.includes(doc._type))
   })
 })
@@ -141,8 +141,6 @@ describe("the seed documents", () => {
       ["a mat that is not an image", "game", (doc) => (doc.mat = "mat.webp"), "game.mat should be an image"],
       ["a publisher link that is not an address", "settings", (doc) => (doc.publisherUrl = "cocktailgames"), "settings.publisherUrl should be a URL"],
       ["a rulebook link with a scheme the Studio refuses", "settings", (doc) => (doc.rulesPdfFr = "ftp://example.com/rules.pdf"), "settings.rulesPdfFr should be a URL"],
-      ["an introduction that is not a localeText", "rules", (doc) => (doc.intro = "Hanabi"), "rules.intro should be an object"],
-      ["a section typed as something else", "rules", (doc) => (doc.sections[0]._type = "chapter"), "rules.sections[0] has the type \"chapter\""],
     ])("%s", (_name, id, change, expected) => {
       const doc = docOf(id)
       change(doc)
