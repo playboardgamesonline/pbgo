@@ -3,7 +3,7 @@ import { defineField, defineType } from "sanity"
 import { DIRECTIONS, EXTENSIONS, PATTERNS, SUITS, titleOf } from "./constants"
 
 // The colors of the deck, listed once with their symbols: a card picks its color by key.
-// Studio form rules (root CLAUDE.md): no `description`, English game key, the visual is the last field
+// Studio form rules (skill `game-sanity-create`): no `description`, English game key, the visual is the last field
 export const suit = defineType({
   name: "suit",
   title: "Color",

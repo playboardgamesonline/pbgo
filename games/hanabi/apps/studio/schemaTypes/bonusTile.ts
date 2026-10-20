@@ -3,7 +3,7 @@ import { defineField, defineType } from "sanity"
 import { BONUS_TILE_NUMBERS, BONUS_TILES, titleOf } from "./constants"
 
 // The tiles of the 5 Flamboyants extension: face down, one is revealed each time a firework is completed with a 5.
-// Studio form rules (root CLAUDE.md): no Effect or Rule field, no `description`, English game key, the visual is the last field
+// Studio form rules (skill `game-sanity-create`): no Effect or Rule field, no `description`, English game key, the visual is the last field
 export const bonusTile = defineType({
   name: "bonusTile",
   title: "Bonus tile",

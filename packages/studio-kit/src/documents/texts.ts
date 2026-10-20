@@ -16,26 +16,22 @@ export const createTexts = (extraFields: FieldDefinition[] = []) =>
   ],
   fields: [
     defineField({ name: "tagline", title: "Tagline", type: "localeString", group: "content" }),
-    defineField({ name: "homeTitle", title: "Home title", description: "Above the intro text on the home screen", type: "localeString", group: "content" }),
-    defineField({ name: "homeIntro", title: "Home intro", description: "Replaces the tagline on the home screen", type: "localeText", group: "content" }),
-    defineField({ name: "victoryPhrases", title: "Victory phrases", description: "{pseudo} and {points} are replaced", type: "localeStringList", group: "content" }),
+    defineField({ name: "homeTitle", title: "Home title", type: "localeString", group: "content" }),
+    defineField({ name: "homeIntro", title: "Home intro", type: "localeText", group: "content" }),
+    defineField({ name: "victoryPhrases", title: "Victory phrases ({pseudo}, {points})", type: "localeStringList", group: "content" }),
     ...UI_TEXT_GROUPS.map((g) =>
       defineField({
         name: `ui_${g.name}`,
         title: `Interface labels · ${g.title}`,
-        description: "Leave a label empty to keep its default",
         type: "object",
         group: g.name,
         options: { collapsible: false },
-        fields: UI_TEXTS.filter((t) => t.group === g.name).map((t) =>
-          defineField({ name: t.key, title: t.title, description: `Default: ${t.fr}`, type: "localeString" }),
-        ),
+        fields: UI_TEXTS.filter((t) => t.group === g.name).map((t) => defineField({ name: t.key, title: t.title, type: "localeString" })),
       }),
     ),
     defineField({
       name: "errorMessages",
       title: "Error messages",
-      description: "Replaces the default message of an error code (edited from the admin, Copy)",
       type: "array",
       group: "errors",
       of: [

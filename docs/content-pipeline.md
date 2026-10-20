@@ -42,6 +42,7 @@ packages/content-kit/src/        @pbgo/content-kit: HOW to write it
   index.ts                       entry ".": what a game's data files import (localeString, localeText, setField, setItemField, assertSeedId, the types)
   seed.ts                        entry "./seed": what content/seed.ts and its tests import (runSeedCli, run, parseCli, HELP…)
   testing.ts                     entry "./testing": MemoryStore, the schema checker, the image and folder fixtures
+  form-rules.ts                  entry "./form-rules": the rules of the Studio forms (formProblems, studioTypes), for a Studio's own test
   seed-cli.ts                    runSeedCli(config): the command, from the options to the report
   cli.ts env.ts report.ts        the options, the token (never printed), the summary
   run.ts                         one run: plan, write, plan again
@@ -252,7 +253,7 @@ Code in the kit and in `content/` runs directly with Node (type stripping, no bu
 ## Starting the pipeline for another game
 
 1. `pnpm new-game <slug>` and `pnpm go-live <slug>` give the game its package, its Sanity project and its write token (`apps/web/.env.local`).
-2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar).
+2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar). The skill `game-sanity-create` (`.claude/skills/`) asks the owner which lists the game needs before any schema and holds the rules of the forms.
 3. Add `@pbgo/content-kit` and `@pbgo/studio-kit` (`workspace:*`) and `vitest` (`catalog:`) to the game's dev dependencies, with the `typecheck` (`tsc --noEmit && tsc --noEmit -p content`), `test` (`vitest run`) and `content:seed` (`node --disable-warning=ExperimentalWarning content/seed.ts`) scripts and a `vitest.config.ts` that includes `content/**/*.test.ts`. `games/exploding-kittens` is the smallest model.
 4. Write `content/config.ts` (slug, project id), `content/seed.ts` (`runSeedCli` with the game's `buildSeedDocs` and `ART_SLOTS`), `content/tsconfig.json` and `content/data/`: the game's documents, and `art-manifest.ts` with its image slots. There is nothing to copy from the kit: it stays where it is.
 5. Run the tests, then follow the process above.
