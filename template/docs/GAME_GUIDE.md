@@ -120,6 +120,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 - **Multilingual by design**: only player-facing texts are in French (or another language). They live in Sanity (`localeString` / `localeText`), in the game's `I18N` export or in its defaults. Never a French word in an identifier.
 - **Few comments**, in English; explicit names.
 - **Sanity 100 % English** (types, ids, fields, titles). Deterministic ids: `family-butterfly`, `role-spy`, `courtier-noble-hare`. The `key` field holds the engine key (`butterfly`, `spy`).
+- **One Studio list per kind of card.** Cards that come in kinds (number / action / modifier; kitten / defuse / action / nope / cat) are one document type per kind, never one type with a `kind` field: each kind is a list of its own in the Studio, so the editor finds an Attack among the actions, and the `key` of a card is its simplest name within its kind (`attack`, not `action-attack`). Ids are `<category>-card-<key>` (`action-card-attack`) and a read-only `order` keeps the place of a card in its category. Model: Exploding Kittens (`games/exploding-kittens/apps/studio/schemaTypes/cards.ts` calls one factory per category, `CATEGORIES` in `constants.ts` lists the keys of each, `collections` in `sanity.config.ts` names the lists).
 
 ### Assets (`apps/web/public/<slug>/`)
 - Lowercase English folders: `home/`, `cards/`, `pictograms/`, `rules/`, `sounds/`, `textures/`.

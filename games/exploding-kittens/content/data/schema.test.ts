@@ -1,8 +1,9 @@
+import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields, imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc, FieldDef, TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
-import { CARD_TYPE_KEYS, EDITION_KEYS, KIND_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
+import { CARD_TYPE_KEYS, CATEGORIES, CATEGORY_KEYS, EDITION_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import { DATASET, GAME_DIR, PROJECT_ID } from "../config.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
 import { seedDocs } from "./test-fixtures.ts"
@@ -41,7 +42,9 @@ beforeAll(async () => {
 
 /** The kinds of document the seed writes, and the ones whose fields the Exploding Kittens Studio defines itself (the others are shared with every game). */
 const SEED_TYPES = [...new Set(seedDocs().map((doc) => doc._type))]
-const OWN_TYPES = ["cardType", "edition", "game"]
+/** One document type per category of cards, in the order the Studio lists them: kitten, defuse, action, nope, cat (the order of the engine's catalogue). */
+const CARD_TYPES: string[] = CATEGORY_KEYS.map((category) => CATEGORIES[category].type)
+const OWN_TYPES = [...CARD_TYPES, "edition", "game"]
 /** The image fields of the shared types that an art slot fills: the logo is the same field in every game. */
 const SHARED_IMAGE_FIELDS = ["settings.logo"]
 
@@ -85,6 +88,26 @@ describe("the Studio", () => {
     expect(SEED_TYPES.map((type) => [type, types.get(type)?.type])).toEqual(SEED_TYPES.map((type) => [type, "document"]))
   })
 
+  it("has one document type per category of cards, and no longer a single list of them all", () => {
+    expect(CARD_TYPES).toEqual(["kittenCard", "defuseCard", "actionCard", "nopeCard", "catCard"])
+    expect(CARD_TYPES.map((type) => [type, types.get(type)?.type])).toEqual(CARD_TYPES.map((type) => [type, "document"]))
+    expect(types.has("cardType")).toBe(false)
+  })
+
+  it("lists the categories of cards in this order, each under its own heading, then the editions", () => {
+    const source = readFileSync(join(GAME_DIR, "apps/studio/sanity.config.ts"), "utf8")
+    const listed = [...source.matchAll(/\{ type: "(\w+)", title: "([^"]+)" \}/g)].map(([, type, title]) => [type, title])
+    expect(listed).toEqual([
+      ["kittenCard", "Kitten cards"],
+      ["defuseCard", "Defuse cards"],
+      ["actionCard", "Action cards"],
+      ["nopeCard", "Nope cards"],
+      ["catCard", "Cat cards"],
+      ["edition", "Editions"],
+    ])
+    expect(listed.slice(0, CARD_TYPES.length).map(([type]) => type)).toEqual(CARD_TYPES)
+  })
+
   it("lets an editor create a new document of a type exactly when the seed gives its documents ids of their own", () => {
     // the Studio offers no "new document" template for a singleton, which it opens by the name of its type
     const creatable = studio.schema.templates(SEED_TYPES.map((schemaType) => ({ schemaType }))).map(({ schemaType }) => schemaType)
@@ -111,9 +134,11 @@ describe("the seed documents", () => {
 
   it("read the validation rules of the real fields, which is what makes the checks above bite", () => {
     const names = (field: FieldDef) => constraintsOf(field.validation).map((constraint) => constraint.name)
-    expect(names(fieldOf("cardType", "key"))).toEqual(expect.arrayContaining(["required"]))
-    expect(names(fieldOf("cardType", "kind"))).toEqual(expect.arrayContaining(["required"]))
-    expect(names(itemFieldOf("cardType", "illustrations", "number"))).toEqual(expect.arrayContaining(["required", "integer", "min"]))
+    for (const type of CARD_TYPES) {
+      expect(names(fieldOf(type, "key")), `${type}.key`).toEqual(expect.arrayContaining(["required"]))
+      expect(names(fieldOf(type, "order")), `${type}.order`).toEqual(expect.arrayContaining(["required", "integer", "min"]))
+      expect(names(itemFieldOf(type, "illustrations", "number")), `${type}.illustrations[].number`).toEqual(expect.arrayContaining(["required", "integer", "min"]))
+    }
     expect(names(fieldOf("edition", "key"))).toEqual(expect.arrayContaining(["required"]))
     expect(names(itemFieldOf("edition", "cards", "cardType"))).toEqual(expect.arrayContaining(["required"]))
     expect(names(itemFieldOf("edition", "cards", "copies"))).toEqual(expect.arrayContaining(["required", "integer", "min"]))
@@ -122,22 +147,25 @@ describe("the seed documents", () => {
 
   describe("break the rules of the Studio, and are caught", () => {
     it.each<[string, string, (doc: Doc) => void, string]>([
-      ["a card type key outside the list", "card-type-defuse", (doc) => (doc.key = "pink"), 'card-type-defuse.key is "pink", not one of'],
-      ["a kind outside the list", "card-type-defuse", (doc) => (doc.kind = "monster"), 'card-type-defuse.kind is "monster", not one of'],
-      ["a missing key", "card-type-defuse", (doc) => delete doc.key, "card-type-defuse.key is required"],
-      ["a missing kind", "card-type-defuse", (doc) => delete doc.kind, "card-type-defuse.kind is required"],
-      ["an illustration number of zero", "card-type-defuse", (doc) => (doc.illustrations[0].number = 0), "card-type-defuse.illustrations[0].number must be at least 1"],
-      ["an illustration number with a fraction", "card-type-defuse", (doc) => (doc.illustrations[0].number = 1.5), "card-type-defuse.illustrations[0].number must be an integer"],
-      ["an illustration without a number", "card-type-defuse", (doc) => delete doc.illustrations[0].number, "card-type-defuse.illustrations[0].number is required"],
-      ["an illustration without a key", "card-type-defuse", (doc) => delete doc.illustrations[0]._key, "card-type-defuse.illustrations[0] has no _key"],
-      ["two illustrations with the same key", "card-type-defuse", (doc) => (doc.illustrations[1]._key = doc.illustrations[0]._key), "card-type-defuse.illustrations[1] repeats the _key"],
-      ["an illustration typed as a deck card", "card-type-defuse", (doc) => (doc.illustrations[0]._type = "deckCard"), 'card-type-defuse.illustrations[0] has the type "deckCard", which the array does not accept'],
-      ["a card face that is not an image", "card-type-defuse", (doc) => (doc.illustrations[0].image = "defuse-1.webp"), "card-type-defuse.illustrations[0].image should be an image"],
-      ["a name that is not a localeString", "card-type-defuse", (doc) => (doc.name = "Defuse"), "card-type-defuse.name should be an object"],
-      ["a name typed as a localeText", "card-type-defuse", (doc) => (doc.name._type = "localeText"), 'card-type-defuse.name._type is "localeText", expected "localeString"'],
-      ["a name in a language the Studio does not have", "card-type-defuse", (doc) => (doc.name.it = "Disinnescare"), "card-type-defuse.name.it is not a field"],
-      ["an effect that is not a localeText", "card-type-defuse", (doc) => (doc.effect = "Saves you."), "card-type-defuse.effect should be an object"],
-      ["a field the Studio does not have", "card-type-defuse", (doc) => (doc.colour = "#ff0000"), 'card-type-defuse.colour is not a field of "cardType"'],
+      ["a card type key outside the list", "defuse-card-defuse", (doc) => (doc.key = "pink"), 'defuse-card-defuse.key is "pink", not one of'],
+      ["the key of another category", "action-card-attack", (doc) => (doc.key = "tacocat"), 'action-card-attack.key is "tacocat", not one of'],
+      ["a missing key", "defuse-card-defuse", (doc) => delete doc.key, "defuse-card-defuse.key is required"],
+      ["a kind, which the category now says", "defuse-card-defuse", (doc) => (doc.kind = "defuse"), 'defuse-card-defuse.kind is not a field of "defuseCard"'],
+      ["a missing place in the category", "defuse-card-defuse", (doc) => delete doc.order, "defuse-card-defuse.order is required"],
+      ["a negative place in the category", "defuse-card-defuse", (doc) => (doc.order = -1), "defuse-card-defuse.order must be at least 0"],
+      ["a place with a fraction", "defuse-card-defuse", (doc) => (doc.order = 1.5), "defuse-card-defuse.order must be an integer"],
+      ["an illustration number of zero", "defuse-card-defuse", (doc) => (doc.illustrations[0].number = 0), "defuse-card-defuse.illustrations[0].number must be at least 1"],
+      ["an illustration number with a fraction", "defuse-card-defuse", (doc) => (doc.illustrations[0].number = 1.5), "defuse-card-defuse.illustrations[0].number must be an integer"],
+      ["an illustration without a number", "defuse-card-defuse", (doc) => delete doc.illustrations[0].number, "defuse-card-defuse.illustrations[0].number is required"],
+      ["an illustration without a key", "defuse-card-defuse", (doc) => delete doc.illustrations[0]._key, "defuse-card-defuse.illustrations[0] has no _key"],
+      ["two illustrations with the same key", "defuse-card-defuse", (doc) => (doc.illustrations[1]._key = doc.illustrations[0]._key), "defuse-card-defuse.illustrations[1] repeats the _key"],
+      ["an illustration typed as a deck card", "defuse-card-defuse", (doc) => (doc.illustrations[0]._type = "deckCard"), 'defuse-card-defuse.illustrations[0] has the type "deckCard", which the array does not accept'],
+      ["a card face that is not an image", "defuse-card-defuse", (doc) => (doc.illustrations[0].image = "defuse-1.webp"), "defuse-card-defuse.illustrations[0].image should be an image"],
+      ["a name that is not a localeString", "defuse-card-defuse", (doc) => (doc.name = "Defuse"), "defuse-card-defuse.name should be an object"],
+      ["a name typed as a localeText", "defuse-card-defuse", (doc) => (doc.name._type = "localeText"), 'defuse-card-defuse.name._type is "localeText", expected "localeString"'],
+      ["a name in a language the Studio does not have", "defuse-card-defuse", (doc) => (doc.name.it = "Disinnescare"), "defuse-card-defuse.name.it is not a field"],
+      ["an effect that is not a localeText", "defuse-card-defuse", (doc) => (doc.effect = "Saves you."), "defuse-card-defuse.effect should be an object"],
+      ["a field the Studio does not have", "cat-card-tacocat", (doc) => (doc.colour = "#ff0000"), 'cat-card-tacocat.colour is not a field of "catCard"'],
       ["an edition key outside the list", "edition-original", (doc) => (doc.key = "deluxe"), 'edition-original.key is "deluxe", not one of'],
       ["a deck card of a card type that does not exist", "edition-original", (doc) => (doc.cards[0].cardType = "unicorn"), 'edition-original.cards[0].cardType is "unicorn", not one of'],
       ["a deck card without copies", "edition-original", (doc) => delete doc.cards[0].copies, "edition-original.cards[0].copies is required"],
@@ -162,9 +190,24 @@ describe("the seed documents", () => {
 })
 
 describe("the option lists of the Studio", () => {
+  it.each(CATEGORY_KEYS)("of the %s cards offers the keys of its category, in the order of the seed", (category) => {
+    const { type } = CATEGORIES[category]
+    const choices: { value: string }[] = CATEGORIES[category].choices
+    const offered = listOf(fieldOf(type, "key"))
+    expect(offered).toEqual(choices.map((choice) => choice.value))
+    expect(offered).toEqual(seedDocs().filter((doc) => doc._type === type).map((doc) => doc.key))
+  })
+
+  it("of the five categories together offer each card type key once, in the order of the engine's catalogue", () => {
+    expect(CATEGORY_KEYS.flatMap((category) => listOf(fieldOf(CATEGORIES[category].type, "key")))).toEqual([...CARD_TYPE_KEYS])
+  })
+
+  it.each(CARD_TYPES)("of %s sorts its cards on their place in the category by default", (type) => {
+    const { orderings } = typeOf(type) as TypeDef & { orderings?: { by: unknown[] }[] }
+    expect(orderings?.[0]?.by).toEqual([{ field: "order", direction: "asc" }])
+  })
+
   it.each<[string, () => unknown[], readonly unknown[]]>([
-    ["cardType.key", () => listOf(fieldOf("cardType", "key")), CARD_TYPE_KEYS],
-    ["cardType.kind", () => listOf(fieldOf("cardType", "kind")), KIND_KEYS],
     ["edition.key", () => listOf(fieldOf("edition", "key")), EDITION_KEYS],
     ["edition.cards[].cardType", () => listOf(itemFieldOf("edition", "cards", "cardType")), CARD_TYPE_KEYS],
   ])("of %s offers the values the seed is built from, in the same order", (_name, offered, expected) => {

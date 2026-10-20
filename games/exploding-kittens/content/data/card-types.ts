@@ -1,10 +1,9 @@
 import { localeString, localeText } from "@pbgo/content-kit"
 import type { Localized, SeedDoc } from "@pbgo/content-kit"
-import { CARD_TYPE_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
-import type { CardTypeKey, KindKey } from "../../apps/studio/schemaTypes/constants.ts"
+import { CARD_TYPE_KEYS, CATEGORIES, PLACES } from "../../apps/studio/schemaTypes/constants.ts"
+import type { CardTypeKey } from "../../apps/studio/schemaTypes/constants.ts"
 
 type CardTypeSpec = {
-  kind: KindKey
   name: Localized
   /** A short summary of the effect in PBGO's own words; the rules page has the full version. */
   effect: Localized
@@ -24,8 +23,7 @@ const CAT_EFFECT: Localized = {
 
 const SPECS: Record<CardTypeKey, CardTypeSpec> = {
   "exploding-kitten": {
-    kind: "kitten",
-    name: { fr: "Exploding Kitten", en: "Exploding Kitten", es: "Exploding Kitten", de: "Exploding Kitten" },
+    name:{ fr: "Exploding Kitten", en: "Exploding Kitten", es: "Exploding Kitten", de: "Exploding Kitten" },
     effect: {
       fr: "Qui la pioche explose et quitte la partie, à moins de jouer aussitôt un Kit de désamorçage.",
       en: "Whoever draws it explodes and is out of the game, unless a Defuse is played right away.",
@@ -35,8 +33,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 4,
   },
   defuse: {
-    kind: "defuse",
-    name: { fr: "Kit de désamorçage", en: "Defuse", es: "Desactivación", de: "Entschärfung" },
+    name:{ fr: "Kit de désamorçage", en: "Defuse", es: "Desactivación", de: "Entschärfung" },
     effect: {
       fr: "Vous sauve d’un Exploding Kitten que vous venez de piocher : le chaton retourne dans la pioche, à l’endroit de votre choix, sans que personne le voie.",
       en: "Saves you from an Exploding Kitten you just drew. The kitten goes back into the draw pile, anywhere you like, in secret.",
@@ -46,8 +43,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 6,
   },
   attack: {
-    kind: "action",
-    name: { fr: "Attaque", en: "Attack", es: "Ataque", de: "Angriff" },
+    name:{ fr: "Attaque", en: "Attack", es: "Ataque", de: "Angriff" },
     effect: {
       fr: "Termine votre tour sans piocher. La personne suivante doit jouer 2 tours de suite.",
       en: "Ends your turn without drawing. The next player has to take 2 turns in a row.",
@@ -57,8 +53,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 4,
   },
   skip: {
-    kind: "action",
-    name: { fr: "Passe-tour", en: "Skip", es: "Salta", de: "Hops!" },
+    name:{ fr: "Passe-tour", en: "Skip", es: "Salta", de: "Hops!" },
     effect: {
       fr: "Termine l’un de vos tours sans piocher. Si vous subissez une Attaque, il vous reste l’autre tour à jouer.",
       en: "Ends one of your turns without drawing. If you were attacked, you still owe the other turn.",
@@ -68,8 +63,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 4,
   },
   favor: {
-    kind: "action",
-    name: { fr: "Faveur", en: "Favor", es: "Favor", de: "Wunsch" },
+    name:{ fr: "Faveur", en: "Favor", es: "Favor", de: "Wunsch" },
     effect: {
       fr: "Désignez une autre personne : elle choisit une carte de sa main et vous la donne.",
       en: "Choose another player: they pick a card from their hand and give it to you.",
@@ -79,8 +73,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 4,
   },
   shuffle: {
-    kind: "action",
-    name: { fr: "Mélange", en: "Shuffle", es: "Barajar", de: "Mischen" },
+    name:{ fr: "Mélange", en: "Shuffle", es: "Barajar", de: "Mischen" },
     effect: {
       fr: "Mélange la pioche au hasard.",
       en: "Shuffles the draw pile at random.",
@@ -90,8 +83,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 4,
   },
   "see-the-future": {
-    kind: "action",
-    name: { fr: "Divination", en: "See the Future", es: "Ver el futuro", de: "Blick in die Zukunft" },
+    name:{ fr: "Divination", en: "See the Future", es: "Ver el futuro", de: "Blick in die Zukunft" },
     effect: {
       fr: "Regardez en secret les 3 cartes du dessus de la pioche, puis remettez-les dans le même ordre.",
       en: "Look at the top 3 cards of the draw pile in secret, then put them back in the same order.",
@@ -101,8 +93,7 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 5,
   },
   nope: {
-    kind: "nope",
-    name: { fr: "Non", en: "Nope", es: "Nope", de: "NÖ!" },
+    name:{ fr: "Non", en: "Nope", es: "Nope", de: "NÖ!" },
     effect: {
       fr: "Annule une action qui vient d’être jouée, ou un autre Non. Peut se jouer hors de votre tour, tant que la fenêtre de Non est ouverte.",
       en: "Cancels an action that was just played, or another Nope. Can be played out of turn, as long as the Nope window is open.",
@@ -112,38 +103,34 @@ const SPECS: Record<CardTypeKey, CardTypeSpec> = {
     illustrations: 5,
   },
   tacocat: {
-    kind: "cat",
-    name: { fr: "Tacocat", en: "Tacocat", es: "Tacocat", de: "Tacocat" },
+    name:{ fr: "Tacocat", en: "Tacocat", es: "Tacocat", de: "Tacocat" },
     effect: CAT_EFFECT,
     illustrations: 1,
   },
   cattermelon: {
-    kind: "cat",
-    name: { fr: "Cattermelon", en: "Cattermelon", es: "Cattermelon", de: "Cattermelon" },
+    name:{ fr: "Cattermelon", en: "Cattermelon", es: "Cattermelon", de: "Cattermelon" },
     effect: CAT_EFFECT,
     illustrations: 1,
   },
   "hairy-potato-cat": {
-    kind: "cat",
-    name: { fr: "Hairy Potato Cat", en: "Hairy Potato Cat", es: "Hairy Potato Cat", de: "Hairy Potato Cat" },
+    name:{ fr: "Hairy Potato Cat", en: "Hairy Potato Cat", es: "Hairy Potato Cat", de: "Hairy Potato Cat" },
     effect: CAT_EFFECT,
     illustrations: 1,
   },
   "beard-cat": {
-    kind: "cat",
-    name: { fr: "Beard Cat", en: "Beard Cat", es: "Beard Cat", de: "Beard Cat" },
+    name:{ fr: "Beard Cat", en: "Beard Cat", es: "Beard Cat", de: "Beard Cat" },
     effect: CAT_EFFECT,
     illustrations: 1,
   },
   "rainbow-ralphing-cat": {
-    kind: "cat",
-    name: { fr: "Rainbow-Ralphing Cat", en: "Rainbow-Ralphing Cat", es: "Rainbow-Ralphing Cat", de: "Rainbow-Ralphing Cat" },
+    name:{ fr: "Rainbow-Ralphing Cat", en: "Rainbow-Ralphing Cat", es: "Rainbow-Ralphing Cat", de: "Rainbow-Ralphing Cat" },
     effect: CAT_EFFECT,
     illustrations: 1,
   },
 }
 
-export const cardTypeId = (key: CardTypeKey) => `card-type-${key}`
+/** `<category>-card-<key>` (`action-card-attack`, `cat-card-tacocat`): a card type is filed in the category of its kind, and its id says which. */
+export const cardTypeId = (key: CardTypeKey) => `${PLACES[key].category}-card-${key}`
 
 /** Key of an illustration in the `illustrations` array of a card type: stable, so a second run finds the same items and the art is placed by key. */
 export const illustrationKey = (number: number) => `art-${number}`
@@ -151,15 +138,16 @@ export const illustrationKey = (number: number) => `art-${number}`
 /** How many illustrations a card type has, numbered from 1 like the art files; the art slots are built from it. */
 export const illustrationCount = (key: CardTypeKey) => SPECS[key].illustrations
 
-/** The 13 card types, in the order of the engine catalogue. */
+/** The 13 card types, in the order of the engine catalogue, each a document of the type of its category. */
 export function buildCardTypes(): SeedDoc[] {
   return CARD_TYPE_KEYS.map((key) => {
     const spec = SPECS[key]
+    const { category, order } = PLACES[key]
     return {
       _id: cardTypeId(key),
-      _type: "cardType",
+      _type: CATEGORIES[category].type,
       key,
-      kind: spec.kind,
+      order,
       name: localeString(spec.name),
       effect: localeText(spec.effect),
       illustrations: Array.from({ length: spec.illustrations }, (_, i) => ({ _key: illustrationKey(i + 1), _type: "illustration", number: i + 1 })),

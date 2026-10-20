@@ -72,7 +72,7 @@ games/<slug>/content/
     *.test.ts          the documents, against the Studio's types, through the runner
 ```
 
-The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; Exploding Kittens: card type keys, kinds, edition keys) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
+The Studio types the documents follow are in `games/<slug>/apps/studio/schemaTypes/`. The lists shared by the Studio and the seed (Hanabi: suit keys, ranks, rating keys, bonus tile numbers; Exploding Kittens: the card categories and the card type keys of each, edition keys) live in `schemaTypes/constants.ts`; the seed imports that file with its `.ts` extension, the Studio without.
 
 ## Running it
 
@@ -88,7 +88,7 @@ pnpm --filter @pbgo-game/<slug> content:seed --apply
 | `--dry-run` | Read the dataset and print what would happen. Writes nothing. This is the default |
 | `--apply` | Write the drafts, and upload the art given with `--art-dir` |
 | `--art-dir <dir>` | Normalise the images of this folder and place them. Without it the art is left alone. Give an absolute path: a relative one is read from the folder the command runs in (`games/<slug>` through `pnpm --filter`) |
-| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only rules,settings`, `--only card-red-3` (a Hanabi card), `--only card-type-defuse` (an Exploding Kittens card type), `--only cardType` (all of them). A name that matches nothing stops the run |
+| `--only <a,b>` | Limit the run to documents, by id or by type (repeatable): `--only rules,settings`, `--only card-red-3` (a Hanabi card), `--only action-card-attack` (an Exploding Kittens card type), `--only actionCard` (all the cards of that category). A name that matches nothing stops the run |
 | `--overwrite` | Replace the values edited in the Studio with the seed's. Needs `--only` |
 | `--verbose`, `-v` | List every document, not only the ones that change |
 | `--help`, `-h` | The usage |
@@ -154,12 +154,12 @@ The seed does not know where an image comes from. Publisher press visuals are no
 
 ### Exploding Kittens slots (46)
 
-Card faces are numbered from 1, one per printed illustration of the card type: the same card can be drawn several ways. The five cats have a single illustration each.
+Card faces are numbered from 1, one per printed illustration of the card type: the same card can be drawn several ways. The five cats have a single illustration each. A card type is filed in the category of its kind, and its document says so in its id: `kitten-card-exploding-kitten`, `defuse-card-defuse`, `action-card-attack`, `nope-card-nope`, `cat-card-tacocat` (see "What Exploding Kittens gets").
 
 | File name (without extension) | Count | Placed in | Proportions | Longest side |
 | --- | --- | --- | --- | --- |
-| `<card-type>-<1..n>`, card type in exploding-kitten (4), defuse (6), attack (4), skip (4), favor (4), shuffle (4), see-the-future (5), nope (5) | 36 | `card-type-<key>` › `illustrations` › item `art-<n>` › `image` | 5:7 | 1400 |
-| `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat` (`<key>-1` also accepted) | 5 | `card-type-<key>` › `illustrations` › item `art-1` › `image` | 5:7 | 1400 |
+| `<card-type>-<1..n>`, card type in exploding-kitten (4), defuse (6), attack (4), skip (4), favor (4), shuffle (4), see-the-future (5), nope (5) | 36 | `<category>-card-<key>` › `illustrations` › item `art-<n>` › `image` | 5:7 | 1400 |
+| `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat` (`<key>-1` also accepted) | 5 | `cat-card-<key>` › `illustrations` › item `art-1` › `image` | 5:7 | 1400 |
 | `card-back` (`back` also accepted) | 1 | `game` › `cardBack` | 5:7 | 1400 |
 | `box-front` | 1 | `game` › `boxFront` | any | 2000 |
 | `box-back` (optional) | 1 | `game` › `boxBack` | any | 2000 |
@@ -189,7 +189,7 @@ Three of them are singletons, addressed in the Studio by the name of their type:
 
 | Id | Type | Count | Holds |
 | --- | --- | --- | --- |
-| `card-type-<key>` | `cardType` | 13 | One per kind of card, keyed like the engine's catalogue (kebab-case: `exploding-kitten`, `defuse`, `attack`, `skip`, `favor`, `shuffle`, `see-the-future`, `nope`, `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`). Its kind, under the engine's names (`kitten`, `defuse`, `nope`, `action`, `cat`), its name and a one-sentence effect in four languages, and one `illustrations` entry per printed illustration (41 in all) that the art fills |
+| `<category>-card-<key>` (`action-card-attack`) | `kittenCard` (1), `defuseCard` (1), `actionCard` (5), `nopeCard` (1), `catCard` (5) | 13 | One per kind of card, in the document type of its category: the kinds of the engine (`kitten`, `defuse`, `action`, `nope`, `cat`), each a list of its own in the Studio. Keyed like the engine's catalogue (kebab-case: `exploding-kitten`; `defuse`; `attack`, `skip`, `favor`, `shuffle`, `see-the-future`; `nope`; `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`). Its place in the category (`order`, read only, from 0), its name and a one-sentence effect in four languages, and one `illustrations` entry per printed illustration (41 in all) that the art fills |
 | `edition-original` | `edition` | 1 | The Original Edition, 56 cards: each line is a card type and its copies (4 Exploding Kitten, 6 Defuse, 4 Attack, 4 Skip, 4 Favor, 4 Shuffle, 5 See the Future, 5 Nope, 4 of each of the five cats). Name in four languages |
 | `game` | `game` | 1 | Empty: the card back, the box and the mat come with the art |
 | `rules` | `rules` | 1 | Our own rules text: an introduction and 10 sections (goal, setup, turn, explosion, cards, combos, nope, attack, end, online), each in FR, EN, ES and DE. The standard rules, the Nope window and the five-different combination (on by default like the engine's `fiveDifferent`; the host can turn it off) |
@@ -199,7 +199,7 @@ Three of them are singletons: `game`, `rules`, `settings`.
 
 ### Editions that are not in the seed
 
-The seed holds the Original Edition only. Each of the others would be one more `edition` document (and the card types it adds), written the same way. Their rulebooks, for when that work starts:
+The seed holds the Original Edition only. Each of the others would be one more `edition` document (and the card types it adds, each in the category of its kind), written the same way. Their rulebooks, for when that work starts:
 
 | Edition | Cards | Differs from the Original | Rulebook |
 | --- | --- | --- | --- |
@@ -239,7 +239,7 @@ In each game:
 - `content/data/schema.test.ts` loads the real Studio configuration and checks every seed document against the Studio's own types (field names, option lists, validation rules), and every art slot against a real image field. A field renamed or a rule tightened in the Studio fails here, not in front of an editor.
 - `content/data/run.test.ts` runs the game's seed and art slots through the kit's runner against an in-memory dataset: drafts only, nothing the second time, nothing after a publication, art placed by slot.
 - `content/seed.test.ts` runs the command itself for the paths that end before the token is read.
-- Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the `kind` of each, the kinds the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
+- Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the category each is filed in (the engine's `kind`, so the document type) and its place there, the categories the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has a category for it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
 
 Each guarantee was checked by breaking it on purpose and watching a test fail.
 
@@ -248,7 +248,7 @@ Code in the kit and in `content/` runs directly with Node (type stripping, no bu
 ## Starting the pipeline for another game
 
 1. `pnpm new-game <slug>` and `pnpm go-live <slug>` give the game its package, its Sanity project and its write token (`apps/web/.env.local`).
-2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar).
+2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar). Cards that come in kinds (number / action / modifier; kitten / defuse / action / nope / cat) are one document type per kind, not one type with a `kind` field: each kind is a list of its own in the Studio, and the `key` of a card is its simplest name within its kind. Exploding Kittens is the model (`schemaTypes/cards.ts` calls one factory per category, `CATEGORIES` in `constants.ts` lists their keys, a read-only `order` keeps the place of a card in its category, ids are `<category>-card-<key>`).
 3. Add `@pbgo/content-kit` and `@pbgo/studio-kit` (`workspace:*`) and `vitest` (`catalog:`) to the game's dev dependencies, with the `typecheck` (`tsc --noEmit && tsc --noEmit -p content`), `test` (`vitest run`) and `content:seed` (`node --disable-warning=ExperimentalWarning content/seed.ts`) scripts and a `vitest.config.ts` that includes `content/**/*.test.ts`. `games/exploding-kittens` is the smallest model.
 4. Write `content/config.ts` (slug, project id), `content/seed.ts` (`runSeedCli` with the game's `buildSeedDocs` and `ART_SLOTS`), `content/tsconfig.json` and `content/data/`: the game's documents, and `art-manifest.ts` with its image slots. There is nothing to copy from the kit: it stays where it is.
 5. Run the tests, then follow the process above.

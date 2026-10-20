@@ -87,6 +87,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - The game's project id is in the `@pbgo/games` registry (`sanityProjectId`), the dataset is `production`
 - Admin writes use `SANITY_API_WRITE_TOKEN_<SLUG>` (`6-nimmt` → `SANITY_API_WRITE_TOKEN_6_NIMMT`), set in `apps/web/.env.local` and on Vercel
 - The game's own content types: schemas in `apps/studio/schemaTypes`, queries in `src/sanity/`, then `pnpm --filter <slug>-studio typegen` (writes `src/sanity/types.ts`)
+- Cards that come in kinds are one document type per kind (a list of its own in the Studio, `collections` of `sanity.config.ts`), never one type with a `kind` field; the `key` is the simplest name within the kind, ids are `<category>-card-<key>`. See "Language & naming" of `docs/GAME_GUIDE.md`
 
 ## Principles
 - The server is the only source of truth; each player only gets a filtered view

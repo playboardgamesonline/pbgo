@@ -5,7 +5,7 @@ import type { LanguageId } from "@pbgo/content-kit"
 import { imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc } from "@pbgo/content-kit/testing"
 import { describe, expect, it } from "vitest"
-import { CARD_TYPE_KEYS, CARD_TYPES, EDITION_KEYS, KIND_KEYS, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
+import { CARD_TYPE_KEYS, CARD_TYPES, CATEGORIES, CATEGORY_KEYS, EDITION_KEYS, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
 import type { CardTypeKey } from "../../apps/studio/schemaTypes/constants.ts"
 import { CONTENT_DIR, DATASET, ENV_FILE, GAME_DIR, PROJECT_ID, REPO_ROOT, SLUG } from "../config.ts"
 import { ART_SLOTS } from "./art-manifest.ts"
@@ -65,7 +65,8 @@ const ENGINE_KEYS = [
 ]
 const CATS = ["tacocat", "cattermelon", "hairy-potato-cat", "beard-cat", "rainbow-ralphing-cat"] as const
 
-const KIND_OF: Record<CardTypeKey, string> = {
+// The category of each card type: the kind it has in the engine catalogue, and the Studio list it is filed in
+const CATEGORY_OF: Record<CardTypeKey, string> = {
   "exploding-kitten": "kitten",
   defuse: "defuse",
   attack: "action",
@@ -80,6 +81,22 @@ const KIND_OF: Record<CardTypeKey, string> = {
   "beard-cat": "cat",
   "rainbow-ralphing-cat": "cat",
 }
+// The id of a card type is its category, then `card`, then its key
+const CARD_IDS = [
+  "kitten-card-exploding-kitten",
+  "defuse-card-defuse",
+  "action-card-attack",
+  "action-card-skip",
+  "action-card-favor",
+  "action-card-shuffle",
+  "action-card-see-the-future",
+  "nope-card-nope",
+  "cat-card-tacocat",
+  "cat-card-cattermelon",
+  "cat-card-hairy-potato-cat",
+  "cat-card-beard-cat",
+  "cat-card-rainbow-ralphing-cat",
+]
 
 // The setting-up of the rules, worked out from the copies of the Original Edition: every player starts with 1 Defuse and 7 other cards,
 // up to 2 spare Defuses go back into the deck, and the draw pile gets one Exploding Kitten fewer than there are players
@@ -95,14 +112,28 @@ describe("the seed documents", () => {
 
   it("are the 17 documents of the Original Edition seed", () => {
     expect(docs()).toHaveLength(17)
-    expect({ cardType: count("cardType"), edition: count("edition"), game: count("game"), rules: count("rules"), settings: count("settings") }).toEqual({
-      cardType: 13,
+    expect({
+      kittenCard: count("kittenCard"),
+      defuseCard: count("defuseCard"),
+      actionCard: count("actionCard"),
+      nopeCard: count("nopeCard"),
+      catCard: count("catCard"),
+      edition: count("edition"),
+      game: count("game"),
+      rules: count("rules"),
+      settings: count("settings"),
+    }).toEqual({
+      kittenCard: 1,
+      defuseCard: 1,
+      actionCard: 5,
+      nopeCard: 1,
+      catCard: 5,
       edition: 1,
       game: 1,
       rules: 1,
       settings: 1,
     })
-    expect(docs().map((doc) => doc._id)).toEqual([...ENGINE_KEYS.map((key) => `card-type-${key}`), "edition-original", "game", "rules", "settings"])
+    expect(docs().map((doc) => doc._id)).toEqual([...CARD_IDS, "edition-original", "game", "rules", "settings"])
   })
 
   it("have unique ids", () => {
@@ -184,25 +215,52 @@ describe("the card types", () => {
     for (const key of ENGINE_KEYS) expect(key, key).toMatch(/^[a-z]+(-[a-z]+)*$/)
   })
 
-  it("get the id card-type-<key>", () => {
-    expect(cardTypes().map((doc) => doc._id)).toEqual(ENGINE_KEYS.map((key) => `card-type-${key}`))
-    for (const key of CARD_TYPE_KEYS) expect(cardTypeId(key)).toBe(`card-type-${key}`)
-    for (const doc of cardTypes()) expect(doc._type, doc.key).toBe("cardType")
+  it("get the id <category>-card-<key>", () => {
+    expect(cardTypes().map((doc) => doc._id)).toEqual(CARD_IDS)
+    for (const key of CARD_TYPE_KEYS) expect(cardTypeId(key)).toBe(`${CATEGORY_OF[key]}-card-${key}`)
   })
 
-  it("have the kind of their role, under the engine's names: a kitten, a defuse, a nope, five actions and five cats", () => {
-    for (const key of CARD_TYPE_KEYS) expect(typeOf(key).kind, key).toBe(KIND_OF[key])
-    for (const doc of cardTypes()) expect(KIND_KEYS as readonly string[], doc.key).toContain(doc.kind)
-    const count = (kind: string) => cardTypes().filter((doc) => doc.kind === kind).length
-    expect({ kitten: count("kitten"), defuse: count("defuse"), nope: count("nope"), action: count("action"), cat: count("cat") }).toEqual({
-      kitten: 1,
-      defuse: 1,
-      nope: 1,
-      action: 5,
-      cat: 5,
+  it("are filed in a document type per category, the kinds of the engine: a kitten, a defuse, five actions, a nope and five cats", () => {
+    for (const doc of cardTypes()) expect(doc._type, doc.key).toBe(`${CATEGORY_OF[doc.key as CardTypeKey]}Card`)
+    const count = (type: string) => cardTypes().filter((doc) => doc._type === type).length
+    expect({ kittenCard: count("kittenCard"), defuseCard: count("defuseCard"), actionCard: count("actionCard"), nopeCard: count("nopeCard"), catCard: count("catCard") }).toEqual({
+      kittenCard: 1,
+      defuseCard: 1,
+      actionCard: 5,
+      nopeCard: 1,
+      catCard: 5,
     })
-    // The engine's CardKind (GAM-7), same names and same order
-    expect([...KIND_KEYS]).toEqual(["kitten", "defuse", "nope", "action", "cat"])
+    // The engine's CardKind (GAM-7), same names, in the order of the catalogue; a kind is a category, so no document carries one any more
+    expect([...CATEGORY_KEYS]).toEqual(["kitten", "defuse", "action", "nope", "cat"])
+    expect(CATEGORY_KEYS.map((category) => CATEGORIES[category].type)).toEqual(["kittenCard", "defuseCard", "actionCard", "nopeCard", "catCard"])
+    for (const doc of cardTypes()) expect(doc, doc.key).not.toHaveProperty("kind")
+  })
+
+  it("are listed by the Studio in the category they are filed in", () => {
+    for (const category of CATEGORY_KEYS) {
+      const keys = cardTypes()
+        .filter((doc) => doc._type === CATEGORIES[category].type)
+        .map((doc) => doc.key)
+      expect(keys, category).toEqual(CATEGORIES[category].choices.map((choice) => choice.value))
+    }
+  })
+
+  it("take their place in the category as `order`, from 0, in the order of the catalogue", () => {
+    expect(Object.fromEntries(cardTypes().map((doc) => [doc.key, doc.order]))).toEqual({
+      "exploding-kitten": 0,
+      defuse: 0,
+      attack: 0,
+      skip: 1,
+      favor: 2,
+      shuffle: 3,
+      "see-the-future": 4,
+      nope: 0,
+      tacocat: 0,
+      cattermelon: 1,
+      "hairy-potato-cat": 2,
+      "beard-cat": 3,
+      "rainbow-ralphing-cat": 4,
+    })
   })
 
   it("list one illustration per printed face, numbered from 1", () => {
@@ -279,7 +337,7 @@ describe("the card types", () => {
       for (const key of CATS) expect(typeOf(key).effect, key).toEqual(typeOf("tacocat").effect)
       for (const language of LANGUAGE_IDS) {
         const others = cardTypes()
-          .filter((doc) => doc.kind !== "cat")
+          .filter((doc) => doc._type !== "catCard")
           .map((doc) => doc.effect[language] as string)
         expect(others, language).toHaveLength(8)
         expect(new Set([...others, typeOf("tacocat").effect[language]]).size, language).toBe(9)
@@ -340,7 +398,7 @@ describe("the Original Edition", () => {
   })
 
   it("has a printed illustration per copy, except the cats, which share one", () => {
-    for (const key of CARD_TYPE_KEYS) expect(illustrationCount(key), key).toBe(KIND_OF[key] === "cat" ? 1 : copiesOf(key))
+    for (const key of CARD_TYPE_KEYS) expect(illustrationCount(key), key).toBe(CATEGORY_OF[key] === "cat" ? 1 : copiesOf(key))
   })
 
   it("sets a table of 2 to 5 players the way the rules count it: 35, 29, 23 and 16 cards in the draw pile", () => {
@@ -689,7 +747,7 @@ describe("the configuration", () => {
 
 describe("the art slots", () => {
   const image = imageValue
-  const faces = ART_SLOTS.filter((slot) => slot.docId.startsWith("card-type-"))
+  const faces = ART_SLOTS.filter((slot) => CARD_IDS.includes(slot.docId))
   const docOf = (slot: (typeof ART_SLOTS)[number]) => docs().find((candidate) => candidate._id === slot.docId) as Doc
 
   it("are 46: a face per printed illustration (41), the card back, the box (front and back), the mat and the logo", () => {
@@ -743,7 +801,7 @@ describe("the art slots", () => {
 
   it("ask for the proportions of a card (5:7) on the faces and the back, and for none on the rest", () => {
     for (const slot of ART_SLOTS) {
-      if (slot.docId.startsWith("card-type-") || slot.name === "card-back") expect(slot.ratio, slot.name).toEqual([5, 7])
+      if (CARD_IDS.includes(slot.docId) || slot.name === "card-back") expect(slot.ratio, slot.name).toEqual([5, 7])
       else expect(slot.ratio, slot.name).toBeUndefined()
     }
   })
@@ -784,11 +842,12 @@ describe("the art slots", () => {
       return `${doc._type}:${imagesOf(doc)[0]?.path}`
     }
 
-    it("the illustration of the card type that carries its number", () => {
-      expect(where("exploding-kitten-1")).toBe("cardType:$.illustrations[0].image")
-      expect(where("defuse-3")).toBe("cardType:$.illustrations[2].image")
-      expect(where("nope-5")).toBe("cardType:$.illustrations[4].image")
-      expect(where("tacocat")).toBe("cardType:$.illustrations[0].image")
+    it("the illustration, in the document of its category, that carries its number", () => {
+      expect(where("exploding-kitten-1")).toBe("kittenCard:$.illustrations[0].image")
+      expect(where("defuse-3")).toBe("defuseCard:$.illustrations[2].image")
+      expect(where("attack-2")).toBe("actionCard:$.illustrations[1].image")
+      expect(where("nope-5")).toBe("nopeCard:$.illustrations[4].image")
+      expect(where("tacocat")).toBe("catCard:$.illustrations[0].image")
     })
 
     it("the images of the game singleton and the shared logo of the settings", () => {
@@ -812,8 +871,8 @@ describe("the art slots", () => {
   it("refuse to invent an illustration that the card type does not list", () => {
     const slot = ART_SLOTS.find((candidate) => candidate.name === "defuse-1")
     if (!slot) throw new Error("no slot defuse-1")
-    const message = '"card-type-defuse" has no item "art-1" in "illustrations"'
-    expect(() => slot.place({ _id: "card-type-defuse", _type: "cardType", illustrations: [] }, image("x"))).toThrow(message)
-    expect(() => slot.place({ _id: "card-type-defuse", _type: "cardType" }, image("x"))).toThrow(message)
+    const message = '"defuse-card-defuse" has no item "art-1" in "illustrations"'
+    expect(() => slot.place({ _id: "defuse-card-defuse", _type: "defuseCard", illustrations: [] }, image("x"))).toThrow(message)
+    expect(() => slot.place({ _id: "defuse-card-defuse", _type: "defuseCard" }, image("x"))).toThrow(message)
   })
 })
