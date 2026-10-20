@@ -16,7 +16,10 @@ pnpm typecheck
 
 ```bash
 pnpm new-game <slug>         # copy of this folder in games/<slug>, registered in packages/games
-pnpm add-game <slug>         # the same, plus the Sanity project, its studio and its write token
+pnpm add-game                # the same, asking the name and the rules PDFs, plus the Sanity project, its Studio and its write token
+pnpm game-rules <slug> --rules en=rules.pdf   # a rulebook PDF added later, into the draft of the game's Settings
 ```
+
+In Claude Code, the skill `game-new` (`/game-new`) runs `add-game` for you and goes on to the fields of the Studio.
 
 See `CLAUDE.md` ("Adapting to a new game") and the full guide `docs/GAME_GUIDE.md`.

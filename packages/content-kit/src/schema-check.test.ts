@@ -31,6 +31,7 @@ const thing: TypeDef = {
     { name: "code", type: "string", validation: [(rule: Rule) => rule.length(1)] },
     { name: "link", type: "url" },
     { name: "picture", type: "image" },
+    { name: "rulebook", type: "file" },
     {
       name: "parts",
       type: "array",
@@ -115,6 +116,11 @@ describe("documentProblems", () => {
     expect(documentProblems({ ...valid(), kind: "a" }, types)).toEqual([])
   })
 
+  it("accepts a file that references a file asset", () => {
+    const rulebook = { _type: "file", asset: { _type: "reference", _ref: "file-0123abcd-pdf" } }
+    expect(documentProblems({ ...valid(), rulebook }, types)).toEqual([])
+  })
+
   it("accepts a link with each of the schemes the Studio takes", () => {
     for (const link of ["http://example.com", "https://example.com/a?b=c#d", "mailto:hey@example.com", "tel:+33123456789"]) {
       expect(documentProblems({ ...valid(), link }, types), link).toEqual([])
@@ -139,6 +145,11 @@ describe("documentProblems", () => {
     ["an image without an asset", (doc) => (doc.picture = { _type: "image" }), "thing-1.picture should be an image"],
     ["an image whose asset is not an image", (doc) => (doc.picture.asset._ref = "file-abc-pdf"), "thing-1.picture should be an image"],
     ["an image of the wrong type", (doc) => (doc.picture._type = "file"), "thing-1.picture should be an image"],
+    ["a file without an asset", (doc) => (doc.rulebook = { _type: "file" }), "thing-1.rulebook should be a file"],
+    ["a file whose asset is an image", (doc) => (doc.rulebook = { _type: "file", asset: { _type: "reference", _ref: "image-abc-10x10-webp" } }), "thing-1.rulebook should be a file"],
+    ["a file whose asset is not a reference", (doc) => (doc.rulebook = { _type: "file", asset: { _type: "sanity.fileAsset", _ref: "file-abc-pdf" } }), "thing-1.rulebook should be a file"],
+    ["a file of the wrong type", (doc) => (doc.rulebook = { _type: "image", asset: { _type: "reference", _ref: "file-abc-pdf" } }), "thing-1.rulebook should be a file"],
+    ["a file given as text", (doc) => (doc.rulebook = "rules.pdf"), "thing-1.rulebook should be a file"],
     ["a field the type does not have", (doc) => (doc.colour = "red"), 'thing-1.colour is not a field of "thing"'],
     ["an object of another type", (doc) => (doc.title._type = "other"), 'thing-1.title._type is "other", expected "label"'],
     ["an object without a type", (doc) => delete doc.title._type, 'thing-1.title._type is undefined, expected "label"'],
@@ -204,6 +215,12 @@ describe("emptyFields", () => {
     const doc = valid()
     delete doc.picture
     delete doc.parts[0].icon
+    expect(emptyFields(doc, thing, "thing-1", types)).toEqual(["thing-1.soft", "thing-1.odd"])
+  })
+
+  it("leaves files to the rulebook step, filled or not", () => {
+    const doc = valid()
+    expect(emptyFields({ ...doc, rulebook: { _type: "file", asset: { _type: "reference", _ref: "file-abc-pdf" } } }, thing, "thing-1", types)).toEqual(["thing-1.soft", "thing-1.odd"])
     expect(emptyFields(doc, thing, "thing-1", types)).toEqual(["thing-1.soft", "thing-1.odd"])
   })
 
