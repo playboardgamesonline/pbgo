@@ -213,20 +213,6 @@ Two of them are singletons, addressed in the Studio by the name of their type: `
 
 Two of them are singletons: `game`, `settings`.
 
-## What Flip 7 gets
-
-24 documents.
-
-| Id | Type | Count | Holds |
-| --- | --- | --- | --- |
-| `number-card-<n>` | `numberCard` | 13 | One per figure, `number-card-0` … `number-card-12`, listed under the figure itself as its key (`0` … `12`; the engine calls the card `number-<n>`). The fields, in the order of the Studio form: the English game key (a dropdown), its place in the category (`order`, which the Studio sorts on), its copies (as many as the figure, one for the 0) and, last, the visual, which the art fills. A card has no name: the figure printed on it is its key, so there is nothing to translate and the Studio lists it under that figure. A card holds no effect text: what it does is the engine's, and the rules are the publisher's PDFs |
-| `action-card-<key>` | `actionCard` | 3 | `freeze`, `flip-three`, `second-chance`, the keys of the engine's catalogue, in the order of the deck, with three copies each. The same fields, plus a name in four languages (the action cards are named by words): the seed gives them their English titles in every language, for the owner to translate in the Studio |
-| `modifier-card-<key>` | `modifierCard` | 6 | `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10`, `times-2`, the keys of the engine's catalogue, with one copy each. The same fields as the number cards: no name, the sign printed on the card is its key |
-| `game` | `game` | 1 | Empty: the card back, the box and the mat come with the art |
-| `settings` | `settings` | 1 | Credits (Eric Olsen; publisher The OP Games with its link). No rulebook link: the booklet has no address of its own to link, one can be set in the Studio |
-
-The 22 cards come in three categories, the engine's kinds (79 number cards, 9 action cards and 6 modifiers in the box, 94 in all), and each category is a document type of its own, so the Studio lists them apart (Number cards, Action cards, Modifier cards) and an editor looks for a 7 among the 13 numbers. A card has no `kind` field: its category says it. Two of the documents are singletons: `game` and `settings`. There is no `rules` document: the rules are links to PDFs, set in `settings`.
-
 ### Editions that are not in the seed
 
 The seed holds the Original Edition only. Each of the others would be one more `edition` document (and the card types it adds), written the same way. Their rulebooks, for when that work starts:
@@ -243,6 +229,20 @@ The seed holds the Original Edition only. Each of the others would be one more `
 | Imploding Kittens (expansion) | 20 | Up to 6 players; Imploding Kitten, Reverse, Alter the Future | `https://dumekj556jp75.cloudfront.net/imploding-kittens/imploding-english.pdf` (image-only PDF) |
 | Streaking Kittens (expansion) | 15 | Streaking Kitten, Catomic Bomb, Curse of the Cat Butt | `https://ek-instructions.s3.amazonaws.com/streaking-kittens/streaking-kittens-rules.pdf` |
 | Barking Kittens (expansion) | 20 | Barking Kitten, Bury, Personal Attack | `https://dumekj556jp75.cloudfront.net/barking-kittens/barking-kittens-rules.pdf` (image-only PDF) |
+
+## What Flip 7 gets
+
+24 documents.
+
+| Id | Type | Count | Holds |
+| --- | --- | --- | --- |
+| `number-card-<n>` | `numberCard` | 13 | One per figure, `number-card-0` … `number-card-12`, listed under the figure itself as its key (`0` … `12`; the engine calls the card `number-<n>`). The fields, in the order of the Studio form: the English game key (a dropdown), its place in the category (`order`, which the Studio sorts on), its copies (as many as the figure, one for the 0) and, last, the visual, which the art fills. A card has no name: the figure printed on it is its key, so there is nothing to translate and the Studio lists it under that figure. A card holds no effect text: what it does is the engine's, and the rules are the publisher's PDFs |
+| `action-card-<key>` | `actionCard` | 3 | `freeze`, `flip-three`, `second-chance`, the keys of the engine's catalogue, in the order of the deck, with three copies each. The same fields, plus a name in four languages (the action cards are named by words): the seed gives them their English titles in every language, for the owner to translate in the Studio |
+| `modifier-card-<key>` | `modifierCard` | 6 | `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10`, `times-2`, the keys of the engine's catalogue, with one copy each. The same fields as the number cards: no name, the sign printed on the card is its key |
+| `game` | `game` | 1 | Empty: the card back, the box and the mat come with the art |
+| `settings` | `settings` | 1 | Credits (Eric Olsen; publisher The OP Games with its link). No rulebook link: the booklet has no address of its own to link, one can be set in the Studio |
+
+The 22 cards come in three categories, the engine's kinds (79 number cards, 9 action cards and 6 modifiers in the box, 94 in all), and each category is a document type of its own, so the Studio lists them apart (Number cards, Action cards, Modifier cards) and an editor looks for a 7 among the 13 numbers. A card has no `kind` field: its category says it. Two of the documents are singletons: `game` and `settings`. There is no `rules` document: the rules are links to PDFs, set in `settings`.
 
 ## Rules
 
