@@ -141,6 +141,12 @@ export function problemsOf(value: unknown, def: Shape & { name?: string }, path:
       if (!isObject(value) || value._type !== "image" || !reference) return [`${path} should be an image that references an asset, got ${show(value)}`]
       break
     }
+    case "file": {
+      const asset = isObject(value) ? value.asset : undefined
+      const reference = isObject(asset) && asset._type === "reference" && typeof asset._ref === "string" && /^file-.+-[a-z0-9]+$/.test(asset._ref)
+      if (!isObject(value) || value._type !== "file" || !reference) return [`${path} should be a file that references an asset, got ${show(value)}`]
+      break
+    }
     case "object": {
       if (!isObject(value)) return [`${path} should be an object, got ${show(value)}`]
       const fields = def.fields ?? registered?.fields ?? []
@@ -199,13 +205,13 @@ export function documentProblems(doc: Record<string, unknown>, types: Types): st
 }
 
 /**
- * The fields a value leaves out, images apart (the art step brings those): a field the Studio form shows and the seed forgot.
- * Pass a document with its type, or a field with the value it holds.
+ * The fields a value leaves out, images and files apart (the art step brings the images, the rulebook step the PDFs): a field the
+ * Studio form shows and the seed forgot. Pass a document with its type, or a field with the value it holds.
  */
 export function emptyFields(value: unknown, def: Shape, path: string, types: Types): string[] {
   const registered = types.get(def.type)
   const kind = registered?.type ?? def.type
-  if (kind === "image") return []
+  if (kind === "image" || kind === "file") return []
   if (value === undefined || value === null) return [path]
   if ((kind === "object" || kind === "document") && isObject(value)) {
     const fields = def.fields ?? registered?.fields ?? []

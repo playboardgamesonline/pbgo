@@ -13,7 +13,7 @@ await runSeedCli({ slug: SLUG, projectId: PROJECT_ID, dataset: DATASET, envFile:
 ```
 
 - [What a game provides](#what-a-game-provides) · [Conventions](#conventions)
-- [Reference](#reference): [The data side](#the-data-side) · [The runner](#the-runner) · [The test helpers](#the-test-helpers)
+- [Reference](#reference): [The data side](#the-data-side) · [The runner](#the-runner) · [The rulebooks](#the-rulebooks) · [The test helpers](#the-test-helpers)
 - [Adding a game](#adding-a-game) · [Tests](#tests)
 
 ## What a game provides
@@ -77,12 +77,26 @@ Everything else (the options, the token, the plan, the art, the report) is the k
   5. dry run: stops here. `apply`: uploads the missing images, writes every draft in one transaction, then plans again and throws if anything is left to do
 - **`parseCli(argv)`**, **`HELP`**, **`UsageError`**, **`readToken({ slug, envFile })`** (`SANITY_API_WRITE_TOKEN_<SLUG>` from the environment, else from the env file; the value is never printed), **`formatReport(result, { projectId, dataset, verbose })`**, **`connect({ projectId, dataset, apiVersion, token })`** (a `SeedStore` on a real dataset).
 
+### The rulebooks
+
+`node --disable-warning=ExperimentalWarning packages/content-kit/src/rulebook-bin.ts <check|place> --rules [<language>=]<file.pdf> …`
+
+A game's rules are PDFs, one per language, held by the Studio fields "Rules PDF (FR|EN|ES|DE)" of the `settings` document (Mechanics tab). This command puts them there: `pnpm add-game` runs it right after the Studio exists, `pnpm game-rules` later (to add a language or replace a file). It is a file Node runs and not an entry point: `exports` stays as listed above, and `rulebook.ts` and `rulebook-cli.ts` are imported by the command and its tests only.
+
+- **`check`**: reads the PDFs and says what each one is. Sends nothing, needs no token.
+- **`place`**: needs `--slug` (whose write token is used) and `--project` (the game's Sanity project id), and takes `--dataset` (`production`) and `--env-file` (`apps/web/.env.local`). A dry run reads the dataset and says what would happen; `--apply` uploads the files and writes the draft. The token is `SANITY_API_WRITE_TOKEN_<SLUG>`, read like the seed's, and never printed.
+- **`--rules`** is repeatable, one per language (`--rules fr=regles.pdf --rules en=rules.pdf`); without a language it is English, two for the same language is an error. A path may be quoted, carry escaped spaces or start with `~` (what a terminal gives when a file is dropped on it). **`--from <dir>`** is the folder relative paths are read from: the scripts pass the one the person typed in, since `pnpm` runs them from the root.
+- **Checked first**, before the token is read and before anything is created: the file exists, is a file, is not empty, weighs 50 MB at most and is a PDF (`%PDF-` in its first kilobyte). Every problem is listed, a line per rulebook, not only the first.
+- **Placed like a seed**: a field that is empty gets the file, a field that holds another file keeps it (`--overwrite` replaces it), a field that holds this very file is left alone. Files are looked up in the dataset by content (SHA-1), so a PDF already uploaded is reused and one PDF given for two languages is uploaded once. Only `drafts.settings` is written, and it is made from the published `settings` when there is one; nothing is published, and the published document is never touched. After the write it plans again and throws if anything is left to do, so running it twice changes nothing.
+
+The functions behind it: `parseRulebookArg(s)`, `loadRulebook(s)` (`Rulebook`: language, field, path, filename, bytes, SHA-1), `placeRulebooks({ store, rulebooks, apply, overwrite })` (a `RulebookResult` with, for each rulebook, `placed`, `replaced`, `already` or `kept`), `formatRulebookList`, `formatRulebookReport`, `rulebookField(language)` and `RulebookError`. They work on a `SeedStore`, which has the file twin of the image methods for it: `findFileAssets(sha1s)` and `uploadFile({ data, filename, contentType })`. A `file` field holds `{ _type: "file", asset: { _type: "reference", _ref: "file-<sha1>-pdf" } }`.
+
 ### The test helpers
 
 `import … from "@pbgo/content-kit/testing"`
 
-- **`MemoryStore`**: an in-memory dataset. `docs` (a `Map`), `writes` (each transaction), `uploads`, and the Studio's gestures: `edit(id, fn)` changes a document, `publish(id)` turns a draft into a published document.
-- **`documentProblems(doc, types)`**, **`problemsOf(value, def, path, types)`**, **`constraintsOf(validation)`**, **`emptyFields(…)`**, **`imageFields(typeName, types)`**, **`imageFieldOf(typeName, path)`**: the emulator of the Studio's validation. It checks a seed document against the types of the game's own Studio (field names, kinds, option lists, `required`, `min`, `max`…), and lists the fields a form shows and the seed forgot. It does not follow `reference` fields: a type that points at another uses a plain key.
+- **`MemoryStore`**: an in-memory dataset. `docs` (a `Map`), `writes` (each transaction), `uploads` and `fileUploads` (what was sent as an image and as a file), `assets` and `fileAssets`, and the Studio's gestures: `edit(id, fn)` changes a document, `publish(id)` turns a draft into a published document.
+- **`documentProblems(doc, types)`**, **`problemsOf(value, def, path, types)`**, **`constraintsOf(validation)`**, **`emptyFields(…)`**, **`imageFields(typeName, types)`**, **`imageFieldOf(typeName, path)`**: the emulator of the Studio's validation. It checks a seed document against the types of the game's own Studio (field names, kinds, option lists, `required`, `min`, `max`…, an `image` or a `file` that points at an asset), and lists the fields a form shows and the seed forgot (images and files apart: the art step and the rulebook step bring those). It does not follow `reference` fields: a type that points at another uses a plain key.
 - **`imageOf(color, size?, format?)`**, **`imageValue(name)`**, **`imagesOf(value)`**, **`TempFolders`** (temporary art folders, removed by `cleanUp()` from `afterEach`), **`Doc`** (a seed document read loosely), **`Size`**.
 
 ### The rules of the Studio forms

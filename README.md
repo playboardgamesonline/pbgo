@@ -6,7 +6,7 @@ oré's online board games, served by one Next.js app on [playboardgamesonline.ap
 pnpm install
 pnpm dev                     # hub + every game on http://localhost:3100 (apps/web)
 pnpm dev:studio courtisans   # a game's Sanity Studio
-pnpm add-game the-crew       # new game from template/: package, registry entry, Sanity project
+pnpm add-game                # new game: asks its name and rules PDFs, then package, registry entry, Sanity project, Studio
 pnpm typecheck && pnpm test && pnpm check:catalog
 pnpm build                   # production build of apps/web
 ```
