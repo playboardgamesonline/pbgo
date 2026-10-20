@@ -18,12 +18,17 @@ export type AudioDoc = {
   effects?: { key?: string; file?: FileRef; volume?: number }[] | null
 } | null
 
-export const AUDIO_QUERY = `*[_id == "audio"][0]{
+const AUDIO_PROJECTION = `{
   volumes, defaultMusic,
   music[]{ key, title, loopEnd, "file": file.asset->{url} },
   ambience{ loopEnd, "file": file.asset->{url} },
   effects[]{ key, volume, "file": file.asset->{url} }
 }`
+
+/** GROQ of the audio document `id`: the published one by default, `drafts.audio` when the admin reads what the Studio shows. `id` is a constant of the server, never user input. */
+export const audioQuery = (id = "audio") => `*[_id == "${id}"][0]${AUDIO_PROJECTION}`
+
+export const AUDIO_QUERY = audioQuery()
 
 const fileUrl = (f: FileRef) => (f?.url ? mediaUrl(f.url) : null)
 const volume = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : null)

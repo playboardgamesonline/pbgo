@@ -10,7 +10,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
 import { DEFAULT_PLAYER_COLORS } from "../../../lib/skin"
-import { FileTile, IMAGE_ACCEPT, IMAGE_HINT, Img, PreviewCard, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
+import { DraftAlert, FileTile, IMAGE_ACCEPT, IMAGE_HINT, Img, PreviewCard, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = Pick<SiteSettings, "theme" | "bodyFont" | "displayFont"> & { playerColors: string[] }
 
@@ -60,6 +60,7 @@ export function VisualPage({ initial, defaultTheme }: { initial: AdminData; defa
   return (
     <SetupLayout aside={<PreviewCard draft={{ settings, skin }} kinds={["home", "game"]} />}>
       <ReadOnlyAlert writable={data.writable} />
+      <DraftAlert drafts={data.drafts} docs={["settings", "interface"]} />
 
       <Card>
         <CardHeader>

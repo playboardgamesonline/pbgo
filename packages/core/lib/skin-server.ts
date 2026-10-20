@@ -36,10 +36,13 @@ type SkinDoc = {
 
 const IMG = "{asset, crop, hotspot, \"ratio\": asset->metadata.dimensions.aspectRatio, \"mime\": asset->mimeType}"
 
-export const SKIN_QUERY = `{
-  "interface": *[_id == "interface"][0]{ "background": background${IMG}, "pattern": pattern${IMG}, "decorTop": decorTop${IMG}, "decorBottom": decorBottom${IMG}, "hero": hero${IMG}, "hostIcon": hostIcon${IMG}, playerColors, desktopOnly },
-  "texts": *[_id == "texts"][0]{ tagline, homeTitle, homeIntro, victoryPhrases, ui_home, ui_lobby, ui_game, errorMessages }
+/** GROQ of the skin from the `interface` and `texts` documents: the published ones by default, the draft ids when the admin reads what the Studio shows. The ids are constants of the server, never user input. */
+export const skinQuery = (ids = { interface: "interface", texts: "texts" }) => `{
+  "interface": *[_id == "${ids.interface}"][0]{ "background": background${IMG}, "pattern": pattern${IMG}, "decorTop": decorTop${IMG}, "decorBottom": decorBottom${IMG}, "hero": hero${IMG}, "hostIcon": hostIcon${IMG}, playerColors, desktopOnly },
+  "texts": *[_id == "${ids.texts}"][0]{ tagline, homeTitle, homeIntro, victoryPhrases, ui_home, ui_lobby, ui_game, errorMessages }
 }`
+
+export const SKIN_QUERY = skinQuery()
 
 const has = (i: ImageRef): i is NonNullable<ImageRef> => !!i?.asset?._ref
 
