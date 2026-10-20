@@ -14,7 +14,6 @@ export const edition = defineType({
     defineField({
       name: "cards",
       title: "Cards",
-      description: "The card types of the deck, with the copies of each",
       type: "array",
       of: [
         defineArrayMember({
@@ -22,7 +21,7 @@ export const edition = defineType({
           name: "deckCard",
           fields: [
             defineField({ name: "cardType", title: "Card type", type: "string", options: { list: CARD_TYPES, layout: "dropdown" }, validation: (r) => r.required() }),
-            defineField({ name: "copies", title: "Copies", description: "Copies of this card type in the deck", type: "number", initialValue: 1, validation: (r) => r.required().integer().min(1) }),
+            defineField({ name: "copies", title: "Copies", type: "number", initialValue: 1, validation: (r) => r.required().integer().min(1) }),
           ],
           preview: { select: { cardType: "cardType", copies: "copies" }, prepare: ({ cardType, copies }) => ({ title: titleOf(CARD_TYPES, cardType) ?? "?", subtitle: `× ${copies ?? 1}` }) },
         }),

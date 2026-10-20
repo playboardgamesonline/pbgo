@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url"
  * The dataset is fixed on purpose: an exported `NEXT_PUBLIC_SANITY_DATASET` must not redirect the writes.
  */
 export const SLUG = "exploding-kittens"
-export const PROJECT_ID = "gsfz20b9"
+export const PROJECT_ID = "iz9kkgyd"
 export const DATASET = "production"
 
 export const CONTENT_DIR = dirname(fileURLToPath(import.meta.url))
