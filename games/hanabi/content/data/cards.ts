@@ -13,14 +13,14 @@ export const cardId = (suit: SuitKey, rank: Rank) => `card-${suit}-${rank}`
 
 export const quantityOf = (suit: SuitKey, rank: Rank): number => (directionOf(suit) === "descending" ? DESCENDING : ASCENDING)[rank]
 
-/** The 35 faces of the 70-card deck: one document per suit and value, with the number of copies. */
+/** The 35 faces of the 70-card deck: one document per color and value, with the number of copies (the fields in the order of the Studio form). */
 export function buildCards(): SeedDoc[] {
   return SUIT_KEYS.flatMap((suit) =>
     RANKS.map((rank) => ({
       _id: cardId(suit, rank),
       _type: "card",
-      suit,
       rank,
+      suit,
       quantity: quantityOf(suit, rank),
     })),
   )

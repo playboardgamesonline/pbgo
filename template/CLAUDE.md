@@ -30,7 +30,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
     - Card games, seeded and pure: `createSaveableRng` / `restoreRng` / `shuffle` / `sideSeed` (a stream carried from one action to the next), `issueIds` / `reissueId` (numeric opaque card ids; a card that goes back into hiding gets a new one), `draw` / `peek` / `insertAt` / `reshuffleDiscard` / `drawWithReshuffle` / `deal` (piles, top first), `viewLog` (a log filtered per viewer), `roundsOutcome` / `sumRounds` / `ranks` (scores over rounds until a target)
     - Lean state (every game): the state holds ids and numbers only, no display data, no derived values, no log
   - `src/demo/` is the demo game (with a simultaneous step: the secret bids of the `bids` option); `src/index.ts` exports `GAME` = the active game
-- `apps/studio` — `template-studio`, Sanity Studio built with `createStudioConfig` of `@pbgo/studio-kit` (shared singletons `settings`, `interface`, `audio`, `texts`, no rules document); only `schemaTypes/game.ts` is the game's own
+- `apps/studio` — `template-studio`, Sanity Studio built with `createStudioConfig` of `@pbgo/studio-kit` (shared singletons `settings`, `interface`, `audio`, `texts`, no rules document); only `schemaTypes/game.ts` is the game's own (the images of the table, in tabs: add a tab per family). The forms follow the rules of the skill `game-sanity-create` (`.claude/skills/`), kept for the whole Studio by `studio-forms.test.ts` (`pnpm --filter template-studio test`; `pnpm new-game` copies it into the new game)
 - Everything else (home, lobby, game page, chat, game over, sharing, admin, API routes) comes from `@pbgo/core` and is the same for every game
 
 ## Assets

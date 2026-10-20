@@ -17,6 +17,7 @@ Moving the project to another account: see `MIGRATION.md`.
 - `docs/` — guides: `content-pipeline.md` (seeding a game's Sanity content)
 - `supabase/migrations/` — schema of the single Supabase project
 - `scripts/` — `new-game.sh`, `go-live.sh`, `add-game.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`
+- `.claude/skills/` — the agents' skills by category (`game-`, `engine-`, `platform-`): the questions, rules and commands of a recurring job, written once. `README.md` lists them
 
 ## Routes (`apps/web/src/app`)
 | URL | File | |
@@ -86,7 +87,7 @@ A change here reaches every game on the next deployment.
   - The state is stored as `jsonb`, which does not keep the order of the keys: an order (seats, turns) always comes from an array of the state, never from `Object.keys`
 - `@pbgo/ui` — shadcn components + `cn`: `@pbgo/ui/game/<comp>` (game theme), `@pbgo/ui/platform/<comp>` (platform theme: hub, account, legal, admin, 404), `@pbgo/ui/styles/platform.css` (platform tokens), `@pbgo/ui/theme` (`PLATFORM_THEME_COLOR`), `@pbgo/ui/utils`. See Design system
 - `@pbgo/studio-kit` — shared Sanity schemas (`settings`, `interface`, `audio`, `texts` via `createTexts(extra)`, `localeString`…; no `rules` document, see Languages) and `createStudioConfig({ title, projectId, gameTypes })` (a game type with the same name replaces the shared one); `@pbgo/studio-kit/constants` (languages, `FONT_CHOICES`) importable on the web side
-- `@pbgo/content-kit` — the seed pipeline of a game's Sanity content, shared by every game: options and token, plan, art (scan, WebP, upload, place), drafts-only writes, report, plus the test helpers (in-memory dataset, Studio-schema checker). A game keeps only its data and its config in `games/<slug>/content` and calls `runSeedCli`. Three entry points: `.` (what the data files import: `localeString`, `localeText`, `setField`, `setItemField`, `ArtSlot`, `SeedDoc`), `./seed` (the runner) and `./testing`. Consumed as source and run by Node (type stripping): relative imports carry `.ts`, type imports are `import type`, erasable syntax only, and the kit declares its own dependencies. Documented in `packages/content-kit/README.md`; `apps/web` does not use it
+- `@pbgo/content-kit` — the seed pipeline of a game's Sanity content, shared by every game: options and token, plan, art (scan, WebP, upload, place), drafts-only writes, report, plus the test helpers (in-memory dataset, Studio-schema checker). A game keeps only its data and its config in `games/<slug>/content` and calls `runSeedCli`. Four entry points: `.` (what the data files import: `localeString`, `localeText`, `setField`, `setItemField`, `ArtSlot`, `SeedDoc`), `./seed` (the runner), `./testing` and `./form-rules` (the rules of the Studio forms, for a Studio's own test: no Sanity client, no `sharp`). Consumed as source and run by Node (type stripping): relative imports carry `.ts`, type imports are `import type`, erasable syntax only, and the kit declares its own dependencies. Documented in `packages/content-kit/README.md`; `apps/web` does not use it
 - `@pbgo/tsconfig`, `@pbgo/eslint-config` — shared TypeScript and ESLint configs
 - Every external dependency comes from the pnpm catalog (`catalog:` in `package.json`, versions in `pnpm-workspace.yaml`); `pnpm check:catalog` enforces it
 - A new workspace package used by apps/web goes into `transpilePackages` (`apps/web/next.config.ts`; game packages are added from the registry)
@@ -132,6 +133,7 @@ Black and white, dark theme only, Geist Sans in semibold with tight line-height 
 - One Sanity project per game (`sanityProjectId` in the registry), dataset `production`, studio `<slug>-studio` deployed to `<host>.sanity.studio`
 - The studio reads its project id from `apps/studio/.env` (`SANITY_STUDIO_PROJECT_ID`, see `.env.example`) or from `sanity.cli.ts`
 - A game's own content types: schemas in `apps/studio/schemaTypes`, queries in the binding's `src/sanity/`, then `pnpm --filter <slug>-studio typegen`
+- Studio forms (what a game's owner fills in): the questions to ask the owner first, the rules and the don'ts are written once, in the skill `game-sanity-create` (`.claude/skills/`, see Rules of work); `studio-forms.test.ts`, next to each `sanity.config.ts` (the template's, copied by `pnpm new-game`, and Courtisans'), keeps the rules that hold for the whole Studio true
 - Seeding: a game's content (cards, credits, rulebook links, art) is described in `games/<slug>/content/` (data and config) and written by the shared `@pbgo/content-kit` with `pnpm --filter @pbgo-game/<slug> content:seed --dry-run` then `--apply`. Drafts only (publishing stays in the Studio), idempotent, never overwrites what was edited in the Studio. Token `SANITY_API_WRITE_TOKEN_<SLUG>`, never printed. Process, options, art naming: `docs/content-pipeline.md`
 - Media proxy `GET /api/media?url=` (shared by every game; fonts, sounds, SVG) only serves `https://cdn.sanity.io/(images|files)/<projectId>/…` where `<projectId>` is the `sanityProjectId` of a game of the registry (`sanityAssetUrl` in `packages/core/sanity/media.ts`, which also refuses `%` in the path and fetches the normalized URL). Core never imports the games: `apps/web/src/app/api/media/route.ts` passes the ids to `mediaRoute()`
 
@@ -202,6 +204,7 @@ Optional: without `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` nothi
 - Platform UI (hub, account, legal, admin, 404) uses only `@pbgo/ui` tokens and components, never a hard-coded colour, font or spacing; a new component goes into `@pbgo/ui` first (see Design system)
 - Branch named after the Linear issue (`plt-<n>-<topic>`); the PR description references the issue ID; never merge your own PR
 - A PR that adds a migration says so in its description: Oré runs `pnpm setup-env` right after merging it, which applies the migration to preview, then to production (see Supabase)
+- A recurring job is a skill of the agent that carries it out, `.claude/skills/<game|engine|platform>-<job>/SKILL.md`, listed in `.claude/skills/README.md`: its questions, rules and commands are written there once and other docs point to it. `CLAUDE.md` describes the codebase, it holds no procedure
 - Never commit secrets or env files (`.env*` except `.env.example`, `.vercel`, `.sanity-project-id` are git-ignored)
 
 ## Commits
