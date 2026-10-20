@@ -6,9 +6,13 @@ export const game = defineType({
   title: "Game",
   type: "document",
   icon: ThLargeIcon,
+  groups: [
+    { name: "board", title: "Board", default: true },
+    { name: "backs", title: "Card backs" },
+  ],
   fields: [
-    defineField({ name: "mat", title: "Game mat", type: "image" }),
-    defineField({ name: "cardBack", title: "Card back", type: "image" }),
+    defineField({ name: "mat", title: "Game mat", type: "image", group: "board" }),
+    defineField({ name: "cardBack", title: "Card back", type: "image", group: "backs" }),
   ],
   preview: { prepare: () => ({ title: "Game" }) },
 })

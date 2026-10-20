@@ -3,7 +3,7 @@ import { defineField, defineType } from "sanity"
 import { RANKS, SUITS, titleOf } from "./constants"
 
 // All the cards in one list: the value, the color, how many copies are in the deck, then the visual (the 70-card deck has 35 faces).
-// Studio form rules (root CLAUDE.md): no Effect or Rule field, no `description`, the visual is the last field and the quantity the one before it
+// Studio form rules (skill `game-sanity-create`): no Effect or Rule field, no `description`, the visual is the last field and the quantity the one before it
 export const card = defineType({
   name: "card",
   title: "Card",
