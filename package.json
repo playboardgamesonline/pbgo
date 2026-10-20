@@ -16,6 +16,7 @@
     "new-game": "bash scripts/new-game.sh",
     "go-live": "bash scripts/go-live.sh",
     "add-game": "bash scripts/add-game.sh",
+    "game-rules": "bash scripts/game-rules.sh",
     "setup-env": "bash scripts/setup-env.sh"
   }
 }

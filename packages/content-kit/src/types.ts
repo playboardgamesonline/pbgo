@@ -6,6 +6,9 @@ export type StoredDoc = SeedDoc & { _rev?: string; _createdAt?: string; _updated
 
 export type ImageValue = { _type: "image"; asset: { _type: "reference"; _ref: string } }
 
+/** What a `file` field holds: a PDF rulebook, a sound… */
+export type FileValue = { _type: "file"; asset: { _type: "reference"; _ref: string } }
+
 /**
  * What the seed does with one document:
  * - `create`: no draft and no published document yet
@@ -42,7 +45,8 @@ export type DraftOp =
   | { type: "createIfNotExists"; doc: SeedDoc }
   | { type: "patch"; id: string; ifRevisionID: string; set: Record<string, unknown> }
 
-export type ImageFile = { data: Buffer; filename: string; contentType: string }
+export type AssetFile = { data: Buffer; filename: string; contentType: string }
+export type ImageFile = AssetFile
 
 /**
  * Everything the seed asks of a dataset. The real adapter talks to Sanity (`store.ts`), the tests use an in-memory one.
@@ -57,5 +61,9 @@ export interface SeedStore {
   findImageAssets(sha1s: string[]): Promise<Map<string, string>>
   /** Assets have no draft state: an upload is visible at once, but nothing uses it until a document points at it */
   uploadImage(file: ImageFile): Promise<{ _id: string }>
+  /** The file assets (a PDF, not an image) whose content hash is in `sha1s`: hash → asset id */
+  findFileAssets(sha1s: string[]): Promise<Map<string, string>>
+  /** Same as `uploadImage`, for a file that is not a picture: a rulebook PDF */
+  uploadFile(file: AssetFile): Promise<{ _id: string }>
   writeDrafts(ops: DraftOp[]): Promise<void>
 }

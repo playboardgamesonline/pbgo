@@ -47,10 +47,8 @@ done
 ok "Dataset production (public), CORS for $SITE and http://localhost:3100"
 
 # ---------- Project id and studio host in the code ----------
-# Studio host: its .env, else the one written in sanity.cli.ts, else the slug
-HOST="$(envget "$STUDIO/.env" SANITY_STUDIO_HOST)"
-[ -z "$HOST" ] && HOST="$(sed -nE 's/.*studioHost:[^"]*"([a-z0-9-]+)".*/\1/p' "$STUDIO/sanity.cli.ts" | head -1)"
-[ -z "$HOST" ] && HOST="$SLUG"
+# Studio host: its .env, else the one written in sanity.cli.ts, else the slug (studio_host, lib.sh)
+HOST="$(studio_host "$SLUG")"
 envset "$STUDIO/.env" SANITY_STUDIO_PROJECT_ID "$PID"
 envset "$STUDIO/.env" SANITY_STUDIO_DATASET production
 envset "$STUDIO/.env" SANITY_STUDIO_HOST "$HOST"

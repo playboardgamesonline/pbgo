@@ -59,7 +59,8 @@ class FakeClient {
   assets = {
     upload: async (type: string, data: Buffer, options: unknown) => {
       this.uploads.push({ type, data, options })
-      return { _id: "image-abc-40x56-webp", url: "https://cdn.sanity.io/…", sha1hash: "abc" }
+      const _id = type === "file" ? "file-abc-pdf" : "image-abc-40x56-webp"
+      return { _id, url: "https://cdn.sanity.io/…", sha1hash: "abc" }
     },
   }
 
@@ -182,6 +183,42 @@ describe("uploadImage", () => {
   })
 })
 
+describe("findFileAssets", () => {
+  it("returns the asset id of each known hash, among the file assets only", async () => {
+    const { client, store } = setup()
+    client.fetchResult = [{ _id: "file-aaa-pdf", sha1hash: "aaa" }]
+    const found = await store.findFileAssets(["aaa", "bbb"])
+    expect(found).toEqual(new Map([["aaa", "file-aaa-pdf"]]))
+    expect(client.fetchCalls[0]?.query).toContain("sanity.fileAsset")
+    expect(client.fetchCalls[0]?.query).not.toContain("sanity.imageAsset")
+    expect(client.fetchCalls[0]?.params).toEqual({ sha1s: ["aaa", "bbb"] })
+  })
+
+  it("makes no request for no hash", async () => {
+    const { client, store } = setup()
+    expect((await store.findFileAssets([])).size).toBe(0)
+    expect(client.fetchCalls).toEqual([])
+  })
+})
+
+describe("uploadFile", () => {
+  it("uploads the bytes as a file with the name and the type of the file, and returns the id only", async () => {
+    const { client, store } = setup()
+    const data = Buffer.from("%PDF-1.4 not really a rulebook")
+    const result = await store.uploadFile({ data, filename: "rules-en.pdf", contentType: "application/pdf" })
+    expect(result).toEqual({ _id: "file-abc-pdf" })
+    expect(client.uploads).toEqual([{ type: "file", data, options: { filename: "rules-en.pdf", contentType: "application/pdf" } }])
+  })
+
+  it("lets a failed upload through", async () => {
+    const { client, store } = setup()
+    client.assets.upload = async () => {
+      throw new Error("upload refused")
+    }
+    await expect(store.uploadFile({ data: Buffer.from("x"), filename: "a.pdf", contentType: "application/pdf" })).rejects.toThrow("upload refused")
+  })
+})
+
 describe("writeDrafts", () => {
   const create = (id: string): DraftOp => ({ type: "createIfNotExists", doc: { _id: id, _type: "thing", title: id } })
   const patch = (id: string): DraftOp => ({ type: "patch", id, ifRevisionID: "rev-9", set: { title: "New" } })
@@ -246,7 +283,7 @@ describe("writeDrafts", () => {
 describe("the store", () => {
   it("can read, upload and write drafts, and nothing else: no publish, no delete", () => {
     const { store } = setup()
-    expect(Object.keys(store).sort()).toEqual(["findImageAssets", "getDocuments", "listDocumentIds", "uploadImage", "writeDrafts"])
+    expect(Object.keys(store).sort()).toEqual(["findFileAssets", "findImageAssets", "getDocuments", "listDocumentIds", "uploadFile", "uploadImage", "writeDrafts"])
   })
 })
 

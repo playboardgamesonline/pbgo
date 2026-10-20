@@ -224,3 +224,46 @@ describe("image assets", () => {
     expect(await store.findImageAssets([])).toEqual(new Map())
   })
 })
+
+describe("file assets", () => {
+  const pdf = (text: string) => Buffer.from(`%PDF-1.4 ${text}`)
+
+  it("names an uploaded file like Sanity does, after its content and its extension", async () => {
+    const store = new MemoryStore()
+    const data = pdf("rules")
+    const { _id } = await store.uploadFile({ data, filename: "Rules.PDF", contentType: "application/pdf" })
+    expect(_id).toBe(`file-${sha1Of(data)}-pdf`)
+  })
+
+  it("falls back to bin for a name without an extension", async () => {
+    const store = new MemoryStore()
+    const data = pdf("no extension")
+    for (const filename of ["rules", ".pdf", "rules."]) {
+      const { _id } = await store.uploadFile({ data: Buffer.concat([data, Buffer.from(filename)]), filename, contentType: "application/pdf" })
+      expect(_id.endsWith("-bin")).toBe(true)
+    }
+  })
+
+  it("keeps one asset for one content, and records every call", async () => {
+    const store = new MemoryStore()
+    const rules = pdf("rules")
+    const first = await store.uploadFile({ data: rules, filename: "a.pdf", contentType: "application/pdf" })
+    const again = await store.uploadFile({ data: Buffer.from(rules), filename: "b.pdf", contentType: "application/pdf" })
+    const other = await store.uploadFile({ data: pdf("another"), filename: "c.pdf", contentType: "application/pdf" })
+    expect(again).toEqual(first)
+    expect(other._id).not.toBe(first._id)
+    expect(store.fileAssets.size).toBe(2)
+    expect(store.fileUploads.map((file) => file.filename)).toEqual(["a.pdf", "b.pdf", "c.pdf"])
+  })
+
+  it("keeps the files and the images apart: a hash is only known to the kind it was uploaded as", async () => {
+    const store = new MemoryStore()
+    const data = pdf("rules")
+    const { _id } = await store.uploadFile({ data, filename: "a.pdf", contentType: "application/pdf" })
+    expect(await store.findFileAssets([sha1Of(data), "unknown"])).toEqual(new Map([[sha1Of(data), _id]]))
+    expect(await store.findImageAssets([sha1Of(data)])).toEqual(new Map())
+    expect(await store.findFileAssets([])).toEqual(new Map())
+    expect(store.assets.size).toBe(0)
+    expect(store.uploads).toEqual([])
+  })
+})

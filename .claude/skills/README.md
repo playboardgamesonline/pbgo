@@ -17,6 +17,7 @@ A job that crosses categories is split: each skill does its part and names the s
 ## Skills
 
 ### GAME
+- `game-new` — start a new game from nothing: the questions to ask the owner, `pnpm add-game` (code from the template, Sanity project, Studio, rules PDFs, environment) run after an explicit ok, then the hand-over to `game-sanity-create` for the fields
 - `game-sanity-create` — build or reshape a game's Sanity content model: the questions to ask the owner, the Studio-form rules and don'ts, the schemas, the guards, the seed and the Studio deploy
 
 ### ENGINE

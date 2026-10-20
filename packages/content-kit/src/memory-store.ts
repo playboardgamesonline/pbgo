@@ -2,7 +2,13 @@ import { createHash } from "node:crypto"
 import sharp from "sharp"
 import { assetIdOf } from "./art.ts"
 import { assertDraftId } from "./plan.ts"
-import type { DraftOp, ImageFile, SeedDoc, SeedStore, StoredDoc } from "./types.ts"
+import type { AssetFile, DraftOp, ImageFile, SeedDoc, SeedStore, StoredDoc } from "./types.ts"
+
+/** `Rules.PDF` → `pdf`, as Sanity names the file assets: `file-<sha1>-<extension>`. */
+const extensionOf = (filename: string) => {
+  const dot = filename.lastIndexOf(".")
+  return dot > 0 && dot < filename.length - 1 ? filename.slice(dot + 1).toLowerCase() : "bin"
+}
 
 /**
  * An in-memory dataset for the tests: the same contract as the Sanity adapter (`store.ts`), plus helpers that play the Studio
@@ -12,9 +18,12 @@ export class MemoryStore implements SeedStore {
   docs = new Map<string, StoredDoc>()
   /** Content hash → asset id, like the image assets of a dataset */
   assets = new Map<string, string>()
+  /** Content hash → asset id, like the file assets of a dataset */
+  fileAssets = new Map<string, string>()
   /** Every call of `writeDrafts`, in order */
   writes: DraftOp[][] = []
   uploads: ImageFile[] = []
+  fileUploads: AssetFile[] = []
   private revision = 0
 
   private nextRev() {
@@ -79,6 +88,25 @@ export class MemoryStore implements SeedStore {
     const size = svg ? undefined : await sharp(file.data).metadata()
     const id = assetIdOf({ sha1, ext: svg ? "svg" : "webp", width: size?.width ?? 0, height: size?.height ?? 0 })
     this.assets.set(sha1, id)
+    return { _id: id }
+  }
+
+  async findFileAssets(sha1s: string[]) {
+    const found = new Map<string, string>()
+    for (const sha1 of sha1s) {
+      const id = this.fileAssets.get(sha1)
+      if (id) found.set(sha1, id)
+    }
+    return found
+  }
+
+  async uploadFile(file: AssetFile) {
+    this.fileUploads.push(file)
+    const sha1 = createHash("sha1").update(file.data).digest("hex")
+    const known = this.fileAssets.get(sha1)
+    if (known) return { _id: known }
+    const id = `file-${sha1}-${extensionOf(file.filename)}`
+    this.fileAssets.set(sha1, id)
     return { _id: id }
   }
 
