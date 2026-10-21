@@ -87,7 +87,7 @@ export function CopyPage({ initial }: { initial: AdminData }) {
         <CardHeader>
           <CardTitle>{q ? `Results for “${query.trim()}”` : GROUPS.find((g) => g.id === group)!.title}</CardTitle>
           <CardDescription>
-            {q ? `${visible.length} text${visible.length > 1 ? "s" : ""}` : GROUPS.find((g) => g.id === group)!.description} Grey text is the platform's own wording, used until you write
+            {q ? `${visible.length} text${visible.length > 1 ? "s" : ""}` : GROUPS.find((g) => g.id === group)!.description} Grey text is the platform’s own wording, used until you write
             yours. A required text has none: players read “[missing: …]” until it is written. Keep the variables in braces.
           </CardDescription>
         </CardHeader>
