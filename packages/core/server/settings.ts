@@ -471,6 +471,7 @@ const SLOTS: Record<UploadSlot, SlotConf> = {
   rulesDe: { doc: "settings", field: "rulesPdfDeFile", asset: "file", convert: (f) => asIs(f, "application/pdf") },
   fontBody: { doc: "settings", field: "bodyFontFile", asset: "file", convert: fontToWoff2 },
   fontDisplay: { doc: "settings", field: "displayFontFile", asset: "file", convert: fontToWoff2 },
+  fontAccent: { doc: "settings", field: "accentFontFile", asset: "file", convert: fontToWoff2 },
   background: { doc: "interface", field: "background", asset: "image", convert: imageToWebp },
   pattern: { doc: "interface", field: "pattern", asset: "image", convert: imageToWebp },
   decorTop: { doc: "interface", field: "decorTop", asset: "image", convert: imageToWebp },
@@ -487,7 +488,7 @@ export const isUploadSlot = (v: string) => v in SLOTS || AUDIO_SLOT.test(v)
 function accepts(slot: string, file: File) {
   if (slot.startsWith("audio.")) return file.type === "audio/mpeg" || /\.mp3$/i.test(file.name)
   if (slot.startsWith("rules")) return pdf(file)
-  if (slot === "fontBody" || slot === "fontDisplay") return /\.(woff2?|ttf|otf)$/i.test(file.name)
+  if (slot.startsWith("font")) return /\.(woff2?|ttf|otf)$/i.test(file.name)
   return image(file)
 }
 
