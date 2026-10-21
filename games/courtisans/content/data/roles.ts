@@ -6,7 +6,7 @@ export type RoleKey = (typeof ROLE_KEYS)[number]
 
 type RoleSpec = { name: Localized; rule: Localized }
 
-// Copied from `GAME[locale].roles[key].name` of `src/lib/i18n.ts` and `ROLE_RULE_TEXTS` of `src/lib/i18n-rules.ts`; `parity/code.test.ts` keeps them equal until the code's copy goes.
+// The source names and rules of the roles, as the game wrote them before its texts moved to Sanity; the drafts are made from them.
 const SPECS: Record<RoleKey, RoleSpec> = {
   noble: {
     name: { fr: "Noble", en: "Noble", es: "Noble", de: "Adliger" },

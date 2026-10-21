@@ -3,8 +3,7 @@ import type { LanguageId, Localized, SeedDoc } from "@pbgo/content-kit"
 
 export const TEXTS_ID = "texts"
 
-// Copied from the code: the tagline, the home title and intro and the victory sentences from `I18N[locale].skin` of `src/lib/i18n.ts` (French from
-// `TAGLINE` and `DEFAULT_SKIN`), the two buttons from `GAME[locale]`; `parity/code.test.ts` keeps them equal until the code's copy goes.
+// The source texts of the `texts` singleton: what the game said when its texts were still in the code, written into Sanity as drafts. The game keeps no copy of them.
 const TAGLINE: Localized = {
   fr: "Le banquet de la Reine, en ligne et entre amis",
   en: "The Queen's banquet, online with friends",
@@ -56,6 +55,63 @@ const BANQUET_STARTS: Localized = {
   en: "Let the banquet begin!",
   es: "¡Que comience el banquete!",
   de: "Das Bankett kann beginnen!",
+}
+
+// Search engines: the sentence of the home page's hidden heading, after the site title, and the genres of its structured data.
+const HOME_HEADING: Localized = {
+  fr: "Bienvenue au banquet de la Reine : jouez à Courtisans en ligne avec vos amis",
+  en: "Welcome to the Queen's banquet: play Courtisans online with your friends",
+  es: "Bienvenido al banquete de la Reina: juega a Courtisans en línea con tus amigos",
+  de: "Willkommen beim Bankett der Königin: Spiele Courtisans online mit deinen Freunden",
+}
+
+const GENRES: Record<LanguageId, string[]> = {
+  fr: ["Jeu de cartes", "Jeu de société", "Jeu de bluff"],
+  en: ["Card game", "Board game", "Bluffing game"],
+  es: ["Juego de cartas", "Juego de mesa", "Juego de faroles"],
+  de: ["Kartenspiel", "Gesellschaftsspiel", "Bluffspiel"],
+}
+
+// The vocabulary of the board: the zones, the log lines, the buttons under the board and the score detail. `{name}` is the owner of a domain and `{count}` a
+// number of cards (the singular is for one card or none).
+const BOARD: Record<string, Localized> = {
+  courtier: { fr: "Courtisan", en: "Courtier", es: "Cortesano", de: "Höfling" },
+  zoneTable: { fr: "à la table de la Reine", en: "at the Queen's table", es: "en la mesa de la Reina", de: "an der Tafel der Königin" },
+  zoneYours: { fr: "chez vous", en: "in your domain", es: "en tu dominio", de: "in deinem Herrschaftsbereich" },
+  zoneTheirs: { fr: "chez lui", en: "in their domain", es: "en su dominio", de: "in seinem Herrschaftsbereich" },
+  zoneOther: { fr: "chez {name}", en: "in {name}'s domain", es: "en el dominio de {name}", de: "im Herrschaftsbereich von {name}" },
+  youPlay: { fr: "Vous jouez", en: "You play", es: "Juegas", de: "Du spielst" },
+  youEliminate: { fr: "Vous éliminez", en: "You eliminate", es: "Eliminas", de: "Du eliminierst" },
+  youDrawOne: { fr: "Vous piochez {count} carte", en: "You draw {count} card", es: "Robas {count} carta", de: "Du ziehst {count} Karte" },
+  youDrawMany: { fr: "Vous piochez {count} cartes", en: "You draw {count} cards", es: "Robas {count} cartas", de: "Du ziehst {count} Karten" },
+  theyPlay: { fr: "joue", en: "plays", es: "juega", de: "spielt" },
+  theyEliminate: { fr: "élimine", en: "eliminates", es: "elimina", de: "eliminiert" },
+  theyDrawOne: { fr: "pioche {count} carte", en: "draws {count} card", es: "roba {count} carta", de: "zieht {count} Karte" },
+  theyDrawMany: { fr: "pioche {count} cartes", en: "draws {count} cards", es: "roba {count} cartas", de: "zieht {count} Karten" },
+  gameOverLog: {
+    fr: "La pioche est vide : fin de la partie !",
+    en: "The draw pile is empty: the game is over!",
+    es: "El mazo está vacío: ¡fin de la partida!",
+    de: "Der Nachziehstapel ist leer: Ende der Partie!",
+  },
+  missionsSucceeded: { fr: "Missions réussies", en: "Missions completed", es: "Misiones cumplidas", de: "Erfüllte Missionen" },
+  noAssassination: { fr: "Ne pas assassiner", en: "Don't assassinate", es: "No asesinar", de: "Niemanden eliminieren" },
+  skip: { fr: "Passer", en: "Skip", es: "Saltar", de: "Überspringen" },
+}
+
+// The wordings of a status that a mission text may use: each one is highlighted in the text of a mission, whatever the language of that text.
+const STATUS_LIGHT: Record<LanguageId, string[]> = {
+  fr: ["dans la lumière", "en lumière"],
+  en: ["in the light", "esteemed"],
+  es: ["en la luz"],
+  de: ["im Licht"],
+}
+
+const STATUS_DISGRACE: Record<LanguageId, string[]> = {
+  fr: ["en disgrâce"],
+  en: ["in disgrace", "fallen from grace"],
+  es: ["en desgracia"],
+  de: ["in Ungnade"],
 }
 
 // The interface labels, by the group of the `texts` form that holds them (`UI_TEXTS` of `@pbgo/studio-kit/constants` names the group of each key).
@@ -140,7 +196,7 @@ const GAME: Record<string, Localized> = {
   },
 }
 
-// Error code → message, from `ERROR_MESSAGES` of `src/lib/site.ts` and `I18N[locale].errors`.
+// Error code → message: what the player reads when the engine throws one of the codes of `ERROR_CODES` (`src/lib/site.ts`).
 const ERRORS: Record<string, Localized> = {
   INVALID_PHASE: {
     fr: "Ce n'est pas le moment de jouer.",
@@ -218,8 +274,12 @@ const ERRORS: Record<string, Localized> = {
 
 const labels = (table: Record<string, Localized>) => Object.fromEntries(Object.entries(table).map(([key, value]) => [key, localeString(value)]))
 
+// The kit has no helper for a list of wordings: one array per language, copied so that no build shares an array with the next.
+const list = (table: Record<LanguageId, string[]>) => ({ _type: "localeStringList", ...Object.fromEntries(LANGUAGE_IDS.map((id) => [id, [...table[id]]])) })
+
 /**
- * The `texts` singleton: the home and victory texts, the interface labels, the error messages and the two buttons of the opening.
+ * The `texts` singleton: the home and victory texts, the interface labels, the error messages, the two buttons of the opening, the texts
+ * search engines read (hidden heading, genres) and the vocabulary of the board (the words, the zones, the log lines, the wordings of a status).
  * The document already exists in the Studio, so a run adds the languages that are missing and keeps what was typed there.
  */
 export function buildTexts(): SeedDoc {
@@ -229,8 +289,7 @@ export function buildTexts(): SeedDoc {
     tagline: localeString(TAGLINE),
     homeTitle: localeString(HOME_TITLE),
     homeIntro: localeText(HOME_INTRO),
-    // The kit has no helper for a list of sentences: one array per language, copied so that no build shares an array with the next.
-    victoryPhrases: { _type: "localeStringList", ...Object.fromEntries(LANGUAGE_IDS.map((id) => [id, [...VICTORY_PHRASES[id]]])) },
+    victoryPhrases: list(VICTORY_PHRASES),
     ui_home: labels(HOME),
     ui_lobby: labels(LOBBY),
     ui_game: labels(GAME),
@@ -238,5 +297,10 @@ export function buildTexts(): SeedDoc {
     errorMessages: Object.entries(ERRORS).map(([code, message]) => ({ _key: code, _type: "errorMessage", code, message: localeString(message) })),
     missionsButton: localeString(MISSIONS_BUTTON),
     banquetStarts: localeString(BANQUET_STARTS),
+    homeHeading: localeString(HOME_HEADING),
+    genres: list(GENRES),
+    ...labels(BOARD),
+    statusLight: list(STATUS_LIGHT),
+    statusDisgrace: list(STATUS_DISGRACE),
   }
 }

@@ -334,6 +334,27 @@ export type Texts = {
   }>;
   missionsButton?: LocaleString;
   banquetStarts?: LocaleString;
+  homeHeading?: LocaleString;
+  genres?: LocaleStringList;
+  courtier?: LocaleString;
+  statusLight?: LocaleStringList;
+  statusDisgrace?: LocaleStringList;
+  zoneTable?: LocaleString;
+  zoneYours?: LocaleString;
+  zoneTheirs?: LocaleString;
+  zoneOther?: LocaleString;
+  youPlay?: LocaleString;
+  youEliminate?: LocaleString;
+  youDrawOne?: LocaleString;
+  youDrawMany?: LocaleString;
+  theyPlay?: LocaleString;
+  theyEliminate?: LocaleString;
+  theyDrawOne?: LocaleString;
+  theyDrawMany?: LocaleString;
+  gameOverLog?: LocaleString;
+  missionsSucceeded?: LocaleString;
+  noAssassination?: LocaleString;
+  skip?: LocaleString;
 };
 
 export type LocaleStringList = {
@@ -773,7 +794,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../../src/sanity/queries.ts
 // Variable: CATALOG_QUERY
-// Query: {  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
+// Query: {  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },  "texts": *[_id == "texts"][0]{    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,    zoneTable, zoneYours, zoneTheirs, zoneOther,    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,    gameOverLog, missionsSucceeded, noAssassination, skip  },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
 export type CATALOG_QUERY_RESULT = {
   game:
     | {
@@ -849,10 +870,52 @@ export type CATALOG_QUERY_RESULT = {
     | {
         missionsButton: null;
         banquetStarts: null;
+        homeHeading: null;
+        genres: null;
+        courtier: null;
+        statusLight: null;
+        statusDisgrace: null;
+        zoneTable: null;
+        zoneYours: null;
+        zoneTheirs: null;
+        zoneOther: null;
+        youPlay: null;
+        youEliminate: null;
+        youDrawOne: null;
+        youDrawMany: null;
+        theyPlay: null;
+        theyEliminate: null;
+        theyDrawOne: null;
+        theyDrawMany: null;
+        gameOverLog: null;
+        missionsSucceeded: null;
+        noAssassination: null;
+        skip: null;
       }
     | {
         missionsButton: LocaleString | null;
         banquetStarts: LocaleString | null;
+        homeHeading: LocaleString | null;
+        genres: LocaleStringList | null;
+        courtier: LocaleString | null;
+        statusLight: LocaleStringList | null;
+        statusDisgrace: LocaleStringList | null;
+        zoneTable: LocaleString | null;
+        zoneYours: LocaleString | null;
+        zoneTheirs: LocaleString | null;
+        zoneOther: LocaleString | null;
+        youPlay: LocaleString | null;
+        youEliminate: LocaleString | null;
+        youDrawOne: LocaleString | null;
+        youDrawMany: LocaleString | null;
+        theyPlay: LocaleString | null;
+        theyEliminate: LocaleString | null;
+        theyDrawOne: LocaleString | null;
+        theyDrawMany: LocaleString | null;
+        gameOverLog: LocaleString | null;
+        missionsSucceeded: LocaleString | null;
+        noAssassination: LocaleString | null;
+        skip: LocaleString | null;
       }
     | null;
   families: Array<{
@@ -915,7 +978,7 @@ export type CATALOG_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },\n  "texts": *[_id == "texts"][0]{ missionsButton, banquetStarts },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOG_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },\n  "texts": *[_id == "texts"][0]{\n    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,\n    zoneTable, zoneYours, zoneTheirs, zoneOther,\n    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,\n    gameOverLog, missionsSucceeded, noAssassination, skip\n  },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too
