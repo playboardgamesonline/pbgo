@@ -96,7 +96,7 @@ function takeAction(ctx: Ctx, seat: number, id: number, source: Source): void {
 
 /**
  * Turns the top card of the draw pile over in front of `seat`. If nothing can be drawn, not even from a reshuffled discard, the round
- * ends as if everybody still in had stayed (cannot happen with 18 players or fewer, but the game must not get stuck).
+ * ends as if everybody still in had stayed (cannot happen at a table of 8 players or fewer, but the game must not get stuck).
  */
 export function receive(ctx: Ctx, seat: number, source: Source): void {
   const { s } = ctx

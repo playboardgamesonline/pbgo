@@ -5,9 +5,12 @@ import { OPTIONS } from "./options"
 import { startRound } from "./round"
 import type { State, Status } from "./types"
 
-/** The booklet: "3+ players". Past 18 it recommends a second deck, which this engine does not have. */
+/**
+ * The booklet says "3+ players" and recommends a second deck past 18, which this engine does not have. The web edition seats 3 to 8: a line
+ * of cards per seat has to stay readable on one screen.
+ */
 export const MIN_PLAYERS = 3
-export const MAX_PLAYERS = 18
+export const MAX_PLAYERS = 8
 
 /** Salt of the stream of the card ids (see `sideSeed`): it never moves the stream of the shuffles. */
 const IDS_STREAM = 1
