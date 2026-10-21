@@ -726,7 +726,7 @@ Objects:
   - Conditions converted by `convertCondition()`.
   - Deletes the drafts, the obsolete documents and the legacy singletons.
   - Reads with `perspective: "raw"`.
-- `maj-images.ts` (`pnpm maj-images`): uploads the WebP images from `apps/web/public` (families, cards by role, role pictograms, with a mapping of French names → English files, for example `papillon` → `butterfly`, `espion` → `spy`) and replaces the image of the matching documents. It prints what is skipped (missing document or file).
+- `maj-images.ts` (`pnpm maj-images`, later `update-images`): removed (GAM-21) together with the `apps/web/public/courtisans` folder it read. The pictures are uploaded in the Studio.
 - `nettoyer-png.ts` (`pnpm nettoyer-png`, `--confirmer` to apply): lists the PNG assets that are **no longer referenced** and deletes them. Dry run by default.
 - `annuler-import.ts` (`pnpm annuler-import -- --minutes 60` or `--avant "…"`, `--confirmer`, `--seed <ndjson>`): brings the documents of a seed (by default `../../../Assets/sanity-seed/data.ndjson`, **a path from before the monorepo**, to be fixed) back to their state at a given date through the history, or deletes them if they did not exist. Dry run by default.
 - Other scripts of the package: `typegen` (schema extraction + `sanity typegen generate`), `schema:deploy`, `deploy`.

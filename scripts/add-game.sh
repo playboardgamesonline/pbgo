@@ -237,7 +237,7 @@ echo "            building anything"
 echo "  Play:     pnpm dev → http://localhost:3100/$SLUG  (gamemaster: http://localhost:3100/gamemaster/$SLUG)"
 echo "  Rules:    pnpm game-rules $SLUG --rules fr=regles.pdf  adds or replaces a rulebook, whatever its size"
 if [ "$PUSH" = 0 ]; then
-  echo "  Commit:   games/$SLUG, apps/web/public/$SLUG, packages/games, apps/web/.env.example and pnpm-lock.yaml, then push a"
+  echo "  Commit:   games/$SLUG, packages/games, apps/web/.env.example and pnpm-lock.yaml, then push a"
   echo "            branch and open a pull request (--push does it next time)"
 fi
 
@@ -247,7 +247,7 @@ if [ "$PUSH" = 1 ]; then
     PROBLEMS+=("nothing was committed or pushed (--push): do it by hand once the above is fixed")
   else
     if [ "$(git branch --show-current)" = main ]; then git switch -c "$SLUG"; fi
-    git add "games/$SLUG" "apps/web/public/$SLUG" packages/games apps/web/.env.example pnpm-lock.yaml
+    git add "games/$SLUG" packages/games apps/web/.env.example pnpm-lock.yaml
     LEAKS="$(git diff --cached --name-only | grep -E '(^|/)(\.env|\.env\..*\.local|\.env\.local|\.sanity-project-id)$|(^|/)\.vercel/' || true)"
     if [ -n "$LEAKS" ]; then
       git reset -q

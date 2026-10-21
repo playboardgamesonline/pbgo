@@ -94,7 +94,8 @@ const skinFor = cache(async (game: GameModule, locale: Locale): Promise<Skin> =>
   try {
     const doc = await client.fetch<SkinDoc>(SKIN_QUERY, {}, { next: { tags: [skinTag(game.slug)], revalidate: 60 } })
     return mergeSkin(base, toSkin(game, doc, locale))
-  } catch {
+  } catch (error) {
+    console.error("Sanity skin unavailable", error)
     return base
   }
 })

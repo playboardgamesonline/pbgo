@@ -33,6 +33,8 @@ export async function launchChecklist(game: GameModule, data: AdminData): Promis
   const [db, analytics] = await Promise.all([supabaseState(game.slug), loadWebAnalytics()])
   const customTheme = JSON.stringify(settings.theme) !== JSON.stringify(defaultTheme(game.binding))
   const writable = sanityWritable(game)
+  const declaredSounds = audio.effects.length
+  const missingSounds = audio.effects.filter((e) => !e.url).length
   const host = (() => {
     try {
       return new URL(SITE_URL).hostname
@@ -43,12 +45,12 @@ export async function launchChecklist(game: GameModule, data: AdminData): Promis
   return [
     { id: "title", group: "Identity", label: "Title and description", detail: "A description of at least 80 characters for Google and share cards", ok: !!settings.title && settings.description.length >= 80, fix: "identity" },
     { id: "logo", group: "Identity", label: "Logo", detail: "Shown on every screen and in the share image", ok: !!settings.logo, fix: "identity" },
-    { id: "favicon", group: "Identity", label: "Favicon", detail: settings.favicon?.startsWith("https://") ? "Uploaded" : settings.favicon ? "Default from the game code" : "Generated from the logo for now", ok: !!settings.favicon, optional: true, fix: "identity" },
+    { id: "favicon", group: "Identity", label: "Favicon", detail: settings.favicon ? "Uploaded" : "Generated from the logo for now", ok: !!settings.favicon, optional: true, fix: "identity" },
     { id: "share", group: "Identity", label: "Share image", detail: settings.shareImage ? "Custom image" : "Generated from the visual identity", ok: !!settings.shareImage || !!settings.logo || !!skin.decor.top, fix: "identity" },
     { id: "rules", group: "Mechanics", label: "Rules PDF (French)", detail: "Linked from the menu (Rules)", ok: !!settings.rulesPdf.fr, fix: "mechanics" },
     { id: "theme", group: "Visual", label: "Colors", detail: "Theme changed from the template defaults", ok: customTheme, fix: "visual" },
     { id: "decor", group: "Visual", label: "Decorations", detail: "Top and bottom decorations of the home screen", ok: !!visual.images.decorTop.url && !!visual.images.decorBottom.url, fix: "visual" },
-    { id: "sounds", group: "Audio", label: "Sounds in Sanity", detail: audio.pendingImport ? `${audio.pendingImport} still served from the code` : "Everything can be replaced from the admin", ok: audio.pendingImport === 0, optional: true, fix: "audio" },
+    { id: "sounds", group: "Audio", label: "Sounds in Sanity", detail: !declaredSounds ? "The game declares no sound effects" : missingSounds ? `${missingSounds} of ${declaredSounds} effects have no file in Sanity` : "Every effect has a file in Sanity", ok: missingSounds === 0, optional: true, fix: "audio" },
     { id: "admin", group: "Services", label: "Gamemaster account", detail: "ADMIN_LOGIN, ADMIN_PASSWORD and ADMIN_SESSION_SECRET", ok: adminConfigured(), fix: "monitoring/health" },
     { id: "sanity", group: "Services", label: "Sanity", detail: writable ? "Connected, the admin can save" : sanityConfigured(game) ? `${writeTokenName(game.slug)} missing` : "No Sanity project in the registry", ok: writable, fix: "monitoring/health" },
     { id: "supabase", group: "Services", label: "Supabase", detail: "Games table reachable", ok: db.games, fix: "monitoring/health" },

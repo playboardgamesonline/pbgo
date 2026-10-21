@@ -35,10 +35,11 @@ vi.mock("./convert", () => {
 import { UI_TEXTS } from "@pbgo/studio-kit/constants"
 import { AUDIO_QUERY, audioQuery } from "../lib/audio-server"
 import type { GameModule } from "../lib/binding"
+import { mediaUrl } from "../lib/settings"
 import { SETTINGS_QUERY, settingsQuery } from "../lib/settings-server"
 import { SKIN_QUERY, skinQuery } from "../lib/skin-server"
 import { DEFAULT_VOLUMES } from "../lib/sound-config"
-import { type AdminData, importCodeSounds, readAdminData, removeAsset, saveSection, uploadAsset } from "./settings"
+import { type AdminData, readAdminData, removeAsset, saveSection, uploadAsset } from "./settings"
 import { at, fakeSanity, type FakeDoc, type FakeSanity, T0 } from "./test-sanity"
 
 type Fields = Record<string, unknown>
@@ -66,10 +67,7 @@ function sampleGame(over: Partial<GameModule> = {}): GameModule {
         },
       },
       SOUNDS: {
-        effects: { click: { file: "click", volume: 0.5 }, ding: { file: "ding", volume: 0.7 } },
-        music: { theme: { file: "theme", title: "Theme", loopEnd: 90 } },
-        ambience: { file: "ambience", loopEnd: 40 },
-        defaultMusic: "theme",
+        effects: { click: { volume: 0.5 }, ding: { volume: 0.7 } },
       },
     },
     ...over,
@@ -190,6 +188,42 @@ describe("readAdminData", () => {
 
     expect(data.audio.volumes.master).toBe(0.2)
     expect(data.audio.effects.find((e) => e.key === "click")?.volume).toBe(0.9)
+  })
+
+  it("lists the declared effects with no file when Sanity has no audio document", async () => {
+    setup()
+
+    const { audio } = await readAdminData(sampleGame())
+
+    expect(audio.effects).toEqual([
+      { key: "click", url: null, volume: 0.5, codeVolume: 0.5 },
+      { key: "ding", url: null, volume: 0.7, codeVolume: 0.7 },
+    ])
+    expect(audio.music).toEqual([])
+    expect(audio.ambience).toBeNull()
+    expect(audio.defaultMusic).toBeNull()
+  })
+
+  it("reads the files, the music and the ambience from Sanity only", async () => {
+    const cdn = (name: string) => `https://cdn.sanity.io/files/abc123xy/production/${name}.mp3`
+    setup(
+      dataset("audio", "published", {
+        defaultMusic: "theme",
+        music: [{ _key: "t", key: "theme", title: "Theme", loopEnd: 90, file: { url: cdn("theme") } }],
+        ambience: { loopEnd: 40, file: { url: cdn("ambience") } },
+        effects: [{ _key: "c", key: "click", volume: 0.9, file: { url: cdn("click") } }],
+      }),
+    )
+
+    const { audio } = await readAdminData(sampleGame())
+
+    expect(audio.effects).toEqual([
+      { key: "click", url: mediaUrl(cdn("click")), volume: 0.9, codeVolume: 0.5 },
+      { key: "ding", url: null, volume: 0.7, codeVolume: 0.7 },
+    ])
+    expect(audio.music).toEqual([{ key: "theme", title: "Theme", url: mediaUrl(cdn("theme")), loopEnd: 90 }])
+    expect(audio.ambience).toEqual({ url: mediaUrl(cdn("ambience")), loopEnd: 40 })
+    expect(audio.defaultMusic).toBe("theme")
   })
 
   it("is read-only without a write token", async () => {
@@ -750,26 +784,5 @@ describe("removeAsset › sounds", () => {
 
     expect(sanity.ids()).toEqual([])
     expect(sanity.commits).toEqual([])
-  })
-})
-
-describe("importCodeSounds", () => {
-  it("sends the sounds of the game to Sanity, with their volumes, titles and loop ends", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1, 2, 3]))))
-    const sanity = setup()
-
-    await importCodeSounds(sampleGame(), "http://localhost:3100")
-
-    expect(sanity.uploads.map((u) => u.filename)).toEqual(["click.mp3", "ding.mp3", "theme.mp3", "ambience.mp3"])
-    expect(sanity.doc("audio")).toMatchObject({
-      _type: "audio",
-      defaultMusic: "theme",
-      effects: [
-        { _key: "click", key: "click", file: fileRef(1) },
-        { _key: "ding", key: "ding", file: fileRef(2) },
-      ],
-      music: [{ _key: "theme", key: "theme", title: "Theme", loopEnd: 90, file: fileRef(3) }],
-      ambience: { _type: "audioLoop", loopEnd: 40, file: fileRef(4) },
-    })
   })
 })

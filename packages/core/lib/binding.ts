@@ -4,7 +4,7 @@ import type { SanityClient } from "@sanity/client"
 import type { PublicGame } from "./game-types"
 import type { Locale } from "./i18n"
 import type { SiteSettings, ThemeColors } from "./settings"
-import type { GameI18n, SkinDefaults } from "./skin"
+import type { GameI18n, GameSkinDefaults } from "./skin"
 import type { SoundConfig } from "./sound-config"
 import type { Reaction } from "./soundboard"
 
@@ -31,9 +31,7 @@ export type GameEntry = {
   players?: { min: number; max: number }
   /** Length of a game in minutes, shown by the hub ("30 min", "20–40 min"); absent while unknown */
   duration?: { min: number; max: number }
-  /** Cover art of the hub card: a public path under `/<slug>/` (apps/web/public); absent: a neutral placeholder */
-  visual?: string
-  /** The game's own Sanity project (content, admin settings) */
+  /** The game's own Sanity project: content, admin settings and the cover art of its hub card (`interface.hero`) */
   sanityProjectId: string
   /** Playable in production. Off: home page "coming soon" only (every page stays playable outside production). */
   live: boolean
@@ -46,8 +44,8 @@ export type AnyGame = AnyGameDefinition
 
 export type Author = { name: string; signature?: string; url: string }
 
-/** Settings defaults of a game when Sanity has nothing (theme, fonts, credits…). */
-export type SettingsDefaults = Partial<Omit<SiteSettings, "theme">> & { theme?: Partial<ThemeColors> }
+/** Settings defaults of a game when Sanity has nothing (theme, fonts, credits…). Never an image: logo, favicon and share image come from Sanity only. */
+export type SettingsDefaults = Partial<Omit<SiteSettings, "theme" | "logo" | "favicon" | "shareImage">> & { theme?: Partial<ThemeColors> }
 
 /**
  * How a game tunes the shared in-game UI: its look, never its logic. The announcements, the seat label and the game over have a
@@ -122,7 +120,7 @@ export type GameBinding = {
   SOUNDS?: SoundConfig
   /** Texts of the game in the languages other than French */
   I18N?: Partial<Record<Locale, GameI18n>>
-  DEFAULT_SKIN?: SkinDefaults
+  DEFAULT_SKIN?: GameSkinDefaults
   /** How the shared in-game UI is tuned to this game; absent: the look the game's skin gives it (`--foreground`, `--surface`, `--accent-game`…) */
   UI_THEME?: UiTheme
   SETTINGS_DEFAULTS?: SettingsDefaults

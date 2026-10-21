@@ -14,13 +14,16 @@ export function durationLabel(duration: GameEntry["duration"]): string | undefin
   return min === max ? `${max} min` : `${min}–${max} min`
 }
 
-/** Props of the hub's `GameCard` (`@pbgo/ui/platform/game-card`) for a game of the registry. */
-export function gameCardProps(game: GameEntry) {
+/**
+ * Props of the hub's `GameCard` (`@pbgo/ui/platform/game-card`) for a game of the registry. `cover` is the card's art, read from the
+ * game's Sanity project by `gameCover()` (`@pbgo/core/sanity/cover`); without one the card shows its neutral placeholder.
+ */
+export function gameCardProps(game: GameEntry, cover?: string | null) {
   return {
     href: `/${game.slug}`,
     name: game.name,
     tagline: game.tagline,
-    visual: game.visual,
+    visual: cover ?? undefined,
     players: playersLabel(game.players),
     duration: durationLabel(game.duration),
   }

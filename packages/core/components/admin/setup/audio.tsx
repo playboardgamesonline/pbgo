@@ -1,10 +1,9 @@
 "use client"
 
-import { CloudUploadIcon, Delete02Icon, PauseIcon, PlayIcon, Upload04Icon } from "@hugeicons/core-free-icons"
+import { Delete02Icon, PauseIcon, PlayIcon, Upload04Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
@@ -12,10 +11,7 @@ import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
-import { adminRequest } from "../../../lib/admin-api"
-import { adminApiBase } from "../../../lib/admin-nav"
 import type { Volumes } from "../../../lib/sound-config"
-import { useAdminSlug } from "../admin-game"
 import { DraftAlert, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
 type Draft = {
@@ -88,46 +84,16 @@ function Slider({ value, onChange, disabled, label, className }: { value: number
 }
 
 export function AudioPage({ initial }: { initial: AdminData }) {
-  const slug = useAdminSlug()
   const s = useSection("audio", initial, pick)
   const { data, draft, set, disabled } = s
   const player = usePlayer()
-  const [importing, setImporting] = useState(false)
   const audio = data.audio
-  const musicStored = audio.music.some((m) => m.stored)
   const setTrack = (key: string, patch: Partial<Draft["music"][number]>) => set("music", draft.music.map((m) => (m.key === key ? { ...m, ...patch } : m)))
-
-  async function importSounds() {
-    setImporting(true)
-    try {
-      s.setData(await adminRequest<AdminData>(`${adminApiBase(slug)}/settings`, { method: "POST", body: JSON.stringify({ action: "importSounds" }) }))
-      toast.success("Sounds imported into Sanity")
-    } catch (e) {
-      toast.error((e as Error).message)
-    } finally {
-      setImporting(false)
-    }
-  }
 
   return (
     <SetupLayout>
       <ReadOnlyAlert writable={data.writable} />
       <DraftAlert drafts={data.drafts} docs={["audio"]} />
-      {audio.pendingImport > 0 && (
-        <Alert>
-          <HugeiconsIcon icon={CloudUploadIcon} strokeWidth={2} />
-          <AlertTitle>
-            {audio.pendingImport} sound{audio.pendingImport > 1 ? "s are" : " is"} still served from the code
-          </AlertTitle>
-          <AlertDescription>Import them into Sanity once so everything can be replaced from here. Keys, titles, volumes and loop points are kept.</AlertDescription>
-          <AlertAction>
-            <Button size="sm" onClick={importSounds} disabled={disabled || importing}>
-              {importing && <Spinner data-icon="inline-start" />}
-              Import into Sanity
-            </Button>
-          </AlertAction>
-        </Alert>
-      )}
 
       <Card>
         <CardHeader>
@@ -162,7 +128,7 @@ export function AudioPage({ initial }: { initial: AdminData }) {
                     aria-label="Title"
                     value={d?.title ?? m.title}
                     onChange={(e) => setTrack(m.key, { title: e.target.value })}
-                    disabled={disabled || !m.stored}
+                    disabled={disabled}
                     className="h-8 w-48"
                   />
                   <InputGroup className="h-8 w-36">
@@ -174,7 +140,7 @@ export function AudioPage({ initial }: { initial: AdminData }) {
                       placeholder="end"
                       value={d?.loopEnd ?? ""}
                       onChange={(e) => setTrack(m.key, { loopEnd: e.target.value ? Number(e.target.value) : null })}
-                      disabled={disabled || !m.stored}
+                      disabled={disabled}
                       className="tabular-nums"
                     />
                     <InputGroupAddon align="inline-end">s</InputGroupAddon>
@@ -184,26 +150,19 @@ export function AudioPage({ initial }: { initial: AdminData }) {
                     Default
                   </label>
                   <span className="ml-auto flex items-center gap-1">
-                    {!m.stored && <Badge variant="outline">Code</Badge>}
-                    {m.stored && (
-                      <>
-                        <UploadButton label="Replace" variant="ghost" busy={s.uploading === `audio.music.${m.key}`} disabled={disabled} onFile={(f) => s.upload(`audio.music.${m.key}`, f)} />
-                        <Button variant="ghost" size="icon-sm" aria-label="Remove track" disabled={disabled} onClick={() => s.remove(`audio.music.${m.key}`)}>
-                          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                        </Button>
-                      </>
-                    )}
+                    <UploadButton label="Replace" variant="ghost" busy={s.uploading === `audio.music.${m.key}`} disabled={disabled} onFile={(f) => s.upload(`audio.music.${m.key}`, f)} />
+                    <Button variant="ghost" size="icon-sm" aria-label="Remove track" disabled={disabled} onClick={() => s.remove(`audio.music.${m.key}`)}>
+                      <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                    </Button>
                   </span>
                 </li>
               )
             })}
             {audio.music.length === 0 && <li className="px-3 py-3 text-sm text-muted-foreground">No music yet.</li>}
           </ul>
-          {(musicStored || audio.music.length === 0) && (
-            <div>
-              <UploadButton label="Add a track" busy={s.uploading === "audio.music.new"} disabled={disabled} onFile={(f) => s.upload("audio.music.new", f)} />
-            </div>
-          )}
+          <div>
+            <UploadButton label="Add a track" busy={s.uploading === "audio.music.new"} disabled={disabled} onFile={(f) => s.upload("audio.music.new", f)} />
+          </div>
         </CardContent>
       </Card>
 
@@ -228,10 +187,9 @@ export function AudioPage({ initial }: { initial: AdminData }) {
             />
             <InputGroupAddon align="inline-end">s</InputGroupAddon>
           </InputGroup>
-          {audio.ambience && !audio.ambience.stored && <Badge variant="outline">Code</Badge>}
           <span className="ml-auto flex items-center gap-1">
             <UploadButton label={audio.ambience ? "Replace" : "Upload"} variant="ghost" busy={s.uploading === "audio.ambience"} disabled={disabled} onFile={(f) => s.upload("audio.ambience", f)} />
-            {audio.ambience?.stored && (
+            {audio.ambience && (
               <Button variant="ghost" size="icon-sm" aria-label="Remove ambience" disabled={disabled} onClick={() => s.remove("audio.ambience")}>
                 <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
               </Button>
@@ -243,7 +201,7 @@ export function AudioPage({ initial }: { initial: AdminData }) {
       <Card>
         <CardHeader>
           <CardTitle>Effects</CardTitle>
-          <CardDescription>The sounds the game plays (the code decides when). Replace a file or adjust its volume.</CardDescription>
+          <CardDescription>The sounds the game plays (the code decides when). An effect with no file stays silent until you upload one. Adjust its volume here.</CardDescription>
         </CardHeader>
         <CardContent>
           {audio.effects.length === 0 ? (
@@ -256,8 +214,8 @@ export function AudioPage({ initial }: { initial: AdminData }) {
                   <span className="truncate font-mono text-sm">{e.key}</span>
                   <Slider label={`${e.key} volume`} value={draft.effects[e.key] ?? e.volume} onChange={(v) => set("effects", { ...draft.effects, [e.key]: v })} disabled={disabled} />
                   <span className="flex items-center justify-end gap-1">
-                    {!e.stored && <Badge variant="outline">Code</Badge>}
-                    <UploadButton label="Replace" variant="ghost" busy={s.uploading === `audio.effect.${e.key}`} disabled={disabled} onFile={(f) => s.upload(`audio.effect.${e.key}`, f)} />
+                    {!e.url && <Badge variant="outline">No file in Sanity</Badge>}
+                    <UploadButton label={e.url ? "Replace" : "Upload"} variant="ghost" busy={s.uploading === `audio.effect.${e.key}`} disabled={disabled} onFile={(f) => s.upload(`audio.effect.${e.key}`, f)} />
                   </span>
                 </li>
               ))}

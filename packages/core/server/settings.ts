@@ -24,7 +24,7 @@ import {
 import { settingsQuery, settingsTag, type SettingsDoc, toSettings } from "../lib/settings-server"
 import { baseSkin, gameI18n, mergeSkin, type Skin } from "../lib/skin"
 import { type SkinDoc, skinQuery, skinTag, toSkin } from "../lib/skin-server"
-import { codeSounds, DEFAULT_VOLUMES, soundUrl, type Volumes } from "../lib/sound-config"
+import { codeSounds, DEFAULT_VOLUMES, type Volumes } from "../lib/sound-config"
 import { sanityClient, sanityConfigured } from "../sanity/client"
 import { sanityWritable, writeClient } from "../sanity/write-client"
 import { ApiError } from "./api"
@@ -42,12 +42,11 @@ export type CopyEntry = { key: string; group: CopyGroup; label: string; values: 
 export type AudioAdmin = {
   volumes: Volumes
   defaultMusic: string | null
-  /** Tracks stored in Sanity (else the game's own, read-only) */
-  music: { key: string; title: string; url: string; loopEnd: number | null; stored: boolean }[]
-  ambience: { url: string; loopEnd: number | null; stored: boolean } | null
-  effects: { key: string; url: string | null; volume: number; codeVolume: number; stored: boolean }[]
-  /** Files of the game not sent to Sanity yet */
-  pendingImport: number
+  /** Tracks stored in Sanity */
+  music: { key: string; title: string; url: string; loopEnd: number | null }[]
+  ambience: { url: string; loopEnd: number | null } | null
+  /** Every effect the game declares: `url` is null until a file is uploaded to Sanity */
+  effects: { key: string; url: string | null; volume: number; codeVolume: number }[]
 }
 
 export type AdminData = {
@@ -121,32 +120,25 @@ function copyEntries(binding: GameBinding, texts: TextsDoc | null | undefined): 
 
 function audioAdmin(game: GameModule, doc: AudioDoc): AudioAdmin {
   const url = (f: { url?: string | null } | null | undefined) => (f?.url ? mediaUrl(f.url) : null)
-  const codeUrl = (file: string) => soundUrl(game.slug, { file })
   const code = codeSounds(game.binding)
   const effective = toSoundConfig(doc, code)
-  const storedMusic = (doc?.music ?? []).filter((m) => m.key && url(m.file))
-  const music = storedMusic.length
-    ? storedMusic.map((m) => ({ key: m.key!, title: m.title || m.key!, url: url(m.file)!, loopEnd: m.loopEnd ?? null, stored: true }))
-    : Object.entries(code.music ?? {}).map(([key, m]) => ({ key, title: m.title ?? key, url: codeUrl(m.file), loopEnd: m.loopEnd, stored: false }))
+  const music = (doc?.music ?? [])
+    .filter((m) => m.key && url(m.file))
+    .map((m) => ({ key: m.key!, title: m.title || m.key!, url: url(m.file)!, loopEnd: m.loopEnd ?? null }))
   const ambienceUrl = url(doc?.ambience?.file)
-  const ambience = ambienceUrl
-    ? { url: ambienceUrl, loopEnd: doc?.ambience?.loopEnd ?? null, stored: true }
-    : code.ambience
-      ? { url: codeUrl(code.ambience.file), loopEnd: effective.ambience?.loopEnd ?? null, stored: false }
-      : null
-  const effects = Object.entries(code.effects).map(([key, def]) => {
-    const over = doc?.effects?.find((e) => e.key === key)
-    const stored = url(over?.file)
-    return { key, url: stored ?? codeUrl(def.file), volume: effective.effects[key]!.volume, codeVolume: def.volume, stored: !!stored }
-  })
-  const pendingImport = effects.filter((e) => !e.stored).length + (storedMusic.length ? 0 : music.length) + (ambience && !ambience.stored ? 1 : 0)
+  const ambience = ambienceUrl ? { url: ambienceUrl, loopEnd: doc?.ambience?.loopEnd ?? null } : null
+  const effects = Object.entries(code.effects).map(([key, def]) => ({
+    key,
+    url: url(doc?.effects?.find((e) => e.key === key)?.file),
+    volume: effective.effects[key]!.volume,
+    codeVolume: def.volume,
+  }))
   return {
     volumes: { ...DEFAULT_VOLUMES, ...effective.volumes },
     defaultMusic: effective.defaultMusic ?? null,
     music,
     ambience,
     effects,
-    pendingImport,
   }
 }
 
@@ -359,7 +351,7 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
           else unset.push(`music[_key=="${k}"].loopEnd`)
         }
       }
-      // effect volumes: the entry is created when needed (the file can stay the game's own)
+      // effect volumes: the entry is created when needed (a volume set for an effect that has no file yet)
       const effects = current?.effects ?? []
       const missing: { _key: string; _type: string; key: string; volume: number }[] = []
       for (const [key, v] of Object.entries(s.effects ?? {})) {
@@ -576,48 +568,6 @@ export async function removeAsset(game: GameModule, slot: string) {
   } else {
     const conf = SLOTS[slot as UploadSlot]
     await patchDoc(game, conf.doc, { unset: [conf.field] })
-  }
-  refresh(game.slug)
-  return readAdminData(game)
-}
-
-/**
- * Sends to Sanity the sounds still served from `public/<slug>/sounds` (effects, music, ambience), keeping keys, titles,
- * volumes and loop ends. Can be run again: what is already in Sanity is skipped.
- */
-export async function importCodeSounds(game: GameModule, origin: string) {
-  const data = await readAdminData(game)
-  const get = async (url: string) => {
-    const res = await fetch(new URL(url, origin))
-    if (!res.ok) throw new ApiError("SOUND_NOT_FOUND", 502)
-    return Buffer.from(await res.arrayBuffer())
-  }
-  for (const e of data.audio.effects.filter((x) => !x.stored)) {
-    await uploadAudio(game, `audio.effect.${e.key}`, await get(e.url!), `${e.key}.mp3`)
-  }
-  if (!data.audio.music.some((m) => m.stored)) {
-    for (const m of data.audio.music) await uploadAudio(game, `audio.music.${m.key}`, await get(m.url), `${m.key}.mp3`, m.title)
-    const c = writer(game)
-    await eachVersion(
-      c,
-      "audio",
-      async (target, tx) => {
-        const keys = await keysOf(c, target, "music")
-        const set: Record<string, unknown> = {}
-        for (const m of data.audio.music) {
-          const k = keys.find((x) => x.key === m.key)?._key
-          if (k && m.loopEnd) set[`music[_key=="${k}"].loopEnd`] = m.loopEnd
-        }
-        if (data.audio.defaultMusic) set.defaultMusic = data.audio.defaultMusic
-        if (!isEmpty(set)) tx.patch(target, (p) => p.set(set))
-      },
-      { create: false },
-    )
-  }
-  if (data.audio.ambience && !data.audio.ambience.stored) {
-    await uploadAudio(game, "audio.ambience", await get(data.audio.ambience.url), "ambience.mp3")
-    const loopEnd = data.audio.ambience.loopEnd
-    if (loopEnd) await eachVersion(writer(game), "audio", (target, tx) => void tx.patch(target, (p) => p.set({ "ambience.loopEnd": loopEnd })), { create: false })
   }
   refresh(game.slug)
   return readAdminData(game)

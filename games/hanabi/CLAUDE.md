@@ -4,13 +4,12 @@ Hanabi, served by `apps/web` at `/hanabi`. Not playable yet: without an engine (
 
 ## Structure
 - `package.json` — `@pbgo-game/hanabi`, the binding package that `@pbgo/games` loads on demand
-  - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
+  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, genres (player-facing copy in French)
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/hanabi`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@hanabi/engine`, the engine to write (pure TypeScript, Vitest)
 - `apps/studio` — `hanabi-studio`, Sanity Studio of the project `ho5ap9a6` (https://hanabi.sanity.studio). Its own document types (`suit`, listed as "Colors", then `card` and `bonusTile`, and the `game` singleton) are in `schemaTypes/`, the lists they share with the seed (suit keys, ranks, rating keys, bonus tile numbers and keys) in `schemaTypes/constants.ts`
 - `content/` — the Sanity content as versioned code (Hanabi's data and config) and the seed script, run by the shared `@pbgo/content-kit` (see below); `vitest.config.ts` runs its tests
-- Static files: `apps/web/public/hanabi/` (served at `/hanabi/...`)
 
 ## Content (Sanity)
 50 documents: 7 suits (5 colours, multicolor, black), 35 cards (one per suit and value, with `quantity`: 70 in all), 6 Flamboyants bonus tiles, and the `game` and `settings` singletons. There is no `rules` document (GAM-14): the rules reach players as links to the publisher's rulebook PDFs (French and English), kept in `settings` (the toolbar's Rules button opens them) next to the credits (Antoine Bauza, Cocktail Games, link to the publisher).

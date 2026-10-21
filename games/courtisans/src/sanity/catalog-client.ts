@@ -3,10 +3,10 @@ import type { Family, Role } from "@courtisans/engine"
 import type { LoaderContext } from "@pbgo/core/lib/binding"
 import { only } from "@pbgo/core/lib/i18n"
 import { type SanityImageSource, urlFor } from "@pbgo/core/sanity/image"
-import { defaultCatalog, type ClientCatalog, cardKey, ROLE_VISUAL_FAMILIES, RULES_MISSION_VISUALS, type RoleRules } from "../lib/catalog"
+import { defaultCatalog, type ClientCatalog, cardKey } from "../lib/catalog"
 import { getCatalog } from "./catalog"
 
-/** Catalog given to the board (card images, families, roles, game texts): Sanity, completed by the defaults of the code. */
+/** Catalog given to the board (card images, families, roles, game texts). Every picture comes from Sanity, `null` where it has none; the texts are Sanity's over the code's translations. */
 export async function getClientCatalog({ game: module, locale, sanity }: LoaderContext): Promise<ClientCatalog> {
   const d = defaultCatalog(locale)
   if (!sanity) return d
@@ -25,24 +25,14 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
         ...familiesMap[key],
         name: only(f.name, locale) ?? familiesMap[key].name,
         color: f.color ?? familiesMap[key].color,
-        pictogramUrl: url(f.pictogram, 128) ?? familiesMap[key].pictogramUrl,
+        pictogramUrl: url(f.pictogram, 128),
       }
     }
     const rolesMap = { ...d.roles }
-    const roleRules: Record<Role, RoleRules> = { ...d.rules.roles }
     for (const r of roles) {
       const key = r.key as Role | undefined
       if (!key || !rolesMap[key]) continue
-      const name = only(r.name, locale) ?? rolesMap[key].name
-      rolesMap[key] = { ...rolesMap[key], name, pictogramUrl: url(r.pictogram, 128) ?? rolesMap[key].pictogramUrl }
-      roleRules[key] = {
-        ...roleRules[key],
-        name,
-        count: r.countPerFamily ?? roleRules[key].count,
-        text: only(r.rule, locale) || roleRules[key].text,
-        letteringUrl: r.lettering ?? null,
-        pictogramUrl: rolesMap[key].pictogramUrl,
-      }
+      rolesMap[key] = { ...rolesMap[key], name: only(r.name, locale) ?? rolesMap[key].name, pictogramUrl: url(r.pictogram, 128) }
     }
 
     const cards: Record<string, string> = { ...d.cards }
@@ -50,8 +40,6 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       const imageUrl = url(c.card, 360)
       if (c.family && imageUrl) cards[cardKey(c.family as Family, (c.role as Role | null) ?? null)] = imageUrl
     }
-    for (const r of Object.keys(roleRules) as Role[])
-      roleRules[r] = { ...roleRules[r], cards: ROLE_VISUAL_FAMILIES[r].map((f) => cards[cardKey(f, r)]) as [string, string] }
     const missionsMap: Record<string, string> = { ...d.missions }
     for (const m of missions) {
       const imageUrl = url(m.card, 520)
@@ -63,26 +51,13 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       roles: rolesMap,
       cards,
       missions: missionsMap,
-      matUrl: url(game?.mat, 2000) ?? d.matUrl,
-      clothUrl: url(game?.matTexture, 1024) ?? d.clothUrl,
-      courtierBackUrl: url(game?.courtierBack, 360) ?? d.courtierBackUrl,
-      whiteMissionBackUrl: url(game?.whiteMissionBack, 520) ?? d.whiteMissionBackUrl,
-      blueMissionBackUrl: url(game?.blueMissionBack, 520) ?? d.blueMissionBackUrl,
-      arrowUpUrl: url(game?.arrowUp, 256) ?? d.arrowUpUrl,
-      arrowDownUrl: url(game?.arrowDown, 256) ?? d.arrowDownUrl,
-      rules: {
-        texts: d.rules.texts,
-        roles: roleRules,
-        families: d.rules.families.map((f) => ({
-          ...f,
-          name: familiesMap[f.key].name,
-          color: familiesMap[f.key].color,
-          pictogramUrl: familiesMap[f.key].pictogramUrl,
-          cardUrl: cards[cardKey(f.key, null)] ?? f.cardUrl,
-        })),
-        missions: RULES_MISSION_VISUALS.map((id, i) => missionsMap[id] ?? d.rules.missions[i]!) as [string, string],
-        pictoFrame: url(game?.pictogramFrame, 240) ?? d.rules.pictoFrame,
-      },
+      matUrl: url(game?.mat, 2000),
+      clothUrl: url(game?.matTexture, 1024),
+      courtierBackUrl: url(game?.courtierBack, 360),
+      whiteMissionBackUrl: url(game?.whiteMissionBack, 520),
+      blueMissionBackUrl: url(game?.blueMissionBack, 520),
+      arrowUpUrl: url(game?.arrowUp, 256),
+      arrowDownUrl: url(game?.arrowDown, 256),
       missionTexts: {
         ...d.missionTexts,
         ...Object.fromEntries(missions.flatMap((m) => (only(m.text, locale)?.trim() ? [[m._id, only(m.text, locale)!.trim()]] : []))),

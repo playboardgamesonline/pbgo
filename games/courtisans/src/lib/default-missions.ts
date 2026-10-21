@@ -1,7 +1,6 @@
 import type { Family, Mission, Role, Status } from "@courtisans/engine"
 import { DEFAULT_LOCALE } from "@pbgo/core/lib/i18n"
 import { defaultMissionTexts } from "./i18n"
-import { asset } from "./site"
 
 const ORDER: Family[] = ["carp", "stag", "toad", "hare", "butterfly", "nightingale"]
 const ROLES: [Role, number][] = [
@@ -46,7 +45,3 @@ export const DEFAULT_MISSIONS: Mission[] = [
     condition: { type: "familiesWithStatus", status, comparator: "gte", value },
   })),
 ]
-
-export const DEFAULT_MISSION_IMAGES: Record<string, string> = Object.fromEntries(
-  DEFAULT_MISSIONS.map((m) => [m.id, asset(`/cards/${m.id.replace("mission-", "MISSION_").replace("light-", "LIGHT_").replace("dark-", "DARK_")}.webp`)]),
-)

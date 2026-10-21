@@ -32,6 +32,7 @@ import { useSettings, useSettingsVersion } from "./settings"
 import { patternTexture } from "./patterns"
 import { button, roundValue, copyButton, debugTab, COPY_ORDER, useControls } from "@pbgo/core/components/game/debug-controls"
 import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
+import { useSkin } from "@pbgo/core/components/skin-provider"
 import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
 import {
@@ -727,6 +728,7 @@ function World({
   useEffect(() => onReady(), [onReady])
   const { view, catalog, nickname, color, avatarUrl } = useCourtisans()
   const seat = useSeatTheme()
+  const { hostIcon } = useSkin()
   const it = useInteraction()
   const missions = useMemo(() => view.me?.missions ?? [], [view.me?.missions])
   const allMissions = useMemo(
@@ -1305,7 +1307,7 @@ function World({
               size={ZONE_SETTINGS.avatarSize}
               position={[-(ZONE_SETTINGS.avatarGap + ZONE_SETTINGS.avatarSize / 2), 0, 0]}
             />
-            <CrownMark show={crownPlayer === j.id} offset={[-(ZONE_SETTINGS.avatarGap + ZONE_SETTINGS.avatarSize + 0.8), 0]} />
+            <CrownMark show={crownPlayer === j.id} offset={[-(ZONE_SETTINGS.avatarGap + ZONE_SETTINGS.avatarSize + 0.8), 0]} icon={hostIcon} />
           </Badge>
         )
       })}

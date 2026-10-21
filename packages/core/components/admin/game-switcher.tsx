@@ -1,19 +1,18 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
+import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { switchHref } from "../../lib/admin-nav"
 
 /** A game as the gamemaster lists it: what the registry knows, without loading the game (the switcher lists all of them on every page). */
-export type SwitcherGame = { slug: string; name: string; live: boolean; visual: string | null }
+export type SwitcherGame = { slug: string; name: string; live: boolean }
 
-/** The game's cover art (registry `visual`), else its first letter. */
-export function GameMark({ game, size = "sm", className }: { game: { name: string; visual?: string | null }; size?: "default" | "sm" | "lg"; className?: string }) {
+/** The first letter of the game's name. The switcher lists every game on every page, so it never goes and fetches their cover art. */
+export function GameMark({ game, size = "sm", className }: { game: { name: string }; size?: "default" | "sm" | "lg"; className?: string }) {
   return (
     <Avatar size={size} className={className}>
-      {game.visual && <AvatarImage src={game.visual} alt="" />}
       <AvatarFallback>{([...game.name][0] ?? "").toUpperCase()}</AvatarFallback>
     </Avatar>
   )

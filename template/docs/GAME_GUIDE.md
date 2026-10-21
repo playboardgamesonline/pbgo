@@ -32,7 +32,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 4. **"Ping + refetch" realtime.** After each write (optimistic lock on `version`), the server broadcasts `update` on the Supabase channel `game:<slug>:<code>`; clients refetch their view. No sensitive data in the channel.
 5. **Identity without an account.** httpOnly cookie (`<slug>_player`) = player id. Nickname kept in the local profile (`<slug>:profile`).
 6. **Declarative game options.** The game declares `options` (`number` / `choice` / `boolean`); the lobby renders them and the host edits them (`POST /api/<slug>/games/<code>/options`, values passed through `normalizeOptions`).
-7. **Content in Sanity, defaults in the code.** The site works with an empty Sanity project (default skin and texts); Sanity overrides them.
+7. **Content in Sanity, defaults in the code.** Texts, translations, pictures and sounds live in the game's Sanity project. The code holds colours, fonts and texts as defaults, never a picture or a sound file: the site works with an empty Sanity project (default skin and texts), a picture that is not in Sanity is not drawn and a sound that is not there stays silent.
 8. **3D = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` animates each object to its pose. Same React key = same object ⇒ real moves (hand → table).
 9. **DOM UI over the 3D** (header, log, announcements, game over). The ticker, players strip, announcements, takeover pill, chat, seat label and game over are the shared in-game UI: written once, drawn in the game's own look, tuned through `UI_THEME` (see "In-game UI" below).
 10. **Code split per game.** The hub loads no game code; a game's pages load only that game (`@pbgo/games` imports each binding on demand), and its board (three.js) only on the game page.
@@ -86,7 +86,6 @@ The ticker, the players strip, the seat label, the announcements (start, round, 
 
 ```
 apps/web/                          # 🌐 the only Next.js app (hub + every game)
-├─ public/<slug>/                  # the game's static files, served at /<slug>/...
 └─ src/app/
    ├─ (hub)/                       # / (hub), /legal
    ├─ [game]/                      # /<slug> (home), /<slug>/game/<code>, /<slug>/preview/<kind> (the admin lives at /gamemaster/<slug>)
@@ -103,7 +102,7 @@ games/<slug>/                      # one game
 │  ├─ ui.tsx                       # Logo, Game (board, loaded on demand)
 │  ├─ server.ts                    # loadSetupData, loadGameData, ROUTES, SEO (server only)
 │  ├─ runtime.tsx                  # styles, fonts, BindingProvider (client)
-│  ├─ lib/site.ts                  # SLUG, asset(), name, description…
+│  ├─ lib/site.ts                  # SLUG, name, description…
 │  └─ components/game, game3d/     # board and 3D scene
 ├─ packages/engine/src/            # 🧠 ENGINE (pure TS): <game>/ (types, game, tests) and index.ts (export … as GAME)
 └─ apps/studio/                    # 🗂 SANITY STUDIO (shared singletons + the game's own types)
@@ -122,11 +121,10 @@ supabase/migrations/               # the shared schema (table games with a game 
 - **Sanity 100 % English** (types, ids, fields, titles). Deterministic ids: `family-butterfly`, `role-spy`, `courtier-noble-hare`. The `key` field holds the engine key (`butterfly`, `spy`).
 - **One Studio list per kind of card.** Cards that come in kinds (number / action / modifier; kitten / defuse / action / nope / cat) are one document type per kind, never one type with a `kind` field: each kind is a list of its own in the Studio, so the editor finds an Attack among the actions, and the `key` of a card is its simplest name within its kind (`attack`, not `action-attack`). Ids are `<category>-card-<key>` (`action-card-attack`) and a read-only `order` keeps the place of a card in its category. Model: Exploding Kittens (`games/exploding-kittens/apps/studio/schemaTypes/cards.ts` calls one factory per category, `CATEGORIES` in `constants.ts` lists the keys of each, `collections` in `sanity.config.ts` names the lists).
 
-### Assets (`apps/web/public/<slug>/`)
-- Lowercase English folders: `home/`, `cards/`, `pictograms/`, `rules/`, `sounds/`, `textures/`.
-- English `UPPER_SNAKE_CASE` files: `cards/SPY_HARE.webp`, `home/QUEEN.webp`, `sounds/HOVER.mp3`, `pictograms/PICTOGRAM_ARROW_UP.svg`.
-- Formats: `.webp` for images, `.svg` for pictograms, `.mp3` for sounds.
-- URLs built with `asset()` from `src/lib/site.ts` (`asset("/cards/BACK.webp")` → `/<slug>/cards/BACK.webp`).
+### Assets (pictures and sounds)
+- A game's pictures and sounds live in its Sanity project (`interface`, `settings`, `audio` and the game's own types), never in the repo: `apps/web/public` holds the platform's own files only (`favicon.ico`), and `registry.test.ts` fails on any other file there. A game has no folder in it and no `asset()`.
+- Sources (PDF, PSD, HD visuals) go in `games/<slug>/assets/`, ignored by git. The pictures reach Sanity through the Studio, the gamemaster (Setup › Visual and Audio) or the content seed (`docs/content-pipeline.md`).
+- Formats: the gamemaster turns images into WebP (SVG is kept); sounds are MP3, 4 MB at most.
 
 ### Studio forms (what the owner fills in)
 The owner fills the cards, colors and tiles one by one in the Studio, so every game's forms are short and in the same order. What to ask the owner first (which kinds, which categories, which pictures), the rules and the don'ts are written once, in the skill `game-sanity-create` (`.claude/skills/`): follow it, do not copy it here. `schemaTypes/game.ts` of the template is the starting point for the `game` document (in tabs), Courtisans' `game` the full model.
@@ -152,7 +150,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
   - `pnpm --filter <slug>-studio run deploy` (deploy the studio)
   - content migrations of the game, when it has some
 - **Apply the Supabase SQL migrations** (`supabase/migrations/*.sql`) when they change: `pnpm setup-env` applies the pending ones to preview, then production. A PR that adds a migration says so in its description, and Oré runs `pnpm setup-env` right after merging it.
-- **Provide the assets**: rules PDF, card images, pictograms (SVG), textures, fonts, sounds, named after the convention or dropped in `games/<slug>/assets/` (ignored by git) to be sorted.
+- **Provide the assets**: rules PDF, card images, pictograms (SVG), textures, fonts, sounds, dropped in `games/<slug>/assets/` (ignored by git) to be sorted and put into Sanity.
 - **Enter / check the content in Sanity** (texts, images).
 - **Play for real with several people** (the AI tests with simulated data).
 - **Search Console / domain / SEO** (ownership, DNS).
@@ -215,7 +213,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
 - `layout.ts` (where the cards go), `scene.tsx` (zones, interactions), `textures.ts`, `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
-- `src/lib/site.ts` (with `ERROR_MESSAGES`, the player-facing text of the error codes the engine throws and core does not know), `DEFAULT_SKIN`, `UI_THEME` (optional), texts, assets, the game's own Sanity content types
+- `src/lib/site.ts` (with `ERROR_MESSAGES`, the player-facing text of the error codes the engine throws and core does not know), `DEFAULT_SKIN`, `UI_THEME` (optional), texts, the game's own Sanity content types
 
 ---
 

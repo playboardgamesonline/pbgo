@@ -2,8 +2,8 @@
 # pnpm new-game <slug> [--name "<Game Name>"]   e.g. pnpm new-game the-crew --name "The Crew"
 # pnpm new-game --name "<Game Name>"            the slug comes from the name (The Crew → the-crew)
 # Creates games/<slug> from template/ and registers it in packages/games (registry entry, server loader, client
-# runtime, dependency): binding @pbgo-game/<slug>, engine @<slug>/engine, studio <slug>-studio, static files in
-# apps/web/public/<slug>/. The game is not live: playable outside production only, at http://localhost:3100/<slug>.
+# runtime, dependency): binding @pbgo-game/<slug>, engine @<slug>/engine, studio <slug>-studio. The game is not live:
+# playable outside production only, at http://localhost:3100/<slug>.
 # The name is what the hub, the Studio and the docs of the game print; without --name it is the slug, capitalised
 # (the-crew → The Crew). The slug and the name follow packages/games/src/slug.ts, which the registry test reads too.
 # Next: pnpm go-live <slug> (Sanity project, studio, write token), or pnpm add-game for both and the rules PDF.
@@ -38,7 +38,7 @@ mkdir -p "$DEST"
 tar -C template --exclude=node_modules --exclude=.next --exclude=dist --exclude=.vercel --exclude=.sanity \
   --exclude=.sanity-project-id --exclude='.env' --exclude='.env*.local' --exclude='*.tsbuildinfo' --exclude=assets \
   --exclude=docs -cf - . | tar -C "$DEST" -xf -
-mkdir -p "$DEST/assets" "apps/web/public/$SLUG"
+mkdir -p "$DEST/assets"
 
 GAME_NAME="$NAME" node - "$DEST" "$SLUG" <<'JS'
 const fs = require("fs"), path = require("path")

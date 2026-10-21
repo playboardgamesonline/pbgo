@@ -3,6 +3,7 @@ import { ArrowRight01Icon, DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicon
 import Link from "next/link"
 
 import { ConsentLink } from "@pbgo/analytics/client"
+import { gameCover } from "@pbgo/core/sanity/cover"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
@@ -21,9 +22,11 @@ const STEPS = [
   { icon: UserGroupIcon, title: "Play together", text: "Everyone plays from their own browser, rules and scoring handled for you." },
 ]
 
-export default function Home() {
+export default async function Home() {
   const games = listedGames()
   const first = games[0]
+  // The cover art of each card is read from the game's Sanity project (cached for 60 s); a game without one shows the placeholder
+  const cards = await Promise.all(games.map(async (game) => ({ game, cover: await gameCover(game) })))
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
@@ -63,8 +66,8 @@ export default function Home() {
         <section id="games" className="mx-auto w-full max-w-page scroll-mt-20 px-gutter pb-section">
           <h2 className="mb-6 font-heading text-2xl">Games</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {games.map((game) => (
-              <GameCard key={game.slug} {...gameCardProps(game)} data-game={game.slug} />
+            {cards.map(({ game, cover }) => (
+              <GameCard key={game.slug} {...gameCardProps(game, cover)} data-game={game.slug} />
             ))}
           </div>
         </section>

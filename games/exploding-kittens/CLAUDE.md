@@ -4,13 +4,12 @@ Exploding Kittens, served by `apps/web` at `/exploding-kittens`. The engine of t
 
 ## Structure
 - `package.json` — `@pbgo-game/exploding-kittens`, the binding package that `@pbgo/games` loads on demand
-  - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
+  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, genres (player-facing copy in French)
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (none yet: the core theme, and icons generated from the title), replaced by what is set in `/gamemaster/exploding-kittens`. No `GAME` yet
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@exploding-kittens/engine`, the Original Edition: pure TypeScript, tested with Vitest (see Engine)
 - `apps/studio` — `exploding-kittens-studio`, Sanity Studio of the project `iz9kkgyd` (https://exploding-kittens.sanity.studio). Its own document types (the cards in five categories, `kittenCard`, `defuseCard`, `actionCard`, `nopeCard` and `catCard`, then `edition`, and the `game` singleton, its pictures in three tabs, Board, Card backs and Box) are in `schemaTypes/` (`cards.ts` builds the five from one factory), the lists they share with the seed (the categories and the card type keys of each, edition keys) in `schemaTypes/constants.ts`
 - `content/` — the Sanity content as versioned code (the game's data and config) and the seed script, run by the shared `@pbgo/content-kit` (see below); `vitest.config.ts` runs its tests
-- Static files: `apps/web/public/exploding-kittens/` (served at `/exploding-kittens/...`)
 
 ## Engine (`packages/engine/src`)
 - `types.ts` — `State`, `Phase`, `Action` (`CLIENT_ACTIONS`), the views (`PlayerView`, `PublicPhase`), the events (`EkEvent`), the error codes (`EK_ERROR_CODES`)
