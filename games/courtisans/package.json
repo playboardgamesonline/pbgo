@@ -12,7 +12,9 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p content && tsc --noEmit -p content/parity",
+    "test": "vitest run",
+    "content:seed": "node --disable-warning=ExperimentalWarning content/seed.ts",
     "dev:studio": "pnpm --filter courtisans-studio dev",
     "deploy:studio": "pnpm --filter courtisans-studio run deploy",
     "sanity:clean-png": "pnpm --filter courtisans-studio run clean-png",
@@ -40,6 +42,8 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@pbgo/content-kit": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
@@ -48,6 +52,7 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
