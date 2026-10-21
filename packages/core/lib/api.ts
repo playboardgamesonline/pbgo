@@ -1,11 +1,11 @@
 import type { OptionValues } from "@pbgo/engine-kit"
-import type { GameBinding } from "./binding"
 import type { PublicGame } from "./game-types"
 import type { ChatMessage, ChatReaction } from "./chat"
+import { missing } from "./missing"
 import { isPreviewWindow } from "./preview"
 import type { Profile } from "./profile"
 
-/** Default error messages of core (French), replaceable in the admin (Copy page). */
+/** Error messages of the platform's own error codes (French), replaceable in the admin (Copy page). A game's codes have no message here: they come from Sanity. */
 export const CORE_ERROR_MESSAGES: Record<string, string> = {
   INVALID_NICKNAME: "Choisissez un pseudo.",
   INVALID_CODE: "Ce code de partie n'est pas valide.",
@@ -32,32 +32,17 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   AUTOPLAY_UNSUPPORTED: "Ce jeu ne sait pas jouer à la place de ce joueur.",
 }
 
-const messagesByGame = new WeakMap<GameBinding, Record<string, string>>()
-
-/** Default error messages of a game: core's, plus the messages of its engine's error codes (`ERROR_MESSAGES` of its binding). */
-export function errorMessages(binding: GameBinding): Record<string, string> {
-  let messages = messagesByGame.get(binding)
-  if (!messages) messagesByGame.set(binding, (messages = { ...CORE_ERROR_MESSAGES, ...binding.ERROR_MESSAGES }))
-  return messages
-}
-
-// The page shows one game at a time: `BindingProvider` sets its messages, `SkinProvider` the ones replaced in Sanity.
-let defaults: Record<string, string> = CORE_ERROR_MESSAGES
+// The page shows one game at a time: `SkinProvider` sets the messages of its skin (Sanity, else the platform's translations of the core codes).
 let overrides: Record<string, string> = {}
 
-/** Called by `BindingProvider` with the current game (idempotent). */
-export function configureErrors(binding: GameBinding) {
-  defaults = errorMessages(binding)
-}
-
-/** Called by `SkinProvider` with the messages replaced in Sanity. */
+/** Called by `SkinProvider` with the messages of the skin shown. */
 export function setErrorOverrides(messages: Record<string, string>) {
   overrides = messages
 }
 
 export class ApiClientError extends Error {
   constructor(public code: string) {
-    super(overrides[code] ?? defaults[code] ?? overrides.SERVER_ERROR ?? defaults.SERVER_ERROR ?? CORE_ERROR_MESSAGES.SERVER_ERROR)
+    super(overrides[code] ?? CORE_ERROR_MESSAGES[code] ?? missing(`errorMessages.${code}`))
   }
 }
 

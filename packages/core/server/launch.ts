@@ -1,6 +1,7 @@
 import "server-only"
 import type { AdminPath } from "../lib/admin-nav"
 import type { GameModule } from "../lib/binding"
+import { missingTexts } from "../lib/missing"
 import { defaultTheme } from "../lib/settings"
 import { SITE_URL } from "../lib/site-url"
 import { sanityConfigured } from "../sanity/client"
@@ -35,6 +36,7 @@ export async function launchChecklist(game: GameModule, data: AdminData): Promis
   const writable = sanityWritable(game)
   const declaredSounds = audio.effects.length
   const missingSounds = audio.effects.filter((e) => !e.url).length
+  const gaps = missingTexts(data.copy, settings.descriptions)
   const host = (() => {
     try {
       return new URL(SITE_URL).hostname
@@ -51,6 +53,7 @@ export async function launchChecklist(game: GameModule, data: AdminData): Promis
     { id: "theme", group: "Visual", label: "Colors", detail: "Theme changed from the template defaults", ok: customTheme, fix: "visual" },
     { id: "decor", group: "Visual", label: "Decorations", detail: "Top and bottom decorations of the home screen", ok: !!visual.images.decorTop.url && !!visual.images.decorBottom.url, fix: "visual" },
     { id: "sounds", group: "Audio", label: "Sounds in Sanity", detail: !declaredSounds ? "The game declares no sound effects" : missingSounds ? `${missingSounds} of ${declaredSounds} effects have no file in Sanity` : "Every effect has a file in Sanity", ok: missingSounds === 0, optional: true, fix: "audio" },
+    { id: "content", group: "Content", label: "Game texts in Sanity", detail: gaps.length ? `Not in Sanity yet: ${gaps.slice(0, 4).join(", ")}${gaps.length > 4 ? `, and ${gaps.length - 4} more` : ""}` : "Every required text is in Sanity, in every language", ok: !gaps.length, fix: "copy" },
     { id: "admin", group: "Services", label: "Gamemaster account", detail: "ADMIN_LOGIN, ADMIN_PASSWORD and ADMIN_SESSION_SECRET", ok: adminConfigured(), fix: "monitoring/health" },
     { id: "sanity", group: "Services", label: "Sanity", detail: writable ? "Connected, the admin can save" : sanityConfigured(game) ? `${writeTokenName(game.slug)} missing` : "No Sanity project in the registry", ok: writable, fix: "monitoring/health" },
     { id: "supabase", group: "Services", label: "Supabase", detail: "Games table reachable", ok: db.games, fix: "monitoring/health" },

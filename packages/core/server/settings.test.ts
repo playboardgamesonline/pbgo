@@ -56,8 +56,7 @@ function sampleGame(over: Partial<GameModule> = {}): GameModule {
     binding: {
       SLUG: "sample",
       NAME: "Sample",
-      TAGLINE: "A sample game",
-      DESCRIPTION: "A sample description",
+      ERROR_CODES: ["NOT_ENOUGH_MISSIONS"],
       GAME: {
         minPlayers: 2,
         maxPlayers: 5,
@@ -172,6 +171,43 @@ describe("readAdminData", () => {
     expect(data.skin.desktopOnly).toBe(false)
     expect(data.visual.customColors).toBe(true)
     expect(data.copy.entries.find((e) => e.key === "tagline")?.values.fr).toBe("Une accroche")
+  })
+
+  // A text only the game can write has no copy in the code: it is required, and Launch lists it until Sanity holds it
+  it("marks the texts only the game can write as required and gives the platform's own labels a fallback", async () => {
+    setup()
+
+    const { entries } = (await readAdminData(sampleGame())).copy
+    const entry = (key: string) => entries.find((e) => e.key === key)!
+
+    expect(entry("tagline")).toMatchObject({ required: true, fallbacks: { fr: "", en: "", es: "", de: "" } })
+    expect(entry("homeTitle")).toMatchObject({ required: false, fallbacks: { fr: "" } })
+    expect(entry("homeIntro")).toMatchObject({ required: false, fallbacks: { fr: "" } })
+    expect(entry("ui.replay").required).toBe(false)
+    expect(entry("ui.replay").fallbacks.en).not.toBe("")
+    expect(entry("error.GAME_NOT_FOUND").required).toBe(false)
+    expect(entry("error.GAME_NOT_FOUND").fallbacks.fr).not.toBe("")
+    expect(entry("error.NOT_ENOUGH_MISSIONS")).toMatchObject({ required: true, fallbacks: { fr: "", en: "" } })
+  })
+
+  it("lists the error codes of the platform and the ones the game declares, and no other", async () => {
+    setup()
+
+    const { entries } = (await readAdminData(sampleGame())).copy
+    const codes = entries.filter((e) => e.group === "errors").map((e) => e.key)
+
+    expect(codes).toContain("error.GAME_NOT_FOUND")
+    expect(codes).toContain("error.NOT_ENOUGH_MISSIONS")
+    expect(codes).not.toContain("error.NOT_AN_ERROR")
+    expect((await readAdminData(sampleGame({ binding: { ...sampleGame().binding, ERROR_CODES: undefined } }))).copy.entries.some((e) => e.key === "error.NOT_ENOUGH_MISSIONS")).toBe(false)
+  })
+
+  it("has no victory phrase until Sanity holds one", async () => {
+    setup()
+
+    const { victoryPhrases } = (await readAdminData(sampleGame())).copy
+
+    expect(victoryPhrases.values).toEqual({ fr: null, en: null, es: null, de: null })
   })
 
   it("reads the audio document the Studio shows", async () => {
@@ -579,6 +615,7 @@ describe("saveSection › copy", () => {
       tagline: { fr: "Une accroche", en: "A tagline" },
       "ui.replay": { fr: "Rejouer !", en: "" },
       "error.GAME_NOT_FOUND": { en: "Table not found" },
+      "error.NOT_ENOUGH_MISSIONS": { fr: "Pas assez de missions" },
       "error.NOT_AN_ERROR": { fr: "x" },
       "ui.notAText": { fr: "x" },
       other: { fr: "x" },
@@ -598,7 +635,10 @@ describe("saveSection › copy", () => {
       tagline: { _type: "localeString", fr: "Une accroche", en: "A tagline" },
       [`ui_${replay.group}`]: { replay: { _type: "localeString", fr: "Rejouer !" } },
       victoryPhrases: { _type: "localeStringList", fr: ["Bravo", "Champion"] },
-      errorMessages: [{ _key: "GAME_NOT_FOUND", _type: "errorMessage", code: "GAME_NOT_FOUND", message: { _type: "localeString", en: "Table not found" } }],
+      errorMessages: [
+        { _key: "GAME_NOT_FOUND", _type: "errorMessage", code: "GAME_NOT_FOUND", message: { _type: "localeString", en: "Table not found" } },
+        { _key: "NOT_ENOUGH_MISSIONS", _type: "errorMessage", code: "NOT_ENOUGH_MISSIONS", message: { _type: "localeString", fr: "Pas assez de missions" } },
+      ],
     })
     expect(doc).not.toHaveProperty("other")
     expect(doc).not.toHaveProperty(`ui_${replay.group}.replay.en`)

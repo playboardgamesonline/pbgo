@@ -71,9 +71,10 @@ const pickText = (v: Localized, l: Locale) => {
 
 export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = "fr"): SiteSettings {
   const defaults = defaultSettings(game.binding)
-  if (!doc) return { ...defaults, description: defaults.descriptions[locale] || defaults.descriptions.fr, credits: { ...defaults.credits, authors: defaults.creditsAuthors[locale] || defaults.credits.authors } }
-  const descriptions = byLocale((l) => pickText(doc.descriptionI18n, l) || (l === "fr" ? doc.description?.trim() || "" : "") || defaults.descriptions[l])
-  const authors = byLocale((l) => pickText(doc.creditsAuthorsI18n, l) || (l === "fr" ? doc.creditsAuthors?.trim() || "" : "") || (l === "fr" ? (defaults.credits.authors ?? "") : defaults.creditsAuthors[l]))
+  if (!doc) return defaults
+  // The description and the authors are texts: Sanity holds them, in every language, and the code holds no copy (empty until they are entered).
+  const descriptions = byLocale((l) => pickText(doc.descriptionI18n, l) || (l === "fr" ? doc.description?.trim() || "" : ""))
+  const authors = byLocale((l) => pickText(doc.creditsAuthorsI18n, l) || (l === "fr" ? doc.creditsAuthors?.trim() || "" : ""))
   const theme = Object.fromEntries(
     Object.entries(defaultTheme(game.binding)).map(([k, d]) => [k, isHex(doc.theme?.[k as keyof ThemeColors]) ? doc.theme![k as keyof ThemeColors]! : d]),
   ) as ThemeColors
@@ -109,12 +110,25 @@ export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = 
   }
 }
 
+/** `slug:locale` of the languages already reported, so the log holds one line per missing description and not one per request. */
+const reported = new Set<string>()
+
+/** Logs the games whose description Sanity does not hold in a language (the page then reads the French one, or has none), once per game and language. */
+function reportMissing(game: GameModule, locale: Locale, settings: SiteSettings) {
+  const id = `${game.slug}:${locale}`
+  if (settings.descriptions[locale] || reported.has(id)) return
+  reported.add(id)
+  console.error(`[missing] ${game.slug} (${locale}): description is not in Sanity`)
+}
+
 const settingsFor = cache(async (game: GameModule, locale: Locale): Promise<SiteSettings> => {
   const client = sanityClient(game)
   if (!client) return toSettings(game, null, locale)
   try {
     const doc = await client.withConfig({ useCdn: false }).fetch<SettingsDoc>(SETTINGS_QUERY, {}, { next: { tags: [settingsTag(game.slug)], revalidate: 60 } })
-    return toSettings(game, doc, locale)
+    const settings = toSettings(game, doc, locale)
+    reportMissing(game, locale, settings)
+    return settings
   } catch (error) {
     console.error("Sanity settings unavailable", error)
     return toSettings(game, null, locale)

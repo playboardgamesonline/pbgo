@@ -39,9 +39,8 @@ export function CopyPage({ initial }: { initial: AdminData }) {
   const [lang, setLang] = useState<Locale>("fr")
   const value = (key: string, l: Locale = lang) => draft.values[key]?.[l] ?? null
   const setValue = (key: string, v: string | null) => setDraft((d) => ({ ...d, values: { ...d.values, [key]: { ...d.values[key]!, [lang]: v } } }))
-  const phrases = draft.victoryPhrases[lang]
-  const fallbackPhrases = data.copy.victoryPhrases.fallbacks[lang]
-  const setPhrases = (list: string[] | null) => setDraft((d) => ({ ...d, victoryPhrases: { ...d.victoryPhrases, [lang]: list } }))
+  const phrases = draft.victoryPhrases[lang] ?? []
+  const setPhrases = (list: string[]) => setDraft((d) => ({ ...d, victoryPhrases: { ...d.victoryPhrases, [lang]: list.length ? list : null } }))
   const countFor = (l: Locale) => data.copy.entries.filter((e) => value(e.key, l)).length + (draft.victoryPhrases[l] ? 1 : 0)
 
   const q = query.trim().toLowerCase()
@@ -52,7 +51,7 @@ export function CopyPage({ initial }: { initial: AdminData }) {
       ),
     [data.copy.entries, q, group, draft.values, lang],
   )
-  const edited = (g: CopyGroup) => data.copy.entries.filter((e) => e.group === g && value(e.key)).length + (g === "end" && phrases ? 1 : 0)
+  const edited = (g: CopyGroup) => data.copy.entries.filter((e) => e.group === g && value(e.key)).length + (g === "end" && phrases.length ? 1 : 0)
 
   return (
     <SetupLayout>
@@ -88,8 +87,8 @@ export function CopyPage({ initial }: { initial: AdminData }) {
         <CardHeader>
           <CardTitle>{q ? `Results for “${query.trim()}”` : GROUPS.find((g) => g.id === group)!.title}</CardTitle>
           <CardDescription>
-            {q ? `${visible.length} text${visible.length > 1 ? "s" : ""}` : GROUPS.find((g) => g.id === group)!.description} Empty field = default text of this language (shown in grey). Keep the
-            variables in braces.
+            {q ? `${visible.length} text${visible.length > 1 ? "s" : ""}` : GROUPS.find((g) => g.id === group)!.description} Grey text is the platform's own wording, used until you write
+            yours. A required text has none: players read “[missing: …]” until it is written. Keep the variables in braces.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -109,36 +108,20 @@ export function CopyPage({ initial }: { initial: AdminData }) {
             <CardDescription>One is picked at random on the scoreboard. {"{pseudo}"} and {"{points}"} are replaced.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {(phrases ?? fallbackPhrases).map((p, i, list) => (
+            {phrases.map((p, i, list) => (
               <div key={i} className="flex items-center gap-2">
-                <Input
-                  value={p}
-                  disabled={disabled}
-                  className={cn(!phrases && "text-muted-foreground")}
-                  onChange={(e) => setPhrases(list.map((x, j) => (j === i ? e.target.value : x)))}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Remove phrase"
-                  disabled={disabled || list.length < 2}
-                  onClick={() => setPhrases(list.filter((_, j) => j !== i))}
-                >
+                <Input aria-label={`Phrase ${i + 1}`} value={p} disabled={disabled} onChange={(e) => setPhrases(list.map((x, j) => (j === i ? e.target.value : x)))} />
+                <Button variant="ghost" size="icon-sm" aria-label="Remove phrase" disabled={disabled} onClick={() => setPhrases(list.filter((_, j) => j !== i))}>
                   <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
                 </Button>
               </div>
             ))}
+            {phrases.length === 0 && <p className="text-xs text-destructive">Required, none in this language yet: players read “[missing: victoryPhrases]” on the scoreboard.</p>}
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={disabled} onClick={() => setPhrases([...(phrases ?? fallbackPhrases), ""])}>
+              <Button variant="outline" size="sm" disabled={disabled} onClick={() => setPhrases([...phrases, ""])}>
                 <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
                 Add
               </Button>
-              {phrases && (
-                <Button variant="ghost" size="sm" disabled={disabled} onClick={() => setPhrases(null)}>
-                  <HugeiconsIcon icon={RotateLeft01Icon} strokeWidth={2} data-icon="inline-start" />
-                  Back to default
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -151,8 +134,9 @@ export function CopyPage({ initial }: { initial: AdminData }) {
 
 function CopyRow({ entry, lang, value, onChange, disabled }: { entry: CopyEntry; lang: Locale; value: string | null; onChange: (v: string | null) => void; disabled: boolean }) {
   const fallback = entry.fallbacks[lang]
-  const vars = variables(entry.fallbacks.fr)
-  const missing = value ? vars.filter((v) => !value.includes(v)) : []
+  // The variables to keep come from the platform's wording, else from the French text entered in Sanity (a text of the game has no other reference)
+  const vars = variables(entry.fallbacks.fr || (entry.values.fr ?? ""))
+  const lost = value ? vars.filter((v) => !value.includes(v)) : []
   const Field = entry.multiline ? Textarea : Input
   return (
     <li className="grid gap-2 py-3 sm:grid-cols-[13rem_minmax(0,1fr)_2rem] sm:items-start">
@@ -169,9 +153,10 @@ function CopyRow({ entry, lang, value, onChange, disabled }: { entry: CopyEntry;
           onChange={(e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => onChange(e.target.value || null)}
           disabled={disabled}
         />
-        {missing.length > 0 && <p className="text-xs text-destructive">Missing {missing.join(", ")}</p>}
+        {lost.length > 0 && <p className="text-xs text-destructive">Missing {lost.join(", ")}</p>}
+        {entry.required && !value && <p className="text-xs text-destructive">Required, nothing in this language yet: players read “[missing: …]”.</p>}
       </div>
-      {value ? (
+      {value && fallback ? (
         <Button variant="ghost" size="icon-sm" aria-label="Back to default" title="Back to default" disabled={disabled} onClick={() => onChange(null)}>
           <HugeiconsIcon icon={RotateLeft01Icon} strokeWidth={2} />
         </Button>

@@ -15,15 +15,17 @@ function structuredData(game: GameModule, { title, description, minPlayers, maxP
   const language = OG_LOCALES[locale].replace("_", "-")
   const seo = game.binding.SEO?.(locale)
   const { AUTHOR } = game.binding
+  // A game with no description in Sanity has none here either
+  const summary = description ? { description } : {}
   return {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "WebSite", "@id": `${url}/#site`, url, name: siteTitle(title), inLanguage: language, description },
+      { "@type": "WebSite", "@id": `${url}/#site`, url, name: siteTitle(title), inLanguage: language, ...summary },
       {
         "@type": "VideoGame",
         name: siteTitle(title),
         url,
-        description,
+        ...summary,
         inLanguage: language,
         ...(seo?.genres?.length ? { genre: seo.genres } : {}),
         gamePlatform: seo?.platform ?? PLATFORM[locale],
