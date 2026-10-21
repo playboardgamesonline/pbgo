@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Courtisans for apps/web: engine binding, 3D board, Sanity loaders, sounds, translations and default skin.",
+  "description": "Courtisans for apps/web: engine binding, 3D board, Sanity loaders, sounds and default skin.",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",
@@ -12,7 +12,7 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit && tsc --noEmit -p content && tsc --noEmit -p content/parity",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p content",
     "test": "vitest run",
     "content:seed": "node --disable-warning=ExperimentalWarning content/seed.ts",
     "dev:studio": "pnpm --filter courtisans-studio dev",

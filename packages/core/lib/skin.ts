@@ -2,13 +2,15 @@ import { UI_TEXTS, type UiTextKey } from "@pbgo/studio-kit/constants"
 import { ERROR_TRANSLATIONS, UI_TRANSLATIONS } from "@pbgo/studio-kit/translations"
 import type { GameBinding } from "./binding"
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n"
+import { missing } from "./missing"
 
 /** Decor image (ready-to-use URL) and its width / height ratio, to fit the interface on it. */
 export type DecorImage = { url: string; srcSet?: string; ratio: number | null }
 
 /**
  * Skin of a game: everything that changes the look of the shared screens without touching code.
- * Source: Sanity (`interface` + `texts`), then the game defaults (`DEFAULT_SKIN` of its binding, no images), then core's.
+ * Source: Sanity (`interface` + `texts`), then the behaviour the game declares (`DEFAULT_SKIN` of its binding: no text, no image), then core's chrome.
+ * A required text that Sanity does not hold yet reads `[missing: <key>]` (`lib/missing.ts`).
  */
 export type Skin = {
   /** Language in which this skin (texts) was resolved */
@@ -40,60 +42,40 @@ export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "home" | "erro
 }
 
 /**
- * What a game declares in `DEFAULT_SKIN` and `I18N[language].skin`: colours, texts and behaviour, never an image. Images come from
- * Sanity only (`interface`), so a missing one shows as missing instead of being covered by a copy in the code.
+ * What a game declares in `DEFAULT_SKIN`: how its skin behaves (player colours, desktop only), never a text and never an image.
+ * Texts and their translations come from Sanity (`texts`), pictures from Sanity (`interface`), so a missing one shows as missing
+ * instead of being covered by a copy in the code.
  */
-export type GameSkinDefaults = Omit<SkinDefaults, "decor" | "hostIcon">
+export type GameSkinDefaults = Partial<Pick<Skin, "playerColors" | "desktopOnly">>
 
 export const DEFAULT_TEXTS = Object.fromEntries(UI_TEXTS.map((t) => [t.key, t.fr])) as UiTexts
 
 export const DEFAULT_PLAYER_COLORS = ["#e8795a", "#9d8cf2", "#e56fa4", "#6fb4e5", "#e8b43a", "#6fd3a8"]
 
+/**
+ * The skin of a game that Sanity holds nothing for: the platform's chrome (`UI_TEXTS`, its translations) and the behaviour defaults.
+ * A game's own texts are not in it: the tagline and the victory sentences read `[missing: <key>]` until Sanity has them.
+ */
 export const DEFAULT_SKIN: Skin = {
   locale: DEFAULT_LOCALE,
   decor: { background: null, pattern: null, top: null, bottom: null, hero: null },
   hostIcon: null,
   playerColors: DEFAULT_PLAYER_COLORS,
   desktopOnly: true,
-  home: { title: null, intro: null, tagline: null },
-  victoryPhrases: ["Victoire de", "Bravo à", "La partie est remportée par", "Champion·ne du jour"],
+  home: { title: null, intro: null, tagline: missing("home.tagline") },
+  victoryPhrases: [missing("victoryPhrases")],
   texts: DEFAULT_TEXTS,
   errors: {},
 }
 
-const VICTORY_PHRASES: Record<Exclude<Locale, "fr">, string[]> = {
-  en: ["Victory for", "Congratulations to", "The game is won by", "Champion of the day:"],
-  es: ["Victoria de", "Enhorabuena a", "La partida la gana", "Campeón del día:"],
-  de: ["Sieg für", "Glückwunsch an", "Die Partie gewinnt", "Champion des Tages:"],
-}
-
-/** What a game provides for each language other than French: optional `I18N` of its binding. */
-export type GameI18n = {
-  skin?: GameSkinDefaults
-  /** Default description (SEO, sharing) */
-  description?: string
-  /** Default authors of the footer ("un jeu de …") */
-  authors?: string
-  /** Error messages of the engine */
-  errors?: Record<string, string>
-}
-
-const NO_I18N: Partial<Record<Locale, GameI18n>> = {}
-
-export const gameI18n = (binding: GameBinding) => binding.I18N ?? NO_I18N
-
 /**
- * Base skin of a language: shared labels translated, then the game values. The game's French texts (`DEFAULT_SKIN` of the game)
- * only apply in French; in the other languages, only `I18N[language].skin` of the game counts for texts.
+ * Base skin of a language: the platform's chrome in that language, then the behaviour the game declares. Nothing of the game's
+ * texts: they come from Sanity only, in the visitor's language.
  */
 export function baseSkin(binding: GameBinding, locale: Locale): Skin {
-  const gameDefaults = binding.DEFAULT_SKIN
-  if (locale === DEFAULT_LOCALE) return mergeSkin(DEFAULT_SKIN, gameDefaults)
-  const i18n = gameI18n(binding)[locale]
-  const generic: Skin = { ...DEFAULT_SKIN, locale, texts: { ...DEFAULT_TEXTS, ...UI_TRANSLATIONS[locale] }, victoryPhrases: VICTORY_PHRASES[locale], errors: ERROR_TRANSLATIONS[locale] }
-  const { texts: _t, home: _h, victoryPhrases: _v, errors: _e, ...visual } = gameDefaults ?? {}
-  void [_t, _h, _v, _e]
-  return mergeSkin(mergeSkin(generic, visual), { ...i18n?.skin, errors: { ...i18n?.skin?.errors, ...i18n?.errors } })
+  const base: Skin =
+    locale === DEFAULT_LOCALE ? DEFAULT_SKIN : { ...DEFAULT_SKIN, locale, texts: { ...DEFAULT_TEXTS, ...UI_TRANSLATIONS[locale] }, errors: ERROR_TRANSLATIONS[locale] }
+  return mergeSkin(base, binding.DEFAULT_SKIN)
 }
 
 /** Labels of the credits line of the home footer (« Unofficial, free online adaptation of … »), shown by the admin's Identity preview. */

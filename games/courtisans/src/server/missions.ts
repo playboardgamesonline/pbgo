@@ -2,7 +2,6 @@ import "server-only"
 import { type Condition, FAMILIES, type Family, type Mission, ROLES, type Role } from "@courtisans/engine"
 import { translate } from "@pbgo/core/lib/i18n"
 import type { SanityClient } from "@sanity/client"
-import { DEFAULT_MISSIONS } from "../lib/default-missions"
 import { getCatalog } from "../sanity/catalog"
 
 type ConditionSanity = {
@@ -79,14 +78,11 @@ export function toCondition(c: ConditionSanity): Condition {
   }
 }
 
-export const FALLBACK_MISSIONS: Mission[] = DEFAULT_MISSIONS
-
-/** Missions drawn at the start of each game: Sanity's valid missions, completed by the default ones. */
-export async function loadMissions(sanity: SanityClient | null, playerCount: number): Promise<Mission[]> {
-  let fromSanity: Mission[] = []
+/** Missions drawn at the start of each game: the valid missions of Sanity and nothing else. With too few of a colour the engine refuses to start the game (`NOT_ENOUGH_MISSIONS`, whose message is written in Sanity). */
+export async function loadMissions(sanity: SanityClient | null): Promise<Mission[]> {
   try {
     const { missions } = await getCatalog(sanity)
-    fromSanity = missions.flatMap((m) => {
+    return missions.flatMap((m) => {
       try {
         if (m.color !== "white" && m.color !== "blue") throw new Error(`invalid color: ${JSON.stringify(m.color)}`)
         checkCondition(m.condition as ConditionSanity)
@@ -101,19 +97,13 @@ export async function loadMissions(sanity: SanityClient | null, playerCount: num
           },
         ]
       } catch (error) {
-        // visible in the Vercel logs: the mission is skipped and replaced by a default one
+        // visible in the Vercel logs: the mission is skipped
         console.warn(`Sanity mission ${m._id} skipped: ${(error as Error).message}`)
         return []
       }
     })
   } catch (error) {
     console.error("Sanity catalog unavailable", error)
+    return []
   }
-
-  return (["white", "blue"] as const).flatMap((color) => {
-    const valid = fromSanity.filter((m) => m.color === color)
-    const texts = new Set(valid.map((m) => m.text))
-    const fillers = FALLBACK_MISSIONS.filter((m) => m.color === color && !texts.has(m.text))
-    return [...valid, ...fillers.slice(0, Math.max(0, playerCount - valid.length))]
-  })
 }

@@ -138,7 +138,7 @@ export function IdentityPage({ initial, domain, credits: creditLabels }: { initi
               <FieldLabel htmlFor="credits-authors">A game by · {LOCALE_NAMES[lang]}</FieldLabel>
               <Input
                 id="credits-authors"
-                placeholder={lang === "fr" ? "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier" : draft.creditsAuthors.fr}
+                placeholder={lang === "fr" ? "Jeanne Martin et Paul Durand, illustré par Alex Roy" : draft.creditsAuthors.fr}
                 value={authors}
                 onChange={(e) => set("creditsAuthors", { ...draft.creditsAuthors, [lang]: e.target.value })}
                 disabled={disabled}

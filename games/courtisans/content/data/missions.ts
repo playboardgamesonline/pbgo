@@ -1,10 +1,10 @@
 import { localeText } from "@pbgo/content-kit"
 import type { Localized, SeedDoc } from "@pbgo/content-kit"
 
-// Copied from `defaultMissionTexts(locale)` of `src/lib/i18n.ts`; `parity/code.test.ts` keeps them equal until the code's copy goes.
+// The source texts of the missions, as the game wrote them before its texts moved to Sanity; the drafts are made from them.
 // Left out on purpose: `mission-dark-8`, `mission-dark-9` and `mission-dark-10`. The French text (and the condition) the Studio holds for them is
-// not the one the code translates ("3 familles, au maximum, doivent être dans la lumière", "Une famille doit avoir au moins 5 cartes en dessous du
-// tapis de jeu", "Au moins 1 carte de chaque famille doit être en dessous du tapis de jeu"), so copying the code's English, Spanish and German would
+// not the one the game translated ("3 familles, au maximum, doivent être dans la lumière", "Une famille doit avoir au moins 5 cartes en dessous du
+// tapis de jeu", "Au moins 1 carte de chaque famille doit être en dessous du tapis de jeu"), so copying its English, Spanish and German would
 // give the players another mission than the one the engine checks. They need their own translations of the Studio's French.
 const TEXTS: Record<string, Localized> = {
   "mission-light-1": {

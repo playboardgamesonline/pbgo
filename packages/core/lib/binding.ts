@@ -3,8 +3,8 @@ import type { AnyGameDefinition, OptionValues, Results } from "@pbgo/engine-kit"
 import type { SanityClient } from "@sanity/client"
 import type { PublicGame } from "./game-types"
 import type { Locale } from "./i18n"
-import type { SiteSettings, ThemeColors } from "./settings"
-import type { GameI18n, GameSkinDefaults } from "./skin"
+import type { Credits, SiteSettings, ThemeColors } from "./settings"
+import type { GameSkinDefaults } from "./skin"
 import type { SoundConfig } from "./sound-config"
 import type { Reaction } from "./soundboard"
 
@@ -44,8 +44,15 @@ export type AnyGame = AnyGameDefinition
 
 export type Author = { name: string; signature?: string; url: string }
 
-/** Settings defaults of a game when Sanity has nothing (theme, fonts, credits…). Never an image: logo, favicon and share image come from Sanity only. */
-export type SettingsDefaults = Partial<Omit<SiteSettings, "theme" | "logo" | "favicon" | "shareImage">> & { theme?: Partial<ThemeColors> }
+/**
+ * Settings defaults of a game when Sanity has nothing: theme, fonts, player counts, options and who published the original game.
+ * Never an image (logo, favicon and share image come from Sanity only) and never a text (the description and the authors of the
+ * credits come from Sanity only).
+ */
+export type SettingsDefaults = Partial<Omit<SiteSettings, "theme" | "logo" | "favicon" | "shareImage" | "description" | "descriptions" | "creditsAuthors" | "credits">> & {
+  theme?: Partial<ThemeColors>
+  credits?: Partial<Pick<Credits, "publisher" | "publisherUrl">>
+}
 
 /**
  * How a game tunes the shared in-game UI: its look, never its logic. The announcements, the seat label and the game over have a
@@ -102,13 +109,14 @@ export type UiTheme = {
   }
 }
 
-/** Isomorphic part of a game (`@pbgo-game/<slug>`). */
+/**
+ * Isomorphic part of a game (`@pbgo-game/<slug>`). A game's own texts and their translations are not in it: they live in the
+ * game's Sanity project only (`texts`), and a text that is missing there shows as `[missing: <key>]` (`lib/missing.ts`).
+ */
 export type GameBinding = {
   SLUG: string
   /** Default title of the game (Sanity Identity overrides it) */
   NAME: string
-  TAGLINE: string
-  DESCRIPTION: string
   KEYWORDS?: readonly string[]
   AUTHOR: Author
   CONTACT: string
@@ -118,14 +126,15 @@ export type GameBinding = {
   /** The engine. Absent: the game is not playable yet (home page "coming soon"). */
   GAME?: AnyGame
   SOUNDS?: SoundConfig
-  /** Texts of the game in the languages other than French */
-  I18N?: Partial<Record<Locale, GameI18n>>
   DEFAULT_SKIN?: GameSkinDefaults
   /** How the shared in-game UI is tuned to this game; absent: the look the game's skin gives it (`--foreground`, `--surface`, `--accent-game`…) */
   UI_THEME?: UiTheme
   SETTINGS_DEFAULTS?: SettingsDefaults
-  /** French messages of the engine's error codes */
-  ERROR_MESSAGES?: Record<string, string>
+  /**
+   * The error codes the game's engine can throw, besides the platform's own. Their messages are written in every language in
+   * Sanity (Gamemaster › Copy), never in the code: a code with no message there shows as `[missing: errorMessages.<CODE>]`.
+   */
+  ERROR_CODES?: readonly string[]
   /** Chat reactions added to (or replacing) the built-in ones, same `id` = replaced */
   REACTIONS?: Reaction[]
 }
@@ -153,7 +162,7 @@ export type GameRouteHandler = (request: Request, ctx: GameRouteContext) => Prom
 export type GamemasterRouteContext = { game: GameModule; params: Record<string, string> }
 export type GamemasterRouteHandler = (request: Request, ctx: GamemasterRouteContext) => Promise<Response>
 
-/** Search engines: genres and platform of the JSON-LD, sentence of the hidden home heading. */
+/** What a game tells search engines, read from its Sanity project: the genres and the platform of the structured data and the sentence of the hidden home heading. Left out when Sanity has none. */
 export type HomeSeo = { genres?: readonly string[]; platform?: string; heading?: string }
 
 /** Server part of a game (`@pbgo-game/<slug>/server`). */
@@ -164,7 +173,8 @@ export type ServerBinding = GameBinding & {
   loadGameData?: (ctx: LoaderContext) => Promise<unknown>
   /** Extra game routes, served at `/api/<slug>/games/<code>/<route>` */
   ROUTES?: Record<string, Partial<Record<"GET" | "POST", GameRouteHandler>>>
-  SEO?: (locale: Locale) => HomeSeo
+  /** Search-engine texts of the home page, in the visitor's language */
+  SEO?: (ctx: LoaderContext) => HomeSeo | Promise<HomeSeo>
 }
 
 export type GameModule = GameEntry & { binding: ServerBinding }

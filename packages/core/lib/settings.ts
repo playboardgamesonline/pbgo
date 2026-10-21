@@ -2,7 +2,6 @@ import { defaultOptions, normalizeOptions, type OptionContext, type OptionValues
 import { FONT_CHOICES } from "@pbgo/studio-kit/constants"
 import type { GameBinding } from "./binding"
 import { LOCALES, type Locale } from "./i18n"
-import { gameI18n } from "./skin"
 
 export { FONT_CHOICES }
 
@@ -125,15 +124,17 @@ export const tableTitle = (title: string, code: string) => {
   return `${siteTitle(title)} · Table #${c.length === 6 ? `${c.slice(0, 3)}-${c.slice(3)}` : c}`
 }
 
-/** Settings of a game when Sanity has nothing: its constants, then `SETTINGS_DEFAULTS` of its binding. */
+/**
+ * Settings of a game when Sanity has nothing: its name, the behaviour it declares in `SETTINGS_DEFAULTS` (theme, fonts, player counts,
+ * options, who published the original), never a text: the description and the authors of the credits come from Sanity only, empty until then.
+ */
 export const defaultSettings = perGame((binding): SiteSettings => {
-  const i18n = gameI18n(binding)
   const bounds = playerBounds(binding)
   return {
     title: binding.NAME,
-    description: binding.DESCRIPTION,
-    descriptions: byLocale((l) => (l === "fr" ? binding.DESCRIPTION : (i18n[l]?.description ?? ""))),
-    creditsAuthors: byLocale((l) => (l === "fr" ? "" : (i18n[l]?.authors ?? ""))),
+    description: "",
+    descriptions: byLocale(() => ""),
+    creditsAuthors: byLocale(() => ""),
     logo: null,
     favicon: null,
     shareImage: null,
@@ -144,10 +145,10 @@ export const defaultSettings = perGame((binding): SiteSettings => {
     rulesPdf: byLocale(() => null),
     rulesPdfLinks: byLocale(() => null),
     files: { rulesFr: null, rulesEn: null, rulesEs: null, rulesDe: null, fontBody: null, fontDisplay: null },
-    credits: { authors: null, publisher: null, publisherUrl: null },
     turnTimeout: TURN_TIMEOUT_BOUNDS.default,
     options: { defaults: binding.GAME ? defaultOptions(binding.GAME.options) : {}, hidden: [] },
     ...binding.SETTINGS_DEFAULTS,
+    credits: { authors: null, publisher: null, publisherUrl: null, ...binding.SETTINGS_DEFAULTS?.credits },
     theme: defaultTheme(binding),
   }
 })
