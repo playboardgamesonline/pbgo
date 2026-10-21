@@ -1,9 +1,9 @@
 import { DocumentTextIcon } from "@sanity/icons/DocumentText"
-import { defineField, defineType, type FieldDefinition } from "sanity"
+import { defineField, defineType, type FieldDefinition, type FieldGroupDefinition } from "sanity"
 import { UI_TEXT_GROUPS, UI_TEXTS } from "../constants"
 
-/** Shared "Texts" document; `extraFields` adds game-specific texts ("content" group recommended). */
-export const createTexts = (extraFields: FieldDefinition[] = []) =>
+/** Shared "Texts" document; `extraFields` adds game-specific texts ("content" group recommended, or a tab of `extraGroups`). */
+export const createTexts = (extraFields: FieldDefinition[] = [], extraGroups: FieldGroupDefinition[] = []) =>
   defineType({
   name: "texts",
   title: "Copy",
@@ -13,6 +13,7 @@ export const createTexts = (extraFields: FieldDefinition[] = []) =>
     { name: "content", title: "Content", default: true },
     ...UI_TEXT_GROUPS.map((g) => ({ name: g.name, title: `UI · ${g.title}` })),
     { name: "errors", title: "Errors" },
+    ...extraGroups,
   ],
   fields: [
     defineField({ name: "tagline", title: "Tagline", type: "localeString", group: "content" }),

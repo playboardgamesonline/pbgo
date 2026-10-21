@@ -162,7 +162,7 @@ export type GameRouteHandler = (request: Request, ctx: GameRouteContext) => Prom
 export type GamemasterRouteContext = { game: GameModule; params: Record<string, string> }
 export type GamemasterRouteHandler = (request: Request, ctx: GamemasterRouteContext) => Promise<Response>
 
-/** Search engines: genres and platform of the JSON-LD, sentence of the hidden home heading. */
+/** What a game tells search engines, read from its Sanity project: the genres and the platform of the structured data and the sentence of the hidden home heading. Left out when Sanity has none. */
 export type HomeSeo = { genres?: readonly string[]; platform?: string; heading?: string }
 
 /** Server part of a game (`@pbgo-game/<slug>/server`). */
@@ -173,7 +173,8 @@ export type ServerBinding = GameBinding & {
   loadGameData?: (ctx: LoaderContext) => Promise<unknown>
   /** Extra game routes, served at `/api/<slug>/games/<code>/<route>` */
   ROUTES?: Record<string, Partial<Record<"GET" | "POST", GameRouteHandler>>>
-  SEO?: (locale: Locale) => HomeSeo
+  /** Search-engine texts of the home page, in the visitor's language */
+  SEO?: (ctx: LoaderContext) => HomeSeo | Promise<HomeSeo>
 }
 
 export type GameModule = GameEntry & { binding: ServerBinding }
