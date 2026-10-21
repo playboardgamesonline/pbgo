@@ -23,7 +23,7 @@ const WHERE: readonly { what: string; where: string }[] = [
   { what: "Colour of the browser chrome", where: "`PLATFORM_THEME_COLOR` from `@pbgo/ui/theme`" },
   { what: "Guards", where: "`packages/ui/src/platform.test.ts` (no hard-coded colour, weight, shadow, duration or radius in a component), `theme.test.ts` (browser colour = `--background`)" },
   { what: "This page", where: "`apps/web/src/app/(hub)/design`" },
-  { what: "The rule", where: "`CLAUDE.md`, section Design system (`@pbgo/ui`)" },
+  { what: "The rule", where: "`docs/design-system.md` (`@pbgo/ui`)" },
 ]
 
 const DO = `import { Button } from "@pbgo/ui/platform/button"
