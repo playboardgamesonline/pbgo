@@ -3,8 +3,7 @@
 import { type VisibleCard, FAMILIES, type Mission, ROLES } from "@courtisans/engine"
 import { useEffect, useMemo, useState } from "react"
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture, TextureLoader } from "three"
-import { DEFAULT_CATALOG, type ClientCatalog, cardKey } from "../../lib/catalog"
-import { DEFAULT_MISSION_IMAGES } from "../../lib/default-missions"
+import { type ClientCatalog, cardKey } from "../../lib/catalog"
 import { GAME } from "../../lib/i18n"
 
 function textTexture(text: string, bg: string, ink: string, ratio: number) {
@@ -172,29 +171,21 @@ function load(url: string): Promise<Texture> {
   return promise
 }
 
-export type TextureReport = { texture: string; source: string; url: string; reason: string }
+export type TextureReport = { texture: string; url: string; reason: string }
 
-const SOURCES = ["Sanity", "bundled default"]
-
-/** Tries each URL in order (Sanity, then default); each failure is recorded in `report` with the texture concerned. */
-async function loadWithFallback(key: string, urls: (string | null | undefined)[], report: TextureReport[]): Promise<Texture | null> {
-  const tried = new Set<string>()
-  for (const [i, url] of urls.entries()) {
-    const source = SOURCES[i] ?? `source ${i + 1}`
-    if (!url) {
-      if (i === 0) report.push({ texture: key, source, url: "(no URL: empty field in Sanity?)", reason: "empty" })
-      continue
-    }
-    if (tried.has(url)) continue
-    tried.add(url)
-    try {
-      return await load(url)
-    } catch (e) {
-      const event = e as { message?: string; type?: string }
-      report.push({ texture: key, source, url, reason: event?.message ?? event?.type ?? "failed to load (404, CORS or unsupported format)" })
-    }
+/** Loads one picture from Sanity; a missing URL (empty field in Sanity) or a failure is recorded in `report` with the texture concerned. */
+async function loadFromSanity(key: string, url: string | null | undefined, report: TextureReport[]): Promise<Texture | null> {
+  if (!url) {
+    report.push({ texture: key, url: "(no URL: empty field in Sanity?)", reason: "empty" })
+    return null
   }
-  return null
+  try {
+    return await load(url)
+  } catch (e) {
+    const event = e as { message?: string; type?: string }
+    report.push({ texture: key, url, reason: event?.message ?? event?.type ?? "failed to load (404, CORS or unsupported format)" })
+    return null
+  }
 }
 
 export type Textures = {
@@ -208,42 +199,27 @@ export type Textures = {
 
 type Source = {
   key: string
-  urls: (string | null | undefined)[]
+  url: string | null | undefined
   text?: string
 }
 
 export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textures {
-  const d = DEFAULT_CATALOG
   const sources = useMemo<Source[]>(() => {
     const list: Source[] = [
-      { key: "mat", urls: [catalog.matUrl, d.matUrl] },
-      { key: "cloth", urls: [catalog.clothUrl, d.clothUrl] },
-      { key: "back", urls: [catalog.courtierBackUrl, d.courtierBackUrl] },
-      {
-        key: "whiteBack",
-        urls: [catalog.whiteMissionBackUrl, d.whiteMissionBackUrl],
-      },
-      {
-        key: "blueBack",
-        urls: [catalog.blueMissionBackUrl, d.blueMissionBackUrl],
-      },
+      { key: "mat", url: catalog.matUrl },
+      { key: "cloth", url: catalog.clothUrl },
+      { key: "back", url: catalog.courtierBackUrl },
+      { key: "whiteBack", url: catalog.whiteMissionBackUrl },
+      { key: "blueBack", url: catalog.blueMissionBackUrl },
     ]
     for (const f of FAMILIES)
       for (const r of [null, ...ROLES]) {
         const key = cardKey(f, r)
-        list.push({
-          key: `face:${key}`,
-          urls: [catalog.cards[key], d.cards[key]],
-        })
+        list.push({ key: `face:${key}`, url: catalog.cards[key] })
       }
-    for (const m of missions)
-      list.push({
-        key: `mission:${m.id}`,
-        urls: [catalog.missions[m.id], DEFAULT_MISSION_IMAGES[m.id]],
-        text: catalog.missionTexts?.[m.id] ?? m.text,
-      })
+    for (const m of missions) list.push({ key: `mission:${m.id}`, url: catalog.missions[m.id], text: catalog.missionTexts?.[m.id] ?? m.text })
     return list
-  }, [catalog, missions, d])
+  }, [catalog, missions])
 
   const [loaded, setLoaded] = useState<Record<string, Texture>>({})
 
@@ -251,8 +227,8 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
     let active = true
     const report: TextureReport[] = []
     const jobs: Promise<unknown>[] = []
-    for (const { key, urls, text } of sources) {
-      const job = loadWithFallback(key, urls, report)
+    for (const { key, url, text } of sources) {
+      const job = loadFromSanity(key, url, report)
         .then((t) => (t && text ? composedMission(t, text) : t))
         .then((t) => {
           if (t && key === "cloth") {

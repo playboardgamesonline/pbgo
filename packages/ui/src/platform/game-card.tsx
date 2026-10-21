@@ -44,7 +44,7 @@ function GameCard({
         className="relative aspect-4/3 overflow-hidden bg-muted"
       >
         {visual ? (
-          // A plain <img>: the package is framework-free and the art is a static file of the game's public folder.
+          // A plain <img>: the package is framework-free and the art is a URL from the game's Sanity project.
           // `object-top` keeps the top of a tall cut-out (a crown, a face) when the 4:3 frame crops it.
           // eslint-disable-next-line @next/next/no-img-element
           <img

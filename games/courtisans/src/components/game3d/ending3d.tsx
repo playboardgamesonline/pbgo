@@ -327,8 +327,8 @@ function loadArrow(url: string, onReady: (t: CanvasTexture) => void) {
   img.src = url
 }
 
-/** Arrow of the column: pictogram of the catalog (Sanity, SVG); the drawn arrow is shown while it loads and as a fallback if it fails. */
-function Arrow({ direction, url, position }: { direction: "up" | "down"; url?: string; position: [number, number, number] }) {
+/** Arrow of the column: pictogram of the catalog (Sanity, SVG); the drawn arrow is shown while it loads, when the catalog has none and if it fails. */
+function Arrow({ direction, url, position }: { direction: "up" | "down"; url?: string | null; position: [number, number, number] }) {
   const [texture, setTexture] = useState<CanvasTexture>(() => arrowTexture(direction))
   useEffect(() => {
     if (url) loadArrow(url, setTexture)

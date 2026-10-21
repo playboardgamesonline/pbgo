@@ -4,13 +4,12 @@ Flip 7 (Eric Olsen, The OP Games), served by `apps/web` at `/flip-7`. The engine
 
 ## Structure
 - `package.json` — `@pbgo-game/flip-7`, the binding package that `@pbgo/games` loads on demand
-  - `src/lib/site.ts` — `SLUG`, `asset()`, name, tagline, description, keywords, genres (player-facing copy in French)
+  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, genres (player-facing copy in French)
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/flip-7`. No `GAME` yet
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@flip-7/engine`, the whole game: pure TypeScript on the engine-kit helpers, tested with Vitest (see Engine)
 - `apps/studio` — `flip-7-studio`, Sanity Studio of the project `ky3exlhe` (https://flip-7.sanity.studio). Its own document types (the three card categories `numberCard`, `actionCard` and `modifierCard`, and the `game` singleton) are in `schemaTypes/` (`cards.ts` builds the three card types from one factory), the lists they share with the seed (categories, card keys) in `schemaTypes/constants.ts`
 - `content/` — the Sanity content as versioned code (the game's data and config) and the seed script, run by the shared `@pbgo/content-kit` (see Content); `vitest.config.ts` runs its tests
-- Static files: `apps/web/public/flip-7/` (served at `/flip-7/...`)
 
 ## Glossary (FR → EN)
 manche → `round` · donneur → `dealer` · ligne (les cartes devant un joueur) → `line` · carte Nombre → number card · carte Bonus / Modificateur de score → `modifier` (`plus`, `times`) · carte Action → action card · Gel → `freeze` · Flip Three → `flip-three` · Seconde chance → `second-chance` · piocher / « encore » (Hit) → `hit` · rester / « stop » (Stay) → `stay` · bust (doublon, éliminé de la manche) → `bust`, status `busted` · mettre en banque → bank · joueur actif → active player (status `active`) · cible → `target` · Flip 7 (sept nombres différents) → `flip7` · pioche → `deck` · défausse → `discard` · score à atteindre → `targetScore`

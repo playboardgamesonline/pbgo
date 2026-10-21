@@ -1,8 +1,5 @@
 export const SLUG = "courtisans"
 
-/** URL of a file of `apps/web/public/courtisans` (the game's static files, served at /courtisans/...). */
-export const asset = (path: string) => `/${SLUG}${path}`
-
 // Defaults, replaced by the /admin settings (Sanity document "settings")
 export const NAME = "Courtisans"
 

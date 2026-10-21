@@ -1,5 +1,3 @@
-import { asset } from "./site"
-
 export const DEFAULT_RULE_TEXTS = {
   videoId: "ClROWcPTZHk",
   videoTitle: "Les règles en vidéo",
@@ -42,5 +40,3 @@ export const DEFAULT_ROLE_RULES = {
   spy: "Un espion se pose toujours face cachée. Une fois joué, plus personne ne peut le regarder, pas même le joueur qui l'a posé.\n\nÀ la table de la reine, il va dans la colonne de la reine, au centre du tapis, au-dessus ou au-dessous : sa famille reste ainsi secrète.",
   assassin: "Quand vous posez un assassin, vous pouvez éliminer une autre carte Courtisan de la même zone, à la table de la reine comme dans un domaine. La carte éliminée est retirée du jeu pour de bon.\n\nÀ la table de la reine, vous pouvez viser n'importe quelle carte de la zone, peu importe sa famille ou sa position, espions compris (sans les regarder). L'effet est facultatif.",
 }
-
-export const DEFAULT_PICTO_FRAME = asset("/rules/PICTOGRAM_FRAME.svg")

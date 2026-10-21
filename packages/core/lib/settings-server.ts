@@ -82,9 +82,9 @@ export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = 
     description: descriptions[locale] || descriptions.fr,
     descriptions,
     creditsAuthors: authors,
-    logo: hasImage(doc.logo) ? urlFor(game, doc.logo).width(1200).url() : defaults.logo,
-    favicon: hasImage(doc.favicon) ? (doc.favicon.mime === "image/svg+xml" ? fixedUrlFor(game, doc.favicon).url() : fixedUrlFor(game, doc.favicon).width(512).height(512).fit("fill").format("png").url()) : defaults.favicon,
-    shareImage: hasImage(doc.shareImage) ? fixedUrlFor(game, doc.shareImage).width(1200).height(630).fit("crop").format("jpg").quality(88).url() : defaults.shareImage,
+    logo: hasImage(doc.logo) ? urlFor(game, doc.logo).width(1200).url() : null,
+    favicon: hasImage(doc.favicon) ? (doc.favicon.mime === "image/svg+xml" ? fixedUrlFor(game, doc.favicon).url() : fixedUrlFor(game, doc.favicon).width(512).height(512).fit("fill").format("png").url()) : null,
+    shareImage: hasImage(doc.shareImage) ? fixedUrlFor(game, doc.shareImage).width(1200).height(630).fit("crop").format("jpg").quality(88).url() : null,
     turnTimeout: doc.turnTimeout == null ? defaults.turnTimeout : clampTimeout(doc.turnTimeout),
     options: doc.gameOptions ? cleanOptions(game.binding, { defaults: parseJson(doc.gameOptions.defaults), hidden: doc.gameOptions.hidden }) : defaults.options,
     ...clampPlayers(game.binding, doc.minPlayers, doc.maxPlayers),
@@ -115,7 +115,8 @@ const settingsFor = cache(async (game: GameModule, locale: Locale): Promise<Site
   try {
     const doc = await client.withConfig({ useCdn: false }).fetch<SettingsDoc>(SETTINGS_QUERY, {}, { next: { tags: [settingsTag(game.slug)], revalidate: 60 } })
     return toSettings(game, doc, locale)
-  } catch {
+  } catch (error) {
+    console.error("Sanity settings unavailable", error)
     return toSettings(game, null, locale)
   }
 })

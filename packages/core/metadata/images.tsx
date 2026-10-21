@@ -1,12 +1,9 @@
 import "server-only"
-import { readFile } from "node:fs/promises"
-import path from "node:path"
 import { ImageResponse } from "next/og"
 import sharp from "sharp"
 import type { GameModule } from "../lib/binding"
 import { mediaUrl } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
-import { SITE_URL } from "../lib/site-url"
 import { loadSkin } from "../lib/skin-server"
 
 /**
@@ -16,21 +13,17 @@ import { loadSkin } from "../lib/skin-server"
 
 const MEDIA = mediaUrl("")
 
-/** Skin image: Sanity URL, /api/media, or a file of /public (read from disk when available, else through the site). */
+/** Skin image: a Sanity URL, or the same one behind /api/media. Images come from Sanity only: any other source is refused (and logged). */
 async function loadImage(src: string | null | undefined): Promise<Buffer | null> {
   if (!src) return null
   try {
     if (src.startsWith(MEDIA)) src = decodeURIComponent(src.slice(MEDIA.length))
-    if (src.startsWith("/")) {
-      try {
-        return await readFile(path.join(process.cwd(), "public", src.split("?")[0]!))
-      } catch {
-        src = new URL(src, SITE_URL).toString()
-      }
-    }
+    if (!/^https?:\/\//.test(src)) throw new Error("Not a Sanity URL")
     const res = await fetch(src, { next: { revalidate: 3600 } })
-    return res.ok ? Buffer.from(await res.arrayBuffer()) : null
-  } catch {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return Buffer.from(await res.arrayBuffer())
+  } catch (error) {
+    console.error("Image unavailable", src, error)
     return null
   }
 }

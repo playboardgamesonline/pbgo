@@ -20,7 +20,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
   - `src/ui.tsx` — client components: `Logo`, `Game` (the board, loaded with the first game so the home page does not pull in three.js)
   - `src/server.ts` — server only: everything of `index.ts` plus the optional `loadSetupData` (data given to `GAME.setup`), `loadGameData` (`data` prop of the board), `ROUTES` (the game's own API routes, `/api/<slug>/games/<code>/<route>`), `SEO`
   - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
-  - `src/lib/site.ts` — `SLUG`, `asset()` (URL of a file of `apps/web/public/<slug>`), name, tagline, description, keywords, author, contact
+  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, author, contact
   - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
   - `src/components/game3d` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose, `card3d.tsx`, textures, aura, crown, photo for sharing)
 - `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
@@ -34,7 +34,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 - Everything else (home, lobby, game page, chat, game over, sharing, admin, API routes) comes from `@pbgo/core` and is the same for every game
 
 ## Assets
-Files in `apps/web/public/<slug>/` (served at `/<slug>/...`), named in English `UPPER_SNAKE_CASE` (e.g. `cards/BACK.webp`), folders in lowercase English. Build their URLs with `asset()` from `src/lib/site.ts`.
+Pictures and sounds live in the game's Sanity project, never in the repo: `apps/web/public` holds the platform's own files only (`favicon.ico`), and `registry.test.ts` fails on any other file there, so a game has no folder in it and no `asset()`. Sources (PDF, PSD, HD visuals) go in `games/<slug>/assets/`, ignored by git.
 
 ## Admin UI
 - `/gamemaster` (every game's admin, `/gamemaster/<slug>/...`) uses the PBGO platform design system (black and white, dark only, Geist, shadcn preset `beEgoY8u` adapted), scoped by the `.platform` class. The reference of every token and component is `/design` (apps/web)

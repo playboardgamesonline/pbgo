@@ -8,7 +8,7 @@ export type DecorImage = { url: string; srcSet?: string; ratio: number | null }
 
 /**
  * Skin of a game: everything that changes the look of the shared screens without touching code.
- * Source: Sanity (`interface` + `texts`), then the game defaults (`DEFAULT_SKIN` of its binding), then core's.
+ * Source: Sanity (`interface` + `texts`), then the game defaults (`DEFAULT_SKIN` of its binding, no images), then core's.
  */
 export type Skin = {
   /** Language in which this skin (texts) was resolved */
@@ -39,6 +39,12 @@ export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "home" | "erro
   home?: Partial<Skin["home"]>
 }
 
+/**
+ * What a game declares in `DEFAULT_SKIN` and `I18N[language].skin`: colours, texts and behaviour, never an image. Images come from
+ * Sanity only (`interface`), so a missing one shows as missing instead of being covered by a copy in the code.
+ */
+export type GameSkinDefaults = Omit<SkinDefaults, "decor" | "hostIcon">
+
 export const DEFAULT_TEXTS = Object.fromEntries(UI_TEXTS.map((t) => [t.key, t.fr])) as UiTexts
 
 export const DEFAULT_PLAYER_COLORS = ["#e8795a", "#9d8cf2", "#e56fa4", "#6fb4e5", "#e8b43a", "#6fd3a8"]
@@ -63,7 +69,7 @@ const VICTORY_PHRASES: Record<Exclude<Locale, "fr">, string[]> = {
 
 /** What a game provides for each language other than French: optional `I18N` of its binding. */
 export type GameI18n = {
-  skin?: SkinDefaults
+  skin?: GameSkinDefaults
   /** Default description (SEO, sharing) */
   description?: string
   /** Default authors of the footer ("un jeu de …") */

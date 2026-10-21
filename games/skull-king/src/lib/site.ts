@@ -1,8 +1,5 @@
 export const SLUG = "skull-king"
 
-/** URL of a file of `apps/web/public/<slug>` (the game's static files, served at /<slug>/...). */
-export const asset = (path: string) => `/${SLUG}${path}`
-
 // Defaults, replaced by the /admin settings (Sanity document "settings")
 export const NAME = "Skull King"
 

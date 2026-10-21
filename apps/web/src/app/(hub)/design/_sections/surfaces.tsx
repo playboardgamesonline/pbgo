@@ -8,6 +8,7 @@ import {
   Settings01Icon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
+import { gameCover } from "@pbgo/core/sanity/cover"
 import { listedGames } from "@pbgo/games/registry"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarGroupCount } from "@pbgo/ui/platform/avatar"
@@ -121,8 +122,9 @@ export function Cards() {
   )
 }
 
-export function GameCards() {
-  const games = listedGames()
+export async function GameCards() {
+  // Cover art from each game's Sanity project, as the hub reads it
+  const cards = await Promise.all(listedGames().map(async (game) => ({ game, cover: await gameCover(game) })))
   return (
     <Section
       id="game-card"
@@ -131,19 +133,24 @@ export function GameCards() {
     >
       <Demo
         title="From the registry, and without art"
-        description="The first cards are the live games of the registry, as the hub renders them. `players` and `duration` arrive already formatted: `gameCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `visual`, it shows a neutral placeholder."
+        description="The first cards are the live games of the registry, as the hub renders them. The cover art is read from the game's Sanity project by `gameCover()`. `players` and `duration` arrive already formatted: `gameCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `visual`, it shows a neutral placeholder."
         className="grid gap-4 sm:grid-cols-2"
-        code={`import { listedGames } from "@pbgo/games/registry"
+        code={`import { gameCover } from "@pbgo/core/sanity/cover"
+import { listedGames } from "@pbgo/games/registry"
 import { gameCardProps } from "@/lib/game-card-props"
 
-{listedGames().map((game) => (
-  <GameCard key={game.slug} {...gameCardProps(game)} />
+const cards = await Promise.all(
+  listedGames().map(async (game) => ({ game, cover: await gameCover(game) })),
+)
+
+{cards.map(({ game, cover }) => (
+  <GameCard key={game.slug} {...gameCardProps(game, cover)} />
 ))}
 
 <GameCard href="/a-game" name="A game" tagline="Short pitch." players="3–6 players" duration="20–40 min" />`}
       >
-        {games.map((game) => (
-          <GameCard key={game.slug} {...gameCardProps(game)} />
+        {cards.map(({ game, cover }) => (
+          <GameCard key={game.slug} {...gameCardProps(game, cover)} />
         ))}
         <GameCard
           href="#game-card"
