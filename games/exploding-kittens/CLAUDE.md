@@ -4,7 +4,7 @@ Exploding Kittens, served by `apps/web` at `/exploding-kittens`. The engine of t
 
 ## Structure
 - `package.json` — `@pbgo-game/exploding-kittens`, the binding package that `@pbgo/games` loads on demand
-  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, genres (player-facing copy in French)
+  - `src/lib/site.ts` — `SLUG`, name, keywords, genres, author, contact (no tagline, no description: a game's texts live in Sanity only)
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (none yet: the core theme, and icons generated from the title), replaced by what is set in `/gamemaster/exploding-kittens`. No `GAME` yet
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@exploding-kittens/engine`, the Original Edition: pure TypeScript, tested with Vitest (see Engine)
@@ -51,7 +51,7 @@ Exploding Kittens, served by `apps/web` at `/exploding-kittens`. The engine of t
 - `fasterGame` is declared before `classicDeal`: when a table asks for both, the first one wins
 
 ### Errors
-The codes are listed with their meaning in `EK_ERROR_CODES` (`types.ts`). The core translates `NOT_YOUR_TURN`, `NOT_WAITING` and `UNKNOWN_CARD`; the others need a message in the binding's `ERROR_MESSAGES` (GAM-8). The action route accepts the types of `CLIENT_ACTIONS` only.
+The codes are listed with their meaning in `EK_ERROR_CODES` (`types.ts`). The core translates `NOT_YOUR_TURN`, `NOT_WAITING` and `UNKNOWN_CARD`; the others need a message, written in Sanity (Gamemaster › Copy › Errors) once the binding lists them in `ERROR_CODES` (GAM-8). The action route accepts the types of `CLIENT_ACTIONS` only.
 
 ### The cards are a contract with the studio
 The 13 keys of `CARDS` (`exploding-kitten`, `defuse`, `attack`, `skip`, `favor`, `shuffle`, `see-the-future`, `nope`, `tacocat`, `cattermelon`, `hairy-potato-cat`, `beard-cat`, `rainbow-ralphing-cat`) are the keys of the card types in the Sanity studio (name, visual): a `Face` carries the key as its `type`, and a triple names a title by it. Append only, never rename. The Studio files each card type under the `kind` the engine reads it by (`kitten`, `defuse`, `action`, `nope`, `cat`): one document type and one list per kind, so the key is the simplest name within its list. A new card type of a kind joins that list; a new `CardKind` is a type error in `content/parity` until the Studio has a category for it.
@@ -82,7 +82,7 @@ What data cannot do: a choice from a player that the game has no step for needs 
 - The whole process, the options and the art naming: `docs/content-pipeline.md` at the root
 
 ## Making it playable
-The engine is done. What is left (GAM-8): export `GAME` from `src/index.ts`, write the messages of the engine's codes in `ERROR_MESSAGES`, add the board (`Game` in `src/ui.tsx`, loaded lazily as in the template), then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`. See `template/CLAUDE.md` ("Adapting to a new game").
+The engine is done. What is left (GAM-8): export `GAME` from `src/index.ts`, list the engine's codes in `ERROR_CODES` and write their messages in Sanity (Gamemaster › Copy › Errors), add the board (`Game` in `src/ui.tsx`, loaded lazily as in the template), then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`. See `template/CLAUDE.md` ("Adapting to a new game").
 
 ## Commits
 Gitmoji format: `<emoji>(exploding-kittens): <description>`

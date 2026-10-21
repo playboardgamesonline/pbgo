@@ -98,11 +98,11 @@ games/<slug>/                      # one game
 ├─ CLAUDE.md                       # project rules for the AI (FR → EN glossary of the game included)
 ├─ package.json                    # @pbgo-game/<slug>, the binding package
 ├─ src/
-│  ├─ index.ts                     # GAME, site constants, SOUNDS, I18N, DEFAULT_SKIN, UI_THEME… (server + client)
+│  ├─ index.ts                     # GAME, site constants, SOUNDS, DEFAULT_SKIN, UI_THEME… (server + client)
 │  ├─ ui.tsx                       # Logo, Game (board, loaded on demand)
 │  ├─ server.ts                    # loadSetupData, loadGameData, ROUTES, SEO (server only)
 │  ├─ runtime.tsx                  # styles, fonts, BindingProvider (client)
-│  ├─ lib/site.ts                  # SLUG, name, description…
+│  ├─ lib/site.ts                  # SLUG, name, keywords, ERROR_CODES… (no texts: they live in Sanity)
 │  └─ components/game, game3d/     # board and 3D scene
 ├─ packages/engine/src/            # 🧠 ENGINE (pure TS): <game>/ (types, game, tests) and index.ts (export … as GAME)
 └─ apps/studio/                    # 🗂 SANITY STUDIO (shared singletons + the game's own types)
@@ -116,7 +116,7 @@ supabase/migrations/               # the shared schema (table games with a game 
 ### Language & naming
 - **All code is in English**, the game's vocabulary included: functions, variables, types, files, folders, API routes, URLs, SQL tables and columns, storage keys, error codes (`playCard`, `PlayerView`, `updateGame`, `CARD_SETTINGS`, `components/game/game-over.tsx`, `/api/<slug>/games/<code>/join`, table `games`, `GAME_NOT_FOUND`).
 - For a new game, write a **FR → EN glossary** of the game's words in its `CLAUDE.md` (e.g. Courtisans: courtisan → `courtier`, famille → `family`, domaine → `domain`, pioche → `deck`, lumière / disgrâce → `light` / `disgrace`) so the AI always uses the same names.
-- **Multilingual by design**: only player-facing texts are in French (or another language). They live in Sanity (`localeString` / `localeText`), in the game's `I18N` export or in its defaults. Never a French word in an identifier.
+- **Multilingual by design**: only player-facing texts are in French (or another language). A game's texts live in Sanity only (`localeString` / `localeText`): no copy in the code, no fallback, and a text Sanity does not hold yet reads `[missing: <key>]` (Launch › Content lists them). Only the platform's own labels (`UI_TEXTS`) are in code. Never a French word in an identifier.
 - **Few comments**, in English; explicit names.
 - **Sanity 100 % English** (types, ids, fields, titles). Deterministic ids: `family-butterfly`, `role-spy`, `courtier-noble-hare`. The `key` field holds the engine key (`butterfly`, `spy`).
 - **One Studio list per kind of card.** Cards that come in kinds (number / action / modifier; kitten / defuse / action / nope / cat) are one document type per kind, never one type with a `kind` field: each kind is a list of its own in the Studio, so the editor finds an Attack among the actions, and the `key` of a card is its simplest name within its kind (`attack`, not `action-attack`). Ids are `<category>-card-<key>` (`action-card-attack`) and a read-only `order` keeps the place of a card in its category. Model: Exploding Kittens (`games/exploding-kittens/apps/studio/schemaTypes/cards.ts` calls one factory per category, `CATEGORIES` in `constants.ts` lists the keys of each, `collections` in `sanity.config.ts` names the lists).
@@ -213,7 +213,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
 - `layout.ts` (where the cards go), `scene.tsx` (zones, interactions), `textures.ts`, `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
-- `src/lib/site.ts` (with `ERROR_MESSAGES`, the player-facing text of the error codes the engine throws and core does not know), `DEFAULT_SKIN`, `UI_THEME` (optional), texts, the game's own Sanity content types
+- `src/lib/site.ts` (with `ERROR_CODES`, the error codes the engine throws and core does not know: their messages are written in Sanity), `DEFAULT_SKIN` (player colours and behaviour, never a text), `UI_THEME` (optional), the game's own Sanity content types
 
 ---
 
