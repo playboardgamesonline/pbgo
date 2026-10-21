@@ -3,10 +3,10 @@
 /**
  * Shared sound engine (WebAudio): effects / music / ambience buses, anti-burst, pitch and volume variations,
  * music looped on a musical end point (not on the file duration, which holds the reverb tail).
- * A game declares its sounds through the optional `SOUNDS` of its binding; files in `public/<slug>/sounds/<file>.mp3`.
+ * A game declares the effects it plays through the optional `SOUNDS` of its binding; the files, music and ambience come from Sanity only (`loadAudio`).
  * A page shows one game: `AppShell` calls `configureSounds` with it on the client, before any sound.
  */
-import { DEFAULT_VOLUMES, NO_SOUNDS, soundUrl, type SoundConfig, type Volumes } from "./sound-config"
+import { DEFAULT_VOLUMES, NO_SOUNDS, type SoundConfig, type Volumes } from "./sound-config"
 
 export * from "./sound-config"
 
@@ -57,7 +57,7 @@ let track: string | null = null
 const buffers = new Map<string, Promise<AudioBuffer | null>>()
 const lastPlayed = new Map<string, number>()
 
-/** Sounds of the game shown (code, then admin settings: Sanity files, volumes, music). Idempotent; a new game stops the loops of the previous one. */
+/** Sounds of the game shown (`loadAudio`: the effects the game declares, with the Sanity files, volumes and music). Idempotent; a new game stops the loops of the previous one. */
 export function configureSounds(game: string, config: SoundConfig) {
   if (game === slug && config === SOUNDS) return
   if (game !== slug) {
@@ -75,16 +75,24 @@ export function configureSounds(game: string, config: SoundConfig) {
   track = readMusic()
 }
 
-function load(sound: { file: string; url?: string | null }) {
-  const file = soundUrl(slug, sound)
-  let p = buffers.get(file)
+/** Decoded file of a sound (cached by URL, so a file that cannot load is reported once). No `url`: no file in Sanity, nothing to play. */
+function load(sound: { url?: string | null }) {
+  const url = sound.url
+  if (!url) return Promise.resolve(null)
+  let p = buffers.get(url)
   if (!p && ctx) {
     const c = ctx
-    p = fetch(file)
-      .then((r) => r.arrayBuffer())
+    p = fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.arrayBuffer()
+      })
       .then((b) => c.decodeAudioData(b))
-      .catch(() => null)
-    buffers.set(file, p)
+      .catch((error) => {
+        console.warn(`[sound] Could not load ${url}`, error)
+        return null
+      })
+    buffers.set(url, p)
   }
   return p ?? Promise.resolve(null)
 }
@@ -212,6 +220,13 @@ function warnUnknownSound(name: string) {
   console.warn(`[sound] Unknown sound effect "${name}". Declared effects: ${known.join(", ")}`)
 }
 
+/** In dev, reports once a declared effect that has no file in Sanity (it stays silent until one is uploaded in Gamemaster › Audio). */
+function warnNoFile(name: string) {
+  if (process.env.NODE_ENV === "production" || warnedSounds.has(name)) return
+  warnedSounds.add(name)
+  console.warn(`[sound] The effect "${name}" has no file in Sanity (Gamemaster › Audio)`)
+}
+
 /**
  * Plays an effect declared in `SOUNDS.effects`. `delay` (s) is scheduled on the audio clock, to sync a sound with an animation.
  * Skipped if the same sound was scheduled less than `minGap` ago; quieter if the previous one is less than 0.4 s old.
@@ -220,6 +235,7 @@ export function playSound(name: string, { volume = 1, delay = 0, bus = "effects"
   const def = SOUNDS.effects[name]
   if (!def) warnUnknownSound(name)
   if (!ctx || !effectsBus || !alertsBus || !enabled || !def) return
+  if (!def.url) return warnNoFile(name)
   const c = ctx
   const output = bus === "alerts" ? alertsBus : effectsBus
   const at = c.currentTime + delay

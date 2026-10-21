@@ -1,17 +1,9 @@
 import type { SettingsDefaults } from "@pbgo/core/lib/binding"
 import type { ThemeColors } from "@pbgo/core/lib/settings"
-import type { SkinDefaults } from "@pbgo/core/lib/skin"
-import { asset } from "./site"
+import type { GameSkinDefaults } from "@pbgo/core/lib/skin"
 
-/** Default skin of Courtisans (files of public/courtisans), replaced field by field by Sanity (`interface`, `texts`). */
-export const DEFAULT_SKIN: SkinDefaults = {
-  decor: {
-    pattern: asset("/home/PATTERN.webp"),
-    top: { url: asset("/home/DECORATION_BANQUET_TOP.webp"), ratio: null },
-    bottom: { url: asset("/home/DECORATION_BANQUET_BOTTOM.webp"), ratio: 3543 / 525 },
-    hero: asset("/home/QUEEN.webp"),
-  },
-  hostIcon: asset("/pictograms/PICTOGRAM_NOBLE.webp"),
+/** Default skin of Courtisans, replaced field by field by Sanity (`interface`, `texts`). Colours and texts only: the art (decor, character, host icon) comes from Sanity. */
+export const DEFAULT_SKIN: GameSkinDefaults = {
   playerColors: ["#a8603a", "#6f5b99", "#9c4c72", "#4f6478", "#7a5a3a"],
   desktopOnly: true,
   home: {
@@ -49,8 +41,6 @@ const THEME: ThemeColors = { background: "#0e3940", foreground: "#f0e9ce", accen
 
 /** Default settings (when the Sanity document "settings" is empty). */
 export const SETTINGS_DEFAULTS: SettingsDefaults = {
-  logo: asset("/LOGO.webp"),
-  favicon: asset("/favicon.png"),
   theme: THEME,
   credits: {
     authors: "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier",

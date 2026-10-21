@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs"
+import { readdirSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import { isProjectId } from "@pbgo/core/sanity/env"
@@ -45,14 +45,16 @@ describe("game registry", () => {
     }
   })
 
-  it("points the cover art at an existing file of the game's own public folder", () => {
+  it("keeps apps/web/public to the platform's own files", () => {
+    // What a game shows (images, sounds, fonts) comes from its Sanity project: a copy in the code or here would hide a missing value
     const publicDir = fileURLToPath(new URL("../../../apps/web/public", import.meta.url))
-    for (const g of GAMES) {
-      const visual = "visual" in g ? g.visual : undefined
-      if (!visual) continue
-      expect(visual.startsWith(`/${g.slug}/`), g.slug).toBe(true)
-      expect(existsSync(publicDir + visual), `${g.slug}: ${visual}`).toBe(true)
-    }
+    const files = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        if (entry.name.startsWith(".")) return []
+        const path = `${dir}/${entry.name}`
+        return entry.isDirectory() ? files(path) : [path.slice(publicDir.length + 1)]
+      })
+    expect(files(publicDir).sort()).toEqual(["favicon.ico"])
   })
 
   it("lists the live games on the hub", () => {
