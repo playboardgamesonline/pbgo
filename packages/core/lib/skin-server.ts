@@ -5,6 +5,7 @@ import { type SanityImageSource, urlFor } from "../sanity/image"
 import type { GameEntry, GameModule } from "./binding"
 import { type Locale, only, type Localized } from "./i18n"
 import { getLocale } from "./locale-server"
+import { isMissing } from "./missing"
 import { mediaUrl } from "./settings"
 import { baseSkin, type DecorImage, mergeSkin, type Skin, type SkinDefaults } from "./skin"
 
@@ -87,13 +88,33 @@ export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = "fr"): P
   }
 }
 
+/** `slug:locale:key` of the texts already reported, so the log holds one line per missing text and not one per request. */
+const reported = new Set<string>()
+
+/** Logs the required texts of the skin that Sanity does not hold (the page shows their `[missing: <key>]` marker), once per game, language and key. */
+function reportMissing(game: GameModule, locale: Locale, skin: Skin) {
+  const keys = [
+    ...(isMissing(skin.home.tagline ?? "") ? ["home.tagline"] : []),
+    ...(skin.victoryPhrases.some(isMissing) ? ["victoryPhrases"] : []),
+    ...(game.binding.ERROR_CODES ?? []).filter((code) => !skin.errors[code]).map((code) => `errorMessages.${code}`),
+  ]
+  for (const key of keys) {
+    const id = `${game.slug}:${locale}:${key}`
+    if (reported.has(id)) continue
+    reported.add(id)
+    console.error(`[missing] ${game.slug} (${locale}): ${key} is not in Sanity`)
+  }
+}
+
 const skinFor = cache(async (game: GameModule, locale: Locale): Promise<Skin> => {
   const base = baseSkin(game.binding, locale)
   const client = sanityClient(game)
   if (!client) return base
   try {
     const doc = await client.fetch<SkinDoc>(SKIN_QUERY, {}, { next: { tags: [skinTag(game.slug)], revalidate: 60 } })
-    return mergeSkin(base, toSkin(game, doc, locale))
+    const skin = mergeSkin(base, toSkin(game, doc, locale))
+    reportMissing(game, locale, skin)
+    return skin
   } catch (error) {
     console.error("Sanity skin unavailable", error)
     return base

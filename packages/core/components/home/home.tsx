@@ -12,7 +12,7 @@ import { CodeField, Intro, NicknameField, Paragraph, PrimaryButton, Screen } fro
 export function Home() {
   const router = useRouter()
   const api = useApi()
-  const { SLUG, TAGLINE } = useBinding()
+  const { SLUG } = useBinding()
   const t = useText()
   const { home, desktopOnly } = useSkin()
   const { profile, setProfile, valid } = useProfile()
@@ -70,7 +70,7 @@ export function Home() {
         </div>
       }
     >
-      {home.intro ? <Intro title={home.title}>{home.intro}</Intro> : <Paragraph>{home.tagline ?? TAGLINE}</Paragraph>}
+      {home.intro ? <Intro title={home.title}>{home.intro}</Intro> : <Paragraph>{home.tagline}</Paragraph>}
       <DesktopNotice />
       <div className={form}>
         <NicknameField value={profile.nickname} onChange={(nickname) => setProfile({ nickname })} />

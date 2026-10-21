@@ -107,7 +107,7 @@ export type ActionOf<T extends Action["type"]> = Extract<Action, { type: T }>
 export const CLIENT_ACTIONS = ["play", "combo", "nope", "pass", "draw", "defuse", "give", "pick"] as const satisfies readonly Action["type"][]
 
 /**
- * What the engine refuses with an `EngineError`, by code. The board turns them into messages (`ERROR_MESSAGES` of the binding);
+ * What the engine refuses with an `EngineError`, by code. The board turns them into messages (listed in `ERROR_CODES` of the binding, written in Sanity);
  * `NOT_YOUR_TURN`, `NOT_WAITING` and `UNKNOWN_CARD` are the ones the platform already translates.
  */
 export const EK_ERROR_CODES = [

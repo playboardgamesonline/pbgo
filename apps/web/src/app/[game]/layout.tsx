@@ -23,7 +23,8 @@ export async function generateMetadata({ params }: LayoutProps<"/[game]">): Prom
   if (!game) return siteNotFoundMetadata
   const [settings, locale] = await Promise.all([loadSettings(game), getLocale()])
   const { AUTHOR, GOOGLE_SITE_VERIFICATION, KEYWORDS } = game.binding
-  const { description } = settings
+  // No description in Sanity: the tags are left out (Launch › Content lists it), never filled with a copy kept in the code
+  const description = settings.description || undefined
   const title = siteTitle(settings.title)
   const url = gameUrl(game.slug)
   return {

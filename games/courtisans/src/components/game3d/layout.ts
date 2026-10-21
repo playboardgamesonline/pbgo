@@ -1,6 +1,6 @@
-import type { VisibleCard, Family, Level, PlayerView } from "@courtisans/engine"
+import { FAMILIES, type VisibleCard, type Family, type Level, type PlayerView } from "@courtisans/engine"
 import { Euler, Quaternion, Vector3 } from "three"
-import { DEFAULT_FAMILIES, MAT_ORDER } from "../../lib/catalog"
+import { MAT_ORDER } from "../../lib/catalog"
 
 export const MAT_W = 12
 export const MAT_D = MAT_W / (2362 / 579)
@@ -118,7 +118,7 @@ export function seats(view: PlayerView): Map<string, Seat> {
   return map
 }
 
-const FAMILY_ORDER = Object.keys(DEFAULT_FAMILIES) as Family[]
+const FAMILY_ORDER: Family[] = [...FAMILIES]
 export const DL = CARD_W * DOMAIN_SCALE
 export const DH = CARD_H * DOMAIN_SCALE
 const OVERLAP = 0.42

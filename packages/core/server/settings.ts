@@ -1,7 +1,7 @@
 import "server-only"
 import { UI_TEXTS } from "@pbgo/studio-kit/constants"
 import { revalidatePath, revalidateTag } from "next/cache"
-import { errorMessages } from "../lib/api"
+import { CORE_ERROR_MESSAGES } from "../lib/api"
 import { audioQuery, audioTag, type AudioDoc, toSoundConfig } from "../lib/audio-server"
 import type { GameBinding, GameModule } from "../lib/binding"
 import { LOCALES, type Locale, type Localized } from "../lib/i18n"
@@ -22,7 +22,7 @@ import {
   type VisualSlot,
 } from "../lib/settings"
 import { settingsQuery, settingsTag, type SettingsDoc, toSettings } from "../lib/settings-server"
-import { baseSkin, gameI18n, mergeSkin, type Skin } from "../lib/skin"
+import { baseSkin, mergeSkin, type Skin } from "../lib/skin"
 import { type SkinDoc, skinQuery, skinTag, toSkin } from "../lib/skin-server"
 import { codeSounds, DEFAULT_VOLUMES, type Volumes } from "../lib/sound-config"
 import { sanityClient, sanityConfigured } from "../sanity/client"
@@ -36,8 +36,12 @@ import { DOCS, type DocName, draftState, type DraftState, eachVersion, fetchDoc,
 export type ImageInfo = { url: string | null; custom: boolean }
 
 export type CopyGroup = "home" | "lobby" | "game" | "end" | "errors"
-/** An editable text: the value entered (or null) and the default text, for each language */
-export type CopyEntry = { key: string; group: CopyGroup; label: string; values: Record<Locale, string | null>; fallbacks: Record<Locale, string>; multiline?: boolean }
+/**
+ * An editable text, for each language: the value entered in Sanity (or null) and, for the platform's own labels and error messages,
+ * the text the platform shows until one is entered (`fallbacks`; "" for a text only the game can write). A `required` text with no
+ * value shows as `[missing: <key>]` on the page.
+ */
+export type CopyEntry = { key: string; group: CopyGroup; label: string; values: Record<Locale, string | null>; fallbacks: Record<Locale, string>; required: boolean; multiline?: boolean }
 
 export type AudioAdmin = {
   volumes: Volumes
@@ -55,7 +59,7 @@ export type AdminData = {
   skin: Skin
   visual: { images: Record<VisualSlot, ImageInfo>; customColors: boolean }
   audio: AudioAdmin
-  copy: { entries: CopyEntry[]; victoryPhrases: { values: Record<Locale, string[] | null>; fallbacks: Record<Locale, string[]> } }
+  copy: { entries: CopyEntry[]; victoryPhrases: { values: Record<Locale, string[] | null> } }
   writable: boolean
   /** Documents the Studio holds a draft of that the admin does not simply follow: older than the published one ("stale") or never published ("unpublished") */
   drafts: Partial<Record<DocName, DraftState>>
@@ -77,23 +81,24 @@ type TextsDoc = NonNullable<NonNullable<SkinDoc>["texts"]>
 /** End of game labels: stored in `ui_game` in Sanity, shown apart in the admin. */
 const END_KEYS = ["winnerTitle", "showScores", "hideScores", "scoreboard", "shareResult", "replay"]
 
-const gameTagline = (binding: GameBinding, l: Locale) =>
-  l === "fr" ? binding.TAGLINE : ((gameI18n(binding)[l]?.skin?.home?.tagline as string | undefined) ?? binding.TAGLINE)
-
-/** Value entered in one language (no fallback: empty = default text of that language). */
+/** Value entered in one language (no fallback: empty = nothing entered in Sanity). */
 const stored = (v: unknown, l: Locale) => {
   const x = (v as Localized)?.[l]
   return typeof x === "string" && x.trim() ? x.trim() : null
 }
 
+/** The error codes that have a message to write: the platform's own and the game's. */
+const errorCodes = (binding: GameBinding) => [...new Set([...Object.keys(CORE_ERROR_MESSAGES), ...(binding.ERROR_CODES ?? [])])]
+
 function copyEntries(binding: GameBinding, texts: TextsDoc | null | undefined): CopyEntry[] {
   const bases = byLocale((l) => baseSkin(binding, l))
-  const defaults = errorMessages(binding)
   const values = (v: unknown) => byLocale((l) => stored(v, l))
+  // The platform writes its own labels and error messages (`fallbacks`); a text of the game has none: Sanity holds it, or players read `[missing: <key>]`
+  const none = byLocale(() => "")
   const entries: CopyEntry[] = [
-    { key: "tagline", group: "home", label: "Tagline", values: values(texts?.tagline), fallbacks: byLocale((l) => gameTagline(binding, l)), multiline: true },
-    { key: "homeTitle", group: "home", label: "Intro title", values: values(texts?.homeTitle), fallbacks: byLocale((l) => bases[l].home.title ?? "") },
-    { key: "homeIntro", group: "home", label: "Intro text (replaces the tagline)", values: values(texts?.homeIntro), fallbacks: byLocale((l) => bases[l].home.intro ?? ""), multiline: true },
+    { key: "tagline", group: "home", label: "Tagline", values: values(texts?.tagline), fallbacks: none, required: true, multiline: true },
+    { key: "homeTitle", group: "home", label: "Intro title", values: values(texts?.homeTitle), fallbacks: none, required: false },
+    { key: "homeIntro", group: "home", label: "Intro text (replaces the tagline)", values: values(texts?.homeIntro), fallbacks: none, required: false, multiline: true },
   ]
   for (const t of UI_TEXTS) {
     const raw = (texts?.[`ui_${t.group}`] as Record<string, unknown> | undefined)?.[t.key]
@@ -103,16 +108,19 @@ function copyEntries(binding: GameBinding, texts: TextsDoc | null | undefined): 
       label: t.title,
       values: values(raw),
       fallbacks: byLocale((l) => bases[l].texts[t.key]),
+      required: false,
     })
   }
   const errors = new Map((texts?.errorMessages ?? []).map((e) => [e.code, e.message]))
-  for (const code of Object.keys(defaults)) {
+  for (const code of errorCodes(binding)) {
+    const core = code in CORE_ERROR_MESSAGES
     entries.push({
       key: `error.${code}`,
       group: "errors",
       label: code.toLowerCase().replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()),
       values: values(errors.get(code)),
-      fallbacks: byLocale((l) => bases[l].errors[code] ?? defaults[code]!),
+      fallbacks: core ? byLocale((l) => bases[l].errors[code] ?? CORE_ERROR_MESSAGES[code]!) : none,
+      required: !core,
     })
   }
   return entries
@@ -181,7 +189,6 @@ export async function readAdminData(game: GameModule): Promise<AdminData> {
           const list = (texts?.victoryPhrases as Localized<string[]>)?.[l]?.filter((p) => p.trim())
           return list?.length ? list : null
         }),
-        fallbacks: byLocale((l) => baseSkin(game.binding, l).victoryPhrases),
       },
     },
     writable: sanityWritable(game),
@@ -372,7 +379,7 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
   async copy(game, input) {
     const s = input as { values?: Record<string, Partial<Record<Locale, unknown>>>; victoryPhrases?: Partial<Record<Locale, unknown>> }
     const c = writer(game)
-    const codes = errorMessages(game.binding)
+    const codes = errorCodes(game.binding)
     const set: Record<string, unknown> = {}
     const unset: string[] = []
     const setIfMissing: Record<string, unknown> = {}
@@ -383,7 +390,7 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
         const value = text(byLang[l], 600) || null
         if (key.startsWith("error.")) {
           const code = key.slice(6)
-          if (code in codes) errorEdits.push({ code, locale: l, value })
+          if (codes.includes(code)) errorEdits.push({ code, locale: l, value })
           continue
         }
         let path: string

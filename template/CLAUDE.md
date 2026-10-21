@@ -6,7 +6,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 
 ## Code conventions
 - **All code is in English**, the game's vocabulary included: functions, variables, types, files, folders, API routes, URLs, SQL tables and columns, storage keys, error codes, comments.
-- **Multilingual by design**: only player-facing texts are in French (or another language). They live in Sanity (`localeString` / `localeText` fields), in `I18N` (see `@pbgo/core/lib/binding`) or in the game's defaults. Never a French word in an identifier.
+- **Multilingual by design**: only player-facing texts are in French (or another language), and a game's texts live in Sanity only (`localeString` / `localeText` fields): no copy in the code, no fallback, a text Sanity does not hold yet reads `[missing: <key>]`. Only the platform's own labels (`UI_TEXTS` and their translations in `@pbgo/studio-kit`) are in code. Never a French word in an identifier.
 - Few comments, explicit names.
 - Game glossary (FR → EN), to extend for each new game:
   - partie → `game` · joueur → `player` · pseudo → `nickname` · hôte → `host` · moi → `me`
@@ -16,11 +16,11 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 
 ## Structure
 - `package.json` — `@pbgo-game/template`, the binding package that `@pbgo/games` loads on demand
-  - `src/index.ts` — shared by the server and the client: engine `GAME`, site constants (`src/lib/site.ts`); optional `SOUNDS`, `I18N`, `DEFAULT_SKIN`, `UI_THEME`, `SETTINGS_DEFAULTS`, `ERROR_MESSAGES`, `REACTIONS`, `STUDIO_URL`
+  - `src/index.ts` — shared by the server and the client: engine `GAME`, site constants (`src/lib/site.ts`); optional `SOUNDS`, `DEFAULT_SKIN`, `UI_THEME`, `SETTINGS_DEFAULTS`, `ERROR_CODES`, `REACTIONS`, `STUDIO_URL`
   - `src/ui.tsx` — client components: `Logo`, `Game` (the board, loaded with the first game so the home page does not pull in three.js)
   - `src/server.ts` — server only: everything of `index.ts` plus the optional `loadSetupData` (data given to `GAME.setup`), `loadGameData` (`data` prop of the board), `ROUTES` (the game's own API routes, `/api/<slug>/games/<code>/<route>`), `SEO`
   - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
-  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, author, contact
+  - `src/lib/site.ts` — `SLUG`, name, keywords, genres, author, contact, `ERROR_CODES` (no tagline, no description: those are texts, they live in Sanity)
   - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
   - `src/components/game3d` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose, `card3d.tsx`, textures, aura, crown, photo for sharing)
 - `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
@@ -62,8 +62,8 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 1. `pnpm new-game <slug>` (or `pnpm add-game`, which asks the name and the rules PDFs and also creates the Sanity project and Studio; the skill `game-new` runs it for the owner): copies this folder, renames the packages and registers the game in `packages/games`
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own
-4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and the error messages of your own codes in `ERROR_MESSAGES` of `src/lib/site.ts`
-5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`), then tune the rest in `/gamemaster/<slug>`; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
+4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and list the codes of your own errors in `ERROR_CODES` of `src/lib/site.ts`: their messages, like every text of the game (tagline, description, home texts, victory phrases), are written in Sanity (Gamemaster › Copy), never in the code
+5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`: names, colours, player colours, never a text), then tune the rest in `/gamemaster/<slug>`; Launch › Content lists the texts Sanity does not hold yet; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
 6. Adapt `src/takeover.test.ts` to the new engine: it plays a whole game where players are absent and the others take over (`pnpm --filter @pbgo-game/<slug> test`)
 7. Extend the glossary above
 

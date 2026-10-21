@@ -4,7 +4,7 @@ import type { Localized, SeedDoc } from "@pbgo/content-kit"
 export const FAMILY_KEYS = ["butterfly", "toad", "nightingale", "hare", "stag", "carp"] as const
 export type FamilyKey = (typeof FAMILY_KEYS)[number]
 
-// Copied from `GAME[locale].families[key].name` of `src/lib/i18n.ts`; `parity/code.test.ts` keeps both equal until the code's copy goes.
+// The source names of the families, as the game wrote them before its texts moved to Sanity; the drafts are made from them.
 const NAMES: Record<FamilyKey, Localized> = {
   butterfly: { fr: "Papillon", en: "Butterfly", es: "Mariposa", de: "Schmetterling" },
   toad: { fr: "Crapaud", en: "Toad", es: "Sapo", de: "Kröte" },

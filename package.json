@@ -13,6 +13,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "check:catalog": "node scripts/check-catalog.mjs",
+    "check:public": "node scripts/check-public.mjs",
     "new-game": "bash scripts/new-game.sh",
     "go-live": "bash scripts/go-live.sh",
     "add-game": "bash scripts/add-game.sh",

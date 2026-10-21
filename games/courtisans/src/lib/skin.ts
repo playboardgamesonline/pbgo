@@ -2,39 +2,10 @@ import type { SettingsDefaults } from "@pbgo/core/lib/binding"
 import type { ThemeColors } from "@pbgo/core/lib/settings"
 import type { GameSkinDefaults } from "@pbgo/core/lib/skin"
 
-/** Default skin of Courtisans, replaced field by field by Sanity (`interface`, `texts`). Colours and texts only: the art (decor, character, host icon) comes from Sanity. */
+/** Default skin of Courtisans, replaced field by field by Sanity (`interface`): the player colours and the behaviour, never a text or an image. The texts (`texts`) and the art (decor, character, host icon) come from Sanity. */
 export const DEFAULT_SKIN: GameSkinDefaults = {
   playerColors: ["#a8603a", "#6f5b99", "#9c4c72", "#4f6478", "#7a5a3a"],
   desktopOnly: true,
-  home: {
-    title: "Bienvenue au banquet de la reine !",
-    intro:
-      "Ce soir a lieu le banquet de la reine. Un évènement majeur où les familles du royaume veulent se montrer à leur avantage. Les manœuvres vont bon train et tous les coups sont permis pour placer son favori sur le devant de la scène.",
-  },
-  victoryPhrases: [
-    "L'homme qui sait courtiser est évidemment : {pseudo} ({points} pts)",
-    "La Reine n'a d'yeux que pour {pseudo} ({points} pts)",
-    "Toute la cour s'incline devant {pseudo} ({points} pts)",
-  ],
-  texts: {
-    nicknamePlaceholder: "VÔTRE PRÉNOMMÉE…",
-    createButton: "Courtiser au banquet",
-    joinButton: "Courtiser au banquet",
-    chooseNickname: "Choisissez d'abord votre appellation.",
-    linkCopied: "Lien du banquet copié !",
-    codeLabel: "Code du banquet",
-    copyLink: "Copier le lien du banquet",
-    joinGameButton: "Rejoindre le banquet",
-    gameNotFound: "Ce banquet est introuvable. Vérifiez le code {code} ou organisez-en un nouveau.",
-    alreadyStarted: "Ce banquet a déjà commencé.",
-    shareInvite: "Partagez le code ou le lien du banquet à vos convives.",
-    startButton: "Ouvrir le banquet",
-    waitingPlayers: "En attente de convives…",
-    waiting: "Les convives s'installent…",
-    gameOver: "Fin du banquet",
-    leave: "Quitter la partie",
-    winnerTitle: "La cour s'incline devant",
-  },
 }
 
 const THEME: ThemeColors = { background: "#0e3940", foreground: "#f0e9ce", accent: "#e2b54a", surface: "#185058", surfaceDark: "#031622" }
@@ -43,7 +14,6 @@ const THEME: ThemeColors = { background: "#0e3940", foreground: "#f0e9ce", accen
 export const SETTINGS_DEFAULTS: SettingsDefaults = {
   theme: THEME,
   credits: {
-    authors: "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier",
     publisher: "Catch Up Games",
     publisherUrl: "https://catchupgames.com/nos-jeux/courtisans/",
   },

@@ -42,21 +42,26 @@ function localeObjects(value: unknown, path: string): { path: string; value: Loc
 
 const allLocaleObjects = () => docs().flatMap((doc) => localeObjects(doc, doc._id))
 
-/** The victory sentences: a localeStringList holds a list of sentences per language, which `localeObjects` does not walk. */
-const victoryTexts = () => {
-  const phrases = docOf(TEXTS_ID).victoryPhrases as Record<LanguageId, string[]>
-  return LANGUAGE_IDS.flatMap((language) => phrases[language].map((text, index) => ({ where: `${TEXTS_ID}.victoryPhrases.${language}[${index}]`, language, kind: "localeString", text })))
+/** The lists of wordings of the texts singleton: a localeStringList holds a list per language, which `localeObjects` does not walk. */
+const LIST_FIELDS = ["victoryPhrases", "statusLight", "statusDisgrace", "genres"] as const
+
+const listTexts = (field: (typeof LIST_FIELDS)[number]) => {
+  const lists = docOf(TEXTS_ID)[field] as Record<LanguageId, string[]>
+  return LANGUAGE_IDS.flatMap((language) => lists[language].map((text, index) => ({ where: `${TEXTS_ID}.${field}.${language}[${index}]`, language, kind: "localeString", text })))
 }
+
+const victoryTexts = () => listTexts("victoryPhrases")
 
 /** Every single text, with the document, field and language it belongs to. */
 const allTexts = () => [
   ...allLocaleObjects().flatMap(({ path, value }) => LANGUAGE_IDS.map((language) => ({ where: `${path}.${language}`, language, kind: value._type as string, text: value[language] }))),
-  ...victoryTexts(),
+  ...LIST_FIELDS.flatMap((field) => listTexts(field)),
 ]
 
-/** The kinds of texts the code and the seed fill in, in braces: the nickname, the points and the code of a table. */
-const TOKENS = ["pseudo", "points", "code"]
+/** The kinds of texts the game fills in, in braces: the nickname, the points, the code of a table, the owner of a domain and a number of cards. */
+const TOKENS = ["pseudo", "points", "code", "name", "count"]
 const tokensOf = (text: string) => [...text.matchAll(/\{([^{}]*)\}/g)].map((match) => match[1]!).sort()
+const withoutTokens = (text: string) => text.replace(new RegExp(`\\{(${TOKENS.join("|")})\\}`, "g"), "")
 
 const ERROR_CODES = [
   "INVALID_PHASE",
@@ -79,6 +84,27 @@ const LABELS = {
   ui_lobby: { group: "lobby", keys: ["joinGameButton", "gameNotFound", "alreadyStarted", "shareInvite", "startButton", "waitingPlayers"] },
   ui_game: { group: "game", keys: ["waiting", "gameOver", "leave", "winnerTitle"] },
 } as const
+
+/** The vocabulary of the board the seed fills in, in the order of the form (`WORD_FIELDS` of `src/lib/catalog.ts` reads the same fields), with what each one is filled with. */
+const BOARD = {
+  courtier: [],
+  zoneTable: [],
+  zoneYours: [],
+  zoneTheirs: [],
+  zoneOther: ["name"],
+  youPlay: [],
+  youEliminate: [],
+  youDrawOne: ["count"],
+  youDrawMany: ["count"],
+  theyPlay: [],
+  theyEliminate: [],
+  theyDrawOne: ["count"],
+  theyDrawMany: ["count"],
+  gameOverLog: [],
+  missionsSucceeded: [],
+  noAssassination: [],
+  skip: [],
+} as const satisfies Record<string, readonly string[]>
 
 describe("the seed documents", () => {
   it("are 28: 6 families, 4 roles, 17 missions and the texts singleton", () => {
@@ -127,11 +153,15 @@ describe("the seed documents", () => {
     const texts = first.find((doc) => doc._type === "texts") as Doc
     texts.tagline.fr = "changed"
     texts.victoryPhrases.fr[0] = "changed"
+    texts.genres.fr[0] = "changed"
+    texts.statusLight.fr.push("changed")
     texts.errorMessages[0].message.fr = "changed"
     texts.extra = true
     const again = second.find((doc) => doc._type === "texts") as Doc
     expect(again.tagline.fr).toBe("Le banquet de la Reine, en ligne et entre amis")
     expect(again.victoryPhrases.fr[0]).not.toBe("changed")
+    expect(again.genres.fr[0]).not.toBe("changed")
+    expect(again.statusLight.fr).not.toContain("changed")
     expect(again.errorMessages[0].message.fr).not.toBe("changed")
     expect(again).not.toHaveProperty("extra")
     expect(docOf(TEXTS_ID)).not.toHaveProperty("extra")
@@ -150,7 +180,7 @@ describe("the seed documents", () => {
         expect((value as Item[]).every((item) => typeof item._type === "string"), `${doc._id}.${field} types`).toBe(true)
       }
     }
-    // the victory sentences are lists of plain strings, which Sanity keeps without keys, and they sit inside a localeStringList
+    // the lists of wordings (victory sentences, statuses, genres) are lists of plain strings, which Sanity keeps without keys, and they sit inside a localeStringList
     expect(arrays).toEqual(["texts.errorMessages"])
   })
 })
@@ -233,9 +263,52 @@ describe("the missions", () => {
 describe("the texts", () => {
   const texts = () => docOf(TEXTS_ID)
 
-  it("hold the home and victory texts, the interface labels, the error messages and the two buttons of the opening", () => {
-    expect(Object.keys(texts())).toEqual(["_id", "_type", "tagline", "homeTitle", "homeIntro", "victoryPhrases", "ui_home", "ui_lobby", "ui_game", "errorMessages", "missionsButton", "banquetStarts"])
-    expect([texts().tagline._type, texts().homeTitle._type, texts().homeIntro._type, texts().missionsButton._type, texts().banquetStarts._type]).toEqual(["localeString", "localeString", "localeText", "localeString", "localeString"])
+  it("hold the home and victory texts, the interface labels, the error messages, the two buttons of the opening, the search-engine texts and the board vocabulary", () => {
+    expect(Object.keys(texts())).toEqual([
+      ...["_id", "_type", "tagline", "homeTitle", "homeIntro", "victoryPhrases", "ui_home", "ui_lobby", "ui_game", "errorMessages", "missionsButton", "banquetStarts", "homeHeading", "genres"],
+      ...Object.keys(BOARD),
+      ...["statusLight", "statusDisgrace"],
+    ])
+    expect([texts().tagline._type, texts().homeTitle._type, texts().homeIntro._type, texts().missionsButton._type, texts().banquetStarts._type, texts().homeHeading._type]).toEqual([
+      "localeString",
+      "localeString",
+      "localeText",
+      "localeString",
+      "localeString",
+      "localeString",
+    ])
+  })
+
+  it("fill the 17 words of the board, each one a localeString, the zone of another player with the name of its owner and the draw lines with their number of cards", () => {
+    expect(Object.keys(BOARD)).toHaveLength(17)
+    for (const [field, tokens] of Object.entries(BOARD)) {
+      const word = texts()[field] as LocaleObject
+      expect(word._type, field).toBe("localeString")
+      for (const language of LANGUAGE_IDS) expect(tokensOf(word[language]), `${field}.${language}`).toEqual([...tokens])
+    }
+  })
+
+  it("give a singular and a plural to the lines that draw cards, in every language", () => {
+    for (const [one, many] of [
+      ["youDrawOne", "youDrawMany"],
+      ["theyDrawOne", "theyDrawMany"],
+    ] as const) {
+      for (const language of LANGUAGE_IDS) expect((texts()[one] as LocaleObject)[language], `${one}.${language}`).not.toBe((texts()[many] as LocaleObject)[language])
+    }
+  })
+
+  it("list the wordings of a status and the genres of the game, one list per language, and no wording for both statuses", () => {
+    for (const field of ["statusLight", "statusDisgrace", "genres"] as const) {
+      const lists = texts()[field] as { _type: string } & Record<LanguageId, string[]>
+      expect(lists._type, field).toBe("localeStringList")
+      expect(Object.keys(lists).sort(), field).toEqual(["_type", ...LANGUAGE_IDS].sort())
+      for (const language of LANGUAGE_IDS) expect(lists[language].length, `${field}.${language}`).toBeGreaterThan(0)
+    }
+    const light = listTexts("statusLight").map(({ text }) => text)
+    const disgrace = listTexts("statusDisgrace").map(({ text }) => text)
+    expect(light.filter((wording) => disgrace.includes(wording))).toEqual([])
+    // the genres are the same three kinds of game in every language
+    for (const language of LANGUAGE_IDS) expect((texts().genres as Record<LanguageId, string[]>)[language], language).toHaveLength(3)
   })
 
   it("fill the 17 interface labels of the three groups, each one a label of the shared list in the group of its form", () => {
@@ -286,16 +359,17 @@ describe("the texts", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // 6 family names, 4 role names and rules, 17 missions, and in the texts: 5 (tagline, title, intro, two buttons) + 17 labels + 12 errors
-    expect(objects).toHaveLength(6 + 4 * 2 + 17 + (5 + 17 + 12))
+    // 6 family names, 4 role names and rules, 17 missions, and in the texts: 6 (tagline, title, intro, two buttons, hidden heading) + 17 board words + 17 labels + 12 errors
+    expect(objects).toHaveLength(6 + 4 * 2 + 17 + (6 + 17 + 17 + 12))
     for (const { path, value } of objects) {
       expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
     }
   })
 
-  it("counts the 12 victory sentences with the others", () => {
+  it("counts the lists of wordings with the others: 12 victory sentences, 6 wordings of the light, 5 of the disgrace and 12 genres", () => {
     expect(victoryTexts()).toHaveLength(12)
-    expect(allTexts()).toHaveLength(65 * 4 + 12)
+    expect(LIST_FIELDS.map((field) => listTexts(field).length)).toEqual([12, 6, 5, 12])
+    expect(allTexts()).toHaveLength(83 * 4 + 35)
   })
 
   it("has no space around it, no double space, no tab", () => {
@@ -305,8 +379,8 @@ describe("every text", () => {
     }
   })
 
-  // No test on the apostrophe: unlike a text written for the Studio, these are copied word for word from the code, which writes the straight one, and
-  // parity/code.test.ts keeps both equal. They may also end with an ellipsis ("En attente de convives…"), as the code does.
+  // No test on the apostrophe: these are the source texts of the drafts, as the game wrote them, with the straight one (the other games' seeds use the
+  // typographic ’). They may also end with an ellipsis ("En attente de convives…").
 
   it("keeps a title on one line, and its paragraphs apart by one blank line", () => {
     for (const { where, kind, text } of allTexts()) {
@@ -344,11 +418,11 @@ describe("every text", () => {
       const french = tokensOf(value.fr)
       for (const language of LANGUAGE_IDS) {
         expect(tokensOf(value[language]), `${path}.${language}`).toEqual(french)
-        expect(value[language].replace(/\{(pseudo|points|code)\}/g, ""), `${path}.${language}`).not.toMatch(/[{}]/)
+        expect(withoutTokens(value[language]), `${path}.${language}`).not.toMatch(/[{}]/)
       }
     }
-    for (const { where, text } of victoryTexts()) {
-      expect(text.replace(/\{(pseudo|points|code)\}/g, ""), where).not.toMatch(/[{}]/)
+    for (const { where, text } of LIST_FIELDS.flatMap((field) => listTexts(field))) {
+      expect(withoutTokens(text), where).not.toMatch(/[{}]/)
       for (const token of tokensOf(text)) expect(TOKENS, where).toContain(token)
     }
   })

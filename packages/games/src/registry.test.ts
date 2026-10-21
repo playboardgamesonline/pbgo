@@ -46,11 +46,12 @@ describe("game registry", () => {
   })
 
   it("keeps apps/web/public to the platform's own files", () => {
-    // What a game shows (images, sounds, fonts) comes from its Sanity project: a copy in the code or here would hide a missing value
+    // What a game shows (images, sounds, fonts) comes from its Sanity project: a copy in the code or here would hide a missing value.
+    // The build runs the same check (scripts/check-public.mjs, before `next build`), since a deployment never runs the tests.
     const publicDir = fileURLToPath(new URL("../../../apps/web/public", import.meta.url))
     const files = (dir: string): string[] =>
       readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-        if (entry.name.startsWith(".")) return []
+        if (entry.name === ".DS_Store") return []
         const path = `${dir}/${entry.name}`
         return entry.isDirectory() ? files(path) : [path.slice(publicDir.length + 1)]
       })

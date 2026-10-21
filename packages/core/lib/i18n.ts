@@ -41,8 +41,9 @@ export function translate<T>(value: Localized<T>, locale: Locale = DEFAULT_LOCAL
 }
 
 /**
- * Value in the requested language only (no French fallback) for the other languages: this lets the code's default
- * translations apply as long as nothing is entered in Sanity. In French, same rule as `translate`.
+ * Value in the requested language only (no French fallback) for the other languages: a gap in a language stays visible
+ * (the platform's own wording for its chrome, `[missing: <key>]` for a text of the game) instead of reading another
+ * language. In French, same rule as `translate`.
  */
 export function only<T>(value: Localized<T>, locale: Locale): T | undefined {
   if (locale === DEFAULT_LOCALE) return translate(value, locale)

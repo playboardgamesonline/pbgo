@@ -18,8 +18,7 @@ import { useApi } from "@pbgo/core/lib/binding-context"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
 import { Button } from "@pbgo/ui/game/button"
-import { DEFAULT_CATALOG, type ClientCatalog } from "../../lib/catalog"
-import { useDict } from "../use-dict"
+import { MISSING_CATALOG, type ClientCatalog } from "../../lib/catalog"
 import { CourtisansProvider } from "./context"
 import { renderFamilyCards } from "./score-details"
 import { Message } from "./message"
@@ -51,7 +50,7 @@ export function Game({ game, data, onUpdate, onLeave }: GameProps) {
     <Board
       key={debugTools ? "debug" : "play"}
       game={game}
-      catalog={(data as ClientCatalog | undefined) ?? DEFAULT_CATALOG}
+      catalog={(data as ClientCatalog | undefined) ?? MISSING_CATALOG}
       onUpdate={onUpdate}
       onLeave={onLeave}
     />
@@ -71,7 +70,6 @@ function Board({
 }) {
   const t = useText()
   const api = useApi()
-  const dict = useDict()
   const { victoryPhrases, playerColors } = useSkin()
   const nicknameOf = useCallback((id: string) => game.players.find((j) => j.id === id)?.nickname ?? "?", [game.players])
   const view = useCheat(game.view as PlayerView, nicknameOf)
@@ -336,7 +334,7 @@ function Board({
                         onClick={() => interaction.eliminate(null)}
                         className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12] px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
                       >
-                        {dict.noAssassination}
+                        {catalog.words.noAssassination}
                       </Button>
                     </motion.div>
                   )}
@@ -360,7 +358,7 @@ function Board({
                     className="absolute right-6 bottom-6 z-40 h-10 cursor-pointer rounded-xl bg-foreground px-6 font-display text-base tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
                     onClick={skip}
                   >
-                    {dict.skip}
+                    {catalog.words.skip}
                   </button>
                 )}
                 {ending?.scoreboard && (

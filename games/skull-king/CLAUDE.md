@@ -4,7 +4,7 @@ Skull King, served by `apps/web` at `/skull-king`. Not playable yet: without an 
 
 ## Structure
 - `package.json` — `@pbgo-game/skull-king`, the binding package that `@pbgo/games` loads on demand
-  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, genres (player-facing copy in French)
+  - `src/lib/site.ts` — `SLUG`, name, keywords, genres, author, contact (no tagline, no description: a game's texts live in Sanity only)
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/skull-king`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@skull-king/engine`, the engine to write (pure TypeScript, Vitest)

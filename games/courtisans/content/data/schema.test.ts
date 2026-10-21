@@ -151,6 +151,12 @@ describe("the seed documents", () => {
       ["an error message that is not a localeString", "texts", (doc) => (doc.errorMessages[0].message = "Perdu"), "texts.errorMessages[0].message should be an object"],
       ["a missions button typed as a localeText", "texts", (doc) => (doc.missionsButton._type = "localeText"), 'texts.missionsButton._type is "localeText", expected "localeString"'],
       ["a banquet start in a language the Studio does not have", "texts", (doc) => (doc.banquetStarts.it = "Il banchetto comincia"), "texts.banquetStarts.it is not a field"],
+      ["a hidden heading typed as a localeText", "texts", (doc) => (doc.homeHeading._type = "localeText"), 'texts.homeHeading._type is "localeText", expected "localeString"'],
+      ["a list of genres that is not a list", "texts", (doc) => (doc.genres.fr = "Jeu de cartes"), "texts.genres.fr should be an array"],
+      ["a board word that is not a localeString", "texts", (doc) => (doc.skip = "Passer"), "texts.skip should be an object"],
+      ["a board word typed as a localeText", "texts", (doc) => (doc.youPlay._type = "localeText"), 'texts.youPlay._type is "localeText", expected "localeString"'],
+      ["a list of status wordings that is not a list", "texts", (doc) => (doc.statusDisgrace.en = "in disgrace"), "texts.statusDisgrace.en should be an array"],
+      ["a status wording in a language the Studio does not have", "texts", (doc) => (doc.statusLight.it = ["in luce"]), "texts.statusLight.it is not a field"],
     ])("%s", (_name, id, change, expected) => {
       const doc = docOf(id)
       change(doc)

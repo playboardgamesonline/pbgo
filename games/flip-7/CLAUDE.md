@@ -4,7 +4,7 @@ Flip 7 (Eric Olsen, The OP Games), served by `apps/web` at `/flip-7`. The engine
 
 ## Structure
 - `package.json` — `@pbgo-game/flip-7`, the binding package that `@pbgo/games` loads on demand
-  - `src/lib/site.ts` — `SLUG`, name, tagline, description, keywords, genres (player-facing copy in French)
+  - `src/lib/site.ts` — `SLUG`, name, keywords, genres, author, contact (no tagline, no description: a game's texts live in Sanity only)
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/flip-7`. No `GAME` yet
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@flip-7/engine`, the whole game: pure TypeScript on the engine-kit helpers, tested with Vitest (see Engine)
@@ -54,7 +54,7 @@ manche → `round` · donneur → `dealer` · ligne (les cartes devant un joueur
 - `targetScore`: 200 by default (the booklet), 50 to 500 in steps of 50. A lower one makes a shorter game
 
 ### Errors
-The codes are listed with their meaning in `FLIP7_ERROR_CODES` (`types.ts`). The core translates `NOT_YOUR_TURN` and `NOT_WAITING`; the others (`INVALID_PLAYERS`, `GAME_OVER`, `INVALID_ACTION`, `CANNOT_STAY`, `INVALID_TARGET`) need a message in the binding's `ERROR_MESSAGES`. The action route accepts the types of `CLIENT_ACTIONS` only.
+The codes are listed with their meaning in `FLIP7_ERROR_CODES` (`types.ts`). The core translates `NOT_YOUR_TURN` and `NOT_WAITING`; the others (`INVALID_PLAYERS`, `GAME_OVER`, `INVALID_ACTION`, `CANNOT_STAY`, `INVALID_TARGET`) need a message, written in Sanity (Gamemaster › Copy › Errors) once the binding lists them in `ERROR_CODES`. The action route accepts the types of `CLIENT_ACTIONS` only.
 
 ### The cards are a contract with the studio
 The 22 cards of `CARDS` are filed in the Sanity studio by category, which is the engine's `kind`, one list each: Number (`numberCard`, keys `0` … `12`), Action (`actionCard`: `freeze`, `flip-three`, `second-chance`) and Modifier (`modifierCard`: `plus-2`, `plus-4`, `plus-6`, `plus-8`, `plus-10`, `times-2`). A category lists its cards under the simplest key it can (the figure of a number, not `number-7`), and `engineKeyOf` of `schemaTypes/constants.ts` gives back the key of the catalogue (`number-` and the figure for a number, the key itself for the others). The studio's card (its copies, its visual and, for an action card, its name) is read by that key: a `Face` carries it as its `type`. Append only, never rename. An expansion is more cards, a `DECK` entry each, and a branch in `round.ts` for each new effect; a new `kind` is a new category in the studio (`content/parity/engine.test.ts` fails until it has one).
@@ -76,7 +76,7 @@ The registry gives the project `ky3exlhe` (Studio `https://flip-7.sanity.studio`
 - The Studio's host is `flip-7` unless `SANITY_STUDIO_HOST` in `apps/studio/.env` says otherwise (`sanity.cli.ts` reads it; go-live writes it there on its first run). The hosts of `*.sanity.studio` are global: when one is taken, go-live ends on "studio not deployed" and the reason is in the log it names. Pick another one (Odin and Trio added `-online`), change that line of `.env`, rerun `pnpm go-live flip-7`, then set the same host in `STUDIO_URL` (`src/lib/site.ts`)
 
 ## Making it playable
-The engine is done. What is left: export `GAME` from `src/index.ts` (and add `@flip-7/engine` to the binding's dependencies), write the messages of the engine's codes in `ERROR_MESSAGES`, add the board (`Game` in `src/ui.tsx`, loaded lazily as in the template; the rounds, the Flip Three flips and the choice of a target are shown from the events and the view), adapt `template/src/takeover.test.ts` to this engine, then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`. See `template/CLAUDE.md` ("Adapting to a new game").
+The engine is done. What is left: export `GAME` from `src/index.ts` (and add `@flip-7/engine` to the binding's dependencies), list the engine's codes in `ERROR_CODES` and write their messages in Sanity (Gamemaster › Copy › Errors), add the board (`Game` in `src/ui.tsx`, loaded lazily as in the template; the rounds, the Flip Three flips and the choice of a target are shown from the events and the view), adapt `template/src/takeover.test.ts` to this engine, then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`. See `template/CLAUDE.md` ("Adapting to a new game").
 
 ## Commits
 Gitmoji format: `<emoji>(flip-7): <description>`

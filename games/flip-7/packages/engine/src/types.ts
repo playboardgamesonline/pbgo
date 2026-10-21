@@ -99,7 +99,7 @@ export type ActionOf<T extends Action["type"]> = Extract<Action, { type: T }>
 export const CLIENT_ACTIONS = ["hit", "stay", "target", "deal"] as const satisfies readonly Action["type"][]
 
 /**
- * What the engine refuses with an `EngineError`, by code. The board turns them into messages (`ERROR_MESSAGES` of the binding);
+ * What the engine refuses with an `EngineError`, by code. The board turns them into messages (listed in `ERROR_CODES` of the binding, written in Sanity);
  * `NOT_YOUR_TURN` and `NOT_WAITING` are the ones the platform already translates.
  */
 export const FLIP7_ERROR_CODES = [

@@ -11,7 +11,7 @@ export const SETTINGS_DEFAULTS: SettingsDefaults = {
 }
 
 /**
- * Default skin, replaced field by field by Sanity (`interface`, `texts`): colours and texts, never an image. Seat colors in printing inks, one per seat of a 6-player
+ * Default skin, replaced field by field by Sanity (`interface`): the player colours and the behaviour, never a text or an image. Seat colors in printing inks, one per seat of a 6-player
  * table, none of them the vermilion of the accent: mustard, jade, blue, plum, olive, rose. The initial on a seat badge picks its own ink.
  */
 export const DEFAULT_SKIN: GameSkinDefaults = {

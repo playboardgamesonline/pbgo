@@ -1,14 +1,36 @@
 import "server-only"
 import type { Family, Role } from "@courtisans/engine"
 import type { LoaderContext } from "@pbgo/core/lib/binding"
-import { only } from "@pbgo/core/lib/i18n"
+import { type Locale, LOCALES, only } from "@pbgo/core/lib/i18n"
+import { isMissing, missing } from "@pbgo/core/lib/missing"
 import { type SanityImageSource, urlFor } from "@pbgo/core/sanity/image"
-import { defaultCatalog, type ClientCatalog, cardKey } from "../lib/catalog"
+import { cardKey, type ClientCatalog, MISSING_CATALOG, type Vocabulary, WORD_FIELDS } from "../lib/catalog"
 import { getCatalog } from "./catalog"
 
-/** Catalog given to the board (card images, families, roles, game texts). Every picture comes from Sanity, `null` where it has none; the texts are Sanity's over the code's translations. */
+const reported = new Set<string>()
+
+/** One line in the server log per text Sanity does not have, once per language: the same report as core's `skinFor`. */
+function reportMissing(slug: string, locale: Locale, catalog: ClientCatalog) {
+  const texts = [
+    catalog.missionsButtonText,
+    catalog.banquetStartText,
+    ...Object.values(catalog.words),
+    ...Object.values(catalog.families).map((family) => family.name),
+    ...Object.values(catalog.roles).map((role) => role.name),
+    ...(catalog.statusWords.light.length ? [] : [missing("statusLight")]),
+    ...(catalog.statusWords.disgrace.length ? [] : [missing("statusDisgrace")]),
+  ]
+  for (const text of texts.filter(isMissing)) {
+    const id = `${slug}:${locale}:${text}`
+    if (reported.has(id)) continue
+    reported.add(id)
+    console.error(`[missing] ${slug} (${locale}): ${text.slice("[missing: ".length, -1)} is not in Sanity`)
+  }
+}
+
+/** Catalog given to the board (card images, families, roles, game texts). Every picture and every text comes from Sanity: `null` for a picture it does not have, `[missing: <key>]` for a text. */
 export async function getClientCatalog({ game: module, locale, sanity }: LoaderContext): Promise<ClientCatalog> {
-  const d = defaultCatalog(locale)
+  const d = MISSING_CATALOG
   if (!sanity) return d
   // An SVG cannot be resized by the CDN (transformation parameters → 400 errors): the file is served as is.
   const isSvg = (source: SanityImageSource) => JSON.stringify(source).includes("-svg")
@@ -46,7 +68,7 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       if (imageUrl) missionsMap[m._id] = imageUrl
     }
 
-    return {
+    const catalog: ClientCatalog = {
       families: familiesMap,
       roles: rolesMap,
       cards,
@@ -58,13 +80,18 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       blueMissionBackUrl: url(game?.blueMissionBack, 520),
       arrowUpUrl: url(game?.arrowUp, 256),
       arrowDownUrl: url(game?.arrowDown, 256),
-      missionTexts: {
-        ...d.missionTexts,
-        ...Object.fromEntries(missions.flatMap((m) => (only(m.text, locale)?.trim() ? [[m._id, only(m.text, locale)!.trim()]] : []))),
-      },
+      missionTexts: Object.fromEntries(missions.flatMap((m) => (only(m.text, locale)?.trim() ? [[m._id, only(m.text, locale)!.trim()]] : []))),
       missionsButtonText: only(texts?.missionsButton, locale)?.trim() || d.missionsButtonText,
       banquetStartText: only(texts?.banquetStarts, locale)?.trim() || d.banquetStartText,
+      words: Object.fromEntries(WORD_FIELDS.map((field) => [field, only(texts?.[field], locale)?.trim() || missing(field)])) as Vocabulary,
+      // Mission texts name a status in whatever wording their author chose, in any language: the union of the languages is highlighted
+      statusWords: {
+        light: LOCALES.flatMap((l) => texts?.statusLight?.[l] ?? []),
+        disgrace: LOCALES.flatMap((l) => texts?.statusDisgrace?.[l] ?? []),
+      },
     }
+    reportMissing(module.slug, locale, catalog)
+    return catalog
   } catch (error) {
     console.error("Sanity catalog unavailable", error)
     return d

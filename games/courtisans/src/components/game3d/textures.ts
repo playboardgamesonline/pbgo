@@ -3,8 +3,8 @@
 import { type VisibleCard, FAMILIES, type Mission, ROLES } from "@courtisans/engine"
 import { useEffect, useMemo, useState } from "react"
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture, TextureLoader } from "three"
-import { type ClientCatalog, cardKey } from "../../lib/catalog"
-import { GAME } from "../../lib/i18n"
+import { isMissing } from "@pbgo/core/lib/missing"
+import { type ClientCatalog, cardKey, type StatusWords } from "../../lib/catalog"
 
 function textTexture(text: string, bg: string, ink: string, ratio: number) {
   const canvas = document.createElement("canvas")
@@ -32,18 +32,24 @@ function textTexture(text: string, bg: string, ink: string, ratio: number) {
 }
 
 const escape = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-/** Status words of every language (mission texts are shown in the player's language). */
-const statusPattern = (status: "light" | "disgrace") =>
-  new RegExp(Object.values(GAME).flatMap((d) => [d.status[status], ...(d.statusVariants?.[status] ?? [])]).map(escape).join("|"), "i")
-const BADGES = [
-  { pattern: statusPattern("disgrace"), bg: "#002C37", ink: "#CF9400" },
-  { pattern: statusPattern("light"), bg: "#EFE8CD", ink: "#B38200" },
-]
-const BADGE_PATTERN = new RegExp(BADGES.map((b) => b.pattern.source).join("|"), "gi")
+type Badge = { pattern: RegExp; bg: string; ink: string }
+type Badges = { list: Badge[]; all: RegExp | null; key: string }
 
-type Piece = { text: string; badge?: (typeof BADGES)[number] }
+/** The status wordings written in Sanity, in every language (a mission text is shown in the player's language but names a status in whatever wording its author chose), each with the colours of its badge. A status with no wording in Sanity gets no badge. */
+function statusBadges({ light, disgrace }: StatusWords): Badges {
+  const words = (list: string[]) => list.filter((w) => w && !isMissing(w)).map(escape)
+  const list: Badge[] = []
+  const lost = words(disgrace)
+  const lit = words(light)
+  if (lost.length) list.push({ pattern: new RegExp(lost.join("|"), "i"), bg: "#002C37", ink: "#CF9400" })
+  if (lit.length) list.push({ pattern: new RegExp(lit.join("|"), "i"), bg: "#EFE8CD", ink: "#B38200" })
+  const source = list.map((b) => b.pattern.source).join("|")
+  return { list, all: list.length ? new RegExp(source, "gi") : null, key: source }
+}
 
-function cutOut(text: string): Piece[] {
+type Piece = { text: string; badge?: Badge }
+
+function cutOut(text: string, badges: Badges): Piece[] {
   const pieces: Piece[] = []
   let rest = 0
   const words = (t: string) =>
@@ -51,9 +57,9 @@ function cutOut(text: string): Piece[] {
       .split(/\s+/)
       .filter(Boolean)
       .forEach((m) => pieces.push({ text: m }))
-  for (const r of text.matchAll(BADGE_PATTERN)) {
+  for (const r of badges.all ? text.matchAll(badges.all) : []) {
     words(text.slice(rest, r.index))
-    pieces.push({ text: r[0], badge: BADGES.find((b) => b.pattern.test(r[0])) })
+    pieces.push({ text: r[0], badge: badges.list.find((b) => b.pattern.test(r[0])) })
     rest = r.index + r[0].length
   }
   words(text.slice(rest))
@@ -111,7 +117,7 @@ function drawLine(ctx: CanvasRenderingContext2D, line: Piece[], centerX: number,
 
 const FONT = '"Alegreya Variable", "Alegreya", Georgia, serif'
 
-async function composeMission(image: Texture, text: string): Promise<Texture> {
+async function composeMission(image: Texture, text: string, badges: Badges): Promise<Texture> {
   await document.fonts?.load(`600 40px ${FONT}`).catch(() => null)
   const source = image.image as CanvasImageSource & {
     width: number
@@ -124,7 +130,7 @@ async function composeMission(image: Texture, text: string): Promise<Texture> {
   ctx.drawImage(source, 0, 0, canvas.width, canvas.height)
   const maxWidth = canvas.width * 0.6
   let size = 58
-  const pieces = cutOut(text)
+  const pieces = cutOut(text, badges)
   ctx.font = `600 ${size}px ${FONT}`
   let lines = twoLines(ctx, pieces, size)
   while (size > 30 && Math.max(...lines.map((l) => width(ctx, l, size))) > maxWidth) {
@@ -143,13 +149,15 @@ async function composeMission(image: Texture, text: string): Promise<Texture> {
 }
 
 const composed = new WeakMap<Texture, Map<string, Promise<Texture>>>()
-function composedMission(image: Texture, text: string) {
+function composedMission(image: Texture, text: string, badges: Badges) {
   let byText = composed.get(image)
   if (!byText) composed.set(image, (byText = new Map()))
-  let promise = byText.get(text)
+  // The badges are part of the key: the status wordings of Sanity can change while the page is open
+  const id = `${badges.key}\u0000${text}`
+  let promise = byText.get(id)
   if (!promise) {
-    promise = composeMission(image, text).catch(() => image)
-    byText.set(text, promise)
+    promise = composeMission(image, text, badges).catch(() => image)
+    byText.set(id, promise)
   }
   return promise
 }
@@ -204,6 +212,7 @@ type Source = {
 }
 
 export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textures {
+  const badges = useMemo(() => statusBadges(catalog.statusWords), [catalog.statusWords])
   const sources = useMemo<Source[]>(() => {
     const list: Source[] = [
       { key: "mat", url: catalog.matUrl },
@@ -229,7 +238,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
     const jobs: Promise<unknown>[] = []
     for (const { key, url, text } of sources) {
       const job = loadFromSanity(key, url, report)
-        .then((t) => (t && text ? composedMission(t, text) : t))
+        .then((t) => (t && text ? composedMission(t, text, badges) : t))
         .then((t) => {
           if (t && key === "cloth") {
             t.wrapS = t.wrapT = RepeatWrapping
@@ -251,7 +260,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
     return () => {
       active = false
     }
-  }, [sources])
+  }, [sources, badges])
 
   const [fallbacks] = useState(() => new Map<string, Texture>())
 

@@ -5,6 +5,5 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["${configDir}/**/*.ts"],
-  "exclude": ["${configDir}/parity"]
+  "include": ["${configDir}/**/*.ts"]
 }

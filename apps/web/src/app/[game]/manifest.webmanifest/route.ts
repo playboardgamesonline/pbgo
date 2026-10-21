@@ -12,7 +12,8 @@ export async function GET(_request: Request, { params }: RouteContext<"/[game]/m
   const manifest: MetadataRoute.Manifest = {
     name: siteTitle(title),
     short_name: title,
-    description,
+    // A game with no description in Sanity has none here either
+    ...(description ? { description } : {}),
     start_url: `/${game.slug}`,
     scope: `/${game.slug}`,
     display: "standalone",
