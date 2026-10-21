@@ -28,8 +28,6 @@
   --family-carp: #4a73c4;
   --light: oklch(0.86 0.12 88);
   --disgrace: oklch(0.24 0.04 220);
-  --image-pattern: url("/courtisans/home/PATTERN.webp");
-  --image-paper: url("/courtisans/home/PAPER.webp");
 }
 
 @theme inline {
