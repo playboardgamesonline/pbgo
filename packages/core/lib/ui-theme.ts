@@ -3,7 +3,7 @@ import type { UiTheme } from "./binding"
 
 /**
  * Resolvers of a game's `UI_THEME` (binding): each group of the theme over its defaults, field by field. Pure, so the shared
- * components, the painters of the 3D tables and the `/design` specimens all read a theme the same way.
+ * components, the painters of the tables and the `/design` specimens all read a theme the same way.
  */
 
 // A field a game leaves out (or sets to undefined) keeps its default
