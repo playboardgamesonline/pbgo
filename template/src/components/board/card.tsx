@@ -269,7 +269,7 @@ function bezier(out: Vector3, a: Vector3, b: Vector3, c: Vector3, d: Vector3, t:
     .addScaledVector(d, t * t * t)
 }
 
-export function Card3D({
+export function Card({
   target,
   from,
   front,

@@ -22,7 +22,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
   - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
   - `src/lib/site.ts` — `SLUG`, name, keywords, genres, author, contact, `ERROR_CODES` (no tagline, no description: those are texts, they live in Sanity)
   - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
-  - `src/components/game3d` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose, `card3d.tsx`, textures, aura, crown, photo for sharing)
+  - `src/components/board` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` moves each card to its pose, `card.tsx`, textures, aura, crown, photo for sharing)
 - `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
   - `@pbgo/engine-kit` (every helper is documented in `packages/engine-kit/README.md`): `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug`), declarative game options (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`
     - Turns (engine contract v2): `waitingFor(state)` = the players the game waits for (several on a simultaneous step), `autoPlayFor(state, playerId)` = plays for one of them; `activePlayer` and `autoPlay` are `@deprecated`. Read them through `waitingPlayers`, `currentPlayer`, `canPlayFor`, `playFor`, `playOn`, never call the hooks directly
@@ -44,16 +44,16 @@ Pictures and sounds live in the game's Sanity project, never in the repo: `apps/
 ## In-game UI
 Ticker, announcements, takeover pill, chat, players strip, seat label and game over are shared: same markup and logic for every game (`@pbgo/core/components/game`), drawn in the game's own look, never the platform's. The ticker, takeover pill, chat and toolbar take the game's skin; the announcements, the seat label and the game over are tuned by `UI_THEME`.
 - Through `UI_THEME` (optional, exported by `src/index.ts`, type `UiTheme` of `@pbgo/core/lib/binding`): `motion` (`"calm"` by default, `"lively"` adds confetti, springs and the emoji burst), `announcement` (`font`, `color`, `outline`, `shadow`, `veil`, `rule`, `confetti`), `seat` (`shape`, `ring`, `font`, `name`), `gameOver` (`surface`, `border`, `radius`, `ink`, `accent`, `frame`). CSS values, `var(--…)` works
-- The template's look is "paper & ink", a universe of its own next to Courtisans' banquet: `src/lib/ui-theme.ts` (the in-game UI), `THEME` of `src/lib/skin.ts` (cream on ink, vermilion accent: the skin tokens the rest of the UI reads) and `src/styles.css` (fonts). The 3D floor follows `surfaceDark`. Colours saved in the gamemaster (Sanity `settings`) override these code defaults; a new game replaces the three files with its own palette
+- The template's look is "paper & ink", a universe of its own next to Courtisans' banquet: `src/lib/ui-theme.ts` (the in-game UI), `THEME` of `src/lib/skin.ts` (cream on ink, vermilion accent: the skin tokens the rest of the UI reads) and `src/styles.css` (fonts). The table floor follows `surfaceDark`. Colours saved in the gamemaster (Sanity `settings`) override these code defaults; a new game replaces the three files with its own palette
 - Never fork or restyle one of these components, and never override their CSS from the game: ask for a field in `UiTheme` instead
 - The board's own overlays use the variant `short` (`@media (max-height: 30rem)`, keyed on height) for a phone held sideways, and `useMotion()` (`@pbgo/core/lib/use-motion`) before any `motion/react` animation: reduced motion means fades only
 - New player-facing labels of the shared UI are `UI_TEXTS` keys of `@pbgo/studio-kit`, translated in the four languages, never text in a component
-- A player's name on the board is the shared seat label: `SeatLabel` in the DOM, `SeatAvatarMesh` (`src/components/game3d/seat-avatar-mesh.tsx`) in the 3D scene, with `imageUrl` for an account picture later (PLT-13)
+- A player's name on the board is the shared seat label: `SeatLabel` in the DOM, `SeatAvatarMesh` (`src/components/board/seat-avatar-mesh.tsx`) on the table, with `imageUrl` for an account picture later (PLT-13)
 - The reference is `/design` › In-game UI: the template and Courtisans side by side (seat label, players strip, the four announcements, game over)
 
 ## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner
-- 3D: three + @react-three/fiber + drei, leva settings (debug panel `Shift+D`)
+- Table: three + @react-three/fiber + drei, leva settings (debug panel `Shift+D`)
 - Realtime: Supabase (Postgres + Realtime broadcast), authoritative logic on the server (Next.js API routes of apps/web)
 - Sanity (standalone studio `apps/studio`) for texts and media; the rules are a link to the publisher's PDF, per language, in `settings` (Gamemaster › Mechanics)
 - Vitest for the engine · pnpm workspaces · Vercel
@@ -63,7 +63,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own
 4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and list the codes of your own errors in `ERROR_CODES` of `src/lib/site.ts`: their messages, like every text of the game (tagline, description, home texts, victory phrases), are written in Sanity (Gamemaster › Copy), never in the code
-5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`: names, colours, player colours, never a text), then tune the rest in `/gamemaster/<slug>`; Launch › Content lists the texts Sanity does not hold yet; adapt `game3d/scene.tsx`, `layout.ts` and `game/game.tsx`
+5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`: names, colours, player colours, never a text), then tune the rest in `/gamemaster/<slug>`; Launch › Content lists the texts Sanity does not hold yet; adapt `board/scene.tsx`, `layout.ts` and `game/game.tsx`
 6. Adapt `src/takeover.test.ts` to the new engine: it plays a whole game where players are absent and the others take over (`pnpm --filter @pbgo-game/<slug> test`)
 7. Extend the glossary above
 

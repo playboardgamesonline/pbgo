@@ -13,7 +13,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 | Monorepo | **pnpm** workspaces, shared catalog of versions | one repo, one app, one package per game |
 | Front | **Next.js 16** (App Router, React 19, TypeScript), the single app `apps/web` | hub, game pages, lobby, board, API routes |
 | UI | **Tailwind CSS 4**, **shadcn/ui** (Radix), **motion**, **sonner** (toasts), icons **lucide-react** + **Hugeicons** | DOM interface |
-| 3D | **three**, **@react-three/fiber**, **@react-three/drei**, **maath** (easing) | 3D board |
+| Board | **three**, **@react-three/fiber**, **@react-three/drei**, **maath** (easing) | the table (react-three-fiber) |
 | Debug | **leva** (settings panels, custom tabs) | live settings, copyable |
 | Engine | **pure TypeScript** + **Vitest** (`packages/engine` of the game) | game rules, no UI dependency |
 | Realtime / DB | **Supabase** (Postgres + Realtime), one project for every game | games storage + update broadcast |
@@ -33,8 +33,8 @@ How to build a new multiplayer online board game on this monorepo, starting from
 5. **Identity without an account.** httpOnly cookie (`<slug>_player`) = player id. Nickname kept in the local profile (`<slug>:profile`).
 6. **Declarative game options.** The game declares `options` (`number` / `choice` / `boolean`); the lobby renders them and the host edits them (`POST /api/<slug>/games/<code>/options`, values passed through `normalizeOptions`).
 7. **Content in Sanity, defaults in the code.** Texts, translations, pictures and sounds live in the game's Sanity project. The code holds colours, fonts and texts as defaults, never a picture or a sound file: the site works with an empty Sanity project (default skin and texts), a picture that is not in Sanity is not drawn and a sound that is not there stays silent.
-8. **3D = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` animates each object to its pose. Same React key = same object ⇒ real moves (hand → table).
-9. **DOM UI over the 3D** (header, log, announcements, game over). The ticker, players strip, announcements, takeover pill, chat, seat label and game over are the shared in-game UI: written once, drawn in the game's own look, tuned through `UI_THEME` (see "In-game UI" below).
+8. **The board = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` animates each object to its pose. Same React key = same object ⇒ real moves (hand → table).
+9. **DOM UI over the board** (header, log, announcements, game over). The ticker, players strip, announcements, takeover pill, chat, seat label and game over are the shared in-game UI: written once, drawn in the game's own look, tuned through `UI_THEME` (see "In-game UI" below).
 10. **Code split per game.** The hub loads no game code; a game's pages load only that game (`@pbgo/games` imports each binding on demand), and its board (three.js) only on the game page.
 11. **The engine says who the game waits for.** `waitingFor(state)` lists the players the game waits for (one on a classic turn, several on a simultaneous step) and `autoPlayFor(state, playerId)` plays for one of them when they are absent. See below.
 12. **Lean state.** The state holds ids and numbers only: no display data (names, texts, labels, image paths: the catalogue and Sanity have them, the client draws them), no derived values (totals, leaders, pile sizes: compute them), no log (what happened is not what the next move needs). The seeded helpers of the engine-kit for the card games (`rng`, `ids`, `deck`, `log`, `rounds`) are built for it; see `packages/engine-kit/README.md`.
@@ -72,7 +72,7 @@ The ticker, the players strip, the seat label, the announcements (start, round, 
   - `gameOver`: `surface` (any CSS background: a colour, a gradient, a texture), `border`, `radius`, `ink`, `accent`, `frame` (the polaroid of the share thumbnail)
   Courtisans keeps its banquet in `games/courtisans/src/lib/ui-theme.ts`; the template is "paper & ink" in `src/lib/ui-theme.ts`, with the palette in `src/lib/skin.ts`. When the contract lacks something, add a field to `UiTheme` (every game gets it) instead of overriding the CSS.
 - **How it works**: `announcementTheme()`, `seatTheme()` and `gameOverTheme()` (`lib/ui-theme.ts`, pure) lay the theme over the defaults field by field. The announcements, the game over and the strip are pure views that take props (`announcement-view.tsx`, `game-over-panel.tsx`, `players-strip-view.tsx`) wrapped by connected components, which is how `/design` draws the very same markup. Never put `.platform` on the in-game UI.
-- **Seat label**: a player is named one way, avatar + nickname + seat colour (`SeatLabel` in the DOM, `SeatAvatarMesh` on the 3D table, both in the game's `UI_THEME.seat`). The board uses it for every nickname it draws; the avatar is generated until accounts exist (PLT-13), then `imageUrl` replaces it.
+- **Seat label**: a player is named one way, avatar + nickname + seat colour (`SeatLabel` in the DOM, `SeatAvatarMesh` on the table, both in the game's `UI_THEME.seat`). The board uses it for every nickname it draws; the avatar is generated until accounts exist (PLT-13), then `imageUrl` replaces it.
 - **The strip**: when `waitingFor` holds two players or more, the ticker lists every seat under its main line: colour dot and name; done (muted ✓), still waited for (full contrast), away (dimmed: not seen in the last 75 s); me marked. Beyond 8 seats it shrinks to "n/N ready" with the full list on hover or tap. A one-player turn shows no strip. The logic is `pendingSeats()` (`lib/pending-seats.ts`, pure and tested).
 - **Small screens**: the variant `short` (`@media (max-height: 30rem)`) is keyed on the HEIGHT, because a phone held sideways (844×390) is wide but short. The HUD switches to its compact layout: history behind a toggle, smaller announcements, chat collapsed to an icon, scrollable game over, takeover pill stacked next to the logo, safe-area insets. Use it in the board's own overlays too. The `DesktopOnly` wall still hides game pages under 900 px: to check the board at 844×390, hide the wall with CSS injected in the browser, never in the code.
 - **Motion**: any `motion/react` animation reads `useMotion()` (`"reduced" | "calm" | "lively"`); `GameHud` already mounts `MotionConfig reducedMotion="user"`. Reduced motion always wins over the theme: fades of 150 ms at most, no confetti, emoji burst, spring or looping effect. CSS transitions use `duration-*`, `ease-standard` and `motion-reduce:transition-none`.
@@ -103,7 +103,7 @@ games/<slug>/                      # one game
 │  ├─ server.ts                    # loadSetupData, loadGameData, ROUTES, SEO (server only)
 │  ├─ runtime.tsx                  # styles, fonts, BindingProvider (client)
 │  ├─ lib/site.ts                  # SLUG, name, keywords, ERROR_CODES… (no texts: they live in Sanity)
-│  └─ components/game, game3d/     # board and 3D scene
+│  └─ components/game, board/       # the game UI and the table scene
 ├─ packages/engine/src/            # 🧠 ENGINE (pure TS): <game>/ (types, game, tests) and index.ts (export … as GAME)
 └─ apps/studio/                    # 🗂 SANITY STUDIO (shared singletons + the game's own types)
 supabase/migrations/               # the shared schema (table games with a game column, tasks, feedback)
@@ -159,9 +159,9 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 - Write and test the **engine** (rules + Vitest tests, full game simulations included).
 - Sanity schemas, GROQ queries, `typegen`, idempotent content migration scripts.
 - The game's binding: board, game data loaders, the game's own API routes when it needs some.
-- 3D scene, animations, DOM UI, game over, sharing.
+- Table scene, animations, DOM UI, game over, sharing.
 - Expose **every visual setting in the debug panel** with "Copy values".
-- Check each change: `pnpm typecheck`, `pnpm lint`, `pnpm --filter web build`, screenshots (headless 3D rendering is slow: screenshots check the layout, not the FPS).
+- Check each change: `pnpm typecheck`, `pnpm lint`, `pnpm --filter web build`, screenshots (headless rendering of the table is slow: screenshots check the layout, not the FPS).
 - Commit (gitmoji); never commit `.env.local` or unrelated local changes.
 - Never send Oré's email to a third-party service; never work around network blocks.
 
@@ -181,7 +181,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 | 5 | `schema:deploy`, migration, studio deploy, check the content | 👤 | content online |
 | 6 | Home + lobby (shared by `@pbgo/core`): adapt the skin (Admin › Visual, `DEFAULT_SKIN`) | 🤖 | screens |
 | ⭐ | **Art direction**: mood, fonts, colors, home decor | 👤 | visual feedback |
-| 7 | 3D board: layout, cards, hand, playable zones, targeting | 🤖 | playable game |
+| 7 | Board: layout, cards, hand, playable zones, targeting | 🤖 | playable game |
 | ⭐ | **Playability / readability**: card size, camera, feedback, what is hidden | 👤 | feedback + copied settings JSON |
 | 8 | Opening (animated setup), turn announcements | 🤖 | |
 | 9 | Game over: scoring sequence, score table, replay, image sharing | 🤖 | |
@@ -222,11 +222,11 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 - **Order in `jsonb`**: the state is stored as `jsonb`, which does not keep the order of the keys of an object (shortest key first, then alphabetical). Anything that depends on an order (seats, who is pending, who plays next) comes from an array, never from `Object.keys` of a record. A test that builds the state from `JSON.parse` of keys in database order catches it (see `game.test.ts` of the demo).
 - **`waitingFor` is public**: it is shown to everybody. If knowing who is still pending reveals something hidden, keep the player in the list until the information is public anyway.
 - **Sanity images in a CSS mask**: blocked cross-origin → go through `/api/media` (same origin). `next/image` only accepts the configured qualities (75 by default).
-- **SVGs with a small intrinsic size** (24×24) as a 3D texture → blurry: rasterize them at 512 px before `CanvasTexture`.
+- **SVGs with a small intrinsic size** (24×24) as a texture → blurry: rasterize them at 512 px before `CanvasTexture`.
 - **React effects** depending on objects recreated on each render (filtered view, settings) → depend on a stable key (string), otherwise timers get cancelled in a loop.
 - **Costly 2D canvas** (`shadowBlur` per frame) → pre-render the sprites.
 - **WebGL capture**: `preserveDrawingBuffer: true` + a dedicated camera; hide the objects attached to the camera.
-- **Nicknames in the board's HTML** (analytics): players who accepted cookies have their session recorded, with every input masked and the nicknames printed by core (`ph-mask`). A nickname the game prints itself in HTML (the 3D canvas is not recorded) needs the class `ph-mask`, and `ph-no-capture` as well when it sits inside a button or a link: a click is captured with the text of the element. Table codes never go into an event (`scrub.ts` removes them from addresses and titles).
+- **Nicknames in the board's HTML** (analytics): players who accepted cookies have their session recorded, with every input masked and the nicknames printed by core (`ph-mask`). A nickname the game prints itself in HTML (the table canvas is not recorded) needs the class `ph-mask`, and `ph-no-capture` as well when it sits inside a button or a link: a click is captured with the text of the element. Table codes never go into an event (`scrub.ts` removes them from addresses and titles).
 - **The cookie bar under the board** (analytics): until a visitor answers, a one-line bar is docked to the bottom of the screen. It publishes its height as `--consent-h` on `<body>` (0px without a bar) and pads the page by it, so the game's own full-height or bottom-fixed elements must make room: `h-[calc(100dvh-var(--consent-h,0px))]` instead of `h-dvh`, `bottom-[var(--consent-h,0px)]` instead of `bottom-0`. Otherwise a button of the game sits under the bar until the visitor answers. `packages/core/components/consent-room.test.ts` scans `games/<slug>/src` and fails on a class that does not (one class string per line), so the miss shows up in `pnpm test`. A canvas that fills its parent follows on its own: it resizes when the bar appears or closes.
 - **Booklet texts**: the AI rephrases them (copyright); Oré can paste the official text in Sanity directly.
 - **Git locks**: if the AI cannot delete files in the folder, git may leave `.lock` files → allow deletion or remove them by hand.

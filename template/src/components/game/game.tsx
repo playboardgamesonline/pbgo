@@ -21,7 +21,7 @@ import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
 import { Button } from "@pbgo/ui/game/button"
 
-const Scene = dynamic(() => import("../game3d/scene").then((m) => m.Scene), { ssr: false })
+const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 
 type Props = { game: PublicGame<PlayerView>; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
 

@@ -2,7 +2,7 @@ import type { SeatAvatar } from "./seat-avatar"
 import type { SeatTheme } from "./ui-theme"
 
 /**
- * The seat avatar painted on a 2D canvas, for the 3D tables: they draw names as flat textures, so the avatar next to a name is one
+ * The seat avatar painted on a 2D canvas, for the tables: they draw names as flat textures, so the avatar next to a name is one
  * too. It is the picture of `components/game/seat-label.tsx` (same spec from `seat-avatar.ts`, same theme, same proportions), and the
  * only place that knows how to draw it outside the DOM. Core stays free of three.js: a game wraps the canvas in its own texture.
  */
