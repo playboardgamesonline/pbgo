@@ -6,11 +6,13 @@ A skill is a procedure an agent follows for a recurring job: the questions to as
 
 The category is the type of agent that carries the skill out. It is the prefix of the folder and the first words of the description (`[GAME agent] …`), because the harness lists skills flat.
 
-| Prefix | Agent | Typical areas |
-| --- | --- | --- |
-| `game-` | GAME | a game's content and look: `games/<slug>/src` (binding, board), its Studio (`apps/studio`) and `content/`, `template/`, `packages/studio-kit`, `packages/content-kit` |
-| `engine-` | ENGINE | the rules code: `packages/engine-kit`, `games/<slug>/packages/engine`, the turn and absent-player logic |
-| `platform-` | PLATFORM | the shared app: `apps/web`, `packages/core`, `packages/ui`, the gamemaster, `supabase/migrations`, the scripts, deployment |
+| Prefix | Agent | Linear lane | Typical areas |
+| --- | --- | --- | --- |
+| `game-` | GAME | Game lane | a game's content and look: `games/<slug>/src` (binding, board), its Studio (`apps/studio`) and `content/`, `template/`, `packages/studio-kit`, `packages/content-kit` |
+| `engine-` | ENGINE | Engine lane | the rules code: `packages/engine-kit`, `games/<slug>/packages/engine`, the turn and absent-player logic |
+| `platform-` | PLATFORM | Platform lane | the shared app: `apps/web`, `packages/core`, `packages/ui`, the gamemaster, `supabase/migrations`, the scripts, deployment |
+
+Two more agents run in Claude Cowork, outside the repo, and have no skill here: GAME CONTENT (Game content lane: a game's assets from official sources and the Catalog data, handed to GAME for the Sanity seed) and SUPERVISOR (keeps Notion, Linear and this repo aligned, writes no code). Their skills live in the Notion Skills database, which also indexes the skills of this folder.
 
 A job that crosses categories is split: each skill does its part and names the skill that does the rest.
 
@@ -31,4 +33,4 @@ None yet.
 2. Frontmatter: `name`, and a `description` that starts with `[<CATEGORY> agent]`, then what the skill does and when to use it.
 3. Body: what the owner decides first (each question with a recommended default), the rules and don'ts, the steps with their exact commands, the checks, the hand-over.
 4. A rule a test can check gets a test, and the skill names it.
-5. Add the skill to the list above.
+5. Add the skill to the list above and to the Notion Skills database (one row pointing to its `SKILL.md`).
