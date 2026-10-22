@@ -1,0 +1,10 @@
+{
+  "extends": "@pbgo/tsconfig/react-library.json",
+  "compilerOptions": {
+    "types": ["node", "next"],
+    "noUncheckedIndexedAccess": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src", "scripts"]
+}

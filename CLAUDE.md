@@ -55,6 +55,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `@pbgo-game/<slug>` — a game's binding package; the contract is in `@pbgo/core/lib/binding` (`.` isomorphic, `./ui`, `./server`, `./runtime`, `./styles.css`). Core never imports a game: it receives the `GameModule`, client components read it with `useBinding()`.
 - `@pbgo/core` — the shared base: server (Supabase games with a version lock, players, admin, tasks, rate limiting), pages, route handlers, and the in-game UI (screens, HUD, announcements, chat, game over), always drawn in the game's own look.
 - `@pbgo/analytics` — PostHog: typed events with no personal data, consent-aware browser provider (`docs/analytics.md`).
+- `@pbgo/catalog` — the games the hub can list: the live games of the registry, then the planned ones read from the Notion Games database (cached ten minutes, `NOTION_API_KEY`; without it the live games alone). No page uses it yet (PLT-56, `docs/catalog.md`).
 - `@pbgo/engine-kit` — the engine ↔ web contract (`GameDefinition`, `waitingFor` / `autoPlayFor`, `EngineError`) and the building blocks of the card games. For every game the state is lean (ids and numbers only: no display data, no derived values, no log) and an order always comes from an array of the state, never from `Object.keys` (`jsonb` does not keep the order of the keys).
 - `@pbgo/ui` — shadcn components: `@pbgo/ui/game/*` (game theme) and `@pbgo/ui/platform/*` (platform theme), see `docs/design-system.md`.
 - `@pbgo/studio-kit` (shared Sanity schemas, `createStudioConfig`, languages) and `@pbgo/content-kit` (the seed pipeline of a game's Sanity content), `@pbgo/tsconfig`, `@pbgo/eslint-config`.
@@ -66,6 +67,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `pnpm dev:studio <slug>` — the game's Sanity Studio
 - `pnpm build` (= `pnpm --filter web build`) · `pnpm typecheck` · `pnpm test` · `pnpm lint` · `pnpm check:catalog` · `pnpm check:public`
 - `pnpm --filter @<slug>/engine test` · `pnpm --filter @pbgo/core test`
+- `pnpm catalog:list` — what the hub catalog would list right now (live games + the Notion rows with a slug) and which rows it leaves out and why; reads `NOTION_API_KEY` (`docs/catalog.md`)
 - `pnpm new-game <slug> [--name "<Game Name>"]` — `games/<slug>` from `template/`, registered in `packages/games` (not live); the name defaults to the slug, capitalised
 - `pnpm go-live <slug>` — Sanity side: project, public dataset, CORS, studio deployed, project id written in the registry, write token in `apps/web/.env.local`
 - `pnpm add-game [<slug>] [--name "<Game Name>"] [--rules [<lang>=]<file.pdf> …] [--yes] [--dry-run] [--no-open] [--push]` — a new game from nothing to its Studio (new-game + go-live + rules PDFs + setup-env), checked first and confirmed before anything leaves the machine; the skill `game-new` (`/game-new <slug>`) runs it for the owner. All options and steps: `docs/scripts.md`
@@ -107,6 +109,7 @@ Open the file of the area you touch before changing it: it holds the full rules 
 - `docs/design-system.md` — a platform screen (hub, account, legal, admin, 404) or a `@pbgo/ui` component
 - `docs/gamemaster.md` — the back office: session, sidebar, setup data, previews, tasks
 - `docs/analytics.md` — a PostHog event, the consent banner, recordings, masking, table-code scrubbing
+- `docs/catalog.md` — the hub catalog: which games it lists, the Notion Games database it reads (columns, Slug, cache, `NOTION_API_KEY`), `pnpm catalog:list`
 - `docs/sanity-and-languages.md` — a game's Sanity project, Studio forms, seeding, the media proxy; texts and the four languages
 - `docs/supabase-and-env.md` — environment variables and secrets, Supabase migrations, realtime, presence
 - `docs/scripts.md` — `pnpm add-game`, `pnpm game-rules`, `pnpm setup-env` in full
