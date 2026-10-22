@@ -1,7 +1,7 @@
 import { PlayersStripView, type StripData } from "@pbgo/core/components/game/players-strip-view"
 import { SeatLabel, type SeatSize } from "@pbgo/core/components/game/seat-label"
 import { pendingSeats } from "@pbgo/core/lib/pending-seats"
-import { defaultSettings, defaultTheme, themeStyle } from "@pbgo/core/lib/settings"
+import { defaultSettings, defaultTheme, themeStyle, UPLOADED_ACCENT_FONT } from "@pbgo/core/lib/settings"
 import { baseSkin, fill } from "@pbgo/core/lib/skin"
 import { seatTheme } from "@pbgo/core/lib/ui-theme"
 import { getGame } from "@pbgo/games"
@@ -15,10 +15,11 @@ const SLUGS = ["courtisans", "template"] as const
 
 /**
  * The font stacks of each game, written out. The hub loads neither a game's stylesheet nor its font files, so a family this page
- * cannot load falls to the next one of the stack (Georgia, a serif). Mirrors `games/<slug>/src/styles.css`.
+ * cannot load falls to the next one of the stack (Georgia, a serif). Mirrors `games/<slug>/src/styles.css`; a game's accent font is
+ * the file uploaded in its Gamemaster › Visual, whose family is `UPLOADED_ACCENT_FONT`.
  */
 const FONTS: Record<string, GameLook["fonts"]> = {
-  courtisans: { body: '"Alegreya Variable", Georgia, serif', title: '"Alegreya Variable", Georgia, serif', accent: '"Typey", Georgia, serif' },
+  courtisans: { body: '"Alegreya Variable", Georgia, serif', title: '"Alegreya Variable", Georgia, serif', accent: `"${UPLOADED_ACCENT_FONT}", Georgia, serif` },
   template: {
     body: '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif',
     title: '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif',

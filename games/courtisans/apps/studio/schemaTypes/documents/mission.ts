@@ -23,7 +23,7 @@ export const mission = defineType({
     }),
     defineField({ name: "text", title: "Text", type: "localeText" }),
     defineField({ name: "card", title: "Card", type: "image", validation: (r) => r.required() }),
-    defineField({ name: "condition", title: "Rule", type: "condition", validation: (r) => r.required() }),
+    defineField({ name: "condition", title: "Condition", type: "condition", validation: (r) => r.required() }),
   ],
   preview: {
     select: { title: "text.en", fallback: "text.fr", color: "color", media: "card" },

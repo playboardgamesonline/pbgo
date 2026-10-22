@@ -38,6 +38,7 @@ export type SettingsDoc = {
   rulesPdfDeFile?: FileRef
   bodyFontFile?: FileRef
   displayFontFile?: FileRef
+  accentFontFile?: FileRef
 } | null
 
 type FileRef = { url?: string; name?: string } | null
@@ -53,7 +54,7 @@ function parseJson(v: unknown) {
   }
 }
 
-const SETTINGS_PROJECTION = `{ title, description, descriptionI18n, creditsAuthorsI18n, logo, "favicon": favicon{asset, crop, hotspot, "mime": asset->mimeType}, shareImage, turnTimeout, gameOptions, minPlayers, maxPlayers, theme, bodyFont, displayFont, rulesPdfFr, rulesPdfEn, rulesPdfEs, rulesPdfDe, creditsAuthors, publisher, publisherUrl, "rulesPdfFrFile": rulesPdfFrFile.asset->{url, "name": originalFilename}, "rulesPdfEnFile": rulesPdfEnFile.asset->{url, "name": originalFilename}, "rulesPdfEsFile": rulesPdfEsFile.asset->{url, "name": originalFilename}, "rulesPdfDeFile": rulesPdfDeFile.asset->{url, "name": originalFilename}, "bodyFontFile": bodyFontFile.asset->{url, "name": originalFilename}, "displayFontFile": displayFontFile.asset->{url, "name": originalFilename} }`
+const SETTINGS_PROJECTION = `{ title, description, descriptionI18n, creditsAuthorsI18n, logo, "favicon": favicon{asset, crop, hotspot, "mime": asset->mimeType}, shareImage, turnTimeout, gameOptions, minPlayers, maxPlayers, theme, bodyFont, displayFont, rulesPdfFr, rulesPdfEn, rulesPdfEs, rulesPdfDe, creditsAuthors, publisher, publisherUrl, "rulesPdfFrFile": rulesPdfFrFile.asset->{url, "name": originalFilename}, "rulesPdfEnFile": rulesPdfEnFile.asset->{url, "name": originalFilename}, "rulesPdfEsFile": rulesPdfEsFile.asset->{url, "name": originalFilename}, "rulesPdfDeFile": rulesPdfDeFile.asset->{url, "name": originalFilename}, "bodyFontFile": bodyFontFile.asset->{url, "name": originalFilename}, "displayFontFile": displayFontFile.asset->{url, "name": originalFilename}, "accentFontFile": accentFontFile.asset->{url, "name": originalFilename} }`
 
 /** GROQ of the settings document `id`: the published one by default, `drafts.settings` when the admin reads what the Studio shows. `id` is a constant of the server, never user input. */
 export const settingsQuery = (id = "settings") => `*[_id == "${id}"][0]${SETTINGS_PROJECTION}`
@@ -101,6 +102,7 @@ export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = 
       rulesDe: file(doc.rulesPdfDeFile),
       fontBody: file(doc.bodyFontFile),
       fontDisplay: file(doc.displayFontFile),
+      fontAccent: file(doc.accentFontFile),
     },
     credits: {
       authors: authors[locale] || authors.fr || null,

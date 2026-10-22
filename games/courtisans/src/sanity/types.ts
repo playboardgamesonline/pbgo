@@ -147,7 +147,6 @@ export type Role = {
     crop?: SanityImageCrop;
     _type: "image";
   };
-  rule?: LocaleText;
 };
 
 export type LocaleString = {
@@ -406,13 +405,6 @@ export type Game = {
     crop?: SanityImageCrop;
     _type: "image";
   };
-  pictogramFrame?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
   arrowUp?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
@@ -421,13 +413,6 @@ export type Game = {
     _type: "image";
   };
   arrowDown?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  paper?: {
     asset?: SanityImageAssetReference;
     media?: unknown;
     hotspot?: SanityImageHotspot;
@@ -623,6 +608,11 @@ export type Settings = {
     media?: unknown;
     _type: "file";
   };
+  accentFontFile?: {
+    asset?: SanityFileAssetReference;
+    media?: unknown;
+    _type: "file";
+  };
   turnTimeout?: number;
   gameOptions?: {
     defaults?: string;
@@ -794,7 +784,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../../src/sanity/queries.ts
 // Variable: CATALOG_QUERY
-// Query: {  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },  "texts": *[_id == "texts"][0]{    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,    zoneTable, zoneYours, zoneTheirs, zoneOther,    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,    gameOverLog, missionsSucceeded, noAssassination, skip  },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
+// Query: {  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, arrowUp, arrowDown },  "texts": *[_id == "texts"][0]{    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,    zoneTable, zoneYours, zoneTheirs, zoneOther,    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,    gameOverLog, missionsSucceeded, noAssassination, skip  },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
 export type CATALOG_QUERY_RESULT = {
   game:
     | {
@@ -803,7 +793,6 @@ export type CATALOG_QUERY_RESULT = {
         courtierBack: null;
         whiteMissionBack: null;
         blueMissionBack: null;
-        pictogramFrame: null;
         arrowUp: null;
         arrowDown: null;
       }
@@ -837,13 +826,6 @@ export type CATALOG_QUERY_RESULT = {
           _type: "image";
         } | null;
         blueMissionBack: {
-          asset?: SanityImageAssetReference;
-          media?: unknown;
-          hotspot?: SanityImageHotspot;
-          crop?: SanityImageCrop;
-          _type: "image";
-        } | null;
-        pictogramFrame: {
           asset?: SanityImageAssetReference;
           media?: unknown;
           hotspot?: SanityImageHotspot;
@@ -943,7 +925,6 @@ export type CATALOG_QUERY_RESULT = {
       crop?: SanityImageCrop;
       _type: "image";
     } | null;
-    rule: LocaleText | null;
     lettering: string | null;
   }>;
   courtiers: Array<{
@@ -978,7 +959,7 @@ export type CATALOG_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, pictogramFrame, arrowUp, arrowDown },\n  "texts": *[_id == "texts"][0]{\n    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,\n    zoneTable, zoneYours, zoneTheirs, zoneOther,\n    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,\n    gameOverLog, missionsSucceeded, noAssassination, skip\n  },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, rule, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOG_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, arrowUp, arrowDown },\n  "texts": *[_id == "texts"][0]{\n    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,\n    zoneTable, zoneYours, zoneTheirs, zoneOther,\n    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,\n    gameOverLog, missionsSucceeded, noAssassination, skip\n  },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

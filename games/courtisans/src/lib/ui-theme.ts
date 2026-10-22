@@ -2,8 +2,8 @@ import type { UiTheme } from "@pbgo/core/lib/binding"
 
 /**
  * Look of the shared in-game UI for Courtisans: the banquet. Gold lines on a teal table, white letters in the accent font
- * (Typey) over a black veil, round seat badges, a gold-edged panel with a cream polaroid at the end, and lively motion
- * (confetti, springs, the emoji burst). The table's own colors and fonts are the skin edited in the admin (Visual); these values
+ * (the file uploaded in the admin's Visual) over a black veil, round seat badges, a gold-edged panel with a cream polaroid at
+ * the end, and lively motion (confetti, springs, the emoji burst). The table's own colors and fonts are the skin edited in the admin (Visual); these values
  * are the ones the UI had before games could tune it, written out so that nothing the other games change can move Courtisans.
  */
 export const UI_THEME: UiTheme = {

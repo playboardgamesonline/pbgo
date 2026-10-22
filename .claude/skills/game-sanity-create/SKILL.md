@@ -7,7 +7,7 @@ description: "[GAME agent] Build or reshape a game's Sanity content model. Asks 
 
 The owner fills these forms in the Studio, so every game's forms are short and in the same order. The rules below are the only copy: other docs point here, and the tests of step 5 keep them true. The game is the slug given with the skill; ask if there is none.
 
-Courtisans is live and predates the card rules (its board reads `role.rule`, `mission.condition` is engine data): leave its forms alone unless the owner says go.
+Courtisans is live and predates the card rules. GAM-23 brought its Studio to them where it was cheap (no `Rule` field on a role, the mission's engine data titled `Condition`, no dead field in `game`); leave the rest of its forms alone unless the owner says go.
 
 ## 1. Ask first, write nothing
 

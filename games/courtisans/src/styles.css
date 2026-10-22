@@ -1,25 +1,9 @@
-/* Courtisans: core's shared styles (theme tokens, admin preset), plus the game's own fonts, colors and images. */
+/* Courtisans: core's shared styles (theme tokens, admin preset), plus the game's own colors. The accent font is uploaded in Gamemaster › Visual. */
 @import "@pbgo/core/styles/game.css";
 @source ".";
 
-/* Font of the full-screen announcements and of the mood titles */
-@font-face {
-  font-family: "Typey";
-  src: url("./fonts/typey.woff2") format("woff2");
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Typey";
-  src: url("./fonts/typey-italic.woff2") format("woff2");
-  font-style: italic;
-  font-display: swap;
-}
-
 :root {
   --font-body: "Alegreya Variable", Georgia, serif;
-  --font-accent: "Typey", Georgia, serif;
   --family-butterfly: #c9d6de;
   --family-toad: #8a9a3c;
   --family-nightingale: #c8364a;
@@ -31,7 +15,6 @@
 }
 
 @theme inline {
-  --font-typey: var(--font-accent);
   --color-light: var(--light);
   --color-disgrace: var(--disgrace);
   --color-butterfly: var(--family-butterfly);

@@ -8,7 +8,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Field, FieldDescription, FieldLabel } from "@pbgo/ui/platform/field"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
-import { FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
+import { FONT_CHOICES, fontFaceCss, googleFontsHref, isHex, type SiteSettings, THEME_FIELDS, type ThemeColors, UPLOADED_ACCENT_FONT, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT, type VisualSlot } from "../../../lib/settings"
 import { DEFAULT_PLAYER_COLORS } from "../../../lib/skin"
 import { DraftAlert, FileTile, IMAGE_ACCEPT, IMAGE_HINT, Img, PreviewCard, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
 
@@ -123,27 +123,31 @@ export function VisualPage({ initial, defaultTheme }: { initial: AdminData; defa
           <div className="grid gap-6 sm:grid-cols-2">
             {(
               [
-                { key: "displayFont", slot: "fontDisplay", label: "Titles", hint: "Titles, buttons, announcements", family: UPLOADED_TITLE_FONT },
-                { key: "bodyFont", slot: "fontBody", label: "Text", hint: "Paragraphs and interface", family: UPLOADED_BODY_FONT },
+                { key: "displayFont", slot: "fontDisplay", label: "Titles", hint: "Titles and buttons", family: UPLOADED_TITLE_FONT, empty: "WOFF2, WOFF, TTF or OTF · replaces the Google font" },
+                { key: "bodyFont", slot: "fontBody", label: "Text", hint: "Paragraphs and interface", family: UPLOADED_BODY_FONT, empty: "WOFF2, WOFF, TTF or OTF · replaces the Google font" },
+                { key: null, slot: "fontAccent", label: "Accent", hint: "Announcements and home introduction. Without a file, the titles' font", family: UPLOADED_ACCENT_FONT, empty: "WOFF2, WOFF, TTF or OTF" },
               ] as const
             ).map((f) => {
               const file = data.settings.files[f.slot]
+              const key = f.key
               return (
-                <Field key={f.key}>
+                <Field key={f.slot}>
                   <FieldLabel>{f.label}</FieldLabel>
-                  <Select value={draft[f.key] ?? DEFAULT_FONT} onValueChange={(v) => set(f.key, v === DEFAULT_FONT ? null : v)} disabled={disabled || !!file}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={DEFAULT_FONT}>{f.key === "displayFont" ? "Same as text" : "Game default"}</SelectItem>
-                      {FONT_CHOICES.map((font) => (
-                        <SelectItem key={font} value={font}>
-                          {font}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {key && (
+                    <Select value={draft[key] ?? DEFAULT_FONT} onValueChange={(v) => set(key, v === DEFAULT_FONT ? null : v)} disabled={disabled || !!file}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={DEFAULT_FONT}>{key === "displayFont" ? "Same as text" : "Game default"}</SelectItem>
+                        {FONT_CHOICES.map((font) => (
+                          <SelectItem key={font} value={font}>
+                            {font}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <FileTile
                     label={file ? file.name : "Font file"}
                     accept=".woff2,.woff,.ttf,.otf"
@@ -159,7 +163,7 @@ export function VisualPage({ initial, defaultTheme }: { initial: AdminData; defa
                       ) : (
                         <span className="flex items-center gap-2 text-xs text-muted-foreground">
                           <HugeiconsIcon icon={TextFontIcon} strokeWidth={2} className="size-4" />
-                          WOFF2, WOFF, TTF or OTF · replaces the Google font
+                          {f.empty}
                         </span>
                       )
                     }

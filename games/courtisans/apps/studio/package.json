@@ -12,8 +12,7 @@
     "typegen": "sanity schemas extract --force && sanity typegen generate",
     "schema:deploy": "sanity schemas deploy",
     "undo-import": "sanity exec scripts/undo-import.ts --with-user-token --",
-    "clean-png": "sanity exec scripts/clean-png.ts --with-user-token --",
-    "migrate:core": "sanity exec scripts/migrate-to-core.ts --with-user-token --"
+    "clean-png": "sanity exec scripts/clean-png.ts --with-user-token --"
   },
   "dependencies": {
     "@pbgo/studio-kit": "workspace:*",

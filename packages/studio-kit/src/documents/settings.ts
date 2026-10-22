@@ -42,6 +42,7 @@ export const settings = defineType({
     defineField({ name: "displayFont", title: "Display font", type: "string", group: "visual", options: { list: [...FONT_CHOICES] } }),
     defineField({ name: "bodyFontFile", title: "Body font file", type: "file", group: "visual", options: { accept: ".woff2,.woff,.ttf,.otf" } }),
     defineField({ name: "displayFontFile", title: "Display font file", type: "file", group: "visual", options: { accept: ".woff2,.woff,.ttf,.otf" } }),
+    defineField({ name: "accentFontFile", title: "Accent font file", type: "file", group: "visual", options: { accept: ".woff2,.woff,.ttf,.otf" } }),
     defineField({
       name: "turnTimeout",
       title: "Absent player timeout (s)",

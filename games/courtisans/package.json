@@ -12,13 +12,10 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit && tsc --noEmit -p content",
-    "test": "vitest run",
-    "content:seed": "node --disable-warning=ExperimentalWarning content/seed.ts",
+    "typecheck": "tsc --noEmit",
     "dev:studio": "pnpm --filter courtisans-studio dev",
     "deploy:studio": "pnpm --filter courtisans-studio run deploy",
-    "sanity:clean-png": "pnpm --filter courtisans-studio run clean-png",
-    "sanity:migrate-core": "pnpm --filter courtisans-studio run migrate:core"
+    "sanity:clean-png": "pnpm --filter courtisans-studio run clean-png"
   },
   "dependencies": {
     "@courtisans/engine": "workspace:*",
@@ -42,8 +39,6 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@pbgo/content-kit": "workspace:*",
-    "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
@@ -52,7 +47,6 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }
