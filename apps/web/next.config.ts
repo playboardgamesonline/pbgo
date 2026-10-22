@@ -27,6 +27,7 @@ const INGEST_REWRITES = CONFIG
 const nextConfig: NextConfig = {
   transpilePackages: [
     "@pbgo/analytics",
+    "@pbgo/catalog",
     "@pbgo/core",
     "@pbgo/engine-kit",
     "@pbgo/games",

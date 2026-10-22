@@ -24,6 +24,11 @@
 #                                   Written to .env.local and pushed to every Vercel target. Without them the analytics and
 #                                   the cookie banner are off; a pair of the wrong shape (the one @pbgo/analytics refuses)
 #                                   is neither written nor pushed
+#   NOTION_API_KEY                  optional: the secret (ntn_…) of the read-only Notion integration that reads the Games and
+#                                   Editors databases, to list the games that are not live yet on the hub (packages/catalog).
+#                                   Written to .env.local and pushed to every Vercel target. Without it the hub lists the live
+#                                   games alone; a value of another shape is neither written nor pushed. Only its shape is
+#                                   checked, nothing is sent to Notion: `pnpm catalog:list` shows what the key reads
 #   SANITY_API_WRITE_TOKEN_<SLUG>   optional, one per game: a token found here is reused, see Sanity below
 # The three Supabase values are required. The production keys go to the Vercel production target only: .env.local and
 # the Vercel preview/development targets get the preview project's keys, never production ones. The script exits with
@@ -361,6 +366,20 @@ else
   err "NEXT_PUBLIC_POSTHOG_KEY / NEXT_PUBLIC_POSTHOG_HOST: a project key (phc_…) and an ingest host (https://eu.i.posthog.com, no trailing slash) are expected; neither is written nor pushed"
 fi
 
+# ---------- Notion catalog (optional) ----------
+# The secret of a read-only Notion integration (packages/catalog): a server value, encrypted on Vercel. Only its shape is checked
+# (Notion's two formats), setup-env sends nothing to Notion; `pnpm catalog:list` is what proves the key opens the databases
+NOTION_KEY_RE='^(ntn|secret)_[A-Za-z0-9]+$'
+title "Notion catalog (optional)"
+NOTION_KEY="$(setting NOTION_API_KEY)"; NOTION_OK=0
+if [ -z "$NOTION_KEY" ]; then warn "NOTION_API_KEY not set: the hub lists the live games alone"
+elif safe "$NOTION_KEY" && [[ "$NOTION_KEY" =~ $NOTION_KEY_RE ]]; then
+  envset "$ENV_FILE" NOTION_API_KEY "$NOTION_KEY"; NOTION_OK=1; ok "NOTION_API_KEY"
+else
+  # No value in the message, like PostHog's: a secret pasted on the wrong line must not end up in a log
+  err "NOTION_API_KEY: the secret of a Notion integration (ntn_…) is expected; it is neither written nor pushed"
+fi
+
 # ---------- Vercel project ----------
 # Looked up before the Sanity tokens: the project already holds them. The API alone is used, with the project's id: no
 # .vercel/project.json, no Vercel CLI login, so any worktree will do. The project id comes from the secrets file only (not
@@ -461,12 +480,13 @@ if [ "$PUSH" = 1 ] && [ -n "$VID" ]; then
   # Supabase: the production project's keys to the production target only, the preview project's to preview and development
   push_supabase "$TMP/production.env" '["production"]'; push_supabase "$TMP/preview.env" '["preview","development"]'
   # The rest, the same everywhere (not NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_SANITY_DATASET nor DEBUG_GAMES: local settings). A
-  # Sanity token that came from the Vercel project is not sent back. PostHog only when its pair passed the check above (a
-  # refused one may still sit in .env.local): the browser value is inlined at build, so it applies from the next deployment
+  # Sanity token that came from the Vercel project is not sent back. PostHog and Notion only when their value passed the check
+  # above (a refused one may still sit in .env.local): the browser value of PostHog is inlined at build, so it applies from the
+  # next deployment
   while read -r k; do
     [[ "$FROM_VERCEL" == *"|$k|"* ]] && continue
     v="$(envget "$ENV_FILE" "$k")"; [ -n "$v" ] && push "$k" "$v" "$ALL"
-  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
+  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; [ "$NOTION_OK" = 1 ] && printf "%s\n" NOTION_API_KEY; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
   [ -z "$(envget "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID)" ] && envset "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID "$VID"
   PUSHED=1
 fi

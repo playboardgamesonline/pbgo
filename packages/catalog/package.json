@@ -1,0 +1,34 @@
+{
+  "name": "@pbgo/catalog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The hub catalog: the live games of the registry and the planned games of the Notion Games database, joined into one list. `.` is the pure model, `./server` the cached reader for apps/web.",
+  "exports": {
+    ".": "./src/catalog.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pbgo/core": "workspace:*",
+    "@pbgo/games": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
+    "server-only": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
