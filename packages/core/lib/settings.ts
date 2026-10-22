@@ -32,7 +32,7 @@ export type Credits = {
 export type UploadedFile = { url: string; name: string }
 
 // Files uploaded from the admin (stored in Sanity): settings (`settings`) and skin (`interface`)
-export const SETTINGS_FILE_SLOTS = ["rulesFr", "rulesEn", "rulesEs", "rulesDe", "fontBody", "fontDisplay"] as const
+export const SETTINGS_FILE_SLOTS = ["rulesFr", "rulesEn", "rulesEs", "rulesDe", "fontBody", "fontDisplay", "fontAccent"] as const
 
 /** Slot (and Sanity field) of the rules PDF of each language */
 export const RULES_SLOT = { fr: "rulesFr", en: "rulesEn", es: "rulesEs", de: "rulesDe" } as const satisfies Record<Locale, (typeof SETTINGS_FILE_SLOTS)[number]>
@@ -144,7 +144,7 @@ export const defaultSettings = perGame((binding): SiteSettings => {
     displayFont: null,
     rulesPdf: byLocale(() => null),
     rulesPdfLinks: byLocale(() => null),
-    files: { rulesFr: null, rulesEn: null, rulesEs: null, rulesDe: null, fontBody: null, fontDisplay: null },
+    files: { rulesFr: null, rulesEn: null, rulesEs: null, rulesDe: null, fontBody: null, fontDisplay: null, fontAccent: null },
     turnTimeout: TURN_TIMEOUT_BOUNDS.default,
     options: { defaults: binding.GAME ? defaultOptions(binding.GAME.options) : {}, hidden: [] },
     ...binding.SETTINGS_DEFAULTS,
@@ -196,6 +196,7 @@ const BODY_FALLBACK = 'ui-rounded, "Avenir Next", "Nunito", system-ui, -apple-sy
 
 export const UPLOADED_BODY_FONT = "Site Body"
 export const UPLOADED_TITLE_FONT = "Site Title"
+export const UPLOADED_ACCENT_FONT = "Site Accent"
 
 const bodyFamily = (s: SiteSettings) => (s.files.fontBody ? UPLOADED_BODY_FONT : s.bodyFont)
 const titleFamily = (s: SiteSettings) => (s.files.fontDisplay ? UPLOADED_TITLE_FONT : s.displayFont)
@@ -210,6 +211,7 @@ export function fontFaceCss(files: SettingsFiles) {
   const entries: [string, UploadedFile | null][] = [
     [UPLOADED_BODY_FONT, files.fontBody],
     [UPLOADED_TITLE_FONT, files.fontDisplay],
+    [UPLOADED_ACCENT_FONT, files.fontAccent],
   ]
   return entries
     .filter((f): f is [string, UploadedFile] => !!f[1])
@@ -237,6 +239,8 @@ export function themeStyle(s: SiteSettings): Record<string, string> {
     // without a chosen font, keep the ones of the game CSS (:root --font-body / --font-title)
     ...(bodyFamily(s) ? { "--font-body": fontStack(bodyFamily(s), BODY_FALLBACK) } : {}),
     ...((titleFamily(s) ?? bodyFamily(s)) ? { "--font-title": fontStack(titleFamily(s) ?? bodyFamily(s), BODY_FALLBACK) } : {}),
+    // the accent font (announcements, home introduction) only comes from an uploaded file; without one, the screens read `var(--font-accent, var(--font-title))`
+    ...(s.files.fontAccent ? { "--font-accent": fontStack(UPLOADED_ACCENT_FONT, "var(--font-title)") } : {}),
   }
 }
 

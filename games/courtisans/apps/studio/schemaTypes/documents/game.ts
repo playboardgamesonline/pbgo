@@ -9,7 +9,7 @@ export const game = defineType({
   groups: [
     { name: "board", title: "Board", default: true },
     { name: "backs", title: "Card backs" },
-    { name: "assets", title: "Pictograms & paper" },
+    { name: "arrows", title: "Arrows" },
   ],
   fields: [
     defineField({ name: "mat", title: "Game mat", type: "image", group: "board" }),
@@ -17,10 +17,8 @@ export const game = defineType({
     defineField({ name: "courtierBack", title: "Courtier card back", type: "image", group: "backs" }),
     defineField({ name: "whiteMissionBack", title: "White mission back", type: "image", group: "backs" }),
     defineField({ name: "blueMissionBack", title: "Blue mission back", type: "image", group: "backs" }),
-    defineField({ name: "pictogramFrame", title: "Pictogram frame", type: "image", group: "assets" }),
-    defineField({ name: "arrowUp", title: "Arrow up (family in the light)", type: "image", group: "assets" }),
-    defineField({ name: "arrowDown", title: "Arrow down (family in disgrace)", type: "image", group: "assets" }),
-    defineField({ name: "paper", title: "Paper texture", type: "image", group: "assets" }),
+    defineField({ name: "arrowUp", title: "Arrow up (family in the light)", type: "image", group: "arrows" }),
+    defineField({ name: "arrowDown", title: "Arrow down (family in disgrace)", type: "image", group: "arrows" }),
   ],
   preview: { prepare: () => ({ title: "Game" }) },
 })
