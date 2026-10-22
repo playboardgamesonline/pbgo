@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { STATUS_ORDER, UNLISTED_SLUGS, buildCatalog, comparePlanned, pickLocalized } from "./catalog"
+import { ART_SLOTS, STATUS_ORDER, UNLISTED_SLUGS, buildCatalog, comparePlanned, pickLocalized, pictureUrl, pictureVersion } from "./catalog"
 import { plannedGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -95,6 +95,45 @@ describe("comparePlanned", () => {
   it("sorts names the way a reader expects: numbers by value, case and accents ignored", () => {
     const names = ["Skyjo", "7 Wonders", "10 Minutes", "6 nimmt!", "Échecs", "the Mind", "Bang"]
     expect(order(...names.map((name) => plannedGame(name, { name })))).toEqual(["6 nimmt!", "7 Wonders", "10 Minutes", "Bang", "Échecs", "Skyjo", "the Mind"])
+  })
+})
+
+describe("pictureVersion", () => {
+  it("is the same for the whole minute of an edit and changes with the next", () => {
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).toBe(pictureVersion("2026-10-22T10:30:59.999Z"))
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).not.toBe(pictureVersion("2026-10-22T10:31:00.000Z"))
+  })
+
+  it("reads the same instant whatever the way it is written", () => {
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).toBe(pictureVersion("2026-10-22T12:30:00.000+02:00"))
+  })
+
+  it("is a short word that is safe in a URL", () => {
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).toMatch(/^[0-9a-z]{1,10}$/)
+  })
+
+  it.each(["", "not a date", "2026-13-45"])("is 0 for %j: a row without a usable date", (editedAt) => {
+    expect(pictureVersion(editedAt)).toBe("0")
+  })
+})
+
+describe("pictureUrl", () => {
+  const edited = plannedGame("love-letter", { editedAt: "2026-10-22T10:30:00.000Z", art: { logo: true, icon: false, background: true } })
+
+  it("is the route of the picture with the version of the row", () => {
+    const version = pictureVersion(edited.editedAt)
+    expect(pictureUrl(edited, "logo")).toBe(`/api/catalog/love-letter/logo?v=${version}`)
+    expect(pictureUrl(edited, "background")).toBe(`/api/catalog/love-letter/background?v=${version}`)
+  })
+
+  it("is null for a picture the row does not have: no fallback, the page draws a black background", () => {
+    expect(pictureUrl(edited, "icon")).toBeNull()
+    expect(ART_SLOTS.map((slot) => pictureUrl(plannedGame("omens"), slot))).toEqual([null, null, null])
+  })
+
+  it("changes when the row is edited", () => {
+    const later = { ...edited, editedAt: "2026-10-22T11:00:00.000Z" }
+    expect(pictureUrl(later, "logo")).not.toBe(pictureUrl(edited, "logo"))
   })
 })
 

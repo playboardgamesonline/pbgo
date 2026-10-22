@@ -1,7 +1,7 @@
 import { slugProblem } from "@pbgo/games/slug"
 import { describe, expect, it } from "vitest"
 import type { PlannedGame } from "./catalog"
-import { EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPlannedGames } from "./notion"
+import { EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readPlannedGames } from "./notion"
 import { editorPage, external, fakeNotion, gamePage, notionFailure, uploaded, type Answer, type GameRow } from "./testing"
 
 const TOKEN = "ntn_testsecret123"
@@ -94,6 +94,34 @@ describe("when Notion cannot be read", () => {
     const badGateway = (async () => new Response("<html>Bad gateway</html>", { status: 502 })) as typeof fetch
     const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: badGateway }))
     expect(error).toMatchObject({ status: 502, code: null, message: "Notion answered 502" })
+  })
+
+  describe("and Notion says to slow down (429)", () => {
+    const rateLimited = (headers: Record<string, string> = {}, status = 429) =>
+      (async () => new Response(JSON.stringify({ object: "error", status, code: "rate_limited", message: "Slow down." }), { status, headers })) as typeof fetch
+    const askedFor = async (headers?: Record<string, string>, status?: number) =>
+      (await failureOf(readPlannedGames({ token: TOKEN, fetch: rateLimited(headers, status) }))).retryAfter
+
+    it("keeps the seconds Notion asks to wait, rounded up", async () => {
+      expect(await askedFor({ "retry-after": "2" })).toBe(2)
+      expect(await askedFor({ "retry-after": "0" })).toBe(0)
+      expect(await askedFor({ "retry-after": "1.2" })).toBe(2)
+    })
+
+    it("cuts a wait that is too long to be believed", async () => {
+      expect(await askedFor({ "retry-after": "120" })).toBe(120)
+      expect(await askedFor({ "retry-after": "86400" })).toBe(120)
+    })
+
+    it.each(["soon", "Wed, 21 Oct 2026 07:28:00 GMT", "-5", "Infinity", "0x10", "1e3", "2 s"])("does not read a Retry-After of %j", async (header) => {
+      expect(await askedFor({ "retry-after": header })).toBeNull()
+    })
+
+    it("has no wait to keep when Notion did not give one, and none for any other failure", async () => {
+      expect(await askedFor()).toBeNull()
+      expect(await askedFor({ "retry-after": "5" }, 503)).toBeNull()
+      expect((await failureOf(readGames(notionFailure(401, "unauthorized", "No.")))).retryAfter).toBeNull()
+    })
   })
 
   it("cuts a long message from Notion", async () => {
@@ -280,6 +308,11 @@ describe("a row of the Games database", () => {
     expect((await readGames([page])).games[0]?.art).toEqual({ logo: false, icon: true, background: false })
   })
 
+  it("does not flag a picture that is an http link: the server only fetches pictures over https", async () => {
+    const game = await one({ logo: [external("http://example.com/logo.png")], icon: [external("http://example.com/icon.png"), external("https://example.com/icon.png")] })
+    expect(game.art).toEqual({ logo: false, icon: true, background: false })
+  })
+
   it("cleans the names of the authors and the artists", async () => {
     const game = await one({ authors: ["  Author   One "], artwork: ["Artist\tOne"] })
     expect(game).toMatchObject({ authors: ["Author One"], artists: ["Artist One"] })
@@ -402,5 +435,61 @@ describe("the columns", () => {
 
   it("have nothing to check in an empty database", async () => {
     expect(await readGames([])).toEqual({ games: [], skipped: [], expansions: 0, warnings: [] })
+  })
+})
+
+describe("the links of the pictures", () => {
+  const linksOf = (games: Answer) => readPictureLinks({ token: TOKEN, fetch: fakeNotion({ games }).fetch })
+
+  it("are read by the id of the row, with its last edit and one link per picture", async () => {
+    const links = await linksOf([
+      gamePage({ id: "row-hanabi", slug: "hanabi", name: "Hanabi", logo: [uploaded("logo.png")], icon: [external("https://example.com/icon.png")], editedAt: "2026-10-20T10:00:00.000Z" }),
+      gamePage({ id: "row-bang", slug: "bang", name: "Bang" }),
+    ])
+    expect([...links.keys()]).toEqual(["row-hanabi", "row-bang"])
+    expect(links.get("row-hanabi")).toEqual({
+      editedAt: "2026-10-20T10:00:00.000Z",
+      links: { logo: uploaded("logo.png").file.url, icon: "https://example.com/icon.png", background: null },
+    })
+    expect(links.get("row-bang")?.links).toEqual({ logo: null, icon: null, background: null })
+  })
+
+  it("take the first file of a cell that has a link the server can fetch", async () => {
+    const page = gamePage({ id: "row", slug: "sample", name: "Sample", background: [external("http://example.com/plain.png"), external("https://example.com/second.png"), external("https://example.com/third.png")] })
+    page.properties.Logo = { type: "files", files: [{ name: "lost.png", type: "file", file: {} }, uploaded("logo.png")] }
+    const links = await linksOf([page])
+    expect(links.get("row")?.links).toEqual({ logo: uploaded("logo.png").file.url, icon: null, background: "https://example.com/second.png" })
+  })
+
+  it("agree with the flags of the planned game: a picture is flagged exactly when it has a link", async () => {
+    const row: GameRow = { id: "row", slug: "sample", name: "Sample", logo: [uploaded()], icon: [external("javascript:alert(1)")], background: [external("http://example.com/background.png")] }
+    const links = await linksOf([gamePage(row)])
+    const { art } = await one(row)
+    expect(Object.entries(links.get("row")?.links ?? {}).map(([slot, link]) => [slot, link !== null])).toEqual(Object.entries(art))
+  })
+
+  it("leave out a row that is archived or in the trash", async () => {
+    const links = await linksOf([gamePage({ id: "kept" }), gamePage({ id: "old", archived: true }), gamePage({ id: "bin", inTrash: true })])
+    expect([...links.keys()]).toEqual(["kept"])
+  })
+
+  it("have the date of the edit empty when the row gives none", async () => {
+    const page = gamePage({ id: "row" })
+    page.last_edited_time = undefined as unknown as string
+    expect((await linksOf([page])).get("row")?.editedAt).toBe("")
+  })
+
+  it("ask the Games database alone, once, with the options of the caller", async () => {
+    const notion = fakeNotion({ games: [gamePage()] })
+    await readPictureLinks({ token: TOKEN, fetch: notion.fetch, init: { cache: "no-store" } })
+    expect(notion.calls.map((call) => call.database)).toEqual([GAMES_DATABASE_ID])
+    expect(notion.calls[0]?.init).toMatchObject({ method: "POST", cache: "no-store" })
+    expect(notion.calls[0]?.headers.Authorization).toBe(`Bearer ${TOKEN}`)
+  })
+
+  it("fail with the error of Notion, never with the token", async () => {
+    const error = await failureOf(linksOf(notionFailure(401, "unauthorized", "API token is invalid.")))
+    expect(error).toMatchObject({ status: 401, code: "unauthorized" })
+    expect(error.message).not.toContain(TOKEN)
   })
 })

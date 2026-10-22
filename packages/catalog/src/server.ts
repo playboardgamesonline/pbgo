@@ -11,10 +11,16 @@ export const CATALOG_REVALIDATE_SECONDS = 600
 
 // What was already logged by this server instance: a page read every few seconds must not repeat one line a thousand times
 const reported = new Set<string>()
-function report(message: string) {
+/** Logs a line of the catalog once per server instance. */
+export function reportOnce(message: string) {
   if (reported.has(message)) return
   reported.add(message)
   console.warn(`[catalog] ${message}`)
+}
+
+/** The Notion integration token, or undefined when the server has none (the catalog is then the live games alone). */
+export function notionToken(): string | undefined {
+  return process.env.NOTION_API_KEY?.trim() || undefined
 }
 
 /**
@@ -24,15 +30,15 @@ function report(message: string) {
  * by Next for `CATALOG_REVALIDATE_SECONDS`.
  */
 export const getCatalog = cache(async (): Promise<Catalog> => {
-  const token = process.env.NOTION_API_KEY?.trim()
+  const token = notionToken()
   if (!token) return { entries: buildCatalog(GAMES, []), notion: "off" }
   try {
     const read = await readPlannedGames({ token, init: { next: { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAG] } } })
-    for (const warning of read.warnings) report(warning)
-    for (const row of read.skipped) report(`The Notion row "${row.name || row.id}" is left out: ${row.reason}`)
+    for (const warning of read.warnings) reportOnce(warning)
+    for (const row of read.skipped) reportOnce(`The Notion row "${row.name || row.id}" is left out: ${row.reason}`)
     return { entries: buildCatalog(GAMES, read.games), notion: "ok" }
   } catch (error) {
-    report(`Notion is unavailable, only the live games are listed: ${error instanceof Error ? error.message : "unknown error"}`)
+    reportOnce(`Notion is unavailable, only the live games are listed: ${error instanceof Error ? error.message : "unknown error"}`)
     return { entries: buildCatalog(GAMES, []), notion: "unavailable" }
   }
 })

@@ -38,6 +38,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 | `/api/<slug>/games/...`, `/api/<slug>/feedback` | `api/[game]/...` | the game's public API |
 | `/gamemaster/api/login\|logout`, `/gamemaster/api/<slug>/settings\|upload/<slot>\|tasks\|feedback` | `gamemaster/api/...` | the gamemaster's API: sign-in and sign-out, then everything that needs the session |
 | `/api/media` | `api/media/route.ts` | Sanity media proxy, shared by every game |
+| `/api/catalog/<slug>/<logo\|icon\|background>` | `api/catalog/[slug]/[slot]/route.ts` | the pictures of the games that are not live yet, read from their Notion row (`@pbgo/catalog/route`), see `docs/catalog.md` |
 | `/ingest/*` | `next.config.ts` (`beforeFiles` rewrites) | PostHog behind the site's own domain: `/ingest/static/*` and `/ingest/array/*` to its assets host, the rest to its ingest host (EU). Only with a PostHog key and host, see `docs/analytics.md` |
 | `/robots.txt`, `/sitemap.xml` | `robots.ts`, `sitemap.ts` | site-wide |
 | `/favicon.ico` | `public/favicon.ico` | the hub's icon: a static file answers before `[game]`, so `favicon.ico` is never read as a slug. Not `app/favicon.ico`: Next adds that one to the head of every page, game pages included, next to their own `/<slug>/icons/*` |
@@ -45,7 +46,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 - Separate root layouts: the hub (`(hub)/layout.tsx`), the games (`[game]/layout.tsx`, which must not call `notFound()` itself) and the gamemaster (`gamemaster/layout.tsx`: platform look, no game runtime, noindex); `global-not-found.tsx` answers any URL that matches no route. Links from the hub to a game are plain `<a>` (full page load).
 - Route files are thin wrappers: pages call `@pbgo/core/pages/*` with the game (`gameOf` / `playableGameOf` / `previewableGameOf`), API routes wrap the `@pbgo/core/routes/api/**` handlers with `gameRoute()` and the `@pbgo/core/routes/gamemaster/**` ones with `gamemasterRoute()` (both from `@pbgo/games`). A game that is not playable here (no engine, or not live in production) keeps its home page; its table and API answer 404.
 - `apps/web/public` holds `favicon.ico` only (a game's pictures and sounds live in its Sanity project); the build fails on any other file (`pnpm check:public`).
-- `api`, `legal`, `design`, `ingest`, `gamemaster`, `login` and `logout` cannot be a game slug (`RESERVED_SLUGS` of `packages/games/src/slug.ts`).
+- `api`, `legal`, `design`, `ingest`, `gamemaster`, `login`, `logout`, `media` and `catalog` cannot be a game slug (`RESERVED_SLUGS` of `packages/games/src/slug.ts`).
 - Every mutating game route starts with `await rateLimit(game.slug, request, "<rule>")`; so does a new route in a game's `ROUTES`.
 - The rest (404 behaviour, segment configs, rate-limit rules): `docs/routing.md`.
 
@@ -55,7 +56,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `@pbgo-game/<slug>` — a game's binding package; the contract is in `@pbgo/core/lib/binding` (`.` isomorphic, `./ui`, `./server`, `./runtime`, `./styles.css`). Core never imports a game: it receives the `GameModule`, client components read it with `useBinding()`.
 - `@pbgo/core` — the shared base: server (Supabase games with a version lock, players, admin, tasks, rate limiting), pages, route handlers, and the in-game UI (screens, HUD, announcements, chat, game over), always drawn in the game's own look.
 - `@pbgo/analytics` — PostHog: typed events with no personal data, consent-aware browser provider (`docs/analytics.md`).
-- `@pbgo/catalog` — the games the hub can list: the live games of the registry, then the planned ones read from the Notion Games database (cached ten minutes, `NOTION_API_KEY`; without it the live games alone). No page uses it yet (PLT-56, `docs/catalog.md`).
+- `@pbgo/catalog` — the games the hub can list: the live games of the registry, then the planned ones read from the Notion Games database (cached ten minutes, `NOTION_API_KEY`; without it the live games alone), and the route that serves their pictures. No page uses the list yet (PLT-56, `docs/catalog.md`).
 - `@pbgo/engine-kit` — the engine ↔ web contract (`GameDefinition`, `waitingFor` / `autoPlayFor`, `EngineError`) and the building blocks of the card games. For every game the state is lean (ids and numbers only: no display data, no derived values, no log) and an order always comes from an array of the state, never from `Object.keys` (`jsonb` does not keep the order of the keys).
 - `@pbgo/table` — the shared table tools of the boards (react-three-fiber): the `Card` every game draws and the pictures it wears (`paintFace`, `standIn`), with the table, zones, seats and the debug panel to come (PLT-62). It depends on core, core never imports it, and a game imports it from its lazy board chunk only (`docs/packages.md`).
 - `@pbgo/ui` — shadcn components: `@pbgo/ui/game/*` (game theme) and `@pbgo/ui/platform/*` (platform theme), see `docs/design-system.md`.

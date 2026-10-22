@@ -150,6 +150,57 @@ export function fakeNotion(databases: { games?: Answer; editors?: Answer }, page
   return { fetch: fetcher, calls }
 }
 
+// ---------- A fake web ----------
+
+/** What a host answers to a request for one of its URLs. */
+export type HostHandler = (url: URL, init: RequestInit) => Response | Promise<Response>
+
+/**
+ * A `fetch` for a whole network: Notion's calls go to `notion` (a `fakeNotion`), any other host to the handler of its name in
+ * `hosts`, and a host nobody serves is a network failure. `requests` is everything it was asked, in order, Notion's included.
+ */
+export function fakeWeb(notion: { fetch: typeof fetch }, hosts: Record<string, HostHandler> = {}) {
+  const requests: { url: string; init: RequestInit }[] = []
+  const fetcher = (async (input: string | URL | Request, init: RequestInit = {}) => {
+    const url = new URL(String(input))
+    requests.push({ url: url.href, init })
+    if (url.host === "api.notion.com") return notion.fetch(url.href, init)
+    const handler = hosts[url.host]
+    if (!handler) throw new TypeError("fetch failed")
+    return handler(url, init)
+  }) as typeof fetch
+  return { fetch: fetcher, requests }
+}
+
+// ---------- Pictures ----------
+
+export type PictureKind = "png" | "jpeg" | "gif" | "webp" | "avif" | "svg"
+
+const ascii = (text: string) => [...text].map((char) => char.charCodeAt(0))
+// The first bytes of each kind of file: all a sniffer looks at
+const HEADS: Record<PictureKind, number[]> = {
+  png: [0x89, ...ascii("PNG"), 0x0d, 0x0a, 0x1a, 0x0a],
+  jpeg: [0xff, 0xd8, 0xff, 0xe0],
+  gif: ascii("GIF89a"),
+  webp: [...ascii("RIFF"), 0, 0, 0, 0, ...ascii("WEBP")],
+  avif: [0, 0, 0, 0x1c, ...ascii("ftypavif")],
+  svg: ascii('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">'),
+}
+
+/** The bytes of a picture of that kind, `size` of them (its first bytes at least, then zeros): enough for a sniffer, not for a viewer. */
+export function pictureBytes(kind: PictureKind, size = 64): Uint8Array<ArrayBuffer> {
+  const head = HEADS[kind]
+  const bytes = new Uint8Array(Math.max(size, head.length))
+  bytes.set(head)
+  return bytes
+}
+
+/** A host's answer with a picture in it. */
+export const pictureResponse = (kind: PictureKind = "png", init: ResponseInit = {}) => new Response(pictureBytes(kind), { status: 200, ...init })
+
+/** A web page, what a host sends when the link no longer leads to a picture (a sign-in page, an error page). */
+export const webPage = () => new TextEncoder().encode("<!doctype html><html><body>Sign in</body></html>")
+
 // ---------- The games the catalog joins ----------
 
 /** An entry of the registry. Not live unless the test says so. */

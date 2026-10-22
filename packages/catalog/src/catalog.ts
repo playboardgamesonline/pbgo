@@ -47,6 +47,20 @@ export type PlannedGame = {
   notionPageId: string
 }
 
+/**
+ * The `v` of a picture URL: it changes when the Notion row does (its last edit in minutes, in base 36; "0" without a date), so a
+ * picture that is cached for a long time under its URL is fetched again after an edit, and the route can tell a stale URL.
+ */
+export function pictureVersion(editedAt: string): string {
+  const time = Date.parse(editedAt)
+  return Number.isFinite(time) ? Math.floor(time / 60_000).toString(36) : "0"
+}
+
+/** The URL of a planned game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a black background, nothing else. */
+export function pictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedAt">, slot: ArtSlot): string | null {
+  return game.art[slot] ? `/api/catalog/${game.slug}/${slot}?v=${pictureVersion(game.editedAt)}` : null
+}
+
 /** One line of the catalog: a live game (the registry's entry, played on the site) or a planned one (Notion's row). */
 export type CatalogEntry = { live: true; slug: string; game: GameEntry } | { live: false; slug: string; game: PlannedGame }
 

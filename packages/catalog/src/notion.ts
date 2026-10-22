@@ -1,12 +1,13 @@
-// The Notion reader: the Games database (and the Editors one it points to) as `PlannedGame`s. A plain `fetch` against Notion's
-// REST API, no SDK. No framework here either: the caller hands in the token, and `init` carries Next's cache options (`server.ts`).
-// Notion is the source of a planned game's words and numbers, never of a live one's (those come from the game's Sanity project).
+// The Notion reader: the Games database (and the Editors one it points to) as `PlannedGame`s, and the links of its pictures. A plain
+// `fetch` against Notion's REST API, no SDK. No framework here either: the caller hands in the token, and `init` carries Next's cache
+// options (`server.ts`). Notion is the source of a planned game's words and numbers, never of a live one's (those come from the
+// game's Sanity project).
 
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 // A value import from a sibling file would need a `.ts` extension, which apps/web's tsc refuses: only types come from there
-import type { PlannedGame, Publisher } from "./catalog"
+import type { ArtSlot, PlannedGame, Publisher } from "./catalog"
 
 export const NOTION_API = "https://api.notion.com/v1"
 /** The API version the parsing below is written for: a database is queried at `/databases/<id>/query`. */
@@ -19,6 +20,8 @@ const PAGE_SIZE = 100
 const MAX_REQUESTS = 10
 const DEFAULT_TIMEOUT_MS = 5000
 const MAX_MESSAGE_LENGTH = 200
+/** Notion's `Retry-After` is believed up to this many seconds: a larger wait (or a mistake) would hold a picture back for good. */
+const MAX_RETRY_AFTER_SECONDS = 120
 
 /** The columns of the Games database, by the name Notion gives them. Everything else in the database is ignored. */
 export const COLUMNS = {
@@ -53,15 +56,20 @@ const OPTIONAL_COLUMNS: readonly string[] = [
   ...LANGUAGES.flatMap((language) => [descriptionColumn(language.id), rulesColumn(language.id)]),
 ]
 
-/** A failed call to Notion. The message never holds the token. `status` is the HTTP status, 0 when Notion could not be reached. */
+/**
+ * A failed call to Notion. The message never holds the token. `status` is the HTTP status, 0 when Notion could not be reached.
+ * `retryAfter` is what a 429 asks: the seconds to wait, null when it did not say (or not in seconds).
+ */
 export class NotionError extends Error {
   readonly status: number
   readonly code: string | null
-  constructor(message: string, status: number, code: string | null = null) {
+  readonly retryAfter: number | null
+  constructor(message: string, status: number, code: string | null = null, retryAfter: number | null = null) {
     super(message)
     this.name = "NotionError"
     this.status = status
     this.code = code
+    this.retryAfter = retryAfter
   }
 }
 
@@ -98,6 +106,12 @@ type NotionPage = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
 
+/** The `Retry-After` of a response in whole seconds (Notion writes seconds; an HTTP date is not read), cut to `MAX_RETRY_AFTER_SECONDS`, or null. */
+function retryAfterOf(response: Response): number | null {
+  const header = response.headers.get("retry-after")?.trim()
+  return header && /^\d+(\.\d+)?$/.test(header) ? Math.min(Math.ceil(Number(header)), MAX_RETRY_AFTER_SECONDS) : null
+}
+
 async function post(path: string, body: unknown, options: NotionReadOptions): Promise<unknown> {
   const doFetch = options.fetch ?? fetch
   let response: Response
@@ -117,7 +131,8 @@ async function post(path: string, body: unknown, options: NotionReadOptions): Pr
   if (!response.ok) {
     const code = isRecord(payload) && typeof payload.code === "string" ? payload.code : null
     const message = isRecord(payload) && typeof payload.message === "string" ? payload.message.slice(0, MAX_MESSAGE_LENGTH) : ""
-    throw new NotionError(`Notion answered ${response.status}${code ? ` ${code}` : ""}${message ? `: ${message}` : ""}`, response.status, code)
+    const retryAfter = response.status === 429 ? retryAfterOf(response) : null
+    throw new NotionError(`Notion answered ${response.status}${code ? ` ${code}` : ""}${message ? `: ${message}` : ""}`, response.status, code, retryAfter)
   }
   return payload
 }
@@ -158,13 +173,13 @@ const optionsOf = (raw: unknown): string[] => (Array.isArray(raw) ? raw.flatMap(
 /** A number of minutes: more than none. */
 const minutesOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : null)
 
-/** A web link, or null: a rulebook or a website is only ever opened if it is http(s). */
-function linkOf(raw: unknown): string | null {
+/** A web link, or null: a rulebook or a website is only ever opened if it is http(s). `secureOnly`: https alone, for what the server itself fetches. */
+function linkOf(raw: unknown, secureOnly = false): string | null {
   if (typeof raw !== "string") return null
   const link = raw.trim()
   try {
     const { protocol } = new URL(link)
-    return protocol === "https:" || protocol === "http:" ? link : null
+    return protocol === "https:" || (protocol === "http:" && !secureOnly) ? link : null
   } catch {
     return null
   }
@@ -176,14 +191,25 @@ const normalizeId = (id: string): string => id.replace(/-/g, "").toLowerCase()
 const relationOf = (raw: unknown): string[] =>
   Array.isArray(raw) ? raw.flatMap((item) => (isRecord(item) && typeof item.id === "string" ? normalizeId(item.id) : [])) : []
 
-/** Whether a files property holds a picture: an uploaded file (a link that expires) or an external one (a link that stays). */
-const hasPicture = (raw: unknown): boolean =>
-  Array.isArray(raw) &&
-  raw.some((file) => {
-    if (!isRecord(file)) return false
+/**
+ * The link of the first picture of a files property, or null: an uploaded file (a link that expires after about an hour) or an
+ * external one (a link that stays). https only, because the server fetches it (`picture.ts` refuses the rest again).
+ */
+function pictureOf(raw: unknown): string | null {
+  if (!Array.isArray(raw)) return null
+  for (const file of raw) {
+    if (!isRecord(file)) continue
     const source = file.type === "file" ? file.file : file.type === "external" ? file.external : null
-    return isRecord(source) && linkOf(source.url) !== null
-  })
+    const link = isRecord(source) ? linkOf(source.url, true) : null
+    if (link) return link
+  }
+  return null
+}
+
+/** Whether a files property holds a picture the server can fetch: the flag of `PlannedGame.art`, never the link (it would expire in the cache). */
+const hasPicture = (raw: unknown): boolean => pictureOf(raw) !== null
+
+const editedAtOf = (page: NotionPage): string => (typeof page.last_edited_time === "string" ? page.last_edited_time : "")
 
 /** "4", "2 - 5" or "3+" (a hyphen or a dash), as the Players select writes it. */
 function playersOf(label: string | null): PlannedGame["players"] {
@@ -257,7 +283,7 @@ function planned(page: NotionPage, name: string, slug: string, publishers: Map<s
       icon: hasPicture(value(page, COLUMNS.icon)),
       background: hasPicture(value(page, COLUMNS.background)),
     },
-    editedAt: typeof page.last_edited_time === "string" ? page.last_edited_time : "",
+    editedAt: editedAtOf(page),
     notionPageId: page.id,
   }
 }
@@ -315,4 +341,28 @@ export async function readPlannedGames(options: NotionReadOptions): Promise<Plan
     games.push(planned(page, name, slug, publishers))
   }
   return { games, skipped, expansions, warnings }
+}
+
+/** What a row's pictures are right now: the date of its last edit and the link of each picture it has, null for one it has not. */
+export type PictureLinks = Map<string, { editedAt: string; links: Record<ArtSlot, string | null> }>
+
+/**
+ * The links of the pictures of every row of the Games database, by the id of the row's Notion page (`PlannedGame.notionPageId`): what
+ * the picture route fetches. One query serves every picture of every game. Read it without a cache (`init: { cache: "no-store" }`): the
+ * link of an uploaded file expires after about an hour, so a link that was kept would be dead. Throws a `NotionError`.
+ */
+export async function readPictureLinks(options: NotionReadOptions): Promise<PictureLinks> {
+  const pictures: PictureLinks = new Map()
+  for (const page of await queryAll(GAMES_DATABASE_ID, options)) {
+    if (page.archived === true || page.in_trash === true) continue
+    pictures.set(page.id, {
+      editedAt: editedAtOf(page),
+      links: {
+        logo: pictureOf(value(page, COLUMNS.logo)),
+        icon: pictureOf(value(page, COLUMNS.icon)),
+        background: pictureOf(value(page, COLUMNS.background)),
+      },
+    })
+  }
+  return pictures
 }
