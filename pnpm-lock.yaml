@@ -2311,6 +2311,52 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
+  packages/table:
+    dependencies:
+      '@pbgo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@react-three/drei':
+        specifier: 'catalog:'
+        version: 10.7.9(@react-three/fiber@9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
+      '@react-three/fiber':
+        specifier: 'catalog:'
+        version: 9.8.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.1)
+      maath:
+        specifier: 'catalog:'
+        version: 0.10.8(@types/three@0.186.0)(three@0.186.1)
+      three:
+        specifier: 'catalog:'
+        version: 0.186.1
+    devDependencies:
+      '@pbgo/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      '@types/three':
+        specifier: 'catalog:'
+        version: 0.186.0
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.0(react@19.3.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/tsconfig: {}
 
   packages/ui:
@@ -2379,6 +2425,9 @@ importers:
       '@pbgo/core':
         specifier: workspace:*
         version: link:../packages/core
+      '@pbgo/table':
+        specifier: workspace:*
+        version: link:../packages/table
       '@pbgo/ui':
         specifier: workspace:*
         version: link:../packages/ui
