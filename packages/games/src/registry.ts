@@ -76,7 +76,7 @@ export const GAMES = [
     slug: "flip-7",
     name: "Flip 7",
     tagline: "The press-your-luck card game, online.",
-    players: { min: 3, max: 18 },
+    players: { min: 3, max: 8 },
     sanityProjectId: "ky3exlhe",
     live: false,
     indexable: false,

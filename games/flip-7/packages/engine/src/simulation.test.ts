@@ -12,7 +12,7 @@ import { type Action, CLIENT_ACTIONS, FLIP7_ERROR_CODES, type Flip7Event, type S
 /**
  * Whole games, played at random and checked after every move.
  *
- * Tables of 3 to 18 players play to the end with every option the game has. Some players stay at the first chance, some almost never
+ * Tables of 3 to 8 players play to the end with every option the game has. Some players stay at the first chance, some almost never
  * (so that busts, Flip 7s and long Flip Three chains happen), and some are away a third of the time, so that the takeover plays for them
  * in every step. After each accepted move this file checks what must hold whatever the cards are: that no card is lost, that the turn
  * goes to the right player, that nobody changes after leaving the round, that a Second Chance is the only card that leaves a line, that
@@ -268,12 +268,17 @@ function play(plan: Plan): State {
   return state
 }
 
-/** The tables: 3 to 18 players, careful and greedy, with and without absent players, and the two ends of the target option. */
-const PLANS: Plan[] = Array.from({ length: 64 }, (_, i) => ({
-  players: 3 + (i % 16),
+/**
+ * The tables: 3 to 8 players, careful and greedy, with and without absent players, and the two ends of the target option. The size
+ * runs fastest and the kind of table once per round of sizes, so every size meets every kind of table (three times each).
+ */
+const SIZES = 6
+const KINDS = 4
+const PLANS: Plan[] = Array.from({ length: SIZES * KINDS * 3 }, (_, i) => ({
+  players: 3 + (i % SIZES),
   seed: seedOf(300 + i),
-  stay: [0.5, 0.15, 0.03, 1][i % 4]!,
-  absent: [0, 0, 0.35, 0][i % 4]!,
+  stay: [0.5, 0.15, 0.03, 1][Math.floor(i / SIZES) % KINDS]!,
+  absent: [0, 0, 0.35, 0][Math.floor(i / SIZES) % KINDS]!,
   options: i % 5 === 0 ? { targetScore: 50 } : i % 5 === 1 ? { targetScore: 500 } : undefined,
 }))
 
@@ -302,9 +307,9 @@ function junk(state: State, rng: Rng): unknown {
 const everySample = (): State[] => Object.values(states).flat()
 
 describe("whole games, checked move by move", () => {
-  it("played the tables: 3 to 18 players, careful and greedy, with absent players", () => {
+  it("played the tables: 3 to 8 players, careful and greedy, with absent players", () => {
     expect(tally.games).toBe(PLANS.length)
-    expect([...tally.players].sort((a, b) => a - b)).toEqual(Array.from({ length: 16 }, (_, i) => i + 3))
+    expect([...tally.players].sort((a, b) => a - b)).toEqual(Array.from({ length: SIZES }, (_, i) => i + 3))
     expect(tally.moves).toBeGreaterThan(5000)
     expect(tally.fallbacks).toBeGreaterThan(200)
     expect(finished.every((state) => GAME.isOver(state))).toBe(true)

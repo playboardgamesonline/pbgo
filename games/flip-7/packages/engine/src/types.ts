@@ -103,7 +103,7 @@ export const CLIENT_ACTIONS = ["hit", "stay", "target", "deal"] as const satisfi
  * `NOT_YOUR_TURN` and `NOT_WAITING` are the ones the platform already translates.
  */
 export const FLIP7_ERROR_CODES = [
-  "INVALID_PLAYERS", // the table is not 3 to 18 different players
+  "INVALID_PLAYERS", // the table is not 3 to 8 different players
   "GAME_OVER", // the game is over
   "NOT_YOUR_TURN", // the action belongs to another player (or to nobody)
   "NOT_WAITING", // the game does not wait for this player (a takeover asked for somebody it does not wait for)

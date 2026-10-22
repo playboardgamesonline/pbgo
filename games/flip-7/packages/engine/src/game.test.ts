@@ -11,10 +11,10 @@ import { playerView } from "./view"
 // The game as the platform reads it: the `GameDefinition` of @pbgo/engine-kit.
 
 describe("the game definition", () => {
-  it("says who it is: Flip 7, 3 to 18 players, one option", () => {
+  it("says who it is: Flip 7, 3 to 8 players, one option", () => {
     expect(GAME.id).toBe("flip-7")
     expect(GAME.name).toBe("Flip 7")
-    expect([GAME.minPlayers, GAME.maxPlayers]).toEqual([3, 18])
+    expect([GAME.minPlayers, GAME.maxPlayers]).toEqual([3, 8])
     expect(Object.keys(GAME.options)).toEqual(["targetScore"])
     expect(defaultOptions(GAME.options)).toEqual({ targetScore: 200 })
     expect(GAME.options).toBe(OPTIONS)

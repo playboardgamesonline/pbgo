@@ -95,8 +95,8 @@ describe("playing for an absent player", () => {
     for (const [n, seed] of [
       [3, 1],
       [5, 2],
-      [10, 3],
-      [18, 4],
+      [6, 3],
+      [8, 4],
     ] as const) {
       const state = playOn(GAME, newState(n, seedOf(seed)), 20_000)
       expect(GAME.isOver(state), `${n} players`).toBe(true)
