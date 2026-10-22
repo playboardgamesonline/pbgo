@@ -7,8 +7,9 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import { type PerspectiveCamera, Vector3 } from "three"
 import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import { TurnCrown } from "./crown"
-import { CARD_SETTINGS, Card } from "./card"
-import { DECK_POSE, type Pose, backPose, handPose, trickPose, collectedPose, LAYOUT_SETTINGS, seats } from "./layout"
+import { CARD_SETTINGS, Card, type Pose } from "@pbgo/table"
+import { GLOWS } from "./glows"
+import { DECK_POSE, backPose, handPose, trickPose, collectedPose, LAYOUT_SETTINGS, seats } from "./layout"
 import { copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
 import { TABLE_CANVAS_ID } from "@pbgo/core/lib/photo"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
@@ -17,7 +18,7 @@ import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { useSettings } from "./settings"
 import { TableText } from "./table-text"
-import { CARD_H, CARD_W, backTexture, faceTexture, matTexture } from "./textures"
+import { CARD_SIZE, backTexture, faceTexture, matTexture } from "./textures"
 
 const RAD = Math.PI / 180
 const TARGET = new Vector3()
@@ -151,7 +152,7 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
             <TableText text={`${j.points} pt${j.points > 1 ? "s" : ""}`} style={{ color: "#f5f2ea", weight: 700 }} height={0.42} position={[pos[0], 0.03, pos[2] + 0.35]} />
             {j.id !== meId &&
               Array.from({ length: j.cardCount }, (_, i) => (
-                <Card key={`back-${j.id}-${i}`} target={backPose(s, i, j.cardCount)} from={{ ...DECK_POSE, delay: i * 0.08 }} front={back} backFace={back} width={CARD_W} height={CARD_H} />
+                <Card key={`back-${j.id}-${i}`} target={backPose(s, i, j.cardCount)} from={{ ...DECK_POSE, delay: i * 0.08 }} front={back} back={back} size={CARD_SIZE} />
               ))}
           </group>
         )
@@ -162,10 +163,9 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
           target={handPose(i, hand.length, myTurn && hovered === c.id)}
           from={{ ...DECK_POSE, delay: i * 0.08 }}
           front={faceTexture(c)}
-          backFace={back}
-          width={CARD_W}
-          height={CARD_H}
-          glow={myTurn && hovered === c.id ? "selection" : null}
+          back={back}
+          size={CARD_SIZE}
+          glow={myTurn && hovered === c.id ? GLOWS.selection : null}
           gloss={hovered === c.id}
           onHover={(s) => setHovered((v) => (s ? c.id : v === c.id ? null : v))}
           onClick={
@@ -180,7 +180,7 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
         />
       ))}
       {[...collectedCards, ...trickCards].map(({ p, pose, from }) => (
-        <Card key={p.card.id} target={pose} from={from} front={faceTexture(p.card)} backFace={back} width={CARD_W} height={CARD_H} />
+        <Card key={p.card.id} target={pose} from={from} front={faceTexture(p.card)} back={back} size={CARD_SIZE} />
       ))}
       <GamePhoto />
     </>

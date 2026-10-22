@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
     "@pbgo/engine-kit",
     "@pbgo/games",
     "@pbgo/studio-kit",
+    "@pbgo/table",
     "@pbgo/ui",
     ...GAMES.flatMap((game) => [`@pbgo-game/${game.slug}`, `@${game.slug}/engine`]),
   ],

@@ -20,6 +20,7 @@
   "dependencies": {
     "@template/engine": "workspace:*",
     "@pbgo/core": "workspace:*",
+    "@pbgo/table": "workspace:*",
     "@pbgo/ui": "workspace:*",
     "@react-three/drei": "catalog:",
     "@react-three/fiber": "catalog:",

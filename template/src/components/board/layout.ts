@@ -1,6 +1,6 @@
+import type { Pose } from "@pbgo/table"
 import { Euler, Quaternion, Vector3 } from "three"
 
-export type Pose = { position: Vector3; quaternion: Quaternion; scale: number; delay?: number }
 export type Seat = { x: number; z: number; yaw: number }
 
 export const LAYOUT_SETTINGS = {

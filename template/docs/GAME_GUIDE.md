@@ -13,7 +13,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 | Monorepo | **pnpm** workspaces, shared catalog of versions | one repo, one app, one package per game |
 | Front | **Next.js 16** (App Router, React 19, TypeScript), the single app `apps/web` | hub, game pages, lobby, board, API routes |
 | UI | **Tailwind CSS 4**, **shadcn/ui** (Radix), **motion**, **sonner** (toasts), icons **lucide-react** + **Hugeicons** | DOM interface |
-| Board | **three**, **@react-three/fiber**, **@react-three/drei**, **maath** (easing) | the table (react-three-fiber) |
+| Board | **three**, **@react-three/fiber**, **@react-three/drei**, **maath** (easing), `@pbgo/table` (the shared Card) | the table (react-three-fiber) |
 | Debug | **leva** (settings panels, custom tabs) | live settings, copyable |
 | Engine | **pure TypeScript** + **Vitest** (`packages/engine` of the game) | game rules, no UI dependency |
 | Realtime / DB | **Supabase** (Postgres + Realtime), one project for every game | games storage + update broadcast |
@@ -33,7 +33,7 @@ How to build a new multiplayer online board game on this monorepo, starting from
 5. **Identity without an account.** httpOnly cookie (`<slug>_player`) = player id. Nickname kept in the local profile (`<slug>:profile`).
 6. **Declarative game options.** The game declares `options` (`number` / `choice` / `boolean`); the lobby renders them and the host edits them (`POST /api/<slug>/games/<code>/options`, values passed through `normalizeOptions`).
 7. **Content in Sanity, defaults in the code.** Texts, translations, pictures and sounds live in the game's Sanity project. The code holds colours, fonts and texts as defaults, never a picture or a sound file: the site works with an empty Sanity project (default skin and texts), a picture that is not in Sanity is not drawn and a sound that is not there stays silent.
-8. **The board = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` animates each object to its pose. Same React key = same object ⇒ real moves (hand → table).
+8. **The board = presentation only.** `layout.ts` computes *poses* (position / rotation) for each card from the view; `scene.tsx` gives each card its pose and the card moves there. Same React key = same object ⇒ real moves (hand → table). The card is the shared `Card` of `@pbgo/table` (glide, flight, bend, hover frame, gloss, shadow): a game gives it a pose, a front and a back texture, a size and its glows, draws a value or a suit as `children` over the face, and never writes a card of its own.
 9. **DOM UI over the board** (header, log, announcements, game over). The ticker, players strip, announcements, takeover pill, chat, seat label and game over are the shared in-game UI: written once, drawn in the game's own look, tuned through `UI_THEME` (see "In-game UI" below).
 10. **Code split per game.** The hub loads no game code; a game's pages load only that game (`@pbgo/games` imports each binding on demand), and its board (three.js) only on the game page.
 11. **The engine says who the game waits for.** `waitingFor(state)` lists the players the game waits for (one on a classic turn, several on a simultaneous step) and `autoPlayFor(state, playerId)` plays for one of them when they are absent. See below.
@@ -78,7 +78,7 @@ The ticker, the players strip, the seat label, the announcements (start, round, 
 - **Motion**: any `motion/react` animation reads `useMotion()` (`"reduced" | "calm" | "lively"`); `GameHud` already mounts `MotionConfig reducedMotion="user"`. Reduced motion always wins over the theme: fades of 150 ms at most, no confetti, emoji burst, spring or looping effect. CSS transitions use `duration-*`, `ease-standard` and `motion-reduce:transition-none`.
 - **Texts**: every label of the shared UI is a `UI_TEXTS` key (`@pbgo/studio-kit`), translated in fr / en / es / de (the strip uses `players`, `playersReady`, `seatDone`, `seatWaiting`, `seatAway`, the ticker `history`). No copy hard-coded in a shared component.
 - **Debug**: Shift+D, TRANSITION tab: the announcement presets (`start`, `round`, `turn`, `victory`: duration, sound, scrim, sizes, banner, confetti). Nothing else of the in-game UI is tunable there.
-- **Reference**: `/design` › In-game UI draws the seat label, the players strip, the four announcements (replay, hold, reduce motion) and the game over (one winner, a tie) in the look of two games side by side. Card and table motion is not part of it.
+- **Reference**: `/design` › In-game UI draws the seat label, the players strip, the four announcements (replay, hold, reduce motion) and the game over (one winner, a tie) in the look of two games side by side. The cards and the table are not part of it: they are the board's, drawn with `@pbgo/table`.
 
 ---
 
@@ -93,7 +93,7 @@ apps/web/                          # 🌐 the only Next.js app (hub + every game
 packages/
 ├─ core/                           # everything shared: server, lib, components, pages, route handlers
 ├─ games/                          # registry slug → metadata + on-demand import of each binding
-├─ engine-kit/, ui/, studio-kit/, site/, tsconfig/, eslint-config/
+├─ engine-kit/, table/, ui/, studio-kit/, site/, tsconfig/, eslint-config/
 games/<slug>/                      # one game
 ├─ CLAUDE.md                       # project rules for the AI (FR → EN glossary of the game included)
 ├─ package.json                    # @pbgo-game/<slug>, the binding package
@@ -206,13 +206,14 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 - Server (Supabase, games with optimistic lock, player cookie, `handle` / `ApiError`, rate limiting), API routes `api/[game]/games/*`, `lib/api.ts`, `use-live-game.ts`, `realtime.ts`
 - Home, lobby and game options (rendered from `GAME.options`), chat, absent players (per-player takeover votes, `StalledTurn`), game over, sharing
 - The in-game UI (ticker, players strip, announcements, takeover pill, chat, game over): one look, tuned per game by `UI_THEME` only
+- The cards of the board: the `Card` of `@pbgo/table` (glide, flight, bend, hover frame, gloss, shadow), fed with a pose, two textures, a size and glows
 - Debug: panel, tabs, `useSettings` (Copy values, FPS), START / NEXT TURN / END buttons
 - Rules: the toolbar's Rules button opens the PDF set per language in `settings` (Setup › Mechanics), the visitor's language, else English, else the first one set
 - SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/gamemaster/<slug>` (Setup, Tasks, Monitoring + Vercel Web Analytics)
 
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
-- `layout.ts` (where the cards go), `scene.tsx` (zones, interactions), `textures.ts`, `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
+- `layout.ts` (where the cards go), `scene.tsx` (zones, interactions), `textures.ts` (the faces and the back the shared `Card` wears), `glows.ts` (what the cards light up with), `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
 - `src/lib/site.ts` (with `ERROR_CODES`, the error codes the engine throws and core does not know: their messages are written in Sanity), `DEFAULT_SKIN` (player colours and behaviour, never a text), `UI_THEME` (optional), the game's own Sanity content types
 
 ---

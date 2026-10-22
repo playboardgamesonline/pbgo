@@ -1,0 +1,38 @@
+{
+  "name": "@pbgo/table",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The game table in react-three-fiber, shared by every game: the Card, poses and the helpers around them. Imported from a game's lazy board chunk only.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pbgo/core": "workspace:*",
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
+    "maath": "catalog:",
+    "three": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
