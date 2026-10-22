@@ -12,7 +12,6 @@ import { buildCards, CARD_LIST, cardId } from "./cards.ts"
 import { buildGame, GAME_ID } from "./game.ts"
 import { buildSettings, SETTINGS_ID } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
-import { buildTexts, TEXTS_ID } from "./texts.ts"
 
 type LocaleObject = { _type: "localeString" | "localeText" } & Record<LanguageId, string>
 
@@ -55,22 +54,14 @@ const TYPES = { number: "numberCard", action: "actionCard", modifier: "modifierC
 describe("the seed documents", () => {
   const count = (type: string) => docs().filter((doc) => doc._type === type).length
 
-  it("are the 25 documents of the Flip 7 seed: 22 cards in three categories, the game, the settings and the texts", () => {
-    expect(docs()).toHaveLength(25)
-    expect({
-      numberCard: count("numberCard"),
-      actionCard: count("actionCard"),
-      modifierCard: count("modifierCard"),
-      game: count("game"),
-      settings: count("settings"),
-      texts: count("texts"),
-    }).toEqual({
+  it("are the 24 documents of the Flip 7 seed: 22 cards in three categories, the game and the settings", () => {
+    expect(docs()).toHaveLength(24)
+    expect({ numberCard: count("numberCard"), actionCard: count("actionCard"), modifierCard: count("modifierCard"), game: count("game"), settings: count("settings") }).toEqual({
       numberCard: 13,
       actionCard: 3,
       modifierCard: 6,
       game: 1,
       settings: 1,
-      texts: 1,
     })
     expect(docs().map((doc) => doc._id)).toEqual([
       ...NUMBERS.map((key) => `number-card-${key}`),
@@ -78,7 +69,6 @@ describe("the seed documents", () => {
       ...MODIFIERS.map((key) => `modifier-card-${key}`),
       "game",
       "settings",
-      "texts",
     ])
   })
 
@@ -94,9 +84,9 @@ describe("the seed documents", () => {
     }
   })
 
-  it("keep the game, the settings and the texts as singletons under the id of their type", () => {
-    for (const type of ["game", "settings", "texts"]) expect(docs().find((doc) => doc._type === type)?._id).toBe(type)
-    expect([GAME_ID, SETTINGS_ID, TEXTS_ID]).toEqual(["game", "settings", "texts"])
+  it("keep the game and the settings as singletons under the id of their type", () => {
+    for (const type of ["game", "settings"]) expect(docs().find((doc) => doc._type === type)?._id).toBe(type)
+    expect([GAME_ID, SETTINGS_ID]).toEqual(["game", "settings"])
   })
 
   it("hold content only: no system field, no image (the art comes with the files)", () => {
@@ -292,100 +282,11 @@ describe("the settings", () => {
   })
 })
 
-describe("the texts", () => {
-  const texts = () => buildTexts() as Doc
-
-  // The terms the booklets and the card faces print, and no other: English from the booklet (ruleset 3.1) and the English faces, French from
-  // the French booklet (2.0) and the French faces. A word nothing prints is not worded here, it is written in the Studio (see below)
-  const PRINTED: Record<string, { fr: string; en: string }> = {
-    hit: { fr: "Encore", en: "Hit" },
-    stay: { fr: "Stop", en: "Stay" },
-    dealer: { fr: "Donneur", en: "Dealer" },
-    round: { fr: "Manche {round}", en: "Round {round}" },
-    busted: { fr: "Sauté", en: "Busted" },
-    scoreNow: { fr: "Score", en: "Score" },
-    scoreTotal: { fr: "Total", en: "Total" },
-    deck: { fr: "Paquet", en: "Deck" },
-    discard: { fr: "Cartes défaussées", en: "Discarded cards" },
-    goal: { fr: "Atteindre {score} points", en: "Score {score} points to win" },
-    targetPrompt: { fr: "Ciblez un joueur", en: "Play on an active player" },
-    detailFlip7: { fr: "Flip 7", en: "Flip 7" },
-  }
-  // The words of the board that no booklet and no card prints: the owner writes them in the Studio, and the board reads `[missing: <field>]` until then
-  const LEFT_TO_THE_STUDIO = [
-    "homeHeading",
-    "genres",
-    "deal",
-    "stayed",
-    "frozen",
-    "setAside",
-    "targetOther",
-    "dealMine",
-    "dealOther",
-    "evHit",
-    "evFlipped",
-    "evBust",
-    "evSaved",
-    "evStay",
-    "evGive",
-    "evGiveSelf",
-    "evDiscarded",
-    "evReshuffle",
-    "evFlip7",
-    "detailRounds",
-    "detailBestRound",
-    "detailBusts",
-    "flip7Banner",
-  ]
-
-  it("are the singleton `texts`, and hold the printed words of the board and nothing else", () => {
-    expect(texts()._id).toBe(TEXTS_ID)
-    expect(texts()._type).toBe("texts")
-    expect(Object.keys(texts()).sort()).toEqual(["_id", "_type", ...Object.keys(PRINTED)].sort())
-  })
-
-  it("write every word as a localeString", () => {
-    for (const field of Object.keys(PRINTED)) expect(texts()[field]._type, field).toBe("localeString")
-  })
-
-  it("read the term the booklets print, in French and in English", () => {
-    for (const [field, { fr, en }] of Object.entries(PRINTED)) {
-      expect(texts()[field].fr, `${field} fr`).toBe(fr)
-      expect(texts()[field].en, `${field} en`).toBe(en)
-    }
-  })
-
-  it("carry the English term in Spanish and German, for the owner to translate: no Spanish or German booklet to read", () => {
-    for (const [field, { en }] of Object.entries(PRINTED)) {
-      expect(texts()[field].es, `${field} es`).toBe(en)
-      expect(texts()[field].de, `${field} de`).toBe(en)
-    }
-  })
-
-  it("keep the slot of a sentence in every language: the round number and the score to reach", () => {
-    for (const language of LANGUAGE_IDS) {
-      expect(texts().round[language], `round ${language}`).toContain("{round}")
-      expect(texts().goal[language], `goal ${language}`).toContain("{score}")
-    }
-  })
-
-  it("leave to the Studio every word that no booklet and no card prints: history lines, statuses, labels between rounds, Flip 7 banner, home heading and genres", () => {
-    for (const field of LEFT_TO_THE_STUDIO) expect(texts(), field).not.toHaveProperty(field)
-    expect(LEFT_TO_THE_STUDIO.filter((field) => field in PRINTED)).toEqual([])
-  })
-
-  it("are built afresh each time", () => {
-    const first = texts()
-    first.hit.en = "changed"
-    expect(texts().hit.en).toBe("Hit")
-  })
-})
-
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // the names of the 3 action cards, the credits and the 12 printed words of the board
-    expect(objects).toHaveLength(16)
+    // the names of the 3 action cards and the credits
+    expect(objects).toHaveLength(4)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 

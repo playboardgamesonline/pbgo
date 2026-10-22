@@ -1,5 +1,15 @@
-/** The game for @pbgo/core, shared by the server and the client: the engine, the site constants, the default look and the in-game theme. Its texts, translations and pictures are in its Sanity project. */
-export { GAME } from "@flip-7/engine"
+import type { SettingsDefaults } from "@pbgo/core/lib/binding"
+
+/** The game for @pbgo/core, shared by the server and the client: site constants. No engine (`GAME`) yet, so its home page says "coming soon". */
 export * from "./lib/site"
-export { DEFAULT_SKIN, SETTINGS_DEFAULTS } from "./lib/skin"
-export { UI_THEME } from "./lib/ui-theme"
+
+/** Colors of the game until they are set in /gamemaster/<slug>. */
+export const SETTINGS_DEFAULTS: SettingsDefaults = {
+  theme: {
+    background: "#1d1f5c",
+    foreground: "#f5f2ea",
+    accent: "#f9dc4f",
+    surface: "#2a2c7c",
+    surfaceDark: "#141640",
+  },
+}

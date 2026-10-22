@@ -11,8 +11,5 @@ export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://flip-7.sanity.studio"
 
-/**
- * Codes the engine throws and core does not know (core has its own for the common ones, `NOT_YOUR_TURN` and `NOT_WAITING`).
- * Their messages are written in Sanity (Gamemaster › Copy › Errors).
- */
-export const ERROR_CODES = ["INVALID_PLAYERS", "GAME_OVER", "INVALID_ACTION", "CANNOT_STAY", "INVALID_TARGET"] as const
+/** Genres of the home page's structured data (`SEO` in server.ts). */
+export const GENRES = ["Jeu de cartes", "Jeu de stop ou encore"]

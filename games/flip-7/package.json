@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Flip 7 for apps/web: site constants, the engine binding, the board, the Sanity loaders and the default look.",
+  "description": "Flip 7 for apps/web: site constants, logo and default look. The engine is written, but the binding does not export it yet, so its home page says \"coming soon\".",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",
@@ -19,16 +19,9 @@
     "deploy:studio": "pnpm --filter flip-7-studio run deploy"
   },
   "dependencies": {
-    "@flip-7/engine": "workspace:*",
     "@pbgo/core": "workspace:*",
     "@pbgo/ui": "workspace:*",
-    "@sanity/client": "catalog:",
-    "leva": "catalog:",
-    "lucide-react": "catalog:",
-    "motion": "catalog:",
-    "next-sanity": "catalog:",
-    "server-only": "catalog:",
-    "sonner": "catalog:"
+    "server-only": "catalog:"
   },
   "peerDependencies": {
     "next": "catalog:",
@@ -36,6 +29,7 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@flip-7/engine": "workspace:*",
     "@pbgo/content-kit": "workspace:*",
     "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",

@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { LANGUAGE_IDS } from "@pbgo/content-kit"
 import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields, imagesOf, imageValue } from "@pbgo/content-kit/testing"
 import type { Doc, FieldDef, TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
@@ -101,7 +100,7 @@ describe("the Studio", () => {
     // the Studio offers no "new document" template for a singleton, which it opens by the name of its type
     const creatable = studio.schema.templates(SEED_TYPES.map((schemaType) => ({ schemaType }))).map(({ schemaType }) => schemaType)
     const singletons = SEED_TYPES.filter((type) => !creatable.includes(type))
-    expect([...singletons].sort()).toEqual(["game", "settings", "texts"])
+    expect([...singletons].sort()).toEqual(["game", "settings"])
     for (const doc of seedDocs()) expect(doc._id === doc._type, doc._id).toBe(singletons.includes(doc._type))
   })
 })
@@ -224,39 +223,6 @@ describe("the forms of the cards", () => {
   it("give a name in the four languages to the action cards alone: a figure card is named by its key", () => {
     expect(fieldOf("actionCard", "name").type).toBe("localeString")
     for (const type of CARD_TYPES.filter((candidate) => candidate !== "actionCard")) expect(fieldNames(type), type).not.toContain("name")
-  })
-})
-
-// The words of the board the seed writes into `texts` (the printed ones only, see texts.ts): each is a field of the Flip 7 vocabulary of the Studio
-// (`word()` of schemaTypes/texts.ts, a localeString in the "board" tab). The rest of the vocabulary is the owner's to write there, so the form is not
-// expected to be filled, unlike the cards'.
-describe("the texts, against the Studio", () => {
-  const texts = () => docOf("texts")
-  const seeded = () => Object.keys(texts()).filter((field) => !field.startsWith("_"))
-  const slotsOf = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map(([, slot]) => slot)
-
-  it("write fields the Studio has, each a localeString in the board tab", () => {
-    expect(seeded().length).toBeGreaterThan(0)
-    for (const field of seeded()) {
-      const found = fieldOf("texts", field)
-      expect(found.type, field).toBe("localeString")
-      expect(found.group, field).toBe("board")
-    }
-  })
-
-  it("only use the slots that the title of the field declares", () => {
-    for (const field of seeded()) {
-      const declared = slotsOf((fieldOf("texts", field) as FieldDef & { title?: string }).title ?? "")
-      for (const language of LANGUAGE_IDS) {
-        for (const slot of slotsOf(texts()[field][language])) expect(declared, `${field} ${language}`).toContain(slot)
-      }
-    }
-  })
-
-  it("leave the owner words to write: the Studio has more words of the board than the seed fills", () => {
-    const vocabulary = (typeOf("texts").fields ?? []).filter((field) => field.group === "board").map((field) => field.name)
-    expect(vocabulary.filter((name) => !seeded().includes(name)).length).toBeGreaterThan(0)
-    expect(seeded().filter((name) => !vocabulary.includes(name))).toEqual([])
   })
 })
 

@@ -8,7 +8,6 @@
     "build": "sanity build",
     "deploy": "sanity deploy",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
     "typegen": "sanity schemas extract --force && sanity typegen generate",
     "schema:deploy": "sanity schemas deploy"
   },
@@ -22,11 +21,9 @@
     "styled-components": "catalog:"
   },
   "devDependencies": {
-    "@pbgo/content-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }
