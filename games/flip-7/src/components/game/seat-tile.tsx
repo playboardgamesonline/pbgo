@@ -3,6 +3,7 @@
 import type { Face, PublicSeat } from "@flip-7/engine"
 import { Crown } from "lucide-react"
 import { motion, type MotionProps } from "motion/react"
+import { useEffect, useRef } from "react"
 import { PlayerSeatLabel } from "@pbgo/core/components/game/player-seat"
 import { useText } from "@pbgo/core/components/skin-provider"
 import { useMotion } from "@pbgo/core/lib/use-motion"
@@ -40,21 +41,27 @@ function duplicateOf(cards: Face[]): number | null {
   return null
 }
 
-type Props = { seat: PublicSeat; mine: boolean; waiting: boolean; dealer: boolean }
+type Props = { seat: PublicSeat; mine: boolean; waiting: boolean; dealer: boolean; compact?: boolean }
 
 /** One player's place at the table: who they are, their line of cards, what it is worth now and what they banked. */
-export function SeatTile({ seat, mine, waiting, dealer }: Props) {
+export function SeatTile({ seat, mine, waiting, dealer, compact = false }: Props) {
   const w = useWords()
   const t = useText()
   const mode = useMotion()
-  const size: CardSize = mine ? "lg" : "md"
+  const ref = useRef<HTMLElement>(null)
+  const size: CardSize = mine ? "lg" : compact ? "sm" : "md"
   const duplicate = seat.status === "busted" ? duplicateOf(seat.cards) : null
   const badge = seat.status === "active" ? null : seat.status
+  // The tiles of the others sit in an area that scrolls when the table is full: the one the game waits for is brought into view.
+  useEffect(() => {
+    if (waiting && !mine) ref.current?.scrollIntoView({ block: "nearest", behavior: mode === "reduced" ? "auto" : "smooth" })
+  }, [waiting, mine, mode])
   return (
     <section
+      ref={ref}
       className={cn(
-        "relative flex min-w-0 flex-col gap-2 rounded-2xl bg-surface-dark/70 p-3 ring-1 ring-foreground/10 transition-shadow duration-200 ease-out motion-reduce:transition-none short:gap-1 short:p-2",
-        mine && "bg-surface-dark/90",
+        "relative flex min-w-0 flex-col rounded-2xl ring-1 ring-foreground/10 transition-shadow duration-200 ease-out motion-reduce:transition-none",
+        mine ? "gap-2 bg-surface-dark/90 p-3 short:gap-1 short:p-2" : "gap-1.5 bg-surface-dark/70 p-2.5 short:gap-1 short:p-2",
         waiting && "ring-2 ring-accent-game",
       )}
     >
@@ -94,14 +101,14 @@ export function SeatTile({ seat, mine, waiting, dealer }: Props) {
         </div>
       )}
 
-      <dl className="mt-auto flex items-end justify-between gap-3 text-xs text-foreground/70">
-        <div>
+      <dl className="mt-auto flex items-baseline justify-between gap-3 text-xs text-foreground/70">
+        <div className="flex items-baseline gap-1.5">
           <dt>{w.scoreNow}</dt>
-          <dd className={cn("font-display text-lg text-foreground tabular-nums", seat.status === "busted" && "opacity-60")}>{seat.score}</dd>
+          <dd className={cn("font-display text-foreground tabular-nums", mine ? "text-xl" : "text-base", seat.status === "busted" && "opacity-60")}>{seat.score}</dd>
         </div>
-        <div className="text-right">
+        <div className="flex items-baseline gap-1.5">
           <dt>{w.scoreTotal}</dt>
-          <dd className="font-display text-lg text-foreground tabular-nums">{seat.total}</dd>
+          <dd className={cn("font-display text-foreground tabular-nums", mine ? "text-xl" : "text-base")}>{seat.total}</dd>
         </div>
       </dl>
     </section>

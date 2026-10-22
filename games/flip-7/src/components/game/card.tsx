@@ -8,8 +8,8 @@ import { useCatalog } from "./catalog-context"
 /** Widths of a card: the pictures are 326 × 512, so the height follows. */
 const SIZES = {
   sm: "w-8 short:w-6",
-  md: "w-10 short:w-8",
-  lg: "w-14 short:w-10",
+  md: "w-12 short:w-8",
+  lg: "w-[4.5rem] short:w-10",
 } as const
 
 export type CardSize = keyof typeof SIZES

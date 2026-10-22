@@ -16,6 +16,7 @@ import type { ClientDebugCommand } from "@pbgo/core/lib/api"
 import type { BoardProps } from "@pbgo/core/lib/binding"
 import { useApi } from "@pbgo/core/lib/binding-context"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
+import { cn } from "@pbgo/ui/utils"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { type TableView, tableView } from "../../lib/view"
 import { ActionBar } from "./action-bar"
@@ -136,6 +137,8 @@ function Table({ onUpdate, onLeave }: Pick<BoardProps, "onUpdate" | "onLeave">) 
   const mine = view.players[index] ?? null
   // The others in the order they sit after me; a spectator sees every seat in seat order.
   const others = mine ? [...view.players.slice(index + 1), ...view.players.slice(0, index)] : view.players
+  // Seven opponents do not fit at full size on one screen: from five on, their tiles are narrower and their cards smaller.
+  const crowded = others.length > 4
 
   return (
     <GameHud
@@ -159,15 +162,25 @@ function Table({ onUpdate, onLeave }: Pick<BoardProps, "onUpdate" | "onLeave">) 
     >
       <div className="absolute inset-0 flex flex-col bg-cover bg-center" style={matUrl ? { backgroundImage: `url(${matUrl})` } : undefined}>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="flex min-h-full w-full flex-col gap-3 px-4 pt-32 pb-4 short:pt-16 md:pr-[27rem]">
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3">
-              {others.map((seat) => (
-                <SeatTile key={seat.id} seat={seat} mine={false} waiting={seat.id === waited} dealer={seat.id === view.dealer} />
-              ))}
-            </div>
-            {mine && <SeatTile seat={mine} mine waiting={mine.id === waited} dealer={mine.id === view.dealer} />}
+          <div
+            className={cn(
+              // The HUD sits at the top left (logo, menu) and the ticker at the top right: the tiles keep clear of both, with the room the chat takes on the right of a tall screen.
+              "grid gap-3 px-4 pt-32 pb-3 md:pr-[27rem] short:pt-3 short:pr-44 short:pl-36",
+              crowded
+                ? "grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] short:grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]"
+                : "grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] short:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]",
+            )}
+          >
+            {others.map((seat) => (
+              <SeatTile key={seat.id} seat={seat} mine={false} compact={crowded} waiting={seat.id === waited} dealer={seat.id === view.dealer} />
+            ))}
           </div>
         </div>
+        {mine && (
+          <div className="shrink-0 px-4 pb-2 md:pr-[27rem] short:pr-16">
+            <SeatTile seat={mine} mine waiting={mine.id === waited} dealer={mine.id === view.dealer} />
+          </div>
+        )}
         <ActionBar sending={sending} onSend={send} />
       </div>
     </GameHud>

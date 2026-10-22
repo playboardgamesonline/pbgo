@@ -50,7 +50,7 @@ export function ActionBar({ sending, onSend }: { sending: boolean; onSend: Send 
   const { step } = view
   const meId = view.me?.id ?? null
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-3 px-4 pt-2 pb-4 short:gap-y-1 short:pb-2 md:pr-[27rem]">
+    <div className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-3 px-4 pt-2 pb-4 md:pr-[27rem] short:gap-y-1 short:pb-2 short:pr-16">
       <Piles />
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
         {step.kind === "turn" && step.player === meId && (
