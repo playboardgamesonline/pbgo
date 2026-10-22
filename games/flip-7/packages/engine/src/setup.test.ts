@@ -6,8 +6,8 @@ import { MAX_PLAYERS, MIN_PLAYERS, setupGame } from "./setup"
 import { PLAYER_IDS, newState, players, problems, refusal, seedOf, waiting } from "./test-utils"
 
 describe("setting up a table", () => {
-  it("seats 3 to 18 players, as the booklet says (3+ players, a second deck past 18)", () => {
-    expect([MIN_PLAYERS, MAX_PLAYERS]).toEqual([3, 18])
+  it("seats 3 to 8 players (the booklet says 3+; the web edition stops at the 8 a screen can show)", () => {
+    expect([MIN_PLAYERS, MAX_PLAYERS]).toEqual([3, 8])
     for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
       const state = newState(n, seedOf(n))
       expect(state.seats, `${n} players`).toEqual(PLAYER_IDS.slice(0, n))
@@ -18,7 +18,7 @@ describe("setting up a table", () => {
   it.each<[string, unknown]>([
     ["two players", players(2)],
     ["nobody", []],
-    ["nineteen players", [...players(18), { id: "sam", nickname: "SAM" }]],
+    ["nine players", [...players(8), { id: "sam", nickname: "SAM" }]],
     ["the same player twice", [...players(2), { id: "ana", nickname: "ANA" }]],
     ["an empty id", [...players(2), { id: "", nickname: "?" }]],
     ["an id that is not a text", [...players(2), { id: 7, nickname: "?" }]],
