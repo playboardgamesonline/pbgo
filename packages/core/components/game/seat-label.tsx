@@ -8,7 +8,7 @@ import { seatTheme, type SeatTheme } from "../../lib/ui-theme"
 
 /**
  * The seat label: a player's avatar and nickname, the same everywhere a player is named (strip of pending players, lobby,
- * announcements, game over; the 3D tables draw the same avatar from `lib/seat-avatar-canvas.ts`). Pure presentation, no game
+ * announcements, game over; the tables draw the same avatar from `lib/seat-avatar-canvas.ts`). Pure presentation, no game
  * context: `player-seat.tsx` feeds it from the game, `/design` with samples. A game tunes it through `UI_THEME.seat` of its
  * binding (shape, ring, font, nickname colour), never by restyling the component.
  *

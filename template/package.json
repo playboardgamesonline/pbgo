@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Template of a game for apps/web (demo: La Plus Haute): engine binding, 3D board, site constants. `pnpm new-game <slug>` copies it to games/<slug>.",
+  "description": "Template of a game for apps/web (demo: La Plus Haute): engine binding, board, site constants. `pnpm new-game <slug>` copies it to games/<slug>.",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",

@@ -2,7 +2,7 @@
 
 import { formatDateTime } from "../../lib/format-date"
 import type { Locale } from "../../lib/i18n"
-import { captureGamePhoto } from "../../lib/photo"
+import { captureGamePhoto, TABLE_CANVAS_ID } from "../../lib/photo"
 
 export type ShareRow = {
   rank: number
@@ -54,7 +54,8 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
   ctx.fillStyle = "#0e3940"
   ctx.fillRect(0, 0, W, H)
 
-  const source = photo ?? document.querySelector<HTMLCanvasElement>("#scene-3d canvas")
+  // `#scene-3d` is Courtisans' former canvas id, until its board is moved onto the shared table (GAM-31)
+  const source = photo ?? document.querySelector<HTMLCanvasElement>(`#${TABLE_CANVAS_ID} canvas, #scene-3d canvas`)
   if (source) {
     const ratio = Math.max(W / source.width, H / source.height)
     const l = source.width * ratio

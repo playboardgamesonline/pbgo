@@ -7,9 +7,10 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import { type PerspectiveCamera, Vector3 } from "three"
 import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import { TurnCrown } from "./crown"
-import { CARD_SETTINGS, Card3D } from "./card3d"
+import { CARD_SETTINGS, Card } from "./card"
 import { DECK_POSE, type Pose, backPose, handPose, trickPose, collectedPose, LAYOUT_SETTINGS, seats } from "./layout"
 import { copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
+import { TABLE_CANVAS_ID } from "@pbgo/core/lib/photo"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
 import { GamePhoto } from "./photo"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
@@ -150,13 +151,13 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
             <TableText text={`${j.points} pt${j.points > 1 ? "s" : ""}`} style={{ color: "#f5f2ea", weight: 700 }} height={0.42} position={[pos[0], 0.03, pos[2] + 0.35]} />
             {j.id !== meId &&
               Array.from({ length: j.cardCount }, (_, i) => (
-                <Card3D key={`back-${j.id}-${i}`} target={backPose(s, i, j.cardCount)} from={{ ...DECK_POSE, delay: i * 0.08 }} front={back} backFace={back} width={CARD_W} height={CARD_H} />
+                <Card key={`back-${j.id}-${i}`} target={backPose(s, i, j.cardCount)} from={{ ...DECK_POSE, delay: i * 0.08 }} front={back} backFace={back} width={CARD_W} height={CARD_H} />
               ))}
           </group>
         )
       })}
       {hand.map((c, i) => (
-        <Card3D
+        <Card
           key={c.id}
           target={handPose(i, hand.length, myTurn && hovered === c.id)}
           from={{ ...DECK_POSE, delay: i * 0.08 }}
@@ -179,7 +180,7 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
         />
       ))}
       {[...collectedCards, ...trickCards].map(({ p, pose, from }) => (
-        <Card3D key={p.card.id} target={pose} from={from} front={faceTexture(p.card)} backFace={back} width={CARD_W} height={CARD_H} />
+        <Card key={p.card.id} target={pose} from={from} front={faceTexture(p.card)} backFace={back} width={CARD_W} height={CARD_H} />
       ))}
       <GamePhoto />
     </>
@@ -203,7 +204,7 @@ type SceneProps = {
 
 export function Scene(props: SceneProps) {
   return (
-    <Canvas id="scene-3d" gl={{ preserveDrawingBuffer: true }} dpr={[1, 2]} camera={{ fov: 34, near: 0.1, far: 300, position: [0, 18, 14] }}>
+    <Canvas id={TABLE_CANVAS_ID} gl={{ preserveDrawingBuffer: true }} dpr={[1, 2]} camera={{ fov: 34, near: 0.1, far: 300, position: [0, 18, 14] }}>
       <Suspense fallback={null}>
         <World {...props} />
       </Suspense>

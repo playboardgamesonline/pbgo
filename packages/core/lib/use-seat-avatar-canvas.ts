@@ -48,7 +48,7 @@ function useFontFamily(font: string, text: string): string | null {
 }
 
 /**
- * The canvas of a player's seat avatar, for a 3D table (the game wraps it in a texture). Painted once the font has loaded, and again
+ * The canvas of a player's seat avatar, for a table (the game wraps it in a texture). Painted once the font has loaded, and again
  * when an account picture arrives. `null` before that and outside a browser.
  */
 export function useSeatAvatarCanvas(avatar: SeatAvatar, theme: SeatTheme, px = 256): HTMLCanvasElement | null {
