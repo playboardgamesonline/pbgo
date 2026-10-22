@@ -1,3 +1,8 @@
-/* The game's styles: core's shared styles (theme tokens, admin preset), then the game's own tokens and fonts. */
+/* The game's styles: core's shared styles (theme tokens), then Flip 7's own tokens. A game's font files live in its Sanity project, never here, so the stacks are system fonts: a rounded sans for the chips and the headings alike. */
 @import "@pbgo/core/styles/game.css";
 @source ".";
+
+:root {
+  --font-body: ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Segoe UI", system-ui, sans-serif;
+  --font-title: var(--font-body);
+}
