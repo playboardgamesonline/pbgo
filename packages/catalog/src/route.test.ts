@@ -58,7 +58,7 @@ type World = {
 /** Notion and the picture hosts as `World` describes them, and a picture route that has never been asked anything (and never logged anything). */
 async function world({ rows = [], hosts = {}, token = TOKEN, catalog, links }: World = {}) {
   vi.stubEnv("NOTION_API_KEY", token ?? undefined)
-  const notion = fakeNotion({ games: rows.map(gamePage), editors: [] })
+  const notion = fakeNotion({ games: rows.map(gamePage), editors: [], creators: [] })
   let linkReads = 0
   const web = fakeWeb(
     {

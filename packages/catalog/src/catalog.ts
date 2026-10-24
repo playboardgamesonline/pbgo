@@ -22,12 +22,6 @@ export type ArtSlot = (typeof ART_SLOTS)[number]
 export type PlannedGame = {
   slug: string
   name: string
-  /** Notion's Status as written ("Not started", "Rules", … "Live", "Paused"); null when empty. Sorts the list, never shown. */
-  status: string | null
-  /** 1 (P1 · Now) to 4 (P4 · Someday); null when empty. Sorts the list, never shown. */
-  priority: number | null
-  /** Read, not used yet. */
-  effort: string | null
   /** A description per language, only the languages the row fills. Pick one with `pickLocalized`. */
   descriptions: Partial<Record<Locale, string>>
   /** `max: null` is "N or more". */
@@ -36,8 +30,10 @@ export type PlannedGame = {
   duration: number | null
   /** The minimum age in years. */
   age: number | null
+  /** The names of the people of the Creators database the row lists as its authors, in the order of the row. */
   authors: string[]
-  artists: string[]
+  /** The same for its illustrators. */
+  illustrators: string[]
   publishers: Publisher[]
   /** Link to the rulebook per language, only the languages the row fills. */
   rules: Partial<Record<Locale, string>>
@@ -73,22 +69,12 @@ export type Catalog = { entries: CatalogEntry[]; notion: "off" | "ok" | "unavail
 /** Games of the registry that are not in the catalog: the template is the demo of the shared base, not a game. */
 export const UNLISTED_SLUGS: ReadonlySet<string> = new Set(["template"])
 
-/** Notion's Status, the furthest along first. A status that is not in the list (or none) counts as "Not started". */
-export const STATUS_ORDER: readonly string[] = ["Live", "PlayTest", "Table", "Content", "Engine", "Rules", "Not started", "Paused"]
-
-const NOT_STARTED = STATUS_ORDER.indexOf("Not started")
-const NO_PRIORITY = 99
 // "6 nimmt!" before "7 Wonders", "Skyjo" and "Skull King" in the order a reader expects
 const NAMES = new Intl.Collator("en", { sensitivity: "base", numeric: true })
 
-function statusRank(status: string | null): number {
-  const rank = status === null ? -1 : STATUS_ORDER.indexOf(status)
-  return rank >= 0 ? rank : NOT_STARTED
-}
-
-/** Status (furthest along first, Paused last), then priority (P1 first, none last), then name. */
+/** By name: case and accents aside, numbers in their order. */
 export function comparePlanned(a: PlannedGame, b: PlannedGame): number {
-  return statusRank(a.status) - statusRank(b.status) || (a.priority ?? NO_PRIORITY) - (b.priority ?? NO_PRIORITY) || NAMES.compare(a.name, b.name)
+  return NAMES.compare(a.name, b.name)
 }
 
 /**

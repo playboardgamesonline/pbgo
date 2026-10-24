@@ -1,15 +1,19 @@
 import { slugProblem } from "@pbgo/games/slug"
 import { describe, expect, it } from "vitest"
 import type { PlannedGame } from "./catalog"
-import { EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readPlannedGames } from "./notion"
-import { editorPage, external, fakeNotion, gamePage, notionFailure, uploaded, type Answer, type GameRow } from "./testing"
+import { CREATORS_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readPlannedGames } from "./notion"
+import { creatorPage, editorPage, external, fakeNotion, gamePage, notionFailure, uploaded, type Answer, type GameRow } from "./testing"
 
 const TOKEN = "ntn_testsecret123"
 const EDITOR_1 = "9f1c2d3e-0000-4000-8000-00000000e001"
 const EDITOR_2 = "9f1c2d3e-0000-4000-8000-00000000e002"
+const CREATOR_1 = "9f1c2d3e-0000-4000-8000-00000000c001"
+const CREATOR_2 = "9f1c2d3e-0000-4000-8000-00000000c002"
+const CREATOR_3 = "9f1c2d3e-0000-4000-8000-00000000c003"
 
-/** What `readPlannedGames` makes of the two databases, as a fake Notion answers them. */
-const readGames = (games: Answer, editors: Answer = []) => readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games, editors }).fetch })
+/** What `readPlannedGames` makes of the three databases, as a fake Notion answers them. */
+const readGames = (games: Answer, editors: Answer = [], creators: Answer = []) =>
+  readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games, editors, creators }).fetch })
 
 /** The one game a row makes. */
 async function one(row: GameRow = {}): Promise<PlannedGame> {
@@ -31,9 +35,9 @@ async function failureOf(read: Promise<unknown>): Promise<NotionError> {
 
 describe("the requests", () => {
   it("asks each database once, as JSON, with the token and the API version", async () => {
-    const notion = fakeNotion({ games: [gamePage()], editors: [] })
+    const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [] })
     await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
-    expect(notion.calls.map((call) => call.database).sort()).toEqual([EDITORS_DATABASE_ID, GAMES_DATABASE_ID].sort())
+    expect(notion.calls.map((call) => call.database).sort()).toEqual([CREATORS_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID].sort())
     for (const call of notion.calls) {
       expect(call.init.method).toBe("POST")
       expect(call.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, "Notion-Version": NOTION_VERSION, "Content-Type": "application/json" })
@@ -43,10 +47,10 @@ describe("the requests", () => {
   })
 
   it("adds the caller's options to every request, but they cannot replace the method, the headers or the body", async () => {
-    const notion = fakeNotion({ games: [gamePage()], editors: [] })
+    const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [] })
     const init: RequestInit = { method: "GET", headers: { Authorization: "Bearer other" }, body: "{}", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } }
     await readPlannedGames({ token: TOKEN, fetch: notion.fetch, init })
-    expect(notion.calls).toHaveLength(2)
+    expect(notion.calls).toHaveLength(3)
     for (const call of notion.calls) {
       expect(call.init).toMatchObject({ method: "POST", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } })
       expect(call.headers.Authorization).toBe(`Bearer ${TOKEN}`)
@@ -56,7 +60,7 @@ describe("the requests", () => {
 
   it("follows the cursor to the last page and keeps the order of the rows", async () => {
     const rows = ["a", "b", "c", "d", "e"].map((slug) => gamePage({ slug, name: slug.toUpperCase() }))
-    const notion = fakeNotion({ games: rows, editors: [] }, 2)
+    const notion = fakeNotion({ games: rows, editors: [], creators: [] }, 2)
     const { games } = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
     expect(games.map((game) => game.slug)).toEqual(["a", "b", "c", "d", "e"])
     expect(notion.calls.filter((call) => call.database === GAMES_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
@@ -70,9 +74,9 @@ describe("the requests", () => {
     }) as typeof fetch
     const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: endless }))
     expect(error.message).toBe("More than 1000 rows in a database: the reader stops there")
-    // Ten requests for the Games database, and the Editors one runs next to it, under the same bound
+    // Ten requests for the Games database, and the Editors and Creators ones run next to it, under the same bound
     expect(asked).toBeGreaterThanOrEqual(10)
-    expect(asked).toBeLessThanOrEqual(20)
+    expect(asked).toBeLessThanOrEqual(30)
   })
 })
 
@@ -151,12 +155,45 @@ describe("when Notion cannot be read", () => {
   })
 
   it("reads the games without publishers, and says why, when only the Editors database fails", async () => {
-    const notion = fakeNotion({ games: [gamePage({ slug: "hanabi", name: "Hanabi", editors: [EDITOR_1] })] })
+    const notion = fakeNotion({
+      games: [gamePage({ slug: "hanabi", name: "Hanabi", authors: [CREATOR_1], editors: [EDITOR_1] })],
+      creators: [creatorPage({ id: CREATOR_1, name: "Author One" })],
+    })
     const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
-    expect(read.games.map((game) => [game.slug, game.publishers])).toEqual([["hanabi", []]])
+    expect(read.games.map((game) => [game.slug, game.authors, game.publishers])).toEqual([["hanabi", ["Author One"], []]])
     expect(read.warnings).toHaveLength(1)
     expect(read.warnings[0]).toContain("The Editors database could not be read, so no game has a publisher")
     expect(read.warnings[0]).toContain("object_not_found")
+  })
+
+  it("reads the games without authors or illustrators, and says why, when only the Creators database fails", async () => {
+    const notion = fakeNotion({
+      games: [gamePage({ slug: "hanabi", name: "Hanabi", authors: [CREATOR_1], illustrators: [CREATOR_2], editors: [EDITOR_1] })],
+      editors: [editorPage({ id: EDITOR_1, name: "Editor One" })],
+    })
+    const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    expect(read.games.map((game) => [game.slug, game.authors, game.illustrators, game.publishers])).toEqual([["hanabi", [], [], [{ name: "Editor One", url: null }]]])
+    expect(read.warnings).toHaveLength(1)
+    expect(read.warnings[0]).toContain("The Creators database could not be read, so no game has an author or an illustrator")
+    expect(read.warnings[0]).toContain("object_not_found")
+  })
+
+  it("says so for each of them when neither can be read, the Editors database first", async () => {
+    const read = await readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games: [gamePage()] }).fetch })
+    expect(read.warnings).toHaveLength(2)
+    expect(read.warnings[0]).toContain("The Editors database could not be read")
+    expect(read.warnings[1]).toContain("The Creators database could not be read")
+  })
+
+  it("lists the warnings in the same order whichever database answers first", async () => {
+    const page = gamePage()
+    delete page.properties["Rules DE"]
+    const notion = fakeNotion({ games: [page] })
+    // The Editors database answers last: its warning must not end up behind the one of the Creators database
+    const lateEditors = ((input: string | URL | Request, init?: RequestInit) =>
+      String(input).includes(EDITORS_DATABASE_ID) ? new Promise<Response>((resolve) => setTimeout(() => resolve(notion.fetch(input, init)), 20)) : notion.fetch(input, init)) as typeof fetch
+    const read = await readPlannedGames({ token: TOKEN, fetch: lateEditors })
+    expect(read.warnings.map((warning) => warning.split(" database")[0])).toEqual(["The Editors", "The Creators", "The Games"])
   })
 })
 
@@ -168,14 +205,11 @@ describe("a row of the Games database", () => {
           id: "11111111-aaaa-4bbb-8ccc-000000000001",
           name: "Hanabi",
           slug: "hanabi",
-          status: "Engine",
-          priority: "P2 · Next",
-          effort: "M",
           players: "2 - 5",
           duration: 25,
           age: "8+",
-          authors: ["Author One", "Author Two"],
-          artwork: ["Artist One"],
+          authors: [CREATOR_1, CREATOR_2],
+          illustrators: [CREATOR_3],
           editors: [EDITOR_1],
           logo: [uploaded("logo.png")],
           icon: [external("https://example.com/icon.png")],
@@ -185,21 +219,19 @@ describe("a row of the Games database", () => {
         }),
       ],
       [editorPage({ id: EDITOR_1, name: "Editor One", url: "https://editor.example.com" })],
+      [creatorPage({ id: CREATOR_1, name: "Author One" }), creatorPage({ id: CREATOR_2, name: "Author Two" }), creatorPage({ id: CREATOR_3, name: "Illustrator One" })],
     )
     expect(read).toEqual({
       games: [
         {
           slug: "hanabi",
           name: "Hanabi",
-          status: "Engine",
-          priority: 2,
-          effort: "M",
           descriptions: { fr: "Description FR", en: "Description EN" },
           players: { min: 2, max: 5 },
           duration: 25,
           age: 8,
           authors: ["Author One", "Author Two"],
-          artists: ["Artist One"],
+          illustrators: ["Illustrator One"],
           publishers: [{ name: "Editor One", url: "https://editor.example.com" }],
           rules: { en: "https://example.com/rules-en.pdf" },
           art: { logo: true, icon: true, background: false },
@@ -218,15 +250,12 @@ describe("a row of the Games database", () => {
     expect(await one({ name: "Hanabi", slug: "hanabi" })).toEqual({
       slug: "hanabi",
       name: "Hanabi",
-      status: null,
-      priority: null,
-      effort: null,
       descriptions: {},
       players: null,
       duration: null,
       age: null,
       authors: [],
-      artists: [],
+      illustrators: [],
       publishers: [],
       rules: {},
       art: { logo: false, icon: false, background: false },
@@ -264,25 +293,12 @@ describe("a row of the Games database", () => {
   })
 
   it.each([
-    ["P1 · Now", 1],
-    ["P4 · Someday", 4],
-    ["urgent", null],
-  ])("reads the Priority %j as %j", async (label, priority) => {
-    expect((await one({ priority: label })).priority).toBe(priority)
-  })
-
-  it.each([
     [25, 25],
     [0, null],
     [-5, null],
     [null, null],
   ])("reads the Duration %j as %j", async (minutes, duration) => {
     expect((await one({ duration: minutes })).duration).toBe(duration)
-  })
-
-  it("keeps the status as Notion writes it, and nothing when there is none", async () => {
-    expect((await one({ status: "Not started" })).status).toBe("Not started")
-    expect((await one({ status: null })).status).toBeNull()
   })
 
   it("joins a text Notion cut into parts, and drops a language whose text is empty", async () => {
@@ -313,11 +329,6 @@ describe("a row of the Games database", () => {
     expect(game.art).toEqual({ logo: false, icon: true, background: false })
   })
 
-  it("cleans the names of the authors and the artists", async () => {
-    const game = await one({ authors: ["  Author   One "], artwork: ["Artist\tOne"] })
-    expect(game).toMatchObject({ authors: ["Author One"], artists: ["Artist One"] })
-  })
-
   it("reads a cell that is not of the type it should be as empty, without failing", async () => {
     const page = gamePage({ name: "Sample", slug: "sample", players: "2 - 4", duration: 30, descriptions: { en: "Text" } })
     page.properties.Players = { type: "number", number: 3 }
@@ -344,6 +355,46 @@ describe("the publishers of a row", () => {
       [editorPage({ id: EDITOR_1, name: "\tdaVinci Games", url: "javascript:alert(1)" }), editorPage({ id: EDITOR_2, name: "", url: "https://nameless.example.com" })],
     )
     expect(games[0]?.publishers).toEqual([{ name: "daVinci Games", url: null }])
+  })
+})
+
+describe("the authors and the illustrators of a row", () => {
+  const people = [
+    creatorPage({ id: CREATOR_1, name: "Author One", roles: ["Author"] }),
+    creatorPage({ id: CREATOR_2, name: "Author Two", roles: ["Author", "Illustrator"] }),
+    creatorPage({ id: CREATOR_3, name: "Illustrator One", roles: ["Illustrator"] }),
+  ]
+
+  it("are matched by id however Notion writes the id, in the order of the relation, and a person can be both", async () => {
+    const { games } = await readGames(
+      [gamePage({ authors: ["9F1C2D3E00004000800000000000C002", "unknown-id", CREATOR_1], illustrators: [CREATOR_2, CREATOR_3] })],
+      [],
+      people,
+    )
+    expect(games[0]).toMatchObject({ authors: ["Author Two", "Author One"], illustrators: ["Author Two", "Illustrator One"] })
+  })
+
+  it("come from the column of the game, not from the Role of the person", async () => {
+    const { games } = await readGames([gamePage({ authors: [CREATOR_3], illustrators: [CREATOR_1] })], [], people)
+    expect(games[0]).toMatchObject({ authors: ["Illustrator One"], illustrators: ["Author One"] })
+  })
+
+  it("lose a person the Creators database does not have, one with no name, and the white space or the control characters of a name", async () => {
+    const { games } = await readGames(
+      [gamePage({ authors: [CREATOR_1, CREATOR_2, CREATOR_3, "unknown-id"] })],
+      [],
+      [creatorPage({ id: CREATOR_1, name: "  Author\tOne " }), creatorPage({ id: CREATOR_2, name: "" }), creatorPage({ id: CREATOR_3, name: "Ill \u001b Two" })],
+    )
+    expect(games[0]?.authors).toEqual(["Author One", "Ill Two"])
+  })
+
+  it("are found on any page of the Creators database", async () => {
+    const ids = ["c100", "c101", "c102", "c103", "c104"].map((suffix) => `9f1c2d3e-0000-4000-8000-00000000${suffix}`)
+    const creators = ids.map((id, index) => creatorPage({ id, name: `Person ${index}` }))
+    const notion = fakeNotion({ games: [gamePage({ authors: ids.slice(4), illustrators: ids.slice(0, 1) })], editors: [], creators }, 2)
+    const { games } = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    expect(games[0]).toMatchObject({ authors: ["Person 4"], illustrators: ["Person 0"] })
+    expect(notion.calls.filter((call) => call.database === CREATORS_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
   })
 })
 
@@ -412,13 +463,13 @@ describe("the columns", () => {
   it("are reported when an optional one is missing, once each, and the games are still read", async () => {
     const pages = [gamePage({ slug: "hanabi", name: "Hanabi" }), gamePage({ slug: "bang", name: "Bang" })]
     for (const page of pages) {
-      delete page.properties.Effort
+      delete page.properties.Illustrators
       delete page.properties["Rules DE"]
     }
     const read = await readGames(pages)
     expect(read.games.map((game) => game.slug)).toEqual(["hanabi", "bang"])
     expect(read.warnings).toEqual([
-      'The Games database has no "Effort" column: it is left empty for every game',
+      'The Games database has no "Illustrators" column: it is left empty for every game',
       'The Games database has no "Rules DE" column: it is left empty for every game',
     ])
   })

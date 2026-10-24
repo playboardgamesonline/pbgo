@@ -1,7 +1,7 @@
-// The Notion reader: the Games database (and the Editors one it points to) as `PlannedGame`s, and the links of its pictures. A plain
-// `fetch` against Notion's REST API, no SDK. No framework here either: the caller hands in the token, and `init` carries Next's cache
-// options (`server.ts`). Notion is the source of a planned game's words and numbers, never of a live one's (those come from the
-// game's Sanity project).
+// The Notion reader: the Games database (and the Editors and Creators ones it points to) as `PlannedGame`s, and the links of its
+// pictures. A plain `fetch` against Notion's REST API, no SDK. No framework here either: the caller hands in the token, and `init`
+// carries Next's cache options (`server.ts`). Notion is the source of a planned game's words and numbers, never of a live one's
+// (those come from the game's Sanity project).
 
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
@@ -14,6 +14,7 @@ export const NOTION_API = "https://api.notion.com/v1"
 export const NOTION_VERSION = "2022-06-28"
 export const GAMES_DATABASE_ID = "3ffd1ca3-468f-80e8-a371-ed666deecc9a"
 export const EDITORS_DATABASE_ID = "3ffd1ca3-468f-80e0-ba62-fb466ca8a6c8"
+export const CREATORS_DATABASE_ID = "5712daa0-497d-4fa7-9634-1c2320f4446d"
 
 const PAGE_SIZE = 100
 /** A guard against a runaway cursor: 1 000 rows are twenty times today's database. */
@@ -27,15 +28,13 @@ const MAX_RETRY_AFTER_SECONDS = 120
 export const COLUMNS = {
   name: "Name",
   slug: "Slug",
-  status: "Status",
-  priority: "Priority",
-  effort: "Effort",
   players: "Players",
   duration: "Duration",
   age: "Age",
-  authors: "Author(s)",
-  artists: "Artwork",
-  editor: "Editor",
+  /** Authors and illustrators are relations to the Creators database, editors a relation to the Editors one. */
+  authors: "Authors",
+  illustrators: "Illustrators",
+  editors: "Editors",
   /** Filled for an expansion (it points to its base game): expansions are not part of the catalog. */
   parent: "Parent item",
   logo: "Logo",
@@ -45,6 +44,9 @@ export const COLUMNS = {
 
 /** The columns of the Editors database. */
 const EDITOR_COLUMNS = { name: "Name", url: "URL" } as const
+
+/** The columns of the Creators database, the people. Its `Role` is not read: the relation of the game says what a person is to it. */
+const CREATOR_COLUMNS = { name: "Name" } as const
 
 const descriptionColumn = (locale: Locale) => `Description ${locale.toUpperCase()}`
 const rulesColumn = (locale: Locale) => `Rules ${locale.toUpperCase()}`
@@ -92,7 +94,7 @@ export type PlannedRead = {
   skipped: SkippedRow[]
   /** The rows that are expansions of another game: left out on purpose, so not in `skipped`. */
   expansions: number
-  /** Things worth fixing in Notion that do not stop the catalog (a missing column, an unreadable Editors database). */
+  /** Things worth fixing in Notion that do not stop the catalog (a missing column, an unreadable Editors or Creators database). */
   warnings: string[]
 }
 
@@ -165,10 +167,14 @@ function value(page: NotionPage, column: string): unknown {
 const textOf = (raw: unknown): string =>
   Array.isArray(raw) ? raw.map((part) => (isRecord(part) && typeof part.plain_text === "string" ? part.plain_text : "")).join("").trim() : ""
 
+/** What a row says about itself goes to a terminal (`pnpm catalog:list`) and to the logs: no control character, an escape included. */
+const printable = (text: string): string => text.replace(/\p{Cc}/gu, "")
+
+/** The name of a person or of a publisher: one line of printable text. White space becomes one space first, so a tab does not glue two words. */
+const creditOf = (raw: unknown): string => cleanName(printable(cleanName(textOf(raw))))
+
 /** The name of a select or a status, null when none is chosen. */
 const optionOf = (raw: unknown): string | null => (isRecord(raw) && typeof raw.name === "string" ? cleanName(raw.name) || null : null)
-
-const optionsOf = (raw: unknown): string[] => (Array.isArray(raw) ? raw.flatMap((item) => optionOf(item) ?? []) : [])
 
 /** A number of minutes: more than none. */
 const minutesOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : null)
@@ -226,28 +232,44 @@ function ageOf(label: string | null): number | null {
   return match?.[1] ? Number(match[1]) : null
 }
 
-/** "P2 · Next" → 2 */
-function priorityOf(label: string | null): number | null {
-  const match = label === null ? null : /^P(\d)/.exec(label)
-  return match?.[1] ? Number(match[1]) : null
-}
-
 // ---------- The databases ----------
 
-/** The publishers by id. Never throws: without them the games are listed with no publisher, and the warning says why. */
-async function readPublishers(options: NotionReadOptions, warnings: string[]): Promise<Map<string, Publisher>> {
-  const publishers = new Map<string, Publisher>()
+/** The rows of a database that the Games database points to, by the id of the row, and what went wrong reading them (null: nothing). */
+type Related<T> = { rows: Map<string, T>; warning: string | null }
+
+/**
+ * Reads such a database: `read` makes what is kept of a row, or null for a row that is of no use. Never throws: without the database
+ * the games are listed with that field empty, and the warning says why (`loss` is what is lost). The warning is handed back, not
+ * pushed, so that the warnings come in the same order whichever database answers first.
+ */
+async function readRelated<T>(databaseId: string, label: string, loss: string, read: (page: NotionPage) => T | null, options: NotionReadOptions): Promise<Related<T>> {
+  const rows = new Map<string, T>()
   try {
-    for (const page of await queryAll(EDITORS_DATABASE_ID, options)) {
-      const name = cleanName(textOf(value(page, EDITOR_COLUMNS.name)))
-      if (name) publishers.set(normalizeId(page.id), { name, url: linkOf(value(page, EDITOR_COLUMNS.url)) })
+    for (const page of await queryAll(databaseId, options)) {
+      const row = read(page)
+      if (row !== null) rows.set(normalizeId(page.id), row)
     }
+    return { rows, warning: null }
   } catch (error) {
     const reason = error instanceof Error ? error.message : "unknown error"
-    warnings.push(`The Editors database could not be read, so no game has a publisher (connect the integration to it too): ${reason}`)
+    return { rows: new Map(), warning: `The ${label} database could not be read, so ${loss} (connect the integration to it too): ${reason}` }
   }
-  return publishers
 }
+
+/** A row of the Editors database: a publisher, null when the row has no name. */
+function publisherOf(page: NotionPage): Publisher | null {
+  const name = creditOf(value(page, EDITOR_COLUMNS.name))
+  return name ? { name, url: linkOf(value(page, EDITOR_COLUMNS.url)) } : null
+}
+
+/** A row of the Creators database: the name of a person, null when the row has none. */
+const creatorOf = (page: NotionPage): string | null => creditOf(value(page, CREATOR_COLUMNS.name)) || null
+
+/**
+ * What a relation points to, in the order of the relation. An id the other database does not have (a row it left out, one the
+ * integration cannot see) is dropped. A query hands back 25 ids of a relation at most: a game has a few authors, not that many.
+ */
+const resolve = <T>(raw: unknown, rows: ReadonlyMap<string, T>): T[] => relationOf(raw).flatMap((id) => rows.get(id) ?? [])
 
 /** The columns a row should have and does not: a renamed or deleted column would otherwise empty a field without a word. */
 function missingColumns(page: NotionPage, columns: readonly string[]): string[] {
@@ -255,7 +277,13 @@ function missingColumns(page: NotionPage, columns: readonly string[]): string[] 
   return columns.filter((column) => !(column in properties))
 }
 
-function planned(page: NotionPage, name: string, slug: string, publishers: Map<string, Publisher>): PlannedGame {
+function planned(
+  page: NotionPage,
+  name: string,
+  slug: string,
+  publishers: ReadonlyMap<string, Publisher>,
+  creators: ReadonlyMap<string, string>,
+): PlannedGame {
   const byLanguage = (column: (locale: Locale) => string, read: (raw: unknown) => string | null): Partial<Record<Locale, string>> => {
     const values: Partial<Record<Locale, string>> = {}
     for (const { id } of LANGUAGES) {
@@ -267,16 +295,13 @@ function planned(page: NotionPage, name: string, slug: string, publishers: Map<s
   return {
     slug,
     name,
-    status: optionOf(value(page, COLUMNS.status)),
-    priority: priorityOf(optionOf(value(page, COLUMNS.priority))),
-    effort: optionOf(value(page, COLUMNS.effort)),
     descriptions: byLanguage(descriptionColumn, (raw) => textOf(raw) || null),
     players: playersOf(optionOf(value(page, COLUMNS.players))),
     duration: minutesOf(value(page, COLUMNS.duration)),
     age: ageOf(optionOf(value(page, COLUMNS.age))),
-    authors: optionsOf(value(page, COLUMNS.authors)),
-    artists: optionsOf(value(page, COLUMNS.artists)),
-    publishers: relationOf(value(page, COLUMNS.editor)).flatMap((id) => publishers.get(id) ?? []),
+    authors: resolve(value(page, COLUMNS.authors), creators),
+    illustrators: resolve(value(page, COLUMNS.illustrators), creators),
+    publishers: resolve(value(page, COLUMNS.editors), publishers),
     rules: byLanguage(rulesColumn, linkOf),
     art: {
       logo: hasPicture(value(page, COLUMNS.logo)),
@@ -300,18 +325,21 @@ function rowProblem(name: string, slug: string, taken: ReadonlyMap<string, strin
   return owner === undefined ? undefined : `its slug "${slug}" is already the one of "${owner}"`
 }
 
-/** What a row says about itself goes to a terminal (`pnpm catalog:list`) and to the logs: no control character, an escape included. */
-const printable = (text: string): string => text.replace(/\p{Cc}/gu, "")
-
 /**
  * The planned games: every row of the Games database that is a game with a name and a slug the site can serve. Whether a slug is
  * also a live game is for `buildCatalog` to settle. A row that cannot be a game is reported in `skipped`, never guessed at: no
  * name (or one that is not a line of text), no `Slug`, a slug that is not one (or is a route of the site), or the same slug as an
  * older row (the older row wins). Throws a `NotionError` when Notion cannot be read or the database has no `Name` or no `Slug` column.
+ * The Editors and Creators databases are read alongside: without one, the games come with no publisher, or no author and no
+ * illustrator, and a warning says so.
  */
 export async function readPlannedGames(options: NotionReadOptions): Promise<PlannedRead> {
-  const warnings: string[] = []
-  const [pages, publishers] = await Promise.all([queryAll(GAMES_DATABASE_ID, options), readPublishers(options, warnings)])
+  const [pages, editors, creators] = await Promise.all([
+    queryAll(GAMES_DATABASE_ID, options),
+    readRelated(EDITORS_DATABASE_ID, "Editors", "no game has a publisher", publisherOf, options),
+    readRelated(CREATORS_DATABASE_ID, "Creators", "no game has an author or an illustrator", creatorOf, options),
+  ])
+  const warnings = [editors.warning, creators.warning].flatMap((warning) => warning ?? [])
 
   const first = pages[0]
   if (first) {
@@ -338,7 +366,7 @@ export async function readPlannedGames(options: NotionReadOptions): Promise<Plan
       continue
     }
     slugs.set(slug, name)
-    games.push(planned(page, name, slug, publishers))
+    games.push(planned(page, name, slug, editors.rows, creators.rows))
   }
   return { games, skipped, expansions, warnings }
 }

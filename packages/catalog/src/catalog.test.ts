@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ART_SLOTS, STATUS_ORDER, UNLISTED_SLUGS, buildCatalog, comparePlanned, pickLocalized, pictureUrl, pictureVersion } from "./catalog"
+import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, comparePlanned, pickLocalized, pictureUrl, pictureVersion } from "./catalog"
 import { plannedGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -22,7 +22,7 @@ describe("buildCatalog", () => {
 
   it("keeps the registry's entry for a live game and ignores its Notion row", () => {
     const courtisans = registryGame("courtisans", { name: "Courtisans", live: true })
-    const [entry, ...others] = buildCatalog([courtisans], [plannedGame("courtisans", { name: "Courtisans (Notion)", status: "Live" })])
+    const [entry, ...others] = buildCatalog([courtisans], [plannedGame("courtisans", { name: "Courtisans (Notion)" })])
     expect(others).toEqual([])
     expect(entry).toEqual({ live: true, slug: "courtisans", game: courtisans })
   })
@@ -49,22 +49,19 @@ describe("buildCatalog", () => {
     expect(slugs(buildCatalog(registry, [plannedGame("template"), plannedGame("bang")]))).toEqual(["courtisans", "bang"])
   })
 
-  it("sorts the planned games by status, then priority, then name", () => {
-    const planned = [
-      plannedGame("paused-p1", { name: "Paused P1", status: "Paused", priority: 1 }),
-      plannedGame("rules-p3", { name: "Rules P3", status: "Rules", priority: 3 }),
-      plannedGame("playtest-p4", { name: "Playtest P4", status: "PlayTest", priority: 4 }),
-      plannedGame("rules-p1-b", { name: "B Rules P1", status: "Rules", priority: 1 }),
-      plannedGame("rules-p1-a", { name: "A Rules P1", status: "Rules", priority: 1 }),
-      plannedGame("engine-none", { name: "Engine none", status: "Engine" }),
-      plannedGame("engine-p2", { name: "Engine P2", status: "Engine", priority: 2 }),
-    ]
-    expect(slugs(buildCatalog([], planned))).toEqual(["playtest-p4", "engine-p2", "engine-none", "rules-p1-a", "rules-p1-b", "rules-p3", "paused-p1"])
+  it("sorts the planned games by name, whatever the order Notion gave them in", () => {
+    const planned = [plannedGame("skyjo", { name: "Skyjo" }), plannedGame("bang", { name: "Bang" }), plannedGame("hanabi", { name: "Hanabi" })]
+    expect(slugs(buildCatalog([], planned))).toEqual(["bang", "hanabi", "skyjo"])
+  })
+
+  it("keeps the live games in registry order, not by name", () => {
+    const registry = [registryGame("trio", { live: true }), registryGame("courtisans", { live: true })]
+    expect(slugs(buildCatalog(registry, [plannedGame("bang"), plannedGame("amen")]))).toEqual(["trio", "courtisans", "amen", "bang"])
   })
 
   it("does not reorder or change the lists it is given", () => {
     const registry = [registryGame("courtisans", { live: true })]
-    const planned = [plannedGame("b", { status: "Rules" }), plannedGame("a", { status: "Engine" })]
+    const planned = [plannedGame("b"), plannedGame("a")]
     buildCatalog(registry, planned)
     expect(slugs(planned)).toEqual(["b", "a"])
     expect(slugs(registry)).toEqual(["courtisans"])
@@ -74,27 +71,15 @@ describe("buildCatalog", () => {
 describe("comparePlanned", () => {
   const order = (...games: ReturnType<typeof plannedGame>[]) => [...games].sort(comparePlanned).map((game) => game.slug)
 
-  it("puts the furthest along first and Paused last, in the order of STATUS_ORDER", () => {
-    const games = STATUS_ORDER.map((status) => plannedGame(status, { status })).reverse()
-    expect(order(...games)).toEqual([...STATUS_ORDER])
-  })
-
-  it("counts an empty or unknown status as Not started", () => {
-    expect(order(plannedGame("rules", { status: "Rules" }), plannedGame("none"), plannedGame("odd", { status: "Someday" }), plannedGame("paused", { status: "Paused" }))).toEqual([
-      "rules",
-      "none",
-      "odd",
-      "paused",
-    ])
-  })
-
-  it("puts a game with no priority after the ones that have one", () => {
-    expect(order(plannedGame("none"), plannedGame("p4", { priority: 4 }), plannedGame("p1", { priority: 1 }))).toEqual(["p1", "p4", "none"])
-  })
-
   it("sorts names the way a reader expects: numbers by value, case and accents ignored", () => {
     const names = ["Skyjo", "7 Wonders", "10 Minutes", "6 nimmt!", "Échecs", "the Mind", "Bang"]
     expect(order(...names.map((name) => plannedGame(name, { name })))).toEqual(["6 nimmt!", "7 Wonders", "10 Minutes", "Bang", "Échecs", "Skyjo", "the Mind"])
+  })
+
+  it("keeps Notion's order between names that differ only by case or accents", () => {
+    const spellings = [plannedGame("c", { name: "Bâng" }), plannedGame("a", { name: "Bang" }), plannedGame("b", { name: "bang" })]
+    expect(order(...spellings)).toEqual(["c", "a", "b"])
+    expect(order(...[...spellings].reverse())).toEqual(["b", "a", "c"])
   })
 })
 
