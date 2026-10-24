@@ -32,21 +32,22 @@ const players = (value: PlannedGame["players"]) => (!value ? "" : value.max === 
 
 const rows = buildCatalog(GAMES, planned).map((entry) =>
   entry.live
-    ? [entry.slug, entry.game.name, "live", "", "", "", "", "", "", ""]
+    ? [entry.slug, entry.game.name, "live", "", "", "", "", "", "", "", ""]
     : [
         entry.slug,
         entry.game.name,
-        entry.game.status ?? "",
-        entry.game.priority === null ? "" : `P${entry.game.priority}`,
+        "planned",
         marks([["L", entry.game.art.logo], ["I", entry.game.art.icon], ["B", entry.game.art.background]]),
         marks(LANGUAGES.map((language): [string, boolean] => [language.id, Boolean(entry.game.descriptions[language.id])])),
         players(entry.game.players),
         entry.game.duration === null ? "" : `${entry.game.duration}min`,
         entry.game.age === null ? "" : `${entry.game.age}+`,
+        entry.game.authors.join(", "),
+        entry.game.illustrators.join(", "),
         entry.game.publishers.map((publisher) => publisher.name).join(", "),
       ],
 )
-const heads = ["slug", "name", "status", "prio", "art", "text", "players", "time", "age", "publisher"]
+const heads = ["slug", "name", "kind", "art", "text", "players", "time", "age", "authors", "illustrators", "publisher"]
 const widths = heads.map((head, column) => Math.max(head.length, ...rows.map((row) => (row[column] ?? "").length)))
 const line = (cells: string[]) => cells.map((cell, column) => cell.padEnd(widths[column] ?? 0)).join("  ").trimEnd()
 

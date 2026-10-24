@@ -16,7 +16,7 @@ describe("pnpm catalog:list", () => {
     })
     expect(run.status, run.stderr).toBe(0)
     expect(run.stdout).toContain("NOTION_API_KEY is not set")
-    expect(run.stdout).toMatch(/^slug\s+name\s+status/m)
+    expect(run.stdout).toMatch(/^slug\s+name\s+kind/m)
     expect(run.stdout).toMatch(/^courtisans\s.*\blive\b/m)
     expect(run.stdout).not.toMatch(/^template\s/m)
   }, 30_000)
