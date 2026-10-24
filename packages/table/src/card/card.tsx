@@ -6,6 +6,8 @@ import { easing } from "maath"
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { AdditiveBlending, type Color, type Group, type Mesh, type MeshBasicMaterial, NormalBlending, type Texture, Vector3 } from "three"
 import type { Pose } from "../pose"
+import type { CardId } from "../table/memory"
+import { usePoseMemory } from "../table/memory-context"
 import { type Flight, startFlight, stepFlight } from "./flight"
 import { applyFold, foldable } from "./fold"
 import { type CardSize, cardGeometry, cornerRadius, edgeGeometry, frameGeometry } from "./geometry"
@@ -17,6 +19,8 @@ import { glossTexture, haloTexture, shadowTexture, sparkleTexture } from "./text
 export type CardDrop = { position: Vector3 }
 
 export type CardProps = {
+  /** Names the card: the game's own id for it. When a card with this id leaves the table and one with the same id appears within a second, in another zone, the new one starts from where the old one was. A given `from` wins. Needs a `Table` around it */
+  id?: CardId
   /** Where the card lies and how. When it changes the card glides there; when it jumps far, the card flies */
   target: Pose
   /** Where the card comes from: it flies from there to `target` when it appears. Without it, it appears at `target` */
@@ -82,6 +86,7 @@ const arch = (fold: { value: number }, height: number, dir: 1 | -1) => ({ uFold:
  * What differs from game to game is passed in: the pictures, the `size`, the `glow`s and what is drawn on the face (`children`).
  */
 export function Card({
+  id,
   target,
   from,
   front,
@@ -132,6 +137,7 @@ export function Card({
   const flight = useRef<Flight | null>(null)
   const lastOne = useRef(new Vector3())
   useCursor(hovered && !!onClick)
+  const memory = usePoseMemory()
 
   const start = (g: Group, delay = 0) => {
     flight.current = startFlight(g, target, delay, CARD_SETTINGS)
@@ -140,12 +146,20 @@ export function Card({
   useLayoutEffect(() => {
     const g = ref.current
     if (!g) return
-    const p = from ?? target
+    // The card that left the table under this id a moment ago. It is taken out of the memory even when `from` wins, so no old sighting is left to mislead a later card
+    const left = memory && id !== undefined ? memory.recall(id, g, target) : null
+    const p = from ?? left ?? target
     g.position.copy(p.position)
     g.quaternion.copy(p.quaternion)
     g.scale.setScalar(p.scale)
     lastOne.current.copy(target.position)
     if (from) start(g, from.delay ?? 0)
+    // From a pose that is not given, the card flies when it is far from its target and glides when it is near, like a target that moves
+    else if (left && g.position.distanceTo(target.position) > JUMP) start(g)
+    // On its way out the card writes down where it was, for the card with the same id that appears next
+    return () => {
+      if (memory && id !== undefined) memory.remember(id, g)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

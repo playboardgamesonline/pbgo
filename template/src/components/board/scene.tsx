@@ -1,79 +1,25 @@
 "use client"
 
 import type { PlayedCard, PlayerView } from "@template/engine"
-import { Canvas, useFrame, useThree } from "@react-three/fiber"
-import { useControls } from "leva"
-import { Suspense, useEffect, useMemo, useState } from "react"
-import { type PerspectiveCamera, Vector3 } from "three"
+import { useEffect, useMemo, useState } from "react"
 import { Aura, WINNER_AURA_SETTINGS } from "./aura"
+import { CAMERA, PHOTO, useCameraSettings } from "./camera"
 import { TurnCrown } from "./crown"
-import { CARD_SETTINGS, Card, type Pose } from "@pbgo/table"
+import { CARD_SETTINGS, Card, Surface, Table, type Pose } from "@pbgo/table"
 import { GLOWS } from "./glows"
 import { DECK_POSE, backPose, handPose, trickPose, collectedPose, LAYOUT_SETTINGS, seats } from "./layout"
-import { copyButton, debugTab } from "@pbgo/core/components/game/debug-tabs"
-import { TABLE_CANVAS_ID } from "@pbgo/core/lib/photo"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
-import { GamePhoto } from "./photo"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { useSettings } from "./settings"
 import { TableText } from "./table-text"
 import { CARD_SIZE, backTexture, faceTexture, matTexture } from "./textures"
 
-const RAD = Math.PI / 180
-const TARGET = new Vector3()
-
 /** The seat avatar left of a nickname: its diameter and the gap to the first letter, in world units */
 const AVATAR = { size: 0.56, gap: 0.18 }
 
-function CameraRig() {
-  const { size } = useThree()
-  const r = useControls(
-    "Camera",
-    {
-      tilt: { value: 42, min: 0, max: 85, step: 0.5, label: "tilt °" },
-      distance: { value: 21, min: 8, max: 60, step: 0.1, label: "distance" },
-      fov: { value: 34, min: 10, max: 90, step: 0.5, label: "fov °" },
-      targetZ: { value: 1.2, min: -6, max: 6, step: 0.05, label: "target z" },
-      ...copyButton("SCENE", "Camera"),
-    },
-    { order: 0 },
-    debugTab("SCENE"),
-  )
-  useFrame((state) => {
-    const cam = state.camera as PerspectiveCamera
-    const k = Math.max(1, 1.6 / (size.width / size.height))
-    const d = r.distance * k
-    cam.position.set(0, d * Math.cos(r.tilt * RAD), r.targetZ + d * Math.sin(r.tilt * RAD))
-    cam.lookAt(TARGET.set(0, 0, r.targetZ))
-    if (cam.fov !== r.fov) {
-      cam.fov = r.fov
-      cam.updateProjectionMatrix()
-    }
-  })
-  return null
-}
-
-function Table({ floor }: { floor: string }) {
-  const R = LAYOUT_SETTINGS
-  const [tex] = useState(matTexture)
-  return (
-    <group>
-      <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
-        <planeGeometry args={[120, 80]} />
-        <meshBasicMaterial color={floor} toneMapped={false} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} scale={[R.radiusX + 1.6, R.radiusZ + 1.6, 1]} raycast={() => null}>
-        <circleGeometry args={[1, 96]} />
-        <meshBasicMaterial color="#6b4a2a" toneMapped={false} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position-y={0.005} scale={[R.radiusX + 1.35, R.radiusZ + 1.35, 1]} raycast={() => null}>
-        <circleGeometry args={[1, 96]} />
-        <meshBasicMaterial map={tex} toneMapped={false} />
-      </mesh>
-    </group>
-  )
-}
+/** The mat reaches this far past the ellipse of the seats, then comes its wooden rim */
+const MAT = { margin: 1.35, rim: 0.25 }
 
 function useCollect(view: PlayerView) {
   const key = view.lastTrick ? view.lastTrick.cards.map((c) => c.card.id).join("|") : null
@@ -87,7 +33,7 @@ function useCollect(view: PlayerView) {
   return state.phase
 }
 
-function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon }: SceneProps) {
+function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: SceneProps) {
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["table radius x", 3, 14, 0.1],
     radiusZ: ["table radius z", 2, 10, 0.1],
@@ -111,6 +57,7 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
   const [hovered, setHovered] = useState<string | null>(null)
   const collecting = useCollect(view)
   const back = useMemo(() => backTexture(), [])
+  const [mat] = useState(matTexture)
 
   const hand = view.me?.hand ?? []
   const trickCards: { p: PlayedCard; pose: Pose; from?: Pose }[] = view.trick.map((p, rank) => {
@@ -130,8 +77,11 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
 
   return (
     <>
-      <CameraRig />
-      <Table floor={floor} />
+      <Surface
+        size={[2 * (LAYOUT_SETTINGS.radiusX + MAT.margin), 2 * (LAYOUT_SETTINGS.radiusZ + MAT.margin)]}
+        rim={{ width: MAT.rim, color: "#6b4a2a" }}
+        map={mat}
+      />
       {view.players.map((j) => {
         const s = slots.get(j.id)!
         const active = view.activePlayerId === j.id
@@ -160,6 +110,7 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
       {hand.map((c, i) => (
         <Card
           key={c.id}
+          id={c.id}
           target={handPose(i, hand.length, myTurn && hovered === c.id)}
           from={{ ...DECK_POSE, delay: i * 0.08 }}
           front={faceTexture(c)}
@@ -180,9 +131,8 @@ function World({ view, color, avatarUrl, seat, floor, onPlay, myTurn, crownIcon 
         />
       ))}
       {[...collectedCards, ...trickCards].map(({ p, pose, from }) => (
-        <Card key={p.card.id} target={pose} from={from} front={faceTexture(p.card)} back={back} size={CARD_SIZE} />
+        <Card key={p.card.id} id={p.card.id} target={pose} from={from} front={faceTexture(p.card)} back={back} size={CARD_SIZE} />
       ))}
-      <GamePhoto />
     </>
   )
 }
@@ -203,11 +153,10 @@ type SceneProps = {
 }
 
 export function Scene(props: SceneProps) {
+  useCameraSettings()
   return (
-    <Canvas id={TABLE_CANVAS_ID} gl={{ preserveDrawingBuffer: true }} dpr={[1, 2]} camera={{ fov: 34, near: 0.1, far: 300, position: [0, 18, 14] }}>
-      <Suspense fallback={null}>
-        <World {...props} />
-      </Suspense>
-    </Canvas>
+    <Table camera={CAMERA} photo={PHOTO} floor={{ color: props.floor }}>
+      <World {...props} />
+    </Table>
   )
 }

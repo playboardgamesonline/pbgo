@@ -22,7 +22,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
   - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
   - `src/lib/site.ts` — `SLUG`, name, keywords, genres, author, contact, `ERROR_CODES` (no tagline, no description: those are texts, they live in Sanity)
   - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
-  - `src/components/board` — react-three-fiber scene (`layout.ts` computes the poses, `scene.tsx` gives each card its pose, `textures.ts` paints the faces and `glows.ts` names the glows the cards wear, both handed to the shared `Card` of `@pbgo/table`; aura, crown, photo for sharing)
+  - `src/components/board` — react-three-fiber scene on the shared tools of `@pbgo/table` (`layout.ts` computes the poses, `scene.tsx` sets the `Table` and its mat and gives each card its pose, `camera.ts` holds the settings of the camera and of the share photo with their debug knobs, `textures.ts` paints the faces and `glows.ts` names the glows the cards wear, both handed to the shared `Card`; aura, crown)
 - `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
   - `@pbgo/engine-kit` (every helper is documented in `packages/engine-kit/README.md`): `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug`), declarative game options (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`
     - Turns (engine contract v2): `waitingFor(state)` = the players the game waits for (several on a simultaneous step), `autoPlayFor(state, playerId)` = plays for one of them; `activePlayer` and `autoPlay` are `@deprecated`. Read them through `waitingPlayers`, `currentPlayer`, `canPlayFor`, `playFor`, `playOn`, never call the hooks directly
@@ -53,7 +53,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 
 ## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner
-- Table: three + @react-three/fiber + drei, the cards are the shared `Card` of `@pbgo/table`, leva settings (debug panel `Shift+D`)
+- Table: three + @react-three/fiber + drei, the table and the cards are the shared `Table` and `Card` of `@pbgo/table`, leva settings (debug panel `Shift+D`)
 - Realtime: Supabase (Postgres + Realtime broadcast), authoritative logic on the server (Next.js API routes of apps/web)
 - Sanity (standalone studio `apps/studio`) for texts and media; the rules are a link to the publisher's PDF, per language, in `settings` (Gamemaster › Mechanics)
 - Vitest for the engine · pnpm workspaces · Vercel
@@ -63,7 +63,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own
 4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and list the codes of your own errors in `ERROR_CODES` of `src/lib/site.ts`: their messages, like every text of the game (tagline, description, home texts, victory phrases), are written in Sanity (Gamemaster › Copy), never in the code
-5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`: names, colours, player colours, never a text), then tune the rest in `/gamemaster/<slug>`; Launch › Content lists the texts Sanity does not hold yet; adapt `board/scene.tsx`, `layout.ts`, `textures.ts`, `glows.ts` and `game/game.tsx` (the card itself is `@pbgo/table`'s: a game gives it a pose, two textures, a size and glows, and never copies it)
+5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`: names, colours, player colours, never a text), then tune the rest in `/gamemaster/<slug>`; Launch › Content lists the texts Sanity does not hold yet; adapt `board/scene.tsx`, `camera.ts`, `layout.ts`, `textures.ts`, `glows.ts` and `game/game.tsx` (the canvas, the camera and its entrance, the floor, the share photo and the card itself are `@pbgo/table`'s: a game gives the `Table` its camera settings and the `Card` a pose, two textures, a size and glows, and never copies them)
 6. Adapt `src/takeover.test.ts` to the new engine: it plays a whole game where players are absent and the others take over (`pnpm --filter @pbgo-game/<slug> test`)
 7. Extend the glossary above
 
