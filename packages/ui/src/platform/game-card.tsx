@@ -55,7 +55,7 @@ function GameCardVisual({ className, logo, background, loading = "lazy", ...prop
       )}
       {logo && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt="" loading={loading} decoding="async" className={cn("relative object-contain p-8", PICTURE)} />
+        <img src={logo} alt="" loading={loading} decoding="async" className={cn("relative object-contain p-12", PICTURE)} />
       )}
     </div>
   )
