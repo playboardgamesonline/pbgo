@@ -1733,7 +1733,7 @@ importers:
         specifier: 'catalog:'
         version: 5.0.3(@types/node@24.19.1)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@24.19.1)(jiti@2.7.0)(yaml@2.9.1))
 
-  games/timebomb:
+  games/time-bomb:
     dependencies:
       '@pbgo/core':
         specifier: workspace:*
@@ -1770,7 +1770,7 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/timebomb/apps/studio:
+  games/time-bomb/apps/studio:
     dependencies:
       '@pbgo/studio-kit':
         specifier: workspace:*
@@ -1807,7 +1807,7 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  games/timebomb/packages/engine:
+  games/time-bomb/packages/engine:
     devDependencies:
       '@pbgo/tsconfig':
         specifier: workspace:*
@@ -2280,9 +2280,9 @@ importers:
       '@pbgo-game/template':
         specifier: workspace:*
         version: link:../../template
-      '@pbgo-game/timebomb':
+      '@pbgo-game/time-bomb':
         specifier: workspace:*
-        version: link:../../games/timebomb
+        version: link:../../games/time-bomb
       '@pbgo-game/trio':
         specifier: workspace:*
         version: link:../../games/trio

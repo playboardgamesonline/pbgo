@@ -5,7 +5,7 @@ export default defineCliConfig({
     projectId: process.env.SANITY_STUDIO_PROJECT_ID ?? "dxlv9oe9",
     dataset: process.env.SANITY_STUDIO_DATASET ?? "production",
   },
-  studioHost: "timebomb",
+  studioHost: "time-bomb",
   deployment: {
     autoUpdates: true,
   },

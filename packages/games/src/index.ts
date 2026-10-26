@@ -29,7 +29,7 @@ const LOADERS: Record<GameSlug, () => Promise<ServerBinding>> = {
   "skull-king": () => import("@pbgo-game/skull-king/server"),
   "sky-team": () => import("@pbgo-game/sky-team/server"),
   skyjo: () => import("@pbgo-game/skyjo/server"),
-  timebomb: () => import("@pbgo-game/timebomb/server"),
+  "time-bomb": () => import("@pbgo-game/time-bomb/server"),
   trio: () => import("@pbgo-game/trio/server"),
   "welcome-to": () => import("@pbgo-game/welcome-to/server"),
 }
