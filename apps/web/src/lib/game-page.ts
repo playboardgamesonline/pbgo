@@ -3,7 +3,7 @@ import { cache } from "react"
 import { pickLocalized, type CatalogEntry, type PlannedGame } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
 import type { GameEntry } from "@pbgo/core/lib/binding"
-import { LOCALE_NAMES, LOCALES, type Locale } from "@pbgo/core/lib/i18n"
+import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
 import { gameCardArt } from "@pbgo/core/sanity/cover"
@@ -12,8 +12,11 @@ import type { GameCardProps, GameCardVisualProps } from "@pbgo/ui/platform/game-
 import { catalogCardProps } from "./catalog-cards"
 import { durationLabel, livePicture, playersLabel, plannedFacts, plannedPicture } from "./game-card-props"
 
-/** One line of a game's credits: a label and its values, each one a link when it has an address (`lang`: the language of a rulebook). */
-export type GameFact = { label: string; values: { text: string; href?: string; lang?: Locale }[] }
+/** One line of a game's facts: a label and its values, each one a link when it has an address. */
+export type GameFact = { label: string; values: { text: string; href?: string }[] }
+
+/** The rulebook of one language: its link, titled in that language with the game's name ("Règles du jeu - Flip 7"). */
+export type GameRulebook = { language: Locale; label: string; href: string }
 
 /** What a game's page on the hub (`/game/<slug>`) shows, whether the game is live or to come. */
 export type GamePage = {
@@ -28,8 +31,12 @@ export type GamePage = {
   /** Already formatted, like the card's ("2–5 players", "30 min"). */
   players: string | null
   duration: string | null
-  /** Age, credits, publishers, rulebooks: only the lines that have a value. */
+  /** Worded like the two above, drawn beside them ("Ages 8+"). A game to come only: the settings of a live game hold no age. */
+  age: string | null
+  /** The credits (authors, illustrators, publishers) one after the other: only the lines that have a value. */
   facts: GameFact[]
+  /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no rulebook area. */
+  rulebooks: GameRulebook[]
   /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
   picture: Pick<GameCardVisualProps, "logo" | "background">
   /** The games the catalog relates to this one (docs/catalog.md), in the catalog's order, each as the props of its card. Empty: the page has no such section. */
@@ -42,15 +49,19 @@ type GameDetails = Omit<GamePage, "related">
 const fact = (label: string, values: GameFact["values"]): GameFact[] => (values.length ? [{ label, values }] : [])
 const plural = (count: number, one: string, many: string) => (count === 1 ? one : many)
 
+/**
+ * What a rulebook is called in its own language, before the game's name. A platform text, in code because a game to come has no Sanity
+ * project to read it from: French, Spanish and German are the Studio's "game rules" label (`rulesTitle`, `@pbgo/studio-kit`), English is
+ * "Rulebook" rather than the Studio's "Game rules".
+ */
+const RULEBOOK_TITLES: Record<Locale, string> = { fr: "Règles du jeu", en: "Rulebook", es: "Reglas del juego", de: "Spielregeln" }
+
 /** The rulebook of every language the game has one in, the visitor's language first. */
-function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale): GameFact[] {
-  return fact(
-    "Rulebook",
-    [locale, ...LOCALES.filter((language) => language !== locale)].flatMap((language) => {
-      const href = links[language]
-      return href ? [{ text: LOCALE_NAMES[language], href, lang: language }] : []
-    })
-  )
+function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale, name: string): GameRulebook[] {
+  return [locale, ...LOCALES.filter((language) => language !== locale)].flatMap((language) => {
+    const href = links[language]
+    return href ? [{ language, label: `${RULEBOOK_TITLES[language]} - ${name}`, href }] : []
+  })
 }
 
 function plannedPage(game: PlannedGame, locale: Locale): GameDetails {
@@ -63,13 +74,13 @@ function plannedPage(game: PlannedGame, locale: Locale): GameDetails {
     description: pickLocalized(game.descriptions, locale),
     players: players ?? null,
     duration: duration ?? null,
+    age: game.age === null ? null : `Ages ${game.age}+`,
     facts: [
-      ...fact("Age", game.age === null ? [] : [{ text: `${game.age}+` }]),
       ...fact(plural(game.authors.length, "Author", "Authors"), game.authors.map((text) => ({ text }))),
       ...fact(plural(game.illustrators.length, "Illustrator", "Illustrators"), game.illustrators.map((text) => ({ text }))),
       ...fact(plural(game.publishers.length, "Publisher", "Publishers"), game.publishers.map(({ name, url }) => ({ text: name, href: url ?? undefined }))),
-      ...rulebooks(game.rules, locale),
     ],
+    rulebooks: rulebooks(game.rules, locale, game.name),
     picture: plannedPicture(game),
   }
 }
@@ -90,11 +101,12 @@ async function livePage(entry: GameEntry, locale: Locale): Promise<GameDetails> 
     description: settings ? pickLocalized(settings.descriptions, locale) : null,
     players: playersLabel(entry.players) ?? null,
     duration: durationLabel(entry.duration) ?? null,
+    age: null,
     facts: [
       ...fact("Credits", authors ? [{ text: authors }] : []),
       ...fact("Publisher", publisher ? [{ text: publisher, href: publisherUrl ?? undefined }] : []),
-      ...(settings ? rulebooks(settings.rulesPdf, locale) : []),
     ],
+    rulebooks: settings ? rulebooks(settings.rulesPdf, locale, entry.name) : [],
     picture: livePicture(art),
   }
 }

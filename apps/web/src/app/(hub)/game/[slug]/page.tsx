@@ -3,10 +3,12 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft01Icon, ArrowRight01Icon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
+import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon, ChildIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 
+import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
+import { Item, ItemActions, ItemContent, ItemTitle } from "@pbgo/ui/platform/item"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { getGamePage } from "@/lib/game-page"
@@ -42,12 +44,12 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
           All games
         </Link>
 
-        {/* One column, then two from `lg`: the text on the left, the picture on the right, the credits under the text. On a narrow screen the picture comes before the credits */}
+        {/* One column, then two from `lg`: the text on the left, the picture on the right, the credits and the rulebooks under the text. On a narrow screen the picture comes before them */}
         <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
           <div className="flex flex-col items-start gap-6 lg:col-start-1">
             <h1 className="font-heading text-4xl md:text-6xl">{game.name}</h1>
             {game.tagline && <p className="max-w-xl text-lg text-muted-foreground">{game.tagline}</p>}
-            {(game.players || game.duration) && (
+            {(game.players || game.duration || game.age) && (
               <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground">
                 {game.players && (
                   <li className="inline-flex items-center gap-1.5">
@@ -59,6 +61,12 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
                   <li className="inline-flex items-center gap-1.5">
                     <HugeiconsIcon icon={HourglassIcon} strokeWidth={2} className="size-4" />
                     {game.duration}
+                  </li>
+                )}
+                {game.age && (
+                  <li className="inline-flex items-center gap-1.5">
+                    <HugeiconsIcon icon={ChildIcon} strokeWidth={2} className="size-4" />
+                    {game.age}
                   </li>
                 )}
               </ul>
@@ -90,28 +98,63 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
             className="rounded-4xl ring-1 ring-foreground/10 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
           />
 
-          {game.facts.length > 0 && (
-            <dl className="grid content-start gap-x-8 gap-y-5 border-t pt-6 sm:grid-cols-2 lg:col-start-1">
-              {game.facts.map((fact) => (
-                <div key={fact.label}>
-                  <dt className="text-sm text-muted-foreground">{fact.label}</dt>
-                  <dd className="mt-1">
-                    {fact.values.map((value, index) => (
-                      <Fragment key={`${value.text}-${index}`}>
-                        {index > 0 && ", "}
-                        {value.href ? (
-                          <a href={value.href} target="_blank" rel="noopener noreferrer" lang={value.lang} className="text-foreground underline underline-offset-4">
-                            {value.text}
+          {(game.facts.length > 0 || game.rulebooks.length > 0) && (
+            // Under the text: the credits follow one another, one line each, then the rulebooks in an area of their own, one link per language
+            <div className="flex flex-col gap-8 border-t pt-6 lg:col-start-1">
+              {game.facts.length > 0 && (
+                <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3">
+                  {game.facts.map((fact) => (
+                    <Fragment key={fact.label}>
+                      <dt className="text-muted-foreground">{fact.label}</dt>
+                      <dd>
+                        {fact.values.map((value, index) => (
+                          <Fragment key={`${value.text}-${index}`}>
+                            {index > 0 && ", "}
+                            {value.href ? (
+                              <a href={value.href} target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4">
+                                {value.text}
+                              </a>
+                            ) : (
+                              value.text
+                            )}
+                          </Fragment>
+                        ))}
+                      </dd>
+                    </Fragment>
+                  ))}
+                </dl>
+              )}
+
+              {/* A rulebook is a PDF in a language: each one is a bordered link opening it in a new tab. The language's code sits on a grey chip (hidden
+                  from screen readers: the title is in that language and the link says so), then the title with the game's name, then the arrow that says
+                  the link leaves the page. On hover the card turns grey, so the chip turns dark to stay visible */}
+              {game.rulebooks.length > 0 && (
+                <section aria-labelledby="rulebooks" className="flex max-w-xl flex-col gap-3">
+                  <h2 id="rulebooks" className="text-muted-foreground">
+                    {game.rulebooks.length === 1 ? "Rulebook" : "Rulebooks"}
+                  </h2>
+                  <ul className="flex flex-col gap-3">
+                    {game.rulebooks.map(({ language, label, href }) => (
+                      <li key={language}>
+                        <Item variant="outline" asChild>
+                          <a href={href} target="_blank" rel="noopener noreferrer" lang={language}>
+                            <Badge variant="secondary" aria-hidden className="min-w-9 group-hover/item:bg-background">
+                              {language.toUpperCase()}
+                            </Badge>
+                            <ItemContent>
+                              <ItemTitle className="line-clamp-none text-base">{label}</ItemTitle>
+                            </ItemContent>
+                            <ItemActions>
+                              <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} className="size-5 text-muted-foreground" aria-hidden />
+                            </ItemActions>
                           </a>
-                        ) : (
-                          value.text
-                        )}
-                      </Fragment>
+                        </Item>
+                      </li>
                     ))}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+                  </ul>
+                </section>
+              )}
+            </div>
           )}
         </div>
 
