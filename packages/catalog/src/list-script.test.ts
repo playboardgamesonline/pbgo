@@ -53,9 +53,10 @@ describe("pnpm catalog:list", () => {
   }, 30_000)
 
   it("lists the coming-soon games in the order of the Games Development database, and a live game where the registry has it", async () => {
-    const row = (slug: string, name: string) => gamePage({ slug, name })
+    // `related`: the rows the row points to, one side of a link each (the catalog makes it go both ways)
+    const row = (slug: string, name: string, related: string[] = []) => gamePage({ slug, name, related: related.map((other) => `game-${other}`) })
     const notion = fakeNotion({
-      games: [row("alpha", "Alpha"), row("bravo", "Bravo"), row("charlie", "Charlie"), row("delta", "Delta"), row("courtisans", "Courtisans")],
+      games: [row("alpha", "Alpha", ["charlie"]), row("bravo", "Bravo"), row("charlie", "Charlie"), row("delta", "Delta"), row("courtisans", "Courtisans", ["alpha"])],
       editors: [],
       creators: [],
       development: [
@@ -80,11 +81,17 @@ describe("pnpm catalog:list", () => {
     // the table is the block after the header, its first line the column heads
     const rows = (run.stdout.split("\n\n")[1] ?? "").split("\n").slice(1)
     expect(rows.map((line) => line.split(/\s+/)[0])).toEqual(["courtisans", "bravo", "delta", "alpha", "charlie"])
-    expect(run.stdout).toMatch(/^courtisans\s.*\blive$/m)
+    expect(run.stdout).toMatch(/^courtisans\s.*\blive\s+alpha$/m)
     expect(run.stdout).toMatch(/^bravo\s+Bravo\s+planned\s+P1 · Now \/ Rules \/ L\s/m)
     expect(run.stdout).toMatch(/^delta\s+Delta\s+planned\s+P2 · Next \/ Engine \/ S\s/m)
     expect(run.stdout).toMatch(/^alpha\s+Alpha\s+planned\s+P2 · Next \/ Engine \/ -\s/m)
     // no row in Games Development: nothing in the column, the art column follows
     expect(run.stdout).toMatch(/^charlie\s+Charlie\s+planned\s+- - -\s/m)
+
+    // the last column: a link written on one row shows on both games, in the order of the list, the live game's row included
+    expect(run.stdout).toMatch(/^slug\s.*\spublisher\s+related$/m)
+    expect(run.stdout).toMatch(/^alpha\s.*\scourtisans, charlie$/m)
+    expect(run.stdout).toMatch(/^charlie\s.*\salpha$/m)
+    expect(run.stdout).not.toMatch(/^(bravo|delta)\s.*\b(alpha|charlie|courtisans)$/m)
   }, 30_000)
 })

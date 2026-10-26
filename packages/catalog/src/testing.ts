@@ -38,8 +38,12 @@ export type GameRow = {
   illustrators?: string[]
   /** The ids of the rows of the Editors database. */
   editors?: string[]
-  /** The ids of the base game: filled for an expansion. */
+  /** The ids of the base game: filled for an expansion, a standalone one included. */
   parent?: string[]
+  /** The `Type` select: `Base game`, `Expansion` or `Standalone expansion`. */
+  type?: string | null
+  /** The ids of the rows of the Games database it is related to: kept by hand, on one side or on both. */
+  related?: string[]
   logo?: NotionFile[]
   icon?: NotionFile[]
   background?: NotionFile[]
@@ -76,6 +80,8 @@ export function gamePage(row: GameRow = {}): NotionPage {
     Illustrators: property("relation", (row.illustrators ?? []).map((id) => ({ id }))),
     Editors: property("relation", (row.editors ?? []).map((id) => ({ id }))),
     "Parent item": property("relation", (row.parent ?? []).map((id) => ({ id }))),
+    Type: property("select", option(row.type ?? null)),
+    "Related Games": property("relation", (row.related ?? []).map((id) => ({ id }))),
     Logo: property("files", row.logo ?? []),
     Icon: property("files", row.icon ?? []),
     Background: property("files", row.background ?? []),
@@ -125,7 +131,7 @@ export type DevelopmentField = "priority" | "status" | "effort"
  */
 export const DEVELOPMENT_OPTIONS: Record<DevelopmentField, readonly string[]> = {
   priority: ["P1 · Now", "P2 · Next", "P3 · Later", "P4 · Someday"],
-  status: ["Not started", "Rules", "Engine", "Content", "Table", "Playtest", "Live", "Paused"],
+  status: ["Not started", "Rules", "Engine", "Content", "Table", "Playtest", "Paused", "Live"],
   effort: ["S", "M", "L", "XL", "XXL"],
 }
 
@@ -338,6 +344,7 @@ export const plannedGame = (slug: string, overrides: Partial<PlannedGame> = {}):
   rules: {},
   art: { logo: false, icon: false, background: false },
   development: developmentRank(),
+  related: [],
   editedAt: "",
   notionPageId: `game-${slug}`,
   ...overrides,

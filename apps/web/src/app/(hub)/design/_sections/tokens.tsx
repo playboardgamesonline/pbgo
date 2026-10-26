@@ -116,9 +116,9 @@ export function Radius() {
 }
 
 const LAYOUT_ROWS = [
-  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page. Widens at the `sm` breakpoint." },
+  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page, kept thin so the content takes the room. Widens at the `sm` breakpoint." },
   { variable: "--section", utility: "py-section", use: "Vertical space between the sections of a page (`pb-section` between two). Widens at the `sm` breakpoint." },
-  { variable: "--container-page", utility: "max-w-page", use: "Width of a page: hub, legal, any content page." },
+  { variable: "--container-page", utility: "max-w-page", use: "Width of a page that fills the screen: the hub's list of games, a game's page, the header and the footer. Nearly the whole window, up to this value." },
   { variable: "--container-reading", utility: "max-w-reading", use: "Width of running text, so a line stays readable." },
 ] as const
 
@@ -204,11 +204,13 @@ export function Depth() {
 
       <Demo
         title="Scrim"
-        description="`bg-scrim` dims the page behind a dialog or a sheet. On the right half of this checkerboard it sits over the pattern; the pattern comes from the `pattern-checker` utility."
-        code={`<div className="absolute inset-0 bg-scrim" />`}
+        description="`bg-scrim` dims the page behind a dialog or a sheet. A picture that carries a logo, such as the background of a game card, takes a lighter veil: the same scrim at 70% (`bg-scrim/70`). On this checkerboard the left third is bare, the middle one has the lighter scrim and the right one the full scrim; the pattern comes from the `pattern-checker` utility."
+        code={`<div className="absolute inset-0 bg-scrim" />
+<div className="absolute inset-0 bg-scrim/70" />`}
       >
         <div className="relative h-32 overflow-hidden rounded-3xl pattern-checker">
-          <div className="absolute inset-y-0 right-0 w-1/2 bg-scrim" />
+          <div className="absolute inset-y-0 left-1/3 w-1/3 bg-scrim/70" />
+          <div className="absolute inset-y-0 right-0 w-1/3 bg-scrim" />
         </div>
       </Demo>
     </Section>
@@ -250,7 +252,7 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },
-  { utility: "bg-scrim", does: "Dimming layer behind a dialog or a sheet", token: "`--color-scrim`" },
+  { utility: "bg-scrim", does: "Dimming layer behind a dialog or a sheet; at 70% (`bg-scrim/70`), a veil over the background of a game card", token: "`--color-scrim`" },
   { utility: "bg-secondary-hover", does: "Hover state of a `secondary` surface", token: "`secondary` mixed with 8% of `foreground`" },
   { utility: "font-heading", does: "Heading font", token: "`--font-title`" },
   { utility: "pattern-checker", does: "Checkerboard that makes translucency visible", token: "`foreground` at 8%" },
