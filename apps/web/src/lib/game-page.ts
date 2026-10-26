@@ -1,14 +1,16 @@
 import "server-only"
 import { cache } from "react"
-import { cardPictureUrl, pickLocalized, pictureUrl, type PlannedGame } from "@pbgo/catalog"
+import { pickLocalized, type CatalogEntry, type PlannedGame } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import { LOCALE_NAMES, LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
-import { gameCover } from "@pbgo/core/sanity/cover"
+import { gameCardArt } from "@pbgo/core/sanity/cover"
 import { getGame } from "@pbgo/games"
-import { durationLabel, playersLabel, plannedFacts } from "./game-card-props"
+import type { GameCardProps, GameCardVisualProps } from "@pbgo/ui/platform/game-card"
+import { catalogCardProps } from "./catalog-cards"
+import { durationLabel, livePicture, playersLabel, plannedFacts, plannedPicture } from "./game-card-props"
 
 /** One line of a game's credits: a label and its values, each one a link when it has an address (`lang`: the language of a rulebook). */
 export type GameFact = { label: string; values: { text: string; href?: string; lang?: Locale }[] }
@@ -28,9 +30,14 @@ export type GamePage = {
   duration: string | null
   /** Age, credits, publishers, rulebooks: only the lines that have a value. */
   facts: GameFact[]
-  /** The page's picture: the cover art of a live game, the background of a game to come, else its logo or icon contained. Null: a plain frame. */
-  visual: { src: string; fit: "cover" | "contain" } | null
+  /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
+  picture: Pick<GameCardVisualProps, "logo" | "background">
+  /** The games the catalog relates to this one (docs/catalog.md), in the catalog's order, each as the props of its card. Empty: the page has no such section. */
+  related: { slug: string; card: GameCardProps }[]
 }
+
+/** What a game's own data gives the page; the related games come from the catalog. */
+type GameDetails = Omit<GamePage, "related">
 
 const fact = (label: string, values: GameFact["values"]): GameFact[] => (values.length ? [{ label, values }] : [])
 const plural = (count: number, one: string, many: string) => (count === 1 ? one : many)
@@ -46,9 +53,7 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
   )
 }
 
-function plannedPage(game: PlannedGame, locale: Locale): GamePage {
-  const background = pictureUrl(game, "background")
-  const logo = cardPictureUrl(game)
+function plannedPage(game: PlannedGame, locale: Locale): GameDetails {
   const { players, duration } = plannedFacts(game)
   return {
     slug: game.slug,
@@ -65,15 +70,16 @@ function plannedPage(game: PlannedGame, locale: Locale): GamePage {
       ...fact(plural(game.publishers.length, "Publisher", "Publishers"), game.publishers.map(({ name, url }) => ({ text: name, href: url ?? undefined }))),
       ...rulebooks(game.rules, locale),
     ],
-    visual: background ? { src: background, fit: "cover" } : logo ? { src: logo, fit: "contain" } : null,
+    picture: plannedPicture(game),
   }
 }
 
-async function livePage(entry: GameEntry, locale: Locale): Promise<GamePage> {
-  // The texts, the credits and the rulebooks are the game's own, in its Sanity project; the figures are the registry's, as on the card
-  const [settings, cover] = await Promise.all([
+async function livePage(entry: GameEntry, locale: Locale): Promise<GameDetails> {
+  // The texts, the credits, the rulebooks and the picture are the game's own, in its Sanity project; the figures are the registry's, as on the card.
+  // The picture is read wider than the card's: the page draws it larger
+  const [settings, art] = await Promise.all([
     getGame(entry.slug).then((game) => (game ? loadSettings(game, locale) : null)),
-    gameCover(entry, 1200),
+    gameCardArt(entry, 1200),
   ])
   const { authors, publisher, publisherUrl } = settings?.credits ?? { authors: null, publisher: null, publisherUrl: null }
   return {
@@ -89,8 +95,18 @@ async function livePage(entry: GameEntry, locale: Locale): Promise<GamePage> {
       ...fact("Publisher", publisher ? [{ text: publisher, href: publisherUrl ?? undefined }] : []),
       ...(settings ? rulebooks(settings.rulesPdf, locale) : []),
     ],
-    visual: cover ? { src: cover, fit: "cover" } : null,
+    picture: livePicture(art),
   }
+}
+
+/** The cards of the games listed as related to an entry. `entry.related` is already in the catalog's order, listed games only, never the entry itself. */
+function relatedCards(entry: CatalogEntry, entries: CatalogEntry[]): Promise<GamePage["related"]> {
+  return Promise.all(
+    entry.related.flatMap((slug) => {
+      const related = entries.find((candidate) => candidate.slug === slug)
+      return related ? [catalogCardProps(related).then((card) => ({ slug, card }))] : []
+    })
+  )
 }
 
 /**
@@ -103,5 +119,9 @@ export const getGamePage = cache(async (slug: string): Promise<GamePage | null> 
   const entry = entries.find((candidate) => candidate.slug === slug)
   if (!entry) return null
   const locale = await getLocale()
-  return entry.live ? livePage(entry.game, locale) : plannedPage(entry.game, locale)
+  const [details, related] = await Promise.all([
+    entry.live ? livePage(entry.game, locale) : plannedPage(entry.game, locale),
+    relatedCards(entry, entries),
+  ])
+  return { ...details, related }
 })

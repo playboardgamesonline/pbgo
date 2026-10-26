@@ -2,14 +2,13 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
 
 import { getCatalog } from "@pbgo/catalog/server"
-import { gameCardArt } from "@pbgo/core/sanity/cover"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
-import { gameCardProps, plannedCardProps } from "@/lib/game-card-props"
+import { catalogCardProps } from "@/lib/catalog-cards"
 import { SITE_DESCRIPTION } from "@/site"
 
 // Plain <a> to the games (GameCard, Button asChild): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
@@ -28,13 +27,9 @@ export default async function Home() {
   const first = entries.flatMap((entry) => (entry.live ? [entry.game] : []))[0]
   // One list for every game, each card a logo over a background on a grey frame. A live card reads them from the game's Sanity
   // project (cached for 60 s; a picture the game does not have leaves the frame plain); a game to come has its logo (or icon) and
-  // its background from the catalog's picture route
+  // its background from the catalog's picture route (`catalogCardProps`)
   const cards = await Promise.all(
-    entries.map(async (entry) => ({
-      slug: entry.slug,
-      live: entry.live,
-      props: entry.live ? gameCardProps(entry.game, await gameCardArt(entry.game)) : plannedCardProps(entry.game),
-    }))
+    entries.map(async (entry) => ({ slug: entry.slug, live: entry.live, props: await catalogCardProps(entry) }))
   )
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)

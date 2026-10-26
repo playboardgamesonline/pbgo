@@ -15,7 +15,7 @@ import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarGroupCount } fr
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
-import { GameCard } from "@pbgo/ui/platform/game-card"
+import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
 import {
   Item,
   ItemActions,
@@ -123,8 +123,8 @@ export function Cards() {
 }
 
 export async function GameCards() {
-  // The logo and the background of each game's card from its Sanity project, as the hub reads them, and its cover (the picture of
-  // the game's page on the hub)
+  // The logo and the background of each game's card from its Sanity project, as the hub reads them, and its cover (`gameCover`): the
+  // hub does not draw the cover any more, it only stands in for a background below
   const cards = await Promise.all(
     listedGames().map(async (game) => {
       const [art, cover] = await Promise.all([gameCardArt(game), gameCover(game)])
@@ -185,6 +185,22 @@ const cards = await Promise.all(
       >
         <GameCard variant="soon" href="#game-card" name="A game to come" logo={logo} background={background} players="2–5 players" duration="30 min" />
         <GameCard variant="soon" href="#game-card" name="A game without a picture" players="2–4 players" duration="20 min" />
+      </Demo>
+
+      <Demo
+        title="The picture alone"
+        description="`GameCardVisual` is the picture of a card on its own: the logo over the background on the grey frame, with the scrim between them when there is a background. The page of a game on the hub draws it larger, in the place of its card, rounded like a card with a hairline ring, so that the card and the page cannot drift apart. Without a logo and a background it is a plain frame."
+        className="grid gap-4 sm:grid-cols-3"
+        code={`<GameCardVisual logo={logoUrl} background={backgroundUrl} />
+<GameCardVisual logo={logoUrl} />
+<GameCardVisual />
+
+// On the page of a game: larger, rounded like a card, loaded at once
+<GameCardVisual logo={logoUrl} background={backgroundUrl} loading="eager" className="rounded-4xl ring-1 ring-foreground/10" />`}
+      >
+        <GameCardVisual logo={logo} background={background} className="rounded-4xl ring-1 ring-foreground/10" />
+        <GameCardVisual logo={logo} className="rounded-4xl ring-1 ring-foreground/10" />
+        <GameCardVisual className="rounded-4xl ring-1 ring-foreground/10" />
       </Demo>
     </Section>
   )

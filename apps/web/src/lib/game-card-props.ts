@@ -18,17 +18,29 @@ export function durationLabel(duration: GameEntry["duration"]): string | undefin
 }
 
 /**
+ * The picture of a live game, as `GameCardVisual` (`@pbgo/ui/platform/game-card`) takes it: its logo and its background, which `art`
+ * carries, read from the game's Sanity project by `gameCardArt()` (`@pbgo/core/sanity/cover`). A picture the game does not have yet
+ * is left out and the frame stays plain. The game's card and its page both draw this one picture, so both come from here.
+ */
+export function livePicture(art?: Partial<CardArt>) {
+  return { logo: art?.logo ?? undefined, background: art?.background ?? undefined }
+}
+
+/** The picture of a game to come: its logo (else its icon) and its background, from the catalog's picture route; one the row does not have is left out. */
+export function plannedPicture(game: PlannedGame) {
+  return { logo: cardPictureUrl(game) ?? undefined, background: pictureUrl(game, "background") ?? undefined }
+}
+
+/**
  * Props of the hub's `GameCard` (`@pbgo/ui/platform/game-card`) for a game of the registry: its name, its players and its duration,
- * and its logo over its background, which `art` carries, read from the game's Sanity project by `gameCardArt()`
- * (`@pbgo/core/sanity/cover`). A picture the game does not have yet leaves the frame plain. The card goes to the game's page on the
- * hub, `/game/<slug>`, whose "Create a game" button goes on to the game's own site.
+ * and its picture (`livePicture`). The card goes to the game's page on the hub, `/game/<slug>`, whose "Create a game" button goes on
+ * to the game's own site.
  */
 export function gameCardProps(game: GameEntry, art?: Partial<CardArt>) {
   return {
     href: `/game/${game.slug}`,
     name: game.name,
-    logo: art?.logo ?? undefined,
-    background: art?.background ?? undefined,
+    ...livePicture(art),
     players: playersLabel(game.players),
     duration: durationLabel(game.duration),
   }
@@ -46,18 +58,16 @@ export function plannedFacts(game: Pick<PlannedGame, "players" | "duration">) {
 }
 
 /**
- * Props of the hub's `GameCard` for a planned game of the catalog (a "Coming soon" card), built like a live one: its name, its logo
- * (else its icon) over its background, both from the catalog's picture route, on the same grey frame (a picture the row does not
- * have leaves it plain), then its players and its duration. Status, priority and the rest only sort the list, the card shows none of
- * them. It goes to `/game/<slug>` like every card: every game of the catalog has a page there.
+ * Props of the hub's `GameCard` for a planned game of the catalog (a "Coming soon" card), built like a live one: its name, its
+ * picture (`plannedPicture`) on the same grey frame, then its players and its duration. Status, priority and the rest only sort the
+ * list, the card shows none of them. It goes to `/game/<slug>` like every card: every game of the catalog has a page there.
  */
 export function plannedCardProps(game: PlannedGame) {
   return {
     variant: "soon" as const,
     href: `/game/${game.slug}`,
     name: game.name,
-    logo: cardPictureUrl(game) ?? undefined,
-    background: pictureUrl(game, "background") ?? undefined,
+    ...plannedPicture(game),
     ...plannedFacts(game),
   }
 }

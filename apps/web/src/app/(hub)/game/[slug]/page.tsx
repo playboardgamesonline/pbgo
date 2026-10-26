@@ -3,15 +3,17 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft01Icon, ArrowRight01Icon, DiceIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
+import { ArrowLeft01Icon, ArrowRight01Icon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 
 import { Button } from "@pbgo/ui/platform/button"
+import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { getGamePage } from "@/lib/game-page"
 
 // The page of a game on the hub, where every card of the list leads. The button of a live game is a plain <a> to the game's own site
-// (`/<slug>`, another root layout, loaded whole); a game to come has the same button, disabled.
+// (`/<slug>`, another root layout, loaded whole); a game to come has the same button, disabled. Its picture is the one of its card,
+// and the games the catalog relates to it come last, as cards.
 
 export async function generateMetadata({ params }: PageProps<"/game/[slug]">): Promise<Metadata> {
   const game = await getGamePage((await params).slug)
@@ -81,26 +83,12 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
             )}
           </div>
 
-          <div className="relative aspect-4/3 overflow-hidden rounded-4xl bg-muted ring-1 ring-foreground/10 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
-            {game.visual ? (
-              // A plain <img>, like the cards: the art is a URL from the game's Sanity project (or, for a game to come, from the catalog's picture route).
-              // `object-top` keeps the top of a tall cut-out when the 4:3 frame crops it; a logo is contained, not cropped
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={game.visual.src}
-                alt=""
-                decoding="async"
-                className={`size-full ${game.visual.fit === "cover" ? "object-cover object-top" : "object-contain p-12"}`}
-              />
-            ) : (
-              // A live game without cover art shows the card's placeholder; a game to come, a plain frame
-              game.live && (
-                <div className="flex size-full items-center justify-center text-muted-foreground">
-                  <HugeiconsIcon icon={DiceIcon} strokeWidth={1.5} className="size-16" />
-                </div>
-              )
-            )}
-          </div>
+          {/* The picture of the game's card, drawn larger: its logo over its background, a plain frame when the game has neither. It is the page's first picture, so it loads at once */}
+          <GameCardVisual
+            {...game.picture}
+            loading="eager"
+            className="rounded-4xl ring-1 ring-foreground/10 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+          />
 
           {game.facts.length > 0 && (
             <dl className="grid content-start gap-x-8 gap-y-5 border-t pt-6 sm:grid-cols-2 lg:col-start-1">
@@ -126,6 +114,21 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
             </dl>
           )}
         </div>
+
+        {game.related.length > 0 && (
+          // The games the catalog relates to this one, listed like the home: the Related Games and the base game of its Notion row, from
+          // either side (docs/catalog.md). Their cards carry no `data-game`: analytics counts the games opened from the home, not from here
+          <section aria-labelledby="related-games" className="mt-section">
+            <h2 id="related-games" className="mb-6 font-heading text-2xl">
+              Related games
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {game.related.map(({ slug, card }) => (
+                <GameCard key={slug} {...card} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <SiteFooter />

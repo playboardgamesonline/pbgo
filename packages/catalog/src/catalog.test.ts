@@ -24,13 +24,13 @@ describe("buildCatalog", () => {
     const courtisans = registryGame("courtisans", { name: "Courtisans", live: true })
     const [entry, ...others] = buildCatalog([courtisans], [plannedGame("courtisans", { name: "Courtisans (Notion)" })])
     expect(others).toEqual([])
-    expect(entry).toEqual({ live: true, slug: "courtisans", game: courtisans })
+    expect(entry).toEqual({ live: true, slug: "courtisans", game: courtisans, related: [] })
   })
 
   it("gives a registry game that is not live its Notion row, and Notion's name with it", () => {
     const hanabi = plannedGame("hanabi", { name: "Hanabi (Notion)" })
     const entries = buildCatalog([registryGame("hanabi", { name: "Hanabi" })], [hanabi])
-    expect(entries).toEqual([{ live: false, slug: "hanabi", game: hanabi }])
+    expect(entries).toEqual([{ live: false, slug: "hanabi", game: hanabi, related: [] }])
   })
 
   it("does not list a game that is not live and has no Notion row", () => {
@@ -87,6 +87,54 @@ describe("buildCatalog", () => {
     buildCatalog(registry, planned)
     expect(slugs(planned)).toEqual(["b", "a"])
     expect(slugs(registry)).toEqual(["courtisans"])
+  })
+})
+
+describe("buildCatalog: the related games", () => {
+  const relatedOf = (entries: { slug: string; related: string[] }[]) => Object.fromEntries(entries.map((entry) => [entry.slug, entry.related]))
+
+  it("makes a link go both ways: a game that another one names names it back", () => {
+    const planned = [plannedGame("skyjo", { name: "Skyjo", related: ["skyjo-action"] }), plannedGame("skyjo-action", { name: "Skyjo Action" })]
+    expect(relatedOf(buildCatalog([], planned))).toEqual({ skyjo: ["skyjo-action"], "skyjo-action": ["skyjo"] })
+  })
+
+  it("lists the related games in the order of the catalog, not in the order of the row", () => {
+    const planned = [
+      plannedGame("king-of-tokyo", { name: "King of Tokyo", related: ["power-up", "king-of-new-york"] }),
+      plannedGame("power-up", { name: "Power Up" }),
+      plannedGame("king-of-new-york", { name: "King of New York" }),
+    ]
+    expect(relatedOf(buildCatalog([], planned))["king-of-tokyo"]).toEqual(["king-of-new-york", "power-up"])
+  })
+
+  it("counts a live game like any other: a planned row can name it, and the links of its own Notion row count", () => {
+    const registry = [registryGame("courtisans", { live: true })]
+    const planned = [plannedGame("courtisans", { related: ["the-mind"] }), plannedGame("the-mind", { name: "The Mind" }), plannedGame("bang", { name: "Bang", related: ["courtisans"] })]
+    const entries = buildCatalog(registry, planned)
+    expect(slugs(entries)).toEqual(["courtisans", "bang", "the-mind"])
+    expect(relatedOf(entries)).toEqual({ courtisans: ["bang", "the-mind"], bang: ["courtisans"], "the-mind": ["courtisans"] })
+  })
+
+  it("only names games that are listed: not the template, a game of the registry with no row, nor a slug nobody has", () => {
+    const registry = [registryGame("courtisans", { live: true }), registryGame("template", { live: true }), registryGame("hanabi")]
+    const planned = [plannedGame("bang", { related: ["template", "hanabi", "ghost", "courtisans"] }), plannedGame("template", { related: ["bang"] })]
+    expect(relatedOf(buildCatalog(registry, planned))).toEqual({ courtisans: ["bang"], bang: ["courtisans"] })
+  })
+
+  it("never relates a game to itself, and names a game once whichever sides say so", () => {
+    const planned = [plannedGame("a", { name: "A", related: ["a", "b", "b"] }), plannedGame("b", { name: "B", related: ["a"] })]
+    expect(relatedOf(buildCatalog([], planned))).toEqual({ a: ["b"], b: ["a"] })
+  })
+
+  it("gives a game that nothing links an empty list", () => {
+    expect(relatedOf(buildCatalog([registryGame("courtisans", { live: true })], [plannedGame("bang")]))).toEqual({ courtisans: [], bang: [] })
+  })
+
+  it("leaves the rows it is given as they are: the link of a row stays on its own side", () => {
+    const planned = [plannedGame("a", { name: "A", related: ["b"] }), plannedGame("b", { name: "B" })]
+    const entries = buildCatalog([], planned)
+    expect(planned.map((game) => game.related)).toEqual([["b"], []])
+    expect(entries.map((entry) => entry.game)).toEqual(planned)
   })
 })
 

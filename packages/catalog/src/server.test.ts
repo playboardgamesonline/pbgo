@@ -130,7 +130,7 @@ describe("with a token", () => {
     const { getCatalog } = await load()
     const { entries } = await getCatalog()
     expect(entries.map((entry) => entry.slug)).toEqual([...LIVE_SLUGS, "bang"])
-    expect(entries.filter((entry) => entry.slug === live.slug)).toEqual([{ live: true, slug: live.slug, game: live }])
+    expect(entries.filter((entry) => entry.slug === live.slug)).toEqual([{ live: true, slug: live.slug, game: live, related: [] }])
   })
 
   it("keeps the registry's entry for a live game and ignores its Notion row", async () => {
@@ -140,7 +140,7 @@ describe("with a token", () => {
     vi.stubGlobal("fetch", notionOf({ games: [gamePage({ slug: live.slug, name: "Name in Notion", players: "2 - 4" })] }).fetch)
     const { getCatalog } = await load()
     const { entries } = await getCatalog()
-    expect(entries.filter((entry) => entry.slug === live.slug)).toEqual([{ live: true, slug: live.slug, game: live }])
+    expect(entries.filter((entry) => entry.slug === live.slug)).toEqual([{ live: true, slug: live.slug, game: live, related: [] }])
   })
 
   it("gives a game of the registry that is not live its Notion row, and Notion's name with it", async () => {
@@ -186,6 +186,47 @@ describe("with a token", () => {
     const { getCatalog } = await load()
     const { entries } = await getCatalog()
     expect(entries.at(-1)).toMatchObject({ live: false, slug: "bang", game: { authors: ["Author One"], illustrators: ["Illustrator One"] } })
+  })
+
+  it("gives every game the games it is linked to, whichever side of the link Notion has, and a live game's row counts as well", async () => {
+    const live = LIVE[0]
+    if (!live) throw new Error("No live game")
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    vi.stubGlobal(
+      "fetch",
+      notionOf({
+        games: [
+          gamePage({ slug: live.slug, name: "Name in Notion", related: ["game-bang"] }),
+          gamePage({ slug: "bang", name: "Bang", related: ["game-the-mind"] }),
+          gamePage({ slug: "the-mind", name: "The Mind" }),
+        ],
+      }).fetch,
+    )
+    const { getCatalog } = await load()
+    const { entries } = await getCatalog()
+    const related = Object.fromEntries(entries.map((entry) => [entry.slug, entry.related]))
+    expect(related[live.slug]).toEqual(["bang"])
+    expect(related.bang).toEqual([live.slug, "the-mind"])
+    expect(related["the-mind"]).toEqual(["bang"])
+  })
+
+  it("links a standalone expansion to its base game, and lists no expansion", async () => {
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    vi.stubGlobal(
+      "fetch",
+      notionOf({
+        games: [
+          gamePage({ slug: "flip-7", name: "Flip 7" }),
+          gamePage({ slug: "flip-7-vengeance", name: "Flip 7 Vengeance", parent: ["game-flip-7"], type: "Standalone expansion" }),
+          gamePage({ slug: "flip-7-cards", name: "Flip 7 Cards", parent: ["game-flip-7"], type: "Expansion" }),
+        ],
+      }).fetch,
+    )
+    const { getCatalog } = await load()
+    const { entries } = await getCatalog()
+    expect(entries.map((entry) => entry.slug)).toEqual([...LIVE_SLUGS, "flip-7", "flip-7-vengeance"])
+    expect(entries.find((entry) => entry.slug === "flip-7")?.related).toEqual(["flip-7-vengeance"])
+    expect(entries.find((entry) => entry.slug === "flip-7-vengeance")?.related).toEqual(["flip-7"])
   })
 })
 
