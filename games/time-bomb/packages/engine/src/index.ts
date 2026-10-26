@@ -1,1 +1,1 @@
-export const JEU = "Timebomb"
+export const JEU = "TimeBomb"

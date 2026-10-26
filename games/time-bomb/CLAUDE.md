@@ -1,6 +1,6 @@
-# Timebomb · Play Board Games Online
+# TimeBomb · Play Board Games Online
 
-Timebomb, served by `apps/web` at `/time-bomb`. Not playable yet: without an engine (`GAME`), its home page says "coming soon" and its table pages answer 404. Listed nowhere until `live` is set in the registry.
+TimeBomb, served by `apps/web` at `/time-bomb`. Not playable yet: without an engine (`GAME`), its home page says "coming soon" and its table pages answer 404. Listed nowhere until `live` is set in the registry.
 
 ## Structure
 - `package.json` — `@pbgo-game/time-bomb`, the binding package that `@pbgo/games` loads on demand

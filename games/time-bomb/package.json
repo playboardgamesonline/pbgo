@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Timebomb for apps/web: site constants, logo and default look. No engine yet, so its home page says \"coming soon\".",
+  "description": "TimeBomb for apps/web: site constants, logo and default look. No engine yet, so its home page says \"coming soon\".",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",

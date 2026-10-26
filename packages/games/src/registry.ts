@@ -145,7 +145,7 @@ export const GAMES = [
   },
   {
     slug: "time-bomb",
-    name: "Timebomb",
+    name: "TimeBomb",
     tagline: "The bluffing and hidden-roles game, online.",
     players: { min: 4, max: 8 },
     sanityProjectId: "dxlv9oe9",
