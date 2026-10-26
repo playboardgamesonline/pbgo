@@ -3,12 +3,12 @@
 // cannot disagree.
 
 /**
- * The names a slug cannot take because they are a route or a file of apps/web: its top-level routes (and `/api/media`, a global API
- * route next to `/api/<slug>`), the pages and API routes of the gamemaster that sit next to `/gamemaster/<slug>` (`login`, `logout`,
- * `api`), plus a game's own segments. `ingest` is the PostHog proxy (a rewrite). `slug.test.ts` reads the folders of the app and
- * fails when one of them is missing here.
+ * The names a slug cannot take because they are a route or a file of apps/web: its top-level routes (and `/api/media` and
+ * `/api/catalog`, global API routes next to `/api/<slug>`), the pages and API routes of the gamemaster that sit next to
+ * `/gamemaster/<slug>` (`login`, `logout`, `api`), plus a game's own segments. `ingest` is the PostHog proxy (a rewrite).
+ * `slug.test.ts` reads the folders of the app and fails when one of them is missing here.
  */
-export const RESERVED_SLUGS: readonly string[] = ["api", "legal", "design", "gamemaster", "ingest", "login", "logout", "media", "admin", "preview", "game", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
+export const RESERVED_SLUGS: readonly string[] = ["api", "legal", "design", "gamemaster", "ingest", "login", "logout", "media", "catalog", "admin", "preview", "game", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
 
 /** Words of lowercase letters and digits joined by single dashes */
 export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/

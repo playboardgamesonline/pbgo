@@ -19,6 +19,7 @@
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "@pbgo/analytics": "workspace:*",
+    "@pbgo/catalog": "workspace:*",
     "@pbgo/core": "workspace:*",
     "@pbgo/games": "workspace:*",
     "@pbgo/ui": "workspace:*",

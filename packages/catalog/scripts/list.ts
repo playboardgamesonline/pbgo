@@ -30,23 +30,31 @@ const marks = (items: [label: string, present: boolean][]) => items.map(([label,
 
 const players = (value: PlannedGame["players"]) => (!value ? "" : value.max === null ? `${value.min}+` : value.min === value.max ? `${value.min}` : `${value.min}-${value.max}`)
 
+/** "P1 · Now / Engine / M": what the Games Development database says of a game, a dash for each column it is empty in; nothing for a game it does not rank at all. */
+const development = (value: PlannedGame["development"]) => {
+  const names = [value.priority, value.status, value.effort].map((rank) => rank?.name ?? "-")
+  return names.every((name) => name === "-") ? "" : names.join(" / ")
+}
+
+const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "age", "authors", "illustrators", "publisher"]
 const rows = buildCatalog(GAMES, planned).map((entry) =>
   entry.live
-    ? [entry.slug, entry.game.name, "live", "", "", "", "", "", "", ""]
+    ? [entry.slug, entry.game.name, "live", ...heads.slice(3).map(() => "")]
     : [
         entry.slug,
         entry.game.name,
-        entry.game.status ?? "",
-        entry.game.priority === null ? "" : `P${entry.game.priority}`,
+        "planned",
+        development(entry.game.development),
         marks([["L", entry.game.art.logo], ["I", entry.game.art.icon], ["B", entry.game.art.background]]),
         marks(LANGUAGES.map((language): [string, boolean] => [language.id, Boolean(entry.game.descriptions[language.id])])),
         players(entry.game.players),
         entry.game.duration === null ? "" : `${entry.game.duration}min`,
         entry.game.age === null ? "" : `${entry.game.age}+`,
+        entry.game.authors.join(", "),
+        entry.game.illustrators.join(", "),
         entry.game.publishers.map((publisher) => publisher.name).join(", "),
       ],
 )
-const heads = ["slug", "name", "status", "prio", "art", "text", "players", "time", "age", "publisher"]
 const widths = heads.map((head, column) => Math.max(head.length, ...rows.map((row) => (row[column] ?? "").length)))
 const line = (cells: string[]) => cells.map((cell, column) => cell.padEnd(widths[column] ?? 0)).join("  ").trimEnd()
 
@@ -54,5 +62,8 @@ console.log(header)
 console.log()
 console.log(line(heads))
 for (const row of rows) console.log(line(row))
-if (planned.length > 0) console.log("\nart: Logo, Icon, Background · text: the languages that have a description")
+if (planned.length > 0) {
+  console.log("\ndevelopment: Priority / Status / Effort of the Games Development database, the order of the coming-soon games (a live game keeps its place in the registry)")
+  console.log("art: Logo, Icon, Background · text: the languages that have a description")
+}
 if (notes.length > 0) console.log(`\n${notes.join("\n")}`)

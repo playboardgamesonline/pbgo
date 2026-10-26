@@ -181,6 +181,13 @@ describe("RESERVED_SLUGS", () => {
     for (const route of next) expect(RESERVED_SLUGS, `/gamemaster/${route} sits next to /gamemaster/<slug>`).toContain(route)
   })
 
+  it("holds the global API routes that sit next to /api/<slug>", () => {
+    const next = segments(`${app}/api`)
+    expect(next).toContain("media")
+    expect(next).toContain("catalog")
+    for (const route of next) expect(RESERVED_SLUGS, `/api/${route} sits next to /api/<slug>`).toContain(route)
+  })
+
   it("has no duplicate", () => {
     expect(new Set(RESERVED_SLUGS).size).toBe(RESERVED_SLUGS.length)
   })

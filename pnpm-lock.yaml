@@ -330,6 +330,9 @@ importers:
       '@pbgo/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@pbgo/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       '@pbgo/core':
         specifier: workspace:*
         version: link:../../packages/core

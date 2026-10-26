@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { STATUS_ORDER, UNLISTED_SLUGS, buildCatalog, comparePlanned, pickLocalized } from "./catalog"
-import { plannedGame, registryGame } from "./testing"
+import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, comparePlanned, pickLocalized, pictureUrl, pictureVersion } from "./catalog"
+import { DEVELOPMENT_OPTIONS, developmentRank, plannedGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
 
@@ -22,7 +22,7 @@ describe("buildCatalog", () => {
 
   it("keeps the registry's entry for a live game and ignores its Notion row", () => {
     const courtisans = registryGame("courtisans", { name: "Courtisans", live: true })
-    const [entry, ...others] = buildCatalog([courtisans], [plannedGame("courtisans", { name: "Courtisans (Notion)", status: "Live" })])
+    const [entry, ...others] = buildCatalog([courtisans], [plannedGame("courtisans", { name: "Courtisans (Notion)" })])
     expect(others).toEqual([])
     expect(entry).toEqual({ live: true, slug: "courtisans", game: courtisans })
   })
@@ -49,22 +49,41 @@ describe("buildCatalog", () => {
     expect(slugs(buildCatalog(registry, [plannedGame("template"), plannedGame("bang")]))).toEqual(["courtisans", "bang"])
   })
 
-  it("sorts the planned games by status, then priority, then name", () => {
+  it("sorts the planned games by name, whatever the order Notion gave them in", () => {
+    const planned = [plannedGame("skyjo", { name: "Skyjo" }), plannedGame("bang", { name: "Bang" }), plannedGame("hanabi", { name: "Hanabi" })]
+    expect(slugs(buildCatalog([], planned))).toEqual(["bang", "hanabi", "skyjo"])
+  })
+
+  it("keeps the live games in registry order, not by name", () => {
+    const registry = [registryGame("trio", { live: true }), registryGame("courtisans", { live: true })]
+    expect(slugs(buildCatalog(registry, [plannedGame("bang"), plannedGame("amen")]))).toEqual(["trio", "courtisans", "amen", "bang"])
+  })
+
+  it("sorts the planned games by their rank in the Games Development database, and by name where the rank leaves them tied", () => {
     const planned = [
-      plannedGame("paused-p1", { name: "Paused P1", status: "Paused", priority: 1 }),
-      plannedGame("rules-p3", { name: "Rules P3", status: "Rules", priority: 3 }),
-      plannedGame("playtest-p4", { name: "Playtest P4", status: "PlayTest", priority: 4 }),
-      plannedGame("rules-p1-b", { name: "B Rules P1", status: "Rules", priority: 1 }),
-      plannedGame("rules-p1-a", { name: "A Rules P1", status: "Rules", priority: 1 }),
-      plannedGame("engine-none", { name: "Engine none", status: "Engine" }),
-      plannedGame("engine-p2", { name: "Engine P2", status: "Engine", priority: 2 }),
+      plannedGame("skyjo", { name: "Skyjo", development: developmentRank({ priority: "P2 · Next", status: "Live" }) }),
+      plannedGame("bang", { name: "Bang" }),
+      plannedGame("hanabi", { name: "Hanabi", development: developmentRank({ priority: "P1 · Now", status: "Rules" }) }),
+      plannedGame("amen", { name: "Amen" }),
     ]
-    expect(slugs(buildCatalog([], planned))).toEqual(["playtest-p4", "engine-p2", "engine-none", "rules-p1-a", "rules-p1-b", "rules-p3", "paused-p1"])
+    expect(slugs(buildCatalog([], planned))).toEqual(["hanabi", "skyjo", "amen", "bang"])
+  })
+
+  it("keeps a live game where the registry puts it, however far its rank would send it: a live game needs none", () => {
+    const registry = [registryGame("trio", { live: true }), registryGame("courtisans", { live: true })]
+    const planned = [
+      plannedGame("bang", { development: developmentRank({ priority: "P2 · Next" }) }),
+      plannedGame("trio", { development: developmentRank({ priority: "P4 · Someday", status: "Paused" }) }),
+      plannedGame("courtisans", { development: developmentRank({ priority: "P1 · Now", status: "Live" }) }),
+    ]
+    const entries = buildCatalog(registry, planned)
+    expect(slugs(entries)).toEqual(["trio", "courtisans", "bang"])
+    expect(entries.map((entry) => entry.live)).toEqual([true, true, false])
   })
 
   it("does not reorder or change the lists it is given", () => {
     const registry = [registryGame("courtisans", { live: true })]
-    const planned = [plannedGame("b", { status: "Rules" }), plannedGame("a", { status: "Engine" })]
+    const planned = [plannedGame("b", { development: developmentRank({ priority: "P3 · Later" }) }), plannedGame("a", { development: developmentRank({ priority: "P1 · Now" }) })]
     buildCatalog(registry, planned)
     expect(slugs(planned)).toEqual(["b", "a"])
     expect(slugs(registry)).toEqual(["courtisans"])
@@ -74,27 +93,123 @@ describe("buildCatalog", () => {
 describe("comparePlanned", () => {
   const order = (...games: ReturnType<typeof plannedGame>[]) => [...games].sort(comparePlanned).map((game) => game.slug)
 
-  it("puts the furthest along first and Paused last, in the order of STATUS_ORDER", () => {
-    const games = STATUS_ORDER.map((status) => plannedGame(status, { status })).reverse()
-    expect(order(...games)).toEqual([...STATUS_ORDER])
-  })
-
-  it("counts an empty or unknown status as Not started", () => {
-    expect(order(plannedGame("rules", { status: "Rules" }), plannedGame("none"), plannedGame("odd", { status: "Someday" }), plannedGame("paused", { status: "Paused" }))).toEqual([
-      "rules",
-      "none",
-      "odd",
-      "paused",
-    ])
-  })
-
-  it("puts a game with no priority after the ones that have one", () => {
-    expect(order(plannedGame("none"), plannedGame("p4", { priority: 4 }), plannedGame("p1", { priority: 1 }))).toEqual(["p1", "p4", "none"])
-  })
-
   it("sorts names the way a reader expects: numbers by value, case and accents ignored", () => {
     const names = ["Skyjo", "7 Wonders", "10 Minutes", "6 nimmt!", "Échecs", "the Mind", "Bang"]
     expect(order(...names.map((name) => plannedGame(name, { name })))).toEqual(["6 nimmt!", "7 Wonders", "10 Minutes", "Bang", "Échecs", "Skyjo", "the Mind"])
+  })
+
+  it("keeps Notion's order between names that differ only by case or accents", () => {
+    const spellings = [plannedGame("c", { name: "Bâng" }), plannedGame("a", { name: "Bang" }), plannedGame("b", { name: "bang" })]
+    expect(order(...spellings)).toEqual(["c", "a", "b"])
+    expect(order(...[...spellings].reverse())).toEqual(["b", "a", "c"])
+  })
+
+  describe("with the rank of the Games Development database", () => {
+    /** A game that stands where `chosen` says (options by name), called `name` (its slug unless told otherwise). */
+    const ranked = (slug: string, chosen: Parameters<typeof developmentRank>[0], name = slug) => plannedGame(slug, { name, development: developmentRank(chosen) })
+
+    it("puts the nearest priority first, whatever the other columns say", () => {
+      const games = [
+        ranked("c", { priority: "P3 · Later", status: "Live", effort: "S" }),
+        ranked("a", { priority: "P1 · Now", status: "Not started", effort: "XXL" }),
+        ranked("d", { priority: "P4 · Someday", status: "Live", effort: "S" }),
+        ranked("b", { priority: "P2 · Next", status: "Not started", effort: "XXL" }),
+      ]
+      expect(order(...games)).toEqual(["a", "b", "c", "d"])
+    })
+
+    it("puts the game that is furthest along first within a priority: the last status first, as the view sorts it", () => {
+      const games = DEVELOPMENT_OPTIONS.status.map((status) => ranked(status, { priority: "P1 · Now", status }))
+      expect(order(...games)).toEqual([...DEVELOPMENT_OPTIONS.status].reverse())
+    })
+
+    it("puts the lightest effort first within a priority and a status", () => {
+      const games = DEVELOPMENT_OPTIONS.effort.map((effort) => ranked(effort, { priority: "P2 · Next", status: "Engine", effort }))
+      expect(order(...[...games].reverse())).toEqual(["S", "M", "L", "XL", "XXL"])
+    })
+
+    it("looks at a column only where the ones before it tie", () => {
+      const games = [
+        ranked("far-light", { priority: "P2 · Next", status: "Playtest", effort: "S" }),
+        ranked("near-heavy", { priority: "P1 · Now", status: "Rules", effort: "XXL" }),
+        ranked("far-heavy", { priority: "P2 · Next", status: "Playtest", effort: "XL" }),
+        ranked("near-far", { priority: "P1 · Now", status: "Table", effort: "XXL" }),
+        ranked("early-light", { priority: "P2 · Next", status: "Engine", effort: "S" }),
+      ]
+      expect(order(...games)).toEqual(["near-far", "near-heavy", "far-light", "far-heavy", "early-light"])
+    })
+
+    it("puts a game with no value after every game that has one, in each column, whichever way the column goes", () => {
+      const p1 = { priority: "P1 · Now" } as const
+      // Priority goes up, Status goes down, Effort goes up: the empty cell is last in all three
+      expect(order(ranked("none", {}), ranked("someday", { priority: "P4 · Someday" }))).toEqual(["someday", "none"])
+      expect(order(ranked("none", p1), ranked("not-started", { ...p1, status: "Not started" }))).toEqual(["not-started", "none"])
+      expect(order(ranked("none", { ...p1, status: "Live" }), ranked("xxl", { ...p1, status: "Live", effort: "XXL" }))).toEqual(["xxl", "none"])
+    })
+
+    it("counts an option the column no longer has as an empty cell", () => {
+      const games = [ranked("retired", { priority: "P0 · Retired" }), ranked("someday", { priority: "P4 · Someday" })]
+      expect(order(...games)).toEqual(["someday", "retired"])
+    })
+
+    it("falls back on the name where every column ties, and on the names alone where no game has a rank", () => {
+      expect(order(ranked("z", { priority: "P1 · Now", status: "Engine", effort: "M" }, "Zeta"), ranked("a", { priority: "P1 · Now", status: "Engine", effort: "M" }, "Alpha"))).toEqual(["a", "z"])
+      expect(order(...["Skyjo", "7 Wonders", "Bang"].map((name) => ranked(name, {}, name)))).toEqual(["7 Wonders", "Bang", "Skyjo"])
+    })
+
+    it("is the same order whichever way the games come, with ties, empty cells and all", () => {
+      const games = [
+        ranked("a", { priority: "P1 · Now", status: "Live", effort: "L" }, "A"),
+        ranked("b", { priority: "P1 · Now", status: "Live", effort: "L" }, "B"),
+        ranked("c", { priority: "P1 · Now", status: "Rules" }, "C"),
+        ranked("d", { status: "Live", effort: "S" }, "D"),
+        ranked("e", { priority: "P3 · Later", effort: "M" }, "E"),
+        ranked("f", {}, "F"),
+      ]
+      const permutations = <T>(items: T[]): T[][] => (items.length <= 1 ? [items] : items.flatMap((item, index) => permutations([...items.slice(0, index), ...items.slice(index + 1)]).map((rest) => [item, ...rest])))
+      const expected = ["a", "b", "c", "e", "d", "f"]
+      expect(order(...games)).toEqual(expected)
+      for (const permutation of permutations(games)) expect(order(...permutation)).toEqual(expected)
+    })
+  })
+})
+
+describe("pictureVersion", () => {
+  it("is the same for the whole minute of an edit and changes with the next", () => {
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).toBe(pictureVersion("2026-10-22T10:30:59.999Z"))
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).not.toBe(pictureVersion("2026-10-22T10:31:00.000Z"))
+  })
+
+  it("reads the same instant whatever the way it is written", () => {
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).toBe(pictureVersion("2026-10-22T12:30:00.000+02:00"))
+  })
+
+  it("is a short word that is safe in a URL", () => {
+    expect(pictureVersion("2026-10-22T10:30:00.000Z")).toMatch(/^[0-9a-z]{1,10}$/)
+  })
+
+  it.each(["", "not a date", "2026-13-45"])("is 0 for %j: a row without a usable date", (editedAt) => {
+    expect(pictureVersion(editedAt)).toBe("0")
+  })
+})
+
+describe("pictureUrl", () => {
+  const edited = plannedGame("love-letter", { editedAt: "2026-10-22T10:30:00.000Z", art: { logo: true, icon: false, background: true } })
+
+  it("is the route of the picture with the version of the row", () => {
+    const version = pictureVersion(edited.editedAt)
+    expect(pictureUrl(edited, "logo")).toBe(`/api/catalog/love-letter/logo?v=${version}`)
+    expect(pictureUrl(edited, "background")).toBe(`/api/catalog/love-letter/background?v=${version}`)
+  })
+
+  it("is null for a picture the row does not have: no fallback, the page draws a black background", () => {
+    expect(pictureUrl(edited, "icon")).toBeNull()
+    expect(ART_SLOTS.map((slot) => pictureUrl(plannedGame("omens"), slot))).toEqual([null, null, null])
+  })
+
+  it("changes when the row is edited", () => {
+    const later = { ...edited, editedAt: "2026-10-22T11:00:00.000Z" }
+    expect(pictureUrl(later, "logo")).not.toBe(pictureUrl(edited, "logo"))
   })
 })
 
