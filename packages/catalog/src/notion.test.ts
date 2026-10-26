@@ -1,8 +1,22 @@
 import { slugProblem } from "@pbgo/games/slug"
 import { describe, expect, it } from "vitest"
 import type { PlannedGame } from "./catalog"
-import { CREATORS_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readPlannedGames } from "./notion"
-import { creatorPage, editorPage, external, fakeNotion, gamePage, notionFailure, uploaded, type Answer, type GameRow } from "./testing"
+import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readPlannedGames } from "./notion"
+import {
+  creatorPage,
+  developmentDatabase,
+  developmentPage,
+  developmentRank,
+  editorPage,
+  external,
+  fakeNotion,
+  gamePage,
+  notionFailure,
+  uploaded,
+  type Answer,
+  type GameRow,
+  type SchemaAnswer,
+} from "./testing"
 
 const TOKEN = "ntn_testsecret123"
 const EDITOR_1 = "9f1c2d3e-0000-4000-8000-00000000e001"
@@ -11,9 +25,9 @@ const CREATOR_1 = "9f1c2d3e-0000-4000-8000-00000000c001"
 const CREATOR_2 = "9f1c2d3e-0000-4000-8000-00000000c002"
 const CREATOR_3 = "9f1c2d3e-0000-4000-8000-00000000c003"
 
-/** What `readPlannedGames` makes of the three databases, as a fake Notion answers them. */
-const readGames = (games: Answer, editors: Answer = [], creators: Answer = []) =>
-  readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games, editors, creators }).fetch })
+/** What `readPlannedGames` makes of the four databases, as a fake Notion answers them. */
+const readGames = (games: Answer, editors: Answer = [], creators: Answer = [], development: Answer = []) =>
+  readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games, editors, creators, development }).fetch })
 
 /** The one game a row makes. */
 async function one(row: GameRow = {}): Promise<PlannedGame> {
@@ -35,9 +49,9 @@ async function failureOf(read: Promise<unknown>): Promise<NotionError> {
 
 describe("the requests", () => {
   it("asks each database once, as JSON, with the token and the API version", async () => {
-    const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [] })
+    const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [], development: [] })
     await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
-    expect(notion.calls.map((call) => call.database).sort()).toEqual([CREATORS_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID].sort())
+    expect(notion.calls.map((call) => call.database).sort()).toEqual([CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID].sort())
     for (const call of notion.calls) {
       expect(call.init.method).toBe("POST")
       expect(call.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, "Notion-Version": NOTION_VERSION, "Content-Type": "application/json" })
@@ -46,21 +60,37 @@ describe("the requests", () => {
     }
   })
 
+  it("reads the schema of the Games Development database once, for the order of its options: a GET with the token and the API version, and no body", async () => {
+    const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [], development: [] })
+    await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    expect(notion.schemaCalls).toHaveLength(1)
+    const [call] = notion.schemaCalls
+    expect(call?.database).toBe(DEVELOPMENT_DATABASE_ID)
+    expect(call?.init.method).toBe("GET")
+    expect(call?.init.body).toBeUndefined()
+    expect(call?.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, "Notion-Version": NOTION_VERSION })
+  })
+
   it("adds the caller's options to every request, but they cannot replace the method, the headers or the body", async () => {
-    const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [] })
-    const init: RequestInit = { method: "GET", headers: { Authorization: "Bearer other" }, body: "{}", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } }
+    const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [], development: [] })
+    const init: RequestInit = { method: "PUT", headers: { Authorization: "Bearer other" }, body: "{}", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } }
     await readPlannedGames({ token: TOKEN, fetch: notion.fetch, init })
-    expect(notion.calls).toHaveLength(3)
+    expect(notion.calls).toHaveLength(4)
     for (const call of notion.calls) {
       expect(call.init).toMatchObject({ method: "POST", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } })
       expect(call.headers.Authorization).toBe(`Bearer ${TOKEN}`)
       expect(call.body.page_size).toBe(100)
     }
+    // The read of the schema is no exception
+    expect(notion.schemaCalls).toHaveLength(1)
+    expect(notion.schemaCalls[0]?.init).toMatchObject({ method: "GET", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } })
+    expect(notion.schemaCalls[0]?.init.body).toBeUndefined()
+    expect(notion.schemaCalls[0]?.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, "Notion-Version": NOTION_VERSION })
   })
 
   it("follows the cursor to the last page and keeps the order of the rows", async () => {
     const rows = ["a", "b", "c", "d", "e"].map((slug) => gamePage({ slug, name: slug.toUpperCase() }))
-    const notion = fakeNotion({ games: rows, editors: [], creators: [] }, 2)
+    const notion = fakeNotion({ games: rows, editors: [], creators: [], development: [] }, 2)
     const { games } = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
     expect(games.map((game) => game.slug)).toEqual(["a", "b", "c", "d", "e"])
     expect(notion.calls.filter((call) => call.database === GAMES_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
@@ -74,9 +104,10 @@ describe("the requests", () => {
     }) as typeof fetch
     const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: endless }))
     expect(error.message).toBe("More than 1000 rows in a database: the reader stops there")
-    // Ten requests for the Games database, and the Editors and Creators ones run next to it, under the same bound
+    // Ten requests for the Games database; the Editors, Creators and Games Development ones run next to it, under the same bound each,
+    // and the read of the Development schema (answered with a list, so no schema) is one more
     expect(asked).toBeGreaterThanOrEqual(10)
-    expect(asked).toBeLessThanOrEqual(30)
+    expect(asked).toBeLessThanOrEqual(41)
   })
 })
 
@@ -158,6 +189,7 @@ describe("when Notion cannot be read", () => {
     const notion = fakeNotion({
       games: [gamePage({ slug: "hanabi", name: "Hanabi", authors: [CREATOR_1], editors: [EDITOR_1] })],
       creators: [creatorPage({ id: CREATOR_1, name: "Author One" })],
+      development: [],
     })
     const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
     expect(read.games.map((game) => [game.slug, game.authors, game.publishers])).toEqual([["hanabi", ["Author One"], []]])
@@ -170,6 +202,7 @@ describe("when Notion cannot be read", () => {
     const notion = fakeNotion({
       games: [gamePage({ slug: "hanabi", name: "Hanabi", authors: [CREATOR_1], illustrators: [CREATOR_2], editors: [EDITOR_1] })],
       editors: [editorPage({ id: EDITOR_1, name: "Editor One" })],
+      development: [],
     })
     const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
     expect(read.games.map((game) => [game.slug, game.authors, game.illustrators, game.publishers])).toEqual([["hanabi", [], [], [{ name: "Editor One", url: null }]]])
@@ -178,22 +211,23 @@ describe("when Notion cannot be read", () => {
     expect(read.warnings[0]).toContain("object_not_found")
   })
 
-  it("says so for each of them when neither can be read, the Editors database first", async () => {
+  it("says so for each of them when none can be read, the Editors database first, then the Creators one, then Games Development", async () => {
     const read = await readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games: [gamePage()] }).fetch })
-    expect(read.warnings).toHaveLength(2)
+    expect(read.warnings).toHaveLength(3)
     expect(read.warnings[0]).toContain("The Editors database could not be read")
     expect(read.warnings[1]).toContain("The Creators database could not be read")
+    expect(read.warnings[2]).toContain("The Games Development database could not be read")
   })
 
   it("lists the warnings in the same order whichever database answers first", async () => {
     const page = gamePage()
     delete page.properties["Rules DE"]
     const notion = fakeNotion({ games: [page] })
-    // The Editors database answers last: its warning must not end up behind the one of the Creators database
+    // The Editors database answers last: its warning must not end up behind the ones of the Creators and Games Development databases
     const lateEditors = ((input: string | URL | Request, init?: RequestInit) =>
       String(input).includes(EDITORS_DATABASE_ID) ? new Promise<Response>((resolve) => setTimeout(() => resolve(notion.fetch(input, init)), 20)) : notion.fetch(input, init)) as typeof fetch
     const read = await readPlannedGames({ token: TOKEN, fetch: lateEditors })
-    expect(read.warnings.map((warning) => warning.split(" database")[0])).toEqual(["The Editors", "The Creators", "The Games"])
+    expect(read.warnings.map((warning) => warning.split(" database")[0])).toEqual(["The Editors", "The Creators", "The Games Development", "The Games"])
   })
 })
 
@@ -235,6 +269,7 @@ describe("a row of the Games database", () => {
           publishers: [{ name: "Editor One", url: "https://editor.example.com" }],
           rules: { en: "https://example.com/rules-en.pdf" },
           art: { logo: true, icon: true, background: false },
+          development: { priority: null, status: null, effort: null },
           editedAt: "2026-10-20T10:00:00.000Z",
           notionPageId: "11111111-aaaa-4bbb-8ccc-000000000001",
         },
@@ -259,6 +294,7 @@ describe("a row of the Games database", () => {
       publishers: [],
       rules: {},
       art: { logo: false, icon: false, background: false },
+      development: { priority: null, status: null, effort: null },
       editedAt: "2026-10-01T00:00:00.000Z",
       notionPageId: "game-hanabi",
     })
@@ -391,10 +427,198 @@ describe("the authors and the illustrators of a row", () => {
   it("are found on any page of the Creators database", async () => {
     const ids = ["c100", "c101", "c102", "c103", "c104"].map((suffix) => `9f1c2d3e-0000-4000-8000-00000000${suffix}`)
     const creators = ids.map((id, index) => creatorPage({ id, name: `Person ${index}` }))
-    const notion = fakeNotion({ games: [gamePage({ authors: ids.slice(4), illustrators: ids.slice(0, 1) })], editors: [], creators }, 2)
+    const notion = fakeNotion({ games: [gamePage({ authors: ids.slice(4), illustrators: ids.slice(0, 1) })], editors: [], creators, development: [] }, 2)
     const { games } = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
     expect(games[0]).toMatchObject({ authors: ["Person 4"], illustrators: ["Person 0"] })
     expect(notion.calls.filter((call) => call.database === CREATORS_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
+  })
+})
+
+describe("the development rank of a game", () => {
+  const HANABI = "11111111-aaaa-4bbb-8ccc-000000000001"
+  const BANG = "11111111-aaaa-4bbb-8ccc-000000000002"
+  const SKYJO = "11111111-aaaa-4bbb-8ccc-000000000003"
+  const games = [gamePage({ id: HANABI, slug: "hanabi", name: "Hanabi" }), gamePage({ id: BANG, slug: "bang", name: "Bang" }), gamePage({ id: SKYJO, slug: "skyjo", name: "Skyjo" })]
+  const unranked = { hanabi: developmentRank(), bang: developmentRank(), skyjo: developmentRank() }
+
+  /** A read of the three games with the Games Development database as given (its schema is the real one unless `schema` says otherwise): what it made of them, and its warnings. */
+  async function developmentOf(development: Answer, schema?: SchemaAnswer) {
+    const notion = fakeNotion({ games, editors: [], creators: [], development, ...(schema ? { developmentSchema: schema } : {}) })
+    const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    return { ...read, development: Object.fromEntries(read.games.map((game) => [game.slug, game.development])) }
+  }
+
+  it("is the place of each option the row of the game chose, among the options of its column", async () => {
+    const { development, warnings } = await developmentOf([developmentPage({ game: [HANABI], priority: "P2 · Next", status: "Engine", effort: "L" })])
+    expect(development).toEqual({ ...unranked, hanabi: { priority: { position: 1, name: "P2 · Next" }, status: { position: 2, name: "Engine" }, effort: { position: 2, name: "L" } } })
+    expect(warnings).toEqual([])
+  })
+
+  it("follows the order the schema lists the options in, not the alphabet nor the names", async () => {
+    const schema = developmentDatabase({ priority: ["Zeta", "Alpha"], status: ["Done", "Idea"], effort: ["Huge", "Tiny"] })
+    const { development } = await developmentOf([developmentPage({ game: [HANABI], priority: "Alpha", status: "Done", effort: "Tiny" })], schema)
+    expect(development.hanabi).toEqual({ priority: { position: 1, name: "Alpha" }, status: { position: 0, name: "Done" }, effort: { position: 1, name: "Tiny" } })
+  })
+
+  it("finds the row of a game by the id of its page, however Notion writes the id", async () => {
+    const { development } = await developmentOf([developmentPage({ game: [HANABI.replace(/-/g, "").toUpperCase()], priority: "P1 · Now" })])
+    expect(development.hanabi).toEqual(developmentRank({ priority: "P1 · Now" }))
+  })
+
+  it("is empty for a game with no row, and a row of no game, or of a game that is not read, ranks nobody", async () => {
+    const { development } = await developmentOf([
+      developmentPage({ slug: "orphan", priority: "P1 · Now", status: "Live", effort: "S" }),
+      developmentPage({ slug: "gone", game: ["99999999-aaaa-4bbb-8ccc-000000000009"], priority: "P1 · Now" }),
+      developmentPage({ slug: "bang", game: [BANG], priority: "P3 · Later" }),
+    ])
+    expect(development).toEqual({ ...unranked, bang: developmentRank({ priority: "P3 · Later" }) })
+  })
+
+  it("goes to every game a row points to", async () => {
+    const { development } = await developmentOf([developmentPage({ game: [HANABI, BANG], status: "Playtest" })])
+    expect(development).toEqual({ ...unranked, hanabi: developmentRank({ status: "Playtest" }), bang: developmentRank({ status: "Playtest" }) })
+  })
+
+  it("is the whole row of the older one when a game has two", async () => {
+    const { development } = await developmentOf([
+      developmentPage({ slug: "hanabi", game: [HANABI], priority: "P2 · Next" }),
+      developmentPage({ slug: "hanabi-copy", game: [HANABI], priority: "P1 · Now", status: "Live" }),
+    ])
+    expect(development.hanabi).toEqual(developmentRank({ priority: "P2 · Next" }))
+  })
+
+  it("leaves a column empty when the cell is empty, when its option is not one of the column's, or when the cell is not of the type it should be", async () => {
+    const wrongType = developmentPage({ slug: "bang", game: [BANG], status: "Live", effort: "S" })
+    wrongType.properties.Priority = { type: "number", number: 1 }
+    const { development, warnings } = await developmentOf([developmentPage({ slug: "hanabi", game: [HANABI], priority: "P9 · Retired", status: null, effort: "M" }), wrongType])
+    expect(development).toEqual({ ...unranked, hanabi: developmentRank({ effort: "M" }), bang: developmentRank({ status: "Live", effort: "S" }) })
+    expect(warnings).toEqual([])
+  })
+
+  it("does not count a row that is archived or in the trash", async () => {
+    const { development } = await developmentOf([
+      developmentPage({ slug: "archived", game: [HANABI], priority: "P1 · Now", archived: true }),
+      developmentPage({ slug: "trashed", game: [HANABI], priority: "P2 · Next", inTrash: true }),
+      developmentPage({ slug: "kept", game: [HANABI], priority: "P3 · Later" }),
+      developmentPage({ slug: "lone-archived", game: [BANG], priority: "P1 · Now", archived: true }),
+    ])
+    expect(development).toEqual({ ...unranked, hanabi: developmentRank({ priority: "P3 · Later" }) })
+  })
+
+  it("is found on any page of the Games Development database", async () => {
+    const rows = ["S", "M", "L", "XL", "XXL"].map((effort, index) => ({ effort, id: `11111111-aaaa-4bbb-8ccc-00000000010${index}` }))
+    const notion = fakeNotion(
+      {
+        games: rows.map(({ id, effort }) => gamePage({ id, slug: effort.toLowerCase(), name: effort })),
+        editors: [],
+        creators: [],
+        development: rows.map(({ id, effort }) => developmentPage({ slug: effort.toLowerCase(), game: [id], effort })),
+      },
+      2,
+    )
+    const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    expect(read.games.map((game) => game.development.effort?.name)).toEqual(["S", "M", "L", "XL", "XXL"])
+    expect(notion.calls.filter((call) => call.database === DEVELOPMENT_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
+  })
+
+  it("is plain data: it goes through the cache as JSON and comes back the same", async () => {
+    const { games: read } = await developmentOf([developmentPage({ game: [HANABI], priority: "P1 · Now", status: "Table", effort: "XL" })])
+    expect(JSON.parse(JSON.stringify(read))).toStrictEqual(read)
+  })
+
+  describe("when the database cannot be read", () => {
+    const cases: { name: string; development: Answer; schema?: SchemaAnswer; reason: string }[] = [
+      { name: "its schema is refused", development: [], schema: notionFailure(403, "restricted_resource", "Not allowed."), reason: "Notion answered 403 restricted_resource: Not allowed." },
+      { name: "its rows are refused", development: notionFailure(500, "internal_server_error", "Oops."), reason: "Notion answered 500 internal_server_error: Oops." },
+      { name: "its schema is not the one of a database", development: [], schema: { status: 200, body: { object: "list", results: [] } }, reason: "Notion answered with something that is not the schema of a database" },
+    ]
+
+    it.each(cases)("lists the games with no rank, and says so once, when $name", async ({ development, schema, reason }) => {
+      const read = await developmentOf(development, schema)
+      expect(read.games.map((game) => game.slug)).toEqual(["hanabi", "bang", "skyjo"])
+      expect(read.development).toEqual(unranked)
+      expect(read.warnings).toEqual([`The Games Development database could not be read, so the coming-soon games are listed by name (connect the integration to it too): ${reason}`])
+    })
+
+    it("says so once when the integration is not connected to it, and keeps the rest of the read", async () => {
+      const notion = fakeNotion({ games: [gamePage({ editors: [EDITOR_1] })], editors: [editorPage({ id: EDITOR_1, name: "Editor One" })], creators: [] })
+      const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+      expect(read.games[0]).toMatchObject({ publishers: [{ name: "Editor One", url: null }], development: developmentRank() })
+      expect(read.warnings).toHaveLength(1)
+      expect(read.warnings[0]).toContain("The Games Development database could not be read, so the coming-soon games are listed by name (connect the integration to it too)")
+      expect(read.warnings[0]).toContain("object_not_found")
+    })
+  })
+
+  describe("when a column of the database is not what it should be", () => {
+    const rows = [developmentPage({ game: [HANABI], priority: "P1 · Now", status: "Engine", effort: "M" })]
+    /** The real schema, changed by `change` (a column is deleted or replaced in its `properties`). */
+    const schemaWith = (change: (properties: Record<string, unknown>) => void) => {
+      const schema = developmentDatabase()
+      change(schema.properties)
+      return schema
+    }
+
+    it("ranks no game when it has no Game column", async () => {
+      const read = await developmentOf(rows, schemaWith((properties) => delete properties.Game))
+      expect(read.development).toEqual(unranked)
+      expect(read.warnings).toEqual(['The Games Development database has no "Game" column: no game is ranked, so the coming-soon games are listed by name'])
+    })
+
+    it("ranks no game when its Game column is not a relation", async () => {
+      const read = await developmentOf(
+        rows,
+        schemaWith((properties) => {
+          properties.Game = { id: "frAv", name: "Game", type: "rich_text", rich_text: {} }
+        }),
+      )
+      expect(read.development).toEqual(unranked)
+      expect(read.warnings).toEqual(['The Games Development database has a "Game" column that is a rich_text, not a relation: no game is ranked, so the coming-soon games are listed by name'])
+    })
+
+    it("leaves a column that is missing out of the order, and ranks by the others", async () => {
+      const read = await developmentOf(rows, schemaWith((properties) => delete properties.Effort))
+      expect(read.development.hanabi).toEqual(developmentRank({ priority: "P1 · Now", status: "Engine" }))
+      expect(read.warnings).toEqual(['The Games Development database has no "Effort" column: it is left out of the order of the coming-soon games'])
+    })
+
+    it("leaves a column that is not of its type out of the order, and ranks by the others", async () => {
+      const read = await developmentOf(
+        rows,
+        schemaWith((properties) => {
+          properties.Status = { id: "<[xq", name: "Status", type: "select", select: { options: [{ id: "engine", name: "Engine", color: "default" }] } }
+        }),
+      )
+      expect(read.development.hanabi).toEqual(developmentRank({ priority: "P1 · Now", effort: "M" }))
+      expect(read.warnings).toEqual(['The Games Development database has a "Status" column that is a select, not a status: it is left out of the order of the coming-soon games'])
+    })
+
+    it("says so for each column, in the order Priority, Status, Effort", async () => {
+      const read = await developmentOf(
+        rows,
+        schemaWith((properties) => {
+          delete properties.Effort
+          delete properties.Priority
+        }),
+      )
+      expect(read.development.hanabi).toEqual(developmentRank({ status: "Engine" }))
+      expect(read.warnings).toEqual([
+        'The Games Development database has no "Priority" column: it is left out of the order of the coming-soon games',
+        'The Games Development database has no "Effort" column: it is left out of the order of the coming-soon games',
+      ])
+    })
+
+    it("says only that the Game column is missing when it is not the only one", async () => {
+      const read = await developmentOf(
+        rows,
+        schemaWith((properties) => {
+          delete properties.Game
+          delete properties.Effort
+        }),
+      )
+      expect(read.warnings).toHaveLength(1)
+      expect(read.warnings[0]).toContain('has no "Game" column')
+    })
   })
 })
 

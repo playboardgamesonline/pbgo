@@ -1,20 +1,21 @@
-// The Notion reader: the Games database (and the Editors and Creators ones it points to) as `PlannedGame`s, and the links of its
-// pictures. A plain `fetch` against Notion's REST API, no SDK. No framework here either: the caller hands in the token, and `init`
-// carries Next's cache options (`server.ts`). Notion is the source of a planned game's words and numbers, never of a live one's
-// (those come from the game's Sanity project).
+// The Notion reader: the Games database (with the Editors and Creators ones it points to, and the Games Development one that points
+// to it) as `PlannedGame`s, and the links of its pictures. A plain `fetch` against Notion's REST API, no SDK. No framework here
+// either: the caller hands in the token, and `init` carries Next's cache options (`server.ts`). Notion is the source of a planned
+// game's words and numbers, never of a live one's (those come from the game's Sanity project).
 
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 // A value import from a sibling file would need a `.ts` extension, which apps/web's tsc refuses: only types come from there
-import type { ArtSlot, PlannedGame, Publisher } from "./catalog"
+import type { ArtSlot, DevelopmentRank, PlannedGame, Publisher, Rank } from "./catalog"
 
 export const NOTION_API = "https://api.notion.com/v1"
-/** The API version the parsing below is written for: a database is queried at `/databases/<id>/query`. */
+/** The API version the parsing below is written for: a database is queried at `/databases/<id>/query`, its schema is at `/databases/<id>`. */
 export const NOTION_VERSION = "2022-06-28"
 export const GAMES_DATABASE_ID = "3ffd1ca3-468f-80e8-a371-ed666deecc9a"
 export const EDITORS_DATABASE_ID = "3ffd1ca3-468f-80e0-ba62-fb466ca8a6c8"
 export const CREATORS_DATABASE_ID = "5712daa0-497d-4fa7-9634-1c2320f4446d"
+export const DEVELOPMENT_DATABASE_ID = "401d1ca3-468f-8159-a5c2-fbf706218640"
 
 const PAGE_SIZE = 100
 /** A guard against a runaway cursor: 1 000 rows are twenty times today's database. */
@@ -47,6 +48,19 @@ const EDITOR_COLUMNS = { name: "Name", url: "URL" } as const
 
 /** The columns of the Creators database, the people. Its `Role` is not read: the relation of the game says what a person is to it. */
 const CREATOR_COLUMNS = { name: "Name" } as const
+
+/**
+ * The columns of the Games Development database, one row per game, and the type each must have. `game` is the relation to the
+ * game's row of the Games database; the three others are what orders the coming-soon games.
+ */
+const DEVELOPMENT_COLUMNS = {
+  game: { name: "Game", type: "relation" },
+  priority: { name: "Priority", type: "select" },
+  status: { name: "Status", type: "status" },
+  effort: { name: "Effort", type: "select" },
+} as const
+
+const RANKED_FIELDS = ["priority", "status", "effort"] as const satisfies readonly (keyof DevelopmentRank)[]
 
 const descriptionColumn = (locale: Locale) => `Description ${locale.toUpperCase()}`
 const rulesColumn = (locale: Locale) => `Rules ${locale.toUpperCase()}`
@@ -94,7 +108,7 @@ export type PlannedRead = {
   skipped: SkippedRow[]
   /** The rows that are expansions of another game: left out on purpose, so not in `skipped`. */
   expansions: number
-  /** Things worth fixing in Notion that do not stop the catalog (a missing column, an unreadable Editors or Creators database). */
+  /** Things worth fixing in Notion that do not stop the catalog (a missing column, an unreadable Editors, Creators or Games Development database). */
   warnings: string[]
 }
 
@@ -114,15 +128,17 @@ function retryAfterOf(response: Response): number | null {
   return header && /^\d+(\.\d+)?$/.test(header) ? Math.min(Math.ceil(Number(header)), MAX_RETRY_AFTER_SECONDS) : null
 }
 
-async function post(path: string, body: unknown, options: NotionReadOptions): Promise<unknown> {
+/** One call to Notion's API: a POST carries `body` as JSON, a GET carries none. */
+async function request(method: "GET" | "POST", path: string, options: NotionReadOptions, body?: unknown): Promise<unknown> {
   const doFetch = options.fetch ?? fetch
+  const headers = { Authorization: `Bearer ${options.token}`, "Notion-Version": NOTION_VERSION }
   let response: Response
   try {
     response = await doFetch(`${NOTION_API}${path}`, {
       ...options.init,
-      method: "POST",
-      headers: { Authorization: `Bearer ${options.token}`, "Notion-Version": NOTION_VERSION, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      method,
+      headers: method === "POST" ? { ...headers, "Content-Type": "application/json" } : headers,
+      body: method === "POST" ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
     })
   } catch (error) {
@@ -143,9 +159,9 @@ async function post(path: string, body: unknown, options: NotionReadOptions): Pr
 async function queryAll(databaseId: string, options: NotionReadOptions): Promise<NotionPage[]> {
   const pages: NotionPage[] = []
   let cursor: string | undefined
-  for (let request = 0; request < MAX_REQUESTS; request++) {
+  for (let call = 0; call < MAX_REQUESTS; call++) {
     const body = { page_size: PAGE_SIZE, sorts: [{ timestamp: "created_time", direction: "ascending" }], ...(cursor ? { start_cursor: cursor } : {}) }
-    const payload = await post(`/databases/${databaseId}/query`, body, options)
+    const payload = await request("POST", `/databases/${databaseId}/query`, options, body)
     if (!isRecord(payload) || !Array.isArray(payload.results)) throw new NotionError("Notion answered with something that is not a list of rows", 200)
     for (const result of payload.results) if (isRecord(result) && typeof result.id === "string") pages.push({ ...result, id: result.id })
     if (payload.has_more !== true || typeof payload.next_cursor !== "string") return pages
@@ -237,6 +253,10 @@ function ageOf(label: string | null): number | null {
 /** The rows of a database that the Games database points to, by the id of the row, and what went wrong reading them (null: nothing). */
 type Related<T> = { rows: Map<string, T>; warning: string | null }
 
+/** The warning for a database the integration could not read: `loss` is what the games lose by it, `error` why the read failed. */
+const unreadable = (label: string, loss: string, error: unknown): string =>
+  `The ${label} database could not be read, so ${loss} (connect the integration to it too): ${error instanceof Error ? error.message : "unknown error"}`
+
 /**
  * Reads such a database: `read` makes what is kept of a row, or null for a row that is of no use. Never throws: without the database
  * the games are listed with that field empty, and the warning says why (`loss` is what is lost). The warning is handed back, not
@@ -251,8 +271,7 @@ async function readRelated<T>(databaseId: string, label: string, loss: string, r
     }
     return { rows, warning: null }
   } catch (error) {
-    const reason = error instanceof Error ? error.message : "unknown error"
-    return { rows: new Map(), warning: `The ${label} database could not be read, so ${loss} (connect the integration to it too): ${reason}` }
+    return { rows: new Map(), warning: unreadable(label, loss, error) }
   }
 }
 
@@ -271,6 +290,63 @@ const creatorOf = (page: NotionPage): string | null => creditOf(value(page, CREA
  */
 const resolve = <T>(raw: unknown, rows: ReadonlyMap<string, T>): T[] => relationOf(raw).flatMap((id) => rows.get(id) ?? [])
 
+/** The place of the option a row chose among the options its column is configured with: null when none is chosen or the column no longer has it. */
+function rankOf(raw: unknown, order: readonly (string | null)[]): Rank | null {
+  const name = optionOf(raw)
+  if (name === null) return null
+  const position = order.indexOf(name)
+  return position < 0 ? null : { position, name }
+}
+
+/**
+ * What the schema of the Games Development database says about one of its columns: the options of a select or a status in the order
+ * Notion keeps them (the order it sorts by), or what is wrong with the column, as the end of "The Games Development database …".
+ */
+function developmentColumn(properties: Record<string, unknown>, { name, type }: { name: string; type: string }): { order: (string | null)[] } | { problem: string } {
+  const property = properties[name]
+  if (!isRecord(property)) return { problem: `has no "${name}" column` }
+  if (property.type !== type) return { problem: `has a "${name}" column that is a ${String(property.type)}, not a ${type}` }
+  const config = property[type]
+  return { order: isRecord(config) && Array.isArray(config.options) ? config.options.map(optionOf) : [] }
+}
+
+/**
+ * Reads the Games Development database: one row per game, with the Priority, Status and Effort that order the coming-soon games
+ * (`comparePlanned`), by the id of the game's row in the Games database. A game is ranked by the place of its option among the
+ * options the column is configured with, the way Notion sorts a select or a status, so the schema is read for that order. A game with
+ * two rows takes the older one, the way a slug does. Never throws: when the database cannot be read (the integration is not connected
+ * to it, say) the games are listed by name, and a column it lacks is left out of the order; the warnings say which, and come back
+ * rather than pushed, as `readRelated`'s do.
+ */
+async function readDevelopment(options: NotionReadOptions): Promise<{ ranks: Map<string, DevelopmentRank>; warnings: string[] }> {
+  const ranks = new Map<string, DevelopmentRank>()
+  const warnings: string[] = []
+  try {
+    const [schema, pages] = await Promise.all([request("GET", `/databases/${DEVELOPMENT_DATABASE_ID}`, options), queryAll(DEVELOPMENT_DATABASE_ID, options)])
+    if (!isRecord(schema) || !isRecord(schema.properties)) throw new NotionError("Notion answered with something that is not the schema of a database", 200)
+    const game = developmentColumn(schema.properties, DEVELOPMENT_COLUMNS.game)
+    if ("problem" in game) return { ranks, warnings: [`The Games Development database ${game.problem}: no game is ranked, so the coming-soon games are listed by name`] }
+    const orders: Partial<Record<(typeof RANKED_FIELDS)[number], (string | null)[]>> = {}
+    for (const field of RANKED_FIELDS) {
+      const column = developmentColumn(schema.properties, DEVELOPMENT_COLUMNS[field])
+      if ("problem" in column) warnings.push(`The Games Development database ${column.problem}: it is left out of the order of the coming-soon games`)
+      else orders[field] = column.order
+    }
+    for (const page of pages) {
+      if (page.archived === true || page.in_trash === true) continue
+      const rank: DevelopmentRank = { priority: null, status: null, effort: null }
+      for (const field of RANKED_FIELDS) {
+        const order = orders[field]
+        if (order) rank[field] = rankOf(value(page, DEVELOPMENT_COLUMNS[field].name), order)
+      }
+      for (const id of relationOf(value(page, DEVELOPMENT_COLUMNS.game.name))) if (!ranks.has(id)) ranks.set(id, rank)
+    }
+    return { ranks, warnings }
+  } catch (error) {
+    return { ranks: new Map(), warnings: [unreadable("Games Development", "the coming-soon games are listed by name", error)] }
+  }
+}
+
 /** The columns a row should have and does not: a renamed or deleted column would otherwise empty a field without a word. */
 function missingColumns(page: NotionPage, columns: readonly string[]): string[] {
   const properties = isRecord(page.properties) ? page.properties : {}
@@ -283,6 +359,7 @@ function planned(
   slug: string,
   publishers: ReadonlyMap<string, Publisher>,
   creators: ReadonlyMap<string, string>,
+  developments: ReadonlyMap<string, DevelopmentRank>,
 ): PlannedGame {
   const byLanguage = (column: (locale: Locale) => string, read: (raw: unknown) => string | null): Partial<Record<Locale, string>> => {
     const values: Partial<Record<Locale, string>> = {}
@@ -308,6 +385,7 @@ function planned(
       icon: hasPicture(value(page, COLUMNS.icon)),
       background: hasPicture(value(page, COLUMNS.background)),
     },
+    development: developments.get(normalizeId(page.id)) ?? { priority: null, status: null, effort: null },
     editedAt: editedAtOf(page),
     notionPageId: page.id,
   }
@@ -331,15 +409,17 @@ function rowProblem(name: string, slug: string, taken: ReadonlyMap<string, strin
  * name (or one that is not a line of text), no `Slug`, a slug that is not one (or is a route of the site), or the same slug as an
  * older row (the older row wins). Throws a `NotionError` when Notion cannot be read or the database has no `Name` or no `Slug` column.
  * The Editors and Creators databases are read alongside: without one, the games come with no publisher, or no author and no
- * illustrator, and a warning says so.
+ * illustrator, and a warning says so. So is Games Development, which orders the coming-soon games: without it they are in name order.
  */
 export async function readPlannedGames(options: NotionReadOptions): Promise<PlannedRead> {
-  const [pages, editors, creators] = await Promise.all([
+  const [pages, editors, creators, development] = await Promise.all([
     queryAll(GAMES_DATABASE_ID, options),
     readRelated(EDITORS_DATABASE_ID, "Editors", "no game has a publisher", publisherOf, options),
     readRelated(CREATORS_DATABASE_ID, "Creators", "no game has an author or an illustrator", creatorOf, options),
+    readDevelopment(options),
   ])
   const warnings = [editors.warning, creators.warning].flatMap((warning) => warning ?? [])
+  warnings.push(...development.warnings)
 
   const first = pages[0]
   if (first) {
@@ -366,7 +446,7 @@ export async function readPlannedGames(options: NotionReadOptions): Promise<Plan
       continue
     }
     slugs.set(slug, name)
-    games.push(planned(page, name, slug, editors.rows, creators.rows))
+    games.push(planned(page, name, slug, editors.rows, creators.rows, development.ranks))
   }
   return { games, skipped, expansions, warnings }
 }

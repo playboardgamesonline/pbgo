@@ -1,15 +1,15 @@
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
-import { creatorPage, editorPage, fakeNotion, gamePage, notionFailure } from "./testing"
+import { creatorPage, developmentPage, editorPage, fakeNotion, gamePage, notionFailure } from "./testing"
 
 // `server-only` throws outside a server bundle
 vi.mock("server-only", () => ({}))
 
 const TOKEN = "ntn_testsecret123"
 
-/** A fake Notion whose Editors and Creators databases are there and empty, unless the test fills them. */
-const notionOf = (databases: Parameters<typeof fakeNotion>[0]) => fakeNotion({ editors: [], creators: [], ...databases })
+/** A fake Notion whose Editors, Creators and Games Development databases are there and empty, unless the test fills them. */
+const notionOf = (databases: Parameters<typeof fakeNotion>[0]) => fakeNotion({ editors: [], creators: [], development: [], ...databases })
 
 // The registry as the catalog reads it (its literal types would make `slug !== "template"` a comparison with no overlap)
 const REGISTRY: readonly GameEntry[] = GAMES
@@ -81,11 +81,56 @@ describe("with a token", () => {
     const { getCatalog, CATALOG_TAG, CATALOG_REVALIDATE_SECONDS } = await load()
     expect([CATALOG_TAG, CATALOG_REVALIDATE_SECONDS]).toEqual(["catalog", 600])
     await getCatalog()
-    expect(notion.calls).toHaveLength(3)
+    expect(notion.calls).toHaveLength(4)
     for (const call of notion.calls) {
       expect(call.headers.Authorization).toBe(`Bearer ${TOKEN}`)
       expect(call.init).toMatchObject({ method: "POST", next: { revalidate: 600, tags: ["catalog"] } })
     }
+    // the schema of the Games Development database, which says in what order its options come, is read the same way
+    expect(notion.schemaCalls).toHaveLength(1)
+    expect(notion.schemaCalls[0]?.headers.Authorization).toBe(`Bearer ${TOKEN}`)
+    expect(notion.schemaCalls[0]?.init).toMatchObject({ method: "GET", next: { revalidate: 600, tags: ["catalog"] } })
+  })
+
+  it("lists the planned games in the order of their Games Development rows: the nearest priority first, then the furthest along, then the lightest", async () => {
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    vi.stubGlobal(
+      "fetch",
+      notionOf({
+        games: ["Bang", "Skyjo", "The Game", "The Mind", "Zombie Dice"].map((name) => gamePage({ slug: name.toLowerCase().replace(/ /g, "-"), name })),
+        development: [
+          developmentPage({ slug: "the-mind", game: ["game-the-mind"], priority: "P1 · Now", status: "Engine", effort: "M" }),
+          developmentPage({ slug: "skyjo", game: ["game-skyjo"], priority: "P1 · Now", status: "Playtest", effort: "XL" }),
+          developmentPage({ slug: "the-game", game: ["game-the-game"], priority: "P1 · Now", status: "Engine", effort: "S" }),
+          developmentPage({ slug: "zombie-dice", game: ["game-zombie-dice"], priority: "P2 · Next", status: "Live", effort: "S" }),
+        ],
+      }).fetch,
+    )
+    const { getCatalog } = await load()
+    const { entries } = await getCatalog()
+    // Bang has no row: after the games that have one
+    expect(entries.map((entry) => entry.slug)).toEqual([...LIVE_SLUGS, "skyjo", "the-game", "the-mind", "zombie-dice", "bang"])
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it("keeps the live games first, in the order of the registry, whatever the Games Development rows say of them", async () => {
+    const live = LIVE[0]
+    if (!live) throw new Error("No live game")
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    vi.stubGlobal(
+      "fetch",
+      notionOf({
+        games: [gamePage({ slug: "bang", name: "Bang" }), gamePage({ slug: live.slug, name: "Name in Notion" })],
+        development: [
+          developmentPage({ slug: "bang", game: ["game-bang"], priority: "P1 · Now" }),
+          developmentPage({ slug: live.slug, game: [`game-${live.slug}`], priority: "P4 · Someday", status: "Paused" }),
+        ],
+      }).fetch,
+    )
+    const { getCatalog } = await load()
+    const { entries } = await getCatalog()
+    expect(entries.map((entry) => entry.slug)).toEqual([...LIVE_SLUGS, "bang"])
+    expect(entries.filter((entry) => entry.slug === live.slug)).toEqual([{ live: true, slug: live.slug, game: live }])
   })
 
   it("keeps the registry's entry for a live game and ignores its Notion row", async () => {
@@ -198,7 +243,7 @@ describe("what is wrong in Notion without stopping the catalog", () => {
 
   it("says the Editors database could not be read, and still lists the games", async () => {
     vi.stubEnv("NOTION_API_KEY", TOKEN)
-    vi.stubGlobal("fetch", fakeNotion({ games: [gamePage({ slug: "bang", name: "Bang" })], creators: [] }).fetch)
+    vi.stubGlobal("fetch", fakeNotion({ games: [gamePage({ slug: "bang", name: "Bang" })], creators: [], development: [] }).fetch)
     const { getCatalog } = await load()
     const { entries, notion } = await getCatalog()
     expect(notion).toBe("ok")
@@ -209,12 +254,33 @@ describe("what is wrong in Notion without stopping the catalog", () => {
 
   it("says the Creators database could not be read, and still lists the games", async () => {
     vi.stubEnv("NOTION_API_KEY", TOKEN)
-    vi.stubGlobal("fetch", fakeNotion({ games: [gamePage({ slug: "bang", name: "Bang" })], editors: [] }).fetch)
+    vi.stubGlobal("fetch", fakeNotion({ games: [gamePage({ slug: "bang", name: "Bang" })], editors: [], development: [] }).fetch)
     const { getCatalog } = await load()
     const { entries, notion } = await getCatalog()
     expect(notion).toBe("ok")
     expect(entries.at(-1)?.slug).toBe("bang")
     expect(logged()).toContain("[catalog] The Creators database could not be read, so no game has an author or an illustrator")
     expect(logged()).not.toContain(TOKEN)
+  })
+
+  it("says the Games Development database could not be read, and lists the planned games by name", async () => {
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    const games = ["The Mind", "Bang", "Skyjo"].map((name) => gamePage({ slug: name.toLowerCase().replace(/ /g, "-"), name }))
+    vi.stubGlobal("fetch", fakeNotion({ games, editors: [], creators: [] }).fetch)
+    const { getCatalog } = await load()
+    const { entries, notion } = await getCatalog()
+    expect(notion).toBe("ok")
+    expect(entries.map((entry) => entry.slug)).toEqual([...LIVE_SLUGS, "bang", "skyjo", "the-mind"])
+    expect(logged()).toContain("[catalog] The Games Development database could not be read, so the coming-soon games are listed by name (connect the integration to it too)")
+    expect(logged()).not.toContain(TOKEN)
+  })
+
+  it("says it once, however often the catalog is read", async () => {
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    vi.stubGlobal("fetch", fakeNotion({ games: [gamePage({ slug: "bang", name: "Bang" })], editors: [], creators: [] }).fetch)
+    const { getCatalog } = await load()
+    await getCatalog()
+    await getCatalog()
+    expect(warn).toHaveBeenCalledTimes(1)
   })
 })
