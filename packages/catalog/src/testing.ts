@@ -125,7 +125,7 @@ export type DevelopmentField = "priority" | "status" | "effort"
  */
 export const DEVELOPMENT_OPTIONS: Record<DevelopmentField, readonly string[]> = {
   priority: ["P1 · Now", "P2 · Next", "P3 · Later", "P4 · Someday"],
-  status: ["Not started", "Rules", "Engine", "Content", "Table", "Playtest", "Live", "Paused"],
+  status: ["Not started", "Rules", "Engine", "Content", "Table", "Playtest", "Paused", "Live"],
   effort: ["S", "M", "L", "XL", "XXL"],
 }
 

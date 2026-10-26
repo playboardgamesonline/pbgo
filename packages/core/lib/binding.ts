@@ -31,7 +31,7 @@ export type GameEntry = {
   players?: { min: number; max: number }
   /** Length of a game in minutes, shown by the hub ("30 min", "20–40 min"); absent while unknown */
   duration?: { min: number; max: number }
-  /** The game's own Sanity project: content, admin settings and the cover art of its hub card (`interface.hero`) */
+  /** The game's own Sanity project: content, admin settings and the art of its hub card (`settings.logo`, `interface.background`) and of its page (`interface.hero`) */
   sanityProjectId: string
   /** Playable in production. Off: home page "coming soon" only (every page stays playable outside production). */
   live: boolean

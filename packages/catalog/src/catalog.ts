@@ -67,9 +67,14 @@ export function pictureVersion(editedAt: string): string {
   return Number.isFinite(time) ? Math.floor(time / 60_000).toString(36) : "0"
 }
 
-/** The URL of a planned game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a black background, nothing else. */
+/** The URL of a planned game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a plain frame, nothing else. */
 export function pictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedAt">, slot: ArtSlot): string | null {
   return game.art[slot] ? `/api/catalog/${game.slug}/${slot}?v=${pictureVersion(game.editedAt)}` : null
+}
+
+/** The picture of a planned game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
+export function cardPictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedAt">): string | null {
+  return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")
 }
 
 /** One line of the catalog: a live game (the registry's entry, played on the site) or a planned one (Notion's row). */

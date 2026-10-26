@@ -1,0 +1,107 @@
+import "server-only"
+import { cache } from "react"
+import { cardPictureUrl, pickLocalized, pictureUrl, type PlannedGame } from "@pbgo/catalog"
+import { getCatalog } from "@pbgo/catalog/server"
+import type { GameEntry } from "@pbgo/core/lib/binding"
+import { LOCALE_NAMES, LOCALES, type Locale } from "@pbgo/core/lib/i18n"
+import { getLocale } from "@pbgo/core/lib/locale-server"
+import { loadSettings } from "@pbgo/core/lib/settings-server"
+import { gameCover } from "@pbgo/core/sanity/cover"
+import { getGame } from "@pbgo/games"
+import { durationLabel, playersLabel, plannedFacts } from "./game-card-props"
+
+/** One line of a game's credits: a label and its values, each one a link when it has an address (`lang`: the language of a rulebook). */
+export type GameFact = { label: string; values: { text: string; href?: string; lang?: Locale }[] }
+
+/** What a game's page on the hub (`/game/<slug>`) shows, whether the game is live or to come. */
+export type GamePage = {
+  slug: string
+  name: string
+  /** Live in the registry: the page's button opens the game's own site. A game to come gets a disabled "Coming soon" button. */
+  live: boolean
+  /** The registry's English line: live games only. */
+  tagline: string | null
+  /** In the visitor's language, else English, else French, else any: `language` is the one taken. Null when no language has a text. */
+  description: { text: string; language: Locale } | null
+  /** Already formatted, like the card's ("2–5 players", "30 min"). */
+  players: string | null
+  duration: string | null
+  /** Age, credits, publishers, rulebooks: only the lines that have a value. */
+  facts: GameFact[]
+  /** The page's picture: the cover art of a live game, the background of a game to come, else its logo or icon contained. Null: a plain frame. */
+  visual: { src: string; fit: "cover" | "contain" } | null
+}
+
+const fact = (label: string, values: GameFact["values"]): GameFact[] => (values.length ? [{ label, values }] : [])
+const plural = (count: number, one: string, many: string) => (count === 1 ? one : many)
+
+/** The rulebook of every language the game has one in, the visitor's language first. */
+function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale): GameFact[] {
+  return fact(
+    "Rulebook",
+    [locale, ...LOCALES.filter((language) => language !== locale)].flatMap((language) => {
+      const href = links[language]
+      return href ? [{ text: LOCALE_NAMES[language], href, lang: language }] : []
+    })
+  )
+}
+
+function plannedPage(game: PlannedGame, locale: Locale): GamePage {
+  const background = pictureUrl(game, "background")
+  const logo = cardPictureUrl(game)
+  const { players, duration } = plannedFacts(game)
+  return {
+    slug: game.slug,
+    name: game.name,
+    live: false,
+    tagline: null,
+    description: pickLocalized(game.descriptions, locale),
+    players: players ?? null,
+    duration: duration ?? null,
+    facts: [
+      ...fact("Age", game.age === null ? [] : [{ text: `${game.age}+` }]),
+      ...fact(plural(game.authors.length, "Author", "Authors"), game.authors.map((text) => ({ text }))),
+      ...fact(plural(game.illustrators.length, "Illustrator", "Illustrators"), game.illustrators.map((text) => ({ text }))),
+      ...fact(plural(game.publishers.length, "Publisher", "Publishers"), game.publishers.map(({ name, url }) => ({ text: name, href: url ?? undefined }))),
+      ...rulebooks(game.rules, locale),
+    ],
+    visual: background ? { src: background, fit: "cover" } : logo ? { src: logo, fit: "contain" } : null,
+  }
+}
+
+async function livePage(entry: GameEntry, locale: Locale): Promise<GamePage> {
+  // The texts, the credits and the rulebooks are the game's own, in its Sanity project; the figures are the registry's, as on the card
+  const [settings, cover] = await Promise.all([
+    getGame(entry.slug).then((game) => (game ? loadSettings(game, locale) : null)),
+    gameCover(entry, 1200),
+  ])
+  const { authors, publisher, publisherUrl } = settings?.credits ?? { authors: null, publisher: null, publisherUrl: null }
+  return {
+    slug: entry.slug,
+    name: entry.name,
+    live: true,
+    tagline: entry.tagline,
+    description: settings ? pickLocalized(settings.descriptions, locale) : null,
+    players: playersLabel(entry.players) ?? null,
+    duration: durationLabel(entry.duration) ?? null,
+    facts: [
+      ...fact("Credits", authors ? [{ text: authors }] : []),
+      ...fact("Publisher", publisher ? [{ text: publisher, href: publisherUrl ?? undefined }] : []),
+      ...(settings ? rulebooks(settings.rulesPdf, locale) : []),
+    ],
+    visual: cover ? { src: cover, fit: "cover" } : null,
+  }
+}
+
+/**
+ * The page of a game of the catalog (`/game/<slug>`), null when the catalog does not list the slug: the page then answers 404.
+ * A game to come is a row of the Notion Games database, so without Notion (no key, or Notion down) only the live games have a page.
+ * Read once per request, however many times the page and its metadata ask. Reading the visitor's language makes the page dynamic.
+ */
+export const getGamePage = cache(async (slug: string): Promise<GamePage | null> => {
+  const { entries } = await getCatalog()
+  const entry = entries.find((candidate) => candidate.slug === slug)
+  if (!entry) return null
+  const locale = await getLocale()
+  return entry.live ? livePage(entry.game, locale) : plannedPage(entry.game, locale)
+})

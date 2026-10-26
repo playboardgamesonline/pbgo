@@ -54,7 +54,8 @@ export function AnalyticsProvider() {
     if (ready) syncConsent(consent)
   }, [ready, consent, pathname])
 
-  // The hub is the only page whose links lead straight to a game: `/design` shows the same cards as a specimen.
+  // The hub is the only page whose links are counted: the hero button leads straight to a game, a card to the game's page on the hub
+  // (`/game/<slug>`, whose own button is not counted). `/design` shows the same cards as a specimen.
   React.useEffect(() => {
     if (!reporting || pathname !== "/") return
     function onClick(event: MouseEvent) {

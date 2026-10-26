@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, comparePlanned, pickLocalized, pictureUrl, pictureVersion } from "./catalog"
+import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, pickLocalized, pictureUrl, pictureVersion } from "./catalog"
 import { DEVELOPMENT_OPTIONS, developmentRank, plannedGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -202,7 +202,7 @@ describe("pictureUrl", () => {
     expect(pictureUrl(edited, "background")).toBe(`/api/catalog/love-letter/background?v=${version}`)
   })
 
-  it("is null for a picture the row does not have: no fallback, the page draws a black background", () => {
+  it("is null for a picture the row does not have: no fallback, the page draws a plain frame", () => {
     expect(pictureUrl(edited, "icon")).toBeNull()
     expect(ART_SLOTS.map((slot) => pictureUrl(plannedGame("omens"), slot))).toEqual([null, null, null])
   })
@@ -210,6 +210,24 @@ describe("pictureUrl", () => {
   it("changes when the row is edited", () => {
     const later = { ...edited, editedAt: "2026-10-22T11:00:00.000Z" }
     expect(pictureUrl(later, "logo")).not.toBe(pictureUrl(edited, "logo"))
+  })
+})
+
+describe("cardPictureUrl", () => {
+  const game = (art: { logo?: boolean; icon?: boolean; background?: boolean }) =>
+    plannedGame("skyjo", { editedAt: "2026-10-22T10:30:00.000Z", art: { logo: false, icon: false, background: false, ...art } })
+
+  it("is the logo when the row has one, whatever else it has", () => {
+    expect(cardPictureUrl(game({ logo: true, icon: true, background: true }))).toBe(pictureUrl(game({ logo: true }), "logo"))
+  })
+
+  it("is the icon when the row has no logo", () => {
+    expect(cardPictureUrl(game({ icon: true, background: true }))).toBe(pictureUrl(game({ icon: true }), "icon"))
+  })
+
+  it("is null with neither: the background is the game page's, the card stays a plain frame", () => {
+    expect(cardPictureUrl(game({ background: true }))).toBeNull()
+    expect(cardPictureUrl(game({}))).toBeNull()
   })
 })
 

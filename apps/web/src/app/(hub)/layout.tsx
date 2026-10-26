@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorScheme: "dark" }
 
 /**
- * Root layout of the hub pages (`/`, `/legal`, `/design`). Each game has its own root layout, `app/[game]/layout.tsx`.
+ * Root layout of the hub pages (`/`, `/game/<slug>`, `/legal`, `/design`). Each game has its own root layout, `app/[game]/layout.tsx`.
  * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports.
  */
 export default function HubLayout({ children }: Readonly<{ children: React.ReactNode }>) {
