@@ -36,12 +36,19 @@ export const COLUMNS = {
   authors: "Authors",
   illustrators: "Illustrators",
   editors: "Editors",
-  /** Filled for an expansion (it points to its base game): expansions are not part of the catalog. */
+  /** Filled for an expansion (it points to its base game): expansions are not part of the catalog, a standalone one apart (`type`). */
   parent: "Parent item",
+  /** A select. A row with a `parent` whose type is `STANDALONE_EXPANSION` is a game of its own: it plays without its base game, so it is listed. */
+  type: "Type",
+  /** A relation to other rows of this database: the games this one is related to (a spin-off, a re-skin). Notion keeps it one way, by hand, so a game may be named by the other one only. */
+  related: "Related Games",
   logo: "Logo",
   icon: "Icon",
   background: "Background",
 } as const
+
+/** The option of the `Type` select that marks an expansion which is a game of its own, as Notion spells it. */
+const STANDALONE_EXPANSION = "Standalone expansion"
 
 /** The columns of the Editors database. */
 const EDITOR_COLUMNS = { name: "Name", url: "URL" } as const
@@ -106,7 +113,7 @@ export type SkippedRow = { id: string; name: string; reason: string }
 export type PlannedRead = {
   games: PlannedGame[]
   skipped: SkippedRow[]
-  /** The rows that are expansions of another game: left out on purpose, so not in `skipped`. */
+  /** The rows that are expansions of another game: left out on purpose, so not in `skipped`. A standalone expansion is a game of its own, not one of them. */
   expansions: number
   /** Things worth fixing in Notion that do not stop the catalog (a missing column, an unreadable Editors, Creators or Games Development database). */
   warnings: string[]
@@ -386,6 +393,8 @@ function planned(
       background: hasPicture(value(page, COLUMNS.background)),
     },
     development: developments.get(normalizeId(page.id)) ?? { priority: null, status: null, effort: null },
+    // Settled by `readPlannedGames`, once every row is known: a link is the id of a row, and the slug is the row's
+    related: [],
     editedAt: editedAtOf(page),
     notionPageId: page.id,
   }
@@ -404,12 +413,15 @@ function rowProblem(name: string, slug: string, taken: ReadonlyMap<string, strin
 }
 
 /**
- * The planned games: every row of the Games database that is a game with a name and a slug the site can serve. Whether a slug is
+ * The planned games: every row of the Games database that is a game with a name and a slug the site can serve. A row that points to
+ * a base game (`Parent item`) is an expansion, not a game, unless its `Type` says it is a standalone one. Whether a slug is
  * also a live game is for `buildCatalog` to settle. A row that cannot be a game is reported in `skipped`, never guessed at: no
  * name (or one that is not a line of text), no `Slug`, a slug that is not one (or is a route of the site), or the same slug as an
  * older row (the older row wins). Throws a `NotionError` when Notion cannot be read or the database has no `Name` or no `Slug` column.
  * The Editors and Creators databases are read alongside: without one, the games come with no publisher, or no author and no
  * illustrator, and a warning says so. So is Games Development, which orders the coming-soon games: without it they are in name order.
+ * The games a row points to, through `Related Games` and through its `Parent item` (a standalone expansion's base game), come back as
+ * slugs in `PlannedGame.related`: only the rows that are games of the catalog have one.
  */
 export async function readPlannedGames(options: NotionReadOptions): Promise<PlannedRead> {
   const [pages, editors, creators, development] = await Promise.all([
@@ -428,13 +440,16 @@ export async function readPlannedGames(options: NotionReadOptions): Promise<Plan
     for (const column of missingColumns(first, OPTIONAL_COLUMNS)) warnings.push(`The Games database has no "${column}" column: it is left empty for every game`)
   }
 
-  const games: PlannedGame[] = []
+  // A game and the ids of the rows it points to: they become slugs once every row is known
+  const kept: { game: PlannedGame; links: string[] }[] = []
   const skipped: SkippedRow[] = []
   const slugs = new Map<string, string>()
+  const slugOf = new Map<string, string>()
   let expansions = 0
   for (const page of pages) {
     if (page.archived === true || page.in_trash === true) continue
-    if (relationOf(value(page, COLUMNS.parent)).length > 0) {
+    const parent = relationOf(value(page, COLUMNS.parent))
+    if (parent.length > 0 && optionOf(value(page, COLUMNS.type)) !== STANDALONE_EXPANSION) {
       expansions++
       continue
     }
@@ -446,8 +461,11 @@ export async function readPlannedGames(options: NotionReadOptions): Promise<Plan
       continue
     }
     slugs.set(slug, name)
-    games.push(planned(page, name, slug, editors.rows, creators.rows, development.ranks))
+    slugOf.set(normalizeId(page.id), slug)
+    kept.push({ game: planned(page, name, slug, editors.rows, creators.rows, development.ranks), links: [...relationOf(value(page, COLUMNS.related)), ...parent] })
   }
+  // A link to a row that is not a game of the catalog (an expansion, a row left out) is dropped, like an author the Creators database lacks
+  const games = kept.map(({ game, links }) => ({ ...game, related: [...new Set(links.flatMap((id) => slugOf.get(id) ?? []))].filter((slug) => slug !== game.slug) }))
   return { games, skipped, expansions, warnings }
 }
 

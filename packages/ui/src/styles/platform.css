@@ -75,8 +75,8 @@
 
 /* Platform-only names: nothing here exists in Tailwind's default theme. */
 @theme static {
-  /* Layout widths: `max-w-page` (grids, headers), `max-w-reading` (legal text, forms) */
-  --container-page: 64rem;
+  /* Layout widths: `max-w-page` (grids, headers: nearly the whole screen up to a 1536px window), `max-w-reading` (legal text, forms) */
+  --container-page: 96rem;
   --container-reading: 40rem;
 
   /* Motion: `duration-fast`, `duration-base`, `duration-slow`, `ease-standard` */
@@ -90,7 +90,7 @@
   --shadow-float: 0 8px 24px -6px oklch(0 0 0 / 0.5);
   --shadow-overlay: 0 24px 64px -12px oklch(0 0 0 / 0.65);
 
-  /* Dimmed page behind a dialog or a sheet: `bg-scrim` */
+  /* Dimming layer: the page behind a dialog or a sheet (`bg-scrim`), a lighter veil over a picture that carries a logo (`bg-scrim/70`) */
   --color-scrim: oklch(0 0 0 / 0.6);
 }
 
@@ -162,8 +162,8 @@
     --default-transition-duration: var(--transition-duration-base);
     --default-transition-timing-function: var(--ease-standard);
 
-    /* Layout rhythm, wider from the `sm` breakpoint */
-    --gutter: 1.25rem;
+    /* Layout rhythm, wider from the `sm` breakpoint: thin side margins, the content takes the room */
+    --gutter: 1rem;
     --section: 4rem;
 
     color-scheme: dark;
@@ -178,7 +178,7 @@
 
   @media (min-width: 40rem) {
     .platform {
-      --gutter: 2rem;
+      --gutter: 1.5rem;
       --section: 6rem;
     }
   }

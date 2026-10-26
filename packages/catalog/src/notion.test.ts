@@ -270,6 +270,7 @@ describe("a row of the Games database", () => {
           rules: { en: "https://example.com/rules-en.pdf" },
           art: { logo: true, icon: true, background: false },
           development: { priority: null, status: null, effort: null },
+          related: [],
           editedAt: "2026-10-20T10:00:00.000Z",
           notionPageId: "11111111-aaaa-4bbb-8ccc-000000000001",
         },
@@ -295,6 +296,7 @@ describe("a row of the Games database", () => {
       rules: {},
       art: { logo: false, icon: false, background: false },
       development: { priority: null, status: null, effort: null },
+      related: [],
       editedAt: "2026-10-01T00:00:00.000Z",
       notionPageId: "game-hanabi",
     })
@@ -637,6 +639,41 @@ describe("a row that is not a game", () => {
     expect(read.skipped).toEqual([])
   })
 
+  it("is a game of its own when it points to a base game and its Type is Standalone expansion", async () => {
+    const read = await readGames([
+      gamePage({ slug: "flip-7", name: "Flip 7", type: "Base game" }),
+      gamePage({ slug: "flip-7-vengeance", name: "Flip 7 Vengeance", parent: ["game-flip-7"], type: "Standalone expansion" }),
+      gamePage({ slug: "flip-7-pack", name: "Flip 7 Pack", parent: ["game-flip-7"], type: "Expansion" }),
+    ])
+    expect(read.games.map((game) => game.slug)).toEqual(["flip-7", "flip-7-vengeance"])
+    expect(read.expansions).toBe(1)
+    expect(read.skipped).toEqual([])
+  })
+
+  it.each([
+    ["has no Type", null],
+    ["is an Expansion", "Expansion"],
+    ["is a Base game", "Base game"],
+    ["has a Type this reader does not know", "Spin-off"],
+  ])("stays an expansion when it points to a base game and it %s", async (_label, type) => {
+    const read = await readGames([gamePage({ slug: "base", name: "Base" }), gamePage({ slug: "extra", name: "Extra", parent: ["game-base"], type })])
+    expect(read.games.map((game) => game.slug)).toEqual(["base"])
+    expect(read.expansions).toBe(1)
+  })
+
+  it("is a game whatever its Type when it points to no base game", async () => {
+    const read = await readGames([gamePage({ slug: "alone", name: "Alone", type: "Standalone expansion" }), gamePage({ slug: "other", name: "Other", type: "Expansion" })])
+    expect(read.games.map((game) => game.slug)).toEqual(["alone", "other"])
+    expect(read.expansions).toBe(0)
+  })
+
+  it("is checked like any game when it is a standalone expansion: with no slug it is skipped with its reason, not counted", async () => {
+    const read = await readGames([gamePage({ id: "row-1", slug: "", name: "Standalone", parent: ["game-base"], type: "Standalone expansion" })])
+    expect(read.games).toEqual([])
+    expect(read.expansions).toBe(0)
+    expect(read.skipped).toEqual([{ id: "row-1", name: "Standalone", reason: "it has no slug (fill the Slug column)" }])
+  })
+
   it.each([
     ["has no name", { name: "", slug: "sample" }, "it has no name"],
     ["has a name of white space", { name: " \t ", slug: "sample" }, "it has no name"],
@@ -683,6 +720,65 @@ describe("a row that is not a game", () => {
   })
 })
 
+describe("the related games of a row", () => {
+  /** The slugs each game of a read points to, by game. */
+  const relatedOf = (read: { games: PlannedGame[] }) => Object.fromEntries(read.games.map((game) => [game.slug, game.related]))
+
+  it("are the slugs of the rows its Related Games column points to, in the order of the row, on its own side only", async () => {
+    const read = await readGames([
+      gamePage({ slug: "skyjo", name: "Skyjo", related: ["game-skyjo-junior", "game-skyjo-action"] }),
+      gamePage({ slug: "skyjo-action", name: "Skyjo Action" }),
+      gamePage({ slug: "skyjo-junior", name: "Skyjo Junior" }),
+    ])
+    // Notion keeps a link where it was typed: `buildCatalog` makes it go both ways
+    expect(relatedOf(read)).toEqual({ skyjo: ["skyjo-junior", "skyjo-action"], "skyjo-action": [], "skyjo-junior": [] })
+  })
+
+  it("are none for a row that points to no game", async () => {
+    expect((await one({ name: "Hanabi", slug: "hanabi" })).related).toEqual([])
+  })
+
+  it("include the base game of a standalone expansion, after its related games", async () => {
+    const read = await readGames([
+      gamePage({ slug: "flip-7", name: "Flip 7" }),
+      gamePage({ slug: "flip-7-revenge", name: "Flip 7 Revenge" }),
+      gamePage({ slug: "flip-7-vengeance", name: "Flip 7 Vengeance", parent: ["game-flip-7"], related: ["game-flip-7-revenge"], type: "Standalone expansion" }),
+    ])
+    expect(relatedOf(read)["flip-7-vengeance"]).toEqual(["flip-7-revenge", "flip-7"])
+  })
+
+  it("name a game once, whichever column says so", async () => {
+    const read = await readGames([
+      gamePage({ slug: "flip-7", name: "Flip 7" }),
+      gamePage({ slug: "flip-7-vengeance", name: "Flip 7 Vengeance", parent: ["game-flip-7"], related: ["game-flip-7", "game-flip-7"], type: "Standalone expansion" }),
+    ])
+    expect(relatedOf(read)["flip-7-vengeance"]).toEqual(["flip-7"])
+  })
+
+  it("never include the row itself", async () => {
+    const read = await readGames([gamePage({ slug: "skyjo", name: "Skyjo", related: ["game-skyjo"] })])
+    expect(relatedOf(read)).toEqual({ skyjo: [] })
+  })
+
+  it("leave out a row that is not a game of the catalog: an expansion, a row with no slug, a row in the trash, a row the integration cannot see", async () => {
+    const read = await readGames([
+      gamePage({ slug: "7-wonders", name: "7 Wonders", related: ["game-7-wonders-cities", "row-nameless", "row-old", "row-elsewhere"] }),
+      gamePage({ slug: "7-wonders-cities", name: "7 Wonders Cities", parent: ["game-7-wonders"], type: "Expansion" }),
+      gamePage({ id: "row-nameless", slug: "", name: "Nameless" }),
+      gamePage({ id: "row-old", slug: "old", name: "Old", archived: true }),
+    ])
+    expect(relatedOf(read)).toEqual({ "7-wonders": [] })
+  })
+
+  it("are read from an id with or without dashes, in any case", async () => {
+    const read = await readGames([
+      gamePage({ id: "11111111-aaaa-4bbb-8ccc-000000000001", slug: "king-of-tokyo", name: "King of Tokyo", related: ["11111111AAAA4BBB8CCC000000000002"] }),
+      gamePage({ id: "11111111-aaaa-4bbb-8ccc-000000000002", slug: "king-of-new-york", name: "King of New York", related: ["11111111-aaaa-4bbb-8ccc-000000000001"] }),
+    ])
+    expect(relatedOf(read)).toEqual({ "king-of-tokyo": ["king-of-new-york"], "king-of-new-york": ["king-of-tokyo"] })
+  })
+})
+
 describe("the columns", () => {
   it("are reported when an optional one is missing, once each, and the games are still read", async () => {
     const pages = [gamePage({ slug: "hanabi", name: "Hanabi" }), gamePage({ slug: "bang", name: "Bang" })]
@@ -696,6 +792,29 @@ describe("the columns", () => {
       'The Games database has no "Illustrators" column: it is left empty for every game',
       'The Games database has no "Rules DE" column: it is left empty for every game',
     ])
+  })
+
+  it("report a missing Type column, and then every row that points to a base game is an expansion again", async () => {
+    const pages = [
+      gamePage({ slug: "flip-7", name: "Flip 7" }),
+      gamePage({ slug: "flip-7-vengeance", name: "Flip 7 Vengeance", parent: ["game-flip-7"], type: "Standalone expansion" }),
+    ]
+    for (const page of pages) delete page.properties.Type
+    const read = await readGames(pages)
+    expect(read.games.map((game) => game.slug)).toEqual(["flip-7"])
+    expect(read.expansions).toBe(1)
+    expect(read.warnings).toEqual(['The Games database has no "Type" column: it is left empty for every game'])
+  })
+
+  it("report a missing Related Games column, and the games are read with no related game but their base game", async () => {
+    const pages = [
+      gamePage({ slug: "flip-7", name: "Flip 7" }),
+      gamePage({ slug: "flip-7-vengeance", name: "Flip 7 Vengeance", parent: ["game-flip-7"], type: "Standalone expansion" }),
+    ]
+    for (const page of pages) delete page.properties["Related Games"]
+    const read = await readGames(pages)
+    expect(read.games.map((game) => game.related)).toEqual([[], ["flip-7"]])
+    expect(read.warnings).toEqual(['The Games database has no "Related Games" column: it is left empty for every game'])
   })
 
   it("make the read fail when Name or Slug is missing: that database is not the Games one", async () => {

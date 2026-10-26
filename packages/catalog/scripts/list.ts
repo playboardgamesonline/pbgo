@@ -36,10 +36,12 @@ const development = (value: PlannedGame["development"]) => {
   return names.every((name) => name === "-") ? "" : names.join(" / ")
 }
 
-const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "age", "authors", "illustrators", "publisher"]
-const rows = buildCatalog(GAMES, planned).map((entry) =>
-  entry.live
-    ? [entry.slug, entry.game.name, "live", ...heads.slice(3).map(() => "")]
+const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "age", "authors", "illustrators", "publisher", "related"]
+const rows = buildCatalog(GAMES, planned).map((entry) => {
+  // for a live game too: its Notion row is ignored, except for the games it points to
+  const related = entry.related.join(", ")
+  return entry.live
+    ? [entry.slug, entry.game.name, "live", ...heads.slice(3, -1).map(() => ""), related]
     : [
         entry.slug,
         entry.game.name,
@@ -53,8 +55,9 @@ const rows = buildCatalog(GAMES, planned).map((entry) =>
         entry.game.authors.join(", "),
         entry.game.illustrators.join(", "),
         entry.game.publishers.map((publisher) => publisher.name).join(", "),
-      ],
-)
+        related,
+      ]
+})
 const widths = heads.map((head, column) => Math.max(head.length, ...rows.map((row) => (row[column] ?? "").length)))
 const line = (cells: string[]) => cells.map((cell, column) => cell.padEnd(widths[column] ?? 0)).join("  ").trimEnd()
 
@@ -65,5 +68,6 @@ for (const row of rows) console.log(line(row))
 if (planned.length > 0) {
   console.log("\ndevelopment: Priority / Status / Effort of the Games Development database, the order of the coming-soon games (a live game keeps its place in the registry)")
   console.log("art: Logo, Icon, Background · text: the languages that have a description")
+  console.log("related: the games the page of a game lists as related, both ways: the row of either one says so (Related Games, or the base game of a standalone expansion)")
 }
 if (notes.length > 0) console.log(`\n${notes.join("\n")}`)

@@ -53,6 +53,12 @@ export type PlannedGame = {
   art: Record<ArtSlot, boolean>
   /** How soon the game is to come: what orders the coming-soon games (`comparePlanned`). */
   development: DevelopmentRank
+  /**
+   * The slugs of the games the row itself points to: its related games and its base game (a standalone expansion), in the order of
+   * the row, never its own slug, and only games the reader kept (an expansion has no page). One side of the link: Notion keeps the
+   * other side by hand, if at all, so `buildCatalog` makes it go both ways (`CatalogEntry.related`).
+   */
+  related: string[]
   /** ISO date of the row's last edit. */
   editedAt: string
   notionPageId: string
@@ -67,13 +73,24 @@ export function pictureVersion(editedAt: string): string {
   return Number.isFinite(time) ? Math.floor(time / 60_000).toString(36) : "0"
 }
 
-/** The URL of a planned game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a black background, nothing else. */
+/** The URL of a planned game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a plain frame, nothing else. */
 export function pictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedAt">, slot: ArtSlot): string | null {
   return game.art[slot] ? `/api/catalog/${game.slug}/${slot}?v=${pictureVersion(game.editedAt)}` : null
 }
 
-/** One line of the catalog: a live game (the registry's entry, played on the site) or a planned one (Notion's row). */
-export type CatalogEntry = { live: true; slug: string; game: GameEntry } | { live: false; slug: string; game: PlannedGame }
+/** The picture of a planned game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
+export function cardPictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedAt">): string | null {
+  return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")
+}
+
+/**
+ * One line of the catalog: a live game (the registry's entry, played on the site) or a planned one (Notion's row). `related` is the
+ * slugs of the other games of the catalog it is linked to, whichever side of the link Notion has: its related games, its base game, the
+ * games that name it as theirs. In catalog order, never its own slug, and only games that are listed (a page for each).
+ */
+export type CatalogEntry =
+  | { live: true; slug: string; game: GameEntry; related: string[] }
+  | { live: false; slug: string; game: PlannedGame; related: string[] }
 
 /**
  * The catalog and where it came from. `notion`: "off" without a token (live games only), "ok" when Notion answered, "unavailable"
@@ -108,21 +125,40 @@ export function comparePlanned(a: PlannedGame, b: PlannedGame): number {
   )
 }
 
+/** Every link between two games, both ways, from the one side each `PlannedGame.related` holds: the slug of a game → the slugs it is linked to. */
+function relatedLinks(planned: readonly PlannedGame[]): Map<string, Set<string>> {
+  const links = new Map<string, Set<string>>()
+  const link = (from: string, to: string) => {
+    if (from === to) return
+    links.set(from, (links.get(from) ?? new Set<string>()).add(to))
+  }
+  for (const game of planned) {
+    for (const other of game.related) {
+      link(game.slug, other)
+      link(other, game.slug)
+    }
+  }
+  return links
+}
+
 /**
  * The catalog: the live games of the registry (in registry order), then the planned ones (sorted by `comparePlanned`).
- * - A live game is the registry's: its Notion row, and its Development rank, are ignored.
+ * - A live game is the registry's: its Notion row, and its Development rank, are ignored. Only the links of that row to other games count.
  * - A game of the registry that is not live takes its Notion row, and Notion's name with it; with no row it is not listed.
  * - A Notion game that is not in the registry is planned.
  * - `UNLISTED_SLUGS` are never listed.
+ * - Two games are related when either row says so, and `related` only names games that are listed.
  */
 export function buildCatalog(games: readonly GameEntry[], planned: readonly PlannedGame[]): CatalogEntry[] {
-  const live: CatalogEntry[] = games.filter((game) => game.live && !UNLISTED_SLUGS.has(game.slug)).map((game) => ({ live: true, slug: game.slug, game }))
+  const live: CatalogEntry[] = games.filter((game) => game.live && !UNLISTED_SLUGS.has(game.slug)).map((game) => ({ live: true, slug: game.slug, game, related: [] }))
   const taken = new Set(live.map((entry) => entry.slug))
   const comingSoon: CatalogEntry[] = planned
     .filter((game) => !UNLISTED_SLUGS.has(game.slug) && !taken.has(game.slug))
     .sort(comparePlanned)
-    .map((game) => ({ live: false, slug: game.slug, game }))
-  return [...live, ...comingSoon]
+    .map((game) => ({ live: false, slug: game.slug, game, related: [] }))
+  const listed = [...live, ...comingSoon]
+  const links = relatedLinks(planned)
+  return listed.map((entry) => ({ ...entry, related: listed.filter((other) => links.get(entry.slug)?.has(other.slug)).map((other) => other.slug) }))
 }
 
 // The language to fall back on when the visitor's has no text: English, then French (the language of the games), then the others

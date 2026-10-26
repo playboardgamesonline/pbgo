@@ -2,7 +2,7 @@
 // A planned game's pictures are files of its Notion row, and Notion's own links expire after about an hour, so the catalog only
 // flags them: this route asks Notion for a fresh link, downloads the picture (`picture.ts`) and serves it, and the CDN keeps it.
 // A live game's pictures are in its Sanity project and never come here. No picture is not an error page: the answer is a 404 and the
-// page that asked draws a black background.
+// page that asked draws a plain frame.
 
 import { ART_SLOTS, pictureVersion, type ArtSlot } from "./catalog"
 import { NotionError, readPictureLinks, type PictureLinks } from "./notion"
