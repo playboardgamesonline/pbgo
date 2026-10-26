@@ -1,4 +1,4 @@
-export const SLUG = "timebomb"
+export const SLUG = "time-bomb"
 
 // Defaults, replaced by the /admin settings (Sanity document "settings")
 export const NAME = "Timebomb"
@@ -9,7 +9,7 @@ export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https:/
 
 export const CONTACT = "hey@playboardgamesonline.app"
 
-export const STUDIO_URL = "https://timebomb.sanity.studio"
+export const STUDIO_URL = "https://time-bomb.sanity.studio"
 
 /** Genres of the home page's structured data (`SEO` in server.ts). */
 export const GENRES = ["Jeu de cartes", "Jeu de bluff", "Jeu à rôles cachés"]

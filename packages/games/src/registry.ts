@@ -144,7 +144,7 @@ export const GAMES = [
     indexable: false,
   },
   {
-    slug: "timebomb",
+    slug: "time-bomb",
     name: "Timebomb",
     tagline: "The bluffing and hidden-roles game, online.",
     players: { min: 4, max: 8 },

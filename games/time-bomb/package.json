@@ -1,5 +1,5 @@
 {
-  "name": "@pbgo-game/timebomb",
+  "name": "@pbgo-game/time-bomb",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev:studio": "pnpm --filter timebomb-studio dev",
-    "deploy:studio": "pnpm --filter timebomb-studio run deploy"
+    "dev:studio": "pnpm --filter time-bomb-studio dev",
+    "deploy:studio": "pnpm --filter time-bomb-studio run deploy"
   },
   "dependencies": {
     "@pbgo/core": "workspace:*",
