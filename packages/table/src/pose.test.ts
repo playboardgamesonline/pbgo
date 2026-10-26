@@ -1,6 +1,6 @@
 import { Vector3 } from "three"
 import { describe, expect, it } from "vitest"
-import { FACE_DOWN, FACE_UP, type Pose, RESTING_HEIGHT, hashRandom, lean, onTable } from "./pose"
+import { FACE_DOWN, FACE_UP, type Pose, RESTING_HEIGHT, hashRandom, lean, onTable, shifted } from "./pose"
 
 /** Where the card's front looks, and where its top edge points */
 const frontOf = (pose: Pose) => new Vector3(0, 0, 1).applyQuaternion(pose.quaternion)
@@ -89,5 +89,33 @@ describe("onTable", () => {
     pose.quaternion.set(0, 1, 0, 0)
     expect(onTable(0, 0).quaternion.angleTo(FACE_UP)).toBeCloseTo(0, 12)
     expect(FACE_UP.y).toBe(0)
+  })
+})
+
+describe("shifted", () => {
+  it("moves the position by the offset and keeps the orientation, the scale and the delay", () => {
+    const pose = onTable(1, 2, { y: 0.5, yaw: 0.3, scale: 0.8, delay: 0.2 })
+    const next = shifted(pose, { x: 0.1, y: 0.45, z: -0.25 })
+    expect(next.position.x).toBeCloseTo(1.1, 12)
+    expect(next.position.y).toBeCloseTo(0.95, 12)
+    expect(next.position.z).toBeCloseTo(1.75, 12)
+    expect(next.quaternion.equals(pose.quaternion)).toBe(true)
+    expect(next.scale).toBe(0.8)
+    expect(next.delay).toBe(0.2)
+  })
+
+  it("leaves the original pose alone and shares nothing with it", () => {
+    const pose = onTable(1, 2)
+    const next = shifted(pose, { y: 1 })
+    next.position.x = 99
+    next.quaternion.set(0, 1, 0, 0)
+    expect(pose.position.toArray()).toEqual([1, RESTING_HEIGHT, 2])
+    expect(pose.quaternion.angleTo(FACE_UP)).toBeCloseTo(0, 12)
+  })
+
+  it("moves nothing along an axis it is not given, and carries a delay only if the pose has one", () => {
+    const next = shifted(onTable(1, 2), { z: 1 })
+    expect(next.position.toArray()).toEqual([1, RESTING_HEIGHT, 3])
+    expect("delay" in next).toBe(false)
   })
 })
