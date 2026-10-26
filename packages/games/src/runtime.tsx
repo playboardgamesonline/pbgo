@@ -26,7 +26,7 @@ const RUNTIMES: Record<GameSlug, Runtime> = {
   "skull-king": dynamic(() => import("@pbgo-game/skull-king/runtime")),
   "sky-team": dynamic(() => import("@pbgo-game/sky-team/runtime")),
   skyjo: dynamic(() => import("@pbgo-game/skyjo/runtime")),
-  timebomb: dynamic(() => import("@pbgo-game/timebomb/runtime")),
+  "time-bomb": dynamic(() => import("@pbgo-game/time-bomb/runtime")),
   trio: dynamic(() => import("@pbgo-game/trio/runtime")),
   "welcome-to": dynamic(() => import("@pbgo-game/welcome-to/runtime")),
 }
