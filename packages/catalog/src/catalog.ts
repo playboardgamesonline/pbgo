@@ -84,13 +84,28 @@ export function cardPictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedA
 }
 
 /**
+ * The picture a planned game's page shares (social cards, JSON-LD): its background, which is wide, else its logo or icon, which is
+ * small and often transparent, else none. `wide` says which, since a social card only goes large with a wide picture.
+ */
+export function sharePicture(game: Pick<PlannedGame, "slug" | "art" | "editedAt">): { url: string; wide: boolean } | null {
+  const background = pictureUrl(game, "background")
+  if (background) return { url: background, wide: true }
+  const logo = cardPictureUrl(game)
+  return logo ? { url: logo, wide: false } : null
+}
+
+/** A live game of the catalog: the registry's entry, played on the site. */
+export type LiveEntry = { live: true; slug: string; game: GameEntry; related: string[] }
+
+/** A game of the catalog that is not live: Notion's row. */
+export type PlannedEntry = { live: false; slug: string; game: PlannedGame; related: string[] }
+
+/**
  * One line of the catalog: a live game (the registry's entry, played on the site) or a planned one (Notion's row). `related` is the
  * slugs of the other games of the catalog it is linked to, whichever side of the link Notion has: its related games, its base game, the
  * games that name it as theirs. In catalog order, never its own slug, and only games that are listed (a page for each).
  */
-export type CatalogEntry =
-  | { live: true; slug: string; game: GameEntry; related: string[] }
-  | { live: false; slug: string; game: PlannedGame; related: string[] }
+export type CatalogEntry = LiveEntry | PlannedEntry
 
 /**
  * The catalog and where it came from. `notion`: "off" without a token (live games only), "ok" when Notion answered, "unavailable"
