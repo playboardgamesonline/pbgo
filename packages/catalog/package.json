@@ -6,6 +6,7 @@
   "description": "The hub catalog: the live games of the registry and the planned games of the Notion Games database, joined into one list. `.` is the pure model, `./server` the cached reader for apps/web, `./route` the handler of the pictures of the planned games.",
   "exports": {
     ".": "./src/catalog.ts",
+    "./filter": "./src/filter.ts",
     "./server": "./src/server.ts",
     "./route": "./src/route.ts"
   },
