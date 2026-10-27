@@ -1,13 +1,42 @@
 import { describe, expect, it } from "vitest"
-import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, pickLocalized, pictureUrl, pictureVersion, sharePicture } from "./catalog"
-import { DEVELOPMENT_OPTIONS, developmentRank, plannedGame, registryGame } from "./testing"
+import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, pickLocalized, pictureUrl, pictureVersion, registryRow, sharePicture } from "./catalog"
+import { DEVELOPMENT_OPTIONS, developmentRank, notionGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
 
+describe("registryRow", () => {
+  it("is what the registry knows of a game and nothing else: a name, its players, its duration, no picture and no text", () => {
+    const row = registryRow(registryGame("courtisans", { name: "Courtisans", live: true, players: { min: 2, max: 5 }, duration: { min: 30, max: 30 } }))
+    expect(row).toEqual(notionGame("courtisans", { name: "Courtisans", players: { min: 2, max: 5 }, duration: 30, notionPageId: "" }))
+  })
+
+  it("has no duration when the registry's is a range: no figure is invented", () => {
+    expect(registryRow(registryGame("skyjo", { duration: { min: 20, max: 40 } })).duration).toBeNull()
+    expect(registryRow(registryGame("skyjo", { duration: { min: 20, max: 20 } })).duration).toBe(20)
+  })
+
+  it("has no players and no duration for a game the registry knows neither of", () => {
+    const row = registryRow(registryGame("skyjo"))
+    expect([row.players, row.duration]).toEqual([null, null])
+  })
+
+  it("flags no picture, so none is asked for: a plain frame, nothing else", () => {
+    const row = registryRow(registryGame("courtisans"))
+    expect(row.art).toEqual({ logo: false, icon: false, background: false })
+    expect(ART_SLOTS.map((slot) => pictureUrl(row, slot))).toEqual([null, null, null])
+    expect(cardPictureUrl(row)).toBeNull()
+    expect(sharePicture(row)).toBeNull()
+  })
+
+  it("has no row to point to: no page id, no date of edit, no link", () => {
+    expect(registryRow(registryGame("courtisans"))).toMatchObject({ notionPageId: "", editedAt: "", related: [] })
+  })
+})
+
 describe("buildCatalog", () => {
-  it("lists the live games of the registry, in registry order, before the planned ones", () => {
+  it("lists the live games of the registry, in registry order, before the others", () => {
     const registry = [registryGame("skyjo"), registryGame("courtisans", { live: true }), registryGame("trio", { live: true })]
-    const entries = buildCatalog(registry, [plannedGame("the-mind")])
+    const entries = buildCatalog(registry, [notionGame("the-mind")])
     expect(entries.map((entry) => [entry.slug, entry.live])).toEqual([
       ["courtisans", true],
       ["trio", true],
@@ -15,30 +44,49 @@ describe("buildCatalog", () => {
     ])
   })
 
-  it("is the live games alone when Notion gave nothing: what the hub showed before", () => {
-    const registry = [registryGame("courtisans", { live: true }), registryGame("hanabi"), registryGame("template", { live: true })]
-    expect(slugs(buildCatalog(registry, []))).toEqual(["courtisans"])
+  it("is the live games alone, from the registry, when Notion gave nothing", () => {
+    const registry = [registryGame("courtisans", { name: "Courtisans", live: true }), registryGame("hanabi"), registryGame("template", { live: true })]
+    const entries = buildCatalog(registry, [])
+    expect(slugs(entries)).toEqual(["courtisans"])
+    expect(entries[0]?.game).toEqual(registryRow(registry[0]!))
   })
 
-  it("keeps the registry's entry for a live game and ignores its Notion row", () => {
-    const courtisans = registryGame("courtisans", { name: "Courtisans", live: true })
-    const [entry, ...others] = buildCatalog([courtisans], [plannedGame("courtisans", { name: "Courtisans (Notion)" })])
-    expect(others).toEqual([])
-    expect(entry).toEqual({ live: true, slug: "courtisans", game: courtisans, related: [] })
+  it("gives a live game its Notion row, and Notion's name with it", () => {
+    const row = notionGame("courtisans", { name: "Courtisans (Notion)", descriptions: { en: "A game of intrigue." }, art: { logo: true, icon: false, background: true } })
+    const entries = buildCatalog([registryGame("courtisans", { name: "Courtisans", live: true, indexable: true })], [row])
+    expect(entries).toEqual([{ slug: "courtisans", live: true, indexable: true, game: row, related: [] }])
+  })
+
+  it("gives a live game that Notion has no row for what the registry knows of it, and still lists the others", () => {
+    const courtisans = registryGame("courtisans", { name: "Courtisans", live: true, players: { min: 2, max: 5 } })
+    const entries = buildCatalog([courtisans], [notionGame("bang")])
+    expect(slugs(entries)).toEqual(["courtisans", "bang"])
+    expect(entries[0]).toEqual({ slug: "courtisans", live: true, indexable: false, game: registryRow(courtisans), related: [] })
+  })
+
+  it("takes live and indexable from the registry, whatever the Notion row says", () => {
+    const registry = [registryGame("courtisans", { live: true, indexable: true }), registryGame("hanabi", { indexable: true }), registryGame("skyjo")]
+    const entries = buildCatalog(registry, [notionGame("courtisans"), notionGame("hanabi"), notionGame("skyjo"), notionGame("bang")])
+    expect(entries.map((entry) => [entry.slug, entry.live, entry.indexable])).toEqual([
+      ["courtisans", true, true],
+      ["bang", false, false],
+      ["hanabi", false, true],
+      ["skyjo", false, false],
+    ])
   })
 
   it("gives a registry game that is not live its Notion row, and Notion's name with it", () => {
-    const hanabi = plannedGame("hanabi", { name: "Hanabi (Notion)" })
+    const hanabi = notionGame("hanabi", { name: "Hanabi (Notion)" })
     const entries = buildCatalog([registryGame("hanabi", { name: "Hanabi" })], [hanabi])
-    expect(entries).toEqual([{ live: false, slug: "hanabi", game: hanabi, related: [] }])
+    expect(entries).toEqual([{ slug: "hanabi", live: false, indexable: false, game: hanabi, related: [] }])
   })
 
   it("does not list a game that is not live and has no Notion row", () => {
-    expect(buildCatalog([registryGame("hanabi"), registryGame("skyjo")], [plannedGame("skyjo")]).map((entry) => entry.slug)).toEqual(["skyjo"])
+    expect(buildCatalog([registryGame("hanabi"), registryGame("skyjo")], [notionGame("skyjo")]).map((entry) => entry.slug)).toEqual(["skyjo"])
   })
 
   it("lists a Notion game the registry does not know", () => {
-    const entries = buildCatalog([registryGame("courtisans", { live: true })], [plannedGame("bang"), plannedGame("hellapagos")])
+    const entries = buildCatalog([registryGame("courtisans", { live: true })], [notionGame("bang"), notionGame("hellapagos")])
     expect(slugs(entries)).toEqual(["courtisans", "bang", "hellapagos"])
     expect(entries.map((entry) => entry.live)).toEqual([true, false, false])
   })
@@ -46,44 +94,46 @@ describe("buildCatalog", () => {
   it("never lists the template, live or in Notion", () => {
     expect(UNLISTED_SLUGS.has("template")).toBe(true)
     const registry = [registryGame("template", { live: true }), registryGame("courtisans", { live: true })]
-    expect(slugs(buildCatalog(registry, [plannedGame("template"), plannedGame("bang")]))).toEqual(["courtisans", "bang"])
+    expect(slugs(buildCatalog(registry, [notionGame("template"), notionGame("bang")]))).toEqual(["courtisans", "bang"])
   })
 
-  it("sorts the planned games by name, whatever the order Notion gave them in", () => {
-    const planned = [plannedGame("skyjo", { name: "Skyjo" }), plannedGame("bang", { name: "Bang" }), plannedGame("hanabi", { name: "Hanabi" })]
+  it("sorts the games to come by name, whatever the order Notion gave them in", () => {
+    const planned = [notionGame("skyjo", { name: "Skyjo" }), notionGame("bang", { name: "Bang" }), notionGame("hanabi", { name: "Hanabi" })]
     expect(slugs(buildCatalog([], planned))).toEqual(["bang", "hanabi", "skyjo"])
   })
 
   it("keeps the live games in registry order, not by name", () => {
     const registry = [registryGame("trio", { live: true }), registryGame("courtisans", { live: true })]
-    expect(slugs(buildCatalog(registry, [plannedGame("bang"), plannedGame("amen")]))).toEqual(["trio", "courtisans", "amen", "bang"])
+    expect(slugs(buildCatalog(registry, [notionGame("bang"), notionGame("amen")]))).toEqual(["trio", "courtisans", "amen", "bang"])
   })
 
-  it("sorts the planned games by their rank in the Games Development database, and by name where the rank leaves them tied", () => {
+  it("sorts the games to come by their rank in the Games Development database, and by name where the rank leaves them tied", () => {
     const planned = [
-      plannedGame("skyjo", { name: "Skyjo", development: developmentRank({ priority: "P2 · Next", status: "Live" }) }),
-      plannedGame("bang", { name: "Bang" }),
-      plannedGame("hanabi", { name: "Hanabi", development: developmentRank({ priority: "P1 · Now", status: "Rules" }) }),
-      plannedGame("amen", { name: "Amen" }),
+      notionGame("skyjo", { name: "Skyjo", development: developmentRank({ priority: "P2 · Next", status: "Live" }) }),
+      notionGame("bang", { name: "Bang" }),
+      notionGame("hanabi", { name: "Hanabi", development: developmentRank({ priority: "P1 · Now", status: "Rules" }) }),
+      notionGame("amen", { name: "Amen" }),
     ]
     expect(slugs(buildCatalog([], planned))).toEqual(["hanabi", "skyjo", "amen", "bang"])
   })
 
   it("keeps a live game where the registry puts it, however far its rank would send it: a live game needs none", () => {
     const registry = [registryGame("trio", { live: true }), registryGame("courtisans", { live: true })]
-    const planned = [
-      plannedGame("bang", { development: developmentRank({ priority: "P2 · Next" }) }),
-      plannedGame("trio", { development: developmentRank({ priority: "P4 · Someday", status: "Paused" }) }),
-      plannedGame("courtisans", { development: developmentRank({ priority: "P1 · Now", status: "Live" }) }),
+    const rows = [
+      notionGame("bang", { development: developmentRank({ priority: "P2 · Next" }) }),
+      notionGame("trio", { development: developmentRank({ priority: "P4 · Someday", status: "Paused" }) }),
+      notionGame("courtisans", { development: developmentRank({ priority: "P1 · Now", status: "Live" }) }),
     ]
-    const entries = buildCatalog(registry, planned)
+    const entries = buildCatalog(registry, rows)
     expect(slugs(entries)).toEqual(["trio", "courtisans", "bang"])
     expect(entries.map((entry) => entry.live)).toEqual([true, true, false])
+    // The rank still travels with the row, a live game's too
+    expect(entries[1]?.game.development.priority?.name).toBe("P1 · Now")
   })
 
   it("does not reorder or change the lists it is given", () => {
     const registry = [registryGame("courtisans", { live: true })]
-    const planned = [plannedGame("b", { development: developmentRank({ priority: "P3 · Later" }) }), plannedGame("a", { development: developmentRank({ priority: "P1 · Now" }) })]
+    const planned = [notionGame("b", { development: developmentRank({ priority: "P3 · Later" }) }), notionGame("a", { development: developmentRank({ priority: "P1 · Now" }) })]
     buildCatalog(registry, planned)
     expect(slugs(planned)).toEqual(["b", "a"])
     expect(slugs(registry)).toEqual(["courtisans"])
@@ -94,44 +144,49 @@ describe("buildCatalog: the related games", () => {
   const relatedOf = (entries: { slug: string; related: string[] }[]) => Object.fromEntries(entries.map((entry) => [entry.slug, entry.related]))
 
   it("makes a link go both ways: a game that another one names names it back", () => {
-    const planned = [plannedGame("skyjo", { name: "Skyjo", related: ["skyjo-action"] }), plannedGame("skyjo-action", { name: "Skyjo Action" })]
+    const planned = [notionGame("skyjo", { name: "Skyjo", related: ["skyjo-action"] }), notionGame("skyjo-action", { name: "Skyjo Action" })]
     expect(relatedOf(buildCatalog([], planned))).toEqual({ skyjo: ["skyjo-action"], "skyjo-action": ["skyjo"] })
   })
 
   it("lists the related games in the order of the catalog, not in the order of the row", () => {
     const planned = [
-      plannedGame("king-of-tokyo", { name: "King of Tokyo", related: ["power-up", "king-of-new-york"] }),
-      plannedGame("power-up", { name: "Power Up" }),
-      plannedGame("king-of-new-york", { name: "King of New York" }),
+      notionGame("king-of-tokyo", { name: "King of Tokyo", related: ["power-up", "king-of-new-york"] }),
+      notionGame("power-up", { name: "Power Up" }),
+      notionGame("king-of-new-york", { name: "King of New York" }),
     ]
     expect(relatedOf(buildCatalog([], planned))["king-of-tokyo"]).toEqual(["king-of-new-york", "power-up"])
   })
 
-  it("counts a live game like any other: a planned row can name it, and the links of its own Notion row count", () => {
+  it("counts a live game like any other: another row can name it, and the links of its own Notion row count", () => {
     const registry = [registryGame("courtisans", { live: true })]
-    const planned = [plannedGame("courtisans", { related: ["the-mind"] }), plannedGame("the-mind", { name: "The Mind" }), plannedGame("bang", { name: "Bang", related: ["courtisans"] })]
-    const entries = buildCatalog(registry, planned)
+    const rows = [notionGame("courtisans", { related: ["the-mind"] }), notionGame("the-mind", { name: "The Mind" }), notionGame("bang", { name: "Bang", related: ["courtisans"] })]
+    const entries = buildCatalog(registry, rows)
     expect(slugs(entries)).toEqual(["courtisans", "bang", "the-mind"])
     expect(relatedOf(entries)).toEqual({ courtisans: ["bang", "the-mind"], bang: ["courtisans"], "the-mind": ["courtisans"] })
   })
 
+  it("links a live game that Notion has no row for to the games whose rows name it", () => {
+    const entries = buildCatalog([registryGame("courtisans", { live: true })], [notionGame("bang", { related: ["courtisans"] })])
+    expect(relatedOf(entries)).toEqual({ courtisans: ["bang"], bang: ["courtisans"] })
+  })
+
   it("only names games that are listed: not the template, a game of the registry with no row, nor a slug nobody has", () => {
     const registry = [registryGame("courtisans", { live: true }), registryGame("template", { live: true }), registryGame("hanabi")]
-    const planned = [plannedGame("bang", { related: ["template", "hanabi", "ghost", "courtisans"] }), plannedGame("template", { related: ["bang"] })]
+    const planned = [notionGame("bang", { related: ["template", "hanabi", "ghost", "courtisans"] }), notionGame("template", { related: ["bang"] })]
     expect(relatedOf(buildCatalog(registry, planned))).toEqual({ courtisans: ["bang"], bang: ["courtisans"] })
   })
 
   it("never relates a game to itself, and names a game once whichever sides say so", () => {
-    const planned = [plannedGame("a", { name: "A", related: ["a", "b", "b"] }), plannedGame("b", { name: "B", related: ["a"] })]
+    const planned = [notionGame("a", { name: "A", related: ["a", "b", "b"] }), notionGame("b", { name: "B", related: ["a"] })]
     expect(relatedOf(buildCatalog([], planned))).toEqual({ a: ["b"], b: ["a"] })
   })
 
   it("gives a game that nothing links an empty list", () => {
-    expect(relatedOf(buildCatalog([registryGame("courtisans", { live: true })], [plannedGame("bang")]))).toEqual({ courtisans: [], bang: [] })
+    expect(relatedOf(buildCatalog([registryGame("courtisans", { live: true })], [notionGame("bang")]))).toEqual({ courtisans: [], bang: [] })
   })
 
   it("leaves the rows it is given as they are: the link of a row stays on its own side", () => {
-    const planned = [plannedGame("a", { name: "A", related: ["b"] }), plannedGame("b", { name: "B" })]
+    const planned = [notionGame("a", { name: "A", related: ["b"] }), notionGame("b", { name: "B" })]
     const entries = buildCatalog([], planned)
     expect(planned.map((game) => game.related)).toEqual([["b"], []])
     expect(entries.map((entry) => entry.game)).toEqual(planned)
@@ -139,22 +194,22 @@ describe("buildCatalog: the related games", () => {
 })
 
 describe("comparePlanned", () => {
-  const order = (...games: ReturnType<typeof plannedGame>[]) => [...games].sort(comparePlanned).map((game) => game.slug)
+  const order = (...games: ReturnType<typeof notionGame>[]) => [...games].sort(comparePlanned).map((game) => game.slug)
 
   it("sorts names the way a reader expects: numbers by value, case and accents ignored", () => {
     const names = ["Skyjo", "7 Wonders", "10 Minutes", "6 nimmt!", "Échecs", "the Mind", "Bang"]
-    expect(order(...names.map((name) => plannedGame(name, { name })))).toEqual(["6 nimmt!", "7 Wonders", "10 Minutes", "Bang", "Échecs", "Skyjo", "the Mind"])
+    expect(order(...names.map((name) => notionGame(name, { name })))).toEqual(["6 nimmt!", "7 Wonders", "10 Minutes", "Bang", "Échecs", "Skyjo", "the Mind"])
   })
 
   it("keeps Notion's order between names that differ only by case or accents", () => {
-    const spellings = [plannedGame("c", { name: "Bâng" }), plannedGame("a", { name: "Bang" }), plannedGame("b", { name: "bang" })]
+    const spellings = [notionGame("c", { name: "Bâng" }), notionGame("a", { name: "Bang" }), notionGame("b", { name: "bang" })]
     expect(order(...spellings)).toEqual(["c", "a", "b"])
     expect(order(...[...spellings].reverse())).toEqual(["b", "a", "c"])
   })
 
   describe("with the rank of the Games Development database", () => {
     /** A game that stands where `chosen` says (options by name), called `name` (its slug unless told otherwise). */
-    const ranked = (slug: string, chosen: Parameters<typeof developmentRank>[0], name = slug) => plannedGame(slug, { name, development: developmentRank(chosen) })
+    const ranked = (slug: string, chosen: Parameters<typeof developmentRank>[0], name = slug) => notionGame(slug, { name, development: developmentRank(chosen) })
 
     it("puts the nearest priority first, whatever the other columns say", () => {
       const games = [
@@ -242,7 +297,7 @@ describe("pictureVersion", () => {
 })
 
 describe("pictureUrl", () => {
-  const edited = plannedGame("love-letter", { editedAt: "2026-10-22T10:30:00.000Z", art: { logo: true, icon: false, background: true } })
+  const edited = notionGame("love-letter", { editedAt: "2026-10-22T10:30:00.000Z", art: { logo: true, icon: false, background: true } })
 
   it("is the route of the picture with the version of the row", () => {
     const version = pictureVersion(edited.editedAt)
@@ -252,7 +307,7 @@ describe("pictureUrl", () => {
 
   it("is null for a picture the row does not have: no fallback, the page draws a plain frame", () => {
     expect(pictureUrl(edited, "icon")).toBeNull()
-    expect(ART_SLOTS.map((slot) => pictureUrl(plannedGame("omens"), slot))).toEqual([null, null, null])
+    expect(ART_SLOTS.map((slot) => pictureUrl(notionGame("omens"), slot))).toEqual([null, null, null])
   })
 
   it("changes when the row is edited", () => {
@@ -263,7 +318,7 @@ describe("pictureUrl", () => {
 
 describe("cardPictureUrl", () => {
   const game = (art: { logo?: boolean; icon?: boolean; background?: boolean }) =>
-    plannedGame("skyjo", { editedAt: "2026-10-22T10:30:00.000Z", art: { logo: false, icon: false, background: false, ...art } })
+    notionGame("skyjo", { editedAt: "2026-10-22T10:30:00.000Z", art: { logo: false, icon: false, background: false, ...art } })
 
   it("is the logo when the row has one, whatever else it has", () => {
     expect(cardPictureUrl(game({ logo: true, icon: true, background: true }))).toBe(pictureUrl(game({ logo: true }), "logo"))
@@ -281,7 +336,7 @@ describe("cardPictureUrl", () => {
 
 describe("sharePicture", () => {
   const game = (art: { logo?: boolean; icon?: boolean; background?: boolean }, editedAt = "2026-10-22T10:30:00.000Z") =>
-    plannedGame("skyjo", { editedAt, art: { logo: false, icon: false, background: false, ...art } })
+    notionGame("skyjo", { editedAt, art: { logo: false, icon: false, background: false, ...art } })
 
   it("is the background when the row has one, which is wide, whatever else it has", () => {
     expect(sharePicture(game({ logo: true, icon: true, background: true }))).toEqual({ url: pictureUrl(game({ background: true }), "background"), wide: true })

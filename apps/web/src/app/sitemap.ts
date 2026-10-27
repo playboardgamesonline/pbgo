@@ -4,8 +4,8 @@ import { getCatalog } from "@pbgo/catalog/server"
 import { GAMES } from "@pbgo/games/registry"
 import { SITE_URL } from "@/site"
 
-// The planned games come from Notion, which the catalog reads once every ten minutes (`getCatalog`): the sitemap is rebuilt as often,
-// not once per build, so a game that gets its description is listed within minutes of the edit
+// Notion, which the catalog reads once every ten minutes (`getCatalog`), holds the games to come and the hub's values for every game:
+// the sitemap is rebuilt as often, not once per build, so a game that gets its description is listed within minutes of the edit
 export const revalidate = 600
 
 /**

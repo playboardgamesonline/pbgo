@@ -1,5 +1,5 @@
 // The Notion reader: the Games database (with the Editors and Creators ones it points to, and the Games Development one that points
-// to it) as `PlannedGame`s, and the links of its pictures. A plain `fetch` against Notion's REST API, no SDK. No framework here
+// to it) as `NotionGame`s, and the links of its pictures. A plain `fetch` against Notion's REST API, no SDK. No framework here
 // either: the caller hands in the token, and `init` carries Next's cache options (`server.ts`). Notion is the source of a planned
 // game's words and numbers, never of a live one's (those come from the game's Sanity project).
 
@@ -7,7 +7,7 @@ import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 // A value import from a sibling file would need a `.ts` extension, which apps/web's tsc refuses: only types come from there
-import type { ArtSlot, DevelopmentRank, PlannedGame, Publisher, Rank } from "./catalog"
+import type { ArtSlot, DevelopmentRank, NotionGame, Publisher, Rank } from "./catalog"
 
 export const NOTION_API = "https://api.notion.com/v1"
 /** The API version the parsing below is written for: a database is queried at `/databases/<id>/query`, its schema is at `/databases/<id>`. */
@@ -110,8 +110,8 @@ export type NotionReadOptions = {
 /** A row of the Games database that is not in the catalog, and why. */
 export type SkippedRow = { id: string; name: string; reason: string }
 
-export type PlannedRead = {
-  games: PlannedGame[]
+export type NotionRead = {
+  games: NotionGame[]
   skipped: SkippedRow[]
   /** The rows that are expansions of another game: left out on purpose, so not in `skipped`. A standalone expansion is a game of its own, not one of them. */
   expansions: number
@@ -235,13 +235,13 @@ function pictureOf(raw: unknown): string | null {
   return null
 }
 
-/** Whether a files property holds a picture the server can fetch: the flag of `PlannedGame.art`, never the link (it would expire in the cache). */
+/** Whether a files property holds a picture the server can fetch: the flag of `NotionGame.art`, never the link (it would expire in the cache). */
 const hasPicture = (raw: unknown): boolean => pictureOf(raw) !== null
 
 const editedAtOf = (page: NotionPage): string => (typeof page.last_edited_time === "string" ? page.last_edited_time : "")
 
 /** "4", "2 - 5" or "3+" (a hyphen or a dash), as the Players select writes it. */
-function playersOf(label: string | null): PlannedGame["players"] {
+function playersOf(label: string | null): NotionGame["players"] {
   const match = label === null ? null : /^(\d+)(?:\s*[-–—]\s*(\d+)|\s*(\+))?$/.exec(label)
   if (!match?.[1]) return null
   const min = Number(match[1])
@@ -367,7 +367,7 @@ function planned(
   publishers: ReadonlyMap<string, Publisher>,
   creators: ReadonlyMap<string, string>,
   developments: ReadonlyMap<string, DevelopmentRank>,
-): PlannedGame {
+): NotionGame {
   const byLanguage = (column: (locale: Locale) => string, read: (raw: unknown) => string | null): Partial<Record<Locale, string>> => {
     const values: Partial<Record<Locale, string>> = {}
     for (const { id } of LANGUAGES) {
@@ -393,7 +393,7 @@ function planned(
       background: hasPicture(value(page, COLUMNS.background)),
     },
     development: developments.get(normalizeId(page.id)) ?? { priority: null, status: null, effort: null },
-    // Settled by `readPlannedGames`, once every row is known: a link is the id of a row, and the slug is the row's
+    // Settled by `readNotionGames`, once every row is known: a link is the id of a row, and the slug is the row's
     related: [],
     editedAt: editedAtOf(page),
     notionPageId: page.id,
@@ -421,9 +421,9 @@ function rowProblem(name: string, slug: string, taken: ReadonlyMap<string, strin
  * The Editors and Creators databases are read alongside: without one, the games come with no publisher, or no author and no
  * illustrator, and a warning says so. So is Games Development, which orders the coming-soon games: without it they are in name order.
  * The games a row points to, through `Related Games` and through its `Parent item` (a standalone expansion's base game), come back as
- * slugs in `PlannedGame.related`: only the rows that are games of the catalog have one.
+ * slugs in `NotionGame.related`: only the rows that are games of the catalog have one.
  */
-export async function readPlannedGames(options: NotionReadOptions): Promise<PlannedRead> {
+export async function readNotionGames(options: NotionReadOptions): Promise<NotionRead> {
   const [pages, editors, creators, development] = await Promise.all([
     queryAll(GAMES_DATABASE_ID, options),
     readRelated(EDITORS_DATABASE_ID, "Editors", "no game has a publisher", publisherOf, options),
@@ -441,7 +441,7 @@ export async function readPlannedGames(options: NotionReadOptions): Promise<Plan
   }
 
   // A game and the ids of the rows it points to: they become slugs once every row is known
-  const kept: { game: PlannedGame; links: string[] }[] = []
+  const kept: { game: NotionGame; links: string[] }[] = []
   const skipped: SkippedRow[] = []
   const slugs = new Map<string, string>()
   const slugOf = new Map<string, string>()
@@ -473,7 +473,7 @@ export async function readPlannedGames(options: NotionReadOptions): Promise<Plan
 export type PictureLinks = Map<string, { editedAt: string; links: Record<ArtSlot, string | null> }>
 
 /**
- * The links of the pictures of every row of the Games database, by the id of the row's Notion page (`PlannedGame.notionPageId`): what
+ * The links of the pictures of every row of the Games database, by the id of the row's Notion page (`NotionGame.notionPageId`): what
  * the picture route fetches. One query serves every picture of every game. Read it without a cache (`init: { cache: "no-store" }`): the
  * link of an uploaded file expires after about an hour, so a link that was kept would be dead. Throws a `NotionError`.
  */
