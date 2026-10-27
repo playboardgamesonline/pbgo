@@ -4,10 +4,10 @@ import { cn } from "../utils"
 
 // The top of a platform page, in two containers kept apart, the way the product reads: the brand and the tabs on the left (`NavbarStart`),
 // the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a light shadow) and the bar between
-// them is transparent: it lets the page and the pointer through, so a band that runs under the bar shows behind both islands and the
+// them is transparent: it lets the page and the pointer through, so the backdrop of the page shows behind both islands and the
 // content of the page scrolls past the gap. The bar spans the window, not the width of the page: the islands sit on its edges, 0.75rem in
 // from the top and from each side. The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it or lets its
-// first band run under it.
+// backdrop run under it.
 
 function Navbar({ className, children, ...props }: React.ComponentProps<"header">) {
   return (

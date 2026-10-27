@@ -18,7 +18,7 @@ export type SiteTabId = (typeof SITE_TABS)[number]["id"]
 /**
  * The navbar of the hub's own pages (the home, a game's page and the pages of the other tabs), fixed to the top of the window in two
  * containers kept apart, on the edges of the window: the logo and the tabs on the left, the account on the right, with nothing drawn between
- * them. A page leaves `pt-navbar` under it (or lets its first band run under the two containers, as the home's hero does), and an anchor
+ * them. A page leaves `pt-navbar` under it (or lets its backdrop run under the two containers, as the home's hero does), and an anchor
  * that lands under it has `scroll-mt-navbar`.
  * `current` is the tab of the page: the home and a game's page are Games. Tables, Tournaments and What's New lead to pages with nothing on
  * them yet (`BlankPage`). The two account buttons are placeholders: there is no account yet, so they do nothing.

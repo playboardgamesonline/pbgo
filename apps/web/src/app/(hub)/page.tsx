@@ -28,26 +28,28 @@ export default async function Home() {
   // included (its logo, or icon, and its background come from the catalog's picture route; a picture the row does not have leaves the
   // frame plain): the hub reads no game's Sanity project, only entering a game does. The registry decides the card's variant alone.
   // Each game goes to the browser with what the search reads of it (`indexEntry`) beside its card: the list is filtered there
-  // (`GameSearch`, which the pill of the header and the list read), in the order of the catalog, and this page stays static.
+  // (`GameSearch`, which the pill of the hero and the list read), in the order of the catalog, and this page stays static.
   const games = entries.map((entry) => ({ ...indexEntry(entry), props: catalogCardProps(entry) }))
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner). It starts at the top of the window: the
-  // fixed navbar is two containers with nothing between them, and the header band runs under both (`pt-navbar` keeps its text clear of them)
+  // fixed navbar is two containers with nothing between them, and the backdrop of the hero runs under both (`pt-navbar` keeps its text clear of them)
   return (
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <SiteHeader current="games" />
 
         <main className="flex-1">
-          {/* The header, centred, with the search pill laid over its lower edge (half of the pill's height, `-mt-7`, is pulled up into it) */}
-          <section className="border-b bg-card pt-navbar">
-            <div className="mx-auto flex w-full max-w-page flex-col items-center gap-4 px-gutter py-section text-center">
-              <h1 className="max-w-4xl font-heading text-4xl md:text-6xl">Play board games online with friends & rivals</h1>
+          {/* The hero: the title and the search pill under it, on a backdrop that is lighter at the top and fades into the black the games sit on */}
+          <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
+            <div className="mx-auto flex w-full max-w-page flex-col items-center gap-10 px-gutter pt-section pb-12 text-center">
+              <h1 className="font-heading text-4xl sm:text-6xl lg:text-8xl">
+                <span className="block">Play board games</span> <span className="block">with friends & rivals</span>
+              </h1>
+              <div className="w-full max-w-3xl">
+                <HeroSearch />
+              </div>
             </div>
           </section>
-          <div className="relative mx-auto -mt-7 w-full max-w-3xl px-gutter">
-            <HeroSearch />
-          </div>
 
           <section id="games" aria-label="Games" className="mx-auto w-full max-w-page scroll-mt-navbar px-gutter pt-10 pb-section">
             <GameList />

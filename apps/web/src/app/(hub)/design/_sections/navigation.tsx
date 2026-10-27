@@ -60,11 +60,11 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a light shadow) and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so a band that runs under the bar (the home's header) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its first band run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a light shadow) and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its backdrop run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
     >
       <Demo
         title="Signed out"
-        description="`NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds. The specimen sits on the card colour of the home's header band."
+        description="`NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds. The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
@@ -154,22 +154,26 @@ export function SearchBars() {
       </Demo>
 
       <Demo
-        title="Over a header"
-        description="On the home the pill is laid over the lower edge of the centred header: a negative top margin of half its height (`-mt-7`) pulls it up into the header, which leaves room for that half under its text."
+        title="Under a title"
+        description="On the home the pill sits under the title, in the hero. Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
-        code={`<section className="border-b bg-card py-section text-center">…</section>
-<div className="relative mx-auto -mt-7 max-w-3xl px-gutter">
-  <SearchBar>…</SearchBar>
-</div>`}
+        code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
+  <div className="mx-auto flex max-w-page flex-col items-center gap-10 px-gutter pt-section pb-12 text-center">
+    <h1 className="font-heading text-4xl sm:text-6xl lg:text-8xl">…</h1>
+    <div className="w-full max-w-3xl">
+      <SearchBar>…</SearchBar>
+    </div>
+  </div>
+</section>`}
       >
-        <div className="border-b bg-card px-6 pt-12 pb-16 text-center">
-          <p className="font-heading text-2xl">Play board games online with friends & rivals</p>
-        </div>
-        <div className="relative mx-auto -mt-7 mb-10 max-w-xl px-6">
-          <SearchBar method="dialog" aria-label="Search the games">
-            <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
-            <SearchBarSubmit aria-label="Search" />
-          </SearchBar>
+        <div className="flex flex-col items-center gap-8 bg-linear-to-b from-secondary via-card to-background px-6 pt-12 pb-10 text-center">
+          <p className="font-heading text-3xl">Play board games with friends & rivals</p>
+          <div className="w-full max-w-xl">
+            <SearchBar method="dialog" aria-label="Search the games">
+              <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+              <SearchBarSubmit aria-label="Search" />
+            </SearchBar>
+          </div>
         </div>
       </Demo>
     </Section>

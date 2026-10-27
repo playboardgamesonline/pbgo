@@ -7,7 +7,7 @@ import { SearchBar, SearchBarClear, SearchBarInput, SearchBarSubmit } from "@pbg
 import { useGameSearch } from "@/components/game-search"
 
 /**
- * The big search pill of the home, laid over the lower edge of the header: it types into the search of the list (`GameSearch`), and the list
+ * The big search pill of the home, under its title: it types into the search of the list (`GameSearch`), and the list
  * under it follows what is typed, so there is nothing to submit. The button, or Enter, takes the visitor down to the list; on a phone it also
  * puts the keyboard away, which hid the list.
  */
