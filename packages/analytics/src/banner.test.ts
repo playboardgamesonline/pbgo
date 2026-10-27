@@ -21,11 +21,13 @@ describe("ConsentBanner", () => {
     expect(html).toMatch(/data-slot="cookie-banner" class="[^"]*\bph-no-capture\b/)
   })
 
-  it("is a dialog named and spoken in the visitor's language", () => {
+  it("is a dialog named by its title and spoken in the visitor's language", () => {
     const html = render(false)
     expect(html).toContain('role="dialog"')
     expect(html).toContain('lang="en"')
-    expect(html).toContain(`aria-label="${BANNER_TEXTS.en.label}"`)
+    const title = /aria-labelledby="([^"]+)"/.exec(html)?.[1]
+    expect(title, "aria-labelledby").toBeTruthy()
+    expect(html).toMatch(new RegExp(`<h2 id="${title}"[^>]*>${BANNER_TEXTS.en.label}</h2>`))
   })
 
   it("offers Refuse and Accept as the same button, Refuse first", () => {

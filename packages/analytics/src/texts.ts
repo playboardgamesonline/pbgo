@@ -4,14 +4,15 @@ import type { Locale } from "./events"
  * The cookie banner, in each language of the site. Drafts to be reviewed (the wording is the owner's call, and the German and
  * Spanish deserve a native reader). The voice is the site's: informal, as in the rest of the interface.
  *
- * The banner is one line, so the sentence says the two things that matter and the link leads to the rest (`/legal#cookies`):
+ * The banner is a small card, so the sentence says the two things that matter and the link leads to the rest (`/legal#cookies`):
  * - whatever the answer, visits and game statistics are counted (no name, no text, nothing more stored on the device);
  * - accepting adds an identifier stored on the device and session recordings (inputs, the chat and nicknames are masked).
  * Refusing stores nothing for statistics and records nothing: it is what the sentence leaves out, and `/legal#cookies` says it.
- * A longer sentence makes the banner tall again and brings back the problem of a banner over the game (`texts.test.ts` caps it).
+ * A longer sentence makes the card taller, and the page gives up that much of the screen until the visitor answers (`texts.test.ts`
+ * caps it).
  */
 export type BannerTexts = {
-  /** Accessible name of the banner. */
+  /** The title of the card, which is also its accessible name. */
   label: string
   /** What is counted whatever the answer, and what Accept adds. One sentence pair, no more. */
   body: string
