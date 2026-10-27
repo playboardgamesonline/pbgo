@@ -5,7 +5,7 @@
 
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import type { Locale } from "@pbgo/core/lib/i18n"
-import type { DevelopmentRank, PlannedGame, Rank } from "./catalog"
+import type { DevelopmentRank, LiveEntry, PlannedEntry, PlannedGame, Rank } from "./catalog"
 import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID } from "./notion"
 
 // ---------- Notion's property values ----------
@@ -348,4 +348,20 @@ export const plannedGame = (slug: string, overrides: Partial<PlannedGame> = {}):
   editedAt: "",
   notionPageId: `game-${slug}`,
   ...overrides,
+})
+
+/** A live line of the catalog: a registry game that is live (`overrides` are the registry entry's). */
+export const liveEntry = (slug: string, overrides: Partial<GameEntry> = {}, related: string[] = []): LiveEntry => ({
+  live: true,
+  slug,
+  game: registryGame(slug, { live: true, ...overrides }),
+  related,
+})
+
+/** A planned line of the catalog (`overrides` are the planned game's). */
+export const plannedEntry = (slug: string, overrides: Partial<PlannedGame> = {}, related: string[] = []): PlannedEntry => ({
+  live: false,
+  slug,
+  game: plannedGame(slug, overrides),
+  related,
 })

@@ -1,8 +1,8 @@
 import "server-only"
 import { cache } from "react"
-import { pickLocalized, type CatalogEntry, type PlannedGame } from "@pbgo/catalog"
+import { pickLocalized, type CatalogEntry, type LiveEntry, type PlannedEntry } from "@pbgo/catalog"
+import { liveSeo, plannedSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
-import type { GameEntry } from "@pbgo/core/lib/binding"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
 import { loadSettings } from "@pbgo/core/lib/settings-server"
@@ -41,6 +41,8 @@ export type GamePage = {
   picture: Pick<GameCardVisualProps, "logo" | "background">
   /** The games the catalog relates to this one (docs/catalog.md), in the catalog's order, each as the props of its card. Empty: the page has no such section. */
   related: { slug: string; card: GameCardProps }[]
+  /** What the page tells search engines and social networks: its metadata, its JSON-LD, and whether it may be indexed (`@pbgo/catalog/seo`). */
+  seo: GameSeo
 }
 
 /** What a game's own data gives the page; the related games come from the catalog. */
@@ -64,14 +66,16 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
   })
 }
 
-function plannedPage(game: PlannedGame, locale: Locale): GameDetails {
+function plannedPage(entry: PlannedEntry, locale: Locale): GameDetails {
+  const { game } = entry
   const { players, duration } = plannedFacts(game)
+  const description = pickLocalized(game.descriptions, locale)
   return {
     slug: game.slug,
     name: game.name,
     live: false,
     tagline: null,
-    description: pickLocalized(game.descriptions, locale),
+    description,
     players: players ?? null,
     duration: duration ?? null,
     age: game.age === null ? null : `Ages ${game.age}+`,
@@ -82,23 +86,27 @@ function plannedPage(game: PlannedGame, locale: Locale): GameDetails {
     ],
     rulebooks: rulebooks(game.rules, locale, game.name),
     picture: plannedPicture(game),
+    seo: plannedSeo(entry, description),
   }
 }
 
-async function livePage(entry: GameEntry, locale: Locale): Promise<GameDetails> {
+async function livePage(live: LiveEntry, locale: Locale): Promise<GameDetails> {
+  const entry = live.game
   // The texts, the credits, the rulebooks and the picture are the game's own, in its Sanity project; the figures are the registry's, as on the card.
   // The picture is read wider than the card's: the page draws it larger
   const [settings, art] = await Promise.all([
     getGame(entry.slug).then((game) => (game ? loadSettings(game, locale) : null)),
     gameCardArt(entry, 1200),
   ])
-  const { authors, publisher, publisherUrl } = settings?.credits ?? { authors: null, publisher: null, publisherUrl: null }
+  const credits = settings?.credits ?? { authors: null, publisher: null, publisherUrl: null }
+  const { authors, publisher, publisherUrl } = credits
+  const description = settings ? pickLocalized(settings.descriptions, locale) : null
   return {
     slug: entry.slug,
     name: entry.name,
     live: true,
     tagline: entry.tagline,
-    description: settings ? pickLocalized(settings.descriptions, locale) : null,
+    description,
     players: playersLabel(entry.players) ?? null,
     duration: durationLabel(entry.duration) ?? null,
     age: null,
@@ -108,6 +116,7 @@ async function livePage(entry: GameEntry, locale: Locale): Promise<GameDetails> 
     ],
     rulebooks: settings ? rulebooks(settings.rulesPdf, locale, entry.name) : [],
     picture: livePicture(art),
+    seo: liveSeo(live, { description, credits }),
   }
 }
 
@@ -132,7 +141,7 @@ export const getGamePage = cache(async (slug: string): Promise<GamePage | null> 
   if (!entry) return null
   const locale = await getLocale()
   const [details, related] = await Promise.all([
-    entry.live ? livePage(entry.game, locale) : plannedPage(entry.game, locale),
+    entry.live ? livePage(entry, locale) : plannedPage(entry, locale),
     relatedCards(entry, entries),
   ])
   return { ...details, related }
