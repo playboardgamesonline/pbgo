@@ -32,7 +32,7 @@ export type DevelopmentRank = { priority: Rank | null; status: Rank | null; effo
  * expire after about an hour, so a picture is fetched fresh when it is served (`notionPageId` finds its row, `editedAt` changes
  * the URL when the row changes).
  */
-export type PlannedGame = {
+export type NotionGame = {
   slug: string
   name: string
   /** A description per language, only the languages the row fills. Pick one with `pickLocalized`. */
@@ -74,12 +74,12 @@ export function pictureVersion(editedAt: string): string {
 }
 
 /** The URL of a planned game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a plain frame, nothing else. */
-export function pictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedAt">, slot: ArtSlot): string | null {
+export function pictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">, slot: ArtSlot): string | null {
   return game.art[slot] ? `/api/catalog/${game.slug}/${slot}?v=${pictureVersion(game.editedAt)}` : null
 }
 
 /** The picture of a planned game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
-export function cardPictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedAt">): string | null {
+export function cardPictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">): string | null {
   return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")
 }
 
@@ -87,7 +87,7 @@ export function cardPictureUrl(game: Pick<PlannedGame, "slug" | "art" | "editedA
  * The picture a planned game's page shares (social cards, JSON-LD): its background, which is wide, else its logo or icon, which is
  * small and often transparent, else none. `wide` says which, since a social card only goes large with a wide picture.
  */
-export function sharePicture(game: Pick<PlannedGame, "slug" | "art" | "editedAt">): { url: string; wide: boolean } | null {
+export function sharePicture(game: Pick<NotionGame, "slug" | "art" | "editedAt">): { url: string; wide: boolean } | null {
   const background = pictureUrl(game, "background")
   if (background) return { url: background, wide: true }
   const logo = cardPictureUrl(game)
@@ -98,7 +98,7 @@ export function sharePicture(game: Pick<PlannedGame, "slug" | "art" | "editedAt"
 export type LiveEntry = { live: true; slug: string; game: GameEntry; related: string[] }
 
 /** A game of the catalog that is not live: Notion's row. */
-export type PlannedEntry = { live: false; slug: string; game: PlannedGame; related: string[] }
+export type PlannedEntry = { live: false; slug: string; game: NotionGame; related: string[] }
 
 /**
  * One line of the catalog: a live game (the registry's entry, played on the site) or a planned one (Notion's row). `related` is the
@@ -131,7 +131,7 @@ function compareRanks(a: Rank | null, b: Rank | null, direction: 1 | -1): number
  * furthest along comes first), then Effort (the lowest first), then the name, case and accents aside, numbers in their order.
  * A game with no value for a column comes after the games that have one.
  */
-export function comparePlanned(a: PlannedGame, b: PlannedGame): number {
+export function comparePlanned(a: NotionGame, b: NotionGame): number {
   return (
     compareRanks(a.development.priority, b.development.priority, 1) ||
     compareRanks(a.development.status, b.development.status, -1) ||
@@ -140,8 +140,8 @@ export function comparePlanned(a: PlannedGame, b: PlannedGame): number {
   )
 }
 
-/** Every link between two games, both ways, from the one side each `PlannedGame.related` holds: the slug of a game → the slugs it is linked to. */
-function relatedLinks(planned: readonly PlannedGame[]): Map<string, Set<string>> {
+/** Every link between two games, both ways, from the one side each `NotionGame.related` holds: the slug of a game → the slugs it is linked to. */
+function relatedLinks(planned: readonly NotionGame[]): Map<string, Set<string>> {
   const links = new Map<string, Set<string>>()
   const link = (from: string, to: string) => {
     if (from === to) return
@@ -164,7 +164,7 @@ function relatedLinks(planned: readonly PlannedGame[]): Map<string, Set<string>>
  * - `UNLISTED_SLUGS` are never listed.
  * - Two games are related when either row says so, and `related` only names games that are listed.
  */
-export function buildCatalog(games: readonly GameEntry[], planned: readonly PlannedGame[]): CatalogEntry[] {
+export function buildCatalog(games: readonly GameEntry[], planned: readonly NotionGame[]): CatalogEntry[] {
   const live: CatalogEntry[] = games.filter((game) => game.live && !UNLISTED_SLUGS.has(game.slug)).map((game) => ({ live: true, slug: game.slug, game, related: [] }))
   const taken = new Set(live.map((entry) => entry.slug))
   const comingSoon: CatalogEntry[] = planned

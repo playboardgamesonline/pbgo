@@ -5,7 +5,7 @@
 
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import type { Locale } from "@pbgo/core/lib/i18n"
-import type { DevelopmentRank, LiveEntry, PlannedEntry, PlannedGame, Rank } from "./catalog"
+import type { DevelopmentRank, LiveEntry, PlannedEntry, NotionGame, Rank } from "./catalog"
 import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID } from "./notion"
 
 // ---------- Notion's property values ----------
@@ -187,7 +187,7 @@ export const developmentPage = (row: DevelopmentRow = {}): NotionPage => {
 }
 
 /**
- * Where a game stands as the catalog keeps it (`PlannedGame.development`): each option by name, at its place in `DEVELOPMENT_OPTIONS`;
+ * Where a game stands as the catalog keeps it (`NotionGame.development`): each option by name, at its place in `DEVELOPMENT_OPTIONS`;
  * a column left out, or an option the column does not list, is null.
  */
 export function developmentRank(chosen: Partial<Record<DevelopmentField, string | null>> = {}): DevelopmentRank {
@@ -331,7 +331,7 @@ export const registryGame = (slug: string, overrides: Partial<GameEntry> = {}): 
 })
 
 /** A planned game with nothing filled but its slug and name. */
-export const plannedGame = (slug: string, overrides: Partial<PlannedGame> = {}): PlannedGame => ({
+export const notionGame = (slug: string, overrides: Partial<NotionGame> = {}): NotionGame => ({
   slug,
   name: slug,
   descriptions: {},
@@ -359,9 +359,9 @@ export const liveEntry = (slug: string, overrides: Partial<GameEntry> = {}, rela
 })
 
 /** A planned line of the catalog (`overrides` are the planned game's). */
-export const plannedEntry = (slug: string, overrides: Partial<PlannedGame> = {}, related: string[] = []): PlannedEntry => ({
+export const plannedEntry = (slug: string, overrides: Partial<NotionGame> = {}, related: string[] = []): PlannedEntry => ({
   live: false,
   slug,
-  game: plannedGame(slug, overrides),
+  game: notionGame(slug, overrides),
   related,
 })

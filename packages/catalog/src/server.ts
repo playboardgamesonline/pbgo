@@ -2,7 +2,7 @@ import "server-only"
 import { cache } from "react"
 import { GAMES } from "@pbgo/games/registry"
 import { buildCatalog, type Catalog } from "./catalog"
-import { readPlannedGames } from "./notion"
+import { readNotionGames } from "./notion"
 
 /** Tag of the cached Notion calls: `revalidateTag(CATALOG_TAG, { expire: 0 })` makes the next read ask Notion again. */
 export const CATALOG_TAG = "catalog"
@@ -33,7 +33,7 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
   const token = notionToken()
   if (!token) return { entries: buildCatalog(GAMES, []), notion: "off" }
   try {
-    const read = await readPlannedGames({ token, init: { next: { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAG] } } })
+    const read = await readNotionGames({ token, init: { next: { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAG] } } })
     for (const warning of read.warnings) reportOnce(warning)
     for (const row of read.skipped) reportOnce(`The Notion row "${row.name || row.id}" is left out: ${row.reason}`)
     return { entries: buildCatalog(GAMES, read.games), notion: "ok" }

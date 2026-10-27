@@ -1,4 +1,4 @@
-import { cardPictureUrl, pictureUrl, type PlannedGame } from "@pbgo/catalog"
+import { cardPictureUrl, pictureUrl, type NotionGame } from "@pbgo/catalog"
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import type { CardArt } from "@pbgo/core/sanity/cover"
 
@@ -27,7 +27,7 @@ export function livePicture(art?: Partial<CardArt>) {
 }
 
 /** The picture of a game to come: its logo (else its icon) and its background, from the catalog's picture route; one the row does not have is left out. */
-export function plannedPicture(game: PlannedGame) {
+export function plannedPicture(game: NotionGame) {
   return { logo: cardPictureUrl(game) ?? undefined, background: pictureUrl(game, "background") ?? undefined }
 }
 
@@ -50,7 +50,7 @@ export function gameCardProps(game: GameEntry, art?: Partial<CardArt>) {
  * The players and the duration of a planned game, worded like a live game's. Its Notion row gives the duration as one figure
  * (minutes), the registry gives a range: "30 min". A figure the row does not have is undefined.
  */
-export function plannedFacts(game: Pick<PlannedGame, "players" | "duration">) {
+export function plannedFacts(game: Pick<NotionGame, "players" | "duration">) {
   return {
     players: playersLabel(game.players),
     duration: game.duration === null ? undefined : durationLabel({ min: game.duration, max: game.duration }),
@@ -62,7 +62,7 @@ export function plannedFacts(game: Pick<PlannedGame, "players" | "duration">) {
  * picture (`plannedPicture`) on the same grey frame, then its players and its duration. Status, priority and the rest only sort the
  * list, the card shows none of them. It goes to `/game/<slug>` like every card: every game of the catalog has a page there.
  */
-export function plannedCardProps(game: PlannedGame) {
+export function plannedCardProps(game: NotionGame) {
   return {
     variant: "soon" as const,
     href: `/game/${game.slug}`,

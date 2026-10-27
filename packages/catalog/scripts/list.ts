@@ -4,17 +4,17 @@
 
 import { GAMES } from "@pbgo/games/registry"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
-import { buildCatalog, type PlannedGame } from "../src/catalog.ts"
-import { readPlannedGames } from "../src/notion.ts"
+import { buildCatalog, type NotionGame } from "../src/catalog.ts"
+import { readNotionGames } from "../src/notion.ts"
 
 const token = process.env.NOTION_API_KEY?.trim()
 
-let planned: PlannedGame[] = []
+let planned: NotionGame[] = []
 let header = "NOTION_API_KEY is not set (environment or apps/web/.env.local): only the live games of the registry are listed."
 const notes: string[] = []
 if (token) {
   try {
-    const read = await readPlannedGames({ token })
+    const read = await readNotionGames({ token })
     planned = read.games
     header = `Notion read: ${read.games.length} games with a slug, ${read.expansions} expansions left out, ${read.skipped.length} rows skipped.`
     for (const row of read.skipped) notes.push(`skipped  ${row.name || row.id}: ${row.reason}`)
@@ -28,10 +28,10 @@ if (token) {
 /** "L - B": the labels that are there, a dash of the same width for the others. */
 const marks = (items: [label: string, present: boolean][]) => items.map(([label, present]) => (present ? label : "-".repeat(label.length))).join(" ")
 
-const players = (value: PlannedGame["players"]) => (!value ? "" : value.max === null ? `${value.min}+` : value.min === value.max ? `${value.min}` : `${value.min}-${value.max}`)
+const players = (value: NotionGame["players"]) => (!value ? "" : value.max === null ? `${value.min}+` : value.min === value.max ? `${value.min}` : `${value.min}-${value.max}`)
 
 /** "P1 · Now / Engine / M": what the Games Development database says of a game, a dash for each column it is empty in; nothing for a game it does not rank at all. */
-const development = (value: PlannedGame["development"]) => {
+const development = (value: NotionGame["development"]) => {
   const names = [value.priority, value.status, value.effort].map((rank) => rank?.name ?? "-")
   return names.every((name) => name === "-") ? "" : names.join(" / ")
 }
