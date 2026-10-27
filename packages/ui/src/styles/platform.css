@@ -79,6 +79,9 @@
   --container-page: 96rem;
   --container-reading: 40rem;
 
+  /* Height of the fixed navbar: `h-navbar`, and `pt-navbar` / `scroll-mt-navbar` on what sits under it */
+  --spacing-navbar: 4rem;
+
   /* Motion: `duration-fast`, `duration-base`, `duration-slow`, `ease-standard` */
   --transition-duration-fast: 100ms;
   --transition-duration-base: 150ms;
