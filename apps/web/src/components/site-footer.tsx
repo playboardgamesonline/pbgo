@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { Separator } from "@pbgo/ui/platform/separator"
 
-/** The footer of the hub's own pages (the list of games and a game's page). */
+/** The footer of the hub's own pages (the list of games, a game's page and the pages of the other tabs). */
 export function SiteFooter() {
   return (
     <footer className="mx-auto w-full max-w-page px-gutter pb-10">

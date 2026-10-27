@@ -4,15 +4,26 @@ import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { SITE_NAME } from "@/site"
 
+/** The tabs of the navbar, in order, each with the page it leads to. Games is the home. */
+export const SITE_TABS = [
+  { id: "games", label: "Games", href: "/" },
+  { id: "tables", label: "Tables", href: "/tables" },
+  { id: "tournaments", label: "Tournaments", href: "/tournaments" },
+  { id: "whats-new", label: "What's New", href: "/whats-new" },
+] as const
+
+/** A tab of the navbar: the one of the page the bar is on is the current tab. */
+export type SiteTabId = (typeof SITE_TABS)[number]["id"]
+
 /**
- * The navbar of the hub's own pages (the home and a game's page), fixed to the top of the window in two containers kept apart, on the edges
- * of the window: the logo and the tabs on the left, the account on the right, with nothing drawn between them. A page leaves `pt-navbar`
- * under it (or lets its first band run under the two containers, as the home's header does), and an anchor that lands under it has
- * `scroll-mt-navbar`.
- * Tournaments, What's New and the two account buttons are placeholders: there is no page behind the tabs and no account yet, so the tabs are
- * text and the buttons do nothing. Games is always the current tab, since the pages that wear this bar are the games'.
+ * The navbar of the hub's own pages (the home, a game's page and the pages of the other tabs), fixed to the top of the window in two
+ * containers kept apart, on the edges of the window: the logo and the tabs on the left, the account on the right, with nothing drawn between
+ * them. A page leaves `pt-navbar` under it (or lets its first band run under the two containers, as the home's hero does), and an anchor
+ * that lands under it has `scroll-mt-navbar`.
+ * `current` is the tab of the page: the home and a game's page are Games. Tables, Tournaments and What's New lead to pages with nothing on
+ * them yet (`BlankPage`). The two account buttons are placeholders: there is no account yet, so they do nothing.
  */
-export function SiteHeader() {
+export function SiteHeader({ current }: { current: SiteTabId }) {
   return (
     <Navbar className="fixed inset-x-0 top-0 z-40">
       <NavbarStart>
@@ -22,15 +33,11 @@ export function SiteHeader() {
           </Link>
         </NavbarBrand>
         <NavbarTabs aria-label="Main">
-          <NavbarTab asChild current>
-            <Link href="/#games">Games</Link>
-          </NavbarTab>
-          <NavbarTab disabled title="Coming soon">
-            Tournaments
-          </NavbarTab>
-          <NavbarTab disabled title="Coming soon">
-            What&apos;s New
-          </NavbarTab>
+          {SITE_TABS.map((tab) => (
+            <NavbarTab key={tab.id} asChild current={tab.id === current}>
+              <Link href={tab.href}>{tab.label}</Link>
+            </NavbarTab>
+          ))}
         </NavbarTabs>
       </NavbarStart>
       <NavbarEnd>

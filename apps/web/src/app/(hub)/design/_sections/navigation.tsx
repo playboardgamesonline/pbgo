@@ -41,10 +41,13 @@ function Start() {
         <NavbarTab href="#navbar" current>
           Games
         </NavbarTab>
-        <NavbarTab disabled title="Coming soon">
+        <NavbarTab href="#navbar">
+          Tables
+        </NavbarTab>
+        <NavbarTab href="#navbar">
           Tournaments
         </NavbarTab>
-        <NavbarTab disabled title="Coming soon">
+        <NavbarTab href="#navbar">
           What&apos;s New
         </NavbarTab>
       </NavbarTabs>
@@ -61,7 +64,7 @@ export function Navbars() {
     >
       <Demo
         title="Signed out"
-        description="`NavbarTab` marks the page the visitor is in with `current`. A tab for a page that does not exist yet is `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds. The specimen sits on the card colour of the home's header band."
+        description="`NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds. The specimen sits on the card colour of the home's header band."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
@@ -69,9 +72,10 @@ export function Navbars() {
       <Logo className="h-6" />
     </NavbarBrand>
     <NavbarTabs aria-label="Main">
-      <NavbarTab href="/#games" current>Games</NavbarTab>
-      <NavbarTab disabled title="Coming soon">Tournaments</NavbarTab>
-      <NavbarTab disabled title="Coming soon">What's New</NavbarTab>
+      <NavbarTab href="/" current>Games</NavbarTab>
+      <NavbarTab href="/tables">Tables</NavbarTab>
+      <NavbarTab href="/tournaments">Tournaments</NavbarTab>
+      <NavbarTab href="/whats-new">What's New</NavbarTab>
     </NavbarTabs>
   </NavbarStart>
   <NavbarEnd>

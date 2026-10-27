@@ -36,7 +36,7 @@ export default async function Home() {
   return (
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-        <SiteHeader />
+        <SiteHeader current="games" />
 
         <main className="flex-1">
           {/* The header, centred, with the search pill laid over its lower edge (half of the pill's height, `-mt-7`, is pulled up into it) */}

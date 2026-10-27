@@ -39,7 +39,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
       {game.seo.indexable && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(gameJsonLd(game.seo, SITE_URL)) }} />
       )}
-      <SiteHeader />
+      <SiteHeader current="games" />
 
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
         <Link href="/#games" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline">
