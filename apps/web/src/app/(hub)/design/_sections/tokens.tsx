@@ -204,13 +204,11 @@ export function Depth() {
 
       <Demo
         title="Scrim"
-        description="`bg-scrim` dims the page behind a dialog or a sheet. A picture that carries a logo, such as the background of a game card, takes a lighter veil: the same scrim at 40% (`bg-scrim/40`). On this checkerboard the left third is bare, the middle one has the lighter scrim and the right one the full scrim; the pattern comes from the `pattern-checker` utility."
-        code={`<div className="absolute inset-0 bg-scrim" />
-<div className="absolute inset-0 bg-scrim/40" />`}
+        description="`bg-scrim` dims the page behind a dialog or a sheet. Game art is never dimmed with it: a picture shows as it is. On this checkerboard the left half is bare and the right half has the scrim; the pattern comes from the `pattern-checker` utility."
+        code={`<div className="absolute inset-0 bg-scrim" />`}
       >
         <div className="relative h-32 overflow-hidden rounded-3xl pattern-checker">
-          <div className="absolute inset-y-0 left-1/3 w-1/3 bg-scrim/40" />
-          <div className="absolute inset-y-0 right-0 w-1/3 bg-scrim" />
+          <div className="absolute inset-y-0 right-0 w-1/2 bg-scrim" />
         </div>
       </Demo>
     </Section>
@@ -252,7 +250,7 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },
-  { utility: "bg-scrim", does: "Dimming layer behind a dialog or a sheet; at 40% (`bg-scrim/40`), a veil over the background of a game card", token: "`--color-scrim`" },
+  { utility: "bg-scrim", does: "Dimming layer behind a dialog or a sheet", token: "`--color-scrim`" },
   { utility: "bg-secondary-hover", does: "Hover state of a `secondary` surface", token: "`secondary` mixed with 8% of `foreground`" },
   { utility: "font-heading", does: "Heading font", token: "`--font-title`" },
   { utility: "pattern-checker", does: "Checkerboard that makes translucency visible", token: "`foreground` at 8%" },

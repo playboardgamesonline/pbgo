@@ -36,22 +36,17 @@ const PICTURE = "size-full transition-transform duration-slow ease-standard grou
 /**
  * The picture of a game: its logo, contained and centered, over its background picture when it has one, on a grey 4:3 frame. It is
  * the top of a `GameCard` and the picture of a game's page on the hub, so that both show a game the same way.
- * The one layer it lays over the art is a scrim (`bg-scrim`, lighter than a dialog's) between the background and the logo, so that
- * the picture is darker and the logo stands out; a frame with no background has no scrim. A game without a picture leaves the frame
- * plain, no placeholder. `className` shapes the frame (rounding, ring, place in a grid).
+ * Nothing is laid over the art, no scrim or tint: the logo is drawn straight on the background, both as they are. A game without a
+ * picture leaves the frame plain, no placeholder. `className` shapes the frame (rounding, ring, place in a grid).
  */
 function GameCardVisual({ className, logo, background, loading = "lazy", ...props }: GameCardVisualProps) {
   return (
     <div data-slot="game-card-visual" className={cn("relative aspect-4/3 overflow-hidden bg-muted", className)} {...props}>
       {/* Plain <img>s: the package is framework-free and the art is a URL, which the hub takes from the catalog's picture route (the game's Notion row).
-          The background comes first, then its scrim, so that the logo is drawn over both; the logo is contained, not cropped.
-          The scrim stays still when the pictures zoom; `bg-scrim/40` is the platform's scrim (60% black) at 40%, about 24% black */}
+          The background comes first, so that the logo is drawn over it; the logo is contained, not cropped */}
       {background && (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={background} alt="" loading={loading} decoding="async" className={cn("absolute inset-0 object-cover", PICTURE)} />
-          <div data-slot="game-card-scrim" className="absolute inset-0 bg-scrim/40" />
-        </>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={background} alt="" loading={loading} decoding="async" className={cn("absolute inset-0 object-cover", PICTURE)} />
       )}
       {logo && (
         // eslint-disable-next-line @next/next/no-img-element

@@ -9,7 +9,7 @@ const PRINCIPLES = [
   "Black and white: the palette is the `neutral` scale plus `destructive`. No accent colour, no gradient.",
   "Dark only. The platform has no light theme and no `dark:` variants; `color-scheme` is `dark`.",
   "One typeface, Geist, in one weight: everything is semibold (600). `font-medium` and `font-bold` resolve to the same weight, so do not write them. Text is slightly tight: about -0.01em on body text, -0.03em on headings.",
-  "Game art is the only colour on the platform. Never tint or recolour it: the one layer that may lie over it is the neutral scrim (`bg-scrim`, black, no hue), to darken a picture under a logo or a text.",
+  "Game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.",
   "Depth comes from surface steps and hairlines (`ring-1 ring-foreground/10`), then from three shadows: `shadow-surface` at rest, `shadow-float` when lifted, `shadow-overlay` for dialogs and sheets.",
   "Tokens, not values: no hex, `rgb()`, arbitrary pixel sizes, font names or `bg-neutral-*` in platform UI. Write `bg-card`, `text-muted-foreground`, `rounded-3xl`, `px-gutter`.",
   "A missing piece goes into `@pbgo/ui` first, is shown on this page, then is used.",
