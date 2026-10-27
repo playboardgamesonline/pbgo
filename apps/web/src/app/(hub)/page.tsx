@@ -1,11 +1,12 @@
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
 
+import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
-import { GameCard } from "@pbgo/ui/platform/game-card"
+import { GameBrowser } from "@/components/game-browser"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { catalogCardProps } from "@/lib/catalog-cards"
@@ -27,9 +28,11 @@ export default async function Home() {
   const first = entries.flatMap((entry) => (entry.live ? [entry.game] : []))[0]
   // One list for every game, each card a logo over a background on a grey frame. A live card reads them from the game's Sanity
   // project (cached for 60 s; a picture the game does not have leaves the frame plain); a game to come has its logo (or icon) and
-  // its background from the catalog's picture route (`catalogCardProps`)
-  const cards = await Promise.all(
-    entries.map(async (entry) => ({ slug: entry.slug, live: entry.live, props: await catalogCardProps(entry) }))
+  // its background from the catalog's picture route (`catalogCardProps`). Each game goes to the browser with what the search reads
+  // of it (`indexEntry`) beside its card: the list is filtered there (`GameBrowser`), in the order of the catalog, and this page
+  // stays static.
+  const games = await Promise.all(
+    entries.map(async (entry) => ({ ...indexEntry(entry), props: await catalogCardProps(entry) }))
   )
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
@@ -59,12 +62,7 @@ export default async function Home() {
 
         <section id="games" className="mx-auto w-full max-w-page scroll-mt-20 px-gutter pb-section">
           <h2 className="mb-6 font-heading text-2xl">Games</h2>
-          {/* `data-game` only on the live games: analytics counts the games opened from the hub, and a game to come is not one */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {cards.map(({ slug, live, props }) => (
-              <GameCard key={slug} {...props} data-game={live ? slug : undefined} />
-            ))}
-          </div>
+          <GameBrowser games={games} />
         </section>
 
         <section className="mx-auto w-full max-w-page px-gutter pb-section">
