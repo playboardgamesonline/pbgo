@@ -3,25 +3,24 @@ import { Slot } from "radix-ui"
 import { cn } from "../utils"
 
 // The top of a platform page, in two containers kept apart, the way the product reads: the brand and the tabs on the left (`NavbarStart`),
-// the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a float shadow) and the bar between
+// the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a light shadow) and the bar between
 // them is transparent: it lets the page and the pointer through, so a band that runs under the bar shows behind both islands and the
-// content of the page scrolls past the gap. The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it
-// or lets its first band run under it.
+// content of the page scrolls past the gap. The bar spans the window, not the width of the page: the islands sit on its edges, 0.75rem in
+// from the top and from each side. The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it or lets its
+// first band run under it.
 
 function Navbar({ className, children, ...props }: React.ComponentProps<"header">) {
   return (
     <header data-slot="navbar" className={cn("pointer-events-none h-navbar", className)} {...props}>
-      <div className="mx-auto flex h-full w-full max-w-page items-center justify-between gap-4 px-gutter">
-        {children}
-      </div>
+      <div className="flex h-full w-full items-center justify-between gap-4 px-3">{children}</div>
     </header>
   )
 }
 
-// One container of the bar: a glass island with round ends, 3rem high, that takes the pointer back from the transparent bar. What it holds is
-// 2.25rem high (`h-9`: the brand, the tabs, the buttons, an avatar of `size-9`), which `p-1.5` frames.
+// One container of the bar: a glass island with round ends, 3.5rem high, that takes the pointer back from the transparent bar. What it holds is
+// 2.5rem high (`h-10`: the brand, the tabs, buttons of size `lg`, an avatar of `size-10`), which `p-2` frames.
 const islandClassName =
-  "pointer-events-auto flex h-12 items-center gap-1 rounded-full border bg-background/80 p-1.5 shadow-float backdrop-blur-md"
+  "pointer-events-auto flex h-14 items-center gap-1 rounded-full border bg-background/80 p-2 shadow-surface backdrop-blur-md"
 
 /** The left container: the brand, then the tabs. */
 function NavbarStart({ className, ...props }: React.ComponentProps<"div">) {
@@ -33,7 +32,7 @@ function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-end" className={cn(islandClassName, "shrink-0", className)} {...props} />
 }
 
-/** The way back to the front page: a link, usually around a `Logo` (give the link an `aria-label`). */
+/** The way back to the front page: a link, usually around a `Logo` of `h-6`, the size of the tabs' text (give the link an `aria-label`). */
 function NavbarBrand({
   className,
   asChild = false,
@@ -44,7 +43,7 @@ function NavbarBrand({
     <Comp
       data-slot="navbar-brand"
       className={cn(
-        "flex h-9 shrink-0 items-center rounded-full px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
+        "flex h-10 shrink-0 items-center rounded-full px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
         className
       )}
       {...props}
@@ -63,7 +62,7 @@ function NavbarTabs({ className, ...props }: React.ComponentProps<"nav">) {
   )
 }
 
-const tabClassName = "inline-flex h-9 items-center whitespace-nowrap rounded-full px-3 text-sm"
+const tabClassName = "inline-flex h-10 items-center whitespace-nowrap rounded-full px-4 text-sm"
 
 /**
  * One tab: a link, or its own link through `asChild` (the framework's). `current` marks the page the visitor is in.

@@ -14,7 +14,7 @@ export function Logos() {
     >
       <Demo
         title="Sizes and colour"
-        description="Size it with a height (`h-6`, `h-12`…) and colour it with a text colour. It is hidden from screen readers, so a link around it carries the name (`aria-label`); a logo that stands alone takes a `title`."
+        description="Size it with a height (`h-6`, `h-12`…) and colour it with a text colour. The navbar uses `h-6`, the size of its tabs' text. It is hidden from screen readers, so a link around it carries the name (`aria-label`); a logo that stands alone takes a `title`."
         className="flex flex-wrap items-end gap-8"
         code={`<Logo className="h-6" />
 <Logo />
@@ -35,7 +35,7 @@ function Start() {
   return (
     <NavbarStart>
       <NavbarBrand href="#navbar" aria-label="Home">
-        <Logo />
+        <Logo className="h-6" />
       </NavbarBrand>
       <NavbarTabs aria-label="Main">
         <NavbarTab href="#navbar" current>
@@ -57,16 +57,16 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a float shadow) and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so a band that runs under the bar (the home's header) shows behind both islands. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its first band run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a light shadow) and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so a band that runs under the bar (the home's header) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its first band run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
     >
       <Demo
         title="Signed out"
-        description="`NavbarTab` marks the page the visitor is in with `current`. A tab for a page that does not exist yet is `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one. The specimen sits on the card colour of the home's header band."
+        description="`NavbarTab` marks the page the visitor is in with `current`. A tab for a page that does not exist yet is `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds. The specimen sits on the card colour of the home's header band."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
     <NavbarBrand href="/" aria-label="Home">
-      <Logo />
+      <Logo className="h-6" />
     </NavbarBrand>
     <NavbarTabs aria-label="Main">
       <NavbarTab href="/#games" current>Games</NavbarTab>
@@ -75,8 +75,8 @@ export function Navbars() {
     </NavbarTabs>
   </NavbarStart>
   <NavbarEnd>
-    <Button variant="ghost">Sign in</Button>
-    <Button>Sign up</Button>
+    <Button variant="ghost" size="lg">Sign in</Button>
+    <Button size="lg">Sign up</Button>
   </NavbarEnd>
 </Navbar>
 
@@ -85,18 +85,20 @@ export function Navbars() {
         <Navbar>
           <Start />
           <NavbarEnd>
-            <Button variant="ghost">Sign in</Button>
-            <Button>Sign up</Button>
+            <Button variant="ghost" size="lg">
+              Sign in
+            </Button>
+            <Button size="lg">Sign up</Button>
           </NavbarEnd>
         </Navbar>
       </Demo>
 
       <Demo
         title="Signed in"
-        description="The account is an `Avatar` in place of the two buttons. At `size-9`, the height of what an island holds, the right container is a circle; what the avatar opens is the page's business."
+        description="The account is an `Avatar` in place of the two buttons. At `size-10`, the height of what an island holds, the right container closes round it; what the avatar opens is the page's business."
         className="overflow-hidden bg-card p-0"
         code={`<NavbarEnd>
-  <Avatar className="size-9">
+  <Avatar className="size-10">
     <AvatarFallback>AL</AvatarFallback>
   </Avatar>
 </NavbarEnd>`}
@@ -104,7 +106,7 @@ export function Navbars() {
         <Navbar>
           <Start />
           <NavbarEnd>
-            <Avatar className="size-9">
+            <Avatar className="size-10">
               <AvatarFallback>AL</AvatarFallback>
             </Avatar>
           </NavbarEnd>
