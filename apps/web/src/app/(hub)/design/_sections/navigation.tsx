@@ -159,7 +159,7 @@ export function SearchBars() {
 </div>`}
       >
         <div className="border-b bg-card px-6 pt-12 pb-16 text-center">
-          <p className="font-heading text-2xl">Board games online, with friends.</p>
+          <p className="font-heading text-2xl">Play board games online with friends & rivals</p>
         </div>
         <div className="relative mx-auto -mt-7 mb-10 max-w-xl px-6">
           <SearchBar method="dialog" aria-label="Search the games">

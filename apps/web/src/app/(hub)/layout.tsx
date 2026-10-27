@@ -7,7 +7,7 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/site"
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: `${SITE_NAME} · Board games online with friends`, template: `%s · ${SITE_NAME}` },
+  title: { default: `${SITE_NAME} · Board games online with friends or rivals`, template: `%s · ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
   openGraph: { type: "website", siteName: SITE_NAME, url: SITE_URL },

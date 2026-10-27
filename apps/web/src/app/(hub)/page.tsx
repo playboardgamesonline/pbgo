@@ -10,14 +10,13 @@ import { HeroSearch } from "@/components/hero-search"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { catalogCardProps } from "@/lib/game-card-props"
-import { SITE_DESCRIPTION } from "@/site"
 
 // Plain <a> to the games (GameCard): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
 // A card opens the game's page on the hub, `/game/<slug>`.
 
 const STEPS = [
   { icon: DiceIcon, title: "Pick a game", text: "Choose a board or card game and open a table in one click." },
-  { icon: Link01Icon, title: "Share the link", text: "Send the table link or code to your friends. Nobody needs an account." },
+  { icon: Link01Icon, title: "Share the link", text: "Send the table link or code to your friends so they can join you." },
   { icon: UserGroupIcon, title: "Play together", text: "Everyone plays from their own browser, rules and scoring handled for you." },
 ]
 
@@ -43,16 +42,14 @@ export default async function Home() {
           {/* The header, centred, with the search pill laid over its lower edge (half of the pill's height, `-mt-7`, is pulled up into it) */}
           <section className="border-b bg-card pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center gap-4 px-gutter py-section text-center">
-              <h1 className="max-w-2xl font-heading text-4xl md:text-6xl">Board games online, with friends.</h1>
-              <p className="max-w-xl text-lg text-muted-foreground">{SITE_DESCRIPTION}</p>
+              <h1 className="max-w-4xl font-heading text-4xl md:text-6xl">Play board games online with friends & rivals</h1>
             </div>
           </section>
           <div className="relative mx-auto -mt-7 w-full max-w-3xl px-gutter">
             <HeroSearch />
           </div>
 
-          <section id="games" className="mx-auto w-full max-w-page scroll-mt-navbar px-gutter pt-10 pb-section">
-            <h2 className="mb-6 font-heading text-2xl">Games</h2>
+          <section id="games" aria-label="Games" className="mx-auto w-full max-w-page scroll-mt-navbar px-gutter pt-10 pb-section">
             <GameList />
           </section>
 
