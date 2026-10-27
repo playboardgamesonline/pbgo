@@ -30,7 +30,7 @@ export function Logos() {
   )
 }
 
-/** The left cluster of the two navbars below: the brand, then the tabs. */
+/** The left container of the two navbars below: the brand, then the tabs. */
 function Start() {
   return (
     <NavbarStart>
@@ -57,12 +57,12 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The bar at the top of a page, in two clusters kept apart: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). It draws the bar (`h-navbar`, a border, a glass background) and nothing else: the page pins it with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it, and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the bar under `md`, where the account needs the room."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a float shadow) and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so a band that runs under the bar (the home's header) shows behind both islands. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its first band run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
     >
       <Demo
         title="Signed out"
-        description="`NavbarTab` marks the page the visitor is in with `current`. A tab for a page that does not exist yet is `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one."
-        className="overflow-hidden p-0"
+        description="`NavbarTab` marks the page the visitor is in with `current`. A tab for a page that does not exist yet is `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one. The specimen sits on the card colour of the home's header band."
+        className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
     <NavbarBrand href="/" aria-label="Home">
@@ -93,10 +93,10 @@ export function Navbars() {
 
       <Demo
         title="Signed in"
-        description="The account is an `Avatar` in place of the two buttons; what it opens is the page's business."
-        className="overflow-hidden p-0"
+        description="The account is an `Avatar` in place of the two buttons. At `size-9`, the height of what an island holds, the right container is a circle; what the avatar opens is the page's business."
+        className="overflow-hidden bg-card p-0"
         code={`<NavbarEnd>
-  <Avatar>
+  <Avatar className="size-9">
     <AvatarFallback>AL</AvatarFallback>
   </Avatar>
 </NavbarEnd>`}
@@ -104,7 +104,7 @@ export function Navbars() {
         <Navbar>
           <Start />
           <NavbarEnd>
-            <Avatar>
+            <Avatar className="size-9">
               <AvatarFallback>AL</AvatarFallback>
             </Avatar>
           </NavbarEnd>

@@ -32,15 +32,16 @@ export default async function Home() {
   // (`GameSearch`, which the pill of the header and the list read), in the order of the catalog, and this page stays static.
   const games = entries.map((entry) => ({ ...indexEntry(entry), props: catalogCardProps(entry) }))
 
-  // The page starts under the fixed navbar (`pt-navbar`) and ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
+  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner). It starts at the top of the window: the
+  // fixed navbar is two containers with nothing between them, and the header band runs under both (`pt-navbar` keeps its text clear of them)
   return (
     <GameSearch games={games}>
-      <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col pt-navbar">
+      <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <SiteHeader />
 
         <main className="flex-1">
           {/* The header, centred, with the search pill laid over its lower edge (half of the pill's height, `-mt-7`, is pulled up into it) */}
-          <section className="border-b bg-card">
+          <section className="border-b bg-card pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center gap-4 px-gutter py-section text-center">
               <h1 className="max-w-2xl font-heading text-4xl md:text-6xl">Board games online, with friends.</h1>
               <p className="max-w-xl text-lg text-muted-foreground">{SITE_DESCRIPTION}</p>

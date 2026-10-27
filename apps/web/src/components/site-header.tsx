@@ -5,8 +5,9 @@ import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } fr
 import { SITE_NAME } from "@/site"
 
 /**
- * The navbar of the hub's own pages (the home and a game's page), fixed to the top of the window: the logo and the tabs on the left, the
- * account on the right, apart. The page leaves `pt-navbar` under it, and an anchor that lands under it has `scroll-mt-navbar`.
+ * The navbar of the hub's own pages (the home and a game's page), fixed to the top of the window in two containers kept apart: the logo and
+ * the tabs on the left, the account on the right, with nothing drawn between them. A page leaves `pt-navbar` under it (or lets its first band
+ * run under the two containers, as the home's header does), and an anchor that lands under it has `scroll-mt-navbar`.
  * Tournaments, What's New and the two account buttons are placeholders: there is no page behind the tabs and no account yet, so the tabs are
  * text and the buttons do nothing. Games is always the current tab, since the pages that wear this bar are the games'.
  */
