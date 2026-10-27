@@ -5,16 +5,16 @@
 import type { Metadata, MetadataRoute } from "next"
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import { OG_LOCALES, type Locale } from "@pbgo/core/lib/i18n"
-import { shareImagePath } from "@pbgo/core/lib/site-url"
-import { pickLocalized, sharePicture, type CatalogEntry, type LiveEntry, type PlannedEntry } from "./catalog"
+import { pickLocalized, sharePicture, type CatalogEntry } from "./catalog"
 
 /**
  * Whether search engines may index the hub page of a game (`/game/<slug>`): the one rule behind the page's `robots` meta, its JSON-LD and
- * its line of the sitemap. A live game follows the registry's `indexable` flag, as its own home does. A planned game is indexable once its
- * Notion row has a description, in any language: until then the page has nothing to say and stays out of the results.
+ * its line of the sitemap. A live game follows the registry's `indexable` flag, as its own home does, so a Notion that is down never
+ * turns it into a `noindex`. A game to come is indexable once its Notion row has a description, in any language: until then the page
+ * has nothing to say and stays out of the results.
  */
 export function isIndexable(entry: CatalogEntry): boolean {
-  return entry.live ? entry.game.indexable : pickLocalized(entry.game.descriptions, "en") !== null
+  return entry.live ? entry.indexable : pickLocalized(entry.game.descriptions, "en") !== null
 }
 
 /** A text on one line: every run of white space (a line break of the source included) is one space. */
@@ -34,12 +34,9 @@ export function metaDescription(text: string, max = 160): string {
   return `${kept.replace(/[\s,;:.!?–—-]+$/, "")}…`
 }
 
-/** A live game's credits as its settings hold them (`Credits` of `@pbgo/core`): a free line and a publisher. */
-export type LiveCredits = { authors: string | null; publisher: string | null; publisherUrl: string | null }
-
 /**
- * What the SEO of a game's page needs to know about the game, live or to come: plain data that `plannedSeo` / `liveSeo` make from what
- * the page loaded, and that `gameMetadata` and `gameJsonLd` read.
+ * What the SEO of a game's page needs to know about the game, live or to come: plain data that `gameSeo` makes from the game's
+ * catalog entry, and that `gameMetadata` and `gameJsonLd` read.
  */
 export type GameSeo = {
   slug: string
@@ -51,19 +48,20 @@ export type GameSeo = {
   /** The picture the page shares. `wide`: a social card only goes large with a wide picture. Null: the game has none and the page shares text alone. */
   image: { url: string; wide: boolean } | null
   players: { min: number; max: number | null } | null
-  /** One duration, in minutes. A live game's duration is a range, which schema.org's `timeRequired` has no place for: it is left out. */
+  /** One duration, in minutes. */
   minutes: number | null
   /** The minimum age in years. */
   age: number | null
   authors: string[]
   illustrators: string[]
   publishers: { name: string; url: string | null }[]
-  /** The credits as one free line: a live game's settings do not list its authors one by one. */
-  credit: string | null
 }
 
-/** The SEO data of a planned game's page. `description` is the one the page shows, in the visitor's language (`pickLocalized`). */
-export function plannedSeo(entry: PlannedEntry, description: GameSeo["description"]): GameSeo {
+/**
+ * The SEO data of a game's page, from the values of its Notion row (`registryRow` for a live game that has none, which has no picture
+ * and no text). `description` is the one the page shows, in the visitor's language (`pickLocalized`).
+ */
+export function gameSeo(entry: CatalogEntry, description: GameSeo["description"]): GameSeo {
   const { game } = entry
   return {
     slug: entry.slug,
@@ -77,31 +75,6 @@ export function plannedSeo(entry: PlannedEntry, description: GameSeo["descriptio
     authors: game.authors,
     illustrators: game.illustrators,
     publishers: game.publishers,
-    credit: null,
-  }
-}
-
-/**
- * The SEO data of a live game's page. Its texts and credits are the game's own, from its Sanity settings (`texts`); the figures are the
- * registry's. The registry's English line stands in for a description the settings do not have yet. The picture is the game's share image,
- * which is wide.
- */
-export function liveSeo(entry: LiveEntry, texts: { description: GameSeo["description"]; credits: LiveCredits }): GameSeo {
-  const { game } = entry
-  const { duration } = game
-  return {
-    slug: entry.slug,
-    name: game.name,
-    indexable: isIndexable(entry),
-    description: texts.description ?? (game.tagline ? { text: game.tagline, language: "en" } : null),
-    image: { url: shareImagePath(entry.slug), wide: true },
-    players: game.players ?? null,
-    minutes: duration && duration.min === duration.max ? duration.min : null,
-    age: null,
-    authors: [],
-    illustrators: [],
-    publishers: texts.credits.publisher ? [{ name: texts.credits.publisher, url: texts.credits.publisherUrl }] : [],
-    credit: texts.credits.authors,
   }
 }
 
@@ -184,7 +157,6 @@ export function gameJsonLd(game: GameSeo, site: string): Record<string, unknown>
     ...(game.publishers.length
       ? { publisher: game.publishers.map(({ name, url }) => ({ "@type": "Organization", name, ...(url ? { url } : {}) })) }
       : {}),
-    ...(game.credit ? { creditText: game.credit } : {}),
   }
 }
 
@@ -195,9 +167,8 @@ export function serializeJsonLd(data: unknown): string {
 
 export type SitemapItem = MetadataRoute.Sitemap[number]
 
-/** When a planned game's page last changed: its Notion row's last edit. A live game has no such date (its content is in Sanity). */
+/** When a game's page last changed: its Notion row's last edit. A live game with no row (`registryRow`) has no such date. */
 function lastModified(entry: CatalogEntry): Date | undefined {
-  if (entry.live) return undefined
   const time = Date.parse(entry.game.editedAt)
   return Number.isFinite(time) ? new Date(time) : undefined
 }

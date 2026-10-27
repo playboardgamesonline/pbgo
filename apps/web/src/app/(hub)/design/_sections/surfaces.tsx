@@ -8,8 +8,7 @@ import {
   Settings01Icon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
-import { gameCardArt, gameCover } from "@pbgo/core/sanity/cover"
-import { listedGames } from "@pbgo/games/registry"
+import { getCatalog } from "@pbgo/catalog/server"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarGroupCount } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
@@ -40,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@pbgo/ui/platform/table"
-import { gameCardProps } from "@/lib/game-card-props"
+import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -123,19 +122,15 @@ export function Cards() {
 }
 
 export async function GameCards() {
-  // The logo and the background of each game's card from its Sanity project, as the hub reads them, and its cover (`gameCover`): the
-  // hub does not draw the cover any more, it only stands in for a background below
-  const cards = await Promise.all(
-    listedGames().map(async (game) => {
-      const [art, cover] = await Promise.all([gameCardArt(game), gameCover(game)])
-      return { game, art, cover }
-    })
-  )
-  // Pictures for the demo tiles that are not a game of the registry: the first logo stands in for a game's logo, and the first
-  // background for its background, else the first cover, since a game has to upload one in its Studio first
-  const logo = cards.find(({ art }) => art.logo)?.art.logo ?? undefined
-  const background =
-    cards.find(({ art }) => art.background)?.art.background ?? cards.find(({ cover }) => cover)?.cover ?? undefined
+  // The cards of the live games, built as the hub builds every card: from the game's Notion row (`catalogCardProps`), the registry only
+  // making them play cards. Without Notion (no key, or Notion down) they are plain cards from the registry, with no picture
+  const { entries } = await getCatalog()
+  const live = entries.filter((entry) => entry.live)
+  // Pictures for the demo tiles that are not a game of the catalog: the first logo of the catalog stands in for a game's logo, and the
+  // first background for its background (a game has to have one in its Notion row first)
+  const pictures = entries.map((entry) => gamePicture(entry.game))
+  const logo = pictures.find((picture) => picture.logo)?.logo
+  const background = pictures.find((picture) => picture.background)?.background
   return (
     <Section
       id="game-card"
@@ -143,27 +138,24 @@ export async function GameCards() {
       intro="The hub's tile for a game: its logo, over its background picture when it has one, on a grey 4:3 frame, then the name, on one line and cut with an ellipsis when it does not fit, and the practical facts (players, duration), nothing else. Every tile is a link, to the page of the game (`/game/<slug>`). Game art is the only colour of the platform, so the card adds none: no accent. The one layer it lays over the art is a scrim on the background picture (`bg-scrim/70`, lighter than a dialog's), so that the picture is darker and the logo stands out. Hover lifts the card (`shadow-float`) and zooms the pictures, the scrim staying still. The `soon` variant draws a game to come, in the same list as the others, with a Coming soon badge."
     >
       <Demo
-        title="From the registry, and without art"
-        description="The first cards are the live games of the registry, as the hub renders them. The logo and the background are read from the game's Sanity project by `gameCardArt()`: a game that has no background yet shows its logo on the plain grey frame, with no scrim: the scrim comes with a background, never alone. `players` and `duration` arrive already formatted: `gameCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `logo` and a `background` the frame stays plain grey, no placeholder."
+        title="The live games, and without art"
+        description="The first cards are the live games of the catalog, as the hub renders them. Each one is the game's Notion row, its name, its logo and its background (from the catalog's picture route) and its facts; the registry only makes it a play card. A game whose row has no background yet shows its logo on the plain grey frame, with no scrim: the scrim comes with a background, never alone. `players` and `duration` arrive already formatted: `catalogCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `logo` and a `background` the frame stays plain grey, no placeholder."
         className="grid gap-4 sm:grid-cols-2"
-        code={`import { gameCardArt } from "@pbgo/core/sanity/cover"
-import { listedGames } from "@pbgo/games/registry"
-import { gameCardProps } from "@/lib/game-card-props"
+        code={`import { getCatalog } from "@pbgo/catalog/server"
+import { catalogCardProps } from "@/lib/game-card-props"
 
-const cards = await Promise.all(
-  listedGames().map(async (game) => ({ game, art: await gameCardArt(game) })),
-)
+const { entries } = await getCatalog()
 
-{cards.map(({ game, art }) => (
-  <GameCard key={game.slug} {...gameCardProps(game, art)} />
+{entries.filter((entry) => entry.live).map((entry) => (
+  <GameCard key={entry.slug} {...catalogCardProps(entry)} />
 ))}
 
 <GameCard href="/a-game" name="A game" logo={logoUrl} background={backgroundUrl} players="3–6 players" duration="20–40 min" />
 <GameCard href="/a-game" name="A game without art" players="3–6 players" duration="20–40 min" />
 <GameCard href="/a-game" name="A game with a name too long to fit on one line" logo={logoUrl} background={backgroundUrl} players="3–6 players" duration="20–40 min" />`}
       >
-        {cards.map(({ game, art }) => (
-          <GameCard key={game.slug} {...gameCardProps(game, art)} />
+        {live.map((entry) => (
+          <GameCard key={entry.slug} {...catalogCardProps(entry)} />
         ))}
         <GameCard href="#game-card" name="A game with both pictures" logo={logo} background={background} players="3–6 players" duration="20–40 min" />
         <GameCard href="#game-card" name="A game without art" players="3–6 players" duration="20–40 min" />
@@ -172,12 +164,12 @@ const cards = await Promise.all(
 
       <Demo
         title="A game to come"
-        description="The `soon` variant is the tile of a game that is not playable yet. It sits in the same list as the live games, built the same way: the same grey frame, the logo (or icon) over the background, the same facts (players, duration), plus a small Coming soon badge at its top right. Both pictures come from the catalog's picture route. Like any other tile it links to the game's page, where the button is disabled. The hub builds it with `plannedCardProps()` from a game of the Notion Games database (`docs/catalog.md`); the pictures of the live games stand in here. Without a picture the frame stays plain grey, no placeholder."
+        description="The `soon` variant is the tile of a game that is not playable yet. It sits in the same list as the live games, built the same way: the same grey frame, the logo (or icon) over the background, the same facts (players, duration), plus a small Coming soon badge at its top right. Both pictures come from the catalog's picture route. Like any other tile it links to the game's page, where the button is disabled. The hub builds it with `catalogCardProps()`, the function of the live games, from a game of the Notion Games database (`docs/catalog.md`); the first pictures of the catalog stand in here. Without a picture the frame stays plain grey, no placeholder."
         className="grid gap-4 sm:grid-cols-2"
-        code={`import { plannedCardProps } from "@/lib/game-card-props"
+        code={`import { catalogCardProps } from "@/lib/game-card-props"
 
-{planned.map((game) => (
-  <GameCard key={game.slug} {...plannedCardProps(game)} />
+{entries.filter((entry) => !entry.live).map((entry) => (
+  <GameCard key={entry.slug} {...catalogCardProps(entry)} />
 ))}
 
 <GameCard variant="soon" href="/game/a-game" name="A game" logo="/api/catalog/a-game/logo?v=1" background="/api/catalog/a-game/background?v=1" players="2–5 players" duration="30 min" />

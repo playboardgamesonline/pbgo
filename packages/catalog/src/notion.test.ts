@@ -1,7 +1,7 @@
 import { slugProblem } from "@pbgo/games/slug"
 import { describe, expect, it } from "vitest"
-import type { PlannedGame } from "./catalog"
-import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readPlannedGames } from "./notion"
+import type { NotionGame } from "./catalog"
+import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readNotionGames } from "./notion"
 import {
   creatorPage,
   developmentDatabase,
@@ -25,12 +25,12 @@ const CREATOR_1 = "9f1c2d3e-0000-4000-8000-00000000c001"
 const CREATOR_2 = "9f1c2d3e-0000-4000-8000-00000000c002"
 const CREATOR_3 = "9f1c2d3e-0000-4000-8000-00000000c003"
 
-/** What `readPlannedGames` makes of the four databases, as a fake Notion answers them. */
+/** What `readNotionGames` makes of the four databases, as a fake Notion answers them. */
 const readGames = (games: Answer, editors: Answer = [], creators: Answer = [], development: Answer = []) =>
-  readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games, editors, creators, development }).fetch })
+  readNotionGames({ token: TOKEN, fetch: fakeNotion({ games, editors, creators, development }).fetch })
 
 /** The one game a row makes. */
-async function one(row: GameRow = {}): Promise<PlannedGame> {
+async function one(row: GameRow = {}): Promise<NotionGame> {
   const [game] = (await readGames([gamePage({ name: "Sample", slug: "sample", ...row })])).games
   if (!game) throw new Error("The row was not read as a game")
   return game
@@ -50,7 +50,7 @@ async function failureOf(read: Promise<unknown>): Promise<NotionError> {
 describe("the requests", () => {
   it("asks each database once, as JSON, with the token and the API version", async () => {
     const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [], development: [] })
-    await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     expect(notion.calls.map((call) => call.database).sort()).toEqual([CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID].sort())
     for (const call of notion.calls) {
       expect(call.init.method).toBe("POST")
@@ -62,7 +62,7 @@ describe("the requests", () => {
 
   it("reads the schema of the Games Development database once, for the order of its options: a GET with the token and the API version, and no body", async () => {
     const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [], development: [] })
-    await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     expect(notion.schemaCalls).toHaveLength(1)
     const [call] = notion.schemaCalls
     expect(call?.database).toBe(DEVELOPMENT_DATABASE_ID)
@@ -74,7 +74,7 @@ describe("the requests", () => {
   it("adds the caller's options to every request, but they cannot replace the method, the headers or the body", async () => {
     const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [], development: [] })
     const init: RequestInit = { method: "PUT", headers: { Authorization: "Bearer other" }, body: "{}", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } }
-    await readPlannedGames({ token: TOKEN, fetch: notion.fetch, init })
+    await readNotionGames({ token: TOKEN, fetch: notion.fetch, init })
     expect(notion.calls).toHaveLength(4)
     for (const call of notion.calls) {
       expect(call.init).toMatchObject({ method: "POST", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } })
@@ -91,7 +91,7 @@ describe("the requests", () => {
   it("follows the cursor to the last page and keeps the order of the rows", async () => {
     const rows = ["a", "b", "c", "d", "e"].map((slug) => gamePage({ slug, name: slug.toUpperCase() }))
     const notion = fakeNotion({ games: rows, editors: [], creators: [], development: [] }, 2)
-    const { games } = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    const { games } = await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     expect(games.map((game) => game.slug)).toEqual(["a", "b", "c", "d", "e"])
     expect(notion.calls.filter((call) => call.database === GAMES_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
   })
@@ -102,7 +102,7 @@ describe("the requests", () => {
       asked++
       return Response.json({ object: "list", results: [], has_more: true, next_cursor: "again" })
     }) as typeof fetch
-    const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: endless }))
+    const error = await failureOf(readNotionGames({ token: TOKEN, fetch: endless }))
     expect(error.message).toBe("More than 1000 rows in a database: the reader stops there")
     // Ten requests for the Games database; the Editors, Creators and Games Development ones run next to it, under the same bound each,
     // and the read of the Development schema (answered with a list, so no schema) is one more
@@ -119,7 +119,7 @@ describe("when Notion cannot be read", () => {
   })
 
   it("says so when the integration is not connected to the Games database", async () => {
-    const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: fakeNotion({ editors: [] }).fetch }))
+    const error = await failureOf(readNotionGames({ token: TOKEN, fetch: fakeNotion({ editors: [] }).fetch }))
     expect(error.status).toBe(404)
     expect(error.code).toBe("object_not_found")
     expect(error.message).toContain("shared with your integration")
@@ -127,7 +127,7 @@ describe("when Notion cannot be read", () => {
 
   it("keeps the status of an answer that is not JSON", async () => {
     const badGateway = (async () => new Response("<html>Bad gateway</html>", { status: 502 })) as typeof fetch
-    const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: badGateway }))
+    const error = await failureOf(readNotionGames({ token: TOKEN, fetch: badGateway }))
     expect(error).toMatchObject({ status: 502, code: null, message: "Notion answered 502" })
   })
 
@@ -135,7 +135,7 @@ describe("when Notion cannot be read", () => {
     const rateLimited = (headers: Record<string, string> = {}, status = 429) =>
       (async () => new Response(JSON.stringify({ object: "error", status, code: "rate_limited", message: "Slow down." }), { status, headers })) as typeof fetch
     const askedFor = async (headers?: Record<string, string>, status?: number) =>
-      (await failureOf(readPlannedGames({ token: TOKEN, fetch: rateLimited(headers, status) }))).retryAfter
+      (await failureOf(readNotionGames({ token: TOKEN, fetch: rateLimited(headers, status) }))).retryAfter
 
     it("keeps the seconds Notion asks to wait, rounded up", async () => {
       expect(await askedFor({ "retry-after": "2" })).toBe(2)
@@ -173,7 +173,7 @@ describe("when Notion cannot be read", () => {
     const refused = (async () => {
       throw new TypeError(`fetch failed for Bearer ${TOKEN}`)
     }) as typeof fetch
-    const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: refused }))
+    const error = await failureOf(readNotionGames({ token: TOKEN, fetch: refused }))
     expect(error).toMatchObject({ status: 0, code: null, message: "Notion could not be reached (TypeError)" })
     expect(error.message).not.toContain(TOKEN)
   })
@@ -181,7 +181,7 @@ describe("when Notion cannot be read", () => {
   it("gives up on a request that takes longer than the timeout", async () => {
     const hanging = ((_url: string, init: RequestInit) =>
       new Promise((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(init.signal?.reason)))) as unknown as typeof fetch
-    const error = await failureOf(readPlannedGames({ token: TOKEN, fetch: hanging, timeoutMs: 20 }))
+    const error = await failureOf(readNotionGames({ token: TOKEN, fetch: hanging, timeoutMs: 20 }))
     expect(error).toMatchObject({ status: 0, message: "Notion could not be reached (TimeoutError)" })
   })
 
@@ -191,7 +191,7 @@ describe("when Notion cannot be read", () => {
       creators: [creatorPage({ id: CREATOR_1, name: "Author One" })],
       development: [],
     })
-    const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    const read = await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     expect(read.games.map((game) => [game.slug, game.authors, game.publishers])).toEqual([["hanabi", ["Author One"], []]])
     expect(read.warnings).toHaveLength(1)
     expect(read.warnings[0]).toContain("The Editors database could not be read, so no game has a publisher")
@@ -204,7 +204,7 @@ describe("when Notion cannot be read", () => {
       editors: [editorPage({ id: EDITOR_1, name: "Editor One" })],
       development: [],
     })
-    const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    const read = await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     expect(read.games.map((game) => [game.slug, game.authors, game.illustrators, game.publishers])).toEqual([["hanabi", [], [], [{ name: "Editor One", url: null }]]])
     expect(read.warnings).toHaveLength(1)
     expect(read.warnings[0]).toContain("The Creators database could not be read, so no game has an author or an illustrator")
@@ -212,7 +212,7 @@ describe("when Notion cannot be read", () => {
   })
 
   it("says so for each of them when none can be read, the Editors database first, then the Creators one, then Games Development", async () => {
-    const read = await readPlannedGames({ token: TOKEN, fetch: fakeNotion({ games: [gamePage()] }).fetch })
+    const read = await readNotionGames({ token: TOKEN, fetch: fakeNotion({ games: [gamePage()] }).fetch })
     expect(read.warnings).toHaveLength(3)
     expect(read.warnings[0]).toContain("The Editors database could not be read")
     expect(read.warnings[1]).toContain("The Creators database could not be read")
@@ -226,7 +226,7 @@ describe("when Notion cannot be read", () => {
     // The Editors database answers last: its warning must not end up behind the ones of the Creators and Games Development databases
     const lateEditors = ((input: string | URL | Request, init?: RequestInit) =>
       String(input).includes(EDITORS_DATABASE_ID) ? new Promise<Response>((resolve) => setTimeout(() => resolve(notion.fetch(input, init)), 20)) : notion.fetch(input, init)) as typeof fetch
-    const read = await readPlannedGames({ token: TOKEN, fetch: lateEditors })
+    const read = await readNotionGames({ token: TOKEN, fetch: lateEditors })
     expect(read.warnings.map((warning) => warning.split(" database")[0])).toEqual(["The Editors", "The Creators", "The Games Development", "The Games"])
   })
 })
@@ -430,7 +430,7 @@ describe("the authors and the illustrators of a row", () => {
     const ids = ["c100", "c101", "c102", "c103", "c104"].map((suffix) => `9f1c2d3e-0000-4000-8000-00000000${suffix}`)
     const creators = ids.map((id, index) => creatorPage({ id, name: `Person ${index}` }))
     const notion = fakeNotion({ games: [gamePage({ authors: ids.slice(4), illustrators: ids.slice(0, 1) })], editors: [], creators, development: [] }, 2)
-    const { games } = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    const { games } = await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     expect(games[0]).toMatchObject({ authors: ["Person 4"], illustrators: ["Person 0"] })
     expect(notion.calls.filter((call) => call.database === CREATORS_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
   })
@@ -446,7 +446,7 @@ describe("the development rank of a game", () => {
   /** A read of the three games with the Games Development database as given (its schema is the real one unless `schema` says otherwise): what it made of them, and its warnings. */
   async function developmentOf(development: Answer, schema?: SchemaAnswer) {
     const notion = fakeNotion({ games, editors: [], creators: [], development, ...(schema ? { developmentSchema: schema } : {}) })
-    const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    const read = await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     return { ...read, development: Object.fromEntries(read.games.map((game) => [game.slug, game.development])) }
   }
 
@@ -518,7 +518,7 @@ describe("the development rank of a game", () => {
       },
       2,
     )
-    const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+    const read = await readNotionGames({ token: TOKEN, fetch: notion.fetch })
     expect(read.games.map((game) => game.development.effort?.name)).toEqual(["S", "M", "L", "XL", "XXL"])
     expect(notion.calls.filter((call) => call.database === DEVELOPMENT_DATABASE_ID).map((call) => call.body.start_cursor)).toEqual([undefined, "2", "4"])
   })
@@ -544,7 +544,7 @@ describe("the development rank of a game", () => {
 
     it("says so once when the integration is not connected to it, and keeps the rest of the read", async () => {
       const notion = fakeNotion({ games: [gamePage({ editors: [EDITOR_1] })], editors: [editorPage({ id: EDITOR_1, name: "Editor One" })], creators: [] })
-      const read = await readPlannedGames({ token: TOKEN, fetch: notion.fetch })
+      const read = await readNotionGames({ token: TOKEN, fetch: notion.fetch })
       expect(read.games[0]).toMatchObject({ publishers: [{ name: "Editor One", url: null }], development: developmentRank() })
       expect(read.warnings).toHaveLength(1)
       expect(read.warnings[0]).toContain("The Games Development database could not be read, so the coming-soon games are listed by name (connect the integration to it too)")
@@ -722,7 +722,7 @@ describe("a row that is not a game", () => {
 
 describe("the related games of a row", () => {
   /** The slugs each game of a read points to, by game. */
-  const relatedOf = (read: { games: PlannedGame[] }) => Object.fromEntries(read.games.map((game) => [game.slug, game.related]))
+  const relatedOf = (read: { games: NotionGame[] }) => Object.fromEntries(read.games.map((game) => [game.slug, game.related]))
 
   it("are the slugs of the rows its Related Games column points to, in the order of the row, on its own side only", async () => {
     const read = await readGames([

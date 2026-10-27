@@ -13,6 +13,7 @@ const S3 = "prod-files-secure.s3.us-west-2.amazonaws.com"
 
 // The registry as the catalog reads it (its literal types would make `slug !== "template"` a comparison with no overlap)
 const REGISTRY: readonly GameEntry[] = GAMES
+/** A live game of the registry: the hub shows the pictures of its Notion row, as it does any game's. */
 const LIVE = REGISTRY.find((game) => game.live && game.slug !== "template")
 /** A game of the registry that is not live: it takes its Notion row. */
 const PLANNED = REGISTRY.find((game) => !game.live && game.slug !== "template")
@@ -114,7 +115,7 @@ const bytesOf = async (response: Response) => new Uint8Array(await response.arra
 
 const png: Record<string, HostHandler> = { [S3]: () => pictureResponse("png") }
 
-describe("a picture of a planned game", () => {
+describe("a picture of a game", () => {
   it("is served as the file it is, kept a day by the CDN, with the headers of a file that only an <img> shows", async () => {
     // The host says it sends a web page: the route believes the bytes, not the host
     const w = await world({
@@ -178,6 +179,15 @@ describe("a picture of a planned game", () => {
     expect(response.headers.get("content-type")).toBe("image/avif")
   })
 
+  it("is served for a live game too: the hub shows the pictures of its Notion row, not those of its Sanity project", async () => {
+    const w = await world({ rows: [row(LIVE.slug, { logo: [uploaded("logo.png")] })], hosts: png })
+    const response = await w.ask(LIVE.slug, "logo")
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-type")).toBe("image/png")
+    expect(response.headers.get("cache-control")).toBe(FRESH)
+    expect(await bytesOf(response)).toEqual(pictureBytes("png"))
+  })
+
   it("is kept a minute only when the row was edited after the catalog read it", async () => {
     const w = await world({
       rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })],
@@ -203,11 +213,10 @@ describe("a picture that is not there", () => {
 
   it.each([
     ["a slug that is nowhere", "nope"],
-    ["a live game, whose pictures are in its Sanity project", LIVE.slug],
     ["a game of the registry that has no row in Notion", PLANNED.slug],
+    ["a live game that has no row in Notion: the registry knows no picture of it", LIVE.slug],
   ])("answers 404 for %s, without reading the links or downloading anything", async (_label, slug) => {
-    // The live game has a row: the registry's game wins, its row is not the catalog's
-    const w = await world({ rows: [row(NOTION_ONLY, { logo: [uploaded("logo.png")] }), row(LIVE.slug, { logo: [uploaded("logo.png")] })], hosts: png })
+    const w = await world({ rows: [row(NOTION_ONLY, { logo: [uploaded("logo.png")] })], hosts: png })
     const response = await w.ask(slug, "logo")
     expect(response.status).toBe(404)
     expect(response.headers.get("cache-control")).toBe(SHORT)
