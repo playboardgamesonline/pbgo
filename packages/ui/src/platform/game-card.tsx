@@ -45,12 +45,12 @@ function GameCardVisual({ className, logo, background, loading = "lazy", ...prop
     <div data-slot="game-card-visual" className={cn("relative aspect-4/3 overflow-hidden bg-muted", className)} {...props}>
       {/* Plain <img>s: the package is framework-free and the art is a URL, which the hub takes from the catalog's picture route (the game's Notion row).
           The background comes first, then its scrim, so that the logo is drawn over both; the logo is contained, not cropped.
-          The scrim stays still when the pictures zoom; `bg-scrim/70` is the platform's scrim (60% black) at 70%, about 40% black */}
+          The scrim stays still when the pictures zoom; `bg-scrim/40` is the platform's scrim (60% black) at 40%, about 24% black */}
       {background && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={background} alt="" loading={loading} decoding="async" className={cn("absolute inset-0 object-cover", PICTURE)} />
-          <div data-slot="game-card-scrim" className="absolute inset-0 bg-scrim/70" />
+          <div data-slot="game-card-scrim" className="absolute inset-0 bg-scrim/40" />
         </>
       )}
       {logo && (
