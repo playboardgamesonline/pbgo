@@ -1,11 +1,11 @@
 // What the tests of the package share: Notion's answers as the API writes them (a row of the Games database, a row of the Editors,
-// Creators or Games Development one, and the schema of the last), a fake Notion to read them from, and the two kinds of game the
-// catalog joins. Not exported by the package.
+// Creators or Games Development one, and the schema of the last), a fake Notion to read them from, and the two things the catalog
+// joins (an entry of the registry, a game of Notion) with the line it makes. Not exported by the package.
 // The column names are written out here, not read from `notion.ts`: the fixture is the database as it is, the reader is what is tested.
 
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import type { Locale } from "@pbgo/core/lib/i18n"
-import type { DevelopmentRank, PlannedGame, Rank } from "./catalog"
+import type { CatalogEntry, DevelopmentRank, NotionGame, Rank } from "./catalog"
 import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID } from "./notion"
 
 // ---------- Notion's property values ----------
@@ -187,7 +187,7 @@ export const developmentPage = (row: DevelopmentRow = {}): NotionPage => {
 }
 
 /**
- * Where a game stands as the catalog keeps it (`PlannedGame.development`): each option by name, at its place in `DEVELOPMENT_OPTIONS`;
+ * Where a game stands as the catalog keeps it (`NotionGame.development`): each option by name, at its place in `DEVELOPMENT_OPTIONS`;
  * a column left out, or an option the column does not list, is null.
  */
 export function developmentRank(chosen: Partial<Record<DevelopmentField, string | null>> = {}): DevelopmentRank {
@@ -330,8 +330,8 @@ export const registryGame = (slug: string, overrides: Partial<GameEntry> = {}): 
   ...overrides,
 })
 
-/** A planned game with nothing filled but its slug and name. */
-export const plannedGame = (slug: string, overrides: Partial<PlannedGame> = {}): PlannedGame => ({
+/** A game of Notion with nothing filled but its slug and name. */
+export const notionGame = (slug: string, overrides: Partial<NotionGame> = {}): NotionGame => ({
   slug,
   name: slug,
   descriptions: {},
@@ -348,4 +348,16 @@ export const plannedGame = (slug: string, overrides: Partial<PlannedGame> = {}):
   editedAt: "",
   notionPageId: `game-${slug}`,
   ...overrides,
+})
+
+/** What `catalogEntry` is told: the flags of the registry, the values of the game's Notion row (`game`) and the games it is linked to. */
+type EntryOptions = { live?: boolean; indexable?: boolean; game?: Partial<NotionGame>; related?: string[] }
+
+/** A line of the catalog. Not live and not indexable unless the test says so; `game` are the values of its Notion row. */
+export const catalogEntry = (slug: string, { live = false, indexable = false, game = {}, related = [] }: EntryOptions = {}): CatalogEntry => ({
+  slug,
+  live,
+  indexable,
+  game: notionGame(slug, game),
+  related,
 })

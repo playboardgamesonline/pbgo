@@ -46,7 +46,7 @@ export type GameIndex = {
   text: string
   /** `max: null` is "N or more". Null when the game does not say. */
   players: { min: number; max: number | null } | null
-  /** Minutes: the longest the game takes. Null when the game does not say. */
+  /** Minutes, the one figure the game gives. Null when it does not say. */
   duration: number | null
 }
 
@@ -74,19 +74,15 @@ export function words(query: string): string[] {
 }
 
 /**
- * The part of a catalog entry the filter reads. A live game is searched by its name, a planned one by its name, its authors, its
- * illustrators and its publishers (never by its descriptions: a word of a sentence is not what a visitor looks a game up by).
- * A live game gives its longest duration, so that "up to 30 min" never promises a game that can run longer.
+ * The part of a catalog entry the filter reads, the same for every game, a live one included: its name, its authors, its illustrators
+ * and its publishers (never its descriptions: a word of a sentence is not what a visitor looks a game up by), then the players and the
+ * duration its card shows, which are the ones of its Notion row (of the registry for a live game with no row).
  */
 export function indexEntry(entry: CatalogEntry): GameIndex {
-  if (entry.live) {
-    const { name, players, duration } = entry.game
-    return { slug: entry.slug, live: true, text: normalize(name), players: players ?? null, duration: duration?.max ?? null }
-  }
   const { name, authors, illustrators, publishers, players, duration } = entry.game
   return {
     slug: entry.slug,
-    live: false,
+    live: entry.live,
     text: normalize([name, ...authors, ...illustrators, ...publishers.map((publisher) => publisher.name)].join(" ")),
     players,
     duration,

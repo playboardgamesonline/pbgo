@@ -1,12 +1,18 @@
 import type { MetadataRoute } from "next"
-import { gameUrl } from "@pbgo/core/lib/site-url"
+import { sitemapItems } from "@pbgo/catalog/seo"
+import { getCatalog } from "@pbgo/catalog/server"
 import { GAMES } from "@pbgo/games/registry"
 import { SITE_URL } from "@/site"
 
-/** The hub and the home of every indexable game (registry flag `indexable`). */
-export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
-    ...GAMES.filter((game) => game.indexable).map((game) => ({ url: gameUrl(game.slug), changeFrequency: "weekly" as const, priority: 0.9 })),
-  ]
+// Notion, which the catalog reads once every ten minutes (`getCatalog`), holds the games to come and the hub's values for every game:
+// the sitemap is rebuilt as often, not once per build, so a game that gets its description is listed within minutes of the edit
+export const revalidate = 600
+
+/**
+ * The hub, the home of every indexable game (registry flag `indexable`), then the hub page (`/game/<slug>`) of every game of the catalog
+ * that search engines may index: a live game with the flag, a game to come once its Notion row has a description (`isIndexable`).
+ */
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const { entries } = await getCatalog()
+  return sitemapItems(SITE_URL, GAMES, entries)
 }

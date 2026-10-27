@@ -16,28 +16,32 @@ import {
   words,
   type GameFilter,
 } from "./filter"
-import { plannedGame, registryGame } from "./testing"
+import { notionGame, registryGame } from "./testing"
 
-// A catalog in the shape of the real one: the live games in registry order, then the planned ones by name. Players and durations cover
-// what the real games have: a fixed count, a range, "N or more", a game that does not say, a live game whose duration is a range.
+// A catalog in the shape of the real one: the live games in registry order, each with its Notion row or, with none, the line the
+// registry makes of it, then the games to come by name. Players and durations cover what the real games have: a fixed count, a range,
+// "N or more", a game that does not say.
 const catalog = buildCatalog(
   [
+    // No Notion row: the registry's line, its name and its figures (a duration only when the registry gives one figure, not a range)
     registryGame("courtisans", { name: "Courtisans", live: true, players: { min: 2, max: 5 }, duration: { min: 30, max: 30 } }),
+    // A Notion row, which wins over the registry, whose Skyjo takes 15 to 45 minutes
     registryGame("skyjo", { name: "Skyjo", live: true, players: { min: 2, max: 8 }, duration: { min: 15, max: 45 } }),
     registryGame("tichu", { name: "Tichu", live: true }),
   ],
   [
-    plannedGame("zen", { name: "Zen" }),
-    plannedGame("6-nimmt", { name: "6 nimmt!", players: { min: 2, max: 10 }, duration: 45 }),
-    plannedGame("flip-7", {
+    notionGame("skyjo", { name: "Skyjo", players: { min: 2, max: 8 }, duration: 45, authors: ["Nadia Okafor"] }),
+    notionGame("zen", { name: "Zen" }),
+    notionGame("6-nimmt", { name: "6 nimmt!", players: { min: 2, max: 10 }, duration: 45 }),
+    notionGame("flip-7", {
       name: "Flip 7",
       players: { min: 3, max: null },
       duration: 20,
       authors: ["Eric Olsen"],
       publishers: [{ name: "The Op Games", url: null }],
     }),
-    plannedGame("hanabi", { name: "Hanabi", players: { min: 2, max: 5 }, duration: 25, authors: ["Antoine Bauza"] }),
-    plannedGame("mystery-night", {
+    notionGame("hanabi", { name: "Hanabi", players: { min: 2, max: 5 }, duration: 25, authors: ["Antoine Bauza"] }),
+    notionGame("mystery-night", {
       name: "Mystery Night",
       players: { min: 4, max: 7 },
       duration: 30,
@@ -45,9 +49,9 @@ const catalog = buildCatalog(
       illustrators: ["Régis Torres"],
       publishers: [{ name: "Spiral Éditions", url: "https://example.com" }],
     }),
-    plannedGame("millers-hollow", { name: "Werewolves of Miller's Hollow", players: { min: 8, max: null }, duration: 30 }),
-    plannedGame("solo-quest", { name: "Solo Quest", players: { min: 1, max: 1 }, duration: 15 }),
-    plannedGame("time-bomb", { name: "Time Bomb", players: { min: 4, max: 8 }, descriptions: { en: "A game of bluffing and secret roles" } }),
+    notionGame("millers-hollow", { name: "Werewolves of Miller's Hollow", players: { min: 8, max: null }, duration: 30 }),
+    notionGame("solo-quest", { name: "Solo Quest", players: { min: 1, max: 1 }, duration: 15 }),
+    notionGame("time-bomb", { name: "Time Bomb", players: { min: 4, max: 8 }, descriptions: { en: "A game of bluffing and secret roles" } }),
   ],
 )
 const games = catalog.map(indexEntry)
@@ -62,7 +66,7 @@ describe("normalize", () => {
 
   it("reads an accent the same composed or apart", () => {
     expect(normalize("é")).toBe("e")
-    expect(normalize("é")).toBe("e")
+    expect(normalize("é")).toBe("e")
   })
 
   it("spells out the letters that have no mark to drop", () => {
@@ -126,15 +130,26 @@ describe("indexEntry", () => {
     return found
   }
 
-  it("indexes a live game by its name, with its players and its longest duration", () => {
-    expect(indexEntry(entry("skyjo"))).toEqual({ slug: "skyjo", live: true, text: "skyjo", players: { min: 2, max: 8 }, duration: 45 })
+  it("indexes a live game with no Notion row by its name, with the players and the duration of the registry", () => {
+    expect(indexEntry(entry("courtisans"))).toEqual({ slug: "courtisans", live: true, text: "courtisans", players: { min: 2, max: 5 }, duration: 30 })
   })
 
-  it("leaves unknown what a live game does not say", () => {
+  it("indexes a live game with a Notion row like any other game: by what the row says", () => {
+    expect(indexEntry(entry("skyjo"))).toEqual({ slug: "skyjo", live: true, text: "skyjo nadia okafor", players: { min: 2, max: 8 }, duration: 45 })
+  })
+
+  it("leaves unknown what a game does not say", () => {
     expect(indexEntry(entry("tichu"))).toEqual({ slug: "tichu", live: true, text: "tichu", players: null, duration: null })
+    expect(indexEntry(entry("zen"))).toEqual({ slug: "zen", live: false, text: "zen", players: null, duration: null })
   })
 
-  it("indexes a planned game by its name, its authors, its illustrators and its publishers, normalised", () => {
+  it("leaves the duration of a live game with no Notion row unknown when the registry gives a range", () => {
+    const [bridge] = buildCatalog([registryGame("bridge", { name: "Bridge", live: true, duration: { min: 20, max: 40 } })], [])
+    if (!bridge) throw new Error("no bridge in the catalog")
+    expect(indexEntry(bridge).duration).toBeNull()
+  })
+
+  it("indexes a game to come by its name, its authors, its illustrators and its publishers, normalised", () => {
     expect(indexEntry(entry("mystery-night"))).toEqual({
       slug: "mystery-night",
       live: false,
@@ -191,6 +206,7 @@ describe("filterGames", () => {
 
     it("finds a live game too", () => {
       expect(kept({ query: "sky" })).toEqual(["skyjo"])
+      expect(kept({ query: "courtisans" })).toEqual(["courtisans"])
     })
 
     it("takes no notice of accents, in the query or in the game", () => {
@@ -205,10 +221,11 @@ describe("filterGames", () => {
       expect(kept({ query: "miller’s hollow" })).toEqual(["millers-hollow"])
     })
 
-    it("finds a planned game by its authors, its illustrators and its publishers", () => {
+    it("finds a game by its authors, its illustrators and its publishers, a live game with a Notion row included", () => {
       expect(kept({ query: "olsen" })).toEqual(["flip-7"])
       expect(kept({ query: "torres" })).toEqual(["mystery-night"])
       expect(kept({ query: "op games" })).toEqual(["flip-7"])
+      expect(kept({ query: "okafor" })).toEqual(["skyjo"])
     })
 
     it("takes the words in any order, each one a part of a word", () => {
@@ -296,10 +313,15 @@ describe("filterGames", () => {
       expect(kept({ duration })).toEqual(expected)
     })
 
-    it("counts the longest a live game can take", () => {
-      // Skyjo takes 15 to 45 minutes
+    it("counts a game by the one figure it gives: a live game by its Notion row, not by the range of the registry", () => {
+      // The registry has Skyjo at 15 to 45 minutes, its Notion row at 45
       expect(kept({ duration: 30 })).not.toContain("skyjo")
       expect(kept({ duration: 45 })).toContain("skyjo")
+    })
+
+    it("counts a live game with no Notion row by the one figure of the registry", () => {
+      expect(kept({ duration: 30 })).toContain("courtisans")
+      expect(kept({ duration: 15 })).not.toContain("courtisans")
     })
 
     it("leaves out a game that does not say its duration", () => {

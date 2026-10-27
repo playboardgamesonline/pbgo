@@ -1,8 +1,8 @@
-// The pictures of the planned games: `GET /api/catalog/<slug>/<logo|icon|background>`, the handler `apps/web` mounts (docs/catalog.md).
-// A planned game's pictures are files of its Notion row, and Notion's own links expire after about an hour, so the catalog only
-// flags them: this route asks Notion for a fresh link, downloads the picture (`picture.ts`) and serves it, and the CDN keeps it.
-// A live game's pictures are in its Sanity project and never come here. No picture is not an error page: the answer is a 404 and the
-// page that asked draws a plain frame.
+// The pictures of the games: `GET /api/catalog/<slug>/<logo|icon|background>`, the handler `apps/web` mounts (docs/catalog.md).
+// A game's pictures are files of its Notion row, a live game's as much as one to come, and Notion's own links expire after about an
+// hour, so the catalog only flags them: this route asks Notion for a fresh link, downloads the picture (`picture.ts`) and serves it,
+// and the CDN keeps it. The pictures in a game's Sanity project are the game's own and never come here. No picture is not an error
+// page: the answer is a 404 and the page that asked draws a plain frame.
 
 import { ART_SLOTS, pictureVersion, type ArtSlot } from "./catalog"
 import { NotionError, readPictureLinks, type PictureLinks } from "./notion"
@@ -84,7 +84,8 @@ function linkReader() {
 
 /**
  * `GET /api/catalog/<slug>/<slot>?v=<version>` for `apps/web`. In this order, so that nothing costs more than it has to:
- * 1. The slot is one of the three, and the slug is a planned game of the catalog whose Notion row has that picture: else 404.
+ * 1. The slot is one of the three, and the slug is a game of the catalog whose Notion row has that picture: else 404. A live game
+ *    that has no Notion row has no picture either (its `registryRow` flags none).
  * 2. `v` is the version of the row the catalog read (`pictureVersion`): a URL without it, or with an old one, is sent to the right
  *    one (307) before anything is read or downloaded, so that nobody can make the server fetch a picture under a `v` of their own.
  * 3. The link comes from a fresh read of the Games database, one for all the pictures (`linkReader`), and the picture is downloaded
@@ -102,7 +103,7 @@ export function pictureRoute() {
     // Notion did not answer: the game may well exist, it is not known to be missing
     if (catalog.notion === "unavailable") return unavailable(FAILURE_MEMO_MS / 1000)
     const entry = catalog.entries.find((candidate) => candidate.slug === slug)
-    if (!entry || entry.live || !entry.game.art[slot]) return notFound()
+    if (!entry || !entry.game.art[slot]) return notFound()
     const game = entry.game
 
     const expected = pictureVersion(game.editedAt)

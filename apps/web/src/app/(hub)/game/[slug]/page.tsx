@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon, ChildIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 
+import { gameJsonLd, gameMetadata, serializeJsonLd } from "@pbgo/catalog/seo"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
@@ -12,21 +13,20 @@ import { Item, ItemActions, ItemContent, ItemTitle } from "@pbgo/ui/platform/ite
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { getGamePage } from "@/lib/game-page"
+import { SITE_NAME, SITE_URL } from "@/site"
 
-// The page of a game on the hub, where every card of the list leads. The button of a live game is a plain <a> to the game's own site
+// The page of a game on the hub, where every card of the list leads. Every game's page is its Notion row, a live game's included: the
+// game's Sanity project serves only once one enters the game. The button of a live game is a plain <a> to the game's own site
 // (`/<slug>`, another root layout, loaded whole); a game to come has the same button, disabled. Its picture is the one of its card,
 // and the games the catalog relates to it come last, as cards.
+// Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
+// whether it may be indexed, in its `robots` meta (`game.seo.indexable`: a live game follows the registry's flag, a game to come needs a
+// description in its Notion row), and carries its JSON-LD only when it may. The rule and the metadata are `@pbgo/catalog/seo`.
 
 export async function generateMetadata({ params }: PageProps<"/game/[slug]">): Promise<Metadata> {
   const game = await getGamePage((await params).slug)
   if (!game) return {}
-  return {
-    title: game.name,
-    ...(game.description && { description: game.description.text }),
-    alternates: { canonical: `/game/${game.slug}` },
-    // robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables): the page itself stays out of the search engines
-    robots: { index: false },
-  }
+  return gameMetadata(game.seo, { url: SITE_URL, name: SITE_NAME })
 }
 
 export default async function GameDescription({ params }: PageProps<"/game/[slug]">) {
@@ -36,6 +36,9 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
+      {game.seo.indexable && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(gameJsonLd(game.seo, SITE_URL)) }} />
+      )}
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
@@ -48,7 +51,6 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
           <div className="flex flex-col items-start gap-6 lg:col-start-1">
             <h1 className="font-heading text-4xl md:text-6xl">{game.name}</h1>
-            {game.tagline && <p className="max-w-xl text-lg text-muted-foreground">{game.tagline}</p>}
             {(game.players || game.duration || game.age) && (
               <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground">
                 {game.players && (
