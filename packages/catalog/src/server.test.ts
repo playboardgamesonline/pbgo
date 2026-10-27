@@ -1,6 +1,7 @@
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
+import { registryRow } from "./catalog"
 import { creatorPage, developmentPage, editorPage, fakeNotion, gamePage, notionFailure } from "./testing"
 
 // `server-only` throws outside a server bundle
@@ -44,7 +45,7 @@ describe("without a token", () => {
     ["unset", undefined],
     ["empty", ""],
     ["white space", "   "],
-  ])("lists the live games of the registry and does not call Notion when the key is %s", async (_label, key) => {
+  ])("lists the live games of the registry, with what it knows of them, and does not call Notion when the key is %s", async (_label, key) => {
     vi.stubEnv("NOTION_API_KEY", key)
     const notion = notionOf({ games: [gamePage({ slug: "bang", name: "Bang" })] })
     vi.stubGlobal("fetch", notion.fetch)
@@ -52,6 +53,7 @@ describe("without a token", () => {
     const catalog = await getCatalog()
     expect(catalog.notion).toBe("off")
     expect(catalog.entries.map((entry) => [entry.slug, entry.live])).toEqual(LIVE_SLUGS.map((slug) => [slug, true]))
+    expect(catalog.entries.map((entry) => entry.game)).toEqual(LIVE.map(registryRow))
     expect(notion.calls).toEqual([])
     expect(warn).not.toHaveBeenCalled()
   })
@@ -71,6 +73,15 @@ describe("with a token", () => {
     expect(catalog.notion).toBe("ok")
     expect(catalog.entries.map((entry) => entry.slug)).toEqual([...LIVE_SLUGS, "bang", "the-game", "the-mind"])
     expect(catalog.entries.map((entry) => entry.live)).toEqual([...LIVE_SLUGS.map(() => true), false, false, false])
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it("lists a live game that Notion has no row for with what the registry knows of it", async () => {
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    vi.stubGlobal("fetch", notionOf({ games: [gamePage({ slug: "bang", name: "Bang" })] }).fetch)
+    const { getCatalog } = await load()
+    const { entries } = await getCatalog()
+    expect(entries.slice(0, LIVE.length).map((entry) => entry.game)).toEqual(LIVE.map(registryRow))
     expect(warn).not.toHaveBeenCalled()
   })
 
@@ -130,17 +141,20 @@ describe("with a token", () => {
     const { getCatalog } = await load()
     const { entries } = await getCatalog()
     expect(entries.map((entry) => entry.slug)).toEqual([...LIVE_SLUGS, "bang"])
-    expect(entries.filter((entry) => entry.slug === live.slug)).toEqual([{ live: true, slug: live.slug, game: live, related: [] }])
+    expect(entries.filter((entry) => entry.slug === live.slug)).toMatchObject([{ live: true, slug: live.slug, indexable: live.indexable, game: { name: "Name in Notion" }, related: [] }])
   })
 
-  it("keeps the registry's entry for a live game and ignores its Notion row", async () => {
+  it("gives a live game its Notion row, and Notion's name and figures with it", async () => {
     const live = LIVE[0]
     if (!live) throw new Error("No live game")
     vi.stubEnv("NOTION_API_KEY", TOKEN)
     vi.stubGlobal("fetch", notionOf({ games: [gamePage({ slug: live.slug, name: "Name in Notion", players: "2 - 4" })] }).fetch)
     const { getCatalog } = await load()
     const { entries } = await getCatalog()
-    expect(entries.filter((entry) => entry.slug === live.slug)).toEqual([{ live: true, slug: live.slug, game: live, related: [] }])
+    // Whether the game can be played and whether search engines may index it stay with the registry
+    expect(entries.filter((entry) => entry.slug === live.slug)).toMatchObject([
+      { live: true, slug: live.slug, indexable: live.indexable, game: { name: "Name in Notion", players: { min: 2, max: 4 } } },
+    ])
   })
 
   it("gives a game of the registry that is not live its Notion row, and Notion's name with it", async () => {
@@ -188,6 +202,28 @@ describe("with a token", () => {
     expect(entries.at(-1)).toMatchObject({ live: false, slug: "bang", game: { authors: ["Author One"], illustrators: ["Illustrator One"] } })
   })
 
+  it("gives a live game the credits of its Notion row, as it does a planned one", async () => {
+    const live = LIVE[0]
+    if (!live) throw new Error("No live game")
+    vi.stubEnv("NOTION_API_KEY", TOKEN)
+    const editor = "9f1c2d3e-0000-4000-8000-00000000e001"
+    const author = "9f1c2d3e-0000-4000-8000-00000000c001"
+    vi.stubGlobal(
+      "fetch",
+      notionOf({
+        games: [gamePage({ slug: live.slug, name: "Name in Notion", editors: [editor], authors: [author] })],
+        editors: [editorPage({ id: editor, name: "Editor One", url: "https://editor.example.com" })],
+        creators: [creatorPage({ id: author, name: "Author One" })],
+      }).fetch,
+    )
+    const { getCatalog } = await load()
+    const { entries } = await getCatalog()
+    expect(entries.find((entry) => entry.slug === live.slug)).toMatchObject({
+      live: true,
+      game: { authors: ["Author One"], publishers: [{ name: "Editor One", url: "https://editor.example.com" }] },
+    })
+  })
+
   it("gives every game the games it is linked to, whichever side of the link Notion has, and a live game's row counts as well", async () => {
     const live = LIVE[0]
     if (!live) throw new Error("No live game")
@@ -231,15 +267,16 @@ describe("with a token", () => {
 })
 
 describe("when Notion cannot be read", () => {
-  it("falls back on the live games and says why, once", async () => {
+  it("falls back on the live games of the registry and says why, once", async () => {
     vi.stubEnv("NOTION_API_KEY", TOKEN)
     vi.stubGlobal("fetch", notionOf({ games: notionFailure(401, "unauthorized", "API token is invalid.") }).fetch)
     const { getCatalog } = await load()
     const catalog = await getCatalog()
     expect(catalog.notion).toBe("unavailable")
     expect(catalog.entries.map((entry) => entry.slug)).toEqual(LIVE_SLUGS)
+    expect(catalog.entries.map((entry) => entry.game)).toEqual(LIVE.map(registryRow))
     expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn).toHaveBeenCalledWith("[catalog] Notion is unavailable, only the live games are listed: Notion answered 401 unauthorized: API token is invalid.")
+    expect(warn).toHaveBeenCalledWith("[catalog] Notion is unavailable, only the live games are listed, from the registry: Notion answered 401 unauthorized: API token is invalid.")
   })
 
   it("does the same, without the token in the log, when Notion cannot be reached", async () => {
@@ -251,7 +288,7 @@ describe("when Notion cannot be read", () => {
     const catalog = await getCatalog()
     expect(catalog.notion).toBe("unavailable")
     expect(catalog.entries.map((entry) => entry.slug)).toEqual(LIVE_SLUGS)
-    expect(logged()).toBe("[catalog] Notion is unavailable, only the live games are listed: Notion could not be reached (TypeError)")
+    expect(logged()).toBe("[catalog] Notion is unavailable, only the live games are listed, from the registry: Notion could not be reached (TypeError)")
     expect(logged()).not.toContain(TOKEN)
   })
 

@@ -9,13 +9,13 @@ import { readNotionGames } from "../src/notion.ts"
 
 const token = process.env.NOTION_API_KEY?.trim()
 
-let planned: NotionGame[] = []
-let header = "NOTION_API_KEY is not set (environment or apps/web/.env.local): only the live games of the registry are listed."
+let notionGames: NotionGame[] = []
+let header = "NOTION_API_KEY is not set (environment or apps/web/.env.local): only the live games of the registry are listed, with what the registry knows of them."
 const notes: string[] = []
 if (token) {
   try {
     const read = await readNotionGames({ token })
-    planned = read.games
+    notionGames = read.games
     header = `Notion read: ${read.games.length} games with a slug, ${read.expansions} expansions left out, ${read.skipped.length} rows skipped.`
     for (const row of read.skipped) notes.push(`skipped  ${row.name || row.id}: ${row.reason}`)
     for (const warning of read.warnings) notes.push(`warning  ${warning}`)
@@ -36,28 +36,26 @@ const development = (value: NotionGame["development"]) => {
   return names.every((name) => name === "-") ? "" : names.join(" / ")
 }
 
+const catalog = buildCatalog(GAMES, notionGames)
+// A live game that Notion has no row for is listed with what the registry knows of it (`registryRow`): its figures, no picture, no text
+const fromRegistry = (slug: string) => !notionGames.some((game) => game.slug === slug)
+
 const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "age", "authors", "illustrators", "publisher", "related"]
-const rows = buildCatalog(GAMES, planned).map((entry) => {
-  // for a live game too: its Notion row is ignored, except for the games it points to
-  const related = entry.related.join(", ")
-  return entry.live
-    ? [entry.slug, entry.game.name, "live", ...heads.slice(3, -1).map(() => ""), related]
-    : [
-        entry.slug,
-        entry.game.name,
-        "planned",
-        development(entry.game.development),
-        marks([["L", entry.game.art.logo], ["I", entry.game.art.icon], ["B", entry.game.art.background]]),
-        marks(LANGUAGES.map((language): [string, boolean] => [language.id, Boolean(entry.game.descriptions[language.id])])),
-        players(entry.game.players),
-        entry.game.duration === null ? "" : `${entry.game.duration}min`,
-        entry.game.age === null ? "" : `${entry.game.age}+`,
-        entry.game.authors.join(", "),
-        entry.game.illustrators.join(", "),
-        entry.game.publishers.map((publisher) => publisher.name).join(", "),
-        related,
-      ]
-})
+const rows = catalog.map((entry) => [
+  entry.slug,
+  entry.game.name,
+  entry.live ? (fromRegistry(entry.slug) ? "live (registry)" : "live") : "planned",
+  development(entry.game.development),
+  marks([["L", entry.game.art.logo], ["I", entry.game.art.icon], ["B", entry.game.art.background]]),
+  marks(LANGUAGES.map((language): [string, boolean] => [language.id, Boolean(entry.game.descriptions[language.id])])),
+  players(entry.game.players),
+  entry.game.duration === null ? "" : `${entry.game.duration}min`,
+  entry.game.age === null ? "" : `${entry.game.age}+`,
+  entry.game.authors.join(", "),
+  entry.game.illustrators.join(", "),
+  entry.game.publishers.map((publisher) => publisher.name).join(", "),
+  entry.related.join(", "),
+])
 const widths = heads.map((head, column) => Math.max(head.length, ...rows.map((row) => (row[column] ?? "").length)))
 const line = (cells: string[]) => cells.map((cell, column) => cell.padEnd(widths[column] ?? 0)).join("  ").trimEnd()
 
@@ -65,7 +63,10 @@ console.log(header)
 console.log()
 console.log(line(heads))
 for (const row of rows) console.log(line(row))
-if (planned.length > 0) {
+if (catalog.some((entry) => entry.live && fromRegistry(entry.slug))) {
+  console.log("\nkind: live (registry) is a live game that Notion has no row for, listed with what the registry knows of it")
+}
+if (notionGames.length > 0) {
   console.log("\ndevelopment: Priority / Status / Effort of the Games Development database, the order of the coming-soon games (a live game keeps its place in the registry)")
   console.log("art: Logo, Icon, Background · text: the languages that have a description")
   console.log("related: the games the page of a game lists as related, both ways: the row of either one says so (Related Games, or the base game of a standalone expansion)")

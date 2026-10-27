@@ -15,7 +15,8 @@ import { SiteHeader } from "@/components/site-header"
 import { getGamePage } from "@/lib/game-page"
 import { SITE_NAME, SITE_URL } from "@/site"
 
-// The page of a game on the hub, where every card of the list leads. The button of a live game is a plain <a> to the game's own site
+// The page of a game on the hub, where every card of the list leads. Every game's page is its Notion row, a live game's included: the
+// game's Sanity project serves only once one enters the game. The button of a live game is a plain <a> to the game's own site
 // (`/<slug>`, another root layout, loaded whole); a game to come has the same button, disabled. Its picture is the one of its card,
 // and the games the catalog relates to it come last, as cards.
 // Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
@@ -50,7 +51,6 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
           <div className="flex flex-col items-start gap-6 lg:col-start-1">
             <h1 className="font-heading text-4xl md:text-6xl">{game.name}</h1>
-            {game.tagline && <p className="max-w-xl text-lg text-muted-foreground">{game.tagline}</p>}
             {(game.players || game.duration || game.age) && (
               <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground">
                 {game.players && (

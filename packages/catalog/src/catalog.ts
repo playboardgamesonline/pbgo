@@ -1,15 +1,16 @@
-// The hub catalog as a pure model: the live games of the registry and the planned games of the Notion Games database, joined
-// into one list. No I/O and no framework in this file, so that Node (`pnpm catalog:list`), the tests and Next read it as it is.
-// The Notion reader is `notion.ts`, the cached one for apps/web is `server.ts` (see docs/catalog.md).
+// The hub catalog as a pure model: the games of the Notion Games database, each one joined with the flags the registry holds for it
+// (is it playable here, may search engines in), into one list. No I/O and no framework in this file, so that Node
+// (`pnpm catalog:list`), the tests and Next read it as it is. The Notion reader is `notion.ts`, the cached one for apps/web is
+// `server.ts` (see docs/catalog.md).
 
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 
-/** A publisher (an "editor" in Notion) of a planned game: its name and, when the Editors database has one, its website. */
+/** A publisher (an "editor" in Notion) of a game: its name and, when the Editors database has one, its website. */
 export type Publisher = { name: string; url: string | null }
 
-/** The three pictures a planned game can have in its Notion row. */
+/** The three pictures a game can have in its Notion row. */
 export const ART_SLOTS = ["logo", "icon", "background"] as const
 export type ArtSlot = (typeof ART_SLOTS)[number]
 
@@ -21,16 +22,16 @@ export type ArtSlot = (typeof ART_SLOTS)[number]
 export type Rank = { position: number; name: string }
 
 /**
- * Where a planned game stands in the Games Development database, the columns that order the coming-soon games. A field is null when
+ * Where a game stands in the Games Development database, the columns that order the coming-soon games. A field is null when
  * the game has no row there, its cell is empty, or the option is no longer one of the column's.
  */
 export type DevelopmentRank = { priority: Rank | null; status: Rank | null; effort: Rank | null }
 
 /**
- * A game of the Notion Games database that is not live: everything the hub and its page can show. Plain data (strings, numbers,
- * arrays), so it travels through the cache and into a client component as it is. The pictures are only flagged: Notion's own links
- * expire after about an hour, so a picture is fetched fresh when it is served (`notionPageId` finds its row, `editedAt` changes
- * the URL when the row changes).
+ * A game of the Notion Games database: everything the hub and its page show, for a live game as for one to come. Plain data
+ * (strings, numbers, arrays), so it travels through the cache and into a client component as it is. The pictures are only flagged:
+ * Notion's own links expire after about an hour, so a picture is fetched fresh when it is served (`notionPageId` finds its row,
+ * `editedAt` changes the URL when the row changes).
  */
 export type NotionGame = {
   slug: string
@@ -73,18 +74,18 @@ export function pictureVersion(editedAt: string): string {
   return Number.isFinite(time) ? Math.floor(time / 60_000).toString(36) : "0"
 }
 
-/** The URL of a planned game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a plain frame, nothing else. */
+/** The URL of a game's picture (`/api/catalog/<slug>/<slot>`, see `route.ts`), or null when its row has none: a missing picture is a plain frame, nothing else. */
 export function pictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">, slot: ArtSlot): string | null {
   return game.art[slot] ? `/api/catalog/${game.slug}/${slot}?v=${pictureVersion(game.editedAt)}` : null
 }
 
-/** The picture of a planned game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
+/** The picture of a game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
 export function cardPictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">): string | null {
   return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")
 }
 
 /**
- * The picture a planned game's page shares (social cards, JSON-LD): its background, which is wide, else its logo or icon, which is
+ * The picture a game's page shares (social cards, JSON-LD): its background, which is wide, else its logo or icon, which is
  * small and often transparent, else none. `wide` says which, since a social card only goes large with a wide picture.
  */
 export function sharePicture(game: Pick<NotionGame, "slug" | "art" | "editedAt">): { url: string; wide: boolean } | null {
@@ -94,27 +95,52 @@ export function sharePicture(game: Pick<NotionGame, "slug" | "art" | "editedAt">
   return logo ? { url: logo, wide: false } : null
 }
 
-/** A live game of the catalog: the registry's entry, played on the site. */
-export type LiveEntry = { live: true; slug: string; game: GameEntry; related: string[] }
-
-/** A game of the catalog that is not live: Notion's row. */
-export type PlannedEntry = { live: false; slug: string; game: NotionGame; related: string[] }
-
 /**
- * One line of the catalog: a live game (the registry's entry, played on the site) or a planned one (Notion's row). `related` is the
- * slugs of the other games of the catalog it is linked to, whichever side of the link Notion has: its related games, its base game, the
- * games that name it as theirs. In catalog order, never its own slug, and only games that are listed (a page for each).
+ * One line of the catalog: a game of the hub and the values its card and its page show (`game`, its Notion row, for a live game as
+ * for one to come).
+ * - `live` is the registry's flag and the only thing that makes the game playable from its page ("Create a game", else a greyed
+ *   "Coming soon"). `indexable` is the registry's too, false for a game the registry does not know.
+ * - `related` is the slugs of the other games of the catalog it is linked to, whichever side of the link Notion has: its related
+ *   games, its base game, the games that name it as theirs. In catalog order, never its own slug, and only games that are listed
+ *   (a page for each).
  */
-export type CatalogEntry = LiveEntry | PlannedEntry
+export type CatalogEntry = { slug: string; live: boolean; indexable: boolean; game: NotionGame; related: string[] }
 
 /**
- * The catalog and where it came from. `notion`: "off" without a token (live games only), "ok" when Notion answered, "unavailable"
- * when it did not (live games only, the failure is logged).
+ * The catalog and where it came from. `notion`: "off" without a token, "ok" when Notion answered, "unavailable" when it did not
+ * (the failure is logged). Without Notion the catalog is the live games of the registry, each one a `registryRow`.
  */
 export type Catalog = { entries: CatalogEntry[]; notion: "off" | "ok" | "unavailable" }
 
 /** Games of the registry that are not in the catalog: the template is the demo of the shared base, not a game. */
 export const UNLISTED_SLUGS: ReadonlySet<string> = new Set(["template"])
+
+/**
+ * The row of a live game that Notion has none for, or that Notion cannot be read for: what the registry knows (its name, its players
+ * and its duration when that is one figure) and nothing else. The card is then a plain frame and the page has no description, but the
+ * game stays listed and can be entered. `art` is all false, so no picture is asked for; `editedAt` and `notionPageId` are empty, there
+ * is no row.
+ */
+export function registryRow(game: GameEntry): NotionGame {
+  const { players, duration } = game
+  return {
+    slug: game.slug,
+    name: game.name,
+    descriptions: {},
+    players: players ? { min: players.min, max: players.max } : null,
+    duration: duration && duration.min === duration.max ? duration.min : null,
+    age: null,
+    authors: [],
+    illustrators: [],
+    publishers: [],
+    rules: {},
+    art: { logo: false, icon: false, background: false },
+    development: { priority: null, status: null, effort: null },
+    related: [],
+    editedAt: "",
+    notionPageId: "",
+  }
+}
 
 // "6 nimmt!" before "7 Wonders", "Skyjo" and "Skull King" in the order a reader expects
 const NAMES = new Intl.Collator("en", { sensitivity: "base", numeric: true })
@@ -141,13 +167,13 @@ export function comparePlanned(a: NotionGame, b: NotionGame): number {
 }
 
 /** Every link between two games, both ways, from the one side each `NotionGame.related` holds: the slug of a game → the slugs it is linked to. */
-function relatedLinks(planned: readonly NotionGame[]): Map<string, Set<string>> {
+function relatedLinks(rows: readonly NotionGame[]): Map<string, Set<string>> {
   const links = new Map<string, Set<string>>()
   const link = (from: string, to: string) => {
     if (from === to) return
     links.set(from, (links.get(from) ?? new Set<string>()).add(to))
   }
-  for (const game of planned) {
+  for (const game of rows) {
     for (const other of game.related) {
       link(game.slug, other)
       link(other, game.slug)
@@ -157,22 +183,28 @@ function relatedLinks(planned: readonly NotionGame[]): Map<string, Set<string>> 
 }
 
 /**
- * The catalog: the live games of the registry (in registry order), then the planned ones (sorted by `comparePlanned`).
- * - A live game is the registry's: its Notion row, and its Development rank, are ignored. Only the links of that row to other games count.
- * - A game of the registry that is not live takes its Notion row, and Notion's name with it; with no row it is not listed.
- * - A Notion game that is not in the registry is planned.
+ * The catalog: the live games of the registry (in registry order), then the other games of the Notion Games database (sorted by
+ * `comparePlanned`). Every game shows the values of its Notion row.
+ * - A live game takes its Notion row, and Notion's name with it. With no row (Notion is off, down, or has none for it) it takes
+ *   `registryRow`, so a game the site can play is always listed. Its Development rank does not move it: the registry's order holds.
+ * - The other rows are the registry's games that are not live and the games the registry does not know. A game of the registry that
+ *   is not live and has no row is not listed.
+ * - `live` and `indexable` are the registry's, whatever a row says. They are the only things the registry still decides.
  * - `UNLISTED_SLUGS` are never listed.
  * - Two games are related when either row says so, and `related` only names games that are listed.
  */
-export function buildCatalog(games: readonly GameEntry[], planned: readonly NotionGame[]): CatalogEntry[] {
-  const live: CatalogEntry[] = games.filter((game) => game.live && !UNLISTED_SLUGS.has(game.slug)).map((game) => ({ live: true, slug: game.slug, game, related: [] }))
+export function buildCatalog(games: readonly GameEntry[], rows: readonly NotionGame[]): CatalogEntry[] {
+  const known = new Map(games.map((game) => [game.slug, game]))
+  const live: CatalogEntry[] = games
+    .filter((game) => game.live && !UNLISTED_SLUGS.has(game.slug))
+    .map((game) => ({ slug: game.slug, live: true, indexable: game.indexable, game: rows.find((row) => row.slug === game.slug) ?? registryRow(game), related: [] }))
   const taken = new Set(live.map((entry) => entry.slug))
-  const comingSoon: CatalogEntry[] = planned
-    .filter((game) => !UNLISTED_SLUGS.has(game.slug) && !taken.has(game.slug))
+  const comingSoon: CatalogEntry[] = rows
+    .filter((row) => !UNLISTED_SLUGS.has(row.slug) && !taken.has(row.slug))
     .sort(comparePlanned)
-    .map((game) => ({ live: false, slug: game.slug, game, related: [] }))
+    .map((row) => ({ slug: row.slug, live: false, indexable: known.get(row.slug)?.indexable ?? false, game: row, related: [] }))
   const listed = [...live, ...comingSoon]
-  const links = relatedLinks(planned)
+  const links = relatedLinks(rows)
   return listed.map((entry) => ({ ...entry, related: listed.filter((other) => links.get(entry.slug)?.has(other.slug)).map((other) => other.slug) }))
 }
 

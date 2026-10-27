@@ -8,7 +8,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
-import { catalogCardProps } from "@/lib/catalog-cards"
+import { catalogCardProps } from "@/lib/game-card-props"
 import { SITE_DESCRIPTION } from "@/site"
 
 // Plain <a> to the games (GameCard, Button asChild): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
@@ -21,16 +21,14 @@ const STEPS = [
 ]
 
 export default async function Home() {
-  // The live games of the registry, then the games to come of the Notion Games database, already in their order (docs/catalog.md).
-  // Without Notion (no key, or Notion down) the catalog is the live games alone and the list is what it was before it.
+  // The live games of the registry, then the games to come, already in their order (docs/catalog.md). Without Notion (no key, or
+  // Notion down) the catalog is the live games alone, each from the registry, and the list is what it was before it.
   const { entries } = await getCatalog()
-  const first = entries.flatMap((entry) => (entry.live ? [entry.game] : []))[0]
-  // One list for every game, each card a logo over a background on a grey frame. A live card reads them from the game's Sanity
-  // project (cached for 60 s; a picture the game does not have leaves the frame plain); a game to come has its logo (or icon) and
-  // its background from the catalog's picture route (`catalogCardProps`)
-  const cards = await Promise.all(
-    entries.map(async (entry) => ({ slug: entry.slug, live: entry.live, props: await catalogCardProps(entry) }))
-  )
+  const first = entries.find((entry) => entry.live)?.game
+  // One list for every game, each card a logo over a background on a grey frame. Every card is the game's Notion row, a live game's
+  // included (its logo, or icon, and its background come from the catalog's picture route; a picture the row does not have leaves the
+  // frame plain): the hub reads no game's Sanity project, only entering a game does. The registry decides the card's variant alone.
+  const cards = entries.map((entry) => ({ slug: entry.slug, live: entry.live, props: catalogCardProps(entry) }))
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
