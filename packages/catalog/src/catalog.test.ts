@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, pickLocalized, pictureUrl, pictureVersion } from "./catalog"
+import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, pickLocalized, pictureUrl, pictureVersion, sharePicture } from "./catalog"
 import { DEVELOPMENT_OPTIONS, developmentRank, plannedGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -276,6 +276,31 @@ describe("cardPictureUrl", () => {
   it("is null with neither: the background is the game page's, the card stays a plain frame", () => {
     expect(cardPictureUrl(game({ background: true }))).toBeNull()
     expect(cardPictureUrl(game({}))).toBeNull()
+  })
+})
+
+describe("sharePicture", () => {
+  const game = (art: { logo?: boolean; icon?: boolean; background?: boolean }, editedAt = "2026-10-22T10:30:00.000Z") =>
+    plannedGame("skyjo", { editedAt, art: { logo: false, icon: false, background: false, ...art } })
+
+  it("is the background when the row has one, which is wide, whatever else it has", () => {
+    expect(sharePicture(game({ logo: true, icon: true, background: true }))).toEqual({ url: pictureUrl(game({ background: true }), "background"), wide: true })
+  })
+
+  it("is the logo when the row has no background, which is small", () => {
+    expect(sharePicture(game({ logo: true, icon: true }))).toEqual({ url: pictureUrl(game({ logo: true }), "logo"), wide: false })
+  })
+
+  it("is the icon with neither a background nor a logo", () => {
+    expect(sharePicture(game({ icon: true }))).toEqual({ url: pictureUrl(game({ icon: true }), "icon"), wide: false })
+  })
+
+  it("is null with no picture at all", () => {
+    expect(sharePicture(game({}))).toBeNull()
+  })
+
+  it("changes when the row is edited, like the picture's own URL", () => {
+    expect(sharePicture(game({ background: true }, "2026-10-22T11:00:00.000Z"))?.url).not.toBe(sharePicture(game({ background: true }))?.url)
   })
 })
 
