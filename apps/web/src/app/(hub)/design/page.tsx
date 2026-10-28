@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { DiceIcon } from "@hugeicons/core-free-icons"
 import { Badge } from "@pbgo/ui/platform/badge"
+import { Logo } from "@pbgo/ui/platform/logo"
 import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
 import { Badges, Buttons, Checks, Inputs, Selects, TabsSection } from "./_sections/controls"
 import { InGameUi } from "./_sections/in-game-ui"
+import { Logos, Navbars, SearchBars } from "./_sections/navigation"
 import { CookieBanners, Dialogs, Dropdowns, Sheets, Toasts, Tooltips } from "./_sections/overlays"
 import { Layers, Principles } from "./_sections/principles"
 import {
@@ -44,8 +44,8 @@ export default function DesignPage() {
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-gutter">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href="/" className="flex shrink-0 items-center gap-2">
-              <HugeiconsIcon icon={DiceIcon} strokeWidth={2} className="size-5" />
+            <Link href="/" aria-label={SITE_NAME} className="flex shrink-0 items-center gap-2">
+              <Logo className="h-6" />
               <span className="hidden sm:inline">{SITE_NAME}</span>
             </Link>
             <span className="text-muted-foreground">/</span>
@@ -99,6 +99,9 @@ export default function DesignPage() {
             <Checks />
             <Selects />
             <TabsSection />
+            <Logos />
+            <Navbars />
+            <SearchBars />
             <Dialogs />
             <Sheets />
             <Dropdowns />
