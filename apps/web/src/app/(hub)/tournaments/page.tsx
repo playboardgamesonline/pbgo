@@ -1,9 +1,16 @@
 import type { Metadata } from "next"
-import { BlankPage } from "@/components/blank-page"
+import { ComingSoonPage } from "@/components/coming-soon-page"
 
-// Nothing on the page yet: it stays out of the search engines until it has something to say
+// Nothing to list yet: it stays out of the search engines until it has something to say
 export const metadata: Metadata = { title: "Tournaments", alternates: { canonical: "/tournaments" }, robots: { index: false } }
 
 export default function TournamentsPage() {
-  return <BlankPage tab="tournaments" title="Tournaments" />
+  return (
+    <ComingSoonPage
+      tab="tournaments"
+      title="Tournaments"
+      heading="No tournament yet"
+      description="Brackets between friends, and public ones, are on their way. The tournaments in progress will be listed here."
+    />
+  )
 }

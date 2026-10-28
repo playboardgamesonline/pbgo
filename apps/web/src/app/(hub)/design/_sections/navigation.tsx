@@ -117,15 +117,15 @@ export function LetterMixes() {
   )
 }
 
-/** The left container of the two navbars below: the brand, then the tabs. */
-function Start() {
+/** The left container of the two navbars below: the brand, then the tabs. On the home the brand is current, else the Games tab is. */
+function Start({ home = false }: { home?: boolean }) {
   return (
     <NavbarStart>
-      <NavbarBrand href="#navbar" aria-label="Home">
+      <NavbarBrand href="#navbar" aria-label="Home" current={home}>
         <Logo className="h-6" />
       </NavbarBrand>
       <NavbarTabs aria-label="Main">
-        <NavbarTab href="#navbar" current>
+        <NavbarTab href="#navbar" current={!home}>
           Games
         </NavbarTab>
         <NavbarTab href="#navbar">
@@ -147,19 +147,19 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a light shadow) and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its backdrop run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its backdrop run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
     >
       <Demo
-        title="Signed out"
-        description="`NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds. The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
+        title="On the home, signed out"
+        description="The logo is the home's button, a square tile: on the home it is `current`, a white tile (`bg-primary`) with a black logo, and no tab is. On any other page it is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
-    <NavbarBrand href="/" aria-label="Home">
+    <NavbarBrand href="/" aria-label="Home" current>
       <Logo className="h-6" />
     </NavbarBrand>
     <NavbarTabs aria-label="Main">
-      <NavbarTab href="/" current>Games</NavbarTab>
+      <NavbarTab href="/games">Games</NavbarTab>
       <NavbarTab href="/tables">Tables</NavbarTab>
       <NavbarTab href="/tournaments">Tournaments</NavbarTab>
       <NavbarTab href="/whats-new">What's New</NavbarTab>
@@ -174,7 +174,7 @@ export function Navbars() {
 <Navbar className="fixed inset-x-0 top-0 z-40">…</Navbar>`}
       >
         <Navbar>
-          <Start />
+          <Start home />
           <NavbarEnd>
             <Button variant="ghost" size="lg">
               Sign in
@@ -185,8 +185,8 @@ export function Navbars() {
       </Demo>
 
       <Demo
-        title="Signed in"
-        description="The account is an `Avatar` in place of the two buttons. At `size-10`, the height of what an island holds, the right container closes round it; what the avatar opens is the page's business."
+        title="On a tab's page, signed in"
+        description="On the page of a tab, here Games, the tab has the muted fill and the logo is quiet. The account is an `Avatar` in place of the two buttons: at `size-10`, the height of what an island holds, it stays round inside the square container; what it opens is the page's business."
         className="overflow-hidden bg-card p-0"
         code={`<NavbarEnd>
   <Avatar className="size-10">

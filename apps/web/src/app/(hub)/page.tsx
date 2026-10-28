@@ -37,7 +37,7 @@ export default async function Home() {
   return (
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-        <SiteHeader current="games" />
+        <SiteHeader current="home" />
 
         <main className="flex-1">
           {/* The hero: the title, each letter in one of four display faces (`LetterMix`), and the search bar under it (two floors: the field and the round button, then the four filters), on a backdrop that is lighter at the top and fades into the black the games sit on */}
