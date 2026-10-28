@@ -220,7 +220,7 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="`SearchBarSegments` goes between the field and the button, with no more than four `SearchBarSegment`. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. The bar is one pill when the room it has is 56rem wide or more, as in the home's hero, and a card below that, the field and the button on top and the segments under them, as in this column. The segments are `type=button`, so only the field and the round button send the form."
+        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than four `SearchBarSegment`. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero) and in a 2 × 2 grid under that (as in this column). The segments are `type=button`, so only the field and the round button send the form."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>

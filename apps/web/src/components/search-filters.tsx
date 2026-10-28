@@ -71,8 +71,8 @@ function Filter({
 /**
  * The filters of the home's search bar: the category (several at once, only when some game has one), the number of players, the duration
  * and the age of the youngest player. Each is a segment that opens a panel of chips; a pick filters the list at once and goes into the address.
- * The category panel stays open, since a visitor picks several; the others close on the pick. Under the field and the button on a phone, in the
- * same row on a wide screen (`SearchBar`). The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
+ * The category panel stays open, since a visitor picks several; the others close on the pick. They are the lower floor of the bar, under the
+ * field and the round button (`SearchBar`). The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
  */
 export function SearchFilters() {
   const { categories, filter, pick } = useGameSearch()

@@ -5,11 +5,12 @@ import { cn } from "../utils"
 
 import { Button } from "./button"
 
-// The big search pill of a page: a field (`SearchBarField`: the text and a button that clears it once there is one) and the round
-// button that submits it. Filters can sit in the same bar, as segments (`SearchBarSegments`): each one shows an icon, a small label
-// and what is picked, and opens whatever the page puts behind it (a `Popover`). With segments the bar is one row when the room it
-// has is wide enough (`@4xl`, 56rem: the width of its container, not of the window) and a card under it, the field and the button
-// on top, the segments below. It only draws the bar. The page owns the text, the picks and what they find.
+// The big search bar of a page: a field (`SearchBarField`: the text and a button that clears it once there is one) and the round
+// button that submits it, in one pill. Filters can sit in the same bar, as segments (`SearchBarSegments`): each one shows an icon, a
+// small label and what is picked, and opens whatever the page puts behind it (a `Popover`). The bar then has two floors, whatever
+// its width: the field and the button on top, a line, the segments below. They sit in a row when the room the bar has is 42rem wide
+// or more (the width of its container, not of the window) and in a 2 × 2 grid under that. It only draws the bar. The page owns the
+// text, the picks and what they find.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   return (
@@ -18,9 +19,8 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "flex h-14 w-full items-center gap-1 rounded-full border bg-secondary p-2 pl-6 shadow-float transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
-          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-2 has-data-[slot=search-bar-segments]:rounded-3xl has-data-[slot=search-bar-segments]:p-3 has-data-[slot=search-bar-segments]:pl-5",
-          "@4xl:has-data-[slot=search-bar-segments]:h-14 @4xl:has-data-[slot=search-bar-segments]:flex-nowrap @4xl:has-data-[slot=search-bar-segments]:gap-1 @4xl:has-data-[slot=search-bar-segments]:rounded-full @4xl:has-data-[slot=search-bar-segments]:p-2 @4xl:has-data-[slot=search-bar-segments]:pl-6",
+          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-secondary p-2 pl-6 shadow-float transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
+          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-3 has-data-[slot=search-bar-segments]:rounded-3xl has-data-[slot=search-bar-segments]:p-3",
           className
         )}
         {...props}
@@ -29,18 +29,21 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   )
 }
 
-/** What the text is made of: the input and, once there is a text, its clear button. It takes the room the segments leave. */
+/** What the text is made of: the input and, once there is a text, its clear button. It takes the room the button leaves. */
 function SearchBarField({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="search-bar-field"
-      className={cn("flex h-10 min-w-0 flex-1 items-center gap-1", className)}
+      className={cn(
+        "flex h-10 min-w-0 flex-1 items-center gap-1 group-has-data-[slot=search-bar-segments]/search-bar:h-12 group-has-data-[slot=search-bar-segments]/search-bar:pl-2",
+        className
+      )}
       {...props}
     />
   )
 }
 
-/** The input. `text-base` on every screen: a smaller text makes iOS zoom the page in on focus. */
+/** The input. `text-base` at least, on every screen: a smaller text makes iOS zoom the page in on focus. */
 function SearchBarInput({
   className,
   type = "search",
@@ -51,7 +54,7 @@ function SearchBarInput({
       data-slot="search-bar-input"
       type={type}
       className={cn(
-        "h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none",
+        "h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground group-has-data-[slot=search-bar-segments]/search-bar:text-lg [&::-webkit-search-cancel-button]:appearance-none",
         className
       )}
       {...props}
@@ -81,8 +84,9 @@ function SearchBarClear({ className, ...props }: SearchBarButtonProps) {
 }
 
 /**
- * The filters of the bar: in a row when the bar is one, in a grid below the field when it is a card. Name the group with an
- * `aria-label`. Put no more than four segments in it: they share the width of the bar.
+ * The filters of the bar: the lower floor, under the field and a line that runs from edge to edge of the bar. A row of equal columns
+ * when the bar has the room for it, a 2 × 2 grid when it has not. Name the group with an `aria-label`. Put no more than four segments
+ * in it: they share the width of the bar.
  */
 function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -90,7 +94,7 @@ function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">)
       data-slot="search-bar-segments"
       role="group"
       className={cn(
-        "order-last grid basis-full grid-cols-2 gap-2 @lg:auto-cols-fr @lg:grid-flow-col @lg:grid-cols-none @4xl:order-none @4xl:flex @4xl:basis-auto @4xl:items-center @4xl:gap-0",
+        "order-last -mx-3 grid basis-full grow grid-cols-2 gap-2 border-t border-border px-3 pt-3 @2xl:auto-cols-fr @2xl:grid-flow-col @2xl:grid-cols-none @2xl:gap-0",
         className
       )}
       {...props}
@@ -110,7 +114,8 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
 
 /**
  * One filter of the bar: a button that shows what it filters by and what is picked. It opens nothing itself: the page wraps it in a
- * `PopoverTrigger asChild`, which gives it `aria-expanded` and the open state this paints.
+ * `PopoverTrigger asChild`, which gives it `aria-expanded` and the open state this paints. In a grid it is a box with a border; in a
+ * row the boxes give way to a short line between the segments.
  */
 function SearchBarSegment({ className, icon, label, value, idle = false, ...props }: SearchBarSegmentProps) {
   return (
@@ -118,7 +123,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, ...prop
       data-idle={idle ? "" : undefined}
       type="button"
       className={cn(
-        "flex h-12 min-w-0 items-center gap-2.5 rounded-2xl border border-border px-3 text-left transition-all outline-none select-none hover:bg-input/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted @4xl:h-10 @4xl:max-w-48 @4xl:rounded-full @4xl:border-transparent @4xl:px-4",
+        "relative flex h-14 min-w-0 items-center gap-3 rounded-2xl border border-border px-4 text-left transition-all outline-none select-none hover:bg-input/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted @2xl:border-transparent @2xl:not-first:before:absolute @2xl:not-first:before:top-1/2 @2xl:not-first:before:left-0 @2xl:not-first:before:h-8 @2xl:not-first:before:w-px @2xl:not-first:before:-translate-y-1/2 @2xl:not-first:before:bg-border",
         className
       )}
       {...props}

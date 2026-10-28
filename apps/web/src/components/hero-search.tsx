@@ -8,7 +8,7 @@ import { useGameSearch } from "@/components/game-search"
 import { SearchFilters } from "@/components/search-filters"
 
 /**
- * The search bar of the home, under its title: the field, the four filters (`SearchFilters`) and the round button. It types and picks into
+ * The search bar of the home, under its title, on two floors: the field and the round button above the four filters (`SearchFilters`). It types and picks into
  * the search of the list (`GameSearch`), and the list under it follows what is typed and picked, so there is nothing to submit. The
  * button, or Enter in the field, takes the visitor down to the list; on a phone it also puts the keyboard away, which hid the list.
  */
