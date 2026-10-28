@@ -3,9 +3,11 @@ import { buildCatalog } from "./catalog"
 import {
   AGE_LIMITS,
   DURATION_LIMITS,
+  FIRST_PICKS,
   MANY_PLAYERS,
   NO_FILTER,
   PLAYER_COUNTS,
+  canStep,
   categoriesOf,
   filterFromParams,
   filterGames,
@@ -14,6 +16,7 @@ import {
   isFiltered,
   normalize,
   optionOf,
+  stepOption,
   words,
   type GameFilter,
 } from "./filter"
@@ -125,12 +128,18 @@ describe("the options", () => {
     expect(PLAYER_COUNTS.at(-1)).toBe(MANY_PLAYERS)
   })
 
-  it("offers up to 15, 30 and 45 minutes", () => {
-    expect(DURATION_LIMITS).toEqual([15, 30, 45])
+  it("offers up to 15, 30, 45, 60, 90 and 120 minutes", () => {
+    expect(DURATION_LIMITS).toEqual([15, 30, 45, 60, 90, 120])
   })
 
   it("offers the ages of 6, 8, 10, 12 and 14 years", () => {
     expect(AGE_LIMITS).toEqual([6, 8, 10, 12, 14])
+  })
+
+  it("starts each stepper on one of its own options", () => {
+    expect(PLAYER_COUNTS).toContain(FIRST_PICKS.players)
+    expect(DURATION_LIMITS).toContain(FIRST_PICKS.duration)
+    expect(AGE_LIMITS).toContain(FIRST_PICKS.age)
   })
 
   it("finds the option that a text spells exactly, else none", () => {
@@ -139,6 +148,58 @@ describe("the options", () => {
     expect(optionOf(AGE_LIMITS, "12")).toBe(12)
     for (const bad of [null, "", "any", "04", "4.0", "9", " 4"]) expect(optionOf(PLAYER_COUNTS, bad)).toBeNull()
     expect(optionOf(["soon"], "SOON")).toBeNull()
+  })
+})
+
+describe("stepping along the options", () => {
+  it("picks what the stepper shows on the first press, whichever way it goes", () => {
+    expect(stepOption(PLAYER_COUNTS, null, 1, FIRST_PICKS.players)).toBe(3)
+    expect(stepOption(PLAYER_COUNTS, null, -1, FIRST_PICKS.players)).toBe(3)
+    expect(stepOption(DURATION_LIMITS, null, 1, FIRST_PICKS.duration)).toBe(30)
+    expect(stepOption(AGE_LIMITS, null, -1, FIRST_PICKS.age)).toBe(8)
+  })
+
+  it("then moves one place at a time and stays at the ends", () => {
+    expect(stepOption(PLAYER_COUNTS, 3, 1, 3)).toBe(4)
+    expect(stepOption(PLAYER_COUNTS, 3, -1, 3)).toBe(2)
+    expect(stepOption(PLAYER_COUNTS, 1, -1, 3)).toBe(1)
+    expect(stepOption(PLAYER_COUNTS, MANY_PLAYERS, 1, 3)).toBe(MANY_PLAYERS)
+    expect(stepOption(DURATION_LIMITS, 60, 1, 30)).toBe(90)
+    expect(stepOption(AGE_LIMITS, 8, -1, 8)).toBe(6)
+  })
+
+  it("reads a pick that is not an option as no pick", () => {
+    expect(stepOption(PLAYER_COUNTS, 99, 1, 3)).toBe(3)
+    expect(canStep(PLAYER_COUNTS, 99, -1)).toBe(true)
+  })
+
+  it("can step while nothing is picked, then until either end", () => {
+    expect(canStep(PLAYER_COUNTS, null, -1)).toBe(true)
+    expect(canStep(PLAYER_COUNTS, null, 1)).toBe(true)
+    expect(canStep(PLAYER_COUNTS, 1, -1)).toBe(false)
+    expect(canStep(PLAYER_COUNTS, 1, 1)).toBe(true)
+    expect(canStep(PLAYER_COUNTS, MANY_PLAYERS, 1)).toBe(false)
+    expect(canStep(PLAYER_COUNTS, MANY_PLAYERS, -1)).toBe(true)
+  })
+
+  it("walks every option up and down, and never off either end", () => {
+    for (const options of [PLAYER_COUNTS, DURATION_LIMITS, AGE_LIMITS]) {
+      let current: number = options[0]
+      for (const expected of options.slice(1)) {
+        expect(canStep(options, current, 1)).toBe(true)
+        current = stepOption(options, current, 1, options[0])
+        expect(current).toBe(expected)
+      }
+      expect(canStep(options, current, 1)).toBe(false)
+      expect(stepOption(options, current, 1, options[0])).toBe(current)
+      for (const expected of [...options].reverse().slice(1)) {
+        expect(canStep(options, current, -1)).toBe(true)
+        current = stepOption(options, current, -1, options[0])
+        expect(current).toBe(expected)
+      }
+      expect(canStep(options, current, -1)).toBe(false)
+      expect(stepOption(options, current, -1, options[0])).toBe(current)
+    }
   })
 })
 

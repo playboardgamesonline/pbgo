@@ -46,9 +46,8 @@ const FONT_ROWS = [
   { variable: "--font-title", utility: "font-heading", use: "Headings and card titles. Same as the body font on the platform." },
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
-  { variable: "--text-display-sub", utility: "text-display-sub", use: "The second line of the home's title: as big as the room it has (7.5vw, from 1.5rem to 7rem), so it is 87% of the window from a phone up." },
-  { variable: "--text-display", utility: "text-display", use: "The first line of the home's title: 16% bigger than the second, which makes the two the same width in the title's face. Neither sets a line-height: `display-title` does." },
-  { variable: "--spacing-title-overlap", utility: "-mt-title-overlap", use: "How far a bar laid over the title is pulled up: 0.34em of `text-display-sub`, so it covers the foot of the last line (a third of its capitals) and the title shows through its glass." },
+  { variable: "--text-display", utility: "text-display", use: "The three lines of the home's title, as big as the window lets them be (7.7vw and half a rem, up to 7.5rem): the first line takes 71% of a 390 px window and 60% of a 1440 px one. The lines are not the same width on purpose: the title narrows as it goes down. It sets no line-height: `display-title` does." },
+  { variable: "--spacing-title-overlap", utility: "-mt-title-overlap", use: "How far a bar laid over the title is pulled up: 0.2em of `text-display`, so it laps over the foot of the last line (a seventh of its capitals) and the title shows through its glass." },
 ] as const
 
 export function Typography() {
@@ -299,6 +298,8 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "px-gutter, py-section, pb-section", does: "Side padding of a page, rhythm between sections", token: "`--gutter`, `--section`" },
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
+  { utility: "display-title", does: "The home's title: Geist Black, capitals and tight, with `text-display`", token: "`--text-display`" },
+  { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },
   { utility: "bg-scrim", does: "Dimming layer behind a dialog or a sheet", token: "`--color-scrim`" },

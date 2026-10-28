@@ -98,25 +98,22 @@
   --color-scrim: oklch(0 0 0 / 0.6);
 
   /*
-   * The title of the home is two lines of capitals that are as wide as each other, the first bigger than the second: `text-display` for the first,
-   * `text-display-sub` for the second. They are as big as the room they have: 7.5vw makes the longer second line ("WITH FRIENDS & RIVALS" in Geist
-   * Black, 11.57em wide) 87% of the width of the window from a 320 px phone up, from 1.5rem to 7rem so a very wide window does not get a poster. The
-   * ratio is the one of the two lines' widths in that face (11.57em and 9.97em, so 1.16), which makes them the same width. They set no line-height:
-   * the title's own (`display-title`) is tight.
-   * `-mt-title-overlap` is how far a bar laid over the title is pulled up: the 0.1em that a line of that line-height keeps under its baseline in
-   * Geist, and 0.24em more, a third of its capitals' height (0.71em), so the bar covers the foot of the last line and the title shows through its
-   * glass while the words stay readable, on a phone too.
+   * The title of the home is three lines of capitals that are all the same size, `text-display`: BOARD GAMES, WITH FRIENDS and & RIVALS. They are not
+   * the same width and are not meant to be: in Geist Black they are 7.30em, 6.98em and 4.41em wide, so the title narrows as it goes down (the first two
+   * nearly alike, the third three fifths of them). The size follows the window and grows from a phone to a desktop a little less fast than the window
+   * does (7.7vw and half a rem), up to 7.5rem so a very wide window does not get a poster: the first line takes 71% of the width of a 390 px phone
+   * and 60% of a 1440 px screen. It sets no line-height: the title's own (`display-title`) is tight.
+   * `-mt-title-overlap` is how far a bar laid over the title is pulled up: the 0.1em that a line of that line-height keeps under its baseline in Geist,
+   * and 0.1em more, a seventh of its capitals' height (0.71em), so the bar laps over the foot of the last line, which shows through its glass.
    */
-  --text-display-sub: clamp(1.5rem, 7.5vw, 7rem);
-  --text-display: calc(var(--text-display-sub) * 1.16);
-  --spacing-title-overlap: calc(var(--text-display-sub) * 0.34);
+  --text-display: clamp(1.5rem, 7.7vw + 0.5rem, 7.5rem);
+  --spacing-title-overlap: calc(var(--text-display) * 0.2);
 }
 
 /*
  * The title of the home (`display-title`): the whole of it in Geist Black, in capitals, tight (a line-height of 0.9 and the tracking of the headings),
- * and a little translucent, so the bar laid over its foot, and its glass, show it through. The translucency is the opacity of the whole title, not a
- * colour with an alpha. 900 is the one weight the platform sets on its own for text (Geist's variable font has it, everything else is 600), as the
- * display faces below do. The face is swapped here, with the two sizes of the theme above, which follow the widths of its two lines.
+ * in the full colour of the text. 900 is the one weight the platform sets on its own for text (Geist's variable font has it, everything else is 600),
+ * as the display faces below do. The face is swapped here, with the two sizes of the theme above, which follow the widths of its two lines.
  */
 @utility display-title {
   font-family: var(--font-title);
@@ -124,12 +121,23 @@
   letter-spacing: var(--tracking-tight);
   text-transform: uppercase;
   line-height: 0.9;
-  opacity: 0.85;
 
   /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
   & > * {
     letter-spacing: var(--tracking-tight);
   }
+}
+
+/*
+ * The finest print of a page (`fine-print`), the footer's line on what the site is not: the smallest text, in a regular weight (400, lighter than the
+ * platform's 600) and in a colour so dark (`foreground` at 20%) that it is found by whoever looks for it and read by nobody in passing. It is the one
+ * text of the platform with a weight of its own besides the title and the display faces.
+ */
+@utility fine-print {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  font-weight: 400;
+  color: color-mix(in oklab, var(--foreground) 20%, transparent);
 }
 
 /*

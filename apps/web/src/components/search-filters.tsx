@@ -1,193 +1,190 @@
 "use client"
 
-import { useId, useState, type ReactNode } from "react"
+import { useId, type ComponentProps } from "react"
 
 import { ChildIcon, GridViewIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
-import { AGE_LIMITS, DURATION_LIMITS, MANY_PLAYERS, PLAYER_COUNTS, optionOf } from "@pbgo/catalog/filter"
+import {
+  AGE_LIMITS,
+  DURATION_LIMITS,
+  FIRST_PICKS,
+  MANY_PLAYERS,
+  PLAYER_COUNTS,
+  canStep,
+  stepOption,
+  type GameFilter,
+} from "@pbgo/catalog/filter"
 import { Button } from "@pbgo/ui/platform/button"
+import { Combobox } from "@pbgo/ui/platform/combobox"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
-import { SearchBarSegment, SearchBarSegments } from "@pbgo/ui/platform/search-bar"
-import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
+import { SearchBarSegment, SearchBarSegments, SearchBarStepper } from "@pbgo/ui/platform/search-bar"
 import { useGameSearch } from "@/components/game-search"
 
 // The platform speaks English (a game's own pages are localized by the game)
 
-/** What a segment says of a pick, and of no pick: its value, dimmed in the second case. */
-function playersText(count: number): string {
-  if (count >= MANY_PLAYERS) return `${count}+ players`
-  return count === 1 ? "1 player" : `${count} players`
-}
+/** What a screen reader hears of a pick, and what a pointer shows over it. */
+const playersText = (count: number): string => (count >= MANY_PLAYERS ? `${count}+ players` : count === 1 ? "1 player" : `${count} players`)
 const durationText = (limit: number): string => `Up to ${limit} min`
 const ageText = (age: number): string => `${age} years old`
 /** The first category picked, then how many more: "Cards", "Cards +2". */
 const categoryText = (picked: readonly string[]): string => (picked.length > 1 ? `${picked[0]} +${picked.length - 1}` : (picked[0] ?? ""))
 
 /**
- * One filter of the bar: its segment and the panel it opens, a title and a Clear button above what there is to pick. `children` draws the
- * picks and is given the way to close the panel, for the filters that take a single pick and have nothing more to do once it is made.
+ * A number of the bar, as a stepper: a minus button, the number and a plus button, with no panel (`SearchBarStepper`). Nothing is picked until a
+ * press: the number it shows then (`first`, dimmed) is the one the first press on either button picks, and the buttons move along `options` from
+ * there, one place at a time (`stepOption`). Pressing the number picks it, or clears the pick once it is picked.
  */
-function Filter({
+export function NumberStepper({
   icon,
   label,
-  title,
-  value,
-  idle,
-  onClear,
-  wide = false,
-  children,
+  options,
+  first,
+  current,
+  onPick,
+  chip,
+  says,
+  decrease,
+  increase,
 }: {
-  icon: React.ComponentProps<typeof SearchBarSegment>["icon"]
-  /** What the segment shows above its value, and what a screen reader hears the panel is for. */
+  icon: ComponentProps<typeof SearchBarStepper>["icon"]
   label: string
-  title: string
-  value: string
-  /** Nothing is picked: the value is dimmed and there is nothing to clear. */
-  idle: boolean
-  onClear: () => void
-  /** A panel for a long list of chips. */
-  wide?: boolean
-  children: (close: () => void) => ReactNode
+  options: readonly number[]
+  /** The number the first press picks, one of the options. */
+  first: number
+  /** The pick, null for none. */
+  current: number | null
+  onPick: (next: number | null) => void
+  /** The number as the chip writes it, with its unit when the icon alone does not say it: "3", "8+", "45 min", "8 yrs". */
+  chip: (value: number) => string
+  /** The number as a screen reader hears it: "3 players". */
+  says: (value: number) => string
+  /** What the two buttons do: "Fewer players", "More players". */
+  decrease: string
+  increase: string
 }) {
-  const [open, setOpen] = useState(false)
-  const titleId = useId()
+  const shown = current ?? first
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <SearchBarStepper
+      icon={icon}
+      label={label}
+      value={chip(shown)}
+      idle={current === null}
+      valueLabel={says(shown)}
+      valueTitle={current === null ? says(first) : `Clear: ${says(current)}`}
+      onValueClick={() => onPick(current === null ? first : null)}
+      decreaseLabel={decrease}
+      increaseLabel={increase}
+      canDecrease={canStep(options, current, -1)}
+      canIncrease={canStep(options, current, 1)}
+      onDecrease={() => onPick(stepOption(options, current, -1, first))}
+      onIncrease={() => onPick(stepOption(options, current, 1, first))}
+    />
+  )
+}
+
+/**
+ * The category filter: a segment that opens a panel with the categories as a list with a search field (`Combobox`), several of which can be
+ * picked, and a Clear button above it. Its panel says so when no game has a category yet.
+ */
+function CategoryFilter({
+  categories,
+  picked,
+  onPick,
+}: {
+  categories: readonly string[]
+  picked: readonly string[]
+  onPick: (next: string[]) => void
+}) {
+  const titleId = useId()
+  const none = picked.length === 0
+  return (
+    <Popover>
       <PopoverTrigger asChild>
-        <SearchBarSegment icon={icon} label={label} value={value} idle={idle} />
+        <SearchBarSegment icon={GridViewIcon} label="Category" value={none ? "Any category" : categoryText(picked)} idle={none} />
       </PopoverTrigger>
-      <PopoverContent aria-labelledby={titleId} className={wide ? "w-80" : undefined}>
+      <PopoverContent aria-labelledby={titleId} className="w-80">
         <PopoverHeader>
-          <PopoverTitle id={titleId}>{title}</PopoverTitle>
-          <Button type="button" variant="ghost" size="sm" disabled={idle} onClick={onClear}>
+          <PopoverTitle id={titleId}>Categories</PopoverTitle>
+          <Button type="button" variant="ghost" size="sm" disabled={none} onClick={() => onPick([])}>
             Clear
           </Button>
         </PopoverHeader>
-        {children(() => setOpen(false))}
+        {categories.length > 0 ? (
+          <Combobox
+            options={categories}
+            value={picked}
+            onValueChange={onPick}
+            aria-label="Categories"
+            placeholder="Search categories..."
+            empty="No category matches."
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">No category yet.</p>
+        )}
       </PopoverContent>
     </Popover>
   )
 }
 
 /**
- * The segments of the search bar: the lower floor, under the field and the round button (`SearchBar`). The category (several at once; its panel
- * says so when no game has one yet), the number of players, the duration and the age of the youngest player. Each is a segment that opens a
- * panel of chips; a pick filters the list at once and goes into the address. The category panel stays open, since a visitor picks several; the
- * others close on the pick. The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
+ * The four segments of the search bar, from the picks they are given and the way to change them (so `/design` can draw them with picks of its
+ * own): the category (several at once, from a list with a search field), then the number of players, the longest duration and the age of the
+ * youngest player, each a stepper. A pick filters the list at once and goes into the address. The rules are `@pbgo/catalog/filter`'s. See
+ * docs/catalog.md.
  */
-export function SearchFilters() {
-  const { categories, filter, pick } = useGameSearch()
-
+export function FilterSegments({
+  categories,
+  filter,
+  onFilterChange,
+}: {
+  categories: readonly string[]
+  filter: GameFilter
+  onFilterChange: (next: GameFilter) => void
+}) {
   return (
     <SearchBarSegments aria-label="Filter the games">
-      <Filter
-        icon={GridViewIcon}
-        label="Category"
-        title="Categories"
-        value={filter.categories.length === 0 ? "Any category" : categoryText(filter.categories)}
-        idle={filter.categories.length === 0}
-        onClear={() => pick({ ...filter, categories: [] })}
-        wide
-      >
-        {() =>
-          categories.length > 0 ? (
-            <ToggleGroup
-              type="multiple"
-              value={[...filter.categories]}
-              onValueChange={(next) => pick({ ...filter, categories: next })}
-              aria-label="Categories"
-            >
-              {categories.map((category) => (
-                <ToggleGroupItem key={category} value={category}>
-                  {category}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          ) : (
-            <p className="text-sm text-muted-foreground">No category yet.</p>
-          )
-        }
-      </Filter>
-
-      <Filter
+      <CategoryFilter categories={categories} picked={filter.categories} onPick={(next) => onFilterChange({ ...filter, categories: next })} />
+      <NumberStepper
         icon={UserMultipleIcon}
         label="Players"
-        title="Number of players"
-        value={filter.players === null ? "Any players" : playersText(filter.players)}
-        idle={filter.players === null}
-        onClear={() => pick({ ...filter, players: null })}
-      >
-        {(close) => (
-          <ToggleGroup
-            type="single"
-            value={filter.players === null ? "" : String(filter.players)}
-            onValueChange={(next) => {
-              pick({ ...filter, players: optionOf(PLAYER_COUNTS, next) })
-              close()
-            }}
-            aria-label="Number of players"
-          >
-            {PLAYER_COUNTS.map((count) => (
-              <ToggleGroupItem key={count} value={String(count)} aria-label={playersText(count)}>
-                {count >= MANY_PLAYERS ? `${count}+` : count}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-      </Filter>
-
-      <Filter
+        options={PLAYER_COUNTS}
+        first={FIRST_PICKS.players}
+        current={filter.players}
+        onPick={(players) => onFilterChange({ ...filter, players })}
+        chip={(count) => (count >= MANY_PLAYERS ? `${count}+` : String(count))}
+        says={playersText}
+        decrease="Fewer players"
+        increase="More players"
+      />
+      <NumberStepper
         icon={HourglassIcon}
         label="Duration"
-        title="Longest game"
-        value={filter.duration === null ? "Any duration" : durationText(filter.duration)}
-        idle={filter.duration === null}
-        onClear={() => pick({ ...filter, duration: null })}
-      >
-        {(close) => (
-          <ToggleGroup
-            type="single"
-            value={filter.duration === null ? "" : String(filter.duration)}
-            onValueChange={(next) => {
-              pick({ ...filter, duration: optionOf(DURATION_LIMITS, next) })
-              close()
-            }}
-            aria-label="Longest game"
-          >
-            {DURATION_LIMITS.map((limit) => (
-              <ToggleGroupItem key={limit} value={String(limit)} aria-label={durationText(limit)}>
-                {limit} min
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-      </Filter>
-
-      <Filter
+        options={DURATION_LIMITS}
+        first={FIRST_PICKS.duration}
+        current={filter.duration}
+        onPick={(duration) => onFilterChange({ ...filter, duration })}
+        chip={(limit) => `${limit} min`}
+        says={durationText}
+        decrease="Shorter games"
+        increase="Longer games"
+      />
+      <NumberStepper
         icon={ChildIcon}
         label="Age"
-        title="Age of the youngest player"
-        value={filter.age === null ? "Any age" : ageText(filter.age)}
-        idle={filter.age === null}
-        onClear={() => pick({ ...filter, age: null })}
-      >
-        {(close) => (
-          <ToggleGroup
-            type="single"
-            value={filter.age === null ? "" : String(filter.age)}
-            onValueChange={(next) => {
-              pick({ ...filter, age: optionOf(AGE_LIMITS, next) })
-              close()
-            }}
-            aria-label="Age of the youngest player"
-          >
-            {AGE_LIMITS.map((age) => (
-              <ToggleGroupItem key={age} value={String(age)} aria-label={ageText(age)}>
-                {age}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-      </Filter>
+        options={AGE_LIMITS}
+        first={FIRST_PICKS.age}
+        current={filter.age}
+        onPick={(age) => onFilterChange({ ...filter, age })}
+        chip={(age) => `${age} yrs`}
+        says={ageText}
+        decrease="Younger players"
+        increase="Older players"
+      />
     </SearchBarSegments>
   )
+}
+
+/** The filters of the search of the page (`GameSearch`): the segments of the search bar, on the picks it holds. */
+export function SearchFilters() {
+  const { categories, filter, pick } = useGameSearch()
+  return <FilterSegments categories={categories} filter={filter} onFilterChange={pick} />
 }

@@ -1,24 +1,20 @@
-import { ChildIcon, GridViewIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
+import { BoardPattern } from "@pbgo/ui/platform/board-pattern"
 import { Button } from "@pbgo/ui/platform/button"
 import { DISPLAY_FACES } from "@pbgo/ui/faces"
 import { FaceCycle } from "@pbgo/ui/platform/face-cycle"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
-import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
 import {
   SearchBar,
   SearchBarClear,
   SearchBarField,
   SearchBarInput,
-  SearchBarSegment,
-  SearchBarSegments,
   SearchBarSubmit,
 } from "@pbgo/ui/platform/search-bar"
-import { Separator } from "@pbgo/ui/platform/separator"
-import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
+import { FiltersSpecimen } from "../_components/filters-specimen"
 import { NavbarPlayground } from "../_components/navbar-playground"
 import { Block, Bullets, Demo, Section } from "../_components/layout"
 
@@ -52,24 +48,26 @@ export function Wordmarks() {
     <Section
       id="wordmark"
       module="wordmark"
-      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the gap between the ink of two letters is the same everywhere, the ink of the P starts at the left edge and the ink of the O ends at the right edge, which is why it lines up with the line under it, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of `--secondary` at the top to nothing at the bottom, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of `--secondary` at the top to nothing at the bottom, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
     >
       <Demo
         title="In the footer"
-        description="The footer of the hub's pages: the wordmark, a `Separator`, then the copyright and who built the site on the left, the legal pages on the right, and what the site is not, centred under them, in the smallest, thinnest and faintest type of the page (`text-xs font-light text-foreground/50`). The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
-        code={`<footer className="mx-auto w-full max-w-page px-gutter pb-10">
+        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), well apart from the letters (`mt-16`) and with `pb-5` under it. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
+        code={`<footer className="w-full pb-5">
+  <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-gutter pb-12 text-sm text-muted-foreground">
+    <p>© 2026 Play Board Games Online · Built by …</p>
+    <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-5 gap-y-2">…</nav>
+  </div>
   <Wordmark />
-  <Separator className="mt-6 mb-6" />
-  <p className="text-sm text-muted-foreground">© 2026 Play Board Games Online · Built by …</p>
+  <p className="mt-16 px-gutter text-center fine-print">Unofficial, online adaptation of board games. …</p>
 </footer>`}
       >
-        <Wordmark />
-        <Separator className="mt-6 mb-6" />
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-12 text-sm text-muted-foreground">
           <p>© 2026 Play Board Games Online · Built by oré</p>
           <p>Privacy Policy · Cookie Policy · Terms of Use</p>
         </div>
-        <p className="mt-8 text-center text-xs font-light text-foreground/50">
+        <Wordmark />
+        <p className="mt-16 text-center fine-print">
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>
@@ -159,7 +157,7 @@ export function Navbars() {
     >
       <Demo
         title="On the home, signed out"
-        description="The logo is the home's button, a square: on the home it is `current`, and no tab is. `current` puts the bar's fill (`bg-muted`) behind the item, the same one for the logo and for a tab, in the same white. On any other page the logo is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
+        description="The logo is the home's button, a square: on the home it is `current`, and no tab is. `current` puts the bar's fill (`bg-muted`) behind the item, the same one for the logo and for a tab, in the same white. On any other page the logo is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and `Join the fun` the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
@@ -175,7 +173,7 @@ export function Navbars() {
   </NavbarStart>
   <NavbarEnd>
     <Button variant="ghost" size="lg">Sign in</Button>
-    <Button size="lg">Sign up</Button>
+    <Button size="lg">Join the fun</Button>
   </NavbarEnd>
 </Navbar>
 
@@ -187,7 +185,7 @@ export function Navbars() {
             <Button variant="ghost" size="lg">
               Sign in
             </Button>
-            <Button size="lg">Sign up</Button>
+            <Button size="lg">Join the fun</Button>
           </NavbarEnd>
         </Navbar>
       </Demo>
@@ -236,58 +234,12 @@ export function Navbars() {
   )
 }
 
-/** The options of the specimens below. */
-const FILTERS = {
-  category: { icon: GridViewIcon, label: "Category", chips: ["Bluffing", "Cards", "Co-op", "Party", "Strategy"] },
-  players: { icon: UserMultipleIcon, label: "Players", chips: ["1", "2", "3", "4", "5", "6", "7", "8+"] },
-  duration: { icon: HourglassIcon, label: "Duration", chips: ["15 min", "30 min", "45 min"] },
-  age: { icon: ChildIcon, label: "Age", chips: ["6", "8", "10", "12", "14"] },
-} as const
-
-/** One filter of the bar, as the home builds it: a segment that opens a panel of chips. `picked` is what is chosen, nothing for an idle segment. */
-function FilterSegment({ filter, value, picked = [] }: { filter: keyof typeof FILTERS; value: string; picked?: string[] }) {
-  const { icon, label, chips } = FILTERS[filter]
-  const multiple = filter === "category"
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <SearchBarSegment icon={icon} label={label} value={value} idle={picked.length === 0} />
-      </PopoverTrigger>
-      <PopoverContent aria-label={label}>
-        <PopoverHeader>
-          <PopoverTitle>{label}</PopoverTitle>
-          <Button type="button" variant="ghost" size="sm" disabled={picked.length === 0}>
-            Clear
-          </Button>
-        </PopoverHeader>
-        {multiple ? (
-          <ToggleGroup type="multiple" defaultValue={picked} aria-label={label}>
-            {chips.map((chip) => (
-              <ToggleGroupItem key={chip} value={chip}>
-                {chip}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        ) : (
-          <ToggleGroup type="single" defaultValue={picked[0]} aria-label={label}>
-            {chips.map((chip) => (
-              <ToggleGroupItem key={chip} value={chip}>
-                {chip}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-      </PopoverContent>
-    </Popover>
-  )
-}
-
 export function SearchBars() {
   return (
     <Section
       id="search-bar"
       module="search-bar"
-      intro="The big search pill of a page: a field, a button that clears it once there is a text, and the round button that submits it. Filters can sit in the same bar as segments, each one an icon, a small label and what is picked, opening a `Popover` of chips. It only draws the bar. The page owns the text, the picks and what they find. The field is `text-base` on every screen: a smaller text makes iOS zoom the page in on focus."
+      intro="The big search pill of a page: a field, a button that clears it once there is a text, and the round button that submits it. Filters can sit in the same bar as segments, each one an icon, a small label and what is picked, either opening a `Popover` or stepping a number in place. It only draws the bar. The page owns the text, the picks and what they find. The field is `text-base` on every screen: a smaller text makes iOS zoom the page in on focus."
     >
       <Demo
         title="Empty and filled"
@@ -325,7 +277,7 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than four `SearchBarSegment`. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero) and in a 2 × 2 grid under that (as in this column). The segments are `type=button`, so only the field and the round button send the form."
+        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than four segments, of two kinds. A `SearchBarSegment` shows what it filters by and what is picked, dimmed while nothing is (`idle`), and opens a panel: wrap it in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while its panel is open. For a long list of options the panel holds a `Combobox`. A `SearchBarStepper` is for a number and needs no panel: a minus button, the number and a plus button in the segment itself. The number is a chip that is `bg-primary` once picked, dimmed while nothing is, and pressing it picks it or clears it; the first press on either button picks the number it shows. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero), with a short line in the middle of each gap so that what a hover paints never touches it, in a 2 × 2 grid under that (as in this column) and in one column under 24rem, a phone of 415 px or less, where the number of a stepper would be cut. The segments are `type=button`, so only the field and the round button send the form. These ones filter nothing: they step, open and search."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
@@ -334,57 +286,43 @@ export function SearchBars() {
   <SearchBarSegments aria-label="Filter the games">
     <Popover>
       <PopoverTrigger asChild>
-        <SearchBarSegment icon={UserMultipleIcon} label="Players" value="4 players" />
+        <SearchBarSegment icon={GridViewIcon} label="Category" value="Any category" idle />
       </PopoverTrigger>
-      <PopoverContent aria-label="Players">…</PopoverContent>
+      <PopoverContent aria-label="Categories">
+        <Combobox options={categories} value={picked} onValueChange={setPicked} aria-label="Categories" placeholder="Search categories..." empty="No category matches." />
+      </PopoverContent>
     </Popover>
-    <Popover>
-      <PopoverTrigger asChild>
-        <SearchBarSegment icon={ChildIcon} label="Age" value="Any age" idle />
-      </PopoverTrigger>
-      <PopoverContent aria-label="Age">…</PopoverContent>
-    </Popover>
+    <SearchBarStepper
+      icon={UserMultipleIcon}
+      label="Players"
+      value="3"
+      idle
+      valueLabel="3 players"
+      valueTitle="3 players"
+      onValueClick={pickOrClear}
+      decreaseLabel="Fewer players"
+      increaseLabel="More players"
+      onDecrease={fewer}
+      onIncrease={more}
+    />
   </SearchBarSegments>
   <SearchBarSubmit aria-label="Search" />
 </SearchBar>`}
       >
-        <SearchBar method="dialog" aria-label="Search the games">
-          <SearchBarField>
-            <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
-          </SearchBarField>
-          <SearchBarSegments aria-label="Filter the games">
-            <FilterSegment filter="category" value="Any category" />
-            <FilterSegment filter="players" value="Any players" />
-            <FilterSegment filter="duration" value="Any duration" />
-            <FilterSegment filter="age" value="Any age" />
-          </SearchBarSegments>
-          <SearchBarSubmit aria-label="Search" />
-        </SearchBar>
-        <SearchBar method="dialog" aria-label="Search the games">
-          <SearchBarField>
-            <SearchBarInput aria-label="Search a game" defaultValue="Flip" />
-            <SearchBarClear aria-label="Clear the search" />
-          </SearchBarField>
-          <SearchBarSegments aria-label="Filter the games">
-            <FilterSegment filter="category" value="Cards +1" picked={["Cards", "Party"]} />
-            <FilterSegment filter="players" value="4 players" picked={["4"]} />
-            <FilterSegment filter="duration" value="Up to 30 min" picked={["30 min"]} />
-            <FilterSegment filter="age" value="8 years old" picked={["8"]} />
-          </SearchBarSegments>
-          <SearchBarSubmit aria-label="Search" />
-        </SearchBar>
+        <FiltersSpecimen />
+        <FiltersSpecimen picked />
       </Demo>
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a third of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a seventh of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
     <h1 className="display-title">
-      <span className="block text-display">Play board games</span> <span className="block text-display-sub">…</span>
+      <span className="block text-display">Board games</span> <span className="block text-display">…</span>
     </h1>
-    <div className="relative -mt-title-overlap w-full max-w-4xl">
+    <div className="relative -mt-title-overlap w-full max-w-3xl">
       <SearchBar>…</SearchBar>
     </div>
   </div>
@@ -392,9 +330,10 @@ export function SearchBars() {
       >
         <div className="flex flex-col items-center bg-linear-to-b from-secondary via-card to-background px-6 pt-12 pb-10 text-center">
           <p className="display-title">
-            <span className="block text-4xl">Play board games</span> <span className="block text-3xl">with friends & rivals</span>
+            <span className="block text-4xl">Board games</span> <span className="block text-4xl">with friends</span>{" "}
+            <span className="block text-4xl">& rivals</span>
           </p>
-          <div className="relative -mt-2.5 w-full max-w-xl">
+          <div className="relative -mt-2 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
                 <SearchBarInput aria-label="Search games, tables and tournaments" placeholder="Search games, tables & tournaments..." />
@@ -402,6 +341,35 @@ export function SearchBars() {
               <SearchBarSubmit aria-label="Search" />
             </SearchBar>
           </div>
+        </div>
+      </Demo>
+    </Section>
+  )
+}
+
+export function BoardPatterns() {
+  return (
+    <Section
+      id="board-pattern"
+      module="board-pattern"
+      intro="A backdrop of game pieces drawn in a line (dice, cards, a pawn, a crown, a suit, an hourglass, a gem, a joker), tilted and spread like the doodles of a wallpaper, to lay behind the top of a page and give it some life: the hub's hero. It is one SVG pattern whose tile repeats, so it is as light as a picture and as wide as its parent. It draws in `currentColor` at full strength: colour it with `text-foreground`, make it faint with `opacity` on the whole drawing and not with an alpha colour (strokes that cross would add up), and fade it out with a mask. It is decorative: `aria-hidden`, and it takes no click."
+    >
+      <Demo
+        title="Behind a hero"
+        description="As on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
+        className="grid gap-4 p-0 sm:grid-cols-2"
+        code={`<section className="relative overflow-hidden bg-linear-to-b from-secondary via-card to-background">
+  <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
+  <div className="relative …">…</div>
+</section>`}
+      >
+        <div className="relative h-72 overflow-hidden bg-linear-to-b from-secondary via-card to-background">
+          <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
+          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
+        </div>
+        <div className="relative h-72 overflow-hidden bg-linear-to-b from-secondary via-card to-background">
+          <BoardPattern className="absolute inset-0 text-foreground opacity-20 mask-b-from-30%" />
+          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
       </Demo>
     </Section>

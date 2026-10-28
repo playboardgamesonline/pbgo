@@ -10,11 +10,17 @@ export const MANY_PLAYERS = 8
 /** The numbers of players the filter offers: 1 to 7, then `MANY_PLAYERS` for "8 or more". */
 export const PLAYER_COUNTS = [1, 2, 3, 4, 5, 6, 7, MANY_PLAYERS] as const
 
-/** The durations the filter offers, in minutes: a game fits when it takes at most that long. */
-export const DURATION_LIMITS = [15, 30, 45] as const
+/** The durations the filter offers, in minutes: a game fits when it takes at most that long. A quarter of an hour at a time up to the hour, then half an hour. */
+export const DURATION_LIMITS = [15, 30, 45, 60, 90, 120] as const
 
 /** The ages the filter offers, in years: the age of the youngest player, so a game stays when its minimum age is at most that. */
 export const AGE_LIMITS = [6, 8, 10, 12, 14] as const
+
+/**
+ * What a stepper of the search bar picks the first time it is pressed, while nothing is picked: the number it shows then, dimmed. Each one is one
+ * of its options (`PLAYER_COUNTS`, `DURATION_LIMITS`, `AGE_LIMITS`): a table of three, a game of half an hour, a child of eight.
+ */
+export const FIRST_PICKS = { players: 3, duration: 30, age: 8 } as const
 
 /** The longest search the field takes: nobody looks for a game with more than this. */
 export const MAX_QUERY_LENGTH = 60
@@ -149,6 +155,25 @@ export function isFiltered(filter: GameFilter): boolean {
 /** The option among `options` that the text spells exactly (no "04" for 4, no "4.0"), else null: the pick that a link or a chip stands for. */
 export function optionOf<T extends number | string>(options: readonly T[], value: string | null): T | null {
   return options.find((option) => String(option) === value) ?? null
+}
+
+/**
+ * Where a stepper goes from `current`: one place along `options` in the `direction` (1 for the next one, -1 for the one before), and it stays where
+ * it is at either end. While nothing is picked (`current` is null, or is not one of the options) the first press picks `first`, whichever way it
+ * goes: the stepper shows `first`, dimmed, until then, so a press picks what it shows.
+ */
+export function stepOption(options: readonly number[], current: number | null, direction: 1 | -1, first: number): number {
+  const index = current === null ? -1 : options.indexOf(current)
+  if (index === -1) return first
+  return options[Math.min(options.length - 1, Math.max(0, index + direction))] ?? first
+}
+
+/** Whether a stepper can go `direction` from `current`: it always can while nothing is picked, then until the last option, or the first. */
+export function canStep(options: readonly number[], current: number | null, direction: 1 | -1): boolean {
+  const index = current === null ? -1 : options.indexOf(current)
+  if (index === -1) return true
+  const next = index + direction
+  return next >= 0 && next < options.length
 }
 
 // ---------- In the URL ----------

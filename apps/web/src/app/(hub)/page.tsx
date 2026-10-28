@@ -1,5 +1,6 @@
 import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
+import { BoardPattern } from "@pbgo/ui/platform/board-pattern"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
 import { HomeBody } from "@/components/home-body"
@@ -33,17 +34,19 @@ export default async function Home() {
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
-          {/* The hero: the title in capitals, all in Geist Black and a little translucent (`display-title`), the first line bigger than the
-              second, and the search bar laid over its foot (two floors: the field and the round button, then the filters; glass, so the title shows through),
-              on a backdrop that is lighter at the top and fades into the black the sections sit on */}
-          <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
-            <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
+          {/* The hero: the title in capitals, on three lines of the same size, all in Geist Black (`display-title`), narrowing as they go down, and the
+              search bar laid over its foot (two floors: the field and the round button, then the filters; glass, so the title shows through),
+              on a backdrop that is lighter at the top and fades into the black the sections sit on, with game pieces drawn faintly over it (`BoardPattern`) */}
+          <section className="relative overflow-hidden bg-linear-to-b from-secondary via-card to-background pt-navbar">
+            <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
+            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
               <h1 className="display-title">
-                <span className="block text-display">Play board games</span> <span className="block text-display-sub">with friends & rivals</span>
+                <span className="block text-display">Board games</span> <span className="block text-display">with friends</span>{" "}
+                <span className="block text-display">& rivals</span>
               </h1>
               {/* Laid over the foot of the title: pulled up by `-mt-title-overlap` (it follows the size of the title), so it covers the lower part of
                   the last line, which shows through its glass. `relative` paints it over the text. */}
-              <div className="relative -mt-title-overlap w-full max-w-4xl">
+              <div className="relative -mt-title-overlap w-full max-w-3xl">
                 <HeroSearch />
               </div>
             </div>

@@ -44,6 +44,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs
 import { Textarea } from "@pbgo/ui/platform/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Demo, Section } from "../_components/layout"
+import { ComboboxSpecimen } from "../_components/combobox-specimen"
 
 const ROW = "flex flex-wrap items-center gap-3"
 
@@ -479,6 +480,43 @@ export function Selects() {
             <SelectItem value="none">Nothing</SelectItem>
           </SelectContent>
         </Select>
+      </Demo>
+    </Section>
+  )
+}
+
+export function Comboboxes() {
+  return (
+    <Section
+      id="combobox"
+      module="combobox"
+      intro="A list of options with a search field above it, for a panel that has more options than chips can hold: the categories of the games. Typing keeps the options that hold the text, whatever the case and the accents. Any number can be picked, so the list stays open. It draws nothing around itself: put it in a `Popover`, which gives it its title, its Clear button and its place."
+    >
+      <Demo
+        title="In a popover"
+        description="The field has the focus when the panel opens, except on a screen that is touched, where the keyboard would hide the list. The arrow keys move along the list without leaving the field, Home and End go to its ends, Enter picks or unpicks the option they are on, and so does a click. The field is `text-base` on a phone, like every input, so iOS does not zoom in on it. Try `des` or `strat`: the accents do not matter."
+        className={ROW}
+        code={`<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">Categories</Button>
+  </PopoverTrigger>
+  <PopoverContent aria-label="Categories" className="w-80">
+    <PopoverHeader>
+      <PopoverTitle>Categories</PopoverTitle>
+      <Button type="button" variant="ghost" size="sm">Clear</Button>
+    </PopoverHeader>
+    <Combobox
+      options={["Bluffing", "Cards", "Co-op", "Dés"]}
+      value={picked}
+      onValueChange={setPicked}
+      aria-label="Categories"
+      placeholder="Search categories..."
+      empty="No category matches."
+    />
+  </PopoverContent>
+</Popover>`}
+      >
+        <ComboboxSpecimen />
       </Demo>
     </Section>
   )

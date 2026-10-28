@@ -62,7 +62,7 @@ export function SiteHeader() {
           Sign in
         </Button>
         <Button size="lg" type="button" aria-disabled="true" title="Coming soon">
-          Sign up
+          Join the fun
         </Button>
       </NavbarEnd>
     </Navbar>

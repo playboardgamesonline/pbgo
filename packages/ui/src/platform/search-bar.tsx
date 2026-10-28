@@ -1,16 +1,17 @@
 import * as React from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, MinusSignIcon, PlusSignIcon, Search01Icon } from "@hugeicons/core-free-icons"
 import { cn } from "../utils"
 
 import { Button } from "./button"
 
 // The big search bar of a page: a field (`SearchBarField`: the text and a button that clears it once there is one) and the round
 // button that submits it, in one pill. Filters can sit in the same bar, as segments (`SearchBarSegments`): each one shows an icon, a
-// small label and what is picked, and opens whatever the page puts behind it (a `Popover`). The bar then has two floors, whatever
-// its width: the field and the button on top, a line, the segments below. They sit in a row when the room the bar has is 42rem wide
-// or more (the width of its container, not of the window) and in a 2 × 2 grid under that. It only draws the bar. The page owns the
-// text, the picks and what they find.
+// small label and what is picked, and is either a button that opens whatever the page puts behind it (`SearchBarSegment`, with a `Popover`) or a
+// stepper for a number (`SearchBarStepper`: less, the number, more, with no panel). The bar then has two floors, whatever its width: the field
+// and the button on top, a line, the segments below. They sit in a row when the room the bar has is 42rem wide or more (the width of its
+// container, not of the window), in a 2 × 2 grid under that and in one column under 24rem, where a stepper's number would be cut. In a row a short line stands in the middle of the gap
+// between two segments, so that what a hover paints never touches it. It only draws the bar. The page owns the text, the picks and what they find.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   return (
@@ -88,9 +89,9 @@ function SearchBarClear({ className, ...props }: SearchBarButtonProps) {
 }
 
 /**
- * The filters of the bar: the lower floor, under the field and a line that runs from edge to edge of the bar. A row of equal columns
- * when the bar has the room for it, a 2 × 2 grid when it has not. Name the group with an `aria-label`. Put no more than four segments
- * in it: they share the width of the bar.
+ * The filters of the bar: the lower floor, under the field and a line that runs from edge to edge of the bar. A row of equal columns when the bar has
+ * the room for it, a 2 × 2 grid when it has not, one column when it has very little (under 24rem, a phone of 415 px or less). Name the group with an `aria-label`. Put no more than four
+ * segments in it: they share the width of the bar.
  */
 function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -98,7 +99,7 @@ function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">)
       data-slot="search-bar-segments"
       role="group"
       className={cn(
-        "order-last -mx-3 grid basis-full grow grid-cols-2 gap-2 border-t border-border px-3 pt-3 @2xl:auto-cols-fr @2xl:grid-flow-col @2xl:grid-cols-none @2xl:gap-0",
+        "order-last -mx-3 grid basis-full grow grid-cols-2 gap-2 border-t border-border px-3 pt-3 @max-sm:grid-cols-1 @2xl:auto-cols-fr @2xl:grid-flow-col @2xl:grid-cols-none @2xl:gap-4",
         className
       )}
       {...props}
@@ -106,20 +107,25 @@ function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">)
   )
 }
 
+// What a segment is, whether it opens something or steps a number: a box with an icon and two lines. In a grid the box has a border. In a row the
+// boxes have none and a line of 1px stands in the middle of the gap between two of them (the `before` of every one but the first, 0.5rem to the left
+// of the box, half of the `gap-4` of the row), so that the background a hover paints keeps its distance from it.
+const SEGMENT =
+  "relative flex h-14 min-w-0 items-center gap-2.5 rounded-3xl border border-border px-3 text-left transition-all outline-none select-none hover:bg-input/30 @2xl:border-transparent @2xl:not-first:before:absolute @2xl:not-first:before:top-1/2 @2xl:not-first:before:-left-2 @2xl:not-first:before:h-8 @2xl:not-first:before:w-px @2xl:not-first:before:-translate-y-1/2 @2xl:not-first:before:bg-border"
+
 type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "type"> & {
   icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
-  /** What the segment filters by, small, above the value: "Players". */
+  /** What the segment filters by, small, above the value: "Category". */
   label: string
-  /** What is picked: "4 players". */
+  /** What is picked: "Cards +1". */
   value: string
-  /** Nothing is picked: the value is dimmed ("Any players"). */
+  /** Nothing is picked: the value is dimmed ("Any category"). */
   idle?: boolean
 }
 
 /**
- * One filter of the bar: a button that shows what it filters by and what is picked. It opens nothing itself: the page wraps it in a
- * `PopoverTrigger asChild`, which gives it `aria-expanded` and the open state this paints. In a grid it is a box with a border; in a
- * row the boxes give way to a short line between the segments.
+ * One filter of the bar that opens a panel: a button that shows what it filters by and what is picked. It opens nothing itself: the page wraps it
+ * in a `PopoverTrigger asChild`, which gives it `aria-expanded` and the open state this paints.
  */
 function SearchBarSegment({ className, icon, label, value, idle = false, ...props }: SearchBarSegmentProps) {
   return (
@@ -127,7 +133,8 @@ function SearchBarSegment({ className, icon, label, value, idle = false, ...prop
       data-idle={idle ? "" : undefined}
       type="button"
       className={cn(
-        "relative flex h-14 min-w-0 items-center gap-3 rounded-3xl border border-border px-4 text-left transition-all outline-none select-none hover:bg-input/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted @2xl:border-transparent @2xl:not-first:before:absolute @2xl:not-first:before:top-1/2 @2xl:not-first:before:left-0 @2xl:not-first:before:h-8 @2xl:not-first:before:w-px @2xl:not-first:before:-translate-y-1/2 @2xl:not-first:before:bg-border",
+        SEGMENT,
+        "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
         className
       )}
       {...props}
@@ -140,6 +147,78 @@ function SearchBarSegment({ className, icon, label, value, idle = false, ...prop
         <span className={cn("truncate text-sm", idle && "text-muted-foreground")}>{value}</span>
       </span>
     </button>
+  )
+}
+
+type SearchBarStepperProps = Omit<React.ComponentProps<"div">, "children" | "role"> & {
+  icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
+  /** What the stepper filters by: "Players". It is not drawn, the icon says what the number is: it is what a screen reader calls the group. */
+  label: string
+  /** The number as it is written: "3", "8+", "45 min". While nothing is picked it is the one a first press picks, dimmed (`idle`). */
+  value: string
+  /** Nothing is picked: the number is dimmed. */
+  idle?: boolean
+  /** What a screen reader hears for the number: "3 players". The number is a button: it picks itself, and, once picked, clears the pick. */
+  valueLabel: string
+  /** What a pointer shows over the number: what it picks, or what it clears. */
+  valueTitle: string
+  onValueClick: () => void
+  /** What the two buttons do, for a screen reader: "Fewer players", "More players". */
+  decreaseLabel: string
+  increaseLabel: string
+  onDecrease: () => void
+  onIncrease: () => void
+  /** False at the end of the options: the button is dimmed and does nothing. */
+  canDecrease?: boolean
+  canIncrease?: boolean
+}
+
+/**
+ * One filter of the bar that is a number, which needs no panel: the icon that says what the number is, then a minus button, the number and a plus
+ * button, in the segment itself. No label is drawn, so the row sits in the middle of the segment; the buttons are outlined so they read as buttons.
+ * The number is a chip like the ones of a panel (`bg-primary` once picked), and pressing it picks it, or clears it once it is. The page owns the
+ * options and what a press does, and `idle` says nothing is picked: the number then shows the one the first press picks. A group, so a screen
+ * reader names it.
+ */
+function SearchBarStepper({
+  className,
+  icon,
+  label,
+  value,
+  idle = false,
+  valueLabel,
+  valueTitle,
+  onValueClick,
+  decreaseLabel,
+  increaseLabel,
+  onDecrease,
+  onIncrease,
+  canDecrease = true,
+  canIncrease = true,
+  ...props
+}: SearchBarStepperProps) {
+  return (
+    <div data-slot="search-bar-stepper" role="group" aria-label={label} className={cn(SEGMENT, className)} {...props}>
+      <HugeiconsIcon icon={icon} strokeWidth={2} className="size-5 shrink-0 text-muted-foreground" />
+      <span className="flex min-w-0 items-center gap-1">
+        <Button type="button" variant="outline" size="icon-xs" aria-label={decreaseLabel} disabled={!canDecrease} onClick={onDecrease}>
+          <HugeiconsIcon icon={MinusSignIcon} strokeWidth={2} />
+        </Button>
+        <button
+          type="button"
+          aria-pressed={!idle}
+          aria-label={valueLabel}
+          title={valueTitle}
+          onClick={onValueClick}
+          className="h-6 min-w-8 truncate rounded-full px-1.5 text-sm whitespace-nowrap text-muted-foreground transition-all outline-none hover:bg-input/60 focus-visible:ring-3 focus-visible:ring-ring/30 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/80"
+        >
+          {value}
+        </button>
+        <Button type="button" variant="outline" size="icon-xs" aria-label={increaseLabel} disabled={!canIncrease} onClick={onIncrease}>
+          <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
+        </Button>
+      </span>
+    </div>
   )
 }
 
@@ -166,5 +245,6 @@ export {
   SearchBarClear,
   SearchBarSegments,
   SearchBarSegment,
+  SearchBarStepper,
   SearchBarSubmit,
 }
