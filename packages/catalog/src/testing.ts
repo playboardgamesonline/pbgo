@@ -32,6 +32,8 @@ export type GameRow = {
   slug?: string
   players?: string | null
   duration?: number | null
+  /** The `Complexity` number: BoardGameGeek's weight of the game. */
+  complexity?: number | null
   age?: string | null
   /** The options of the `Tags` multi-select. */
   tags?: string[]
@@ -77,6 +79,7 @@ export function gamePage(row: GameRow = {}): NotionPage {
     Slug: property("rich_text", richText(slug)),
     Players: property("select", option(row.players ?? null)),
     Duration: property("number", row.duration ?? null),
+    Complexity: property("number", row.complexity ?? null),
     Age: property("select", option(row.age ?? null)),
     Tags: property("multi_select", (row.tags ?? []).map(option)),
     Authors: property("relation", (row.authors ?? []).map((id) => ({ id }))),
@@ -340,6 +343,7 @@ export const notionGame = (slug: string, overrides: Partial<NotionGame> = {}): N
   descriptions: {},
   players: null,
   duration: null,
+  complexity: null,
   age: null,
   categories: [],
   authors: [],

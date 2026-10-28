@@ -9,12 +9,12 @@ import { SAMPLE_CATEGORIES } from "./sample-categories"
 
 /**
  * The search bar with its filters as the home draws them (`CategoryFilter` at the end of the bar, `MoreFilters` under it: the same components), on
- * picks of its own: the steppers step, the category list and the age menu open, and nothing is filtered. With `picked` it starts with a text and a
- * pick of each kind.
+ * picks of its own: the stepper steps, the slider slides, the bars fill, the category list and the age menu open, and nothing is filtered. With
+ * `picked` it starts with a text and a pick of each kind.
  */
 export function FiltersSpecimen({ picked = false }: { picked?: boolean }) {
   const [filter, setFilter] = useState<GameFilter>(
-    picked ? { ...NO_FILTER, categories: ["Cards", "Party"], players: 4, duration: 30, age: 8 } : NO_FILTER,
+    picked ? { ...NO_FILTER, categories: ["Cards", "Party"], players: 4, duration: { min: 30, max: 60 }, complexity: 2, age: 8 } : NO_FILTER,
   )
   return (
     <div>

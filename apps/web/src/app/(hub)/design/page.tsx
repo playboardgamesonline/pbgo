@@ -4,7 +4,7 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
-import { Badges, Buttons, Checks, Comboboxes, Inputs, Selects, TabsSection, ToggleGroups } from "./_sections/controls"
+import { Badges, Buttons, Checks, Comboboxes, Inputs, Meters, Selects, Sliders, TabsSection, ToggleGroups } from "./_sections/controls"
 import { InGameUi } from "./_sections/in-game-ui"
 import { BoardPatterns, FaceCycles, Logos, Navbars, SearchBars, Wordmarks } from "./_sections/navigation"
 import { CookieBanners, Dialogs, Dropdowns, Popovers, Sheets, Toasts, Tooltips } from "./_sections/overlays"
@@ -100,6 +100,8 @@ export default function DesignPage() {
             <Checks />
             <Selects />
             <Comboboxes />
+            <Sliders />
+            <Meters />
             <TabsSection />
             <ToggleGroups />
             <Logos />

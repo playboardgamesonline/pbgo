@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@pbgo/ui/platform/select"
+import { Slider } from "@pbgo/ui/platform/slider"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { Switch } from "@pbgo/ui/platform/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
@@ -45,6 +46,8 @@ import { Textarea } from "@pbgo/ui/platform/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Demo, Section } from "../_components/layout"
 import { ComboboxSpecimen } from "../_components/combobox-specimen"
+import { MeterSpecimen } from "../_components/meter-specimen"
+import { RangeSliderSpecimen, SingleSliderSpecimen } from "../_components/slider-specimen"
 
 const ROW = "flex flex-wrap items-center gap-3"
 
@@ -517,6 +520,83 @@ export function Comboboxes() {
 </Popover>`}
       >
         <ComboboxSpecimen />
+      </Demo>
+    </Section>
+  )
+}
+
+export function Sliders() {
+  return (
+    <Section
+      id="slider"
+      module="slider"
+      intro="A slider for a value or a range along a scale: one thumb, or two for a range, a track that fills between them (from the start with one thumb) and, for a scale of a few stops, a dot on the track at each. It is Radix's `Slider` with one change: Radix keeps a thumb inside the slider by shifting it by half its width, which it has to measure, so a thumb drawn at its full size sits somewhere else on the server than in the browser. Here the thumb itself has no size, its centre is exactly where the fill, the dots and the pointer put it, and the round handle is drawn around that centre. The handles stick out of the track by half their width at each end, so leave that room around the slider (a margin of `mx-2`). It is `touch-none`: a finger drags a thumb instead of scrolling the page."
+    >
+      <Demo
+        title="One thumb"
+        description="The fill runs from the start to the thumb. `ticks` draws a dot at each step, for a scale of a few stops, where the thumb jumps from one to the next. A screen reader hears the number of the thumb; `valueText` says what it stands for, and `thumbLabels` what each thumb is."
+        code={`<Slider
+  min={1}
+  max={5}
+  step={1}
+  value={[level]}
+  onValueChange={([next]) => setLevel(next)}
+  ticks
+  thumbLabels={["Level"]}
+  valueText={(value) => \`Level \${value} of 5\`}
+/>`}
+      >
+        <SingleSliderSpecimen />
+      </Demo>
+
+      <Demo
+        title="A range"
+        description="Two thumbs light what is between them. `minStepsBetweenThumbs` keeps them from meeting. The hub's duration filter is one of these on a scale of seven stops, whose two ends are no limit: a thumb on the first stop leaves the lower limit open, a thumb on the last the upper one."
+        code={`<Slider
+  min={0}
+  max={100}
+  step={10}
+  minStepsBetweenThumbs={1}
+  value={range}
+  onValueChange={setRange}
+  ticks
+  thumbLabels={["From", "To"]}
+/>`}
+      >
+        <RangeSliderSpecimen />
+      </Demo>
+
+      <Demo
+        title="Idle and disabled"
+        description="`idle` says nothing is picked: the fill is dimmed and so are the handles, since thumbs on the two ends of a range would otherwise read as a pick. `disabled` is Radix's: half opacity, no pointer, no focus."
+        className="flex max-w-sm flex-col gap-8 px-8"
+        code={`<Slider min={0} max={6} defaultValue={[0, 6]} minStepsBetweenThumbs={1} ticks idle />
+<Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />`}
+      >
+        <Slider min={0} max={6} defaultValue={[0, 6]} minStepsBetweenThumbs={1} ticks idle />
+        <Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />
+      </Demo>
+    </Section>
+  )
+}
+
+export function Meters() {
+  return (
+    <Section
+      id="meter"
+      module="meter"
+      intro="A scale of a few levels drawn as bars of growing height, like the signal bars of a phone, that you fill from the first bar up to a level by pressing that bar. The hub uses it for how complex a game is, from light to heavy: the weight BoardGameGeek gives it, from 1 to 5, rounded. Each bar is a button (the level that is picked is `aria-pressed`, and each says in its label what it stands for), so the keyboard and a screen reader get what a pointer gets. Pressing the picked level again clears it."
+    >
+      <Demo
+        title="Levels"
+        description="With a mouse, the bars up to the pointer light up faintly before the press, so the fill can be seen coming. The bars take their height from the spacing scale, from 10px for the first to 26px for the last, and `levels` is the number of bars (five by default)."
+        code={`<Meter
+  value={level}
+  onValueChange={setLevel}
+  levelLabel={(level) => \`Up to \${level} of 5\`}
+/>`}
+      >
+        <MeterSpecimen />
       </Demo>
     </Section>
   )

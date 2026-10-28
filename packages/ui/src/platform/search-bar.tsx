@@ -8,8 +8,10 @@ import { Button } from "./button"
 // The big search bar of a page: one pill, glass, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
 // button that clears it once there is one and, at its end, what a page puts there: the category of the games, a button that opens a panel
 // (`SearchBarSegment`). The other filters are not in the bar: they stand under it, centred on a line of their own (`SearchBarFilters`), each in a
-// container of its own, a rectangle in the style of the navbar's islands: a stepper for a number (`SearchBarStepper`: less, the number, more) or a button that opens a menu (a `SearchBarSegment` that
-// is `boxed`). It only draws the bar and the row. The page owns the text, the picks and what they find.
+// container of its own, a rectangle in the style of the navbar's islands (`SearchBarGroup`: an icon, then what the filter holds, often a
+// `SearchBarChip` that says what is picked): a stepper for a number (`SearchBarStepper`: less, the number, more), a slider (`Slider`) or a bar that
+// fills (`Meter`) in a group of your own, or a button that opens a menu (a `SearchBarSegment` that is `boxed`). It only draws the bar and the row.
+// The page owns the text, the picks and what they find.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   return (
@@ -140,8 +142,8 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
 
 /**
  * The filters that stand under the bar: a row, centred, on a line of its own, that goes on another line when the room runs out. Each is in a container
- * of its own, a rectangle in the style of the navbar's islands (a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`). Name the group with an
- * `aria-label`.
+ * of its own, a rectangle in the style of the navbar's islands (a `SearchBarGroup`, a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`).
+ * Name the group with an `aria-label`.
  */
 function SearchBarFilters({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="search-bar-filters" role="group" className={cn("mt-3 flex flex-wrap items-center justify-center gap-3", className)} {...props} />
@@ -170,6 +172,51 @@ type SearchBarStepperProps = Omit<React.ComponentProps<"div">, "children" | "rol
   canIncrease?: boolean
 }
 
+type SearchBarGroupProps = Omit<React.ComponentProps<"div">, "role" | "aria-label"> & {
+  icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
+  /** What the filter filters by: "Duration". It is not drawn, the icon says what it is: it is what a screen reader calls the group. */
+  label: string
+}
+
+/**
+ * The container of a filter that stands under the bar, a rectangle in the style of the navbar's islands: the icon that says what the filter is,
+ * then what it holds (buttons, a slider, a bar that fills) and, most often, a `SearchBarChip` that says what is picked. A group, so a screen reader
+ * names it.
+ */
+function SearchBarGroup({ className, icon, label, children, ...props }: SearchBarGroupProps) {
+  return (
+    <div data-slot="search-bar-group" role="group" aria-label={label} className={cn("flex h-14 items-center gap-2 px-4", BOX, className)} {...props}>
+      <HugeiconsIcon icon={icon} strokeWidth={2} className="size-5 shrink-0 text-muted-foreground" />
+      {children}
+    </div>
+  )
+}
+
+type SearchBarChipProps = Omit<React.ComponentProps<"button">, "type" | "aria-pressed"> & {
+  /** Nothing is picked: the chip is dimmed. */
+  idle?: boolean
+}
+
+/**
+ * What a filter of the row has picked, written short ("3", "30–60 min", "Up to 3"), as a chip like the ones of a panel: dimmed while nothing is picked
+ * (`idle`), `bg-primary` once it is. It is a button: the page decides what a press does, which is to clear the pick (and, for a stepper, to pick the
+ * number it shows). Give it `disabled` when there is nothing to do, and a `min-w-*` that fits its longest text so the group does not change size.
+ */
+function SearchBarChip({ className, idle = false, ...props }: SearchBarChipProps) {
+  return (
+    <button
+      data-slot="search-bar-chip"
+      type="button"
+      aria-pressed={!idle}
+      className={cn(
+        "h-6 min-w-8 truncate rounded-lg px-1.5 text-center text-sm whitespace-nowrap text-muted-foreground transition-all outline-none hover:bg-input/60 focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/80",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 /**
  * A filter that is a number, which needs no panel, in a container of its own under the bar: the icon that says what the number is, then a minus
  * button, the number and a plus button. No label is drawn and no background is painted under the pointer; the buttons are outlined so they read as
@@ -178,7 +225,6 @@ type SearchBarStepperProps = Omit<React.ComponentProps<"div">, "children" | "rol
  * reader names it.
  */
 function SearchBarStepper({
-  className,
   icon,
   label,
   value,
@@ -195,27 +241,19 @@ function SearchBarStepper({
   ...props
 }: SearchBarStepperProps) {
   return (
-    <div data-slot="search-bar-stepper" role="group" aria-label={label} className={cn("flex h-14 items-center gap-2 px-4", BOX, className)} {...props}>
-      <HugeiconsIcon icon={icon} strokeWidth={2} className="size-5 shrink-0 text-muted-foreground" />
+    <SearchBarGroup icon={icon} label={label} {...props} data-slot="search-bar-stepper">
       <span className="flex min-w-0 items-center gap-1">
         <Button type="button" variant="outline" size="icon-xs" className="rounded-lg" aria-label={decreaseLabel} disabled={!canDecrease} onClick={onDecrease}>
           <HugeiconsIcon icon={MinusSignIcon} strokeWidth={2} />
         </Button>
-        <button
-          type="button"
-          aria-pressed={!idle}
-          aria-label={valueLabel}
-          title={valueTitle}
-          onClick={onValueClick}
-          className="h-6 min-w-8 truncate rounded-lg px-1.5 text-sm whitespace-nowrap text-muted-foreground transition-all outline-none hover:bg-input/60 focus-visible:ring-3 focus-visible:ring-ring/30 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/80"
-        >
+        <SearchBarChip idle={idle} aria-label={valueLabel} title={valueTitle} onClick={onValueClick}>
           {value}
-        </button>
+        </SearchBarChip>
         <Button type="button" variant="outline" size="icon-xs" className="rounded-lg" aria-label={increaseLabel} disabled={!canIncrease} onClick={onIncrease}>
           <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
         </Button>
       </span>
-    </div>
+    </SearchBarGroup>
   )
 }
 
@@ -227,5 +265,7 @@ export {
   SearchBarSubmit,
   SearchBarSegment,
   SearchBarFilters,
+  SearchBarGroup,
+  SearchBarChip,
   SearchBarStepper,
 }

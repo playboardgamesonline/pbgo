@@ -23,6 +23,8 @@ export const NAV = [
       { id: "checkbox", title: "Checkbox and switch" },
       { id: "select", title: "Select" },
       { id: "combobox", title: "Combobox" },
+      { id: "slider", title: "Slider" },
+      { id: "meter", title: "Meter" },
       { id: "tabs", title: "Tabs" },
       { id: "toggle-group", title: "Toggle group" },
       { id: "logo", title: "Logo" },

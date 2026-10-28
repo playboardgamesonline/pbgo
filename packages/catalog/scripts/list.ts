@@ -40,7 +40,7 @@ const catalog = buildCatalog(GAMES, notionGames)
 // A live game that Notion has no row for is listed with what the registry knows of it (`registryRow`): its figures, no picture, no text
 const fromRegistry = (slug: string) => !notionGames.some((game) => game.slug === slug)
 
-const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "age", "categories", "authors", "illustrators", "publisher", "related"]
+const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "weight", "age", "categories", "authors", "illustrators", "publisher", "related"]
 const rows = catalog.map((entry) => [
   entry.slug,
   entry.game.name,
@@ -50,6 +50,7 @@ const rows = catalog.map((entry) => [
   marks(LANGUAGES.map((language): [string, boolean] => [language.id, Boolean(entry.game.descriptions[language.id])])),
   players(entry.game.players),
   entry.game.duration === null ? "" : `${entry.game.duration}min`,
+  entry.game.complexity === null ? "" : entry.game.complexity.toFixed(2),
   entry.game.age === null ? "" : `${entry.game.age}+`,
   entry.game.categories.join(", "),
   entry.game.authors.join(", "),
@@ -69,7 +70,7 @@ if (catalog.some((entry) => entry.live && fromRegistry(entry.slug))) {
 }
 if (notionGames.length > 0) {
   console.log("\ndevelopment: Priority / Status / Effort of the Games Development database, the order of the coming-soon games (a live game keeps its place in the registry)")
-  console.log("art: Logo, Icon, Background · text: the languages that have a description")
+  console.log("art: Logo, Icon, Background · text: the languages that have a description · weight: the Complexity column, BoardGameGeek's weight from 1 to 5")
   console.log("related: the games the page of a game lists as related, both ways: the row of either one says so (Related Games, or the base game of a standalone expansion)")
 }
 if (notes.length > 0) console.log(`\n${notes.join("\n")}`)

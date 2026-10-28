@@ -31,6 +31,8 @@ export const COLUMNS = {
   slug: "Slug",
   players: "Players",
   duration: "Duration",
+  /** A number: the weight BoardGameGeek gives the game, from 1 (light) to 5 (heavy), written as BGG writes it (2.35). It sets the hub's complexity filter. */
+  complexity: "Complexity",
   age: "Age",
   /** A multi-select: the categories of the game, which the hub's category filter offers. Not `Game family`, which is a franchise. */
   categories: "Tags",
@@ -207,6 +209,9 @@ const optionsOf = (raw: unknown): string[] =>
 
 /** A number of minutes: more than none. */
 const minutesOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : null)
+
+/** A weight on BoardGameGeek's scale: from 1 (light) to 5 (heavy). Anything else, a 0 included (BGG's own "not enough votes"), is no weight. */
+const weightOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isFinite(raw) && raw >= 1 && raw <= 5 ? raw : null)
 
 /** A web link, or null: a rulebook or a website is only ever opened if it is http(s). `secureOnly`: https alone, for what the server itself fetches. */
 function linkOf(raw: unknown, secureOnly = false): string | null {
@@ -388,6 +393,7 @@ function planned(
     descriptions: byLanguage(descriptionColumn, (raw) => textOf(raw) || null),
     players: playersOf(optionOf(value(page, COLUMNS.players))),
     duration: minutesOf(value(page, COLUMNS.duration)),
+    complexity: weightOf(value(page, COLUMNS.complexity)),
     age: ageOf(optionOf(value(page, COLUMNS.age))),
     categories: optionsOf(value(page, COLUMNS.categories)),
     authors: resolve(value(page, COLUMNS.authors), creators),

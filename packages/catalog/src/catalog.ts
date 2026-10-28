@@ -42,6 +42,8 @@ export type NotionGame = {
   players: { min: number; max: number | null } | null
   /** Minutes. */
   duration: number | null
+  /** The weight BoardGameGeek gives the game, from 1 (light) to 5 (heavy): what the hub's complexity filter reads. Null when its row has none. */
+  complexity: number | null
   /** The minimum age in years. */
   age: number | null
   /** The categories of the game: the options its `Tags` cell holds, in the order of the row, each one once. What the hub's category filter offers. */
@@ -141,6 +143,7 @@ export function registryRow(game: GameEntry): NotionGame {
     descriptions: {},
     players: players ? { min: players.min, max: players.max } : null,
     duration: duration && duration.min === duration.max ? duration.min : null,
+    complexity: null,
     age: null,
     categories: [],
     authors: [],

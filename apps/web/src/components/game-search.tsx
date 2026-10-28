@@ -51,13 +51,13 @@ function writeAddress(filter: GameFilter) {
 
 /**
  * The search of the hub's pages that list games (the home and `/games`): one state for the text and the picks (categories, number of
- * players, duration, age), shared by the search bar in the header (`HeroSearch`, which holds the field and the filters)
+ * players, duration, complexity, age), shared by the search bar in the header (`HeroSearch`, which holds the field and the filters)
  * and by what is under it: the list (`GameList`), which draws the cards of the games that match, in the order of the catalog, or on the home
  * the sections of the platform until a search is started (`HomeBody`). The rules are `@pbgo/catalog/filter`'s; this holds the state. It all
  * happens in the browser on the index that the page sends with the cards, so nothing is asked of the server, the home stays static, and the
  * HTML of the page lists every game. The children are the page's own markup and stay server-rendered: only the components that read the
  * search draw again when it changes.
- * The picks are in the address of the page (`?category=Cards&players=4&duration=30&age=8`), so that a link opens the list as it was left. The
+ * The picks are in the address of the page (`?category=Cards&players=4&duration=30-60&complexity=2&age=8`), so that a link opens the list as it was left. The
  * text of the search is not: the address goes to analytics with every event, and what a visitor types is theirs. See docs/catalog.md.
  */
 export function GameSearch({ games, children }: { games: readonly SearchedGame[]; children: ReactNode }) {
