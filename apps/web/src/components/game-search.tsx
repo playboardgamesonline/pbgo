@@ -51,7 +51,7 @@ function writeAddress(filter: GameFilter) {
 
 /**
  * The search of the hub's pages that list games (the home and `/games`): one state for the text and the picks (categories, number of
- * players, duration, age), shared by the search bar in the header (`HeroSearch`, which holds the field and the filters of `SearchFilters`)
+ * players, duration, age), shared by the search bar in the header (`HeroSearch`, which holds the field and the filters)
  * and by what is under it: the list (`GameList`), which draws the cards of the games that match, in the order of the catalog, or on the home
  * the sections of the platform until a search is started (`HomeBody`). The rules are `@pbgo/catalog/filter`'s; this holds the state. It all
  * happens in the browser on the index that the page sends with the cards, so nothing is asked of the server, the home stays static, and the

@@ -239,75 +239,81 @@ export function SearchBars() {
     <Section
       id="search-bar"
       module="search-bar"
-      intro="The big search pill of a page: a field, a button that clears it once there is a text, and the round button that submits it. Filters can sit in the same bar as segments, each one an icon, a small label and what is picked, either opening a `Popover` or stepping a number in place. It only draws the bar. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
+      intro="The big search bar of a page: one glass pill with the magnifier at its start (the button that sends the search), the field, a button that clears the text once there is one and, at its end, a filter that opens a panel (the category). The other filters stand under it, centred on a line of their own, each in a container of its own: a stepper for a number, or a button that opens a menu. It only draws the bar and the row. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
     >
       <Demo
         title="Empty and filled"
-        description="`SearchBarField` holds the input and, once there is a text, `SearchBarClear`, which the page uses to empty the field and put the focus back in it. The field and each button need an `aria-label`: the bar shows no label of its own. These forms do nothing when sent (`method=dialog`)."
+        description="`SearchBarField` holds the magnifier (`SearchBarSubmit`), the input and, once there is a text, `SearchBarClear`, which the page uses to empty the field and put the focus back in it. The field and each button need an `aria-label`: the bar shows no label of its own. These forms do nothing when sent (`method=dialog`)."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
+    <SearchBarSubmit aria-label="Search" />
     <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
   </SearchBarField>
-  <SearchBarSubmit aria-label="Search" />
 </SearchBar>
 
 <SearchBar aria-label="Search the games">
   <SearchBarField>
+    <SearchBarSubmit aria-label="Search" />
     <SearchBarInput aria-label="Search a game" defaultValue="Hanabi" />
     <SearchBarClear aria-label="Clear the search" />
   </SearchBarField>
-  <SearchBarSubmit aria-label="Search" />
 </SearchBar>`}
       >
         <SearchBar method="dialog" aria-label="Search the games">
           <SearchBarField>
+            <SearchBarSubmit aria-label="Search" />
             <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
           </SearchBarField>
-          <SearchBarSubmit aria-label="Search" />
         </SearchBar>
         <SearchBar method="dialog" aria-label="Search the games">
           <SearchBarField>
+            <SearchBarSubmit aria-label="Search" />
             <SearchBarInput aria-label="Search a game" defaultValue="Hanabi" />
             <SearchBarClear aria-label="Clear the search" />
           </SearchBarField>
-          <SearchBarSubmit aria-label="Search" />
         </SearchBar>
       </Demo>
 
       <Demo
         title="With filters"
-        description="`SearchBarSegments` goes after the field in the markup. Its controls are packed to the left and go on a second row when the room runs out, with no line above them and no frame or separator between them. Each is an icon with what it filters and no label (a screen reader hears the `label`). A `SearchBarSegment` shows what is picked, dimmed while nothing is (`idle`), and opens something: wrap it in a `PopoverTrigger asChild` (a panel, such as the category's `Combobox`) or a `DropdownMenuTrigger asChild` (a menu, such as the age), which gives it `aria-expanded`, which paints it while it is open. A `SearchBarStepper` is for a number and needs no panel: a minus button, the number and a plus button, with no background under the pointer. The number is a chip that is `bg-primary` once picked and dimmed while nothing is, and pressing it picks it or clears it; the first press on either button picks the number it shows. The sides of the bar are round. Up to 48rem of room it is a card with large corners and the button is at the end of the field, as in this column; from 48rem (the home's hero on a desktop) it is a pill, the field and the filters in one block on the left and the round button, as tall as the two floors, alone on the right. The segments are `type=button`, so only the field and the round button send the form. These ones filter nothing: they step, open and search."
-        className="flex flex-col gap-4"
+        description="A `SearchBarSegment` at the end of the bar is a filter that opens a panel: an icon and what is picked, dimmed while nothing is (`idle`), in a button that you wrap in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while it is open. No label is drawn (a screen reader hears the `label`). With nothing picked its value is left out under 48rem of room, so the field keeps its room on a phone. The other filters go in `SearchBarFilters`, under the bar: centred, on a line of their own, wrapping when the room runs out. Each is in a container of its own: a `SearchBarStepper` for a number (a minus button, the number as a chip that is `bg-primary` once picked and dimmed while nothing is, a plus button; pressing the number picks it or clears it, and the first press on either button picks the number it shows), or a `SearchBarSegment` that is `boxed` and opens a menu, such as the age. These ones filter nothing: they step, open and search."
+        className="flex flex-col gap-10"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
+    <SearchBarSubmit aria-label="Search" />
     <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
   </SearchBarField>
-  <SearchBarSegments aria-label="Filter the games">
-    <Popover>
-      <PopoverTrigger asChild>
-        <SearchBarSegment icon={GridViewIcon} label="Category" value="Any category" idle />
-      </PopoverTrigger>
-      <PopoverContent aria-label="Categories">
-        <Combobox options={categories} value={picked} onValueChange={setPicked} aria-label="Categories" placeholder="Search categories..." empty="No category matches." />
-      </PopoverContent>
-    </Popover>
-    <SearchBarStepper
-      icon={UserMultipleIcon}
-      label="Players"
-      value="3"
-      idle
-      valueLabel="3 players"
-      valueTitle="3 players"
-      onValueClick={pickOrClear}
-      decreaseLabel="Fewer players"
-      increaseLabel="More players"
-      onDecrease={fewer}
-      onIncrease={more}
-    />
-  </SearchBarSegments>
-  <SearchBarSubmit aria-label="Search" />
-</SearchBar>`}
+  <Popover>
+    <PopoverTrigger asChild>
+      <SearchBarSegment icon={GridViewIcon} label="Category" value="Any category" idle />
+    </PopoverTrigger>
+    <PopoverContent aria-label="Categories" align="end">
+      <Combobox options={categories} value={picked} onValueChange={setPicked} aria-label="Categories" placeholder="Search categories..." empty="No category matches." />
+    </PopoverContent>
+  </Popover>
+</SearchBar>
+<SearchBarFilters aria-label="More filters">
+  <SearchBarStepper
+    icon={UserMultipleIcon}
+    label="Players"
+    value="3"
+    idle
+    valueLabel="3 players"
+    valueTitle="3 players"
+    onValueClick={pickOrClear}
+    decreaseLabel="Fewer players"
+    increaseLabel="More players"
+    onDecrease={fewer}
+    onIncrease={more}
+  />
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <SearchBarSegment icon={ChildIcon} label="Age" value="Any age" idle boxed />
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>…</DropdownMenuContent>
+  </DropdownMenu>
+</SearchBarFilters>`}
       >
         <FiltersSpecimen />
         <FiltersSpecimen picked />
@@ -336,9 +342,9 @@ export function SearchBars() {
           <div className="relative -mt-2.5 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
+                <SearchBarSubmit aria-label="Search" />
                 <SearchBarInput aria-label="Search games, tables and tournaments" placeholder="Search games, tables & tournaments..." />
               </SearchBarField>
-              <SearchBarSubmit aria-label="Search" />
             </SearchBar>
           </div>
         </div>

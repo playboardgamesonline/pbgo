@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@pbgo/ui/platform/dropdown-menu"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
-import { SearchBarSegment, SearchBarSegments, SearchBarStepper } from "@pbgo/ui/platform/search-bar"
+import { SearchBarFilters, SearchBarSegment, SearchBarStepper } from "@pbgo/ui/platform/search-bar"
 import { useGameSearch } from "@/components/game-search"
 
 // The platform speaks English (a game's own pages are localized by the game)
@@ -94,7 +94,7 @@ export function NumberStepper({
  * The category filter: a segment that opens a panel with the categories as a list with a search field (`Combobox`), several of which can be
  * picked, and a Clear button above it. Its panel says so when no game has a category yet.
  */
-function CategoryFilter({
+export function CategoryFilter({
   categories,
   picked,
   onPick,
@@ -110,7 +110,7 @@ function CategoryFilter({
       <PopoverTrigger asChild>
         <SearchBarSegment icon={GridViewIcon} label="Category" value={none ? "Any category" : categoryText(picked)} idle={none} />
       </PopoverTrigger>
-      <PopoverContent aria-labelledby={titleId} className="w-80">
+      <PopoverContent aria-labelledby={titleId} align="end" className="w-80">
         <PopoverHeader>
           <PopoverTitle id={titleId}>Categories</PopoverTitle>
           <Button type="button" variant="ghost" size="sm" disabled={none} onClick={() => onPick([])}>
@@ -142,7 +142,7 @@ function AgeFilter({ current, onPick }: { current: number | null; onPick: (next:
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <SearchBarSegment icon={ChildIcon} label="Age" value={current === null ? "Any age" : ageText(current)} idle={current === null} />
+        <SearchBarSegment icon={ChildIcon} label="Age" value={current === null ? "Any age" : ageText(current)} idle={current === null} boxed />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-40">
         {/* "any" is not one of the ages, so `optionOf` reads it as none */}
@@ -160,23 +160,13 @@ function AgeFilter({ current, onPick }: { current: number | null; onPick: (next:
 }
 
 /**
- * The four segments of the search bar, from the picks they are given and the way to change them (so `/design` can draw them with picks of its
- * own): the category (several at once, from a list with a search field), then the number of players and the longest duration, each a stepper,
- * and the age of the youngest player, from a menu. A pick filters the list at once and goes into the address. The rules are `@pbgo/catalog/filter`'s. See
- * docs/catalog.md.
+ * The three filters that stand under the bar, from the picks they are given and the way to change them (so `/design` can draw them with picks of its
+ * own), each in a container of its own: the number of players and the longest duration, as steppers, and the age of the youngest player, from a menu.
+ * A pick filters the list at once and goes into the address. The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
  */
-export function FilterSegments({
-  categories,
-  filter,
-  onFilterChange,
-}: {
-  categories: readonly string[]
-  filter: GameFilter
-  onFilterChange: (next: GameFilter) => void
-}) {
+export function MoreFilters({ filter, onFilterChange }: { filter: GameFilter; onFilterChange: (next: GameFilter) => void }) {
   return (
-    <SearchBarSegments aria-label="Filter the games">
-      <CategoryFilter categories={categories} picked={filter.categories} onPick={(next) => onFilterChange({ ...filter, categories: next })} />
+    <SearchBarFilters aria-label="More filters">
       <NumberStepper
         icon={UserMultipleIcon}
         label="Players"
@@ -202,12 +192,18 @@ export function FilterSegments({
         increase="Longer games"
       />
       <AgeFilter current={filter.age} onPick={(age) => onFilterChange({ ...filter, age })} />
-    </SearchBarSegments>
+    </SearchBarFilters>
   )
 }
 
-/** The filters of the search of the page (`GameSearch`): the segments of the search bar, on the picks it holds. */
-export function SearchFilters() {
+/** The category filter of the search of the page (`GameSearch`), for the end of the bar. */
+export function SearchCategory() {
   const { categories, filter, pick } = useGameSearch()
-  return <FilterSegments categories={categories} filter={filter} onFilterChange={pick} />
+  return <CategoryFilter categories={categories} picked={filter.categories} onPick={(next) => pick({ ...filter, categories: next })} />
+}
+
+/** The other filters of the search of the page (`GameSearch`), for the row under the bar. */
+export function SearchMoreFilters() {
+  const { filter, pick } = useGameSearch()
+  return <MoreFilters filter={filter} onFilterChange={pick} />
 }

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 /**
  * Every game of the catalog in one list, the ones to play now first, then the ones to come (docs/catalog.md): the list the home used to be.
- * The search bar above it (`HeroSearch`, with the filters of `SearchFilters`) filters it as the visitor types and picks, in the browser, on the
+ * The search bar above it (`HeroSearch`, with its filters) filters it as the visitor types and picks, in the browser, on the
  * index that the page sends with the cards (`GameSearch`), so the page stays static and its HTML lists every game. The picks are in the address,
  * so a link opens the list as it was left; the text of the search is not. The home links here from its "Popular games" ("See all").
  */
