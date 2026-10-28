@@ -42,6 +42,7 @@ import { Spinner } from "@pbgo/ui/platform/spinner"
 import { Switch } from "@pbgo/ui/platform/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
 import { Textarea } from "@pbgo/ui/platform/textarea"
+import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -563,6 +564,64 @@ export function TabsSection() {
             Games, audience and health.
           </TabsContent>
         </Tabs>
+      </Demo>
+    </Section>
+  )
+}
+
+export function ToggleGroups() {
+  return (
+    <Section
+      id="toggle-group"
+      module="toggle-group"
+      intro="A set of chips to pick from, for a short list of choices that all stay in view: the filters of the search bar are made of them. `single` keeps one chip picked, `multiple` any number. The arrow keys move between the chips, and the whole group is one stop of the Tab key."
+    >
+      <Demo
+        title="Single and multiple"
+        description="A chip that is picked turns primary. In a `single` group a second click on the picked chip unpicks it, and the value then reads as an empty string: the page takes that for no pick. Name each group with an `aria-label`, since its chips are only numbers or short words."
+        className="flex flex-col gap-4"
+        code={`<ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
+  <ToggleGroupItem value="3">3</ToggleGroupItem>
+  <ToggleGroupItem value="4">4</ToggleGroupItem>
+  <ToggleGroupItem value="5">5</ToggleGroupItem>
+</ToggleGroup>
+
+<ToggleGroup type="multiple" defaultValue={["Cards"]} aria-label="Categories">
+  <ToggleGroupItem value="Cards">Cards</ToggleGroupItem>
+  <ToggleGroupItem value="Party">Party</ToggleGroupItem>
+</ToggleGroup>`}
+      >
+        <ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
+          {["1", "2", "3", "4", "5", "6", "7", "8+"].map((count) => (
+            <ToggleGroupItem key={count} value={count}>
+              {count}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <ToggleGroup type="multiple" defaultValue={["Cards", "Party"]} aria-label="Categories">
+          {["Bluffing", "Cards", "Co-op", "Party", "Strategy"].map((category) => (
+            <ToggleGroupItem key={category} value={category}>
+              {category}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </Demo>
+
+      <Demo
+        title="Disabled"
+        description="A chip, or the whole group, can be `disabled`: it is dimmed and skipped by the keyboard."
+        code={`<ToggleGroup type="single" defaultValue="30" aria-label="Duration">
+  <ToggleGroupItem value="15" disabled>15 min</ToggleGroupItem>
+  <ToggleGroupItem value="30">30 min</ToggleGroupItem>
+</ToggleGroup>`}
+      >
+        <ToggleGroup type="single" defaultValue="30" aria-label="Duration">
+          <ToggleGroupItem value="15" disabled>
+            15 min
+          </ToggleGroupItem>
+          <ToggleGroupItem value="30">30 min</ToggleGroupItem>
+          <ToggleGroupItem value="45">45 min</ToggleGroupItem>
+        </ToggleGroup>
       </Demo>
     </Section>
   )

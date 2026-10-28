@@ -1,8 +1,19 @@
+import { Baby01Icon, Clock01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
-import { SearchBar, SearchBarClear, SearchBarInput, SearchBarSubmit } from "@pbgo/ui/platform/search-bar"
+import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
+import {
+  SearchBar,
+  SearchBarClear,
+  SearchBarField,
+  SearchBarInput,
+  SearchBarSegment,
+  SearchBarSegments,
+  SearchBarSubmit,
+} from "@pbgo/ui/platform/search-bar"
+import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Demo, Section } from "../_components/layout"
 
 export function Logos() {
@@ -120,35 +131,141 @@ export function Navbars() {
   )
 }
 
+/** The options of the specimens below. */
+const FILTERS = {
+  category: { icon: GridViewIcon, label: "Category", chips: ["Bluffing", "Cards", "Co-op", "Party", "Strategy"] },
+  players: { icon: UserGroupIcon, label: "Players", chips: ["1", "2", "3", "4", "5", "6", "7", "8+"] },
+  duration: { icon: Clock01Icon, label: "Duration", chips: ["15 min", "30 min", "45 min"] },
+  age: { icon: Baby01Icon, label: "Age", chips: ["6", "8", "10", "12", "14"] },
+} as const
+
+/** One filter of the bar, as the home builds it: a segment that opens a panel of chips. `picked` is what is chosen, nothing for an idle segment. */
+function FilterSegment({ filter, value, picked = [] }: { filter: keyof typeof FILTERS; value: string; picked?: string[] }) {
+  const { icon, label, chips } = FILTERS[filter]
+  const multiple = filter === "category"
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <SearchBarSegment icon={icon} label={label} value={value} idle={picked.length === 0} />
+      </PopoverTrigger>
+      <PopoverContent aria-label={label}>
+        <PopoverHeader>
+          <PopoverTitle>{label}</PopoverTitle>
+          <Button type="button" variant="ghost" size="sm" disabled={picked.length === 0}>
+            Clear
+          </Button>
+        </PopoverHeader>
+        {multiple ? (
+          <ToggleGroup type="multiple" defaultValue={picked} aria-label={label}>
+            {chips.map((chip) => (
+              <ToggleGroupItem key={chip} value={chip}>
+                {chip}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        ) : (
+          <ToggleGroup type="single" defaultValue={picked[0]} aria-label={label}>
+            {chips.map((chip) => (
+              <ToggleGroupItem key={chip} value={chip}>
+                {chip}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export function SearchBars() {
   return (
     <Section
       id="search-bar"
       module="search-bar"
-      intro="The big search pill of a page: one field, a button that clears it once there is a text, and the round button that submits it. It only draws the pill. The page owns the text and what it finds, and the filters stay with the list they cut. The field is `text-base` on every screen: a smaller text makes iOS zoom the page in on focus."
+      intro="The big search pill of a page: a field, a button that clears it once there is a text, and the round button that submits it. Filters can sit in the same bar as segments, each one an icon, a small label and what is picked, opening a `Popover` of chips. It only draws the bar. The page owns the text, the picks and what they find. The field is `text-base` on every screen: a smaller text makes iOS zoom the page in on focus."
     >
       <Demo
         title="Empty and filled"
-        description="`SearchBarClear` shows only while there is a text, and the page puts the focus back in the field when it is used. The field and each button need an `aria-label`: the pill shows no label of its own. These forms do nothing when sent (`method=dialog`)."
+        description="`SearchBarField` holds the input and, once there is a text, `SearchBarClear`, which the page uses to empty the field and put the focus back in it. The field and each button need an `aria-label`: the pill shows no label of its own. These forms do nothing when sent (`method=dialog`)."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
-  <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+  <SearchBarField>
+    <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+  </SearchBarField>
   <SearchBarSubmit aria-label="Search" />
 </SearchBar>
 
 <SearchBar aria-label="Search the games">
-  <SearchBarInput aria-label="Search a game" defaultValue="Hanabi" />
-  <SearchBarClear aria-label="Clear the search" />
+  <SearchBarField>
+    <SearchBarInput aria-label="Search a game" defaultValue="Hanabi" />
+    <SearchBarClear aria-label="Clear the search" />
+  </SearchBarField>
   <SearchBarSubmit aria-label="Search" />
 </SearchBar>`}
       >
         <SearchBar method="dialog" aria-label="Search the games">
-          <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+          <SearchBarField>
+            <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+          </SearchBarField>
           <SearchBarSubmit aria-label="Search" />
         </SearchBar>
         <SearchBar method="dialog" aria-label="Search the games">
-          <SearchBarInput aria-label="Search a game" defaultValue="Hanabi" />
-          <SearchBarClear aria-label="Clear the search" />
+          <SearchBarField>
+            <SearchBarInput aria-label="Search a game" defaultValue="Hanabi" />
+            <SearchBarClear aria-label="Clear the search" />
+          </SearchBarField>
+          <SearchBarSubmit aria-label="Search" />
+        </SearchBar>
+      </Demo>
+
+      <Demo
+        title="With filters"
+        description="`SearchBarSegments` goes between the field and the button, with no more than four `SearchBarSegment`. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. The bar is one pill when the room it has is 56rem wide or more, as in the home's hero, and a card below that, the field and the button on top and the segments under them, as in this column. The segments are `type=button`, so only the field and the round button send the form."
+        className="flex flex-col gap-4"
+        code={`<SearchBar aria-label="Search the games">
+  <SearchBarField>
+    <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+  </SearchBarField>
+  <SearchBarSegments aria-label="Filter the games">
+    <Popover>
+      <PopoverTrigger asChild>
+        <SearchBarSegment icon={UserGroupIcon} label="Players" value="4 players" />
+      </PopoverTrigger>
+      <PopoverContent aria-label="Players">…</PopoverContent>
+    </Popover>
+    <Popover>
+      <PopoverTrigger asChild>
+        <SearchBarSegment icon={Baby01Icon} label="Age" value="Any age" idle />
+      </PopoverTrigger>
+      <PopoverContent aria-label="Age">…</PopoverContent>
+    </Popover>
+  </SearchBarSegments>
+  <SearchBarSubmit aria-label="Search" />
+</SearchBar>`}
+      >
+        <SearchBar method="dialog" aria-label="Search the games">
+          <SearchBarField>
+            <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+          </SearchBarField>
+          <SearchBarSegments aria-label="Filter the games">
+            <FilterSegment filter="category" value="Any category" />
+            <FilterSegment filter="players" value="Any players" />
+            <FilterSegment filter="duration" value="Any duration" />
+            <FilterSegment filter="age" value="Any age" />
+          </SearchBarSegments>
+          <SearchBarSubmit aria-label="Search" />
+        </SearchBar>
+        <SearchBar method="dialog" aria-label="Search the games">
+          <SearchBarField>
+            <SearchBarInput aria-label="Search a game" defaultValue="Flip" />
+            <SearchBarClear aria-label="Clear the search" />
+          </SearchBarField>
+          <SearchBarSegments aria-label="Filter the games">
+            <FilterSegment filter="category" value="Cards +1" picked={["Cards", "Party"]} />
+            <FilterSegment filter="players" value="4 players" picked={["4"]} />
+            <FilterSegment filter="duration" value="Up to 30 min" picked={["30 min"]} />
+            <FilterSegment filter="age" value="8 years old" picked={["8"]} />
+          </SearchBarSegments>
           <SearchBarSubmit aria-label="Search" />
         </SearchBar>
       </Demo>
@@ -170,7 +287,9 @@ export function SearchBars() {
           <p className="font-heading text-3xl">Play board games with friends & rivals</p>
           <div className="w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search the games">
-              <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+              <SearchBarField>
+                <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+              </SearchBarField>
               <SearchBarSubmit aria-label="Search" />
             </SearchBar>
           </div>
