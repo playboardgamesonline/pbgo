@@ -33,13 +33,13 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
   const game = await getGamePage((await params).slug)
   if (!game) notFound()
 
-  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
+  // The page starts under the fixed navbar (`pt-navbar`) and ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
-    <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
+    <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col pt-navbar">
       {game.seo.indexable && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(gameJsonLd(game.seo, SITE_URL)) }} />
       )}
-      <SiteHeader />
+      <SiteHeader current="games" />
 
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
         <Link href="/#games" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline">

@@ -1,30 +1,20 @@
 "use client"
 
-import { useRef, useState, useSyncExternalStore } from "react"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
-
 import {
   AVAILABILITIES,
   DURATION_LIMITS,
   MANY_PLAYERS,
-  MAX_QUERY_LENGTH,
   NO_FILTER,
   PLAYER_COUNTS,
-  filterFromParams,
-  filterGames,
-  filterToParams,
   isFiltered,
   optionOf,
   type Availability,
-  type GameFilter,
-  type GameIndex,
 } from "@pbgo/catalog/filter"
 import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
-import { GameCard, type GameCardProps } from "@pbgo/ui/platform/game-card"
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@pbgo/ui/platform/input-group"
+import { GameCard } from "@pbgo/ui/platform/game-card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
+import { useGameSearch } from "@/components/game-search"
 
 // The platform speaks English (a game's own pages are localized by the game)
 const AVAILABILITY_TEXTS: Record<Availability, string> = { all: "All games", play: "Play now", soon: "Coming soon" }
@@ -50,24 +40,6 @@ function durationText(limit: number): string {
 function countText(shown: number, total: number): string {
   const games = total === 1 ? "game" : "games"
   return shown === total ? `${total} ${games}` : `${shown} of ${total} ${games}`
-}
-
-// The query string of the address, read once the page is in the browser. The home is static, so the server does not know it: the server and the
-// first render of the browser both see none (`getServerSnapshot`), which keeps the hydration whole, and the list opens on the picks of the link
-// right after. Nothing changes the address under the page (the picks rewrite it, but by then they are in the state), so nothing is subscribed to.
-const subscribeToNothing = () => () => {}
-const readSearch = () => window.location.search
-const readNoSearch = () => ""
-
-/** Writes the picks into the address of the page, in place: the list as the visitor has it is not a page to come back to with the back button. */
-function writeAddress(filter: GameFilter) {
-  try {
-    const url = new URL(window.location.href)
-    url.search = filterToParams(filter).toString()
-    window.history.replaceState(null, "", url)
-  } catch {
-    // The address is a convenience: a browser can refuse to rewrite it (Safari past 100 calls in 30 s, a page in a sandboxed frame)
-  }
 }
 
 /** A select of the toolbar for a pick among numbers: "any" (no pick), then one option for each of `options`. */
@@ -108,77 +80,21 @@ function NumberSelect({
 }
 
 /**
- * The hub's list of games with its search and its filters: the cards of the games that match, in the order of the catalog, under a field and
- * three selects (availability, number of players, duration). The rules are `@pbgo/catalog/filter`'s; this draws them. It all happens in the
- * browser on the index that the page sends with the cards, so nothing is asked of the server, the home stays static, and the HTML of the page
- * lists every game.
- * The three picks are in the address of the page (`?show=soon&players=4&duration=30`), so that a link opens the list as it was left. The text of
- * the search is not: the address goes to analytics with every event, and what a visitor types is theirs. See docs/catalog.md.
+ * The hub's list of games: under the search of the home (`GameSearch`), the three filters (availability, number of players, duration), the
+ * count, then the cards of the games that match, in the order of the catalog, or "No game matches" when none does. The text of the search is
+ * the pill of the header (`HeroSearch`); the rules are `@pbgo/catalog/filter`'s and this draws them. See docs/catalog.md.
  */
-export function GameBrowser({ games }: { games: readonly (GameIndex & { props: GameCardProps })[] }) {
-  const search = useSyncExternalStore(subscribeToNothing, readSearch, readNoSearch)
-  // What the visitor has changed since the page opened, else what the address holds
-  const [edited, setEdited] = useState<GameFilter | null>(null)
-  const filter = edited ?? filterFromParams(new URLSearchParams(search))
-  const shown = filterGames(games, filter)
-  const field = useRef<HTMLInputElement>(null)
-
-  function pick(next: GameFilter) {
-    setEdited(next)
-    writeAddress(next)
-  }
+export function GameList() {
+  const { games, filter, shown, pick } = useGameSearch()
 
   // `data-game` only on the live games: analytics counts the games opened from the hub, and a game to come is not one
   return (
     <>
       <div
-        role="search"
-        aria-label="Search and filter the games"
+        role="group"
+        aria-label="Filter the games"
         className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-center"
       >
-        <form
-          className="col-span-2 sm:col-span-3 lg:w-80"
-          onSubmit={(event) => {
-            event.preventDefault()
-            // The list follows what is typed, so there is nothing to submit. On a phone the search key puts the keyboard away, which hid the list.
-            if (window.matchMedia("(pointer: coarse)").matches) field.current?.blur()
-          }}
-        >
-          <InputGroup>
-            <InputGroupAddon>
-              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
-            </InputGroupAddon>
-            <InputGroupInput
-              ref={field}
-              type="search"
-              value={filter.query}
-              onChange={(event) => setEdited({ ...filter, query: event.target.value })}
-              aria-label="Search a game"
-              placeholder="Search a game"
-              maxLength={MAX_QUERY_LENGTH}
-              autoComplete="off"
-              spellCheck={false}
-              enterKeyHint="search"
-              // The browser's own clear button, where it has one, is replaced by the one below, so that the field looks the same everywhere
-              className="[&::-webkit-search-cancel-button]:appearance-none"
-            />
-            {filter.query !== "" && (
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  size="icon-xs"
-                  aria-label="Clear the search"
-                  onClick={() => {
-                    setEdited({ ...filter, query: "" })
-                    field.current?.focus()
-                  }}
-                >
-                  <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-                </InputGroupButton>
-              </InputGroupAddon>
-            )}
-          </InputGroup>
-        </form>
-
         <Select
           value={filter.availability}
           onValueChange={(next) => pick({ ...filter, availability: optionOf(AVAILABILITIES, next) ?? "all" })}

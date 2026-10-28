@@ -1,8 +1,9 @@
 /*
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
- * Direction: black and white, dark theme only. No accent colour, no gradient. Geist Sans in semibold, slightly tight
- * line-height, small negative letter-spacing. Game art is the only colour on the platform.
+ * Direction: black and white, dark theme only. No accent colour, and a single gradient, neutral too: the backdrop of a page's first
+ * screen (`bg-linear-to-b from-secondary via-card to-background`), lighter at the top and black where the content starts. Geist Sans
+ * in semibold, slightly tight line-height, small negative letter-spacing. Game art is the only colour on the platform.
  *
  * TWO LAYERS, SAME TOKEN NAMES (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--radius`, `--font-body`…)
  *   - Platform layer: the values below, scoped to `.platform`. The class sits on <html> (hub, 404), on a wrapper <div>
@@ -78,6 +79,9 @@
   /* Layout widths: `max-w-page` (grids, headers: nearly the whole screen up to a 1536px window), `max-w-reading` (legal text, forms) */
   --container-page: 96rem;
   --container-reading: 40rem;
+
+  /* Height of the fixed navbar, whose two 3.5rem containers sit centred in it, 0.75rem from the top: `h-navbar`, and `pt-navbar` / `scroll-mt-navbar` on what sits under it */
+  --spacing-navbar: 5rem;
 
   /* Motion: `duration-fast`, `duration-base`, `duration-slow`, `ease-standard` */
   --transition-duration-fast: 100ms;
