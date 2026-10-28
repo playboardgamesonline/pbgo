@@ -32,7 +32,7 @@ export default async function GamesPage() {
           <section className="bg-linear-to-b from-card to-background pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center gap-8 px-gutter pt-section pb-12 text-center">
               <h1 className="font-heading text-4xl sm:text-5xl">Games</h1>
-              <div className="w-full max-w-5xl">
+              <div className="w-full max-w-3xl">
                 <HeroSearch />
               </div>
             </div>

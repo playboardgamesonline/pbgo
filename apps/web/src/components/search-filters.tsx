@@ -29,7 +29,7 @@ import {
 } from "@pbgo/ui/platform/dropdown-menu"
 import { Meter } from "@pbgo/ui/platform/meter"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
-import { SearchBarChip, SearchBarFilters, SearchBarGroup, SearchBarSegment, SearchBarStepper } from "@pbgo/ui/platform/search-bar"
+import { SearchBarFilters, SearchBarGroup, SearchBarIcon, SearchBarSegment, SearchBarStepper, SearchBarValue } from "@pbgo/ui/platform/search-bar"
 import { Slider } from "@pbgo/ui/platform/slider"
 import { useGameSearch } from "@/components/game-search"
 
@@ -42,21 +42,13 @@ const ageText = (age: number): string => `+${age} yrs`
 /** The first category picked, then how many more: "Cards", "Cards +2". */
 const categoryText = (picked: readonly string[]): string => (picked.length > 1 ? `${picked[0]} +${picked.length - 1}` : (picked[0] ?? ""))
 
-/** A range of minutes as its chip writes it: "30–60 min", "Up to 30 min", "60+ min". */
-function durationText({ min, max }: DurationRange): string {
-  if (min !== null && max !== null) return `${min}–${max} min`
-  if (max !== null) return `Up to ${max} min`
-  return `${min ?? 0}+ min`
-}
-
-/** The same range as a screen reader hears it, and as a pointer shows it over the chip: "30 to 60 minutes", "Up to 30 minutes", "60 minutes or more". */
-function durationSays({ min, max }: DurationRange): string {
-  if (min !== null && max !== null) return `${min} to ${max} minutes`
-  if (max !== null) return `Up to ${max} minutes`
-  return `${min ?? 0} minutes or more`
-}
-
 const LAST_STOP = DURATION_STOPS.length - 1
+
+/**
+ * The range the two thumbs stand for, as the duration filter writes it, with no unit since the hourglass beside it says it: "30–60", "0–45", "60–120+".
+ * The first stop is 0, no lower limit, and the last is no upper limit: the thumbs on the two ends write "0–120+", every game.
+ */
+const durationText = (from: number, to: number): string => `${DURATION_STOPS[from]}–${DURATION_STOPS[to]}${to >= LAST_STOP ? "+" : ""}`
 
 /** A thumb of the duration slider on a stop of the scale, as a screen reader hears it: the position alone would be "2". The two ends are no limit. */
 const stopSays = (stop: number): string => (stop <= 0 ? "No minimum" : stop >= LAST_STOP ? "No maximum" : `${DURATION_STOPS[stop]} minutes`)
@@ -64,9 +56,7 @@ const stopSays = (stop: number): string => (stop <= 0 ? "No minimum" : stop >= L
 /** BoardGameGeek's word for each level of weight, from 1 to 5. */
 const COMPLEXITY_NAMES = ["light", "medium light", "medium", "medium heavy", "heavy"] as const
 
-/** What the chip writes for a level: the bar fills up to it and a game stays when it is at most that complex. */
-const complexityText = (level: number): string => `Up to ${level}`
-/** The same, for a screen reader and a pointer: "Complexity up to 3 of 5, medium". */
+/** What a screen reader hears for the bar of a level, and a pointer shows over it: "Complexity up to 3 of 5, medium". A game stays when its level is at most that. */
 const complexitySays = (level: number): string => `Complexity up to ${level} of ${COMPLEXITY_LEVELS.length}, ${COMPLEXITY_NAMES[level - 1] ?? ""}`
 
 /**
@@ -81,7 +71,7 @@ export function NumberStepper({
   first,
   current,
   onPick,
-  chip,
+  text,
   says,
   decrease,
   increase,
@@ -94,8 +84,8 @@ export function NumberStepper({
   /** The pick, null for none. */
   current: number | null
   onPick: (next: number | null) => void
-  /** The number as the chip writes it, with its unit when the icon alone does not say it: "3", "8+", "45 min", "8 yrs". */
-  chip: (value: number) => string
+  /** The number as it is written: "3", "8+". */
+  text: (value: number) => string
   /** The number as a screen reader hears it: "3 players". */
   says: (value: number) => string
   /** What the two buttons do: "Fewer players", "More players". */
@@ -107,7 +97,7 @@ export function NumberStepper({
     <SearchBarStepper
       icon={icon}
       label={label}
-      value={chip(shown)}
+      value={text(shown)}
       idle={current === null}
       valueLabel={says(shown)}
       valueTitle={current === null ? says(first) : `Clear: ${says(current)}`}
@@ -167,14 +157,22 @@ export function CategoryFilter({
 }
 
 /**
- * The duration filter: a slider with two thumbs along a scale of stops (`DURATION_STOPS`), the range between them lit. The thumb on the first stop
- * leaves the lower limit open and the one on the last the upper limit, so "at most 30 minutes", "60 minutes or more" and "between 30 and 60" are all
- * one gesture, and the thumbs on the two ends are no filter. The chip says the range, and clears it when pressed.
+ * The duration filter: the range written on the left with no unit, the hourglass right after it, then a slider with two thumbs along a scale of stops
+ * (`DURATION_STOPS`), the range between them lit. The thumb on the first stop leaves the lower limit open and the one on the last the upper limit, so
+ * "at most 30 minutes", "60 minutes or more" and "between 30 and 60" are all one gesture, and the thumbs on the two ends are no filter: that is how
+ * it is cleared. The text has a width of its own, so the hourglass and the slider stay where they are while it changes.
  */
 function DurationFilter({ current, onPick }: { current: DurationRange | null; onPick: (next: DurationRange | null) => void }) {
   const [from, to] = durationStopsOf(current)
   return (
-    <SearchBarGroup icon={HourglassIcon} label="Duration">
+    <SearchBarGroup label="Duration">
+      <span className="flex items-center gap-2">
+        {/* The thumbs say it to a screen reader, and the group names the filter */}
+        <SearchBarValue aria-hidden="true" className="w-14 text-right">
+          {durationText(from, to)}
+        </SearchBarValue>
+        <SearchBarIcon icon={HourglassIcon} />
+      </span>
       <Slider
         className="mx-2 w-36"
         min={0}
@@ -186,41 +184,21 @@ function DurationFilter({ current, onPick }: { current: DurationRange | null; on
         thumbLabels={["Shortest duration", "Longest duration"]}
         valueText={stopSays}
         ticks
-        idle={current === null}
       />
-      <SearchBarChip
-        idle={current === null}
-        disabled={current === null}
-        className="min-w-24"
-        aria-label={current === null ? "Any duration" : `Clear: ${durationSays(current)}`}
-        title={current === null ? undefined : `Clear: ${durationSays(current)}`}
-        onClick={() => onPick(null)}
-      >
-        {current === null ? "Any" : durationText(current)}
-      </SearchBarChip>
     </SearchBarGroup>
   )
 }
 
 /**
- * The complexity filter: bars of growing height that fill up to the level pressed, on the scale of the weight that BoardGameGeek gives a game (1,
- * light, to 5, heavy). A game stays when its level, its weight rounded, is at most the one picked. Pressing the picked level again clears it, and so
- * does the chip.
+ * The complexity filter: its icon, then five bars of the same height that fill up to the level pressed, on the scale of the weight that BoardGameGeek gives
+ * a game (1, light, to 5, heavy), with nothing written beside them. A game stays when its level, its weight rounded, is at most the one picked.
+ * Pressing the picked level again clears it.
  */
 function ComplexityFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
   return (
-    <SearchBarGroup icon={Brain02Icon} label="Complexity">
+    <SearchBarGroup label="Complexity">
+      <SearchBarIcon icon={Brain02Icon} />
       <Meter levels={COMPLEXITY_LEVELS.length} value={current} onValueChange={onPick} levelLabel={complexitySays} />
-      <SearchBarChip
-        idle={current === null}
-        disabled={current === null}
-        className="min-w-16"
-        aria-label={current === null ? "Any complexity" : `Clear: ${complexitySays(current)}`}
-        title={current === null ? undefined : `Clear: ${complexitySays(current)}`}
-        onClick={() => onPick(null)}
-      >
-        {current === null ? "Any" : complexityText(current)}
-      </SearchBarChip>
     </SearchBarGroup>
   )
 }
@@ -266,7 +244,7 @@ export function MoreFilters({ filter, onFilterChange }: { filter: GameFilter; on
         first={FIRST_PICKS.players}
         current={filter.players}
         onPick={(players) => onFilterChange({ ...filter, players })}
-        chip={(count) => (count >= MANY_PLAYERS ? `${count}+` : String(count))}
+        text={(count) => (count >= MANY_PLAYERS ? `${count}+` : String(count))}
         says={playersText}
         decrease="Fewer players"
         increase="More players"

@@ -567,13 +567,11 @@ export function Sliders() {
       </Demo>
 
       <Demo
-        title="Idle and disabled"
-        description="`idle` says nothing is picked: the fill is dimmed and so are the handles, since thumbs on the two ends of a range would otherwise read as a pick. `disabled` is Radix's: half opacity, no pointer, no focus."
-        className="flex max-w-sm flex-col gap-8 px-8"
-        code={`<Slider min={0} max={6} defaultValue={[0, 6]} minStepsBetweenThumbs={1} ticks idle />
-<Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />`}
+        title="Disabled"
+        description="`disabled` is Radix's: half opacity, no pointer, no focus. There is no state for a slider that has not been touched: with the thumbs on the two ends the fill covers the whole track, which is how a range with no limit looks."
+        className="max-w-sm px-8"
+        code={`<Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />`}
       >
-        <Slider min={0} max={6} defaultValue={[0, 6]} minStepsBetweenThumbs={1} ticks idle />
         <Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />
       </Demo>
     </Section>
@@ -585,11 +583,11 @@ export function Meters() {
     <Section
       id="meter"
       module="meter"
-      intro="A scale of a few levels drawn as bars of growing height, like the signal bars of a phone, that you fill from the first bar up to a level by pressing that bar. The hub uses it for how complex a game is, from light to heavy: the weight BoardGameGeek gives it, from 1 to 5, rounded. Each bar is a button (the level that is picked is `aria-pressed`, and each says in its label what it stands for), so the keyboard and a screen reader get what a pointer gets. Pressing the picked level again clears it."
+      intro="A scale of a few levels drawn as bars of the same height that you fill from the first bar up to a level by pressing that bar. The hub uses it for how complex a game is, from light to heavy: the weight BoardGameGeek gives it, from 1 to 5, rounded. Each bar is a button (the level that is picked is `aria-pressed`, and each says in its label what it stands for), so the keyboard and a screen reader get what a pointer gets. Pressing the picked level again clears it."
     >
       <Demo
         title="Levels"
-        description="With a mouse, the bars up to the pointer light up faintly before the press, so the fill can be seen coming. The bars take their height from the spacing scale, from 10px for the first to 26px for the last, and `levels` is the number of bars (five by default)."
+        description="With a mouse, the bars up to the pointer light up faintly before the press, so the fill can be seen coming. The bars are all 20px high, the height of an icon, and `levels` is the number of bars (five by default)."
         code={`<Meter
   value={level}
   onValueChange={setLevel}
