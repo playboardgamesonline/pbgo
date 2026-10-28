@@ -8,7 +8,7 @@ import { Button } from "./button"
 // The big search bar of a page: one pill, glass, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
 // button that clears it once there is one and, at its end, what a page puts there: the category of the games, a button that opens a panel
 // (`SearchBarSegment`). The other filters are not in the bar: they stand under it, centred on a line of their own (`SearchBarFilters`), each in a
-// container of its own: a stepper for a number (`SearchBarStepper`: less, the number, more) or a button that opens a menu (a `SearchBarSegment` that
+// container of its own, a rectangle in the style of the navbar's islands: a stepper for a number (`SearchBarStepper`: less, the number, more) or a button that opens a menu (a `SearchBarSegment` that
 // is `boxed`). It only draws the bar and the row. The page owns the text, the picks and what they find.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
@@ -95,8 +95,9 @@ function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
   )
 }
 
-// The container of a filter that stands under the bar: glass, like the bar, with a border, a pill, 44px high.
-const BOX = "rounded-full border bg-background/60 shadow-float backdrop-blur-xl"
+// The container of a filter that stands under the bar: a rectangle in the style of the navbar's islands (`rounded-2xl border bg-background/80 shadow-surface
+// backdrop-blur-md`), 56px high, with what it holds one step less round (`rounded-lg`).
+const BOX = "rounded-2xl border bg-background/80 shadow-surface backdrop-blur-md"
 
 type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "type"> & {
   icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
@@ -124,7 +125,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       aria-label={`${label}: ${value}`}
       className={cn(
         "flex shrink-0 items-center gap-2 rounded-full text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
-        boxed ? cn("h-11 px-4", BOX) : "h-12 max-w-52 px-3",
+        boxed ? cn("h-14 rounded-2xl px-4", BOX) : "h-12 max-w-52 px-3",
         className
       )}
       {...props}
@@ -139,7 +140,8 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
 
 /**
  * The filters that stand under the bar: a row, centred, on a line of its own, that goes on another line when the room runs out. Each is in a container
- * of its own (a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`). Name the group with an `aria-label`.
+ * of its own, a rectangle in the style of the navbar's islands (a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`). Name the group with an
+ * `aria-label`.
  */
 function SearchBarFilters({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="search-bar-filters" role="group" className={cn("mt-3 flex flex-wrap items-center justify-center gap-3", className)} {...props} />
@@ -193,10 +195,10 @@ function SearchBarStepper({
   ...props
 }: SearchBarStepperProps) {
   return (
-    <div data-slot="search-bar-stepper" role="group" aria-label={label} className={cn("flex h-11 items-center gap-2 px-4", BOX, className)} {...props}>
+    <div data-slot="search-bar-stepper" role="group" aria-label={label} className={cn("flex h-14 items-center gap-2 px-4", BOX, className)} {...props}>
       <HugeiconsIcon icon={icon} strokeWidth={2} className="size-5 shrink-0 text-muted-foreground" />
       <span className="flex min-w-0 items-center gap-1">
-        <Button type="button" variant="outline" size="icon-xs" aria-label={decreaseLabel} disabled={!canDecrease} onClick={onDecrease}>
+        <Button type="button" variant="outline" size="icon-xs" className="rounded-lg" aria-label={decreaseLabel} disabled={!canDecrease} onClick={onDecrease}>
           <HugeiconsIcon icon={MinusSignIcon} strokeWidth={2} />
         </Button>
         <button
@@ -205,11 +207,11 @@ function SearchBarStepper({
           aria-label={valueLabel}
           title={valueTitle}
           onClick={onValueClick}
-          className="h-6 min-w-8 truncate rounded-full px-1.5 text-sm whitespace-nowrap text-muted-foreground transition-all outline-none hover:bg-input/60 focus-visible:ring-3 focus-visible:ring-ring/30 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/80"
+          className="h-6 min-w-8 truncate rounded-lg px-1.5 text-sm whitespace-nowrap text-muted-foreground transition-all outline-none hover:bg-input/60 focus-visible:ring-3 focus-visible:ring-ring/30 aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/80"
         >
           {value}
         </button>
-        <Button type="button" variant="outline" size="icon-xs" aria-label={increaseLabel} disabled={!canIncrease} onClick={onIncrease}>
+        <Button type="button" variant="outline" size="icon-xs" className="rounded-lg" aria-label={increaseLabel} disabled={!canIncrease} onClick={onIncrease}>
           <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
         </Button>
       </span>

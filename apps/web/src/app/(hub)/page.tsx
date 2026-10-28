@@ -35,10 +35,9 @@ export default async function Home() {
         <main className="flex-1">
           {/* The hero: the title in capitals, on three lines of the same size, all in Geist Black (`display-title`), narrowing as they go down, and the
               search bar laid over its foot (two floors: the field and the round button, then the filters; glass, so the title shows through),
-              on a backdrop that is lighter at the top and fades into the black the sections sit on, with a grid of thin lines drawn faintly over it (`pattern-grid`; the game pieces of `BoardPattern` are not drawn for now) */}
-          <section className="relative overflow-hidden bg-linear-to-b from-secondary via-card to-background pt-navbar">
-            <div aria-hidden="true" className="pattern-grid pointer-events-none absolute inset-0 mask-b-from-30%" />
-            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-14 pb-12 text-center">
+              on a backdrop that is lighter at the top and fades into the black the sections sit on (neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn on it for now) */}
+          <section className="bg-linear-to-b from-card to-background pt-navbar">
+            <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-14 pb-12 text-center">
               <h1 className="display-title">
                 <span className="block text-display">Board games</span> <span className="block text-display">w/ friends</span>{" "}
                 <span className="block text-display">& rivals</span>

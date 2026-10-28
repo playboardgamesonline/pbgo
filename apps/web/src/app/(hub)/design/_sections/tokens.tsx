@@ -306,7 +306,7 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "bg-secondary-hover", does: "Hover state of a `secondary` surface", token: "`secondary` mixed with 8% of `foreground`" },
   { utility: "font-heading", does: "Heading font", token: "`--font-title`" },
   { utility: "pattern-checker", does: "Checkerboard that makes translucency visible", token: "`foreground` at 8%" },
-  { utility: "pattern-grid", does: "A grid of thin lines, 3rem apart, in a faint `foreground`: the backdrop of the home's hero", token: "`--foreground`, `--spacing`" },
+  { utility: "pattern-grid", does: "A grid of thin lines, 3rem apart, in a faint `foreground`: the home's hero had it, and has not for now", token: "`--foreground`, `--spacing`" },
 ]
 
 export function Utilities() {

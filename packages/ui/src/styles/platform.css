@@ -2,7 +2,7 @@
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
  * Direction: black and white, dark theme only. No accent colour, and a single gradient, neutral too: the backdrop of a page's first
- * screen (`bg-linear-to-b from-secondary via-card to-background`), lighter at the top and black where the content starts. Geist Sans
+ * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
  * in semibold, slightly tight line-height, small negative letter-spacing. Game art is the only colour on the platform.
  *
  * TWO LAYERS, SAME TOKEN NAMES (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--radius`, `--font-body`…)

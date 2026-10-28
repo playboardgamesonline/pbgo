@@ -85,7 +85,7 @@ export function FaceCycles() {
       <Demo
         title="A title with a word that turns"
         description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child."
-        className="bg-linear-to-b from-secondary via-card to-background py-12 text-center"
+        className="bg-linear-to-b from-card to-background py-12 text-center"
         code={`<h1 className="font-heading text-6xl uppercase">
   <FaceCycle before="Play" className="block">board games</FaceCycle>{" "}
   <span className="block">with friends & rivals</span>
@@ -321,9 +321,9 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a quarter of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a quarter of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
-        code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
+        code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
     <h1 className="display-title">
       <span className="block text-display">Board games</span> <span className="block text-display">…</span>
@@ -334,7 +334,7 @@ export function SearchBars() {
   </div>
 </section>`}
       >
-        <div className="flex flex-col items-center bg-linear-to-b from-secondary via-card to-background px-6 pt-12 pb-10 text-center">
+        <div className="flex flex-col items-center bg-linear-to-b from-card to-background px-6 pt-12 pb-10 text-center">
           <p className="display-title">
             <span className="block text-4xl">Board games</span> <span className="block text-4xl">w/ friends</span>{" "}
             <span className="block text-4xl">& rivals</span>
@@ -364,16 +364,16 @@ export function BoardPatterns() {
         title="Behind a hero"
         description="As it was on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
         className="grid gap-4 p-0 sm:grid-cols-2"
-        code={`<section className="relative overflow-hidden bg-linear-to-b from-secondary via-card to-background">
+        code={`<section className="relative overflow-hidden bg-linear-to-b from-card to-background">
   <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
   <div className="relative …">…</div>
 </section>`}
       >
-        <div className="relative h-72 overflow-hidden bg-linear-to-b from-secondary via-card to-background">
+        <div className="relative h-72 overflow-hidden bg-linear-to-b from-card to-background">
           <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
-        <div className="relative h-72 overflow-hidden bg-linear-to-b from-secondary via-card to-background">
+        <div className="relative h-72 overflow-hidden bg-linear-to-b from-card to-background">
           <BoardPattern className="absolute inset-0 text-foreground opacity-20 mask-b-from-30%" />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>

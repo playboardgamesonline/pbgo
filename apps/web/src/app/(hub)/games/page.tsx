@@ -29,7 +29,7 @@ export default async function GamesPage() {
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
-          <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
+          <section className="bg-linear-to-b from-card to-background pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center gap-8 px-gutter pt-section pb-12 text-center">
               <h1 className="font-heading text-4xl sm:text-5xl">Games</h1>
               <div className="w-full max-w-3xl">
