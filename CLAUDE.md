@@ -109,7 +109,7 @@ Gitmoji `<emoji>(<scope>): <description>` · scopes: `<slug>`, `template`, `core
 Open the file of the area you touch before changing it: it holds the full rules that this map only summarises.
 - `docs/routing.md` — a route, a layout, a 404, a reserved slug, the rate limits
 - `docs/packages.md` — `packages/`: the registry, a game's binding package, core's server, `engine-kit`, `ui`, the Sanity and content kits
-- `docs/game-ui.md` — what a game shows around the board: HUD, announcements, seat label, game over, skin, chat, room for the cookie bar, `UI_THEME`, compact layout, motion
+- `docs/game-ui.md` — what a game shows around the board: HUD, announcements, seat label, game over, skin, chat, room for the cookie banner, `UI_THEME`, compact layout, motion
 - `docs/design-system.md` — a platform screen (hub, account, legal, admin, 404) or a `@pbgo/ui` component
 - `docs/gamemaster.md` — the back office: session, sidebar, setup data, previews, tasks
 - `docs/analytics.md` — a PostHog event, the consent banner, recordings, masking, table-code scrubbing

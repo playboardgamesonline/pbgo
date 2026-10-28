@@ -4,11 +4,12 @@ export const RESERVED_HEIGHT_VAR = "--consent-h"
 /**
  * Keeps the room of the consent banner free, so nothing of the page sits under it.
  *
- * The banner is `fixed`, which takes no room. This publishes its height as `--consent-h` on `page` (the `<body>`) and pads the
- * bottom of `page` by as much: a page that scrolls (the hub, the legal notice) ends above the banner. A screen that fills the
- * viewport subtracts the variable from its height (`h-[calc(100dvh-var(--consent-h,0px))]`) and a `fixed` element anchored to the
- * bottom offsets itself by it (docs/game-ui.md). It follows the banner when its size changes (another language, a narrower
- * window).
+ * The banner is `fixed`, which takes no room. This publishes the height of its box as `--consent-h` on `page` (the `<body>`) and
+ * pads the bottom of `page` by as much: a page that scrolls (the hub, the legal notice) ends above the banner. The box is what is
+ * measured, so the banner keeps the margin around its card inside it (as padding of the box): the room holds the margin too, and
+ * nothing of the page sits against the card or its shadow. A screen that fills the viewport subtracts the variable from its height
+ * (`h-[calc(100dvh-var(--consent-h,0px))]`) and a `fixed` element anchored to the bottom offsets itself by it (docs/game-ui.md). It
+ * follows the banner when its size changes (another language, a narrower window).
  *
  * The variable lives on `<body>`, never on `:root`: the platform sets no value on `:root`, or every game would inherit it.
  *

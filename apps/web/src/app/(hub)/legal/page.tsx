@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Legal notice", alternates: { canonic
 const lead = "text-foreground"
 
 /**
- * What the site measures, in full: the cookie banner is a single line that says the essentials and links here. Only on a
- * deployment that has the analytics key: without it nothing below happens, and the notice must not say it does.
+ * What the site measures, in full: the cookie banner is a small card that says the essentials in one sentence and links here.
+ * Only on a deployment that has the analytics key: without it nothing below happens, and the notice must not say it does.
  */
 const STATISTICS = [
   "We use PostHog, on its European cloud, to see how the site is used and to fix what breaks. IP addresses are discarded. Two kinds of counts run whatever you choose, and neither stores anything on your device:",
