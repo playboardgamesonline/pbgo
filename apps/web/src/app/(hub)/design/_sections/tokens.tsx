@@ -298,7 +298,7 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "px-gutter, py-section, pb-section", does: "Side padding of a page, rhythm between sections", token: "`--gutter`, `--section`" },
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
-  { utility: "display-title", does: "The home's title: Geist Black, capitals and tight, with `text-display`", token: "`--text-display`" },
+  { utility: "display-title", does: "The home's title: Geist Black, capitals and tight, fading out downwards, with `text-display`", token: "`--text-display`" },
   { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },

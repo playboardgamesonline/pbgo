@@ -39,9 +39,9 @@ export default async function Home() {
               on a backdrop that is lighter at the top and fades into the black the sections sit on, with game pieces drawn faintly over it (`BoardPattern`) */}
           <section className="relative overflow-hidden bg-linear-to-b from-secondary via-card to-background pt-navbar">
             <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
-            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
+            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-14 pb-12 text-center">
               <h1 className="display-title">
-                <span className="block text-display">Board games</span> <span className="block text-display">with friends</span>{" "}
+                <span className="block text-display">Board games</span> <span className="block text-display">w/ friends</span>{" "}
                 <span className="block text-display">& rivals</span>
               </h1>
               {/* Laid over the foot of the title: pulled up by `-mt-title-overlap` (it follows the size of the title), so it just touches

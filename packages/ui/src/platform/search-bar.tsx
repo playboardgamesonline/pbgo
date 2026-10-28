@@ -12,7 +12,7 @@ import { Button } from "./button"
 // (`SearchBarStepper`: less, the number, more, with no panel). The text of the field and the icons of the filters start on the same line.
 //
 // The bar is a rounded rectangle, with large corners (`rounded-3xl`), and the submit button a rounded square whose corners are the bar's minus its
-// padding, so that they are concentric. Its text is regular (400, `font-regular`) and not the platform's 600. Up to 48rem of room (the width of the
+// padding, so that they are concentric. Up to 48rem of room (the width of the
 // container, not of the window) the button ends the field, 40px high. From 48rem the field and the filters are one block on the left and the button
 // stands alone on the right, as tall as the two floors (`size-19`: the 40px of the field and the 36px of the filters). It only draws the bar. The
 // page owns the text, the picks and what they find.
@@ -24,7 +24,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 font-regular shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
+          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
           "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-1 has-data-[slot=search-bar-segments]:rounded-3xl has-data-[slot=search-bar-segments]:p-3",
           "@3xl:has-data-[slot=search-bar-segments]:grid @3xl:has-data-[slot=search-bar-segments]:grid-cols-[minmax(0,1fr)_auto] @3xl:has-data-[slot=search-bar-segments]:gap-x-4 @3xl:has-data-[slot=search-bar-segments]:gap-y-0 @3xl:has-data-[slot=search-bar-segments]:p-2 @3xl:has-data-[slot=search-bar-segments]:pl-6",
           className

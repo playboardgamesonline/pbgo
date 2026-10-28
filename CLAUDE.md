@@ -24,7 +24,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 ## Routes (`apps/web/src/app`)
 | URL | File | |
 | --- | --- | --- |
-| `/` | `(hub)/page.tsx` | hub: the title (three lines of capitals in Geist Black, `display-title`), the faint game pieces behind it, the glass search bar laid over its foot, then the sections of the platform with no visible title (popular games in a grid that fades out, tables and tournaments in progress, what's new), each with a button to the page of its tab |
+| `/` | `(hub)/page.tsx` | hub: the title (three lines of capitals in Geist Black, fading out downwards, `display-title`), the faint game pieces behind it, the glass search bar laid over its foot, then the sections of the platform with no visible title (popular games in a grid that fades out, tables and tournaments in progress, what's new), each with a button to the page of its tab |
 | `/games` | `(hub)/games/page.tsx` | every game of the catalog in one list, with the search bar and its filters (the live games of the registry, then the games to come, with a "Coming soon" badge); each card opens `/game/<slug>` |
 | `/game/<slug>` | `(hub)/game/[slug]/page.tsx` | a game's page on the hub: description, credits, the picture of its card and a "Create a game" button to `/<slug>` (a disabled "Coming soon" when the game is not live), then the games related to it. Every game of the catalog has one; indexable when the game is (a live game: its registry flag; a game to come: a description in its Notion row), else `noindex` and out of the sitemap (`docs/catalog.md`) |
 | `/legal` | `(hub)/legal/page.tsx` | legal notice |
