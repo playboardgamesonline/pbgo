@@ -33,6 +33,8 @@ export type GameRow = {
   players?: string | null
   duration?: number | null
   age?: string | null
+  /** The options of the `Tags` multi-select. */
+  tags?: string[]
   /** The ids of the rows of the Creators database. */
   authors?: string[]
   illustrators?: string[]
@@ -76,6 +78,7 @@ export function gamePage(row: GameRow = {}): NotionPage {
     Players: property("select", option(row.players ?? null)),
     Duration: property("number", row.duration ?? null),
     Age: property("select", option(row.age ?? null)),
+    Tags: property("multi_select", (row.tags ?? []).map(option)),
     Authors: property("relation", (row.authors ?? []).map((id) => ({ id }))),
     Illustrators: property("relation", (row.illustrators ?? []).map((id) => ({ id }))),
     Editors: property("relation", (row.editors ?? []).map((id) => ({ id }))),
@@ -338,6 +341,7 @@ export const notionGame = (slug: string, overrides: Partial<NotionGame> = {}): N
   players: null,
   duration: null,
   age: null,
+  categories: [],
   authors: [],
   illustrators: [],
   publishers: [],

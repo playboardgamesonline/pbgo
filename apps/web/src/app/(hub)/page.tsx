@@ -39,13 +39,13 @@ export default async function Home() {
         <SiteHeader current="games" />
 
         <main className="flex-1">
-          {/* The hero: the title and the search pill under it, on a backdrop that is lighter at the top and fades into the black the games sit on */}
+          {/* The hero: the title and the search bar under it (the field and the four filters: one pill from 56rem, a card below), on a backdrop that is lighter at the top and fades into the black the games sit on */}
           <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center gap-10 px-gutter pt-section pb-12 text-center">
               <h1 className="font-heading text-4xl sm:text-6xl lg:text-8xl">
                 <span className="block">Play board games</span> <span className="block">with friends & rivals</span>
               </h1>
-              <div className="w-full max-w-3xl">
+              <div className="w-full max-w-5xl">
                 <HeroSearch />
               </div>
             </div>

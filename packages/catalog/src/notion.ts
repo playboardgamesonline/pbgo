@@ -32,6 +32,8 @@ export const COLUMNS = {
   players: "Players",
   duration: "Duration",
   age: "Age",
+  /** A multi-select: the categories of the game, which the hub's category filter offers. Not `Game family`, which is a franchise. */
+  categories: "Tags",
   /** Authors and illustrators are relations to the Creators database, editors a relation to the Editors one. */
   authors: "Authors",
   illustrators: "Illustrators",
@@ -198,6 +200,10 @@ const creditOf = (raw: unknown): string => cleanName(printable(cleanName(textOf(
 
 /** The name of a select or a status, null when none is chosen. */
 const optionOf = (raw: unknown): string | null => (isRecord(raw) && typeof raw.name === "string" ? cleanName(raw.name) || null : null)
+
+/** The names of the options a multi-select holds, in the order of the row, each one once. Nothing for a cell that is not a multi-select. */
+const optionsOf = (raw: unknown): string[] =>
+  Array.isArray(raw) ? [...new Set(raw.flatMap((option) => optionOf(option) ?? []).map(printable).filter(Boolean))] : []
 
 /** A number of minutes: more than none. */
 const minutesOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : null)
@@ -383,6 +389,7 @@ function planned(
     players: playersOf(optionOf(value(page, COLUMNS.players))),
     duration: minutesOf(value(page, COLUMNS.duration)),
     age: ageOf(optionOf(value(page, COLUMNS.age))),
+    categories: optionsOf(value(page, COLUMNS.categories)),
     authors: resolve(value(page, COLUMNS.authors), creators),
     illustrators: resolve(value(page, COLUMNS.illustrators), creators),
     publishers: resolve(value(page, COLUMNS.editors), publishers),

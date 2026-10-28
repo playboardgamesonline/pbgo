@@ -44,6 +44,8 @@ export type NotionGame = {
   duration: number | null
   /** The minimum age in years. */
   age: number | null
+  /** The categories of the game: the options its `Tags` cell holds, in the order of the row, each one once. What the hub's category filter offers. */
+  categories: string[]
   /** The names of the people of the Creators database the row lists as its authors, in the order of the row. */
   authors: string[]
   /** The same for its illustrators. */
@@ -130,6 +132,7 @@ export function registryRow(game: GameEntry): NotionGame {
     players: players ? { min: players.min, max: players.max } : null,
     duration: duration && duration.min === duration.max ? duration.min : null,
     age: null,
+    categories: [],
     authors: [],
     illustrators: [],
     publishers: [],

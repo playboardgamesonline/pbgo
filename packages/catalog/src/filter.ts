@@ -13,9 +13,8 @@ export const PLAYER_COUNTS = [1, 2, 3, 4, 5, 6, 7, MANY_PLAYERS] as const
 /** The durations the filter offers, in minutes: a game fits when it takes at most that long. */
 export const DURATION_LIMITS = [15, 30, 45] as const
 
-/** `all`: every game. `play`: the games to play now. `soon`: the games to come. */
-export const AVAILABILITIES = ["all", "play", "soon"] as const
-export type Availability = (typeof AVAILABILITIES)[number]
+/** The ages the filter offers, in years: the age of the youngest player, so a game stays when its minimum age is at most that. */
+export const AGE_LIMITS = [6, 8, 10, 12, 14] as const
 
 /** The longest search the field takes: nobody looks for a game with more than this. */
 export const MAX_QUERY_LENGTH = 60
@@ -24,15 +23,18 @@ export const MAX_QUERY_LENGTH = 60
 export type GameFilter = {
   /** The text of the search field, as typed (spaces included: a visitor in the middle of a phrase). It stays in the page, never in the URL. */
   query: string
-  availability: Availability
+  /** The categories to keep, by name, in the order they were picked: a game stays when it has any of them. Empty for any. */
+  categories: readonly string[]
   /** The number of players of the table, one of `PLAYER_COUNTS`; null for any. */
   players: number | null
   /** The longest a game may take, in minutes, one of `DURATION_LIMITS`; null for any. */
   duration: number | null
+  /** The age of the youngest player, one of `AGE_LIMITS`: a game stays when its minimum age is at most that; null for any. */
+  age: number | null
 }
 
 /** Nothing typed, nothing picked: every game stays. */
-export const NO_FILTER: GameFilter = { query: "", availability: "all", players: null, duration: null }
+export const NO_FILTER: GameFilter = { query: "", categories: [], players: null, duration: null, age: null }
 
 /**
  * What the filter reads of a catalog entry, and all a client component needs of it to filter the list: the page sends this to the
@@ -40,7 +42,7 @@ export const NO_FILTER: GameFilter = { query: "", availability: "all", players: 
  */
 export type GameIndex = {
   slug: string
-  /** A game to play now (`play`) or a game to come (`soon`). */
+  /** A game to play now or a game to come: no filter asks for it, but the list marks the games to play (`data-game`). */
   live: boolean
   /** What the search looks into, already normalised (`normalize`). */
   text: string
@@ -48,6 +50,10 @@ export type GameIndex = {
   players: { min: number; max: number | null } | null
   /** Minutes, the one figure the game gives. Null when it does not say. */
   duration: number | null
+  /** The minimum age in years. Null when the game does not say. */
+  age: number | null
+  /** The names of its categories (the tags of its Notion row), in the order of the row. None when it has none. */
+  categories: readonly string[]
 }
 
 // The letters that are not a letter with a mark on it (Unicode has no decomposition for them), spelled the way a keyboard without them does
@@ -75,18 +81,29 @@ export function words(query: string): string[] {
 
 /**
  * The part of a catalog entry the filter reads, the same for every game, a live one included: its name, its authors, its illustrators
- * and its publishers (never its descriptions: a word of a sentence is not what a visitor looks a game up by), then the players and the
- * duration its card shows, which are the ones of its Notion row (of the registry for a live game with no row).
+ * and its publishers (never its descriptions: a word of a sentence is not what a visitor looks a game up by), then the players, the
+ * duration, the minimum age and the categories, which are the ones of its Notion row (of the registry for the players and the duration
+ * of a live game with no row).
  */
 export function indexEntry(entry: CatalogEntry): GameIndex {
-  const { name, authors, illustrators, publishers, players, duration } = entry.game
+  const { name, authors, illustrators, publishers, players, duration, age, categories } = entry.game
   return {
     slug: entry.slug,
     live: entry.live,
     text: normalize([name, ...authors, ...illustrators, ...publishers.map((publisher) => publisher.name)].join(" ")),
     players,
     duration,
+    age,
+    categories,
   }
+}
+
+// "Bluffing" before "Co-op" before "Party", whatever the case; "2 players" before "10 players"
+const NAMES = new Intl.Collator("en", { sensitivity: "base", numeric: true })
+
+/** The categories the games have, each one once, by name: what the category filter offers. None when no game has one. */
+export function categoriesOf(games: readonly Pick<GameIndex, "categories">[]): string[] {
+  return [...new Set(games.flatMap((game) => game.categories))].sort(NAMES.compare)
 }
 
 /**
@@ -101,50 +118,68 @@ function fitsPlayers(game: GameIndex, count: number): boolean {
 
 /**
  * The games that stay for a filter, in the order they came in (the filter never sorts), each as it came in: whatever else a game
- * carries beside its index is kept. All criteria must hold. A game that does not say its players or its duration is left out as soon as
- * the filter asks for them. Every word of the query must be somewhere in the text of the game (a part of a word is enough), in any order.
+ * carries beside its index is kept. All criteria must hold. A game that does not say its players, its duration or its minimum age is
+ * left out as soon as the filter asks for it, and so is a game with no category when a category is picked. A game has a picked
+ * category when it has any of them, spelled exactly. Every word of the query must be somewhere in the text of the game (a part of a
+ * word is enough), in any order.
  */
 export function filterGames<T extends GameIndex>(games: readonly T[], filter: GameFilter): T[] {
   const terms = words(filter.query)
   return games.filter(
     (game) =>
-      (filter.availability === "all" || game.live === (filter.availability === "play")) &&
+      (filter.categories.length === 0 || game.categories.some((category) => filter.categories.includes(category))) &&
       (filter.players === null || fitsPlayers(game, filter.players)) &&
       (filter.duration === null || (game.duration !== null && game.duration <= filter.duration)) &&
+      (filter.age === null || (game.age !== null && game.age <= filter.age)) &&
       terms.every((term) => game.text.includes(term)),
   )
 }
 
 /** Whether the visitor has typed or picked anything: whether there is something to clear. A query of blanks is nothing. */
 export function isFiltered(filter: GameFilter): boolean {
-  return filter.query.trim() !== "" || filter.availability !== "all" || filter.players !== null || filter.duration !== null
+  return (
+    filter.query.trim() !== "" ||
+    filter.categories.length > 0 ||
+    filter.players !== null ||
+    filter.duration !== null ||
+    filter.age !== null
+  )
 }
 
-/** The option among `options` that the text spells exactly (no "04" for 4, no "4.0"), else null: the pick that a link or a select stands for. */
+/** The option among `options` that the text spells exactly (no "04" for 4, no "4.0"), else null: the pick that a link or a chip stands for. */
 export function optionOf<T extends number | string>(options: readonly T[], value: string | null): T | null {
   return options.find((option) => String(option) === value) ?? null
 }
 
 // ---------- In the URL ----------
-// The three picks, `show`, `players` and `duration`, each left out when it is the default, so that the link to the unfiltered list is the
-// hub's. The typed text is not in it: the address of the page goes to analytics with every event, and what a visitor types in a field is
-// theirs, so it is neither written to the URL nor read from it.
+// The picks, `category` (once for each category), `players`, `duration` and `age`, each left out when it is the default, so that the link
+// to the unfiltered list is the hub's. The typed text is not in it: the address of the page goes to analytics with every event, and what
+// a visitor types in a field is theirs, so it is neither written to the URL nor read from it.
 
-/** The picks a link holds, with no query. A value the filters do not offer is ignored, never an error: a link is anything someone typed or kept for a long time. */
-export function filterFromParams(params: { get(name: string): string | null }): GameFilter {
+/**
+ * The picks a link holds, with no query. `offered` are the categories the filter offers (`categoriesOf`): a value the filters do not
+ * offer, a category no game has included, is ignored, never an error, since a link is anything someone typed or kept for a long time.
+ * The categories keep the order of the link, each one once.
+ */
+export function filterFromParams(
+  params: { get(name: string): string | null; getAll(name: string): string[] },
+  offered: readonly string[],
+): GameFilter {
   return {
     ...NO_FILTER,
-    availability: optionOf(AVAILABILITIES, params.get("show")) ?? "all",
+    categories: [...new Set(params.getAll("category"))].filter((category) => offered.includes(category)),
     players: optionOf(PLAYER_COUNTS, params.get("players")),
     duration: optionOf(DURATION_LIMITS, params.get("duration")),
+    age: optionOf(AGE_LIMITS, params.get("age")),
   }
 }
 
 /** The parameters of the link to a filter: the picks that are set, in a fixed order, and never the query. */
 export function filterToParams(filter: GameFilter): URLSearchParams {
   const params = new URLSearchParams()
-  if (filter.availability !== "all") params.set("show", filter.availability)
+  for (const category of filter.categories) params.append("category", category)
   if (filter.players !== null) params.set("players", String(filter.players))
   if (filter.duration !== null) params.set("duration", String(filter.duration))
+  if (filter.age !== null) params.set("age", String(filter.age))
   return params
 }

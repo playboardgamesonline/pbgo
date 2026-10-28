@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { buildCatalog } from "./catalog"
 import {
-  AVAILABILITIES,
+  AGE_LIMITS,
   DURATION_LIMITS,
   MANY_PLAYERS,
   NO_FILTER,
   PLAYER_COUNTS,
+  categoriesOf,
   filterFromParams,
   filterGames,
   filterToParams,
@@ -19,8 +20,8 @@ import {
 import { notionGame, registryGame } from "./testing"
 
 // A catalog in the shape of the real one: the live games in registry order, each with its Notion row or, with none, the line the
-// registry makes of it, then the games to come by name. Players and durations cover what the real games have: a fixed count, a range,
-// "N or more", a game that does not say.
+// registry makes of it, then the games to come by name. Players, durations, ages and categories cover what the real games have: a fixed
+// count, a range, "N or more", a game that does not say, a game with several categories, a game with none.
 const catalog = buildCatalog(
   [
     // No Notion row: the registry's line, its name and its figures (a duration only when the registry gives one figure, not a range)
@@ -30,31 +31,49 @@ const catalog = buildCatalog(
     registryGame("tichu", { name: "Tichu", live: true }),
   ],
   [
-    notionGame("skyjo", { name: "Skyjo", players: { min: 2, max: 8 }, duration: 45, authors: ["Nadia Okafor"] }),
+    notionGame("skyjo", { name: "Skyjo", players: { min: 2, max: 8 }, duration: 45, age: 8, categories: ["Cards"], authors: ["Nadia Okafor"] }),
     notionGame("zen", { name: "Zen" }),
-    notionGame("6-nimmt", { name: "6 nimmt!", players: { min: 2, max: 10 }, duration: 45 }),
+    notionGame("6-nimmt", { name: "6 nimmt!", players: { min: 2, max: 10 }, duration: 45, age: 10, categories: ["Cards", "Party"] }),
     notionGame("flip-7", {
       name: "Flip 7",
       players: { min: 3, max: null },
       duration: 20,
+      age: 8,
+      categories: ["Cards"],
       authors: ["Eric Olsen"],
       publishers: [{ name: "The Op Games", url: null }],
     }),
-    notionGame("hanabi", { name: "Hanabi", players: { min: 2, max: 5 }, duration: 25, authors: ["Antoine Bauza"] }),
+    notionGame("hanabi", { name: "Hanabi", players: { min: 2, max: 5 }, duration: 25, age: 8, categories: ["Co-op", "Cards"], authors: ["Antoine Bauza"] }),
     notionGame("mystery-night", {
       name: "Mystery Night",
       players: { min: 4, max: 7 },
       duration: 30,
+      age: 12,
+      categories: ["Bluffing", "Party"],
       authors: ["Hervé Marly"],
       illustrators: ["Régis Torres"],
       publishers: [{ name: "Spiral Éditions", url: "https://example.com" }],
     }),
-    notionGame("millers-hollow", { name: "Werewolves of Miller's Hollow", players: { min: 8, max: null }, duration: 30 }),
-    notionGame("solo-quest", { name: "Solo Quest", players: { min: 1, max: 1 }, duration: 15 }),
-    notionGame("time-bomb", { name: "Time Bomb", players: { min: 4, max: 8 }, descriptions: { en: "A game of bluffing and secret roles" } }),
+    notionGame("millers-hollow", {
+      name: "Werewolves of Miller's Hollow",
+      players: { min: 8, max: null },
+      duration: 30,
+      age: 10,
+      categories: ["Bluffing", "Party"],
+    }),
+    notionGame("solo-quest", { name: "Solo Quest", players: { min: 1, max: 1 }, duration: 15, age: 6, categories: ["Co-op"] }),
+    notionGame("time-bomb", {
+      name: "Time Bomb",
+      players: { min: 4, max: 8 },
+      categories: ["Bluffing"],
+      descriptions: { en: "A game of bluffing and secret roles" },
+    }),
   ],
 )
 const games = catalog.map(indexEntry)
+
+/** The categories the fixture offers. */
+const OFFERED = categoriesOf(games)
 
 const slugs = (list: readonly { slug: string }[]) => list.map((game) => game.slug)
 const kept = (filter: Partial<GameFilter>) => slugs(filterGames(games, { ...NO_FILTER, ...filter }))
@@ -110,16 +129,16 @@ describe("the options", () => {
     expect(DURATION_LIMITS).toEqual([15, 30, 45])
   })
 
-  it("offers every game, the games to play and the games to come", () => {
-    expect(AVAILABILITIES).toEqual(["all", "play", "soon"])
+  it("offers the ages of 6, 8, 10, 12 and 14 years", () => {
+    expect(AGE_LIMITS).toEqual([6, 8, 10, 12, 14])
   })
 
   it("finds the option that a text spells exactly, else none", () => {
     expect(optionOf(PLAYER_COUNTS, "4")).toBe(4)
     expect(optionOf(DURATION_LIMITS, "30")).toBe(30)
-    expect(optionOf(AVAILABILITIES, "soon")).toBe("soon")
+    expect(optionOf(AGE_LIMITS, "12")).toBe(12)
     for (const bad of [null, "", "any", "04", "4.0", "9", " 4"]) expect(optionOf(PLAYER_COUNTS, bad)).toBeNull()
-    expect(optionOf(AVAILABILITIES, "SOON")).toBeNull()
+    expect(optionOf(["soon"], "SOON")).toBeNull()
   })
 })
 
@@ -131,16 +150,32 @@ describe("indexEntry", () => {
   }
 
   it("indexes a live game with no Notion row by its name, with the players and the duration of the registry", () => {
-    expect(indexEntry(entry("courtisans"))).toEqual({ slug: "courtisans", live: true, text: "courtisans", players: { min: 2, max: 5 }, duration: 30 })
+    expect(indexEntry(entry("courtisans"))).toEqual({
+      slug: "courtisans",
+      live: true,
+      text: "courtisans",
+      players: { min: 2, max: 5 },
+      duration: 30,
+      age: null,
+      categories: [],
+    })
   })
 
   it("indexes a live game with a Notion row like any other game: by what the row says", () => {
-    expect(indexEntry(entry("skyjo"))).toEqual({ slug: "skyjo", live: true, text: "skyjo nadia okafor", players: { min: 2, max: 8 }, duration: 45 })
+    expect(indexEntry(entry("skyjo"))).toEqual({
+      slug: "skyjo",
+      live: true,
+      text: "skyjo nadia okafor",
+      players: { min: 2, max: 8 },
+      duration: 45,
+      age: 8,
+      categories: ["Cards"],
+    })
   })
 
   it("leaves unknown what a game does not say", () => {
-    expect(indexEntry(entry("tichu"))).toEqual({ slug: "tichu", live: true, text: "tichu", players: null, duration: null })
-    expect(indexEntry(entry("zen"))).toEqual({ slug: "zen", live: false, text: "zen", players: null, duration: null })
+    expect(indexEntry(entry("tichu"))).toEqual({ slug: "tichu", live: true, text: "tichu", players: null, duration: null, age: null, categories: [] })
+    expect(indexEntry(entry("zen"))).toEqual({ slug: "zen", live: false, text: "zen", players: null, duration: null, age: null, categories: [] })
   })
 
   it("leaves the duration of a live game with no Notion row unknown when the registry gives a range", () => {
@@ -156,10 +191,12 @@ describe("indexEntry", () => {
       text: "mystery night herve marly regis torres spiral editions",
       players: { min: 4, max: 7 },
       duration: 30,
+      age: 12,
+      categories: ["Bluffing", "Party"],
     })
   })
 
-  it("does not index the descriptions", () => {
+  it("does not index the descriptions, nor the categories as text", () => {
     expect(indexEntry(entry("time-bomb")).text).toBe("time bomb")
   })
 
@@ -167,8 +204,32 @@ describe("indexEntry", () => {
     expect(indexEntry(entry("flip-7")).players).toEqual({ min: 3, max: null })
   })
 
+  it("keeps the categories in the order of the row", () => {
+    expect(indexEntry(entry("hanabi")).categories).toEqual(["Co-op", "Cards"])
+  })
+
   it("is lean: nothing but what the filter reads, so that the page can send it to the browser", () => {
-    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["duration", "live", "players", "slug", "text"])
+    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["age", "categories", "duration", "live", "players", "slug", "text"])
+  })
+})
+
+describe("categoriesOf", () => {
+  it("lists every category of the games once, by name", () => {
+    expect(OFFERED).toEqual(["Bluffing", "Cards", "Co-op", "Party"])
+  })
+
+  it("reads numbers in their order and takes no notice of the case", () => {
+    expect(categoriesOf([{ categories: ["10 minutes", "Party"] }, { categories: ["2 minutes", "bluffing"] }])).toEqual([
+      "2 minutes",
+      "10 minutes",
+      "bluffing",
+      "Party",
+    ])
+  })
+
+  it("is empty when no game has a category", () => {
+    expect(categoriesOf([{ categories: [] }, { categories: [] }])).toEqual([])
+    expect(categoriesOf([])).toEqual([])
   })
 })
 
@@ -242,8 +303,9 @@ describe("filterGames", () => {
       expect(kept({ query: "6 nimmt!" })).toEqual(["6-nimmt"])
     })
 
-    it("does not look into the descriptions", () => {
+    it("does not look into the descriptions, nor into the categories", () => {
       expect(kept({ query: "bluffing" })).toEqual([])
+      expect(kept({ query: "party" })).toEqual([])
     })
 
     it("keeps every game for a query of blanks or punctuation", () => {
@@ -256,19 +318,32 @@ describe("filterGames", () => {
     })
   })
 
-  describe("the availability", () => {
-    it("keeps the games to play now, or the games to come", () => {
-      expect(kept({ availability: "play" })).toEqual(["courtisans", "skyjo", "tichu"])
-      expect(kept({ availability: "soon" })).toEqual([
-        "6-nimmt",
-        "flip-7",
-        "hanabi",
-        "mystery-night",
-        "solo-quest",
-        "time-bomb",
-        "millers-hollow",
-        "zen",
-      ])
+  describe("the categories", () => {
+    it("keeps the games that have the picked category", () => {
+      expect(kept({ categories: ["Cards"] })).toEqual(["skyjo", "6-nimmt", "flip-7", "hanabi"])
+      expect(kept({ categories: ["Bluffing"] })).toEqual(["mystery-night", "time-bomb", "millers-hollow"])
+    })
+
+    it("keeps the games that have any of the picked categories", () => {
+      expect(kept({ categories: ["Co-op", "Party"] })).toEqual(["6-nimmt", "hanabi", "mystery-night", "solo-quest", "millers-hollow"])
+    })
+
+    it("does not care in which order the categories were picked", () => {
+      expect(kept({ categories: ["Party", "Co-op"] })).toEqual(kept({ categories: ["Co-op", "Party"] }))
+    })
+
+    it("takes the names as they are spelled", () => {
+      expect(kept({ categories: ["cards"] })).toEqual([])
+      expect(kept({ categories: ["Dice"] })).toEqual([])
+    })
+
+    it("leaves out a game that has no category as soon as one is picked", () => {
+      const fits = kept({ categories: OFFERED })
+      for (const slug of ["courtisans", "tichu", "zen"]) expect(fits).not.toContain(slug)
+    })
+
+    it("keeps every game when none is picked", () => {
+      expect(kept({ categories: [] })).toHaveLength(games.length)
     })
   })
 
@@ -330,12 +405,35 @@ describe("filterGames", () => {
     })
   })
 
+  describe("the age", () => {
+    const upToTwelve = ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]
+
+    it.each<[number, string[]]>([
+      [6, ["solo-quest"]],
+      [8, ["skyjo", "flip-7", "hanabi", "solo-quest"]],
+      [10, ["skyjo", "6-nimmt", "flip-7", "hanabi", "solo-quest", "millers-hollow"]],
+      [12, upToTwelve],
+      [14, upToTwelve],
+    ])("keeps the games a player of %i years can play: those whose minimum age is that or less", (age, expected) => {
+      expect(kept({ age })).toEqual(expected)
+    })
+
+    it("leaves out a game that does not say its minimum age", () => {
+      const fits = kept({ age: 14 })
+      for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
+    })
+  })
+
   describe("together", () => {
     it("keeps the games that meet every criterion", () => {
-      expect(kept({ availability: "play", players: 4 })).toEqual(["courtisans", "skyjo"])
-      expect(kept({ availability: "soon", players: MANY_PLAYERS, duration: 30 })).toEqual(["flip-7", "millers-hollow"])
+      expect(kept({ categories: ["Cards"], age: 8 })).toEqual(["skyjo", "flip-7", "hanabi"])
+      expect(kept({ categories: ["Cards"], players: 6 })).toEqual(["skyjo", "6-nimmt", "flip-7"])
+      expect(kept({ categories: ["Bluffing"], players: 6 })).toEqual(["mystery-night", "time-bomb"])
+      expect(kept({ players: MANY_PLAYERS, duration: 30, age: 10 })).toEqual(["flip-7", "millers-hollow"])
       expect(kept({ query: "night", duration: 30 })).toEqual(["mystery-night"])
       expect(kept({ query: "night", duration: 15 })).toEqual([])
+      expect(kept({ query: "night", categories: ["Bluffing"] })).toEqual(["mystery-night"])
+      expect(kept({ query: "night", categories: ["Cards"] })).toEqual([])
     })
   })
 })
@@ -347,9 +445,10 @@ describe("isFiltered", () => {
 
   it("is true as soon as one thing is typed or picked", () => {
     expect(isFiltered({ ...NO_FILTER, query: "flip" })).toBe(true)
-    expect(isFiltered({ ...NO_FILTER, availability: "soon" })).toBe(true)
+    expect(isFiltered({ ...NO_FILTER, categories: ["Cards"] })).toBe(true)
     expect(isFiltered({ ...NO_FILTER, players: 3 })).toBe(true)
     expect(isFiltered({ ...NO_FILTER, duration: 15 })).toBe(true)
+    expect(isFiltered({ ...NO_FILTER, age: 6 })).toBe(true)
   })
 
   it("takes a query of blanks for nothing", () => {
@@ -358,35 +457,53 @@ describe("isFiltered", () => {
 })
 
 describe("filterFromParams", () => {
-  const read = (search: string) => filterFromParams(new URLSearchParams(search))
+  const read = (search: string, offered: readonly string[] = OFFERED) => filterFromParams(new URLSearchParams(search), offered)
 
   it("is no filter for a link with no parameter", () => {
     expect(read("")).toEqual(NO_FILTER)
   })
 
   it("reads each pick", () => {
-    expect(read("show=soon&players=4&duration=30")).toEqual({ query: "", availability: "soon", players: 4, duration: 30 })
+    expect(read("category=Cards&players=4&duration=30&age=8")).toEqual({ query: "", categories: ["Cards"], players: 4, duration: 30, age: 8 })
     expect(read(`players=${MANY_PLAYERS}`).players).toBe(MANY_PLAYERS)
+  })
+
+  it("reads a category for each time the link names it, in the order of the link, each once", () => {
+    expect(read("category=Party&category=Cards").categories).toEqual(["Party", "Cards"])
+    expect(read("category=Cards&category=Co-op&category=Cards").categories).toEqual(["Cards", "Co-op"])
+  })
+
+  it("reads a category whose name was written out", () => {
+    expect(read("category=Party+%26+Co", ["Party & Co"]).categories).toEqual(["Party & Co"])
   })
 
   it("never reads a query: what a visitor types stays in the page", () => {
     expect(read("q=flip").query).toBe("")
-    expect(read("q=herv%C3%A9+marly&show=soon")).toEqual({ ...NO_FILTER, availability: "soon" })
+    expect(read("q=herv%C3%A9+marly&players=3")).toEqual({ ...NO_FILTER, players: 3 })
   })
 
   it("ignores a value the filters do not offer", () => {
-    for (const bad of ["show=everything", "show=PLAY", "show="]) expect(read(bad).availability).toBe("all")
+    for (const bad of ["category=Dice", "category=cards", "category=Cards+", "category="]) expect(read(bad).categories).toEqual([])
     for (const bad of ["players=0", "players=9", "players=04", "players=4.0", "players=-1", "players=1e1", "players=four", "players="]) {
       expect(read(bad).players).toBeNull()
     }
     for (const bad of ["duration=0", "duration=20", "duration=030", "duration=30min", "duration="]) expect(read(bad).duration).toBeNull()
+    for (const bad of ["age=0", "age=7", "age=08", "age=8.0", "age=eight", "age="]) expect(read(bad).age).toBeNull()
+  })
+
+  it("ignores every category when the games have none to offer", () => {
+    expect(read("category=Cards", []).categories).toEqual([])
+  })
+
+  it("ignores the old availability of a link written before it went", () => {
+    expect(read("show=soon&players=4")).toEqual({ ...NO_FILTER, players: 4 })
   })
 
   it("keeps the good picks of a link whose other ones are bad", () => {
-    expect(read("show=nonsense&players=99&duration=15")).toEqual({ ...NO_FILTER, duration: 15 })
+    expect(read("category=Dice&players=99&duration=15&age=7")).toEqual({ ...NO_FILTER, duration: 15 })
   })
 
-  it("takes the first of a parameter that comes twice, and nothing from the others", () => {
+  it("takes the first of a pick that comes twice, and nothing from the others", () => {
     expect(read("players=2&players=3&utm_source=newsletter").players).toBe(2)
     expect(read("utm_source=newsletter&ref=home")).toEqual(NO_FILTER)
   })
@@ -398,37 +515,49 @@ describe("filterToParams", () => {
   })
 
   it("writes only what is set", () => {
-    expect(filterToParams({ ...NO_FILTER, availability: "play" }).toString()).toBe("show=play")
+    expect(filterToParams({ ...NO_FILTER, categories: ["Cards"] }).toString()).toBe("category=Cards")
     expect(filterToParams({ ...NO_FILTER, players: 4 }).toString()).toBe("players=4")
     expect(filterToParams({ ...NO_FILTER, duration: 45 }).toString()).toBe("duration=45")
+    expect(filterToParams({ ...NO_FILTER, age: 8 }).toString()).toBe("age=8")
+  })
+
+  it("writes a category for each one that is picked, in the order they were picked", () => {
+    expect(filterToParams({ ...NO_FILTER, categories: ["Party", "Cards"] }).toString()).toBe("category=Party&category=Cards")
   })
 
   it("writes them in a fixed order", () => {
-    expect(filterToParams({ query: "", availability: "soon", players: 3, duration: 30 }).toString()).toBe("show=soon&players=3&duration=30")
+    expect(filterToParams({ query: "", categories: ["Cards"], players: 3, duration: 30, age: 8 }).toString()).toBe(
+      "category=Cards&players=3&duration=30&age=8",
+    )
+  })
+
+  it("writes a name that needs it as a URL does", () => {
+    expect(filterToParams({ ...NO_FILTER, categories: ["Party & Co"] }).toString()).toBe("category=Party+%26+Co")
   })
 
   it("never writes the query: the address of the page goes to analytics with every event", () => {
     expect(filterToParams({ ...NO_FILTER, query: "hervé marly" }).toString()).toBe("")
-    expect(filterToParams({ query: "flip", availability: "soon", players: 3, duration: 30 }).toString()).toBe("show=soon&players=3&duration=30")
+    expect(filterToParams({ query: "flip", categories: [], players: 3, duration: 30, age: null }).toString()).toBe("players=3&duration=30")
   })
 })
 
 describe("a filter in a link", () => {
+  const offered = [...OFFERED, "Party & Co"]
   const every = (): GameFilter[] =>
-    AVAILABILITIES.flatMap((availability) =>
+    [[], ["Cards"], ["Party", "Cards"], ["Party & Co"]].flatMap((categories) =>
       [null, ...PLAYER_COUNTS].flatMap((players) =>
-        [null, ...DURATION_LIMITS].map((duration) => ({ ...NO_FILTER, availability, players, duration })),
+        [null, ...DURATION_LIMITS].flatMap((duration) => [null, ...AGE_LIMITS].map((age) => ({ ...NO_FILTER, categories, players, duration, age }))),
       ),
     )
 
   it("goes through every combination of options", () => {
-    expect(every()).toHaveLength(AVAILABILITIES.length * (PLAYER_COUNTS.length + 1) * (DURATION_LIMITS.length + 1))
+    expect(every()).toHaveLength(4 * (PLAYER_COUNTS.length + 1) * (DURATION_LIMITS.length + 1) * (AGE_LIMITS.length + 1))
   })
 
   it("comes back as it left, through the text of the link", () => {
     for (const filter of every()) {
       const link = filterToParams(filter).toString()
-      expect(filterFromParams(new URLSearchParams(link))).toEqual(filter)
+      expect(filterFromParams(new URLSearchParams(link), offered)).toEqual(filter)
     }
   })
 
@@ -437,7 +566,7 @@ describe("a filter in a link", () => {
       const link = filterToParams({ ...filter, query }).toString()
       expect(link).toBe(filterToParams(filter).toString())
       expect(new URLSearchParams(link).has("q")).toBe(false)
-      expect(filterFromParams(new URLSearchParams(link))).toEqual(filter)
+      expect(filterFromParams(new URLSearchParams(link), offered)).toEqual(filter)
     }
   })
 })
