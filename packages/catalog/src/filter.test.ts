@@ -136,8 +136,8 @@ describe("the options", () => {
     expect(PLAYER_COUNTS.at(-1)).toBe(MANY_PLAYERS)
   })
 
-  it("offers up to 15, 30 and 45 minutes, the fourth step of the slider (1h+) being no limit", () => {
-    expect(DURATION_LIMITS).toEqual([15, 30, 45])
+  it("offers up to 5, 10, 15 and so on to 55 minutes, five at a time, the twelfth step of the slider (1h+) being no limit", () => {
+    expect(DURATION_LIMITS).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55])
   })
 
   it("offers the five levels of the weight BoardGameGeek gives a game", () => {
@@ -494,7 +494,11 @@ describe("filterGames", () => {
 
   describe("the duration", () => {
     it.each<[number, string[]]>([
+      [5, []],
+      [10, []],
       [15, ["solo-quest"]],
+      [20, ["flip-7", "solo-quest"]],
+      [25, ["flip-7", "hanabi", "solo-quest"]],
       [30, ["courtisans", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
       [45, ["courtisans", "skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
     ])("keeps the games that take %i minutes at most", (duration, expected) => {
@@ -641,7 +645,7 @@ describe("filterFromParams", () => {
     for (const bad of ["players=0", "players=9", "players=04", "players=4.0", "players=-1", "players=1e1", "players=four", "players="]) {
       expect(read(bad).players).toBe(DEFAULT_PLAYERS)
     }
-    for (const bad of ["duration=0", "duration=20", "duration=60", "duration=030", "duration=30min", "duration=-30", "duration=30-60", "duration="]) {
+    for (const bad of ["duration=0", "duration=7", "duration=60", "duration=030", "duration=30min", "duration=-30", "duration=30-60", "duration="]) {
       expect(read(bad).duration).toBeNull()
     }
     for (const bad of ["complexity=0", "complexity=6", "complexity=03", "complexity=2.5", "complexity=heavy", "complexity="]) {

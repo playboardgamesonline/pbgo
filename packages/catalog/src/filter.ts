@@ -11,10 +11,10 @@ export const MANY_PLAYERS = 8
 export const PLAYER_COUNTS = [1, 2, 3, 4, 5, 6, 7, MANY_PLAYERS] as const
 
 /**
- * The durations the filter offers, in minutes: a game stays when it takes at most that long. They are the first three steps of a slider whose fourth,
- * "1h+", is no limit at all (`null`): the games of an hour or more stay only there.
+ * The durations the filter offers, in minutes, five at a time: a game stays when it takes at most that long. They are the first eleven steps of a
+ * slider whose twelfth, "1h+", is no limit at all (`null`): the games of an hour or more stay only there.
  */
-export const DURATION_LIMITS = [15, 30, 45] as const
+export const DURATION_LIMITS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as const
 
 /**
  * The levels of the complexity filter, from light (1) to heavy (5): the scale of the weight that BoardGameGeek gives a game, in whole levels. A game
