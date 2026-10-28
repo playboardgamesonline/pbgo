@@ -94,7 +94,7 @@
   --shadow-float: 0 8px 24px -6px oklch(0 0 0 / 0.5);
   --shadow-overlay: 0 24px 64px -12px oklch(0 0 0 / 0.65);
 
-  /* Dimming layer: the page behind a dialog or a sheet (`bg-scrim`), a lighter veil over a picture that carries a logo (`bg-scrim/70`) */
+  /* Dimming layer: the page behind a dialog or a sheet (`bg-scrim`) */
   --color-scrim: oklch(0 0 0 / 0.6);
 }
 
