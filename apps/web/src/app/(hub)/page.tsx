@@ -33,7 +33,7 @@ export default async function Home() {
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
-          {/* The hero: the title in capitals, all in one bold display face and a little translucent (`display-title`), the first line bigger than the
+          {/* The hero: the title in capitals, all in Geist Black and a little translucent (`display-title`), the first line bigger than the
               second, and the search bar laid over its foot (two floors: the field and the round button, then the filters; glass, so the title shows through),
               on a backdrop that is lighter at the top and fades into the black the sections sit on */}
           <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">

@@ -46,8 +46,8 @@ const FONT_ROWS = [
   { variable: "--font-title", utility: "font-heading", use: "Headings and card titles. Same as the body font on the platform." },
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
-  { variable: "--text-display-sub", utility: "text-display-sub", use: "The second line of the home's title: as big as the room it has (8.6vw, from 1.5rem to 8rem), so it is 91% of the page from a phone up." },
-  { variable: "--text-display", utility: "text-display", use: "The first line of the home's title: a tenth bigger than the second, which makes the two the same width in the title's face. Neither sets a line-height: `display-title` does." },
+  { variable: "--text-display-sub", utility: "text-display-sub", use: "The second line of the home's title: as big as the room it has (7.5vw, from 1.5rem to 7rem), so it is 87% of the window from a phone up." },
+  { variable: "--text-display", utility: "text-display", use: "The first line of the home's title: 16% bigger than the second, which makes the two the same width in the title's face. Neither sets a line-height: `display-title` does." },
   { variable: "--spacing-title-overlap", utility: "-mt-title-overlap", use: "How far a bar laid over the title is pulled up: 0.34em of `text-display-sub`, so it covers the foot of the last line (a third of its capitals) and the title shows through its glass." },
 ] as const
 

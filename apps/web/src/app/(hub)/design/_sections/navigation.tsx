@@ -82,7 +82,7 @@ export function FaceCycles() {
     <Section
       id="face-cycle"
       module="face-cycle"
-      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in one face for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
+      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in Geist Black for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
     >
       <Demo
         title="A title with a word that turns"
@@ -377,7 +377,7 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.095em that the last line keeps under its baseline and a third of its capitals, (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a third of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">

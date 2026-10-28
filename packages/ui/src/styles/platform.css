@@ -98,18 +98,38 @@
   --color-scrim: oklch(0 0 0 / 0.6);
 
   /*
-   * The title of the home is two lines of capitals that are as wide as each other, the first a tenth bigger than the second: `text-display` for the
-   * first, `text-display-sub` for the second. Both are as big as the room they have: 8.6vw makes the longer second line ("WITH FRIENDS & RIVALS" in
-   * Unkempt Bold) 91% of the width of the page from a 320 px phone up, from 1.5rem to 8rem so a very wide window does not get a poster. The ratio is
-   * the one of the two lines' widths in that face (10.22em and 9.24em, so 1.106: a tenth), which makes them the same width. They set no line-height:
+   * The title of the home is two lines of capitals that are as wide as each other, the first bigger than the second: `text-display` for the first,
+   * `text-display-sub` for the second. They are as big as the room they have: 7.5vw makes the longer second line ("WITH FRIENDS & RIVALS" in Geist
+   * Black, 11.57em wide) 87% of the width of the window from a 320 px phone up, from 1.5rem to 7rem so a very wide window does not get a poster. The
+   * ratio is the one of the two lines' widths in that face (11.57em and 9.97em, so 1.16), which makes them the same width. They set no line-height:
    * the title's own (`display-title`) is tight.
-   * `-mt-title-overlap` is how far a bar laid over the title is pulled up: the 0.095em that a line of that line-height keeps under its baseline in
-   * Unkempt, and 0.245em more, a third of its capitals' height (0.715em), so the bar covers the foot of the last line and the title shows through its
+   * `-mt-title-overlap` is how far a bar laid over the title is pulled up: the 0.1em that a line of that line-height keeps under its baseline in
+   * Geist, and 0.24em more, a third of its capitals' height (0.71em), so the bar covers the foot of the last line and the title shows through its
    * glass while the words stay readable, on a phone too.
    */
-  --text-display-sub: clamp(1.5rem, 8.6vw, 8rem);
-  --text-display: calc(var(--text-display-sub) * 1.1);
+  --text-display-sub: clamp(1.5rem, 7.5vw, 7rem);
+  --text-display: calc(var(--text-display-sub) * 1.16);
   --spacing-title-overlap: calc(var(--text-display-sub) * 0.34);
+}
+
+/*
+ * The title of the home (`display-title`): the whole of it in Geist Black, in capitals, tight (a line-height of 0.9 and the tracking of the headings),
+ * and a little translucent, so the bar laid over its foot, and its glass, show it through. The translucency is the opacity of the whole title, not a
+ * colour with an alpha. 900 is the one weight the platform sets on its own for text (Geist's variable font has it, everything else is 600), as the
+ * display faces below do. The face is swapped here, with the two sizes of the theme above, which follow the widths of its two lines.
+ */
+@utility display-title {
+  font-family: var(--font-title);
+  font-weight: 900;
+  letter-spacing: var(--tracking-tight);
+  text-transform: uppercase;
+  line-height: 0.9;
+  opacity: 0.85;
+
+  /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
+  & > * {
+    letter-spacing: var(--tracking-tight);
+  }
 }
 
 /*
@@ -122,23 +142,6 @@
  * to it. `line-height: 0`: a word in a face adds nothing to the height of its line, whichever face it is, so the title keeps the line-height of its
  * element and nothing moves when a font arrives. A face is swapped here and in the app's imports, nowhere else.
  */
-/*
- * The title of the home (`display-title`): the whole of it in one display face, bold and playful (Unkempt Bold, the B of the logo), in capitals, tight
- * (a line-height of 0.9 and the headings' negative tracking), a little translucent so the bar laid over its foot, and its glass, show it through, and a
- * stroke the colour of the text that makes the strokes of the letters heavier than the font draws them (`paint-order: stroke fill` keeps the
- * stroke from eating the inside of the counters). The translucency is the opacity of the whole title and not a colour with an alpha, which would
- * show the stroke and the fill overlapping. The face is meant to change: it is this utility and the import of the font, nowhere else.
- */
-@utility display-title {
-  font-family: "Unkempt", cursive;
-  font-weight: 700;
-  text-transform: uppercase;
-  line-height: 0.9;
-  opacity: 0.85;
-  -webkit-text-stroke: 0.02em currentcolor;
-  paint-order: stroke fill;
-}
-
 @utility display-fraktur {
   font-family: "UnifrakturMaguntia", serif;
   font-weight: 400;
