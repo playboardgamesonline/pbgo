@@ -50,8 +50,8 @@ const stepOfLimit = (limit: number | null): number => (limit === null ? LAST_STE
 const limitOfStep = (step: number): number | null => limits[step] ?? null
 /** The steps that get a dot on the track: the quarter hours and the last, "1h+" (twelve dots would be too many). */
 const MARKED_STEPS = [...limits.flatMap((limit, step) => (limit % 15 === 0 ? [step] : [])), LAST_STEP]
-/** What is written next to the hourglass, with no unit since the hourglass says it: "5", "10" … "55", "1h+". */
-const durationText = (step: number): string => (step >= LAST_STEP ? "1h+" : String(limits[step]))
+/** What is written next to the hourglass: the minutes and their mark, "5′", "10′" … "55′", and "1h+" for no limit. No unit word, since the hourglass says it. */
+const durationText = (step: number): string => (step >= LAST_STEP ? "1h+" : `${limits[step]}′`)
 /** What a screen reader hears for the thumb of the duration slider: "Up to 30 minutes", "An hour or more". */
 const stepSays = (step: number): string => (step >= LAST_STEP ? "An hour or more" : `Up to ${limits[step]} minutes`)
 
@@ -156,10 +156,10 @@ export function CategoryFilter({
 }
 
 /**
- * The duration filter: the hourglass, the limit written next to it with no unit, then a slider with one thumb on twelve steps, from "5" to "55" five
- * minutes at a time and "1h+". A game stays when it takes at most that long, and the last step is no limit, which is where the slider starts: the
- * fill runs from the first step to the thumb, so the limit can be seen. The text has a width of its own, so the slider stays where it is while the
- * text changes.
+ * The duration filter: the hourglass, the limit written next to it (its minutes and the minute mark, "30′", or "1h+" for no limit), then a slider
+ * with one thumb on twelve steps, from 5′ to 55′ five minutes at a time and "1h+". A game stays when it takes at most that long, and the last step
+ * is no limit, which is where the slider starts: the fill runs from the first step to the thumb, so the limit can be seen. The text has a width of
+ * its own, so the slider stays where it is while the text changes.
  */
 function DurationFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
   const step = stepOfLimit(current)
