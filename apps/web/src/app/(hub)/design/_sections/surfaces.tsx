@@ -135,11 +135,11 @@ export async function GameCards() {
     <Section
       id="game-card"
       module="game-card"
-      intro="The hub's tile for a game: its logo, over its background picture when it has one, on a grey 4:3 frame, then the name, on one line and cut with an ellipsis when it does not fit, and the practical facts (players, duration), nothing else. Every tile is a link, to the page of the game (`/game/<slug>`). Game art is the only colour of the platform, so the card adds none: no accent. The one layer it lays over the art is a scrim on the background picture (`bg-scrim/70`, lighter than a dialog's), so that the picture is darker and the logo stands out. Hover lifts the card (`shadow-float`) and zooms the pictures, the scrim staying still. The `soon` variant draws a game to come, in the same list as the others, with a Coming soon badge."
+      intro="The hub's tile for a game: its logo, over its background picture when it has one, on a grey 4:3 frame, then the name, on one line and cut with an ellipsis when it does not fit, and the practical facts (players, duration), nothing else. Every tile is a link, to the page of the game (`/game/<slug>`). Game art is the only colour of the platform, so the card adds none: no accent. No layer is laid over the art either, no scrim or tint: the logo is drawn straight on the background. Hover lifts the card (`shadow-float`) and zooms the pictures. The `soon` variant draws a game to come, in the same list as the others, with a Coming soon badge."
     >
       <Demo
         title="The live games, and without art"
-        description="The first cards are the live games of the catalog, as the hub renders them. Each one is the game's Notion row, its name, its logo and its background (from the catalog's picture route) and its facts; the registry only makes it a play card. A game whose row has no background yet shows its logo on the plain grey frame, with no scrim: the scrim comes with a background, never alone. `players` and `duration` arrive already formatted: `catalogCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `logo` and a `background` the frame stays plain grey, no placeholder."
+        description="The first cards are the live games of the catalog, as the hub renders them. Each one is the game's Notion row, its name, its logo and its background (from the catalog's picture route) and its facts; the registry only makes it a play card. A game whose row has no background yet shows its logo on the plain grey frame. `players` and `duration` arrive already formatted: `catalogCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `logo` and a `background` the frame stays plain grey, no placeholder."
         className="grid gap-4 sm:grid-cols-2"
         code={`import { getCatalog } from "@pbgo/catalog/server"
 import { catalogCardProps } from "@/lib/game-card-props"
@@ -181,7 +181,7 @@ const { entries } = await getCatalog()
 
       <Demo
         title="The picture alone"
-        description="`GameCardVisual` is the picture of a card on its own: the logo over the background on the grey frame, with the scrim between them when there is a background. The page of a game on the hub draws it larger, in the place of its card, rounded like a card with a hairline ring, so that the card and the page cannot drift apart. Without a logo and a background it is a plain frame."
+        description="`GameCardVisual` is the picture of a card on its own: the logo over the background on the grey frame, with no layer between them. The page of a game on the hub draws it larger, in the place of its card, rounded like a card with a hairline ring, so that the card and the page cannot drift apart. Without a logo and a background it is a plain frame."
         className="grid gap-4 sm:grid-cols-3"
         code={`<GameCardVisual logo={logoUrl} background={backgroundUrl} />
 <GameCardVisual logo={logoUrl} />
