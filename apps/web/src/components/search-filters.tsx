@@ -2,13 +2,13 @@
 
 import { useId, useState, type ReactNode } from "react"
 
-import { Baby01Icon, Clock01Icon, Compass01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { Baby01Icon, Clock01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { AGE_LIMITS, DURATION_LIMITS, MANY_PLAYERS, PLAYER_COUNTS, optionOf } from "@pbgo/catalog/filter"
 import { Button } from "@pbgo/ui/platform/button"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
 import { SearchBarSegment, SearchBarSegments } from "@pbgo/ui/platform/search-bar"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { SEARCH_SCOPES, useGameSearch } from "@/components/game-search"
+import { useGameSearch } from "@/components/game-search"
 
 // The platform speaks English (a game's own pages are localized by the game)
 
@@ -25,14 +25,13 @@ const categoryText = (picked: readonly string[]): string => (picked.length > 1 ?
 /**
  * One filter of the bar: its segment and the panel it opens, a title and a Clear button above what there is to pick. `children` draws the
  * picks and is given the way to close the panel, for the filters that take a single pick and have nothing more to do once it is made.
- * The scope has no Clear and is never idle: there is always a pick.
  */
 function Filter({
   icon,
   label,
   title,
   value,
-  idle = false,
+  idle,
   onClear,
   wide = false,
   children,
@@ -43,9 +42,8 @@ function Filter({
   title: string
   value: string
   /** Nothing is picked: the value is dimmed and there is nothing to clear. */
-  idle?: boolean
-  /** Empties the picks. Without it the panel has no Clear button. */
-  onClear?: () => void
+  idle: boolean
+  onClear: () => void
   /** A panel for a long list of chips. */
   wide?: boolean
   children: (close: () => void) => ReactNode
@@ -60,11 +58,9 @@ function Filter({
       <PopoverContent aria-labelledby={titleId} className={wide ? "w-80" : undefined}>
         <PopoverHeader>
           <PopoverTitle id={titleId}>{title}</PopoverTitle>
-          {onClear && (
-            <Button type="button" variant="ghost" size="sm" disabled={idle} onClick={onClear}>
-              Clear
-            </Button>
-          )}
+          <Button type="button" variant="ghost" size="sm" disabled={idle} onClick={onClear}>
+            Clear
+          </Button>
         </PopoverHeader>
         {children(() => setOpen(false))}
       </PopoverContent>
@@ -73,59 +69,27 @@ function Filter({
 }
 
 /**
- * The segments of the search bar: the lower floor, under the field and the round button (`SearchBar`). With `scopes` (the home's bar) the first
- * is what the search looks through, the games, the tables or the tournaments; only the games have filters, so the others leave it alone.
- * The filters of the games are the category (several at once, only when some game has one), the number of players, the duration and the age
- * of the youngest player. Each is a segment that opens a panel of chips; a pick filters the list at once and goes into the address. The
- * category panel stays open, since a visitor picks several; the others close on the pick. The rules are `@pbgo/catalog/filter`'s. See
- * docs/catalog.md.
+ * The segments of the search bar: the lower floor, under the field and the round button (`SearchBar`). The category (several at once; its panel
+ * says so when no game has one yet), the number of players, the duration and the age of the youngest player. Each is a segment that opens a
+ * panel of chips; a pick filters the list at once and goes into the address. The category panel stays open, since a visitor picks several; the
+ * others close on the pick. The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
  */
-export function SearchFilters({ scopes = false }: { scopes?: boolean }) {
-  const { categories, filter, pick, scope, setScope } = useGameSearch()
+export function SearchFilters() {
+  const { categories, filter, pick } = useGameSearch()
 
   return (
-    <SearchBarSegments aria-label={scopes ? "What to search, and filters" : "Filter the games"}>
-      {scopes && (
-        <Filter
-          icon={Compass01Icon}
-          label="Search in"
-          title="Search in"
-          value={SEARCH_SCOPES.find((candidate) => candidate.id === scope)?.label ?? ""}
-        >
-          {(close) => (
-            <ToggleGroup
-              type="single"
-              value={scope}
-              onValueChange={(next) => {
-                // Clicking the pick again reports nothing: there is always a scope
-                const picked = SEARCH_SCOPES.find((candidate) => candidate.id === next)
-                if (!picked) return
-                setScope(picked.id)
-                close()
-              }}
-              aria-label="Search in"
-            >
-              {SEARCH_SCOPES.map(({ id, label }) => (
-                <ToggleGroupItem key={id} value={id}>
-                  {label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          )}
-        </Filter>
-      )}
-
-      {scope === "games" && categories.length > 0 && (
-        <Filter
-          icon={GridViewIcon}
-          label="Category"
-          title="Categories"
-          value={filter.categories.length === 0 ? "Any category" : categoryText(filter.categories)}
-          idle={filter.categories.length === 0}
-          onClear={() => pick({ ...filter, categories: [] })}
-          wide
-        >
-          {() => (
+    <SearchBarSegments aria-label="Filter the games">
+      <Filter
+        icon={GridViewIcon}
+        label="Category"
+        title="Categories"
+        value={filter.categories.length === 0 ? "Any category" : categoryText(filter.categories)}
+        idle={filter.categories.length === 0}
+        onClear={() => pick({ ...filter, categories: [] })}
+        wide
+      >
+        {() =>
+          categories.length > 0 ? (
             <ToggleGroup
               type="multiple"
               value={[...filter.categories]}
@@ -138,94 +102,92 @@ export function SearchFilters({ scopes = false }: { scopes?: boolean }) {
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
-          )}
-        </Filter>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground">No category yet.</p>
+          )
+        }
+      </Filter>
 
-      {scope === "games" && (
-        <>
-          <Filter
-            icon={UserGroupIcon}
-            label="Players"
-            title="Number of players"
-            value={filter.players === null ? "Any players" : playersText(filter.players)}
-            idle={filter.players === null}
-            onClear={() => pick({ ...filter, players: null })}
+      <Filter
+        icon={UserGroupIcon}
+        label="Players"
+        title="Number of players"
+        value={filter.players === null ? "Any players" : playersText(filter.players)}
+        idle={filter.players === null}
+        onClear={() => pick({ ...filter, players: null })}
+      >
+        {(close) => (
+          <ToggleGroup
+            type="single"
+            value={filter.players === null ? "" : String(filter.players)}
+            onValueChange={(next) => {
+              pick({ ...filter, players: optionOf(PLAYER_COUNTS, next) })
+              close()
+            }}
+            aria-label="Number of players"
           >
-            {(close) => (
-              <ToggleGroup
-                type="single"
-                value={filter.players === null ? "" : String(filter.players)}
-                onValueChange={(next) => {
-                  pick({ ...filter, players: optionOf(PLAYER_COUNTS, next) })
-                  close()
-                }}
-                aria-label="Number of players"
-              >
-                {PLAYER_COUNTS.map((count) => (
-                  <ToggleGroupItem key={count} value={String(count)} aria-label={playersText(count)}>
-                    {count >= MANY_PLAYERS ? `${count}+` : count}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            )}
-          </Filter>
+            {PLAYER_COUNTS.map((count) => (
+              <ToggleGroupItem key={count} value={String(count)} aria-label={playersText(count)}>
+                {count >= MANY_PLAYERS ? `${count}+` : count}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </Filter>
 
-          <Filter
-            icon={Clock01Icon}
-            label="Duration"
-            title="Longest game"
-            value={filter.duration === null ? "Any duration" : durationText(filter.duration)}
-            idle={filter.duration === null}
-            onClear={() => pick({ ...filter, duration: null })}
+      <Filter
+        icon={Clock01Icon}
+        label="Duration"
+        title="Longest game"
+        value={filter.duration === null ? "Any duration" : durationText(filter.duration)}
+        idle={filter.duration === null}
+        onClear={() => pick({ ...filter, duration: null })}
+      >
+        {(close) => (
+          <ToggleGroup
+            type="single"
+            value={filter.duration === null ? "" : String(filter.duration)}
+            onValueChange={(next) => {
+              pick({ ...filter, duration: optionOf(DURATION_LIMITS, next) })
+              close()
+            }}
+            aria-label="Longest game"
           >
-            {(close) => (
-              <ToggleGroup
-                type="single"
-                value={filter.duration === null ? "" : String(filter.duration)}
-                onValueChange={(next) => {
-                  pick({ ...filter, duration: optionOf(DURATION_LIMITS, next) })
-                  close()
-                }}
-                aria-label="Longest game"
-              >
-                {DURATION_LIMITS.map((limit) => (
-                  <ToggleGroupItem key={limit} value={String(limit)} aria-label={durationText(limit)}>
-                    {limit} min
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            )}
-          </Filter>
+            {DURATION_LIMITS.map((limit) => (
+              <ToggleGroupItem key={limit} value={String(limit)} aria-label={durationText(limit)}>
+                {limit} min
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </Filter>
 
-          <Filter
-            icon={Baby01Icon}
-            label="Age"
-            title="Age of the youngest player"
-            value={filter.age === null ? "Any age" : ageText(filter.age)}
-            idle={filter.age === null}
-            onClear={() => pick({ ...filter, age: null })}
+      <Filter
+        icon={Baby01Icon}
+        label="Age"
+        title="Age of the youngest player"
+        value={filter.age === null ? "Any age" : ageText(filter.age)}
+        idle={filter.age === null}
+        onClear={() => pick({ ...filter, age: null })}
+      >
+        {(close) => (
+          <ToggleGroup
+            type="single"
+            value={filter.age === null ? "" : String(filter.age)}
+            onValueChange={(next) => {
+              pick({ ...filter, age: optionOf(AGE_LIMITS, next) })
+              close()
+            }}
+            aria-label="Age of the youngest player"
           >
-            {(close) => (
-              <ToggleGroup
-                type="single"
-                value={filter.age === null ? "" : String(filter.age)}
-                onValueChange={(next) => {
-                  pick({ ...filter, age: optionOf(AGE_LIMITS, next) })
-                  close()
-                }}
-                aria-label="Age of the youngest player"
-              >
-                {AGE_LIMITS.map((age) => (
-                  <ToggleGroupItem key={age} value={String(age)} aria-label={ageText(age)}>
-                    {age}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            )}
-          </Filter>
-        </>
-      )}
+            {AGE_LIMITS.map((age) => (
+              <ToggleGroupItem key={age} value={String(age)} aria-label={ageText(age)}>
+                {age}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </Filter>
     </SearchBarSegments>
   )
 }

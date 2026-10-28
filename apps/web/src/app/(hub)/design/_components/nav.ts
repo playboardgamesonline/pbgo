@@ -26,7 +26,7 @@ export const NAV = [
       { id: "toggle-group", title: "Toggle group" },
       { id: "logo", title: "Logo" },
       { id: "wordmark", title: "Wordmark" },
-      { id: "letter-mix", title: "Letter mix" },
+      { id: "face-cycle", title: "Face cycle" },
       { id: "navbar", title: "Navbar" },
       { id: "search-bar", title: "Search bar" },
       { id: "dialog", title: "Dialog" },

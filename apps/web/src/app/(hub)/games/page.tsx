@@ -6,7 +6,6 @@ import { GameList } from "@/components/game-list"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
 import { SiteFooter } from "@/components/site-footer"
-import { SiteHeader } from "@/components/site-header"
 import { catalogCardProps } from "@/lib/game-card-props"
 
 export const metadata: Metadata = {
@@ -29,8 +28,6 @@ export default async function GamesPage() {
   return (
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-        <SiteHeader current="games" />
-
         <main className="flex-1">
           <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center gap-8 px-gutter pt-section pb-12 text-center">

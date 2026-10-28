@@ -2443,6 +2443,9 @@ importers:
       lucide-react:
         specifier: 'catalog:'
         version: 1.54.0(@types/react@19.3.0)(react@19.3.0)
+      motion:
+        specifier: 'catalog:'
+        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       radix-ui:
         specifier: 'catalog:'
         version: 1.7.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

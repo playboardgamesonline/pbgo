@@ -1,7 +1,8 @@
-import { Baby01Icon, Clock01Icon, Compass01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { Baby01Icon, Clock01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
-import { FACES, LetterMix } from "@pbgo/ui/platform/letter-mix"
+import { DISPLAY_FACES } from "@pbgo/ui/faces"
+import { FaceCycle } from "@pbgo/ui/platform/face-cycle"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
@@ -18,7 +19,8 @@ import { Separator } from "@pbgo/ui/platform/separator"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
-import { Block, Bullets, Code, Demo, Section } from "../_components/layout"
+import { NavbarPlayground } from "../_components/navbar-playground"
+import { Block, Bullets, Demo, Section } from "../_components/layout"
 
 export function Logos() {
   return (
@@ -50,96 +52,73 @@ export function Wordmarks() {
     <Section
       id="wordmark"
       module="wordmark"
-      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. It is low contrast (`fill-secondary`, one step above the page), so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text. It is SVG text scaled by its viewBox, so it is always the width of its container, and `textLength` pins that width whatever font answers: the letters are spaced out to fill it, never stretched, so nothing moves when Geist arrives. The ink of the letters is flush with the container's edges (the text starts a little left of the viewBox, by the side bearing of the P), which is why it lines up with the line under it."
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is low contrast (`fill-secondary`, one step above the page), so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text. It is SVG text scaled by its viewBox, so it is always the width of its container, and `textLength` pins that width whatever font answers: the letters are spaced out to fill it, never stretched, so nothing moves when the fonts arrive. The ink of the letters is flush with the container's edges, which is why it lines up with the line under it."
     >
       <Demo
         title="In the footer"
-        description="The footer of the hub's pages: the wordmark, a `Separator`, then the copyright, the links every page owes and what the site is not. It takes the width of its parent and its height follows (a 1000 by 280 box), so it is `358` wide on a phone and `1392` on a desktop with the same proportions."
+        description="The footer of the hub's pages: the wordmark, a `Separator`, then the copyright and who built the site on the left, the legal pages on the right, and what the site is not, centred and a little lighter, under them. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
         code={`<footer className="mx-auto w-full max-w-page px-gutter pb-10">
   <Wordmark />
   <Separator className="mt-6 mb-6" />
-  <p className="text-sm text-muted-foreground">© 2026 PlayBoardGamesOnline. All rights reserved.</p>
+  <p className="text-sm text-muted-foreground">© 2026 Play Board Games Online · Built by …</p>
 </footer>`}
       >
         <Wordmark />
         <Separator className="mt-6 mb-6" />
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm text-muted-foreground">
-          <p>© 2026 PlayBoardGamesOnline. All rights reserved.</p>
-          <p>Legal notice</p>
+          <p>© 2026 Play Board Games Online · Built by oré</p>
+          <p>Privacy Policy · Cookie Policy · Terms of Use</p>
         </div>
+        <p className="mt-8 text-center text-sm text-foreground/80">
+          Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
+        </p>
       </Demo>
     </Section>
   )
 }
 
-/** The Fontsource package each face's font comes from, in the order of `FACES`. */
-const FACE_PACKAGES = [
-  "@fontsource/unifrakturmaguntia",
-  "@fontsource/unkempt",
-  "@fontsource/jersey-15",
-  "@fontsource/birthstone-bounce",
-] as const
-
-export function LetterMixes() {
+export function FaceCycles() {
   return (
     <Section
-      id="letter-mix"
-      module="letter-mix"
-      intro="A text in capitals with every letter in one of four display faces, dealt in an order that looks random and is the same on every render. It is for the title of a page, the home's, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text. The platform's own type stays Geist."
+      id="face-cycle"
+      module="face-cycle"
+      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds: the board games of the home's title, all in capitals, the rest in Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
     >
       <Demo
         title="The title of the home"
-        description="One `LetterMix` per line, each with its own `seed` so the two lines do not start the same way. The element around them keeps the title's size, its line-height (`leading-tight`) and its centring; `block` puts each line on its own."
+        description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child. The home's title is `text-display`, as big as the room it has; this specimen is smaller to fit the column."
         className="bg-linear-to-b from-secondary via-card to-background py-12 text-center"
-        code={`<h1 className="font-heading text-3xl leading-tight sm:text-5xl lg:text-7xl xl:text-8xl">
-  <LetterMix seed={1} className="block">Play board games</LetterMix>{" "}
-  <LetterMix seed={2} className="block">with friends & rivals</LetterMix>
+        code={`<h1 className="font-heading text-display uppercase">
+  <FaceCycle before="Play" className="block">board games</FaceCycle>{" "}
+  <span className="block">with friends & rivals</span>
 </h1>`}
       >
-        <p className="font-heading text-3xl leading-tight sm:text-5xl lg:text-6xl">
-          <LetterMix seed={1} className="block">
-            Play board games
-          </LetterMix>{" "}
-          <LetterMix seed={2} className="block">
-            with friends & rivals
-          </LetterMix>
+        <p className="font-heading text-4xl leading-tight uppercase sm:text-6xl">
+          <FaceCycle before="Play" className="block">
+            board games
+          </FaceCycle>{" "}
+          <span className="block">with friends & rivals</span>
         </p>
       </Demo>
 
       <Block
         title="The four faces"
-        description="Each is a utility of `platform.css` that sets the family, the weight and the size of one typeface, and each font is a Fontsource package imported by the app, in the one weight it is set at. What the browser computed for the sample is printed beside it. The size is a scale of the parent's that gives the face the cap height of Geist's capitals, so no letter stands taller than its neighbours."
+        description="Each is a utility of `platform.css` that sets the family, the weight and the size of one typeface, in the order the word goes through them; each font is a Fontsource package imported by the app, in the one weight it is set at. What the browser computed for the sample is printed beside it. The size is a scale of the parent's that gives the face the cap height of Geist's capitals, so a word in a face does not stand taller than the words around it."
       >
         <div className="divide-y rounded-3xl border p-6">
-          {FACES.map((face, index) => (
-            <FaceRow key={face} face={face} fontsource={FACE_PACKAGES[index] ?? ""} />
+          {DISPLAY_FACES.map((face) => (
+            <FaceRow key={face.utility} face={face.utility} letter={face.letter} fontsource={face.fontsource} />
           ))}
         </div>
       </Block>
 
-      <Demo
-        title="Seeds"
-        description="The same words with three seeds. The deal is a shuffled bag of the four faces, used up one letter at a time, so each face comes once in every four letters and never twice in a row."
-        className="flex flex-col gap-4"
-        code={`<LetterMix seed={1}>Board games</LetterMix>
-<LetterMix seed={2}>Board games</LetterMix>
-<LetterMix seed={3}>Board games</LetterMix>`}
-      >
-        {[1, 2, 3].map((seed) => (
-          <p key={seed} className="flex flex-wrap items-center gap-x-6 gap-y-2 font-heading text-3xl leading-tight">
-            <Code className="w-16 shrink-0">{`seed ${seed}`}</Code>
-            <LetterMix seed={seed}>Board games</LetterMix>
-          </p>
-        ))}
-      </Demo>
-
       <Bullets
         items={[
-          "The same seed always deals the same order, on the server and in the browser, so the page hydrates as it was rendered. It is `1` unless the page gives another.",
-          "The capitals are CSS (`letter-mix`) and each letter is a plain inline `span`: the text stays one string, written as it is, for a screen reader, a search engine and a copy, and the line breaks and `text-wrap: balance` work as on any title.",
-          "A letter has `line-height: 0`, so the lines of the title keep the height of the element's own whichever faces they got, and nothing moves when a font file arrives. Spaces keep the parent's face, a little wider (`word-spacing`), since a swash or a tail would eat a plain one.",
+          "The word is one text in the page, written as it is, whichever face it is in: `before`, the word and `after` read as one sentence for a screen reader and a search engine, and the capitals are CSS (`uppercase` on the title).",
+          "A visitor who asks for less motion (`prefers-reduced-motion`) gets no rotation and no glide: the word stays in its first face, the most legible one.",
+          "The word has `line-height: 0`, so the lines of the title keep the height of the element's own whichever face it is in, and nothing moves when a font file arrives.",
           "Each face sets its own weight: the platform's 600 on a face that has none would be a fake bold. That is the one place the platform has more than one weight.",
-          "A face is swapped in `styles/platform.css` (its utility) and in the app's `globals.css` (its import). Nothing else names a font.",
+          "A face is swapped in `styles/platform.css` (its utility), in `faces.ts` (its place in the order) and in the app's `globals.css` (its import). Nothing else names a font. The footer's `Wordmark` is set in the same four faces.",
         ]}
       />
     </Section>
@@ -176,11 +155,11 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The page pins the bar with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls, leaves `pt-navbar` under it (or lets its backdrop run under it), and gives an anchor that lands below it `scroll-mt-navbar`. The tabs leave the first island under `md`, where the account needs the room."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The bar is pinned with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls; the page leaves `pt-navbar` under it (or lets its backdrop run under it) and gives an anchor that lands below it `scroll-mt-navbar`. The hub's layout mounts the bar once and it reads the address to know what is current, so it stays mounted from one page to the next and the fill behind the current item can glide. The tabs leave the first island under `md`, where the account needs the room."
     >
       <Demo
         title="On the home, signed out"
-        description="The logo is the home's button, a square tile: on the home it is `current`, a white tile (`bg-primary`) with a black logo, and no tab is. On any other page it is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
+        description="The logo is the home's button, a square: on the home it is `current`, and no tab is. `current` puts the bar's fill (`bg-muted`) behind the item, the same one for the logo and for a tab, in the same white. On any other page the logo is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and Sign up the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
@@ -232,13 +211,33 @@ export function Navbars() {
           </NavbarEnd>
         </Navbar>
       </Demo>
+
+      <Demo
+        title="Moving between the items"
+        description="The current item has the bar's fill behind it, and that fill is one element for the whole bar (`layoutId` of `motion/react`): when the current item changes it glides to the next with a spring (`SPRING_TRAVEL` of `@pbgo/ui/motion`, about a quarter of a second, no overshoot worth seeing) instead of jumping. Click the logo and the tabs. A visitor who asks for less motion gets the jump (`reducedMotion=user` of the `MotionConfig` that `Navbar` mounts). Each bar scopes its own fill, so the specimens above and this one do not trade it."
+        className="overflow-hidden bg-card p-0"
+        code={`const [current, setCurrent] = useState("home")
+
+<Navbar>
+  <NavbarStart>
+    <NavbarBrand href="/" aria-label="Home" current={current === "home"}>
+      <Logo className="h-6" />
+    </NavbarBrand>
+    <NavbarTabs aria-label="Main">
+      <NavbarTab href="/games" current={current === "games"}>Games</NavbarTab>
+      …
+    </NavbarTabs>
+  </NavbarStart>
+</Navbar>`}
+      >
+        <NavbarPlayground />
+      </Demo>
     </Section>
   )
 }
 
 /** The options of the specimens below. */
 const FILTERS = {
-  scope: { icon: Compass01Icon, label: "Search in", chips: ["Games", "Tables", "Tournaments"] },
   category: { icon: GridViewIcon, label: "Category", chips: ["Bluffing", "Cards", "Co-op", "Party", "Strategy"] },
   players: { icon: UserGroupIcon, label: "Players", chips: ["1", "2", "3", "4", "5", "6", "7", "8+"] },
   duration: { icon: Clock01Icon, label: "Duration", chips: ["15 min", "30 min", "45 min"] },
@@ -249,8 +248,6 @@ const FILTERS = {
 function FilterSegment({ filter, value, picked = [] }: { filter: keyof typeof FILTERS; value: string; picked?: string[] }) {
   const { icon, label, chips } = FILTERS[filter]
   const multiple = filter === "category"
-  // The scope always has a pick, so it has no Clear
-  const clearable = filter !== "scope"
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -259,11 +256,9 @@ function FilterSegment({ filter, value, picked = [] }: { filter: keyof typeof FI
       <PopoverContent aria-label={label}>
         <PopoverHeader>
           <PopoverTitle>{label}</PopoverTitle>
-          {clearable && (
-            <Button type="button" variant="ghost" size="sm" disabled={picked.length === 0}>
-              Clear
-            </Button>
-          )}
+          <Button type="button" variant="ghost" size="sm" disabled={picked.length === 0}>
+            Clear
+          </Button>
         </PopoverHeader>
         {multiple ? (
           <ToggleGroup type="multiple" defaultValue={picked} aria-label={label}>
@@ -330,19 +325,13 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than five `SearchBarSegment`. The home's bar puts a first one, *Search in*, that picks what the bar looks through (the games, the tables or the tournaments) and is never idle; only the games have the filters after it. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero) and in a 2 × 2 grid under that (as in this column). The segments are `type=button`, so only the field and the round button send the form."
+        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than four `SearchBarSegment`. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero) and in a 2 × 2 grid under that (as in this column). The segments are `type=button`, so only the field and the round button send the form."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
     <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
   </SearchBarField>
   <SearchBarSegments aria-label="Filter the games">
-    <Popover>
-      <PopoverTrigger asChild>
-        <SearchBarSegment icon={Compass01Icon} label="Search in" value="Games" />
-      </PopoverTrigger>
-      <PopoverContent aria-label="Search in">…</PopoverContent>
-    </Popover>
     <Popover>
       <PopoverTrigger asChild>
         <SearchBarSegment icon={UserGroupIcon} label="Players" value="4 players" />
@@ -364,7 +353,6 @@ export function SearchBars() {
             <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
           </SearchBarField>
           <SearchBarSegments aria-label="Filter the games">
-            <FilterSegment filter="scope" value="Games" picked={["Games"]} />
             <FilterSegment filter="category" value="Any category" />
             <FilterSegment filter="players" value="Any players" />
             <FilterSegment filter="duration" value="Any duration" />
@@ -389,27 +377,22 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the bottom of the title, in the hero: its top edge sits on the baseline of the last line, so the letters stand on it and the tails of the script letters pass behind it. `relative` paints it over the text, and a negative top margin pulls it up by the 0.265em that the line keeps under its baseline, in px for each size of the title (`-mt-2` at `text-3xl`, `sm:-mt-3` at `text-5xl`, `lg:-mt-5` at `text-7xl`, `xl:-mt-6` at `text-8xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the bottom of the title, in the hero: its top edge sits on the baseline of the last line, so the letters stand on it. `relative` paints it over the text, and a negative top margin pulls it up by the 0.265em that the line keeps under its baseline, (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
-    <h1 className="font-heading text-3xl leading-tight sm:text-5xl lg:text-7xl xl:text-8xl">…</h1>
-    <div className="relative -mt-2 w-full max-w-4xl sm:-mt-3 lg:-mt-5 xl:-mt-6">
+    <h1 className="font-heading text-display uppercase">…</h1>
+    <div className="relative -mt-title-overlap w-full max-w-4xl">
       <SearchBar>…</SearchBar>
     </div>
   </div>
 </section>`}
       >
         <div className="flex flex-col items-center bg-linear-to-b from-secondary via-card to-background px-6 pt-12 pb-10 text-center">
-          <p className="font-heading text-3xl leading-tight">
-            <LetterMix seed={1} className="block">
-              Play board games
-            </LetterMix>{" "}
-            <LetterMix seed={2} className="block">
-              with friends & rivals
-            </LetterMix>
+          <p className="font-heading text-4xl leading-tight uppercase">
+            <span className="block">Play board games</span> <span className="block">with friends & rivals</span>
           </p>
-          <div className="relative -mt-2 w-full max-w-xl">
+          <div className="relative -mt-2.5 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search the games">
               <SearchBarField>
                 <SearchBarInput aria-label="Search a game" placeholder="Search a game" />

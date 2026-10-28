@@ -4,13 +4,14 @@ import { Code } from "./layout"
 import { useMeasured } from "./live"
 import { ratio } from "./type-scale"
 
-const SAMPLE = "ABCDEFGHIJKLM NOPQRSTUVWXYZ & 0123456789"
+const SAMPLE = "BOARD GAMES & PBGO 0123"
 
 /**
- * One face of `LetterMix` on a line of its own: its utility, the typeface and the weight the browser computed for it, and its size over its
- * parent's (the scale that gives it the cap height of Geist's capitals). Everything is read from the sample, nothing is typed here.
+ * One display face on a line of its own: its utility, the typeface and the weight the browser computed for it, its size over its parent's (the
+ * scale that gives it the cap height of Geist's capitals), the package it comes from and the letter of the logo that is drawn in it. Everything
+ * is read from the sample, nothing is typed here but the names.
  */
-export function FaceRow({ face, fontsource }: { face: string; fontsource: string }) {
+export function FaceRow({ face, letter, fontsource }: { face: string; letter: string; fontsource: string }) {
   const { ref: parentRef, values: parentValues } = useMeasured(["font-size"])
   const { ref: ownRef, values: ownValues } = useMeasured(["font-family", "font-weight", "font-size"])
   const [family, weight, size] = ownValues
@@ -27,6 +28,7 @@ export function FaceRow({ face, fontsource }: { face: string; fontsource: string
             "…"
           )}
         </p>
+        <p className="text-sm text-muted-foreground">The {letter} of the logo</p>
         <p>
           <Code>{fontsource}</Code>
         </p>

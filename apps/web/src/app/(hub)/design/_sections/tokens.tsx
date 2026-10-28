@@ -1,3 +1,4 @@
+import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "@pbgo/ui/motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { ChartColors, LineColors, NeutralRamp, SemanticColors } from "../_components/colors"
 import { Block, Bullets, Code, Demo, Inline, Section } from "../_components/layout"
@@ -45,13 +46,15 @@ const FONT_ROWS = [
   { variable: "--font-title", utility: "font-heading", use: "Headings and card titles. Same as the body font on the platform." },
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
+  { variable: "--text-display", utility: "text-display", use: "The title of the home, in capitals: as big as the room it has (8.2vw, from 1.5rem to 8rem), so its longest line is 90% of the page from a phone up. Its line-height is `leading-tight`." },
+  { variable: "--spacing-title-overlap", utility: "-mt-title-overlap", use: "How far a bar laid over the title is pulled up so its top edge sits on the baseline of the last line: 0.265em of `text-display`." },
 ] as const
 
 export function Typography() {
   return (
     <Section
       id="typography"
-      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes. One exception: the home's title is set in four display faces, one per letter (see Letter mix)."
+      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes. One exception: the home's title has one word that changes between four display faces (see Face cycle)."
     >
       <Block
         title="Scale"
@@ -228,7 +231,7 @@ export function Motion() {
   return (
     <Section
       id="motion"
-      intro="Three durations and one easing. Plain `transition` and `transition-colors` already use the base duration and the standard easing, so most components write neither."
+      intro="Three durations, one easing and one spring. Plain `transition` and `transition-colors` already use the base duration and the standard easing, so most components write neither. What CSS cannot do, a layout animation or a sequence, is done with `motion/react` (motion.dev) and reads the same numbers."
     >
       <Demo title="Durations">
         <MotionDemo />
@@ -238,6 +241,53 @@ export function Motion() {
         items={[
           "With `prefers-reduced-motion: reduce`, the three durations become 0ms: nothing animates, and no component needs to check.",
           "Never write `duration-200`: the guard test rejects a numeric duration.",
+        ]}
+      />
+
+      <Block
+        title="In JavaScript"
+        description="`@pbgo/ui/motion` copies the three durations and the easing of the stylesheet in the units that `motion/react` takes (seconds, and a bezier as four numbers), and `motion.test.ts` reads `platform.css` and fails when a copy has drifted. The values below are imported from it, not typed here."
+      >
+        <div className="rounded-3xl border p-2">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Export</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>CSS</TableHead>
+                <TableHead>Use</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { name: "DURATION.fast", value: `${DURATION.fast} s`, css: "--transition-duration-fast", use: "Overlays entering and leaving." },
+                { name: "DURATION.base", value: `${DURATION.base} s`, css: "--transition-duration-base", use: "Hover and focus: what `transition` uses." },
+                { name: "DURATION.slow", value: `${DURATION.slow} s`, css: "--transition-duration-slow", use: "Things that travel; the word of the home's title fading out and in." },
+                { name: "EASE_STANDARD", value: `[${EASE_STANDARD.join(", ")}]`, css: "--ease-standard", use: "The one easing, quick to leave and slow to settle: cubic-bezier(0.2, 0, 0, 1). The games' UI uses it too." },
+                { name: "SPRING_TRAVEL", value: `spring, stiffness ${SPRING_TRAVEL.stiffness}, damping ${SPRING_TRAVEL.damping}`, css: "", use: "Something that moves to a place it was not, and has to feel attached to the hand that asked: the fill that glides between the tabs of the navbar. Stiff, no overshoot worth seeing, settled in about a quarter of a second." },
+              ].map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell>
+                    <Code>{row.name}</Code>
+                  </TableCell>
+                  <TableCell className="whitespace-normal font-mono text-xs tracking-normal">{row.value}</TableCell>
+                  <TableCell>{row.css && <Code>{row.css}</Code>}</TableCell>
+                  <TableCell className="min-w-56 whitespace-normal text-muted-foreground">
+                    <Inline>{row.use}</Inline>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Block>
+
+      <Bullets
+        items={[
+          "The platform moves in JavaScript in two places: the fill behind the current item of the navbar (`layoutId`, `SPRING_TRAVEL`) and the word of the home's title that changes face (`FaceCycle`: out and in with `DURATION.slow` and `EASE_STANDARD`, the rest of its line gliding). Everything else is a CSS transition.",
+          "An animation answers an action (a click, a hover) or says that something changed. Use the tokens, never a duration or an easing written in a component, and reach for `motion` only for a layout animation, a sequence or a spring.",
+          "Less motion is honoured everywhere: in CSS the durations become 0ms, in JavaScript `Navbar` mounts `MotionConfig reducedMotion=user` (the fill jumps) and `FaceCycle` does not rotate at all, since an animation that starts by itself is the one a visitor who asks for less motion must never get.",
+          "The games' UI shares the curve, not the durations: it has its own timings, tuned by the game's `UI_THEME` (`docs/game-ui.md`).",
         ]}
       />
     </Section>

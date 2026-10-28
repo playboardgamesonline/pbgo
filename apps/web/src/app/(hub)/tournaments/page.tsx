@@ -8,7 +8,6 @@ export const metadata: Metadata = { title: "Tournaments", alternates: { canonica
 export default function TournamentsPage() {
   return (
     <ComingSoonPage
-      tab="tournaments"
       title="Tournaments"
       {...COMING_SOON.tournaments}
     />

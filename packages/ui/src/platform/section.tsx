@@ -3,11 +3,11 @@ import { Slot } from "radix-ui"
 import { cn } from "../utils"
 import { buttonVariants } from "./button"
 
-// A section of a hub page: a heading with its "See all" on one line, then what it holds. The home is a stack of them (popular games, tables and
-// tournaments in progress, what's new), each leading to the page of its tab. They are as wide as the page (`max-w-page`, the `px-gutter` margins)
-// and keep `pb-section` between them.
+// A block of a hub page: what it shows, and the way to the page of its tab. The home is a stack of them (popular games, tables and tournaments in
+// progress, what's new). They carry no visible title: what they show says what they are (the cards of games, the rows of tables), and a
+// screen reader gets an `sr-only` heading. They are as wide as the page (`max-w-page`, the `px-gutter` margins) and keep `pb-section` between them.
 
-/** The section itself: name it with `aria-labelledby`, pointing at its `SectionTitle`. */
+/** The block itself: name it with `aria-labelledby`, pointing at an `sr-only` heading, or with an `aria-label`. */
 function Section({ className, ...props }: React.ComponentProps<"section">) {
   return (
     <section
@@ -18,18 +18,10 @@ function Section({ className, ...props }: React.ComponentProps<"section">) {
   )
 }
 
-/** The line above the content: the title on the left, the action on the right. */
-function SectionHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="section-header" className={cn("flex items-center justify-between gap-4", className)} {...props} />
-}
-
-function SectionTitle({ className, ...props }: React.ComponentProps<"h2">) {
-  return <h2 data-slot="section-title" className={cn("font-heading text-2xl", className)} {...props} />
-}
-
 /**
- * The way to the page the section is a preview of ("See all"): a small outline button that is a link, or the framework's through `asChild`
- * (`@pbgo/ui` is framework-free). Put an arrow icon in it if the page wants one.
+ * The way to the page the section is a preview of ("See all games"): a link as a button, bigger than a control of a page (`h-12`, `text-base`) since
+ * it is the one thing a visitor is asked to do there. It is the framework's link through `asChild` (`@pbgo/ui` is framework-free). Over a
+ * `SectionPreview` it sits on the fade; on its own, under an empty state, it is centred by the section.
  */
 function SectionAction({
   className,
@@ -37,27 +29,37 @@ function SectionAction({
   ...props
 }: React.ComponentProps<"a"> & { asChild?: boolean }) {
   const Comp = asChild ? Slot.Root : "a"
-  return <Comp data-slot="section-action" className={cn(buttonVariants({ variant: "outline", size: "sm" }), className)} {...props} />
-}
-
-/**
- * A row of cards that scrolls sideways, for a preview that has more to show than a section has room for. Each child is a card of the same
- * width (`w-64`, `sm:w-72`) that the row snaps to. The row runs out to the edges of the section (it takes back the `px-gutter` it sits in), so
- * the cards scroll under the margins instead of being cut at the content, and the first one still lines up with the title. Name it with an
- * `aria-label`: its cards are links, so the keyboard reaches them and the row follows.
- */
-function SectionRail({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      data-slot="section-rail"
-      role="group"
-      className={cn(
-        "-mx-gutter flex snap-x snap-mandatory scroll-px-gutter gap-4 overflow-x-auto px-gutter pb-2 [&>*]:w-64 [&>*]:shrink-0 [&>*]:snap-start sm:[&>*]:w-72",
-        className
-      )}
+    <Comp
+      data-slot="section-action"
+      className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "h-12 px-6 text-base shadow-float", className)}
       {...props}
     />
   )
 }
 
-export { Section, SectionHeader, SectionTitle, SectionAction, SectionRail }
+/**
+ * A preview of a longer list: what it holds (`children`: a grid of cards, a list of rows) fades out at the bottom, and `action` sits over the
+ * fade, centred, the way to the rest. The fade is a mask on the content alone (opacity, no colour of the page in it), so the section may sit
+ * on any backdrop and the button stays sharp.
+ */
+function SectionPreview({
+  action,
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div"> & {
+  /** What sits over the fade: a `SectionAction`. */
+  action: React.ReactNode
+}) {
+  return (
+    <div data-slot="section-preview" className={cn("relative", className)} {...props}>
+      <div data-slot="section-preview-content" className="mask-b-from-60%">
+        {children}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 flex justify-center">{action}</div>
+    </div>
+  )
+}
+
+export { Section, SectionAction, SectionPreview }

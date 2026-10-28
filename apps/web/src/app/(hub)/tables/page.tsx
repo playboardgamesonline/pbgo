@@ -10,7 +10,6 @@ export const metadata: Metadata = { title: "Tables", alternates: { canonical: "/
 export default function TablesPage() {
   return (
     <ComingSoonPage
-      tab="tables"
       title="Tables"
       {...COMING_SOON.tables}
       action={

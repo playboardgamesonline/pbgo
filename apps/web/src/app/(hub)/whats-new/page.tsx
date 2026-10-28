@@ -8,7 +8,6 @@ export const metadata: Metadata = { title: "What's New", alternates: { canonical
 export default function WhatsNewPage() {
   return (
     <ComingSoonPage
-      tab="whats-new"
       title="What's New"
       {...COMING_SOON.whatsNew}
     />
