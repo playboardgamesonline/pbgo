@@ -11,11 +11,10 @@ import { Button } from "./button"
 // picked, in a button that opens whatever the page puts behind it (`SearchBarSegment`, with a `Popover`), or a stepper for a number
 // (`SearchBarStepper`: less, the number, more, with no panel). The text of the field and the icons of the filters start on the same line.
 //
-// The bar is a rounded rectangle, with large corners (`rounded-4xl`), and the submit button a rounded square whose corners are the bar's less its
-// padding, so that they are concentric (`rounded-3xl` beside the block, where the padding is 8px). Up to 48rem of room (the width of the container,
-// not of the window) the button ends the field, 40px high. From 48rem the field and the filters are one block on the left and the button stands
-// alone on the right, as tall as the two floors (`size-21`: the 44px of the field, 4px and the 36px of the filters). It only draws the bar. The page
-// owns the text, the picks and what they find.
+// Up to 48rem of room (the width of the container, not of the window) the bar is a card with large corners (`rounded-4xl`) and the submit button,
+// 40px high, ends the field. From 48rem it is a pill (`rounded-full`): the field and the filters are one block on the left, with room for the curve
+// of the end, and the button stands alone on the right, a circle as tall as the two floors (`size-23`: the 48px of the field, 4px and the 40px of the
+// filters) that is concentric with the end of the pill, 8px from its edge. It only draws the bar. The page owns the text, the picks and what they find.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   return (
@@ -26,7 +25,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         className={cn(
           "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
           "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-1 has-data-[slot=search-bar-segments]:rounded-4xl has-data-[slot=search-bar-segments]:p-3",
-          "@3xl:has-data-[slot=search-bar-segments]:grid @3xl:has-data-[slot=search-bar-segments]:grid-cols-[minmax(0,1fr)_auto] @3xl:has-data-[slot=search-bar-segments]:gap-x-4 @3xl:has-data-[slot=search-bar-segments]:p-2 @3xl:has-data-[slot=search-bar-segments]:pl-6",
+          "@3xl:has-data-[slot=search-bar-segments]:grid @3xl:has-data-[slot=search-bar-segments]:grid-cols-[minmax(0,1fr)_auto] @3xl:has-data-[slot=search-bar-segments]:gap-x-4 @3xl:has-data-[slot=search-bar-segments]:rounded-full @3xl:has-data-[slot=search-bar-segments]:p-2 @3xl:has-data-[slot=search-bar-segments]:pl-9",
           className
         )}
         {...props}
@@ -41,7 +40,7 @@ function SearchBarField({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="search-bar-field"
       className={cn(
-        "flex h-10 min-w-0 flex-1 items-center gap-1 group-has-data-[slot=search-bar-segments]/search-bar:h-11 group-has-data-[slot=search-bar-segments]/search-bar:pl-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:pl-0",
+        "flex h-10 min-w-0 flex-1 items-center gap-1 group-has-data-[slot=search-bar-segments]/search-bar:h-12 group-has-data-[slot=search-bar-segments]/search-bar:pl-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:pl-0",
         className
       )}
       {...props}
@@ -111,8 +110,8 @@ function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">)
   )
 }
 
-// What a segment is, whether it opens something or steps a number: a row of 36px with an icon at the start, and no frame.
-const SEGMENT = "relative flex h-9 min-w-0 items-center gap-2 text-left outline-none select-none"
+// What a segment is, whether it opens something or steps a number: a row of 40px with an icon at the start, and no frame.
+const SEGMENT = "relative flex h-10 min-w-0 items-center gap-2 text-left outline-none select-none"
 
 type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "type"> & {
   icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
@@ -231,7 +230,7 @@ function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
       variant="secondary"
       size="icon-lg"
       className={cn(
-        "group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-span-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:rounded-2xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:size-21 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:rounded-3xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:self-center group-has-data-[slot=search-bar-segments]/search-bar:@3xl:[&_svg:not([class*='size-'])]:size-6",
+        "group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-span-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:rounded-2xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:size-23 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:rounded-full group-has-data-[slot=search-bar-segments]/search-bar:@3xl:self-center group-has-data-[slot=search-bar-segments]/search-bar:@3xl:[&_svg:not([class*='size-'])]:size-6",
         className
       )}
       {...props}
