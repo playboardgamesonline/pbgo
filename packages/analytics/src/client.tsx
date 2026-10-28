@@ -10,7 +10,7 @@ import { consentStore } from "./store"
 
 export { trackClient }
 
-/** A link of the hub that opens a game (the hero button, the game cards): a plain link to `/<slug>`, `data-game` holds the slug. */
+/** A link of the hub to a game (the cards of the live games): a plain link, `data-game` holds the slug. */
 const GAME_LINK = "a[data-game]"
 
 /** The visitor's answer: stored, followed by the SDK at once, then reported in the mode they just chose. */
@@ -54,8 +54,8 @@ export function AnalyticsProvider() {
     if (ready) syncConsent(consent)
   }, [ready, consent, pathname])
 
-  // The hub is the only page whose links are counted: the hero button leads straight to a game, a card to the game's page on the hub
-  // (`/game/<slug>`, whose own button is not counted). `/design` shows the same cards as a specimen.
+  // The hub is the only page whose links are counted: a card leads to the game's page on the hub (`/game/<slug>`, whose own button
+  // is not counted). `/design` shows the same cards as a specimen.
   React.useEffect(() => {
     if (!reporting || pathname !== "/") return
     function onClick(event: MouseEvent) {
