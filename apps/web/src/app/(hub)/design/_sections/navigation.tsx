@@ -1,6 +1,7 @@
 import { Baby01Icon, Clock01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
+import { FACES, LetterMix } from "@pbgo/ui/platform/letter-mix"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
@@ -14,7 +15,8 @@ import {
   SearchBarSubmit,
 } from "@pbgo/ui/platform/search-bar"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { Demo, Section } from "../_components/layout"
+import { FaceRow } from "../_components/face-specimen"
+import { Block, Bullets, Code, Demo, Section } from "../_components/layout"
 
 export function Logos() {
   return (
@@ -37,6 +39,80 @@ export function Logos() {
         <Logo className="h-12" />
         <Logo className="h-16 text-muted-foreground" />
       </Demo>
+    </Section>
+  )
+}
+
+/** The Fontsource package each face's font comes from, in the order of `FACES`. */
+const FACE_PACKAGES = [
+  "@fontsource/unifrakturmaguntia",
+  "@fontsource/unkempt",
+  "@fontsource/jersey-15",
+  "@fontsource/birthstone-bounce",
+] as const
+
+export function LetterMixes() {
+  return (
+    <Section
+      id="letter-mix"
+      module="letter-mix"
+      intro="A text in capitals with every letter in one of four display faces, dealt in an order that looks random and is the same on every render. It is for the title of a page, the home's, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text. The platform's own type stays Geist."
+    >
+      <Demo
+        title="The title of the home"
+        description="One `LetterMix` per line, each with its own `seed` so the two lines do not start the same way. The element around them keeps the title's size, its line-height (`leading-tight`) and its centring; `block` puts each line on its own."
+        className="bg-linear-to-b from-secondary via-card to-background py-12 text-center"
+        code={`<h1 className="font-heading text-3xl leading-tight sm:text-5xl lg:text-7xl xl:text-8xl">
+  <LetterMix seed={1} className="block">Play board games</LetterMix>{" "}
+  <LetterMix seed={2} className="block">with friends & rivals</LetterMix>
+</h1>`}
+      >
+        <p className="font-heading text-3xl leading-tight sm:text-5xl lg:text-6xl">
+          <LetterMix seed={1} className="block">
+            Play board games
+          </LetterMix>{" "}
+          <LetterMix seed={2} className="block">
+            with friends & rivals
+          </LetterMix>
+        </p>
+      </Demo>
+
+      <Block
+        title="The four faces"
+        description="Each is a utility of `platform.css` that sets the family, the weight and the size of one typeface, and each font is a Fontsource package imported by the app, in the one weight it is set at. What the browser computed for the sample is printed beside it. The size is a scale of the parent's that gives the face the cap height of Geist's capitals, so no letter stands taller than its neighbours."
+      >
+        <div className="divide-y rounded-3xl border p-6">
+          {FACES.map((face, index) => (
+            <FaceRow key={face} face={face} fontsource={FACE_PACKAGES[index] ?? ""} />
+          ))}
+        </div>
+      </Block>
+
+      <Demo
+        title="Seeds"
+        description="The same words with three seeds. The deal is a shuffled bag of the four faces, used up one letter at a time, so each face comes once in every four letters and never twice in a row."
+        className="flex flex-col gap-4"
+        code={`<LetterMix seed={1}>Board games</LetterMix>
+<LetterMix seed={2}>Board games</LetterMix>
+<LetterMix seed={3}>Board games</LetterMix>`}
+      >
+        {[1, 2, 3].map((seed) => (
+          <p key={seed} className="flex flex-wrap items-center gap-x-6 gap-y-2 font-heading text-3xl leading-tight">
+            <Code className="w-16 shrink-0">{`seed ${seed}`}</Code>
+            <LetterMix seed={seed}>Board games</LetterMix>
+          </p>
+        ))}
+      </Demo>
+
+      <Bullets
+        items={[
+          "The same seed always deals the same order, on the server and in the browser, so the page hydrates as it was rendered. It is `1` unless the page gives another.",
+          "The capitals are CSS (`letter-mix`) and each letter is a plain inline `span`: the text stays one string, written as it is, for a screen reader, a search engine and a copy, and the line breaks and `text-wrap: balance` work as on any title.",
+          "A letter has `line-height: 0`, so the lines of the title keep the height of the element's own whichever faces they got, and nothing moves when a font file arrives. Spaces keep the parent's face, a little wider (`word-spacing`), since a swash or a tail would eat a plain one.",
+          "Each face sets its own weight: the platform's 600 on a face that has none would be a fake bold. That is the one place the platform has more than one weight.",
+          "A face is swapped in `styles/platform.css` (its utility) and in the app's `globals.css` (its import). Nothing else names a font.",
+        ]}
+      />
     </Section>
   )
 }

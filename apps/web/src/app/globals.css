@@ -8,11 +8,19 @@
  * page). Their utilities that only games have (font-display, bg-surface, bg-surface-dark, text-accent-game) are mapped
  * below, to the names the specimen's wrapper sets (_components/game-scope.tsx). `@theme inline` emits no variable, so
  * the platform still sets no value on :root. game.css itself stays out of the hub.
+ *
+ * The four faces of `LetterMix` (the title of the home) are imported here, the latin subset and the one weight each is set at in
+ * platform.css (`letter-face-*`). The hub, the gamemaster and the 404 pages load this file and a game page does not, so a game never
+ * carries them; a font file is downloaded only where a letter uses it.
  */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/unifrakturmaguntia/latin-400.css";
+@import "@fontsource/unkempt/latin-700.css";
+@import "@fontsource/jersey-15/latin-400.css";
+@import "@fontsource/birthstone-bounce/latin-500.css";
 @import "@pbgo/ui/styles/platform.css";
 
 @source "../../../../packages/core/components/game/seat-label.tsx";

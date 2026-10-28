@@ -51,7 +51,7 @@ export function Typography() {
   return (
     <Section
       id="typography"
-      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes."
+      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes. One exception: the home's title is set in four display faces, one per letter (see Letter mix)."
     >
       <Block
         title="Scale"

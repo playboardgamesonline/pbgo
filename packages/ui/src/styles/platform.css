@@ -98,6 +98,46 @@
   --color-scrim: oklch(0 0 0 / 0.6);
 }
 
+/*
+ * The four faces of `LetterMix` (`@pbgo/ui/platform/letter-mix`), which sets a title in capitals, letter by letter: `letter-face-1` to `letter-face-4`,
+ * each the family, the weight and the size of one typeface. The fonts are Fontsource packages, imported by the app (`apps/web/src/app/globals.css`)
+ * in the one weight each is set at here: the platform's 600 on a face that has no 600 would make the browser draw a fake bold. The size is a scale
+ * of the parent's that gives each face the cap height of Geist's capitals (0.71 of the em; measured: Fraktur 0.77, Unkempt 0.71, Jersey 0.56,
+ * Birthstone 0.77), so no letter looks taller or smaller than its neighbours. `line-height: 0`: a letter adds nothing to the height of its line,
+ * whichever face it got, so the title keeps the line-height of its element and nothing moves when a font arrives. A face is swapped here and in
+ * the app's imports, nowhere else.
+ * `letter-mix` is the text around the letters: in capitals (a title is, and the sizes above are measured on them; the text itself stays as it was
+ * written, for a screen reader and a search engine), and its spaces stay in the parent's face, a little wider, since the faces overhang their
+ * letters (a script's tail, a blackletter's swash) and a plain space would be eaten.
+ */
+@utility letter-mix {
+  text-transform: uppercase;
+  word-spacing: 0.2em;
+}
+@utility letter-face-1 {
+  font-family: "UnifrakturMaguntia", serif;
+  font-weight: 400;
+  font-size: 0.92em;
+  line-height: 0;
+}
+@utility letter-face-2 {
+  font-family: "Unkempt", cursive;
+  font-weight: 700;
+  line-height: 0;
+}
+@utility letter-face-3 {
+  font-family: "Jersey 15", sans-serif;
+  font-weight: 400;
+  font-size: 1.28em;
+  line-height: 0;
+}
+@utility letter-face-4 {
+  font-family: "Birthstone Bounce", cursive;
+  font-weight: 500;
+  font-size: 0.92em;
+  line-height: 0;
+}
+
 /* Backdrop that makes transparency visible (image previews): `pattern-checker`. Not `bg-*`: tailwind-merge would read it as a colour. */
 @utility pattern-checker {
   background-image: conic-gradient(
