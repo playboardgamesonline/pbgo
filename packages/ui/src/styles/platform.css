@@ -193,6 +193,18 @@
   background-size: calc(var(--spacing) * 4) calc(var(--spacing) * 4);
 }
 
+/*
+ * A grid of thin lines (`pattern-grid`): lines of one pixel, 3rem apart, in a faint `foreground`, with the grid centred on the width of its box. It is
+ * the backdrop of the home's hero, on a layer of its own (`absolute inset-0`, `aria-hidden`), faded out towards the foot with a mask.
+ */
+@utility pattern-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--foreground) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 10%, transparent) 1px, transparent 1px);
+  background-size: calc(var(--spacing) * 12) calc(var(--spacing) * 12);
+  background-position: center top;
+}
+
 @layer base {
   .platform {
     /* Colours: Tailwind's neutral scale (chroma 0), nothing else. Destructive is the only hue. */
