@@ -1,6 +1,6 @@
 "use client"
 
-import { NO_FILTER } from "@pbgo/catalog/filter"
+import { DEFAULT_FILTER } from "@pbgo/catalog/filter"
 import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameCard } from "@pbgo/ui/platform/game-card"
@@ -40,11 +40,11 @@ export function GameList() {
         <Empty className="border">
           <EmptyHeader>
             <EmptyTitle>No game matches</EmptyTitle>
-            <EmptyDescription>Try another word, or clear the filters to see every game.</EmptyDescription>
+            <EmptyDescription>Try another word, or put the filters back where they start.</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button variant="outline" onClick={() => pick(NO_FILTER)}>
-              Clear filters
+            <Button variant="outline" onClick={() => pick(DEFAULT_FILTER)}>
+              Reset filters
             </Button>
           </EmptyContent>
         </Empty>

@@ -530,11 +530,11 @@ export function Sliders() {
     <Section
       id="slider"
       module="slider"
-      intro="A slider for a value or a range along a scale: one thumb, or two for a range, a track that fills between them (from the start with one thumb) and, for a scale of a few stops, a dot on the track at each. It is Radix's `Slider` with one change: Radix keeps a thumb inside the slider by shifting it by half its width, which it has to measure, so a thumb drawn at its full size sits somewhere else on the server than in the browser. Here the thumb itself has no size, its centre is exactly where the fill, the dots and the pointer put it, and the round handle is drawn around that centre. The handles stick out of the track by half their width at each end, so leave that room around the slider (a margin of `mx-2`). It is `touch-none`: a finger drags a thumb instead of scrolling the page."
+      intro="A slider for a value or a range along a scale: one thumb, or two for a range, a track that fills between them (from the start with one thumb) and, for a scale of a few stops, a dot on the track at each. It is Radix's `Slider` with one change: Radix keeps a thumb inside the slider by shifting it by half its width, which it has to measure, so a thumb drawn at its full size sits somewhere else on the server than in the browser. Here the thumb itself has no size, its centre is exactly where the fill, the dots and the pointer put it, and the handle, a white capsule as high as an icon and as wide as a bar of a `Meter`, is drawn around that centre. The handles stick out of the track by half their width at each end, so leave that room around the slider (a margin of `mx-1`). It is `touch-none`: a finger drags a thumb instead of scrolling the page."
     >
       <Demo
         title="One thumb"
-        description="The fill runs from the start to the thumb. `ticks` draws a dot at each step, for a scale of a few stops, where the thumb jumps from one to the next. A screen reader hears the number of the thumb; `valueText` says what it stands for, and `thumbLabels` what each thumb is."
+        description="The fill runs from the start to the thumb. `ticks` draws a dot at each step, for a scale of a few stops, where the thumb jumps from one to the next. A screen reader hears the number of the thumb; `valueText` says what it stands for, and `thumbLabels` what each thumb is. The hub's duration filter is one of these on four steps: up to 15, 30 or 45 minutes, and `1h+`, the last step, which is no limit and where it starts."
         code={`<Slider
   min={1}
   max={5}
@@ -551,7 +551,7 @@ export function Sliders() {
 
       <Demo
         title="A range"
-        description="Two thumbs light what is between them. `minStepsBetweenThumbs` keeps them from meeting. The hub's duration filter is one of these on a scale of seven stops, whose two ends are no limit: a thumb on the first stop leaves the lower limit open, a thumb on the last the upper one."
+        description="Two thumbs light what is between them. `minStepsBetweenThumbs` keeps them from meeting."
         code={`<Slider
   min={0}
   max={100}
@@ -568,7 +568,7 @@ export function Sliders() {
 
       <Demo
         title="Disabled"
-        description="`disabled` is Radix's: half opacity, no pointer, no focus. There is no state for a slider that has not been touched: with the thumbs on the two ends the fill covers the whole track, which is how a range with no limit looks."
+        description="`disabled` is Radix's: half opacity, no pointer, no focus. There is no state for a slider that has not been touched: it always shows what it is set to, and a limit that is no limit puts the thumb at the end, with the fill covering the whole track."
         className="max-w-sm px-8"
         code={`<Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />`}
       >

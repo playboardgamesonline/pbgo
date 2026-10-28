@@ -239,7 +239,7 @@ export function SearchBars() {
     <Section
       id="search-bar"
       module="search-bar"
-      intro="The big search bar of a page: one glass pill with the magnifier at its start (the button that sends the search), the field, a button that clears the text once there is one and, at its end, a filter that opens a panel (the category). The other filters stand under it, centred on a line of their own, each in a container of its own (`SearchBarGroup`): a stepper for a number, a slider for a range, bars that fill for a level, or a button that opens a menu. It only draws the bar and the row. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
+      intro="The big search bar of a page: one glass pill with the magnifier at its start (the button that sends the search), the field, a button that clears the text once there is one and, at its end, a filter that opens a panel (the category). The other filters stand under it, centred on a line of their own, each in a place of its own with no background (`SearchBarGroup`): a stepper for a number, a slider for a limit, bars that fill for a level, or a button that opens a menu. It only draws the bar and the row. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
     >
       <Demo
         title="Empty and filled"
@@ -277,7 +277,7 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="A `SearchBarSegment` at the end of the bar is a filter that opens a panel: an icon and what is picked, dimmed while nothing is (`idle`), in a button that you wrap in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while it is open. No label is drawn (a screen reader hears the `label`). With nothing picked its value is left out under 48rem of room, so the field keeps its room on a phone. The other filters go in `SearchBarFilters`, under the bar: centred, on a line of their own, wrapping when the room runs out. Each is in a container of its own, a `SearchBarGroup` (an icon, then what the filter holds): a `SearchBarStepper` for a number (a minus button, the number with the icon that says what it is just after it, a plus button; the number is plain text, dimmed while nothing is picked, pressing it picks it or clears it, and the first press on either button picks the number it shows); a `Slider` for a range, with its value written on the left (`SearchBarValue`, with no unit: the hourglass after it, a `SearchBarIcon`, says it) and `mx-2` around the slider for the handles that stick out (the duration: two thumbs on a scale whose two ends are no limit, so the thumbs on the two ends are no filter and are how it is cleared); a `Meter` for a level, with nothing written beside it (the complexity: bars that fill up to the level pressed, and pressing the picked level again clears it); or a `SearchBarSegment` that is `boxed` and opens a menu, such as the age. Nothing in the row has a filled background for what is picked: the filters are always at work, and what they are set to is read from the control. These ones filter nothing: they step, slide, fill, open and search."
+        description="A `SearchBarSegment` at the end of the bar is a filter that opens a panel: an icon and what is picked, dimmed while nothing is (`idle`), in a button that you wrap in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while it is open. No label is drawn (a screen reader hears the `label`). With nothing picked its value is left out under 48rem of room, so the field keeps its room on a phone. The other filters go in `SearchBarFilters`, under the bar: centred, on a line of their own, wrapping when the room runs out. Each is in a place of its own, a `SearchBarGroup`, with no background, no outline and no shadow, not even under the pointer: a `SearchBarStepper` for a number (a minus button, the number with the icon that says what it is just after it, a plus button; the number is plain text and never empty: it starts on a value and the buttons move it); a `Slider` with one thumb for a limit, with the hourglass (a `SearchBarIcon`) and the limit written after it on the left (`SearchBarValue`, with no unit: the hourglass says it) and `mx-1` around the slider for the handle that sticks out (the duration: four steps, `15`, `30`, `45` and `1h+`, the last being no limit, which is where it starts); a `Meter` for a level, with nothing written beside it (the complexity: bars that fill up to the level pressed, and pressing the picked level again clears it); or a `SearchBarSegment` that is `boxed` and opens a menu, such as the age, which always has one age picked. The filters are always at work, so what they are set to is read from the control, and nothing is filled in to say it. These ones filter nothing: they step, slide, fill, open and search."
         className="flex flex-col gap-10"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
@@ -297,11 +297,8 @@ export function SearchBars() {
   <SearchBarStepper
     icon={UserMultipleIcon}
     label="Players"
-    value="3"
-    idle
-    valueLabel="3 players"
-    valueTitle="3 players"
-    onValueClick={pickOrClear}
+    value="4"
+    valueLabel="4 players"
     decreaseLabel="Fewer players"
     increaseLabel="More players"
     onDecrease={fewer}
@@ -309,10 +306,10 @@ export function SearchBars() {
   />
   <SearchBarGroup label="Duration">
     <span className="flex items-center gap-2">
-      <SearchBarValue className="w-14 text-right">30–60</SearchBarValue>
       <SearchBarIcon icon={HourglassIcon} />
+      <SearchBarValue className="w-8">30</SearchBarValue>
     </span>
-    <Slider className="mx-2 w-36" min={0} max={6} minStepsBetweenThumbs={1} value={[from, to]} onValueChange={slide} ticks />
+    <Slider className="mx-1 w-24" min={0} max={3} value={[step]} onValueChange={slide} ticks />
   </SearchBarGroup>
   <SearchBarGroup label="Complexity">
     <SearchBarIcon icon={Brain02Icon} />
@@ -320,7 +317,7 @@ export function SearchBars() {
   </SearchBarGroup>
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <SearchBarSegment icon={ChildIcon} label="Age" value="Any age" idle boxed />
+      <SearchBarSegment icon={ChildIcon} label="Age" value="8+" boxed />
     </DropdownMenuTrigger>
     <DropdownMenuContent>…</DropdownMenuContent>
   </DropdownMenu>

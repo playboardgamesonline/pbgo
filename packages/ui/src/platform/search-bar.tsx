@@ -7,12 +7,12 @@ import { Button } from "./button"
 
 // The big search bar of a page: one pill, glass, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
 // button that clears it once there is one and, at its end, what a page puts there: the category of the games, a button that opens a panel
-// (`SearchBarSegment`). The other filters are not in the bar: they stand under it, centred on a line of their own (`SearchBarFilters`), each in a
-// container of its own, a rectangle in the style of the navbar's islands (`SearchBarGroup`, with its `SearchBarIcon` and, where a filter has a value
-// to read, a `SearchBarValue`): a stepper for a number (`SearchBarStepper`: less, the number and its icon, more), a slider (`Slider`) or a bar that
-// fills (`Meter`) in a group of your own, or a button that opens a menu (a `SearchBarSegment` that is `boxed`). It only draws the bar and the row.
-// The page owns the text, the picks and what they find. Nothing in the row has a filled background for what is picked: the filters are always at
-// work, so what they are set to is read from the control itself.
+// (`SearchBarSegment`). The other filters are not in the bar: they stand bare under it, centred on a line of their own (`SearchBarFilters`), each in
+// a place of its own with no background, no outline and no shadow (`SearchBarGroup`, with its `SearchBarIcon` and, where a filter has a value to
+// read, a `SearchBarValue`): a stepper for a number (`SearchBarStepper`: less, the number and its icon, more), a slider (`Slider`) or a bar that fills
+// (`Meter`) in a group of your own, or a button that opens a menu (a `SearchBarSegment` that is `boxed`). It only draws the bar and the row. The
+// page owns the text, the picks and what they find. The filters are always at work, so what they are set to is read from the control itself, and
+// nothing is filled in to say it.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   return (
@@ -98,10 +98,6 @@ function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
   )
 }
 
-// The container of a filter that stands under the bar: a rectangle in the style of the navbar's islands, with no outline (`rounded-2xl bg-background/80
-// shadow-surface backdrop-blur-md`), 56px high, with what it holds one step less round (`rounded-lg`).
-const BOX = "rounded-2xl bg-background/80 shadow-surface backdrop-blur-md"
-
 type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "type"> & {
   icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
   /** What the segment filters by: "Category". It is not drawn, the icon says what it is: it is what a screen reader hears before the value. */
@@ -110,7 +106,7 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
   value: string
   /** Nothing is picked: the value is dimmed ("Any category"). */
   idle?: boolean
-  /** In a container of its own, under the bar (`SearchBarFilters`), and not at the end of the bar. */
+  /** Under the bar (`SearchBarFilters`), bare like the other filters there, and not at the end of the bar. */
   boxed?: boolean
 }
 
@@ -118,7 +114,8 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
  * A filter that opens something: an icon and what is picked, in a button. It opens nothing itself: the page wraps it in a `PopoverTrigger asChild` or
  * a `DropdownMenuTrigger asChild`, which gives it `aria-expanded` and the open state this paints. At the end of the bar it is a pill without a
  * frame, 48px high; the value of a segment with nothing picked is left out under 48rem of room, so the field keeps its room on a phone and the icon
- * stands for it. `boxed`, under the bar, it has a container of its own.
+ * stands for it. `boxed`, under the bar, it is bare like the other filters there: 56px high, with no background, not even under the pointer or while
+ * its menu is open.
  */
 function SearchBarSegment({ className, icon, label, value, idle = false, boxed = false, ...props }: SearchBarSegmentProps) {
   return (
@@ -127,8 +124,8 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       type="button"
       aria-label={`${label}: ${value}`}
       className={cn(
-        "flex shrink-0 items-center gap-2 rounded-full text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
-        boxed ? cn("h-14 rounded-2xl px-4", BOX) : "h-12 max-w-52 px-3",
+        "flex shrink-0 items-center gap-2 text-left outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/30",
+        boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-52 rounded-full px-3 hover:bg-input/30 aria-expanded:bg-muted",
         className
       )}
       {...props}
@@ -142,9 +139,8 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
 }
 
 /**
- * The filters that stand under the bar: a row, centred, on a line of its own, that goes on another line when the room runs out. Each is in a container
- * of its own, a rectangle in the style of the navbar's islands (a `SearchBarGroup`, a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`).
- * Name the group with an `aria-label`.
+ * The filters that stand under the bar: a row, centred, on a line of its own, that goes on another line when the room runs out. Each is in a place of
+ * its own with no background (a `SearchBarGroup`, a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`). Name the group with an `aria-label`.
  */
 function SearchBarFilters({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="search-bar-filters" role="group" className={cn("mt-3 flex flex-wrap items-center justify-center gap-3", className)} {...props} />
@@ -154,15 +150,10 @@ type SearchBarStepperProps = Omit<React.ComponentProps<"div">, "children" | "rol
   icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
   /** What the stepper filters by: "Players". It is not drawn, the icon says what the number is: it is what a screen reader calls the group. */
   label: string
-  /** The number as it is written: "3", "8+". While nothing is picked it is the one a first press picks, dimmed (`idle`). */
+  /** The number as it is written: "4", "8+". */
   value: string
-  /** Nothing is picked: the number is dimmed. */
-  idle?: boolean
-  /** What a screen reader hears for the number: "3 players". The number is a button: it picks itself, and, once picked, clears the pick. */
+  /** What a screen reader hears for the number: "4 players". It is read again each time the number changes. */
   valueLabel: string
-  /** What a pointer shows over the number: what it picks, or what it clears. */
-  valueTitle: string
-  onValueClick: () => void
   /** What the two buttons do, for a screen reader: "Fewer players", "More players". */
   decreaseLabel: string
   increaseLabel: string
@@ -179,12 +170,12 @@ type SearchBarGroupProps = Omit<React.ComponentProps<"div">, "role" | "aria-labe
 }
 
 /**
- * The container of a filter that stands under the bar, a rectangle in the style of the navbar's islands. What it holds is up to the filter: the icon
- * that says what it is (`SearchBarIcon`, wherever the filter wants it), a control (buttons, a slider, bars that fill) and, where there is a value to
- * read, a `SearchBarValue`. A group, so a screen reader names it.
+ * The place of a filter under the bar: 56px high, a rem of room on each side, and nothing painted, no background, no outline, no shadow. What it holds
+ * is up to the filter: the icon that says what it is (`SearchBarIcon`, wherever the filter wants it), a control (buttons, a slider, bars that fill)
+ * and, where there is a value to read, a `SearchBarValue`. A group, so a screen reader names it.
  */
 function SearchBarGroup({ className, label, ...props }: SearchBarGroupProps) {
-  return <div data-slot="search-bar-group" role="group" aria-label={label} className={cn("flex h-14 items-center gap-2 px-4", BOX, className)} {...props} />
+  return <div data-slot="search-bar-group" role="group" aria-label={label} className={cn("flex h-14 items-center gap-2 px-4", className)} {...props} />
 }
 
 type SearchBarIconProps = Omit<React.ComponentProps<typeof HugeiconsIcon>, "icon" | "strokeWidth"> & {
@@ -207,19 +198,16 @@ function SearchBarValue({ className, ...props }: React.ComponentProps<"span">) {
 }
 
 /**
- * A filter that is a number, which needs no panel, in a container of its own under the bar: a minus button, the number with the icon that says what it
- * is just after it, and a plus button. No label is drawn and no background is painted, under the pointer or anywhere; the buttons are outlined so they
- * read as buttons. The number is plain text, dimmed while nothing is picked (`idle`: it is then the one the first press picks), and pressing it picks
- * it, or clears it once it is. The page owns the options and what a press does. A group, so a screen reader names it.
+ * A filter that is a number, which needs no panel, in a place of its own under the bar: a minus button, the number with the icon that says what it is
+ * just after it, and a plus button. No label is drawn and no background is painted, under the pointer or anywhere; the buttons are outlined so they
+ * read as buttons. The number is plain text and is never empty: it has a value from the start, so the filter is always at work, and the buttons move it.
+ * The page owns the options and what a press does. A group, so a screen reader names it.
  */
 function SearchBarStepper({
   icon,
   label,
   value,
-  idle = false,
   valueLabel,
-  valueTitle,
-  onValueClick,
   decreaseLabel,
   increaseLabel,
   onDecrease,
@@ -235,19 +223,11 @@ function SearchBarStepper({
           <HugeiconsIcon icon={MinusSignIcon} strokeWidth={2} />
         </Button>
         <span className="flex items-center gap-1 px-1">
-          <button
-            type="button"
-            aria-pressed={!idle}
-            aria-label={valueLabel}
-            title={valueTitle}
-            onClick={onValueClick}
-            className={cn(
-              "h-6 min-w-4 rounded-lg px-1 text-center text-sm whitespace-nowrap tabular-nums outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
-              idle && "text-muted-foreground"
-            )}
-          >
-            {value}
-          </button>
+          {/* What is seen is not what is heard: "4" for the eye, "4 players" for a screen reader, which hears it again when the number changes */}
+          <SearchBarValue aria-live="polite" className="w-6 text-center">
+            <span aria-hidden="true">{value}</span>
+            <span className="sr-only">{valueLabel}</span>
+          </SearchBarValue>
           <SearchBarIcon icon={icon} />
         </span>
         <Button type="button" variant="outline" size="icon-xs" className="rounded-lg" aria-label={increaseLabel} disabled={!canIncrease} onClick={onIncrease}>

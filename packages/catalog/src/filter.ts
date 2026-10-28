@@ -11,14 +11,10 @@ export const MANY_PLAYERS = 8
 export const PLAYER_COUNTS = [1, 2, 3, 4, 5, 6, 7, MANY_PLAYERS] as const
 
 /**
- * The scale of the duration filter, in minutes: the stops of a slider with two thumbs. The first stop is "no lower limit" and the last "no upper
- * limit" (a game that takes that long or more); the ones between are the limits a visitor can pick, a quarter of an hour at a time up to the hour,
- * then half an hour.
+ * The durations the filter offers, in minutes: a game stays when it takes at most that long. They are the first three steps of a slider whose fourth,
+ * "1h+", is no limit at all (`null`): the games of an hour or more stay only there.
  */
-export const DURATION_STOPS = [0, 15, 30, 45, 60, 90, 120] as const
-
-/** The limits the duration filter offers: the stops between the two ends of its scale. */
-const DURATION_LIMITS: readonly number[] = DURATION_STOPS.slice(1, -1)
+export const DURATION_LIMITS = [15, 30, 45] as const
 
 /**
  * The levels of the complexity filter, from light (1) to heavy (5): the scale of the weight that BoardGameGeek gives a game, in whole levels. A game
@@ -26,17 +22,14 @@ const DURATION_LIMITS: readonly number[] = DURATION_STOPS.slice(1, -1)
  */
 export const COMPLEXITY_LEVELS = [1, 2, 3, 4, 5] as const
 
-/** A range of minutes: a game fits when it takes at least `min` and at most `max`, both included. `null` is no limit on that side. */
-export type DurationRange = { min: number | null; max: number | null }
-
-/** The ages the filter offers, in years, written "+8 yrs" (from 8 years old): the age of the youngest player, so a game stays when its minimum age is at most that. */
+/** The ages the filter offers, in years, written "8+" (from 8 years old): the age of the youngest player, so a game stays when its minimum age is at most that. */
 export const AGE_LIMITS = [6, 8, 10, 12, 14] as const
 
-/**
- * What the stepper of the search bar picks the first time it is pressed, while nothing is picked: the number it shows then, dimmed, one of its
- * options (`PLAYER_COUNTS`): a table of three. The duration is a slider, the complexity a bar and the age a menu: none of them has a first pick.
- */
-export const FIRST_PICKS = { players: 3 } as const
+/** Where the number of players starts: a table of four. One of `PLAYER_COUNTS`. */
+export const DEFAULT_PLAYERS = 4
+
+/** Where the age starts: the youngest player is 8 years old, "8+". One of `AGE_LIMITS`. */
+export const DEFAULT_AGE = 8
 
 /** The longest search the field takes: nobody looks for a game with more than this. */
 export const MAX_QUERY_LENGTH = 60
@@ -47,18 +40,25 @@ export type GameFilter = {
   query: string
   /** The categories to keep, by name, in the order they were picked: a game stays when it has any of them. Empty for any. */
   categories: readonly string[]
-  /** The number of players of the table, one of `PLAYER_COUNTS`; null for any. */
+  /** The number of players of the table, one of `PLAYER_COUNTS`; null for any (the search bar never leaves it empty: it starts on `DEFAULT_PLAYERS`). */
   players: number | null
-  /** How long a game may take, in minutes, between limits of `DURATION_STOPS`; null for any. */
-  duration: DurationRange | null
+  /** The longest a game may take, in minutes, one of `DURATION_LIMITS`; null for any ("1h+"). */
+  duration: number | null
   /** The most complex a game may be, one of `COMPLEXITY_LEVELS`: a game stays when its level (its weight, rounded) is at most that; null for any. */
   complexity: number | null
-  /** The age of the youngest player, one of `AGE_LIMITS`: a game stays when its minimum age is at most that; null for any. */
+  /** The age of the youngest player, one of `AGE_LIMITS`: a game stays when its minimum age is at most that; null for any (the search bar never leaves it empty: it starts on `DEFAULT_AGE`). */
   age: number | null
 }
 
-/** Nothing typed, nothing picked: every game stays. */
+/** Nothing typed, nothing picked, not even the starting picks: every game stays. */
 export const NO_FILTER: GameFilter = { query: "", categories: [], players: null, duration: null, complexity: null, age: null }
+
+/**
+ * Where the search bar starts, and where it goes back to when it is reset: a table of four and the youngest player 8 years old. The number of players
+ * and the age are never empty in the bar, so they are always at work; what is typed and picked besides (the text, the categories, the duration, the
+ * complexity) starts empty. The two are no demand on a game that does not say its players or its minimum age (`filterGames`).
+ */
+export const DEFAULT_FILTER: GameFilter = { ...NO_FILTER, players: DEFAULT_PLAYERS, age: DEFAULT_AGE }
 
 /**
  * What the filter reads of a catalog entry, and all a client component needs of it to filter the list: the page sends this to the
@@ -143,10 +143,9 @@ function fitsPlayers(game: GameIndex, count: number): boolean {
   return (max === null || max >= count) && (count >= MANY_PLAYERS || min <= count)
 }
 
-/** Whether the one figure a game gives for its duration is within the range, the limits included. A game that gives none does not fit. */
-function fitsDuration(game: GameIndex, range: DurationRange): boolean {
-  if (game.duration === null) return false
-  return (range.min === null || game.duration >= range.min) && (range.max === null || game.duration <= range.max)
+/** Whether the one figure a game gives for its duration is at most the limit. A game that gives none does not fit. */
+function fitsDuration(game: GameIndex, limit: number): boolean {
+  return game.duration !== null && game.duration <= limit
 }
 
 /** The level of a game on the scale of the filter: its weight rounded to the nearest level (2.4 is level 2, 2.5 level 3), kept within the scale. */
@@ -157,7 +156,9 @@ export function complexityLevel(weight: number): number {
 /**
  * The games that stay for a filter, in the order they came in (the filter never sorts), each as it came in: whatever else a game
  * carries beside its index is kept. All criteria must hold. A game that does not say its players, its duration, its complexity or its
- * minimum age is left out as soon as the filter asks for it, and so is a game with no category when a category is picked. A game has a picked
+ * minimum age is left out as soon as the filter asks for it, except that the two picks the filter starts on (`DEFAULT_PLAYERS`, `DEFAULT_AGE`) leave
+ * out only the games that say they do not fit: a starting point is no demand, and the list would be empty wherever the rows have no age yet. A game
+ * with no category is left out too when a category is picked. A game has a picked
  * category when it has any of them, spelled exactly. Every word of the query must be somewhere in the text of the game (a part of a
  * word is enough), in any order.
  */
@@ -166,23 +167,23 @@ export function filterGames<T extends GameIndex>(games: readonly T[], filter: Ga
   return games.filter(
     (game) =>
       (filter.categories.length === 0 || game.categories.some((category) => filter.categories.includes(category))) &&
-      (filter.players === null || fitsPlayers(game, filter.players)) &&
+      (filter.players === null || (game.players === null ? filter.players === DEFAULT_PLAYERS : fitsPlayers(game, filter.players))) &&
       (filter.duration === null || fitsDuration(game, filter.duration)) &&
       (filter.complexity === null || (game.complexity !== null && complexityLevel(game.complexity) <= filter.complexity)) &&
-      (filter.age === null || (game.age !== null && game.age <= filter.age)) &&
+      (filter.age === null || (game.age === null ? filter.age === DEFAULT_AGE : game.age <= filter.age)) &&
       terms.every((term) => game.text.includes(term)),
   )
 }
 
-/** Whether the visitor has typed or picked anything: whether there is something to clear. A query of blanks is nothing. */
+/** Whether the visitor has typed or picked anything beyond where the filter starts (`DEFAULT_FILTER`): whether there is something to reset. A query of blanks is nothing. */
 export function isFiltered(filter: GameFilter): boolean {
   return (
     filter.query.trim() !== "" ||
     filter.categories.length > 0 ||
-    filter.players !== null ||
+    filter.players !== DEFAULT_PLAYERS ||
     filter.duration !== null ||
     filter.complexity !== null ||
-    filter.age !== null
+    filter.age !== DEFAULT_AGE
   )
 }
 
@@ -210,34 +211,10 @@ export function canStep(options: readonly number[], current: number | null, dire
   return next >= 0 && next < options.length
 }
 
-/**
- * The range a duration slider stands for when its two thumbs sit on the stops `from` and `to` (positions in `DURATION_STOPS`). The first stop is no
- * lower limit and the last no upper limit, so thumbs on the two ends are no range at all (null). The thumbs cannot meet: `to` is kept above `from`.
- */
-export function durationRangeOf(from: number, to: number): DurationRange | null {
-  const last = DURATION_STOPS.length - 1
-  const lowest = Math.min(Math.max(from, 0), last - 1)
-  const highest = Math.min(Math.max(to, lowest + 1), last)
-  const min = lowest === 0 ? null : (DURATION_STOPS[lowest] ?? null)
-  const max = highest === last ? null : (DURATION_STOPS[highest] ?? null)
-  return min === null && max === null ? null : { min, max }
-}
-
-/** Where the two thumbs of a duration slider sit for a range: positions in `DURATION_STOPS`, the two ends for none. A limit that is not a stop counts as none. */
-export function durationStopsOf(range: DurationRange | null): [number, number] {
-  const stops: readonly number[] = DURATION_STOPS
-  const last = stops.length - 1
-  const min = range?.min ? stops.indexOf(range.min) : -1
-  const max = range?.max ? stops.indexOf(range.max) : -1
-  const from = min > 0 && min < last ? min : 0
-  const to = max > 0 && max < last ? max : last
-  return from < to ? [from, to] : [0, last]
-}
-
 // ---------- In the URL ----------
-// The picks, `category` (once for each category), `players`, `duration` ("30-60", "-30" for at most 30, "60-" for 60 or more), `complexity` and
-// `age`, each left out when it is the default, so that the link
-// to the unfiltered list is the hub's. The typed text is not in it: the address of the page goes to analytics with every event, and what
+// The picks, `category` (once for each category), `players`, `duration`, `complexity` and `age`, each left out when it is where the filter starts
+// (the number of players and the age start on `DEFAULT_PLAYERS` and `DEFAULT_AGE`, the others empty), so that the link
+// to the list as it opens is the hub's. The typed text is not in it: the address of the page goes to analytics with every event, and what
 // a visitor types in a field is theirs, so it is neither written to the URL nor read from it.
 
 /**
@@ -250,12 +227,12 @@ export function filterFromParams(
   offered: readonly string[],
 ): GameFilter {
   return {
-    ...NO_FILTER,
+    ...DEFAULT_FILTER,
     categories: [...new Set(params.getAll("category"))].filter((category) => offered.includes(category)),
-    players: optionOf(PLAYER_COUNTS, params.get("players")),
-    duration: durationFromParam(params.get("duration")),
+    players: optionOf(PLAYER_COUNTS, params.get("players")) ?? DEFAULT_PLAYERS,
+    duration: optionOf(DURATION_LIMITS, params.get("duration")),
     complexity: optionOf(COMPLEXITY_LEVELS, params.get("complexity")),
-    age: optionOf(AGE_LIMITS, params.get("age")),
+    age: optionOf(AGE_LIMITS, params.get("age")) ?? DEFAULT_AGE,
   }
 }
 
@@ -263,29 +240,9 @@ export function filterFromParams(
 export function filterToParams(filter: GameFilter): URLSearchParams {
   const params = new URLSearchParams()
   for (const category of filter.categories) params.append("category", category)
-  if (filter.players !== null) params.set("players", String(filter.players))
-  if (filter.duration !== null) params.set("duration", durationToParam(filter.duration))
+  if (filter.players !== null && filter.players !== DEFAULT_PLAYERS) params.set("players", String(filter.players))
+  if (filter.duration !== null) params.set("duration", String(filter.duration))
   if (filter.complexity !== null) params.set("complexity", String(filter.complexity))
-  if (filter.age !== null) params.set("age", String(filter.age))
+  if (filter.age !== null && filter.age !== DEFAULT_AGE) params.set("age", String(filter.age))
   return params
-}
-
-/** The range as a link holds it: "30-60" (from 30 to 60 minutes), "-30" (at most 30) or "60-" (at least 60). */
-export function durationToParam(range: DurationRange): string {
-  return `${range.min ?? ""}-${range.max ?? ""}`
-}
-
-/**
- * The range a link holds, else null. Each side is a limit of the scale or empty, a range has at least one side, and when it has both the first is
- * the smaller: anything else is not what the slider makes, a link being whatever someone typed or kept for a long time.
- */
-export function durationFromParam(value: string | null): DurationRange | null {
-  const match = value === null ? null : /^(\d*)-(\d*)$/.exec(value)
-  if (!match) return null
-  const min = optionOf(DURATION_LIMITS, match[1] || null)
-  const max = optionOf(DURATION_LIMITS, match[2] || null)
-  if ((match[1] && min === null) || (match[2] && max === null)) return null
-  if (min === null && max === null) return null
-  if (min !== null && max !== null && min >= max) return null
-  return { min, max }
 }

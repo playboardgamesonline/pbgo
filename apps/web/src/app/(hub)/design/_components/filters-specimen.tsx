@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 
-import { NO_FILTER, type GameFilter } from "@pbgo/catalog/filter"
+import { DEFAULT_FILTER, type GameFilter } from "@pbgo/catalog/filter"
 import { SearchBar, SearchBarClear, SearchBarField, SearchBarInput, SearchBarSubmit } from "@pbgo/ui/platform/search-bar"
 import { CategoryFilter, MoreFilters } from "@/components/search-filters"
 import { SAMPLE_CATEGORIES } from "./sample-categories"
@@ -14,7 +14,7 @@ import { SAMPLE_CATEGORIES } from "./sample-categories"
  */
 export function FiltersSpecimen({ picked = false }: { picked?: boolean }) {
   const [filter, setFilter] = useState<GameFilter>(
-    picked ? { ...NO_FILTER, categories: ["Cards", "Party"], players: 4, duration: { min: 30, max: 60 }, complexity: 2, age: 8 } : NO_FILTER,
+    picked ? { ...DEFAULT_FILTER, categories: ["Cards", "Party"], players: 6, duration: 30, complexity: 2, age: 10 } : DEFAULT_FILTER,
   )
   return (
     <div>

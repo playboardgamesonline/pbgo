@@ -25,7 +25,7 @@ type GameSearchValue = {
   shown: SearchedGame[]
   /** Types into the search. Only the state holds the text: it is never written into the address. */
   setQuery: (query: string) => void
-  /** Changes the picks, or empties them all (`NO_FILTER`). The picks are written into the address, in place. */
+  /** Changes the picks, or puts them all back where they start (`DEFAULT_FILTER`). The picks are written into the address, in place. */
   pick: (next: GameFilter) => void
 }
 
@@ -57,7 +57,8 @@ function writeAddress(filter: GameFilter) {
  * happens in the browser on the index that the page sends with the cards, so nothing is asked of the server, the home stays static, and the
  * HTML of the page lists every game. The children are the page's own markup and stay server-rendered: only the components that read the
  * search draw again when it changes.
- * The picks are in the address of the page (`?category=Cards&players=4&duration=30-60&complexity=2&age=8`), so that a link opens the list as it was left. The
+ * The picks are in the address of the page (`?category=Cards&players=6&duration=30&complexity=2&age=10`: the number of players and the age start on 4
+ * and 8+ and are left out until they change), so that a link opens the list as it was left. The
  * text of the search is not: the address goes to analytics with every event, and what a visitor types is theirs. See docs/catalog.md.
  */
 export function GameSearch({ games, children }: { games: readonly SearchedGame[]; children: ReactNode }) {
