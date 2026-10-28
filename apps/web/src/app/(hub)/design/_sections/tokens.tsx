@@ -47,7 +47,7 @@ const FONT_ROWS = [
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
   { variable: "--text-display", utility: "text-display", use: "The three lines of the home's title, as big as the window lets them be (7.7vw and half a rem, up to 7.5rem): the first line takes 71% of a 390 px window and 60% of a 1440 px one. The lines are not the same width on purpose: the title narrows as it goes down. It sets no line-height: `display-title` does." },
-  { variable: "--spacing-title-overlap", utility: "-mt-title-overlap", use: "How far a bar laid over the title is pulled up: 0.12em of `text-display`, so it just touches the foot of the last line and the title shows through its glass." },
+  { variable: "--spacing-title-overlap", utility: "-mt-title-overlap", use: "How far a bar laid over the title is pulled up: 0.3em of `text-display`, so it covers the foot of the last line (a little more than a quarter of its capitals), which is already fading out and shows through its glass." },
 ] as const
 
 export function Typography() {

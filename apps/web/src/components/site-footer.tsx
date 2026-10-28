@@ -36,7 +36,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <Wordmark />
-      <p className="mt-16 px-gutter text-center fine-print">
+      <p className="mt-8 px-gutter text-center fine-print">
         Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
       </p>
     </footer>

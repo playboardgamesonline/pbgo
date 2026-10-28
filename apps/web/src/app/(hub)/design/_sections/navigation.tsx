@@ -48,18 +48,18 @@ export function Wordmarks() {
     <Section
       id="wordmark"
       module="wordmark"
-      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of the footer's text (`--muted-foreground`) at the top of the letters to nothing at their foot, over their whole height, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of the footer's text (`--muted-foreground`) at 60%, a softer grey than the text, at the top of the letters to nothing at their foot, over their whole height, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
     >
       <Demo
         title="In the footer"
-        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), well apart from the letters (`mt-16`) and with `pb-5` under it. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
+        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), close under the letters (`mt-8`) and with `pb-5` under it. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
         code={`<footer className="w-full pb-5">
   <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-gutter pb-12 text-sm text-muted-foreground">
     <p>© 2026 Play Board Games Online · Built by …</p>
     <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-5 gap-y-2">…</nav>
   </div>
   <Wordmark />
-  <p className="mt-16 px-gutter text-center fine-print">Unofficial, online adaptation of board games. …</p>
+  <p className="mt-8 px-gutter text-center fine-print">Unofficial, online adaptation of board games. …</p>
 </footer>`}
       >
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-12 text-sm text-muted-foreground">
@@ -67,7 +67,7 @@ export function Wordmarks() {
           <p>Privacy Policy · Cookie Policy · Terms of Use</p>
         </div>
         <Wordmark />
-        <p className="mt-16 text-center fine-print">
+        <p className="mt-8 text-center fine-print">
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>
@@ -315,7 +315,7 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a little more (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-1` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a quarter of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
@@ -333,7 +333,7 @@ export function SearchBars() {
             <span className="block text-4xl">Board games</span> <span className="block text-4xl">w/ friends</span>{" "}
             <span className="block text-4xl">& rivals</span>
           </p>
-          <div className="relative -mt-1 w-full max-w-xl">
+          <div className="relative -mt-2.5 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
                 <SearchBarInput aria-label="Search games, tables and tournaments" placeholder="Search games, tables & tournaments..." />
@@ -352,11 +352,11 @@ export function BoardPatterns() {
     <Section
       id="board-pattern"
       module="board-pattern"
-      intro="A backdrop of game pieces drawn in a line (dice, cards, a pawn, a crown, a suit, an hourglass, a gem, a joker), tilted and spread like the doodles of a wallpaper, to lay behind the top of a page and give it some life: the hub's hero. It is one SVG pattern whose tile repeats, so it is as light as a picture and as wide as its parent. It draws in `currentColor` at full strength: colour it with `text-foreground`, make it faint with `opacity` on the whole drawing and not with an alpha colour (strokes that cross would add up), and fade it out with a mask. It is decorative: `aria-hidden`, and it takes no click."
+      intro="A backdrop of game pieces drawn in a line (dice, cards, a pawn, a crown, a suit, an hourglass, a gem, a joker), tilted and spread like the doodles of a wallpaper, to lay behind the top of a page and give it some life: the hub's hero had it, and it is off on the home for now. It is one SVG pattern whose tile repeats, so it is as light as a picture and as wide as its parent. It draws in `currentColor` at full strength: colour it with `text-foreground`, make it faint with `opacity` on the whole drawing and not with an alpha colour (strokes that cross would add up), and fade it out with a mask. It is decorative: `aria-hidden`, and it takes no click."
     >
       <Demo
         title="Behind a hero"
-        description="As on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
+        description="As it was on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
         className="grid gap-4 p-0 sm:grid-cols-2"
         code={`<section className="relative overflow-hidden bg-linear-to-b from-secondary via-card to-background">
   <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />

@@ -11,11 +11,11 @@ import { Button } from "./button"
 // picked, in a button that opens whatever the page puts behind it (`SearchBarSegment`, with a `Popover`), or a stepper for a number
 // (`SearchBarStepper`: less, the number, more, with no panel). The text of the field and the icons of the filters start on the same line.
 //
-// The bar is a rounded rectangle, with large corners (`rounded-3xl`), and the submit button a rounded square whose corners are the bar's minus its
-// padding, so that they are concentric. Up to 48rem of room (the width of the
-// container, not of the window) the button ends the field, 40px high. From 48rem the field and the filters are one block on the left and the button
-// stands alone on the right, as tall as the two floors (`size-19`: the 40px of the field and the 36px of the filters). It only draws the bar. The
-// page owns the text, the picks and what they find.
+// The bar is a rounded rectangle, with large corners (`rounded-4xl`), and the submit button a rounded square whose corners are the bar's less its
+// padding, so that they are concentric (`rounded-3xl` beside the block, where the padding is 8px). Up to 48rem of room (the width of the container,
+// not of the window) the button ends the field, 40px high. From 48rem the field and the filters are one block on the left and the button stands
+// alone on the right, as tall as the two floors (`size-21`: the 44px of the field, 4px and the 36px of the filters). It only draws the bar. The page
+// owns the text, the picks and what they find.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   return (
@@ -25,8 +25,8 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         role="search"
         className={cn(
           "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
-          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-1 has-data-[slot=search-bar-segments]:rounded-3xl has-data-[slot=search-bar-segments]:p-3",
-          "@3xl:has-data-[slot=search-bar-segments]:grid @3xl:has-data-[slot=search-bar-segments]:grid-cols-[minmax(0,1fr)_auto] @3xl:has-data-[slot=search-bar-segments]:gap-x-4 @3xl:has-data-[slot=search-bar-segments]:gap-y-0 @3xl:has-data-[slot=search-bar-segments]:p-2 @3xl:has-data-[slot=search-bar-segments]:pl-6",
+          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-1 has-data-[slot=search-bar-segments]:rounded-4xl has-data-[slot=search-bar-segments]:p-3",
+          "@3xl:has-data-[slot=search-bar-segments]:grid @3xl:has-data-[slot=search-bar-segments]:grid-cols-[minmax(0,1fr)_auto] @3xl:has-data-[slot=search-bar-segments]:gap-x-4 @3xl:has-data-[slot=search-bar-segments]:p-2 @3xl:has-data-[slot=search-bar-segments]:pl-6",
           className
         )}
         {...props}
@@ -41,7 +41,7 @@ function SearchBarField({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="search-bar-field"
       className={cn(
-        "flex h-10 min-w-0 flex-1 items-center gap-1 group-has-data-[slot=search-bar-segments]/search-bar:pl-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:pl-0",
+        "flex h-10 min-w-0 flex-1 items-center gap-1 group-has-data-[slot=search-bar-segments]/search-bar:h-11 group-has-data-[slot=search-bar-segments]/search-bar:pl-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:pl-0",
         className
       )}
       {...props}
@@ -94,7 +94,7 @@ function SearchBarClear({ className, ...props }: SearchBarButtonProps) {
 }
 
 /**
- * The filters of the bar: the lower floor, under the field, with no line between them. The controls are packed to the left, 1.5rem apart, and go
+ * The filters of the bar: the lower floor, under the field, with no line between them. The controls are packed to the left, 1.5rem apart (2rem from 48rem of room), and go
  * on a second row when the room runs out. Name the group with an `aria-label`.
  */
 function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">) {
@@ -103,7 +103,7 @@ function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">)
       data-slot="search-bar-segments"
       role="group"
       className={cn(
-        "order-last flex basis-full flex-wrap items-center gap-x-6 gap-y-1 px-2 @3xl:col-start-1 @3xl:row-start-2 @3xl:px-0",
+        "order-last flex basis-full flex-wrap items-center gap-x-6 gap-y-1 px-2 @3xl:col-start-1 @3xl:row-start-2 @3xl:gap-x-8 @3xl:px-0",
         className
       )}
       {...props}
@@ -231,7 +231,7 @@ function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
       variant="secondary"
       size="icon-lg"
       className={cn(
-        "group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-span-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:rounded-xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:size-19 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:rounded-2xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:self-center group-has-data-[slot=search-bar-segments]/search-bar:@3xl:[&_svg:not([class*='size-'])]:size-6",
+        "group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-span-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:rounded-2xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:size-21 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:rounded-3xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:self-center group-has-data-[slot=search-bar-segments]/search-bar:@3xl:[&_svg:not([class*='size-'])]:size-6",
         className
       )}
       {...props}
