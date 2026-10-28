@@ -85,7 +85,7 @@ function SearchBarClear({ className, ...props }: SearchBarButtonProps) {
 
 /**
  * The filters of the bar: the lower floor, under the field and a line that runs from edge to edge of the bar. A row of equal columns
- * when the bar has the room for it, a 2 × 2 grid when it has not. Name the group with an `aria-label`. Put no more than four segments
+ * when the bar has the room for it, a 2 × 2 grid when it has not. Name the group with an `aria-label`. Put no more than five segments
  * in it: they share the width of the bar.
  */
 function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">) {

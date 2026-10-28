@@ -6,7 +6,7 @@ import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
 import { Badges, Buttons, Checks, Inputs, Selects, TabsSection, ToggleGroups } from "./_sections/controls"
 import { InGameUi } from "./_sections/in-game-ui"
-import { LetterMixes, Logos, Navbars, SearchBars } from "./_sections/navigation"
+import { LetterMixes, Logos, Navbars, SearchBars, Wordmarks } from "./_sections/navigation"
 import { CookieBanners, Dialogs, Dropdowns, Popovers, Sheets, Toasts, Tooltips } from "./_sections/overlays"
 import { Layers, Principles } from "./_sections/principles"
 import {
@@ -17,6 +17,7 @@ import {
   GameCards,
   Items,
   Loading,
+  Sections,
   Separators,
   Tables,
 } from "./_sections/surfaces"
@@ -101,6 +102,7 @@ export default function DesignPage() {
             <TabsSection />
             <ToggleGroups />
             <Logos />
+            <Wordmarks />
             <LetterMixes />
             <Navbars />
             <SearchBars />
@@ -113,6 +115,7 @@ export default function DesignPage() {
             <CookieBanners />
             <Cards />
             <GameCards />
+            <Sections />
             <Avatars />
             <Alerts />
             <Loading />

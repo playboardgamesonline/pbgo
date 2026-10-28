@@ -1,6 +1,7 @@
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Alert02Icon,
+  ArrowRight01Icon,
   Calendar03Icon,
   FolderAddIcon,
   InformationCircleIcon,
@@ -26,6 +27,13 @@ import {
   ItemTitle,
 } from "@pbgo/ui/platform/item"
 import { Progress } from "@pbgo/ui/platform/progress"
+import {
+  Section as PageSection,
+  SectionAction,
+  SectionHeader,
+  SectionRail,
+  SectionTitle,
+} from "@pbgo/ui/platform/section"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { Spinner } from "@pbgo/ui/platform/spinner"
@@ -193,6 +201,95 @@ const { entries } = await getCatalog()
         <GameCardVisual logo={logo} background={background} className="rounded-4xl ring-1 ring-foreground/10" />
         <GameCardVisual logo={logo} className="rounded-4xl ring-1 ring-foreground/10" />
         <GameCardVisual className="rounded-4xl ring-1 ring-foreground/10" />
+      </Demo>
+    </Section>
+  )
+}
+
+export async function Sections() {
+  // The cards of the demo are the hub's: the live games of the catalog, then games to come that borrow its first pictures
+  const { entries } = await getCatalog()
+  const live = entries.filter((entry) => entry.live)
+  const pictures = entries.map((entry) => gamePicture(entry.game))
+  const logo = pictures.find((picture) => picture.logo)?.logo
+  const background = pictures.find((picture) => picture.background)?.background
+  return (
+    <Section
+      id="section"
+      module="section"
+      intro="A block of a hub page: a title with its See all button on one line, then what it holds. The home is a stack of them (popular games, tables and tournaments in progress, what's new), each leading to the page of its tab. A section is as wide as the page (`max-w-page`, the `px-gutter` margins) and keeps `pb-section` below it, so a stack needs no spacing of its own. Name it with `aria-labelledby`, pointing at its `SectionTitle`."
+    >
+      <Demo
+        title="With a row of cards"
+        description="`SectionRail` is a row of cards that scrolls sideways, for a preview that has more to show than the section has room for: each child has the same width (`w-64`, `sm:w-72`) and the row snaps to it. It runs out to the edges of the section, taking back the margins it sits in, so the cards scroll under them instead of being cut at the content, and the first card still lines up with the title. Its cards are links, so the keyboard reaches them and the row follows; give it an `aria-label`. `SectionAction` is the small outline button that is a link (`asChild` takes the framework's), with an arrow if the page wants one. These specimens drop the page margins (`px-0 pb-0`): the frame has its own."
+        className="overflow-hidden"
+        code={`<Section aria-labelledby="popular-games">
+  <SectionHeader>
+    <SectionTitle id="popular-games">Popular games</SectionTitle>
+    <SectionAction asChild>
+      <Link href="/games" aria-label="See all games">
+        See all
+        <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" />
+      </Link>
+    </SectionAction>
+  </SectionHeader>
+  <SectionRail aria-label="Popular games">
+    {games.map((game) => <GameCard key={game.slug} {...game.props} />)}
+  </SectionRail>
+</Section>`}
+      >
+        <PageSection aria-labelledby="section-demo-popular" className="px-0 pb-0">
+          <SectionHeader>
+            <SectionTitle id="section-demo-popular">Popular games</SectionTitle>
+            <SectionAction href="#section" aria-label="See all games">
+              See all
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" />
+            </SectionAction>
+          </SectionHeader>
+          <SectionRail aria-label="Popular games">
+            {live.map((entry) => (
+              <GameCard key={entry.slug} {...catalogCardProps(entry)} />
+            ))}
+            {["Cards of Kings", "Dice Harbor", "Last Lantern", "The Long Table", "Moss & Stone"].map((name) => (
+              <GameCard key={name} variant="soon" href="#section" name={name} logo={logo} background={background} players="2–5 players" duration="30 min" />
+            ))}
+          </SectionRail>
+        </PageSection>
+      </Demo>
+
+      <Demo
+        title="Nothing to list yet"
+        description="A section whose list does not exist yet keeps its title and its See all button and shows an `Empty` that says what is to come, compact (`p-6`, not the `p-12` of a page with nothing else) since the home stacks three of them. The tab's own page says the same."
+        code={`<Section aria-labelledby="tables-in-progress">
+  <SectionHeader>
+    <SectionTitle id="tables-in-progress">Tables in progress</SectionTitle>
+    <SectionAction asChild>…</SectionAction>
+  </SectionHeader>
+  <Empty className="border p-6">
+    <EmptyHeader>
+      <EmptyTitle>No table to join yet</EmptyTitle>
+      <EmptyDescription>Tables are private for now: …</EmptyDescription>
+    </EmptyHeader>
+  </Empty>
+</Section>`}
+      >
+        <PageSection aria-labelledby="section-demo-tables" className="px-0 pb-0">
+          <SectionHeader>
+            <SectionTitle id="section-demo-tables">Tables in progress</SectionTitle>
+            <SectionAction href="#section" aria-label="See all tables">
+              See all
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" />
+            </SectionAction>
+          </SectionHeader>
+          <Empty className="border p-6">
+            <EmptyHeader>
+              <EmptyTitle>No table to join yet</EmptyTitle>
+              <EmptyDescription>
+                Tables are private for now: open one from a game and share its link. The tables open to everyone will be listed here.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </PageSection>
       </Demo>
     </Section>
   )

@@ -1,35 +1,32 @@
-import { HugeiconsIcon } from "@hugeicons/react"
-import { DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
-
 import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
-import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { LetterMix } from "@pbgo/ui/platform/letter-mix"
-import { GameList } from "@/components/game-list"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
+import { HomeBody } from "@/components/home-body"
+import { EmptySection, HowItWorks, PopularGames } from "@/components/home-sections"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { catalogCardProps } from "@/lib/game-card-props"
+import { COMING_SOON } from "@/lib/coming-soon"
 
 // Plain <a> to the games (GameCard): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
 // A card opens the game's page on the hub, `/game/<slug>`.
 
-const STEPS = [
-  { icon: DiceIcon, title: "Pick a game", text: "Choose a board or card game and open a table in one click." },
-  { icon: Link01Icon, title: "Share the link", text: "Send the table link or code to your friends so they can join you." },
-  { icon: UserGroupIcon, title: "Play together", text: "Everyone plays from their own browser, rules and scoring handled for you." },
-]
-
+/**
+ * The home: the title with the search bar laid over it, then the sections of the platform, each with a "See all" to the page of its tab
+ * (popular games, tables and tournaments in progress, how it works, what's new), then the footer. Once the visitor starts a search the
+ * sections give way to its results (`HomeBody`); the list of every game is `/games`.
+ */
 export default async function Home() {
   // The live games of the registry, then the games to come, already in their order (docs/catalog.md). Without Notion (no key, or
-  // Notion down) the catalog is the live games alone, each from the registry, and the list is what it was before it.
+  // Notion down) the catalog is the live games alone, each from the registry.
   const { entries } = await getCatalog()
-  // One list for every game, each card a logo over a background on a grey frame. Every card is the game's Notion row, a live game's
-  // included (its logo, or icon, and its background come from the catalog's picture route; a picture the row does not have leaves the
-  // frame plain): the hub reads no game's Sanity project, only entering a game does. The registry decides the card's variant alone.
-  // Each game goes to the browser with what the search reads of it (`indexEntry`) beside its card: the list is filtered there
-  // (`GameSearch`, which the pill of the hero and the list read), in the order of the catalog, and this page stays static.
+  // Each card is the game's Notion row, a live game's included (its logo, or icon, and its background come from the catalog's picture
+  // route; a picture the row does not have leaves the frame plain): the hub reads no game's Sanity project, only entering a game does.
+  // The registry decides the card's variant alone. Each game goes to the browser with what the search reads of it (`indexEntry`)
+  // beside its card: a search is answered there (`GameSearch`, which the bar of the hero and the results read), in the order of the
+  // catalog, and this page stays static.
   const games = entries.map((entry) => ({ ...indexEntry(entry), props: catalogCardProps(entry) }))
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner). It starts at the top of the window: the
@@ -40,7 +37,8 @@ export default async function Home() {
         <SiteHeader current="home" />
 
         <main className="flex-1">
-          {/* The hero: the title, each letter in one of four display faces (`LetterMix`), and the search bar under it (two floors: the field and the round button, then the four filters), on a backdrop that is lighter at the top and fades into the black the games sit on */}
+          {/* The hero: the title, each letter in one of four display faces (`LetterMix`), and the search bar laid over it (two floors: the field
+              and the round button, then what to search and its filters), on a backdrop that is lighter at the top and fades into the black the sections sit on */}
           <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
               <h1 className="font-heading text-3xl leading-tight sm:text-5xl lg:text-7xl xl:text-8xl">
@@ -54,31 +52,30 @@ export default async function Home() {
               {/* Laid over the bottom of the title: its top edge sits on the baseline of the last line (the 0.265em the line keeps under it, in
                   px for each size of the title), so the tails of the script letters pass behind it. `relative` paints it over the text. */}
               <div className="relative -mt-2 w-full max-w-4xl sm:-mt-3 lg:-mt-5 xl:-mt-6">
-                <HeroSearch />
+                <HeroSearch scopes />
               </div>
             </div>
           </section>
 
-          <section id="games" aria-label="Games" className="mx-auto w-full max-w-page scroll-mt-navbar px-gutter pt-10 pb-section">
-            <GameList />
-          </section>
-
-          <section className="mx-auto w-full max-w-page px-gutter pb-section">
-            <h2 className="mb-6 font-heading text-2xl">How it works</h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              {STEPS.map((step) => (
-                <Card key={step.title} size="sm">
-                  <CardHeader>
-                    <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted">
-                      <HugeiconsIcon icon={step.icon} strokeWidth={2} className="size-5" />
-                    </div>
-                    <CardTitle>{step.title}</CardTitle>
-                    <CardDescription>{step.text}</CardDescription>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          </section>
+          <HomeBody>
+            <PopularGames games={games} />
+            <EmptySection
+              id="tables-in-progress"
+              title="Tables in progress"
+              href="/tables"
+              label="See all tables"
+              {...COMING_SOON.tables}
+            />
+            <EmptySection
+              id="tournaments-in-progress"
+              title="Tournaments in progress"
+              href="/tournaments"
+              label="See all tournaments"
+              {...COMING_SOON.tournaments}
+            />
+            <HowItWorks />
+            <EmptySection id="whats-new" title="What's new" href="/whats-new" label="See what's new" {...COMING_SOON.whatsNew} />
+          </HomeBody>
         </main>
 
         <SiteFooter />

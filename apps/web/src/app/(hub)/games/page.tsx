@@ -41,7 +41,7 @@ export default async function GamesPage() {
             </div>
           </section>
 
-          <section id="games" aria-label="Games" className="mx-auto w-full max-w-page scroll-mt-navbar px-gutter pt-10 pb-section">
+          <section id="results" aria-label="Games" className="mx-auto w-full max-w-page scroll-mt-navbar px-gutter pt-10 pb-section">
             <GameList />
           </section>
         </main>

@@ -1,4 +1,4 @@
-import { Baby01Icon, Clock01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { Baby01Icon, Clock01Icon, Compass01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { FACES, LetterMix } from "@pbgo/ui/platform/letter-mix"
@@ -14,7 +14,9 @@ import {
   SearchBarSegments,
   SearchBarSubmit,
 } from "@pbgo/ui/platform/search-bar"
+import { Separator } from "@pbgo/ui/platform/separator"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
+import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
 import { Block, Bullets, Code, Demo, Section } from "../_components/layout"
 
@@ -38,6 +40,33 @@ export function Logos() {
         <Logo />
         <Logo className="h-12" />
         <Logo className="h-16 text-muted-foreground" />
+      </Demo>
+    </Section>
+  )
+}
+
+export function Wordmarks() {
+  return (
+    <Section
+      id="wordmark"
+      module="wordmark"
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. It is low contrast (`fill-secondary`, one step above the page), so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text. It is SVG text scaled by its viewBox, so it is always the width of its container, and `textLength` pins that width whatever font answers: the letters are spaced out to fill it, never stretched, so nothing moves when Geist arrives. The ink of the letters is flush with the container's edges (the text starts a little left of the viewBox, by the side bearing of the P), which is why it lines up with the line under it."
+    >
+      <Demo
+        title="In the footer"
+        description="The footer of the hub's pages: the wordmark, a `Separator`, then the copyright, the links every page owes and what the site is not. It takes the width of its parent and its height follows (a 1000 by 280 box), so it is `358` wide on a phone and `1392` on a desktop with the same proportions."
+        code={`<footer className="mx-auto w-full max-w-page px-gutter pb-10">
+  <Wordmark />
+  <Separator className="mt-6 mb-6" />
+  <p className="text-sm text-muted-foreground">© 2026 PlayBoardGamesOnline. All rights reserved.</p>
+</footer>`}
+      >
+        <Wordmark />
+        <Separator className="mt-6 mb-6" />
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-sm text-muted-foreground">
+          <p>© 2026 PlayBoardGamesOnline. All rights reserved.</p>
+          <p>Legal notice</p>
+        </div>
       </Demo>
     </Section>
   )
@@ -209,6 +238,7 @@ export function Navbars() {
 
 /** The options of the specimens below. */
 const FILTERS = {
+  scope: { icon: Compass01Icon, label: "Search in", chips: ["Games", "Tables", "Tournaments"] },
   category: { icon: GridViewIcon, label: "Category", chips: ["Bluffing", "Cards", "Co-op", "Party", "Strategy"] },
   players: { icon: UserGroupIcon, label: "Players", chips: ["1", "2", "3", "4", "5", "6", "7", "8+"] },
   duration: { icon: Clock01Icon, label: "Duration", chips: ["15 min", "30 min", "45 min"] },
@@ -219,6 +249,8 @@ const FILTERS = {
 function FilterSegment({ filter, value, picked = [] }: { filter: keyof typeof FILTERS; value: string; picked?: string[] }) {
   const { icon, label, chips } = FILTERS[filter]
   const multiple = filter === "category"
+  // The scope always has a pick, so it has no Clear
+  const clearable = filter !== "scope"
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -227,9 +259,11 @@ function FilterSegment({ filter, value, picked = [] }: { filter: keyof typeof FI
       <PopoverContent aria-label={label}>
         <PopoverHeader>
           <PopoverTitle>{label}</PopoverTitle>
-          <Button type="button" variant="ghost" size="sm" disabled={picked.length === 0}>
-            Clear
-          </Button>
+          {clearable && (
+            <Button type="button" variant="ghost" size="sm" disabled={picked.length === 0}>
+              Clear
+            </Button>
+          )}
         </PopoverHeader>
         {multiple ? (
           <ToggleGroup type="multiple" defaultValue={picked} aria-label={label}>
@@ -296,13 +330,19 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than four `SearchBarSegment`. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero) and in a 2 × 2 grid under that (as in this column). The segments are `type=button`, so only the field and the round button send the form."
+        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than five `SearchBarSegment`. The home's bar puts a first one, *Search in*, that picks what the bar looks through (the games, the tables or the tournaments) and is never idle; only the games have the filters after it. A segment shows what it filters by and what is picked, dimmed while nothing is (`idle`). Wrap it in a `PopoverTrigger asChild`: that gives it `aria-expanded`, which paints it while its panel is open. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero) and in a 2 × 2 grid under that (as in this column). The segments are `type=button`, so only the field and the round button send the form."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
     <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
   </SearchBarField>
   <SearchBarSegments aria-label="Filter the games">
+    <Popover>
+      <PopoverTrigger asChild>
+        <SearchBarSegment icon={Compass01Icon} label="Search in" value="Games" />
+      </PopoverTrigger>
+      <PopoverContent aria-label="Search in">…</PopoverContent>
+    </Popover>
     <Popover>
       <PopoverTrigger asChild>
         <SearchBarSegment icon={UserGroupIcon} label="Players" value="4 players" />
@@ -324,6 +364,7 @@ export function SearchBars() {
             <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
           </SearchBarField>
           <SearchBarSegments aria-label="Filter the games">
+            <FilterSegment filter="scope" value="Games" picked={["Games"]} />
             <FilterSegment filter="category" value="Any category" />
             <FilterSegment filter="players" value="Any players" />
             <FilterSegment filter="duration" value="Any duration" />
