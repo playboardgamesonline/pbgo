@@ -139,7 +139,6 @@ describe("the options", () => {
   it("starts each stepper on one of its own options", () => {
     expect(PLAYER_COUNTS).toContain(FIRST_PICKS.players)
     expect(DURATION_LIMITS).toContain(FIRST_PICKS.duration)
-    expect(AGE_LIMITS).toContain(FIRST_PICKS.age)
   })
 
   it("finds the option that a text spells exactly, else none", () => {
@@ -156,7 +155,6 @@ describe("stepping along the options", () => {
     expect(stepOption(PLAYER_COUNTS, null, 1, FIRST_PICKS.players)).toBe(3)
     expect(stepOption(PLAYER_COUNTS, null, -1, FIRST_PICKS.players)).toBe(3)
     expect(stepOption(DURATION_LIMITS, null, 1, FIRST_PICKS.duration)).toBe(30)
-    expect(stepOption(AGE_LIMITS, null, -1, FIRST_PICKS.age)).toBe(8)
   })
 
   it("then moves one place at a time and stays at the ends", () => {

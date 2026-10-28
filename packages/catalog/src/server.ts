@@ -27,12 +27,15 @@ export function notionToken(): string | undefined {
  * The hub catalog: the live games of the registry, then the other games of Notion, each with the values of its Notion row
  * (`NOTION_API_KEY`, see docs/catalog.md). Notion is the one optional part: without the key, or when Notion does not answer, the
  * catalog is the live games alone, each with the little the registry knows of it (`registryRow`: a name, players, a duration, no
- * picture), so a game the site can play is always listed, and a Notion-only game has no page. Read once per request; the Notion
+ * picture), so a game the site can play is always listed, and a Notion-only game has no page (in development the other games of the registry
+ * are listed too, as "Coming soon", so the hub can be seen whole). Read once per request; the Notion
  * calls themselves are cached by Next for `CATALOG_REVALIDATE_SECONDS`.
  */
 export const getCatalog = cache(async (): Promise<Catalog> => {
+  // With no Notion, a developer's hub also lists the other games of the registry, by name, so that its grid is whole; a deployment never does
+  const registryGames = process.env.NODE_ENV === "development"
   const token = notionToken()
-  if (!token) return { entries: buildCatalog(GAMES, []), notion: "off" }
+  if (!token) return { entries: buildCatalog(GAMES, [], { registryGames }), notion: "off" }
   try {
     const read = await readNotionGames({ token, init: { next: { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAG] } } })
     for (const warning of read.warnings) reportOnce(warning)
@@ -40,6 +43,6 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     return { entries: buildCatalog(GAMES, read.games), notion: "ok" }
   } catch (error) {
     reportOnce(`Notion is unavailable, only the live games are listed, from the registry: ${error instanceof Error ? error.message : "unknown error"}`)
-    return { entries: buildCatalog(GAMES, []), notion: "unavailable" }
+    return { entries: buildCatalog(GAMES, [], { registryGames }), notion: "unavailable" }
   }
 })

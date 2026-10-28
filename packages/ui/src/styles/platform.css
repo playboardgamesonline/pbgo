@@ -108,6 +108,9 @@
    */
   --text-display: clamp(1.5rem, 7.7vw + 0.5rem, 7.5rem);
   --spacing-title-overlap: calc(var(--text-display) * 0.12);
+
+  /* The one weight lighter than the platform's 600 that a text may have, 400: the text of the search bar (`font-regular`) and the finest print (`fine-print`) */
+  --font-weight-regular: 400;
 }
 
 /*
@@ -136,7 +139,7 @@
 @utility fine-print {
   font-size: var(--text-xs);
   line-height: var(--text-xs--line-height);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: color-mix(in oklab, var(--foreground) 20%, transparent);
 }
 

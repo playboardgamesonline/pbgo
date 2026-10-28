@@ -10,11 +10,19 @@ import {
   MANY_PLAYERS,
   PLAYER_COUNTS,
   canStep,
+  optionOf,
   stepOption,
   type GameFilter,
 } from "@pbgo/catalog/filter"
 import { Button } from "@pbgo/ui/platform/button"
 import { Combobox } from "@pbgo/ui/platform/combobox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@pbgo/ui/platform/dropdown-menu"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
 import { SearchBarSegment, SearchBarSegments, SearchBarStepper } from "@pbgo/ui/platform/search-bar"
 import { useGameSearch } from "@/components/game-search"
@@ -24,7 +32,8 @@ import { useGameSearch } from "@/components/game-search"
 /** What a screen reader hears of a pick, and what a pointer shows over it. */
 const playersText = (count: number): string => (count >= MANY_PLAYERS ? `${count}+ players` : count === 1 ? "1 player" : `${count} players`)
 const durationText = (limit: number): string => `Up to ${limit} min`
-const ageText = (age: number): string => `${age} years old`
+/** "+8 yrs": from 8 years old, which is how the box of a game says it. */
+const ageText = (age: number): string => `+${age} yrs`
 /** The first category picked, then how many more: "Cards", "Cards +2". */
 const categoryText = (picked: readonly string[]): string => (picked.length > 1 ? `${picked[0]} +${picked.length - 1}` : (picked[0] ?? ""))
 
@@ -126,9 +135,34 @@ function CategoryFilter({
 }
 
 /**
+ * The age filter: a segment, like the category's, that opens a menu with one age to pick ("+8 yrs": the youngest player is 8, so a game stays when
+ * its minimum age is at most that) or none, since the ages are a short list to read and not a number to step through.
+ */
+function AgeFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <SearchBarSegment icon={ChildIcon} label="Age" value={current === null ? "Any age" : ageText(current)} idle={current === null} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-40">
+        {/* "any" is not one of the ages, so `optionOf` reads it as none */}
+        <DropdownMenuRadioGroup value={current === null ? "any" : String(current)} onValueChange={(next) => onPick(optionOf(AGE_LIMITS, next))}>
+          <DropdownMenuRadioItem value="any">Any age</DropdownMenuRadioItem>
+          {AGE_LIMITS.map((age) => (
+            <DropdownMenuRadioItem key={age} value={String(age)}>
+              {ageText(age)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/**
  * The four segments of the search bar, from the picks they are given and the way to change them (so `/design` can draw them with picks of its
- * own): the category (several at once, from a list with a search field), then the number of players, the longest duration and the age of the
- * youngest player, each a stepper. A pick filters the list at once and goes into the address. The rules are `@pbgo/catalog/filter`'s. See
+ * own): the category (several at once, from a list with a search field), then the number of players and the longest duration, each a stepper,
+ * and the age of the youngest player, from a menu. A pick filters the list at once and goes into the address. The rules are `@pbgo/catalog/filter`'s. See
  * docs/catalog.md.
  */
 export function FilterSegments({
@@ -167,18 +201,7 @@ export function FilterSegments({
         decrease="Shorter games"
         increase="Longer games"
       />
-      <NumberStepper
-        icon={ChildIcon}
-        label="Age"
-        options={AGE_LIMITS}
-        first={FIRST_PICKS.age}
-        current={filter.age}
-        onPick={(age) => onFilterChange({ ...filter, age })}
-        chip={(age) => `${age} yrs`}
-        says={ageText}
-        decrease="Younger players"
-        increase="Older players"
-      />
+      <AgeFilter current={filter.age} onPick={(age) => onFilterChange({ ...filter, age })} />
     </SearchBarSegments>
   )
 }

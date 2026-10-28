@@ -13,14 +13,14 @@ export const PLAYER_COUNTS = [1, 2, 3, 4, 5, 6, 7, MANY_PLAYERS] as const
 /** The durations the filter offers, in minutes: a game fits when it takes at most that long. A quarter of an hour at a time up to the hour, then half an hour. */
 export const DURATION_LIMITS = [15, 30, 45, 60, 90, 120] as const
 
-/** The ages the filter offers, in years: the age of the youngest player, so a game stays when its minimum age is at most that. */
+/** The ages the filter offers, in years, written "+8 yrs" (from 8 years old): the age of the youngest player, so a game stays when its minimum age is at most that. */
 export const AGE_LIMITS = [6, 8, 10, 12, 14] as const
 
 /**
  * What a stepper of the search bar picks the first time it is pressed, while nothing is picked: the number it shows then, dimmed. Each one is one
- * of its options (`PLAYER_COUNTS`, `DURATION_LIMITS`, `AGE_LIMITS`): a table of three, a game of half an hour, a child of eight.
+ * of its options (`PLAYER_COUNTS`, `DURATION_LIMITS`): a table of three, a game of half an hour. The age has no stepper, it is a menu.
  */
-export const FIRST_PICKS = { players: 3, duration: 30, age: 8 } as const
+export const FIRST_PICKS = { players: 3, duration: 30 } as const
 
 /** The longest search the field takes: nobody looks for a game with more than this. */
 export const MAX_QUERY_LENGTH = 60

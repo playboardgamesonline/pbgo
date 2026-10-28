@@ -5,13 +5,17 @@ import { cn } from "../utils"
 
 import { Button } from "./button"
 
-// The big search bar of a page: a field (`SearchBarField`: the text and a button that clears it once there is one) and the round
-// button that submits it, in one pill. Filters can sit in the same bar, as segments (`SearchBarSegments`): each one shows an icon, a
-// small label and what is picked, and is either a button that opens whatever the page puts behind it (`SearchBarSegment`, with a `Popover`) or a
-// stepper for a number (`SearchBarStepper`: less, the number, more, with no panel). The bar then has two floors, whatever its width: the field
-// and the button on top, a line, the segments below. They sit in a row when the room the bar has is 42rem wide or more (the width of its
-// container, not of the window), in a 2 × 2 grid under that and in one column under 24rem, where a stepper's number would be cut. In a row a short line stands in the middle of the gap
-// between two segments, so that what a hover paints never touches it. It only draws the bar. The page owns the text, the picks and what they find.
+// The big search bar of a page: a field (`SearchBarField`: the text and a button that clears it once there is one) and the round button that
+// submits it. Filters can sit in the same bar, as segments (`SearchBarSegments`), under the field: a row of compact controls packed to the left
+// and wrapped when the room runs out, with no line above them and no frame or separator between them. A segment is an icon with either what is
+// picked, in a button that opens whatever the page puts behind it (`SearchBarSegment`, with a `Popover`), or a stepper for a number
+// (`SearchBarStepper`: less, the number, more, with no panel). The text of the field and the icons of the filters start on the same line.
+//
+// The bar is a rounded rectangle, with large corners (`rounded-3xl`), and the submit button a rounded square whose corners are the bar's minus its
+// padding, so that they are concentric. Its text is regular (400, `font-regular`) and not the platform's 600. Up to 48rem of room (the width of the
+// container, not of the window) the button ends the field, 40px high. From 48rem the field and the filters are one block on the left and the button
+// stands alone on the right, as tall as the two floors (`size-19`: the 40px of the field and the 36px of the filters). It only draws the bar. The
+// page owns the text, the picks and what they find.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
   return (
@@ -20,8 +24,9 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
-          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-3 has-data-[slot=search-bar-segments]:rounded-4xl has-data-[slot=search-bar-segments]:p-3",
+          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 font-regular shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
+          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-1 has-data-[slot=search-bar-segments]:rounded-3xl has-data-[slot=search-bar-segments]:p-3",
+          "@3xl:has-data-[slot=search-bar-segments]:grid @3xl:has-data-[slot=search-bar-segments]:grid-cols-[minmax(0,1fr)_auto] @3xl:has-data-[slot=search-bar-segments]:gap-x-4 @3xl:has-data-[slot=search-bar-segments]:gap-y-0 @3xl:has-data-[slot=search-bar-segments]:p-2 @3xl:has-data-[slot=search-bar-segments]:pl-6",
           className
         )}
         {...props}
@@ -36,7 +41,7 @@ function SearchBarField({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="search-bar-field"
       className={cn(
-        "flex h-10 min-w-0 flex-1 items-center gap-1 group-has-data-[slot=search-bar-segments]/search-bar:h-12 group-has-data-[slot=search-bar-segments]/search-bar:pl-2",
+        "flex h-10 min-w-0 flex-1 items-center gap-1 group-has-data-[slot=search-bar-segments]/search-bar:pl-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:pl-0",
         className
       )}
       {...props}
@@ -89,9 +94,8 @@ function SearchBarClear({ className, ...props }: SearchBarButtonProps) {
 }
 
 /**
- * The filters of the bar: the lower floor, under the field and a line that runs from edge to edge of the bar. A row of equal columns when the bar has
- * the room for it, a 2 × 2 grid when it has not, one column when it has very little (under 24rem, a phone of 415 px or less). Name the group with an `aria-label`. Put no more than four
- * segments in it: they share the width of the bar.
+ * The filters of the bar: the lower floor, under the field, with no line between them. The controls are packed to the left, 1.5rem apart, and go
+ * on a second row when the room runs out. Name the group with an `aria-label`.
  */
 function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -99,7 +103,7 @@ function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">)
       data-slot="search-bar-segments"
       role="group"
       className={cn(
-        "order-last -mx-3 grid basis-full grow grid-cols-2 gap-2 border-t border-border px-3 pt-3 @max-sm:grid-cols-1 @2xl:auto-cols-fr @2xl:grid-flow-col @2xl:grid-cols-none @2xl:gap-4",
+        "order-last flex basis-full flex-wrap items-center gap-x-6 gap-y-1 px-2 @3xl:col-start-1 @3xl:row-start-2 @3xl:px-0",
         className
       )}
       {...props}
@@ -107,15 +111,12 @@ function SearchBarSegments({ className, ...props }: React.ComponentProps<"div">)
   )
 }
 
-// What a segment is, whether it opens something or steps a number: a box with an icon and two lines. In a grid the box has a border. In a row the
-// boxes have none and a line of 1px stands in the middle of the gap between two of them (the `before` of every one but the first, 0.5rem to the left
-// of the box, half of the `gap-4` of the row), so that the background a hover paints keeps its distance from it.
-const SEGMENT =
-  "relative flex h-14 min-w-0 items-center gap-2.5 rounded-3xl border border-border px-3 text-left transition-all outline-none select-none hover:bg-input/30 @2xl:border-transparent @2xl:not-first:before:absolute @2xl:not-first:before:top-1/2 @2xl:not-first:before:-left-2 @2xl:not-first:before:h-8 @2xl:not-first:before:w-px @2xl:not-first:before:-translate-y-1/2 @2xl:not-first:before:bg-border"
+// What a segment is, whether it opens something or steps a number: a row of 36px with an icon at the start, and no frame.
+const SEGMENT = "relative flex h-9 min-w-0 items-center gap-2 text-left outline-none select-none"
 
 type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "type"> & {
   icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
-  /** What the segment filters by, small, above the value: "Category". */
+  /** What the segment filters by: "Category". It is not drawn, the icon says what it is: it is what a screen reader hears before the value. */
   label: string
   /** What is picked: "Cards +1". */
   value: string
@@ -124,17 +125,19 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
 }
 
 /**
- * One filter of the bar that opens a panel: a button that shows what it filters by and what is picked. It opens nothing itself: the page wraps it
- * in a `PopoverTrigger asChild`, which gives it `aria-expanded` and the open state this paints.
+ * One filter of the bar that opens a panel: an icon and what is picked, in a button. It opens nothing itself: the page wraps it in a
+ * `PopoverTrigger asChild`, which gives it `aria-expanded` and the open state this paints. The button is a little wider than its content, to the left
+ * (`-ml-2`), so that the background of a hover has room around the icon and the icon still starts on the line of the field's text.
  */
 function SearchBarSegment({ className, icon, label, value, idle = false, ...props }: SearchBarSegmentProps) {
   return (
     <button
       data-idle={idle ? "" : undefined}
       type="button"
+      aria-label={`${label}: ${value}`}
       className={cn(
         SEGMENT,
-        "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
+        "-ml-2 rounded-xl px-2 hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
         className
       )}
       {...props}
@@ -142,10 +145,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, ...prop
       data-slot="search-bar-segment"
     >
       <HugeiconsIcon icon={icon} strokeWidth={2} className="size-5 shrink-0 text-muted-foreground" />
-      <span className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-xs text-muted-foreground">{label}</span>
-        <span className={cn("truncate text-sm", idle && "text-muted-foreground")}>{value}</span>
-      </span>
+      <span className={cn("truncate text-sm", idle && "text-muted-foreground")}>{value}</span>
     </button>
   )
 }
@@ -175,7 +175,7 @@ type SearchBarStepperProps = Omit<React.ComponentProps<"div">, "children" | "rol
 
 /**
  * One filter of the bar that is a number, which needs no panel: the icon that says what the number is, then a minus button, the number and a plus
- * button, in the segment itself. No label is drawn, so the row sits in the middle of the segment; the buttons are outlined so they read as buttons.
+ * button. No label is drawn and no background is painted under the pointer; the buttons are outlined so they read as buttons.
  * The number is a chip like the ones of a panel (`bg-primary` once picked), and pressing it picks it, or clears it once it is. The page owns the
  * options and what a press does, and `idle` says nothing is picked: the number then shows the one the first press picks. A group, so a screen
  * reader names it.
@@ -222,7 +222,7 @@ function SearchBarStepper({
   )
 }
 
-/** Sends the search. A visitor who presses Enter in the field sends it too. */
+/** Sends the search. A visitor who presses Enter in the field sends it too. Beside the block of the field and the filters it is as tall as the two floors, alone at the end. */
 function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
   return (
     <Button
@@ -230,7 +230,10 @@ function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
       type="submit"
       variant="secondary"
       size="icon-lg"
-      className={className}
+      className={cn(
+        "group-has-data-[slot=search-bar-segments]/search-bar:@3xl:col-start-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-span-2 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:row-start-1 group-has-data-[slot=search-bar-segments]/search-bar:rounded-xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:size-19 group-has-data-[slot=search-bar-segments]/search-bar:@3xl:rounded-2xl group-has-data-[slot=search-bar-segments]/search-bar:@3xl:self-center group-has-data-[slot=search-bar-segments]/search-bar:@3xl:[&_svg:not([class*='size-'])]:size-6",
+        className
+      )}
       {...props}
     >
       <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />

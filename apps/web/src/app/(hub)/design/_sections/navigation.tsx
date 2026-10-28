@@ -48,7 +48,7 @@ export function Wordmarks() {
     <Section
       id="wordmark"
       module="wordmark"
-      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of `--secondary` at the top to nothing at the bottom, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of the footer's text (`--muted-foreground`) at the top of the letters to nothing at nine tenths of their height, so the last tenth is transparent and it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
     >
       <Demo
         title="In the footer"
@@ -157,7 +157,7 @@ export function Navbars() {
     >
       <Demo
         title="On the home, signed out"
-        description="The logo is the home's button, a square: on the home it is `current`, and no tab is. `current` puts the bar's fill (`bg-muted`) behind the item, the same one for the logo and for a tab, in the same white. On any other page the logo is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and `Join the fun` the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
+        description="The logo is the home's button, a square: on the home it is `current`, and no tab is. `current` puts the bar's fill (`bg-muted`) behind the item, the same one for the logo and for a tab, in the same white. On any other page the logo is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and `Let's play` the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
@@ -173,7 +173,7 @@ export function Navbars() {
   </NavbarStart>
   <NavbarEnd>
     <Button variant="ghost" size="lg">Sign in</Button>
-    <Button size="lg">Join the fun</Button>
+    <Button size="lg">{"Let's play"}</Button>
   </NavbarEnd>
 </Navbar>
 
@@ -185,7 +185,7 @@ export function Navbars() {
             <Button variant="ghost" size="lg">
               Sign in
             </Button>
-            <Button size="lg">Join the fun</Button>
+            <Button size="lg">{"Let's play"}</Button>
           </NavbarEnd>
         </Navbar>
       </Demo>
@@ -243,7 +243,7 @@ export function SearchBars() {
     >
       <Demo
         title="Empty and filled"
-        description="`SearchBarField` holds the input and, once there is a text, `SearchBarClear`, which the page uses to empty the field and put the focus back in it. The field and each button need an `aria-label`: the pill shows no label of its own. These forms do nothing when sent (`method=dialog`)."
+        description="`SearchBarField` holds the input and, once there is a text, `SearchBarClear`, which the page uses to empty the field and put the focus back in it. The field and each button need an `aria-label`: the bar shows no label of its own. These forms do nothing when sent (`method=dialog`)."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
@@ -277,7 +277,7 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="`SearchBarSegments` goes between the field and the button in the markup, with no more than four segments, of two kinds. A `SearchBarSegment` shows what it filters by and what is picked, dimmed while nothing is (`idle`), and opens a panel: wrap it in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while its panel is open. For a long list of options the panel holds a `Combobox`. A `SearchBarStepper` is for a number and needs no panel: a minus button, the number and a plus button in the segment itself. The number is a chip that is `bg-primary` once picked, dimmed while nothing is, and pressing it picks it or clears it; the first press on either button picks the number it shows. With segments the bar has two floors at any width: the field and the round button on top, a line, then the filters, in a row when the room is 42rem wide or more (as in the home's hero), with a short line in the middle of each gap so that what a hover paints never touches it, in a 2 × 2 grid under that (as in this column) and in one column under 24rem, a phone of 415 px or less, where the number of a stepper would be cut. The segments are `type=button`, so only the field and the round button send the form. These ones filter nothing: they step, open and search."
+        description="`SearchBarSegments` goes after the field in the markup. Its controls are packed to the left and go on a second row when the room runs out, with no line above them and no frame or separator between them. Each is an icon with what it filters and no label (a screen reader hears the `label`). A `SearchBarSegment` shows what is picked, dimmed while nothing is (`idle`), and opens something: wrap it in a `PopoverTrigger asChild` (a panel, such as the category's `Combobox`) or a `DropdownMenuTrigger asChild` (a menu, such as the age), which gives it `aria-expanded`, which paints it while it is open. A `SearchBarStepper` is for a number and needs no panel: a minus button, the number and a plus button, with no background under the pointer. The number is a chip that is `bg-primary` once picked and dimmed while nothing is, and pressing it picks it or clears it; the first press on either button picks the number it shows. The bar is a rounded rectangle and its button a rounded square, with concentric corners, and its text is regular. Up to 48rem of room the button is at the end of the field, as in this column; from 48rem (the home's hero on a desktop) the field and the filters are one block on the left and the button, as tall as the two floors, stands alone on the right. The segments are `type=button`, so only the field and the round button send the form. These ones filter nothing: they step, open and search."
         className="flex flex-col gap-4"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>

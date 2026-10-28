@@ -114,6 +114,16 @@ export type CatalogEntry = { slug: string; live: boolean; indexable: boolean; ga
  */
 export type Catalog = { entries: CatalogEntry[]; notion: "off" | "ok" | "unavailable" }
 
+/** What else `buildCatalog` can be asked for. */
+export type CatalogOptions = {
+  /**
+   * List the games of the registry that are not live and that Notion has no row for too, each as its `registryRow` that says "Coming soon", after
+   * the other games and in registry order. For development with no Notion token: the hub can then be seen with all its games, names and figures
+   * but no picture. The catalog of a deployment never does, since a game that Notion does not announce is not announced.
+   */
+  registryGames?: boolean
+}
+
 /** Games of the registry that are not in the catalog: the template is the demo of the shared base, not a game. */
 export const UNLISTED_SLUGS: ReadonlySet<string> = new Set(["template"])
 
@@ -194,9 +204,10 @@ function relatedLinks(rows: readonly NotionGame[]): Map<string, Set<string>> {
  *   is not live and has no row is not listed.
  * - `live` and `indexable` are the registry's, whatever a row says. They are the only things the registry still decides.
  * - `UNLISTED_SLUGS` are never listed.
+ * - With `options.registryGames` the registry's games that are not live and have no row are listed too (development with no token).
  * - Two games are related when either row says so, and `related` only names games that are listed.
  */
-export function buildCatalog(games: readonly GameEntry[], rows: readonly NotionGame[]): CatalogEntry[] {
+export function buildCatalog(games: readonly GameEntry[], rows: readonly NotionGame[], options: CatalogOptions = {}): CatalogEntry[] {
   const known = new Map(games.map((game) => [game.slug, game]))
   const live: CatalogEntry[] = games
     .filter((game) => game.live && !UNLISTED_SLUGS.has(game.slug))
@@ -206,7 +217,12 @@ export function buildCatalog(games: readonly GameEntry[], rows: readonly NotionG
     .filter((row) => !UNLISTED_SLUGS.has(row.slug) && !taken.has(row.slug))
     .sort(comparePlanned)
     .map((row) => ({ slug: row.slug, live: false, indexable: known.get(row.slug)?.indexable ?? false, game: row, related: [] }))
-  const listed = [...live, ...comingSoon]
+  const fromRegistry: CatalogEntry[] = options.registryGames
+    ? games
+        .filter((game) => !game.live && !UNLISTED_SLUGS.has(game.slug) && !live.some((entry) => entry.slug === game.slug) && !rows.some((row) => row.slug === game.slug))
+        .map((game) => ({ slug: game.slug, live: false, indexable: game.indexable, game: registryRow(game), related: [] }))
+    : []
+  const listed = [...live, ...comingSoon, ...fromRegistry]
   const links = relatedLinks(rows)
   return listed.map((entry) => ({ ...entry, related: listed.filter((other) => links.get(entry.slug)?.has(other.slug)).map((other) => other.slug) }))
 }
