@@ -1,4 +1,4 @@
-import { Baby01Icon, Clock01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { ChildIcon, GridViewIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { DISPLAY_FACES } from "@pbgo/ui/faces"
@@ -52,11 +52,11 @@ export function Wordmarks() {
     <Section
       id="wordmark"
       module="wordmark"
-      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is low contrast (`fill-secondary`, one step above the page), so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text. It is SVG text scaled by its viewBox, so it is always the width of its container, and `textLength` pins that width whatever font answers: the letters are spaced out to fill it, never stretched, so nothing moves when the fonts arrive. The ink of the letters is flush with the container's edges, which is why it lines up with the line under it."
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the gap between the ink of two letters is the same everywhere, the ink of the P starts at the left edge and the ink of the O ends at the right edge, which is why it lines up with the line under it, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of `--secondary` at the top to nothing at the bottom, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
     >
       <Demo
         title="In the footer"
-        description="The footer of the hub's pages: the wordmark, a `Separator`, then the copyright and who built the site on the left, the legal pages on the right, and what the site is not, centred and a little lighter, under them. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
+        description="The footer of the hub's pages: the wordmark, a `Separator`, then the copyright and who built the site on the left, the legal pages on the right, and what the site is not, centred under them, in the smallest, thinnest and faintest type of the page (`text-xs font-light text-foreground/50`). The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
         code={`<footer className="mx-auto w-full max-w-page px-gutter pb-10">
   <Wordmark />
   <Separator className="mt-6 mb-6" />
@@ -69,7 +69,7 @@ export function Wordmarks() {
           <p>© 2026 Play Board Games Online · Built by oré</p>
           <p>Privacy Policy · Cookie Policy · Terms of Use</p>
         </div>
-        <p className="mt-8 text-center text-sm text-foreground/80">
+        <p className="mt-8 text-center text-xs font-light text-foreground/50">
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>
@@ -82,13 +82,13 @@ export function FaceCycles() {
     <Section
       id="face-cycle"
       module="face-cycle"
-      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds: the board games of the home's title, all in capitals, the rest in Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
+      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in one face for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
     >
       <Demo
-        title="The title of the home"
-        description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child. The home's title is `text-display`, as big as the room it has; this specimen is smaller to fit the column."
+        title="A title with a word that turns"
+        description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child."
         className="bg-linear-to-b from-secondary via-card to-background py-12 text-center"
-        code={`<h1 className="font-heading text-display uppercase">
+        code={`<h1 className="font-heading text-6xl uppercase">
   <FaceCycle before="Play" className="block">board games</FaceCycle>{" "}
   <span className="block">with friends & rivals</span>
 </h1>`}
@@ -239,9 +239,9 @@ export function Navbars() {
 /** The options of the specimens below. */
 const FILTERS = {
   category: { icon: GridViewIcon, label: "Category", chips: ["Bluffing", "Cards", "Co-op", "Party", "Strategy"] },
-  players: { icon: UserGroupIcon, label: "Players", chips: ["1", "2", "3", "4", "5", "6", "7", "8+"] },
-  duration: { icon: Clock01Icon, label: "Duration", chips: ["15 min", "30 min", "45 min"] },
-  age: { icon: Baby01Icon, label: "Age", chips: ["6", "8", "10", "12", "14"] },
+  players: { icon: UserMultipleIcon, label: "Players", chips: ["1", "2", "3", "4", "5", "6", "7", "8+"] },
+  duration: { icon: HourglassIcon, label: "Duration", chips: ["15 min", "30 min", "45 min"] },
+  age: { icon: ChildIcon, label: "Age", chips: ["6", "8", "10", "12", "14"] },
 } as const
 
 /** One filter of the bar, as the home builds it: a segment that opens a panel of chips. `picked` is what is chosen, nothing for an idle segment. */
@@ -334,13 +334,13 @@ export function SearchBars() {
   <SearchBarSegments aria-label="Filter the games">
     <Popover>
       <PopoverTrigger asChild>
-        <SearchBarSegment icon={UserGroupIcon} label="Players" value="4 players" />
+        <SearchBarSegment icon={UserMultipleIcon} label="Players" value="4 players" />
       </PopoverTrigger>
       <PopoverContent aria-label="Players">…</PopoverContent>
     </Popover>
     <Popover>
       <PopoverTrigger asChild>
-        <SearchBarSegment icon={Baby01Icon} label="Age" value="Any age" idle />
+        <SearchBarSegment icon={ChildIcon} label="Age" value="Any age" idle />
       </PopoverTrigger>
       <PopoverContent aria-label="Age">…</PopoverContent>
     </Popover>
@@ -377,11 +377,13 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the bottom of the title, in the hero: its top edge sits on the baseline of the last line, so the letters stand on it. `relative` paints it over the text, and a negative top margin pulls it up by the 0.265em that the line keeps under its baseline, (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.095em that the last line keeps under its baseline and a third of its capitals, (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
-    <h1 className="font-heading text-display uppercase">…</h1>
+    <h1 className="display-title">
+      <span className="block text-display">Play board games</span> <span className="block text-display-sub">…</span>
+    </h1>
     <div className="relative -mt-title-overlap w-full max-w-4xl">
       <SearchBar>…</SearchBar>
     </div>
@@ -389,13 +391,13 @@ export function SearchBars() {
 </section>`}
       >
         <div className="flex flex-col items-center bg-linear-to-b from-secondary via-card to-background px-6 pt-12 pb-10 text-center">
-          <p className="font-heading text-4xl leading-tight uppercase">
-            <span className="block">Play board games</span> <span className="block">with friends & rivals</span>
+          <p className="display-title">
+            <span className="block text-4xl">Play board games</span> <span className="block text-3xl">with friends & rivals</span>
           </p>
           <div className="relative -mt-2.5 w-full max-w-xl">
-            <SearchBar method="dialog" aria-label="Search the games">
+            <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
-                <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
+                <SearchBarInput aria-label="Search games, tables and tournaments" placeholder="Search games, tables & tournaments..." />
               </SearchBarField>
               <SearchBarSubmit aria-label="Search" />
             </SearchBar>

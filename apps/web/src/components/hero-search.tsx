@@ -18,7 +18,7 @@ export function HeroSearch() {
 
   return (
     <SearchBar
-      aria-label="Search the games"
+      aria-label="Search games, tables and tournaments"
       onSubmit={(event) => {
         event.preventDefault()
         if (window.matchMedia("(pointer: coarse)").matches) field.current?.blur()
@@ -31,8 +31,8 @@ export function HeroSearch() {
           ref={field}
           value={filter.query}
           onChange={(event) => setQuery(event.target.value)}
-          aria-label="Search a game"
-          placeholder="Search a game"
+          aria-label="Search games, tables and tournaments"
+          placeholder="Search games, tables & tournaments..."
           maxLength={MAX_QUERY_LENGTH}
           autoComplete="off"
           spellCheck={false}

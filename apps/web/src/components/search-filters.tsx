@@ -2,7 +2,7 @@
 
 import { useId, useState, type ReactNode } from "react"
 
-import { Baby01Icon, Clock01Icon, GridViewIcon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { ChildIcon, GridViewIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { AGE_LIMITS, DURATION_LIMITS, MANY_PLAYERS, PLAYER_COUNTS, optionOf } from "@pbgo/catalog/filter"
 import { Button } from "@pbgo/ui/platform/button"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
@@ -109,7 +109,7 @@ export function SearchFilters() {
       </Filter>
 
       <Filter
-        icon={UserGroupIcon}
+        icon={UserMultipleIcon}
         label="Players"
         title="Number of players"
         value={filter.players === null ? "Any players" : playersText(filter.players)}
@@ -136,7 +136,7 @@ export function SearchFilters() {
       </Filter>
 
       <Filter
-        icon={Clock01Icon}
+        icon={HourglassIcon}
         label="Duration"
         title="Longest game"
         value={filter.duration === null ? "Any duration" : durationText(filter.duration)}
@@ -163,7 +163,7 @@ export function SearchFilters() {
       </Filter>
 
       <Filter
-        icon={Baby01Icon}
+        icon={ChildIcon}
         label="Age"
         title="Age of the youngest player"
         value={filter.age === null ? "Any age" : ageText(filter.age)}

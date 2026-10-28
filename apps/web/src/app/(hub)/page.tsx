@@ -1,6 +1,5 @@
 import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
-import { FaceCycle } from "@pbgo/ui/platform/face-cycle"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
 import { HomeBody } from "@/components/home-body"
@@ -34,18 +33,16 @@ export default async function Home() {
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
-          {/* The hero: the title in capitals, "board games" in a display face that changes every six seconds (`FaceCycle`), and the search bar laid
-              over it (two floors: the field and the round button, then the filters), on a backdrop that is lighter at the top and fades into the black the sections sit on */}
+          {/* The hero: the title in capitals, all in one bold display face and a little translucent (`display-title`), the first line bigger than the
+              second, and the search bar laid over its foot (two floors: the field and the round button, then the filters; glass, so the title shows through),
+              on a backdrop that is lighter at the top and fades into the black the sections sit on */}
           <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
-              <h1 className="font-heading text-display uppercase">
-                <FaceCycle before="Play" className="block">
-                  board games
-                </FaceCycle>{" "}
-                <span className="block">with friends & rivals</span>
+              <h1 className="display-title">
+                <span className="block text-display">Play board games</span> <span className="block text-display-sub">with friends & rivals</span>
               </h1>
-              {/* Laid over the bottom of the title: its top edge sits on the baseline of the last line (`-mt-title-overlap`, the 0.265em the line
-                  keeps under it, which follows the size of the title), so the letters stand on it. `relative` paints it over the text. */}
+              {/* Laid over the foot of the title: pulled up by `-mt-title-overlap` (it follows the size of the title), so it covers the lower part of
+                  the last line, which shows through its glass. `relative` paints it over the text. */}
               <div className="relative -mt-title-overlap w-full max-w-4xl">
                 <HeroSearch />
               </div>

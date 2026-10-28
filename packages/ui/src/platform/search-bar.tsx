@@ -19,8 +19,8 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-secondary p-2 pl-6 shadow-float transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
-          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-3 has-data-[slot=search-bar-segments]:rounded-3xl has-data-[slot=search-bar-segments]:p-3",
+          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
+          "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-3 has-data-[slot=search-bar-segments]:rounded-4xl has-data-[slot=search-bar-segments]:p-3",
           className
         )}
         {...props}
@@ -43,7 +43,11 @@ function SearchBarField({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-/** The input. `text-base` at least, on every screen: a smaller text makes iOS zoom the page in on focus. */
+/**
+ * The input. `text-base` at least, on every screen: a smaller text makes iOS zoom the page in on focus. The placeholder is another matter (the zoom
+ * looks at the input's own size): in a bar with segments it steps down to `text-sm`, and to `text-xs` under 21rem of room, so a long one such as the
+ * home's "Search games, tables & tournaments..." fits a phone, and is back to the size of the text from 32rem (`@lg`).
+ */
 function SearchBarInput({
   className,
   type = "search",
@@ -54,7 +58,7 @@ function SearchBarInput({
       data-slot="search-bar-input"
       type={type}
       className={cn(
-        "h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground group-has-data-[slot=search-bar-segments]/search-bar:text-lg [&::-webkit-search-cancel-button]:appearance-none",
+        "h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground group-has-data-[slot=search-bar-segments]/search-bar:@lg:text-lg group-has-data-[slot=search-bar-segments]/search-bar:placeholder:text-sm group-has-data-[slot=search-bar-segments]/search-bar:@max-[21rem]:placeholder:text-xs group-has-data-[slot=search-bar-segments]/search-bar:@lg:placeholder:text-lg [&::-webkit-search-cancel-button]:appearance-none",
         className
       )}
       {...props}
@@ -123,7 +127,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, ...prop
       data-idle={idle ? "" : undefined}
       type="button"
       className={cn(
-        "relative flex h-14 min-w-0 items-center gap-3 rounded-2xl border border-border px-4 text-left transition-all outline-none select-none hover:bg-input/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted @2xl:border-transparent @2xl:not-first:before:absolute @2xl:not-first:before:top-1/2 @2xl:not-first:before:left-0 @2xl:not-first:before:h-8 @2xl:not-first:before:w-px @2xl:not-first:before:-translate-y-1/2 @2xl:not-first:before:bg-border",
+        "relative flex h-14 min-w-0 items-center gap-3 rounded-3xl border border-border px-4 text-left transition-all outline-none select-none hover:bg-input/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted @2xl:border-transparent @2xl:not-first:before:absolute @2xl:not-first:before:top-1/2 @2xl:not-first:before:left-0 @2xl:not-first:before:h-8 @2xl:not-first:before:w-px @2xl:not-first:before:-translate-y-1/2 @2xl:not-first:before:bg-border",
         className
       )}
       {...props}
@@ -145,6 +149,7 @@ function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
     <Button
       data-slot="search-bar-submit"
       type="submit"
+      variant="secondary"
       size="icon-lg"
       className={className}
       {...props}

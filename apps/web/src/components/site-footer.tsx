@@ -6,8 +6,8 @@ import { AUTHOR, COPYRIGHT_NAME, COPYRIGHT_YEAR } from "@/site"
 
 /**
  * The footer of the hub's own pages (the home, the list of games, a game's page and the pages of the other tabs): the name of the brand as big
- * letters behind everything (`Wordmark`, in the faces of the logo), then, under a line, the copyright and who built the site on the left, the
- * legal pages on the right, and what the site is not, centred and a little lighter, under them. The Cookie settings link is there only where
+ * letters behind everything (`Wordmark`, in the faces of the logo, fading out), then, under a line, the copyright and who built the site on the left,
+ * the legal pages on the right, and what the site is not, centred under them: the smallest, thinnest and faintest line of the page. The Cookie settings link is there only where
  * analytics are on: it reopens the choice of the cookie banner, which the legal notice points to. The cookie policy is the cookies section of
  * the legal notice; the privacy policy and the terms of use are pages that are not written yet.
  */
@@ -37,7 +37,7 @@ export function SiteFooter() {
           <ConsentLink className={`cursor-pointer ${link}`}>Cookie settings</ConsentLink>
         </nav>
       </div>
-      <p className="mt-8 text-center text-sm text-foreground/80">
+      <p className="mt-8 text-center text-xs font-light text-foreground/50">
         Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
       </p>
     </footer>

@@ -98,15 +98,18 @@
   --color-scrim: oklch(0 0 0 / 0.6);
 
   /*
-   * The title of the home, in capitals: `text-display`, as big as the room it has. 8.2vw makes its longest line, "WITH FRIENDS & RIVALS" in Geist,
-   * 90% of the width of the page from a 320 px phone up (a step of Tailwind's scale would leave a quarter of it empty at one width and wrap at the
-   * next), from 1.5rem to 8rem so a very wide window does not get a poster. The line-height is `leading-tight`.
-   * `-mt-title-overlap` is how far a bar laid over the title is pulled up so that its top edge sits on the baseline of the last line: the 0.265em that
-   * a line of that line-height keeps under its baseline in Geist, which follows the size of the title wherever it is.
+   * The title of the home is two lines of capitals that are as wide as each other, the first a tenth bigger than the second: `text-display` for the
+   * first, `text-display-sub` for the second. Both are as big as the room they have: 8.6vw makes the longer second line ("WITH FRIENDS & RIVALS" in
+   * Unkempt Bold) 91% of the width of the page from a 320 px phone up, from 1.5rem to 8rem so a very wide window does not get a poster. The ratio is
+   * the one of the two lines' widths in that face (10.22em and 9.24em, so 1.106: a tenth), which makes them the same width. They set no line-height:
+   * the title's own (`display-title`) is tight.
+   * `-mt-title-overlap` is how far a bar laid over the title is pulled up: the 0.095em that a line of that line-height keeps under its baseline in
+   * Unkempt, and 0.245em more, a third of its capitals' height (0.715em), so the bar covers the foot of the last line and the title shows through its
+   * glass while the words stay readable, on a phone too.
    */
-  --text-display: clamp(1.5rem, 8.2vw, 8rem);
-  --text-display--line-height: 1.25;
-  --spacing-title-overlap: calc(var(--text-display) * 0.265);
+  --text-display-sub: clamp(1.5rem, 8.6vw, 8rem);
+  --text-display: calc(var(--text-display-sub) * 1.1);
+  --spacing-title-overlap: calc(var(--text-display-sub) * 0.34);
 }
 
 /*
@@ -119,6 +122,23 @@
  * to it. `line-height: 0`: a word in a face adds nothing to the height of its line, whichever face it is, so the title keeps the line-height of its
  * element and nothing moves when a font arrives. A face is swapped here and in the app's imports, nowhere else.
  */
+/*
+ * The title of the home (`display-title`): the whole of it in one display face, bold and playful (Unkempt Bold, the B of the logo), in capitals, tight
+ * (a line-height of 0.9 and the headings' negative tracking), a little translucent so the bar laid over its foot, and its glass, show it through, and a
+ * stroke the colour of the text that makes the strokes of the letters heavier than the font draws them (`paint-order: stroke fill` keeps the
+ * stroke from eating the inside of the counters). The translucency is the opacity of the whole title and not a colour with an alpha, which would
+ * show the stroke and the fill overlapping. The face is meant to change: it is this utility and the import of the font, nowhere else.
+ */
+@utility display-title {
+  font-family: "Unkempt", cursive;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 0.9;
+  opacity: 0.85;
+  -webkit-text-stroke: 0.02em currentcolor;
+  paint-order: stroke fill;
+}
+
 @utility display-fraktur {
   font-family: "UnifrakturMaguntia", serif;
   font-weight: 400;
