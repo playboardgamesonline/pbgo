@@ -1,11 +1,12 @@
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
 
+import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
-import { GameCard } from "@pbgo/ui/platform/game-card"
+import { GameBrowser } from "@/components/game-browser"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { catalogCardProps } from "@/lib/game-card-props"
@@ -28,7 +29,9 @@ export default async function Home() {
   // One list for every game, each card a logo over a background on a grey frame. Every card is the game's Notion row, a live game's
   // included (its logo, or icon, and its background come from the catalog's picture route; a picture the row does not have leaves the
   // frame plain): the hub reads no game's Sanity project, only entering a game does. The registry decides the card's variant alone.
-  const cards = entries.map((entry) => ({ slug: entry.slug, live: entry.live, props: catalogCardProps(entry) }))
+  // Each game goes to the browser with what the search reads of it (`indexEntry`) beside its card: the list is filtered there
+  // (`GameBrowser`), in the order of the catalog, and this page stays static.
+  const games = entries.map((entry) => ({ ...indexEntry(entry), props: catalogCardProps(entry) }))
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
   return (
@@ -57,12 +60,7 @@ export default async function Home() {
 
         <section id="games" className="mx-auto w-full max-w-page scroll-mt-20 px-gutter pb-section">
           <h2 className="mb-6 font-heading text-2xl">Games</h2>
-          {/* `data-game` only on the live games: analytics counts the games opened from the hub, and a game to come is not one */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {cards.map(({ slug, live, props }) => (
-              <GameCard key={slug} {...props} data-game={live ? slug : undefined} />
-            ))}
-          </div>
+          <GameBrowser games={games} />
         </section>
 
         <section className="mx-auto w-full max-w-page px-gutter pb-section">
