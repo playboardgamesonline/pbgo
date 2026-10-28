@@ -44,8 +44,8 @@ export default async function Home() {
                 <span className="block text-display">Board games</span> <span className="block text-display">with friends</span>{" "}
                 <span className="block text-display">& rivals</span>
               </h1>
-              {/* Laid over the foot of the title: pulled up by `-mt-title-overlap` (it follows the size of the title), so it covers the lower part of
-                  the last line, which shows through its glass. `relative` paints it over the text. */}
+              {/* Laid over the foot of the title: pulled up by `-mt-title-overlap` (it follows the size of the title), so it just touches
+                  the foot of the last line, which shows through its glass. `relative` paints it over the text. */}
               <div className="relative -mt-title-overlap w-full max-w-3xl">
                 <HeroSearch />
               </div>

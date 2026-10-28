@@ -315,7 +315,7 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a seventh of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a little more (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-1` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
@@ -333,7 +333,7 @@ export function SearchBars() {
             <span className="block text-4xl">Board games</span> <span className="block text-4xl">with friends</span>{" "}
             <span className="block text-4xl">& rivals</span>
           </p>
-          <div className="relative -mt-2 w-full max-w-xl">
+          <div className="relative -mt-1 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
                 <SearchBarInput aria-label="Search games, tables and tournaments" placeholder="Search games, tables & tournaments..." />
