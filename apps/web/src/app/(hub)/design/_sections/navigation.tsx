@@ -239,7 +239,7 @@ export function SearchBars() {
     <Section
       id="search-bar"
       module="search-bar"
-      intro="The big search pill of a page: a field, a button that clears it once there is a text, and the round button that submits it. Filters can sit in the same bar as segments, each one an icon, a small label and what is picked, either opening a `Popover` or stepping a number in place. It only draws the bar. The page owns the text, the picks and what they find. The field is `text-base` on every screen: a smaller text makes iOS zoom the page in on focus."
+      intro="The big search pill of a page: a field, a button that clears it once there is a text, and the round button that submits it. Filters can sit in the same bar as segments, each one an icon, a small label and what is picked, either opening a `Popover` or stepping a number in place. It only draws the bar. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
     >
       <Demo
         title="Empty and filled"

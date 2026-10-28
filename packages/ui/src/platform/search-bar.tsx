@@ -23,7 +23,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 shadow-float backdrop-blur-xl transition-[border-color,box-shadow] has-[[data-slot=search-bar-input]:focus-visible]:border-ring has-[[data-slot=search-bar-input]:focus-visible]:ring-3 has-[[data-slot=search-bar-input]:focus-visible]:ring-ring/30",
+          "group/search-bar flex h-14 w-full items-center gap-1 rounded-full border bg-background/60 p-2 pl-6 shadow-float backdrop-blur-xl",
           "has-data-[slot=search-bar-segments]:h-auto has-data-[slot=search-bar-segments]:flex-wrap has-data-[slot=search-bar-segments]:gap-x-2 has-data-[slot=search-bar-segments]:gap-y-1 has-data-[slot=search-bar-segments]:rounded-4xl has-data-[slot=search-bar-segments]:p-3",
           "@3xl:has-data-[slot=search-bar-segments]:grid @3xl:has-data-[slot=search-bar-segments]:grid-cols-[minmax(0,1fr)_auto] @3xl:has-data-[slot=search-bar-segments]:gap-x-4 @3xl:has-data-[slot=search-bar-segments]:rounded-full @3xl:has-data-[slot=search-bar-segments]:p-2 @3xl:has-data-[slot=search-bar-segments]:pl-9",
           className
@@ -49,9 +49,11 @@ function SearchBarField({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
- * The input. `text-base` at least, on every screen: a smaller text makes iOS zoom the page in on focus. The placeholder is another matter (the zoom
- * looks at the input's own size): in a bar with segments it steps down to `text-sm`, and to `text-xs` under 21rem of room, so a long one such as the
- * home's "Search games, tables & tournaments..." fits a phone, and is back to the size of the text from 32rem (`@lg`).
+ * The input, small and dim like a placeholder: what is typed has the colour of the placeholder (`text-muted-foreground`). `text-base` on a touch
+ * screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine. The placeholder is another matter (the
+ * zoom looks at the input's own size): in a bar with segments it is `text-sm` everywhere, and `text-xs` under 21rem of room, so a long one such as
+ * the home's "Search games, tables & tournaments..." fits a phone. The bar draws no ring or border around itself when the field has the focus: the
+ * caret says where the text goes.
  */
 function SearchBarInput({
   className,
@@ -63,7 +65,7 @@ function SearchBarInput({
       data-slot="search-bar-input"
       type={type}
       className={cn(
-        "h-full min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground group-has-data-[slot=search-bar-segments]/search-bar:@lg:text-lg group-has-data-[slot=search-bar-segments]/search-bar:placeholder:text-sm group-has-data-[slot=search-bar-segments]/search-bar:@max-[21rem]:placeholder:text-xs group-has-data-[slot=search-bar-segments]/search-bar:@lg:placeholder:text-lg [&::-webkit-search-cancel-button]:appearance-none",
+        "h-full min-w-0 flex-1 bg-transparent text-base text-muted-foreground outline-none placeholder:text-muted-foreground pointer-fine:text-sm group-has-data-[slot=search-bar-segments]/search-bar:placeholder:text-sm group-has-data-[slot=search-bar-segments]/search-bar:@max-[21rem]:placeholder:text-xs [&::-webkit-search-cancel-button]:appearance-none",
         className
       )}
       {...props}
