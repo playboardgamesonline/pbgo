@@ -42,7 +42,7 @@ export default async function Home() {
         <main className="flex-1">
           {/* The hero: the title, each letter in one of four display faces (`LetterMix`), and the search bar under it (two floors: the field and the round button, then the four filters), on a backdrop that is lighter at the top and fades into the black the games sit on */}
           <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
-            <div className="mx-auto flex w-full max-w-page flex-col items-center gap-10 px-gutter pt-section pb-12 text-center">
+            <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
               <h1 className="font-heading text-3xl leading-tight sm:text-5xl lg:text-7xl xl:text-8xl">
                 <LetterMix seed={1} className="block">
                   Play board games
@@ -51,7 +51,9 @@ export default async function Home() {
                   with friends & rivals
                 </LetterMix>
               </h1>
-              <div className="w-full max-w-4xl">
+              {/* Laid over the bottom of the title: its top edge sits on the baseline of the last line (the 0.265em the line keeps under it, in
+                  px for each size of the title), so the tails of the script letters pass behind it. `relative` paints it over the text. */}
+              <div className="relative -mt-2 w-full max-w-4xl sm:-mt-3 lg:-mt-5 xl:-mt-6">
                 <HeroSearch />
               </div>
             </div>

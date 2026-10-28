@@ -348,20 +348,27 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the pill sits under the title, in the hero. Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the bottom of the title, in the hero: its top edge sits on the baseline of the last line, so the letters stand on it and the tails of the script letters pass behind it. `relative` paints it over the text, and a negative top margin pulls it up by the 0.265em that the line keeps under its baseline, in px for each size of the title (`-mt-2` at `text-3xl`, `sm:-mt-3` at `text-5xl`, `lg:-mt-5` at `text-7xl`, `xl:-mt-6` at `text-8xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
-  <div className="mx-auto flex max-w-page flex-col items-center gap-10 px-gutter pt-section pb-12 text-center">
-    <h1 className="font-heading text-4xl sm:text-6xl lg:text-8xl">…</h1>
-    <div className="w-full max-w-3xl">
+  <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
+    <h1 className="font-heading text-3xl leading-tight sm:text-5xl lg:text-7xl xl:text-8xl">…</h1>
+    <div className="relative -mt-2 w-full max-w-4xl sm:-mt-3 lg:-mt-5 xl:-mt-6">
       <SearchBar>…</SearchBar>
     </div>
   </div>
 </section>`}
       >
-        <div className="flex flex-col items-center gap-8 bg-linear-to-b from-secondary via-card to-background px-6 pt-12 pb-10 text-center">
-          <p className="font-heading text-3xl">Play board games with friends & rivals</p>
-          <div className="w-full max-w-xl">
+        <div className="flex flex-col items-center bg-linear-to-b from-secondary via-card to-background px-6 pt-12 pb-10 text-center">
+          <p className="font-heading text-3xl leading-tight">
+            <LetterMix seed={1} className="block">
+              Play board games
+            </LetterMix>{" "}
+            <LetterMix seed={2} className="block">
+              with friends & rivals
+            </LetterMix>
+          </p>
+          <div className="relative -mt-2 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search the games">
               <SearchBarField>
                 <SearchBarInput aria-label="Search a game" placeholder="Search a game" />
