@@ -2,9 +2,8 @@
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
  * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
- * blurple on their buttons, Google's four colours in its mark), and a single gradient, neutral too: the backdrop of a page's first
- * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
- * in semibold, slightly tight line-height, small negative letter-spacing. Apart from those, game art is the only colour on the platform.
+ * blurple on their buttons, Google's four colours in its mark), and no gradient: the first screen of a page is the page's black,
+ * flat. Geist Sans in semibold, slightly tight line-height, small negative letter-spacing. Apart from those, game art is the only colour on the platform.
  * Corners are as round as the height of what they round allows (`rounded-4xl` for a container from 6rem high, `rounded-3xl` for a bar of 4rem) and never reach half of it: only the picture of a
  * person is a circle. A touch of corner smoothing (`--corner-smoothing`) softens them.
  *
@@ -252,8 +251,9 @@
   &[data-pips="2"] {
     background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 73%, var(--pip) 88%, transparent 100%);
   }
+  /* A three runs from the top right to the bottom left, a slash */
   &[data-pips="3"] {
-    background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 50% 50%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 73%, var(--pip) 88%, transparent 100%);
+    background-image: radial-gradient(ellipse 9.5% 9.5% at 73% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 50% 50%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 27% 73%, var(--pip) 88%, transparent 100%);
   }
   &[data-pips="4"] {
     background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 27% 73%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 73%, var(--pip) 88%, transparent 100%);
@@ -286,6 +286,8 @@
     width: 0.5em;
     height: 0.5em;
     perspective: 1.6em;
+    /* Room round the cube: in perspective its front is a sixth bigger than the box (0.54em in 0.5em), and a hard edge next to a round letter wants more air than an "o" would give it, so the letters on both sides stay clear of it */
+    margin-inline: 0.075em 0.04em;
     --pip: var(--piece-ink);
     --die-size: 0.46em;
   }
@@ -300,7 +302,7 @@
   &[data-kind="die"] [data-pips] {
     position: absolute;
     inset: -0.003em;
-    border-radius: 0.03em;
+    border-radius: 0.1em;
     background-color: var(--piece-ivory);
     box-shadow: inset 0 -0.03em 0.05em color-mix(in oklab, var(--piece-ink) 20%, transparent), 0 0 0 0.012em color-mix(in oklab, var(--piece-ink) 45%, transparent);
     backface-visibility: hidden;

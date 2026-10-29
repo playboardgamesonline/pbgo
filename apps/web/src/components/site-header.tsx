@@ -15,6 +15,7 @@ const SITE_TABS = [
   { id: "tables", label: "Tables", href: "/tables" },
   { id: "tournaments", label: "Tournaments", href: "/tournaments" },
   { id: "whats-new", label: "What's New", href: "/whats-new" },
+  { id: "pricing", label: "Pricing", href: "/pricing" },
 ] as const
 
 /** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the sign-in and the pages of a signed-in visitor, which no tab leads to). */

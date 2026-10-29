@@ -7,7 +7,8 @@ import { Suit, type SuitName } from "./suits"
 
 // The suits of the home's title, one in the place of an "o": a wheel, like the reel of a slot machine (`PLAYFUL.suit`). Every fifteen seconds, the first time eleven seconds after the page is shown, it scrolls up through
 // the suits, a red one and a white one in turn (a black one would be lost on the page's black), with a wind-up and then slower and slower, blurred up and down by its own speed and stretched a little, goes a little past
-// its stop and settles back on a spring, on a suit that chance chooses (never the one that was shown). The heart is the one it starts on, and the one that a visitor who asks for less motion keeps, for whom nothing moves.
+// its stop and settles back on a spring, and it always stops on the heart it started on: a whole number of laps of the four suits, two or three by chance. The heart is also the one that a visitor who asks for less
+// motion keeps, for whom nothing moves.
 // The wheel is one strip of suits that repeats every four, longer than the longest turn, in a window (the stylesheet draws it) that is taller than one suit: a suit comes in and goes out through a fade, at the top and at the
 // bottom, and at rest the window shows the one suit, the others being farther away than the fade reaches. Once it has stopped the strip is put back at the start of its pattern, which looks the same.
 //
@@ -23,8 +24,8 @@ const PITCH = 1
 /** The height of the window, in ems, which the stylesheet sets: one suit and a fade of 0.3 above it and below it. The deviation of the blur is a share of it. */
 const WINDOW = 1.3
 
-/** How many suits the strip has: enough for the longest turn, from any of the four places it may start at, and for the suit under the one it stops on. */
-const PLACES = PLAYFUL.suit.wheel.places.max + SUITS.length + 2
+/** How many suits the strip has: enough for the longest turn, which starts on the first place and stops on a heart, and for the suit under the one it stops on. */
+const PLACES = PLAYFUL.suit.wheel.laps.max * SUITS.length + 2
 
 /** How many filters there are, from the faintest blur to the strongest: the speed rounds to one of them, or to none. */
 const LEVELS = 10
@@ -48,15 +49,17 @@ function TitleSuits({ first = 11000, every = 15000 }: { first?: number; every?: 
     let timer: ReturnType<typeof setTimeout> | undefined
     let running: AnimationPlaybackControls | undefined
     let stopped = false
-    const { ease, secondsAPlace, places: range, overshoot, settle } = PLAYFUL.suit.wheel
+    const { ease, secondsAPlace, laps, overshoot, settle } = PLAYFUL.suit.wheel
 
     const turn = async () => {
       timer = setTimeout(turn, every)
-      // Back to the start of the pattern: it repeats every four places, so nothing moves
+      // A turn that is not over (a tab in the background holds the frames back while the timers go on) is left to end where it was going: on a heart
+      if (place.isAnimating()) return
+      // Back to the start of the pattern, the heart: it repeats every four places, so nothing moves
       const from = place.get() % SUITS.length
       place.set(from)
-      let places = range.min + Math.floor(Math.random() * (range.max - range.min + 1))
-      if (places % SUITS.length === 0) places += 1
+      // A whole number of laps of the four suits, so that it stops on a heart again
+      const places = SUITS.length * (laps.min + Math.floor(Math.random() * (laps.max - laps.min + 1)))
       running = animate(place, from + places + overshoot, { duration: places * secondsAPlace * (0.9 + Math.random() * 0.2), ease })
       await running
       if (stopped) return

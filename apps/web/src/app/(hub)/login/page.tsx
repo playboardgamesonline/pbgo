@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-      <main className="flex flex-1 items-center justify-center bg-linear-to-b from-card to-background px-gutter pt-navbar pb-section">
+      <main className="flex flex-1 items-center justify-center px-gutter pt-navbar pb-section">
         <LoginCard next={target} enabled={supabaseAuthConfig() !== null} failed={error === "signin"} />
       </main>
       <SiteFooter />

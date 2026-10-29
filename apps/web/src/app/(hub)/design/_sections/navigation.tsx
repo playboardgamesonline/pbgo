@@ -88,7 +88,7 @@ export function FaceCycles() {
       <Demo
         title="A title with a word that turns"
         description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child."
-        className="bg-linear-to-b from-card to-background py-12 text-center"
+        className="py-12 text-center"
         code={`<h1 className="font-heading text-6xl uppercase">
   <FaceCycle before="Play" className="block">board games</FaceCycle>{" "}
   <span className="block">with friends & rivals</span>
@@ -146,6 +146,9 @@ function Start({ home = false }: { home?: boolean }) {
         <NavbarTab href="#navbar">
           What&apos;s New
         </NavbarTab>
+        <NavbarTab href="#navbar">
+          Pricing
+        </NavbarTab>
       </NavbarTabs>
     </NavbarStart>
   )
@@ -172,6 +175,7 @@ export function Navbars() {
       <NavbarTab href="/tables">Tables</NavbarTab>
       <NavbarTab href="/tournaments">Tournaments</NavbarTab>
       <NavbarTab href="/whats-new">What's New</NavbarTab>
+      <NavbarTab href="/pricing">Pricing</NavbarTab>
     </NavbarTabs>
   </NavbarStart>
   <NavbarEnd>
@@ -338,23 +342,23 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 56px below them (`mt-14`) and covering none of it, and from the `sm` breakpoint no wider than the title (`max-w-hero-bar`: 8.6 times the size of the title, 48rem at most, so on a tablet it is a little narrower than the title's longest line), and it is glass (`glass`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 64px below them (`mt-16`) and covering none of it, and from the `sm` breakpoint no wider than the title (`max-w-hero-bar`: 8.6 times the size of the title, 48rem at most, so on a tablet it is a little narrower than the title's longest line), and it is glass (`glass`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
-        code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
+        code={`<section className="pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
     <h1 className="display-title">
       <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
     </h1>
     <Stats className="mt-8" items={…} />
     <Perks className="mt-6" items={…} />
-    <div className="mt-14 w-full max-w-3xl sm:max-w-hero-bar">
+    <div className="mt-16 w-full max-w-3xl sm:max-w-hero-bar">
       <SearchBar>…</SearchBar>
       <SearchBarFilters>…</SearchBarFilters>
     </div>
   </div>
 </section>`}
       >
-        <div className="flex flex-col items-center bg-linear-to-b from-card to-background px-6 pt-12 pb-10 text-center">
+        <div className="flex flex-col items-center px-6 pt-12 pb-10 text-center">
           <p className="display-title">
             <span className="block text-4xl">Play your favorite</span> <span className="block text-4xl">board games online</span>
           </p>
@@ -383,7 +387,7 @@ export function SearchBars() {
   <HeroSearch label="Search games" placeholder="Search games..." />
 </ListPageHeader>`}
       >
-        <div className="flex flex-col items-center gap-8 bg-linear-to-b from-card to-background px-6 pt-12 pb-10 text-center">
+        <div className="flex flex-col items-center gap-8 px-6 pt-12 pb-10 text-center">
           <p className="page-title">Tables</p>
           <div className="w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search tables">
@@ -410,16 +414,16 @@ export function BoardPatterns() {
         title="Behind a hero"
         description="As it was on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
         className="grid gap-4 p-0 sm:grid-cols-2"
-        code={`<section className="relative overflow-hidden bg-linear-to-b from-card to-background">
+        code={`<section className="relative overflow-hidden">
   <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
   <div className="relative …">…</div>
 </section>`}
       >
-        <div className="relative h-72 overflow-hidden bg-linear-to-b from-card to-background">
+        <div className="relative h-72 overflow-hidden">
           <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
-        <div className="relative h-72 overflow-hidden bg-linear-to-b from-card to-background">
+        <div className="relative h-72 overflow-hidden">
           <BoardPattern className="absolute inset-0 text-foreground opacity-20 mask-b-from-30%" />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
@@ -437,19 +441,19 @@ export function TitlePieces() {
     >
       <Demo
         title="The pieces of the title"
-        description="A die, a cube seen straight on that rolls from the left to the right now and then, for a few whole turns at random and a quarter more, to land on another side; the suits of a deck of cards in turn, a wheel that scrolls up through a heart, a spade, a diamond and a club (a red one and a white one in turn: a black one would be lost on the page's black) to a random one, faded at the top and at the bottom of its window and blurred as it speeds up; and a coin tossed from the top to the bottom, now and then, for a few whole turns, showing a laureate in profile and a star in a wreath of laurel, both engraved in lines, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion; the die, the coin and the suits are `TitleDie`, `TitleCoin` and `TitleSuits`), and two dark blue cards, the backs of a deck, that overlap by more than half, after the last word of a line, with the space of a word on each side of them (`TitleCards`, left out under 40rem). The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
+        description="A die, a cube seen straight on that rolls from the left to the right now and then, for a few whole turns at random, to land on a three or a six; the suits of a deck of cards in turn, a wheel that scrolls up through a heart, a spade, a diamond and a club (a red one and a white one in turn: a black one would be lost on the page's black) for a few laps and always stops on the heart, faded at the top and at the bottom of its window and blurred as it speeds up; and a coin tossed from the top to the bottom, now and then, for a few whole turns, showing a laureate in profile and a star in a wreath of laurel, both engraved in lines, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion; the die, the coin and the suits are `TitleDie`, `TitleCoin` and `TitleSuits`), and two dark blue cards, the backs of a deck, that overlap by more than half, after the last word of a line, with the space of a word on each side of them (`TitleCards`, left out under 40rem). The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
         className="flex flex-col items-center gap-6 py-10"
         code={`<h1 className="display-title">
-  <span className="block text-display">Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>
-  <span className="block text-display">b<TitlePiece kind="coin">o</TitlePiece>ard games <TitleCards />online</span>
+  <span className="block text-display">Play y<TitlePiece kind="coin">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>
+  <span className="block text-display">b<TitlePiece kind="die">o</TitlePiece>ard games <TitleCards />online</span>
 </h1>`}
       >
         <p className="display-title text-center text-5xl">
           <span className="block">
-            Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite
+            Play y<TitlePiece kind="coin">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite
           </span>
           <span className="block">
-            b<TitlePiece kind="coin">o</TitlePiece>ard games <TitleCards className="inline-block" />online
+            b<TitlePiece kind="die">o</TitlePiece>ard games <TitleCards className="inline-block" />online
           </span>
         </p>
         <div className="flex items-center gap-4 text-foreground">
@@ -472,8 +476,8 @@ export function StatsSection() {
     >
       <Demo
         title="Under a title"
-        description="The figures are a `dl`: each a term (what it counts) and its definition (the number), shown the other way round, the number first. The perks are a `ul` with a tick before each. On the home they stand under the title, 32px and 24px below it, and the search bar 56px under them."
-        className="flex flex-col items-center gap-4 bg-linear-to-b from-card to-background py-10 text-center"
+        description="The figures are a `dl`: each a term (what it counts) and its definition (the number), shown the other way round, the number first. The perks are a `ul` with a tick before each. On the home they stand under the title, 32px and 24px below it, and the search bar 64px under them."
+        className="flex flex-col items-center gap-4 py-10 text-center"
         code={`<Stats items={[{ value: "128", label: "players online", live: true }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
 <Perks items={["Free to play", "No sign-up needed"]} />`}
       >

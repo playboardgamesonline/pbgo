@@ -37,15 +37,15 @@ export default async function Home() {
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
           {/* The hero, the page of a visitor who is not signed in (signed in, there is no title: the home is built from what they play): the title in two lines of the same size, in sentence case, in Geist
-              at a weight of 720 and a tracking of -0.048em (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a die that turns, the suits of a deck in turn and a coin that spins, for three "o", and two
+              at a weight of 720 and a tracking of -0.048em (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a coin that spins, the suits of a deck in turn and a die that turns, for three "o", and two
               dark blue cards after "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now, with a green dot, and the members, counted in Supabase, and the games of the catalog) and what
-              costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on a backdrop that is lighter at the top and fades into the
-              black the sections sit on, and nothing else (no table, no grid of thin lines of `pattern-grid`, no game pieces of `BoardPattern`) */}
-          <section className="bg-linear-to-b from-card to-background pt-navbar">
+              costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on the page's black,
+              flat, and nothing else (no gradient, no table, no grid of thin lines of `pattern-grid`, no game pieces of `BoardPattern`) */}
+          <section className="pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
               <h1 className="display-title">
-                <span className="block text-display">Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>{" "}
-                <span className="block text-display">b<TitlePiece kind="coin">o</TitlePiece>ard games <TitleCards />online</span>
+                <span className="block text-display">Play y<TitlePiece kind="coin">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>{" "}
+                <span className="block text-display">b<TitlePiece kind="die">o</TitlePiece>ard games <TitleCards />online</span>
               </h1>
               <Stats
                 className="mt-8"
@@ -56,8 +56,8 @@ export default async function Home() {
                 ]}
               />
               <Perks className="mt-6" items={["Free to play", "No sign-up needed"]} />
-              {/* 56px under what the platform is, which it covers none of; from `sm` no wider than the title (`max-w-hero-bar`) */}
-              <div className="mt-14 w-full max-w-3xl sm:max-w-hero-bar">
+              {/* 64px under what the platform is, which it covers none of; from `sm` no wider than the title (`max-w-hero-bar`) */}
+              <div className="mt-16 w-full max-w-3xl sm:max-w-hero-bar">
                 <HeroSearch />
               </div>
             </div>

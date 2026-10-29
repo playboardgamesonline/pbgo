@@ -40,15 +40,15 @@ describe("motion tokens", () => {
     }
   })
 
-  it("keeps the turns of the playful pieces few and in order (a die of 2 or 3, a coin of 3 or 4, a wheel of 6 to 11 places that is never a whole turn of the four)", () => {
-    for (const range of [PLAYFUL.die.turns, PLAYFUL.coin.turns, PLAYFUL.suit.wheel.places]) {
+  it("keeps the turns of the playful pieces few, whole and in order (a die of 2 or 3, which lands on a three or a six, a coin of 1 or 2, which lands on its profile, a wheel of 2 or 3 laps of the four suits, which stops on its heart)", () => {
+    for (const range of [PLAYFUL.die.turns, PLAYFUL.coin.turns, PLAYFUL.suit.wheel.laps]) {
       expect(Number.isInteger(range.min)).toBe(true)
       expect(Number.isInteger(range.max)).toBe(true)
       expect(range.min).toBeLessThanOrEqual(range.max)
     }
     expect(PLAYFUL.die.turns.max).toBeLessThanOrEqual(3)
-    expect(PLAYFUL.coin.turns.max).toBeLessThanOrEqual(4)
-    expect(PLAYFUL.suit.wheel.places.max).toBeLessThanOrEqual(11)
+    expect(PLAYFUL.coin.turns.max).toBeLessThanOrEqual(2)
+    expect(PLAYFUL.suit.wheel.laps.max).toBeLessThanOrEqual(3)
   })
 
   it("keeps the wheel slow enough to be read: its fastest moment is under nine places a second", () => {
@@ -66,10 +66,11 @@ describe("motion tokens", () => {
     expect(steepest * average).toBeLessThan(9)
   })
 
-  it("keeps the playful pieces calmer than what they were first chosen as (a swell of 1.22 and a dip of 0.93)", () => {
+  it("keeps the die calmer than what it was first chosen as (a swell of 1.22), the dip of the coin shallow (over 0.93) and its swell big enough to come at the viewer, and no more (1.2 to 1.6)", () => {
     expect(PLAYFUL.die.swell).toBeLessThan(1.22)
-    expect(PLAYFUL.coin.swell).toBeLessThan(1.2)
     expect(PLAYFUL.coin.dip).toBeGreaterThan(0.93)
+    expect(PLAYFUL.coin.swell).toBeGreaterThan(1.2)
+    expect(PLAYFUL.coin.swell).toBeLessThan(1.6)
   })
 
   it("keeps the durations in order, and the spring settled (a damping ratio under 1, close to it)", () => {

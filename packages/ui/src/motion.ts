@@ -15,18 +15,18 @@ export const EASE_STANDARD = [0.2, 0, 0, 1] as const
  */
 export const PLAYFUL = {
   /**
-   * The die: an exponential in and out (slow to wake up, all at once, a long gentle stop), `turns` whole turns (at random, from `min` to `max`) and a quarter more, so that it lands on the next side, `secondsATurn` each,
+   * The die: an exponential in and out (slow to wake up, all at once, a long gentle stop), `turns` whole turns (at random, from `min` to `max`) and the quarter turns it takes to land on a side it `lands` on (a three or a six, by chance), `secondsATurn` a turn,
    * and it swells toward the viewer at the fastest moment, scale 1 → `swell` → 1 over the roll.
    */
-  die: { ease: [0.87, 0, 0.13, 1], secondsATurn: 0.75, turns: { min: 2, max: 3 }, swell: 1.12 },
+  die: { ease: [0.87, 0, 0.13, 1], secondsATurn: 0.75, turns: { min: 2, max: 3 }, lands: [3, 6], swell: 1.12 },
   /**
    * The coin: a cubic in and out, `turns` whole turns (at random, from `min` to `max`, so that it always lands on its profile), `secondsATurn` each, and a toss: it dips as if gathering itself (scale 1 → `dip`), swells
    * toward the viewer at the top of the toss (`swell`, half way), and lands with a squash (`squash`, 0.07 s) that springs back.
    */
-  coin: { ease: [0.65, 0, 0.35, 1], secondsATurn: 0.9, turns: { min: 3, max: 4 }, dip: 0.95, swell: 1.12, squash: 0.94, landing: { type: "spring", stiffness: 320, damping: 14 } },
+  coin: { ease: [0.65, 0, 0.35, 1], secondsATurn: 0.9, turns: { min: 1, max: 2 }, dip: 0.95, swell: 1.4, squash: 0.94, landing: { type: "spring", stiffness: 320, damping: 14 } },
   /**
-   * The suits: a wheel, like the reel of a slot machine, that scrolls up through the four suits (a red one and a white one in turn) and stops on a random one: `places` from `min` to `max` (never a whole turn of the four,
-   * so it never stops where it was), `secondsAPlace` each on average, with a wind-up and a long ease-out (it starts at the average speed, is twice and a half as fast a fifth of the way through, and stops slowly), a little past
+   * The suits: a wheel, like the reel of a slot machine, that scrolls up through the four suits (a red one and a white one in turn) and always stops on the heart it started on: `laps` of the four suits, from `min` to `max` (whole
+   * laps, so that it comes back to the heart), `secondsAPlace` a place on average, with a wind-up and a long ease-out (it starts at the average speed, is twice and a half as fast a fifth of the way through, and stops slowly), a little past
    * its stop (`overshoot`, in places) and back on a spring (`settle`). It is faded at the top and at the bottom of its window (the stylesheet), and the faster it goes the more it is blurred, up and down only: a deviation of
    * `blur.perPlaceASecond` ems a place a second, `blur.max` at most. The suits are also stretched a little (`stretch` a place a second, `maxStretch` at most), as a shutter would drag them.
    */
@@ -34,7 +34,7 @@ export const PLAYFUL = {
     wheel: {
       ease: [0.3, 0.3, 0.2, 1],
       secondsAPlace: 0.32,
-      places: { min: 6, max: 11 },
+      laps: { min: 2, max: 3 },
       overshoot: 0.1,
       settle: { type: "spring", stiffness: 240, damping: 15 },
       stretch: 0.02,

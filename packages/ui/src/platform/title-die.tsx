@@ -5,10 +5,11 @@ import { animate, motion, useMotionValue, useReducedMotion, useTransform, type A
 import { PLAYFUL } from "../motion"
 
 // The die of the home's title, an "o": a cube seen straight on, in perspective (the utility `title-piece` of `styles/platform.css` draws it: four sides with their pips, and no top or bottom, which are never seen) that turns from the
-// left to the right around its vertical axis, as the coin of the title turns around its horizontal one (`TitleCoin`). It turns on that axis only, so only its four sides take turns to face the viewer: a five on the front, then a four,
-// a two and a three. Every fifteen seconds it rolls, 2 or 3 whole turns (chance decides which) and a quarter more, so that it lands on the next side, and it plays while it does (`PLAYFUL.die`): an exponential in and out
+// left to the right around its vertical axis, as the coin of the title turns around its horizontal one (`TitleCoin`). It turns on that axis only, so only its four sides take turns to face the viewer: a six on the front, then a four,
+// a one and a three (opposite sides add up to seven, as they do on a real die). Every fifteen seconds it rolls, 2 or 3 whole turns (chance decides which) and the quarter turns it takes to land on a three or a six
+// (chance decides again), and it plays while it does (`PLAYFUL.die`): an exponential in and out
 // (slow to wake up, all at once, a long gentle stop) and a swell toward the viewer at the fastest moment, as if it were thrown at them. To look solid, each side is darkened as it turns away from the light, which comes from
-// the left and the front. A visitor who asks for less motion keeps the five, and nothing moves.
+// the left and the front. A visitor who asks for less motion keeps the six it starts on, and nothing moves.
 
 /** The darkest a side gets, when it is edge-on to the viewer: the share of ink over its ivory. */
 const DARKEST = 0.5
@@ -28,6 +29,9 @@ function useShade(angle: MotionValue<number>, offset: number) {
   return useTransform(angle, (degrees) => shadeOf(degrees + offset))
 }
 
+/** The pips of the side that faces the viewer after 0, 1, 2 and 3 quarter turns (the cube rolls from the left to the right): a six on the front, then a four, a one and a three. */
+const SIDES = [6, 4, 1, 3] as const
+
 /** The cube itself, drawn from the motion values it is given, which `TitleDie` drives: how far it has turned around its vertical axis, in degrees, and how big it is, 1 being what it is. */
 function DieCube({ angle, scale }: { angle: MotionValue<number>; scale: MotionValue<number> }) {
   const front = useShade(angle, 0)
@@ -36,16 +40,16 @@ function DieCube({ angle, scale }: { angle: MotionValue<number>; scale: MotionVa
   const left = useShade(angle, 270)
   return (
     <motion.i data-slot="die" aria-hidden="true" style={{ rotateY: angle, scale }}>
-      <b data-face="front" data-pips={5} className="die-pips">
+      <b data-face="front" data-pips={SIDES[0]} className="die-pips">
         <motion.i data-shade style={{ opacity: front }} />
       </b>
-      <b data-face="right" data-pips={3} className="die-pips">
+      <b data-face="right" data-pips={SIDES[3]} className="die-pips">
         <motion.i data-shade style={{ opacity: right }} />
       </b>
-      <b data-face="back" data-pips={2} className="die-pips">
+      <b data-face="back" data-pips={SIDES[2]} className="die-pips">
         <motion.i data-shade style={{ opacity: back }} />
       </b>
-      <b data-face="left" data-pips={4} className="die-pips">
+      <b data-face="left" data-pips={SIDES[1]} className="die-pips">
         <motion.i data-shade style={{ opacity: left }} />
       </b>
     </motion.i>
@@ -62,16 +66,24 @@ function TitleDie({ first = 4000, every = 15000 }: { first?: number; every?: num
     if (reduced) return
     let timer: ReturnType<typeof setTimeout> | undefined
     let running: AnimationPlaybackControls[] = []
-    const { ease, secondsATurn, turns: range, swell: size } = PLAYFUL.die
+    const { ease, secondsATurn, turns: range, lands, swell: size } = PLAYFUL.die
+    // How far the cube has turned, round the circle, when each side it lands on faces the viewer
+    const sides = lands.map((pips) => SIDES.indexOf(pips) * 90)
 
     const roll = () => {
+      timer = setTimeout(roll, every)
+      // A roll that is not over (a tab in the background holds the frames back while the timers go on) is left to end where it was going: on the six
+      if (angle.isAnimating()) return
+      // Where the cube is, and the side it lands on, by chance: it may be the one it shows
+      const now = Math.round(angle.get()) % 360
+      const aim = sides[Math.floor(Math.random() * sides.length)]
       const turns = range.min + Math.floor(Math.random() * (range.max - range.min + 1))
-      const seconds = (turns + 0.25) * secondsATurn * (0.95 + Math.random() * 0.1)
+      const degrees = turns * 360 + ((aim - now + 360) % 360)
+      const seconds = (degrees / 360) * secondsATurn * (0.95 + Math.random() * 0.1)
       running = [
-        animate(angle, angle.get() + turns * 360 + 90, { duration: seconds, ease }),
+        animate(angle, angle.get() + degrees, { duration: seconds, ease }),
         animate(swell, [1, size, 1], { duration: seconds, ease: "easeInOut" }),
       ]
-      timer = setTimeout(roll, every)
     }
 
     timer = setTimeout(roll, first)

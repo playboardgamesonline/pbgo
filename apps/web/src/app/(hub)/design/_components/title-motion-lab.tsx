@@ -32,25 +32,25 @@ const MOVES: readonly Move[] = [
   {
     id: "die",
     name: "The die: an expo snap",
-    note: "Rolls from the left to the right, 2 or 3 whole turns and a quarter, and lands on the next side. Slow to wake up, then all at once, then a long gentle stop, and it swells toward you as it flies. Every 15 s on the home, every 6 s here.",
+    note: "Rolls from the left to the right, 2 or 3 whole turns and a few quarters, and lands on a 3 or a 6, by chance. Slow to wake up, then all at once, then a long gentle stop, and it swells toward you as it flies. Every 15 s on the home, every 6 s here.",
     specs: [
-      ["roll", `${die.turns.min} or ${die.turns.max} whole turns and a quarter · ${bezier(die.ease)} · ${die.secondsATurn} s a turn`],
+      ["roll", `${die.turns.min} or ${die.turns.max} whole turns, then the quarters to a ${die.lands.join(" or a ")} · ${bezier(die.ease)} · ${die.secondsATurn} s a turn`],
       ["swell", `scale 1 → ${die.swell} → 1 · the whole roll · ease-in-out`],
     ],
     stage: (
       <>
-        y
+        b
         <span data-slot="title-piece" data-kind="die" className="title-piece">
           <TitleDie first={400} every={6000} />
         </span>
-        u
+        a
       </>
     ),
   },
   {
     id: "coin",
     name: "The coin: a toss pulse",
-    note: "Tossed from the top to the bottom for 3 or 4 whole turns, always back on its profile. It dips as if gathering itself, swells toward you at the top of the toss, and lands with a squash that springs back. Every 25 s or so on the home, every 8 s here.",
+    note: "Tossed from the top to the bottom for 1 or 2 whole turns, always back on its profile. It dips as if gathering itself, swells toward you at the top of the toss, and lands with a squash that springs back. Every 25 s or so on the home, every 8 s here.",
     specs: [
       ["spin", `${coin.turns.min} or ${coin.turns.max} whole turns · ${bezier(coin.ease)} · ${coin.secondsATurn} s a turn`],
       ["pulse", `scale 1 → ${coin.dip} → ${coin.swell} → 1 · the whole spin · ease-in-out`],
@@ -58,20 +58,20 @@ const MOVES: readonly Move[] = [
     ],
     stage: (
       <>
-        b
+        y
         <span data-slot="title-piece" data-kind="coin" className="title-piece">
           <TitleCoin first={500} rest={1500} />
         </span>
-        a
+        u
       </>
     ),
   },
   {
     id: "suit",
     name: "The suits: a wheel",
-    note: "Scrolls up like the reel of a slot machine, through the suits in turn (a red one, a white one), faded at the top and at the bottom of its window, with a wind-up and then slower and slower, blurred up and down as it speeds up, a little past its stop and back on a spring, and stops on a random suit, never the one that was shown. Every 15 s on the home, every 7 s here.",
+    note: "Scrolls up like the reel of a slot machine, through the suits in turn (a red one, a white one), faded at the top and at the bottom of its window, with a wind-up and then slower and slower, blurred up and down as it speeds up, a little past its stop and back on a spring, and always stops on the heart. Every 15 s on the home, every 7 s here.",
     specs: [
-      ["turn", `${wheel.places.min} to ${wheel.places.max} places, at random, never a whole turn of the four · ${bezier(wheel.ease)} · ${wheel.secondsAPlace} s a place`],
+      ["turn", `${wheel.laps.min} or ${wheel.laps.max} whole laps of the four suits (${wheel.laps.min * 4} or ${wheel.laps.max * 4} places), back on the heart · ${bezier(wheel.ease)} · ${wheel.secondsAPlace} s a place`],
       ["fade", "0.3 em at the top and at the bottom of the window · the suit at rest is whole"],
       ["blur", `up and down only · a deviation of ${wheel.blur.perPlaceASecond} em a place a second, ${wheel.blur.max} em at most`],
       ["stretch", `scale y 1 + ${wheel.stretch} a place a second, ${wheel.maxStretch} at most`],

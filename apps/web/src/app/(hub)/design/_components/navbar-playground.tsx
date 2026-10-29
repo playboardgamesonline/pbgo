@@ -10,6 +10,7 @@ const TABS = [
   { id: "tables", label: "Tables" },
   { id: "tournaments", label: "Tournaments" },
   { id: "whats-new", label: "What's New" },
+  { id: "pricing", label: "Pricing" },
 ] as const
 
 type Current = "home" | (typeof TABS)[number]["id"]
