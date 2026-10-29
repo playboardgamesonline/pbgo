@@ -59,6 +59,15 @@ export function accountOf(user: AuthUser): Account {
   }
 }
 
+/**
+ * The e-mail address a visitor typed in the username field, or null when it is not one. Supabase Auth knows a visitor by their address alone, so a username
+ * has nowhere to be looked up until the profiles exist (PLT-39): the sign-in with a password asks for the address till then.
+ */
+export function emailOf(identifier: string): string | null {
+  const text = identifier.trim()
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text) ? text : null
+}
+
 /** The letters an avatar shows when it has no picture: the first letter of up to two words of the name, upper case ("Oré Louvel" → "OL", "oré" → "O"). */
 export function initialsOf(nickname: string): string {
   const letters = nickname

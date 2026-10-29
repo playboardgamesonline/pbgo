@@ -177,7 +177,7 @@ export function ProviderButtons() {
     <Section
       id="provider-button"
       module="provider-button"
-      intro="The sign-in's buttons: one per provider, side by side, with nothing on them but the provider's mark. Each tile is its brand's: Facebook's blue and Discord's blurple (`brand-facebook`, `brand-discord`, the brand's own colours, the only two the platform takes from a brand), Google's white (`foreground`) with its four colours, Apple's black (`background`) with an outline. The marks are the brands' own (`@pbgo/ui/brands`, the one file of the design system that has colour literals) and are never redrawn. A tile is `h-12`, `rounded-2xl` and fills its cell, so they go in a grid of equal columns; each is named `Continue with <name>` for a screen reader and in a tooltip."
+      intro="The sign-in's buttons: one per provider, side by side, with nothing on them but the provider's small mark (20px, `size-5`). Each tile is its brand's: Facebook's blue and Discord's blurple (`brand-facebook`, `brand-discord`, the brand's own colours, the only two the platform takes from a brand), Google's white (`foreground`) with its four colours, Apple's black (`background`) with an outline. The marks are the brands' own (`@pbgo/ui/brands`, the one file of the design system that has colour literals) and are never redrawn. A tile is `h-10`, `rounded-xl` and fills its cell, so it is wider than it is tall (about two to one in the sign-in's row of four) and they go in a grid of equal columns; each is named `Continue with <name>` for a screen reader and in a tooltip."
     >
       <Demo
         title="A row of four"

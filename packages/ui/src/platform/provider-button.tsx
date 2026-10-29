@@ -16,8 +16,8 @@ const TILES: Record<BrandName, string> = {
 }
 
 /**
- * The button that signs a visitor in with a provider: a tile with nothing on it but the provider's mark, so that several stand side by side in a row of equal
- * cells. It says its name to a screen reader and in a tooltip, since the mark is all it draws.
+ * The button that signs a visitor in with a provider: a tile with nothing on it but the provider's small mark, wider than it is tall (`h-10`, and about twice that
+ * in a row of four), so that several stand side by side in a row of equal cells. It says its name to a screen reader and in a tooltip, since the mark is all it draws.
  */
 function ProviderButton({
   brand,
@@ -41,10 +41,10 @@ function ProviderButton({
       aria-label={`Continue with ${name}`}
       aria-busy={pending || undefined}
       title={`Continue with ${name}`}
-      className={cn("h-12 w-full rounded-2xl", TILES[brand], className)}
+      className={cn("h-10 w-full rounded-xl", TILES[brand], className)}
       {...props}
     >
-      {pending ? <Spinner className="size-6" /> : <BrandMark brand={brand} className="size-6" />}
+      {pending ? <Spinner className="size-5" /> : <BrandMark brand={brand} className="size-5" />}
     </Button>
   )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { PROVIDERS, accountOf, initialsOf, type AuthUser } from "./account"
+import { PROVIDERS, accountOf, emailOf, initialsOf, type AuthUser } from "./account"
 
 const google: AuthUser = {
   id: "u-1",
@@ -114,6 +114,26 @@ describe("accountOf", () => {
 
   it("trims the text it takes", () => {
     expect(accountOf({ id: "u-9", user_metadata: { full_name: "  Oré  " } }).nickname).toBe("Oré")
+  })
+})
+
+describe("emailOf", () => {
+  it("reads an address, with the blanks around it taken off", () => {
+    expect(emailOf("ore@example.com")).toBe("ore@example.com")
+    expect(emailOf("  ore@example.com ")).toBe("ore@example.com")
+  })
+
+  it("is null for a username, which Supabase Auth cannot look up", () => {
+    expect(emailOf("ore")).toBeNull()
+    expect(emailOf("Oré#4821")).toBeNull()
+    expect(emailOf("")).toBeNull()
+  })
+
+  it("is null for half an address", () => {
+    expect(emailOf("ore@")).toBeNull()
+    expect(emailOf("@example.com")).toBeNull()
+    expect(emailOf("ore@example")).toBeNull()
+    expect(emailOf("o re@example.com")).toBeNull()
   })
 })
 

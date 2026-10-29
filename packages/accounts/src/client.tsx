@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { accountOf, type Account, type Provider } from "./account"
+import { accountOf, emailOf, type Account, type Provider } from "./account"
 import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed } from "./demo"
 import { safeNext } from "./redirect"
@@ -73,4 +73,19 @@ export async function signInWith(provider: Provider, next: string): Promise<stri
   const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext(next))}`
   const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
   return error ? "Sign-in did not start. Try again." : null
+}
+
+/**
+ * Signs in with an e-mail address and a password (the email provider of Supabase Auth): the session lands in the cookies, so the page can go on to `next`.
+ * Resolves with a sentence for the visitor when it fails, and with null when they are signed in. The first field is called a username, but Supabase Auth
+ * knows a visitor by their address alone (`emailOf`): until the profiles exist (PLT-39) a username is told to use it.
+ */
+export async function signInWithPassword(identifier: string, password: string): Promise<string | null> {
+  const supabase = browserClient()
+  if (!supabase) return "Sign-in is not available here."
+  const email = emailOf(identifier)
+  if (email === null) return "Use your e-mail address for now: usernames are coming."
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (!error) return null
+  return error.code === "invalid_credentials" ? "That e-mail and that password do not go together." : "Sign-in did not work. Try again."
 }

@@ -2,7 +2,7 @@
 // `./server` (Server Components and route handlers) and `./proxy` (the session refresh), kept apart so that none of them reaches the others' bundle.
 
 export { AFTER_SIGN_IN, safeNext } from "./redirect"
-export { PROVIDERS, PROVIDER_NAMES, accountOf, initialsOf } from "./account"
+export { PROVIDERS, PROVIDER_NAMES, accountOf, emailOf, initialsOf } from "./account"
 export type { Account, AuthUser, Provider } from "./account"
 export { ordinal, perGame, statsOf } from "./games"
 export type { PlayedGame } from "./games"
