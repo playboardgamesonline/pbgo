@@ -63,8 +63,6 @@
   --color-brand-discord: var(--brand-discord);
   --color-piece-red: var(--piece-red);
   --color-piece-gold: var(--piece-gold);
-  --color-piece-teal: var(--piece-teal);
-  --color-piece-navy: var(--piece-navy);
   --color-piece-ivory: var(--piece-ivory);
   --color-piece-ink: var(--piece-ink);
   --color-piece-black: var(--piece-black);
@@ -247,39 +245,27 @@
 }
 
 /*
- * The backdrop of the home's hero, `Tabletop`: a table of board games seen from above at a low angle, in perspective, under a lamp, with what is played on it lying and standing on it: dice,
- * playing cards, chips and meeples. It is made of CSS and of a few inline SVGs, no image, and it is decorative (`aria-hidden`, no pointer). Its colours are the ones of a table and of its pieces
- * (`--wood-*`, `--piece-*` of `.platform`), the hero's alone. One utility, the root, which styles what `Tabletop` draws inside it by their `data-slot` and `data-piece`:
- * - the box is `absolute inset-0` and fades out at its foot where the black of the page takes over; `--tabletop-unit` is the size of the pieces, 1 from a tablet and less on a phone;
- * - `tabletop-light`: the lamp, a pool of warm light at the top (`--piece-gold`), and what the red and the teal pieces throw on the room at the sides;
- * - `tabletop-stage` and `tabletop-plane`: the eye is above the table and a little in front of it (`perspective`), and the table is a plane tilted back around its bottom edge (`--tabletop-tilt`)
- *   whose far end fades out; `tabletop-wood` is its surface, planks with their seams and a fine grain along them;
- * - `die`, `card`, `chips`, `meeple`: a piece lies on the plane (a die is a cube set on it, its six faces drawn with the number of pips they have, a card is flat, a stack of chips is discs one over the
- *   other) or stands on it (a meeple, tilted back by the same angle as the plane, so that it is upright to the eye), and has a soft shadow under it. Where it is, how big, how it is turned and what
- *   it is made of (its `data-tone`) is the piece's own, set by `Tabletop`. Nothing moves: the table is a still scene.
+ * The backdrop of the home's hero, `Tabletop`: a table of board games seen from above at a low angle, in perspective, under a lamp, with nothing on it. It is made of CSS, no image, and it is decorative (`aria-hidden`, no
+ * pointer). Its colours are the ones of a table (`--wood-*`, `--piece-*` of `.platform`), the hero's alone. One utility, the root, which styles what `Tabletop` draws inside it by their `data-slot`:
+ * - the box is `absolute inset-0` and fades out at its foot where the black of the page takes over;
+ * - `tabletop-light`: the lamp, a pool of warm light at the top (`--piece-gold`);
+ * - `tabletop-stage` and `tabletop-plane`: the eye is above the table and a little in front of it (`perspective`), and the table is a plane tilted back around its bottom edge (`--tabletop-tilt`), steeply enough that
+ *   its planks narrow to a fifth of their width by the top of the hero, which is what gives it depth; its far end fades out; `tabletop-wood` is its surface, planks with their seams and a fine grain along them;
+ * - `tabletop-shade`: the page's black over it, at the foot, under the text and at both sides, so that the table is lit in the middle and dark at its edges. Nothing moves: the table is a still scene.
  */
 @utility tabletop {
-  --tabletop-unit: 1;
-  --tabletop-tilt: 62deg;
+  --tabletop-tilt: 72deg;
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
   mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
-  @media (max-width: 40rem) {
-    --tabletop-unit: 0.62;
-    /* On a phone the text takes the whole width, so what would stand behind it is left out: the meeples and the pieces that are farther away */
-    & [data-piece="meeple"], & [data-farther] { display: none; }
-  }
 
   & [data-slot="tabletop-light"] {
     position: absolute;
     inset: 0;
-    background-image:
-      radial-gradient(60% 62% at 50% -5%, color-mix(in oklab, var(--piece-gold) 32%, transparent), transparent 70%),
-      radial-gradient(38% 50% at 6% 78%, color-mix(in oklab, var(--piece-red) 14%, transparent), transparent 70%),
-      radial-gradient(38% 50% at 94% 78%, color-mix(in oklab, var(--piece-teal) 14%, transparent), transparent 70%);
+    background-image: radial-gradient(60% 62% at 50% -5%, color-mix(in oklab, var(--piece-gold) 32%, transparent), transparent 70%);
   }
 
   /*
@@ -291,6 +277,7 @@
     position: absolute;
     inset: 0;
     background-image:
+      linear-gradient(90deg, color-mix(in oklab, var(--background) 88%, transparent) 0%, transparent 24%, transparent 76%, color-mix(in oklab, var(--background) 88%, transparent) 100%),
       linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 70%, transparent) 14%, color-mix(in oklab, var(--background) 28%, transparent) 30%, transparent 46%),
       radial-gradient(ellipse max(36%, 17rem) 40% at 50% 54%, color-mix(in oklab, var(--background) 74%, transparent), color-mix(in oklab, var(--background) 38%, transparent) 62%, transparent 100%);
   }
@@ -299,19 +286,19 @@
     position: absolute;
     inset-inline: 0;
     bottom: 0;
-    height: 640px;
-    perspective: 1000px;
-    perspective-origin: 50% -9%;
-    /* The light falls off with the distance and under the figures, not towards the sides: the table is lit from edge to edge. Far away it is the dark, at the perks it is half the dark, at the search bar it is two thirds of it */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, color-mix(in oklab, var(--foreground) 40%, transparent) 12%, var(--foreground) 28%, var(--foreground) 44%, color-mix(in oklab, var(--foreground) 56%, transparent) 61%, color-mix(in oklab, var(--foreground) 30%, transparent) 78%, color-mix(in oklab, var(--foreground) 8%, transparent) 94%, transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0%, color-mix(in oklab, var(--foreground) 40%, transparent) 12%, var(--foreground) 28%, var(--foreground) 44%, color-mix(in oklab, var(--foreground) 56%, transparent) 61%, color-mix(in oklab, var(--foreground) 30%, transparent) 78%, color-mix(in oklab, var(--foreground) 8%, transparent) 94%, transparent 100%);
+    height: 900px;
+    perspective: 620px;
+    perspective-origin: 50% -8%;
+    /* The light falls off with the distance and under the figures, not towards the sides: the table is lit from edge to edge. Far away it is the dark, at the title it is full, at the perks it is half, at the search bar a third */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 128px, color-mix(in oklab, var(--foreground) 12%, transparent) 188px, color-mix(in oklab, var(--foreground) 25%, transparent) 248px, color-mix(in oklab, var(--foreground) 55%, transparent) 328px, color-mix(in oklab, var(--foreground) 90%, transparent) 428px, var(--foreground) 458px, var(--foreground) 548px, color-mix(in oklab, var(--foreground) 56%, transparent) 648px, color-mix(in oklab, var(--foreground) 30%, transparent) 758px, color-mix(in oklab, var(--foreground) 8%, transparent) 862px, transparent 900px);
+    mask-image: linear-gradient(to bottom, transparent 128px, color-mix(in oklab, var(--foreground) 12%, transparent) 188px, color-mix(in oklab, var(--foreground) 25%, transparent) 248px, color-mix(in oklab, var(--foreground) 55%, transparent) 328px, color-mix(in oklab, var(--foreground) 90%, transparent) 428px, var(--foreground) 458px, var(--foreground) 548px, color-mix(in oklab, var(--foreground) 56%, transparent) 648px, color-mix(in oklab, var(--foreground) 30%, transparent) 758px, color-mix(in oklab, var(--foreground) 8%, transparent) 862px, transparent 900px);
   }
 
   & [data-slot="tabletop-plane"] {
     position: absolute;
     inset-inline: -60%;
     bottom: -50px;
-    height: 6000px;
+    height: 3600px;
     transform-origin: 50% 100%;
     transform: rotateX(var(--tabletop-tilt));
     transform-style: preserve-3d;
@@ -322,6 +309,8 @@
     inset: 0;
     background:
       repeating-linear-gradient(90deg, var(--wood-seam) 0 3px, transparent 3px 190px),
+      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 55%, transparent) 0 2px, transparent 2px 253px),
+      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-3) 55%, transparent) 0 131px, color-mix(in oklab, var(--wood-1) 45%, transparent) 131px 297px, transparent 297px 421px),
       repeating-linear-gradient(90deg, var(--wood-1) 0 190px, var(--wood-2) 190px 380px, var(--wood-3) 380px 570px),
       radial-gradient(ellipse 80% 15% at 50% 91%, color-mix(in oklab, var(--wood-1) 60%, var(--piece-gold)), color-mix(in oklab, var(--wood-1) 85%, var(--piece-gold)) 55%, var(--wood-2));
   }
@@ -331,166 +320,6 @@
     inset: 0;
     background: repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 14%, transparent) 0 1px, transparent 1px 9px, color-mix(in oklab, var(--piece-ivory) 3.5%, transparent) 9px 10px, transparent 10px 23px);
     mix-blend-mode: multiply;
-  }
-
-  & [data-piece] {
-    position: absolute;
-    left: var(--x);
-    top: var(--y);
-    transform-style: preserve-3d;
-  }
-  & [data-slot="shadow"] {
-    position: absolute;
-    pointer-events: none;
-    background: color-mix(in oklab, var(--piece-ink) 80%, transparent);
-    filter: blur(8px);
-  }
-
-  /* A die: a cube, lifted by half its size so that it stands on the plane, turned by `--yaw` around the vertical. */
-  & [data-piece="die"] {
-    --size: calc(var(--s) * var(--tabletop-unit) * 1px);
-    --h: calc(var(--size) / 2);
-    --die: var(--piece-ivory);
-    --pip: var(--piece-ink);
-    width: var(--size);
-    height: var(--size);
-    transform: translateZ(var(--h)) rotateZ(var(--yaw));
-    &[data-tone="red"] { --die: var(--piece-red); --pip: var(--piece-ivory); }
-    &[data-tone="teal"] { --die: var(--piece-teal); --pip: var(--piece-ivory); }
-    &[data-tone="gold"] { --die: var(--piece-gold); --pip: var(--piece-ink); }
-  }
-  & [data-piece="die"] > [data-face] {
-    position: absolute;
-    inset: 0;
-    backface-visibility: hidden;
-    border-radius: 26%;
-    background-color: var(--die);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--piece-ivory) 25%, transparent), inset 0 -6px 12px color-mix(in oklab, var(--piece-ink) 18%, transparent);
-  }
-  & [data-piece="die"] > [data-face="top"] { transform: translateZ(var(--h)); }
-  & [data-piece="die"] > [data-face="bottom"] { transform: rotateX(90deg) translateZ(var(--h)); }
-  & [data-piece="die"] > [data-face="front"] { transform: rotateX(-90deg) translateZ(var(--h)); }
-  & [data-piece="die"] > [data-face="back"] { transform: rotateY(180deg) translateZ(var(--h)); }
-  & [data-piece="die"] > [data-face="right"] { transform: rotateY(90deg) translateZ(var(--h)); }
-  & [data-piece="die"] > [data-face="left"] { transform: rotateY(-90deg) translateZ(var(--h)); }
-  & [data-piece="die"] > [data-slot="shadow"] {
-    inset: 6%;
-    border-radius: 20%;
-    transform: translateZ(calc(var(--h) * -1 + 1px));
-  }
-  /* A card: flat on the plane, a little above it so that the one over it is the one that is shown, face up, or face down when its `--shows` is half a turn. */
-  & [data-piece="card"] {
-    /* The back of every card is a dark blue, the navy of the table darkened with its ink */
-    --back: color-mix(in oklab, var(--piece-navy) 50%, var(--piece-ink));
-    width: calc(var(--w) * var(--tabletop-unit) * 1px);
-    height: calc(var(--w) * var(--tabletop-unit) * 1.43px);
-    transform: translateZ(calc(var(--z, 1) * 1px)) rotateZ(var(--rot));
-  }
-  & [data-piece="card"] > [data-slot="card-body"] {
-    position: absolute;
-    inset: 0;
-    transform-style: preserve-3d;
-    transform: rotateY(var(--shows, 0deg));
-  }
-  & [data-piece="card"] [data-side] {
-    position: absolute;
-    inset: 0;
-    border-radius: calc(var(--w) * var(--tabletop-unit) * 0.1px);
-    backface-visibility: hidden;
-    box-shadow: 0 5px 10px color-mix(in oklab, var(--piece-ink) 55%, transparent), 0 0 0 1px color-mix(in oklab, var(--piece-ink) 30%, transparent);
-  }
-  & [data-piece="card"] [data-side="face"] {
-    background: var(--piece-ivory);
-    color: var(--piece-ink);
-    &[data-suit="heart"], &[data-suit="diamond"] { color: var(--piece-red); }
-  }
-  & [data-piece="card"] [data-side="back"] {
-    transform: rotateY(180deg);
-    background: var(--piece-ivory);
-  }
-  & [data-piece="card"] [data-side="back"]::before {
-    content: "";
-    position: absolute;
-    inset: 6%;
-    border-radius: 6%;
-    background:
-      repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in oklab, var(--piece-ivory) 35%, transparent) 6px 7px),
-      repeating-linear-gradient(-45deg, transparent 0 6px, color-mix(in oklab, var(--piece-ivory) 35%, transparent) 6px 7px),
-      var(--back);
-  }
-  & [data-piece="card"] [data-slot="rank"] {
-    position: absolute;
-    left: 9%;
-    top: 5%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-weight: 700;
-    font-size: calc(var(--w) * var(--tabletop-unit) * 0.22px);
-    line-height: 1;
-  }
-  & [data-piece="card"] [data-slot="rank"] > svg { width: 0.8em; height: 0.8em; fill: currentColor; }
-  & [data-piece="card"] [data-slot="pip"] { position: absolute; inset: 28% 22%; fill: currentColor; }
-
-  /* A stack of chips: discs one over the other, with the notches of a chip round the rim. */
-  & [data-piece="chips"] {
-    --c: var(--piece-red);
-    width: calc(var(--s) * var(--tabletop-unit) * 1px);
-    height: calc(var(--s) * var(--tabletop-unit) * 1px);
-    &[data-tone="gold"] { --c: var(--piece-gold); }
-    &[data-tone="teal"] { --c: var(--piece-teal); }
-    &[data-tone="navy"] { --c: var(--piece-navy); }
-  }
-  & [data-piece="chips"] > i {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    corner-shape: round;
-    transform: translateZ(calc(var(--i) * 6px + 1px));
-    background: radial-gradient(circle, var(--c) 0 46%, var(--piece-ivory) 47% 56%, var(--c) 57%);
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--piece-ink) 25%, transparent), inset 0 0 0 5px color-mix(in oklab, var(--piece-ivory) 8%, transparent);
-  }
-  & [data-piece="chips"] > i::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    corner-shape: round;
-    background: repeating-conic-gradient(from 8deg, var(--piece-ivory) 0 13deg, transparent 13deg 45deg);
-    -webkit-mask-image: radial-gradient(circle, transparent 0 80%, var(--foreground) 81% 100%);
-    mask-image: radial-gradient(circle, transparent 0 80%, var(--foreground) 81% 100%);
-  }
-  & [data-piece="chips"] > [data-slot="shadow"] {
-    inset: 2px;
-    border-radius: 50%;
-    corner-shape: round;
-  }
-
-  /* A meeple: upright, tilted back by the angle of the plane so that it faces the eye. */
-  & [data-piece="meeple"] {
-    --c: var(--piece-red);
-    width: calc(var(--s) * var(--tabletop-unit) * 1px);
-    height: calc(var(--s) * var(--tabletop-unit) * 1px);
-    &[data-tone="gold"] { --c: var(--piece-gold); }
-    &[data-tone="teal"] { --c: var(--piece-teal); }
-  }
-  & [data-piece="meeple"] > svg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    fill: var(--c);
-    transform: rotateX(calc(var(--tabletop-tilt) * -1));
-    transform-origin: 50% 100%;
-    filter: drop-shadow(0 -1px 0 color-mix(in oklab, var(--piece-ivory) 35%, transparent)) drop-shadow(0 3px 3px color-mix(in oklab, var(--piece-ink) 45%, transparent));
-  }
-  & [data-piece="meeple"] > [data-slot="shadow"] {
-    inset-inline: 8%;
-    bottom: -14%;
-    height: 34%;
-    border-radius: 50%;
-    corner-shape: round;
-    filter: blur(5px);
   }
 }
 
@@ -777,11 +606,9 @@
     /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Facebook's blue and Discord's blurple. Google's and Apple's are `foreground` and `background`; the marks are in `brands.tsx` */
     --brand-facebook: #1877f2;
     --brand-discord: #5865f2;
-    /* The colours of a game table, which are the hero's alone (`Tabletop`, and the pieces that stand for letters in its title, `TitlePiece`): what is played with (red, gold, teal and navy for dice, chips, cards and meeples, ivory and ink for a die and a card, and the black of the clubs and the spades), and what it is played on (the planks of the table, the seams between them) */
+    /* The colours of a game table, which are the hero's alone (`Tabletop`, and the pieces that stand for letters in its title, `TitlePiece`): what is played with (red and gold, ivory and ink for a die and a card, and the black of the clubs and the spades), and what it is played on (the planks of the table, the seams between them) */
     --piece-red: oklch(0.64 0.2 27);
     --piece-gold: oklch(0.82 0.15 88);
-    --piece-teal: oklch(0.66 0.12 200);
-    --piece-navy: oklch(0.55 0.15 258);
     --piece-ivory: oklch(0.96 0.02 85);
     --piece-ink: oklch(0.22 0.02 60);
     --piece-black: oklch(0 0 0);
