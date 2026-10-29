@@ -20,11 +20,11 @@ const DICE: readonly { x: number; u: number; size: number; yaw: number; top: num
   { x: 82.1, u: 850, size: 36, yaw: 28, top: 2, tone: "gold", farther: true },
 ]
 
-type CardSpec = { x: number; u: number; w: number; rot: number; z: number; face?: { rank: string; suit: SuitName }; tone?: Tone; farther?: boolean }
+type CardSpec = { x: number; u: number; w: number; rot: number; z: number; face?: { rank: string; suit: SuitName }; farther?: boolean }
 
 const CARDS: readonly CardSpec[] = [
   { x: 19.9, u: 620, w: 80, rot: -16, z: 1, face: { rank: "K", suit: "spade" }, farther: true },
-  { x: 81.6, u: 700, w: 74, rot: 13, z: 1, tone: "navy", farther: true },
+  { x: 81.6, u: 700, w: 74, rot: 13, z: 1, farther: true },
   // The fan on the right: a card face down, then three face up
   { x: 70, u: 340, w: 100, rot: -34, z: 1 },
   { x: 71.6, u: 340, w: 100, rot: -14, z: 2, face: { rank: "A", suit: "heart" } },
@@ -73,10 +73,10 @@ function Die({ x, u, size, yaw, top, tone, farther }: (typeof DICE)[number]) {
   )
 }
 
-function PlayingCard({ x, u, w, rot, z, face, tone, farther }: CardSpec) {
+function PlayingCard({ x, u, w, rot, z, face, farther }: CardSpec) {
   const place: Place = { "--x": `${x}%`, "--y": `${deep(u)}%`, "--w": w, "--rot": `${rot}deg`, "--z": z, "--shows": face ? "0deg" : "180deg" }
   return (
-    <div data-piece="card" data-tone={tone} data-farther={farther ? "" : undefined} style={place}>
+    <div data-piece="card" data-farther={farther ? "" : undefined} style={place}>
       <div data-slot="card-body">
         {face ? (
           <div data-side="face" data-suit={face.suit}>

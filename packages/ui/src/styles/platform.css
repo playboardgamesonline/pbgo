@@ -380,12 +380,11 @@
   }
   /* A card: flat on the plane, a little above it so that the one over it is the one that is shown, face up, or face down when its `--shows` is half a turn. */
   & [data-piece="card"] {
-    --back: var(--piece-red);
+    /* The back of every card is a dark blue, the navy of the table darkened with its ink */
+    --back: color-mix(in oklab, var(--piece-navy) 50%, var(--piece-ink));
     width: calc(var(--w) * var(--tabletop-unit) * 1px);
     height: calc(var(--w) * var(--tabletop-unit) * 1.43px);
     transform: translateZ(calc(var(--z, 1) * 1px)) rotateZ(var(--rot));
-    &[data-tone="teal"] { --back: var(--piece-teal); }
-    &[data-tone="navy"] { --back: var(--piece-navy); }
   }
   & [data-piece="card"] > [data-slot="card-body"] {
     position: absolute;
@@ -590,6 +589,8 @@
     inset: 0;
     transform-style: preserve-3d;
   }
+  /* A face of the coin, as a struck coin has it: a rim with an edge line and a lighter bevel inside it, a groove, a field of gold lit from the upper left, and, engraved in it, the emblem in lines (`TitleCoin` draws it with
+     two sets of the same lines, a darker one and, a hair lower and lighter, the relief). Lines and not a solid shape, as the coin of Teamfight Tactics has them. A glint crosses the upper left, so that it shines as it turns. */
   &[data-kind="coin"] [data-face] {
     position: absolute;
     inset: 0;
@@ -598,34 +599,51 @@
     border-radius: 50%;
     corner-shape: round;
     backface-visibility: hidden;
-    background: radial-gradient(circle at 34% 28%, color-mix(in oklab, var(--piece-gold) 55%, var(--piece-ivory)), var(--piece-gold) 55%, color-mix(in oklab, var(--piece-gold) 70%, var(--piece-ink)));
-    box-shadow: inset 0 0 0 0.04em color-mix(in oklab, var(--piece-gold) 65%, var(--piece-ink)), 0 0.02em 0.04em color-mix(in oklab, var(--piece-ink) 35%, transparent);
-    color: color-mix(in oklab, var(--piece-gold) 45%, var(--piece-ink));
+    --rim: color-mix(in oklab, var(--piece-gold) 55%, var(--piece-ink));
+    --bevel: color-mix(in oklab, var(--piece-gold) 45%, var(--piece-ivory));
+    --engraving: color-mix(in oklab, var(--piece-gold) 36%, var(--piece-ink));
+    --relief: color-mix(in oklab, var(--piece-gold) 38%, var(--piece-ivory));
+    background: radial-gradient(circle at 36% 30%, color-mix(in oklab, var(--piece-gold) 62%, var(--piece-ivory)), var(--piece-gold) 52%, color-mix(in oklab, var(--piece-gold) 80%, var(--piece-ink)));
+    box-shadow: inset 0 0 0 0.018em var(--rim), inset 0 0 0 0.033em var(--bevel), 0 0.02em 0.04em color-mix(in oklab, var(--piece-ink) 35%, transparent);
   }
   &[data-kind="coin"] [data-face]::before {
     content: "";
     position: absolute;
-    inset: 0.1em;
+    inset: 0.051em;
     border-radius: 50%;
     corner-shape: round;
-    box-shadow: inset 0 0 0 0.03em color-mix(in oklab, var(--piece-gold) 65%, var(--piece-ink));
+    box-shadow: inset 0 0 0 0.012em var(--engraving), 0 0 0 0.007em var(--relief);
   }
-  /* The "face": a profile, as a portrait on a coin. It is drawn, not written, and the "pile" is a star: the title must read "board" and not "bo1ard" to a search engine, so no digit */
-  &[data-kind="coin"] [data-face="heads"] > svg {
+  &[data-kind="coin"] [data-face]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    corner-shape: round;
+    background: linear-gradient(125deg, color-mix(in oklab, var(--piece-ivory) 55%, transparent) 0%, transparent 38%);
+    pointer-events: none;
+  }
+  /* The emblems are drawn, not written (the title must read "board" and not "bo1ard" to a search engine, so no digit): a profile on the heads, a star on the tails */
+  &[data-kind="coin"] [data-face] > svg {
     position: relative;
     width: 0.36em;
     height: 0.36em;
-    fill: currentColor;
+    overflow: visible;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  &[data-kind="coin"] [data-face] [data-engraving] {
+    stroke: var(--engraving);
+    stroke-width: 1.5;
+  }
+  &[data-kind="coin"] [data-face] [data-relief] {
+    stroke: var(--relief);
+    stroke-width: 1.7;
+    transform: translate(0.45px, 0.7px);
   }
   &[data-kind="coin"] [data-face="tails"] {
     transform: rotateX(180deg);
-  }
-  &[data-kind="coin"] [data-face="tails"]::after {
-    content: "";
-    width: 0.27em;
-    height: 0.27em;
-    background: currentColor;
-    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   }
   /* The suits of a deck, one over the other in the place of an "o": each is shown in its turn (`title-suit`), rolling up like a reel, a red one and a black one in turn, and the first (the heart) is the one a visitor who asks for less motion keeps */
   &[data-kind="suits"] {
