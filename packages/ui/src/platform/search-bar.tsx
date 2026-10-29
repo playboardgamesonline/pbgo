@@ -5,7 +5,7 @@ import { cn } from "../utils"
 
 import { Button } from "./button"
 
-// The big search bar of a page: one pill, glass, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
+// The big search bar of a page: one glass bar, rounded like a surface (`rounded-3xl`) and not a pill, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
 // button that clears it once there is one and, at its end, what a page puts there: the category of the games, a button that opens a panel
 // (`SearchBarSegment`). The other filters are not in the bar: they stand bare under it, centred on a line of their own (`SearchBarFilters`), each in
 // a place of its own with no background, no outline and no shadow (`SearchBarGroup`, with its `SearchBarIcon` and, where a filter has a value to
@@ -21,7 +21,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-16 w-full items-center gap-2 rounded-full border bg-background/60 p-2 pl-5 shadow-float backdrop-blur-xl",
+          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border bg-background/60 p-2 pl-3 shadow-float backdrop-blur-xl",
           className
         )}
         {...props}
@@ -90,7 +90,7 @@ function SearchBarSubmit({ className, ...props }: SearchBarButtonProps) {
       type="submit"
       variant="ghost"
       size="icon-sm"
-      className={cn("shrink-0 rounded-full text-muted-foreground [&_svg:not([class*='size-'])]:size-5", className)}
+      className={cn("shrink-0 text-muted-foreground [&_svg:not([class*='size-'])]:size-5", className)}
       {...props}
     >
       <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
@@ -112,8 +112,8 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
 
 /**
  * A filter that opens something: an icon and what is picked, in a button. It opens nothing itself: the page wraps it in a `PopoverTrigger asChild` or
- * a `DropdownMenuTrigger asChild`, which gives it `aria-expanded` and the open state this paints. At the end of the bar it is a pill without a
- * frame, 48px high; the value of a segment with nothing picked is left out under 48rem of room, so the field keeps its room on a phone and the icon
+ * a `DropdownMenuTrigger asChild`, which gives it `aria-expanded` and the open state this paints. At the end of the bar it is a button without a
+ * frame, 48px high and rounded one step less than the bar (`rounded-xl`: the bar's 26px less its 8px of padding); the value of a segment with nothing picked is left out under 48rem of room, so the field keeps its room on a phone and the icon
  * stands for it. `boxed`, under the bar, it is bare like the other filters there, 56px high with no frame, and it goes gray, like the one at the end of
  * the bar, under the pointer and while its menu is open.
  */
@@ -125,7 +125,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       aria-label={`${label}: ${value}`}
       className={cn(
         "flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
-        boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-52 rounded-full px-3",
+        boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-52 rounded-xl px-3",
         className
       )}
       {...props}

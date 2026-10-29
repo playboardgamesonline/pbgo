@@ -97,12 +97,12 @@ export function Typography() {
 }
 
 const RADIUS_ROLES = [
-  { role: "Surface", height: "A container, from 4rem high", utility: "rounded-3xl", radius: "26px", examples: "Menu, popover, select, dialog, sheet, panels (friends, social, chat), card, game card and its picture, cookie banner, login card" },
+  { role: "Surface", height: "A container, from 4rem high", utility: "rounded-3xl", radius: "26px", examples: "Menu, popover, select, dialog, sheet, panels (friends, social, chat), card, game card and its picture, cookie banner, login card, the home's search bar" },
   { role: "Large control, island", height: "3rem to 3.5rem", utility: "rounded-2xl", radius: "22px", examples: "Navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },
   { role: "Control", height: "2.25rem to 2.5rem", utility: "rounded-xl", radius: "17px", examples: "Button, field (input, text area, select trigger, input group), tab bar, a tab of the social panel, a chat bubble, a game's icon of 2.5rem" },
   { role: "Small control", height: "2rem", utility: "rounded-lg", radius: "12px", examples: "Small button, toggle, a tab in a tab bar, the buttons and tabs inside a navbar island" },
   { role: "Chip", height: "1.25rem to 1.5rem", utility: "rounded-md", radius: "10px", examples: "Extra small button, badge, key cap, a game's icon of 1.5rem" },
-  { role: "Circle", height: "Only a person", utility: "rounded-full", radius: "full", examples: "The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar; the home's search bar, until it is decided" },
+  { role: "Circle", height: "Only a person", utility: "rounded-full", radius: "full", examples: "The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar" },
 ] as const
 
 const SMOOTHING = [
@@ -159,7 +159,7 @@ export function Radius() {
           "Only the picture of a person is a circle (`rounded-full`: `Avatar` and its dot). A game, its icon and its card are rounded like anything else, never a circle.",
           "What sits in a padded container takes the container's radius less its padding: a navbar island is 22px with 8px of padding, so what is in it is 12px (`rounded-lg`, the nearest step).",
           "Never write `rounded-[10px]`: the guard test rejects an arbitrary radius.",
-          "Open: the home's search bar is a pill (`rounded-full`), the one exception that is not a person's picture or a control's track. It may become a surface (`rounded-3xl`).",
+          "The home's search bar is a surface like the others (`rounded-3xl`, 64px high with 8px of padding), not a pill: what is in it takes its radius less the padding, so its category button is 17px (`rounded-xl`).",
         ]}
       />
       <Demo

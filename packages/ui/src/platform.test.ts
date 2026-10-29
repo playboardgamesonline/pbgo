@@ -57,10 +57,10 @@ describe("platform components", () => {
  */
 /**
  * Rounded, never round: the largest step is the menus' (`rounded-3xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
- * person with its dot and the track and thumb of a switch, a slider and a progress bar, and, until it is decided, in the home's search bar.
+ * person with its dot and the track and thumb of a switch, a slider and a progress bar.
  */
 describe("radius", () => {
-  const CIRCLES = new Set(["avatar.tsx", "progress.tsx", "search-bar.tsx", "slider.tsx", "switch.tsx"])
+  const CIRCLES = new Set(["avatar.tsx", "progress.tsx", "slider.tsx", "switch.tsx"])
   const hitsOf = (files: readonly string[], pattern: RegExp) =>
     files.flatMap((file) =>
       readFileSync(new URL(file, DIRECTORY), "utf8")
