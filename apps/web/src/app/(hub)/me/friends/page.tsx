@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
 import { requireAccount } from "@pbgo/accounts/server"
+import { AddFriendForm } from "@pbgo/ui/platform/add-friend-form"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
 import { FriendsList } from "@/components/friends-list"
 import { accountData, type FriendRequest } from "@/lib/account-data"
@@ -69,14 +69,7 @@ export default async function FriendsPage() {
           Add a friend
         </h2>
         <p className="mb-4 text-muted-foreground">Type their nickname and their tag, like Oré#4821.</p>
-        <InputGroup className="max-w-md">
-          <InputGroupInput placeholder="Nickname#0000" aria-label="Nickname and tag of the friend" disabled />
-          <InputGroupAddon align="inline-end">
-            <Button size="sm" disabled>
-              Send request
-            </Button>
-          </InputGroupAddon>
-        </InputGroup>
+        <AddFriendForm className="max-w-md" />
       </section>
 
       {requests.length > 0 ? (

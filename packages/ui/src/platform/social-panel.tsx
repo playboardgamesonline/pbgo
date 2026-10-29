@@ -9,19 +9,20 @@ import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "../motion"
 import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation, type FriendRequest } from "../social"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
+import { AddFriendForm } from "./add-friend-form"
 import { Badge } from "./badge"
 import { Button } from "./button"
 import { FriendsRoster, PresenceDot } from "./friends-panel"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
 // The social panel of a signed-in visitor, the way the Riot Client has it: three tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the conversations
-// with them; and the way to add a friend with the requests that wait for an answer), the search of the friends, and the list. The tabs that have something for the visitor (messages
+// with them; and the way to add a friend, `AddFriendForm` (the nickname and the tag side by side and one button under them), with the requests that wait for an answer under it, the ones that came in
+// and then the ones that went out, as the Riot Client lists them), the search of the friends, and the list. The tabs that have something for the visitor (messages
 // not read, requests to answer) carry a count. The tile behind the current tab is one element that glides to the tab that is pressed, and the pane of a tab comes in from the side the tab is
 // on while the one of the tab that was left goes out the other way (`AnimatePresence`, one after the other); a visitor who asks for less motion gets the change with no travel. With a
 // surface of its own it is a column for a page, with a `header` (whatever the page puts at the top, usually a picture, a name and a status); `bare` draws none: it is then the body of the
 // dock of the navbar (`SocialDock`), which is its surface and whose bar holds the button that opens and closes it (`SocialPanelToggle`). It is drawn from what it is given and decides
-// nothing: where the friends, the messages and the requests come from (PLT-23) and what a press does are the page's, and a button whose handler is missing is not drawn (the field that
+// nothing: where the friends, the messages and the requests come from (PLT-23) and what a press does are the page's, and a button whose handler is missing is not drawn (the form that
 // adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`).
 
 export type SocialTab = "friends" | "messages" | "add"
@@ -66,10 +67,6 @@ function TabFill() {
 /** The icon of a tab. */
 const TAB_ICON = "size-6"
 
-/** What the field that adds a friend shows: the tag follows the nickname after a hash (PLT-39). Written in two parts so that the design guard, which takes a hash and digits for a colour, leaves it alone. */
-const EXAMPLE = ["Oré", "4821"].join("#")
-const PLACEHOLDER = ["Nickname", "0000"].join("#")
-
 /** A scrolling column with no scrollbar, for what a tab holds. */
 const COLUMN = "min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
@@ -99,7 +96,7 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & {
   /** The games of the list of friends that are folded, by their key (`game:<slug>`), when the page keeps them (so that they stay folded when the panel is closed and opened again). */
   folded?: ReadonlySet<string>
   onFoldedChange?: (folded: ReadonlySet<string>) => void
-  /** What the field that adds a friend does with the nickname and the tag typed in it. The field is off without it. */
+  /** What the form that adds a friend does with the nickname and the tag typed in it, written `nickname#tag` (`AddFriendForm`). The form is off without it. */
   onSendRequest?: (who: string) => void
   /** What the buttons of a request do. Not drawn without it. */
   onAnswerRequest?: (request: FriendRequest, answer: "accept" | "decline" | "cancel") => void
@@ -150,6 +147,10 @@ function ConversationRow({ conversation, onOpen }: { conversation: Conversation;
   )
 }
 
+/**
+ * A request, as the Riot Client draws one: the picture, the nickname with the tag under it, and at the end a square button with rounded corners for each answer. One that came in is accepted (the white
+ * button) or declined, one that went out is cancelled; the group it is in (`RequestGroup`) says which it is, so there is no word on the row.
+ */
 function RequestRow({ request, onAnswer }: { request: FriendRequest; onAnswer?: (request: FriendRequest, answer: "accept" | "decline" | "cancel") => void }) {
   return (
     <li className="flex items-center gap-3 rounded-2xl px-2.5 py-2">
@@ -157,32 +158,60 @@ function RequestRow({ request, onAnswer }: { request: FriendRequest; onAnswer?: 
         {request.avatarUrl && <AvatarImage src={request.avatarUrl} alt="" referrerPolicy="no-referrer" />}
         <AvatarFallback>{initials(request.nickname)}</AvatarFallback>
       </Avatar>
-      <p className="min-w-0 flex-1 truncate text-sm text-foreground">
-        {request.nickname}
-        <span className="text-muted-foreground">#{request.tag}</span>
+      <p className="min-w-0 flex-1">
+        <span className="block truncate text-sm text-foreground">{request.nickname}</span>
+        <span className="block truncate text-xs text-muted-foreground">#{request.tag}</span>
       </p>
-      {request.direction === "incoming" ? (
-        onAnswer && (
+      {onAnswer &&
+        (request.direction === "incoming" ? (
           <>
-            <Button type="button" size="icon-xs" aria-label={`Accept ${request.nickname}`} title="Accept" onClick={() => onAnswer(request, "accept")}>
+            <Button type="button" size="icon-sm" aria-label={`Accept ${request.nickname}`} title="Accept" onClick={() => onAnswer(request, "accept")}>
               <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} />
             </Button>
-            <Button type="button" size="icon-xs" variant="ghost" aria-label={`Decline ${request.nickname}`} title="Decline" onClick={() => onAnswer(request, "decline")}>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="secondary"
+              className="text-muted-foreground hover:text-foreground"
+              aria-label={`Decline ${request.nickname}`}
+              title="Decline"
+              onClick={() => onAnswer(request, "decline")}
+            >
               <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
             </Button>
           </>
-        )
-      ) : (
-        <>
-          <Badge variant="secondary">Sent</Badge>
-          {onAnswer && (
-            <Button type="button" size="icon-xs" variant="ghost" aria-label={`Cancel the request to ${request.nickname}`} title="Cancel the request" onClick={() => onAnswer(request, "cancel")}>
-              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-            </Button>
-          )}
-        </>
-      )}
+        ) : (
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="secondary"
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={`Cancel the request to ${request.nickname}`}
+            title="Cancel the request"
+            onClick={() => onAnswer(request, "cancel")}
+          >
+            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+          </Button>
+        ))}
     </li>
+  )
+}
+
+/** The requests of one kind under a small label with how many there are (`Incoming 2`, `Outgoing 3`): nothing at all when there are none. */
+function RequestGroup({ label, requests, onAnswer }: { label: string; requests: readonly FriendRequest[]; onAnswer?: (request: FriendRequest, answer: "accept" | "decline" | "cancel") => void }) {
+  const id = React.useId()
+  if (requests.length === 0) return null
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-1">
+      <h3 id={id} className="px-2.5 text-sm text-muted-foreground">
+        {label} <span className="tabular-nums">{requests.length}</span>
+      </h3>
+      <ul className="flex flex-col">
+        {requests.map((request) => (
+          <RequestRow key={request.id} request={request} onAnswer={onAnswer} />
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -218,7 +247,8 @@ function SocialPanel({
   // Which way the last change of tab went, so that the pane comes in from that side
   const [way, setWay] = React.useState<1 | -1>(1)
   const unread = unreadOf(conversations)
-  const incoming = requests.filter((request) => request.direction === "incoming").length
+  const incoming = requests.filter((request) => request.direction === "incoming")
+  const outgoing = requests.filter((request) => request.direction === "outgoing")
   const sorted = sortedConversations(conversations)
   // Each panel has its own tile and its own ids, so that two panels on one page (the specimens of `/design`) do not trade them
   const group = React.useId()
@@ -249,47 +279,20 @@ function SocialPanel({
       </div>
     ),
     add: (
-      <div className={cn(COLUMN, "flex flex-col gap-6")}>
-        <section aria-labelledby={`${group}-add`} className="flex flex-col gap-2">
-          <h3 id={`${group}-add`} className="font-heading text-base">
-            Add a friend
-          </h3>
-          <p className="text-sm text-muted-foreground">Type their nickname and their tag, like {EXAMPLE}.</p>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              const field = event.currentTarget.elements.namedItem("who") as HTMLInputElement
-              const who = field.value.trim()
-              if (who === "") return
-              onSendRequest?.(who)
-              field.value = ""
-            }}
-          >
-            <InputGroup>
-              <InputGroupInput name="who" placeholder={PLACEHOLDER} aria-label="Nickname and tag of the friend" autoComplete="off" disabled={!onSendRequest} />
-              <InputGroupAddon align="inline-end">
-                <Button type="submit" size="sm" disabled={!onSendRequest}>
-                  Send
-                </Button>
-              </InputGroupAddon>
-            </InputGroup>
-          </form>
-        </section>
+      <div className={cn(COLUMN, "flex flex-col gap-4")}>
+        <AddFriendForm onSend={onSendRequest} />
 
-        <section aria-labelledby={`${group}-requests`} className="flex flex-col gap-2">
-          <h3 id={`${group}-requests`} className="font-heading text-base">
-            Requests {requests.length > 0 && <span className="text-muted-foreground">{requests.length}</span>}
-          </h3>
-          {requests.length === 0 ? (
+        {requests.length === 0 ? (
+          <div className="flex flex-col items-center gap-1 px-4 py-6 text-center">
+            <p className="text-sm text-foreground">No requests</p>
             <p className="text-sm text-muted-foreground">The friend requests you send and receive wait here for an answer.</p>
-          ) : (
-            <ul className="flex flex-col">
-              {requests.map((request) => (
-                <RequestRow key={request.id} request={request} onAnswer={onAnswerRequest} />
-              ))}
-            </ul>
-          )}
-        </section>
+          </div>
+        ) : (
+          <>
+            <RequestGroup label="Incoming" requests={incoming} onAnswer={onAnswerRequest} />
+            <RequestGroup label="Outgoing" requests={outgoing} onAnswer={onAnswerRequest} />
+          </>
+        )}
 
         {onShareLink && (
           <Button type="button" variant="outline" size="lg" className="w-full" onClick={onShareLink}>
@@ -333,12 +336,12 @@ function SocialPanel({
               value="add"
               id={`${group}-add-tab`}
               aria-controls={`${group}-pane`}
-              aria-label={incoming > 0 ? `Add a friend, ${incoming} requests` : "Add a friend"}
+              aria-label={incoming.length > 0 ? `Add a friend, ${incoming.length} requests` : "Add a friend"}
               title="Add a friend"
               className={TAB}
             >
               <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className={TAB_ICON} />
-              {incoming > 0 && <Badge variant="notification" className={COUNT}>{incoming}</Badge>}
+              {incoming.length > 0 && <Badge variant="notification" className={COUNT}>{incoming.length}</Badge>}
               {tab === "add" && <TabFill />}
             </TabsTrigger>
           </TabsList>
