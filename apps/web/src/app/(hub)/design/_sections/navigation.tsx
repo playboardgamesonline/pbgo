@@ -397,11 +397,11 @@ export function Tabletops() {
     <Section
       id="tabletop"
       module="tabletop"
-      intro="The backdrop of the home's hero: a table seen from above at a low angle, under a lamp. It is three layers and no image: a chessboard floor in perspective (a plane of `repeating-conic-gradient`, tilted back with `perspective()` and `rotateX()`) that a pool of light, a radial mask, picks out of the dark; the glow of the lamp at the top; and a fine grain (an SVG noise used as a mask over `foreground`). Everything is `foreground` at a few percent, a token mixed with `transparent`, so the title and the search bar keep the page, and the layer fades out at its foot, where the black of the page takes over. It is decorative: `aria-hidden`, and it takes no click."
+      intro="The backdrop of the home's hero: a plain table seen from above, under a lamp, with the pattern of a game on it. For now it is the one of Courtisans' table, its diamonds (a lozenge, a dashed one inside it and a dot at every node, tiled); one day each game's own may take its turn, one every six seconds, but that is not done. It is made of no image: the pattern is an SVG tile used as a mask over `foreground`, that a pool of light, a radial mask, picks out of the dark; then come the glow of the lamp at the top and a fine grain (an SVG noise used the same way). Everything is `foreground` at a few percent, a token mixed with `transparent`, so the title and the search bar keep the page, and the layer fades out at its foot, where the black of the page takes over. It is decorative: `aria-hidden`, and it takes no click."
     >
       <Demo
         title="Behind a hero"
-        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The squares are `--tabletop-square`, 4rem on a phone and growing with the window up to 8rem; the perspective, the height of the floor and the horizon are all measured in squares, so the drawing is the same at every width. The five classes it is made of (`tabletop`, `tabletop-pool`, `tabletop-floor`, `tabletop-lamp` and `tabletop-grain`) are in `platform.css`."
+        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The tile of the pattern is `--tabletop-tile`, 5rem on a phone and growing with the window up to 7rem. The five classes it is made of (`tabletop`, `tabletop-pool`, `tabletop-pattern`, `tabletop-lamp` and `tabletop-grain`) are in `platform.css`."
         className="p-0"
         code={`<section className="relative bg-linear-to-b from-card to-background">
   <Tabletop />

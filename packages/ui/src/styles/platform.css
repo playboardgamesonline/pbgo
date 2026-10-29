@@ -202,18 +202,19 @@
 }
 
 /*
- * The backdrop of the home's hero, `Tabletop`: a table seen from above at a low angle, under a lamp. One utility per layer, all drawn in `foreground`
- * at a few percent (a token mixed with `transparent`, never a colour of its own), so the title and the search bar keep the page:
+ * The backdrop of the home's hero, `Tabletop`: a plain table seen from above, under a lamp, with the pattern of a game on it. For now it is the one of
+ * Courtisans' table, its diamonds (a lozenge, a dashed one inside it and a dot at every node, tiled); one day each game's own may take its turn, one every
+ * six seconds, the way the word of the title did (not done). One utility per layer, all drawn in `foreground` at a few percent (a token mixed with
+ * `transparent`, never a colour of its own), so the title and the search bar keep the page:
  * - `tabletop`: the box, `absolute inset-0`, which fades out at its foot where the black of the page takes over;
- * - `tabletop-pool` and `tabletop-floor`: a chessboard in perspective (a plane of `repeating-conic-gradient` tilted back around its bottom edge, its
- *   far end faded) that a pool of light, a radial mask, picks out of the dark;
+ * - `tabletop-pool` and `tabletop-pattern`: the pattern, an SVG tile used as a mask over `foreground`, that a pool of light, a radial mask, picks out of
+ *   the dark;
  * - `tabletop-lamp`: the glow of the lamp at the top;
  * - `tabletop-grain`: a fine noise, an SVG with `feTurbulence` used as a mask over `foreground`.
- * The squares are `--tabletop-square`, 4rem on a phone and growing with the window up to 8rem; the perspective, the height of the floor and the
- * horizon are all measured in squares, so the drawing is the same at every width.
+ * The tile is `--tabletop-tile`, 5rem on a phone and growing with the window up to 7rem.
  */
 @utility tabletop {
-  --tabletop-square: clamp(4rem, 9vw, 8rem);
+  --tabletop-tile: clamp(5rem, 8vw, 7rem);
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -225,22 +226,21 @@
 @utility tabletop-pool {
   position: absolute;
   inset: 0;
-  -webkit-mask-image: radial-gradient(ellipse 62% 70% at 50% 82%, var(--foreground) 8%, transparent 74%);
-  mask-image: radial-gradient(ellipse 62% 70% at 50% 82%, var(--foreground) 8%, transparent 74%);
+  -webkit-mask-image: radial-gradient(ellipse 72% 78% at 50% 40%, var(--foreground) 20%, transparent 80%);
+  mask-image: radial-gradient(ellipse 72% 78% at 50% 40%, var(--foreground) 20%, transparent 80%);
 }
 
-@utility tabletop-floor {
+@utility tabletop-pattern {
   position: absolute;
-  inset-inline: -55%;
-  bottom: 0;
-  height: calc(var(--tabletop-square) * 13);
-  transform-origin: 50% 100%;
-  transform: perspective(calc(var(--tabletop-square) * 4.2)) rotateX(51deg);
-  background-image: repeating-conic-gradient(color-mix(in oklab, var(--foreground) 15%, transparent) 0 25%, transparent 0 50%);
-  background-size: calc(var(--tabletop-square) * 2) calc(var(--tabletop-square) * 2);
-  background-position: 50% 100%;
-  -webkit-mask-image: linear-gradient(to top, var(--foreground) 62%, transparent);
-  mask-image: linear-gradient(to top, var(--foreground) 62%, transparent);
+  inset: 0;
+  background-color: var(--foreground);
+  opacity: 0.16;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Cpath d='M128 0 256 128 128 256 0 128Z' fill='none' stroke='white' stroke-width='4'/%3E%3Cpath d='M128 22 234 128 128 234 22 128Z' fill='none' stroke='white' stroke-width='3' stroke-dasharray='8 18'/%3E%3Cg fill='white'%3E%3Ccircle cx='128' cy='0' r='7'/%3E%3Ccircle cx='256' cy='128' r='7'/%3E%3Ccircle cx='128' cy='256' r='7'/%3E%3Ccircle cx='0' cy='128' r='7'/%3E%3Ccircle cx='128' cy='128' r='4.5'/%3E%3Ccircle cx='0' cy='0' r='4.5'/%3E%3Ccircle cx='256' cy='0' r='4.5'/%3E%3Ccircle cx='0' cy='256' r='4.5'/%3E%3Ccircle cx='256' cy='256' r='4.5'/%3E%3C/g%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Cpath d='M128 0 256 128 128 256 0 128Z' fill='none' stroke='white' stroke-width='4'/%3E%3Cpath d='M128 22 234 128 128 234 22 128Z' fill='none' stroke='white' stroke-width='3' stroke-dasharray='8 18'/%3E%3Cg fill='white'%3E%3Ccircle cx='128' cy='0' r='7'/%3E%3Ccircle cx='256' cy='128' r='7'/%3E%3Ccircle cx='128' cy='256' r='7'/%3E%3Ccircle cx='0' cy='128' r='7'/%3E%3Ccircle cx='128' cy='128' r='4.5'/%3E%3Ccircle cx='0' cy='0' r='4.5'/%3E%3Ccircle cx='256' cy='0' r='4.5'/%3E%3Ccircle cx='0' cy='256' r='4.5'/%3E%3Ccircle cx='256' cy='256' r='4.5'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask-size: var(--tabletop-tile) var(--tabletop-tile);
+  mask-size: var(--tabletop-tile) var(--tabletop-tile);
+  -webkit-mask-position: 50% 0;
+  mask-position: 50% 0;
 }
 
 @utility tabletop-lamp {
