@@ -55,6 +55,18 @@ describe("platform components", () => {
  * width to the body, so whatever is fixed (the navbar) jumped by that width. The page keeps the place of its scrollbar instead (an empty, inactive track while
  * the lock is on, as on ui.shadcn.com) and the lock's margin is taken off: two rules of `platform.css`.
  */
+describe("text selection", () => {
+  const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+
+  it("the texts of the platform cannot be selected", () => {
+    expect(css).toMatch(/\.platform\s*\{[^}]*user-select:\s*none/)
+  })
+
+  it("a field, a code sample and whatever asks for it can", () => {
+    expect(css).toMatch(/\.platform :is\(input, textarea.*data-selectable\]\)\s*\{[^}]*user-select:\s*text/)
+  })
+})
+
 describe("modal overlays", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 

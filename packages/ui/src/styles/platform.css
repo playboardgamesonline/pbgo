@@ -345,6 +345,10 @@
     letter-spacing: var(--tracking-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+
+    /* The hub is an app, not a document: its texts cannot be selected (a press and a drag over a card or a button selects nothing). What is typed or copied from is the exception, below */
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   @media (min-width: 40rem) {
@@ -377,6 +381,13 @@
   /* Preflight makes <b> and <strong> "bolder" than their parent: 900 on top of 600 */
   .platform :is(b, strong) {
     font-weight: inherit;
+  }
+
+  /* What can be selected all the same: a field (Safari needs it said, a field inside a text that cannot be selected would not take the caret), a code sample (the design system's), and
+     whatever asks for it, with `data-selectable` or `select-text`, like a table code to copy */
+  .platform :is(input, textarea, [contenteditable]:not([contenteditable="false"]), pre, code, [data-selectable]) {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /* Selected text is black on white, like the primary button: the browser's blue would be the only colour on the page */
