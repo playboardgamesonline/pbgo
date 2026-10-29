@@ -12,7 +12,8 @@ import { cn } from "../utils"
 //
 // The bar is the header of the panel, the way the Riot Client has it, and it changes with the dock instead of staying what it was. Closed, it is the games the friends are in, the
 // visitor's picture and the button of the panel. Open, the games fold away (their width, then their opacity), the picture glides to the start of the bar as they go, what the profile says
-// unfolds beside it (`SocialDockIdentity`: the name and the word of the status), and the button stays at the end of the bar. The header has the room of what is under it: it grows from 54px
+// unfolds beside it (`SocialDockIdentity`: the name and the word of the status, laid out at their final size from the first frame and only uncovered as their box grows, so that neither is ever cut
+// with an ellipsis on the way), and the button stays at the end of the bar. The header has the room of what is under it: it grows from 54px
 // to 80px, the picture 24px from the start, from the top and from the tabs, for the room from the corner, and the button 16px from the end, in line with the tabs, the search and the list, and at the top, where it was when the dock was closed. All of it moves with the same
 // transition as the dock, so the bar never jumps.
 //
@@ -40,6 +41,22 @@ const BAR_INSET = 8
 const HEADER_HEIGHT = 80
 const HEADER_INSET_START = 24
 const HEADER_INSET_END = 16
+
+/**
+ * What the open header has around the name, besides its insets: the picture (`size-8`), the margin before the name, the least the spacer after it keeps (`min-w-1`) and the button (`size-10`). What is
+ * left of the header is the room of the name (`IDENTITY_ROOM`).
+ */
+const PICTURE = 32
+const IDENTITY_GAP = 12
+const SPACER = 4
+const BUTTON = 40
+const AROUND_IDENTITY = HEADER_INSET_START + HEADER_INSET_END + PICTURE + IDENTITY_GAP + SPACER + BUTTON
+
+/**
+ * How wide the name and the status can be at most, as the open header leaves room for them: the open dock less its border, and as narrow as a window makes it (`calc(100vw - 3rem)`), less what is
+ * around the name. A name that is longer is cut with an ellipsis, and it is cut the same way while the dock opens and closes, since it is laid out at this size, not at the size of its box.
+ */
+const IDENTITY_ROOM = `min(${COLUMN_WIDTH - 2 - AROUND_IDENTITY}px, calc(100vw - 3rem - ${2 + AROUND_IDENTITY}px))`
 
 /** The room around an open dock: 1.5rem above it, and the same under it. */
 const MARGIN = 48
@@ -89,7 +106,9 @@ function DockGames({ children }: { children: React.ReactNode }) {
 
 /**
  * What the profile says beside the picture while the dock is open: the name and the word of the status. It goes inside the button of the profile, after the picture, and it is not there while the
- * dock is closed: it unfolds as the dock opens (its width, with the transition of the dock, then its opacity) and folds away as it closes.
+ * dock is closed: it unfolds as the dock opens (its width, with the transition of the dock, then its opacity) and folds away as it closes. What it says is not what unfolds, but the box that
+ * uncovers it: the text is laid out in a box of its own that is as wide as it is (`IDENTITY_ROOM` at most) from the first frame to the last, and the box around it, which grows and shrinks, only
+ * clips it. A text that took the width of the box that grows would be cut with an ellipsis for as long as the box is narrower than it is, and so would the last letters of "Online" until the very end.
  */
 function SocialDockIdentity({ children, className }: { children: React.ReactNode; className?: string }) {
   const { open, reduced } = React.useContext(DockState)
@@ -101,12 +120,14 @@ function SocialDockIdentity({ children, className }: { children: React.ReactNode
       initial={false}
       animate={
         open
-          ? { width: "auto", marginLeft: 12, opacity: 1, transition: { width: travel, marginLeft: travel, opacity: reduced ? STILL : { duration: DURATION.base, delay: DURATION.fast, ease: EASE_STANDARD } } }
+          ? { width: "auto", marginLeft: IDENTITY_GAP, opacity: 1, transition: { width: travel, marginLeft: travel, opacity: reduced ? STILL : { duration: DURATION.base, delay: DURATION.fast, ease: EASE_STANDARD } } }
           : { width: 0, marginLeft: 0, opacity: 0, transition: { width: travel, marginLeft: travel, opacity: reduced ? STILL : { duration: DURATION.fast, ease: EASE_STANDARD } } }
       }
-      className={cn("flex min-w-0 flex-col overflow-hidden text-left", className)}
+      className="flex min-w-0 overflow-hidden"
     >
-      {children}
+      <span className={cn("flex shrink-0 flex-col text-left", className)} style={{ maxWidth: IDENTITY_ROOM }}>
+        {children}
+      </span>
     </motion.span>
   )
 }
