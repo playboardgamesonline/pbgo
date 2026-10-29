@@ -24,7 +24,7 @@ const STATISTICS = [
   </>,
   <>
     <span className={lead}>If you accept,</span> PostHog also stores a random identifier in a cookie and in your browser&apos;s local storage. It tells us when the same browser comes back, and at a table it is linked to your player identifier. Your visits may be
-    recorded as session replays, to see where people get stuck: what you type in a field, the chat and nicknames are masked. Under Manage preferences you can also allow the identifier alone and keep the recordings off.
+    recorded as session replays, to see where people get stuck: what you type in a field, the chat and nicknames are masked.
   </>,
   <>
     <span className={lead}>If you refuse,</span> nothing is stored for statistics and nothing is recorded. The two counts above carry on.

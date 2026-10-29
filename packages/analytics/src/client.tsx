@@ -70,7 +70,7 @@ export function AnalyticsProvider() {
   }, [reporting, onGameList])
 
   if (!reporting || !ready || !open) return null
-  return <ConsentBanner reopened={consent !== null} current={consent?.choice} onChoose={choose} onClose={consentStore.dismiss} />
+  return <ConsentBanner reopened={consent !== null} onChoose={choose} onClose={consentStore.dismiss} />
 }
 
 /**

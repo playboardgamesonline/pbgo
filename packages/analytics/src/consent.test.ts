@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   addMonths,
-  allowedOf,
-  choiceOf,
   CONSENT_KEY,
   CONSENT_RENEWAL_MONTHS,
   clearConsent,
@@ -51,7 +49,6 @@ describe("parseConsent", () => {
     const at = "2026-09-01T08:00:00.000Z"
     expect(parseConsent(stored("accepted", at), NOW)).toEqual({ choice: "accepted", at })
     expect(parseConsent(stored("refused", at), NOW)).toEqual({ choice: "refused", at })
-    expect(parseConsent(stored("analytics", at), NOW)).toEqual({ choice: "analytics", at })
   })
 
   it("is empty when nothing usable was stored", () => {
@@ -79,32 +76,6 @@ describe("parseConsent", () => {
     expect(parseConsent(stored("accepted", "2026-10-14T09:00:00.000Z"), NOW)).not.toBeNull()
     expect(parseConsent(stored("accepted", "2026-10-15T00:00:00.000Z"), NOW)).toBeNull()
     expect(parseConsent(stored("accepted", "2030-01-01T00:00:00.000Z"), NOW)).toBeNull()
-  })
-})
-
-describe("allowedOf / choiceOf", () => {
-  it("says what each choice lets the site do, and nothing when there is no answer", () => {
-    expect(allowedOf("refused")).toEqual({ analytics: false, recordings: false })
-    expect(allowedOf("analytics")).toEqual({ analytics: true, recordings: false })
-    expect(allowedOf("accepted")).toEqual({ analytics: true, recordings: true })
-    expect(allowedOf(null)).toEqual({ analytics: false, recordings: false })
-    expect(allowedOf(undefined)).toEqual({ analytics: false, recordings: false })
-  })
-
-  it("hands out a copy, so nobody changes what a choice allows", () => {
-    allowedOf("accepted").analytics = false
-    expect(allowedOf("accepted").analytics).toBe(true)
-  })
-
-  it("gives back the choice that allows exactly this", () => {
-    expect(choiceOf({ analytics: false, recordings: false })).toBe("refused")
-    expect(choiceOf({ analytics: true, recordings: false })).toBe("analytics")
-    expect(choiceOf({ analytics: true, recordings: true })).toBe("accepted")
-    for (const choice of ["refused", "analytics", "accepted"] as const) expect(choiceOf(allowedOf(choice))).toBe(choice)
-  })
-
-  it("reads a recording without the identifier it hangs on as a refusal", () => {
-    expect(choiceOf({ analytics: false, recordings: true })).toBe("refused")
   })
 })
 

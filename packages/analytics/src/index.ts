@@ -14,8 +14,6 @@ export {
 } from "./config"
 export {
   addMonths,
-  allowedOf,
-  choiceOf,
   CONSENT_KEY,
   CONSENT_RENEWAL_MONTHS,
   clearConsent,
@@ -23,7 +21,6 @@ export {
   parseConsent,
   readConsent,
   writeConsent,
-  type Allowed,
   type Choice,
   type Consent,
   type ConsentStore,

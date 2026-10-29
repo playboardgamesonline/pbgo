@@ -101,13 +101,6 @@ describe("consent store", () => {
       expect(listener).toHaveBeenCalledTimes(1)
     })
 
-    it("keeps the answer of a visitor who allowed the analytics only, and gives it back on the next visit", () => {
-      const { store, storage } = setup()
-      store.getSnapshot()
-      expect(store.choose("analytics")).toEqual({ choice: "analytics", at: NOW.toISOString() })
-      expect(setup({ storage }).store.getSnapshot()).toMatchObject({ open: false, consent: { choice: "analytics" } })
-    })
-
     it("closes a reopened banner", () => {
       const { store } = setup({ storage: memoryStorage(stored("accepted", "2026-06-01T00:00:00.000Z")) })
       store.reopen()

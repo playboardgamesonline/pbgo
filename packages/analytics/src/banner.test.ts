@@ -31,27 +31,23 @@ describe("ConsentBanner", () => {
     expect(html).toMatch(new RegExp(`<h2 id="${title}"[^>]*>${BANNER_TEXTS.en.label}</h2>`))
   })
 
-  it("offers Reject optional, Manage preferences and Accept all, in that order, as three small buttons", () => {
+  it("offers Reject optional and Accept all, in that order, as two big buttons of the same size", () => {
     const html = render(false)
     const refuse = button(html, BANNER_TEXTS.en.refuse)
-    const customize = button(html, BANNER_TEXTS.en.customize)
     const accept = button(html, BANNER_TEXTS.en.accept)
-    expect(refuse.at).toBeLessThan(customize.at)
-    expect(customize.at).toBeLessThan(accept.at)
-    expect([refuse.size, customize.size, accept.size]).toEqual(["sm", "sm", "sm"])
+    expect(refuse.at).toBeLessThan(accept.at)
+    expect(html.match(/<button/g)).toHaveLength(2)
+    expect(refuse.size).toBe(accept.size)
+    // Told apart by their fill only: they take the same sizes, so refusing is as easy to hit as accepting
+    for (const { className } of [refuse, accept]) {
+      for (const name of ["h-12", "px-6", "text-base", "rounded-2xl", "lg:h-14", "lg:px-8"]) expect(className.split(" ")).toContain(name)
+    }
   })
 
-  it("draws refusing as a ghost button, preferences as an outline one, and accepting as the plain one", () => {
+  it("draws refusing as a ghost button and accepting as the plain one", () => {
     const html = render(false)
     expect(button(html, BANNER_TEXTS.en.refuse).variant).toBe("ghost")
-    expect(button(html, BANNER_TEXTS.en.customize).variant).toBe("outline")
     expect(button(html, BANNER_TEXTS.en.accept).variant).toBe("default")
-  })
-
-  it("keeps the choices one by one behind Manage preferences", () => {
-    const html = render(false)
-    expect(html).not.toContain(BANNER_TEXTS.en.essential)
-    expect(html).not.toContain(BANNER_TEXTS.en.recordings)
   })
 
   it("links to the part of the legal notice about cookies", () => {

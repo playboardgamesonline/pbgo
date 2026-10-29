@@ -3,37 +3,7 @@
  * that refuses `localStorage`) never reach for a global.
  */
 
-/**
- * What the visitor allowed beyond what the site needs to work. "accepted" is everything, "refused" is nothing, "analytics" is the
- * identifier kept on the device without the recording of the visit (the preferences of the banner: a recording hangs on the identifier,
- * so it cannot be allowed without it).
- */
-export type Choice = "accepted" | "analytics" | "refused"
-
-/** What a choice lets the site do. */
-export type Allowed = {
-  /** Keep an identifier on the device (storage and cookie of the SDK) and tie it to the player at a table. */
-  analytics: boolean
-  /** Record the visit (inputs, chat and nicknames masked). Needs `analytics`. */
-  recordings: boolean
-}
-
-const ALLOWED: Record<Choice, Allowed> = {
-  refused: { analytics: false, recordings: false },
-  analytics: { analytics: true, recordings: false },
-  accepted: { analytics: true, recordings: true },
-}
-
-/** What the answer lets the site do; no answer is a refusal. */
-export function allowedOf(choice: Choice | null | undefined): Allowed {
-  return { ...ALLOWED[choice ?? "refused"] }
-}
-
-/** The choice that gives exactly this. A recording without the identifier it hangs on is not one: it is read as a refusal. */
-export function choiceOf(allowed: Allowed): Choice {
-  if (!allowed.analytics) return "refused"
-  return allowed.recordings ? "accepted" : "analytics"
-}
+export type Choice = "accepted" | "refused"
 
 export type Consent = {
   choice: Choice
@@ -80,7 +50,7 @@ export function parseConsent(raw: string | null, now: Date = new Date()): Consen
   }
   if (typeof value !== "object" || value === null) return null
   const { choice, at } = value as Record<string, unknown>
-  if (choice !== "accepted" && choice !== "analytics" && choice !== "refused") return null
+  if (choice !== "accepted" && choice !== "refused") return null
   if (typeof at !== "string") return null
   const given = new Date(at)
   if (Number.isNaN(given.getTime())) return null

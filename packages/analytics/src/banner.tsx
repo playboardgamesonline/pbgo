@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { CookieBanner } from "@pbgo/ui/platform/cookie-banner"
-import { allowedOf, choiceOf, type Choice } from "./consent"
+import type { Choice } from "./consent"
 import type { Locale } from "./events"
 import { cookieValue, LOCALE_COOKIE, pickLocale } from "./locale"
 import { reserveSpace } from "./reserve"
@@ -23,8 +23,6 @@ function watchLanguage(notify: () => void): () => void {
 type ConsentBannerProps = {
   /** The visitor already answered and asked to see the banner again: it then has a way out that keeps the answer. */
   reopened: boolean
-  /** What they answered, for the switches of the preferences to open on it (none: nothing allowed). */
-  current?: Choice | null
   onChoose(choice: Choice): void
   onClose(): void
 }
@@ -40,7 +38,7 @@ type ConsentBannerProps = {
  * `ph-no-capture`: the answer is reported by the `cookie_consent` event, once it holds. Autocapture of the click itself would add
  * a second event, and for a refusal after an acceptance it would go out under the identity that is being given up.
  */
-export function ConsentBanner({ reopened, current = null, onChoose, onClose }: ConsentBannerProps) {
+export function ConsentBanner({ reopened, onChoose, onClose }: ConsentBannerProps) {
   const locale = React.useSyncExternalStore(watchLanguage, readLanguage, () => "en" as const)
   const root = React.useRef<HTMLDivElement>(null)
   React.useLayoutEffect(() => (root.current ? reserveSpace(root.current, document.body) : undefined), [])
@@ -50,10 +48,8 @@ export function ConsentBanner({ reopened, current = null, onChoose, onClose }: C
       texts={BANNER_TEXTS[locale]}
       lang={locale}
       moreHref="/legal#cookies"
-      preferences={allowedOf(current)}
       onAccept={() => onChoose("accepted")}
       onRefuse={() => onChoose("refused")}
-      onSave={(preferences) => onChoose(choiceOf(preferences))}
       onClose={reopened ? onClose : undefined}
       className="ph-no-capture"
     />
