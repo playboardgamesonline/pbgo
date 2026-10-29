@@ -4,4 +4,4 @@
  */
 
 /** `<meta name="theme-color">` of the platform pages: the `--background` token (neutral-950, the brown black of the platform). */
-export const PLATFORM_THEME_COLOR = "#0d0907"
+export const PLATFORM_THEME_COLOR = "#080504"

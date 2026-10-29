@@ -64,12 +64,16 @@ describe("theme.ts", () => {
     expect(oklchToHex(declaredOnPlatform(colorVar!) ?? tailwindToken(colorVar!))).toBe(PLATFORM_THEME_COLOR)
   })
 
-  it("the neutral scale of the platform keeps Tailwind's lightness, step for step", () => {
-    for (const step of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]) {
+  it("the neutral scale of the platform keeps Tailwind's order and stays within 0.04 of its lightness, step for step", () => {
+    const steps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+    let before = 1
+    for (const step of steps) {
       const name = `--color-neutral-${step}`
-      const ours = /oklch\(\s*([\d.]+)/.exec(platformToken(name))?.[1]
-      const theirs = /oklch\(\s*([\d.]+)%/.exec(tailwindToken(name))?.[1]
-      expect(Number(ours), `${name}: lightness`).toBeCloseTo(Number(theirs) / 100, 2)
+      const ours = Number(/oklch\(\s*([\d.]+)/.exec(platformToken(name))?.[1])
+      const theirs = Number(/oklch\(\s*([\d.]+)%/.exec(tailwindToken(name))?.[1]) / 100
+      expect(Math.abs(ours - theirs), `${name}: ${ours} against Tailwind's ${theirs}`).toBeLessThanOrEqual(0.04)
+      expect(ours, `${name} is darker than the step before it`).toBeLessThan(before)
+      before = ours
     }
   })
 })

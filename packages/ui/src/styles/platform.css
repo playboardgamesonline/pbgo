@@ -149,7 +149,7 @@
 /*
  * The title of the home (`display-title`): sentence case, in Geist at a weight of 720 (a variable font: a weight between the platform's 600 and the Black of its first title),
  * with a tracking of -6% (`--tracking-display`) and a line-height of 1.05, so that the descenders of the first line clear the ascenders of the second. It is in the full colour
- * of the text at the top and fades to 60% at the bottom: a mask over the whole title, from opaque to 60%, so that what is behind it shows through a little more towards the foot.
+ * of the text all over, with no fade (it used to fade to 60% at the foot, through a mask). It is its own stacking context (`isolation`), which the cards of its second line need to go behind its letters.
  * 720 (`--font-weight-strong`) is the one weight the platform sets above 600 for text, the name of a person at the head of a profile having it too (everything else is 600). The face is swapped here, with the
  * size of the theme above, which follows the widths of its lines.
  */
@@ -158,17 +158,11 @@
   font-weight: var(--font-weight-strong);
   letter-spacing: var(--tracking-display);
   line-height: 1.05;
-  -webkit-mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
-  mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
+  isolation: isolate;
 
-  /*
-   * An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own. Each line also has 0.1em of
-   * room on its sides: the tracking is negative, so the ink of the last letter of the longest line goes past the end of its box, and the mask above, which clips to the box of the
-   * title, would crop it (the e of "online").
-   */
+  /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
   & > * {
     letter-spacing: var(--tracking-display);
-    padding-inline: 0.1em;
   }
 }
 
@@ -267,7 +261,7 @@
  */
 @utility tabletop {
   --tabletop-unit: 1;
-  --tabletop-tilt: 63deg;
+  --tabletop-tilt: 62deg;
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -284,16 +278,22 @@
     position: absolute;
     inset: 0;
     background-image:
-      radial-gradient(60% 66% at 50% -22%, color-mix(in oklab, var(--piece-gold) 32%, transparent), transparent 70%),
+      radial-gradient(60% 62% at 50% -5%, color-mix(in oklab, var(--piece-gold) 32%, transparent), transparent 70%),
       radial-gradient(38% 50% at 6% 78%, color-mix(in oklab, var(--piece-red) 14%, transparent), transparent 70%),
       radial-gradient(38% 50% at 94% 78%, color-mix(in oklab, var(--piece-teal) 14%, transparent), transparent 70%);
   }
 
-  /* Over the table, where the title, the figures and the perks are read: the page's black, in a soft pool, so that small muted text keeps its contrast on the planks */
+  /*
+   * Over the table: the page's black, twice. A soft pool where the title, the figures and the perks are read, so that small text keeps its contrast on the planks; and, under it, a gradient from the foot of the hero
+   * that rises to its upper third and is all but black at the bottom (92% at a sixth of the height, 62% at a third), so that the table is lit from above and goes dark where the search bar and its filters are,
+   * and runs into the black of the page under it.
+   */
   & [data-slot="tabletop-shade"] {
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(ellipse max(36%, 17rem) 40% at 50% 54%, color-mix(in oklab, var(--background) 74%, transparent), color-mix(in oklab, var(--background) 38%, transparent) 62%, transparent 100%);
+    background-image:
+      linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 70%, transparent) 14%, color-mix(in oklab, var(--background) 28%, transparent) 30%, transparent 46%),
+      radial-gradient(ellipse max(36%, 17rem) 40% at 50% 54%, color-mix(in oklab, var(--background) 74%, transparent), color-mix(in oklab, var(--background) 38%, transparent) 62%, transparent 100%);
   }
 
   & [data-slot="tabletop-stage"] {
@@ -301,17 +301,18 @@
     inset-inline: 0;
     bottom: 0;
     height: 640px;
-    perspective: 1050px;
-    perspective-origin: 50% -6%;
-    -webkit-mask-image: radial-gradient(ellipse 78% 92% at 50% 88%, var(--foreground) 26%, transparent 76%);
-    mask-image: radial-gradient(ellipse 78% 92% at 50% 88%, var(--foreground) 26%, transparent 76%);
+    perspective: 1000px;
+    perspective-origin: 50% -9%;
+    /* The light falls off with the distance and under the figures, not towards the sides: the table is lit from edge to edge. Far away it is the dark, at the perks it is half the dark, at the search bar it is two thirds of it */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, color-mix(in oklab, var(--foreground) 40%, transparent) 12%, var(--foreground) 28%, var(--foreground) 44%, color-mix(in oklab, var(--foreground) 56%, transparent) 61%, color-mix(in oklab, var(--foreground) 30%, transparent) 78%, color-mix(in oklab, var(--foreground) 8%, transparent) 94%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, color-mix(in oklab, var(--foreground) 40%, transparent) 12%, var(--foreground) 28%, var(--foreground) 44%, color-mix(in oklab, var(--foreground) 56%, transparent) 61%, color-mix(in oklab, var(--foreground) 30%, transparent) 78%, color-mix(in oklab, var(--foreground) 8%, transparent) 94%, transparent 100%);
   }
 
   & [data-slot="tabletop-plane"] {
     position: absolute;
-    inset-inline: -36%;
+    inset-inline: -60%;
     bottom: -50px;
-    height: 1250px;
+    height: 6000px;
     transform-origin: 50% 100%;
     transform: rotateX(var(--tabletop-tilt));
     transform-style: preserve-3d;
@@ -323,7 +324,7 @@
     background:
       repeating-linear-gradient(90deg, var(--wood-seam) 0 3px, transparent 3px 190px),
       repeating-linear-gradient(90deg, var(--wood-1) 0 190px, var(--wood-2) 190px 380px, var(--wood-3) 380px 570px),
-      radial-gradient(ellipse 70% 62% at 50% 72%, color-mix(in oklab, var(--wood-1) 85%, var(--piece-gold)), var(--wood-2));
+      radial-gradient(ellipse 80% 15% at 50% 91%, color-mix(in oklab, var(--wood-1) 60%, var(--piece-gold)), color-mix(in oklab, var(--wood-1) 85%, var(--piece-gold)) 55%, var(--wood-2));
   }
   & [data-slot="tabletop-wood"]::after {
     content: "";
@@ -362,7 +363,8 @@
   & [data-piece="die"] > [data-face] {
     position: absolute;
     inset: 0;
-    border-radius: 16%;
+    backface-visibility: hidden;
+    border-radius: 26%;
     background-color: var(--die);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--piece-ivory) 25%, transparent), inset 0 -6px 12px color-mix(in oklab, var(--piece-ink) 18%, transparent);
   }
@@ -446,7 +448,7 @@
     inset: 0;
     border-radius: 50%;
     corner-shape: round;
-    transform: translateZ(calc(var(--i) * 5px + 1px));
+    transform: translateZ(calc(var(--i) * 6px + 1px));
     background: radial-gradient(circle, var(--c) 0 46%, var(--piece-ivory) 47% 56%, var(--c) 57%);
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--piece-ink) 25%, transparent), inset 0 0 0 5px color-mix(in oklab, var(--piece-ivory) 8%, transparent);
   }
@@ -531,9 +533,9 @@
   margin-inline: 0.06em -0.02em;
   /* A die: a small cube that turns now and then, to show another of its faces (`title-die`); its faces are set by `TitlePiece` */
   &[data-kind="die"] {
-    width: 0.56em;
-    height: 0.56em;
-    perspective: 1.8em;
+    width: 0.5em;
+    height: 0.5em;
+    perspective: 6em;
     --pip: var(--piece-ink);
   }
   &[data-kind="die"] > [data-slot="cube"] {
@@ -545,17 +547,18 @@
   &[data-kind="die"] [data-face] {
     position: absolute;
     inset: 0;
-    border-radius: 0.12em;
+    backface-visibility: hidden;
+    border-radius: 0.17em;
     background-color: var(--piece-ivory);
     box-shadow: inset 0 -0.04em 0.06em color-mix(in oklab, var(--piece-ink) 22%, transparent);
   }
-  &[data-kind="die"] [data-face="front"] { transform: translateZ(0.28em); }
-  &[data-kind="die"] [data-face="right"] { transform: rotateY(90deg) translateZ(0.28em); }
-  &[data-kind="die"] [data-face="back"] { transform: rotateY(180deg) translateZ(0.28em); }
-  &[data-kind="die"] [data-face="left"] { transform: rotateY(-90deg) translateZ(0.28em); }
-  &[data-kind="die"] [data-face="top"] { transform: rotateX(90deg) translateZ(0.28em); }
-  &[data-kind="die"] [data-face="bottom"] { transform: rotateX(-90deg) translateZ(0.28em); }
-  /* A coin: tossed now and then and caught heads up or tails up in turn (`title-coin`), its two sides drawn apart, the "face" with a star and the "pile" with its value. It is lower than the baseline by 0.03em, and
+  &[data-kind="die"] [data-face="front"] { transform: translateZ(0.25em); }
+  &[data-kind="die"] [data-face="right"] { transform: rotateY(90deg) translateZ(0.25em); }
+  &[data-kind="die"] [data-face="back"] { transform: rotateY(180deg) translateZ(0.25em); }
+  &[data-kind="die"] [data-face="left"] { transform: rotateY(-90deg) translateZ(0.25em); }
+  &[data-kind="die"] [data-face="top"] { transform: rotateX(90deg) translateZ(0.25em); }
+  &[data-kind="die"] [data-face="bottom"] { transform: rotateX(-90deg) translateZ(0.25em); }
+  /* A coin: it spins on itself, from the top to the bottom, to show heads and tails in turn (`title-coin`; it does not rise), its two sides drawn apart, the "face" with a profile and the "pile" with a star. It is lower than the baseline by 0.03em, and
      0.005em more to the left than the die: a coin is round, and the "o" it stands for has an overshoot */
   &[data-kind="coin"] {
     margin-inline: 0.055em -0.015em;
@@ -568,7 +571,7 @@
     position: absolute;
     inset: 0;
     transform-style: preserve-3d;
-    animation: title-coin 14s ease-in-out infinite;
+    animation: title-coin 10s ease-in-out infinite;
   }
   &[data-kind="coin"] [data-face] {
     position: absolute;
@@ -590,23 +593,22 @@
     corner-shape: round;
     box-shadow: inset 0 0 0 0.03em color-mix(in oklab, var(--piece-gold) 65%, var(--piece-ink));
   }
-  &[data-kind="coin"] [data-face="heads"]::after {
+  /* The "face": a profile, as a portrait on a coin. It is drawn, not written, and the "pile" is a star: the title must read "board" and not "bo1ard" to a search engine, so no digit */
+  &[data-kind="coin"] [data-face="heads"] > svg {
+    position: relative;
+    width: 0.36em;
+    height: 0.36em;
+    fill: currentColor;
+  }
+  &[data-kind="coin"] [data-face="tails"] {
+    transform: rotateX(180deg);
+  }
+  &[data-kind="coin"] [data-face="tails"]::after {
     content: "";
     width: 0.27em;
     height: 0.27em;
     background: currentColor;
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  }
-  /* The value of the coin is drawn, not written: the title must read "board" and not "bo1ard" to a search engine */
-  &[data-kind="coin"] [data-face="tails"]::after {
-    content: "1";
-  }
-  &[data-kind="coin"] [data-face="tails"] {
-    transform: rotateX(180deg);
-    font-size: 0.34em;
-    font-weight: var(--font-weight-strong);
-    line-height: 1;
-    letter-spacing: 0;
   }
   /* The suits of a deck, one over the other in the place of an "o": each is shown in its turn (`title-suit`), turning like a card, and the first is the one a visitor who asks for less motion keeps */
   &[data-kind="suits"] {
@@ -648,13 +650,11 @@
   100% { transform: rotateX(1440deg) rotateY(-360deg); }
 }
 
-/* The coin is tossed (it rises by half of its size, a little bigger, and turns a turn and a half, slowing at the top) and caught tails up, rests, is tossed again and caught heads up: the two tosses are one cycle, and the cycle ends where it began */
+/* The coin spins on itself, from the top to the bottom, and does not rise: half a turn to show its other side, a rest, half a turn more to show the first again; the cycle ends where it began */
 @keyframes title-coin {
-  0%, 20% { transform: translateY(0) scale(1) rotateX(0deg); animation-timing-function: ease-out; }
-  25% { transform: translateY(-0.55em) scale(1.2) rotateX(270deg); animation-timing-function: ease-in; }
-  30%, 60% { transform: translateY(0) scale(1) rotateX(540deg); animation-timing-function: ease-out; }
-  65% { transform: translateY(-0.55em) scale(1.2) rotateX(810deg); animation-timing-function: ease-in; }
-  70%, 100% { transform: translateY(0) scale(1) rotateX(1080deg); }
+  0%, 30% { transform: rotateX(0deg); }
+  40%, 70% { transform: rotateX(-180deg); }
+  80%, 100% { transform: rotateX(-360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -667,7 +667,7 @@
 @utility title-cards {
   display: none;
   position: relative;
-  /* Behind the letters of the title: the title is its own stacking context (its mask), so the cards go under its text and over its backdrop */
+  /* Behind the letters of the title: the title is its own stacking context (`isolation` of `display-title`), so the cards go under its text and over its backdrop */
   z-index: -1;
   width: 0.72em;
   height: 0.74em;
@@ -720,7 +720,7 @@
 @layer base {
   .platform {
     /*
-     * The neutral scale of the platform: Tailwind's, step for step (the same lightness), tinted toward brown, so that the black of the page is a dark chocolate and not a neutral black, the way the table of the hero
+     * The neutral scale of the platform: Tailwind's, step for step, tinted toward brown and a little darker in its four darkest steps (the backgrounds, 0.025 under Tailwind's for the page and for a container), so that the black of the page is a dark chocolate and not a neutral black, the way the table of the hero
      * is made of walnut. The hue is that of the wood (55); the chroma is small, a brown that is hardly one (0.008 for the page and for a container), and fades towards the whites (0.002), which stay almost white. Every grey
      * of a platform screen is one of these steps, so changing them here changes the whole platform; `PLATFORM_THEME_COLOR` copies the first (`theme.test.ts` checks it).
      */
@@ -731,10 +731,10 @@
     --color-neutral-400: oklch(0.708 0.004 55);
     --color-neutral-500: oklch(0.556 0.005 55);
     --color-neutral-600: oklch(0.439 0.006 55);
-    --color-neutral-700: oklch(0.371 0.007 55);
-    --color-neutral-800: oklch(0.269 0.008 55);
-    --color-neutral-900: oklch(0.205 0.008 55);
-    --color-neutral-950: oklch(0.145 0.008 55);
+    --color-neutral-700: oklch(0.345 0.007 55);
+    --color-neutral-800: oklch(0.235 0.008 55);
+    --color-neutral-900: oklch(0.175 0.008 55);
+    --color-neutral-950: oklch(0.12 0.008 55);
     /* Colours: that scale, then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
@@ -767,9 +767,9 @@
     --piece-ivory: oklch(0.96 0.02 85);
     --piece-ink: oklch(0.22 0.02 60);
     --piece-black: oklch(0 0 0);
-    --wood-1: oklch(0.47 0.07 62);
-    --wood-2: oklch(0.42 0.065 58);
-    --wood-3: oklch(0.45 0.075 64);
+    --wood-1: oklch(0.44 0.07 62);
+    --wood-2: oklch(0.39 0.065 58);
+    --wood-3: oklch(0.42 0.075 64);
     --wood-seam: oklch(0.2 0.04 52);
     /* What is cut out of a picture, the ring round a status dot, the outline of tags that overlap: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);

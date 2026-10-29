@@ -4,8 +4,8 @@ import { Suit, type SuitName } from "./suits"
 
 // What stands for a letter or an ornament in the home's title, in the pieces of a game table (the utilities `title-piece` and `title-cards` of `styles/platform.css`, sized in `em` so they follow the title
 // and set on its baseline): a die, a coin or the suits of a deck of cards for an "o", and two white playing cards that overlap between two words. They move, with CSS alone (transforms, no script): the die
-// turns to show another of its faces, the coin is tossed and caught heads up and tails up in turn, the suit turns into the next one (a heart, a diamond, a club, a spade); a visitor who asks for less motion gets
-// them still, the die on its five, the coin on its star and the suit a heart. The letter a piece stands for stays in the page, for a screen reader and a search engine (`sr-only`), so the title reads as it is
+// turns to show another of its faces, the coin spins on itself, from the top to the bottom, to show heads (a profile) and tails (a star) in turn, the suit turns into the next one (a heart, a diamond, a club, a spade); a visitor who asks for less motion gets
+// them still, the die on its five, the coin on its profile and the suit a heart. The letter a piece stands for stays in the page, for a screen reader and a search engine (`sr-only`), so the title reads as it is
 // written; the cards stand for no letter, so they are `aria-hidden`.
 
 type TitlePieceKind = "die" | "coin" | "suits"
@@ -38,7 +38,11 @@ function TitlePiece({ kind, children, className, ...props }: Omit<React.Componen
       )}
       {kind === "coin" && (
         <i data-slot="coin" aria-hidden="true">
-          <b data-face="heads" />
+          <b data-face="heads">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.2 2.8C12.6 1.6 16.1 3 16.8 6.6L17.4 8.8L19.3 11.8L17.7 12.5L18.1 13.6L17.4 14.3L17.9 15.8L16.5 16.9L16.4 18.2C19.2 19 20.7 20.5 21.2 22.4H3.8C4.3 20 6.2 18.8 8.4 18.3C7 16.2 6.3 13.6 6.5 10.9C6.6 7.2 7.6 4.2 9.2 2.8Z" />
+            </svg>
+          </b>
           <b data-face="tails" />
         </i>
       )}

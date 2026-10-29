@@ -12,37 +12,43 @@ type Tone = "red" | "gold" | "teal" | "navy"
 /** A custom property of the table, which the CSS reads: a number or a length, never a colour. */
 type Place = React.CSSProperties & Record<`--${string}`, string | number | undefined>
 
-const DICE: readonly { x: number; y: number; size: number; yaw: number; top: number; tone?: "red" | "teal" | "gold"; farther?: boolean }[] = [
-  { x: 25.4, y: 75, size: 84, yaw: 16, top: 5 },
-  { x: 30.8, y: 83, size: 70, yaw: -28, top: 3, tone: "red" },
-  { x: 74.4, y: 64, size: 76, yaw: 32, top: 6, tone: "teal", farther: true },
-  { x: 79.5, y: 52, size: 54, yaw: -18, top: 4, tone: "gold", farther: true },
+const DICE: readonly { x: number; u: number; size: number; yaw: number; top: number; tone?: "red" | "teal" | "gold"; farther?: boolean }[] = [
+  { x: 27.1, u: 400, size: 50, yaw: 16, top: 5 },
+  { x: 33, u: 290, size: 42, yaw: -28, top: 3, tone: "red" },
+  { x: 18.5, u: 900, size: 40, yaw: 32, top: 6, tone: "teal", farther: true },
+  { x: 74.6, u: 420, size: 46, yaw: -22, top: 4, tone: "teal", farther: true },
+  { x: 82.1, u: 850, size: 36, yaw: 28, top: 2, tone: "gold", farther: true },
 ]
 
-type CardSpec = { x: number; y: number; w: number; rot: number; z: number; face?: { rank: string; suit: SuitName }; tone?: Tone; farther?: boolean }
+type CardSpec = { x: number; u: number; w: number; rot: number; z: number; face?: { rank: string; suit: SuitName }; tone?: Tone; farther?: boolean }
 
 const CARDS: readonly CardSpec[] = [
-  { x: 21, y: 55, w: 70, rot: -16, z: 1, face: { rank: "K", suit: "spade" }, farther: true },
-  { x: 81.5, y: 38, w: 62, rot: 13, z: 1, tone: "navy", farther: true },
+  { x: 19.9, u: 620, w: 80, rot: -16, z: 1, face: { rank: "K", suit: "spade" }, farther: true },
+  { x: 81.6, u: 700, w: 74, rot: 13, z: 1, tone: "navy", farther: true },
   // The fan on the right: a card face down, then three face up
-  { x: 67.6, y: 78, w: 92, rot: -34, z: 1 },
-  { x: 69.2, y: 78, w: 92, rot: -14, z: 2, face: { rank: "A", suit: "heart" } },
-  { x: 71, y: 78, w: 92, rot: 8, z: 3, face: { rank: "Q", suit: "spade" } },
-  { x: 72.8, y: 79, w: 92, rot: 27, z: 4, face: { rank: "7", suit: "diamond" } },
+  { x: 70, u: 340, w: 100, rot: -34, z: 1 },
+  { x: 71.6, u: 340, w: 100, rot: -14, z: 2, face: { rank: "A", suit: "heart" } },
+  { x: 73.4, u: 340, w: 100, rot: 8, z: 3, face: { rank: "Q", suit: "spade" } },
+  { x: 75.2, u: 325, w: 100, rot: 27, z: 4, face: { rank: "7", suit: "diamond" } },
 ]
 
-const CHIPS: readonly { x: number; y: number; size: number; n: number; tone: Tone }[] = [
-  { x: 21.8, y: 85, size: 64, n: 4, tone: "gold" },
-  { x: 25.8, y: 91, size: 58, n: 2, tone: "red" },
-  { x: 68.4, y: 90, size: 62, n: 4, tone: "teal" },
-  { x: 73, y: 92, size: 56, n: 2, tone: "navy" },
+const CHIPS: readonly { x: number; u: number; size: number; n: number; tone: Tone; farther?: boolean }[] = [
+  { x: 24, u: 360, size: 64, n: 5, tone: "gold" },
+  { x: 31.3, u: 250, size: 62, n: 3, tone: "red" },
+  { x: 70.8, u: 290, size: 62, n: 5, tone: "teal" },
+  { x: 73.7, u: 240, size: 60, n: 3, tone: "navy" },
+  { x: 10.2, u: 1100, size: 64, n: 4, tone: "gold", farther: true },
+  { x: 89, u: 1050, size: 62, n: 4, tone: "red", farther: true },
 ]
 
-const MEEPLES: readonly { x: number; y: number; size: number; tone: "red" | "gold" | "teal" }[] = [
-  { x: 13, y: 44, size: 58, tone: "teal" },
-  { x: 27.2, y: 63, size: 84, tone: "red" },
-  { x: 66.6, y: 66, size: 82, tone: "gold" },
+const MEEPLES: readonly { x: number; u: number; size: number; tone: "red" | "gold" | "teal"; farther?: boolean }[] = [
+  { x: 23.1, u: 560, size: 60, tone: "red", farther: true },
+  { x: 79.6, u: 560, size: 58, tone: "gold", farther: true },
 ]
+
+/** The plane is 6000px deep: a piece is `u` px from its near edge, and that is a place from the top of the plane of `100 - u / 60` percent. */
+const PLANE_DEPTH = 6000
+const deep = (u: number) => 100 - (u / PLANE_DEPTH) * 100
 
 const MEEPLE = "M50 6a15 15 0 1 0 .01 0ZM50 38c-10 0-17 4-21 10L9 54c-5 2-5 8 0 10l20 2-7 24h19l9-14 9 14h19l-7-24 20-2c5-2 5-8 0-10l-20-6c-4-6-11-10-21-10Z"
 
@@ -54,9 +60,9 @@ function facesOf(top: number) {
   return { top, bottom: 7 - top, front, back: 7 - front, right, left: 7 - right }
 }
 
-function Die({ x, y, size, yaw, top, tone, farther }: (typeof DICE)[number]) {
+function Die({ x, u, size, yaw, top, tone, farther }: (typeof DICE)[number]) {
   const faces = facesOf(top)
-  const place: Place = { "--x": `${x}%`, "--y": `${y}%`, "--s": size, "--yaw": `${yaw}deg` }
+  const place: Place = { "--x": `${x}%`, "--y": `${deep(u)}%`, "--s": size, "--yaw": `${yaw}deg` }
   return (
     <div data-piece="die" data-tone={tone} data-farther={farther ? "" : undefined} style={place}>
       <b data-slot="shadow" />
@@ -67,8 +73,8 @@ function Die({ x, y, size, yaw, top, tone, farther }: (typeof DICE)[number]) {
   )
 }
 
-function PlayingCard({ x, y, w, rot, z, face, tone, farther }: CardSpec) {
-  const place: Place = { "--x": `${x}%`, "--y": `${y}%`, "--w": w, "--rot": `${rot}deg`, "--z": z, "--shows": face ? "0deg" : "180deg" }
+function PlayingCard({ x, u, w, rot, z, face, tone, farther }: CardSpec) {
+  const place: Place = { "--x": `${x}%`, "--y": `${deep(u)}%`, "--w": w, "--rot": `${rot}deg`, "--z": z, "--shows": face ? "0deg" : "180deg" }
   return (
     <div data-piece="card" data-tone={tone} data-farther={farther ? "" : undefined} style={place}>
       <div data-slot="card-body">
@@ -88,10 +94,10 @@ function PlayingCard({ x, y, w, rot, z, face, tone, farther }: CardSpec) {
   )
 }
 
-function ChipStack({ x, y, size, n, tone }: (typeof CHIPS)[number]) {
-  const place: Place = { "--x": `${x}%`, "--y": `${y}%`, "--s": size }
+function ChipStack({ x, u, size, n, tone, farther }: (typeof CHIPS)[number]) {
+  const place: Place = { "--x": `${x}%`, "--y": `${deep(u)}%`, "--s": size }
   return (
-    <div data-piece="chips" data-tone={tone} style={place}>
+    <div data-piece="chips" data-tone={tone} data-farther={farther ? "" : undefined} style={place}>
       <b data-slot="shadow" />
       {Array.from({ length: n }, (_, i) => (
         <i key={i} style={{ "--i": i } as Place} />
@@ -100,10 +106,10 @@ function ChipStack({ x, y, size, n, tone }: (typeof CHIPS)[number]) {
   )
 }
 
-function Meeple({ x, y, size, tone }: (typeof MEEPLES)[number]) {
-  const place: Place = { "--x": `${x}%`, "--y": `${y}%`, "--s": size }
+function Meeple({ x, u, size, tone, farther }: (typeof MEEPLES)[number]) {
+  const place: Place = { "--x": `${x}%`, "--y": `${deep(u)}%`, "--s": size }
   return (
-    <div data-piece="meeple" data-tone={tone} style={place}>
+    <div data-piece="meeple" data-tone={tone} data-farther={farther ? "" : undefined} style={place}>
       <b data-slot="shadow" />
       <svg viewBox="0 0 100 100" aria-hidden="true">
         <path d={MEEPLE} />
@@ -125,16 +131,16 @@ function Tabletop({ className, ...props }: Omit<React.ComponentProps<"div">, "ch
         <div data-slot="tabletop-plane">
           <div data-slot="tabletop-wood" />
           {MEEPLES.map((meeple) => (
-            <Meeple key={`${meeple.x}-${meeple.y}`} {...meeple} />
+            <Meeple key={`${meeple.x}-${meeple.u}`} {...meeple} />
           ))}
           {CHIPS.map((chips) => (
-            <ChipStack key={`${chips.x}-${chips.y}`} {...chips} />
+            <ChipStack key={`${chips.x}-${chips.u}`} {...chips} />
           ))}
           {DICE.map((die) => (
-            <Die key={`${die.x}-${die.y}`} {...die} />
+            <Die key={`${die.x}-${die.u}`} {...die} />
           ))}
           {CARDS.map((card) => (
-            <PlayingCard key={`${card.x}-${card.y}-${card.z}`} {...card} />
+            <PlayingCard key={`${card.x}-${card.u}-${card.z}`} {...card} />
           ))}
         </div>
       </div>
