@@ -277,7 +277,7 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="A `SearchBarSegment` at the end of the bar is a filter that opens a panel: an icon and what is picked, dimmed while nothing is (`idle`), in a button that you wrap in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while it is open. No label is drawn (a screen reader hears the `label`). With nothing picked its value is left out under 48rem of room, so the field keeps its room on a phone. The other filters go in `SearchBarFilters`, under the bar: centred, on a line of their own, wrapping when the room runs out. Each is in a place of its own, a `SearchBarGroup`, with no background, no outline and no shadow, not even under the pointer: a `SearchBarStepper` for a number (a minus button, the number with the icon that says what it is just after it, a plus button; the number is plain text and never empty: it starts on a value and the buttons move it); a `Slider` with one thumb for a limit, with the hourglass (a `SearchBarIcon`) and the limit written after it on the left (`SearchBarValue`: the minutes and their mark, `30′`, or `1h+`, with no unit word since the hourglass says it) and `mx-2` around the slider for the handle that sticks out (the duration: twelve steps, `5′` to `55′` five minutes at a time and `1h+`, the last being no limit, which is where it starts); a `Meter` for a level, with nothing written beside it (the complexity: bars that fill up to the level pressed, and pressing the picked level again clears it); or a `SearchBarSegment` that is `boxed` and opens a menu, such as the age, which always has one age picked. The filters are always at work, so what they are set to is read from the control, and nothing is filled in to say it. These ones filter nothing: they step, slide, fill, open and search."
+        description="A `SearchBarSegment` at the end of the bar is a filter that opens a panel: an icon and what is picked, dimmed while nothing is (`idle`), in a button that you wrap in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while it is open. No label is drawn (a screen reader hears the `label`). With nothing picked its value is left out under 48rem of room, so the field keeps its room on a phone. The other filters go in `SearchBarFilters`, under the bar: centred, on a line of their own, wrapping when the room runs out. Each is in a place of its own, a `SearchBarGroup`, with no background, no outline and no shadow: a `SearchBarStepper` for a number (a minus button, the number with the icon that says what it is just after it, a plus button; the number is plain text and never empty: it starts on a value and the buttons move it); a `Slider` with one thumb for a limit, with the hourglass (a `SearchBarIcon`) and the limit written after it on the left (`SearchBarValue`: the minutes and their mark, `30′`, or `1h+`, with no unit word since the hourglass says it) and `mx-1` around the slider for the handle that sticks out (the duration: twelve steps, `5′` to `55′` five minutes at a time and `1h+`, the last being no limit, which is where it starts); a `Meter` for a level, with nothing written beside it (the complexity: bars that fill up to the level pressed, and pressing the picked level again clears it); or a `SearchBarSegment` that is `boxed` and opens a menu, such as the age, which always has one age picked and goes gray under the pointer and while its menu is open, like the category. The filters are always at work, so what they are set to is read from the control, and nothing is filled in to say it. These ones filter nothing: they step, slide, fill, open and search."
         className="flex flex-col gap-10"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
@@ -309,7 +309,7 @@ export function SearchBars() {
       <SearchBarIcon icon={HourglassIcon} />
       <SearchBarValue className="w-8">30′</SearchBarValue>
     </span>
-    <Slider className="mx-2 w-32" min={0} max={11} value={[step]} onValueChange={slide} ticks={[2, 5, 8, 11]} />
+    <Slider className="mx-1 w-24" min={0} max={11} value={[step]} onValueChange={slide} ticks={[2, 5, 8, 11]} />
   </SearchBarGroup>
   <SearchBarGroup label="Complexity">
     <SearchBarIcon icon={Brain02Icon} />
@@ -329,7 +329,7 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a quarter of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2.5` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a seventh of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
@@ -348,7 +348,7 @@ export function SearchBars() {
             <span className="block text-4xl">Board games</span> <span className="block text-4xl">w/ friends</span>{" "}
             <span className="block text-4xl">& rivals</span>
           </p>
-          <div className="relative -mt-2.5 w-full max-w-xl">
+          <div className="relative -mt-2 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
                 <SearchBarSubmit aria-label="Search" />

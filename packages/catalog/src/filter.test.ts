@@ -144,8 +144,8 @@ describe("the options", () => {
     expect(COMPLEXITY_LEVELS).toEqual([1, 2, 3, 4, 5])
   })
 
-  it("offers the ages of 6, 8, 10, 12 and 14 years", () => {
-    expect(AGE_LIMITS).toEqual([6, 8, 10, 12, 14])
+  it("offers the ages of 6, 8, 10, 12, 14 and 18 years", () => {
+    expect(AGE_LIMITS).toEqual([6, 8, 10, 12, 14, 18])
   })
 
   it("starts on a table of four and a youngest player of 8, each one of its own options", () => {
@@ -553,6 +553,7 @@ describe("filterGames", () => {
       [10, ["skyjo", "6-nimmt", "flip-7", "hanabi", "solo-quest", "millers-hollow"]],
       [12, upToTwelve],
       [14, upToTwelve],
+      [18, upToTwelve],
     ])("keeps the games a player of %i years can play: those whose minimum age is that or less", (age, expected) => {
       expect(kept({ age })).toEqual(expected)
     })

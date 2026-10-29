@@ -104,11 +104,11 @@
    * does (7.7vw and half a rem), up to 7.5rem so a very wide window does not get a poster: the first line takes 71% of the width of a 390 px phone
    * and 60% of a 1440 px screen. It sets no line-height: the title's own (`display-title`) is tight.
    * `-mt-title-overlap` is how far a bar laid over the title is pulled up: the 0.1em that a line of that line-height keeps under its baseline in Geist,
-   * and 0.2em more, a little more than a quarter of its capitals' height (0.71em), so the bar covers the foot of the last line, which is already
+   * and 0.1em more, a seventh of its capitals' height (0.71em), so the bar covers the foot of the last line, which is already
    * fading out (the mask of `display-title`) and shows through its glass.
    */
   --text-display: clamp(1.5rem, 7.7vw + 0.5rem, 7.5rem);
-  --spacing-title-overlap: calc(var(--text-display) * 0.3);
+  --spacing-title-overlap: calc(var(--text-display) * 0.2);
 
   /* The one weight lighter than the platform's 600 that a text may have, 400: the finest print (`fine-print`) */
   --font-weight-regular: 400;

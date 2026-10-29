@@ -173,7 +173,7 @@ function DurationFilter({ current, onPick }: { current: number | null; onPick: (
         </SearchBarValue>
       </span>
       <Slider
-        className="mx-2 w-32"
+        className="mx-1 w-24"
         min={0}
         max={LAST_STEP}
         step={1}
@@ -213,7 +213,7 @@ function AgeFilter({ current, onPick }: { current: number | null; onPick: (next:
       <DropdownMenuTrigger asChild>
         <SearchBarSegment icon={ChildIcon} label="Age" value={ageText(age)} boxed />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-32">
+      <DropdownMenuContent align="start" className="min-w-0">
         <DropdownMenuRadioGroup
           value={String(age)}
           onValueChange={(next) => {

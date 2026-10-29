@@ -43,7 +43,7 @@ function Meter({ className, levels = 5, value, onValueChange, levelLabel, ...pro
           >
             <span
               aria-hidden="true"
-              className={cn("h-5 w-1.5 rounded-sm transition-colors", filled ? "bg-primary" : previewed ? "bg-primary/40" : "bg-muted")}
+              className={cn("h-4 w-1.5 rounded-sm transition-colors", filled ? "bg-primary" : previewed ? "bg-primary/40" : "bg-muted")}
             />
           </button>
         )

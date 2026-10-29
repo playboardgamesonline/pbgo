@@ -530,7 +530,7 @@ export function Sliders() {
     <Section
       id="slider"
       module="slider"
-      intro="A slider for a value or a range along a scale: one thumb, or two for a range, a track that fills between them (from the start with one thumb) and, for a scale of a few stops, a dot on the track at each. It is Radix's `Slider` with one change: Radix keeps a thumb inside the slider by shifting it by half its width, which it has to measure, so a thumb drawn at its full size sits somewhere else on the server than in the browser. Here the thumb itself has no size, its centre is exactly where the fill, the dots and the pointer put it, and the handle, a white circle, is drawn around that centre. The handles stick out of the track by half their width at each end, so leave that room around the slider (a margin of `mx-2`). It is `touch-none`: a finger drags a thumb instead of scrolling the page."
+      intro="A slider for a value or a range along a scale: one thumb, or two for a range, a track that fills between them (from the start with one thumb) and, for a scale of a few stops, a dot on the track at each. It is Radix's `Slider` with one change: Radix keeps a thumb inside the slider by shifting it by half its width, which it has to measure, so a thumb drawn at its full size sits somewhere else on the server than in the browser. Here the thumb itself has no size, its centre is exactly where the fill, the dots and the pointer put it, and the handle, a white vertical capsule 8px wide and 20px high, is drawn around that centre. The handles stick out of the track by half their width at each end, so leave that room around the slider (a margin of `mx-1`). It is `touch-none`: a finger drags a thumb instead of scrolling the page."
     >
       <Demo
         title="One thumb"
@@ -587,7 +587,7 @@ export function Meters() {
     >
       <Demo
         title="Levels"
-        description="With a mouse, the bars up to the pointer light up faintly before the press, so the fill can be seen coming. The bars are all 20px high, the height of an icon, and `levels` is the number of bars (five by default)."
+        description="With a mouse, the bars up to the pointer light up faintly before the press, so the fill can be seen coming. The bars are all 16px high (`h-4`), and `levels` is the number of bars (five by default)."
         code={`<Meter
   value={level}
   onValueChange={setLevel}

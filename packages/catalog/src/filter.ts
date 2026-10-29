@@ -23,7 +23,7 @@ export const DURATION_LIMITS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as co
 export const COMPLEXITY_LEVELS = [1, 2, 3, 4, 5] as const
 
 /** The ages the filter offers, in years, written "8+" (from 8 years old): the age of the youngest player, so a game stays when its minimum age is at most that. */
-export const AGE_LIMITS = [6, 8, 10, 12, 14] as const
+export const AGE_LIMITS = [6, 8, 10, 12, 14, 18] as const
 
 /** Where the number of players starts: a table of four. One of `PLAYER_COUNTS`. */
 export const DEFAULT_PLAYERS = 4

@@ -114,8 +114,8 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
  * A filter that opens something: an icon and what is picked, in a button. It opens nothing itself: the page wraps it in a `PopoverTrigger asChild` or
  * a `DropdownMenuTrigger asChild`, which gives it `aria-expanded` and the open state this paints. At the end of the bar it is a pill without a
  * frame, 48px high; the value of a segment with nothing picked is left out under 48rem of room, so the field keeps its room on a phone and the icon
- * stands for it. `boxed`, under the bar, it is bare like the other filters there: 56px high, with no background, not even under the pointer or while
- * its menu is open.
+ * stands for it. `boxed`, under the bar, it is bare like the other filters there, 56px high with no frame, and it goes gray, like the one at the end of
+ * the bar, under the pointer and while its menu is open.
  */
 function SearchBarSegment({ className, icon, label, value, idle = false, boxed = false, ...props }: SearchBarSegmentProps) {
   return (
@@ -124,8 +124,8 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       type="button"
       aria-label={`${label}: ${value}`}
       className={cn(
-        "flex shrink-0 items-center gap-2 text-left outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/30",
-        boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-52 rounded-full px-3 hover:bg-input/30 aria-expanded:bg-muted",
+        "flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
+        boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-52 rounded-full px-3",
         className
       )}
       {...props}
@@ -140,7 +140,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
 
 /**
  * The filters that stand under the bar: a row, centred, on a line of its own, that goes on another line when the room runs out. Each is in a place of
- * its own with no background (a `SearchBarGroup`, a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`). Name the group with an `aria-label`.
+ * its own with no background of its own (a `SearchBarGroup`, a `SearchBarStepper`, or a `SearchBarSegment` that is `boxed`). Name the group with an `aria-label`.
  */
 function SearchBarFilters({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="search-bar-filters" role="group" className={cn("mt-3 flex flex-wrap items-center justify-center gap-3", className)} {...props} />
