@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
 // The social panel of a signed-in visitor, the way the Riot Client has it: three tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the conversations
 // with them; and the way to add a friend with the requests that wait for an answer), the search of the friends, and the list. The tabs that have something for the visitor (messages
-// not read, requests to answer) carry a count. The tile behind the current tab is as high as the tab bar, one element that glides to the tab that is pressed with a small white line glued to the bottom edge of the bar, and the pane of a tab comes in from the side the tab is
+// not read, requests to answer) carry a count. The tile behind the current tab is one element that glides to the tab that is pressed, and the pane of a tab comes in from the side the tab is
 // on while the one of the tab that was left goes out the other way (`AnimatePresence`, one after the other); a visitor who asks for less motion gets the change with no travel. With a
 // surface of its own it is a column for a page, with a `header` (whatever the page puts at the top, usually a picture, a name and a status); `bare` draws none: it is then the body of the
 // dock of the navbar (`SocialDock`), which is its surface and whose bar holds the button that opens and closes it (`SocialPanelToggle`). It is drawn from what it is given and decides
@@ -26,14 +26,11 @@ import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
 export type SocialTab = "friends" | "messages" | "add"
 
-/** The count on the corner of a tab: at the top right of its icon, which is in the middle (7px under the top of the 3rem tab bar). */
-const COUNT = "absolute top-1.75 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
+/** The count on the corner of a tab: at the top right of its icon, which is in the middle. */
+const COUNT = "absolute top-0.5 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
 
-/**
- * The look of a tab: a big icon, and behind it the tile that marks the current tab (`TabFill`), as high as the tab bar, from its top edge to its bottom edge. A tab has no padding, no border and no
- * corner of its own, the tab bar being what cuts the tile to its shape where it reaches an end (`overflow-hidden rounded-2xl`); and since it cuts whatever is outside of it, the ring of the focus is drawn inside the tab.
- */
-const TAB = "relative isolate h-full rounded-none border-0 px-0 data-active:bg-transparent focus-visible:ring-inset focus-visible:-outline-offset-1"
+/** The look of a tab: a big icon in a rounded tile, which is a fill that glides from one tab to the next (`TabFill`). The bar is 3rem high, so `rounded-2xl`, and a tab is one step under it (`rounded-xl`: the bar's radius less its padding). Never a pill. */
+const TAB = "relative isolate rounded-xl px-0 data-active:bg-transparent"
 
 /** The tabs, in the order of the bar: the way a change of tab went is read from it. */
 const ORDER: readonly SocialTab[] = ["friends", "messages", "add"]
@@ -49,18 +46,17 @@ const PANE = {
 }
 
 /**
- * What marks the current tab: the tile behind it, as high as the tab bar, and a small white line glued to the bottom edge of the tab bar, under the tab, as the Riot Client's tab has. Each is one
- * element for the three tabs (`layoutId`), so that it travels when another tab is pressed, with the spring of the navbar's fill. The tile has no corner (the tab bar cuts it where it reaches an end)
- * and the line has its top corners smoothed and rests flat on the edge.
+ * What marks the current tab: the tile behind it and a small white bar under it, as the Riot Client's tab has. Each is one element for the three tabs (`layoutId`), so that it travels when
+ * another tab is pressed, with the spring of the navbar's fill.
  */
 function TabFill() {
   return (
     <>
-      <motion.span layoutId="social-tab" aria-hidden="true" className="absolute inset-0 -z-10 bg-input/50" transition={SPRING_TRAVEL} />
+      <motion.span layoutId="social-tab" aria-hidden="true" className="absolute inset-0 -z-10 rounded-xl bg-input/50" transition={SPRING_TRAVEL} />
       <motion.span
         layoutId="social-tab-bar"
         aria-hidden="true"
-        className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-t-xs bg-foreground"
+        className="absolute -bottom-0.5 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-xs bg-foreground"
         transition={SPRING_TRAVEL}
       />
     </>
@@ -316,7 +312,7 @@ function SocialPanel({
 
       <Tabs value={tab} onValueChange={(value) => pick(value as SocialTab)} className="min-h-0 flex-1 gap-4">
         <LayoutGroup id={group}>
-          <TabsList className="w-full gap-0 overflow-hidden rounded-2xl p-0 group-data-horizontal/tabs:h-12">
+          <TabsList className="w-full gap-1 rounded-2xl group-data-horizontal/tabs:h-12">
             <TabsTrigger value="friends" id={`${group}-friends`} aria-controls={`${group}-pane`} aria-label="Friends" title="Friends" className={TAB}>
               <HugeiconsIcon icon={UserListIcon} strokeWidth={2} className={TAB_ICON} />
               {tab === "friends" && <TabFill />}
