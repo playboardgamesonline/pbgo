@@ -4,8 +4,8 @@ import { Suit, type SuitName } from "./suits"
 import { TitleCoin } from "./title-coin"
 
 // What stands for a letter or an ornament in the home's title, in the pieces of a game table (the utilities `title-piece` and `title-cards` of `styles/platform.css`, sized in `em` so they follow the title
-// and set on its baseline): a die, a coin or the suits of a deck of cards for an "o", and two white playing cards that overlap between two words. They move: the die is flat and turns in its plane, a turn
-// at each change of face (CSS keyframes, no script), the suit turns into the next one (a heart, a diamond, a club, a spade), and the coin spins on itself for 5 or 6 half turns, slowly (`TitleCoin`, the one
+// and set on its baseline): a die, a coin or the suits of a deck of cards for an "o", and two white playing cards that overlap between two words. They move, slowly: the die is flat and turns in its plane, a turn
+// in a second and a half at each change of face, every four seconds (CSS keyframes, no script), the suit turns into the next one every four seconds (a heart, a diamond, a club, a spade), and the coin spins on itself for 5 or 6 half turns, in about seven seconds (`TitleCoin`, the one
 // piece that needs a script, since a keyframe cannot be left to chance); a visitor who asks for less motion gets them still, the die on its five, the coin on its profile and the suit a heart. The letter a
 // piece stands for stays in the page, for a screen reader and a search engine (`sr-only`), so the title reads as it is written; the cards stand for no letter, so they are `aria-hidden`.
 

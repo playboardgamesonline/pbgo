@@ -5,7 +5,7 @@ import { animate, motion, useMotionValue, useReducedMotion } from "motion/react"
 
 // The coin of the home's title, an "o": two sides, a profile and a star, drawn by the utility `title-piece` of `styles/platform.css`. It spins on itself, from the top to the bottom, and it does not rise. What
 // the CSS cannot do is leave it to chance, so this is the one piece of the title that is not a keyframe: now and then it spins, for 5 or 6 half turns (so it stops on its star after 5 and on its profile after 6:
-// that is all the chance there is), slowly (about four and a half seconds, a little more for the sixth), and slows down the way a thing does that rubs: a quick start, at the most a turn and a half a second,
+// that is all the chance there is), slowly (about seven seconds, a little more for the sixth), and slows down the way a thing does that rubs: a quick start, at the most a turn and a quarter a second,
 // and a long tail. It always stops flat on a side. A visitor who asks for less motion gets the profile and nothing moves.
 
 /** How the coin slows down: a start that is not violent, then slower and slower until it stops (a cubic Bézier, a little steep at the start and flat at the end). */
@@ -23,10 +23,10 @@ function TitleCoin() {
 
     const spin = () => {
       const halves = Math.random() < 0.5 ? 5 : 6
-      const seconds = (halves === 5 ? 4.4 : 5) * (0.96 + Math.random() * 0.08)
+      const seconds = (halves === 5 ? 7.2 : 8.4) * (0.96 + Math.random() * 0.08)
       running = animate(angle, angle.get() - halves * 180, { duration: seconds, ease: FRICTION })
       running.then(() => {
-        if (!stopped) timer = setTimeout(spin, 2500 + Math.random() * 2500)
+        if (!stopped) timer = setTimeout(spin, 3500 + Math.random() * 3000)
       })
     }
 

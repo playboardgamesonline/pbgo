@@ -540,7 +540,7 @@
   &[data-kind="die"] > [data-slot="die"] {
     position: absolute;
     inset: 0;
-    animation: title-die 18s ease-in-out infinite;
+    animation: title-die 24s ease-in-out infinite;
   }
   &[data-kind="die"] [data-pips] {
     position: absolute;
@@ -549,8 +549,8 @@
     background-color: var(--piece-ivory);
     box-shadow: inset 0 -0.04em 0.06em color-mix(in oklab, var(--piece-ink) 22%, transparent);
     opacity: 0;
-    animation: title-die-face 18s linear infinite;
-    animation-delay: calc(var(--i) * 3s - 1.5s);
+    animation: title-die-face 24s linear infinite;
+    animation-delay: calc(var(--i) * 4s - 2s);
   }
   /* A coin: it spins on itself, from the top to the bottom, to show heads and tails in turn (`title-coin`; it does not rise), its two sides drawn apart, the "face" with a profile and the "pile" with a star. It is lower than the baseline by 0.03em, and
      0.005em more to the left than the die: a coin is round, and the "o" it stands for has an overshoot */
@@ -618,8 +618,8 @@
     height: 120%;
     fill: var(--piece-red);
     opacity: 0;
-    animation: title-suit 12s ease-in-out infinite;
-    animation-delay: calc(var(--i) * 3s - 0.6s);
+    animation: title-suit 16s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 4s - 0.7s);
   }
   /* The black suits are black, as printed on a card (`--piece-black`), with no outline */
   &[data-kind="suits"] > svg[data-suit="club"],
@@ -630,20 +630,20 @@
 
 @keyframes title-suit {
   0% { opacity: 0; transform: rotateY(-90deg) scale(0.6); }
-  3%, 22% { opacity: 1; transform: rotateY(0deg) scale(1); }
+  4.4%, 20.6% { opacity: 1; transform: rotateY(0deg) scale(1); }
   25%, 100% { opacity: 0; transform: rotateY(90deg) scale(0.6); }
 }
 
-/* The die of the title shows six faces in turn, three seconds each, and turns once in its plane at each change (0.4 s either side of it, the face being changed in the middle of the turn): the changes are 1.5 s, 4.5 s... into the
+/* The die of the title shows six faces in turn, four seconds each, and turns once in its plane at each change (0.8 s either side of it, the face being changed in the middle of the turn): the changes are 2 s, 6 s... into the
    cycle, so that the end of the cycle, where it starts again, is in the middle of a rest */
 @keyframes title-die {
-  0%, 6.1% { transform: rotate(0deg); }
-  10.6%, 22.8% { transform: rotate(360deg); }
-  27.2%, 39.4% { transform: rotate(720deg); }
-  43.9%, 56.1% { transform: rotate(1080deg); }
-  60.6%, 72.8% { transform: rotate(1440deg); }
-  77.2%, 89.4% { transform: rotate(1800deg); }
-  93.9%, 100% { transform: rotate(2160deg); }
+  0%, 5% { transform: rotate(0deg); }
+  11.7%, 21.7% { transform: rotate(360deg); }
+  28.3%, 38.3% { transform: rotate(720deg); }
+  45%, 55% { transform: rotate(1080deg); }
+  61.7%, 71.7% { transform: rotate(1440deg); }
+  78.3%, 88.3% { transform: rotate(1800deg); }
+  95%, 100% { transform: rotate(2160deg); }
 }
 
 /* One face of that die is shown for the sixth of the cycle that it is given by its delay (a hair longer, so that there is never a moment with none), and not the rest */
