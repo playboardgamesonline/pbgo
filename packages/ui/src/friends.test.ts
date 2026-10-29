@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activityLine, gamesOf, initials, rosterOf, sectionsOf, tablesOf, type Friend } from "./friends"
+import { activityLine, gamesOf, initials, presenceWord, rosterOf, sectionsOf, statusLine, tablesOf, type Friend } from "./friends"
 
 const friend = (id: string, status: Friend["status"], rest: Partial<Friend> = {}): Friend => ({ id, nickname: id, status, ...rest })
 const COURTISANS = { slug: "courtisans", name: "Courtisans" }
@@ -149,5 +149,25 @@ describe("initials", () => {
   it("keeps a character outside the basic plane whole, and has a mark for a name with nothing in it", () => {
     expect(initials("🎲 dice")).toBe("🎲D")
     expect(initials("   ")).toBe("?")
+  })
+})
+
+describe("statusLine", () => {
+  const base: Friend = { id: "a", nickname: "Ana", status: "online" }
+
+  it("says the game and what they do there", () => {
+    expect(statusLine({ ...base, status: "playing", game: { slug: "courtisans", name: "Courtisans" }, activity: "Table K7P · 12 min" })).toBe("Courtisans · Table K7P · 12 min")
+  })
+
+  it("falls back on the word of their presence", () => {
+    expect(statusLine(base)).toBe("Online")
+    expect(statusLine({ ...base, status: "offline" })).toBe("Offline")
+    expect(statusLine({ ...base, status: "dnd" })).toBe("Do not disturb")
+    expect(statusLine({ ...base, status: "inactive" })).toBe("Inactive")
+    expect(statusLine({ ...base, status: "playing" })).toBe("In a game")
+  })
+
+  it("has a word for every status", () => {
+    for (const status of ["playing", "online", "inactive", "dnd", "offline"] as const) expect(presenceWord({ ...base, status })).not.toBe("")
   })
 })

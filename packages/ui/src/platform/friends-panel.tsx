@@ -1,15 +1,18 @@
 "use client"
 
 import * as React from "react"
-import { Link01Icon, Search01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons"
+import { ArrowUp01Icon, Edit02Icon, Link01Icon, Search01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { initials, rosterOf, type Friend, type FriendStatus } from "../friends"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { initials, presenceWord, rosterOf, type Friend, type FriendStatus } from "../friends"
+import { DURATION, EASE_STANDARD } from "../motion"
 import { fold } from "../match-options"
 import { cn } from "../utils"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "./avatar"
 import { Badge } from "./badge"
 import { Button } from "./button"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
+import { MovingCard, useMovingCard, type MovingCardControl } from "./moving-card"
 
 // The friends of a signed-in visitor, as a list for a page or a panel: game by game (the picture of the game, its name and how many friends are in it, those who wait in its
 // lobby and those who play it in one list), then those who are in no game by status, a search among them, and the way to add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
@@ -84,13 +87,59 @@ function GameIcon({ name, src, className }: { name: string; src?: string; classN
   )
 }
 
+/**
+ * How far the card stands from the row. A row is 17px inside its panel (its border, 1px, and its padding, 16px) and the card overlaps the panel a little, as the Riot Client's does: its edge is at
+ * the edge of what the panel holds (16px in), so that it covers the border and the padding of the panel and none of its rows.
+ */
+const CARD_OFFSET = 1
+
+/**
+ * What the card of a friend says, which opens to the left of the panel when the pointer rests on their row and moves from one friend to the next (`MovingCard`), as the Riot Client's does:
+ * their picture, big, with the dot of their presence, their name and tag, the game they are in, what they are doing there, and the note that is kept on them, where the page keeps one
+ * (`onNote`: the button is not drawn without it). It will say more one day, how far the game they are in has got: the card grows to what it holds.
+ */
+function FriendCard({ friend, gameIcon, onNote }: { friend: Friend; gameIcon?: (slug: string) => string | undefined; onNote?: (friend: Friend) => void }) {
+  const line = friend.status === "offline" && friend.activity ? `Offline · ${friend.activity}` : (friend.activity ?? presenceWord(friend))
+  return (
+    <>
+      <Avatar size="xl">
+        {friend.avatarUrl && <AvatarImage src={friend.avatarUrl} alt="" referrerPolicy="no-referrer" />}
+        <AvatarFallback>{initials(friend.nickname)}</AvatarFallback>
+        <PresenceDot status={friend.status} />
+      </Avatar>
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="truncate text-lg leading-tight font-strong text-foreground">
+          {friend.nickname}
+          {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
+        </p>
+        {friend.game && (
+          <p className="flex items-center gap-2 text-sm text-foreground">
+            <GameIcon name={friend.game.name} src={gameIcon?.(friend.game.slug)} className="size-5" />
+            <span className="truncate">{friend.game.name}</span>
+          </p>
+        )}
+        <p className="truncate text-sm text-muted-foreground">{line}</p>
+      </div>
+      {onNote && (
+        <Button type="button" variant="secondary" size="lg" className="w-full justify-start" onClick={() => onNote(friend)}>
+          <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} data-icon="inline-start" />
+          Add a note
+        </Button>
+      )}
+    </>
+  )
+}
+
 function FriendRow({
   friend,
+  card,
   onInvite,
   onJoin,
   onOpen,
 }: {
   friend: Friend
+  /** The card of the list, which this row shows its friend in under the pointer. */
+  card: MovingCardControl
   onInvite?: (friend: Friend) => void
   onJoin?: (friend: Friend) => void
   onOpen?: (friend: Friend) => void
@@ -123,7 +172,17 @@ function FriendRow({
       className={cn(
         "group/friend flex items-center gap-3 rounded-2xl px-2.5 py-2 transition-colors duration-fast hover:bg-muted/50 focus-within:bg-muted/50",
         friend.status === "offline" && "text-muted-foreground",
+        card.target?.key === friend.id && "bg-muted/50",
       )}
+      // A touch has no hover: a press opens the conversation, and the card is for the pointer and the keyboard
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch") card.show(friend.id, event.currentTarget)
+      }}
+      onPointerLeave={card.hide}
+      onFocus={(event) => {
+        if (event.target.matches(":focus-visible")) card.show(friend.id, event.currentTarget, true)
+      }}
+      onBlur={card.hide}
     >
       {onOpen ? (
         <button
@@ -157,13 +216,18 @@ function FriendRow({
  * are in it, with all of them under it, those who wait in its lobby and those who play it, and then the friends who are in no game come by status (online,
  * inactive, do not disturb, away; an empty group is not drawn), each headed by its word and its count. A row has the picture and the dot of the friend's presence,
  * their name and what they are doing. It scrolls its list, without a scrollbar, so a parent gives it a height. With no friends it says so. A row is a button when the
- * list can open a conversation (`onOpen`).
+ * list can open a conversation (`onOpen`). The head of a game is a button that folds its friends away and unfolds them (a chevron, which is there under the pointer, and
+ * whenever the game is folded): the games that are folded are the page's to keep (`folded`, `onFoldedChange`) or the list's own while the page says nothing, and a search shows
+ * what it finds whether its game is folded or not. Under the pointer a friend has a card, to the left of the list: one card for the whole list, which moves from a friend to the next (`MovingCard`, `FriendCard`).
  */
 function FriendsRoster({
   friends,
   gameIcon,
+  folded,
+  onFoldedChange,
   onInvite,
   onJoin,
+  onNote,
   onOpen,
   className,
   ...props
@@ -171,15 +235,37 @@ function FriendsRoster({
   friends: readonly Friend[]
   /** The picture of a game, from its slug; the initial of its name is drawn where there is none or it does not load. */
   gameIcon?: (slug: string) => string | undefined
+  /** The groups that are folded, by their key (`game:<slug>`). Without it the list keeps them itself, for as long as it is shown. */
+  folded?: ReadonlySet<string>
+  /** What the head of a game does with the groups that are folded once one is pressed. */
+  onFoldedChange?: (folded: ReadonlySet<string>) => void
   /** What the button of a friend who is online does. */
   onInvite?: (friend: Friend) => void
   /** What the button of a friend who is in a game does. */
   onJoin?: (friend: Friend) => void
+  /** What the button of the note on a friend, in their card, does. Not drawn without it. */
+  onNote?: (friend: Friend) => void
   /** What a press on a friend does: open the conversation with them. */
   onOpen?: (friend: Friend) => void
 }) {
   const [query, setQuery] = React.useState("")
   const needle = fold(query).trim()
+  // One card for the whole list: it moves from a friend to the next, and says what is about the one under the pointer
+  const list = React.useRef<HTMLDivElement>(null)
+  const card = useMovingCard((node) => list.current?.contains(node) ?? false)
+  const onCard = friends.find((friend) => friend.id === card.target?.key)
+  const lastOnCard = React.useRef<Friend | null>(null)
+  if (onCard) lastOnCard.current = onCard
+  const cardFriend = onCard ?? lastOnCard.current
+  const [own, setOwn] = React.useState<ReadonlySet<string>>(() => new Set())
+  const folds = folded ?? own
+  const fadeOut = useReducedMotion() ? { duration: 0 } : { duration: DURATION.base, ease: EASE_STANDARD }
+  const id = React.useId()
+  const toggle = (key: string) => {
+    const next = new Set(folds)
+    if (!next.delete(key)) next.add(key)
+    ;(onFoldedChange ?? setOwn)(next)
+  }
   const shown = needle === "" ? friends : friends.filter((friend) => fold(`${friend.nickname}#${friend.tag ?? ""}`).includes(needle))
 
   return (
@@ -193,7 +279,7 @@ function FriendsRoster({
         </InputGroup>
       )}
 
-      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={list} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {friends.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1 px-4 py-10 text-center">
             <p className="text-sm text-foreground">No friends yet</p>
@@ -204,23 +290,83 @@ function FriendsRoster({
         ) : (
           rosterOf(shown).map((group) => {
             const name = group.kind === "game" ? group.game.name : group.label
+            // A search shows what it finds, in a game that is folded too
+            const open = needle !== "" || !folds.has(group.key)
+            const list = (
+              <ul className="flex flex-col">
+                {group.friends.map((friend) => (
+                  <FriendRow key={friend.id} friend={friend} card={card} onInvite={onInvite} onJoin={onJoin} onOpen={onOpen} />
+                ))}
+              </ul>
+            )
             return (
               <section key={group.key} aria-label={name} className="mb-3 last:mb-0">
-                <h3 className="flex items-center gap-2 px-2.5 pb-1 text-sm text-foreground">
-                  {group.kind === "game" && <GameIcon name={group.game.name} src={gameIcon?.(group.game.slug)} className="size-5" />}
-                  <span className="truncate">{name}</span>
-                  <span className="text-muted-foreground tabular-nums">{group.friends.length}</span>
-                </h3>
-                <ul className="flex flex-col">
-                  {group.friends.map((friend) => (
-                    <FriendRow key={friend.id} friend={friend} onInvite={onInvite} onJoin={onJoin} onOpen={onOpen} />
-                  ))}
-                </ul>
+                {group.kind === "game" ? (
+                  <>
+                    <h3 className="text-sm text-foreground">
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        aria-controls={`${id}-${group.key}`}
+                        onClick={() => toggle(group.key)}
+                        className="group/head flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left outline-none transition-colors duration-fast hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30"
+                      >
+                        <GameIcon name={group.game.name} src={gameIcon?.(group.game.slug)} className="size-5" />
+                        <span className="truncate">{name}</span>
+                        <span className="text-muted-foreground tabular-nums">{group.friends.length}</span>
+                        <HugeiconsIcon
+                          icon={ArrowUp01Icon}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                          className={cn(
+                            "ml-auto size-4 shrink-0 transition-[opacity,rotate] duration-base ease-standard",
+                            open ? "opacity-0 group-hover/head:opacity-100 group-focus-visible/head:opacity-100" : "rotate-180 opacity-100",
+                          )}
+                        />
+                      </button>
+                    </h3>
+                    <AnimatePresence initial={false}>
+                      {open && (
+                        <motion.div
+                          key="friends"
+                          id={`${id}-${group.key}`}
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={fadeOut}
+                          className="overflow-hidden"
+                        >
+                          {list}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="flex items-center gap-2 px-2.5 pb-1 text-sm text-foreground">
+                      <span className="truncate">{name}</span>
+                      <span className="text-muted-foreground tabular-nums">{group.friends.length}</span>
+                    </h3>
+                    {list}
+                  </>
+                )}
               </section>
             )
           })
         )}
       </div>
+      {cardFriend && (
+        <MovingCard
+          card={card}
+          contentKey={cardFriend.id}
+          width={288}
+          placement={{ side: "left", align: "start", offset: CARD_OFFSET, alignOffset: -8 }}
+          label={cardFriend.nickname}
+          contentClassName="flex flex-col gap-4 p-6"
+        >
+          <FriendCard friend={cardFriend} gameIcon={gameIcon} onNote={onNote} />
+        </MovingCard>
+      )}
     </div>
   )
 }

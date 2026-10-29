@@ -15,6 +15,7 @@ import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platfor
 import { unreadOf, type Conversation, type Message } from "@pbgo/ui/social"
 import { cn } from "@pbgo/ui/utils"
 import { AccountMenu } from "@/components/account-menu"
+import { readFolded, writeFolded } from "@/lib/folded-games"
 import { useCopied } from "@/lib/use-copied"
 import { useSocial } from "@/lib/use-social"
 
@@ -36,6 +37,8 @@ export function SiteSocial({ account }: { account: Account }) {
   const [copied, copy] = useCopied()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<SocialTab>("friends")
+  // The games of the list that the visitor folded: the panel is unmounted when the dock closes, so they are kept here, and in the browser for the next visit
+  const [folded, setFolded] = useState<ReadonlySet<string>>(readFolded)
   // The friend of the chat is kept after it is closed, so that the window has someone to show while it leaves
   const [chatWith, setChatWith] = useState<Friend | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
@@ -68,7 +71,7 @@ export function SiteSocial({ account }: { account: Account }) {
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || document.querySelector('[data-slot="dropdown-menu-content"], [data-slot="popover-content"]')) return
+      if (event.key !== "Escape" || document.querySelector('[data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="moving-card"]')) return
       setOpen(false)
       toggle.current?.focus()
     }
@@ -109,7 +112,7 @@ export function SiteSocial({ account }: { account: Account }) {
           </>
         }
         profile={
-          <AccountMenu account={account} align={open ? "start" : "end"}>
+          <AccountMenu account={account} beside={open ? '[data-slot="social-dock"]' : undefined}>
             <button
               type="button"
               aria-label={`Account of ${account.nickname}${waiting > 0 ? `, ${waiting} waiting` : ""}`}
@@ -139,8 +142,14 @@ export function SiteSocial({ account }: { account: Account }) {
           conversations={conversations}
           requests={social.requests}
           onOpenChat={openChat}
+          folded={folded}
+          onFoldedChange={(next) => {
+            setFolded(next)
+            writeFolded(next)
+          }}
           onJoin={preview ? nothing : undefined}
           onInvite={preview ? nothing : undefined}
+          onNote={preview ? nothing : undefined}
           onSendRequest={preview ? nothing : undefined}
           onAnswerRequest={preview ? nothing : undefined}
           onShareLink={copy}

@@ -108,6 +108,16 @@ export function activityLine(friend: Friend): string | undefined {
   return [friend.game?.name, friend.activity].filter(Boolean).join(" · ") || undefined
 }
 
+/** The word of a friend's presence, when nothing says more: "Online", "In a game", "Inactive", "Do not disturb", "Offline". */
+export function presenceWord(friend: Friend): string {
+  return friend.status === "offline" ? "Offline" : friend.status === "playing" ? "In a game" : friend.status === "inactive" ? "Inactive" : friend.status === "dnd" ? "Do not disturb" : "Online"
+}
+
+/** What a friend is doing, in one line, for a chat or a card: the game and what they do there, or the word of their presence. */
+export function statusLine(friend: Friend): string {
+  return activityLine(friend) ?? presenceWord(friend)
+}
+
 /** The letters of an avatar with no picture: up to two initials of the name, in capitals; "?" for a name with nothing in it. */
 export function initials(nickname: string): string {
   return (

@@ -13,7 +13,7 @@ import { cn } from "../utils"
 // The bar is the header of the panel, the way the Riot Client has it, and it changes with the dock instead of staying what it was. Closed, it is the games the friends are in, the
 // visitor's picture and the button of the panel. Open, the games fold away (their width, then their opacity), the picture glides to the start of the bar as they go, what the profile says
 // unfolds beside it (`SocialDockIdentity`: the name and the word of the status), and the button stays at the end of the bar. The header has the room of what is under it: it grows from 54px
-// to 80px, the picture 24px from the start, from the top and from the tabs, for the room from the corner, and the button 16px from the end, in line with the tabs, the search and the list. All of it moves with the same
+// to 80px, the picture 24px from the start, from the top and from the tabs, for the room from the corner, and the button 16px from the end, in line with the tabs, the search and the list, and at the top, where it was when the dock was closed. All of it moves with the same
 // transition as the dock, so the bar never jumps.
 //
 // The page puts a place for it in the navbar (3.5rem high, as wide as the bar) and the dock grows out of that place, over the page, to the left of it: the place is a flex row that ends at
@@ -208,7 +208,8 @@ function SocialDock({ open, games, profile, toggle, children, height, className 
               <DockGames>{games}</DockGames>
               {profile}
               <div aria-hidden="true" className="min-w-1 flex-1" />
-              {toggle}
+              {/* At the top of the bar, where it is when the dock is closed (7px under the top of the bar: its 40px centred in 54px), and it stays there when the header grows */}
+              <div className="mt-1.75 self-start">{toggle}</div>
             </motion.div>
             <AnimatePresence initial={false}>
               {open && (

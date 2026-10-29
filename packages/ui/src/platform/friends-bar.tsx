@@ -8,7 +8,7 @@ import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { Button } from "./button"
 import { GameIcon, PresenceDot } from "./friends-panel"
-import { Popover, PopoverAnchor, PopoverContent } from "./popover"
+import { MovingCard, useMovingCard } from "./moving-card"
 
 // The friends of a signed-in visitor as the Riot Client shows its social visibility: a small bar on the navbar, in the container of the account and of the social panel (`SocialDock`, which is its own container: the bar draws none), with a pill for each game
 // that some of them are in (the game's picture and how many of them are in it), and, under the pointer, a panel under the bar with those friends in two lists,
@@ -19,7 +19,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "./popover"
 // of the social panel, so that the games, the profile and the panel are one container. While the dock is open the bar is folded away, the profile taking its place. A status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green
 // disc online, an orange-yellow moon inactive, a red disc with a bar do not disturb, a thick grey ring offline) and, under the name, a line of quiet text (only the dot is coloured), and always a word too, never the colour alone.
 //
-// The panel is a `Popover` anchored on the bar, which opens under the pointer (a short delay on the way out lets the pointer cross the gap to the panel), with the
+// The panel is one card for all the pills (`MovingCard`), centred under the pill that is under the pointer and narrow (15rem): it moves from a game to the next, and what it says changes. It opens under the pointer (a short delay on the way out lets the pointer cross the gap to the panel), with the
 // keyboard (a pill that has the focus) and, where there is no pointer, when a pill is pressed (pressed again, or a press away, it closes). It is drawn from the
 // friends it is given and decides nothing about them. A narrow screen has room for fewer pills, the most crowded games first.
 
@@ -28,9 +28,6 @@ const MAX_GAMES = 3
 
 /** Where each pill starts to have room: the first always, the next ones from wider screens. */
 const SHOWN_FROM = ["", "max-[359px]:hidden", "max-[399px]:hidden"] as const
-
-/** How long the panel stays when the pointer leaves, so that it can cross the gap between the bar and the panel. */
-const HIDE_DELAY = 140
 
 type FriendsBarProps = Omit<React.ComponentProps<"div">, "children"> & {
   friends: readonly Friend[]
@@ -139,27 +136,15 @@ function FriendsBar({
   ...props
 }: FriendsBarProps) {
   const games = gamesOf(friends).slice(0, MAX_GAMES)
-  const [open, setOpen] = React.useState<string | null>(null)
   const bar = React.useRef<HTMLDivElement>(null)
-  const timer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const touched = React.useRef(false)
-  const last = React.useRef<GameFriends | null>(null)
-
+  // One panel for all the pills: it moves from a game to the next and says what is about the one under the pointer. A press on the bar is not a press away from the panel: the pill decides
+  const card = useMovingCard((node) => bar.current?.contains(node) ?? false)
+  const onPill = games.find((game) => game.game.slug === card.target?.key) ?? null
   // The panel keeps the last game it drew while it closes, so that it does not empty as it fades
-  const entry = games.find((game) => game.game.slug === open) ?? null
-  if (entry) last.current = entry
-  const shown = entry ?? last.current
-
-  const cancel = () => clearTimeout(timer.current)
-  const show = (slug: string) => {
-    cancel()
-    setOpen(slug)
-  }
-  const hide = () => {
-    cancel()
-    timer.current = setTimeout(() => setOpen(null), HIDE_DELAY)
-  }
-  React.useEffect(() => () => clearTimeout(timer.current), [])
+  const last = React.useRef<GameFriends | null>(null)
+  if (onPill) last.current = onPill
+  const shown = onPill ?? last.current
 
   if (games.length === 0) {
     if (!onShareLink) return null
@@ -173,77 +158,67 @@ function FriendsBar({
   }
 
   return (
-    <Popover
-      open={entry !== null}
-      onOpenChange={(next) => {
-        if (!next) setOpen(null)
-      }}
-    >
-      <PopoverAnchor asChild>
-        <div
-          role="group"
-          aria-label="Friends in a game"
-          {...props}
-          ref={bar}
-          data-slot="friends-bar"
-          className={cn("flex items-center gap-1", className)}
-          onPointerLeave={hide}
-          onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) hide()
-          }}
-        >
-          {games.map((item, index) => {
-            const isOpen = open === item.game.slug
-            return (
-              <button
-                key={item.game.slug}
-                type="button"
-                aria-label={`${item.game.name}: ${item.count} ${item.count === 1 ? "friend" : "friends"}`}
-                aria-expanded={isOpen}
-                aria-haspopup="true"
-                data-open={isOpen ? "" : undefined}
-                className={cn(PILL, SHOWN_FROM[index])}
-                // A touch has no hover: it presses the pill, which opens its panel, and presses it again to close it
-                onPointerEnter={(event) => {
-                  if (event.pointerType !== "touch") show(item.game.slug)
-                }}
-                onPointerDown={(event) => {
-                  touched.current = event.pointerType === "touch"
-                }}
-                onClick={() => {
-                  if (touched.current && isOpen) setOpen(null)
-                  else show(item.game.slug)
-                }}
-                // Only the focus a keyboard gives opens it, not the one a click leaves
-                onFocus={(event) => {
-                  if (event.target.matches(":focus-visible")) show(item.game.slug)
-                }}
-              >
-                <GameIcon name={item.game.name} src={gameIcon?.(item.game.slug)} />
-                <span className="tabular-nums">{item.count}</span>
-                {isOpen && <span aria-hidden="true" className="absolute inset-x-2 bottom-0 h-0.5 rounded-xs bg-foreground" />}
-              </button>
-            )
-          })}
-        </div>
-      </PopoverAnchor>
-      <PopoverContent
-        align="start"
-        sideOffset={14}
-        aria-label={shown ? `Friends in ${shown.game.name}` : "Friends"}
-        className="w-72 gap-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        // A press on the bar is not a press away from the panel: the pill it is on decides what the panel does
-        onInteractOutside={(event) => {
-          if (bar.current?.contains(event.target as Node)) event.preventDefault()
+    <>
+      <div
+        role="group"
+        aria-label="Friends in a game"
+        {...props}
+        ref={bar}
+        data-slot="friends-bar"
+        className={cn("flex items-center gap-1", className)}
+        onPointerLeave={card.hide}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) card.hide()
         }}
-        onPointerEnter={cancel}
-        onPointerLeave={hide}
       >
-        {shown && <FriendsBarList entry={shown} onJoin={onJoin} />}
-      </PopoverContent>
-    </Popover>
+        {games.map((item, index) => {
+          const isOpen = card.target?.key === item.game.slug
+          return (
+            <button
+              key={item.game.slug}
+              type="button"
+              aria-label={`${item.game.name}: ${item.count} ${item.count === 1 ? "friend" : "friends"}`}
+              aria-expanded={isOpen}
+              aria-haspopup="true"
+              data-open={isOpen ? "" : undefined}
+              className={cn(PILL, SHOWN_FROM[index])}
+              // A touch has no hover: it presses the pill, which opens its panel, and presses it again to close it
+              onPointerEnter={(event) => {
+                if (event.pointerType !== "touch") card.show(item.game.slug, event.currentTarget, true)
+              }}
+              onPointerDown={(event) => {
+                touched.current = event.pointerType === "touch"
+              }}
+              onClick={(event) => {
+                if (touched.current && isOpen) card.close()
+                else card.show(item.game.slug, event.currentTarget, true)
+              }}
+              // Only the focus a keyboard gives opens it, not the one a click leaves
+              onFocus={(event) => {
+                if (event.target.matches(":focus-visible")) card.show(item.game.slug, event.currentTarget, true)
+              }}
+            >
+              <GameIcon name={item.game.name} src={gameIcon?.(item.game.slug)} />
+              <span className="tabular-nums">{item.count}</span>
+              {isOpen && <span aria-hidden="true" className="absolute inset-x-2 bottom-0 h-0.5 rounded-xs bg-foreground" />}
+            </button>
+          )
+        })}
+      </div>
+      {shown && (
+        <MovingCard
+          card={card}
+          contentKey={shown.game.slug}
+          width={240}
+          // 2px under the pill: it overlaps the bar a little (the pill is 8px from the bottom of the bar), covering its padding and none of its pills
+          placement={{ side: "bottom", align: "center", offset: 2 }}
+          label={`Friends in ${shown.game.name}`}
+          contentClassName="flex flex-col gap-6 p-4"
+        >
+          <FriendsBarList entry={shown} onJoin={onJoin} />
+        </MovingCard>
+      )}
+    </>
   )
 }
 

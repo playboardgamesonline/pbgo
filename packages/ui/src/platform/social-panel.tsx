@@ -81,6 +81,11 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & {
   onInvite?: (friend: Friend) => void
   /** What the button of a friend who is in a game does. */
   onJoin?: (friend: Friend) => void
+  /** What the button of the note on a friend, in their card (the card opens under the pointer, to the left of the panel), does. Not drawn without it. */
+  onNote?: (friend: Friend) => void
+  /** The games of the list of friends that are folded, by their key (`game:<slug>`), when the page keeps them (so that they stay folded when the panel is closed and opened again). */
+  folded?: ReadonlySet<string>
+  onFoldedChange?: (folded: ReadonlySet<string>) => void
   /** What the field that adds a friend does with the nickname and the tag typed in it. The field is off without it. */
   onSendRequest?: (who: string) => void
   /** What the buttons of a request do. Not drawn without it. */
@@ -185,6 +190,9 @@ function SocialPanel({
   onOpenChat,
   onInvite,
   onJoin,
+  onNote,
+  folded,
+  onFoldedChange,
   onSendRequest,
   onAnswerRequest,
   onShareLink,
@@ -210,7 +218,7 @@ function SocialPanel({
   }
 
   const panes: Record<SocialTab, React.ReactNode> = {
-    friends: <FriendsRoster friends={friends} gameIcon={gameIcon} onInvite={onInvite} onJoin={onJoin} onOpen={onOpenChat} />,
+    friends: <FriendsRoster friends={friends} gameIcon={gameIcon} folded={folded} onFoldedChange={onFoldedChange} onInvite={onInvite} onJoin={onJoin} onNote={onNote} onOpen={onOpenChat} />,
     messages: (
       <div className={COLUMN}>
         {sorted.length === 0 ? (

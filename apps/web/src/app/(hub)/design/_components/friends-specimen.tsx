@@ -113,6 +113,7 @@ export function DockSpecimen() {
             onOpenChat={nothing}
             onJoin={nothing}
             onInvite={nothing}
+            onNote={nothing}
             onSendRequest={nothing}
             onAnswerRequest={nothing}
             onShareLink={nothing}

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Cancel01Icon, MoreHorizontalIcon, SentIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { activityLine, initials, type Friend } from "../friends"
+import { initials, statusLine, type Friend } from "../friends"
 import type { Message } from "../social"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
@@ -18,11 +18,6 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 // on the right, filled; the friend's on the left, quiet) that follow the last one, and the field to write in, which sends with Enter or its button. It is drawn from the
 // messages it is given and decides nothing: where they come from, where a message goes and what an entry of the menu does are the page's (an entry whose handler is missing is not
 // drawn, and the menu is not either without any). The page places it (`fixed`) and gives it a height.
-
-/** What the line under the name says: what the friend is doing, or the word of their presence. */
-function statusLine(friend: Friend): string {
-  return activityLine(friend) ?? (friend.status === "offline" ? "Offline" : friend.status === "playing" ? "In a game" : friend.status === "inactive" ? "Inactive" : friend.status === "dnd" ? "Do not disturb" : "Online")
-}
 
 function ChatWindow({
   friend,
