@@ -5,7 +5,7 @@ import { cn } from "../utils"
 
 import { Button } from "./button"
 
-// The big search bar of a page: one glass bar (97% of the grey of a card, a little more opaque than the glass of the navbar), rounded by the step of a bar of 4rem (`rounded-3xl`) and not a pill, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
+// The big search bar of a page: one glass bar (97% of its own grey, `--card-bar`, a step lighter than the other containers, a little more opaque than the glass of the navbar), rounded by the step of a bar of 4rem (`rounded-3xl`) and not a pill, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
 // button that clears it once there is one and, at its end, what a page puts there: the category of the games, a button that opens a panel
 // (`SearchBarSegment`). The other filters are not in the bar: they stand bare under it, centred on a line of their own (`SearchBarFilters`), each in
 // a place of its own with no background, no outline and no shadow (`SearchBarGroup`, with its `SearchBarIcon` and, where a filter has a value to
@@ -21,7 +21,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border glass [--glass-opacity:97%] p-2 pl-3 shadow-float",
+          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border glass [--card:var(--card-bar)] [--glass-opacity:97%] p-2 pl-3 shadow-float",
           className
         )}
         {...props}

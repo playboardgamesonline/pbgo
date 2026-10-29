@@ -9,11 +9,11 @@ import { NavbarIsland } from "@pbgo/ui/platform/navbar"
 import { SearchBar, SearchBarField, SearchBarInput, SearchBarSubmit } from "@pbgo/ui/platform/search-bar"
 import { Slider } from "@pbgo/ui/platform/slider"
 
-/** What the glass is now (`platform.css`): the grey of a card (half way between neutral 900 and 800, 0.237), and the three settings. */
-const NOW = { grey: 0.237, opacity: 92, blur: 32, saturate: 100 }
+/** What the glass is now (`platform.css`): the grey of a card (two thirds neutral 900 and a third neutral 950, 0.156), and the three settings. */
+const NOW = { grey: 0.156, opacity: 92, blur: 32, saturate: 100 }
 
 const SETTINGS = [
-  { key: "grey", label: "Grey", variable: "--card", min: 0.15, max: 0.42, step: 0.005, show: (value: number) => `oklch(${value.toFixed(3)} 0 0)` },
+  { key: "grey", label: "Grey", variable: "--card", min: 0.1, max: 0.42, step: 0.005, show: (value: number) => `oklch(${value.toFixed(3)} 0 0)` },
   { key: "opacity", label: "Opacity", variable: "--glass-opacity", min: 20, max: 100, step: 1, show: (value: number) => `${value}%` },
   { key: "blur", label: "Blur", variable: "--glass-blur", min: 0, max: 64, step: 1, show: (value: number) => `${value}px` },
   { key: "saturate", label: "Saturation", variable: "--glass-saturate", min: 100, max: 240, step: 5, show: (value: number) => `${value}%` },

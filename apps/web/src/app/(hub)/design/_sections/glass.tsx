@@ -12,7 +12,7 @@ export function GlassSection() {
         description="What the glass lets through is the page behind it: here, big shapes of the colours of the platform and a title. With the opacity at 100% nothing shows through, whatever the blur is; the lower it goes, the more the blur and the saturation matter. The grey (`--card`) is also the one of the cards and the dialogs."
         className="p-0"
         code={`.platform {
-  --card: oklch(0.237 0 0);
+  --card: oklch(0.156 0 0);
   --glass-opacity: 92%;
   --glass-blur: 32px;
   --glass-saturate: 100%;
