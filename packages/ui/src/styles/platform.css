@@ -76,7 +76,7 @@
 
 /* Platform-only names: nothing here exists in Tailwind's default theme. */
 @theme static {
-  /* Layout widths: `max-w-page` (grids, headers: nearly the whole screen up to a 1536px window), `max-w-reading` (legal text, forms) */
+  /* Layout widths: `max-w-page` (a page that keeps a limit on a wide screen, up to a 1536px window: a game's page, the pages of the tabs; the hub's lists of games have none, they take the whole window), `max-w-reading` (legal text, forms) */
   --container-page: 96rem;
   --container-reading: 40rem;
 

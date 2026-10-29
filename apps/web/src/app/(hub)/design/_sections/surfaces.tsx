@@ -211,7 +211,7 @@ export async function Sections() {
     <Section
       id="section"
       module="section"
-      intro="A block of a hub page: what it shows, and the way to the page of its tab. The home is a stack of them (the popular games, the tables and tournaments in progress, what's new). A section has no visible title: what it shows says what it is, and a screen reader gets an `sr-only` heading. It is as wide as the page (`max-w-page`, the `px-gutter` margins) and keeps `pb-section` below it, so a stack needs no spacing of its own. Name it with `aria-labelledby`, pointing at its heading, or with an `aria-label`."
+      intro="A block of a hub page: what it shows, and the way to the page of its tab. The home is a stack of them (the popular games, the tables and tournaments in progress, what's new). A section has no visible title: what it shows says what it is, and a screen reader gets an `sr-only` heading. It is as wide as the window (the `px-gutter` margins and no `max-w-page`, so the cards of a list fill a desktop screen) and keeps `pb-section` below it, so a stack needs no spacing of its own. Name it with `aria-labelledby`, pointing at its heading, or with an `aria-label`."
     >
       <Demo
         title="A preview of a list"

@@ -5,14 +5,15 @@ import { buttonVariants } from "./button"
 
 // A block of a hub page: what it shows, and the way to the page of its tab. The home is a stack of them (popular games, tables and tournaments in
 // progress, what's new). They carry no visible title: what they show says what they are (the cards of games, the rows of tables), and a
-// screen reader gets an `sr-only` heading. They are as wide as the page (`max-w-page`, the `px-gutter` margins) and keep `pb-section` between them.
+// screen reader gets an `sr-only` heading. They are as wide as the window, with the `px-gutter` margins and no `max-w-page`, so the cards of a list fill a
+// desktop screen, and keep `pb-section` between them.
 
 /** The block itself: name it with `aria-labelledby`, pointing at an `sr-only` heading, or with an `aria-label`. */
 function Section({ className, ...props }: React.ComponentProps<"section">) {
   return (
     <section
       data-slot="section"
-      className={cn("mx-auto flex w-full max-w-page flex-col gap-4 px-gutter pb-section", className)}
+      className={cn("flex w-full flex-col gap-4 px-gutter pb-section", className)}
       {...props}
     />
   )

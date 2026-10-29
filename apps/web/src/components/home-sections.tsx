@@ -8,17 +8,18 @@ import type { SearchedGame } from "@/components/game-search"
 // The sections of the home under its search bar, in the order of the page. They are server components: the HTML of the home carries them. None
 // has a visible title, what it shows says what it is; each has an `sr-only` heading, so a screen reader still gets the outline of the page.
 
-/** The most cards any width shows: three rows of the widest grid (five columns). */
-const POPULAR_COUNT = 15
+/** The most cards any width shows: three rows of the widest grid (six columns). */
+const POPULAR_COUNT = 18
 
 /**
- * The grid of the popular games is the one of `/games` (one column, then two, three, four and five from the breakpoints), cut to three rows at
- * every width: the cards beyond them are `hidden`, so they are neither drawn nor reached by the keyboard. Three rows are 3, 6, 9, 12 and 15 cards.
+ * The grid of the popular games is the one of `/games` (one column, then two, three, four and, from `2xl`, six: the most a row ever holds, however wide the window),
+ * cut to three rows at every width: the cards beyond them are `hidden`, so they are neither drawn nor reached by the keyboard. Three rows are 3, 6, 9,
+ * 12 and 18 cards.
  */
 const POPULAR_GRID =
-  "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 " +
+  "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 " +
   "max-sm:[&>*:nth-child(n+4)]:hidden sm:max-lg:[&>*:nth-child(n+7)]:hidden lg:max-xl:[&>*:nth-child(n+10)]:hidden " +
-  "xl:max-2xl:[&>*:nth-child(n+13)]:hidden 2xl:[&>*:nth-child(n+16)]:hidden"
+  "xl:max-2xl:[&>*:nth-child(n+13)]:hidden 2xl:[&>*:nth-child(n+19)]:hidden"
 
 /**
  * The popular games: the cards of the first games of the catalog in a grid of three rows whose bottom fades out, and "See all games" over the fade,

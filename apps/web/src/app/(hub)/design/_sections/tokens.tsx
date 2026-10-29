@@ -120,7 +120,7 @@ export function Radius() {
 const LAYOUT_ROWS = [
   { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page, kept thin so the content takes the room. Widens at the `sm` breakpoint." },
   { variable: "--section", utility: "py-section", use: "Vertical space between the sections of a page (`pb-section` between two). Widens at the `sm` breakpoint." },
-  { variable: "--container-page", utility: "max-w-page", use: "Width of a page that fills the screen: the hub's list of games, a game's page, the header and the footer. Nearly the whole window, up to this value." },
+  { variable: "--container-page", utility: "max-w-page", use: "Width of a page that keeps a limit on a wide screen: a game's page, the pages of the tabs, the centred header of a list. Nearly the whole window, up to this value. The hub's lists of games (the home's sections, `/games`) have none: they take the whole window." },
   { variable: "--container-reading", utility: "max-w-reading", use: "Width of running text, so a line stays readable." },
 ] as const
 
