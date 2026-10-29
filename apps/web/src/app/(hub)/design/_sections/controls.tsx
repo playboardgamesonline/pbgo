@@ -497,13 +497,13 @@ export function Comboboxes() {
     >
       <Demo
         title="In a popover"
-        description="The field has the focus when the panel opens, except on a screen that is touched, where the keyboard would hide the list. The arrow keys move along the list without leaving the field, Home and End go to its ends, Enter picks or unpicks the option they are on, and so does a click. The field is `text-base` on a phone, like every input, so iOS does not zoom in on it. Try `des` or `strat`: the accents do not matter."
+        description="The field has the focus the moment the panel opens, except on a screen that is touched, where the keyboard would hide the list. The list has no scrollbar and scrolls all the same: a row cut by its bottom edge says there is more. The panel is `w-60`. The arrow keys move along the list without leaving the field, Home and End go to its ends, Enter picks or unpicks the option they are on, and so does a click. The field is `text-base` on a phone, like every input, so iOS does not zoom in on it. Try `des` or `strat`: the accents do not matter."
         className={ROW}
         code={`<Popover>
   <PopoverTrigger asChild>
     <Button variant="outline">Categories</Button>
   </PopoverTrigger>
-  <PopoverContent aria-label="Categories" className="w-80">
+  <PopoverContent aria-label="Categories" className="w-60">
     <PopoverHeader>
       <PopoverTitle>Categories</PopoverTitle>
       <Button type="button" variant="ghost" size="sm">Clear</Button>

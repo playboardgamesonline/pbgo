@@ -15,7 +15,7 @@ export function ComboboxSpecimen() {
       <PopoverTrigger asChild>
         <Button variant="outline">Categories{picked.length > 0 ? ` (${picked.length})` : ""}</Button>
       </PopoverTrigger>
-      <PopoverContent aria-label="Categories" className="w-80">
+      <PopoverContent aria-label="Categories" className="w-60">
         <PopoverHeader>
           <PopoverTitle>Categories</PopoverTitle>
           <Button type="button" variant="ghost" size="sm" disabled={picked.length === 0} onClick={() => setPicked([])}>

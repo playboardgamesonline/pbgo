@@ -10,8 +10,9 @@ import { Input } from "./input"
 // A list of options with a search field above it, for a panel (a `Popover`) whose options are more than chips can hold, and may be more tomorrow:
 // the categories of the games. Typing keeps the options that hold the text, whatever the case and the accents (`matchOptions`). The arrow keys move
 // along the list without leaving the field, Enter picks or unpicks the option they are on, and so does a click: the list stays open, since any number
-// of options can be picked. The field takes the focus when the panel opens, except on a screen that is touched, where the keyboard would hide the
-// list. It names itself (`aria-label`) and draws nothing around itself: the panel does.
+// of options can be picked. The field takes the focus the moment the panel opens (`autoFocus`: React focuses it as it mounts, before anything is painted),
+// except on a screen that is touched, where the keyboard would hide the list. The list has no scrollbar and scrolls all the same (wheel, touch, arrow
+// keys): a row cut by its bottom edge says there is more. It names itself (`aria-label`) and draws nothing around itself: the panel does.
 
 type ComboboxProps = Omit<React.ComponentProps<"div">, "children" | "onChange" | "role"> & {
   /** Every option, by the name that is shown and compared. */
@@ -29,16 +30,13 @@ type ComboboxProps = Omit<React.ComponentProps<"div">, "children" | "onChange" |
 
 function Combobox({ options, value, onValueChange, placeholder, empty, className, "aria-label": label, ...props }: ComboboxProps) {
   const id = React.useId()
-  const field = React.useRef<HTMLInputElement>(null)
   const [query, setQuery] = React.useState("")
   const [active, setActive] = React.useState(0)
+  // A screen that is touched does not focus the field: its keyboard would hide the list. Read once, as the panel opens
+  const [touched] = React.useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches)
   const shown = matchOptions(options, query)
   // The option the arrow keys are on: the list can get shorter under it as the text grows
   const current = shown.length === 0 ? -1 : Math.min(active, shown.length - 1)
-
-  React.useEffect(() => {
-    if (!window.matchMedia("(pointer: coarse)").matches) field.current?.focus()
-  }, [])
 
   // The option the arrow keys are on stays in view
   React.useEffect(() => {
@@ -71,7 +69,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, className
           className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         />
         <Input
-          ref={field}
+          autoFocus={!touched}
           role="combobox"
           aria-label={label}
           aria-expanded={true}
@@ -91,7 +89,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, className
         />
       </div>
       {shown.length > 0 ? (
-        <ul id={`${id}-list`} role="listbox" aria-label={label} aria-multiselectable="true" className="flex max-h-60 flex-col gap-0.5 overflow-y-auto">
+        <ul id={`${id}-list`} role="listbox" aria-label={label} aria-multiselectable="true" className="flex max-h-60 flex-col gap-0.5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {shown.map((option, index) => {
             const picked = value.includes(option)
             return (

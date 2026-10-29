@@ -132,7 +132,7 @@ export function CategoryFilter({
       <PopoverTrigger asChild>
         <SearchBarSegment icon={GridViewIcon} label="Category" value={none ? "Any category" : categoryText(picked)} idle={none} />
       </PopoverTrigger>
-      <PopoverContent aria-labelledby={titleId} align="end" className="w-80">
+      <PopoverContent aria-labelledby={titleId} align="end" className="w-60">
         <PopoverHeader>
           <PopoverTitle id={titleId}>Categories</PopoverTitle>
           <Button type="button" variant="ghost" size="sm" disabled={none} onClick={() => onPick([])}>
