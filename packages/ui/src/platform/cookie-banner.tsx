@@ -42,8 +42,8 @@ type CookieBannerProps = {
  * to the details, then Refuse and Accept. They are the same button side by side (same variant, same size), so refusing is as
  * easy and as visible as accepting. On a phone the card takes the width of the screen, less its margin.
  *
- * It is `fixed`, but it must never sit over what the page shows. It floats inside a box that holds its margin (`px-gutter
- * pb-gutter`), and the caller measures that box and makes the room (`@pbgo/analytics` publishes its height as `--consent-h`, see
+ * It is `fixed`, but it must never sit over what the page shows. It floats inside a box that holds its margin (`px-4 pb-4`, `px-6 pb-6` from
+ * `sm`: its own, since the page's gutter is 64px on a desktop), and the caller measures that box and makes the room (`@pbgo/analytics` publishes its height as `--consent-h`, see
  * `reserve.ts`), so a page has nothing under the card, whether it is a hub page that scrolls or a game screen that fills the
  * viewport.
  *
@@ -64,7 +64,7 @@ function CookieBanner({ texts, moreHref, lang, onAccept, onRefuse, onClose, clas
     <div
       ref={ref}
       data-slot="cookie-banner"
-      className={cn("platform pointer-events-none fixed inset-x-0 bottom-0 z-50 px-gutter pb-gutter", className)}
+      className={cn("platform pointer-events-none fixed inset-x-0 bottom-0 z-50 px-4 pb-4 sm:px-6 sm:pb-6", className)}
     >
       <section
         ref={card}

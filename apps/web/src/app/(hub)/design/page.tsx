@@ -4,10 +4,10 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
-import { Badges, Buttons, Checks, Inputs, Selects, TabsSection } from "./_sections/controls"
+import { Badges, Buttons, Checks, Comboboxes, Inputs, Meters, Selects, Sliders, TabsSection, ToggleGroups } from "./_sections/controls"
 import { InGameUi } from "./_sections/in-game-ui"
-import { Logos, Navbars, SearchBars } from "./_sections/navigation"
-import { CookieBanners, Dialogs, Dropdowns, Sheets, Toasts, Tooltips } from "./_sections/overlays"
+import { BoardPatterns, FaceCycles, Logos, Navbars, SearchBars, Tabletops, Wordmarks } from "./_sections/navigation"
+import { CookieBanners, Dialogs, Dropdowns, Popovers, Sheets, Toasts, Tooltips } from "./_sections/overlays"
 import { Layers, Principles } from "./_sections/principles"
 import {
   Alerts,
@@ -17,6 +17,7 @@ import {
   GameCards,
   Items,
   Loading,
+  Sections,
   Separators,
   Tables,
 } from "./_sections/surfaces"
@@ -98,18 +99,28 @@ export default function DesignPage() {
             <Inputs />
             <Checks />
             <Selects />
+            <Comboboxes />
+            <Sliders />
+            <Meters />
             <TabsSection />
+            <ToggleGroups />
             <Logos />
+            <Wordmarks />
+            <FaceCycles />
             <Navbars />
             <SearchBars />
             <Dialogs />
             <Sheets />
             <Dropdowns />
+            <Popovers />
             <Tooltips />
             <Toasts />
             <CookieBanners />
             <Cards />
             <GameCards />
+            <Sections />
+            <BoardPatterns />
+            <Tabletops />
             <Avatars />
             <Alerts />
             <Loading />

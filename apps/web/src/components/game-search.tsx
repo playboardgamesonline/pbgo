@@ -1,8 +1,9 @@
 "use client"
 
-import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react"
+import { createContext, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 
 import {
+  categoriesOf,
   filterFromParams,
   filterGames,
   filterToParams,
@@ -17,12 +18,14 @@ export type SearchedGame = GameIndex & { props: GameCardProps }
 type GameSearchValue = {
   /** Every game of the catalog, in the order of the catalog. */
   games: readonly SearchedGame[]
+  /** The categories the games have, by name: what the category filter offers. None when no game has one. */
+  categories: readonly string[]
   filter: GameFilter
   /** The games that match `filter`, in the same order. */
   shown: SearchedGame[]
   /** Types into the search. Only the state holds the text: it is never written into the address. */
   setQuery: (query: string) => void
-  /** Changes the picks, or empties them all (`NO_FILTER`). The three picks are written into the address, in place. */
+  /** Changes the picks, or puts them all back where they start (`DEFAULT_FILTER`). The picks are written into the address, in place. */
   pick: (next: GameFilter) => void
 }
 
@@ -47,19 +50,23 @@ function writeAddress(filter: GameFilter) {
 }
 
 /**
- * The search of the hub's home: one state for the text and the three picks, shared by the pill in the header (`HeroSearch`) and by the list under
- * it (`GameList`), which draws the filters, the count and the cards of the games that match, in the order of the catalog. The rules are
- * `@pbgo/catalog/filter`'s; this holds the state. It all happens in the browser on the index that the page sends with the cards, so nothing is
- * asked of the server, the home stays static, and the HTML of the page lists every game. The children are the page's own markup and stay
- * server-rendered: only the two components that read the search draw again when it changes.
- * The three picks are in the address of the page (`?show=soon&players=4&duration=30`), so that a link opens the list as it was left. The text of
- * the search is not: the address goes to analytics with every event, and what a visitor types is theirs. See docs/catalog.md.
+ * The search of the hub's pages that list games (the home and `/games`): one state for the text and the picks (categories, number of
+ * players, duration, complexity, age), shared by the search bar in the header (`HeroSearch`, which holds the field and the filters)
+ * and by what is under it: the list (`GameList`), which draws the cards of the games that match, in the order of the catalog, or on the home
+ * the sections of the platform until a search is started (`HomeBody`). The rules are `@pbgo/catalog/filter`'s; this holds the state. It all
+ * happens in the browser on the index that the page sends with the cards, so nothing is asked of the server, the home stays static, and the
+ * HTML of the page lists every game. The children are the page's own markup and stay server-rendered: only the components that read the
+ * search draw again when it changes.
+ * The picks are in the address of the page (`?category=Cards&players=6&duration=30&complexity=2&age=10`: the picks start on 4 players, 20′, level 3
+ * and 8+ and are left out until they change, and no limit on the duration is `duration=any`), so that a link opens the list as it was left. The
+ * text of the search is not: the address goes to analytics with every event, and what a visitor types is theirs. See docs/catalog.md.
  */
 export function GameSearch({ games, children }: { games: readonly SearchedGame[]; children: ReactNode }) {
   const search = useSyncExternalStore(subscribeToNothing, readSearch, readNoSearch)
+  const categories = useMemo(() => categoriesOf(games), [games])
   // What the visitor has changed since the page opened, else what the address holds
   const [edited, setEdited] = useState<GameFilter | null>(null)
-  const filter = edited ?? filterFromParams(new URLSearchParams(search))
+  const filter = edited ?? filterFromParams(new URLSearchParams(search), categories)
   const shown = filterGames(games, filter)
 
   function setQuery(query: string) {
@@ -71,7 +78,9 @@ export function GameSearch({ games, children }: { games: readonly SearchedGame[]
     writeAddress(next)
   }
 
-  return <GameSearchContext.Provider value={{ games, filter, shown, setQuery, pick }}>{children}</GameSearchContext.Provider>
+  return (
+    <GameSearchContext.Provider value={{ games, categories, filter, shown, setQuery, pick }}>{children}</GameSearchContext.Provider>
+  )
 }
 
 /** The search of the home, for the components that draw it: they sit inside `GameSearch`. */

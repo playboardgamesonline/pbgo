@@ -241,7 +241,9 @@ describe("a row of the Games database", () => {
           slug: "hanabi",
           players: "2 - 5",
           duration: 25,
+          complexity: 1.74,
           age: "8+",
+          tags: ["Cards", "Party"],
           authors: [CREATOR_1, CREATOR_2],
           illustrators: [CREATOR_3],
           editors: [EDITOR_1],
@@ -263,7 +265,9 @@ describe("a row of the Games database", () => {
           descriptions: { fr: "Description FR", en: "Description EN" },
           players: { min: 2, max: 5 },
           duration: 25,
+          complexity: 1.74,
           age: 8,
+          categories: ["Cards", "Party"],
           authors: ["Author One", "Author Two"],
           illustrators: ["Illustrator One"],
           publishers: [{ name: "Editor One", url: "https://editor.example.com" }],
@@ -289,7 +293,9 @@ describe("a row of the Games database", () => {
       descriptions: {},
       players: null,
       duration: null,
+      complexity: null,
       age: null,
+      categories: [],
       authors: [],
       illustrators: [],
       publishers: [],
@@ -330,6 +336,23 @@ describe("a row of the Games database", () => {
     expect((await one({ age: label })).age).toBe(age)
   })
 
+  it.each<[string[], string[]]>([
+    [["Cards", "Party"], ["Cards", "Party"]],
+    [["Party", "Cards", "Party"], ["Party", "Cards"]],
+    [["  Co-op \t", "Bluffing\u0007"], ["Co-op", "Bluffing"]],
+    [[], []],
+  ])("reads the Tags %j as the categories %j, in the order of the row, each once", async (tags, categories) => {
+    expect((await one({ tags })).categories).toEqual(categories)
+  })
+
+  it("warns of a missing Tags column, and reads every game with no category", async () => {
+    const page = gamePage({ name: "Sample", slug: "sample", tags: ["Cards"] })
+    delete page.properties.Tags
+    const read = await readGames([page])
+    expect(read.games[0]?.categories).toEqual([])
+    expect(read.warnings).toContain('The Games database has no "Tags" column: it is left empty for every game')
+  })
+
   it.each([
     [25, 25],
     [0, null],
@@ -337,6 +360,28 @@ describe("a row of the Games database", () => {
     [null, null],
   ])("reads the Duration %j as %j", async (minutes, duration) => {
     expect((await one({ duration: minutes })).duration).toBe(duration)
+  })
+
+  it.each([
+    [1, 1],
+    [2.35, 2.35],
+    [5, 5],
+    // BoardGameGeek writes 0 for a game that has too few votes, and nothing is lighter than 1 or heavier than 5
+    [0, null],
+    [0.9, null],
+    [5.01, null],
+    [-1, null],
+    [null, null],
+  ])("reads the Complexity %j as %j", async (weight, complexity) => {
+    expect((await one({ complexity: weight })).complexity).toBe(complexity)
+  })
+
+  it("warns of a missing Complexity column, and reads every game with no weight", async () => {
+    const page = gamePage({ name: "Sample", slug: "sample", complexity: 2 })
+    delete page.properties.Complexity
+    const read = await readGames([page])
+    expect(read.games[0]?.complexity).toBeNull()
+    expect(read.warnings).toContain('The Games database has no "Complexity" column: it is left empty for every game')
   })
 
   it("joins a text Notion cut into parts, and drops a language whose text is empty", async () => {
@@ -368,13 +413,15 @@ describe("a row of the Games database", () => {
   })
 
   it("reads a cell that is not of the type it should be as empty, without failing", async () => {
-    const page = gamePage({ name: "Sample", slug: "sample", players: "2 - 4", duration: 30, descriptions: { en: "Text" } })
+    const page = gamePage({ name: "Sample", slug: "sample", players: "2 - 4", duration: 30, complexity: 2, descriptions: { en: "Text" } })
     page.properties.Players = { type: "number", number: 3 }
     page.properties.Duration = { type: "rich_text", rich_text: [{ plain_text: "30" }] }
+    page.properties.Complexity = { type: "rich_text", rich_text: [{ plain_text: "2" }] }
     page.properties["Description EN"] = { type: "number", number: 12 }
     page.properties.Age = undefined
+    page.properties.Tags = { type: "rich_text", rich_text: [{ plain_text: "Cards" }] }
     const [game] = (await readGames([page])).games
-    expect(game).toMatchObject({ name: "Sample", players: null, duration: null, age: null, descriptions: {} })
+    expect(game).toMatchObject({ name: "Sample", players: null, duration: null, complexity: null, age: null, categories: [], descriptions: {} })
   })
 })
 

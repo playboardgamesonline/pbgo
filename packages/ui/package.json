@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./faces": "./src/faces.ts",
     "./game/*": "./src/game/*.tsx",
+    "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
     "./styles/*": "./src/styles/*",
     "./theme": "./src/theme.ts",
@@ -21,6 +23,7 @@
     "clsx": "catalog:",
     "input-otp": "catalog:",
     "lucide-react": "catalog:",
+    "motion": "catalog:",
     "radix-ui": "catalog:",
     "sonner": "catalog:",
     "tailwind-merge": "catalog:",
