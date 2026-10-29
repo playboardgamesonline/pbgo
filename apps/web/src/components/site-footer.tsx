@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
-import { AUTHOR, COPYRIGHT_NAME, COPYRIGHT_YEAR } from "@/site"
+import { AUTHOR, COPYRIGHT_YEAR, SITE_NAME } from "@/site"
 
 /**
  * The footer of the hub's own pages (the home, the list of games, a game's page and the pages of the other tabs), as wide as the site, with no
@@ -18,7 +18,7 @@ export function SiteFooter() {
     <footer className="w-full pb-5">
       <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 p-5 text-sm text-muted-foreground">
         <p className="p-1">
-          © {COPYRIGHT_YEAR} {COPYRIGHT_NAME} <span aria-hidden="true">·</span> Built by{" "}
+          © {COPYRIGHT_YEAR} {SITE_NAME} <span aria-hidden="true">·</span> Built by{" "}
           <a href={AUTHOR.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-foreground">
             {AUTHOR.name}
           </a>

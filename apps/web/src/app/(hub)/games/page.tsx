@@ -11,7 +11,7 @@ import { catalogCardProps } from "@/lib/game-card-props"
 
 export const metadata: Metadata = {
   title: "Games",
-  description: "Every board and card game of PlayBoardGamesOnline, the ones to play now and the ones to come. Filter them by players, duration and age.",
+  description: "Every board and card game of Play Board Games Online, the ones to play now and the ones to come. Filter them by players, duration and age.",
   alternates: { canonical: "/games" },
 }
 
