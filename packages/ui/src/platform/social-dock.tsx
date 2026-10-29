@@ -12,8 +12,9 @@ import { cn } from "../utils"
 //
 // The bar is the header of the panel, the way the Riot Client has it, and it changes with the dock instead of staying what it was. Closed, it is the games the friends are in, the
 // visitor's picture and the button of the panel. Open, the games fold away (their width, then their opacity), the picture glides to the start of the bar as they go, what the profile says
-// unfolds beside it (`SocialDockIdentity`: the name and the word of the status), and the button stays where it was, at the end of the bar. All of it moves with the same transition as the dock, so
-// the bar never jumps.
+// unfolds beside it (`SocialDockIdentity`: the name and the word of the status), and the button stays at the end of the bar. The header has the room of what is under it: it grows from 54px
+// to 64px and from 8px to 16px of the sides, so that the picture and the button are in line with the tabs, the search and the list, and 16px from the top. All of it moves with the same
+// transition as the dock, so the bar never jumps.
 //
 // The page puts a place for it in the navbar (3.5rem high, as wide as the bar) and the dock grows out of that place, over the page, to the left of it: the place is a flex row that ends at
 // its right edge, so a box wider than it overflows at its start (a grid area would not), and it keeps the bar's width for as long as the dock is open, so that the rest of the navbar (the
@@ -25,8 +26,16 @@ import { cn } from "../utils"
 /** How wide the open dock is, in px. */
 const COLUMN_WIDTH = 320
 
-/** How high the bar is, in px (`h-14`). */
+/** How high the closed dock is, in px (`h-14`). */
 const BAR_HEIGHT = 56
+
+/** The bar closed: 54px high, since the dock is 56px with its border, and 8px from the sides of the dock. */
+const BAR_INNER = 54
+const BAR_INSET = 8
+
+/** The bar open, the header of the panel: it has the room of the content under it, 16px from the sides and from the top (the picture, 32px, is centred in 64px). */
+const HEADER_HEIGHT = 64
+const HEADER_INSET = 16
 
 /** The room around an open dock: 1.5rem above it, and the same under it. */
 const MARGIN = 48
@@ -185,22 +194,27 @@ function SocialDock({ open, games, profile, toggle, children, height, className 
             )}
             style={{ width, maxWidth: "calc(100vw - 3rem)" }}
           >
-            {/* 54px: the dock is 56px high with its border, so the bar is the height of what is inside it, and what it holds (the 40px of a button) is centred in the dock */}
-            <div data-slot="social-dock-bar" className="flex h-13.5 shrink-0 items-center p-2">
+            <motion.div
+              data-slot="social-dock-bar"
+              initial={false}
+              animate={open ? { height: HEADER_HEIGHT, paddingLeft: HEADER_INSET, paddingRight: HEADER_INSET } : { height: BAR_INNER, paddingLeft: BAR_INSET, paddingRight: BAR_INSET }}
+              transition={reduced ? STILL : SLOW}
+              className="flex shrink-0 items-center"
+            >
               <DockGames>{games}</DockGames>
               {profile}
               <div aria-hidden="true" className="min-w-1 flex-1" />
               {toggle}
-            </div>
+            </motion.div>
             <AnimatePresence initial={false}>
               {open && (
                 <motion.div
                   key="panel"
                   data-slot="social-dock-panel"
-                  className="absolute top-13.5 right-0 bottom-0 flex flex-col"
+                  className="absolute right-0 bottom-0 flex flex-col"
                   style={{ width: `min(${COLUMN_WIDTH - 2}px, calc(100vw - 3rem - 2px))` }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: reduced ? STILL : { duration: DURATION.base, ease: EASE_STANDARD, delay: DURATION.fast } }}
+                  initial={{ opacity: 0, top: BAR_INNER }}
+                  animate={{ opacity: 1, top: HEADER_HEIGHT, transition: reduced ? STILL : { opacity: { duration: DURATION.base, ease: EASE_STANDARD, delay: DURATION.fast }, top: SLOW } }}
                   exit={{ opacity: 0, transition: reduced ? STILL : { duration: DURATION.fast, ease: EASE_STANDARD } }}
                 >
                   {children}
