@@ -39,7 +39,9 @@ const SEMANTIC: readonly Semantic[] = [
   { token: "secondary", swatch: "bg-secondary", on: "text-secondary-foreground", role: "Quiet button and badge. `bg-secondary-hover` is its hover step." },
   { token: "muted", swatch: "bg-muted", on: "text-muted-foreground", role: "Wells, skeletons, inline code, the unselected side of a switch." },
   { token: "accent", swatch: "bg-accent", on: "text-accent-foreground", role: "Hover and focus of a menu row or a ghost button." },
-  { token: "destructive", swatch: "bg-destructive", on: "text-background", role: "Errors and irreversible actions. The only hue of the platform." },
+  { token: "destructive", swatch: "bg-destructive", on: "text-background", role: "Errors and irreversible actions. A hue of the platform, with the two of presence." },
+  { token: "presence-online", swatch: "bg-presence-online", on: "text-background", role: "A friend who is online: the dot on their picture (solid) and the line that says what they are doing." },
+  { token: "presence-playing", swatch: "bg-presence-playing", on: "text-background", role: "A friend who is in a game: the dot (it pulses) and the line under their name. A word says it too, never the colour alone." },
 ]
 
 const SECONDARY_TOKENS = [

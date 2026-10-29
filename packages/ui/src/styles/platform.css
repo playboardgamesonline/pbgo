@@ -1,9 +1,9 @@
 /*
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
- * Direction: black and white, dark theme only. No accent colour, and a single gradient, neutral too: the backdrop of a page's first
+ * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game), and a single gradient, neutral too: the backdrop of a page's first
  * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
- * in semibold, slightly tight line-height, small negative letter-spacing. Game art is the only colour on the platform.
+ * in semibold, slightly tight line-height, small negative letter-spacing. Apart from that presence, game art is the only colour on the platform.
  *
  * TWO LAYERS, SAME TOKEN NAMES (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--radius`, `--font-body`…)
  *   - Platform layer: the values below, scoped to `.platform`. The class sits on <html> (hub, 404), on a wrapper <div>
@@ -52,6 +52,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-presence-online: var(--presence-online);
+  --color-presence-playing: var(--presence-playing);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -278,7 +280,7 @@
 
 @layer base {
   .platform {
-    /* Colours: Tailwind's neutral scale (chroma 0), nothing else. Destructive is the only hue. */
+    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, and the two of a friend's presence (green online, blue in a game), which only a dot and a status line wear */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
     --card: var(--color-neutral-900);
@@ -294,6 +296,8 @@
     --accent: var(--color-neutral-800);
     --accent-foreground: var(--color-neutral-50);
     --destructive: oklch(0.704 0.191 22.216);
+    --presence-online: oklch(0.78 0.16 155);
+    --presence-playing: oklch(0.76 0.13 235);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: var(--color-neutral-400);

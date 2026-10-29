@@ -55,6 +55,18 @@ describe("platform components", () => {
  * width to the body, so whatever is fixed (the navbar) jumped by that width. The page keeps the place of its scrollbar instead (an empty, inactive track while
  * the lock is on, as on ui.shadcn.com) and the lock's margin is taken off: two rules of `platform.css`.
  */
+/** The presence of a friend is the one thing the platform paints in a hue besides `destructive`: two tokens, each with its utilities. */
+describe("presence colours", () => {
+  const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+
+  for (const name of ["online", "playing"]) {
+    it(`presence-${name} is a token with its utilities`, () => {
+      expect(css).toMatch(new RegExp(`--presence-${name}:\\s*oklch\\(`))
+      expect(css).toContain(`--color-presence-${name}: var(--presence-${name})`)
+    })
+  }
+})
+
 describe("text selection", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 

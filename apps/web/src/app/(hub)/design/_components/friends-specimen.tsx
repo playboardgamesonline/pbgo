@@ -118,7 +118,7 @@ export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: Socia
           </Avatar>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm text-foreground">Oré</span>
-            <span className="block truncate text-xs text-muted-foreground">Online</span>
+            <span className="block truncate text-xs text-presence-online">Online</span>
           </span>
         </div>
       }

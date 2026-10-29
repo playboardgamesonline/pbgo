@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs"
 // icon: the friends and what they are doing (`FriendsRoster`), the conversations with them, and the way to add a friend with the requests that wait for an answer.
 // The tabs that have something for the visitor (messages not read, requests to answer) carry a count. It is drawn from what it is given and decides nothing:
 // where the friends, the messages and the requests come from (PLT-23) and what a press does are the page's, and a button whose handler is missing is not drawn
-// (the field that adds a friend is off). Monochrome like the rest of the platform. The page places it (`fixed`, on the right, over the navbar's account island).
+// (the field that adds a friend is off). The presence of a friend wears its colour (`FriendsRoster`, `PresenceDot`). The page places it (`fixed`, on the right, over the navbar's account island).
 
 export type SocialTab = "friends" | "messages" | "add"
 

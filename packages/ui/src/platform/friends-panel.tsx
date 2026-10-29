@@ -13,20 +13,27 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 
 // The friends of a signed-in visitor, as a list for a page or a panel: who is playing and where, who is online, who is not, a search among them, and the way to
 // add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
-// and what a press does are the page's. Monochrome like the rest of the platform, so a status is a shape and a brightness (a dot that pulses, a solid dot, a
-// hollow one) and always a word too, never a colour alone. The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
+// and what a press does are the page's. A status is a shape, a colour and a word, never the colour alone: a dot that pulses and is blue, a solid green one, a
+// hollow one, and the line under the name in the colour of the dot (`--presence-playing`, `--presence-online`, the two hues of the platform besides destructive). The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
 // they are in) and `SocialPanel`, which holds this list as its first tab (`FriendsRoster`).
 
 export type { Friend, FriendGame, FriendStatus, FriendTable } from "../friends"
 
-/** The dot on the corner of a picture: it pulses for a friend in a game, is solid for one who is online, and hollow for one who is away. */
+/** The colour of the line that says what a friend is doing: the colour of their dot when they are in a game or online, quiet when they are away. */
+const STATUS_TEXT: Record<FriendStatus, string> = {
+  playing: "text-presence-playing",
+  online: "text-presence-online",
+  offline: "text-muted-foreground",
+}
+
+/** The dot on the corner of a picture: blue and pulsing for a friend in a game, green and solid for one who is online, and hollow for one who is away. */
 function PresenceDot({ status }: { status: FriendStatus }) {
   return (
     <AvatarBadge
       data-status={status}
       className={cn(
-        "bg-foreground",
-        status === "playing" && "animate-pulse",
+        status === "online" && "bg-presence-online",
+        status === "playing" && "animate-pulse bg-presence-playing",
         status === "offline" && "border border-muted-foreground bg-background",
       )}
     />
@@ -58,7 +65,7 @@ function FriendRow({
           {friend.nickname}
           {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
         </p>
-        {line && <p className="truncate text-xs text-muted-foreground">{line}</p>}
+        {line && <p className={cn("truncate text-xs", STATUS_TEXT[friend.status])}>{line}</p>}
       </div>
     </>
   )
@@ -218,4 +225,4 @@ function FriendsPanel({
   )
 }
 
-export { FriendsPanel, FriendsRoster, PresenceDot }
+export { FriendsPanel, FriendsRoster, PresenceDot, STATUS_TEXT }
