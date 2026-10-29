@@ -369,6 +369,31 @@ export function SearchBars() {
           </div>
         </div>
       </Demo>
+
+      <Demo
+        title="The head of a page that lists something"
+        description="Games, Tables and Tournaments share one head (`ListPageHeader`): the title, centred at the top of the page in `page-title` (Geist at 720, tracking -6%, 8rem from a 850px window and 16vw less 0.5rem under it, so that Tournaments, the longest, fits a phone), then the bar of what the page lists, 32px under it (`gap-8`), on the backdrop of the home's hero. The bar says what it searches (`label` and `placeholder`: Search games, Search tables, Search tournaments), and each page has its own filters: Games has the category in the bar and the other four under it, Tables and Tournaments none yet. What's New has no list, so it keeps its small title."
+        className="overflow-hidden p-0"
+        code={`<ListPageHeader title="Tables">
+  <ListSearch label="Search tables" placeholder="Search tables..." />
+</ListPageHeader>
+
+<ListPageHeader title="Games">
+  <HeroSearch label="Search games" placeholder="Search games..." />
+</ListPageHeader>`}
+      >
+        <div className="flex flex-col items-center gap-8 bg-linear-to-b from-card to-background px-6 pt-12 pb-10 text-center">
+          <p className="page-title">Tables</p>
+          <div className="w-full max-w-xl">
+            <SearchBar method="dialog" aria-label="Search tables">
+              <SearchBarField>
+                <SearchBarSubmit aria-label="Search" />
+                <SearchBarInput aria-label="Search tables" placeholder="Search tables..." />
+              </SearchBarField>
+            </SearchBar>
+          </div>
+        </div>
+      </Demo>
     </Section>
   )
 }

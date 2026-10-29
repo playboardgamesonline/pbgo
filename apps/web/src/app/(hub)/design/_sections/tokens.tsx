@@ -48,6 +48,7 @@ const FONT_ROWS = [
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
   { variable: "--text-display", utility: "text-display", use: "The two lines of the home's title, as big as the window lets them be (5.8vw and 0.9rem, up to 7rem): the longer line takes 95% of a 390 px window, less its gutters, and 58% of a 1440 px one. It sets no line-height: `display-title` does." },
+  { variable: "--text-page-title", utility: "text-page-title", use: "The title of a page that lists something (Games, Tables, Tournaments): 8rem from a 850px window, and under that 16vw less 0.5rem (2.5rem at the least), so that \"Tournaments\", the longest, takes 87% of a 390 px window less its gutters. It sets no line-height: `page-title` does." },
   { variable: "--font-weight-strong", utility: "font-strong", use: "The one weight heavier than the platform's 600, 720: the title of the home (`display-title`) and the name of a person at the head of a profile. Geist is a variable font, so any weight between 100 and 900 exists." },
   { variable: "--tracking-display", use: "Letter-spacing of the home's title, -6% (`display-title`), tighter than the headings' `--tracking-tight`." },
 ] as const
@@ -379,6 +380,7 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
   { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -6%, fading out downwards, with `text-display`", token: "`--text-display`, `--tracking-display`" },
+  { utility: "page-title", does: "The title of Games, Tables and Tournaments: one line, Geist at 720, tracking -6%, 8rem on a desktop, no fade, with `text-page-title`", token: "`--text-page-title`, `--tracking-display`" },
   { utility: "glass", does: "A container that floats over the page: the grey of a card at 92%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },
   { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },

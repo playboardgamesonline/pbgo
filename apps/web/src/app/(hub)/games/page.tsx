@@ -5,6 +5,7 @@ import { getCatalog } from "@pbgo/catalog/server"
 import { GameList } from "@/components/game-list"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
+import { ListPageHeader } from "@/components/list-page-header"
 import { SiteFooter } from "@/components/site-footer"
 import { catalogCardProps } from "@/lib/game-card-props"
 
@@ -29,14 +30,9 @@ export default async function GamesPage() {
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
-          <section className="bg-linear-to-b from-card to-background pt-navbar">
-            <div className="mx-auto flex w-full max-w-page flex-col items-center gap-8 px-gutter pt-section pb-12 text-center">
-              <h1 className="font-heading text-4xl sm:text-5xl">Games</h1>
-              <div className="w-full max-w-3xl">
-                <HeroSearch />
-              </div>
-            </div>
-          </section>
+          <ListPageHeader title="Games">
+            <HeroSearch label="Search games" placeholder="Search games..." />
+          </ListPageHeader>
 
           <section id="results" aria-label="Games" className="w-full scroll-mt-navbar px-gutter pt-10 pb-section">
             <GameList />

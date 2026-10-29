@@ -114,6 +114,12 @@
    */
   --text-display: clamp(2rem, 5.8vw + 0.9rem, 7rem);
 
+  /*
+   * The title of a page that lists something (Games, Tables, Tournaments), `page-title`: one line, 8rem from a window of 850px and wider. Under that it follows the window (16vw less 0.5rem, 2.5rem at the least),
+   * so that the longest of the three, "Tournaments" (5.75em wide in Geist at 720 with the tracking of the title), takes 87% of the width a 390px phone leaves between its gutters, and 92% of what a 768px tablet does.
+   */
+  --text-page-title: clamp(2.5rem, 16vw - 0.5rem, 8rem);
+
   /* The one weight lighter than the platform's 600 that a text may have, 400: the finest print (`fine-print`). And the one weight heavier, 720 (`font-strong`): the title of the home (`display-title`) and the name of a person at the head of a profile (a variable font: Geist has every weight between 100 and 900) */
   --font-weight-regular: 400;
   --font-weight-strong: 720;
@@ -155,6 +161,18 @@
     letter-spacing: var(--tracking-display);
     padding-inline: 0.1em;
   }
+}
+
+/*
+ * The title of a page that lists something (`page-title`): Geist at a weight of 720 with the tracking of the home's title (-6%), the size of `--text-page-title` (8rem on a desktop) and a line-height of 1.05, in
+ * the full colour of the text. One line, so it has no fade and no padding of its own, and the head of the page centres it (`ListPageHeader`).
+ */
+@utility page-title {
+  font-family: var(--font-title);
+  font-size: var(--text-page-title);
+  font-weight: var(--font-weight-strong);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.05;
 }
 
 /*
