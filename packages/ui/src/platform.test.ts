@@ -94,27 +94,21 @@ describe("presence colours", () => {
 })
 
 /**
- * The colours of a game table are the home's hero's alone (`Tabletop`, and the pieces that stand for letters of its title): the colours of what is played with (`--piece-*`, each with its utility, so a
- * piece is drawn from a token and a platform component never names one) and of what it is played on (`--wood-*`, which only the table's CSS reads).
+ * The colours of the pieces that stand for letters of the home's title are theirs alone: the colours of what is played with (`--piece-*`, each with its utility, so a piece is drawn from a token and a platform
+ * component never names one).
  */
-describe("game table colours", () => {
+describe("piece colours", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
-  for (const name of ["red", "gold", "navy", "ivory", "ink", "black"]) {
+  for (const name of ["red", "gold", "navy", "ivory", "ink"]) {
     it(`piece-${name} is a token with its utility`, () => {
       expect(css).toMatch(new RegExp(`--piece-${name}:\\s*oklch\\(`))
       expect(css).toContain(`--color-piece-${name}: var(--piece-${name})`)
     })
   }
 
-  for (const name of ["1", "2", "3", "seam"]) {
-    it(`wood-${name} is a token`, () => {
-      expect(css).toMatch(new RegExp(`--wood-${name}:\\s*oklch\\(`))
-    })
-  }
-
-  it("the table and the pieces of the title are utilities of the stylesheet", () => {
-    for (const utility of ["tabletop", "title-piece", "title-cards"]) expect(css).toContain(`@utility ${utility} {`)
+  it("the pieces of the title are utilities of the stylesheet", () => {
+    for (const utility of ["title-piece", "title-cards"]) expect(css).toContain(`@utility ${utility} {`)
   })
 })
 

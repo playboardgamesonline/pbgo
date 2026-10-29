@@ -1,7 +1,6 @@
 import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Perks, Stats } from "@pbgo/ui/platform/stats"
-import { Tabletop } from "@pbgo/ui/platform/tabletop"
 import { TitleCards, TitlePiece } from "@pbgo/ui/platform/title-piece"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
@@ -39,13 +38,11 @@ export default async function Home() {
         <main className="flex-1">
           {/* The hero, the page of a visitor who is not signed in (signed in, there is no title: the home is built from what they play): the title in two lines of the same size, in sentence case, in Geist
               at a weight of 720 and a tracking of -0.048em (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a die that turns, the suits of a deck in turn and a coin that spins, for three "o", and two
-              white cards after "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now, with a green dot, and the members, counted in Supabase, and the games of the catalog) and what
+              dark blue cards after "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now, with a green dot, and the members, counted in Supabase, and the games of the catalog) and what
               costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on a backdrop that is lighter at the top and fades into the
-              black the sections sit on, with a walnut table under a lamp laid over it (`Tabletop`: dice, playing cards, chips and meeples lying and standing on it, in
-              perspective, still; neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
-          <section className="relative bg-linear-to-b from-card to-background pt-navbar">
-            <Tabletop />
-            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
+              black the sections sit on, and nothing else (no table, no grid of thin lines of `pattern-grid`, no game pieces of `BoardPattern`) */}
+          <section className="bg-linear-to-b from-card to-background pt-navbar">
+            <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
               <h1 className="display-title">
                 <span className="block text-display">Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>{" "}
                 <span className="block text-display">b<TitlePiece kind="coin">o</TitlePiece>ard games <TitleCards />online</span>

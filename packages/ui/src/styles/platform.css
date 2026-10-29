@@ -1,7 +1,7 @@
 /*
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
- * Direction: a black that leans to brown and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
+ * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
  * blurple on their buttons, Google's four colours in its mark), and a single gradient, neutral too: the backdrop of a page's first
  * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
  * in semibold, slightly tight line-height, small negative letter-spacing. Apart from those, game art is the only colour on the platform.
@@ -66,7 +66,6 @@
   --color-piece-gold: var(--piece-gold);
   --color-piece-ivory: var(--piece-ivory);
   --color-piece-ink: var(--piece-ink);
-  --color-piece-black: var(--piece-black);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -245,112 +244,7 @@
   background-position: center top;
 }
 
-/*
- * The backdrop of the home's hero, `Tabletop`: a table of board games seen from above at a low angle, in perspective, under a lamp, with nothing on it. It is made of CSS, no image, and it is decorative (`aria-hidden`, no
- * pointer). Its colours are the ones of a table (`--wood-*`, `--piece-*` of `.platform`), the hero's alone. One utility, the root, which styles what `Tabletop` draws inside it by their `data-slot`:
- * - the box is `absolute inset-0` and fades out at its foot where the black of the page takes over;
- * - `tabletop-light`: the lamp, a pool of warm light at the top (`--piece-gold`);
- * - `tabletop-stage` and `tabletop-plane`: the eye is above the table and a little in front of it (`perspective`), and the table is a plane tilted back around its bottom edge (`--tabletop-tilt`), wide and deep enough to have no edge in view, and steeply enough that
- *   its planks narrow to a fifth of their width by the top of the hero, which is what gives it depth; its far end fades out; `tabletop-wood` is its surface, planks with their seams and a fine grain along them;
- * - `tabletop-shade`: the page's black over it, at the foot, under the text and at both sides, so that the table is lit in the middle and dark at its edges. Nothing moves: the table is a still scene.
- */
-@utility tabletop {
-  /* How the table is seen, which `/design` compares (section `tabletop`): how far the plane is tilted back, the distance of the eye, where the eye is (a share of the stage, up from its top), the boards turned in the
-     plane of the table, the width of a board where it is nearest, how lit the top of the hero is (the far end of the table, which fades out), how strong the lamp is over the table, how dark the whole table is (a veil of the page's black), how dark the header is under the navbar, and how wide the pool of black behind the text is */
-  --tabletop-tilt: 66deg;
-  --tabletop-perspective: 1200px;
-  --tabletop-origin: -25%;
-  --tabletop-turn: 0deg;
-  --tabletop-plank: 260px;
-  --tabletop-far: 0%;
-  --tabletop-lamp: 36%;
-  --tabletop-veil: 14%;
-  --tabletop-header: 92%;
-  --tabletop-pool: 40%;
-  /* On a phone the text takes the whole width and is higher up, under the lamp: the pool of black behind it is as wide as the window and the lamp is a little less, so that the figures keep their contrast (4.5:1) */
-  @media (max-width: 40rem) {
-    --tabletop-pool: 90%;
-    --tabletop-lamp: 30%;
-  }
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
-  mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
-
-  & [data-slot="tabletop-stage"] {
-    position: absolute;
-    inset-inline: 0;
-    bottom: 0;
-    height: 1000px;
-    perspective: var(--tabletop-perspective);
-    perspective-origin: 50% var(--tabletop-origin);
-    /* The light falls off with the distance and under the figures, never towards the sides: the table has no edge, it goes on past the window on every side. Far away it is `--tabletop-far`, at the title it is full, at the perks half, at the search bar a third */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 22%, transparent) 298px, color-mix(in oklab, var(--foreground) 50%, transparent) 368px, color-mix(in oklab, var(--foreground) 82%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
-    mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 22%, transparent) 298px, color-mix(in oklab, var(--foreground) 50%, transparent) 368px, color-mix(in oklab, var(--foreground) 82%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
-  }
-
-  & [data-slot="tabletop-plane"] {
-    position: absolute;
-    inset-inline: -300%;
-    bottom: -50px;
-    height: 4800px;
-    transform-origin: 50% 100%;
-    transform: rotateX(var(--tabletop-tilt));
-    transform-style: preserve-3d;
-  }
-
-  /* The boards, in a layer bigger than the plane so that they can be turned in it without leaving a corner bare */
-  & [data-slot="tabletop-wood"] {
-    position: absolute;
-    inset: -35%;
-    transform: rotate(var(--tabletop-turn));
-    background:
-      repeating-linear-gradient(90deg, var(--wood-seam) 0 4px, transparent 4px var(--tabletop-plank)),
-      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 55%, transparent) 0 3px, transparent 3px calc(var(--tabletop-plank) * 1.335)),
-      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-3) 55%, transparent) 0 calc(var(--tabletop-plank) * 0.69), color-mix(in oklab, var(--wood-1) 45%, transparent) calc(var(--tabletop-plank) * 0.69) calc(var(--tabletop-plank) * 1.565), transparent calc(var(--tabletop-plank) * 1.565) calc(var(--tabletop-plank) * 2.22)),
-      repeating-linear-gradient(90deg, var(--wood-1) 0 var(--tabletop-plank), var(--wood-2) var(--tabletop-plank) calc(var(--tabletop-plank) * 2), var(--wood-3) calc(var(--tabletop-plank) * 2) calc(var(--tabletop-plank) * 3));
-  }
-  & [data-slot="tabletop-wood"]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 14%, transparent) 0 1px, transparent 1px 9px, color-mix(in oklab, var(--piece-ivory) 3.5%, transparent) 9px 10px, transparent 10px 23px);
-    mix-blend-mode: multiply;
-  }
-
-  /*
-   * The lamp, over the table and not under it: its light is added to the planks (`screen`), a wide pool of `--piece-gold` at the top of the hero, just under the header, with a hot centre of ivory, so that the wood is lit where it is
-   * near the lamp and falls back to its own colour as it goes.
-   */
-  & [data-slot="tabletop-light"] {
-    position: absolute;
-    inset: 0;
-    mix-blend-mode: screen;
-    background-image:
-      radial-gradient(ellipse 30% 22% at 50% 17%, color-mix(in oklab, var(--piece-ivory) calc(var(--tabletop-lamp) * 0.4), transparent), transparent 100%),
-      radial-gradient(ellipse 74% 58% at 50% 17%, color-mix(in oklab, color-mix(in oklab, var(--piece-gold) 40%, var(--piece-ivory)) var(--tabletop-lamp), transparent), transparent 72%);
-  }
-
-  /*
-   * Over the table: the page's black. The header: the top of the hero, under the navbar, is the darkest part of it (`--tabletop-header` over the first pixels, and nothing 150px down), so that the bar reads and the
-   * lamp is under it and not behind it; a soft pool where the title, the figures and the perks are read, so that small text keeps its contrast on the planks; and a gradient from the foot of the hero that rises to
-   * its upper third and is all but black at the bottom (92% at a sixth of the height, 62% at a third), so that the table is lit from above and goes dark where the search bar and its filters are, and runs into the
-   * black of the page under it.
-   */
-  & [data-slot="tabletop-shade"] {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(color-mix(in oklab, var(--background) var(--tabletop-veil), transparent), color-mix(in oklab, var(--background) var(--tabletop-veil), transparent)),
-      linear-gradient(to bottom, color-mix(in oklab, var(--background) var(--tabletop-header), transparent) 0, color-mix(in oklab, var(--background) calc(var(--tabletop-header) * 0.6), transparent) 60px, transparent 150px),
-      linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 70%, transparent) 14%, color-mix(in oklab, var(--background) 28%, transparent) 30%, transparent 46%),
-      radial-gradient(ellipse var(--tabletop-pool) 44% at 50% 47%, color-mix(in oklab, var(--background) 62%, transparent), color-mix(in oklab, var(--background) 34%, transparent) 62%, transparent 100%);
-  }
-}
-
-/* The pips of a face of a die, from its `data-pips` (1 to 6): discs of `--pip` on the face, which is `background-color`, all of the same size (9.5% of the face for the radius, whatever the number). One utility for the dice of the table and for the one in the title. */
+/* The pips of a face of a die, from its `data-pips` (1 to 6): discs of `--pip` on the face, which is `background-color`, all of the same size (9.5% of the face for the radius, whatever the number). One utility for the faces of the die in the title. */
 @utility die-pips {
   &[data-pips="1"] {
     background-image: radial-gradient(ellipse 9.5% 9.5% at 50% 50%, var(--pip) 88%, transparent 100%);
@@ -518,22 +412,30 @@
   &[data-kind="coin"] [data-face="tails"] {
     transform: rotateX(180deg);
   }
-  /* The suits of a deck, one over the other in the place of an "o": a window as big as one suit (the suit is drawn 120% of the piece, so the window is the piece and a tenth round it) that a strip of them scrolls through, a
-     red one and a black one in turn, repeating every four (`TitleSuits` moves it, a wheel); the places of the strip are 0.7em high and 0.2em apart, as `PITCH` of the component says */
+  /* The suits of a deck, one over the other in the place of an "o": a window that a strip of them scrolls through, a red one and a white one in turn, repeating every four (`TitleSuits` moves it, a wheel). The piece is the size of
+     an "o" (0.62em by 0.58em). The window is taller than one suit, with a fade of 0.3em above it and 0.3em under it (1.3em in all, `WINDOW` of the component), so that a suit comes in and goes out through the fade and is not cut,
+     and a tenth wider on each side, as the suit is drawn 120% of the piece. The places of the strip are 0.7em high and 0.3em apart (`PITCH` of the component says 1em): at rest the one suit is in the window, the others being
+     farther away than the fade reaches. The window is also what `TitleSuits` blurs, with an SVG filter that is set on it */
   &[data-kind="suits"] {
     width: 0.62em;
     height: 0.58em;
     vertical-align: -0.005em;
-    clip-path: inset(-10%);
   }
-  &[data-kind="suits"] > [data-slot="suit-strip"] {
+  &[data-kind="suits"] > [data-slot="suit-window"] {
     position: absolute;
-    left: -10%;
-    top: -10%;
-    width: 120%;
+    inset: -0.36em -10%;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, var(--foreground) 0.3em, var(--foreground) calc(100% - 0.3em), transparent);
+    mask-image: linear-gradient(to bottom, transparent, var(--foreground) 0.3em, var(--foreground) calc(100% - 0.3em), transparent);
+  }
+  &[data-kind="suits"] [data-slot="suit-strip"] {
+    position: absolute;
+    inset-inline: 0;
+    top: 0.3em;
     display: flex;
     flex-direction: column;
-    gap: 0.2em;
+    gap: 0.3em;
   }
   &[data-kind="suits"] [data-slot="suit-place"] {
     display: block;
@@ -545,10 +447,10 @@
     height: 100%;
     fill: var(--piece-red);
   }
-  /* The black suits are black, as printed on a card (`--piece-black`), with no outline */
+  /* The black suits are white, the colour of the letters around them: a black one would be lost on the black of the page, and the red ones stay as red as a card's */
   &[data-kind="suits"] [data-suit="club"],
   &[data-kind="suits"] [data-suit="spade"] {
-    fill: var(--piece-black);
+    fill: var(--foreground);
   }
 }
 
@@ -599,21 +501,20 @@
 @layer base {
   .platform {
     /*
-     * The neutral scale of the platform: Tailwind's, step for step, tinted toward brown and a little darker in its four darkest steps (the backgrounds, 0.025 under Tailwind's for the page and for a container), so that the black of the page is a dark chocolate and not a neutral black, the way the table of the hero
-     * is made of walnut. The hue is that of the wood (55); the chroma is small, a brown that is hardly one (0.008 for the page and for a container), and fades towards the whites (0.002), which stay almost white. Every grey
-     * of a platform screen is one of these steps, so changing them here changes the whole platform; `PLATFORM_THEME_COLOR` copies the first (`theme.test.ts` checks it).
+     * The neutral scale of the platform: Tailwind's, step for step, with its four darkest steps a little darker (the backgrounds, about 0.03 under Tailwind's) so that the page is a true black, and no tint at all: a chroma of 0 all the way,
+     * black, greys and white, nothing leaning to brown. Every grey of a platform screen is one of these steps, so changing them here changes the whole platform; `PLATFORM_THEME_COLOR` copies the first (`theme.test.ts` checks it).
      */
-    --color-neutral-50: oklch(0.985 0.002 55);
-    --color-neutral-100: oklch(0.97 0.002 55);
-    --color-neutral-200: oklch(0.922 0.003 55);
-    --color-neutral-300: oklch(0.87 0.003 55);
-    --color-neutral-400: oklch(0.708 0.004 55);
-    --color-neutral-500: oklch(0.556 0.005 55);
-    --color-neutral-600: oklch(0.439 0.006 55);
-    --color-neutral-700: oklch(0.345 0.007 55);
-    --color-neutral-800: oklch(0.235 0.008 55);
-    --color-neutral-900: oklch(0.175 0.008 55);
-    --color-neutral-950: oklch(0.12 0.008 55);
+    --color-neutral-50: oklch(0.985 0 0);
+    --color-neutral-100: oklch(0.97 0 0);
+    --color-neutral-200: oklch(0.922 0 0);
+    --color-neutral-300: oklch(0.87 0 0);
+    --color-neutral-400: oklch(0.708 0 0);
+    --color-neutral-500: oklch(0.556 0 0);
+    --color-neutral-600: oklch(0.439 0 0);
+    --color-neutral-700: oklch(0.345 0 0);
+    --color-neutral-800: oklch(0.235 0 0);
+    --color-neutral-900: oklch(0.175 0 0);
+    --color-neutral-950: oklch(0.12 0 0);
     /* Colours: that scale, then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
@@ -640,17 +541,12 @@
     /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Facebook's blue and Discord's blurple. Google's and Apple's are `foreground` and `background`; the marks are in `brands.tsx` */
     --brand-facebook: #1877f2;
     --brand-discord: #5865f2;
-    /* The colours of a game table, which are the hero's alone (`Tabletop`, and the pieces that stand for letters in its title, `TitlePiece`): what is played with (red and gold, the dark blue of the backs of the cards, ivory and ink for a die, and the black of the clubs and the spades), and what it is played on (the planks of the table, the seams between them) */
+    /* The colours of the pieces that stand for letters in the home's title (`TitlePiece`, `TitleCards`): red and gold, the dark blue of the backs of the cards, ivory and ink for a die. The black suits are not one of them: on the page's black they are drawn in the colour of the text */
     --piece-red: oklch(0.64 0.2 27);
     --piece-navy: oklch(0.34 0.1 258);
     --piece-gold: oklch(0.82 0.15 88);
     --piece-ivory: oklch(0.96 0.02 85);
     --piece-ink: oklch(0.22 0.02 60);
-    --piece-black: oklch(0 0 0);
-    --wood-1: oklch(0.33 0.032 62);
-    --wood-2: oklch(0.29 0.03 58);
-    --wood-3: oklch(0.31 0.034 64);
-    --wood-seam: oklch(0.16 0.02 52);
     /* What is cut out of a picture, the ring round a status dot: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);
     /* The settings of the glass (`glass`): how much of the grey of a card it keeps, how much it blurs what is behind it, and how much it saturates it. 100% saturation leaves the colours as they are */

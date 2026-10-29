@@ -49,7 +49,7 @@ export const NAV = [
       { id: "friends-bar", title: "Friends bar" },
       { id: "social-panel", title: "Social panel" },
       { id: "board-pattern", title: "Board pattern" },
-      { id: "tabletop", title: "Tabletop" },
+      { id: "title-pieces", title: "Title pieces" },
       { id: "stats", title: "Stats" },
       { id: "avatar", title: "Avatar" },
       { id: "alert", title: "Alert" },

@@ -60,8 +60,15 @@ describe("theme.ts", () => {
     const background = platformToken("--background")
     const colorVar = /^var\((--color-[\w-]+)\)$/.exec(background)?.[1]
     expect(colorVar, `--background must be a Tailwind colour variable, found ${background}`).toBeDefined()
-    // The platform redeclares the steps of the neutral scale to tint them (`.platform`); a step it leaves alone is Tailwind's own
+    // The platform redeclares the steps of the neutral scale to darken them (`.platform`); a step it leaves alone is Tailwind's own
     expect(oklchToHex(declaredOnPlatform(colorVar!) ?? tailwindToken(colorVar!))).toBe(PLATFORM_THEME_COLOR)
+  })
+
+  it("the neutral scale of the platform has no tint: a chroma of 0 in every step", () => {
+    for (const step of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]) {
+      const name = `--color-neutral-${step}`
+      expect(platformToken(name), `${name} must not lean to a hue`).toMatch(/^oklch\(\s*[\d.]+\s+0\s+0\s*\)$/)
+    }
   })
 
   it("the neutral scale of the platform keeps Tailwind's order and stays within 0.04 of its lightness, step for step", () => {

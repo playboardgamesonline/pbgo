@@ -14,13 +14,11 @@ import {
 } from "@pbgo/ui/platform/search-bar"
 import { Perks, Stats } from "@pbgo/ui/platform/stats"
 import { Suit } from "@pbgo/ui/platform/suits"
-import { Tabletop } from "@pbgo/ui/platform/tabletop"
 import { TitleCards, TitlePiece } from "@pbgo/ui/platform/title-piece"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
 import { FiltersSpecimen } from "../_components/filters-specimen"
 import { NavbarPlayground } from "../_components/navbar-playground"
-import { TablePerspectives } from "../_components/table-perspectives"
 import { Block, Bullets, Demo, Section } from "../_components/layout"
 
 export function Logos() {
@@ -430,40 +428,16 @@ export function BoardPatterns() {
   )
 }
 
-export function Tabletops() {
+export function TitlePieces() {
   return (
     <Section
-      id="tabletop"
-      module="tabletop"
-      intro="The backdrop of the home's hero: a table of board games seen from above at a low angle, in perspective, under a lamp, with nothing on it. It is made of CSS, no image: the table is planks and their seams with a fine grain along them (`--wood-*`), two runs of seams and of tones so that the boards are not a regular stripe, the lamp a pool of `--piece-gold` at the top. What keeps it from looking flat is the perspective: the table is a plane tilted back around its bottom edge by 66 degrees (`--tabletop-tilt`) and seen from 1200px (`perspective` and `rotateX()`), and it is so wide and so deep that it has no edge in view, on any window: its boards narrow to a little over half their width by the top of the hero, and its far end fades; the layer fades out at its foot, where the page's black takes over, and a soft pool of that black over its middle keeps the text there readable. Nothing moves. It is decorative: `aria-hidden`, and it takes no click."
+      id="title-pieces"
+      module="title-piece"
+      intro="Some letters of the home's title are pieces of a game table, and so are the ornaments between its words: a die, a coin and the suits of a deck of cards for three of its letters o, and two cards. They are drawn in CSS and SVG, in `em`, so that they follow the title and sit on its baseline like the letter they stand for, and they move now and then, not often (`PLAYFUL` of `@pbgo/ui/motion`, section `playful-motion`). They are on the page's black and nothing else: no table behind them. The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine."
     >
       <Demo
-        title="Behind a hero"
-        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The one utility, `tabletop`, is in `platform.css`; it draws what `Tabletop` sets by its `data-slot`."
-        className="p-0"
-        code={`<section className="relative bg-linear-to-b from-card to-background">
-  <Tabletop />
-  <div className="relative …">…</div>
-</section>`}
-      >
-        <div className="relative h-[34rem] overflow-hidden bg-linear-to-b from-card to-background">
-          <Tabletop />
-          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
-        </div>
-      </Demo>
-
-      <Demo
-        title="Perspectives"
-        description="Five ways of seeing the table, each in a hero of 1440 by 772 shown at half its size, with the navbar, the title, the figures and the search bar where they are on the home. The lamp is the same in all of them, over the boards and just under the header, and so is the dark of the header; what changes is how far the table is tilted (`--tabletop-tilt`), how far the eye is (`--tabletop-perspective`), where it is (`--tabletop-origin`), how the boards are turned in the plane of the table (`--tabletop-turn`) and how wide a board is (`--tabletop-plank`): they are custom properties of `.tabletop`, which a page sets on it."
-        className="p-0 border-0"
-        code={`<Tabletop style={{ "--tabletop-tilt": "54deg", "--tabletop-perspective": "1600px", "--tabletop-origin": "-35%", "--tabletop-plank": "300px" }} />`}
-      >
-        <TablePerspectives />
-      </Demo>
-
-      <Demo
         title="The pieces of the title"
-        description="Some letters of the home's title are pieces of a game table, sized in `em` so that they follow it and set on its baseline like the letter they stand for: a die, a cube seen straight on, that rolls from the left to the right now and then, for a few turns at random, to land on another side, the suits of a deck of cards in turn (a heart, a spade, a diamond, a club: a red one and a black one in turn, each scrolling up to the next like a wheel) and a coin that is tossed from the top to the bottom, now and then, for 5 or 6 whole turns, showing a laureate in profile and a star in a wreath of laurel, both engraved in lines, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion; the die, the coin and the suits are `TitleDie`, `TitleCoin` and `TitleSuits`, whose moves are in the section `playful-motion`), and two dark blue cards, the backs of a deck, that overlap by more than half, after the last word of a line, with the space of a word on each side of them (`TitleCards`, left out under 40rem). The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine. The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
+        description="A die, a cube seen straight on that rolls from the left to the right now and then, for a few whole turns at random and a quarter more, to land on another side; the suits of a deck of cards in turn, a wheel that scrolls up through a heart, a spade, a diamond and a club (a red one and a white one in turn: a black one would be lost on the page's black) to a random one, faded at the top and at the bottom of its window and blurred as it speeds up; and a coin tossed from the top to the bottom, now and then, for a few whole turns, showing a laureate in profile and a star in a wreath of laurel, both engraved in lines, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion; the die, the coin and the suits are `TitleDie`, `TitleCoin` and `TitleSuits`), and two dark blue cards, the backs of a deck, that overlap by more than half, after the last word of a line, with the space of a word on each side of them (`TitleCards`, left out under 40rem). The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
         className="flex flex-col items-center gap-6 py-10"
         code={`<h1 className="display-title">
   <span className="block text-display">Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>
@@ -481,8 +455,8 @@ export function Tabletops() {
         <div className="flex items-center gap-4 text-foreground">
           <Suit suit="heart" className="size-8 fill-piece-red" />
           <Suit suit="diamond" className="size-8 fill-piece-red" />
-          <Suit suit="spade" className="size-8 fill-piece-black" />
-          <Suit suit="club" className="size-8 fill-piece-black" />
+          <Suit suit="spade" className="size-8 fill-foreground" />
+          <Suit suit="club" className="size-8 fill-foreground" />
         </div>
       </Demo>
     </Section>

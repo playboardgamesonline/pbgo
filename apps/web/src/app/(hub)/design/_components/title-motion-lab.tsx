@@ -32,9 +32,9 @@ const MOVES: readonly Move[] = [
   {
     id: "die",
     name: "The die: an expo snap",
-    note: "Rolls from the left to the right, 3, 4 or 5 whole turns and a quarter, and lands on the next side. Slow to wake up, then all at once, then a long gentle stop, and it swells toward you as it flies. Every 15 s on the home, every 6 s here.",
+    note: "Rolls from the left to the right, 2 or 3 whole turns and a quarter, and lands on the next side. Slow to wake up, then all at once, then a long gentle stop, and it swells toward you as it flies. Every 15 s on the home, every 6 s here.",
     specs: [
-      ["roll", `${bezier(die.ease)} · ${die.secondsATurn} s a turn`],
+      ["roll", `${die.turns.min} or ${die.turns.max} whole turns and a quarter · ${bezier(die.ease)} · ${die.secondsATurn} s a turn`],
       ["swell", `scale 1 → ${die.swell} → 1 · the whole roll · ease-in-out`],
     ],
     stage: (
@@ -50,9 +50,9 @@ const MOVES: readonly Move[] = [
   {
     id: "coin",
     name: "The coin: a toss pulse",
-    note: "Tossed from the top to the bottom for 5 or 6 whole turns, always back on its profile. It dips as if gathering itself, swells toward you at the top of the toss, and lands with a squash that springs back. Every 25 s or so on the home, every 8 s here.",
+    note: "Tossed from the top to the bottom for 3 or 4 whole turns, always back on its profile. It dips as if gathering itself, swells toward you at the top of the toss, and lands with a squash that springs back. Every 25 s or so on the home, every 8 s here.",
     specs: [
-      ["spin", `${bezier(coin.ease)} · ${coin.secondsATurn} s a turn`],
+      ["spin", `${coin.turns.min} or ${coin.turns.max} whole turns · ${bezier(coin.ease)} · ${coin.secondsATurn} s a turn`],
       ["pulse", `scale 1 → ${coin.dip} → ${coin.swell} → 1 · the whole spin · ease-in-out`],
       ["landing", `scale ${coin.squash} · 0.07 s · ${spring(coin.landing)}`],
     ],
@@ -69,9 +69,11 @@ const MOVES: readonly Move[] = [
   {
     id: "suit",
     name: "The suits: a wheel",
-    note: "Scrolls up like the reel of a slot machine, through the suits in turn (a red one, a black one), fast at first and slower and slower, stretched at speed, a little past its stop and back on a spring, and stops on a random suit, never the one that was shown. Every 15 s on the home, every 5 s here.",
+    note: "Scrolls up like the reel of a slot machine, through the suits in turn (a red one, a white one), faded at the top and at the bottom of its window, with a wind-up and then slower and slower, blurred up and down as it speeds up, a little past its stop and back on a spring, and stops on a random suit, never the one that was shown. Every 15 s on the home, every 7 s here.",
     specs: [
-      ["turn", `${wheel.min} to ${wheel.max} places, at random, never a whole turn of the four · ${bezier(wheel.ease)} · ${wheel.secondsAPlace} s a place`],
+      ["turn", `${wheel.places.min} to ${wheel.places.max} places, at random, never a whole turn of the four · ${bezier(wheel.ease)} · ${wheel.secondsAPlace} s a place`],
+      ["fade", "0.3 em at the top and at the bottom of the window · the suit at rest is whole"],
+      ["blur", `up and down only · a deviation of ${wheel.blur.perPlaceASecond} em a place a second, ${wheel.blur.max} em at most`],
       ["stretch", `scale y 1 + ${wheel.stretch} a place a second, ${wheel.maxStretch} at most`],
       ["stop", `${wheel.overshoot} of a place past, then ${spring(wheel.settle)}`],
     ],
@@ -79,7 +81,7 @@ const MOVES: readonly Move[] = [
       <>
         v
         <span data-slot="title-piece" data-kind="suits" className="title-piece">
-          <TitleSuits first={400} every={5000} />
+          <TitleSuits first={400} every={7000} />
         </span>
         r
       </>
@@ -91,7 +93,7 @@ function MoveCard({ move }: { move: Move }) {
   const [run, setRun] = React.useState(0)
   return (
     <article className="flex flex-col gap-3 rounded-3xl border bg-card p-3">
-      <div className="flex h-36 items-center justify-center overflow-hidden rounded-2xl bg-(--wood-2)">
+      <div className="flex h-36 items-center justify-center overflow-hidden rounded-2xl bg-background">
         <p aria-hidden="true" className="display-title text-[5.5rem] leading-none text-foreground" key={run}>
           {move.stage}
         </p>
@@ -126,7 +128,7 @@ function MoveCard({ move }: { move: Move }) {
   )
 }
 
-/** The three moves that were chosen, each on the table of the hero. */
+/** The three moves that were chosen, each on the page's black. */
 export function TitleMotionLab() {
   return (
     <div className="grid gap-4 md:grid-cols-2">

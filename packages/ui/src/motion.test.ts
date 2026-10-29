@@ -40,6 +40,32 @@ describe("motion tokens", () => {
     }
   })
 
+  it("keeps the turns of the playful pieces few and in order (a die of 2 or 3, a coin of 3 or 4, a wheel of 6 to 11 places that is never a whole turn of the four)", () => {
+    for (const range of [PLAYFUL.die.turns, PLAYFUL.coin.turns, PLAYFUL.suit.wheel.places]) {
+      expect(Number.isInteger(range.min)).toBe(true)
+      expect(Number.isInteger(range.max)).toBe(true)
+      expect(range.min).toBeLessThanOrEqual(range.max)
+    }
+    expect(PLAYFUL.die.turns.max).toBeLessThanOrEqual(3)
+    expect(PLAYFUL.coin.turns.max).toBeLessThanOrEqual(4)
+    expect(PLAYFUL.suit.wheel.places.max).toBeLessThanOrEqual(11)
+  })
+
+  it("keeps the wheel slow enough to be read: its fastest moment is under nine places a second", () => {
+    const [, y1, , y2] = PLAYFUL.suit.wheel.ease
+    const [x1, , x2] = PLAYFUL.suit.wheel.ease
+    // The steepest part of the curve, sampled, against the average speed of the shortest turn at the quickest it may be (the seconds of a place, less a tenth)
+    const point = (t: number, a: number, b: number) => 3 * (1 - t) ** 2 * t * a + 3 * (1 - t) * t ** 2 * b + t ** 3
+    let steepest = 0
+    for (let t = 0; t < 1; t += 0.005) {
+      const dx = point(t + 0.005, x1, x2) - point(t, x1, x2)
+      const dy = point(t + 0.005, y1, y2) - point(t, y1, y2)
+      if (dx > 0) steepest = Math.max(steepest, dy / dx)
+    }
+    const average = 1 / (PLAYFUL.suit.wheel.secondsAPlace * 0.9)
+    expect(steepest * average).toBeLessThan(9)
+  })
+
   it("keeps the playful pieces calmer than what they were first chosen as (a swell of 1.22 and a dip of 0.93)", () => {
     expect(PLAYFUL.die.swell).toBeLessThan(1.22)
     expect(PLAYFUL.coin.swell).toBeLessThan(1.2)

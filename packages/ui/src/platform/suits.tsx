@@ -1,7 +1,7 @@
 import * as React from "react"
 
 // The four suits of a deck of cards, drawn in a 24 × 24 box on `currentColor` (a fill), as the pips of a French deck are: a heart with two round lobes and a pointed foot, a diamond with four straight sides, a spade (a heart
-// upside down, with a stem) and a club (three discs and a stem). The playing cards of the hero's table (`Tabletop`) wear them, and the heart is the "o" of a word in its title (`TitlePiece`). They are decorative: `aria-hidden`.
+// upside down, with a stem) and a club (three discs and a stem). The wheel of the home's title wears them (`TitleSuits`), one for the "o" of a word in it (`TitlePiece`). They are decorative: `aria-hidden`.
 
 type SuitName = "heart" | "diamond" | "spade" | "club"
 

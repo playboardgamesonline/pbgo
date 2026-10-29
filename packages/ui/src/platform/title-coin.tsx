@@ -6,7 +6,7 @@ import { PLAYFUL } from "../motion"
 import { HEADS, TAILS, type Drawing } from "./coin-drawings"
 
 // The coin of the home's title, an "o": two sides drawn in lines, a laureate in profile and a star with facets in a wreath of laurel (`coin-drawings.ts`), on a struck gold coin that the utility `title-piece` of
-// `styles/platform.css` draws. It is tossed, from the top to the bottom, and it does not rise: now and then it spins for 5 or 6 whole turns (that is all the chance there is), and it plays while it does (`PLAYFUL.coin`):
+// `styles/platform.css` draws. It is tossed, from the top to the bottom, and it does not rise: now and then it spins for 3 or 4 whole turns (that is all the chance there is), and it plays while it does (`PLAYFUL.coin`):
 // it dips as if gathering itself, swells toward the viewer at the top of the toss, slows down as an ease in and out does, and lands with a squash that springs back. A whole number of turns, so it always stops flat
 // on its profile. It rests 14 to 24 seconds between two spins, and the first one comes 12 to 15 seconds after the page is shown, once the die has rolled and the suit has changed. A visitor who asks for less
 // motion gets the profile and nothing moves.
@@ -53,10 +53,10 @@ function TitleCoin({ first = 12500, rest = 14000 }: { first?: number; rest?: num
     let stopped = false
     let timer: ReturnType<typeof setTimeout> | undefined
     let running: AnimationPlaybackControls[] = []
-    const { ease, secondsATurn, dip, swell, squash, landing } = PLAYFUL.coin
+    const { ease, secondsATurn, turns: range, dip, swell, squash, landing } = PLAYFUL.coin
 
     const spin = async () => {
-      const turns = Math.random() < 0.5 ? 5 : 6
+      const turns = range.min + Math.floor(Math.random() * (range.max - range.min + 1))
       const seconds = turns * secondsATurn * (0.96 + Math.random() * 0.08)
       running = [
         animate(angle, angle.get() - turns * 360, { duration: seconds, ease }),

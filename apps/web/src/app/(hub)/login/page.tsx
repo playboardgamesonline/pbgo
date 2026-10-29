@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 import { safeNext } from "@pbgo/accounts"
 import { supabaseAuthConfig } from "@pbgo/accounts/config"
 import { getAccount } from "@pbgo/accounts/server"
-import { Tabletop } from "@pbgo/ui/platform/tabletop"
 import { LoginCard } from "@/components/login-card"
 import { SiteFooter } from "@/components/site-footer"
 
@@ -25,9 +24,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-      <main className="relative flex flex-1 items-center justify-center bg-linear-to-b from-card to-background px-gutter pt-navbar pb-section">
-        <Tabletop />
-        <LoginCard next={target} enabled={supabaseAuthConfig() !== null} failed={error === "signin"} className="relative" />
+      <main className="flex flex-1 items-center justify-center bg-linear-to-b from-card to-background px-gutter pt-navbar pb-section">
+        <LoginCard next={target} enabled={supabaseAuthConfig() !== null} failed={error === "signin"} />
       </main>
       <SiteFooter />
     </div>

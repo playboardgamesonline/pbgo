@@ -6,7 +6,7 @@ import { PLAYFUL } from "../motion"
 
 // The die of the home's title, an "o": a cube seen straight on, in perspective (the utility `title-piece` of `styles/platform.css` draws it: four sides with their pips, and no top or bottom, which are never seen) that turns from the
 // left to the right around its vertical axis, as the coin of the title turns around its horizontal one (`TitleCoin`). It turns on that axis only, so only its four sides take turns to face the viewer: a five on the front, then a four,
-// a two and a three. Every fifteen seconds it rolls, 3, 4 or 5 whole turns (chance decides which) and a quarter more, so that it lands on the next side, and it plays while it does (`PLAYFUL.die`): an exponential in and out
+// a two and a three. Every fifteen seconds it rolls, 2 or 3 whole turns (chance decides which) and a quarter more, so that it lands on the next side, and it plays while it does (`PLAYFUL.die`): an exponential in and out
 // (slow to wake up, all at once, a long gentle stop) and a swell toward the viewer at the fastest moment, as if it were thrown at them. To look solid, each side is darkened as it turns away from the light, which comes from
 // the left and the front. A visitor who asks for less motion keeps the five, and nothing moves.
 
@@ -62,10 +62,10 @@ function TitleDie({ first = 4000, every = 15000 }: { first?: number; every?: num
     if (reduced) return
     let timer: ReturnType<typeof setTimeout> | undefined
     let running: AnimationPlaybackControls[] = []
-    const { ease, secondsATurn, swell: size } = PLAYFUL.die
+    const { ease, secondsATurn, turns: range, swell: size } = PLAYFUL.die
 
     const roll = () => {
-      const turns = 3 + Math.floor(Math.random() * 3)
+      const turns = range.min + Math.floor(Math.random() * (range.max - range.min + 1))
       const seconds = (turns + 0.25) * secondsATurn * (0.95 + Math.random() * 0.1)
       running = [
         animate(angle, angle.get() + turns * 360 + 90, { duration: seconds, ease }),
