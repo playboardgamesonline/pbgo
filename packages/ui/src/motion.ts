@@ -9,10 +9,27 @@ export const DURATION = { fast: 0.1, base: 0.15, slow: 0.25 } as const
 export const EASE_STANDARD = [0.2, 0, 0, 1] as const
 
 /**
- * What a thing that was thrown does: a quick start, then the same slowing at every moment until it stops, as dry friction slows it (a quadratic ease-out, `cubic-bezier(0.5, 1, 0.89, 1)`). The first
- * moment is twice as fast as the average: a piece that makes N turns in S seconds starts at 2N/S turns a second (the coin and the die of the home's title).
+ * How the pieces of the home's title play, chosen on `/design` (section `playful-motion`) among five ways each, and calmed a little after that: a die that rolls (`TitleDie`), a coin that is tossed
+ * (`TitleCoin`) and a suit that pops into the next (`TitleSuits`). The platform's own motion is calm on purpose (the durations and the easing above); this is where it may play, and nowhere else. A piece
+ * gets a curve, the seconds that a turn takes, and what it adds to the turn: a swell, a dip, a landing, a pop. Seconds, and degrees; `em` for a distance, so that it follows the size of the title.
  */
-export const EASE_FRICTION = [0.5, 1, 0.89, 1] as const
+export const PLAYFUL = {
+  /** The die: an exponential in and out (slow to wake up, all at once, a long gentle stop), and it swells toward the viewer at the fastest moment, scale 1 → `swell` → 1 over the roll. */
+  die: { ease: [0.87, 0, 0.13, 1], secondsATurn: 0.75, swell: 1.12 },
+  /**
+   * The coin: a cubic in and out, and a toss: it dips as if gathering itself (scale 1 → `dip`), swells toward the viewer at the top of the toss (`swell`, half way), and lands with a squash
+   * (`squash`, 0.07 s) that springs back.
+   */
+  coin: { ease: [0.65, 0, 0.35, 1], secondsATurn: 0.9, dip: 0.95, swell: 1.12, squash: 0.94, landing: { type: "spring", stiffness: 320, damping: 14 } },
+  /**
+   * A suit: the one that is shown shrinks to `scale`, rises by `rise` and fades in `seconds`, and the one that comes in, after `delay`, grows from `from.scale`, turned by `from.rotate` degrees and
+   * `from.drop` low, to its place on a spring (and is clear in `fade` seconds): no reel, a pop.
+   */
+  suit: {
+    leave: { seconds: 0.34, ease: [0.5, 0, 1, 0.5], scale: 0.3, rise: 0.2 },
+    enter: { delay: 0.16, fade: 0.14, from: { scale: 0.3, rotate: -18, drop: 0.14 }, spring: { type: "spring", stiffness: 320, damping: 17 } },
+  },
+} as const
 
 /**
  * Something that moves to a place it was not, and has to feel attached to the hand that asked: the indicator that glides from one tab of

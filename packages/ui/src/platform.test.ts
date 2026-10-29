@@ -100,7 +100,7 @@ describe("presence colours", () => {
 describe("game table colours", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
-  for (const name of ["red", "gold", "ivory", "ink", "black"]) {
+  for (const name of ["red", "gold", "navy", "ivory", "ink", "black"]) {
     it(`piece-${name} is a token with its utility`, () => {
       expect(css).toMatch(new RegExp(`--piece-${name}:\\s*oklch\\(`))
       expect(css).toContain(`--color-piece-${name}: var(--piece-${name})`)

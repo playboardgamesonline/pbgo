@@ -47,6 +47,7 @@ const SEMANTIC: readonly Semantic[] = [
   { token: "presence-dnd", swatch: "bg-presence-dnd", on: "text-background", role: "A friend who does not want to be disturbed: the dot (a disc with a bar knocked out of it)." },
   { token: "piece-red", swatch: "bg-piece-red", on: "text-background", role: "The red of a game table: the heart and the diamond of a deck of cards. The home's hero wears it (`TitlePiece`, `TitleCards`), nothing else." },
   { token: "piece-gold", swatch: "bg-piece-gold", on: "text-background", role: "The gold of a game table: the light of the lamp over it, and the coin." },
+  { token: "piece-navy", swatch: "bg-piece-navy", on: "text-foreground", role: "The dark blue of the backs of the playing cards, the two that stand after \"games\" in the home's title." },
   { token: "piece-ivory", swatch: "bg-piece-ivory", on: "text-background", role: "The ivory of a die." },
   { token: "piece-ink", swatch: "bg-piece-ink", on: "text-foreground", role: "The ink of the pips of a die, of the engraving of the coin and of the edge of the cards." },
   { token: "piece-black", swatch: "bg-piece-black", on: "text-foreground", role: "The black of the clubs and the spades of a deck of cards, pure black as printed. It is the one pure black of the platform." },

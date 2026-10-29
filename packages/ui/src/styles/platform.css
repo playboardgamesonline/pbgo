@@ -62,6 +62,7 @@
   --color-brand-facebook: var(--brand-facebook);
   --color-brand-discord: var(--brand-discord);
   --color-piece-red: var(--piece-red);
+  --color-piece-navy: var(--piece-navy);
   --color-piece-gold: var(--piece-gold);
   --color-piece-ivory: var(--piece-ivory);
   --color-piece-ink: var(--piece-ink);
@@ -451,11 +452,12 @@
     background: linear-gradient(125deg, color-mix(in oklab, var(--piece-ivory) 55%, transparent) 0%, transparent 38%);
     pointer-events: none;
   }
-  /* The emblems are drawn, not written (the title must read "board" and not "bo1ard" to a search engine, so no digit): a profile on the heads, a star on the tails */
+  /* The emblems are drawn, not written (the title must read "board" and not "bo1ard" to a search engine, so no digit): a laureate in profile on the heads, a star in a wreath of laurel on the tails (`coin-drawings.ts`), each in a
+     box of 100 by 100, engraved: the weight of a line is its `data-line`, and the leaves of the wreaths are almonds filled with a lighter gold */
   &[data-kind="coin"] [data-face] > svg {
     position: relative;
-    width: 0.36em;
-    height: 0.36em;
+    width: 0.4em;
+    height: 0.4em;
     overflow: visible;
     fill: none;
     stroke-linecap: round;
@@ -463,55 +465,56 @@
   }
   &[data-kind="coin"] [data-face] [data-engraving] {
     stroke: var(--engraving);
+  }
+  &[data-kind="coin"] [data-face] [data-line="outline"] {
+    stroke-width: 3.4;
+  }
+  &[data-kind="coin"] [data-face] [data-line="detail"] {
+    stroke-width: 2.4;
+  }
+  &[data-kind="coin"] [data-face] [data-line="fine"] {
+    stroke-width: 1.8;
+  }
+  &[data-kind="coin"] [data-face] [data-line="leaf"] {
     stroke-width: 1.5;
+    fill: color-mix(in oklab, var(--piece-gold) 70%, var(--piece-ivory));
+  }
+  &[data-kind="coin"] [data-face] [data-line="dot"] {
+    fill: var(--engraving);
+    stroke: none;
   }
   &[data-kind="coin"] [data-face] [data-relief] {
     stroke: var(--relief);
-    stroke-width: 1.7;
-    transform: translate(0.45px, 0.7px);
+    stroke-width: 3.4;
+    transform: translate(1.2px, 1.8px);
   }
   &[data-kind="coin"] [data-face="tails"] {
     transform: rotateX(180deg);
   }
-  /* The suits of a deck, one over the other in the place of an "o": each is shown in its turn (`title-suit`), rolling up like a reel, a red one and a black one in turn, and the first (the heart) is the one a visitor who asks for less motion keeps */
+  /* The suits of a deck, one over the other in the place of an "o": two layers that `TitleSuits` places (the one that is shown, and the one that comes in), a red one and a black one in turn, the heart first */
   &[data-kind="suits"] {
     width: 0.62em;
     height: 0.58em;
     vertical-align: -0.005em;
-    /* The window the suits roll through, as big as one suit is: the one that is shown leaves it by the top while the next comes into it from the bottom (`title-suit`) */
-    clip-path: inset(-10%);
   }
-  &[data-kind="suits"] > svg {
+  &[data-kind="suits"] > [data-slot="suit-layer"] {
     position: absolute;
     left: -10%;
     top: -10%;
     width: 120%;
     height: 120%;
+  }
+  &[data-kind="suits"] [data-slot="suit"] {
+    display: block;
+    width: 100%;
+    height: 100%;
     fill: var(--piece-red);
-    transform: translateY(110%);
-    animation: title-suit 60s ease-in-out infinite;
-    animation-delay: calc(var(--i) * 15s - 4s);
   }
   /* The black suits are black, as printed on a card (`--piece-black`), with no outline */
-  &[data-kind="suits"] > svg[data-suit="club"],
-  &[data-kind="suits"] > svg[data-suit="spade"] {
+  &[data-kind="suits"] [data-suit="club"],
+  &[data-kind="suits"] [data-suit="spade"] {
     fill: var(--piece-black);
   }
-}
-
-/* The suits of the title roll up, like a reel: each is shown for fifteen seconds, comes in from the bottom in 0.8 s, rests, and leaves by the top in 0.8 s, as the next one comes in from the bottom. They change at 11 s,
-   26 s... into the cycle, which is 7 s after the rolls of the die begin (4 s, 19 s...), and a roll is over in 6 s at most, so that the two do not move together. Once out by the top a suit is put back under the window at
-   once (`step-end`: no frame between, or it would cross the window), where it waits for its turn. 110% is a bit more than the suit's own height, which is what takes it out of the window */
-@keyframes title-suit {
-  0% { transform: translateY(110%); }
-  1.34%, 25% { transform: translateY(0); }
-  26.34% { transform: translateY(-110%); animation-timing-function: step-end; }
-  26.35%, 100% { transform: translateY(110%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .title-piece[data-kind="suits"] > svg { animation: none; }
-  .title-piece[data-kind="suits"] > svg:first-of-type { transform: none; }
 }
 
 @utility title-cards {
@@ -532,8 +535,9 @@
     width: 0.52em;
     height: 0.74em;
     border-radius: 0.07em;
-    background: var(--foreground);
-    box-shadow: 0 0 0 0.02em color-mix(in oklab, var(--piece-ink) 40%, transparent), 0 0.03em 0.06em color-mix(in oklab, var(--piece-ink) 40%, transparent);
+    /* The back of a card: a dark blue, a thin ivory edge round it, and, inside a border of its own, a lattice of fine lines */
+    background: var(--piece-navy);
+    box-shadow: 0 0 0 0.02em color-mix(in oklab, var(--piece-ivory) 75%, transparent), 0 0.03em 0.06em color-mix(in oklab, var(--piece-ink) 50%, transparent);
     transform-origin: 50% 100%;
   }
   & > i::after {
@@ -541,14 +545,10 @@
     position: absolute;
     inset: 0.06em;
     border-radius: 0.04em;
-    box-shadow: inset 0 0 0 0.02em color-mix(in oklab, var(--piece-ink) 22%, transparent);
-  }
-  & > i > svg {
-    position: absolute;
-    inset: 0.2em 0.1em;
-    width: calc(100% - 0.2em);
-    height: calc(100% - 0.4em);
-    fill: color-mix(in oklab, var(--piece-ink) 30%, transparent);
+    box-shadow: inset 0 0 0 0.016em color-mix(in oklab, var(--piece-ivory) 55%, transparent);
+    background:
+      repeating-linear-gradient(45deg, transparent 0 0.05em, color-mix(in oklab, var(--piece-ivory) 30%, transparent) 0.05em 0.056em),
+      repeating-linear-gradient(-45deg, transparent 0 0.05em, color-mix(in oklab, var(--piece-ivory) 30%, transparent) 0.05em 0.056em);
   }
   /* Two cards that overlap by more than half: the second is 0.2em from the first, a little turned the other way */
   & > i:first-child {
@@ -605,8 +605,9 @@
     /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Facebook's blue and Discord's blurple. Google's and Apple's are `foreground` and `background`; the marks are in `brands.tsx` */
     --brand-facebook: #1877f2;
     --brand-discord: #5865f2;
-    /* The colours of a game table, which are the hero's alone (`Tabletop`, and the pieces that stand for letters in its title, `TitlePiece`): what is played with (red and gold, ivory and ink for a die and a card, and the black of the clubs and the spades), and what it is played on (the planks of the table, the seams between them) */
+    /* The colours of a game table, which are the hero's alone (`Tabletop`, and the pieces that stand for letters in its title, `TitlePiece`): what is played with (red and gold, the dark blue of the backs of the cards, ivory and ink for a die, and the black of the clubs and the spades), and what it is played on (the planks of the table, the seams between them) */
     --piece-red: oklch(0.64 0.2 27);
+    --piece-navy: oklch(0.34 0.1 258);
     --piece-gold: oklch(0.82 0.15 88);
     --piece-ivory: oklch(0.96 0.02 85);
     --piece-ink: oklch(0.22 0.02 60);

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import { DURATION, EASE_FRICTION, EASE_STANDARD, SPRING_TRAVEL } from "./motion"
+import { DURATION, EASE_STANDARD, PLAYFUL, SPRING_TRAVEL } from "./motion"
 
 /**
  * `motion.ts` copies the motion tokens of `styles/platform.css` for what `motion/react` animates. This test reads the stylesheet and fails when
@@ -26,12 +26,24 @@ describe("motion tokens", () => {
     expect(token("--ease-standard")).toBe(`cubic-bezier(${EASE_STANDARD.join(", ")})`)
   })
 
-  it("slows down steadily to a stop: a bezier that starts twice as steep as the average and ends flat", () => {
-    const [x1, y1, x2, y2] = EASE_FRICTION
-    expect(x1).toBeGreaterThan(0)
-    expect(x2).toBeLessThan(1)
-    expect(y1 / x1).toBe(2)
-    expect(y2).toBe(1)
+  it("gives the playful pieces curves that can be drawn (a bezier has its x between 0 and 1) and springs that still wobble but settle", () => {
+    for (const curve of [PLAYFUL.die.ease, PLAYFUL.coin.ease, PLAYFUL.suit.leave.ease]) {
+      expect(curve[0]).toBeGreaterThanOrEqual(0)
+      expect(curve[0]).toBeLessThanOrEqual(1)
+      expect(curve[2]).toBeGreaterThanOrEqual(0)
+      expect(curve[2]).toBeLessThanOrEqual(1)
+    }
+    for (const spring of [PLAYFUL.coin.landing, PLAYFUL.suit.enter.spring]) {
+      const ratio = spring.damping / (2 * Math.sqrt(spring.stiffness))
+      expect(ratio).toBeGreaterThan(0.2)
+      expect(ratio).toBeLessThan(1)
+    }
+  })
+
+  it("keeps the playful pieces calmer than what they were first chosen as (a swell of 1.22 and a dip of 0.93)", () => {
+    expect(PLAYFUL.die.swell).toBeLessThan(1.22)
+    expect(PLAYFUL.coin.swell).toBeLessThan(1.2)
+    expect(PLAYFUL.coin.dip).toBeGreaterThan(0.93)
   })
 
   it("keeps the durations in order, and the spring settled (a damping ratio under 1, close to it)", () => {

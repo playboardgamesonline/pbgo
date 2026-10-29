@@ -1,20 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { animate, motion, useMotionValue, useReducedMotion, useTransform, type MotionValue } from "motion/react"
-import { EASE_FRICTION } from "../motion"
+import { animate, motion, useMotionValue, useReducedMotion, useTransform, type AnimationPlaybackControls, type MotionValue } from "motion/react"
+import { PLAYFUL } from "../motion"
 
-// The die of the home's title, an "o": a cube seen straight on, in perspective (the utility `title-piece` of `styles/platform.css` draws it: four sides with their pips, and no top or bottom, which are never seen) that turns from the left to the right
-// around its vertical axis, as the coin of the title turns around its horizontal one (`TitleCoin`). It turns on that axis only, so only its four sides take turns to face the viewer: a five on the front, then a four,
-// a two and a three. Every fifteen seconds it rolls, 3, 4 or 5 whole turns (chance decides which) and a quarter more, so that it lands on the next side, faster than the coin (a turn and two thirds a second at the most) and slower and slower
-// until it stops. To look solid, each side is darkened as it turns away from the light, which comes from the upper left of the viewer. A visitor who asks for less motion keeps the five, and nothing moves.
-
-/** How long the page waits for the first roll, and how long there is between two rolls (milliseconds). */
-const FIRST_ROLL = 4000
-const EVERY = 15000
-
-/** The seconds that a turn takes on average: the slowing makes the first one almost twice as quick. */
-const SECONDS_A_TURN = 1.2
+// The die of the home's title, an "o": a cube seen straight on, in perspective (the utility `title-piece` of `styles/platform.css` draws it: four sides with their pips, and no top or bottom, which are never seen) that turns from the
+// left to the right around its vertical axis, as the coin of the title turns around its horizontal one (`TitleCoin`). It turns on that axis only, so only its four sides take turns to face the viewer: a five on the front, then a four,
+// a two and a three. Every fifteen seconds it rolls, 3, 4 or 5 whole turns (chance decides which) and a quarter more, so that it lands on the next side, and it plays while it does (`PLAYFUL.die`): an exponential in and out
+// (slow to wake up, all at once, a long gentle stop) and a swell toward the viewer at the fastest moment, as if it were thrown at them. To look solid, each side is darkened as it turns away from the light, which comes from
+// the left and the front. A visitor who asks for less motion keeps the five, and nothing moves.
 
 /** The darkest a side gets, when it is edge-on to the viewer: the share of ink over its ivory. */
 const DARKEST = 0.5
@@ -34,27 +28,14 @@ function useShade(angle: MotionValue<number>, offset: number) {
   return useTransform(angle, (degrees) => shadeOf(degrees + offset))
 }
 
-type DieCubeProps = {
-  /** How far the cube has turned around its vertical axis, in degrees. */
-  angle: MotionValue<number>
-  /** How high it is lifted off its place, in ems: a hop. */
-  lift?: MotionValue<number>
-  /** How wide and how high it is drawn, 1 being what it is: a squash or a stretch. */
-  scaleX?: MotionValue<number>
-  scaleY?: MotionValue<number>
-}
-
-/** The cube itself, drawn from the motion values it is given, which `TitleDie` drives (and `/design` drives otherwise, to compare ways of rolling it). */
-function DieCube({ angle, lift, scaleX, scaleY }: DieCubeProps) {
+/** The cube itself, drawn from the motion values it is given, which `TitleDie` drives: how far it has turned around its vertical axis, in degrees, and how big it is, 1 being what it is. */
+function DieCube({ angle, scale }: { angle: MotionValue<number>; scale: MotionValue<number> }) {
   const front = useShade(angle, 0)
   const right = useShade(angle, 90)
   const back = useShade(angle, 180)
   const left = useShade(angle, 270)
-  const still = useMotionValue(0)
-  const one = useMotionValue(1)
-  const y = useTransform(lift ?? still, (ems) => `${-ems}em`)
   return (
-    <motion.i data-slot="die" aria-hidden="true" style={{ rotateY: angle, y, scaleX: scaleX ?? one, scaleY: scaleY ?? one }}>
+    <motion.i data-slot="die" aria-hidden="true" style={{ rotateY: angle, scale }}>
       <b data-face="front" data-pips={5} className="die-pips">
         <motion.i data-shade style={{ opacity: front }} />
       </b>
@@ -71,32 +52,36 @@ function DieCube({ angle, lift, scaleX, scaleY }: DieCubeProps) {
   )
 }
 
-function TitleDie() {
+/** `first`: how long the page waits for the first roll, and `every`: how long there is between two rolls, in milliseconds. */
+function TitleDie({ first = 4000, every = 15000 }: { first?: number; every?: number }) {
   const angle = useMotionValue(0)
+  const swell = useMotionValue(1)
   const reduced = useReducedMotion()
 
   React.useEffect(() => {
     if (reduced) return
     let timer: ReturnType<typeof setTimeout> | undefined
-    let running: ReturnType<typeof animate> | undefined
+    let running: AnimationPlaybackControls[] = []
+    const { ease, secondsATurn, swell: size } = PLAYFUL.die
 
     const roll = () => {
       const turns = 3 + Math.floor(Math.random() * 3)
-      running = animate(angle, angle.get() + turns * 360 + 90, {
-        duration: (turns + 0.25) * SECONDS_A_TURN * (0.95 + Math.random() * 0.1),
-        ease: EASE_FRICTION,
-      })
-      timer = setTimeout(roll, EVERY)
+      const seconds = (turns + 0.25) * secondsATurn * (0.95 + Math.random() * 0.1)
+      running = [
+        animate(angle, angle.get() + turns * 360 + 90, { duration: seconds, ease }),
+        animate(swell, [1, size, 1], { duration: seconds, ease: "easeInOut" }),
+      ]
+      timer = setTimeout(roll, every)
     }
 
-    timer = setTimeout(roll, FIRST_ROLL)
+    timer = setTimeout(roll, first)
     return () => {
       if (timer) clearTimeout(timer)
-      running?.stop()
+      running.forEach((controls) => controls.stop())
     }
-  }, [reduced, angle])
+  }, [reduced, angle, swell, first, every])
 
-  return <DieCube angle={angle} />
+  return <DieCube angle={angle} scale={swell} />
 }
 
-export { DieCube, TitleDie }
+export { TitleDie }
