@@ -530,20 +530,20 @@
   /* Where an "o" would sit: a letter has its tracking (-6%) after it and a box has none, so the piece, which would be too near the letter before it and too far from the one after it, is moved 0.04em to the right
      (the margins add up to the same, so the letters around it do not move) */
   margin-inline: 0.06em -0.02em;
-  /* A die: a cube, 0.4em on a side, seen straight on, in perspective, and turning from the left to the right around its vertical axis, which `TitleDie` does: four sides, each a square with its pips (`die-pips`) and a little
+  /* A die: a cube, 0.46em on a side, seen straight on, in perspective, and turning from the left to the right around its vertical axis, which `TitleDie` does: four sides, each a square with its pips (`die-pips`) and a little
      rounded, that are not drawn from the back (so the inside of a rounded corner shows nothing); there is no top and no bottom, since the eye is level with it and they would never show. The box of the piece is the room of an
-     "o", the cube stands in it with its foot on the baseline (the perspective makes the front of it a seventh bigger than it is, which is what 0.4em allows for) */
+     "o", the cube stands in it with its foot on the baseline (the perspective makes the front of it a sixth bigger than it is, so it is as high as the letters around it, which is what 0.46em allows for) */
   &[data-kind="die"] {
     width: 0.5em;
     height: 0.5em;
     perspective: 1.6em;
     --pip: var(--piece-ink);
-    --die-size: 0.4em;
+    --die-size: 0.46em;
   }
   &[data-kind="die"] > [data-slot="die"] {
     position: absolute;
     left: calc(50% - var(--die-size) / 2);
-    top: calc(53.5% - var(--die-size) / 2);
+    top: calc(46.8% - var(--die-size) / 2);
     width: var(--die-size);
     height: var(--die-size);
     transform-style: preserve-3d;
@@ -553,7 +553,7 @@
     inset: -0.003em;
     border-radius: 0.03em;
     background-color: var(--piece-ivory);
-    box-shadow: inset 0 -0.03em 0.05em color-mix(in oklab, var(--piece-ink) 20%, transparent);
+    box-shadow: inset 0 -0.03em 0.05em color-mix(in oklab, var(--piece-ink) 20%, transparent), 0 0 0 0.012em color-mix(in oklab, var(--piece-ink) 45%, transparent);
     backface-visibility: hidden;
   }
   /* A face that is darkened as it turns away from the light: an ink-coloured sheet over it, as opaque as `TitleDie` says */
