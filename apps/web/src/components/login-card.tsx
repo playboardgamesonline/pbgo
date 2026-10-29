@@ -2,20 +2,14 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { DiscordIcon, GoogleIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import { PROVIDERS, PROVIDER_NAMES, type Provider } from "@pbgo/accounts"
 import { signInWith } from "@pbgo/accounts/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
-import { Button } from "@pbgo/ui/platform/button"
-import { Spinner } from "@pbgo/ui/platform/spinner"
+import { ProviderButton } from "@pbgo/ui/platform/provider-button"
 import { cn } from "@pbgo/ui/utils"
 
-/** The mark of each provider, drawn in the colour of the text like every icon of the platform. */
-const PROVIDER_ICONS = { google: GoogleIcon, discord: DiscordIcon } as const
-
 /**
- * The sign-in: one button per provider, a card laid over the hub's backdrop. A press leaves for the provider, which sends the visitor back to
+ * The sign-in: one button per provider, side by side with nothing on them but the provider's mark, on a card laid over the hub's backdrop. A press leaves for the provider, which sends the visitor back to
  * `/auth/callback` and on to `next`. Without a Supabase project (`enabled` is false) the buttons are off and say so, and `failed` is the page's way
  * to tell a visitor that a sign-in just did not work, which is all it ever says: why belongs to the logs, not to a stranger.
  */
@@ -50,20 +44,16 @@ export function LoginCard({ next, enabled, failed, className }: { next: string; 
         </Alert>
       )}
 
-      <div className="mt-6 flex flex-col gap-3">
+      <div role="group" aria-label="Sign in with" className="mt-6 grid grid-cols-4 gap-3">
         {PROVIDERS.map((provider) => (
-          <Button
+          <ProviderButton
             key={provider}
-            type="button"
-            variant="outline"
-            size="lg"
-            className="h-12 w-full justify-center text-base"
+            brand={provider}
+            name={PROVIDER_NAMES[provider]}
+            pending={pending === provider}
             disabled={!enabled || pending !== null}
             onClick={() => start(provider)}
-          >
-            {pending === provider ? <Spinner /> : <HugeiconsIcon icon={PROVIDER_ICONS[provider]} data-icon="inline-start" />}
-            Continue with {PROVIDER_NAMES[provider]}
-          </Button>
+          />
         ))}
       </div>
       {!enabled && <p className="mt-4 text-sm text-muted-foreground">Sign-in is not available on this site yet.</p>}

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./brands": "./src/brands.tsx",
     "./faces": "./src/faces.ts",
     "./friends": "./src/friends.ts",
     "./game/*": "./src/game/*.tsx",

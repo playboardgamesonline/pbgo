@@ -9,6 +9,26 @@ const google: AuthUser = {
   user_metadata: { full_name: "Oré Louvel", name: "Oré Louvel", avatar_url: "https://lh3.googleusercontent.com/a/ore", picture: "https://lh3.googleusercontent.com/a/ore" },
 }
 
+const facebook: AuthUser = {
+  id: "u-10",
+  email: "ore@example.com",
+  app_metadata: { provider: "facebook" },
+  user_metadata: {
+    full_name: "Oré Louvel",
+    name: "Oré Louvel",
+    avatar_url: "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1",
+    picture: "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1",
+  },
+}
+
+// What Apple's web sign-in gives: an address (a relay one when the visitor hides theirs) and no name or picture
+const apple: AuthUser = {
+  id: "u-11",
+  email: "k3x9q2@privaterelay.appleid.com",
+  app_metadata: { provider: "apple" },
+  user_metadata: { email: "k3x9q2@privaterelay.appleid.com", email_verified: true, iss: "https://appleid.apple.com", sub: "000123.abc" },
+}
+
 const discord: AuthUser = {
   id: "u-2",
   email: "ore@example.com",
@@ -22,8 +42,8 @@ const discord: AuthUser = {
 }
 
 describe("the providers", () => {
-  it("are Google and Discord", () => {
-    expect([...PROVIDERS]).toEqual(["google", "discord"])
+  it("are Facebook, Google, Apple and Discord, in the order of the buttons", () => {
+    expect([...PROVIDERS]).toEqual(["facebook", "google", "apple", "discord"])
   })
 })
 
@@ -37,6 +57,25 @@ describe("accountOf", () => {
       provider: "google",
       createdAt: "2026-10-01T09:00:00.000Z",
     })
+  })
+
+  it("makes an account of a Facebook user the way it does of a Google one", () => {
+    const account = accountOf(facebook)
+    expect(account.nickname).toBe("Oré Louvel")
+    expect(account.avatarUrl).toBe("https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1")
+    expect(account.provider).toBe("facebook")
+  })
+
+  it("does not take the start of a relay address of Apple for a name", () => {
+    const account = accountOf(apple)
+    expect(account.nickname).toBe("Player")
+    expect(account.email).toBe("k3x9q2@privaterelay.appleid.com")
+    expect(account.avatarUrl).toBeNull()
+    expect(account.provider).toBe("apple")
+  })
+
+  it("takes the start of a real address of Apple for a name, as it does for any provider", () => {
+    expect(accountOf({ ...apple, email: "marly@example.com" }).nickname).toBe("marly")
   })
 
   it("prefers the name a Discord user chose to their login", () => {

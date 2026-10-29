@@ -7,6 +7,7 @@ import {
   Mail01Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons"
+import { PROVIDERS, PROVIDER_NAMES } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Checkbox } from "@pbgo/ui/platform/checkbox"
@@ -28,6 +29,7 @@ import {
   InputGroupText,
 } from "@pbgo/ui/platform/input-group"
 import { Label } from "@pbgo/ui/platform/label"
+import { ProviderButton } from "@pbgo/ui/platform/provider-button"
 import {
   Select,
   SelectContent,
@@ -56,7 +58,7 @@ export function Buttons() {
     <Section
       id="button"
       module="button"
-      intro="Every action is a `Button`. The variant says how much an action weighs, the size how dense its surroundings are. Pill-shaped, `text-sm`, one weight."
+      intro="Every action is a `Button`. The variant says how much an action weighs, the size how dense its surroundings are. Rounded by the control step (`rounded-xl`, smaller for the small sizes), `text-sm`, one weight."
     >
       <Demo
         title="Variants"
@@ -165,6 +167,46 @@ export function Buttons() {
         <Button asChild variant="outline">
           <a href="#button">A link, styled as a button</a>
         </Button>
+      </Demo>
+    </Section>
+  )
+}
+
+export function ProviderButtons() {
+  return (
+    <Section
+      id="provider-button"
+      module="provider-button"
+      intro="The sign-in's buttons: one per provider, side by side, with nothing on them but the provider's mark. Each tile is its brand's: Facebook's blue and Discord's blurple (`brand-facebook`, `brand-discord`, the brand's own colours, the only two the platform takes from a brand), Google's white (`foreground`) with its four colours, Apple's black (`background`) with an outline. The marks are the brands' own (`@pbgo/ui/brands`, the one file of the design system that has colour literals) and are never redrawn. A tile is `h-12`, `rounded-2xl` and fills its cell, so they go in a grid of equal columns; each is named `Continue with <name>` for a screen reader and in a tooltip."
+    >
+      <Demo
+        title="A row of four"
+        description="The order of the sign-in: Facebook, Google, Apple, Discord (`PROVIDERS` of `@pbgo/accounts`). Hover one to see its tooltip; the tile of a brand dims a little under the pointer."
+        className="grid max-w-md grid-cols-4 gap-3"
+        code={`<div role="group" aria-label="Sign in with" className="grid grid-cols-4 gap-3">
+  {PROVIDERS.map((provider) => (
+    <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} onClick={() => start(provider)} />
+  ))}
+</div>`}
+      >
+        {PROVIDERS.map((provider) => (
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} />
+        ))}
+      </Demo>
+
+      <Demo
+        title="Pending, and off"
+        description="While a sign-in is on its way, its mark gives way to a spinner (`pending`) and the others are off (`disabled`, half faded, deaf to the pointer): the spinner takes the colour of the tile's text, so it reads on a white tile as on a blue one."
+        className="grid max-w-md grid-cols-4 gap-3"
+        code={`<ProviderButton brand="google" name="Google" pending />
+<ProviderButton brand="apple" name="Apple" disabled />`}
+      >
+        {PROVIDERS.map((provider) => (
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} pending disabled />
+        ))}
+        {PROVIDERS.map((provider) => (
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} disabled />
+        ))}
       </Demo>
     </Section>
   )

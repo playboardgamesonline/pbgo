@@ -6,10 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Block, Bullets, Inline, Section, Snippet } from "../_components/layout"
 
 const PRINCIPLES = [
-  "Black and white: the palette is the `neutral` scale plus `destructive`, and the three colours of a friend's presence (`presence-online`, green, `presence-playing`, blue, and `presence-inactive`, orange-yellow), which only a dot and a status line wear. No other accent colour, and a single gradient, neutral too: the backdrop of the home's hero, lighter at the top and fading into the page's black.",
+  "Black and white: the palette is the `neutral` scale plus `destructive`, and the three colours of a friend's presence (`presence-online`, green, `presence-playing`, blue, and `presence-inactive`, orange-yellow), which only a dot and a status line wear, and the two brand colours of a sign-in provider's button (`brand-facebook`, `brand-discord`), which only that button wears. No other accent colour, and a single gradient, neutral too: the backdrop of the home's hero, lighter at the top and fading into the page's black.",
   "Dark only. The platform has no light theme and no `dark:` variants; `color-scheme` is `dark`.",
   "One typeface, Geist, in one weight: everything is semibold (600). `font-medium` and `font-bold` resolve to the same weight, so do not write them. Text is slightly tight: about -0.01em on body text, -0.03em on headings.",
-  "Apart from a friend's presence, game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.",
+  "Apart from a friend's presence and a provider's brand, game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.",
   "Rounded, never round: a corner takes the menus' step at most (`rounded-3xl`, 22px) and never reaches half the height of what it rounds, so nothing is a capsule. Only the picture of a person is a circle. Corners are smoothed a little (`--corner-smoothing`).",
   "Depth comes from surface steps and hairlines (`ring-1 ring-foreground/10`), then from three shadows: `shadow-surface` at rest, `shadow-float` when lifted, `shadow-overlay` for dialogs and sheets.",
   "Tokens, not values: no hex, `rgb()`, arbitrary pixel sizes, font names or `bg-neutral-*` in platform UI. Write `bg-card`, `text-muted-foreground`, `rounded-3xl`, `px-gutter`.",

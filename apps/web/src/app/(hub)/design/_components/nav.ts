@@ -18,6 +18,7 @@ export const NAV = [
     group: "Components",
     items: [
       { id: "button", title: "Button" },
+      { id: "provider-button", title: "Provider button" },
       { id: "badge", title: "Badge" },
       { id: "input", title: "Input and fields" },
       { id: "checkbox", title: "Checkbox and switch" },

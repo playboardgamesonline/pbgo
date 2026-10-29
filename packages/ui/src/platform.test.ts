@@ -98,6 +98,30 @@ describe("presence colours", () => {
   }
 })
 
+/**
+ * A sign-in provider's button is its brand's colour where the brand has one to give: two tokens with their utilities, in the brand's own hex. The marks are in
+ * `brands.tsx`, the one file with colour literals; Google's and Apple's tiles are `foreground` and `background`.
+ */
+describe("brand colours", () => {
+  const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+
+  for (const name of ["facebook", "discord"]) {
+    it(`brand-${name} is a token with its utilities`, () => {
+      expect(css).toMatch(new RegExp(`--brand-${name}:\\s*#[0-9a-f]{6};`, "i"))
+      expect(css).toContain(`--color-brand-${name}: var(--brand-${name})`)
+    })
+  }
+
+  it("every brand has a mark and a tile", () => {
+    const marks = readFileSync(new URL("./brands.tsx", import.meta.url), "utf8")
+    const button = readFileSync(new URL("./platform/provider-button.tsx", import.meta.url), "utf8")
+    for (const name of ["facebook", "google", "apple", "discord"]) {
+      expect(marks, `the mark of ${name}`).toMatch(new RegExp(`\\b${name}\\b`))
+      expect(button, `the tile of ${name}`).toMatch(new RegExp(`^  ${name}:`, "m"))
+    }
+  })
+})
+
 describe("text selection", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
