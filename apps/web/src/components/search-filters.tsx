@@ -31,6 +31,7 @@ import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } 
 import { SearchBarFilters, SearchBarGroup, SearchBarIcon, SearchBarSegment, SearchBarStepper, SearchBarValue } from "@pbgo/ui/platform/search-bar"
 import { Slider } from "@pbgo/ui/platform/slider"
 import { useGameSearch } from "@/components/game-search"
+import { categoryIcon } from "@/lib/category-icons"
 
 // The platform speaks English (a game's own pages are localized by the game)
 
@@ -38,8 +39,6 @@ import { useGameSearch } from "@/components/game-search"
 const playersText = (count: number): string => (count >= MANY_PLAYERS ? `${count}+ players` : count === 1 ? "1 player" : `${count} players`)
 /** "8+": from 8 years old, which is how the box of a game says it. */
 const ageText = (age: number): string => `${age}+`
-/** The first category picked, then how many more: "Cards", "Cards +2". */
-const categoryText = (picked: readonly string[]): string => (picked.length > 1 ? `${picked[0]} +${picked.length - 1}` : (picked[0] ?? ""))
 
 // The duration slider has a step for each limit and one more, "1h+", which is no limit: the games of an hour or more stay only there
 const limits: readonly number[] = DURATION_LIMITS
@@ -49,8 +48,6 @@ const LAST_STEP = limits.length
 const stepOfLimit = (limit: number | null): number => (limit === null ? LAST_STEP : Math.max(0, limits.indexOf(limit)))
 /** The limit a step stands for, none for the last. */
 const limitOfStep = (step: number): number | null => limits[step] ?? null
-/** The steps that get a dot on the track: the quarter hours and the last, "1h+" (twelve dots would be too many). */
-const MARKED_STEPS = [...limits.flatMap((limit, step) => (limit % 15 === 0 ? [step] : [])), LAST_STEP]
 /** What is written next to the hourglass: the minutes and their mark, "5′", "10′" … "55′", and "1h+" for no limit. No unit word, since the hourglass says it. */
 const durationText = (step: number): string => (step >= LAST_STEP ? "1h+" : `${limits[step]}′`)
 /** What a screen reader hears for the thumb of the duration slider: "Up to 30 minutes", "An hour or more". */
@@ -113,8 +110,9 @@ export function NumberStepper({
 }
 
 /**
- * The category filter: a segment that opens a panel with the categories as a list with a search field (`Combobox`), several of which can be
- * picked, and a Clear button above it. Its panel says so when no game has a category yet.
+ * The category filter: a segment that opens a panel with the categories as a list with a search field (`Combobox`), each with its icon (`categoryIcon`),
+ * several of which can be picked, and a Clear button in the header above it. The segment draws what is picked, up to three categories with their icons
+ * (and their names, where the bar has the room), then "+N". Its panel says so when no game has a category yet.
  */
 export function CategoryFilter({
   categories,
@@ -130,10 +128,16 @@ export function CategoryFilter({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <SearchBarSegment icon={GridViewIcon} label="Category" value={none ? "Any category" : categoryText(picked)} idle={none} />
+        <SearchBarSegment
+          icon={GridViewIcon}
+          label="Category"
+          value={none ? "Any category" : picked.join(", ")}
+          idle={none}
+          picks={picked.map((name) => ({ label: name, icon: categoryIcon(name) }))}
+        />
       </PopoverTrigger>
-      <PopoverContent aria-labelledby={titleId} align="end" className="w-60">
-        <PopoverHeader>
+      <PopoverContent aria-labelledby={titleId} align="end" className="w-52 gap-0 p-0">
+        <PopoverHeader className="pt-2 pr-2 pb-1 pl-4">
           <PopoverTitle id={titleId}>Categories</PopoverTitle>
           <Button type="button" variant="ghost" size="sm" disabled={none} onClick={() => onPick([])}>
             Clear
@@ -141,7 +145,7 @@ export function CategoryFilter({
         </PopoverHeader>
         {categories.length > 0 ? (
           <Combobox
-            options={categories}
+            options={categories.map((name) => ({ value: name, icon: categoryIcon(name) }))}
             value={picked}
             onValueChange={onPick}
             aria-label="Categories"
@@ -149,7 +153,7 @@ export function CategoryFilter({
             empty="No category matches."
           />
         ) : (
-          <p className="text-sm text-muted-foreground">No category yet.</p>
+          <p className="px-4 pt-2 pb-4 text-sm text-muted-foreground">No category yet.</p>
         )}
       </PopoverContent>
     </Popover>
@@ -174,7 +178,7 @@ function DurationFilter({ current, onPick }: { current: number | null; onPick: (
         </SearchBarValue>
       </span>
       <Slider
-        className="mx-1 w-24"
+        className="mx-1 w-16"
         min={0}
         max={LAST_STEP}
         step={1}
@@ -182,7 +186,6 @@ function DurationFilter({ current, onPick }: { current: number | null; onPick: (
         onValueChange={([next = LAST_STEP]) => onPick(limitOfStep(next))}
         thumbLabels={["Longest duration"]}
         valueText={stepSays}
-        ticks={MARKED_STEPS}
       />
     </SearchBarGroup>
   )

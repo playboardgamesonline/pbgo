@@ -108,16 +108,31 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
   idle?: boolean
   /** Under the bar (`SearchBarFilters`), bare like the other filters there, and not at the end of the bar. */
   boxed?: boolean
+  /**
+   * What is picked, when it is a few things that each have a name and an icon (the categories): the segment then draws them in place of its own icon and
+   * `value`, up to three, each with its icon and, from 48rem of room, its name (under that the icons say it alone, and a third one waits for 28rem), then
+   * how many more there are, "+2". `value` stays what a screen reader hears.
+   */
+  picks?: readonly SearchBarPick[]
+}
+
+type SearchBarPick = {
+  /** What it is called: drawn from 48rem of room, and what a pointer shows over its icon. */
+  label: string
+  icon: React.ComponentProps<typeof HugeiconsIcon>["icon"]
 }
 
 /**
  * A filter that opens something: an icon and what is picked, in a button. It opens nothing itself: the page wraps it in a `PopoverTrigger asChild` or
  * a `DropdownMenuTrigger asChild`, which gives it `aria-expanded` and the open state this paints. At the end of the bar it is a button without a
- * frame, 48px high and rounded one step less than the bar (`rounded-xl`: the bar's 26px less its 8px of padding); the value of a segment with nothing picked is left out under 48rem of room, so the field keeps its room on a phone and the icon
- * stands for it. `boxed`, under the bar, it is bare like the other filters there, 56px high with no frame, and it goes gray, like the one at the end of
+ * frame, 48px high and rounded one step less than the bar (`rounded-xl`: the bar's 26px less its 8px of padding), at most three fifths of its width; the value of a segment with nothing picked is left out under 48rem of room, so the field keeps its room on a phone and the icon
+ * stands for it. With `picks` it draws what is picked instead, up to three with their icons, then "+N". `boxed`, under the bar, it is bare like the other filters there, 56px high with no frame, and it goes gray, like the one at the end of
  * the bar, under the pointer and while its menu is open.
  */
-function SearchBarSegment({ className, icon, label, value, idle = false, boxed = false, ...props }: SearchBarSegmentProps) {
+function SearchBarSegment({ className, icon, label, value, idle = false, boxed = false, picks = [], ...props }: SearchBarSegmentProps) {
+  // Up to three picks are drawn (the third from 28rem of room), and the rest is a count, which is not the same under 28rem as over it
+  const countNarrow = Math.max(0, picks.length - 2)
+  const countWide = Math.max(0, picks.length - 3)
   return (
     <button
       data-idle={idle ? "" : undefined}
@@ -125,15 +140,30 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       aria-label={`${label}: ${value}`}
       className={cn(
         "flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
-        boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-52 rounded-xl px-3",
+        boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-3/5 rounded-xl px-3",
         className
       )}
       {...props}
       // After the props: a `PopoverTrigger asChild` hands its own slot name down, which would hide this one
       data-slot="search-bar-segment"
     >
-      <SearchBarIcon icon={icon} />
-      <span className={cn("truncate text-sm", idle && "text-muted-foreground", !boxed && idle && "hidden @3xl:inline")}>{value}</span>
+      {picks.length > 0 ? (
+        <>
+          {picks.slice(0, 3).map((pick, index) => (
+            <span key={pick.label} data-slot="search-bar-pick" title={pick.label} className={cn("flex min-w-0 items-center gap-1.5", index === 2 && "hidden @md:flex")}>
+              <SearchBarIcon icon={pick.icon} className="text-foreground" />
+              <span className="hidden max-w-28 truncate text-sm @3xl:inline">{pick.label}</span>
+            </span>
+          ))}
+          {countNarrow > 0 && <span className="text-sm text-muted-foreground tabular-nums @md:hidden">+{countNarrow}</span>}
+          {countWide > 0 && <span className="hidden text-sm text-muted-foreground tabular-nums @md:inline">+{countWide}</span>}
+        </>
+      ) : (
+        <>
+          <SearchBarIcon icon={icon} />
+          <span className={cn("truncate text-sm", idle && "text-muted-foreground", !boxed && idle && "hidden @3xl:inline")}>{value}</span>
+        </>
+      )}
     </button>
   )
 }
@@ -251,3 +281,4 @@ export {
   SearchBarValue,
   SearchBarStepper,
 }
+export type { SearchBarPick }
