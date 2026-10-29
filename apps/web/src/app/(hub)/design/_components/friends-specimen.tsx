@@ -94,7 +94,7 @@ export function DockSpecimen() {
                 <PresenceDot status="online" />
               </Avatar>
               <SocialDockIdentity>
-                <span className="truncate text-sm text-foreground">Oré</span>
+                <span className="truncate text-lg leading-tight text-foreground">Oré</span>
                 <span className="truncate text-xs text-muted-foreground">Online</span>
               </SocialDockIdentity>
             </button>

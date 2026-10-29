@@ -13,7 +13,7 @@ import { cn } from "../utils"
 // The bar is the header of the panel, the way the Riot Client has it, and it changes with the dock instead of staying what it was. Closed, it is the games the friends are in, the
 // visitor's picture and the button of the panel. Open, the games fold away (their width, then their opacity), the picture glides to the start of the bar as they go, what the profile says
 // unfolds beside it (`SocialDockIdentity`: the name and the word of the status), and the button stays at the end of the bar. The header has the room of what is under it: it grows from 54px
-// to 64px and from 8px to 16px of the sides, so that the picture and the button are in line with the tabs, the search and the list, and 16px from the top. All of it moves with the same
+// to 64px, the button 16px from the end, in line with the tabs, the search and the list, and the picture 24px from the start, a little further in than they are, for the room from the corner. All of it moves with the same
 // transition as the dock, so the bar never jumps.
 //
 // The page puts a place for it in the navbar (3.5rem high, as wide as the bar) and the dock grows out of that place, over the page, to the left of it: the place is a flex row that ends at
@@ -33,9 +33,13 @@ const BAR_HEIGHT = 56
 const BAR_INNER = 54
 const BAR_INSET = 8
 
-/** The bar open, the header of the panel: it has the room of the content under it, 16px from the sides and from the top (the picture, 32px, is centred in 64px). */
+/**
+ * The bar open, the header of the panel: 64px high, the picture (32px) centred in it so 16px from the top. The button is 16px from the end, in line with the tabs, the search and the list;
+ * the picture is 24px from the start, a little further in than they are, so that it has room from the rounded corner of the dock, and so does the name beside it.
+ */
 const HEADER_HEIGHT = 64
-const HEADER_INSET = 16
+const HEADER_INSET_START = 24
+const HEADER_INSET_END = 16
 
 /** The room around an open dock: 1.5rem above it, and the same under it. */
 const MARGIN = 48
@@ -197,7 +201,7 @@ function SocialDock({ open, games, profile, toggle, children, height, className 
             <motion.div
               data-slot="social-dock-bar"
               initial={false}
-              animate={open ? { height: HEADER_HEIGHT, paddingLeft: HEADER_INSET, paddingRight: HEADER_INSET } : { height: BAR_INNER, paddingLeft: BAR_INSET, paddingRight: BAR_INSET }}
+              animate={open ? { height: HEADER_HEIGHT, paddingLeft: HEADER_INSET_START, paddingRight: HEADER_INSET_END } : { height: BAR_INNER, paddingLeft: BAR_INSET, paddingRight: BAR_INSET }}
               transition={reduced ? STILL : SLOW}
               className="flex shrink-0 items-center"
             >
