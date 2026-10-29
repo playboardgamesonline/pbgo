@@ -16,7 +16,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "./popover"
 // presence, their name and what they are doing. The pill under the pointer takes the fill of the navbar's current item and a line under it; moving to another
 // pill changes the panel. A friend who is away, or on the hub and in no game, is in none: they are in the list of the page of the friends (`FriendsPanel`).
 // With no friend in a game the bar is the button that invites one. The bar draws no container: it is the top of the dock (`SocialDock`), which holds it with the account's picture and the button
-// of the social panel, so that the games, the profile and the panel are one container. While the dock is open the bar is a recap (`recap`). A status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green
+// of the social panel, so that the games, the profile and the panel are one container. While the dock is open the bar is folded away, the profile taking its place. A status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green
 // disc online, an orange-yellow moon inactive, a red disc with a bar do not disturb, a thick grey ring offline) and, under the name, a line of quiet text (only the dot is coloured), and always a word too, never the colour alone.
 //
 // The panel is a `Popover` anchored on the bar, which opens under the pointer (a short delay on the way out lets the pointer cross the gap to the panel), with the
@@ -34,10 +34,6 @@ const HIDE_DELAY = 140
 
 type FriendsBarProps = Omit<React.ComponentProps<"div">, "children"> & {
   friends: readonly Friend[]
-  /** The bar is only a recap: the panel of a game does not open under the pointer, and a press on a pill asks the page for that game (`onPickGame`). */
-  recap?: boolean
-  /** What a press on a pill does while the bar is a recap: show that game. */
-  onPickGame?: (slug: string) => void
   /** The picture of a game, from its slug; the initial of its name is drawn where there is none or it does not load. */
   gameIcon?: (slug: string) => string | undefined
   /** What the button of a friend who waits at a table that has room does: join them. Not drawn without it. */
@@ -130,12 +126,10 @@ const PILL =
 /**
  * The bar of the games the friends are in, for the navbar: with friends in games it is a pill each (the most crowded first, up to three), and the panel of a game opens
  * under it; with none it is the button that invites a friend, when it has a link to copy. It draws no container, so that the page puts it in one: the dock of the
- * social panel, whose bar it is. While that container is open the bar is only a recap (`recap`): the panel of a game does not open, and a pill takes the visitor to that game in the list.
+ * social panel, whose bar it is. While that container is open the bar is folded away (it takes no room, no pointer and no focus).
  */
 function FriendsBar({
   friends,
-  recap = false,
-  onPickGame,
   gameIcon,
   onJoin,
   onShareLink,
@@ -152,13 +146,12 @@ function FriendsBar({
   const last = React.useRef<GameFriends | null>(null)
 
   // The panel keeps the last game it drew while it closes, so that it does not empty as it fades
-  const entry = recap ? null : (games.find((game) => game.game.slug === open) ?? null)
+  const entry = games.find((game) => game.game.slug === open) ?? null
   if (entry) last.current = entry
   const shown = entry ?? last.current
 
   const cancel = () => clearTimeout(timer.current)
   const show = (slug: string) => {
-    if (recap) return
     cancel()
     setOpen(slug)
   }
@@ -206,8 +199,8 @@ function FriendsBar({
                 key={item.game.slug}
                 type="button"
                 aria-label={`${item.game.name}: ${item.count} ${item.count === 1 ? "friend" : "friends"}`}
-                aria-expanded={recap ? undefined : isOpen}
-                aria-haspopup={recap ? undefined : "true"}
+                aria-expanded={isOpen}
+                aria-haspopup="true"
                 data-open={isOpen ? "" : undefined}
                 className={cn(PILL, SHOWN_FROM[index])}
                 // A touch has no hover: it presses the pill, which opens its panel, and presses it again to close it
@@ -218,8 +211,7 @@ function FriendsBar({
                   touched.current = event.pointerType === "touch"
                 }}
                 onClick={() => {
-                  if (recap) onPickGame?.(item.game.slug)
-                  else if (touched.current && isOpen) setOpen(null)
+                  if (touched.current && isOpen) setOpen(null)
                   else show(item.game.slug)
                 }}
                 // Only the focus a keyboard gives opens it, not the one a click leaves

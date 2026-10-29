@@ -10,7 +10,7 @@ import { FriendsBar } from "@pbgo/ui/platform/friends-bar"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { PanelPresence } from "@pbgo/ui/platform/panel-presence"
 import { Separator } from "@pbgo/ui/platform/separator"
-import { SocialDock } from "@pbgo/ui/platform/social-dock"
+import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
 import { unreadOf, type Conversation, type Message } from "@pbgo/ui/social"
 import { cn } from "@pbgo/ui/utils"
@@ -22,14 +22,14 @@ import { useSocial } from "@/lib/use-social"
 const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
 
 /**
- * What a signed-in visitor has on the navbar, the way the Riot Client has it, in one container on the right (`SocialDock`) that is a recap bar while it is closed and a real
- * side panel while it is open, the same element changing from one to the other with a transition: the bar has the games their friends are in (`FriendsBar`, with the list of a
- * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests to answer), which opens the menu of their account (`AccountMenu`), and the button of the social panel
- * (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it). Open, the bar stays at the top of
- * the container (a press on a game takes the visitor to it in the list) and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A press on a friend or
- * a conversation opens the chat with them (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open. The demo account of development has
- * friends, messages and requests whose buttons do nothing; a real account has none until PLT-23, so its bar is the button that invites a friend, which copies the address of the
- * sign-in, where a friend can come and sign in.
+ * What a signed-in visitor has on the navbar, the way the Riot Client has it, in one container on the right (`SocialDock`) that is a bar while it is closed and a real side
+ * panel while it is open, the same element changing from one to the other with a transition. Closed, the bar has the games their friends are in (`FriendsBar`, with the list of a
+ * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests to answer), which opens
+ * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
+ * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name and
+ * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A press on a friend or a conversation opens the
+ * chat with them (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open. The demo account of development has friends, messages and requests whose
+ * buttons do nothing; a real account has none until PLT-23, so its bar is the button that invites a friend, which copies the address of the sign-in, where a friend can come and sign in.
  */
 export function SiteSocial({ account }: { account: Account }) {
   const social = useSocial(account)
@@ -76,12 +76,6 @@ export function SiteSocial({ account }: { account: Account }) {
     return () => document.removeEventListener("keydown", onKey)
   }, [open])
 
-  // A press on a game of the recap: the list of the friends, at that game, once the tab has come in
-  const pickGame = (slug: string) => {
-    setTab("friends")
-    window.setTimeout(() => document.querySelector(`[data-slot="social-dock"] [data-game="${slug}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" }), 250)
-  }
-
   const openChat = (friend: Friend) => {
     setChatWith(friend)
     setChatOpen(true)
@@ -101,12 +95,10 @@ export function SiteSocial({ account }: { account: Account }) {
     <>
       <SocialDock
         open={open}
-        bar={
+        games={
           <>
             <FriendsBar
               friends={social.friends}
-              recap={open}
-              onPickGame={pickGame}
               gameIcon={gameIcon}
               onJoin={preview ? nothing : undefined}
               onShareLink={copy}
@@ -114,24 +106,28 @@ export function SiteSocial({ account }: { account: Account }) {
               shared={copied}
             />
             <Separator orientation="vertical" className="mx-1 h-6 self-center" />
-            <div className="flex items-center gap-1">
-              <AccountMenu account={account}>
-                <button
-                  type="button"
-                  aria-label={`Account of ${account.nickname}${waiting > 0 ? `, ${waiting} waiting` : ""}`}
-                  className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
-                >
-                  <Avatar>
-                    {picture}
-                    <AvatarCount count={waiting} />
-                    <PresenceDot status="online" />
-                  </Avatar>
-                </button>
-              </AccountMenu>
-              <SocialPanelToggle ref={toggle} open={open} aria-controls="social-panel" onClick={() => setOpen((value) => !value)} />
-            </div>
           </>
         }
+        profile={
+          <AccountMenu account={account} align={open ? "start" : "end"}>
+            <button
+              type="button"
+              aria-label={`Account of ${account.nickname}${waiting > 0 ? `, ${waiting} waiting` : ""}`}
+              className="flex min-w-0 items-center rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
+            >
+              <Avatar>
+                {picture}
+                <AvatarCount count={waiting} />
+                <PresenceDot status="online" />
+              </Avatar>
+              <SocialDockIdentity>
+                <span className="truncate text-sm text-foreground">{account.nickname}</span>
+                <span className="truncate text-xs text-muted-foreground">Online</span>
+              </SocialDockIdentity>
+            </button>
+          </AccountMenu>
+        }
+        toggle={<SocialPanelToggle ref={toggle} open={open} aria-controls="social-panel" onClick={() => setOpen((value) => !value)} />}
       >
         <SocialPanel
           bare

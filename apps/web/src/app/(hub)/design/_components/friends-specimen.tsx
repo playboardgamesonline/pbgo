@@ -9,7 +9,7 @@ import { FriendsBar, FriendsBarList } from "@pbgo/ui/platform/friends-bar"
 import { FriendsPanel, PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { NavbarIsland } from "@pbgo/ui/platform/navbar"
 import { Separator } from "@pbgo/ui/platform/separator"
-import { SocialDock } from "@pbgo/ui/platform/social-dock"
+import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
 import { gamesOf, type Friend } from "@pbgo/ui/friends"
 import type { Conversation, FriendRequest, Message } from "@pbgo/ui/social"
@@ -79,33 +79,27 @@ export function DockSpecimen() {
         <SocialDock
           open={open}
           height={592}
-          bar={
+          games={
             <>
-              <FriendsBar
-                friends={FRIENDS}
-                recap={open}
-                onPickGame={(slug) => {
-                  setTab("friends")
-                  window.setTimeout(() => document.querySelector(`[data-slot="social-dock"] [data-game="${slug}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" }), 250)
-                }}
-                gameIcon={gameIcon}
-                onJoin={nothing}
-                onShareLink={nothing}
-              />
+              <FriendsBar friends={FRIENDS} gameIcon={gameIcon} onJoin={nothing} onShareLink={nothing} />
               <Separator orientation="vertical" className="mx-1 h-6 self-center" />
-              <div className="flex items-center gap-1">
-                <button type="button" aria-label="Account of Oré, 3 waiting" className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
-                  <Avatar>
-                    <AvatarImage src={DEMO_ACCOUNT.avatarUrl ?? undefined} alt="" />
-                    <AvatarFallback>O</AvatarFallback>
-                    <AvatarCount count={3} />
-                    <PresenceDot status="online" />
-                  </Avatar>
-                </button>
-                <SocialPanelToggle open={open} aria-controls="design-social-panel" onClick={() => setOpen((value) => !value)} />
-              </div>
             </>
           }
+          profile={
+            <button type="button" aria-label="Account of Oré, 3 waiting" className="flex min-w-0 items-center rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
+              <Avatar>
+                <AvatarImage src={DEMO_ACCOUNT.avatarUrl ?? undefined} alt="" />
+                <AvatarFallback>O</AvatarFallback>
+                <AvatarCount count={3} />
+                <PresenceDot status="online" />
+              </Avatar>
+              <SocialDockIdentity>
+                <span className="truncate text-sm text-foreground">Oré</span>
+                <span className="truncate text-xs text-muted-foreground">Online</span>
+              </SocialDockIdentity>
+            </button>
+          }
+          toggle={<SocialPanelToggle open={open} aria-controls="design-social-panel" onClick={() => setOpen((value) => !value)} />}
         >
           <SocialPanel
             bare

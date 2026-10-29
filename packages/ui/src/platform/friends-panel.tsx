@@ -205,7 +205,7 @@ function FriendsRoster({
           rosterOf(shown).map((group) => {
             const name = group.kind === "game" ? group.game.name : group.label
             return (
-              <section key={group.key} aria-label={name} data-game={group.kind === "game" ? group.game.slug : undefined} className="mb-3 scroll-mt-1 last:mb-0">
+              <section key={group.key} aria-label={name} className="mb-3 last:mb-0">
                 <h3 className="flex items-center gap-2 px-2.5 pb-1 text-sm text-foreground">
                   {group.kind === "game" && <GameIcon name={group.game.name} src={gameIcon?.(group.game.slug)} className="size-5" />}
                   <span className="truncate">{name}</span>

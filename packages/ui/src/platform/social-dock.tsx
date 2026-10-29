@@ -1,21 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { AnimatePresence, MotionConfig, motion } from "motion/react"
+import { AnimatePresence, MotionConfig, animate, motion, useMotionValue, useReducedMotion } from "motion/react"
 import { DURATION, EASE_STANDARD } from "../motion"
 import { cn } from "../utils"
 
 // The container on the right of the navbar that is, in one piece, the bar of the games the friends are in, the visitor's profile and the social panel: a glass surface that is a
-// recap bar (a rounded square 3.5rem high, as wide as what is in it) while it is closed, and a real side panel (20rem wide, down to the bottom of the window) while it is open. It is
+// bar (a rounded square 3.5rem high, as wide as what is in it) while it is closed, and a real side panel (20rem wide, down to the bottom of the window) while it is open. It is
 // the same element in both: it grows and shrinks between the two (its width, its height and, through the `rounded-2xl` and `rounded-4xl` steps, its corners, over `DURATION.slow` with
-// `EASE_STANDARD`), the bar keeps its place at the top of it, and the panel fades in under the bar while the room for it is made, and out before the room goes.
+// `EASE_STANDARD`) and the panel fades in under the bar while the room for it is made, and out before the room goes.
+//
+// The bar is the header of the panel, the way the Riot Client has it, and it changes with the dock instead of staying what it was. Closed, it is the games the friends are in, the
+// visitor's picture and the button of the panel. Open, the games fold away (their width, then their opacity), the picture glides to the start of the bar as they go, what the profile says
+// unfolds beside it (`SocialDockIdentity`: the name and the word of the status), and the button stays where it was, at the end of the bar. All of it moves with the same transition as the dock, so
+// the bar never jumps.
 //
 // The page puts a place for it in the navbar (3.5rem high, as wide as the bar) and the dock grows out of that place, over the page, to the left of it: the place is a flex row that ends at
 // its right edge, so a box wider than it overflows at its start (a grid area would not), and it keeps the bar's width for as long as the dock is open, so that the rest of the navbar (the
-// brand, the tabs) is not pushed aside by a panel that lies over it. The panel is out of the flow of the dock (`absolute`, as wide as the open dock whatever the dock is now): it adds
-// nothing to the width of the closed dock, which is the bar's alone (that is what `width: auto` is measured against: a panel that counted would make the dock jump to the width of its
-// widest row before it came back to the bar's), and its text does not reflow while the dock grows. A visitor who asks for less motion gets the change with no travel
-// (`reducedMotion="user"`). It takes the pointer back (`pointer-events-auto`): the navbar it is in lets it through.
+// brand, the tabs) is not pushed aside by a panel that lies over it. The panel is out of the flow of the dock (`absolute`, as wide as the open dock whatever the dock is now): its text does not
+// reflow while the dock grows. The width of the dock is not a prop of the animation but a motion value that this component drives: `auto` cannot be animated to when what is in the bar changes
+// at the same time (it would be measured with the bar of the other state), so the dock goes from the width it has to 20rem, and back to the width the bar had when it opened, before it is `auto` again.
+// A visitor who asks for less motion gets the change with no travel. It takes the pointer back (`pointer-events-auto`): the navbar it is in lets it through.
 
 /** How wide the open dock is, in px. */
 const COLUMN_WIDTH = 320
@@ -38,11 +43,70 @@ const readRoom = () => {
 }
 const noRoom = () => 480
 
+/** The one way the dock changes, and the way it changes for a visitor who asks for less motion: at once. */
+const SLOW = { duration: DURATION.slow, ease: EASE_STANDARD } as const
+const STILL = { duration: 0 } as const
+
+/** What the parts of the bar need to know of the dock they are in. */
+const DockState = React.createContext({ open: false, reduced: false })
+
+/**
+ * What the bar shows only while the dock is closed, at its start: the games the friends are in. It folds away as the dock opens (its width and the margin after it, with the transition of the dock,
+ * and its opacity, quickly, so that nothing is left to be cut off as it narrows) and the picture that follows it glides to the start of the bar; it unfolds as the dock closes. Folded, it takes no pointer and no focus.
+ */
+function DockGames({ children }: { children: React.ReactNode }) {
+  const { open, reduced } = React.useContext(DockState)
+  const travel = reduced ? STILL : SLOW
+  return (
+    <motion.div
+      data-slot="social-dock-games"
+      inert={open}
+      initial={false}
+      animate={
+        open
+          ? { width: 0, marginRight: 0, opacity: 0, transition: { width: travel, marginRight: travel, opacity: reduced ? STILL : { duration: DURATION.fast, ease: EASE_STANDARD } } }
+          : { width: "auto", marginRight: 4, opacity: 1, transition: { width: travel, marginRight: travel, opacity: reduced ? STILL : { duration: DURATION.base, delay: DURATION.fast, ease: EASE_STANDARD } } }
+      }
+      className="flex shrink-0 items-center overflow-x-clip"
+    >
+      <div className="flex w-max shrink-0 items-center gap-1">{children}</div>
+    </motion.div>
+  )
+}
+
+/**
+ * What the profile says beside the picture while the dock is open: the name and the word of the status. It goes inside the button of the profile, after the picture, and it is not there while the
+ * dock is closed: it unfolds as the dock opens (its width, with the transition of the dock, then its opacity) and folds away as it closes.
+ */
+function SocialDockIdentity({ children, className }: { children: React.ReactNode; className?: string }) {
+  const { open, reduced } = React.useContext(DockState)
+  const travel = reduced ? STILL : SLOW
+  return (
+    <motion.span
+      data-slot="social-dock-identity"
+      aria-hidden={!open}
+      initial={false}
+      animate={
+        open
+          ? { width: "auto", marginLeft: 12, opacity: 1, transition: { width: travel, marginLeft: travel, opacity: reduced ? STILL : { duration: DURATION.base, delay: DURATION.fast, ease: EASE_STANDARD } } }
+          : { width: 0, marginLeft: 0, opacity: 0, transition: { width: travel, marginLeft: travel, opacity: reduced ? STILL : { duration: DURATION.fast, ease: EASE_STANDARD } } }
+      }
+      className={cn("flex min-w-0 flex-col overflow-hidden text-left", className)}
+    >
+      {children}
+    </motion.span>
+  )
+}
+
 type SocialDockProps = {
-  /** Whether the dock is open: a side panel. Closed, it is the bar. */
+  /** Whether the dock is open: a side panel with the profile for its header. Closed, it is the bar. */
   open: boolean
-  /** The bar: what the dock holds while it is closed and keeps at its top while it is open (the games, the account, the button of the panel). */
-  bar: React.ReactNode
+  /** The games the friends are in: at the start of the bar while the dock is closed, folded away while it is open. */
+  games: React.ReactNode
+  /** The profile: the visitor's picture, usually the trigger of the menu of their account, with a `SocialDockIdentity` after it for what it says while the dock is open. */
+  profile: React.ReactNode
+  /** The button that opens and closes the dock: at the end of the bar, in both states. */
+  toggle: React.ReactNode
   /** The panel: what the dock shows under the bar while it is open. */
   children: React.ReactNode
   /** How high the open dock is, in px, where the window is not what it is measured against (the specimens of `/design`). */
@@ -50,60 +114,104 @@ type SocialDockProps = {
   className?: string
 }
 
-function SocialDock({ open, bar, children, height, className }: SocialDockProps) {
+function SocialDock({ open, games, profile, toggle, children, height, className }: SocialDockProps) {
   const room = React.useSyncExternalStore(subscribeToResize, readRoom, noRoom)
-  const ease = { duration: DURATION.slow, ease: EASE_STANDARD }
+  const reduced = useReducedMotion() ?? false
   const place = React.useRef<HTMLDivElement>(null)
   const dock = React.useRef<HTMLDivElement>(null)
+  const width = useMotionValue<number | "auto">("auto")
+  // What the bar measured as the dock opened: the width it goes back to
+  const closedWidth = React.useRef<number | null>(null)
+  const started = React.useRef(false)
+  const state = React.useMemo(() => ({ open, reduced }), [open, reduced])
 
-  // The place keeps the bar's width for as long as the dock is open: a dock wider than its place would make the place grow, and the rest of the navbar (the brand, the
-  // tabs) would be pushed aside by the panel it lies under. The width is taken as the dock opens, when it is still the bar's, and let go when the dock is a bar again.
+  // The width of the dock, from what it is to what it becomes. It is measured as the dock opens, when the bar is still what it was (the parts of the bar start to change on the next frame),
+  // and is kept for the way back; the place keeps it too, for as long as the dock is open.
   React.useLayoutEffect(() => {
-    if (open && place.current && dock.current && !place.current.style.width) place.current.style.width = `${dock.current.offsetWidth}px`
-  }, [open])
+    const element = dock.current
+    const holder = place.current
+    if (!element || !holder) return
+    if (!started.current) {
+      started.current = true
+      if (open) width.set(COLUMN_WIDTH)
+      return
+    }
+    const transition = reduced ? STILL : SLOW
+    let cancelled = false
+    if (open) {
+      const from = element.offsetWidth
+      if (width.get() === "auto") {
+        closedWidth.current = from
+        holder.style.width = `${from}px`
+      }
+      const controls = animate(width, [from, COLUMN_WIDTH], transition)
+      return () => {
+        cancelled = true
+        controls.stop()
+      }
+    }
+    const to = closedWidth.current
+    if (to === null || width.get() === "auto") {
+      width.set("auto")
+      holder.style.width = ""
+      return
+    }
+    const controls = animate(width, [element.offsetWidth, to], transition)
+    controls.then(() => {
+      if (cancelled) return
+      width.set("auto")
+      holder.style.width = ""
+    })
+    return () => {
+      cancelled = true
+      controls.stop()
+    }
+  }, [open, reduced, width])
 
   return (
     <MotionConfig reducedMotion="user">
-      <div ref={place} data-slot="social-dock-place" className="flex h-14 shrink-0 justify-end">
-        <motion.div
-          ref={dock}
-          data-slot="social-dock"
-          data-state={open ? "open" : "closed"}
-          initial={false}
-          animate={open ? { width: COLUMN_WIDTH, height: height ?? room } : { width: "auto", height: BAR_HEIGHT }}
-          transition={ease}
-          onAnimationComplete={() => {
-            if (!open && place.current) place.current.style.width = ""
-          }}
-          className={cn(
-            "pointer-events-auto relative flex shrink-0 flex-col self-start overflow-hidden rounded-2xl border glass shadow-surface backdrop-blur-md transition-[border-radius] duration-slow ease-standard data-[state=open]:rounded-4xl",
-            className
-          )}
-          style={{ maxWidth: "calc(100vw - 3rem)" }}
-        >
-          {/* 54px: the dock is 56px high with its border, so the bar is the height of what is inside it, and what it holds (the 40px of a button) is centred in the dock */}
-          <div data-slot="social-dock-bar" className="flex h-13.5 shrink-0 items-center justify-between gap-1 p-2">
-            {bar}
-          </div>
-          <AnimatePresence initial={false}>
-            {open && (
-              <motion.div
-                key="panel"
-                data-slot="social-dock-panel"
-                className="absolute top-13.5 right-0 bottom-0 flex flex-col"
-                style={{ width: `min(${COLUMN_WIDTH - 2}px, calc(100vw - 3rem - 2px))` }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1, transition: { duration: DURATION.base, ease: EASE_STANDARD, delay: DURATION.fast } }}
-                exit={{ opacity: 0, transition: { duration: DURATION.fast, ease: EASE_STANDARD } }}
-              >
-                {children}
-              </motion.div>
+      <DockState.Provider value={state}>
+        <div ref={place} data-slot="social-dock-place" className="flex h-14 shrink-0 justify-end">
+          <motion.div
+            ref={dock}
+            data-slot="social-dock"
+            data-state={open ? "open" : "closed"}
+            initial={false}
+            animate={{ height: open ? (height ?? room) : BAR_HEIGHT }}
+            transition={reduced ? STILL : SLOW}
+            className={cn(
+              "pointer-events-auto relative flex shrink-0 flex-col self-start overflow-hidden rounded-2xl border glass shadow-surface backdrop-blur-md transition-[border-radius] duration-slow ease-standard data-[state=open]:rounded-4xl",
+              className
             )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
+            style={{ width, maxWidth: "calc(100vw - 3rem)" }}
+          >
+            {/* 54px: the dock is 56px high with its border, so the bar is the height of what is inside it, and what it holds (the 40px of a button) is centred in the dock */}
+            <div data-slot="social-dock-bar" className="flex h-13.5 shrink-0 items-center p-2">
+              <DockGames>{games}</DockGames>
+              {profile}
+              <div aria-hidden="true" className="min-w-1 flex-1" />
+              {toggle}
+            </div>
+            <AnimatePresence initial={false}>
+              {open && (
+                <motion.div
+                  key="panel"
+                  data-slot="social-dock-panel"
+                  className="absolute top-13.5 right-0 bottom-0 flex flex-col"
+                  style={{ width: `min(${COLUMN_WIDTH - 2}px, calc(100vw - 3rem - 2px))` }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: reduced ? STILL : { duration: DURATION.base, ease: EASE_STANDARD, delay: DURATION.fast } }}
+                  exit={{ opacity: 0, transition: reduced ? STILL : { duration: DURATION.fast, ease: EASE_STANDARD } }}
+                >
+                  {children}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      </DockState.Provider>
     </MotionConfig>
   )
 }
 
-export { SocialDock }
+export { SocialDock, SocialDockIdentity }
