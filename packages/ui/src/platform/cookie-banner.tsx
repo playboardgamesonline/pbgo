@@ -75,7 +75,7 @@ function CookieBanner({ texts, moreHref, lang, onAccept, onRefuse, onClose, clas
         onKeyDown={(event) => {
           if (event.key === "Escape") onClose?.()
         }}
-        className="pointer-events-auto mx-auto flex w-full max-w-lg animate-in flex-col gap-3 rounded-4xl bg-card p-5 text-card-foreground shadow-float ring-1 ring-foreground/10 duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-4"
+        className="pointer-events-auto mx-auto flex w-full max-w-lg animate-in flex-col gap-3 rounded-3xl bg-card p-5 text-card-foreground shadow-float ring-1 ring-foreground/10 duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-4"
       >
         <div className="flex items-center justify-between gap-3">
           <h2 id={titleId} className="font-heading text-base">

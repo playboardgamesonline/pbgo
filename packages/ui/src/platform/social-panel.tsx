@@ -25,8 +25,8 @@ export type SocialTab = "friends" | "messages" | "add"
 /** The count on the corner of a tab: at the top right of its icon, which is in the middle. */
 const COUNT = "absolute top-0.5 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
 
-/** The look of a tab: a big icon in a pill, filled while it is the current one. The bar is a pill too, like the search bar and the buttons: `Tabs` is round by default, so nothing here rounds it differently. */
-const TAB = "relative px-0"
+/** The look of a tab: a big icon in a rounded tile, filled while it is the current one. The bar is 3rem high, so `rounded-2xl`, and a tab is one step under it (`rounded-xl`: the bar's radius less its padding). Never a pill. */
+const TAB = "relative rounded-xl px-0"
 
 /** The icon of a tab. */
 const TAB_ICON = "size-6"
@@ -180,7 +180,7 @@ function SocialPanel({
       </div>
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as SocialTab)} className="min-h-0 flex-1 gap-4">
-        <TabsList className="w-full gap-1 group-data-horizontal/tabs:h-12">
+        <TabsList className="w-full gap-1 rounded-2xl group-data-horizontal/tabs:h-12">
           <TabsTrigger value="friends" aria-label="Friends" title="Friends" className={TAB}>
             <HugeiconsIcon icon={UserListIcon} strokeWidth={2} className={TAB_ICON} />
           </TabsTrigger>

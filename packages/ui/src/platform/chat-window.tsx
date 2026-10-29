@@ -76,7 +76,7 @@ function ChatWindow({
           <p
             key={message.id}
             className={cn(
-              "max-w-11/12 rounded-2xl px-3 py-2 text-sm wrap-break-word",
+              "max-w-11/12 rounded-xl px-3 py-2 text-sm wrap-break-word",
               message.from === "me" ? "self-end bg-primary text-primary-foreground" : "self-start bg-muted text-foreground"
             )}
           >

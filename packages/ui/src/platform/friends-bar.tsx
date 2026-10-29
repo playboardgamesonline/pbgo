@@ -46,12 +46,12 @@ type FriendsBarProps = Omit<React.ComponentProps<"div">, "children"> & {
   shared?: boolean
 }
 
-/** The picture of a game, or the initial of its name on a square. Square, since only the picture of a person is round: a game is not an avatar. */
+/** The picture of a game, or the initial of its name on a tile. Rounded like the rest (`rounded-md` at this size) and never a circle: only the picture of a person is round. */
 function GameIcon({ name, src }: { name: string; src?: string }) {
   return (
-    <Avatar className="size-6 rounded-none after:hidden">
-      {src && <AvatarImage src={src} alt="" className="rounded-none" />}
-      <AvatarFallback className="rounded-none text-xs">{initials(name).slice(0, 1)}</AvatarFallback>
+    <Avatar className="size-6 rounded-md after:hidden">
+      {src && <AvatarImage src={src} alt="" className="rounded-md" />}
+      <AvatarFallback className="rounded-md text-xs">{initials(name).slice(0, 1)}</AvatarFallback>
     </Avatar>
   )
 }
@@ -218,7 +218,7 @@ function FriendsBar({ friends, gameIcon, onJoin, onShareLink, shareLabel = "Invi
               >
                 <GameIcon name={item.game.name} src={gameIcon?.(item.game.slug)} />
                 <span className="tabular-nums">{item.count}</span>
-                {isOpen && <span aria-hidden="true" className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-foreground" />}
+                {isOpen && <span aria-hidden="true" className="absolute inset-x-2 bottom-0 h-0.5 rounded-xs bg-foreground" />}
               </button>
             )
           })}

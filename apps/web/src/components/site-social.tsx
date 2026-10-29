@@ -103,7 +103,7 @@ export function SiteSocial({ account }: { account: Account }) {
               <button
                 type="button"
                 aria-label={`Account of ${account.nickname}`}
-                className="flex w-full min-w-0 items-center gap-3 rounded-2xl p-1 text-left outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30"
+                className="flex w-full min-w-0 items-center gap-3 rounded-xl p-1 text-left outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30"
               >
                 <Avatar>
                   {picture}

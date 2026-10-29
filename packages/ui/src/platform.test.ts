@@ -55,6 +55,37 @@ describe("platform components", () => {
  * width to the body, so whatever is fixed (the navbar) jumped by that width. The page keeps the place of its scrollbar instead (an empty, inactive track while
  * the lock is on, as on ui.shadcn.com) and the lock's margin is taken off: two rules of `platform.css`.
  */
+/**
+ * Rounded, never round: the largest step is the menus' (`rounded-3xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
+ * person with its dot and the track and thumb of a switch, a slider and a progress bar, and, until it is decided, in the home's search bar.
+ */
+describe("radius", () => {
+  const CIRCLES = new Set(["avatar.tsx", "progress.tsx", "search-bar.tsx", "slider.tsx", "switch.tsx"])
+  const hitsOf = (files: readonly string[], pattern: RegExp) =>
+    files.flatMap((file) =>
+      readFileSync(new URL(file, DIRECTORY), "utf8")
+        .split("\n")
+        .flatMap((line, index) => (pattern.test(line) ? [`${file}:${index + 1}  ${line.trim()}`] : [])),
+    )
+
+  it("nothing is a capsule but what is a circle by nature", () => {
+    const hits = hitsOf(FILES.filter((file) => !CIRCLES.has(file)), /\brounded-full\b/)
+    expect(hits, hits.join("\n")).toEqual([])
+  })
+
+  it("nothing is rounder than a menu: no `rounded-4xl`", () => {
+    const hits = hitsOf(FILES, /\brounded(?:-[a-z]{1,2})?-4xl\b/)
+    expect(hits, hits.join("\n")).toEqual([])
+  })
+
+  it("every corner is smoothed a little, and a circle keeps its arc", () => {
+    const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+    expect(css).toMatch(/--corner-smoothing:\s*[\d.]+/)
+    expect(css).toMatch(/\.platform \*\s*\{[^}]*corner-shape:\s*superellipse\(var\(--corner-smoothing\)\)/)
+    expect(css).toMatch(/\[class~="rounded-full"\][^{]*\{[^}]*corner-shape:\s*round/)
+  })
+})
+
 /** The presence of a friend is the one thing the platform paints in a hue besides `destructive`: two tokens, each with its utilities. */
 describe("presence colours", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
