@@ -37,7 +37,7 @@ export default async function Home() {
           {/* The hero: the title in capitals, on three lines of the same size, all in Geist Black (`display-title`), narrowing as they go down, and the
               search bar 32px under it (the field with the category, then the filters, bare, in a row; glass),
               on a backdrop that is lighter at the top and fades into the black the sections sit on, with a plain table under a lamp laid over it (`Tabletop`: the diamonds of
-              Courtisans' table, the glow of the lamp and a fine grain; neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
+              Courtisans' table in perspective, the glow of the lamp and a fine grain; neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
           <section className="relative bg-linear-to-b from-card to-background pt-navbar">
             <Tabletop />
             <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-14 pb-12 text-center">
