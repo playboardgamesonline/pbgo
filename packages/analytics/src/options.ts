@@ -1,5 +1,6 @@
 import type { BeforeSendFn, PostHogConfig } from "posthog-js"
 import { INGEST_PATH, type AnalyticsConfig, type AppEnv } from "./config"
+import type { Allowed } from "./consent"
 import { scrubCapture, scrubText } from "./scrub"
 
 /**
@@ -16,21 +17,21 @@ export function beforeSend(env: AppEnv): BeforeSendFn {
 }
 
 /**
- * The options of `posthog.init`. Before the visitor accepted, nothing is stored on the device (`persistence: "memory"`) and no
- * session is recorded; accepting switches both on later (`browser.ts`, `grant`), refusing never does.
+ * The options of `posthog.init`. Before the visitor allowed it, nothing is stored on the device (`persistence: "memory"`) and no
+ * session is recorded; allowing the identifier and the recording switches them on later (`driver.ts`, `grant`), refusing never does.
  *
  * `defaults` is pinned to a dated set of PostHog's defaults rather than the newest: the newest ones switch on things this
  * site did not ask for (a "test user" flag on localhost that turns person profiles on). Everything that matters here is also
  * written out below, so a default that changes under us changes nothing.
  */
-export function buildOptions(config: AnalyticsConfig, accepted: boolean): Partial<PostHogConfig> {
+export function buildOptions(config: AnalyticsConfig, allowed: Allowed): Partial<PostHogConfig> {
   return {
     // The proxy of `next.config.ts`: the browser only ever talks to this origin.
     api_host: INGEST_PATH,
     ui_host: config.uiHost,
     defaults: "2025-11-30",
 
-    persistence: accepted ? "localStorage+cookie" : "memory",
+    persistence: allowed.analytics ? "localStorage+cookie" : "memory",
     cross_subdomain_cookie: false,
     // A profile exists only for a player who accepted: the others stay anonymous events.
     person_profiles: "identified_only",
@@ -48,7 +49,7 @@ export function buildOptions(config: AnalyticsConfig, accepted: boolean): Partia
     disable_conversations: true,
     disable_web_experiments: true,
 
-    disable_session_recording: !accepted,
+    disable_session_recording: !allowed.recordings,
     // What the project's own settings say does not matter for these: a value set here wins over them.
     enable_recording_console_log: false,
     session_recording: {

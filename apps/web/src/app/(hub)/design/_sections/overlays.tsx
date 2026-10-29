@@ -337,11 +337,11 @@ export function CookieBanners() {
     <Section
       id="cookie-banner"
       module="cookie-banner"
-      intro="The question about statistics and recordings: a card that floats at the bottom of the screen, centred, with a title, a sentence that ends with a link to the details, then Refuse and Accept. They are the same button side by side, so refusing is as easy and as visible as accepting. The card never sits over the page: its caller measures the box around it, margin included, and makes the room (`@pbgo/analytics` publishes its height as `--consent-h` on `<body>`), so the page ends above it and a screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the banner carries the `platform` class itself, since it also sits over a game page. The frames below pin it with `absolute` and make the room on the frame, where a page pins it with `fixed` and makes it on `<body>`."
+      intro="The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side three small buttons (the `sm` size), from the least to the most pushed: Reject optional (`ghost`), Manage preferences (`outline`) and Accept all. They sit on one line, the same size, so refusing is as easy as accepting; on a phone the words are over the buttons. Manage preferences swaps the card for the choices one by one, in switches: the essential cookies (always on), the analytics (an identifier kept on the device) and the recordings, which need the analytics, then Back and Save; nothing is pre-ticked. The card never sits over the page: its caller measures the box around it, margin included, and makes the room (`@pbgo/analytics` publishes its height as `--consent-h` on `<body>`), so the page ends above it and a screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the banner carries the `platform` class itself, since it also sits over a game page. The frames below pin it with `absolute` and make the room on the frame, where a page pins it with `fixed` and makes it on `<body>`."
     >
       <Demo
         title="First visit"
-        description="No close button: the banner stays until the visitor answers. Try either button, and watch the button at the bottom of the page: it rises above the card and drops back when the card closes."
+        description="No close button: the banner stays until the visitor answers. Try each button (Manage preferences opens the switches), and watch the button at the bottom of the page: it rises above the card and drops back when the card closes."
         code={`const banner = useRef<HTMLDivElement>(null)
 
 // the page ends above the card (--consent-h)
@@ -351,8 +351,10 @@ useLayoutEffect(() => reserveSpace(banner.current, document.body), [])
   ref={banner}
   texts={BANNER_TEXTS[locale]}
   moreHref="/legal#cookies"
+  preferences={allowedOf(consent?.choice)}
   onAccept={() => consentStore.choose("accepted")}
   onRefuse={() => consentStore.choose("refused")}
+  onSave={(preferences) => consentStore.choose(choiceOf(preferences))}
 />`}
       >
         <CookieBannerDemo />
@@ -363,8 +365,10 @@ useLayoutEffect(() => reserveSpace(banner.current, document.body), [])
         code={`<CookieBanner
   texts={BANNER_TEXTS[locale]}
   moreHref="/legal#cookies"
+  preferences={allowedOf(consent?.choice)}
   onAccept={…}
   onRefuse={…}
+  onSave={…}
   onClose={consentStore.dismiss}
 />`}
       >

@@ -1,36 +1,46 @@
 import type { CaptureResult } from "posthog-js"
 import { describe, expect, it } from "vitest"
 import { resolveConfig } from "./config"
+import { allowedOf } from "./consent"
 import { beforeSend, buildOptions } from "./options"
 
 const config = resolveConfig({ key: "phc_abc123", host: "https://eu.i.posthog.com", appEnv: "preview" })!
+const nothing = allowedOf("refused")
+const analytics = allowedOf("analytics")
+const everything = allowedOf("accepted")
 
 function capture(event: string, properties: Record<string, unknown>): CaptureResult {
   return { uuid: "u", event, properties }
 }
 
 describe("buildOptions", () => {
-  it("stores nothing and records nothing before the visitor accepted", () => {
-    const options = buildOptions(config, false)
+  it("stores nothing and records nothing before the visitor allowed it", () => {
+    const options = buildOptions(config, nothing)
     expect(options.persistence).toBe("memory")
     expect(options.disable_session_recording).toBe(true)
   })
 
+  it("stores the identifier without recording once the visitor allowed the analytics only", () => {
+    const options = buildOptions(config, analytics)
+    expect(options.persistence).toBe("localStorage+cookie")
+    expect(options.disable_session_recording).toBe(true)
+  })
+
   it("stores the identifier and may record once the visitor accepted", () => {
-    const options = buildOptions(config, true)
+    const options = buildOptions(config, everything)
     expect(options.persistence).toBe("localStorage+cookie")
     expect(options.disable_session_recording).toBe(false)
   })
 
   it("talks to the proxy of the site, not to PostHog", () => {
-    const options = buildOptions(config, false)
+    const options = buildOptions(config, nothing)
     expect(options.api_host).toBe("/ingest")
     expect(options.ui_host).toBe("https://eu.posthog.com")
   })
 
   it("keeps the person profiles, the recording details and the extras PostHog could switch on off", () => {
-    for (const accepted of [false, true]) {
-      const options = buildOptions(config, accepted)
+    for (const allowed of [nothing, analytics, everything]) {
+      const options = buildOptions(config, allowed)
       expect(options.person_profiles).toBe("identified_only")
       expect(options.cross_subdomain_cookie).toBe(false)
       expect(options.enable_recording_console_log).toBe(false)
@@ -53,7 +63,7 @@ describe("buildOptions", () => {
   })
 
   it("asks the recorder to hide the table code from the page address and from the links it snapshots", () => {
-    const { maskCapturedNetworkRequestFn, maskAttributeFn } = buildOptions(config, true).session_recording!
+    const { maskCapturedNetworkRequestFn, maskAttributeFn } = buildOptions(config, everything).session_recording!
     const request = { name: "https://x.app/hanabi/game/ABC123", entryType: "navigation", startTime: 0, duration: 0, method: "GET" }
     expect(maskCapturedNetworkRequestFn?.(request)).toEqual({ ...request, name: "https://x.app/hanabi/game/:code" })
     expect(maskAttributeFn?.("href", "/hanabi/game/ABC123")).toBe("/hanabi/game/:code")
@@ -61,8 +71,8 @@ describe("buildOptions", () => {
   })
 
   it("asks the recorder to mask the tab title, which spells the code of a table, and nothing that would replace the stars", () => {
-    for (const accepted of [false, true]) {
-      const { maskTextSelector, maskTextFn } = buildOptions(config, accepted).session_recording!
+    for (const allowed of [nothing, everything]) {
+      const { maskTextSelector, maskTextFn } = buildOptions(config, allowed).session_recording!
       expect(maskTextSelector).toBe("title")
       // A `maskTextFn` would also be called for the nicknames (`ph-mask`) and let their text through
       expect(maskTextFn).toBeUndefined()

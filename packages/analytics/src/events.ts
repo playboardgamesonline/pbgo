@@ -40,5 +40,5 @@ export type ClientEvents = {
   invite_link_copied: { game: string }
   rules_opened: { game: string }
   language_changed: { from: Locale; to: Locale }
-  cookie_consent: { choice: "accepted" | "refused" }
+  cookie_consent: { choice: "accepted" | "analytics" | "refused" }
 }

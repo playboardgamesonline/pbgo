@@ -1,14 +1,14 @@
 import type { PostHog } from "posthog-js"
 import { isExcludedPath, type AnalyticsConfig } from "./config"
-import type { Consent } from "./consent"
+import { allowedOf, type Allowed, type Consent } from "./consent"
 import type { ClientEvents } from "./events"
 import { buildOptions } from "./options"
 
 /**
- * What the browser SDK is allowed to do right now: nothing is kept on the device ("anonymous", the state of a visitor who has
- * not answered or who refused), or it may keep its identifier and record the session ("accepted").
+ * What the browser SDK is allowed to do (`Allowed`): nothing is kept on the device and nothing is recorded for a visitor who has
+ * not answered or who refused; it may keep its identifier ("analytics"), and on top of it record the session ("accepted").
  */
-type Mode = "anonymous" | "accepted"
+const same = (a: Allowed, b: Allowed) => a.analytics === b.analytics && a.recordings === b.recordings
 
 /** Events asked for while the SDK is still loading are kept for it (a click right after the page opened); more is a page gone wrong. */
 const MAX_QUEUED = 20
@@ -37,8 +37,10 @@ export type TrackOptions = {
  *
  * - The SDK is loaded (once, lazily) as soon as the answer is known to the page, on the pages that report (never the gamemaster
  *   or a preview). It starts in the mode the answer asks for, so an accepted visitor is recognised from the first event.
- * - Accepting later switches the SDK to its persistent storage and lets it record. Withdrawing switches it back to memory, drops
- *   its identifier and removes what it left on the device. A refusal never lets it store anything.
+ * - Allowing the identifier later switches the SDK to its persistent storage, allowing the recording lets it record; each can be
+ *   taken back on its own (the recording alone, then the SDK keeps its identifier). Withdrawing the identifier switches the SDK
+ *   back to memory, stops the recording, drops the identifier and removes what it left on the device. A refusal never lets it
+ *   store anything.
  * - Events asked for before the SDK is ready wait for it.
  */
 export function createDriver(env: DriverEnv) {
@@ -46,9 +48,9 @@ export function createDriver(env: DriverEnv) {
   let booting: Promise<void> | undefined
   let failed = false
   /** What the answer asks for. */
-  let desired: Mode = "anonymous"
+  let desired: Allowed = allowedOf(null)
   /** What the SDK is set to. */
-  let applied: Mode | undefined
+  let applied: Allowed | undefined
   /** The player of the table on screen, identified once the SDK may keep an identity. */
   let pendingId: string | null = null
   let identified: string | null = null
@@ -66,12 +68,12 @@ export function createDriver(env: DriverEnv) {
       .load()
       .then((posthog) => {
         // The visitor may have answered while the SDK was loading: the answer of now decides, not the one the load started with.
-        const accepted = desired === "accepted"
-        posthog.init(config.key, buildOptions(config, accepted))
+        const allowed = desired
+        posthog.init(config.key, buildOptions(config, allowed))
         client = posthog
-        applied = desired
+        applied = allowed
         // What an earlier acceptance left on this device (it expired, or it was withdrawn in another tab) goes unless this one allows it.
-        if (!accepted) env.forget(config)
+        if (!allowed.analytics) env.forget(config)
         const waiting = queued
         queued = []
         for (const send of waiting) send(posthog)
@@ -84,9 +86,13 @@ export function createDriver(env: DriverEnv) {
       })
   }
 
-  function grant(posthog: PostHog): void {
+  /** Moves to what is allowed now: the persistent storage if the identifier was not allowed before, and the recording on or off. */
+  function grant(posthog: PostHog, before: Allowed): void {
     try {
-      posthog.set_config({ persistence: "localStorage+cookie", disable_session_recording: false })
+      posthog.set_config({
+        ...(before.analytics ? {} : { persistence: "localStorage+cookie" as const }),
+        disable_session_recording: !desired.recordings,
+      })
     } catch (error) {
       env.warn(error)
     }
@@ -111,14 +117,15 @@ export function createDriver(env: DriverEnv) {
 
   function apply(): void {
     const config = active()
-    if (!client || !config || applied === desired) return
+    if (!client || !config || !applied || same(applied, desired)) return
+    const before = applied
     applied = desired
-    if (desired === "accepted") grant(client)
+    if (desired.analytics) grant(client, before)
     else withdraw(client, config)
   }
 
   function identifyIfReady(): void {
-    if (!client || applied !== "accepted" || pendingId === null || identified === pendingId) return
+    if (!client || !applied?.analytics || pendingId === null || identified === pendingId) return
     try {
       client.identify(pendingId)
       identified = pendingId
@@ -130,7 +137,7 @@ export function createDriver(env: DriverEnv) {
   return {
     /** Follows the answer of the banner (null: not answered yet). Starts the SDK the first time; safe to call again and again. */
     sync(consent: Consent | null): void {
-      desired = consent?.choice === "accepted" ? "accepted" : "anonymous"
+      desired = allowedOf(consent?.choice)
       const config = active()
       if (!config) return
       booting ??= boot(config)

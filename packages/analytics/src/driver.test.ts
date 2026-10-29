@@ -7,8 +7,12 @@ import { createDriver, type DriverEnv } from "./driver"
 const config = resolveConfig({ key: "phc_abc123", host: "https://eu.i.posthog.com", appEnv: "preview" })!
 const accepted = makeConsent("accepted")
 const refused = makeConsent("refused")
+const analyticsOnly = makeConsent("analytics")
 
 const ACCEPT = `set_config {"persistence":"localStorage+cookie","disable_session_recording":false}`
+const ANALYTICS = `set_config {"persistence":"localStorage+cookie","disable_session_recording":true}`
+const RECORD = `set_config {"disable_session_recording":false}`
+const STOP_RECORDING = `set_config {"disable_session_recording":true}`
 const WITHDRAW = [`set_config {"disable_session_recording":true}`, `set_config {"persistence":"memory"}`, "reset true", "forget"]
 
 /** Lets every promise the driver is waiting on settle. */
@@ -116,6 +120,14 @@ describe("createDriver", () => {
       expect(calls).toEqual(["init localStorage+cookie recording=true"])
     })
 
+    it("starts it on its persistent storage without recording for a visitor who allowed the analytics only", async () => {
+      const { driver, calls, release } = setup()
+      driver.sync(analyticsOnly)
+      release()
+      await flush()
+      expect(calls).toEqual(["init localStorage+cookie recording=false"])
+    })
+
     it("hands it the key of the project", async () => {
       const { driver, sdk, release } = setup()
       driver.sync(null)
@@ -204,6 +216,48 @@ describe("createDriver", () => {
       calls.length = 0
       driver.sync(accepted)
       expect(calls).toEqual([ACCEPT])
+    })
+
+    it("switches to the persistent storage without recording when the visitor allows the analytics only", async () => {
+      const { driver, calls, ready } = setup()
+      driver.sync(null)
+      await ready()
+      driver.sync(analyticsOnly)
+      expect(calls).toEqual([ANALYTICS])
+    })
+
+    it("starts recording, and nothing else, when the visitor adds the recordings to the analytics", async () => {
+      const { driver, calls, ready } = setup()
+      driver.sync(analyticsOnly)
+      await ready()
+      driver.sync(accepted)
+      expect(calls).toEqual([RECORD])
+    })
+
+    it("stops recording, and nothing else, when the visitor takes the recordings back and keeps the analytics", async () => {
+      const { driver, calls, ready } = setup()
+      driver.sync(accepted)
+      await ready()
+      driver.sync(analyticsOnly)
+      expect(calls).toEqual([STOP_RECORDING])
+    })
+
+    it("withdraws everything when a visitor who allowed the analytics only refuses", async () => {
+      const { driver, calls, ready } = setup()
+      driver.sync(analyticsOnly)
+      await ready()
+      driver.sync(refused)
+      expect(calls).toEqual(WITHDRAW)
+    })
+
+    it("withdraws the analytics and the recordings together, the recordings being the analytics' own", async () => {
+      const { driver, calls, ready } = setup()
+      driver.sync(accepted)
+      await ready()
+      driver.sync(analyticsOnly)
+      calls.length = 0
+      driver.sync(refused)
+      expect(calls).toEqual(WITHDRAW)
     })
   })
 
@@ -318,6 +372,22 @@ describe("createDriver", () => {
       await ready()
       driver.identify("p1")
       expect(sdk.identify).not.toHaveBeenCalled()
+    })
+
+    it("identifies a visitor who allowed the analytics only, and keeps them identified when the recordings go", async () => {
+      const { driver, sdk, ready } = setup()
+      driver.sync(accepted)
+      await ready()
+      driver.identify("p1")
+      driver.sync(analyticsOnly)
+      driver.sync(accepted)
+      expect(sdk.identify.mock.calls).toEqual([["p1"]])
+
+      const only = setup()
+      only.driver.sync(analyticsOnly)
+      await only.ready()
+      only.driver.identify("p2")
+      expect(only.sdk.identify).toHaveBeenCalledWith("p2")
     })
 
     it("identifies again after a withdrawal and a new acceptance", async () => {
