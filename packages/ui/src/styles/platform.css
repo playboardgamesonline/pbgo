@@ -256,14 +256,15 @@
  */
 @utility tabletop {
   /* How the table is seen, which `/design` compares (section `tabletop`): how far the plane is tilted back, the distance of the eye, where the eye is (a share of the stage, up from its top), the boards turned in the
-     plane of the table, the width of a board where it is nearest, how lit the far end is, how strong the lamp is over the table, how dark the header is under the navbar, and how wide the pool of black behind the text is */
+     plane of the table, the width of a board where it is nearest, how lit the top of the hero is (the far end of the table, which fades out), how strong the lamp is over the table, how dark the whole table is (a veil of the page's black), how dark the header is under the navbar, and how wide the pool of black behind the text is */
   --tabletop-tilt: 66deg;
   --tabletop-perspective: 1200px;
   --tabletop-origin: -25%;
   --tabletop-turn: 0deg;
   --tabletop-plank: 260px;
-  --tabletop-far: 60%;
-  --tabletop-lamp: 50%;
+  --tabletop-far: 0%;
+  --tabletop-lamp: 36%;
+  --tabletop-veil: 14%;
   --tabletop-header: 92%;
   --tabletop-pool: 40%;
   /* On a phone the text takes the whole width and is higher up, under the lamp: the pool of black behind it is as wide as the window and the lamp is a little less, so that the figures keep their contrast (4.5:1) */
@@ -286,8 +287,8 @@
     perspective: var(--tabletop-perspective);
     perspective-origin: 50% var(--tabletop-origin);
     /* The light falls off with the distance and under the figures, never towards the sides: the table has no edge, it goes on past the window on every side. Far away it is `--tabletop-far`, at the title it is full, at the perks half, at the search bar a third */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 80%, transparent) 328px, var(--foreground) 448px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
-    mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 80%, transparent) 328px, var(--foreground) 448px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 22%, transparent) 298px, color-mix(in oklab, var(--foreground) 50%, transparent) 368px, color-mix(in oklab, var(--foreground) 82%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
+    mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 22%, transparent) 298px, color-mix(in oklab, var(--foreground) 50%, transparent) 368px, color-mix(in oklab, var(--foreground) 82%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
   }
 
   & [data-slot="tabletop-plane"] {
@@ -329,7 +330,7 @@
     mix-blend-mode: screen;
     background-image:
       radial-gradient(ellipse 30% 22% at 50% 17%, color-mix(in oklab, var(--piece-ivory) calc(var(--tabletop-lamp) * 0.4), transparent), transparent 100%),
-      radial-gradient(ellipse 74% 58% at 50% 17%, color-mix(in oklab, var(--piece-gold) var(--tabletop-lamp), transparent), transparent 72%);
+      radial-gradient(ellipse 74% 58% at 50% 17%, color-mix(in oklab, color-mix(in oklab, var(--piece-gold) 40%, var(--piece-ivory)) var(--tabletop-lamp), transparent), transparent 72%);
   }
 
   /*
@@ -342,6 +343,7 @@
     position: absolute;
     inset: 0;
     background-image:
+      linear-gradient(color-mix(in oklab, var(--background) var(--tabletop-veil), transparent), color-mix(in oklab, var(--background) var(--tabletop-veil), transparent)),
       linear-gradient(to bottom, color-mix(in oklab, var(--background) var(--tabletop-header), transparent) 0, color-mix(in oklab, var(--background) calc(var(--tabletop-header) * 0.6), transparent) 60px, transparent 150px),
       linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 70%, transparent) 14%, color-mix(in oklab, var(--background) 28%, transparent) 30%, transparent 46%),
       radial-gradient(ellipse var(--tabletop-pool) 44% at 50% 47%, color-mix(in oklab, var(--background) 62%, transparent), color-mix(in oklab, var(--background) 34%, transparent) 62%, transparent 100%);
@@ -645,10 +647,10 @@
     --piece-ivory: oklch(0.96 0.02 85);
     --piece-ink: oklch(0.22 0.02 60);
     --piece-black: oklch(0 0 0);
-    --wood-1: oklch(0.44 0.07 62);
-    --wood-2: oklch(0.39 0.065 58);
-    --wood-3: oklch(0.42 0.075 64);
-    --wood-seam: oklch(0.2 0.04 52);
+    --wood-1: oklch(0.33 0.032 62);
+    --wood-2: oklch(0.29 0.03 58);
+    --wood-3: oklch(0.31 0.034 64);
+    --wood-seam: oklch(0.16 0.02 52);
     /* What is cut out of a picture, the ring round a status dot: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);
     /* The settings of the glass (`glass`): how much of the grey of a card it keeps, how much it blurs what is behind it, and how much it saturates it. 100% saturation leaves the colours as they are */
