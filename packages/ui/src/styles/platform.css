@@ -80,8 +80,8 @@
   --container-page: 96rem;
   --container-reading: 40rem;
 
-  /* Height of the fixed navbar, whose two 3.5rem containers sit centred in it, 0.75rem from the top: `h-navbar`, and `pt-navbar` / `scroll-mt-navbar` on what sits under it */
-  --spacing-navbar: 5rem;
+  /* Height of the fixed navbar: its two 3.5rem containers in 1.5rem of padding all around (`p-6`), so 1.5rem from the top and from the sides of the window and 1.5rem of air under them: `h-navbar`, and `pt-navbar` / `scroll-mt-navbar` on what sits under it */
+  --spacing-navbar: 6.5rem;
 
   /* Motion: `duration-fast`, `duration-base`, `duration-slow`, `ease-standard` */
   --transition-duration-fast: 100ms;

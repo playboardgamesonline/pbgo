@@ -10,9 +10,9 @@ import { cn } from "../utils"
 // the account on the right (`NavbarEnd`). Each container is a glass island, a rounded square (a border, a blur, a light shadow: `rounded-2xl`,
 // not a pill), and what it holds is rounded one step less (`rounded-lg`, the island's radius less its `p-2`), so the corners stay concentric.
 // The bar between the islands is transparent: it lets the page and the pointer through, so the backdrop of the page shows behind both and the
-// content of the page scrolls past the gap. The bar spans the window, not the width of the page: the islands sit on its edges, 0.75rem in
-// from the top and from each side. The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it or lets its
-// backdrop run under it.
+// content of the page scrolls past the gap. The bar spans the window, not the width of the page: the islands sit on its edges, 1.5rem in
+// from the top and from each side (the `p-6` of the bar, and the same 1.5rem is left under them: with their own 3.5rem that is the 6.5rem of
+// `h-navbar`). The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it or lets its backdrop run under it.
 //
 // The current item, the logo or a tab, has a fill behind it, and that fill is one element for the whole bar (`layoutId`): when the current
 // item changes, it glides to the next one with a spring (`SPRING_TRAVEL`, `@pbgo/ui/motion`) instead of jumping. It only glides if the bar stays
@@ -25,7 +25,7 @@ function Navbar({ className, children, ...props }: React.ComponentProps<"header"
     <MotionConfig reducedMotion="user">
       <LayoutGroup id={group}>
         <header data-slot="navbar" className={cn("pointer-events-none h-navbar", className)} {...props}>
-          <div className="flex h-full w-full items-center justify-between gap-4 px-3">{children}</div>
+          <div className="flex w-full items-center justify-between gap-4 p-6">{children}</div>
         </header>
       </LayoutGroup>
     </MotionConfig>
