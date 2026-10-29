@@ -43,6 +43,7 @@ export const NAV = [
       { id: "toast", title: "Toast" },
       { id: "cookie-banner", title: "Cookie banner" },
       { id: "card", title: "Card" },
+      { id: "plan-card", title: "Plan card" },
       { id: "game-card", title: "Game card" },
       { id: "section", title: "Section" },
       { id: "friends-panel", title: "Friends panel" },

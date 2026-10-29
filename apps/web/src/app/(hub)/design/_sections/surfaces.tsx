@@ -42,6 +42,7 @@ import {
 } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
 import { BarListSpecimen, BarSpecimen, ChatSpecimen, FriendsSpecimen, DockSpecimen, PresenceLegend, SocialSpecimen } from "../_components/friends-specimen"
+import { PricingPlans } from "@/components/pricing-plans"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -118,6 +119,35 @@ export function Cards() {
             </CardDescription>
           </CardHeader>
         </Card>
+      </Demo>
+    </Section>
+  )
+}
+
+export function PlanCards() {
+  return (
+    <Section
+      id="plan-card"
+      module="plan-card"
+      intro="A plan of the Pricing page, in a `Card`: its name (the heading of a labelled group), what it is for, its price in Geist at 720 (`text-4xl`, `text-5xl` from `xl`) with what it is for after it (`/ month`, muted, under the price when the room runs out; a free plan has none), the button that takes it, a hairline and the list of what it includes, a tick before each (the tick of `Perks`). The plans of a row are the same size and the same weight, and stretch to the tallest: none is highlighted. The card draws what it is given and the page decides what the button does: a plan that is not on sale has a disabled one. The words and the prices of the page are `apps/web/src/lib/plans.ts`, drawn by `PricingPlans`; they are a first draft."
+    >
+      <Demo
+        title="Three plans"
+        description="As the Pricing page draws them: three columns from `lg`, one under it. The free plan has the only live button, the paid ones a disabled Coming soon since nothing is on sale yet."
+        code={`<PlanCard
+  name="Plus"
+  price="€0.99"
+  period="/ month"
+  description="For players who come back."
+  features={["Everything in Free", "Your whole history and your statistics"]}
+  action={
+    <Button size="lg" variant="outline" className="w-full" disabled>
+      Coming soon
+    </Button>
+  }
+/>`}
+      >
+        <PricingPlans />
       </Demo>
     </Section>
   )

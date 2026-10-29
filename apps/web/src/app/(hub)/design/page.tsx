@@ -19,6 +19,7 @@ import {
   GameCards,
   Items,
   Loading,
+  PlanCards,
   Sections,
   Separators,
   SocialPanels,
@@ -125,6 +126,7 @@ export default function DesignPage() {
             <Toasts />
             <CookieBanners />
             <Cards />
+            <PlanCards />
             <GameCards />
             <Sections />
             <FriendsPanels />
