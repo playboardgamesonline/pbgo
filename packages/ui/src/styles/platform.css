@@ -249,12 +249,12 @@
  * pointer). Its colours are the ones of a table (`--wood-*`, `--piece-*` of `.platform`), the hero's alone. One utility, the root, which styles what `Tabletop` draws inside it by their `data-slot`:
  * - the box is `absolute inset-0` and fades out at its foot where the black of the page takes over;
  * - `tabletop-light`: the lamp, a pool of warm light at the top (`--piece-gold`);
- * - `tabletop-stage` and `tabletop-plane`: the eye is above the table and a little in front of it (`perspective`), and the table is a plane tilted back around its bottom edge (`--tabletop-tilt`), steeply enough that
+ * - `tabletop-stage` and `tabletop-plane`: the eye is above the table and a little in front of it (`perspective`), and the table is a plane tilted back around its bottom edge (`--tabletop-tilt`), wide and deep enough to have no edge in view, and steeply enough that
  *   its planks narrow to a fifth of their width by the top of the hero, which is what gives it depth; its far end fades out; `tabletop-wood` is its surface, planks with their seams and a fine grain along them;
  * - `tabletop-shade`: the page's black over it, at the foot, under the text and at both sides, so that the table is lit in the middle and dark at its edges. Nothing moves: the table is a still scene.
  */
 @utility tabletop {
-  --tabletop-tilt: 72deg;
+  --tabletop-tilt: 66deg;
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -277,7 +277,6 @@
     position: absolute;
     inset: 0;
     background-image:
-      linear-gradient(90deg, color-mix(in oklab, var(--background) 88%, transparent) 0%, transparent 24%, transparent 76%, color-mix(in oklab, var(--background) 88%, transparent) 100%),
       linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 70%, transparent) 14%, color-mix(in oklab, var(--background) 28%, transparent) 30%, transparent 46%),
       radial-gradient(ellipse max(36%, 17rem) 40% at 50% 54%, color-mix(in oklab, var(--background) 74%, transparent), color-mix(in oklab, var(--background) 38%, transparent) 62%, transparent 100%);
   }
@@ -286,19 +285,19 @@
     position: absolute;
     inset-inline: 0;
     bottom: 0;
-    height: 900px;
-    perspective: 620px;
-    perspective-origin: 50% -8%;
-    /* The light falls off with the distance and under the figures, not towards the sides: the table is lit from edge to edge. Far away it is the dark, at the title it is full, at the perks it is half, at the search bar a third */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 128px, color-mix(in oklab, var(--foreground) 12%, transparent) 188px, color-mix(in oklab, var(--foreground) 25%, transparent) 248px, color-mix(in oklab, var(--foreground) 55%, transparent) 328px, color-mix(in oklab, var(--foreground) 90%, transparent) 428px, var(--foreground) 458px, var(--foreground) 548px, color-mix(in oklab, var(--foreground) 56%, transparent) 648px, color-mix(in oklab, var(--foreground) 30%, transparent) 758px, color-mix(in oklab, var(--foreground) 8%, transparent) 862px, transparent 900px);
-    mask-image: linear-gradient(to bottom, transparent 128px, color-mix(in oklab, var(--foreground) 12%, transparent) 188px, color-mix(in oklab, var(--foreground) 25%, transparent) 248px, color-mix(in oklab, var(--foreground) 55%, transparent) 328px, color-mix(in oklab, var(--foreground) 90%, transparent) 428px, var(--foreground) 458px, var(--foreground) 548px, color-mix(in oklab, var(--foreground) 56%, transparent) 648px, color-mix(in oklab, var(--foreground) 30%, transparent) 758px, color-mix(in oklab, var(--foreground) 8%, transparent) 862px, transparent 900px);
+    height: 1000px;
+    perspective: 1200px;
+    perspective-origin: 50% -25%;
+    /* The light falls off with the distance and under the figures, never towards the sides: the table has no edge, it goes on past the window on every side. Far away it is dim, at the title it is full, at the perks half, at the search bar a third */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) 25%, transparent) 228px, color-mix(in oklab, var(--foreground) 45%, transparent) 328px, color-mix(in oklab, var(--foreground) 80%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
+    mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) 25%, transparent) 228px, color-mix(in oklab, var(--foreground) 45%, transparent) 328px, color-mix(in oklab, var(--foreground) 80%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
   }
 
   & [data-slot="tabletop-plane"] {
     position: absolute;
-    inset-inline: -60%;
+    inset-inline: -300%;
     bottom: -50px;
-    height: 3600px;
+    height: 4800px;
     transform-origin: 50% 100%;
     transform: rotateX(var(--tabletop-tilt));
     transform-style: preserve-3d;
@@ -308,10 +307,10 @@
     position: absolute;
     inset: 0;
     background:
-      repeating-linear-gradient(90deg, var(--wood-seam) 0 3px, transparent 3px 190px),
-      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 55%, transparent) 0 2px, transparent 2px 253px),
-      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-3) 55%, transparent) 0 131px, color-mix(in oklab, var(--wood-1) 45%, transparent) 131px 297px, transparent 297px 421px),
-      repeating-linear-gradient(90deg, var(--wood-1) 0 190px, var(--wood-2) 190px 380px, var(--wood-3) 380px 570px),
+      repeating-linear-gradient(90deg, var(--wood-seam) 0 4px, transparent 4px 260px),
+      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 55%, transparent) 0 3px, transparent 3px 347px),
+      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-3) 55%, transparent) 0 180px, color-mix(in oklab, var(--wood-1) 45%, transparent) 180px 407px, transparent 407px 577px),
+      repeating-linear-gradient(90deg, var(--wood-1) 0 260px, var(--wood-2) 260px 520px, var(--wood-3) 520px 780px),
       radial-gradient(ellipse 80% 15% at 50% 91%, color-mix(in oklab, var(--wood-1) 60%, var(--piece-gold)), color-mix(in oklab, var(--wood-1) 85%, var(--piece-gold)) 55%, var(--wood-2));
   }
   & [data-slot="tabletop-wood"]::after {
