@@ -43,7 +43,7 @@ export default async function Home() {
               `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
           <section className="relative bg-linear-to-b from-card to-background pt-navbar">
             <Tabletop />
-            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-14 pb-12 text-center">
+            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center">
               <h1 className="display-title">
                 <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
               </h1>

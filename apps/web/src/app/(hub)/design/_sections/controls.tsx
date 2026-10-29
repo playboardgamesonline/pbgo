@@ -217,7 +217,7 @@ export function Badges() {
     <Section
       id="badge"
       module="badge"
-      intro="A short label: a status, a count, a category. Never an action; for that, use a `Button`."
+      intro="A short label: a status, a count, a category. Never an action; for that, use a `Button`. The count of what waits for someone, messages not read and requests to answer, is `notification`: solid red, as Discord's."
     >
       <Demo
         title="Variants"
@@ -227,7 +227,8 @@ export function Badges() {
 <Badge variant="outline">2–5 players</Badge>
 <Badge variant="destructive">Offline</Badge>
 <Badge variant="ghost">Draft</Badge>
-<Badge variant="link">Link</Badge>`}
+<Badge variant="link">Link</Badge>
+<Badge variant="notification">3</Badge>`}
       >
         <Badge>Live</Badge>
         <Badge variant="secondary">Beta</Badge>
@@ -235,6 +236,7 @@ export function Badges() {
         <Badge variant="destructive">Offline</Badge>
         <Badge variant="ghost">Draft</Badge>
         <Badge variant="link">Link</Badge>
+        <Badge variant="notification">3</Badge>
       </Demo>
 
       <Demo

@@ -126,7 +126,7 @@ function ConversationRow({ conversation, onOpen }: { conversation: Conversation;
         <span className="flex shrink-0 flex-col items-end gap-1">
           {last && <span className={cn("text-xs", tone)}>{timeAgo(last.at)}</span>}
           {conversation.unread > 0 && (
-            <Badge className="h-4 min-w-4 justify-center px-1">
+            <Badge variant="notification" className="h-4 min-w-4 justify-center px-1">
               {conversation.unread}
               <span className="sr-only"> unread</span>
             </Badge>
@@ -313,7 +313,7 @@ function SocialPanel({
               className={TAB}
             >
               <HugeiconsIcon icon={Chatting01Icon} strokeWidth={2} className={TAB_ICON} />
-              {unread > 0 && <Badge className={COUNT}>{unread}</Badge>}
+              {unread > 0 && <Badge variant="notification" className={COUNT}>{unread}</Badge>}
               {tab === "messages" && <TabFill />}
             </TabsTrigger>
             <TabsTrigger
@@ -325,7 +325,7 @@ function SocialPanel({
               className={TAB}
             >
               <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className={TAB_ICON} />
-              {incoming > 0 && <Badge className={COUNT}>{incoming}</Badge>}
+              {incoming > 0 && <Badge variant="notification" className={COUNT}>{incoming}</Badge>}
               {tab === "add" && <TabFill />}
             </TabsTrigger>
           </TabsList>
