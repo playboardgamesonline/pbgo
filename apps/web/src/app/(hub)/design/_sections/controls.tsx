@@ -535,7 +535,7 @@ export function Comboboxes() {
     <Section
       id="combobox"
       module="combobox"
-      intro="A list of options with a search field above it, for a panel that has more options than chips can hold: the categories of the games. An option is a name and, if it wants one, an icon at the start of its row; the check of a pick is at the other end. The rows go from one edge of the panel to the other. Typing keeps the options that hold the text, whatever the case and the accents. Any number can be picked, so the list stays open. It draws nothing around itself: put it in a `Popover` with no padding of its own (`p-0`), which gives it its title, its Clear button and its place."
+      intro="A list of options with a search field above it, for a panel that has more options than chips can hold: the categories of the games. An option is a name and, if it wants one, an icon at the start of its row; the check of a pick is at the other end. The rows are rounded like the rows of a menu and 4px from each edge of the panel, and the field has no ring. Typing keeps the options that hold the text, whatever the case and the accents. Any number can be picked, so the list stays open. It draws nothing around itself: put it in a `Popover` with no padding of its own (`p-0`), which gives it its title, its Clear button and its place."
     >
       <Demo
         title="In a popover"

@@ -9,7 +9,8 @@ import { Input } from "./input"
 
 // A list of options with a search field above it, for a panel (a `Popover` with no padding of its own, which draws its title above) whose options are more
 // than chips can hold, and may be more tomorrow: the categories of the games. An option is a name and, if it wants one, an icon that stands before it; the
-// check of a pick is at the other end of the row. The rows go from one edge of the panel to the other, and the field has a margin of its own. Typing keeps
+// check of a pick is at the other end of the row. The rows are rounded like the rows of a menu and 4px from each edge of the panel (`px-1`), and the field has a
+// margin of its own and no ring: it has the focus when the panel opens and the caret says where the text goes. Typing keeps
 // the options that hold the text, whatever the case and the accents (`matchOptions`). The arrow keys move along the list without leaving the field, Enter
 // picks or unpicks the option they are on, and so does a click: the list stays open, since any number of options can be picked. The field takes the focus
 // the moment the panel opens (`autoFocus`: React focuses it as it mounts, before anything is painted), except on a screen that is touched, where the keyboard
@@ -98,7 +99,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, className
             placeholder={placeholder}
             autoComplete="off"
             spellCheck={false}
-            className="pl-9"
+            className="pl-9 focus-visible:border-transparent focus-visible:ring-0"
           />
         </div>
       </div>
@@ -108,7 +109,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, className
           role="listbox"
           aria-label={label}
           aria-multiselectable="true"
-          className="flex max-h-60 flex-col overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex max-h-60 flex-col overflow-y-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {shown.map((option, index) => {
             const picked = value.includes(option.value)
@@ -123,7 +124,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, className
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => toggle(option.value)}
                 onPointerMove={() => setActive(index)}
-                className="flex h-9 shrink-0 cursor-default items-center gap-3 px-4 text-sm select-none data-active:bg-input/50"
+                className="flex h-9 shrink-0 cursor-default items-center gap-3 rounded-2xl px-3 text-sm select-none data-active:bg-input/50"
               >
                 {option.icon && <HugeiconsIcon icon={option.icon} strokeWidth={2} aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
                 <span className="min-w-0 flex-1 truncate">{option.value}</span>
