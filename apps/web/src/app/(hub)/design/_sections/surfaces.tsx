@@ -215,7 +215,7 @@ export async function Sections() {
     >
       <Demo
         title="A preview of a list"
-        description="`SectionPreview` is for a list that has more to show than the section has room for: what it holds fades out at the bottom (a mask on the content alone, `mask-b-from-60%`, so it is opacity and no colour of the page) and its `action` sits over the fade, centred. `SectionAction` is a link drawn as a button, bigger than a control of a page (`h-12`, `text-base`): it is the one thing a visitor is asked to do there. It is the framework's link through `asChild`. The home cuts its grid to two rows at every width."
+        description="`SectionPreview` is for a list that has more to show than the section has room for: what it holds fades out at the bottom (a mask on the content alone, `mask-b-from-60%`, so it is opacity and no colour of the page) and its `action` sits over the fade, centred. `SectionAction` is a link drawn as a button, bigger than a control of a page (`h-12`, `text-base`): it is the one thing a visitor is asked to do there. It is the framework's link through `asChild`. The home cuts its grid to three rows at every width."
         code={`<Section aria-labelledby="popular-games">
   <h2 id="popular-games" className="sr-only">Popular games</h2>
   <SectionPreview

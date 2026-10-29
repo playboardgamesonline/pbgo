@@ -8,20 +8,20 @@ import type { SearchedGame } from "@/components/game-search"
 // The sections of the home under its search bar, in the order of the page. They are server components: the HTML of the home carries them. None
 // has a visible title, what it shows says what it is; each has an `sr-only` heading, so a screen reader still gets the outline of the page.
 
-/** The most cards any width shows: two rows of the widest grid (five columns). */
-const POPULAR_COUNT = 10
+/** The most cards any width shows: three rows of the widest grid (five columns). */
+const POPULAR_COUNT = 15
 
 /**
- * The grid of the popular games is the one of `/games` (one column, then two, three, four and five from the breakpoints), cut to two rows at
- * every width: the cards beyond them are `hidden`, so they are neither drawn nor reached by the keyboard. Two rows are 2, 4, 6, 8 and 10 cards.
+ * The grid of the popular games is the one of `/games` (one column, then two, three, four and five from the breakpoints), cut to three rows at
+ * every width: the cards beyond them are `hidden`, so they are neither drawn nor reached by the keyboard. Three rows are 3, 6, 9, 12 and 15 cards.
  */
 const POPULAR_GRID =
   "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 " +
-  "max-sm:[&>*:nth-child(n+3)]:hidden sm:max-lg:[&>*:nth-child(n+5)]:hidden lg:max-xl:[&>*:nth-child(n+7)]:hidden " +
-  "xl:max-2xl:[&>*:nth-child(n+9)]:hidden 2xl:[&>*:nth-child(n+11)]:hidden"
+  "max-sm:[&>*:nth-child(n+4)]:hidden sm:max-lg:[&>*:nth-child(n+7)]:hidden lg:max-xl:[&>*:nth-child(n+10)]:hidden " +
+  "xl:max-2xl:[&>*:nth-child(n+13)]:hidden 2xl:[&>*:nth-child(n+16)]:hidden"
 
 /**
- * The popular games: the cards of the first games of the catalog in a grid of two rows whose bottom fades out, and "See all games" over the fade,
+ * The popular games: the cards of the first games of the catalog in a grid of three rows whose bottom fades out, and "See all games" over the fade,
  * centred (`SectionPreview`), to `/games`. There is no count of plays to rank them by yet, one game being live and the rest to come, so they
  * come in the order of the catalog (the live games first, then the games to come by how soon they are): the day there is a count, this is the one
  * place that ranks. A live game is a "play" card, the others say "Coming soon".
