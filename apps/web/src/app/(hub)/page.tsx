@@ -79,7 +79,7 @@ export default async function Home() {
               action="See all tournaments"
               {...COMING_SOON.tournaments}
             />
-            <EmptySection id="whats-new" label="What's new" href="/whats-new" action="See what's new" {...COMING_SOON.whatsNew} />
+            <EmptySection id="whats-new" label="What's new" href="/about#whats-new" action="See what's new" {...COMING_SOON.whatsNew} />
           </HomeBody>
         </main>
 

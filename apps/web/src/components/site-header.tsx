@@ -1,21 +1,25 @@
 "use client"
 
+import { Fragment } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAccount } from "@pbgo/accounts/client"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
-import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
+import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { SiteSocial } from "@/components/site-social"
 import { SITE_NAME } from "@/site"
 
-/** The tabs of the navbar, in order, each with the page it leads to. The home is the logo's, not a tab's. */
+/**
+ * The tabs of the navbar, in order, each with the page it leads to and its `group`: the ones for playing, then the ones about the site, with a hairline between the two groups (`NavbarSeparator`).
+ * The home is the logo's, not a tab's. The tabs about the site leave the bar under `lg` (they would not fit between the logo and the account on a tablet): the ones for playing stay.
+ */
 const SITE_TABS = [
-  { id: "games", label: "Games", href: "/games" },
-  { id: "tables", label: "Tables", href: "/tables" },
-  { id: "tournaments", label: "Tournaments", href: "/tournaments" },
-  { id: "whats-new", label: "What's New", href: "/whats-new" },
-  { id: "pricing", label: "Pricing", href: "/pricing" },
+  { id: "games", label: "Games", href: "/games", group: "play" },
+  { id: "tables", label: "Tables", href: "/tables", group: "play" },
+  { id: "tournaments", label: "Tournaments", href: "/tournaments", group: "play" },
+  { id: "about", label: "About", href: "/about", group: "about" },
+  { id: "pricing", label: "Pricing", href: "/pricing", group: "about" },
 ] as const
 
 /** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the sign-in and the pages of a signed-in visitor, which no tab leads to). */
@@ -61,10 +65,13 @@ export function SiteHeader() {
           </Link>
         </NavbarBrand>
         <NavbarTabs aria-label="Main">
-          {SITE_TABS.map((tab) => (
-            <NavbarTab key={tab.id} asChild current={tab.id === current}>
-              <Link href={tab.href}>{tab.label}</Link>
-            </NavbarTab>
+          {SITE_TABS.map((tab, index) => (
+            <Fragment key={tab.id}>
+              {index > 0 && SITE_TABS[index - 1].group !== tab.group && <NavbarSeparator className="max-lg:hidden" />}
+              <NavbarTab asChild current={tab.id === current} className={tab.group === "about" ? "max-lg:hidden" : undefined}>
+                <Link href={tab.href}>{tab.label}</Link>
+              </NavbarTab>
+            </Fragment>
           ))}
         </NavbarTabs>
       </NavbarStart>

@@ -489,7 +489,7 @@
       repeating-linear-gradient(45deg, transparent 0 0.05em, color-mix(in oklab, var(--piece-ivory) 30%, transparent) 0.05em 0.056em),
       repeating-linear-gradient(-45deg, transparent 0 0.05em, color-mix(in oklab, var(--piece-ivory) 30%, transparent) 0.05em 0.056em);
   }
-  /* Two cards that overlap by more than half: the second is 0.2em from the first, a little turned the other way */
+  /* Two cards that overlap by more than half: the second is 0.2em from the first, a little turned the other way. That fan is how they stand still; `TitleCards` folds it up and opens it again now and then, and its `FAN` says the same angles and gap */
   & > i:first-child {
     left: 0;
     transform: rotate(-13deg);

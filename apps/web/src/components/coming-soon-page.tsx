@@ -5,8 +5,8 @@ import { ListPageHeader } from "@/components/list-page-header"
 import { SiteFooter } from "@/components/site-footer"
 
 /**
- * A page of the navbar that has nothing to list yet (Tables, Tournaments, What's New, Pricing): the head of the pages of the tabs (`ListPageHeader`: the title, big and centred, with the search bar of what the page is
- * to list under it, `search`; What's New has none), and one empty state under it, where the list will be (the `results` that the search scrolls to), that says what is to come, with the way to
+ * A page of the navbar that has nothing to list yet (Tables, Tournaments, Pricing): the head of the pages of the tabs (`ListPageHeader`: the title, big and centred, with the search bar of what the page is
+ * to list under it, `search`; Pricing has none), and one empty state under it, where the list will be (the `results` that the search scrolls to), that says what is to come, with the way to
  * somewhere that has something when there is one (`action`), then the footer. The bar is the hub layout's, which marks the tab of the page. The home's sections lead here ("See all"), so the page has to hold
  * up for a visitor. The page that fills one in replaces this component with its own.
  */

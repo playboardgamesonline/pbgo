@@ -57,6 +57,8 @@ const nextConfig: NextConfig = {
       // goes straight to the first page (Identity), so it costs one redirect instead of two.
       { source: `/:game(${SLUGS})/admin`, destination: "/gamemaster/:game/identity", permanent: true },
       { source: `/:game(${SLUGS})/admin/:path+`, destination: "/gamemaster/:game/:path+", permanent: true },
+      // What's New was a page of the navbar and is now a section of About
+      { source: "/whats-new", destination: "/about#whats-new", permanent: true },
     ]
   },
   async rewrites() {

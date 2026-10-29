@@ -15,7 +15,7 @@ export const EASE_STANDARD = [0.2, 0, 0, 1] as const
  */
 export const PLAYFUL = {
   /**
-   * The die: an exponential in and out (slow to wake up, all at once, a long gentle stop), `turns` whole turns (at random, from `min` to `max`) and the quarter turns it takes to land on a side it `lands` on (a three or a six, by chance), `secondsATurn` a turn,
+   * The die: an exponential in and out (slow to wake up, all at once, a long gentle stop), `turns` whole turns (at random, from `min` to `max`) and the quarter turns it takes to land on the side it `lands` on that it does not show (a three and a six: it switches from one to the other), `secondsATurn` a turn,
    * and it swells toward the viewer at the fastest moment, scale 1 → `swell` → 1 over the roll.
    */
   die: { ease: [0.87, 0, 0.13, 1], secondsATurn: 0.75, turns: { min: 2, max: 3 }, lands: [3, 6], swell: 1.12 },
@@ -24,6 +24,11 @@ export const PLAYFUL = {
    * toward the viewer at the top of the toss (`swell`, half way), and lands with a squash (`squash`, 0.07 s) that springs back.
    */
   coin: { ease: [0.65, 0, 0.35, 1], secondsATurn: 0.9, turns: { min: 1, max: 2 }, dip: 0.95, swell: 1.4, squash: 0.94, landing: { type: "spring", stiffness: 320, damping: 14 } },
+  /**
+   * The cards: the two backs of a deck after "games" fold up and open again. The fan closes in `fold` seconds, an ease in and out: the cards straighten to `closed.turn` degrees each and come within `closed.gap` ems of each other;
+   * they stay closed for `hold` seconds; and the fan opens again on a spring (`open`), a little wider than it stands before it settles.
+   */
+  cards: { fold: 0.35, ease: [0.65, 0, 0.35, 1], hold: 0.3, closed: { turn: 2, gap: 0.04 }, open: { type: "spring", stiffness: 280, damping: 15 } },
   /**
    * The suits: a wheel, like the reel of a slot machine, that scrolls up through the four suits (a red one and a white one in turn) and always stops on the heart it started on: `laps` of the four suits, from `min` to `max` (whole
    * laps, so that it comes back to the heart), `secondsAPlace` a place on average, with a wind-up and a long ease-out (it starts at the average speed, is twice and a half as fast a fifth of the way through, and stops slowly), a little past

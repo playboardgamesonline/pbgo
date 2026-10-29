@@ -4,7 +4,7 @@ import { Button } from "@pbgo/ui/platform/button"
 import { DISPLAY_FACES } from "@pbgo/ui/faces"
 import { FaceCycle } from "@pbgo/ui/platform/face-cycle"
 import { Logo } from "@pbgo/ui/platform/logo"
-import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
+import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import {
   SearchBar,
   SearchBarClear,
@@ -143,8 +143,9 @@ function Start({ home = false }: { home?: boolean }) {
         <NavbarTab href="#navbar">
           Tournaments
         </NavbarTab>
+        <NavbarSeparator />
         <NavbarTab href="#navbar">
-          What&apos;s New
+          About
         </NavbarTab>
         <NavbarTab href="#navbar">
           Pricing
@@ -159,7 +160,7 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The bar is pinned with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls; the page leaves `pt-navbar` under it (or lets its backdrop run under it) and gives an anchor that lands below it `scroll-mt-navbar`. The hub's layout mounts the bar once and it reads the address to know what is current, so it stays mounted from one page to the next and the fill behind the current item can glide. The tabs leave the first island under `md`, where the account needs the room."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The bar is pinned with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls; the page leaves `pt-navbar` under it (or lets its backdrop run under it) and gives an anchor that lands below it `scroll-mt-navbar`. The hub's layout mounts the bar once and it reads the address to know what is current, so it stays mounted from one page to the next and the fill behind the current item can glide. The tabs leave the first island under `md`, where the account needs the room, and the hub's tabs about the site (About, Pricing) leave it under `lg`, where there is not room for all of them beside the dock of a signed-in visitor. Between two groups of tabs, a hairline (`NavbarSeparator`: `w-px`, `h-5`, in the colour of a border): the hub has one between Tournaments and About, the tabs for playing then the ones about the site."
     >
       <Demo
         title="On the home, signed out"
@@ -174,7 +175,8 @@ export function Navbars() {
       <NavbarTab href="/games">Games</NavbarTab>
       <NavbarTab href="/tables">Tables</NavbarTab>
       <NavbarTab href="/tournaments">Tournaments</NavbarTab>
-      <NavbarTab href="/whats-new">What's New</NavbarTab>
+      <NavbarSeparator />
+      <NavbarTab href="/about">About</NavbarTab>
       <NavbarTab href="/pricing">Pricing</NavbarTab>
     </NavbarTabs>
   </NavbarStart>
@@ -441,7 +443,7 @@ export function TitlePieces() {
     >
       <Demo
         title="The pieces of the title"
-        description="A die, a cube seen straight on that rolls from the left to the right now and then, for a few whole turns at random, to land on a three or a six; the suits of a deck of cards in turn, a wheel that scrolls up through a heart, a spade, a diamond and a club (a red one and a white one in turn: a black one would be lost on the page's black) for a few laps and always stops on the heart, faded at the top and at the bottom of its window and blurred as it speeds up; and a coin tossed from the top to the bottom, now and then, for a few whole turns, showing a laureate in profile and a star in a wreath of laurel, both engraved in lines, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion; the die, the coin and the suits are `TitleDie`, `TitleCoin` and `TitleSuits`), and two dark blue cards, the backs of a deck, that overlap by more than half, after the last word of a line, with the space of a word on each side of them (`TitleCards`, left out under 40rem). The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
+        description="A die, a cube seen straight on that rolls from the left to the right now and then, for a few whole turns at random, to switch between a six and a three; the suits of a deck of cards in turn, a wheel that scrolls up through a heart, a spade, a diamond and a club (a red one and a white one in turn: a black one would be lost on the page's black) for a few laps and always stops on the heart, faded at the top and at the bottom of its window and blurred as it speeds up; and a coin tossed from the top to the bottom, now and then, for a few whole turns, showing a laureate in profile and a star in a wreath of laurel, both engraved in lines, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion; the die, the coin and the suits are `TitleDie`, `TitleCoin` and `TitleSuits`), and two dark blue cards, the backs of a deck, that overlap by more than half, after the last word of a line, with the space of a word on each side of them, and that fold up, come together and open again now and then (`TitleCards`, left out under 40rem). The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
         className="flex flex-col items-center gap-6 py-10"
         code={`<h1 className="display-title">
   <span className="block text-display">Play y<TitlePiece kind="coin">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>

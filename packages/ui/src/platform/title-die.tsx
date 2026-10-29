@@ -6,8 +6,8 @@ import { PLAYFUL } from "../motion"
 
 // The die of the home's title, an "o": a cube seen straight on, in perspective (the utility `title-piece` of `styles/platform.css` draws it: four sides with their pips, and no top or bottom, which are never seen) that turns from the
 // left to the right around its vertical axis, as the coin of the title turns around its horizontal one (`TitleCoin`). It turns on that axis only, so only its four sides take turns to face the viewer: a six on the front, then a four,
-// a one and a three (opposite sides add up to seven, as they do on a real die). Every fifteen seconds it rolls, 2 or 3 whole turns (chance decides which) and the quarter turns it takes to land on a three or a six
-// (chance decides again), and it plays while it does (`PLAYFUL.die`): an exponential in and out
+// a one and a three (opposite sides add up to seven, as they do on a real die). Every fifteen seconds it rolls, 2 or 3 whole turns (chance decides which) and the quarter turns it takes to switch to the other of a three and a six
+// (it shows the six at first, then lands on the three, then on the six again), and it plays while it does (`PLAYFUL.die`): an exponential in and out
 // (slow to wake up, all at once, a long gentle stop) and a swell toward the viewer at the fastest moment, as if it were thrown at them. To look solid, each side is darkened as it turns away from the light, which comes from
 // the left and the front. A visitor who asks for less motion keeps the six it starts on, and nothing moves.
 
@@ -74,9 +74,10 @@ function TitleDie({ first = 4000, every = 15000 }: { first?: number; every?: num
       timer = setTimeout(roll, every)
       // A roll that is not over (a tab in the background holds the frames back while the timers go on) is left to end where it was going: on the six
       if (angle.isAnimating()) return
-      // Where the cube is, and the side it lands on, by chance: it may be the one it shows
+      // Where the cube is, and the side it lands on: it switches, so it is never the one it shows (with a three and a six to land on, it is the other one)
       const now = Math.round(angle.get()) % 360
-      const aim = sides[Math.floor(Math.random() * sides.length)]
+      const aims = sides.filter((side) => side !== now)
+      const aim = aims[Math.floor(Math.random() * aims.length)]
       const turns = range.min + Math.floor(Math.random() * (range.max - range.min + 1))
       const degrees = turns * 360 + ((aim - now + 360) % 360)
       const seconds = (degrees / 360) * secondsATurn * (0.95 + Math.random() * 0.1)

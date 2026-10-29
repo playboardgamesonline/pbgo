@@ -27,20 +27,20 @@ describe("motion tokens", () => {
   })
 
   it("gives the playful pieces curves that can be drawn (a bezier has its x between 0 and 1) and springs that still wobble but settle", () => {
-    for (const curve of [PLAYFUL.die.ease, PLAYFUL.coin.ease, PLAYFUL.suit.wheel.ease]) {
+    for (const curve of [PLAYFUL.die.ease, PLAYFUL.coin.ease, PLAYFUL.cards.ease, PLAYFUL.suit.wheel.ease]) {
       expect(curve[0]).toBeGreaterThanOrEqual(0)
       expect(curve[0]).toBeLessThanOrEqual(1)
       expect(curve[2]).toBeGreaterThanOrEqual(0)
       expect(curve[2]).toBeLessThanOrEqual(1)
     }
-    for (const spring of [PLAYFUL.coin.landing, PLAYFUL.suit.wheel.settle]) {
+    for (const spring of [PLAYFUL.coin.landing, PLAYFUL.cards.open, PLAYFUL.suit.wheel.settle]) {
       const ratio = spring.damping / (2 * Math.sqrt(spring.stiffness))
       expect(ratio).toBeGreaterThan(0.2)
       expect(ratio).toBeLessThan(1)
     }
   })
 
-  it("keeps the turns of the playful pieces few, whole and in order (a die of 2 or 3, which lands on a three or a six, a coin of 1 or 2, which lands on its profile, a wheel of 2 or 3 laps of the four suits, which stops on its heart)", () => {
+  it("keeps the turns of the playful pieces few, whole and in order (a die of 2 or 3, which switches between a three and a six, a coin of 1 or 2, which lands on its profile, a wheel of 2 or 3 laps of the four suits, which stops on its heart)", () => {
     for (const range of [PLAYFUL.die.turns, PLAYFUL.coin.turns, PLAYFUL.suit.wheel.laps]) {
       expect(Number.isInteger(range.min)).toBe(true)
       expect(Number.isInteger(range.max)).toBe(true)

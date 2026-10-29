@@ -4,6 +4,7 @@ import * as React from "react"
 import { PLAYFUL } from "@pbgo/ui/motion"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
+import { TitleCards } from "@pbgo/ui/platform/title-cards"
 import { TitleCoin } from "@pbgo/ui/platform/title-coin"
 import { TitleDie } from "@pbgo/ui/platform/title-die"
 import { TitleSuits } from "@pbgo/ui/platform/title-suits"
@@ -25,16 +26,16 @@ type Move = {
   stage: React.ReactNode
 }
 
-const { die, coin } = PLAYFUL
+const { die, coin, cards } = PLAYFUL
 const { wheel } = PLAYFUL.suit
 
 const MOVES: readonly Move[] = [
   {
     id: "die",
     name: "The die: an expo snap",
-    note: "Rolls from the left to the right, 2 or 3 whole turns and a few quarters, and lands on a 3 or a 6, by chance. Slow to wake up, then all at once, then a long gentle stop, and it swells toward you as it flies. Every 15 s on the home, every 6 s here.",
+    note: "Rolls from the left to the right, 2 or 3 whole turns and a few quarters, and switches between a 6 and a 3: each roll lands on the one it does not show. Slow to wake up, then all at once, then a long gentle stop, and it swells toward you as it flies. Every 15 s on the home, every 6 s here.",
     specs: [
-      ["roll", `${die.turns.min} or ${die.turns.max} whole turns, then the quarters to a ${die.lands.join(" or a ")} · ${bezier(die.ease)} · ${die.secondsATurn} s a turn`],
+      ["roll", `${die.turns.min} or ${die.turns.max} whole turns, then the quarters to switch between a ${die.lands.join(" and a ")} · ${bezier(die.ease)} · ${die.secondsATurn} s a turn`],
       ["swell", `scale 1 → ${die.swell} → 1 · the whole roll · ease-in-out`],
     ],
     stage: (
@@ -63,6 +64,22 @@ const MOVES: readonly Move[] = [
           <TitleCoin first={500} rest={1500} />
         </span>
         u
+      </>
+    ),
+  },
+  {
+    id: "cards",
+    name: "The cards: a fold",
+    note: "The two cards after \"games\" fold up: the fan closes, the cards straighten and come together, stay closed for a beat, then open again on a spring, a little wider than they stand before they settle. Every 15 s on the home, every 4 s here.",
+    specs: [
+      ["fold", `${cards.fold} s · ${bezier(cards.ease)} · to ${cards.closed.turn}° each, ${cards.closed.gap} em apart`],
+      ["hold", `${cards.hold} s, closed`],
+      ["open", spring(cards.open)],
+    ],
+    stage: (
+      <>
+        games
+        <TitleCards className="inline-block" first={400} every={4000} />
       </>
     ),
   },

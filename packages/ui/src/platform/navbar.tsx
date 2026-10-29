@@ -5,6 +5,7 @@ import { LayoutGroup, MotionConfig, motion } from "motion/react"
 import { Slot } from "radix-ui"
 import { SPRING_TRAVEL } from "../motion"
 import { cn } from "../utils"
+import { Separator } from "./separator"
 
 // The top of a platform page, in two containers kept apart, the way the product reads: the brand and the tabs on the left (`NavbarStart`),
 // the account on the right (`NavbarEnd`). Each container is a glass island, a rounded square (a border, a blur, a light shadow: `rounded-2xl`,
@@ -111,6 +112,14 @@ function NavbarTabs({ className, ...props }: React.ComponentProps<"nav">) {
   )
 }
 
+/**
+ * A hairline between two groups of tabs, in the same container: as high as the tabs' text and no more (`h-5`), in the colour of every border. It is for the eye alone (the tabs are
+ * the same list for a screen reader), so it is `decorative`; the bar's `gap-1` is the room on each side of it.
+ */
+function NavbarSeparator({ className, ...props }: Omit<React.ComponentProps<typeof Separator>, "orientation" | "decorative">) {
+  return <Separator data-slot="navbar-separator" orientation="vertical" className={cn("data-vertical:h-5 data-vertical:self-center", className)} {...props} />
+}
+
 const tabClassName = "inline-flex h-10 items-center whitespace-nowrap rounded-lg px-4 text-sm"
 
 /**
@@ -156,4 +165,4 @@ function NavbarTab({
   )
 }
 
-export { Navbar, NavbarStart, NavbarEnd, NavbarIsland, NavbarBrand, NavbarTabs, NavbarTab }
+export { Navbar, NavbarStart, NavbarEnd, NavbarIsland, NavbarBrand, NavbarTabs, NavbarSeparator, NavbarTab }
