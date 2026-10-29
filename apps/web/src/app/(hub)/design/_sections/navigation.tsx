@@ -53,14 +53,14 @@ export function Wordmarks() {
     >
       <Demo
         title="In the footer"
-        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), a little under the letters (`mt-1`, and its own `p-1`) and with `pb-5` under it. Each text has 4px of padding of its own (`p-1`) and the row has 20px (`p-5`), so the texts are 24px from the edges of the window, like the navbar's, and no more. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
+        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), a little apart from the letters (`mt-3`, and its own `p-1`) and with `pb-5` under it. Each text has 4px of padding of its own (`p-1`) and the row has 20px (`p-5`), so the texts are 24px from the edges of the window, like the navbar's, and no more. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
         code={`<footer className="w-full pb-5">
   <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 p-5 text-sm text-muted-foreground">
     <p className="p-1">© 2026 Play Board Games Online · Built by …</p>
     <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-3">…</nav>
   </div>
   <Wordmark />
-  <p className="mx-5 mt-1 p-1 text-center fine-print">Unofficial, online adaptation of board games. …</p>
+  <p className="mx-5 mt-3 p-1 text-center fine-print">Unofficial, online adaptation of board games. …</p>
 </footer>`}
       >
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-5 text-sm text-muted-foreground">
@@ -68,7 +68,7 @@ export function Wordmarks() {
           <p className="p-1">Privacy Policy · Cookie Policy · Terms of Use</p>
         </div>
         <Wordmark />
-        <p className="mt-1 p-1 text-center fine-print">
+        <p className="mt-3 p-1 text-center fine-print">
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>

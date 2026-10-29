@@ -9,7 +9,7 @@ import { AUTHOR, COPYRIGHT_NAME, COPYRIGHT_YEAR } from "@/site"
  * Policy, Cookie Policy, which is the cookies section of the legal notice, Terms of Use and, only where analytics are on, Cookie settings, which
  * reopens the choice of the cookie banner and which the legal notice points to), then the name of the brand as big letters (`Wordmark`, in the faces of the logo, fading
  * out, from edge to edge of the window) and, alone under them and centred, what the site is not: the finest print of the page (`fine-print`), a little
- * under the letters. Each text has 4px of padding of its own (`p-1`) and the row 20px (`p-5`), so the texts are 24px from the edges of the window, like the
+ * apart from the letters (`mt-3`). Each text has 4px of padding of its own (`p-1`) and the row 20px (`p-5`), so the texts are 24px from the edges of the window, like the
  * navbar's, and no more. There is no line between the parts. The privacy policy and the terms of use are pages that are not written yet.
  */
 export function SiteFooter() {
@@ -37,7 +37,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <Wordmark />
-      <p className="mx-5 mt-1 p-1 text-center fine-print">
+      <p className="mx-5 mt-3 p-1 text-center fine-print">
         Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
       </p>
     </footer>
