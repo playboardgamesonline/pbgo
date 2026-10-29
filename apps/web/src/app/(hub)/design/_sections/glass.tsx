@@ -13,8 +13,8 @@ export function GlassSection() {
         className="p-0"
         code={`.platform {
   --card: oklch(0.237 0 0);
-  --glass-opacity: 80%;
-  --glass-blur: 24px;
+  --glass-opacity: 92%;
+  --glass-blur: 32px;
   --glass-saturate: 100%;
 }`}
       >

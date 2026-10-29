@@ -10,7 +10,7 @@ import { SearchBar, SearchBarField, SearchBarInput, SearchBarSubmit } from "@pbg
 import { Slider } from "@pbgo/ui/platform/slider"
 
 /** What the glass is now (`platform.css`): the grey of a card (half way between neutral 900 and 800, 0.237), and the three settings. */
-const NOW = { grey: 0.237, opacity: 80, blur: 24, saturate: 100 }
+const NOW = { grey: 0.237, opacity: 92, blur: 32, saturate: 100 }
 
 const SETTINGS = [
   { key: "grey", label: "Grey", variable: "--card", min: 0.15, max: 0.42, step: 0.005, show: (value: number) => `oklch(${value.toFixed(3)} 0 0)` },
