@@ -1,53 +1,94 @@
+"use client"
+
 import * as React from "react"
+import { LayoutGroup, MotionConfig, motion } from "motion/react"
 import { Slot } from "radix-ui"
+import { SPRING_TRAVEL } from "../motion"
 import { cn } from "../utils"
 
 // The top of a platform page, in two containers kept apart, the way the product reads: the brand and the tabs on the left (`NavbarStart`),
-// the account on the right (`NavbarEnd`). Each container is a rounded glass island (a border, a blur, a light shadow) and the bar between
-// them is transparent: it lets the page and the pointer through, so the backdrop of the page shows behind both islands and the
+// the account on the right (`NavbarEnd`). Each container is a glass island, a rounded square (a border, a blur, a light shadow: `rounded-2xl`,
+// not a pill), and what it holds is rounded one step less (`rounded-lg`, the island's radius less its `p-2`), so the corners stay concentric.
+// The bar between the islands is transparent: it lets the page and the pointer through, so the backdrop of the page shows behind both and the
 // content of the page scrolls past the gap. The bar spans the window, not the width of the page: the islands sit on its edges, 0.75rem in
 // from the top and from each side. The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it or lets its
 // backdrop run under it.
+//
+// The current item, the logo or a tab, has a fill behind it, and that fill is one element for the whole bar (`layoutId`): when the current
+// item changes, it glides to the next one with a spring (`SPRING_TRAVEL`, `@pbgo/ui/motion`) instead of jumping. It only glides if the bar stays
+// mounted from one page to the next, which is why the hub mounts it once, in its layout. A visitor who asks for less motion gets the jump.
 
 function Navbar({ className, children, ...props }: React.ComponentProps<"header">) {
+  // Each bar scopes its own fill, so that two bars on one page (the specimens of `/design`) do not trade it
+  const group = React.useId()
   return (
-    <header data-slot="navbar" className={cn("pointer-events-none h-navbar", className)} {...props}>
-      <div className="flex h-full w-full items-center justify-between gap-4 px-3">{children}</div>
-    </header>
+    <MotionConfig reducedMotion="user">
+      <LayoutGroup id={group}>
+        <header data-slot="navbar" className={cn("pointer-events-none h-navbar", className)} {...props}>
+          <div className="flex h-full w-full items-center justify-between gap-4 px-3">{children}</div>
+        </header>
+      </LayoutGroup>
+    </MotionConfig>
   )
 }
 
-// One container of the bar: a glass island with round ends, 3.5rem high, that takes the pointer back from the transparent bar. What it holds is
+/** The fill behind the current item: it sits inside that item, under its content, and glides from one item to the next. */
+function CurrentFill() {
+  return (
+    <motion.span
+      layoutId="navbar-current"
+      aria-hidden="true"
+      data-slot="navbar-current"
+      className="absolute inset-0 -z-10 rounded-lg bg-muted"
+      transition={SPRING_TRAVEL}
+    />
+  )
+}
+
+// One container of the bar: a glass island, a rounded square 3.5rem high, that takes the pointer back from the transparent bar. What it holds is
 // 2.5rem high (`h-10`: the brand, the tabs, buttons of size `lg`, an avatar of `size-10`), which `p-2` frames.
 const islandClassName =
-  "pointer-events-auto flex h-14 items-center gap-1 rounded-full border bg-background/80 p-2 shadow-surface backdrop-blur-md"
+  "pointer-events-auto flex h-14 items-center gap-1 rounded-2xl border bg-background/80 p-2 shadow-surface backdrop-blur-md"
 
 /** The left container: the brand, then the tabs. */
 function NavbarStart({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-start" className={cn(islandClassName, "min-w-0", className)} {...props} />
 }
 
-/** The right container, apart from the first: the avatar of the account, or the sign-in and sign-up buttons. */
+/**
+ * The right container, apart from the first: the avatar of the account, or the sign-in and sign-up buttons. The buttons are `rounded-lg` here,
+ * like the tabs of the first island (a button is a pill elsewhere), so the page does not have to remember it.
+ */
 function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="navbar-end" className={cn(islandClassName, "shrink-0", className)} {...props} />
+  return <div data-slot="navbar-end" className={cn(islandClassName, "shrink-0 [&_[data-slot=button]]:rounded-lg", className)} {...props} />
 }
 
-/** The way back to the front page: a link, usually around a `Logo` of `h-6`, the size of the tabs' text (give the link an `aria-label`). */
+/**
+ * The front page: a square button, usually around a `Logo` of `h-6`, the size of the tabs' text (give the link an `aria-label`). It is the home's
+ * button, so `current` marks the front page itself, the way a tab marks its page: the fill of the bar is behind it (it was the tile turning white
+ * once; the bar has one way to say where you are). On any other page it is as quiet as a tab.
+ */
 function NavbarBrand({
   className,
   asChild = false,
+  current = false,
+  children,
   ...props
-}: React.ComponentProps<"a"> & { asChild?: boolean }) {
+}: React.ComponentProps<"a"> & { asChild?: boolean; current?: boolean }) {
   const Comp = asChild ? Slot.Root : "a"
   return (
     <Comp
       data-slot="navbar-brand"
+      aria-current={current ? "true" : undefined}
       className={cn(
-        "flex h-10 shrink-0 items-center rounded-full px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
+        "relative isolate flex size-10 shrink-0 items-center justify-center rounded-lg text-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30",
         className
       )}
       {...props}
-    />
+    >
+      <Slot.Slottable>{children}</Slot.Slottable>
+      {current && <CurrentFill />}
+    </Comp>
   )
 }
 
@@ -62,7 +103,7 @@ function NavbarTabs({ className, ...props }: React.ComponentProps<"nav">) {
   )
 }
 
-const tabClassName = "inline-flex h-10 items-center whitespace-nowrap rounded-full px-4 text-sm"
+const tabClassName = "inline-flex h-10 items-center whitespace-nowrap rounded-lg px-4 text-sm"
 
 /**
  * One tab: a link, or its own link through `asChild` (the framework's). `current` marks the page the visitor is in.
@@ -73,6 +114,7 @@ function NavbarTab({
   asChild = false,
   current = false,
   disabled = false,
+  children,
   ...props
 }: React.ComponentProps<"a"> & { asChild?: boolean; current?: boolean; disabled?: boolean }) {
   if (disabled) {
@@ -84,7 +126,7 @@ function NavbarTab({
         title={props.title}
         className={cn(tabClassName, "cursor-default text-muted-foreground/60", className)}
       >
-        {props.children}
+        {children}
       </span>
     )
   }
@@ -95,11 +137,14 @@ function NavbarTab({
       aria-current={current ? "true" : undefined}
       className={cn(
         tabClassName,
-        "text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/30 aria-[current]:bg-muted aria-[current]:text-foreground",
+        "relative isolate text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/30 aria-[current]:text-foreground",
         className
       )}
       {...props}
-    />
+    >
+      <Slot.Slottable>{children}</Slot.Slottable>
+      {current && <CurrentFill />}
+    </Comp>
   )
 }
 

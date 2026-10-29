@@ -174,12 +174,14 @@ function lastModified(entry: CatalogEntry): Date | undefined {
 }
 
 /**
- * The sitemap: the hub, the home of every indexable game of the registry, then the hub page of every indexable game of the catalog
- * (`isIndexable`, so the sitemap lists exactly the pages that do not say `noindex`). `site` is the origin, without a trailing slash.
+ * The sitemap: the hub, its list of games (`/games`), the home of every indexable game of the registry, then the hub page of every
+ * indexable game of the catalog (`isIndexable`, so the sitemap lists exactly the pages that do not say `noindex`). `site` is the origin,
+ * without a trailing slash.
  */
 export function sitemapItems(site: string, games: readonly Pick<GameEntry, "slug" | "indexable">[], entries: readonly CatalogEntry[]): SitemapItem[] {
   return [
     { url: site, changeFrequency: "weekly", priority: 1 },
+    { url: `${site}/games`, changeFrequency: "weekly", priority: 0.9 },
     ...games.filter((game) => game.indexable).map((game): SitemapItem => ({ url: `${site}/${game.slug}`, changeFrequency: "weekly", priority: 0.9 })),
     ...entries.filter(isIndexable).map((entry): SitemapItem => {
       const modified = lastModified(entry)

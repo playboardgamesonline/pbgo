@@ -352,8 +352,14 @@ describe("sitemapItems", () => {
   ]
   const urls = (items: ReturnType<typeof sitemapItems>) => items.map((item) => item.url)
 
-  it("lists the hub, then the home of every indexable game, then the hub page of every indexable game of the catalog", () => {
-    expect(urls(sitemapItems(SITE, registry, entries))).toEqual([SITE, `${SITE}/courtisans`, `${SITE}/game/courtisans`, `${SITE}/game/the-mind`])
+  it("lists the hub and its list of games, then the home of every indexable game, then the hub page of every indexable game of the catalog", () => {
+    expect(urls(sitemapItems(SITE, registry, entries))).toEqual([
+      SITE,
+      `${SITE}/games`,
+      `${SITE}/courtisans`,
+      `${SITE}/game/courtisans`,
+      `${SITE}/game/the-mind`,
+    ])
   })
 
   it("lists exactly the hub pages that do not say `noindex`", () => {
@@ -365,8 +371,8 @@ describe("sitemapItems", () => {
     expect(urls(sitemapItems(SITE, registry, entries))).not.toContain(`${SITE}/hanabi`)
   })
 
-  it("is the hub and the indexable homes alone when the catalog has nothing", () => {
-    expect(urls(sitemapItems(SITE, registry, []))).toEqual([SITE, `${SITE}/courtisans`])
+  it("is the hub, its list of games and the indexable homes alone when the catalog has nothing", () => {
+    expect(urls(sitemapItems(SITE, registry, []))).toEqual([SITE, `${SITE}/games`, `${SITE}/courtisans`])
   })
 
   it("dates the page of a game with the last edit of its Notion row, a game to come's and a live game's", () => {
@@ -390,7 +396,7 @@ describe("sitemapItems", () => {
     const undated = sitemapItems(SITE, registry, [
       catalogEntry("the-mind", { game: { descriptions: { fr: "Un jeu." }, editedAt: "not a date" } }),
       catalogEntry("courtisans", { live: true, indexable: true, game: registered }),
-    ]).slice(2)
+    ]).slice(3) // the hub, its list of games and the home of Courtisans come first
     expect(undated).toStrictEqual([
       { url: `${SITE}/game/the-mind`, changeFrequency: "monthly", priority: 0.6 },
       { url: `${SITE}/game/courtisans`, changeFrequency: "weekly", priority: 0.8 },

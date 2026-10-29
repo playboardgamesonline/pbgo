@@ -31,7 +31,7 @@ const STATISTICS = [
   </>,
   <>
     You can change your choice at any time with{" "}
-    <ConsentLink className="cursor-pointer text-foreground underline underline-offset-4">this link</ConsentLink>, the Cookies link in the footer or a game&apos;s settings menu. We ask again after 13 months. Questions about your data:{" "}
+    <ConsentLink className="cursor-pointer text-foreground underline underline-offset-4">this link</ConsentLink>, the Cookie settings link in the footer or a game&apos;s settings menu. We ask again after 13 months. Questions about your data:{" "}
     <a className="text-foreground underline underline-offset-4" href={`mailto:${CONTACT}`}>
       {CONTACT}
     </a>

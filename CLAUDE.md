@@ -24,11 +24,13 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 ## Routes (`apps/web/src/app`)
 | URL | File | |
 | --- | --- | --- |
-| `/` | `(hub)/page.tsx` | hub: every game of the catalog in one list (the live games of the registry, then the games to come, with a "Coming soon" badge); each card opens `/game/<slug>` |
+| `/` | `(hub)/page.tsx` | hub: the title (three lines of capitals in Geist Black, fading out downwards, `display-title`), the glass search bar 32px under it, on a backdrop of a table under a lamp (`Tabletop`), then the sections of the platform with no visible title (popular games in a grid that fades out, tables and tournaments in progress, what's new), each with a button to the page of its tab |
+| `/games` | `(hub)/games/page.tsx` | every game of the catalog in one list, with the search bar and its filters (the live games of the registry, then the games to come, with a "Coming soon" badge); each card opens `/game/<slug>` |
 | `/game/<slug>` | `(hub)/game/[slug]/page.tsx` | a game's page on the hub: description, credits, the picture of its card and a "Create a game" button to `/<slug>` (a disabled "Coming soon" when the game is not live), then the games related to it. Every game of the catalog has one; indexable when the game is (a live game: its registry flag; a game to come: a description in its Notion row), else `noindex` and out of the sitemap (`docs/catalog.md`) |
 | `/legal` | `(hub)/legal/page.tsx` | legal notice |
 | `/design` | `(hub)/design/page.tsx` | design system reference: every token and component of the platform, then the shared in-game UI drawn in the look of two games side by side (noindex, not in the sitemap) |
-| `/tables`, `/tournaments`, `/whats-new` | `(hub)/<tab>/page.tsx` | the other tabs of the hub's navbar (Games is `/`): pages with nothing on them yet (`BlankPage`), `noindex` and out of the sitemap |
+| `/tables`, `/tournaments`, `/whats-new` | `(hub)/<tab>/page.tsx` | the other tabs of the hub's navbar (`/games` is the first; the logo is the home; the bar is the hub layout's, mounted once): pages with a title and an empty state for now (`ComingSoonPage`), `noindex` and out of the sitemap |
+| `/privacy`, `/terms` | `(hub)/<page>/page.tsx` | the footer's Privacy Policy and Terms of Use: pages that say their text is being written (`LegalStubPage`), `noindex` (the cookie policy is `/legal#cookies`) |
 | `/<slug>` | `[game]/page.tsx` | game home ("coming soon" when the game is not playable here) |
 | `/<slug>/game/<code>` | `[game]/game/[code]/page.tsx` | table (lobby, board, game over) |
 | `/<slug>/preview/home\|game` | `[game]/preview/[kind]/page.tsx` | admin previews (iframe): the game's own page, served to the signed-in gamemaster only (404 otherwise), see `docs/gamemaster.md` |
@@ -48,7 +50,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 - Separate root layouts: the hub (`(hub)/layout.tsx`), the games (`[game]/layout.tsx`, which must not call `notFound()` itself) and the gamemaster (`gamemaster/layout.tsx`: platform look, no game runtime, noindex); `global-not-found.tsx` answers any URL that matches no route. Links from the hub to a game are plain `<a>` (full page load).
 - Route files are thin wrappers: pages call `@pbgo/core/pages/*` with the game (`gameOf` / `playableGameOf` / `previewableGameOf`), API routes wrap the `@pbgo/core/routes/api/**` handlers with `gameRoute()` and the `@pbgo/core/routes/gamemaster/**` ones with `gamemasterRoute()` (both from `@pbgo/games`). A game that is not playable here (no engine, or not live in production) keeps its home page; its table and API answer 404.
 - `apps/web/public` holds `favicon.ico` only (a game's pictures and sounds live in its Sanity project); the build fails on any other file (`pnpm check:public`).
-- `api`, `legal`, `design`, `tables`, `tournaments`, `whats-new`, `ingest`, `gamemaster`, `login`, `logout`, `media`, `catalog` and `game` cannot be a game slug (`RESERVED_SLUGS` of `packages/games/src/slug.ts`).
+- `api`, `legal`, `privacy`, `terms`, `design`, `games`, `tables`, `tournaments`, `whats-new`, `ingest`, `gamemaster`, `login`, `logout`, `media`, `catalog` and `game` cannot be a game slug (`RESERVED_SLUGS` of `packages/games/src/slug.ts`).
 - Every mutating game route starts with `await rateLimit(game.slug, request, "<rule>")`; so does a new route in a game's `ROUTES`.
 - The rest (404 behaviour, segment configs, rate-limit rules): `docs/routing.md`.
 

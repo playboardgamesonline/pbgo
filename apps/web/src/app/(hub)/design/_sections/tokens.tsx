@@ -1,3 +1,4 @@
+import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "@pbgo/ui/motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { ChartColors, LineColors, NeutralRamp, SemanticColors } from "../_components/colors"
 import { Block, Bullets, Code, Demo, Inline, Section } from "../_components/layout"
@@ -45,13 +46,14 @@ const FONT_ROWS = [
   { variable: "--font-title", utility: "font-heading", use: "Headings and card titles. Same as the body font on the platform." },
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
+  { variable: "--text-display", utility: "text-display", use: "The three lines of the home's title, as big as the window lets them be (7.7vw and half a rem, up to 7.5rem): the first line takes 71% of a 390 px window and 60% of a 1440 px one. The lines are not the same width on purpose: the title narrows as it goes down. It sets no line-height: `display-title` does." },
 ] as const
 
 export function Typography() {
   return (
     <Section
       id="typography"
-      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes."
+      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes. One exception: the home's title has one word that changes between four display faces (see Face cycle)."
     >
       <Block
         title="Scale"
@@ -116,9 +118,9 @@ export function Radius() {
 }
 
 const LAYOUT_ROWS = [
-  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page, kept thin so the content takes the room. Widens at the `sm` breakpoint." },
+  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page: 1rem on a phone, 1.5rem from the `sm` breakpoint and 4rem (64px) from `lg`, so a desktop keeps a small margin on each side." },
   { variable: "--section", utility: "py-section", use: "Vertical space between the sections of a page (`pb-section` between two). Widens at the `sm` breakpoint." },
-  { variable: "--container-page", utility: "max-w-page", use: "Width of a page that fills the screen: the hub's list of games, a game's page, the header and the footer. Nearly the whole window, up to this value." },
+  { variable: "--container-page", utility: "max-w-page", use: "Width of a page that keeps a limit on a wide screen: a game's page, the pages of the tabs, the centred header of a list. Nearly the whole window, up to this value. The hub's lists of games (the home's sections, `/games`) have none: they take the whole window." },
   { variable: "--container-reading", utility: "max-w-reading", use: "Width of running text, so a line stays readable." },
 ] as const
 
@@ -132,7 +134,7 @@ export function Layout() {
 
       <Demo
         title="Gutter"
-        description="The page content is inset by `px-gutter` on both sides. Resize the window past the `sm` breakpoint and it widens."
+        description="The page content is inset by `px-gutter` on both sides. Resize the window past the `sm` breakpoint, then past `lg`, and it widens."
         code={`<section className="mx-auto w-full max-w-page px-gutter py-section">…</section>`}
         className="p-0"
       >
@@ -228,7 +230,7 @@ export function Motion() {
   return (
     <Section
       id="motion"
-      intro="Three durations and one easing. Plain `transition` and `transition-colors` already use the base duration and the standard easing, so most components write neither."
+      intro="Three durations, one easing and one spring. Plain `transition` and `transition-colors` already use the base duration and the standard easing, so most components write neither. What CSS cannot do, a layout animation or a sequence, is done with `motion/react` (motion.dev) and reads the same numbers."
     >
       <Demo title="Durations">
         <MotionDemo />
@@ -240,6 +242,53 @@ export function Motion() {
           "Never write `duration-200`: the guard test rejects a numeric duration.",
         ]}
       />
+
+      <Block
+        title="In JavaScript"
+        description="`@pbgo/ui/motion` copies the three durations and the easing of the stylesheet in the units that `motion/react` takes (seconds, and a bezier as four numbers), and `motion.test.ts` reads `platform.css` and fails when a copy has drifted. The values below are imported from it, not typed here."
+      >
+        <div className="rounded-3xl border p-2">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Export</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>CSS</TableHead>
+                <TableHead>Use</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { name: "DURATION.fast", value: `${DURATION.fast} s`, css: "--transition-duration-fast", use: "Overlays entering and leaving." },
+                { name: "DURATION.base", value: `${DURATION.base} s`, css: "--transition-duration-base", use: "Hover and focus: what `transition` uses." },
+                { name: "DURATION.slow", value: `${DURATION.slow} s`, css: "--transition-duration-slow", use: "Things that travel; the word of the home's title fading out and in." },
+                { name: "EASE_STANDARD", value: `[${EASE_STANDARD.join(", ")}]`, css: "--ease-standard", use: "The one easing, quick to leave and slow to settle: cubic-bezier(0.2, 0, 0, 1). The games' UI uses it too." },
+                { name: "SPRING_TRAVEL", value: `spring, stiffness ${SPRING_TRAVEL.stiffness}, damping ${SPRING_TRAVEL.damping}`, css: "", use: "Something that moves to a place it was not, and has to feel attached to the hand that asked: the fill that glides between the tabs of the navbar. Stiff, no overshoot worth seeing, settled in about a quarter of a second." },
+              ].map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell>
+                    <Code>{row.name}</Code>
+                  </TableCell>
+                  <TableCell className="whitespace-normal font-mono text-xs tracking-normal">{row.value}</TableCell>
+                  <TableCell>{row.css && <Code>{row.css}</Code>}</TableCell>
+                  <TableCell className="min-w-56 whitespace-normal text-muted-foreground">
+                    <Inline>{row.use}</Inline>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Block>
+
+      <Bullets
+        items={[
+          "The platform moves in JavaScript in two places: the fill behind the current item of the navbar (`layoutId`, `SPRING_TRAVEL`) and the word of the home's title that changes face (`FaceCycle`: out and in with `DURATION.slow` and `EASE_STANDARD`, the rest of its line gliding). Everything else is a CSS transition.",
+          "An animation answers an action (a click, a hover) or says that something changed. Use the tokens, never a duration or an easing written in a component, and reach for `motion` only for a layout animation, a sequence or a spring.",
+          "Less motion is honoured everywhere: in CSS the durations become 0ms, in JavaScript `Navbar` mounts `MotionConfig reducedMotion=user` (the fill jumps) and `FaceCycle` does not rotate at all, since an animation that starts by itself is the one a visitor who asks for less motion must never get.",
+          "The games' UI shares the curve, not the durations: it has its own timings, tuned by the game's `UI_THEME` (`docs/game-ui.md`).",
+        ]}
+      />
     </Section>
   )
 }
@@ -248,12 +297,15 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "px-gutter, py-section, pb-section", does: "Side padding of a page, rhythm between sections", token: "`--gutter`, `--section`" },
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
+  { utility: "display-title", does: "The home's title: Geist Black, capitals and tight, fading out downwards, with `text-display`", token: "`--text-display`" },
+  { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },
   { utility: "bg-scrim", does: "Dimming layer behind a dialog or a sheet", token: "`--color-scrim`" },
   { utility: "bg-secondary-hover", does: "Hover state of a `secondary` surface", token: "`secondary` mixed with 8% of `foreground`" },
   { utility: "font-heading", does: "Heading font", token: "`--font-title`" },
   { utility: "pattern-checker", does: "Checkerboard that makes translucency visible", token: "`foreground` at 8%" },
+  { utility: "pattern-grid", does: "A grid of thin lines, 3rem apart, in a faint `foreground`: the home's hero had it, and has not for now", token: "`--foreground`, `--spacing`" },
 ]
 
 export function Utilities() {

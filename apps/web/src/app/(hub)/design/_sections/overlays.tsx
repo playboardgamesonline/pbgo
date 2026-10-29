@@ -13,6 +13,7 @@ import {
 } from "@pbgo/ui/platform/dialog"
 import { Field, FieldLabel } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
+import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
 import {
   Sheet,
   SheetClose,
@@ -23,6 +24,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@pbgo/ui/platform/sheet"
+import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@pbgo/ui/platform/tooltip"
 import { CookieBannerDemo } from "../_components/cookie-banner-demo"
 import { MenuDemo } from "../_components/menu-demo"
@@ -199,6 +201,55 @@ export function Dropdowns() {
 </DropdownMenu>`}
       >
         <MenuDemo />
+      </Demo>
+    </Section>
+  )
+}
+
+export function Popovers() {
+  return (
+    <Section
+      id="popover"
+      module="popover"
+      intro="A panel that opens on its trigger and holds a few controls, where a menu is too thin and a dialog too heavy: each filter of the search bar opens one. It closes on Escape and on a click outside, hands the focus back to its trigger, and carries the `platform` class itself since it renders in a portal, above the fixed navbar. Like the menus it is translucent and blurs what is behind it."
+    >
+      <Demo
+        title="A header and chips"
+        description="`PopoverHeader` puts the title on the left and what acts on the whole panel, a ghost Clear button, on the right. The panel is `w-72` and scrolls when the screen is too short for it; give `PopoverContent` another width with `className`. Name it with an `aria-label`, or with an `aria-labelledby` that points at its title. What the pick does, and whether the panel closes after it, belongs to the page (`open` and `onOpenChange`)."
+        className={ROW}
+        code={`<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">Players</Button>
+  </PopoverTrigger>
+  <PopoverContent aria-label="Number of players">
+    <PopoverHeader>
+      <PopoverTitle>Number of players</PopoverTitle>
+      <Button variant="ghost" size="sm">Clear</Button>
+    </PopoverHeader>
+    <ToggleGroup type="single" aria-label="Number of players">…</ToggleGroup>
+  </PopoverContent>
+</Popover>`}
+      >
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline">Players</Button>
+          </PopoverTrigger>
+          <PopoverContent aria-label="Number of players">
+            <PopoverHeader>
+              <PopoverTitle>Number of players</PopoverTitle>
+              <Button variant="ghost" size="sm">
+                Clear
+              </Button>
+            </PopoverHeader>
+            <ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
+              {["1", "2", "3", "4", "5", "6", "7", "8+"].map((count) => (
+                <ToggleGroupItem key={count} value={count}>
+                  {count}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </PopoverContent>
+        </Popover>
       </Demo>
     </Section>
   )

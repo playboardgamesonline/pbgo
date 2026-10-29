@@ -1,34 +1,31 @@
-import { HugeiconsIcon } from "@hugeicons/react"
-import { DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
-
 import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
-import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
-import { GameList } from "@/components/game-list"
+import { Tabletop } from "@pbgo/ui/platform/tabletop"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
+import { HomeBody } from "@/components/home-body"
+import { EmptySection, PopularGames } from "@/components/home-sections"
 import { SiteFooter } from "@/components/site-footer"
-import { SiteHeader } from "@/components/site-header"
 import { catalogCardProps } from "@/lib/game-card-props"
+import { COMING_SOON } from "@/lib/coming-soon"
 
 // Plain <a> to the games (GameCard): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
 // A card opens the game's page on the hub, `/game/<slug>`.
 
-const STEPS = [
-  { icon: DiceIcon, title: "Pick a game", text: "Choose a board or card game and open a table in one click." },
-  { icon: Link01Icon, title: "Share the link", text: "Send the table link or code to your friends so they can join you." },
-  { icon: UserGroupIcon, title: "Play together", text: "Everyone plays from their own browser, rules and scoring handled for you." },
-]
-
+/**
+ * The home: the title with the search bar under it, then the sections of the platform, each with a button to the page of its tab
+ * (popular games, tables and tournaments in progress, what's new), then the footer. Once the visitor starts a search the sections give way
+ * to its results (`HomeBody`); the list of every game is `/games`.
+ */
 export default async function Home() {
   // The live games of the registry, then the games to come, already in their order (docs/catalog.md). Without Notion (no key, or
-  // Notion down) the catalog is the live games alone, each from the registry, and the list is what it was before it.
+  // Notion down) the catalog is the live games alone, each from the registry.
   const { entries } = await getCatalog()
-  // One list for every game, each card a logo over a background on a grey frame. Every card is the game's Notion row, a live game's
-  // included (its logo, or icon, and its background come from the catalog's picture route; a picture the row does not have leaves the
-  // frame plain): the hub reads no game's Sanity project, only entering a game does. The registry decides the card's variant alone.
-  // Each game goes to the browser with what the search reads of it (`indexEntry`) beside its card: the list is filtered there
-  // (`GameSearch`, which the pill of the hero and the list read), in the order of the catalog, and this page stays static.
+  // Each card is the game's Notion row, a live game's included (its logo, or icon, and its background come from the catalog's picture
+  // route; a picture the row does not have leaves the frame plain): the hub reads no game's Sanity project, only entering a game does.
+  // The registry decides the card's variant alone. Each game goes to the browser with what the search reads of it (`indexEntry`)
+  // beside its card: a search is answered there (`GameSearch`, which the bar of the hero and the results read), in the order of the
+  // catalog, and this page stays static.
   const games = entries.map((entry) => ({ ...indexEntry(entry), props: catalogCardProps(entry) }))
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner). It starts at the top of the window: the
@@ -36,41 +33,43 @@ export default async function Home() {
   return (
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-        <SiteHeader current="games" />
-
         <main className="flex-1">
-          {/* The hero: the title and the search pill under it, on a backdrop that is lighter at the top and fades into the black the games sit on */}
-          <section className="bg-linear-to-b from-secondary via-card to-background pt-navbar">
-            <div className="mx-auto flex w-full max-w-page flex-col items-center gap-10 px-gutter pt-section pb-12 text-center">
-              <h1 className="font-heading text-4xl sm:text-6xl lg:text-8xl">
-                <span className="block">Play board games</span> <span className="block">with friends & rivals</span>
+          {/* The hero: the title in capitals, on three lines of the same size, all in Geist Black (`display-title`), narrowing as they go down, and the
+              search bar 32px under it (the field with the category, then the filters, bare, in a row; glass),
+              on a backdrop that is lighter at the top and fades into the black the sections sit on, with a plain table under a lamp laid over it (`Tabletop`: the diamonds of
+              Courtisans' table in perspective, the glow of the lamp and a fine grain; neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
+          <section className="relative bg-linear-to-b from-card to-background pt-navbar">
+            <Tabletop />
+            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-14 pb-12 text-center">
+              <h1 className="display-title">
+                <span className="block text-display">Board games</span> <span className="block text-display">w/ friends</span>{" "}
+                <span className="block text-display">& rivals</span>
               </h1>
-              <div className="w-full max-w-3xl">
+              {/* 32px under the title, which it covers none of */}
+              <div className="mt-8 w-full max-w-3xl">
                 <HeroSearch />
               </div>
             </div>
           </section>
 
-          <section id="games" aria-label="Games" className="mx-auto w-full max-w-page scroll-mt-navbar px-gutter pt-10 pb-section">
-            <GameList />
-          </section>
-
-          <section className="mx-auto w-full max-w-page px-gutter pb-section">
-            <h2 className="mb-6 font-heading text-2xl">How it works</h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              {STEPS.map((step) => (
-                <Card key={step.title} size="sm">
-                  <CardHeader>
-                    <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted">
-                      <HugeiconsIcon icon={step.icon} strokeWidth={2} className="size-5" />
-                    </div>
-                    <CardTitle>{step.title}</CardTitle>
-                    <CardDescription>{step.text}</CardDescription>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          </section>
+          <HomeBody>
+            <PopularGames games={games} />
+            <EmptySection
+              id="tables-in-progress"
+              label="Tables in progress"
+              href="/tables"
+              action="See all tables"
+              {...COMING_SOON.tables}
+            />
+            <EmptySection
+              id="tournaments-in-progress"
+              label="Tournaments in progress"
+              href="/tournaments"
+              action="See all tournaments"
+              {...COMING_SOON.tournaments}
+            />
+            <EmptySection id="whats-new" label="What's new" href="/whats-new" action="See what's new" {...COMING_SOON.whatsNew} />
+          </HomeBody>
         </main>
 
         <SiteFooter />

@@ -11,7 +11,6 @@ import { Button } from "@pbgo/ui/platform/button"
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
 import { Item, ItemActions, ItemContent, ItemTitle } from "@pbgo/ui/platform/item"
 import { SiteFooter } from "@/components/site-footer"
-import { SiteHeader } from "@/components/site-header"
 import { getGamePage } from "@/lib/game-page"
 import { SITE_NAME, SITE_URL } from "@/site"
 
@@ -39,10 +38,9 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
       {game.seo.indexable && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(gameJsonLd(game.seo, SITE_URL)) }} />
       )}
-      <SiteHeader current="games" />
 
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
-        <Link href="/#games" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline">
+        <Link href="/games" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline">
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4" />
           All games
         </Link>

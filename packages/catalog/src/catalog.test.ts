@@ -51,6 +51,35 @@ describe("buildCatalog", () => {
     expect(entries[0]?.game).toEqual(registryRow(registry[0]!))
   })
 
+  it("lists the other games of the registry too, by name, when asked, after the others and in registry order", () => {
+    const registry = [
+      registryGame("hanabi", { name: "Hanabi", players: { min: 2, max: 5 } }),
+      registryGame("courtisans", { name: "Courtisans", live: true }),
+      registryGame("template", { live: true }),
+      registryGame("skyjo", { name: "Skyjo" }),
+      registryGame("template-two"),
+    ]
+    const entries = buildCatalog(registry, [notionGame("skyjo"), notionGame("bang")], { registryGames: true })
+    expect(entries.map((entry) => [entry.slug, entry.live])).toEqual([
+      ["courtisans", true],
+      ["bang", false],
+      ["skyjo", false],
+      ["hanabi", false],
+      ["template-two", false],
+    ])
+    // A game with a row keeps its row, one without gets what the registry knows of it, and none of them can be played
+    expect(entries.find((entry) => entry.slug === "skyjo")?.game).toEqual(notionGame("skyjo"))
+    expect(entries.find((entry) => entry.slug === "hanabi")?.game).toEqual(registryRow(registry[0]!))
+    expect(entries.filter((entry) => entry.slug !== "courtisans").every((entry) => !entry.live)).toBe(true)
+  })
+
+  it("never lists those games unless it is asked to", () => {
+    const registry = [registryGame("courtisans", { live: true }), registryGame("hanabi"), registryGame("skyjo")]
+    expect(slugs(buildCatalog(registry, []))).toEqual(["courtisans"])
+    expect(slugs(buildCatalog(registry, [], { registryGames: false }))).toEqual(["courtisans"])
+    expect(slugs(buildCatalog(registry, [notionGame("bang")]))).toEqual(["courtisans", "bang"])
+  })
+
   it("gives a live game its Notion row, and Notion's name with it", () => {
     const row = notionGame("courtisans", { name: "Courtisans (Notion)", descriptions: { en: "A game of intrigue." }, art: { logo: true, icon: false, background: true } })
     const entries = buildCatalog([registryGame("courtisans", { name: "Courtisans", live: true, indexable: true })], [row])

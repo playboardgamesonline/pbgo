@@ -6,7 +6,7 @@ import { useMeasured } from "./live"
 const PROPERTIES = ["font-size", "line-height", "letter-spacing", "font-weight"] as const
 
 /** `22.4px` over `16px` → `1.4`; anything that is not a length (`normal`) is shown as the browser says it. */
-function ratio(value: string, base: string): string {
+export function ratio(value: string, base: string): string {
   const a = parseFloat(value)
   const b = parseFloat(base)
   return Number.isNaN(a) || Number.isNaN(b) || b === 0 ? value : String(Math.round((a / b) * 1000) / 1000)
@@ -29,10 +29,12 @@ const TEXT: readonly Row[] = [
 const HEADINGS: readonly Row[] = [
   { className: "font-heading text-xl", use: "Small headings" },
   { className: "font-heading text-2xl", use: "Hub section headings" },
-  { className: "font-heading text-3xl", use: "Page title of a text page, section title" },
-  { className: "font-heading text-4xl", use: "Hero title below `md`" },
-  { className: "font-heading text-5xl", use: "Between the two, not used yet" },
-  { className: "font-heading text-6xl", use: "Hero title from `md`" },
+  { className: "font-heading text-3xl", use: "Page title of a text page, section title; the home's title on a phone" },
+  { className: "font-heading text-4xl", use: "A game's page title below `md`, the title of this page" },
+  { className: "font-heading text-5xl", use: "The home's title from `sm`, the title of this page from `md`" },
+  { className: "font-heading text-6xl", use: "A game's page title from `md`" },
+  { className: "font-heading text-7xl", use: "The home's title from `lg`" },
+  { className: "font-heading text-8xl", use: "The home's title from `xl`" },
 ]
 
 function TypeRow({ className, use }: Row) {

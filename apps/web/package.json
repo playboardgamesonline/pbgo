@@ -16,6 +16,10 @@
   "dependencies": {
     "@fontsource-variable/geist": "catalog:",
     "@fontsource-variable/geist-mono": "catalog:",
+    "@fontsource/birthstone-bounce": "catalog:",
+    "@fontsource/jersey-15": "catalog:",
+    "@fontsource/unifrakturmaguntia": "catalog:",
+    "@fontsource/unkempt": "catalog:",
     "@hugeicons/core-free-icons": "catalog:",
     "@hugeicons/react": "catalog:",
     "@pbgo/analytics": "workspace:*",

@@ -64,6 +64,10 @@ catalog:
   "@fontsource-variable/alegreya": ^5.3.0
   "@fontsource-variable/geist": ^5.3.0
   "@fontsource-variable/geist-mono": ^5.3.0
+  "@fontsource/birthstone-bounce": ^5.3.0
+  "@fontsource/jersey-15": ^5.3.0
+  "@fontsource/unifrakturmaguntia": ^5.3.0
+  "@fontsource/unkempt": ^5.3.0
 
   # Game table (three.js)
   three: ^0.186.1
