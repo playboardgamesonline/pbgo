@@ -104,6 +104,8 @@ function FriendAvatar({ friend }: { friend: Friend }) {
 
 function ConversationRow({ conversation, onOpen }: { conversation: Conversation; onOpen?: (friend: Friend) => void }) {
   const last = lastMessage(conversation)
+  // What is new is white, what was read is grey: the last message and how long ago it was written
+  const tone = conversation.unread > 0 ? "text-foreground" : "text-muted-foreground"
   return (
     <li>
       <button
@@ -114,10 +116,10 @@ function ConversationRow({ conversation, onOpen }: { conversation: Conversation;
         <FriendAvatar friend={conversation.friend} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm text-foreground">{conversation.friend.nickname}</span>
-          {last && <span className="block truncate text-xs text-muted-foreground">{last.text}</span>}
+          {last && <span className={cn("block truncate text-xs", tone)}>{last.text}</span>}
         </span>
         <span className="flex shrink-0 flex-col items-end gap-1">
-          {last && <span className="text-xs text-muted-foreground">{timeAgo(last.at)}</span>}
+          {last && <span className={cn("text-xs", tone)}>{timeAgo(last.at)}</span>}
           {conversation.unread > 0 && (
             <Badge className="h-4 min-w-4 justify-center px-1">
               {conversation.unread}
@@ -282,7 +284,7 @@ function SocialPanel({
     <aside
       data-slot="social-panel"
       aria-label="Social"
-      className={cn("flex flex-col gap-4", bare ? "min-h-0 flex-1 px-4 pb-4" : "h-full rounded-4xl border bg-background/90 p-4 shadow-overlay backdrop-blur-xl", className)}
+      className={cn("flex flex-col gap-4", bare ? "min-h-0 flex-1 px-4 pb-4" : "h-full rounded-4xl border glass p-4 shadow-overlay backdrop-blur-xl", className)}
       {...props}
     >
       {header && <div className="min-w-0">{header}</div>}

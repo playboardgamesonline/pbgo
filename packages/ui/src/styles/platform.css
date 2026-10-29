@@ -120,6 +120,15 @@
 }
 
 /*
+ * A container that floats over the page (an island of the navbar, the dock, a panel, a bar, a menu, a chat): the grey of a card, nearly opaque (94%), so that the page shows through only as a hint, and
+ * over a blur where the component asks for one. What is cut out of a picture inside it has to be that grey and not the page's, which `--cutout` says.
+ */
+@utility glass {
+  background-color: color-mix(in oklab, var(--card) 94%, transparent);
+  --cutout: var(--card);
+}
+
+/*
  * The title of the home (`display-title`): the whole of it in Geist Black, in capitals, tight (a line-height of 0.9 and the tracking of the headings),
  * in the full colour of the text at the top and fading to 60% at the bottom: a mask over the whole title, from opaque to 60%, so that what is
  * behind it shows through a little more towards the foot. 900 is the one weight the platform sets on its own for text (Geist's variable font has it,
@@ -290,9 +299,10 @@
     /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
-    --card: var(--color-neutral-900);
+    /* The grey of every container: a card, a menu, a dialog, and the glass of the navbar, the dock, the bars (`glass`). Half way between neutral 900 and 800, a dark grey and not the page's black */
+    --card: color-mix(in oklab, var(--color-neutral-900) 50%, var(--color-neutral-800));
     --card-foreground: var(--color-neutral-50);
-    --popover: var(--color-neutral-900);
+    --popover: var(--card);
     --popover-foreground: var(--color-neutral-50);
     --primary: var(--color-neutral-50);
     --primary-foreground: var(--color-neutral-950);
@@ -310,6 +320,8 @@
     /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Facebook's blue and Discord's blurple. Google's and Apple's are `foreground` and `background`; the marks are in `brands.tsx` */
     --brand-facebook: #1877f2;
     --brand-discord: #5865f2;
+    /* What is cut out of a picture, the ring round a status dot, the outline of tags that overlap: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
+    --cutout: var(--background);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: var(--color-neutral-400);

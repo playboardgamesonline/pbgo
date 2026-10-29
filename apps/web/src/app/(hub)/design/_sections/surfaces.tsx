@@ -289,11 +289,12 @@ export function Avatars() {
     >
       <Demo
         title="Sizes, badge and group"
-        description="`AvatarBadge` marks a state such as online or host, at the bottom right. `AvatarCount` puts what waits for the person (messages not read, requests to answer) on the top right corner, outlined in the colour of the page, and draws nothing for 0. `AvatarGroup` overlaps its avatars, so a group shows one initial each, and ends with `AvatarGroupCount`."
+        description="`xl` (64px) is the picture of a profile, at the top of the menu of the account. `AvatarBadge` marks a state such as online or host, at the bottom right. `AvatarCount` puts what waits for the person (messages not read, requests to answer) on the top right corner, outlined in the colour of the page, and draws nothing for 0. `AvatarGroup` overlaps its avatars, so a group shows one initial each, and ends with `AvatarGroupCount`."
         className={ROW}
         code={`<Avatar size="sm"><AvatarFallback>AL</AvatarFallback></Avatar>
 <Avatar><AvatarFallback>SM</AvatarFallback></Avatar>
 <Avatar size="lg"><AvatarFallback>RO</AvatarFallback></Avatar>
+<Avatar size="xl"><AvatarFallback>XL</AvatarFallback></Avatar>
 
 <Avatar>
   <AvatarFallback>JO</AvatarFallback>
@@ -321,6 +322,9 @@ export function Avatars() {
         </Avatar>
         <Avatar size="lg">
           <AvatarFallback>RO</AvatarFallback>
+        </Avatar>
+        <Avatar size="xl">
+          <AvatarFallback>XL</AvatarFallback>
         </Avatar>
         <Avatar>
           <AvatarFallback>JO</AvatarFallback>
@@ -771,7 +775,7 @@ export function SocialPanels() {
     <Section
       id="social-panel"
       module="social-panel"
-      intro="The social panel of a signed-in visitor, the way the Riot Client has it: a column on the right of the page that is the same container as the bar of the games and the account's picture: the dock (`SocialDock`) is a recap bar while it is closed and a real side panel while it is open, one glass surface that grows and shrinks between the two, the bar staying at its top and the panel fading in under it. A button of the bar opens and closes it (`SocialPanelToggle`: `PanelRightOpenIcon` while it is closed and `PanelRightCloseIcon` while it is open, the two crossfading). What waits for the visitor (messages not read, requests to answer) is the count on the corner of their picture (`AvatarCount`), not on that button. Under the bar are three tabs, each an icon, the tile behind the current one gliding to the one that is pressed and the pane of the tab coming in from the side the tab is on while the other leaves: the friends game by game, with what they are doing (the list of the friends' panel, with its search), the conversations with them (the picture and the dot of the friend, their name, the last message, how long ago and how many are not read), and the way to add a friend, with the requests that wait for an answer (accept or decline one that came in, cancel one that went out). A tab that has something for the visitor carries a count, and so does the visitor's picture on the navbar. It is drawn from what it is given and decides nothing: a button whose handler is missing is not drawn, and the field that adds a friend is off. A press on a friend or on a conversation opens the chat with them (`ChatWindow`), a card that floats at the bottom of the page next to the panel. The dock has its place in the navbar, as wide as the bar and 3.5rem high, and grows out of it, over the page (on the hub, `SiteSocial` of `apps/web`); the chat window is placed by the page and slides in from the bottom (`PanelPresence`)."
+      intro="The social panel of a signed-in visitor, the way the Riot Client has it: a column on the right of the page that is the same container as the bar of the games and the account's picture: the dock (`SocialDock`) is a recap bar while it is closed and a real side panel while it is open, one glass surface that grows and shrinks between the two, the bar staying at its top and the panel fading in under it. A button of the bar opens and closes it (`SocialPanelToggle`: `PanelRightOpenIcon` while it is closed and `PanelRightCloseIcon` while it is open, the two crossfading). What waits for the visitor (messages not read, requests to answer) is the count on the corner of their picture (`AvatarCount`), not on that button. Under the bar are three tabs, each an icon, the tile behind the current one gliding to the one that is pressed and the pane of the tab coming in from the side the tab is on while the other leaves: the friends game by game, with what they are doing (the list of the friends' panel, with its search), the conversations with them (the picture and the dot of the friend, their name, the last message, how long ago and how many are not read), and the way to add a friend, with the requests that wait for an answer (accept or decline one that came in, cancel one that went out). In the conversations, what is new is white (the last message and how long ago) and what was read is grey. A tab that has something for the visitor carries a count, and so does the visitor's picture on the navbar. It is drawn from what it is given and decides nothing: a button whose handler is missing is not drawn, and the field that adds a friend is off. A press on a friend or on a conversation opens the chat with them (`ChatWindow`), a card that floats at the bottom of the page next to the panel. The dock has its place in the navbar, as wide as the bar and 3.5rem high, and grows out of it, over the page (on the hub, `SiteSocial` of `apps/web`); the chat window is placed by the page and slides in from the bottom (`PanelPresence`)."
     >
       <Demo
         title="The three tabs, with friends and with none"
@@ -815,12 +819,15 @@ export function SocialPanels() {
       </Demo>
       <Demo
         title="The chat window"
-        description="The friend at the top (their picture, the dot of their presence, their name and what they are doing) and the button that closes it, the messages as bubbles (the visitor's on the right, filled; the friend's on the left, quiet) with the last one in view, and the field, which takes the focus when the chat opens and sends with Enter or its button. Try it: what is written is added here and goes nowhere."
+        description="The friend at the top (their picture, the dot of their presence, their name and what they are doing), the `···` button that opens the menu of what can be done with them (join them or invite them, remove them, block them: an entry whose handler is missing is not drawn, and without any the button is not) and the button that closes it, the messages as bubbles (the visitor's on the right, filled; the friend's on the left, quiet) with the last one in view, and the field, which takes the focus when the chat opens and sends with Enter or its button. Try it: what is written is added here and goes nowhere."
         code={`<ChatWindow
   friend={friend}
   messages={messages}
   onSend={(text) => …}
   onClose={…}
+  onJoin={…}
+  onRemove={…}
+  onBlock={…}
   className="fixed bottom-6 right-[25rem] h-96 w-80"
 />`}
       >

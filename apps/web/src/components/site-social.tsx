@@ -167,6 +167,10 @@ export function SiteSocial({ account }: { account: Account }) {
             messages={conversations.find((conversation) => conversation.friend.id === chatWith.id)?.messages ?? []}
             onSend={(text) => send(chatWith, text)}
             onClose={() => setChatOpen(false)}
+            onJoin={preview ? nothing : undefined}
+            onInvite={preview ? nothing : undefined}
+            onRemove={preview ? nothing : undefined}
+            onBlock={preview ? nothing : undefined}
           />
         )}
       </PanelPresence>

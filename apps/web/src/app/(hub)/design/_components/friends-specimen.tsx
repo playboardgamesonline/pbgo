@@ -218,6 +218,9 @@ export function ChatSpecimen() {
       messages={messages}
       onSend={(text) => setMessages((all) => [...all, { id: `sent-${all.length}`, from: "me", text, at: new Date().toISOString() }])}
       onClose={() => {}}
+      onJoin={() => {}}
+      onRemove={() => {}}
+      onBlock={() => {}}
     />
   )
 }

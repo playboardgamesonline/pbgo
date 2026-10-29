@@ -336,7 +336,7 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar stands under the title, in the hero, 32px below it (`mt-8`) and covering none of it, and it is glass (`bg-background/60`, `backdrop-blur-xl`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar stands under the title, in the hero, 32px below it (`mt-8`) and covering none of it, and it is glass (`glass`, `backdrop-blur-xl`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">

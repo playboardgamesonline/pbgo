@@ -76,7 +76,7 @@ function SocialDock({ open, bar, children, height, className }: SocialDockProps)
             if (!open && place.current) place.current.style.width = ""
           }}
           className={cn(
-            "pointer-events-auto relative flex shrink-0 flex-col self-start overflow-hidden rounded-2xl border bg-background/80 shadow-surface backdrop-blur-md transition-[border-radius] duration-slow ease-standard data-[state=open]:rounded-4xl",
+            "pointer-events-auto relative flex shrink-0 flex-col self-start overflow-hidden rounded-2xl border glass shadow-surface backdrop-blur-md transition-[border-radius] duration-slow ease-standard data-[state=open]:rounded-4xl",
             className
           )}
           style={{ maxWidth: "calc(100vw - 3rem)" }}

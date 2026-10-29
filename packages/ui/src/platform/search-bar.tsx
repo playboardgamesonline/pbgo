@@ -21,7 +21,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border bg-background/60 p-2 pl-3 shadow-float backdrop-blur-xl",
+          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border glass p-2 pl-3 shadow-float backdrop-blur-xl",
           className
         )}
         {...props}
@@ -160,7 +160,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
                 title={pick.label}
                 className={cn(
                   "flex h-8 min-w-0 items-center gap-1.5 rounded-lg bg-muted px-2 transition-colors duration-fast group-hover/segment:bg-secondary-hover group-aria-expanded/segment:bg-secondary-hover",
-                  index > 0 && "-ml-1.5 ring-2 ring-background",
+                  index > 0 && "-ml-1.5 ring-2 ring-(color:--cutout)",
                   index === 2 && "hidden @md:flex"
                 )}
               >

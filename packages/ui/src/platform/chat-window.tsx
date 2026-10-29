@@ -1,20 +1,23 @@
 "use client"
 
 import * as React from "react"
-import { Cancel01Icon, SentIcon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, MoreHorizontalIcon, SentIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { activityLine, initials, type Friend } from "../friends"
 import type { Message } from "../social"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { Button } from "./button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./dropdown-menu"
 import { PresenceDot } from "./friends-panel"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 
 // The conversation with a friend, as the Riot Client opens it from its social panel: a card that floats at the bottom of the page, next to the panel, with the friend
-// at the top (their picture, the dot of their presence, their name, and what they are doing) and the button that closes it, the messages as bubbles (the visitor's
+// at the top (their picture, the dot of their presence, their name, and what they are doing), a menu of what can be done with them (`···`: join them or invite them, remove them,
+// block them) and the button that closes it, the messages as bubbles (the visitor's
 // on the right, filled; the friend's on the left, quiet) that follow the last one, and the field to write in, which sends with Enter or its button. It is drawn from the
-// messages it is given and decides nothing: where they come from, and where a message goes, are the page's. The page places it (`fixed`) and gives it a height.
+// messages it is given and decides nothing: where they come from, where a message goes and what an entry of the menu does are the page's (an entry whose handler is missing is not
+// drawn, and the menu is not either without any). The page places it (`fixed`) and gives it a height.
 
 /** What the line under the name says: what the friend is doing, or the word of their presence. */
 function statusLine(friend: Friend): string {
@@ -26,6 +29,10 @@ function ChatWindow({
   messages,
   onSend,
   onClose,
+  onJoin,
+  onInvite,
+  onRemove,
+  onBlock,
   className,
   ...props
 }: Omit<React.ComponentProps<"section">, "children"> & {
@@ -36,8 +43,16 @@ function ChatWindow({
   onSend: (text: string) => void
   /** What the button that closes the chat does. */
   onClose: () => void
+  /** What the entries of the menu do: join the friend (when they play or wait at a table that has room), invite them (when they are online), remove them, block them. */
+  onJoin?: (friend: Friend) => void
+  onInvite?: (friend: Friend) => void
+  onRemove?: (friend: Friend) => void
+  onBlock?: (friend: Friend) => void
 }) {
   const [text, setText] = React.useState("")
+  // The same rule as the row of the friend in the list: a friend who plays can be joined, so can one who waits at a table that has room; one who is online anywhere else can be invited
+  const joinable = friend.status === "playing" || (friend.status === "online" && friend.table !== undefined && friend.table.size < friend.table.max)
+  const play = joinable ? onJoin : friend.status === "online" ? onInvite : undefined
   const end = React.useRef<HTMLDivElement>(null)
 
   // The last message stays in view
@@ -49,7 +64,7 @@ function ChatWindow({
     <section
       data-slot="chat-window"
       aria-label={`Chat with ${friend.nickname}`}
-      className={cn("flex flex-col overflow-hidden rounded-4xl border bg-background/95 shadow-overlay backdrop-blur-xl", className)}
+      className={cn("flex flex-col overflow-hidden rounded-4xl border glass shadow-overlay backdrop-blur-xl", className)}
       {...props}
     >
       <header className="flex items-center gap-3 border-b px-4 py-3">
@@ -65,6 +80,25 @@ function ChatWindow({
           </p>
           <p className="truncate text-xs text-muted-foreground">{statusLine(friend)}</p>
         </div>
+        {(play || onRemove || onBlock) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={`More about ${friend.nickname}`} title="More">
+                <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {play && <DropdownMenuItem onSelect={() => play(friend)}>{joinable ? "Join" : "Invite"}</DropdownMenuItem>}
+              {play && (onRemove || onBlock) && <DropdownMenuSeparator />}
+              {onRemove && <DropdownMenuItem onSelect={() => onRemove(friend)}>Remove friend</DropdownMenuItem>}
+              {onBlock && (
+                <DropdownMenuItem variant="destructive" onSelect={() => onBlock(friend)}>
+                  Block
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <Button type="button" variant="ghost" size="icon-sm" aria-label="Close the chat" title="Close the chat" onClick={onClose}>
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
         </Button>

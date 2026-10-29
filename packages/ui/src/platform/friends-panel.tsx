@@ -32,7 +32,7 @@ const MOON = "M12.542 1.013A11 11 0 1 1 1.013 12.542 8.2 8.2 0 1 0 12.542 1.013Z
 /**
  * The dot on the corner of a picture, five shapes so that a colour is never alone: a green disc for a friend who is online (active), a blue disc with a play knocked
  * out of it for one in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and
- * a thick grey ring for one who is away. Its size follows the picture's and is small (8px on a small picture, 10px on a medium one, 12px on a large one): it stands in the bottom
+ * a thick grey ring for one who is away. Its size follows the picture's and is small (8px on a small picture, 10px on a medium one, 12px on a large one, 16px on an extra large one): it stands in the bottom
  * right corner of the picture, so a smaller dot recedes towards that corner, and a ring of the colour of the page, 3px (2px on a small picture), cuts it out of the picture. The outline
  * of the offline ring is a quarter of the dot (2px of 8, 3px of 10 and of 12), like Discord's invisible, and not a hairline.
  */
@@ -41,12 +41,12 @@ function PresenceDot({ status }: { status: FriendStatus }) {
     <AvatarBadge
       data-status={status}
       className={cn(
-        "p-0 ring-3 group-data-[size=sm]/avatar:ring-2",
+        "p-0 ring-3 group-data-[size=sm]/avatar:ring-2 group-data-[size=xl]/avatar:ring-4",
         status === "online" && "bg-presence-online",
-        status === "playing" && "bg-background text-presence-playing",
-        status === "inactive" && "bg-background text-presence-inactive",
-        status === "dnd" && "bg-background text-presence-dnd",
-        status === "offline" && "border-3 border-muted-foreground bg-background group-data-[size=sm]/avatar:border-2",
+        status === "playing" && "bg-(color:--cutout) text-presence-playing",
+        status === "inactive" && "bg-(color:--cutout) text-presence-inactive",
+        status === "dnd" && "bg-(color:--cutout) text-presence-dnd",
+        status === "offline" && "border-3 border-muted-foreground bg-(color:--cutout) group-data-[size=sm]/avatar:border-2 group-data-[size=xl]/avatar:border-4",
       )}
     >
       {status === "playing" && (
@@ -260,7 +260,7 @@ function FriendsPanel({
     <aside
       data-slot="friends-panel"
       aria-label="Friends"
-      className={cn("flex h-full min-h-0 flex-col gap-4 rounded-4xl border bg-card/60 p-4 shadow-surface backdrop-blur-xl", className)}
+      className={cn("flex h-full min-h-0 flex-col gap-4 rounded-4xl border glass p-4 shadow-surface backdrop-blur-xl", className)}
       {...props}
     >
       <header className="flex items-center gap-2 px-1">
