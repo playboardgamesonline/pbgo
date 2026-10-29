@@ -153,6 +153,7 @@
  * The finest print of a page (`fine-print`), the footer's line on what the site is not: the smallest text, in a regular weight (400, lighter than the
  * platform's 600) and in a colour so dark (`foreground` at 20%) that it is found by whoever looks for it and read by nobody in passing. It is the one
  * text of the platform with a weight of its own besides the title and the display faces.
+    padding-inline: 0.1em;
  */
 @utility fine-print {
   font-size: var(--text-xs);
