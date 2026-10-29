@@ -118,7 +118,7 @@ export function Radius() {
 }
 
 const LAYOUT_ROWS = [
-  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page, kept thin so the content takes the room. Widens at the `sm` breakpoint." },
+  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page: 1rem on a phone, 1.5rem from the `sm` breakpoint and 4rem (64px) from `lg`, so a desktop keeps a small margin on each side." },
   { variable: "--section", utility: "py-section", use: "Vertical space between the sections of a page (`pb-section` between two). Widens at the `sm` breakpoint." },
   { variable: "--container-page", utility: "max-w-page", use: "Width of a page that keeps a limit on a wide screen: a game's page, the pages of the tabs, the centred header of a list. Nearly the whole window, up to this value. The hub's lists of games (the home's sections, `/games`) have none: they take the whole window." },
   { variable: "--container-reading", utility: "max-w-reading", use: "Width of running text, so a line stays readable." },
@@ -134,7 +134,7 @@ export function Layout() {
 
       <Demo
         title="Gutter"
-        description="The page content is inset by `px-gutter` on both sides. Resize the window past the `sm` breakpoint and it widens."
+        description="The page content is inset by `px-gutter` on both sides. Resize the window past the `sm` breakpoint, then past `lg`, and it widens."
         code={`<section className="mx-auto w-full max-w-page px-gutter py-section">…</section>`}
         className="p-0"
       >

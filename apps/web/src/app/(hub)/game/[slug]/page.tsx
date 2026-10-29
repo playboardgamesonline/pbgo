@@ -165,7 +165,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
             <h2 id="related-games" className="mb-6 font-heading text-2xl">
               Related games
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {game.related.map(({ slug, card }) => (
                 <GameCard key={slug} {...card} />
               ))}

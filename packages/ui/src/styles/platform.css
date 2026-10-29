@@ -258,7 +258,7 @@
     --default-transition-duration: var(--transition-duration-base);
     --default-transition-timing-function: var(--ease-standard);
 
-    /* Layout rhythm, wider from the `sm` breakpoint: thin side margins, the content takes the room */
+    /* Layout rhythm, wider from the `sm` breakpoint (the side margin again from `lg`): thin side margins on a phone, 4rem (64px) on a desktop */
     --gutter: 1rem;
     --section: 4rem;
 
@@ -276,6 +276,12 @@
     .platform {
       --gutter: 1.5rem;
       --section: 6rem;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .platform {
+      --gutter: 4rem;
     }
   }
 

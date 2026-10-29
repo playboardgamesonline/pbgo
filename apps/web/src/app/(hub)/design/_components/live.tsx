@@ -9,7 +9,7 @@ import { useEffect, useState, useSyncExternalStore } from "react"
 
 const SEPARATOR = "\u001f"
 
-// Only the viewport moves a token while the page is open (`--gutter` and `--section` widen at the `sm` breakpoint)
+// Only the viewport moves a token while the page is open (`--gutter` widens at the `sm` breakpoint and again at `lg`, `--section` at `sm`)
 function subscribe(onChange: () => void) {
   window.addEventListener("resize", onChange)
   return () => window.removeEventListener("resize", onChange)
