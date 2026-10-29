@@ -14,6 +14,7 @@ import {
   Avatars,
   Cards,
   Empties,
+  FriendsPanels,
   GameCards,
   Items,
   Loading,
@@ -119,6 +120,7 @@ export default function DesignPage() {
             <Cards />
             <GameCards />
             <Sections />
+            <FriendsPanels />
             <BoardPatterns />
             <Tabletops />
             <Avatars />

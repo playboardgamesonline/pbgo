@@ -41,6 +41,7 @@ import {
   TableRow,
 } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
+import { FriendsSpecimen } from "../_components/friends-specimen"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -677,6 +678,32 @@ export function Tables() {
             </TableRow>
           </TableFooter>
         </Table>
+      </Demo>
+    </Section>
+  )
+}
+
+export function FriendsPanels() {
+  return (
+    <Section
+      id="friends-panel"
+      module="friends-panel"
+      intro="The friends of a signed-in visitor, as a panel for the side of a page: a header with the count of those online and the button to add a friend, a search field, the list in three sections (in a game, online, offline; an empty one is not drawn) and a footer button to invite a friend who has no account yet. It is drawn from the friends it is given (`Friend`: nickname, tag, picture, status and what they are doing) and decides nothing about them: where they come from (PLT-23) and what a button does are the page's, and a button whose handler is missing is not drawn. Monochrome like the platform, so a status is a shape and a word, never a colour alone: the dot on the corner of the picture pulses for a friend in a game, is solid for one who is online and hollow for one who is away, and the section says it too."
+    >
+      <Demo
+        title="With friends, and with none"
+        description="The panel is `h-full` and scrolls its list, so a page gives it a height and a width: here a box of `h-[34rem]`. On a page of an account it sits in a `sticky` column from `lg` up and in a `Sheet` under that. The buttons of a friend (Join for one in a game, Invite for one who is online) show when the row is hovered or focused, and always on a touch screen. Type in the search field to filter the list."
+        className="grid gap-6 sm:grid-cols-2"
+        code={`<FriendsPanel
+  friends={friends}
+  onAddFriend={…}
+  onInvite={(friend) => …}
+  onJoin={(friend) => …}
+  onShareLink={copyLink}
+/>`}
+      >
+        <FriendsSpecimen />
+        <FriendsSpecimen empty />
       </Demo>
     </Section>
   )

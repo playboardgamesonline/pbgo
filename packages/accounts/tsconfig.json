@@ -1,0 +1,7 @@
+{
+  "extends": "@pbgo/tsconfig/react-library.json",
+  "compilerOptions": {
+    "types": ["node", "next"]
+  },
+  "include": ["src"]
+}
