@@ -13,7 +13,7 @@ import { cn } from "../utils"
 // The bar is the header of the panel, the way the Riot Client has it, and it changes with the dock instead of staying what it was. Closed, it is the games the friends are in, the
 // visitor's picture and the button of the panel. Open, the games fold away (their width, then their opacity), the picture glides to the start of the bar as they go, what the profile says
 // unfolds beside it (`SocialDockIdentity`: the name and the word of the status), and the button stays at the end of the bar. The header has the room of what is under it: it grows from 54px
-// to 64px, the button 16px from the end, in line with the tabs, the search and the list, and the picture 24px from the start, a little further in than they are, for the room from the corner. All of it moves with the same
+// to 80px, the picture 24px from the start, from the top and from the tabs, for the room from the corner, and the button 16px from the end, in line with the tabs, the search and the list. All of it moves with the same
 // transition as the dock, so the bar never jumps.
 //
 // The page puts a place for it in the navbar (3.5rem high, as wide as the bar) and the dock grows out of that place, over the page, to the left of it: the place is a flex row that ends at
@@ -34,10 +34,10 @@ const BAR_INNER = 54
 const BAR_INSET = 8
 
 /**
- * The bar open, the header of the panel: 64px high, the picture (32px) centred in it so 16px from the top. The button is 16px from the end, in line with the tabs, the search and the list;
- * the picture is 24px from the start, a little further in than they are, so that it has room from the rounded corner of the dock, and so does the name beside it.
+ * The bar open, the header of the panel: 80px high, the picture (32px) centred in it so 24px from the top and 24px above the tabs, as it is 24px from the start, for the room from the
+ * rounded corner of the dock, and so is the name beside it. The button is 16px from the end, in line with the tabs, the search and the list.
  */
-const HEADER_HEIGHT = 64
+const HEADER_HEIGHT = 80
 const HEADER_INSET_START = 24
 const HEADER_INSET_END = 16
 

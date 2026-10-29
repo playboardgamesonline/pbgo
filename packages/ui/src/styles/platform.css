@@ -114,8 +114,9 @@
    */
   --text-display: clamp(2rem, 5.8vw + 0.9rem, 7rem);
 
-  /* The one weight lighter than the platform's 600 that a text may have, 400: the finest print (`fine-print`) */
+  /* The one weight lighter than the platform's 600 that a text may have, 400: the finest print (`fine-print`). And the one weight heavier, 720 (`font-strong`): the title of the home (`display-title`) and the name of a person at the head of a profile (a variable font: Geist has every weight between 100 and 900) */
   --font-weight-regular: 400;
+  --font-weight-strong: 720;
 }
 
 /*
@@ -131,12 +132,12 @@
  * The title of the home (`display-title`): sentence case, in Geist at a weight of 720 (a variable font: a weight between the platform's 600 and the Black of its first title),
  * with a tracking of -6% (`--tracking-display`) and a line-height of 1.05, so that the descenders of the first line clear the ascenders of the second. It is in the full colour
  * of the text at the top and fades to 60% at the bottom: a mask over the whole title, from opaque to 60%, so that what is behind it shows through a little more towards the foot.
- * 720 is the one weight the platform sets on its own for text besides the finest print and the display faces below (everything else is 600). The face is swapped here, with the
+ * 720 (`--font-weight-strong`) is the one weight the platform sets above 600 for text, the name of a person at the head of a profile having it too (everything else is 600). The face is swapped here, with the
  * size of the theme above, which follows the widths of its lines.
  */
 @utility display-title {
   font-family: var(--font-title);
-  font-weight: 720;
+  font-weight: var(--font-weight-strong);
   letter-spacing: var(--tracking-display);
   line-height: 1.05;
   -webkit-mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));

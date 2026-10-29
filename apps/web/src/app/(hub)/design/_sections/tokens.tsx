@@ -48,6 +48,7 @@ const FONT_ROWS = [
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
   { variable: "--text-display", utility: "text-display", use: "The two lines of the home's title, as big as the window lets them be (5.8vw and 0.9rem, up to 7rem): the longer line takes 95% of a 390 px window, less its gutters, and 58% of a 1440 px one. It sets no line-height: `display-title` does." },
+  { variable: "--font-weight-strong", utility: "font-strong", use: "The one weight heavier than the platform's 600, 720: the title of the home (`display-title`) and the name of a person at the head of a profile. Geist is a variable font, so any weight between 100 and 900 exists." },
   { variable: "--tracking-display", use: "Letter-spacing of the home's title, -6% (`display-title`), tighter than the headings' `--tracking-tight`." },
 ] as const
 
@@ -66,7 +67,7 @@ export function Typography() {
 
       <Block
         title="One weight"
-        description="Every `font-*` weight utility resolves to 600, so a platform component never writes one. `font-medium` on a label changes nothing and is a sign the author reached for a value instead of a token."
+        description="Every `font-*` weight utility resolves to 600, so a platform component never writes one. `font-medium` on a label changes nothing and is a sign the author reached for a value instead of a token. The two weights that are not 600 have a name of their own: `font-regular` (400, the finest print) and `font-strong` (720, the title of the home and a person's name at the head of a profile)."
       >
         <WeightProof />
       </Block>

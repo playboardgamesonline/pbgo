@@ -121,7 +121,7 @@ export function SiteSocial({ account }: { account: Account }) {
                 <PresenceDot status="online" />
               </Avatar>
               <SocialDockIdentity>
-                <span className="truncate text-lg leading-tight text-foreground">{account.nickname}</span>
+                <span className="truncate text-lg leading-tight font-strong text-foreground">{account.nickname}</span>
                 <span className="truncate text-xs text-muted-foreground">Online</span>
               </SocialDockIdentity>
             </button>
