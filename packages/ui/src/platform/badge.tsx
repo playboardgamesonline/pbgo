@@ -4,13 +4,15 @@ import { cn } from "../utils"
 import { Slot } from "radix-ui"
 
 const badgeVariants = cva(
-  "h-5 gap-1 rounded-3xl border border-transparent px-2 py-0.5 text-xs transition-all has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:size-3! group/badge inline-flex w-fit shrink-0 items-center justify-center overflow-hidden whitespace-nowrap focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none",
+  "h-5 gap-1 rounded-sm border border-transparent px-2 py-0.5 text-xs transition-all has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:size-3! group/badge inline-flex w-fit shrink-0 items-center justify-center overflow-hidden whitespace-nowrap focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive: "bg-destructive/20 [a]:hover:bg-destructive/30 focus-visible:ring-destructive/40 text-destructive",
+        // A count of what waits for someone (messages not read, requests to answer): solid red, as Discord's, with the text in the colour of the page for contrast
+        notification: "bg-destructive text-background",
         outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         ghost: "hover:bg-muted/50 hover:text-muted-foreground",
         link: "text-primary underline-offset-4 hover:underline",

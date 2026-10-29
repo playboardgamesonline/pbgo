@@ -59,7 +59,7 @@ function GameCardVisual({ className, logo, background, loading = "lazy", ...prop
 /**
  * The hub's game tile: the game's picture (`GameCardVisual`: its logo over its background), then the name, on one line and cut with
  * an ellipsis when it does not fit, and the practical facts (players, duration), nothing else. Game art is the only colour of the
- * platform, so the card adds none: no accent.
+ * platform, so the card adds none: no accent. Its corners are a surface's (`rounded-4xl`): only the picture of a person is round.
  * It is a plain link: the package is framework-free, and the card's target is a page the visitor loads whole.
  * `variant="soon"` is the tile of a game that is not playable yet, listed with the others: the same frame and the same facts, and a
  * small "Coming soon" badge at the top right.

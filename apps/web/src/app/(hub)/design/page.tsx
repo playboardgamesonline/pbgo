@@ -4,9 +4,9 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
-import { Badges, Buttons, Checks, Comboboxes, Inputs, Meters, Selects, Sliders, TabsSection, ToggleGroups } from "./_sections/controls"
+import { Badges, Buttons, Checks, Comboboxes, Inputs, Meters, ProviderButtons, Selects, Sliders, TabsSection, ToggleGroups } from "./_sections/controls"
 import { InGameUi } from "./_sections/in-game-ui"
-import { BoardPatterns, FaceCycles, Logos, Navbars, SearchBars, Tabletops, Wordmarks } from "./_sections/navigation"
+import { BoardPatterns, FaceCycles, Logos, Navbars, SearchBars, StatsSection, TitlePieces, Wordmarks } from "./_sections/navigation"
 import { CookieBanners, Dialogs, Dropdowns, Popovers, Sheets, Toasts, Tooltips } from "./_sections/overlays"
 import { Layers, Principles } from "./_sections/principles"
 import {
@@ -14,13 +14,18 @@ import {
   Avatars,
   Cards,
   Empties,
+  FriendsPanels,
+  FriendsBars,
   GameCards,
   Items,
   Loading,
   Sections,
   Separators,
+  SocialPanels,
   Tables,
 } from "./_sections/surfaces"
+import { GlassSection } from "./_sections/glass"
+import { PlayfulMotion } from "./_sections/playful-motion"
 import { Colors, Depth, Layout, Motion, Radius, Typography, Utilities } from "./_sections/tokens"
 
 // Internal reference for the team and its agents: out of search results (noindex here, absent from the sitemap, which
@@ -91,10 +96,13 @@ export default function DesignPage() {
             <Radius />
             <Layout />
             <Depth />
+            <GlassSection />
             <Motion />
+            <PlayfulMotion />
             <Utilities />
 
             <Buttons />
+            <ProviderButtons />
             <Badges />
             <Inputs />
             <Checks />
@@ -119,8 +127,12 @@ export default function DesignPage() {
             <Cards />
             <GameCards />
             <Sections />
+            <FriendsPanels />
+            <FriendsBars />
+            <SocialPanels />
             <BoardPatterns />
-            <Tabletops />
+            <TitlePieces />
+            <StatsSection />
             <Avatars />
             <Alerts />
             <Loading />

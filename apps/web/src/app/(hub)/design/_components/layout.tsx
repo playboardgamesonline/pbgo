@@ -162,7 +162,7 @@ export function PageNav() {
           <ul className="flex flex-col">
             {items.map((item) => (
               <li key={item.id}>
-                <a href={`#${item.id}`} className="block rounded-xl px-3 py-1.5 transition-colors hover:bg-muted">
+                <a href={`#${item.id}`} className="block rounded-lg px-3 py-1.5 transition-colors hover:bg-muted">
                   {item.title}
                 </a>
               </li>

@@ -4,7 +4,7 @@ import { Button } from "@pbgo/ui/platform/button"
 import { DISPLAY_FACES } from "@pbgo/ui/faces"
 import { FaceCycle } from "@pbgo/ui/platform/face-cycle"
 import { Logo } from "@pbgo/ui/platform/logo"
-import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
+import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import {
   SearchBar,
   SearchBarClear,
@@ -12,7 +12,9 @@ import {
   SearchBarInput,
   SearchBarSubmit,
 } from "@pbgo/ui/platform/search-bar"
-import { Tabletop } from "@pbgo/ui/platform/tabletop"
+import { Perks, Stats } from "@pbgo/ui/platform/stats"
+import { Suit } from "@pbgo/ui/platform/suits"
+import { TitleCards, TitlePiece } from "@pbgo/ui/platform/title-piece"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
 import { FiltersSpecimen } from "../_components/filters-specimen"
@@ -49,26 +51,26 @@ export function Wordmarks() {
     <Section
       id="wordmark"
       module="wordmark"
-      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades from the colour of the footer's text (`--muted-foreground`) at 60%, a softer grey than the text, at the top of the letters to nothing at their foot, over their whole height, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades in a straight line from white (`foreground`) at 16% at the top of the letters to nothing at 92% of their height, a soft veil, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
     >
       <Demo
         title="In the footer"
-        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), close under the letters (`mt-8`) and with `pb-5` under it. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
+        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), a little apart from the letters (`mt-3`, and its own `p-1`) and with `pb-5` under it. Each text has 4px of padding of its own (`p-1`) and the row has 20px (`p-5`), so the texts are 24px from the edges of the window, like the navbar's, and no more. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
         code={`<footer className="w-full pb-5">
-  <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-gutter pb-12 text-sm text-muted-foreground">
-    <p>© 2026 Play Board Games Online · Built by …</p>
-    <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-5 gap-y-2">…</nav>
+  <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 p-5 text-sm text-muted-foreground">
+    <p className="p-1">© 2026 Play Board Games Online · Built by …</p>
+    <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-3">…</nav>
   </div>
   <Wordmark />
-  <p className="mt-8 px-gutter text-center fine-print">Unofficial, online adaptation of board games. …</p>
+  <p className="mx-5 mt-3 p-1 text-center fine-print">Unofficial, online adaptation of board games. …</p>
 </footer>`}
       >
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-12 text-sm text-muted-foreground">
-          <p>© 2026 Play Board Games Online · Built by oré</p>
-          <p>Privacy Policy · Cookie Policy · Terms of Use</p>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-5 text-sm text-muted-foreground">
+          <p className="p-1">© 2026 Play Board Games Online · Built by oré</p>
+          <p className="p-1">Privacy Policy · Cookie Policy · Terms of Use</p>
         </div>
         <Wordmark />
-        <p className="mt-8 text-center fine-print">
+        <p className="mt-3 p-1 text-center fine-print">
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>
@@ -81,12 +83,12 @@ export function FaceCycles() {
     <Section
       id="face-cycle"
       module="face-cycle"
-      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in Geist Black for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
+      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in Geist at a weight of 720 for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
     >
       <Demo
         title="A title with a word that turns"
         description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child."
-        className="bg-linear-to-b from-card to-background py-12 text-center"
+        className="py-12 text-center"
         code={`<h1 className="font-heading text-6xl uppercase">
   <FaceCycle before="Play" className="block">board games</FaceCycle>{" "}
   <span className="block">with friends & rivals</span>
@@ -141,8 +143,12 @@ function Start({ home = false }: { home?: boolean }) {
         <NavbarTab href="#navbar">
           Tournaments
         </NavbarTab>
+        <NavbarSeparator />
         <NavbarTab href="#navbar">
-          What&apos;s New
+          About
+        </NavbarTab>
+        <NavbarTab href="#navbar">
+          Pricing
         </NavbarTab>
       </NavbarTabs>
     </NavbarStart>
@@ -154,7 +160,7 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The bar is pinned with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls; the page leaves `pt-navbar` under it (or lets its backdrop run under it) and gives an anchor that lands below it `scroll-mt-navbar`. The hub's layout mounts the bar once and it reads the address to know what is current, so it stays mounted from one page to the next and the fill behind the current item can glide. The tabs leave the first island under `md`, where the account needs the room."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The bar is pinned with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls; the page leaves `pt-navbar` under it (or lets its backdrop run under it) and gives an anchor that lands below it `scroll-mt-navbar`. The hub's layout mounts the bar once and it reads the address to know what is current, so it stays mounted from one page to the next and the fill behind the current item can glide. The tabs leave the first island under `md`, where the account needs the room, and the hub's tabs about the site (About, Pricing) leave it under `lg`, where there is not room for all of them beside the dock of a signed-in visitor. Between two groups of tabs, a hairline (`NavbarSeparator`: `w-px`, `h-5`, in the colour of a border): the hub has one between Tournaments and About, the tabs for playing then the ones about the site."
     >
       <Demo
         title="On the home, signed out"
@@ -169,7 +175,9 @@ export function Navbars() {
       <NavbarTab href="/games">Games</NavbarTab>
       <NavbarTab href="/tables">Tables</NavbarTab>
       <NavbarTab href="/tournaments">Tournaments</NavbarTab>
-      <NavbarTab href="/whats-new">What's New</NavbarTab>
+      <NavbarSeparator />
+      <NavbarTab href="/about">About</NavbarTab>
+      <NavbarTab href="/pricing">Pricing</NavbarTab>
     </NavbarTabs>
   </NavbarStart>
   <NavbarEnd>
@@ -240,7 +248,7 @@ export function SearchBars() {
     <Section
       id="search-bar"
       module="search-bar"
-      intro="The big search bar of a page: one glass pill with the magnifier at its start (the button that sends the search), the field, a button that clears the text once there is one and, at its end, a filter that opens a panel (the category). The other filters stand under it, centred on a line of their own, each in a place of its own with no background (`SearchBarGroup`): a stepper for a number, a slider for a limit, bars that fill for a level, or a button that opens a menu. It only draws the bar and the row. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
+      intro="The big search bar of a page: one glass bar, rounded (`rounded-3xl`) and not a pill, with the magnifier at its start (the button that sends the search), the field, a button that clears the text once there is one and, at its end, a filter that opens a panel (the category). The other filters stand under it, centred on a line of their own, each in a place of its own with no background (`SearchBarGroup`): a stepper for a number, a slider for a limit, bars that fill for a level, or a button that opens a menu. It only draws the bar and the row. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
     >
       <Demo
         title="Empty and filled"
@@ -278,7 +286,7 @@ export function SearchBars() {
 
       <Demo
         title="With filters"
-        description="A `SearchBarSegment` at the end of the bar is a filter that opens a panel: an icon and what is picked, dimmed while nothing is (`idle`), in a button that you wrap in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while it is open. No label is drawn (a screen reader hears the `label`). With nothing picked its value is left out under 48rem of room, so the field keeps its room on a phone. The other filters go in `SearchBarFilters`, under the bar: centred, on a line of their own, wrapping when the room runs out. Each is in a place of its own, a `SearchBarGroup`, with no background, no outline and no shadow: a `SearchBarStepper` for a number (a minus button, the number with the icon that says what it is just after it, a plus button; the number is plain text and never empty: it starts on a value and the buttons move it); a `Slider` with one thumb for a limit, with the hourglass (a `SearchBarIcon`) and the limit written after it on the left (`SearchBarValue`: the minutes and their mark, `30′`, or `1h+`, with no unit word since the hourglass says it) and `mx-1` around the slider for the handle that sticks out (the duration: twelve steps, `5′` to `55′` five minutes at a time and `1h+`, the last being no limit; it starts on `20′`); a `Meter` for a level, with nothing written beside it (the complexity: bars that fill up to the level pressed, which start on 3 and never go below 1, the `Meter` being not `clearable`); or a `SearchBarSegment` that is `boxed` and opens a menu, such as the age, which always has one age picked and goes gray under the pointer and while its menu is open, like the category. The filters are always at work, so what they are set to is read from the control, and nothing is filled in to say it. These ones filter nothing: they step, slide, fill, open and search."
+        description="A `SearchBarSegment` at the end of the bar is a filter that opens a panel: an icon and what is picked, dimmed while nothing is (`idle`), in a button that you wrap in a `PopoverTrigger asChild`, which gives it `aria-expanded`, which paints it while it is open. No label is drawn (a screen reader hears the `label`). With nothing picked its value is left out under 28rem of room, so the field keeps its room on a phone. With `picks`, a few things that each have a name and an icon (the categories), it draws up to three of them, each a grey tag (`bg-foreground/15`, lighter under the pointer and while the panel is open, with no fill behind them, 8px from the next one and never overlapping it) with its icon and, from 28rem of room, its name, then how many more there are, `+2`; under 48rem of room the third waits and the count follows, so a phone shows two icons and a count. The other filters go in `SearchBarFilters`, under the bar: centred, on a line of their own, wrapping when the room runs out. Each is in a place of its own, a `SearchBarGroup`, with no background, no outline and no shadow: a `SearchBarStepper` for a number (a minus button, the number with the icon that says what it is just after it, a plus button; the number is plain text and never empty: it starts on a value and the buttons move it); a `Slider` with one thumb for a limit, with the hourglass (a `SearchBarIcon`) and the limit written after it on the left (`SearchBarValue`: the minutes and their mark, `30′`, or `1h+`, with no unit word since the hourglass says it) and `mx-1` around the slider for the handle that sticks out (the duration: twelve steps, `5′` to `55′` five minutes at a time and `1h+`, the last being no limit; it starts on `20′`); a `Meter` for a level, with nothing written beside it (the complexity: bars that fill up to the level pressed, which start on 3 and never go below 1, the `Meter` being not `clearable`); or a `SearchBarSegment` that is `boxed` and opens a menu, such as the age, which always has one age picked and goes gray under the pointer and while its menu is open, like the category. The filters are always at work, so what they are set to is read from the control, and nothing is filled in to say it. These ones filter nothing: they step, slide, fill, open and search."
         className="flex flex-col gap-10"
         code={`<SearchBar aria-label="Search the games">
   <SearchBarField>
@@ -287,9 +295,15 @@ export function SearchBars() {
   </SearchBarField>
   <Popover>
     <PopoverTrigger asChild>
-      <SearchBarSegment icon={GridViewIcon} label="Category" value="Any category" idle />
+      <SearchBarSegment
+        icon={GridViewIcon}
+        label="Category"
+        value={picked.length > 0 ? picked.join(", ") : "Any category"}
+        idle={picked.length === 0}
+        picks={picked.map((name) => ({ label: name, icon: iconOf(name) }))}
+      />
     </PopoverTrigger>
-    <PopoverContent aria-label="Categories" align="end">
+    <PopoverContent aria-label="Categories" align="end" className="w-52 gap-0 p-0">
       <Combobox options={categories} value={picked} onValueChange={setPicked} aria-label="Categories" placeholder="Search categories..." empty="No category matches." />
     </PopoverContent>
   </Popover>
@@ -310,7 +324,7 @@ export function SearchBars() {
       <SearchBarIcon icon={HourglassIcon} />
       <SearchBarValue className="w-8">30′</SearchBarValue>
     </span>
-    <Slider className="mx-1 w-24" min={0} max={11} value={[step]} onValueChange={slide} ticks={[2, 5, 8, 11]} />
+    <Slider className="mx-1 w-16" min={0} max={11} value={[step]} onValueChange={slide} />
   </SearchBarGroup>
   <SearchBarGroup label="Complexity">
     <SearchBarIcon icon={Brain02Icon} />
@@ -330,30 +344,58 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar stands under the title, in the hero, 32px below it (`mt-8`) and covering none of it, and it is glass (`bg-background/60`, `backdrop-blur-xl`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 64px below them (`mt-16`) and covering none of it, and from the `sm` breakpoint no wider than the title (`max-w-hero-bar`: 8.6 times the size of the title, 48rem at most, so on a tablet it is a little narrower than the title's longest line), and it is glass (`glass`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
-        code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
+        code={`<section className="pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
     <h1 className="display-title">
-      <span className="block text-display">Board games</span> <span className="block text-display">…</span>
+      <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
     </h1>
-    <div className="mt-8 w-full max-w-3xl">
+    <Stats className="mt-8" items={…} />
+    <Perks className="mt-6" items={…} />
+    <div className="mt-16 w-full max-w-3xl sm:max-w-hero-bar">
       <SearchBar>…</SearchBar>
       <SearchBarFilters>…</SearchBarFilters>
     </div>
   </div>
 </section>`}
       >
-        <div className="flex flex-col items-center bg-linear-to-b from-card to-background px-6 pt-12 pb-10 text-center">
+        <div className="flex flex-col items-center px-6 pt-12 pb-10 text-center">
           <p className="display-title">
-            <span className="block text-4xl">Board games</span> <span className="block text-4xl">w/ friends</span>{" "}
-            <span className="block text-4xl">& rivals</span>
+            <span className="block text-4xl">Play your favorite</span> <span className="block text-4xl">board games online</span>
           </p>
+          <Stats className="mt-6" items={[{ value: "128", label: "players online", live: true }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
+          <Perks className="mt-4" items={["Free to play", "No sign-up needed"]} />
           <div className="mt-8 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
                 <SearchBarSubmit aria-label="Search" />
                 <SearchBarInput aria-label="Search games, tables and tournaments" placeholder="Search games, tables & tournaments..." />
+              </SearchBarField>
+            </SearchBar>
+          </div>
+        </div>
+      </Demo>
+
+      <Demo
+        title="The head of a page that lists something"
+        description="Games, Tables and Tournaments share one head (`ListPageHeader`): the title, centred at the top of the page in `page-title` (Geist at 720, tracking -0.048em, 8rem from a 850px window and 16vw less 0.5rem under it, so that Tournaments, the longest, fits a phone), then the bar of what the page lists, 32px under it (`gap-8`), on the backdrop of the home's hero. The bar says what it searches (`label` and `placeholder`: Search games, Search tables, Search tournaments), and each page has its own filters: Games has the category in the bar and the other four under it, Tables and Tournaments none yet. What's New has the same head with the title alone, since there is nothing in it to search."
+        className="overflow-hidden p-0"
+        code={`<ListPageHeader title="Tables">
+  <ListSearch label="Search tables" placeholder="Search tables..." />
+</ListPageHeader>
+
+<ListPageHeader title="Games">
+  <HeroSearch label="Search games" placeholder="Search games..." />
+</ListPageHeader>`}
+      >
+        <div className="flex flex-col items-center gap-8 px-6 pt-12 pb-10 text-center">
+          <p className="page-title">Tables</p>
+          <div className="w-full max-w-xl">
+            <SearchBar method="dialog" aria-label="Search tables">
+              <SearchBarField>
+                <SearchBarSubmit aria-label="Search" />
+                <SearchBarInput aria-label="Search tables" placeholder="Search tables..." />
               </SearchBarField>
             </SearchBar>
           </div>
@@ -374,16 +416,16 @@ export function BoardPatterns() {
         title="Behind a hero"
         description="As it was on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
         className="grid gap-4 p-0 sm:grid-cols-2"
-        code={`<section className="relative overflow-hidden bg-linear-to-b from-card to-background">
+        code={`<section className="relative overflow-hidden">
   <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
   <div className="relative …">…</div>
 </section>`}
       >
-        <div className="relative h-72 overflow-hidden bg-linear-to-b from-card to-background">
+        <div className="relative h-72 overflow-hidden">
           <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
-        <div className="relative h-72 overflow-hidden bg-linear-to-b from-card to-background">
+        <div className="relative h-72 overflow-hidden">
           <BoardPattern className="absolute inset-0 text-foreground opacity-20 mask-b-from-30%" />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
@@ -392,26 +434,63 @@ export function BoardPatterns() {
   )
 }
 
-export function Tabletops() {
+export function TitlePieces() {
   return (
     <Section
-      id="tabletop"
-      module="tabletop"
-      intro="The backdrop of the home's hero: a plain table seen from above at a low angle, in perspective, under a lamp, with the pattern of a game on it. For now it is the one of Courtisans' table, its diamonds (a lozenge, a dashed one inside it and a dot at every node, tiled); one day each game's own may take its turn, one every six seconds, but that is not done. It is made of no image: the pattern is an SVG tile used as a mask over `foreground`, laid on a plane tilted back with `perspective()` and `rotateX()` (its far end fades), that a pool of light, a radial mask, picks out of the dark; then come the glow of the lamp at the top and a fine grain (an SVG noise used the same way). Everything is `foreground` at a few percent, a token mixed with `transparent`, so the title and the search bar keep the page, and the layer fades out at its foot, where the black of the page takes over. It is decorative: `aria-hidden`, and it takes no click."
+      id="title-pieces"
+      module="title-piece"
+      intro="Some letters of the home's title are pieces of a game table, and so are the ornaments between its words: a die, a coin and the suits of a deck of cards for three of its letters o, and two cards. They are drawn in CSS and SVG, in `em`, so that they follow the title and sit on its baseline like the letter they stand for, and they move now and then, not often (`PLAYFUL` of `@pbgo/ui/motion`, section `playful-motion`). They are on the page's black and nothing else: no table behind them. The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine."
     >
       <Demo
-        title="Behind a hero"
-        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The tile of the pattern is `--tabletop-tile`, where the table is nearest: 6rem on a phone and growing with the window up to 10rem; the perspective and the height of the plane are measured in tiles, so the drawing is the same at every width. The six classes it is made of (`tabletop`, `tabletop-pool`, `tabletop-floor`, `tabletop-pattern`, `tabletop-lamp` and `tabletop-grain`) are in `platform.css`."
-        className="p-0"
-        code={`<section className="relative bg-linear-to-b from-card to-background">
-  <Tabletop />
-  <div className="relative …">…</div>
-</section>`}
+        title="The pieces of the title"
+        description="A die, a cube seen straight on that rolls from the left to the right now and then, for a few whole turns at random, to switch between a six and a three; the suits of a deck of cards in turn, a wheel that scrolls up through a heart, a spade, a diamond and a club (a red one and a white one in turn: a black one would be lost on the page's black) for a few laps and always stops on the heart, faded at the top and at the bottom of its window and blurred as it speeds up; and a coin tossed from the top to the bottom, now and then, for a few whole turns, showing a laureate in profile and a star in a wreath of laurel, both engraved in lines, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion; the die, the coin and the suits are `TitleDie`, `TitleCoin` and `TitleSuits`), and two dark blue cards, the backs of a deck, that overlap by more than half, after the last word of a line, with the space of a word on each side of them, and that fold up, come together and open again now and then (`TitleCards`, left out under 40rem). The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
+        className="flex flex-col items-center gap-6 py-10"
+        code={`<h1 className="display-title">
+  <span className="block text-display">Play y<TitlePiece kind="coin">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>
+  <span className="block text-display">b<TitlePiece kind="die">o</TitlePiece>ard games <TitleCards />online</span>
+</h1>`}
       >
-        <div className="relative h-96 overflow-hidden bg-linear-to-b from-card to-background">
-          <Tabletop />
-          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
+        <p className="display-title text-center text-5xl">
+          <span className="block">
+            Play y<TitlePiece kind="coin">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite
+          </span>
+          <span className="block">
+            b<TitlePiece kind="die">o</TitlePiece>ard games <TitleCards className="inline-block" />online
+          </span>
+        </p>
+        <div className="flex items-center gap-4 text-foreground">
+          <Suit suit="heart" className="size-8 fill-piece-red" />
+          <Suit suit="diamond" className="size-8 fill-piece-red" />
+          <Suit suit="spade" className="size-8 fill-foreground" />
+          <Suit suit="club" className="size-8 fill-foreground" />
         </div>
+      </Demo>
+    </Section>
+  )
+}
+
+export function StatsSection() {
+  return (
+    <Section
+      id="stats"
+      module="stats"
+      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players are connected, how many accounts are registered, how many games there are, each in a pill (`rounded-xl`, filled with the colour of the text at 10%, no outline and no shadow, so that the numbers can roll up and down in it one day) that has a number (`text-base`) followed by what it counts on the same line; the figure of what is happening now, the players online, has a green dot before its number, the green of a friend who is online, a circle drawn in SVG. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen reader reads 128 players online and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players online and the members are counted in Supabase, and a figure is left out when it cannot be (`docs/accounts.md`)."
+    >
+      <Demo
+        title="Under a title"
+        description="The figures are a `dl`: each a term (what it counts) and its definition (the number), shown the other way round, the number first. The perks are a `ul` with a tick before each. On the home they stand under the title, 32px and 24px below it, and the search bar 64px under them."
+        className="flex flex-col items-center gap-4 py-10 text-center"
+        code={`<Stats items={[{ value: "128", label: "players online", live: true }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
+<Perks items={["Free to play", "No sign-up needed"]} />`}
+      >
+        <Stats
+          items={[
+            { value: "128", label: "players online", live: true },
+            { value: "12,480", label: "members" },
+            { value: "71", label: "games" },
+          ]}
+        />
+        <Perks items={["Free to play", "No sign-up needed"]} />
       </Demo>
     </Section>
   )

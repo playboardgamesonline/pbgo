@@ -14,7 +14,7 @@ import { SAMPLE_CATEGORIES } from "./sample-categories"
  */
 export function FiltersSpecimen({ picked = false }: { picked?: boolean }) {
   const [filter, setFilter] = useState<GameFilter>(
-    picked ? { ...DEFAULT_FILTER, categories: ["Cards", "Party"], players: 6, duration: 30, complexity: 2, age: 10 } : DEFAULT_FILTER,
+    picked ? { ...DEFAULT_FILTER, categories: ["Cooperation", "Deduction", "Hidden role", "Strategy", "Take that"], players: 6, duration: 30, complexity: 2, age: 10 } : DEFAULT_FILTER,
   )
   return (
     <div>

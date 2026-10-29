@@ -6,14 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Block, Bullets, Inline, Section, Snippet } from "../_components/layout"
 
 const PRINCIPLES = [
-  "Black and white: the palette is the `neutral` scale plus `destructive`. No accent colour, and a single gradient, neutral too: the backdrop of the home's hero, lighter at the top and fading into the page's black.",
+  "A black and white, with no tint: the palette is the `neutral` scale (Tailwind's, a chroma of 0 all along and a little darker in its four darkest steps, so that the page is a true black) plus `destructive`, and the four colours of a friend's presence (`presence-online`, green, `presence-playing`, blue, `presence-inactive`, orange-yellow, and `presence-dnd`, red), which only a dot wears, and the two brand colours of a sign-in provider's button (`brand-facebook`, `brand-discord`), which only that button wears, and the colours of the pieces that stand for letters of the home's title (`piece-*`), which only those pieces wear. No other accent colour, and no gradient: the first screen of a page is the page's black, flat.",
   "Dark only. The platform has no light theme and no `dark:` variants; `color-scheme` is `dark`.",
-  "One typeface, Geist, in one weight: everything is semibold (600). `font-medium` and `font-bold` resolve to the same weight, so do not write them. Text is slightly tight: about -0.01em on body text, -0.03em on headings.",
-  "Game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.",
+  "One typeface, Geist, in one weight: everything is semibold (600). `font-medium` and `font-bold` resolve to the same weight, so do not write them. Two weights are set on purpose: 400 for the finest print (`fine-print`) and 720 for the title of the home and a person's name at the head of a profile (`font-strong`). Text is slightly tight: about -0.01em on body text, -0.03em on headings.",
+  "Apart from a friend's presence, a provider's brand and the pieces of the home's title, game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.",
+  "Rounded, never round: the taller a box, the rounder its corner, up to the menus' step (`rounded-4xl`, 31px, for a container from 6rem high), and a corner never reaches half the height of what it rounds, so nothing is a capsule. Only the picture of a person is a circle. Corners are smoothed a touch (`--corner-smoothing`).",
   "Depth comes from surface steps and hairlines (`ring-1 ring-foreground/10`), then from three shadows: `shadow-surface` at rest, `shadow-float` when lifted, `shadow-overlay` for dialogs and sheets.",
   "Tokens, not values: no hex, `rgb()`, arbitrary pixel sizes, font names or `bg-neutral-*` in platform UI. Write `bg-card`, `text-muted-foreground`, `rounded-3xl`, `px-gutter`.",
   "A missing piece goes into `@pbgo/ui` first, is shown on this page, then is used.",
-  "Out of scope for v1: brand fonts, other gradients, a light theme and game boards.",
+  "Out of scope for v1: brand fonts, gradients, a light theme and game boards.",
 ] as const
 
 const WHERE: readonly { what: string; where: string }[] = [

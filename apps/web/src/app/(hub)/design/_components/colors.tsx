@@ -33,13 +33,25 @@ type Semantic = {
 const SEMANTIC: readonly Semantic[] = [
   { token: "background", swatch: "bg-background", on: "text-foreground", role: "The page. Set on <html> and on the admin wrapper, never on `.platform` itself." },
   { token: "foreground", swatch: "bg-foreground", on: "text-background", role: "Text and icons on the page." },
-  { token: "card", swatch: "bg-card", on: "text-card-foreground", role: "Raised surface: cards, code blocks, the game card." },
-  { token: "popover", swatch: "bg-popover", on: "text-popover-foreground", role: "Floating surface: select, dropdown, dialog, sheet, tooltip content." },
+  { token: "card", swatch: "bg-card", on: "text-card-foreground", role: "The grey of every container: cards, code blocks, the game card, and the glass of the navbar, the dock, the bars (the `glass` utility: this grey at 92%). Two thirds neutral 900 and a third neutral 950." },
+  { token: "popover", swatch: "bg-popover", on: "text-popover-foreground", role: "Floating surface: select, dropdown, dialog, sheet, tooltip content. The same grey as `card`." },
+  { token: "cutout", swatch: "bg-(color:--cutout)", on: "text-foreground", role: "What is cut out of a picture: the ring round a status dot. The page (`background`), or the grey of the container that `glass` makes." },
   { token: "primary", swatch: "bg-primary", on: "text-primary-foreground", role: "The one emphasis: the default button. White on black, not a hue." },
   { token: "secondary", swatch: "bg-secondary", on: "text-secondary-foreground", role: "Quiet button and badge. `bg-secondary-hover` is its hover step." },
   { token: "muted", swatch: "bg-muted", on: "text-muted-foreground", role: "Wells, skeletons, inline code, the unselected side of a switch." },
   { token: "accent", swatch: "bg-accent", on: "text-accent-foreground", role: "Hover and focus of a menu row or a ghost button." },
-  { token: "destructive", swatch: "bg-destructive", on: "text-background", role: "Errors and irreversible actions. The only hue of the platform." },
+  { token: "destructive", swatch: "bg-destructive", on: "text-background", role: "Errors and irreversible actions, and the count of what waits for someone (`Badge` `notification`). A hue of the platform, with the four of presence and the two of a sign-in provider." },
+  { token: "presence-online", swatch: "bg-presence-online", on: "text-background", role: "A friend who is online: the dot on their picture (solid). Only the dot is coloured, never the text." },
+  { token: "presence-playing", swatch: "bg-presence-playing", on: "text-background", role: "A friend who is in a game: the dot (a disc with a play knocked out of it). A word says it too, never the colour alone." },
+  { token: "presence-inactive", swatch: "bg-presence-inactive", on: "text-background", role: "A friend who is online but inactive: the dot (a moon)." },
+  { token: "presence-dnd", swatch: "bg-presence-dnd", on: "text-background", role: "A friend who does not want to be disturbed: the dot (a disc with a bar knocked out of it)." },
+  { token: "piece-red", swatch: "bg-piece-red", on: "text-background", role: "The red of the heart and the diamond of a deck of cards. The pieces of the home's title wear it (`TitlePiece`), nothing else." },
+  { token: "piece-gold", swatch: "bg-piece-gold", on: "text-background", role: "The gold of the coin in the home's title." },
+  { token: "piece-navy", swatch: "bg-piece-navy", on: "text-foreground", role: "The dark blue of the backs of the playing cards, the two that stand after \"games\" in the home's title." },
+  { token: "piece-ivory", swatch: "bg-piece-ivory", on: "text-background", role: "The ivory of a die." },
+  { token: "piece-ink", swatch: "bg-piece-ink", on: "text-foreground", role: "The ink of the pips of a die, of the engraving of the coin and of the edge of the cards." },
+  { token: "brand-facebook", swatch: "bg-brand-facebook", on: "text-foreground", role: "The tile of the sign-in button of Facebook, in the brand's own blue. Nothing else wears it." },
+  { token: "brand-discord", swatch: "bg-brand-discord", on: "text-foreground", role: "The tile of the sign-in button of Discord, in the brand's own blurple. Nothing else wears it." },
 ]
 
 const SECONDARY_TOKENS = [

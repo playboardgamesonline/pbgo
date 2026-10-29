@@ -5,14 +5,15 @@ import { LayoutGroup, MotionConfig, motion } from "motion/react"
 import { Slot } from "radix-ui"
 import { SPRING_TRAVEL } from "../motion"
 import { cn } from "../utils"
+import { Separator } from "./separator"
 
 // The top of a platform page, in two containers kept apart, the way the product reads: the brand and the tabs on the left (`NavbarStart`),
 // the account on the right (`NavbarEnd`). Each container is a glass island, a rounded square (a border, a blur, a light shadow: `rounded-2xl`,
 // not a pill), and what it holds is rounded one step less (`rounded-lg`, the island's radius less its `p-2`), so the corners stay concentric.
 // The bar between the islands is transparent: it lets the page and the pointer through, so the backdrop of the page shows behind both and the
-// content of the page scrolls past the gap. The bar spans the window, not the width of the page: the islands sit on its edges, 0.75rem in
-// from the top and from each side. The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it or lets its
-// backdrop run under it.
+// content of the page scrolls past the gap. The bar spans the window, not the width of the page: the islands sit on its edges, 1.5rem in
+// from the top and from each side (the `p-6` of the bar, and the same 1.5rem is left under them: with their own 3.5rem that is the 6.5rem of
+// `h-navbar`). The page pins the bar (`fixed inset-x-0 top-0 z-40`) and either leaves `pt-navbar` under it or lets its backdrop run under it.
 //
 // The current item, the logo or a tab, has a fill behind it, and that fill is one element for the whole bar (`layoutId`): when the current
 // item changes, it glides to the next one with a spring (`SPRING_TRAVEL`, `@pbgo/ui/motion`) instead of jumping. It only glides if the bar stays
@@ -25,7 +26,7 @@ function Navbar({ className, children, ...props }: React.ComponentProps<"header"
     <MotionConfig reducedMotion="user">
       <LayoutGroup id={group}>
         <header data-slot="navbar" className={cn("pointer-events-none h-navbar", className)} {...props}>
-          <div className="flex h-full w-full items-center justify-between gap-4 px-3">{children}</div>
+          <div className="flex w-full items-center justify-between gap-4 p-6">{children}</div>
         </header>
       </LayoutGroup>
     </MotionConfig>
@@ -48,7 +49,7 @@ function CurrentFill() {
 // One container of the bar: a glass island, a rounded square 3.5rem high, that takes the pointer back from the transparent bar. What it holds is
 // 2.5rem high (`h-10`: the brand, the tabs, buttons of size `lg`, an avatar of `size-10`), which `p-2` frames.
 const islandClassName =
-  "pointer-events-auto flex h-14 items-center gap-1 rounded-2xl border bg-background/80 p-2 shadow-surface backdrop-blur-md"
+  "pointer-events-auto flex h-14 items-center gap-1 rounded-2xl border glass p-2 shadow-surface"
 
 /** The left container: the brand, then the tabs. */
 function NavbarStart({ className, ...props }: React.ComponentProps<"div">) {
@@ -61,6 +62,14 @@ function NavbarStart({ className, ...props }: React.ComponentProps<"div">) {
  */
 function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-end" className={cn(islandClassName, "shrink-0 [&_[data-slot=button]]:rounded-lg", className)} {...props} />
+}
+
+/**
+ * A glass island on its own, for what hangs on the bar beside the two containers. The hub's right container, once a visitor is signed in, is not one: it is the dock
+ * (`SocialDock`), which grows from a bar into a side panel. `/design` uses an island to show the `FriendsBar`, which draws no container of its own.
+ */
+function NavbarIsland({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="navbar-island" className={cn(islandClassName, "shrink-0", className)} {...props} />
 }
 
 /**
@@ -101,6 +110,14 @@ function NavbarTabs({ className, ...props }: React.ComponentProps<"nav">) {
       {...props}
     />
   )
+}
+
+/**
+ * A hairline between two groups of tabs, in the same container: as high as the tabs' text and no more (`h-5`), in the colour of every border. It is for the eye alone (the tabs are
+ * the same list for a screen reader), so it is `decorative`; the bar's `gap-1` is the room on each side of it.
+ */
+function NavbarSeparator({ className, ...props }: Omit<React.ComponentProps<typeof Separator>, "orientation" | "decorative">) {
+  return <Separator data-slot="navbar-separator" orientation="vertical" className={cn("data-vertical:h-5 data-vertical:self-center", className)} {...props} />
 }
 
 const tabClassName = "inline-flex h-10 items-center whitespace-nowrap rounded-lg px-4 text-sm"
@@ -148,4 +165,4 @@ function NavbarTab({
   )
 }
 
-export { Navbar, NavbarStart, NavbarEnd, NavbarBrand, NavbarTabs, NavbarTab }
+export { Navbar, NavbarStart, NavbarEnd, NavbarIsland, NavbarBrand, NavbarTabs, NavbarSeparator, NavbarTab }

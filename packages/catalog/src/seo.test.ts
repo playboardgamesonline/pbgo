@@ -4,7 +4,7 @@ import { gameJsonLd, gameMetadata, gameSeo, isIndexable, metaDescription, serial
 import { catalogEntry, registryGame } from "./testing"
 
 const SITE = "https://playboardgamesonline.app"
-const site = { url: SITE, name: "PlayBoardGamesOnline" }
+const site = { url: SITE, name: "Play Board Games Online" }
 
 /** The SEO data of an indexable game with everything filled; `overrides` change a field. */
 const seo = (overrides: Partial<GameSeo> = {}): GameSeo => ({
@@ -209,16 +209,16 @@ describe("gameMetadata", () => {
       robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
       openGraph: {
         type: "website",
-        siteName: "PlayBoardGamesOnline",
+        siteName: "Play Board Games Online",
         url: `${SITE}/game/the-mind`,
-        title: "The Mind · PlayBoardGamesOnline",
+        title: "The Mind · Play Board Games Online",
         description: "A cooperative game of silence.",
         locale: "en_US",
         images: [{ url: `${SITE}/api/catalog/the-mind/background?v=abc` }],
       },
       twitter: {
         card: "summary_large_image",
-        title: "The Mind · PlayBoardGamesOnline",
+        title: "The Mind · Play Board Games Online",
         description: "A cooperative game of silence.",
         images: [`${SITE}/api/catalog/the-mind/background?v=abc`],
       },
