@@ -303,17 +303,17 @@ function FriendsRoster({
               <section key={group.key} aria-label={name} className="mb-3 last:mb-0">
                 {group.kind === "game" ? (
                   <>
-                    <h3 className="text-sm text-foreground">
+                    <h3 className="text-sm">
                       <button
                         type="button"
                         aria-expanded={open}
                         aria-controls={`${id}-${group.key}`}
                         onClick={() => toggle(group.key)}
-                        className="group/head flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left outline-none transition-colors duration-fast hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30"
+                        className="group/head flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left text-muted-foreground outline-none transition-colors duration-fast hover:bg-muted/50 hover:text-foreground focus-visible:bg-muted/50 focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/30"
                       >
                         <GameIcon name={group.game.name} src={gameIcon?.(group.game.slug)} className="size-5" />
                         <span className="truncate">{name}</span>
-                        <span className="text-muted-foreground tabular-nums">{group.friends.length}</span>
+                        <span className="text-muted-foreground/60 tabular-nums">{group.friends.length}</span>
                         <HugeiconsIcon
                           icon={ArrowUp01Icon}
                           strokeWidth={2}
@@ -343,9 +343,9 @@ function FriendsRoster({
                   </>
                 ) : (
                   <>
-                    <h3 className="flex items-center gap-2 px-2.5 pb-1 text-sm text-foreground">
+                    <h3 className="flex items-center gap-2 px-2.5 pb-1 text-sm text-muted-foreground">
                       <span className="truncate">{name}</span>
-                      <span className="text-muted-foreground tabular-nums">{group.friends.length}</span>
+                      <span className="text-muted-foreground/60 tabular-nums">{group.friends.length}</span>
                     </h3>
                     {list}
                   </>
@@ -406,7 +406,7 @@ function FriendsPanel({
     <aside
       data-slot="friends-panel"
       aria-label="Friends"
-      className={cn("flex h-full min-h-0 flex-col gap-4 rounded-4xl border glass p-4 shadow-surface backdrop-blur-xl", className)}
+      className={cn("flex h-full min-h-0 flex-col gap-4 rounded-4xl border glass p-4 shadow-surface", className)}
       {...props}
     >
       <header className="flex items-center gap-2 px-1">

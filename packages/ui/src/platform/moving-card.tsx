@@ -154,7 +154,7 @@ function MovingCard({ card, contentKey, width, placement, label, contentClassNam
           role="group"
           aria-label={label}
           data-slot="moving-card"
-          className="platform fixed top-0 left-0 z-50 overflow-hidden rounded-4xl glass text-popover-foreground shadow-float ring-1 ring-foreground/10 backdrop-blur-xl"
+          className="platform fixed top-0 left-0 z-50 overflow-hidden rounded-4xl glass text-popover-foreground shadow-float ring-1 ring-foreground/10"
           style={{ width }}
           initial={{ opacity: 0, scale: shrunk, x, y }}
           animate={{

@@ -21,7 +21,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border glass p-2 pl-3 shadow-float backdrop-blur-xl",
+          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border glass p-2 pl-3 shadow-float",
           className
         )}
         {...props}

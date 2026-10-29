@@ -48,7 +48,7 @@ function CurrentFill() {
 // One container of the bar: a glass island, a rounded square 3.5rem high, that takes the pointer back from the transparent bar. What it holds is
 // 2.5rem high (`h-10`: the brand, the tabs, buttons of size `lg`, an avatar of `size-10`), which `p-2` frames.
 const islandClassName =
-  "pointer-events-auto flex h-14 items-center gap-1 rounded-2xl border glass p-2 shadow-surface backdrop-blur-md"
+  "pointer-events-auto flex h-14 items-center gap-1 rounded-2xl border glass p-2 shadow-surface"
 
 /** The left container: the brand, then the tabs. */
 function NavbarStart({ className, ...props }: React.ComponentProps<"div">) {

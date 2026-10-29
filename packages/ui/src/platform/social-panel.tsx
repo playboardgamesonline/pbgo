@@ -45,9 +45,22 @@ const PANE = {
   exit: (way: number) => ({ opacity: 0, x: way * -20, transition: { duration: DURATION.fast, ease: EASE_STANDARD } }),
 }
 
-/** The tile behind the current tab: one element for the three tabs (`layoutId`), so that it travels when another tab is pressed, with the spring of the navbar's fill. */
+/**
+ * What marks the current tab: the tile behind it and a small white bar under it, as the Riot Client's tab has. Each is one element for the three tabs (`layoutId`), so that it travels when
+ * another tab is pressed, with the spring of the navbar's fill.
+ */
 function TabFill() {
-  return <motion.span layoutId="social-tab" aria-hidden="true" className="absolute inset-0 -z-10 rounded-xl bg-input/50" transition={SPRING_TRAVEL} />
+  return (
+    <>
+      <motion.span layoutId="social-tab" aria-hidden="true" className="absolute inset-0 -z-10 rounded-xl bg-input/50" transition={SPRING_TRAVEL} />
+      <motion.span
+        layoutId="social-tab-bar"
+        aria-hidden="true"
+        className="absolute -bottom-0.5 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-xs bg-foreground"
+        transition={SPRING_TRAVEL}
+      />
+    </>
+  )
 }
 
 /** The icon of a tab. */
@@ -292,7 +305,7 @@ function SocialPanel({
     <aside
       data-slot="social-panel"
       aria-label="Social"
-      className={cn("flex flex-col gap-4", bare ? "min-h-0 flex-1 px-4 pb-4" : "h-full rounded-4xl border glass p-4 shadow-overlay backdrop-blur-xl", className)}
+      className={cn("flex flex-col gap-4", bare ? "min-h-0 flex-1 px-4 pb-4" : "h-full rounded-4xl border glass p-4 shadow-overlay", className)}
       {...props}
     >
       {header && <div className="min-w-0">{header}</div>}

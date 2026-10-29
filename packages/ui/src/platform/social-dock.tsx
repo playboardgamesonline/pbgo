@@ -193,7 +193,7 @@ function SocialDock({ open, games, profile, toggle, children, height, className 
             animate={{ height: open ? (height ?? room) : BAR_HEIGHT }}
             transition={reduced ? STILL : SLOW}
             className={cn(
-              "pointer-events-auto relative flex shrink-0 flex-col self-start overflow-hidden rounded-2xl border glass shadow-surface backdrop-blur-md transition-[border-radius] duration-slow ease-standard data-[state=open]:rounded-4xl",
+              "pointer-events-auto relative flex shrink-0 flex-col self-start overflow-hidden rounded-2xl border glass shadow-surface transition-[border-radius] duration-slow ease-standard data-[state=open]:rounded-4xl",
               className
             )}
             style={{ width, maxWidth: "calc(100vw - 3rem)" }}

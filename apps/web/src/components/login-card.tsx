@@ -54,7 +54,7 @@ export function LoginCard({ next, enabled, failed, className }: { next: string; 
   return (
     <section
       aria-labelledby="login-title"
-      className={cn("w-full max-w-md rounded-4xl border glass p-8 shadow-float backdrop-blur-xl", className)}
+      className={cn("w-full max-w-md rounded-4xl border glass p-8 shadow-float", className)}
     >
       <h1 id="login-title" className="font-heading text-3xl">
         Sign in

@@ -10,6 +10,7 @@ export const NAV = [
       { id: "radius", title: "Radius" },
       { id: "layout", title: "Spacing and layout" },
       { id: "depth", title: "Shadows and rings" },
+      { id: "glass", title: "Glass" },
       { id: "motion", title: "Motion" },
       { id: "utilities", title: "Utilities" },
     ],

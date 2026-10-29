@@ -120,11 +120,14 @@
 }
 
 /*
- * A container that floats over the page (an island of the navbar, the dock, a panel, a bar, a menu, a chat): the grey of a card, nearly opaque (94%), so that the page shows through only as a hint, and
- * over a blur where the component asks for one. What is cut out of a picture inside it has to be that grey and not the page's, which `--cutout` says.
+ * A container that floats over the page (an island of the navbar, the dock, a panel, a bar, a menu, a chat): the grey of a card (`--card`), of which it keeps `--glass-opacity` (the rest
+ * lets the page through), over a blur of `--glass-blur` that saturates what it blurs by `--glass-saturate`: the three settings of the glass, on `.platform`, the same for every container
+ * (`/design`, section Glass, moves them live). What is cut out of a picture inside it has to be that grey and not the page's, which `--cutout` says.
  */
 @utility glass {
-  background-color: color-mix(in oklab, var(--card) 94%, transparent);
+  background-color: color-mix(in oklab, var(--card) var(--glass-opacity), transparent);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   --cutout: var(--card);
 }
 
@@ -143,9 +146,14 @@
   -webkit-mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
   mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
 
-  /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
+  /*
+   * An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own. Each line also has 0.1em of
+   * room on its sides: the tracking is negative, so the ink of the last letter of the longest line goes past the end of its box, and the mask above, which clips to the box of the
+   * title, would crop it (the e of "online").
+   */
   & > * {
     letter-spacing: var(--tracking-display);
+    padding-inline: 0.1em;
   }
 }
 
@@ -153,7 +161,6 @@
  * The finest print of a page (`fine-print`), the footer's line on what the site is not: the smallest text, in a regular weight (400, lighter than the
  * platform's 600) and in a colour so dark (`foreground` at 20%) that it is found by whoever looks for it and read by nobody in passing. It is the one
  * text of the platform with a weight of its own besides the title and the display faces.
-    padding-inline: 0.1em;
  */
 @utility fine-print {
   font-size: var(--text-xs);
@@ -336,6 +343,10 @@
     --brand-discord: #5865f2;
     /* What is cut out of a picture, the ring round a status dot, the outline of tags that overlap: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);
+    /* The settings of the glass (`glass`): how much of the grey of a card it keeps, how much it blurs what is behind it, and how much it saturates it. 100% saturation leaves the colours as they are */
+    --glass-opacity: 94%;
+    --glass-blur: 24px;
+    --glass-saturate: 100%;
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: var(--color-neutral-400);
