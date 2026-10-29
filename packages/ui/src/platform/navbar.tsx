@@ -64,8 +64,8 @@ function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
- * A glass island on its own, for what hangs on the bar beside the two containers: the pills of the games the friends are in (`FriendsBar`) are one, in a row
- * with `NavbarEnd` on the right.
+ * A glass island on its own, for what hangs on the bar beside the two containers. The hub's right container, once a visitor is signed in, is not one: it is the dock
+ * (`SocialDock`), which grows from a bar into a side panel. `/design` uses an island to show the `FriendsBar`, which draws no container of its own.
  */
 function NavbarIsland({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-island" className={cn(islandClassName, "shrink-0", className)} {...props} />

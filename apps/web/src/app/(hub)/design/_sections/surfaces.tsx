@@ -10,7 +10,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
-import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarGroupCount } from "@pbgo/ui/platform/avatar"
+import { Avatar, AvatarBadge, AvatarCount, AvatarFallback, AvatarGroup, AvatarGroupCount } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
@@ -41,7 +41,7 @@ import {
   TableRow,
 } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
-import { BarListSpecimen, BarSpecimen, ChatSpecimen, FriendsSpecimen, PresenceLegend, SocialSpecimen } from "../_components/friends-specimen"
+import { BarListSpecimen, BarSpecimen, ChatSpecimen, FriendsSpecimen, DockSpecimen, PresenceLegend, SocialSpecimen } from "../_components/friends-specimen"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -289,7 +289,7 @@ export function Avatars() {
     >
       <Demo
         title="Sizes, badge and group"
-        description="`AvatarBadge` marks a state such as online or host. `AvatarGroup` overlaps its avatars, so a group shows one initial each, and ends with `AvatarGroupCount`."
+        description="`AvatarBadge` marks a state such as online or host, at the bottom right. `AvatarCount` puts what waits for the person (messages not read, requests to answer) on the top right corner, outlined in the colour of the page, and draws nothing for 0. `AvatarGroup` overlaps its avatars, so a group shows one initial each, and ends with `AvatarGroupCount`."
         className={ROW}
         code={`<Avatar size="sm"><AvatarFallback>AL</AvatarFallback></Avatar>
 <Avatar><AvatarFallback>SM</AvatarFallback></Avatar>
@@ -297,6 +297,12 @@ export function Avatars() {
 
 <Avatar>
   <AvatarFallback>JO</AvatarFallback>
+  <AvatarBadge />
+</Avatar>
+
+<Avatar size="lg">
+  <AvatarFallback>RO</AvatarFallback>
+  <AvatarCount count={3} />
   <AvatarBadge />
 </Avatar>
 
@@ -318,6 +324,11 @@ export function Avatars() {
         </Avatar>
         <Avatar>
           <AvatarFallback>JO</AvatarFallback>
+          <AvatarBadge />
+        </Avatar>
+        <Avatar size="lg">
+          <AvatarFallback>RO</AvatarFallback>
+          <AvatarCount count={3} />
           <AvatarBadge />
         </Avatar>
         <AvatarGroup>
@@ -688,11 +699,11 @@ export function FriendsPanels() {
     <Section
       id="friends-panel"
       module="friends-panel"
-      intro="The friends of a signed-in visitor, as a panel for a page: a header with the count of those online and the button to add a friend, a search field, the list in sections (in a game, online, inactive, do not disturb, offline; an empty one is not drawn) and a footer button to invite a friend who has no account yet. It is drawn from the friends it is given (`Friend`: nickname, tag, picture, status and what they are doing) and decides nothing about them: where they come from (PLT-23) and what a button does are the page's, and a button whose handler is missing is not drawn. A status is a shape, a colour and a word, never the colour alone: the dot on the corner of the picture is a blue disc with a play knocked out of it for a friend in a game, a green disc for one who is online, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed and a thick grey ring for one who is away; only the dot is coloured, the line under their name is quiet text, and the section says it too."
+      intro="The friends of a signed-in visitor, as a panel for a page: a header with the count of those online and the button to add a friend, a search field, the list game by game (each game that some friends are in is headed by its picture, its name and how many of them are in it, with all of them under it, those who wait in its lobby and those who play it in one list, the players first; then, by status, the friends who are in no game: online, inactive, do not disturb, away; an empty group is not drawn) and a footer button to invite a friend who has no account yet. It is drawn from the friends it is given (`Friend`: nickname, tag, picture, status and what they are doing) and decides nothing about them: where they come from (PLT-23) and what a button does are the page's, and a button whose handler is missing is not drawn. A status is a shape, a colour and a word, never the colour alone: the dot on the corner of the picture is a blue disc with a play knocked out of it for a friend in a game, a green disc for one who is online, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed and a thick grey ring for one who is away; only the dot is coloured, the line under their name is quiet text, and the section says it too."
     >
       <Demo
         title="The four dots"
-        description="`PresenceDot` sits on the corner of a picture and takes the picture's size: a green disc for a friend who is online (active), a blue disc with a play knocked out of it, down to the colour of the page, for one who is in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and a thick grey ring for one who is away (its outline is a quarter of the dot: 3px, 2px on a small picture, 4px on a large one). Only the dot is coloured: the line under a name is quiet text."
+        description="`PresenceDot` sits on the corner of a picture and takes the picture's size: a green disc for a friend who is online (active), a blue disc with a play knocked out of it, down to the colour of the page, for one who is in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and a thick grey ring for one who is away (its outline is a quarter of the dot: 2px of 8, 3px of 10 and of 12). The dots are small (8px on a small picture, 10px, 12px on a large one), in the bottom right corner of the picture, and cut out of it by a ring of the colour of the page, 3px (2px on a small picture). Only the dot is coloured: the line under a name is quiet text."
         code={`<Avatar>
   <AvatarImage src={url} alt="" />
   <AvatarFallback>M</AvatarFallback>
@@ -703,10 +714,11 @@ export function FriendsPanels() {
       </Demo>
       <Demo
         title="With friends, and with none"
-        description="The panel is `h-full` and scrolls its list, so a page gives it a height and a width: here a box of `h-[34rem]`. It is the list of the page of a visitor's friends; the short way to the same friends, on every page, is the rail below. The buttons of a friend (Join for one in a game, Invite for one who is online) show when the row is hovered or focused, and always on a touch screen. Type in the search field to filter the list."
+        description="The panel is `h-full` and scrolls its list, so a page gives it a height and a width: here a box of `h-[34rem]`. It is the list of the page of a visitor's friends; the short way to the same friends, on every page, is the navbar's island below. The buttons of a friend (Join for one in a game, Invite for one who is online) show when the row is hovered or focused, and always on a touch screen. Type in the search field to filter the list."
         className="grid gap-6 sm:grid-cols-2"
         code={`<FriendsPanel
   friends={friends}
+  gameIcon={(slug) => iconOf(slug)}
   onAddFriend={…}
   onInvite={(friend) => …}
   onJoin={(friend) => …}
@@ -725,19 +737,20 @@ export function FriendsBars() {
     <Section
       id="friends-bar"
       module="friends-bar"
-      intro="The friends of a signed-in visitor, the way the Riot Client shows its social visibility: a small bar on the navbar, next to the account, with a pill for each game some of them are in (the picture of the game and how many of them are in it), up to four, the most crowded first. Under the pointer a pill takes the fill of the navbar's current item and a line under it, and a panel opens under the bar with that game's friends in two lists, `Online` (those who wait in its lobby, and those at one table together under it: `Table K7Q · 2/4`) then `Playing`, each with the picture and the dot of their presence, their name and what they are doing. A friend who is away, or on the hub and in no game, is in none of them: they are in the list of the page of the friends. With no friend in a game the bar is the button that invites one. Like the panel, a status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green disc online, an orange-yellow moon inactive, a red disc with a bar do not disturb) and, under the name, a line of quiet text (only the dot is coloured), and always a word too. Like the panel it is drawn from the friends it is given and decides nothing about them. The panel is a `Popover` anchored on the bar: it opens under the pointer (a short delay on the way out lets the pointer cross the gap to it), with the keyboard (a pill that has the focus) and, on a touch screen, when a pill is pressed, which closes it when pressed again; a narrow screen has room for fewer pills."
+      intro="The friends of a signed-in visitor, the way the Riot Client shows its social visibility: a small bar on the navbar, which is the top of the dock that holds the account's picture and the button of the social panel too (the bar draws no container of its own), with a pill for each game some of them are in (the picture of the game and how many of them are in it), up to three, the most crowded first. Under the pointer a pill takes the fill of the navbar's current item and a line under it, and a panel opens under the bar with that game's friends in two lists, `Online` (those who wait in its lobby, and those at one table together under it: `Table K7Q · 2/4`) then `Playing`, each with the picture and the dot of their presence, their name and what they are doing. A friend who is away, or on the hub and in no game, is in none of them: they are in the list of the page of the friends. With no friend in a game the bar is the button that invites one. Like the panel, a status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green disc online, an orange-yellow moon inactive, a red disc with a bar do not disturb) and, under the name, a line of quiet text (only the dot is coloured), and always a word too. Like the panel it is drawn from the friends it is given and decides nothing about them. The panel is a `Popover` anchored on the bar: it opens under the pointer (a short delay on the way out lets the pointer cross the gap to it), with the keyboard (a pill that has the focus) and, on a touch screen, when a pill is pressed, which closes it when pressed again; a narrow screen has room for fewer pills. While the dock is open the bar is a recap (`recap`): the panel of a game does not open, and a press on a pill asks the page for that game (`onPickGame`), which takes the visitor to it in the list of the friends."
     >
       <Demo
         title="On the navbar, with friends and with none"
-        description="Each bar sits in a row with the account's island, as on the navbar. Hover a pill, or focus it with the keyboard, to open the panel of its game, and move to another pill to change it. The second bar is a visitor with no friend in a game: the button that invites one, which shows a tick for a moment once the link is copied. The Join button of a friend who waits at a table that has room shows when the row is hovered or focused, and always on a touch screen."
+        description="The bar draws no container, so it stands in an island here (on the hub it is the top of the dock, in the next section). Hover a pill, or focus it with the keyboard, to open the panel of its game, and move to another pill to change it. The second bar is a visitor with no friend in a game: the button that invites one, which shows a tick for a moment once the link is copied. The Join button of a friend who waits at a table that has room shows when the row is hovered or focused, and always on a touch screen."
         className="grid gap-6 sm:grid-cols-2"
-        code={`<NavbarIsland … />   // beside <NavbarEnd>
-<FriendsBar
-  friends={friends}
-  gameIcon={(slug) => iconOf(slug)}
-  onJoin={(friend) => …}
-  onShareLink={copyLink}
-/>`}
+        code={`<NavbarIsland>
+  <FriendsBar
+    friends={friends}
+    gameIcon={(slug) => iconOf(slug)}
+    onJoin={(friend) => …}
+    onShareLink={copyLink}
+  />
+</NavbarIsland>`}
       >
         <BarSpecimen />
         <BarSpecimen empty />
@@ -758,7 +771,7 @@ export function SocialPanels() {
     <Section
       id="social-panel"
       module="social-panel"
-      intro="The social panel of a signed-in visitor, the way the Riot Client has it: a column on the right of the page that opens from the account's picture, with the visitor at the top (their picture and name, which open the menu of their account) and a button that folds it away, then three tabs, each an icon: the friends and what they are doing (the list of the friends' panel, with its search and its three sections), the conversations with them (the picture and the dot of the friend, their name, the last message, how long ago and how many are not read), and the way to add a friend, with the requests that wait for an answer (accept or decline one that came in, cancel one that went out). A tab that has something for the visitor carries a count, and so does the account's picture on the navbar. It is drawn from what it is given and decides nothing: a button whose handler is missing is not drawn, and the field that adds a friend is off. A press on a friend or on a conversation opens the chat with them (`ChatWindow`), a card that floats at the bottom of the page next to the panel. The page places both (`fixed`): on the hub, `SiteSocial` of `apps/web`."
+      intro="The social panel of a signed-in visitor, the way the Riot Client has it: a column on the right of the page that is the same container as the bar of the games and the account's picture: the dock (`SocialDock`) is a recap bar while it is closed and a real side panel while it is open, one glass surface that grows and shrinks between the two, the bar staying at its top and the panel fading in under it. A button of the bar opens and closes it (`SocialPanelToggle`: `PanelRightOpenIcon` while it is closed and `PanelRightCloseIcon` while it is open, the two crossfading). What waits for the visitor (messages not read, requests to answer) is the count on the corner of their picture (`AvatarCount`), not on that button. Under the bar are three tabs, each an icon, the tile behind the current one gliding to the one that is pressed and the pane of the tab coming in from the side the tab is on while the other leaves: the friends game by game, with what they are doing (the list of the friends' panel, with its search), the conversations with them (the picture and the dot of the friend, their name, the last message, how long ago and how many are not read), and the way to add a friend, with the requests that wait for an answer (accept or decline one that came in, cancel one that went out). A tab that has something for the visitor carries a count, and so does the visitor's picture on the navbar. It is drawn from what it is given and decides nothing: a button whose handler is missing is not drawn, and the field that adds a friend is off. A press on a friend or on a conversation opens the chat with them (`ChatWindow`), a card that floats at the bottom of the page next to the panel. The dock has its place in the navbar, as wide as the bar and 3.5rem high, and grows out of it, over the page (on the hub, `SiteSocial` of `apps/web`); the chat window is placed by the page and slides in from the bottom (`PanelPresence`)."
     >
       <Demo
         title="The three tabs, with friends and with none"
@@ -766,8 +779,8 @@ export function SocialPanels() {
         className="grid gap-6 sm:grid-cols-2"
         code={`<SocialPanel
   header={…}
-  onClose={…}
   friends={friends}
+  gameIcon={(slug) => iconOf(slug)}
   conversations={conversations}
   requests={requests}
   onOpenChat={(friend) => …}
@@ -780,6 +793,25 @@ export function SocialPanels() {
         <SocialSpecimen tab="messages" />
         <SocialSpecimen tab="add" />
         <SocialSpecimen empty />
+      </Demo>
+      <Demo
+        title="One container, two states"
+        description="Press the button of the bar: the container grows from a bar into a side panel (its width, its height and its corners, `rounded-2xl` to `rounded-4xl`, over `DURATION.slow` with `EASE_STANDARD`), the bar staying at its top, and the panel fades in under it once there is room for it; press it again and the container goes back. The icon of the button swaps. While it is open the games of the bar are a recap: a press on one takes you to it in the list. Press a tab: the tile glides to it, and its pane comes in from that side. With less motion asked for, nothing travels."
+        code={`<SocialDock
+  open={open}
+  bar={
+    <>
+      <FriendsBar friends={friends} recap={open} onPickGame={(slug) => …} />
+      <Separator orientation="vertical" />
+      <AccountMenu …><button><Avatar …><AvatarCount count={waiting} />…</Avatar></button></AccountMenu>
+      <SocialPanelToggle open={open} onClick={() => setOpen(!open)} />
+    </>
+  }
+>
+  <SocialPanel bare tab={tab} onTabChange={setTab} friends={friends} … />
+</SocialDock>`}
+      >
+        <DockSpecimen />
       </Demo>
       <Demo
         title="The chat window"

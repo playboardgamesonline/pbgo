@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activityLine, gamesOf, initials, sectionsOf, tablesOf, type Friend } from "./friends"
+import { activityLine, gamesOf, initials, rosterOf, sectionsOf, tablesOf, type Friend } from "./friends"
 
 const friend = (id: string, status: Friend["status"], rest: Partial<Friend> = {}): Friend => ({ id, nickname: id, status, ...rest })
 const COURTISANS = { slug: "courtisans", name: "Courtisans" }
@@ -55,6 +55,52 @@ describe("gamesOf", () => {
 
   it("leaves out a friend who is away, and one who is in no game", () => {
     expect(gamesOf([friend("a", "offline", { game: COURTISANS }), friend("b", "online"), friend("c", "playing")])).toEqual([])
+  })
+})
+
+describe("rosterOf", () => {
+  const shape = (friends: readonly Friend[]) => rosterOf(friends).map((group) => [group.kind === "game" ? group.game.slug : group.status, group.friends.map((one) => one.id)])
+
+  it("lists the friends game by game, those who play and those who wait in the lobby in one list, the players first, the most crowded game first", () => {
+    expect(
+      shape([
+        friend("a", "online", { game: HANABI }),
+        friend("b", "online", { game: COURTISANS }),
+        friend("c", "playing", { game: COURTISANS }),
+        friend("d", "inactive", { game: COURTISANS }),
+        friend("e", "dnd", { game: HANABI }),
+        friend("f", "playing", { game: SKULL_KING }),
+      ]),
+    ).toEqual([
+      ["courtisans", ["c", "b", "d"]],
+      ["hanabi", ["a", "e"]],
+      ["skull-king", ["f"]],
+    ])
+  })
+
+  it("puts the friends who are in no game after the games, by status, and those who are away last", () => {
+    expect(
+      shape([
+        friend("a", "offline"),
+        friend("b", "online"),
+        friend("c", "playing", { game: COURTISANS }),
+        friend("d", "dnd"),
+        friend("e", "inactive"),
+        friend("f", "offline", { game: HANABI }),
+      ]),
+    ).toEqual([
+      ["courtisans", ["c"]],
+      ["online", ["b"]],
+      ["inactive", ["e"]],
+      ["dnd", ["d"]],
+      ["offline", ["a", "f"]],
+    ])
+  })
+
+  it("has every friend once, and no group for nobody", () => {
+    const friends = [friend("a", "online", { game: COURTISANS }), friend("b", "online"), friend("c", "offline")]
+    expect(rosterOf(friends).flatMap((group) => group.friends.map((one) => one.id)).sort()).toEqual(["a", "b", "c"])
+    expect(rosterOf([])).toEqual([])
   })
 })
 

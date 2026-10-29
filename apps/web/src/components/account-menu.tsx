@@ -13,14 +13,14 @@ import {
 } from "@pbgo/ui/platform/dropdown-menu"
 
 /**
- * The menu of the account, which opens from its trigger (`children`: a button, the visitor's picture and name at the top of the social panel): their name, the
+ * The menu of the account, which opens from its trigger (`children`: a button, the visitor's picture in the navbar's island), under it and to its end: their name, the
  * pages of their account and Sign out. Sign out is a form that posts to `/logout`, never a link: nothing but a click may end a session.
  */
 export function AccountMenu({ account, children }: { account: Account; children: ReactNode }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-60">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="flex flex-col gap-0.5 px-2 py-1.5">
           <span className="truncate text-sm text-foreground">{account.nickname}</span>
           <span className="truncate text-xs">{account.email ?? (account.provider ? `Signed in with ${PROVIDER_NAMES[account.provider]}` : "Demo account")}</span>

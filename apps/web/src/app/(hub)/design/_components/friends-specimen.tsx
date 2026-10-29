@@ -3,14 +3,19 @@
 import { useMemo, useState } from "react"
 import { DEMO_ACCOUNT } from "@pbgo/accounts/demo"
 import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
-import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
+import { Avatar, AvatarCount, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { ChatWindow } from "@pbgo/ui/platform/chat-window"
 import { FriendsBar, FriendsBarList } from "@pbgo/ui/platform/friends-bar"
 import { FriendsPanel, PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { NavbarIsland } from "@pbgo/ui/platform/navbar"
-import { SocialPanel, type SocialTab } from "@pbgo/ui/platform/social-panel"
+import { Separator } from "@pbgo/ui/platform/separator"
+import { SocialDock } from "@pbgo/ui/platform/social-dock"
+import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
 import { gamesOf, type Friend } from "@pbgo/ui/friends"
 import type { Conversation, FriendRequest, Message } from "@pbgo/ui/social"
+
+/** The picture of a game on the hub: its icon in the Notion row of the catalog (an initial on a tile where there is none). */
+const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
 
 const COURTISANS = { slug: "courtisans", name: "Courtisans" }
 const SKULL_KING = { slug: "skull-king", name: "Skull King" }
@@ -38,26 +43,88 @@ export function FriendsSpecimen({ empty = false }: { empty?: boolean }) {
   const nothing = () => {}
   return (
     <div className="h-[34rem] w-full">
-      <FriendsPanel friends={empty ? [] : FRIENDS} onAddFriend={nothing} onInvite={nothing} onJoin={nothing} onShareLink={nothing} />
+      <FriendsPanel friends={empty ? [] : FRIENDS} gameIcon={gameIcon} onAddFriend={nothing} onInvite={nothing} onJoin={nothing} onShareLink={nothing} />
     </div>
   )
 }
 
 /**
- * The friends' bar in a row with the account's island, at the right of a frame that stands for the navbar: left to itself it opens the panel of a game under the
- * pointer, over the page. The buttons do nothing here.
+ * The friends' bar in an island of its own, at the right of a frame that stands for the navbar (the bar draws no container: the dock is the one that holds it on the hub): left to
+ * itself it opens the panel of a game under the pointer, over the page. The buttons do nothing here.
  */
 export function BarSpecimen({ empty = false }: { empty?: boolean }) {
   const nothing = () => {}
   return (
-    <div className="flex h-72 w-full items-start justify-end gap-2 rounded-3xl border bg-card/40 p-6">
-      <FriendsBar friends={empty ? [] : FRIENDS} onJoin={nothing} onShareLink={nothing} />
+    <div className="flex h-72 w-full items-start justify-end rounded-3xl border bg-card/40 p-6">
       <NavbarIsland>
-        <Avatar size="lg">
-          <AvatarImage src={DEMO_ACCOUNT.avatarUrl ?? undefined} alt="" />
-          <AvatarFallback>O</AvatarFallback>
-        </Avatar>
+        <FriendsBar friends={empty ? [] : FRIENDS} gameIcon={gameIcon} onJoin={nothing} onShareLink={nothing} />
       </NavbarIsland>
+    </div>
+  )
+}
+
+/**
+ * The dock in a frame that stands for the page: the container that is the bar of the games, the profile and the social panel at once. The button of the bar opens it into a side
+ * panel and closes it back into the bar, the same element changing between the two (its width, its height and its corners, with the panel fading in under the bar). The buttons of
+ * the panel do nothing here, and its tabs and its search work.
+ */
+export function DockSpecimen() {
+  const nothing = () => {}
+  const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<SocialTab>("friends")
+  const chats = useMemo(() => conversations(), [])
+  return (
+    <div className="relative h-[40rem] w-full overflow-hidden rounded-3xl border bg-card/40">
+      <div className="absolute top-6 right-6">
+        <SocialDock
+          open={open}
+          height={592}
+          bar={
+            <>
+              <FriendsBar
+                friends={FRIENDS}
+                recap={open}
+                onPickGame={(slug) => {
+                  setTab("friends")
+                  window.setTimeout(() => document.querySelector(`[data-slot="social-dock"] [data-game="${slug}"]`)?.scrollIntoView({ block: "start", behavior: "smooth" }), 250)
+                }}
+                gameIcon={gameIcon}
+                onJoin={nothing}
+                onShareLink={nothing}
+              />
+              <Separator orientation="vertical" className="mx-1 h-6 self-center" />
+              <div className="flex items-center gap-1">
+                <button type="button" aria-label="Account of Oré, 3 waiting" className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
+                  <Avatar>
+                    <AvatarImage src={DEMO_ACCOUNT.avatarUrl ?? undefined} alt="" />
+                    <AvatarFallback>O</AvatarFallback>
+                    <AvatarCount count={3} />
+                    <PresenceDot status="online" />
+                  </Avatar>
+                </button>
+                <SocialPanelToggle open={open} aria-controls="design-social-panel" onClick={() => setOpen((value) => !value)} />
+              </div>
+            </>
+          }
+        >
+          <SocialPanel
+            bare
+            id="design-social-panel"
+            tab={tab}
+            onTabChange={setTab}
+            friends={FRIENDS}
+            gameIcon={gameIcon}
+            conversations={chats}
+            requests={REQUESTS}
+            onOpenChat={nothing}
+            onJoin={nothing}
+            onInvite={nothing}
+            onSendRequest={nothing}
+            onAnswerRequest={nothing}
+            onShareLink={nothing}
+          />
+        </SocialDock>
+      </div>
     </div>
   )
 }
@@ -126,9 +193,9 @@ export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: Socia
           </span>
         </div>
       }
-      onClose={nothing}
       defaultTab={tab}
       friends={empty ? [] : FRIENDS}
+      gameIcon={gameIcon}
       conversations={empty ? [] : chats}
       requests={empty ? [] : REQUESTS}
       onOpenChat={nothing}

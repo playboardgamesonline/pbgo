@@ -61,6 +61,29 @@ export function gamesOf(friends: readonly Friend[]): GameFriends[] {
   return [...games.values()].sort((a, b) => b.count - a.count || a.game.name.localeCompare(b.game.name))
 }
 
+/** A group of the roster of friends: a game with the friends who are in it, or friends in no game with the status that they share. */
+export type RosterGroup =
+  | { kind: "game"; key: string; game: FriendGame; friends: Friend[] }
+  | { kind: "status"; key: string; status: FriendStatus; label: string; friends: Friend[] }
+
+/**
+ * The roster of friends, game by game: first each game that some of them are in, the most crowded first and then by name, with all of its friends in one list,
+ * those who wait in its lobby (online, inactive, do not disturb) mixed with those who play it, who come first; then, by status, the friends who are in no game,
+ * and those who are away last. A friend is in one group only, and an empty group is not made.
+ */
+export function rosterOf(friends: readonly Friend[]): RosterGroup[] {
+  const placed = new Set<string>()
+  const groups: RosterGroup[] = gamesOf(friends).map(({ game, playing, online }) => {
+    const members = [...playing, ...online]
+    for (const friend of members) placed.add(friend.id)
+    return { kind: "game", key: `game:${game.slug}`, game, friends: members }
+  })
+  for (const section of sectionsOf(friends.filter((friend) => !placed.has(friend.id)))) {
+    groups.push({ kind: "status", key: `status:${section.status}`, status: section.status, label: section.label, friends: section.friends })
+  }
+  return groups
+}
+
 /**
  * A list of friends cut into the tables they are at: the ones who share a table come together under it, tables in the order of their first friend, and the ones at
  * no table stand together last, with no table.

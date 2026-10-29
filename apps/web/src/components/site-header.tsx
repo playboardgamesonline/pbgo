@@ -40,7 +40,7 @@ function currentOf(pathname: string): SiteCurrent | null {
  * The hub's layout mounts it once, and it reads the address to know what is current: the page does not say. That is what lets the fill behind
  * the current item glide from one to the next when the visitor goes from page to page, which a bar that every page drew again could not do.
  * The account is on the right: Sign in (to `/login`, which brings the visitor back to this page) and Let's play (a placeholder for now), or, once the
- * browser has read a session, the visitor's picture, which opens their social panel (`SiteSocial`: the bar of the games their friends are in on its left, the friends, the messages and the requests in the panel).
+ * browser has read a session, the dock of their friends (`SiteSocial`: one container that is a bar, with the games their friends are in, their picture and the button of the panel, and that grows into a side panel, with the friends, the messages and the requests).
  * The server renders every page as if nobody were signed in, so the static pages stay static; while the browser has not read its session the two buttons keep
  * their place but are not drawn, so a signed-in visitor never sees them flash.
  */

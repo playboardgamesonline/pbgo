@@ -3,6 +3,7 @@
 import * as React from "react"
 import { cn } from "../utils"
 import { Avatar as AvatarPrimitive } from "radix-ui"
+import { Badge } from "./badge"
 
 function Avatar({
   className,
@@ -72,6 +73,19 @@ function AvatarBadge({ className, ...props }: React.ComponentProps<"span">) {
   )
 }
 
+/**
+ * What waits for the person the picture is (messages not read, requests to answer), as a count on its top right corner, outlined in the colour of the page so that it stands clear of the
+ * picture, as `AvatarBadge` is at the bottom right. Nothing is drawn for 0, and a count over 99 says so.
+ */
+function AvatarCount({ count, className, ...props }: Omit<React.ComponentProps<typeof Badge>, "children"> & { count: number }) {
+  if (count <= 0) return null
+  return (
+    <Badge data-slot="avatar-count" className={cn("absolute -top-1 -right-1 z-10 h-4 min-w-4 justify-center px-1 ring-2 ring-background", className)} {...props}>
+      {count > 99 ? "99+" : count}
+    </Badge>
+  )
+}
+
 function AvatarGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -108,4 +122,5 @@ export {
   AvatarGroup,
   AvatarGroupCount,
   AvatarBadge,
+  AvatarCount,
 }

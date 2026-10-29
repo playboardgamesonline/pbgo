@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Link01Icon, Search01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { activityLine, initials, sectionsOf, type Friend, type FriendStatus } from "../friends"
+import { initials, rosterOf, type Friend, type FriendStatus } from "../friends"
 import { fold } from "../match-options"
 import { cn } from "../utils"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "./avatar"
@@ -11,8 +11,8 @@ import { Badge } from "./badge"
 import { Button } from "./button"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 
-// The friends of a signed-in visitor, as a list for a page or a panel: who is playing and where, who is online, who is not, a search among them, and the way to
-// add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
+// The friends of a signed-in visitor, as a list for a page or a panel: game by game (the picture of the game, its name and how many friends are in it, those who wait in its
+// lobby and those who play it in one list), then those who are in no game by status, a search among them, and the way to add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
 // and what a press does are the page's. A status is a shape, a colour and a word, never the colour alone: a green disc (active), a blue disc with a play knocked out of
 // it (playing), an orange-yellow moon (inactive), a red disc with a bar knocked out of it (do not disturb), a thick grey ring (offline). Only the dot is coloured
 // (`--presence-online`, `--presence-playing`, `--presence-inactive`, `--presence-dnd`, the hues of the platform besides destructive): the line under the name is quiet text. The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
@@ -32,20 +32,21 @@ const MOON = "M12.542 1.013A11 11 0 1 1 1.013 12.542 8.2 8.2 0 1 0 12.542 1.013Z
 /**
  * The dot on the corner of a picture, five shapes so that a colour is never alone: a green disc for a friend who is online (active), a blue disc with a play knocked
  * out of it for one in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and
- * a thick grey ring for one who is away. Its size follows the picture's. The outline of that ring is a quarter of the dot (3px of 12, 2px on a small picture and 4px on a
- * large one), like Discord's invisible, and not a hairline.
+ * a thick grey ring for one who is away. Its size follows the picture's and is small (8px on a small picture, 10px on a medium one, 12px on a large one): it stands in the bottom
+ * right corner of the picture, so a smaller dot recedes towards that corner, and a ring of the colour of the page, 3px (2px on a small picture), cuts it out of the picture. The outline
+ * of the offline ring is a quarter of the dot (2px of 8, 3px of 10 and of 12), like Discord's invisible, and not a hairline.
  */
 function PresenceDot({ status }: { status: FriendStatus }) {
   return (
     <AvatarBadge
       data-status={status}
       className={cn(
-        "p-0 group-data-[size=sm]/avatar:size-2.5 group-data-[size=default]/avatar:size-3 group-data-[size=lg]/avatar:size-3.5",
+        "p-0 ring-3 group-data-[size=sm]/avatar:ring-2",
         status === "online" && "bg-presence-online",
         status === "playing" && "bg-background text-presence-playing",
         status === "inactive" && "bg-background text-presence-inactive",
         status === "dnd" && "bg-background text-presence-dnd",
-        status === "offline" && "border-3 border-muted-foreground bg-background group-data-[size=sm]/avatar:border-2 group-data-[size=lg]/avatar:border-4",
+        status === "offline" && "border-3 border-muted-foreground bg-background group-data-[size=sm]/avatar:border-2",
       )}
     >
       {status === "playing" && (
@@ -73,6 +74,16 @@ function PresenceDot({ status }: { status: FriendStatus }) {
   )
 }
 
+/** The picture of a game, or the initial of its name on a tile. Rounded like the rest (`rounded-md` at this size) and never a circle: only the picture of a person is round. */
+function GameIcon({ name, src, className }: { name: string; src?: string; className?: string }) {
+  return (
+    <Avatar className={cn("size-6 rounded-md after:hidden", className)}>
+      {src && <AvatarImage src={src} alt="" className="rounded-md" />}
+      <AvatarFallback className="rounded-md text-xs">{initials(name).slice(0, 1)}</AvatarFallback>
+    </Avatar>
+  )
+}
+
 function FriendRow({
   friend,
   onInvite,
@@ -84,8 +95,11 @@ function FriendRow({
   onJoin?: (friend: Friend) => void
   onOpen?: (friend: Friend) => void
 }) {
-  const act = friend.status === "playing" ? onJoin : friend.status === "online" ? onInvite : undefined
-  const line = activityLine(friend)
+  // A friend who plays can be joined, so can one who waits at a table that has room; one who is online anywhere else can be invited
+  const joinable = friend.status === "playing" || (friend.status === "online" && friend.table !== undefined && friend.table.size < friend.table.max)
+  const act = joinable ? onJoin : friend.status === "online" ? onInvite : undefined
+  // The game is said by the group the friend is in, so the line says only what they are doing
+  const line = friend.activity
   const who = (
     <>
       <Avatar>
@@ -131,7 +145,7 @@ function FriendRow({
           className="shrink-0 opacity-0 group-hover/friend:opacity-100 focus-visible:opacity-100 group-focus-within/friend:opacity-100 [@media(hover:none)]:opacity-100"
           onClick={() => act(friend)}
         >
-          {friend.status === "playing" ? "Join" : "Invite"}
+          {joinable ? "Join" : "Invite"}
         </Button>
       )}
     </li>
@@ -139,12 +153,15 @@ function FriendRow({
 }
 
 /**
- * The list of the friends with the search above it: the three sections (in a game, online, offline: an empty one is not drawn, each headed by its word and how
- * many are in it), a row each with the picture and the dot of their presence, their name and what they are doing. It scrolls its list, without a scrollbar, so a
- * parent gives it a height. With no friends it says so. A row is a button when the list can open a conversation (`onOpen`).
+ * The list of the friends with the search above it, game by game (`rosterOf`): each game that some friends are in is headed by its picture, its name and how many
+ * are in it, with all of them under it, those who wait in its lobby and those who play it, and then the friends who are in no game come by status (online,
+ * inactive, do not disturb, away; an empty group is not drawn), each headed by its word and its count. A row has the picture and the dot of the friend's presence,
+ * their name and what they are doing. It scrolls its list, without a scrollbar, so a parent gives it a height. With no friends it says so. A row is a button when the
+ * list can open a conversation (`onOpen`).
  */
 function FriendsRoster({
   friends,
+  gameIcon,
   onInvite,
   onJoin,
   onOpen,
@@ -152,6 +169,8 @@ function FriendsRoster({
   ...props
 }: Omit<React.ComponentProps<"div">, "children"> & {
   friends: readonly Friend[]
+  /** The picture of a game, from its slug; the initial of its name is drawn where there is none or it does not load. */
+  gameIcon?: (slug: string) => string | undefined
   /** What the button of a friend who is online does. */
   onInvite?: (friend: Friend) => void
   /** What the button of a friend who is in a game does. */
@@ -183,18 +202,23 @@ function FriendsRoster({
         ) : shown.length === 0 ? (
           <p className="px-2 py-6 text-center text-sm text-muted-foreground">No friend matches.</p>
         ) : (
-          sectionsOf(shown).map(({ status, label, friends: section }) => (
-            <section key={status} aria-label={label} className="mb-3 last:mb-0">
-              <h3 className="px-2.5 pb-1 text-sm text-foreground">
-                {label} <span className="text-muted-foreground">{section.length}</span>
-              </h3>
-              <ul className="flex flex-col">
-                {section.map((friend) => (
-                  <FriendRow key={friend.id} friend={friend} onInvite={onInvite} onJoin={onJoin} onOpen={onOpen} />
-                ))}
-              </ul>
-            </section>
-          ))
+          rosterOf(shown).map((group) => {
+            const name = group.kind === "game" ? group.game.name : group.label
+            return (
+              <section key={group.key} aria-label={name} data-game={group.kind === "game" ? group.game.slug : undefined} className="mb-3 scroll-mt-1 last:mb-0">
+                <h3 className="flex items-center gap-2 px-2.5 pb-1 text-sm text-foreground">
+                  {group.kind === "game" && <GameIcon name={group.game.name} src={gameIcon?.(group.game.slug)} className="size-5" />}
+                  <span className="truncate">{name}</span>
+                  <span className="text-muted-foreground tabular-nums">{group.friends.length}</span>
+                </h3>
+                <ul className="flex flex-col">
+                  {group.friends.map((friend) => (
+                    <FriendRow key={friend.id} friend={friend} onInvite={onInvite} onJoin={onJoin} onOpen={onOpen} />
+                  ))}
+                </ul>
+              </section>
+            )
+          })
         )}
       </div>
     </div>
@@ -207,6 +231,7 @@ function FriendsRoster({
  */
 function FriendsPanel({
   friends,
+  gameIcon,
   onAddFriend,
   onInvite,
   onJoin,
@@ -216,6 +241,8 @@ function FriendsPanel({
   ...props
 }: Omit<React.ComponentProps<"aside">, "children"> & {
   friends: readonly Friend[]
+  /** The picture of a game, from its slug, for the heads of the list. */
+  gameIcon?: (slug: string) => string | undefined
   /** The header's button: add a friend by their nickname. Not drawn without it. */
   onAddFriend?: () => void
   /** What the button of a friend who is online does. */
@@ -246,7 +273,7 @@ function FriendsPanel({
         )}
       </header>
 
-      <FriendsRoster friends={friends} onInvite={onInvite} onJoin={onJoin} />
+      <FriendsRoster friends={friends} gameIcon={gameIcon} onInvite={onInvite} onJoin={onJoin} />
 
       {onShareLink && (
         <Button type="button" variant="outline" size="lg" className="w-full" onClick={onShareLink}>
@@ -258,4 +285,4 @@ function FriendsPanel({
   )
 }
 
-export { FriendsPanel, FriendsRoster, PresenceDot }
+export { FriendsPanel, FriendsRoster, GameIcon, PresenceDot }
