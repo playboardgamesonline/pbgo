@@ -491,18 +491,26 @@
   &[data-kind="coin"] [data-face="tails"] {
     transform: rotateX(180deg);
   }
-  /* The suits of a deck, one over the other in the place of an "o": two layers that `TitleSuits` places (the one that is shown, and the one that comes in), a red one and a black one in turn, the heart first */
+  /* The suits of a deck, one over the other in the place of an "o": a window as big as one suit (the suit is drawn 120% of the piece, so the window is the piece and a tenth round it) that a strip of them scrolls through, a
+     red one and a black one in turn, repeating every four (`TitleSuits` moves it, a wheel); the places of the strip are 0.7em high and 0.2em apart, as `PITCH` of the component says */
   &[data-kind="suits"] {
     width: 0.62em;
     height: 0.58em;
     vertical-align: -0.005em;
+    clip-path: inset(-10%);
   }
-  &[data-kind="suits"] > [data-slot="suit-layer"] {
+  &[data-kind="suits"] > [data-slot="suit-strip"] {
     position: absolute;
     left: -10%;
     top: -10%;
     width: 120%;
-    height: 120%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2em;
+  }
+  &[data-kind="suits"] [data-slot="suit-place"] {
+    display: block;
+    height: 0.7em;
   }
   &[data-kind="suits"] [data-slot="suit"] {
     display: block;

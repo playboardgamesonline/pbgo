@@ -1,88 +1,67 @@
 "use client"
 
 import * as React from "react"
-import { animate, motion, useMotionValue, useReducedMotion, useTransform, type AnimationPlaybackControls, type MotionValue } from "motion/react"
+import { animate, motion, useMotionValue, useReducedMotion, useTransform, useVelocity, type AnimationPlaybackControls } from "motion/react"
 import { PLAYFUL } from "../motion"
 import { Suit, type SuitName } from "./suits"
 
-// The suits of the home's title, one in the place of an "o": the suit that is shown pops into the next one, every fifteen seconds, the first change eleven seconds after the page is shown (`PLAYFUL.suit`): the one
-// that is shown shrinks, rises a little and fades, and the next grows from small, turned and low to its place on a spring. They come in turn a red one and a black one, the heart first: the one that a visitor who asks
-// for less motion keeps, for whom nothing moves. Two layers take turns: the one that comes in is not seen yet, so it takes the next suit without anyone seeing it change.
+// The suits of the home's title, one in the place of an "o": a wheel, like the reel of a slot machine (`PLAYFUL.suit`). Every fifteen seconds, the first time eleven seconds after the page is shown, it scrolls up through
+// the suits, a red one and a black one in turn, fast at first and slower and slower, stretched at speed as a blur would be, goes a little past its stop and settles back on a spring, on a suit that chance chooses (never the
+// one that was shown). The heart is the one it starts on, and the one that a visitor who asks for less motion keeps, for whom nothing moves. The wheel is one strip of suits that repeats every four, longer than
+// the longest turn, behind a window as big as one suit (the stylesheet clips it); once it has stopped it is put back at the start of its pattern, which looks the same.
 
 const SUITS: readonly SuitName[] = ["heart", "spade", "diamond", "club"]
 
-/** What places one of the two suits: how far it is from its place (in ems, up being negative), how big, how turned, how clear. */
-type Layer = { y: MotionValue<number>; s: MotionValue<number>; r: MotionValue<number>; o: MotionValue<number> }
+/** How many suits the strip has: more than the longest turn plus the four it may start from. */
+const PLACES = 24
 
-function useLayer(clear: number): Layer {
-  const y = useMotionValue(0)
-  const s = useMotionValue(1)
-  const r = useMotionValue(0)
-  const o = useMotionValue(clear)
-  // One object for as long as the piece lives: the effect that changes the suits starts over when what it plays with changes
-  return React.useMemo(() => ({ y, s, r, o }), [y, s, r, o])
-}
+/** The distance between two suits of the strip, in ems: the height of one (0.7) and a gap (0.2). The stylesheet lays them out the same. */
+const PITCH = 0.9
 
-function SuitLayer({ layer, suit }: { layer: Layer; suit: SuitName }) {
-  const y = useTransform(layer.y, (ems) => `${ems}em`)
-  return (
-    <motion.span data-slot="suit-layer" style={{ y, scale: layer.s, rotate: layer.r, opacity: layer.o }}>
-      <Suit suit={suit} />
-    </motion.span>
-  )
-}
-
-/** `first`: how long the page waits for the first change, and `every`: how long there is between two, in milliseconds. */
-function TitleSuits({ first: wait = 11000, every = 15000 }: { first?: number; every?: number }) {
+/** `first`: how long the page waits for the first turn, and `every`: how long there is between two, in milliseconds. */
+function TitleSuits({ first = 11000, every = 15000 }: { first?: number; every?: number }) {
   const reduced = useReducedMotion()
-  const first = useLayer(1)
-  const second = useLayer(0)
-  const [shown, setShown] = React.useState<readonly [number, number]>([0, 1])
+  const place = useMotionValue(0)
+  const y = useTransform(place, (places) => `${-places * PITCH}em`)
+  const { stretch, maxStretch } = PLAYFUL.suit.wheel
+  const longer = useTransform(useVelocity(place), (speed) => 1 + Math.min(Math.abs(speed) * stretch, maxStretch))
 
   React.useEffect(() => {
     if (reduced) return
     let timer: ReturnType<typeof setTimeout> | undefined
-    let running: AnimationPlaybackControls[] = []
-    let step = 0
-    const { leave, enter } = PLAYFUL.suit
+    let running: AnimationPlaybackControls | undefined
+    let stopped = false
+    const { ease, secondsAPlace, min, max, overshoot, settle } = PLAYFUL.suit.wheel
 
-    const change = () => {
-      const firstIsOut = step % 2 === 0
-      const out = firstIsOut ? first : second
-      const coming = firstIsOut ? second : first
-      const next = (step + 1) % SUITS.length
-      setShown((current) => (firstIsOut ? [current[0], next] : [next, current[1]]))
-      coming.y.set(enter.from.drop)
-      coming.s.set(enter.from.scale)
-      coming.r.set(enter.from.rotate)
-      coming.o.set(0)
-      const away = { duration: leave.seconds, ease: leave.ease }
-      const pop = { ...enter.spring, delay: enter.delay }
-      running = [
-        animate(out.o, 0, away),
-        animate(out.s, leave.scale, away),
-        animate(out.y, -leave.rise, away),
-        animate(coming.o, 1, { duration: enter.fade, delay: enter.delay }),
-        animate(coming.s, 1, pop),
-        animate(coming.y, 0, pop),
-        animate(coming.r, 0, pop),
-      ]
-      step += 1
-      timer = setTimeout(change, every)
+    const turn = async () => {
+      timer = setTimeout(turn, every)
+      // Back to the start of the pattern: it repeats every four places, so nothing moves
+      const from = place.get() % SUITS.length
+      place.set(from)
+      let places = min + Math.floor(Math.random() * (max - min + 1))
+      if (places % SUITS.length === 0) places += 1
+      running = animate(place, from + places + overshoot, { duration: places * secondsAPlace * (0.9 + Math.random() * 0.2), ease })
+      await running
+      if (stopped) return
+      running = animate(place, from + places, settle)
     }
 
-    timer = setTimeout(change, wait)
+    timer = setTimeout(turn, first)
     return () => {
+      stopped = true
       if (timer) clearTimeout(timer)
-      running.forEach((controls) => controls.stop())
+      running?.stop()
     }
-  }, [reduced, first, second, wait, every])
+  }, [reduced, place, first, every])
 
   return (
-    <>
-      <SuitLayer layer={first} suit={SUITS[shown[0]]} />
-      <SuitLayer layer={second} suit={SUITS[shown[1]]} />
-    </>
+    <motion.span data-slot="suit-strip" aria-hidden="true" style={{ y }}>
+      {Array.from({ length: PLACES }, (_, index) => (
+        <motion.span key={index} data-slot="suit-place" style={{ scaleY: longer }}>
+          <Suit suit={SUITS[index % SUITS.length]} />
+        </motion.span>
+      ))}
+    </motion.span>
   )
 }
 

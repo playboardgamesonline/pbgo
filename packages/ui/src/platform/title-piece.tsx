@@ -6,7 +6,7 @@ import { TitleSuits } from "./title-suits"
 
 // What stands for a letter or an ornament in the home's title, in the pieces of a game table (the utilities `title-piece` and `title-cards` of `styles/platform.css`, sized in `em` so they follow the title and set on
 // its baseline): a die, a coin or the suits of a deck of cards for an "o", and two dark blue playing cards, the backs of a deck, that overlap between two words. They play, and not often (`PLAYFUL` of `@pbgo/ui/motion`,
-// chosen on `/design`): the die rolls from the left to the right every fifteen seconds for 3, 4 or 5 turns (`TitleDie`), the suit pops into the next one every fifteen seconds, a red one and a black one in turn
+// chosen on `/design`): the die rolls from the left to the right every fifteen seconds for 3, 4 or 5 turns (`TitleDie`), the suits scroll up like a wheel to a random one every fifteen seconds, a red one and a black one in turn
 // (`TitleSuits`), and the coin is tossed now and then for 5 or 6 turns (`TitleCoin`); a visitor who asks for less motion gets them still, the die on its five, the suit a heart and the coin on its profile. The letter a piece
 // stands for stays in the page, for a screen reader and a search engine (`sr-only`), so the title reads as it is written; the cards stand for no letter, so they are `aria-hidden`.
 

@@ -8,7 +8,7 @@ import { TitleCoin } from "@pbgo/ui/platform/title-coin"
 import { TitleDie } from "@pbgo/ui/platform/title-die"
 import { TitleSuits } from "@pbgo/ui/platform/title-suits"
 
-// The three moves of the pieces of the home's title that were chosen here (the die: an expo snap; the coin: a toss pulse; the suits: a pop), among five each, and calmed a little. The pieces are the real ones,
+// The three moves of the pieces of the home's title that were chosen here (the die: an expo snap; the coin: a toss pulse; the suits: a wheel), among five each, and calmed a little. The pieces are the real ones,
 // the same that the home mounts, at a faster tempo so that they can be watched (a roll every few seconds instead of every fifteen), and the values written under them are read from `PLAYFUL` of `@pbgo/ui/motion`,
 // which the pieces read too: there is one place to change them. "Replay" mounts the piece again, which plays it at once.
 
@@ -25,7 +25,8 @@ type Move = {
   stage: React.ReactNode
 }
 
-const { die, coin, suit } = PLAYFUL
+const { die, coin } = PLAYFUL
+const { wheel } = PLAYFUL.suit
 
 const MOVES: readonly Move[] = [
   {
@@ -67,17 +68,18 @@ const MOVES: readonly Move[] = [
   },
   {
     id: "suit",
-    name: "The suits: a pop",
-    note: "No reel: the suit that is shown shrinks, rises a little and fades, and the next pops in from small, turned and low, on a springy overshoot. A red one and a black one in turn. Every 15 s on the home, every 3 s here.",
+    name: "The suits: a wheel",
+    note: "Scrolls up like the reel of a slot machine, through the suits in turn (a red one, a black one), fast at first and slower and slower, stretched at speed, a little past its stop and back on a spring, and stops on a random suit, never the one that was shown. Every 15 s on the home, every 5 s here.",
     specs: [
-      ["out", `${bezier(suit.leave.ease)} · ${suit.leave.seconds} s · scale → ${suit.leave.scale} · ${suit.leave.rise}em up · fades`],
-      ["in", `after ${suit.enter.delay} s · from scale ${suit.enter.from.scale}, ${suit.enter.from.rotate}°, ${suit.enter.from.drop}em low · clear in ${suit.enter.fade} s · ${spring(suit.enter.spring)}`],
+      ["turn", `${wheel.min} to ${wheel.max} places, at random, never a whole turn of the four · ${bezier(wheel.ease)} · ${wheel.secondsAPlace} s a place`],
+      ["stretch", `scale y 1 + ${wheel.stretch} a place a second, ${wheel.maxStretch} at most`],
+      ["stop", `${wheel.overshoot} of a place past, then ${spring(wheel.settle)}`],
     ],
     stage: (
       <>
         v
         <span data-slot="title-piece" data-kind="suits" className="title-piece">
-          <TitleSuits first={400} every={3000} />
+          <TitleSuits first={400} every={5000} />
         </span>
         r
       </>

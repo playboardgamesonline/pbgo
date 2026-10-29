@@ -10,7 +10,7 @@ export const EASE_STANDARD = [0.2, 0, 0, 1] as const
 
 /**
  * How the pieces of the home's title play, chosen on `/design` (section `playful-motion`) among five ways each, and calmed a little after that: a die that rolls (`TitleDie`), a coin that is tossed
- * (`TitleCoin`) and a suit that pops into the next (`TitleSuits`). The platform's own motion is calm on purpose (the durations and the easing above); this is where it may play, and nowhere else. A piece
+ * (`TitleCoin`) and a wheel of suits (`TitleSuits`). The platform's own motion is calm on purpose (the durations and the easing above); this is where it may play, and nowhere else. A piece
  * gets a curve, the seconds that a turn takes, and what it adds to the turn: a swell, a dip, a landing, a pop. Seconds, and degrees; `em` for a distance, so that it follows the size of the title.
  */
 export const PLAYFUL = {
@@ -22,12 +22,12 @@ export const PLAYFUL = {
    */
   coin: { ease: [0.65, 0, 0.35, 1], secondsATurn: 0.9, dip: 0.95, swell: 1.12, squash: 0.94, landing: { type: "spring", stiffness: 320, damping: 14 } },
   /**
-   * A suit: the one that is shown shrinks to `scale`, rises by `rise` and fades in `seconds`, and the one that comes in, after `delay`, grows from `from.scale`, turned by `from.rotate` degrees and
-   * `from.drop` low, to its place on a spring (and is clear in `fade` seconds): no reel, a pop.
+   * The suits: a wheel, like the reel of a slot machine, that scrolls up through the four suits (a red one and a black one in turn) and stops on a random one: from `min` to `max` places (never a whole turn of the four,
+   * so it never stops where it was), `secondsAPlace` each on average, with a long ease-out, a little past its stop (`overshoot`, in places) and back on a spring (`settle`). At speed the suits are stretched (`stretch` a
+   * place a second, at most `maxStretch`), as a blur would.
    */
   suit: {
-    leave: { seconds: 0.34, ease: [0.5, 0, 1, 0.5], scale: 0.3, rise: 0.2 },
-    enter: { delay: 0.16, fade: 0.14, from: { scale: 0.3, rotate: -18, drop: 0.14 }, spring: { type: "spring", stiffness: 320, damping: 17 } },
+    wheel: { ease: [0.12, 0.75, 0.2, 1], secondsAPlace: 0.17, min: 9, max: 17, overshoot: 0.14, settle: { type: "spring", stiffness: 240, damping: 15 }, stretch: 0.012, maxStretch: 0.35 },
   },
 } as const
 

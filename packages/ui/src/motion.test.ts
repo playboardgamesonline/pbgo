@@ -27,13 +27,13 @@ describe("motion tokens", () => {
   })
 
   it("gives the playful pieces curves that can be drawn (a bezier has its x between 0 and 1) and springs that still wobble but settle", () => {
-    for (const curve of [PLAYFUL.die.ease, PLAYFUL.coin.ease, PLAYFUL.suit.leave.ease]) {
+    for (const curve of [PLAYFUL.die.ease, PLAYFUL.coin.ease, PLAYFUL.suit.wheel.ease]) {
       expect(curve[0]).toBeGreaterThanOrEqual(0)
       expect(curve[0]).toBeLessThanOrEqual(1)
       expect(curve[2]).toBeGreaterThanOrEqual(0)
       expect(curve[2]).toBeLessThanOrEqual(1)
     }
-    for (const spring of [PLAYFUL.coin.landing, PLAYFUL.suit.enter.spring]) {
+    for (const spring of [PLAYFUL.coin.landing, PLAYFUL.suit.wheel.settle]) {
       const ratio = spring.damping / (2 * Math.sqrt(spring.stiffness))
       expect(ratio).toBeGreaterThan(0.2)
       expect(ratio).toBeLessThan(1)
