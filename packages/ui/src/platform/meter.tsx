@@ -12,13 +12,15 @@ type MeterProps = Omit<React.ComponentProps<"div">, "children" | "onChange"> & {
   levels?: number
   /** The level the bars are filled up to, null for none. */
   value: number | null
-  /** Called with the level of the bar that is pressed, or with null when it is the level that is picked: pressing it again clears it. */
+  /** Called with the level of the bar that is pressed, or with null when it is the level that is picked: pressing it again clears it (unless it is not `clearable`). */
   onValueChange: (next: number | null) => void
+  /** Whether pressing the level that is picked clears it. Off for a scale that always has a level: pressing the picked level then does nothing. On by default. */
+  clearable?: boolean
   /** What a screen reader hears for the bar of a level ("Up to 3 of 5"), and what a pointer shows over it. */
   levelLabel: (level: number) => string
 }
 
-function Meter({ className, levels = 5, value, onValueChange, levelLabel, ...props }: MeterProps) {
+function Meter({ className, levels = 5, value, onValueChange, clearable = true, levelLabel, ...props }: MeterProps) {
   // The level under the pointer, for the faint fill that comes before the press. A touch has no hover, so only a mouse sets it.
   const [preview, setPreview] = React.useState<number | null>(null)
   return (
@@ -35,7 +37,10 @@ function Meter({ className, levels = 5, value, onValueChange, levelLabel, ...pro
             aria-label={levelLabel(level)}
             aria-pressed={level === value}
             title={levelLabel(level)}
-            onClick={() => onValueChange(level === value ? null : level)}
+            onClick={() => {
+              if (level !== value) onValueChange(level)
+              else if (clearable) onValueChange(null)
+            }}
             onPointerEnter={(event) => {
               if (event.pointerType === "mouse") setPreview(level)
             }}

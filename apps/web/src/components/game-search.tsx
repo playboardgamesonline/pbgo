@@ -57,8 +57,8 @@ function writeAddress(filter: GameFilter) {
  * happens in the browser on the index that the page sends with the cards, so nothing is asked of the server, the home stays static, and the
  * HTML of the page lists every game. The children are the page's own markup and stay server-rendered: only the components that read the
  * search draw again when it changes.
- * The picks are in the address of the page (`?category=Cards&players=6&duration=30&complexity=2&age=10`: the number of players and the age start on 4
- * and 8+ and are left out until they change), so that a link opens the list as it was left. The
+ * The picks are in the address of the page (`?category=Cards&players=6&duration=30&complexity=2&age=10`: the picks start on 4 players, 20′, level 3
+ * and 8+ and are left out until they change, and no limit on the duration is `duration=any`), so that a link opens the list as it was left. The
  * text of the search is not: the address goes to analytics with every event, and what a visitor types is theirs. See docs/catalog.md.
  */
 export function GameSearch({ games, children }: { games: readonly SearchedGame[]; children: ReactNode }) {

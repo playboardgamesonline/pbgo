@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest"
 import { buildCatalog } from "./catalog"
 import {
   AGE_LIMITS,
+  ANY_DURATION,
   COMPLEXITY_LEVELS,
   DEFAULT_AGE,
+  DEFAULT_COMPLEXITY,
+  DEFAULT_DURATION,
   DEFAULT_FILTER,
   DEFAULT_PLAYERS,
   DURATION_LIMITS,
@@ -148,10 +151,12 @@ describe("the options", () => {
     expect(AGE_LIMITS).toEqual([6, 8, 10, 12, 14, 18])
   })
 
-  it("starts on a table of four and a youngest player of 8, each one of its own options", () => {
+  it("starts on a table of four, games of 20 minutes at most, up to level 3 and a youngest player of 8, each one of its own options", () => {
     expect(PLAYER_COUNTS).toContain(DEFAULT_PLAYERS)
+    expect(DURATION_LIMITS).toContain(DEFAULT_DURATION)
+    expect(COMPLEXITY_LEVELS).toContain(DEFAULT_COMPLEXITY)
     expect(AGE_LIMITS).toContain(DEFAULT_AGE)
-    expect(DEFAULT_FILTER).toEqual({ ...NO_FILTER, players: 4, age: 8 })
+    expect(DEFAULT_FILTER).toEqual({ ...NO_FILTER, players: 4, duration: 20, complexity: 3, age: 8 })
   })
 
   it("finds the option that a text spells exactly, else none", () => {
@@ -497,7 +502,7 @@ describe("filterGames", () => {
       [5, []],
       [10, []],
       [15, ["solo-quest"]],
-      [20, ["flip-7", "solo-quest"]],
+      [20, ["tichu", "flip-7", "solo-quest", "time-bomb", "zen"]],
       [25, ["flip-7", "hanabi", "solo-quest"]],
       [30, ["courtisans", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
       [45, ["courtisans", "skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
@@ -516,9 +521,17 @@ describe("filterGames", () => {
       expect(kept({ duration: 15 })).not.toContain("courtisans")
     })
 
-    it("leaves out a game that does not say its duration", () => {
+    it("leaves out a game that does not say its duration, for any other limit than the one the filter starts on", () => {
       const fits = kept({ duration: 45 })
       for (const slug of ["tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
+    })
+
+    it("keeps the games that do not say their duration at 20 minutes, since 20 is where the filter starts, and at no other limit", () => {
+      for (const slug of ["tichu", "time-bomb", "zen"]) {
+        expect(kept({ duration: DEFAULT_DURATION })).toContain(slug)
+        expect(kept({ duration: 15 })).not.toContain(slug)
+        expect(kept({ duration: 25 })).not.toContain(slug)
+      }
     })
   })
 
@@ -526,7 +539,7 @@ describe("filterGames", () => {
     it.each<[number, string[]]>([
       [1, ["skyjo", "6-nimmt", "flip-7"]],
       [2, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night"]],
-      [3, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "millers-hollow"]],
+      [3, ["courtisans", "skyjo", "tichu", "6-nimmt", "flip-7", "hanabi", "mystery-night", "time-bomb", "millers-hollow", "zen"]],
       [4, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "millers-hollow"]],
       [5, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
     ])("keeps the games of level %i or lighter: those whose weight rounds to that or less", (complexity, expected) => {
@@ -539,9 +552,17 @@ describe("filterGames", () => {
       expect(kept({ complexity: 2 })).not.toContain("millers-hollow")
     })
 
-    it("leaves out a game that does not say its weight", () => {
+    it("leaves out a game that does not say its weight, for any other level than the one the filter starts on", () => {
       const fits = kept({ complexity: 5 })
       for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
+    })
+
+    it("keeps the games that do not say their weight at level 3, since 3 is where the filter starts, and at no other level", () => {
+      for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) {
+        expect(kept({ complexity: DEFAULT_COMPLEXITY })).toContain(slug)
+        expect(kept({ complexity: 2 })).not.toContain(slug)
+        expect(kept({ complexity: 4 })).not.toContain(slug)
+      }
     })
   })
 
@@ -594,6 +615,7 @@ describe("isFiltered", () => {
     expect(isFiltered({ ...DEFAULT_FILTER, categories: ["Cards"] })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, players: 3 })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, duration: 15 })).toBe(true)
+    expect(isFiltered({ ...DEFAULT_FILTER, duration: null })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, complexity: 1 })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, age: 6 })).toBe(true)
   })
@@ -612,7 +634,7 @@ describe("filterFromParams", () => {
 
   it("starts where the filter starts for a link with no parameter", () => {
     expect(read("")).toEqual(DEFAULT_FILTER)
-    expect(read("players=4&age=8")).toEqual(DEFAULT_FILTER)
+    expect(read("players=4&duration=20&complexity=3&age=8")).toEqual(DEFAULT_FILTER)
   })
 
   it("reads each pick", () => {
@@ -625,6 +647,8 @@ describe("filterFromParams", () => {
       age: 10,
     })
     expect(read(`players=${MANY_PLAYERS}`).players).toBe(MANY_PLAYERS)
+    expect(read(`duration=${ANY_DURATION}`).duration).toBeNull()
+    expect(ANY_DURATION).toBe("any")
   })
 
   it("reads a category for each time the link names it, in the order of the link, each once", () => {
@@ -646,11 +670,11 @@ describe("filterFromParams", () => {
     for (const bad of ["players=0", "players=9", "players=04", "players=4.0", "players=-1", "players=1e1", "players=four", "players="]) {
       expect(read(bad).players).toBe(DEFAULT_PLAYERS)
     }
-    for (const bad of ["duration=0", "duration=7", "duration=60", "duration=030", "duration=30min", "duration=-30", "duration=30-60", "duration="]) {
-      expect(read(bad).duration).toBeNull()
+    for (const bad of ["duration=0", "duration=7", "duration=60", "duration=030", "duration=30min", "duration=-30", "duration=30-60", "duration=Any", "duration="]) {
+      expect(read(bad).duration).toBe(DEFAULT_DURATION)
     }
     for (const bad of ["complexity=0", "complexity=6", "complexity=03", "complexity=2.5", "complexity=heavy", "complexity="]) {
-      expect(read(bad).complexity).toBeNull()
+      expect(read(bad).complexity).toBe(DEFAULT_COMPLEXITY)
     }
     for (const bad of ["age=0", "age=7", "age=08", "age=8.0", "age=eight", "age="]) expect(read(bad).age).toBe(DEFAULT_AGE)
   })
@@ -676,24 +700,27 @@ describe("filterFromParams", () => {
 describe("filterToParams", () => {
   it("is empty where the filter starts: the link to the list as it opens is the hub's", () => {
     expect(filterToParams(DEFAULT_FILTER).toString()).toBe("")
-    expect(filterToParams(NO_FILTER).toString()).toBe("")
+    // No limit on the duration is not where the filter starts
+    expect(filterToParams(NO_FILTER).toString()).toBe("duration=any")
   })
 
-  it("leaves out the starting picks, 4 players and 8+, and writes the others", () => {
+  it("leaves out the starting picks, 4 players, 20′, level 3 and 8+, and writes the others", () => {
     expect(filterToParams({ ...DEFAULT_FILTER, categories: ["Cards"] }).toString()).toBe("category=Cards")
     expect(filterToParams({ ...DEFAULT_FILTER, players: 5, age: 10 }).toString()).toBe("players=5&age=10")
+    expect(filterToParams({ ...DEFAULT_FILTER, duration: 45, complexity: 2 }).toString()).toBe("duration=45&complexity=2")
+    expect(filterToParams({ ...DEFAULT_FILTER, duration: null }).toString()).toBe("duration=any")
   })
 
-  it("writes only what is set", () => {
-    expect(filterToParams({ ...NO_FILTER, categories: ["Cards"] }).toString()).toBe("category=Cards")
-    expect(filterToParams({ ...NO_FILTER, players: 5 }).toString()).toBe("players=5")
-    expect(filterToParams({ ...NO_FILTER, duration: 45 }).toString()).toBe("duration=45")
-    expect(filterToParams({ ...NO_FILTER, complexity: 3 }).toString()).toBe("complexity=3")
-    expect(filterToParams({ ...NO_FILTER, age: 10 }).toString()).toBe("age=10")
+  it("writes only what is not where the filter starts", () => {
+    expect(filterToParams({ ...DEFAULT_FILTER, categories: ["Cards"] }).toString()).toBe("category=Cards")
+    expect(filterToParams({ ...DEFAULT_FILTER, players: 5 }).toString()).toBe("players=5")
+    expect(filterToParams({ ...DEFAULT_FILTER, duration: 45 }).toString()).toBe("duration=45")
+    expect(filterToParams({ ...DEFAULT_FILTER, complexity: 4 }).toString()).toBe("complexity=4")
+    expect(filterToParams({ ...DEFAULT_FILTER, age: 10 }).toString()).toBe("age=10")
   })
 
   it("writes a category for each one that is picked, in the order they were picked", () => {
-    expect(filterToParams({ ...NO_FILTER, categories: ["Party", "Cards"] }).toString()).toBe("category=Party&category=Cards")
+    expect(filterToParams({ ...DEFAULT_FILTER, categories: ["Party", "Cards"] }).toString()).toBe("category=Party&category=Cards")
   })
 
   it("writes them in a fixed order", () => {
@@ -703,11 +730,11 @@ describe("filterToParams", () => {
   })
 
   it("writes a name that needs it as a URL does", () => {
-    expect(filterToParams({ ...NO_FILTER, categories: ["Party & Co"] }).toString()).toBe("category=Party+%26+Co")
+    expect(filterToParams({ ...DEFAULT_FILTER, categories: ["Party & Co"] }).toString()).toBe("category=Party+%26+Co")
   })
 
   it("never writes the query: the address of the page goes to analytics with every event", () => {
-    expect(filterToParams({ ...NO_FILTER, query: "hervé marly" }).toString()).toBe("")
+    expect(filterToParams({ ...DEFAULT_FILTER, query: "hervé marly" }).toString()).toBe("")
     expect(
       filterToParams({ query: "flip", categories: [], players: 3, duration: 30, complexity: null, age: null }).toString(),
     ).toBe("players=3&duration=30")
@@ -716,12 +743,12 @@ describe("filterToParams", () => {
 
 describe("a filter in a link", () => {
   const offered = [...OFFERED, "Party & Co"]
-  // The number of players and the age are always picked in the search bar, so a link never holds them empty
+  // The number of players, the complexity and the age are always picked in the search bar, so a link never holds them empty; the duration is a limit, or none ("1h+")
   const every = (): GameFilter[] =>
     [[], ["Cards"], ["Party", "Cards"], ["Party & Co"]].flatMap((categories) =>
       PLAYER_COUNTS.flatMap((players) =>
         [null, ...DURATION_LIMITS].flatMap((duration) =>
-          [null, ...COMPLEXITY_LEVELS].flatMap((complexity) =>
+          COMPLEXITY_LEVELS.flatMap((complexity) =>
             AGE_LIMITS.map((age) => ({ ...DEFAULT_FILTER, categories, players, duration, complexity, age })),
           ),
         ),
@@ -729,7 +756,7 @@ describe("a filter in a link", () => {
     )
 
   it("goes through every combination of options", () => {
-    expect(every()).toHaveLength(4 * PLAYER_COUNTS.length * (DURATION_LIMITS.length + 1) * (COMPLEXITY_LEVELS.length + 1) * AGE_LIMITS.length)
+    expect(every()).toHaveLength(4 * PLAYER_COUNTS.length * (DURATION_LIMITS.length + 1) * COMPLEXITY_LEVELS.length * AGE_LIMITS.length)
   })
 
   it("comes back as it left, through the text of the link", () => {

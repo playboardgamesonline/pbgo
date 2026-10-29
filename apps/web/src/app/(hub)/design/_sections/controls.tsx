@@ -583,7 +583,7 @@ export function Meters() {
     <Section
       id="meter"
       module="meter"
-      intro="A scale of a few levels drawn as bars of the same height that you fill from the first bar up to a level by pressing that bar. The hub uses it for how complex a game is, from light to heavy: the weight BoardGameGeek gives it, from 1 to 5, rounded. Each bar is a button (the level that is picked is `aria-pressed`, and each says in its label what it stands for), so the keyboard and a screen reader get what a pointer gets. Pressing the picked level again clears it."
+      intro="A scale of a few levels drawn as bars of the same height that you fill from the first bar up to a level by pressing that bar. The hub uses it for how complex a game is, from light to heavy: the weight BoardGameGeek gives it, from 1 to 5, rounded. Each bar is a button (the level that is picked is `aria-pressed`, and each says in its label what it stands for), so the keyboard and a screen reader get what a pointer gets. Pressing the picked level again clears it, unless the scale is not `clearable`: then it always has a level."
     >
       <Demo
         title="Levels"
@@ -595,6 +595,19 @@ export function Meters() {
 />`}
       >
         <MeterSpecimen />
+      </Demo>
+
+      <Demo
+        title="Never empty"
+        description="`clearable={false}` keeps the level that is picked when it is pressed again, for a scale that always has one: the hub's complexity starts on 3 and never goes below 1."
+        code={`<Meter
+  value={level}
+  clearable={false}
+  onValueChange={(next) => next !== null && setLevel(next)}
+  levelLabel={(level) => \`Up to \${level} of 5\`}
+/>`}
+      >
+        <MeterSpecimen clearable={false} />
       </Demo>
     </Section>
   )

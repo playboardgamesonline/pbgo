@@ -7,6 +7,7 @@ import {
   AGE_LIMITS,
   COMPLEXITY_LEVELS,
   DEFAULT_AGE,
+  DEFAULT_COMPLEXITY,
   DEFAULT_PLAYERS,
   DURATION_LIMITS,
   MANY_PLAYERS,
@@ -158,8 +159,8 @@ export function CategoryFilter({
 /**
  * The duration filter: the hourglass, the limit written next to it (its minutes and the minute mark, "30′", or "1h+" for no limit), then a slider
  * with one thumb on twelve steps, from 5′ to 55′ five minutes at a time and "1h+". A game stays when it takes at most that long, and the last step
- * is no limit, which is where the slider starts: the fill runs from the first step to the thumb, so the limit can be seen. The text has a width of
- * its own, so the slider stays where it is while the text changes.
+ * is no limit. The slider starts on 20′ (`DEFAULT_DURATION`, which the filter holds) and the fill runs from the first step to the thumb, so the limit can
+ * be seen. The text has a width of its own, so the slider stays where it is while the text changes.
  */
 function DurationFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
   const step = stepOfLimit(current)
@@ -190,13 +191,20 @@ function DurationFilter({ current, onPick }: { current: number | null; onPick: (
 /**
  * The complexity filter: its icon, then five bars of the same height that fill up to the level pressed, on the scale of the weight that BoardGameGeek
  * gives a game (1, light, to 5, heavy), with nothing written beside them. A game stays when its level, its weight rounded, is at most the one picked.
- * Pressing the picked level again clears it.
+ * There is always a level, `DEFAULT_COMPLEXITY` until the visitor presses another bar, and the bars never go below the first: the meter is not
+ * `clearable`, so pressing the picked level keeps it.
  */
-function ComplexityFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
+function ComplexityFilter({ current, onPick }: { current: number | null; onPick: (next: number) => void }) {
   return (
     <SearchBarGroup label="Complexity">
       <SearchBarIcon icon={Brain02Icon} />
-      <Meter levels={COMPLEXITY_LEVELS.length} value={current} onValueChange={onPick} levelLabel={complexitySays} />
+      <Meter
+        levels={COMPLEXITY_LEVELS.length}
+        value={current ?? DEFAULT_COMPLEXITY}
+        clearable={false}
+        onValueChange={(next) => next !== null && onPick(next)}
+        levelLabel={complexitySays}
+      />
     </SearchBarGroup>
   )
 }
@@ -235,7 +243,7 @@ function AgeFilter({ current, onPick }: { current: number | null; onPick: (next:
 /**
  * The four filters that stand under the bar, from the picks they are given and the way to change them (so `/design` can draw them with picks of its
  * own), each in a place of its own with no background: the number of players, as a stepper that starts on 4; the duration, as a slider with one
- * thumb; the complexity, as bars that fill; and the age of the youngest player, from a menu that starts on 8+. A pick filters the list at once and
+ * thumb that starts on 20′; the complexity, as bars that fill and start on 3; and the age of the youngest player, from a menu that starts on 8+. A pick filters the list at once and
  * goes into the address. The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
  */
 export function MoreFilters({ filter, onFilterChange }: { filter: GameFilter; onFilterChange: (next: GameFilter) => void }) {
