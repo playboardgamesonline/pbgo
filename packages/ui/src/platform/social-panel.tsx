@@ -169,7 +169,7 @@ function SocialPanel({
     <aside
       data-slot="social-panel"
       aria-label="Social"
-      className={cn("flex flex-col gap-4 rounded-3xl border bg-background/90 p-4 shadow-overlay backdrop-blur-xl", className)}
+      className={cn("flex flex-col gap-4 rounded-4xl border bg-background/90 p-4 shadow-overlay backdrop-blur-xl", className)}
       {...props}
     >
       <div className="flex items-center gap-2">

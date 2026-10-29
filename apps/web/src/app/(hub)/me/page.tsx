@@ -45,7 +45,7 @@ export default async function ProfilePage() {
           Your games
         </h2>
         {rows.length > 0 ? (
-          <div className="overflow-hidden rounded-3xl border">
+          <div className="overflow-hidden rounded-4xl border">
             <Table>
               <TableHeader>
                 <TableRow>

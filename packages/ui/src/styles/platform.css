@@ -5,8 +5,8 @@
  * blurple on their buttons, Google's four colours in its mark), and a single gradient, neutral too: the backdrop of a page's first
  * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
  * in semibold, slightly tight line-height, small negative letter-spacing. Apart from those, game art is the only colour on the platform.
- * Corners are rounded by the menus' step at most (`rounded-3xl`) and never reach half the height of what they round: only the picture of a person is a circle.
- * A little corner smoothing (`--corner-smoothing`) softens them.
+ * Corners are as round as the height of what they round allows (`rounded-4xl` for a container from 6rem high, `rounded-3xl` for a bar of 4rem) and never reach half of it: only the picture of a
+ * person is a circle. A touch of corner smoothing (`--corner-smoothing`) softens them.
  *
  * TWO LAYERS, SAME TOKEN NAMES (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--radius`, `--font-body`…)
  *   - Platform layer: the values below, scoped to `.platform`. The class sits on <html> (hub, 404), on a wrapper <div>
@@ -319,8 +319,8 @@
 
     --radius: 0.75rem;
 
-    /* Corner smoothing: the exponent of the curve of every rounded corner (`corner-shape`), 1 being the arc of a circle and 2 the squircle: a little of it, so that the corners are as soft as the continuous corners of iOS */
-    --corner-smoothing: 1.5;
+    /* Corner smoothing: the exponent of the curve of every rounded corner (`corner-shape`), 1 being the arc of a circle and 2 the squircle: a touch of it (1.5 squared the corners too much), so that a corner stays round and is a hair softer than an arc */
+    --corner-smoothing: 1.2;
 
     /* Typography: Geist Sans (`@fontsource-variable/geist`), semibold everywhere, tight tracking */
     --font-body: "Geist Variable", "Geist", ui-sans-serif, system-ui, sans-serif;

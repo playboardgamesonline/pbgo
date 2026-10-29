@@ -95,7 +95,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
           <GameCardVisual
             {...game.picture}
             loading="eager"
-            className="rounded-3xl ring-1 ring-foreground/10 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+            className="rounded-4xl ring-1 ring-foreground/10 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
           />
 
           {(game.facts.length > 0 || game.rulebooks.length > 0) && (

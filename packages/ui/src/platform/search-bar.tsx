@@ -5,7 +5,7 @@ import { cn } from "../utils"
 
 import { Button } from "./button"
 
-// The big search bar of a page: one glass bar, rounded like a surface (`rounded-3xl`) and not a pill, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
+// The big search bar of a page: one glass bar, rounded by the step of a bar of 4rem (`rounded-3xl`) and not a pill, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
 // button that clears it once there is one and, at its end, what a page puts there: the category of the games, a button that opens a panel
 // (`SearchBarSegment`). The other filters are not in the bar: they stand bare under it, centred on a line of their own (`SearchBarFilters`), each in
 // a place of its own with no background, no outline and no shadow (`SearchBarGroup`, with its `SearchBarIcon` and, where a filter has a value to
@@ -219,7 +219,7 @@ function SearchBarStepper({
   return (
     <SearchBarGroup label={label} {...props} data-slot="search-bar-stepper">
       <span className="flex min-w-0 items-center gap-1">
-        <Button type="button" variant="outline" size="icon-xs" className="rounded-lg" aria-label={decreaseLabel} disabled={!canDecrease} onClick={onDecrease}>
+        <Button type="button" variant="outline" size="icon-xs" aria-label={decreaseLabel} disabled={!canDecrease} onClick={onDecrease}>
           <HugeiconsIcon icon={MinusSignIcon} strokeWidth={2} />
         </Button>
         <span className="flex items-center gap-1 px-1">
@@ -230,7 +230,7 @@ function SearchBarStepper({
           </SearchBarValue>
           <SearchBarIcon icon={icon} />
         </span>
-        <Button type="button" variant="outline" size="icon-xs" className="rounded-lg" aria-label={increaseLabel} disabled={!canIncrease} onClick={onIncrease}>
+        <Button type="button" variant="outline" size="icon-xs" aria-label={increaseLabel} disabled={!canIncrease} onClick={onIncrease}>
           <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} />
         </Button>
       </span>

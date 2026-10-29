@@ -240,7 +240,7 @@ export function SearchBars() {
     <Section
       id="search-bar"
       module="search-bar"
-      intro="The big search bar of a page: one glass bar, rounded like a surface, with the magnifier at its start (the button that sends the search), the field, a button that clears the text once there is one and, at its end, a filter that opens a panel (the category). The other filters stand under it, centred on a line of their own, each in a place of its own with no background (`SearchBarGroup`): a stepper for a number, a slider for a limit, bars that fill for a level, or a button that opens a menu. It only draws the bar and the row. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
+      intro="The big search bar of a page: one glass bar, rounded (`rounded-3xl`) and not a pill, with the magnifier at its start (the button that sends the search), the field, a button that clears the text once there is one and, at its end, a filter that opens a panel (the category). The other filters stand under it, centred on a line of their own, each in a place of its own with no background (`SearchBarGroup`): a stepper for a number, a slider for a limit, bars that fill for a level, or a button that opens a menu. It only draws the bar and the row. The page owns the text, the picks and what they find. The field is small and dim like a placeholder: `text-base` on a touch screen, since a smaller text makes iOS zoom the page in on focus, and `text-sm` where the pointer is fine."
     >
       <Demo
         title="Empty and filled"

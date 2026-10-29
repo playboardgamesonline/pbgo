@@ -56,7 +56,7 @@ describe("platform components", () => {
  * the lock is on, as on ui.shadcn.com) and the lock's margin is taken off: two rules of `platform.css`.
  */
 /**
- * Rounded, never round: the largest step is the menus' (`rounded-3xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
+ * Rounded, never round: the largest step is the surfaces' (`rounded-4xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
  * person with its dot and the track and thumb of a switch, a slider and a progress bar.
  */
 describe("radius", () => {
@@ -70,11 +70,6 @@ describe("radius", () => {
 
   it("nothing is a capsule but what is a circle by nature", () => {
     const hits = hitsOf(FILES.filter((file) => !CIRCLES.has(file)), /\brounded-full\b/)
-    expect(hits, hits.join("\n")).toEqual([])
-  })
-
-  it("nothing is rounder than a menu: no `rounded-4xl`", () => {
-    const hits = hitsOf(FILES, /\brounded(?:-[a-z]{1,2})?-4xl\b/)
     expect(hits, hits.join("\n")).toEqual([])
   })
 

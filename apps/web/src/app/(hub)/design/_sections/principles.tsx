@@ -10,7 +10,7 @@ const PRINCIPLES = [
   "Dark only. The platform has no light theme and no `dark:` variants; `color-scheme` is `dark`.",
   "One typeface, Geist, in one weight: everything is semibold (600). `font-medium` and `font-bold` resolve to the same weight, so do not write them. Text is slightly tight: about -0.01em on body text, -0.03em on headings.",
   "Apart from a friend's presence and a provider's brand, game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.",
-  "Rounded, never round: a corner takes the menus' step at most (`rounded-3xl`, 26px) and never reaches half the height of what it rounds, so nothing is a capsule. Only the picture of a person is a circle. Corners are smoothed a little (`--corner-smoothing`).",
+  "Rounded, never round: the taller a box, the rounder its corner, up to the menus' step (`rounded-4xl`, 31px, for a container from 6rem high), and a corner never reaches half the height of what it rounds, so nothing is a capsule. Only the picture of a person is a circle. Corners are smoothed a touch (`--corner-smoothing`).",
   "Depth comes from surface steps and hairlines (`ring-1 ring-foreground/10`), then from three shadows: `shadow-surface` at rest, `shadow-float` when lifted, `shadow-overlay` for dialogs and sheets.",
   "Tokens, not values: no hex, `rgb()`, arbitrary pixel sizes, font names or `bg-neutral-*` in platform UI. Write `bg-card`, `text-muted-foreground`, `rounded-3xl`, `px-gutter`.",
   "A missing piece goes into `@pbgo/ui` first, is shown on this page, then is used.",

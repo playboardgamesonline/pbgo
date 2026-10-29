@@ -229,7 +229,7 @@ function FriendsPanel({
     <aside
       data-slot="friends-panel"
       aria-label="Friends"
-      className={cn("flex h-full min-h-0 flex-col gap-4 rounded-3xl border bg-card/60 p-4 shadow-surface backdrop-blur-xl", className)}
+      className={cn("flex h-full min-h-0 flex-col gap-4 rounded-4xl border bg-card/60 p-4 shadow-surface backdrop-blur-xl", className)}
       {...props}
     >
       <header className="flex items-center gap-2 px-1">

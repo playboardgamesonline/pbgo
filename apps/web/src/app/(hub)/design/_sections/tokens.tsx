@@ -97,7 +97,8 @@ export function Typography() {
 }
 
 const RADIUS_ROLES = [
-  { role: "Surface", height: "A container, from 4rem high", utility: "rounded-3xl", radius: "26px", examples: "Menu, popover, select, dialog, sheet, panels (friends, social, chat), card, game card and its picture, cookie banner, login card, the home's search bar" },
+  { role: "Surface", height: "A container, from 6rem high", utility: "rounded-4xl", radius: "31px", examples: "Menu, popover, select, dialog, panels (friends, social, chat), card, game card and its picture, cookie banner, login card, an empty state" },
+  { role: "Bar", height: "4rem to 6rem", utility: "rounded-3xl", radius: "26px", examples: "The home's search bar: at the surfaces' step, half its height would make it a pill" },
   { role: "Large control, island", height: "3rem to 3.5rem", utility: "rounded-2xl", radius: "22px", examples: "Navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },
   { role: "Control", height: "2.25rem to 2.5rem", utility: "rounded-xl", radius: "17px", examples: "Button, field (input, text area, select trigger, input group), tab bar, a tab of the social panel, a chat bubble, a game's icon of 2.5rem" },
   { role: "Small control", height: "2rem", utility: "rounded-lg", radius: "12px", examples: "Small button, toggle, a tab in a tab bar, the buttons and tabs inside a navbar island" },
@@ -107,7 +108,8 @@ const RADIUS_ROLES = [
 
 const SMOOTHING = [
   { value: 1, label: "1: the arc of a circle" },
-  { value: 1.5, label: "1.5: the one in use" },
+  { value: 1.2, label: "1.2: the one in use" },
+  { value: 1.5, label: "1.5: the one before, which squared the corners" },
   { value: 2, label: "2: the squircle" },
 ] as const
 
@@ -115,18 +117,18 @@ export function Radius() {
   return (
     <Section
       id="radius"
-      intro="One family of corners, taken from the menus: a surface is `rounded-3xl` (26px) and the rows in it `rounded-2xl`. One base, `--radius`, and every step of the scale is a multiple of it, so a game skin that sets `--radius` rescales every corner at once. Each box below is measured on this page."
+      intro="One family of corners, taken from the menus: the taller the box, the rounder its corner, up to `rounded-4xl` (31px) for a surface and `rounded-2xl` for the rows in it. One base, `--radius`, and every step of the scale is a multiple of it, so a game skin that sets `--radius` rescales every corner at once. Each box below is measured on this page."
     >
       <RadiusScale />
       <TokenTable
         rows={[
           { variable: "--radius", use: "The base of the scale, on `.platform`. A game sets its own on `:root`." },
-          { variable: "--corner-smoothing", use: "The exponent of the curve of every rounded corner (`corner-shape: superellipse()`), on `.platform`: 1 is the arc of a circle, 2 the squircle. 1.5, a little." },
+          { variable: "--corner-smoothing", use: "The exponent of the curve of every rounded corner (`corner-shape: superellipse()`), on `.platform`: 1 is the arc of a circle, 2 the squircle. 1.2, a touch." },
         ]}
       />
       <Block
         title="Which radius"
-        description="A corner is rounded by about a third of the height of what it rounds, and never by half of it, so that nothing is a capsule. Pick the step by the height, and a surface is always the menus' step."
+        description="A corner is rounded by about a third of the height of what it rounds, and never by half of it, so that nothing is a capsule. Pick the step by the height: the taller the container, the rounder its corner, up to `rounded-4xl` for one from 6rem high."
       >
         <div className="overflow-hidden rounded-3xl border">
           <Table>
@@ -155,11 +157,11 @@ export function Radius() {
       </Block>
       <Bullets
         items={[
-          "The reference is the menus: a surface is `rounded-3xl` and nothing is rounder, so `rounded-4xl` is not used and the guard test rejects it.",
+          "The reference is the menus, rounder than they were: a container from 6rem high is `rounded-4xl`, the largest step, and nothing is rounder. A bar of 4rem (the search bar) is `rounded-3xl`, since at `rounded-4xl` it would be a pill.",
           "Only the picture of a person is a circle (`rounded-full`: `Avatar` and its dot). A game, its icon and its card are rounded like anything else, never a circle.",
           "What sits in a padded container takes the container's radius less its padding: a navbar island is 22px with 8px of padding, so what is in it is 12px (`rounded-lg`, the nearest step).",
           "Never write `rounded-[10px]`: the guard test rejects an arbitrary radius.",
-          "The home's search bar is a surface like the others (`rounded-3xl`, 64px high with 8px of padding), not a pill: what is in it takes its radius less the padding, so its category button is 17px (`rounded-xl`).",
+          "The home's search bar is `rounded-3xl` (64px high with 8px of padding), not a pill: what is in it takes its radius less the padding, so its category button is 17px (`rounded-xl`).",
         ]}
       />
       <Demo
@@ -175,13 +177,13 @@ export function Radius() {
         title="Corner smoothing"
         description="Every corner is a superellipse, not an arc of a circle, the way iOS draws its continuous corners (`corner-shape`, in Chromium; elsewhere the plain arc stays). Each box has the same `rounded-3xl`; only the exponent changes, and a `rounded-full` always keeps its arc."
         code={`.platform {
-  --corner-smoothing: 1.5;
+  --corner-smoothing: 1.2;
 }
 .platform,
 .platform * {
   corner-shape: superellipse(var(--corner-smoothing));
 }`}
-        className="grid gap-4 sm:grid-cols-3"
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         {SMOOTHING.map(({ value, label }) => (
           <div key={value} className="flex flex-col gap-2">

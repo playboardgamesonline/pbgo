@@ -17,8 +17,8 @@ const STEPS: readonly Step[] = [
   { className: "rounded-lg", formula: "--radius", usedBy: "Small control: small button, toggle, a tab in a tab bar, what is in a navbar island" },
   { className: "rounded-xl", formula: "--radius × 1.4", usedBy: "Control: button, field, tab bar, chat bubble, a game's icon of 2.5rem" },
   { className: "rounded-2xl", formula: "--radius × 1.8", usedBy: "Large control: navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },
-  { className: "rounded-3xl", formula: "--radius × 2.2", usedBy: "Surface: menu, popover, select, dialog, card, game card, panels, the home's search bar" },
-  { className: "rounded-4xl", formula: "--radius × 2.6", usedBy: "Nothing: the menus' step is the largest (the guard rejects this one)" },
+  { className: "rounded-3xl", formula: "--radius × 2.2", usedBy: "Bar: the home's search bar (4rem high: at the next step it would be a pill)" },
+  { className: "rounded-4xl", formula: "--radius × 2.6", usedBy: "Surface, from 6rem high: menu, popover, select, dialog, card, game card, panels, cookie banner" },
   { className: "rounded-full", formula: "Circle", usedBy: "The picture of a person and its dot; the track and thumb of a switch, a slider and a progress bar" },
 ]
 

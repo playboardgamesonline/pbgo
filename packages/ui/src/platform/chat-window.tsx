@@ -49,7 +49,7 @@ function ChatWindow({
     <section
       data-slot="chat-window"
       aria-label={`Chat with ${friend.nickname}`}
-      className={cn("flex flex-col overflow-hidden rounded-3xl border bg-background/95 shadow-overlay backdrop-blur-xl", className)}
+      className={cn("flex flex-col overflow-hidden rounded-4xl border bg-background/95 shadow-overlay backdrop-blur-xl", className)}
       {...props}
     >
       <header className="flex items-center gap-3 border-b px-4 py-3">
