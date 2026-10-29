@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowRightDoubleIcon, BubbleChatIcon, Cancel01Icon, Link01Icon, ListViewIcon, Tick02Icon, UserAdd01Icon } from "@hugeicons/core-free-icons"
+import { ArrowRightDoubleIcon, Cancel01Icon, Chatting01Icon, Link01Icon, Tick02Icon, UserAdd01Icon, UserListIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { initials, type Friend } from "../friends"
 import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation, type FriendRequest } from "../social"
@@ -22,11 +22,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs"
 
 export type SocialTab = "friends" | "messages" | "add"
 
-/** The count on the corner of a tab. */
-const COUNT = "absolute top-0 right-1 h-4 min-w-4 justify-center px-1"
+/** The count on the corner of a tab: at the top right of its icon, which is in the middle. */
+const COUNT = "absolute top-0.5 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
 
-/** The look of a tab: an icon in a rounded square, filled while it is the current one. */
-const TAB = "relative h-9 flex-1 rounded-xl px-0 text-muted-foreground"
+/** The look of a tab: a big icon in a pill, filled while it is the current one. The bar is a pill too, like the search bar and the buttons: `Tabs` is round by default, so nothing here rounds it differently. */
+const TAB = "relative px-0"
+
+/** The icon of a tab. */
+const TAB_ICON = "size-6"
 
 /** What the field that adds a friend shows: the tag follows the nickname after a hash (PLT-39). Written in two parts so that the design guard, which takes a hash and digits for a colour, leaves it alone. */
 const EXAMPLE = ["Oré", "4821"].join("#")
@@ -176,16 +179,16 @@ function SocialPanel({
       </div>
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as SocialTab)} className="min-h-0 flex-1 gap-4">
-        <TabsList className="h-auto w-full gap-1 rounded-2xl p-1">
+        <TabsList className="w-full gap-1 group-data-horizontal/tabs:h-12">
           <TabsTrigger value="friends" aria-label="Friends" title="Friends" className={TAB}>
-            <HugeiconsIcon icon={ListViewIcon} strokeWidth={2} />
+            <HugeiconsIcon icon={UserListIcon} strokeWidth={2} className={TAB_ICON} />
           </TabsTrigger>
           <TabsTrigger value="messages" aria-label={unread > 0 ? `Messages, ${unread} unread` : "Messages"} title="Messages" className={TAB}>
-            <HugeiconsIcon icon={BubbleChatIcon} strokeWidth={2} />
+            <HugeiconsIcon icon={Chatting01Icon} strokeWidth={2} className={TAB_ICON} />
             {unread > 0 && <Badge className={COUNT}>{unread}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="add" aria-label={incoming > 0 ? `Add a friend, ${incoming} requests` : "Add a friend"} title="Add a friend" className={TAB}>
-            <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} />
+            <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} className={TAB_ICON} />
             {incoming > 0 && <Badge className={COUNT}>{incoming}</Badge>}
           </TabsTrigger>
         </TabsList>
