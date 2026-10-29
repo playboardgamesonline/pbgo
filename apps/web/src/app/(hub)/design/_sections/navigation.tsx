@@ -49,26 +49,26 @@ export function Wordmarks() {
     <Section
       id="wordmark"
       module="wordmark"
-      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades in a straight line from white (`foreground`) at 16% at the top of the letters to nothing at their foot, over their whole height, a soft veil, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
+      intro="The name of the brand as four big letters, PBGO, as wide as the room it is given: the backdrop of the footer. The letters are set in the faces the logo is drawn in, the P blackletter, the B handwritten, the G pixel and the O script (the display faces, see Face cycle), so it is the logo's own lettering and not Geist. It is SVG text scaled by its viewBox, so it is always the width of its container. Each letter is placed by hand from its measured ink, not from the advance of its glyph (the faces have very different side bearings): the boxes of the ink of two letters are the same distance apart, except the P and the B, which come closer so that the closest row of their shapes is as far apart as in the other pairs (the P leaves much air at its lower right), the ink of the P starts at the left edge and the ink of the O ends at the right edge, so it reaches both edges of the window, and the letters are aligned on the middle of their ink, since the P and the O have a tail under the baseline that the B and the G do not. It fades in a straight line from white (`foreground`) at 16% at the top of the letters to nothing at 92% of their height, a soft veil, so it is a drawing behind the page's text and not a title, and it is decorative (`aria-hidden`): the brand is named by the logo and the page's own text."
     >
       <Demo
         title="In the footer"
-        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), a little under the letters (`mt-2`) and with `pb-6` under it. The text of the footer is 24px (`p-6`) from the edges of the window, like the navbar's. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
-        code={`<footer className="w-full pb-6">
-  <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 p-6 text-sm text-muted-foreground">
-    <p>© 2026 Play Board Games Online · Built by …</p>
-    <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-5 gap-y-2">…</nav>
+        description="The footer of the hub's pages, as wide as the site, with no line between its parts: the copyright and who built the site on the left and the legal pages on the right, above the wordmark, which runs from edge to edge, and, alone under it and centred, what the site is not, in the finest print of the page (`fine-print`: `text-xs`, a regular weight and a colour dark enough to be hard to read), a little under the letters (`mt-1`, and its own `p-1`) and with `pb-5` under it. Each text has 4px of padding of its own (`p-1`) and the row has 20px (`p-5`), so the texts are 24px from the edges of the window, like the navbar's, and no more. The wordmark takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop."
+        code={`<footer className="w-full pb-5">
+  <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 p-5 text-sm text-muted-foreground">
+    <p className="p-1">© 2026 Play Board Games Online · Built by …</p>
+    <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-3">…</nav>
   </div>
   <Wordmark />
-  <p className="mt-2 px-6 text-center fine-print">Unofficial, online adaptation of board games. …</p>
+  <p className="mx-5 mt-1 p-1 text-center fine-print">Unofficial, online adaptation of board games. …</p>
 </footer>`}
       >
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-6 text-sm text-muted-foreground">
-          <p>© 2026 Play Board Games Online · Built by oré</p>
-          <p>Privacy Policy · Cookie Policy · Terms of Use</p>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-5 text-sm text-muted-foreground">
+          <p className="p-1">© 2026 Play Board Games Online · Built by oré</p>
+          <p className="p-1">Privacy Policy · Cookie Policy · Terms of Use</p>
         </div>
         <Wordmark />
-        <p className="mt-2 text-center fine-print">
+        <p className="mt-1 p-1 text-center fine-print">
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>

@@ -16,10 +16,10 @@ import { cn } from "../utils"
 // (0.92, 1, 1.28, 0.92), then scaled so the ink fills 1000 units; the spaces were measured on the letters as drawn, row by row. Do both again when
 // a face changes. The fill fades in a straight line from white (`--foreground`) at 16% at the top of the ink (y 20, in the units of the
 // viewBox: the gradient is not measured on the box of the text, which starts well above the capitals), a soft veil and not a grey, to nothing at
-// the foot of the ink (y 322), over the whole height of the letters. The box of the drawing ends at y 310, where hardly anything is left to see
-// (the letters go on below it, `overflow-visible`), so that the sentence under it is not far from the letters. It is decorative: the brand is named by the logo and the page's own text.
+// 92% of the height of the letters (the gradient runs from y 20 to the foot of the ink, y 322, so it is nothing from y 298 on). The box of the drawing ends at y 310,
+// where nothing is left to see (the letters go on below it, `overflow-visible`), so that the sentence under it is not far from the letters. It is decorative: the brand is named by the logo and the page's own text.
 
-/** The letters PBGO across the width of the container, in the faces of the logo, fading out before the bottom. Size it with the width of its parent. */
+/** The letters PBGO across the width of the container, in the faces of the logo, fading out before the bottom (nothing from 92% of their height). Size it with the width of its parent. */
 function Wordmark({ className, ...props }: Omit<React.ComponentProps<"svg">, "children" | "viewBox" | "aria-hidden">) {
   const fade = React.useId()
   return (
@@ -33,7 +33,7 @@ function Wordmark({ className, ...props }: Omit<React.ComponentProps<"svg">, "ch
       <defs>
         <linearGradient id={fade} gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="322">
           <stop offset="0" style={{ stopColor: "var(--foreground)", stopOpacity: 0.16 }} />
-          <stop offset="1" style={{ stopColor: "var(--foreground)", stopOpacity: 0 }} />
+          <stop offset="0.92" style={{ stopColor: "var(--foreground)", stopOpacity: 0 }} />
         </linearGradient>
       </defs>
       <text fontSize="384.0" fill={`url(#${fade})`}>
