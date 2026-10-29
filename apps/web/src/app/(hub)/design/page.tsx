@@ -15,11 +15,13 @@ import {
   Cards,
   Empties,
   FriendsPanels,
+  FriendsBars,
   GameCards,
   Items,
   Loading,
   Sections,
   Separators,
+  SocialPanels,
   Tables,
 } from "./_sections/surfaces"
 import { Colors, Depth, Layout, Motion, Radius, Typography, Utilities } from "./_sections/tokens"
@@ -121,6 +123,8 @@ export default function DesignPage() {
             <GameCards />
             <Sections />
             <FriendsPanels />
+            <FriendsBars />
+            <SocialPanels />
             <BoardPatterns />
             <Tabletops />
             <Avatars />

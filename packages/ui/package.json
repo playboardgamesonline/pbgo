@@ -5,9 +5,11 @@
   "type": "module",
   "exports": {
     "./faces": "./src/faces.ts",
+    "./friends": "./src/friends.ts",
     "./game/*": "./src/game/*.tsx",
     "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
+    "./social": "./src/social.ts",
     "./styles/*": "./src/styles/*",
     "./theme": "./src/theme.ts",
     "./utils": "./src/utils.ts"

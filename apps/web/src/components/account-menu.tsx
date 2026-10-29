@@ -1,8 +1,8 @@
 "use client"
 
+import type { ReactNode } from "react"
 import Link from "next/link"
-import { PROVIDER_NAMES, initialsOf, type Account } from "@pbgo/accounts"
-import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
+import { PROVIDER_NAMES, type Account } from "@pbgo/accounts"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,25 +13,14 @@ import {
 } from "@pbgo/ui/platform/dropdown-menu"
 
 /**
- * The account in the navbar, in place of Sign in: the visitor's picture (their initials when their provider gives none) that opens a menu with their
- * name, the pages of their account and Sign out. Sign out is a form that posts to `/logout`, never a link: nothing but a click may end a session.
+ * The menu of the account, which opens from its trigger (`children`: a button, the visitor's picture and name at the top of the social panel): their name, the
+ * pages of their account and Sign out. Sign out is a form that posts to `/logout`, never a link: nothing but a click may end a session.
  */
-export function AccountMenu({ account }: { account: Account }) {
+export function AccountMenu({ account, children }: { account: Account; children: ReactNode }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Account of ${account.nickname}`}
-          className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
-        >
-          <Avatar size="lg">
-            {account.avatarUrl && <AvatarImage src={account.avatarUrl} alt="" referrerPolicy="no-referrer" />}
-            <AvatarFallback>{initialsOf(account.nickname)}</AvatarFallback>
-          </Avatar>
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
+      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-60">
         <DropdownMenuLabel className="flex flex-col gap-0.5 px-2 py-1.5">
           <span className="truncate text-sm text-foreground">{account.nickname}</span>
           <span className="truncate text-xs">{account.email ?? (account.provider ? `Signed in with ${PROVIDER_NAMES[account.provider]}` : "Demo account")}</span>

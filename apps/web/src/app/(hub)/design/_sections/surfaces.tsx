@@ -41,7 +41,7 @@ import {
   TableRow,
 } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
-import { FriendsSpecimen } from "../_components/friends-specimen"
+import { BarListSpecimen, BarSpecimen, ChatSpecimen, FriendsSpecimen, SocialSpecimen } from "../_components/friends-specimen"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -688,11 +688,11 @@ export function FriendsPanels() {
     <Section
       id="friends-panel"
       module="friends-panel"
-      intro="The friends of a signed-in visitor, as a panel for the side of a page: a header with the count of those online and the button to add a friend, a search field, the list in three sections (in a game, online, offline; an empty one is not drawn) and a footer button to invite a friend who has no account yet. It is drawn from the friends it is given (`Friend`: nickname, tag, picture, status and what they are doing) and decides nothing about them: where they come from (PLT-23) and what a button does are the page's, and a button whose handler is missing is not drawn. Monochrome like the platform, so a status is a shape and a word, never a colour alone: the dot on the corner of the picture pulses for a friend in a game, is solid for one who is online and hollow for one who is away, and the section says it too."
+      intro="The friends of a signed-in visitor, as a panel for a page: a header with the count of those online and the button to add a friend, a search field, the list in three sections (in a game, online, offline; an empty one is not drawn) and a footer button to invite a friend who has no account yet. It is drawn from the friends it is given (`Friend`: nickname, tag, picture, status and what they are doing) and decides nothing about them: where they come from (PLT-23) and what a button does are the page's, and a button whose handler is missing is not drawn. Monochrome like the platform, so a status is a shape and a word, never a colour alone: the dot on the corner of the picture pulses for a friend in a game, is solid for one who is online and hollow for one who is away, and the section says it too."
     >
       <Demo
         title="With friends, and with none"
-        description="The panel is `h-full` and scrolls its list, so a page gives it a height and a width: here a box of `h-[34rem]`. On a page of an account it sits in a `sticky` column from `lg` up and in a `Sheet` under that. The buttons of a friend (Join for one in a game, Invite for one who is online) show when the row is hovered or focused, and always on a touch screen. Type in the search field to filter the list."
+        description="The panel is `h-full` and scrolls its list, so a page gives it a height and a width: here a box of `h-[34rem]`. It is the list of the page of a visitor's friends; the short way to the same friends, on every page, is the rail below. The buttons of a friend (Join for one in a game, Invite for one who is online) show when the row is hovered or focused, and always on a touch screen. Type in the search field to filter the list."
         className="grid gap-6 sm:grid-cols-2"
         code={`<FriendsPanel
   friends={friends}
@@ -704,6 +704,84 @@ export function FriendsPanels() {
       >
         <FriendsSpecimen />
         <FriendsSpecimen empty />
+      </Demo>
+    </Section>
+  )
+}
+
+export function FriendsBars() {
+  return (
+    <Section
+      id="friends-bar"
+      module="friends-bar"
+      intro="The friends of a signed-in visitor, the way the Riot Client shows its social visibility: a small bar on the navbar, next to the account, with a pill for each game some of them are in (the picture of the game and how many of them are in it), up to four, the most crowded first. Under the pointer a pill takes the fill of the navbar's current item and a line under it, and a panel opens under the bar with that game's friends in two lists, `Online` (those who wait in its lobby, and those at one table together under it: `Table K7Q · 2/4`) then `Playing`, each with the picture and the dot of their presence, their name and what they are doing. A friend who is away, or on the hub and in no game, is in none of them: they are in the list of the page of the friends. With no friend in a game the bar is the button that invites one. Monochrome like the panel, so a status is the dot on the picture (it pulses for a friend who is playing, is solid for one who is online) and the line under the name, never a colour. Like the panel it is drawn from the friends it is given and decides nothing about them. The panel is a `Popover` anchored on the bar: it opens under the pointer (a short delay on the way out lets the pointer cross the gap to it), with the keyboard (a pill that has the focus) and, on a touch screen, when a pill is pressed, which closes it when pressed again; a narrow screen has room for fewer pills."
+    >
+      <Demo
+        title="On the navbar, with friends and with none"
+        description="Each bar sits in a row with the account's island, as on the navbar. Hover a pill, or focus it with the keyboard, to open the panel of its game, and move to another pill to change it. The second bar is a visitor with no friend in a game: the button that invites one, which shows a tick for a moment once the link is copied. The Join button of a friend who waits at a table that has room shows when the row is hovered or focused, and always on a touch screen."
+        className="grid gap-6 sm:grid-cols-2"
+        code={`<NavbarIsland … />   // beside <NavbarEnd>
+<FriendsBar
+  friends={friends}
+  gameIcon={(slug) => iconOf(slug)}
+  onJoin={(friend) => …}
+  onShareLink={copyLink}
+/>`}
+      >
+        <BarSpecimen />
+        <BarSpecimen empty />
+      </Demo>
+      <Demo
+        title="The panel of a game"
+        description="What the panel says, on its own: `Online` first, the friends at one table together under it, then `Playing`. A list with nobody in it is not drawn. The panel is a `PopoverContent`, `w-72`, with no scrollbar, and as high as the window leaves it."
+        code={`<FriendsBarList entry={entry} onJoin={(friend) => …} />`}
+      >
+        <BarListSpecimen />
+      </Demo>
+    </Section>
+  )
+}
+
+export function SocialPanels() {
+  return (
+    <Section
+      id="social-panel"
+      module="social-panel"
+      intro="The social panel of a signed-in visitor, the way the Riot Client has it: a column on the right of the page that opens from the account's picture, with the visitor at the top (their picture and name, which open the menu of their account) and a button that folds it away, then three tabs, each an icon: the friends and what they are doing (the list of the friends' panel, with its search and its three sections), the conversations with them (the picture and the dot of the friend, their name, the last message, how long ago and how many are not read), and the way to add a friend, with the requests that wait for an answer (accept or decline one that came in, cancel one that went out). A tab that has something for the visitor carries a count, and so does the account's picture on the navbar. It is drawn from what it is given and decides nothing: a button whose handler is missing is not drawn, and the field that adds a friend is off. A press on a friend or on a conversation opens the chat with them (`ChatWindow`), a card that floats at the bottom of the page next to the panel. The page places both (`fixed`): on the hub, `SiteSocial` of `apps/web`."
+    >
+      <Demo
+        title="The three tabs, with friends and with none"
+        description="The panel is as high as the page gives it and scrolls what a tab holds, without a scrollbar. Press a tab to change it. A visitor with no friend, message or request has an empty state in each tab, and the buttons that need them to exist are the page's to give. The field that adds a friend sends with its button or Enter."
+        className="grid gap-6 sm:grid-cols-2"
+        code={`<SocialPanel
+  header={…}
+  onClose={…}
+  friends={friends}
+  conversations={conversations}
+  requests={requests}
+  onOpenChat={(friend) => …}
+  onSendRequest={(who) => …}
+  onAnswerRequest={(request, answer) => …}
+  onShareLink={copyLink}
+/>`}
+      >
+        <SocialSpecimen />
+        <SocialSpecimen tab="messages" />
+        <SocialSpecimen tab="add" />
+        <SocialSpecimen empty />
+      </Demo>
+      <Demo
+        title="The chat window"
+        description="The friend at the top (their picture, the dot of their presence, their name and what they are doing) and the button that closes it, the messages as bubbles (the visitor's on the right, filled; the friend's on the left, quiet) with the last one in view, and the field, which takes the focus when the chat opens and sends with Enter or its button. Try it: what is written is added here and goes nowhere."
+        code={`<ChatWindow
+  friend={friend}
+  messages={messages}
+  onSend={(text) => …}
+  onClose={…}
+  className="fixed bottom-6 right-[25rem] h-96 w-80"
+/>`}
+      >
+        <ChatSpecimen />
       </Demo>
     </Section>
   )

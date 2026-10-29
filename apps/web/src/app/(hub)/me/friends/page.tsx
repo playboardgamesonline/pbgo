@@ -6,7 +6,7 @@ import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
-import { FriendsSidebar } from "@/components/friends-sheet"
+import { FriendsList } from "@/components/friends-list"
 import { accountData, type FriendRequest } from "@/lib/account-data"
 import { DEMO_ACCOUNT } from "@pbgo/accounts/demo"
 
@@ -51,8 +51,8 @@ function Request({ request }: { request: FriendRequest }) {
 }
 
 /**
- * Friends: add one by nickname and tag, answer the requests, and, on a screen with no room for the side panel, the whole list. Nobody has friends yet for a
- * real account (PLT-23): it says so, and the field does nothing until friends exist.
+ * Friends: add one by nickname and tag, answer the requests, and the whole list, with its search (the bar of the navbar is the short way to the games they are
+ * in). Nobody has friends yet for a real account (PLT-23): it says so, and the field does nothing until friends exist.
  */
 export default async function FriendsPage() {
   const account = await requireAccount("/me/friends")
@@ -99,9 +99,9 @@ export default async function FriendsPage() {
         </Empty>
       )}
 
-      <section aria-label="Your friends" className="lg:hidden">
+      <section aria-label="Your friends">
         <div className="h-[32rem]">
-          <FriendsSidebar friends={friends} preview={preview} />
+          <FriendsList friends={friends} preview={preview} />
         </div>
       </section>
     </div>

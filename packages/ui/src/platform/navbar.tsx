@@ -64,6 +64,14 @@ function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
+ * A glass island on its own, for what hangs on the bar beside the two containers: the pills of the games the friends are in (`FriendsBar`) are one, in a row
+ * with `NavbarEnd` on the right.
+ */
+function NavbarIsland({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="navbar-island" className={cn(islandClassName, "shrink-0", className)} {...props} />
+}
+
+/**
  * The front page: a square button, usually around a `Logo` of `h-6`, the size of the tabs' text (give the link an `aria-label`). It is the home's
  * button, so `current` marks the front page itself, the way a tab marks its page: the fill of the bar is behind it (it was the tile turning white
  * once; the bar has one way to say where you are). On any other page it is as quiet as a tab.
@@ -148,4 +156,4 @@ function NavbarTab({
   )
 }
 
-export { Navbar, NavbarStart, NavbarEnd, NavbarBrand, NavbarTabs, NavbarTab }
+export { Navbar, NavbarStart, NavbarEnd, NavbarIsland, NavbarBrand, NavbarTabs, NavbarTab }

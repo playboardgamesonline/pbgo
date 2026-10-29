@@ -6,7 +6,7 @@ import { useAccount } from "@pbgo/accounts/client"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
-import { AccountMenu } from "@/components/account-menu"
+import { SiteSocial } from "@/components/site-social"
 import { SITE_NAME } from "@/site"
 
 /** The tabs of the navbar, in order, each with the page it leads to. The home is the logo's, not a tab's. */
@@ -40,9 +40,9 @@ function currentOf(pathname: string): SiteCurrent | null {
  * The hub's layout mounts it once, and it reads the address to know what is current: the page does not say. That is what lets the fill behind
  * the current item glide from one to the next when the visitor goes from page to page, which a bar that every page drew again could not do.
  * The account is on the right: Sign in (to `/login`, which brings the visitor back to this page) and Let's play (a placeholder for now), or, once the
- * browser has read a session, the visitor's picture and its menu (`AccountMenu`). The server renders every page as if nobody were signed in, so the
- * static pages stay static; while the browser has not read its session the two buttons keep their place but are not drawn, so a signed-in visitor
- * never sees them flash.
+ * browser has read a session, the visitor's picture, which opens their social panel (`SiteSocial`: the bar of the games their friends are in on its left, the friends, the messages and the requests in the panel).
+ * The server renders every page as if nobody were signed in, so the static pages stay static; while the browser has not read its session the two buttons keep
+ * their place but are not drawn, so a signed-in visitor never sees them flash.
  */
 export function SiteHeader() {
   const pathname = usePathname()
@@ -67,20 +67,20 @@ export function SiteHeader() {
           ))}
         </NavbarTabs>
       </NavbarStart>
-      <NavbarEnd>
+      <div className="flex shrink-0 items-center gap-2">
         {account.status === "signed-in" ? (
-          <AccountMenu account={account.account} />
+          <SiteSocial account={account.account} />
         ) : (
-          <>
+          <NavbarEnd>
             <Button variant="ghost" size="lg" className={hidden} asChild>
               <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Sign in</Link>
             </Button>
             <Button size="lg" type="button" className={hidden} aria-disabled="true" title="Coming soon">
               {"Let's play"}
             </Button>
-          </>
+          </NavbarEnd>
         )}
-      </NavbarEnd>
+      </div>
     </Navbar>
   )
 }
