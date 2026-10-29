@@ -1,0 +1,38 @@
+{
+  "name": "@pbgo/accounts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The accounts of the hub: sign-in with Google and Discord through Supabase Auth (browser, server and proxy helpers), the account a user makes of what the provider gives, the safe way back after a sign-in, and the demo account of development. The app imports it; it never imports core or a game.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/config.ts",
+    "./client": "./src/client.tsx",
+    "./server": "./src/server.ts",
+    "./proxy": "./src/proxy.ts",
+    "./demo": "./src/demo.ts",
+    "./demo-avatars": "./src/demo-avatars.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "server-only": "catalog:"
+  },
+  "peerDependencies": {
+    "next": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChartColors, LineColors, NeutralRamp, SemanticColors } from "../_components/colors"
 import { Block, Bullets, Code, Demo, Inline, Section } from "../_components/layout"
 import { MotionDemo } from "../_components/motion-demo"
+import { RadiusPresets } from "../_components/radius-presets"
 import { RadiusScale } from "../_components/radius-scale"
 import { TokenTable } from "../_components/token-table"
 import { TypeScale, WeightProof } from "../_components/type-scale"
@@ -46,7 +47,10 @@ const FONT_ROWS = [
   { variable: "--font-title", utility: "font-heading", use: "Headings and card titles. Same as the body font on the platform." },
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
-  { variable: "--text-display", utility: "text-display", use: "The three lines of the home's title, as big as the window lets them be (7.7vw and half a rem, up to 7.5rem): the first line takes 71% of a 390 px window and 60% of a 1440 px one. The lines are not the same width on purpose: the title narrows as it goes down. It sets no line-height: `display-title` does." },
+  { variable: "--text-display", utility: "text-display", use: "The two lines of the home's title, as big as the window lets them be (5.8vw and 0.9rem, up to 7rem): the longer line takes 95% of a 390 px window, less its gutters, and 58% of a 1440 px one. It sets no line-height: `display-title` does." },
+  { variable: "--text-page-title", utility: "text-page-title", use: "The title of a page that lists something (Games, Tables, Tournaments): 8rem from a 850px window, and under that 16vw less 0.5rem (2.5rem at the least), so that \"Tournaments\", the longest, takes 87% of a 390 px window less its gutters. It sets no line-height: `page-title` does." },
+  { variable: "--font-weight-strong", utility: "font-strong", use: "The one weight heavier than the platform's 600, 720: the title of the home (`display-title`) and the name of a person at the head of a profile. Geist is a variable font, so any weight between 100 and 900 exists." },
+  { variable: "--tracking-display", use: "Letter-spacing of the home's title, -0.048em (`display-title`), tighter than the headings' `--tracking-tight`." },
 ] as const
 
 export function Typography() {
@@ -64,7 +68,7 @@ export function Typography() {
 
       <Block
         title="One weight"
-        description="Every `font-*` weight utility resolves to 600, so a platform component never writes one. `font-medium` on a label changes nothing and is a sign the author reached for a value instead of a token."
+        description="Every `font-*` weight utility resolves to 600, so a platform component never writes one. `font-medium` on a label changes nothing and is a sign the author reached for a value instead of a token. The two weights that are not 600 have a name of their own: `font-regular` (400, the finest print) and `font-strong` (720, the title of the home and a person's name at the head of a profile)."
       >
         <WeightProof />
       </Block>
@@ -95,24 +99,102 @@ export function Typography() {
   )
 }
 
+const RADIUS_ROLES = [
+  { role: "Surface", height: "A container, from 6rem high", utility: "rounded-4xl", radius: "31px", examples: "Menu, popover, select, dialog, panels (friends, social, chat), card, game card and its picture, cookie banner, login card, an empty state" },
+  { role: "Bar", height: "4rem to 6rem", utility: "rounded-3xl", radius: "26px", examples: "The home's search bar: at the surfaces' step, half its height would make it a pill" },
+  { role: "Large control, island", height: "3rem to 3.5rem", utility: "rounded-2xl", radius: "22px", examples: "Navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },
+  { role: "Control", height: "2.25rem to 2.5rem", utility: "rounded-xl", radius: "17px", examples: "Button, field (input, text area, select trigger, input group), tab bar, a tab of the social panel, a chat bubble, a game's icon of 2.5rem" },
+  { role: "Small control", height: "2rem", utility: "rounded-lg", radius: "12px", examples: "Small button, toggle, a tab in a tab bar, the buttons and tabs inside a navbar island" },
+  { role: "Chip", height: "1.25rem to 1.5rem", utility: "rounded-md", radius: "10px", examples: "Extra small button, badge, key cap, a game's icon of 1.5rem" },
+  { role: "Circle", height: "Only a person", utility: "rounded-full", radius: "full", examples: "The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar" },
+] as const
+
+const SMOOTHING = [
+  { value: 1, label: "1: the arc of a circle" },
+  { value: 1.2, label: "1.2: the one in use" },
+  { value: 1.5, label: "1.5: the one before, which squared the corners" },
+  { value: 2, label: "2: the squircle" },
+] as const
+
 export function Radius() {
   return (
     <Section
       id="radius"
-      intro="One base, `--radius`, and every step of the scale is a multiple of it, so a game skin that sets `--radius` rescales every corner at once. Each box below is measured on this page."
+      intro="One family of corners, taken from the menus: the taller the box, the rounder its corner, up to `rounded-4xl` (31px) for a surface and `rounded-2xl` for the rows in it. One base, `--radius`, and every step of the scale is a multiple of it, so a game skin that sets `--radius` rescales every corner at once. Each box below is measured on this page."
     >
       <RadiusScale />
       <TokenTable
-        rows={[{ variable: "--radius", use: "The base of the scale, on `.platform`. A game sets its own on `:root`." }]}
-      />
-      <Bullets
-        items={[
-          "Big surfaces are `rounded-4xl` (button, card, dialog, game card); fields and badges are `rounded-3xl`.",
-          "A shape nested in another takes a smaller step than its parent.",
-          "`rounded-full` is for circles and pills (avatar, switch, progress, tabs).",
-          "Never write `rounded-[10px]`: the guard test rejects an arbitrary radius.",
+        rows={[
+          { variable: "--radius", use: "The base of the scale, on `.platform`. A game sets its own on `:root`." },
+          { variable: "--corner-smoothing", use: "The exponent of the curve of every rounded corner (`corner-shape: superellipse()`), on `.platform`: 1 is the arc of a circle, 2 the squircle. 1.2, a touch." },
         ]}
       />
+      <Block
+        title="Which radius"
+        description="A corner is rounded by about a third of the height of what it rounds, and never by half of it, so that nothing is a capsule. Pick the step by the height: the taller the container, the rounder its corner, up to `rounded-4xl` for one from 6rem high."
+      >
+        <div className="overflow-hidden rounded-3xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Role</TableHead>
+                <TableHead>Height</TableHead>
+                <TableHead>Utility</TableHead>
+                <TableHead>Used by</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {RADIUS_ROLES.map((row) => (
+                <TableRow key={row.utility}>
+                  <TableCell>{row.role}</TableCell>
+                  <TableCell className="whitespace-normal text-muted-foreground">{row.height}</TableCell>
+                  <TableCell>
+                    <Inline>{`${row.utility} · ${row.radius}`}</Inline>
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-muted-foreground">{row.examples}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Block>
+      <Bullets
+        items={[
+          "The reference is the menus, rounder than they were: a container from 6rem high is `rounded-4xl`, the largest step, and nothing is rounder. A bar of 4rem (the search bar) is `rounded-3xl`, since at `rounded-4xl` it would be a pill.",
+          "Only the picture of a person is a circle (`rounded-full`: `Avatar` and its dot). A game, its icon and its card are rounded like anything else, never a circle.",
+          "What sits in a padded container takes the container's radius less its padding: a navbar island is 22px with 8px of padding, so what is in it is 12px (`rounded-lg`, the nearest step).",
+          "Never write `rounded-[10px]`: the guard test rejects an arbitrary radius.",
+          "The home's search bar is `rounded-3xl` (64px high with 8px of padding), not a pill: what is in it takes its radius less the padding, so its category button is 17px (`rounded-xl`).",
+        ]}
+      />
+      <Demo
+        title="How round"
+        description="The same components under three bases. `--radius` is the one knob: every step is a multiple of it. 12px is the one in use; at 14px a button of 2.25rem is a capsule, which is the one thing a corner must not be."
+        code={`.platform {
+  --radius: 0.75rem;
+}`}
+      >
+        <RadiusPresets />
+      </Demo>
+      <Demo
+        title="Corner smoothing"
+        description="Every corner is a superellipse, not an arc of a circle, the way iOS draws its continuous corners (`corner-shape`, in Chromium; elsewhere the plain arc stays). Each box has the same `rounded-3xl`; only the exponent changes, and a `rounded-full` always keeps its arc."
+        code={`.platform {
+  --corner-smoothing: 1.2;
+}
+.platform,
+.platform * {
+  corner-shape: superellipse(var(--corner-smoothing));
+}`}
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {SMOOTHING.map(({ value, label }) => (
+          <div key={value} className="flex flex-col gap-2">
+            <div className="h-28 rounded-3xl border bg-card" style={{ "--corner-smoothing": value } as React.CSSProperties} />
+            <p className="text-sm text-muted-foreground">{label}</p>
+          </div>
+        ))}
+      </Demo>
     </Section>
   )
 }
@@ -297,7 +379,10 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "px-gutter, py-section, pb-section", does: "Side padding of a page, rhythm between sections", token: "`--gutter`, `--section`" },
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
-  { utility: "display-title", does: "The home's title: Geist Black, capitals and tight, fading out downwards, with `text-display`", token: "`--text-display`" },
+  { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -0.048em, in the full colour of the text, with `text-display`", token: "`--text-display`, `--tracking-display`" },
+  { utility: "page-title", does: "The title of Games, Tables and Tournaments: one line, Geist at 720, tracking -0.048em, 8rem on a desktop, no fade, with `text-page-title`", token: "`--text-page-title`, `--tracking-display`" },
+  { utility: "title-piece, title-cards", does: "The pieces that stand for letters in the home's title (a die, a coin, a heart) and the two dark blue cards that stand after its last word", token: "`--piece-*`" },
+  { utility: "glass", does: "A container that floats over the page: the grey of a card at 92%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },
   { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },

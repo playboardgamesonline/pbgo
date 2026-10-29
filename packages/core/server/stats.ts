@@ -65,3 +65,22 @@ export async function loadGameStats(slug: string): Promise<GameStats> {
     recent: rows.slice(0, 8).map((r) => ({ code: r.code, status: r.status, players: r.players.length, createdAt: r.created_at, updatedAt: r.updated_at })),
   }
 }
+
+/**
+ * A figure of the home, answered by one of its SQL functions (migration `0003_hub_figures.sql`). It throws when it cannot count (no Supabase here, or the migration is not applied
+ * yet) or when the answer is not a count: the page decides what it shows then, and never takes nothing for a zero.
+ */
+async function loadCount(name: "online_player_count" | "member_count"): Promise<number> {
+  const { data, error } = await supabaseAdmin().rpc(name)
+  if (error) throw error
+  // A bigint comes as a number, or as a string past what a number holds
+  const count = typeof data === "number" || (typeof data === "string" && data.trim() !== "") ? Number(data) : Number.NaN
+  if (!Number.isFinite(count) || count < 0) throw new Error(`${name}() answered ${JSON.stringify(data)}`)
+  return count
+}
+
+/** How many players are connected now, every game together: those a table saw in the last two minutes (`online_player_count()`). */
+export const loadOnlinePlayerCount = () => loadCount("online_player_count")
+
+/** How many accounts are registered: the users of Supabase Auth (`member_count()`). */
+export const loadMemberCount = () => loadCount("member_count")

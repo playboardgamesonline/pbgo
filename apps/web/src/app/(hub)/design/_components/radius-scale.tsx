@@ -11,20 +11,20 @@ type Step = {
 }
 
 const STEPS: readonly Step[] = [
-  { className: "rounded-xs", formula: "0.125rem, Tailwind's own", usedBy: "Tooltip" },
+  { className: "rounded-xs", formula: "0.125rem, Tailwind's own", usedBy: "Tooltip, a line" },
   { className: "rounded-sm", formula: "--radius × 0.6", usedBy: "Checkbox" },
-  { className: "rounded-md", formula: "--radius × 0.8", usedBy: "Inline code on this page" },
-  { className: "rounded-lg", formula: "--radius", usedBy: "Item, tooltip" },
-  { className: "rounded-xl", formula: "--radius × 1.4", usedBy: "Empty, input group, item, tooltip" },
-  { className: "rounded-2xl", formula: "--radius × 1.8", usedBy: "Alert, dropdown, select, tabs, skeleton, text area, field" },
-  { className: "rounded-3xl", formula: "--radius × 2.2", usedBy: "Input, badge, select trigger, dropdown content" },
-  { className: "rounded-4xl", formula: "--radius × 2.6", usedBy: "Button, card, dialog, game card" },
-  { className: "rounded-full", formula: "Pill", usedBy: "Avatar, progress, switch, tabs trigger" },
+  { className: "rounded-md", formula: "--radius × 0.8", usedBy: "Chip: extra small button, badge, key cap, a game's icon of 1.5rem" },
+  { className: "rounded-lg", formula: "--radius", usedBy: "Small control: small button, toggle, a tab in a tab bar, what is in a navbar island" },
+  { className: "rounded-xl", formula: "--radius × 1.4", usedBy: "Control: button, field, tab bar, chat bubble, a game's icon of 2.5rem" },
+  { className: "rounded-2xl", formula: "--radius × 1.8", usedBy: "Large control: navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },
+  { className: "rounded-3xl", formula: "--radius × 2.2", usedBy: "Bar: the home's search bar (4rem high: at the next step it would be a pill)" },
+  { className: "rounded-4xl", formula: "--radius × 2.6", usedBy: "Surface, from 6rem high: menu, popover, select, dialog, card, game card, panels, cookie banner" },
+  { className: "rounded-full", formula: "Circle", usedBy: "The picture of a person and its dot; the track and thumb of a switch, a slider and a progress bar" },
 ]
 
-/** `border-top-left-radius` of a pill is a huge number of pixels: call it what it is. */
+/** `border-top-left-radius` of a circle is a huge number of pixels: call it what it is. */
 function readable(radius: string): string {
-  return parseFloat(radius) > 1000 ? "pill" : radius
+  return parseFloat(radius) > 1000 ? "full" : radius
 }
 
 function RadiusStep({ className, formula, usedBy }: Step) {

@@ -55,7 +55,7 @@ function Slider({
       className={cn("relative flex h-6 w-full touch-none items-center select-none data-disabled:opacity-50", className)}
       {...props}
     >
-      <SliderPrimitive.Track data-slot="slider-track" className="relative h-1.5 w-full grow rounded-full bg-muted">
+      <SliderPrimitive.Track data-slot="slider-track" className="relative h-1.5 w-full grow rounded-full bg-foreground/20">
         <SliderPrimitive.Range data-slot="slider-range" className="absolute h-full rounded-full bg-primary" />
         {marks.map((mark) => (
           <span

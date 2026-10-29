@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Logo } from "@pbgo/ui/platform/logo"
-import { Navbar, NavbarBrand, NavbarEnd, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
+import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 
 const TABS = [
-  { id: "games", label: "Games" },
-  { id: "tables", label: "Tables" },
-  { id: "tournaments", label: "Tournaments" },
-  { id: "whats-new", label: "What's New" },
+  { id: "games", label: "Games", group: "play" },
+  { id: "tables", label: "Tables", group: "play" },
+  { id: "tournaments", label: "Tournaments", group: "play" },
+  { id: "about", label: "About", group: "about" },
+  { id: "pricing", label: "Pricing", group: "about" },
 ] as const
 
 type Current = "home" | (typeof TABS)[number]["id"]
@@ -31,10 +32,13 @@ export function NavbarPlayground() {
           <Logo className="h-6" />
         </NavbarBrand>
         <NavbarTabs aria-label="Main">
-          {TABS.map((tab) => (
-            <NavbarTab key={tab.id} href="#navbar" current={current === tab.id} onClick={go(tab.id)}>
-              {tab.label}
-            </NavbarTab>
+          {TABS.map((tab, index) => (
+            <Fragment key={tab.id}>
+              {index > 0 && TABS[index - 1].group !== tab.group && <NavbarSeparator />}
+              <NavbarTab href="#navbar" current={current === tab.id} onClick={go(tab.id)}>
+                {tab.label}
+              </NavbarTab>
+            </Fragment>
           ))}
         </NavbarTabs>
       </NavbarStart>

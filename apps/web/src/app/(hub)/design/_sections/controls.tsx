@@ -7,6 +7,7 @@ import {
   Mail01Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons"
+import { PROVIDERS, PROVIDER_NAMES } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Checkbox } from "@pbgo/ui/platform/checkbox"
@@ -28,6 +29,7 @@ import {
   InputGroupText,
 } from "@pbgo/ui/platform/input-group"
 import { Label } from "@pbgo/ui/platform/label"
+import { ProviderButton } from "@pbgo/ui/platform/provider-button"
 import {
   Select,
   SelectContent,
@@ -56,7 +58,7 @@ export function Buttons() {
     <Section
       id="button"
       module="button"
-      intro="Every action is a `Button`. The variant says how much an action weighs, the size how dense its surroundings are. Pill-shaped, `text-sm`, one weight."
+      intro="Every action is a `Button`. The variant says how much an action weighs, the size how dense its surroundings are. Rounded by the control step (`rounded-xl`, smaller for the small sizes), `text-sm`, one weight."
     >
       <Demo
         title="Variants"
@@ -170,12 +172,52 @@ export function Buttons() {
   )
 }
 
+export function ProviderButtons() {
+  return (
+    <Section
+      id="provider-button"
+      module="provider-button"
+      intro="The sign-in's buttons: one per provider, side by side, with nothing on them but the provider's small mark (20px, `size-5`). Each tile is its brand's: Facebook's blue and Discord's blurple (`brand-facebook`, `brand-discord`, the brand's own colours, the only two the platform takes from a brand), Google's white (`foreground`) with its four colours, Apple's black (`background`) with an outline. The marks are the brands' own (`@pbgo/ui/brands`, the one file of the design system that has colour literals) and are never redrawn. A tile is `h-10`, `rounded-xl` and fills its cell, so it is wider than it is tall (about two to one in the sign-in's row of four) and they go in a grid of equal columns; each is named `Continue with <name>` for a screen reader and in a tooltip."
+    >
+      <Demo
+        title="A row of four"
+        description="The order of the sign-in: Facebook, Google, Apple, Discord (`PROVIDERS` of `@pbgo/accounts`). Hover one to see its tooltip; the tile of a brand dims a little under the pointer."
+        className="grid max-w-md grid-cols-4 gap-3"
+        code={`<div role="group" aria-label="Sign in with" className="grid grid-cols-4 gap-3">
+  {PROVIDERS.map((provider) => (
+    <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} onClick={() => start(provider)} />
+  ))}
+</div>`}
+      >
+        {PROVIDERS.map((provider) => (
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} />
+        ))}
+      </Demo>
+
+      <Demo
+        title="Pending, and off"
+        description="While a sign-in is on its way, its mark gives way to a spinner (`pending`) and the others are off (`disabled`, half faded, deaf to the pointer): the spinner takes the colour of the tile's text, so it reads on a white tile as on a blue one."
+        className="grid max-w-md grid-cols-4 gap-3"
+        code={`<ProviderButton brand="google" name="Google" pending />
+<ProviderButton brand="apple" name="Apple" disabled />`}
+      >
+        {PROVIDERS.map((provider) => (
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} pending disabled />
+        ))}
+        {PROVIDERS.map((provider) => (
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} disabled />
+        ))}
+      </Demo>
+    </Section>
+  )
+}
+
 export function Badges() {
   return (
     <Section
       id="badge"
       module="badge"
-      intro="A short label: a status, a count, a category. Never an action; for that, use a `Button`."
+      intro="A short label: a status, a count, a category. Never an action; for that, use a `Button`. The count of what waits for someone, messages not read and requests to answer, is `notification`: solid red, as Discord's."
     >
       <Demo
         title="Variants"
@@ -185,7 +227,8 @@ export function Badges() {
 <Badge variant="outline">2–5 players</Badge>
 <Badge variant="destructive">Offline</Badge>
 <Badge variant="ghost">Draft</Badge>
-<Badge variant="link">Link</Badge>`}
+<Badge variant="link">Link</Badge>
+<Badge variant="notification">3</Badge>`}
       >
         <Badge>Live</Badge>
         <Badge variant="secondary">Beta</Badge>
@@ -193,6 +236,7 @@ export function Badges() {
         <Badge variant="destructive">Offline</Badge>
         <Badge variant="ghost">Draft</Badge>
         <Badge variant="link">Link</Badge>
+        <Badge variant="notification">3</Badge>
       </Demo>
 
       <Demo
@@ -493,23 +537,23 @@ export function Comboboxes() {
     <Section
       id="combobox"
       module="combobox"
-      intro="A list of options with a search field above it, for a panel that has more options than chips can hold: the categories of the games. Typing keeps the options that hold the text, whatever the case and the accents. Any number can be picked, so the list stays open. It draws nothing around itself: put it in a `Popover`, which gives it its title, its Clear button and its place."
+      intro="A list of options with a search field above it, for a panel that has more options than chips can hold: the categories of the games. An option is a name and, if it wants one, an icon at the start of its row; the check of a pick is at the other end. The rows are rounded like the rows of a menu and 4px from each edge of the panel, and the field has no ring. Typing keeps the options that hold the text, whatever the case and the accents. Any number can be picked, so the list stays open. It draws nothing around itself: put it in a `Popover` with no padding of its own (`p-0`), which gives it its title, its Clear button and its place."
     >
       <Demo
         title="In a popover"
-        description="The field has the focus when the panel opens, except on a screen that is touched, where the keyboard would hide the list. The arrow keys move along the list without leaving the field, Home and End go to its ends, Enter picks or unpicks the option they are on, and so does a click. The field is `text-base` on a phone, like every input, so iOS does not zoom in on it. Try `des` or `strat`: the accents do not matter."
+        description="The field has the focus the moment the panel opens, except on a screen that is touched, where the keyboard would hide the list. The list has no scrollbar and scrolls all the same: a row cut by its bottom edge says there is more. The panel is `w-52`, its header is not padded as much as a panel's (`pt-2 pr-2 pb-1 pl-4`) and the field has a margin of 8px of its own. The arrow keys move along the list without leaving the field, Home and End go to its ends, Enter picks or unpicks the option they are on, and so does a click. The field is `text-base` on a phone, like every input, so iOS does not zoom in on it. Try `des` or `strat`: the accents do not matter."
         className={ROW}
         code={`<Popover>
   <PopoverTrigger asChild>
     <Button variant="outline">Categories</Button>
   </PopoverTrigger>
-  <PopoverContent aria-label="Categories" className="w-80">
-    <PopoverHeader>
+  <PopoverContent aria-label="Categories" className="w-52 gap-0 p-0">
+    <PopoverHeader className="pt-2 pr-2 pb-1 pl-4">
       <PopoverTitle>Categories</PopoverTitle>
       <Button type="button" variant="ghost" size="sm">Clear</Button>
     </PopoverHeader>
     <Combobox
-      options={["Bluffing", "Cards", "Co-op", "Dés"]}
+      options={[{ value: "Cooperation", icon: HandHelpingIcon }, { value: "Dés" }]}
       value={picked}
       onValueChange={setPicked}
       aria-label="Categories"
@@ -534,7 +578,7 @@ export function Sliders() {
     >
       <Demo
         title="One thumb"
-        description="The fill runs from the start to the thumb. `ticks` draws a dot at each step, for a scale of a few stops, where the thumb jumps from one to the next. A screen reader hears the number of the thumb; `valueText` says what it stands for, and `thumbLabels` what each thumb is. The hub's duration filter is one of these on twelve steps: up to 5 minutes, then 10, 15 and so on to 55, and `1h+`, the last step, which is no limit and where it starts. `ticks` can list the values worth a dot (the quarter hours there) instead of marking every step."
+        description="The fill runs from the start to the thumb. `ticks` draws a dot at each step, for a scale of a few stops, where the thumb jumps from one to the next. A screen reader hears the number of the thumb; `valueText` says what it stands for, and `thumbLabels` what each thumb is. The hub's duration filter is one of these on twelve steps: up to 5 minutes, then 10, 15 and so on to 55, and `1h+`, the last step, which is no limit; it has no dots, the track and its fill are enough. `ticks` can list the values worth a dot instead of marking every step."
         code={`<Slider
   min={1}
   max={5}
