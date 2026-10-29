@@ -8,14 +8,14 @@ import { AUTHOR, COPYRIGHT_NAME, COPYRIGHT_YEAR } from "@/site"
  * margin and no maximum width. From the top: one row with the copyright and who built the site on the left and the legal pages on the right (Privacy
  * Policy, Cookie Policy, which is the cookies section of the legal notice, Terms of Use and, only where analytics are on, Cookie settings, which
  * reopens the choice of the cookie banner and which the legal notice points to), then the name of the brand as big letters (`Wordmark`, in the faces of the logo, fading
- * out, from edge to edge of the window) and, alone under them and centred, what the site is not: the finest print of the page (`fine-print`), well
- * apart from the letters. There is no line between the parts. The privacy policy and the terms of use are pages that are not written yet.
+ * out, from edge to edge of the window) and, alone under them and centred, what the site is not: the finest print of the page (`fine-print`), a little
+ * under the letters. Its text is 24px (`p-6`) from the edges of the window, like the navbar's. There is no line between the parts. The privacy policy and the terms of use are pages that are not written yet.
  */
 export function SiteFooter() {
   const link = "underline-offset-4 hover:text-foreground hover:underline"
   return (
-    <footer className="w-full pb-5">
-      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-gutter pb-12 text-sm text-muted-foreground">
+    <footer className="w-full pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 p-6 text-sm text-muted-foreground">
         <p>
           © {COPYRIGHT_YEAR} {COPYRIGHT_NAME} <span aria-hidden="true">·</span> Built by{" "}
           <a href={AUTHOR.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-foreground">
@@ -36,7 +36,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <Wordmark />
-      <p className="mt-8 px-gutter text-center fine-print">
+      <p className="mt-2 px-6 text-center fine-print">
         Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
       </p>
     </footer>
