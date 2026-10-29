@@ -345,7 +345,7 @@ export function SearchBars() {
       <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
     </h1>
     <Stats className="mt-8" items={…} />
-    <Perks className="mt-4" items={…} />
+    <Perks className="mt-6" items={…} />
     <div className="mt-10 w-full max-w-3xl">
       <SearchBar>…</SearchBar>
       <SearchBarFilters>…</SearchBarFilters>
@@ -358,7 +358,7 @@ export function SearchBars() {
             <span className="block text-4xl">Play your favorite</span> <span className="block text-4xl">board games online</span>
           </p>
           <Stats className="mt-6" items={[{ value: "12,480", label: "players" }, { value: "71", label: "games" }]} />
-          <Perks className="mt-3" items={["Free to play", "No sign-up needed"]} />
+          <Perks className="mt-4" items={["Free to play", "No sign-up needed"]} />
           <div className="mt-8 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
@@ -432,7 +432,7 @@ export function StatsSection() {
     <Section
       id="stats"
       module="stats"
-      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number over what it counts, side by side and apart by a thin line. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, the rest in `muted-foreground`) and say their figures as text, so a screen reader reads 12,480 players and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players are counted in Supabase, and the figure is left out when they cannot be (`docs/accounts.md`)."
+      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number followed by what it counts on the same line, side by side and apart by a short line (2px wide, with rounded corners). `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, the rest in `muted-foreground`) and say their figures as text, so a screen reader reads 12,480 players and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players are counted in Supabase, and the figure is left out when they cannot be (`docs/accounts.md`)."
     >
       <Demo
         title="Under a title"

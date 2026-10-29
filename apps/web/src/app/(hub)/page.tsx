@@ -51,7 +51,7 @@ export default async function Home() {
                 className="mt-8"
                 items={[...(players === null ? [] : [{ value: figure(players), label: "players" }]), { value: figure(games.length), label: "games" }]}
               />
-              <Perks className="mt-4" items={["Free to play", "No sign-up needed"]} />
+              <Perks className="mt-6" items={["Free to play", "No sign-up needed"]} />
               {/* 40px under what the platform is, which it covers none of */}
               <div className="mt-10 w-full max-w-3xl">
                 <HeroSearch />

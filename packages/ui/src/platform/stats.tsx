@@ -3,8 +3,8 @@ import { Tick02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 
-// What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number over what it counts, side by side
-// and apart by a thin line. `Perks` is what costs the visitor nothing, the way a shop says "free delivery": a few words each with a tick, in a row that wraps. Both are quiet (the number
+// What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number followed by what it counts ("12,480 players"), side by side
+// and apart by a short line with rounded ends. `Perks` is what costs the visitor nothing, the way a shop says "free delivery": a few words each with a tick, in a row that wraps. Both are quiet (the number
 // in the colour of the text, the rest in `muted-foreground`) and say their figures as text, so a screen reader reads "12,480 players" and not a picture of it. They draw what they are
 // given and know where it comes from: the page gives the figures and the words.
 
@@ -13,12 +13,15 @@ type StatsProps = Omit<React.ComponentProps<"dl">, "children"> & {
   items: readonly { value: string; label: string }[]
 }
 
-/** A row of figures: the number big, what it counts under it, a thin line between one figure and the next. */
+/** A row of figures: the number big, what it counts after it on the same line, and between one figure and the next a short line, 2px wide, with rounded corners. */
 function Stats({ items, className, ...props }: StatsProps) {
   return (
     <dl data-slot="stats" className={cn("flex items-center justify-center gap-6", className)} {...props}>
       {items.map((item) => (
-        <div key={item.label} className="flex flex-col-reverse items-center gap-0.5 not-first:border-s not-first:ps-6">
+        <div
+          key={item.label}
+          className="relative flex flex-row-reverse items-baseline gap-2 not-first:ps-6 not-first:before:absolute not-first:before:inset-s-0 not-first:before:top-1/2 not-first:before:h-5 not-first:before:w-0.5 not-first:before:-translate-y-1/2 not-first:before:rounded-xs not-first:before:bg-border"
+        >
           <dt className="text-sm text-muted-foreground">{item.label}</dt>
           <dd className="text-2xl text-foreground tabular-nums">{item.value}</dd>
         </div>
