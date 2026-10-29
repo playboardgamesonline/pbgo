@@ -9,6 +9,12 @@ export const DURATION = { fast: 0.1, base: 0.15, slow: 0.25 } as const
 export const EASE_STANDARD = [0.2, 0, 0, 1] as const
 
 /**
+ * What a thing that was thrown does: a quick start, then the same slowing at every moment until it stops, as dry friction slows it (a quadratic ease-out, `cubic-bezier(0.5, 1, 0.89, 1)`). The first
+ * moment is twice as fast as the average: a piece that makes N turns in S seconds starts at 2N/S turns a second (the coin and the die of the home's title).
+ */
+export const EASE_FRICTION = [0.5, 1, 0.89, 1] as const
+
+/**
  * Something that moves to a place it was not, and has to feel attached to the hand that asked: the indicator that glides from one tab of
  * the navbar to the next. A stiff spring (a damping ratio of about 0.9, so no overshoot worth seeing) that settles in about 0.25 s.
  */

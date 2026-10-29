@@ -530,26 +530,51 @@
   /* Where an "o" would sit: a letter has its tracking (-6%) after it and a box has none, so the piece, which would be too near the letter before it and too far from the one after it, is moved 0.04em to the right
      (the margins add up to the same, so the letters around it do not move) */
   margin-inline: 0.06em -0.02em;
-  /* A die: a flat square with its pips (`die-pips`), a little rounded, that turns in its plane at each change of face, a full turn at a time, six faces in turn (`title-die`, `title-die-face`) */
+  /* A die: a cube, 0.4em on a side, seen straight on, in perspective, and turning from the left to the right around its vertical axis, which `TitleDie` does: four sides, each a square with its pips (`die-pips`) and a little
+     rounded, that are not drawn from the back (so the inside of a rounded corner shows nothing); there is no top and no bottom, since the eye is level with it and they would never show. The box of the piece is the room of an
+     "o", the cube stands in it with its foot on the baseline (the perspective makes the front of it a seventh bigger than it is, which is what 0.4em allows for) */
   &[data-kind="die"] {
     width: 0.5em;
     height: 0.5em;
+    perspective: 1.6em;
     --pip: var(--piece-ink);
+    --die-size: 0.4em;
   }
   &[data-kind="die"] > [data-slot="die"] {
     position: absolute;
-    inset: 0;
-    animation: title-die 24s ease-in-out infinite;
+    left: calc(50% - var(--die-size) / 2);
+    top: calc(53.5% - var(--die-size) / 2);
+    width: var(--die-size);
+    height: var(--die-size);
+    transform-style: preserve-3d;
   }
   &[data-kind="die"] [data-pips] {
     position: absolute;
-    inset: 0;
-    border-radius: 0.1em;
+    inset: -0.003em;
+    border-radius: 0.03em;
     background-color: var(--piece-ivory);
-    box-shadow: inset 0 -0.04em 0.06em color-mix(in oklab, var(--piece-ink) 22%, transparent);
-    opacity: 0;
-    animation: title-die-face 24s linear infinite;
-    animation-delay: calc(var(--i) * 4s - 2s);
+    box-shadow: inset 0 -0.03em 0.05em color-mix(in oklab, var(--piece-ink) 20%, transparent);
+    backface-visibility: hidden;
+  }
+  /* A face that is darkened as it turns away from the light: an ink-coloured sheet over it, as opaque as `TitleDie` says */
+  &[data-kind="die"] [data-shade] {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--piece-ink);
+    pointer-events: none;
+  }
+  &[data-kind="die"] [data-face="front"] {
+    transform: translateZ(calc(var(--die-size) / 2));
+  }
+  &[data-kind="die"] [data-face="right"] {
+    transform: rotateY(90deg) translateZ(calc(var(--die-size) / 2));
+  }
+  &[data-kind="die"] [data-face="back"] {
+    transform: rotateY(180deg) translateZ(calc(var(--die-size) / 2));
+  }
+  &[data-kind="die"] [data-face="left"] {
+    transform: rotateY(-90deg) translateZ(calc(var(--die-size) / 2));
   }
   /* A coin: it spins on itself, from the top to the bottom, to show heads and tails in turn (`title-coin`; it does not rise), its two sides drawn apart, the "face" with a profile and the "pile" with a star. It is lower than the baseline by 0.03em, and
      0.005em more to the left than the die: a coin is round, and the "o" it stands for has an overshoot */
@@ -602,12 +627,13 @@
     background: currentColor;
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   }
-  /* The suits of a deck, one over the other in the place of an "o": each is shown in its turn (`title-suit`), turning like a card, and the first is the one a visitor who asks for less motion keeps */
+  /* The suits of a deck, one over the other in the place of an "o": each is shown in its turn (`title-suit`), rolling up like a reel, a red one and a black one in turn, and the first (the heart) is the one a visitor who asks for less motion keeps */
   &[data-kind="suits"] {
     width: 0.62em;
     height: 0.58em;
     vertical-align: -0.005em;
-    perspective: 1.2em;
+    /* The window the suits roll through, as big as one suit is: the one that is shown leaves it by the top while the next comes into it from the bottom (`title-suit`) */
+    clip-path: inset(-10%);
   }
   &[data-kind="suits"] > svg {
     position: absolute;
@@ -616,9 +642,9 @@
     width: 120%;
     height: 120%;
     fill: var(--piece-red);
-    opacity: 0;
-    animation: title-suit 16s ease-in-out infinite;
-    animation-delay: calc(var(--i) * 4s - 0.7s);
+    transform: translateY(110%);
+    animation: title-suit 60s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 15s - 4s);
   }
   /* The black suits are black, as printed on a card (`--piece-black`), with no outline */
   &[data-kind="suits"] > svg[data-suit="club"],
@@ -627,35 +653,19 @@
   }
 }
 
+/* The suits of the title roll up, like a reel: each is shown for fifteen seconds, comes in from the bottom in 0.8 s, rests, and leaves by the top in 0.8 s, as the next one comes in from the bottom. They change at 11 s,
+   26 s... into the cycle, which is 7 s after the rolls of the die begin (4 s, 19 s...), and a roll is over in 6 s at most, so that the two do not move together. Once out by the top a suit is put back under the window at
+   once (`step-end`: no frame between, or it would cross the window), where it waits for its turn. 110% is a bit more than the suit's own height, which is what takes it out of the window */
 @keyframes title-suit {
-  0% { opacity: 0; transform: rotateY(-90deg) scale(0.6); }
-  4.4%, 20.6% { opacity: 1; transform: rotateY(0deg) scale(1); }
-  25%, 100% { opacity: 0; transform: rotateY(90deg) scale(0.6); }
-}
-
-/* The die of the title shows six faces in turn, four seconds each, and turns once in its plane at each change (0.8 s either side of it, the face being changed in the middle of the turn): the changes are 2 s, 6 s... into the
-   cycle, so that the end of the cycle, where it starts again, is in the middle of a rest */
-@keyframes title-die {
-  0%, 5% { transform: rotate(0deg); }
-  11.7%, 21.7% { transform: rotate(360deg); }
-  28.3%, 38.3% { transform: rotate(720deg); }
-  45%, 55% { transform: rotate(1080deg); }
-  61.7%, 71.7% { transform: rotate(1440deg); }
-  78.3%, 88.3% { transform: rotate(1800deg); }
-  95%, 100% { transform: rotate(2160deg); }
-}
-
-/* One face of that die is shown for the sixth of the cycle that it is given by its delay (a hair longer, so that there is never a moment with none), and not the rest */
-@keyframes title-die-face {
-  0%, 16.9% { opacity: 1; }
-  17%, 100% { opacity: 0; }
+  0% { transform: translateY(110%); }
+  1.34%, 25% { transform: translateY(0); }
+  26.34% { transform: translateY(-110%); animation-timing-function: step-end; }
+  26.35%, 100% { transform: translateY(110%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .title-piece[data-kind="suits"] > svg { animation: none; }
-  .title-piece[data-kind="suits"] > svg:first-of-type { opacity: 1; }
-  .title-piece[data-kind="die"] > [data-slot="die"], .title-piece[data-kind="die"] [data-pips] { animation: none; }
-  .title-piece[data-kind="die"] [data-pips]:first-child { opacity: 1; }
+  .title-piece[data-kind="suits"] > svg:first-of-type { transform: none; }
 }
 
 @utility title-cards {

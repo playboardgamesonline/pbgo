@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "./motion"
+import { DURATION, EASE_FRICTION, EASE_STANDARD, SPRING_TRAVEL } from "./motion"
 
 /**
  * `motion.ts` copies the motion tokens of `styles/platform.css` for what `motion/react` animates. This test reads the stylesheet and fails when
@@ -24,6 +24,14 @@ describe("motion tokens", () => {
 
   it("keeps the easing of the stylesheet", () => {
     expect(token("--ease-standard")).toBe(`cubic-bezier(${EASE_STANDARD.join(", ")})`)
+  })
+
+  it("slows down steadily to a stop: a bezier that starts twice as steep as the average and ends flat", () => {
+    const [x1, y1, x2, y2] = EASE_FRICTION
+    expect(x1).toBeGreaterThan(0)
+    expect(x2).toBeLessThan(1)
+    expect(y1 / x1).toBe(2)
+    expect(y2).toBe(1)
   })
 
   it("keeps the durations in order, and the spring settled (a damping ratio under 1, close to it)", () => {

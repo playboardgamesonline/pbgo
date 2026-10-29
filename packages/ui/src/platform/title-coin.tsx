@@ -2,14 +2,13 @@
 
 import * as React from "react"
 import { animate, motion, useMotionValue, useReducedMotion } from "motion/react"
+import { EASE_FRICTION } from "../motion"
 
 // The coin of the home's title, an "o": two sides, a profile and a star, drawn by the utility `title-piece` of `styles/platform.css`. It spins on itself, from the top to the bottom, and it does not rise. What
-// the CSS cannot do is leave it to chance, so this is the one piece of the title that is not a keyframe: now and then it spins, for 5 or 6 half turns (so it stops on its star after 5 and on its profile after 6:
-// that is all the chance there is), slowly (about seven seconds, a little more for the sixth), and slows down the way a thing does that rubs: a quick start, at the most a turn and a quarter a second,
-// and a long tail. It always stops flat on a side. A visitor who asks for less motion gets the profile and nothing moves.
-
-/** How the coin slows down: a start that is not violent, then slower and slower until it stops (a cubic Bézier, a little steep at the start and flat at the end). */
-const FRICTION = [0.2, 0.55, 0.25, 1] as const
+// the CSS cannot do is leave it to chance, so this is the one piece of the title that is not a keyframe: now and then it spins, for 5 or 6 turns (that is all the chance there is), slowly (about eight seconds
+// for five turns, ten for six) and slows down the way a thing does that rubs: a quick start, at the most a turn and a fifth a second, then the same slowing at every moment (a quadratic ease-out: dry friction takes
+// the same speed off every moment) until it stops. A whole number of turns, so it always stops flat on its profile. It rests 14 to 24 seconds between two spins, and the first one comes 12 to 15 seconds after
+// the page is shown, once the die has rolled and the suit has changed. A visitor who asks for less motion gets the profile and nothing moves.
 
 function TitleCoin() {
   const angle = useMotionValue(0)
@@ -22,15 +21,15 @@ function TitleCoin() {
     let running: ReturnType<typeof animate> | undefined
 
     const spin = () => {
-      const halves = Math.random() < 0.5 ? 5 : 6
-      const seconds = (halves === 5 ? 7.2 : 8.4) * (0.96 + Math.random() * 0.08)
-      running = animate(angle, angle.get() - halves * 180, { duration: seconds, ease: FRICTION })
+      const turns = Math.random() < 0.5 ? 5 : 6
+      const seconds = (turns === 5 ? 8.3 : 10) * (0.96 + Math.random() * 0.08)
+      running = animate(angle, angle.get() - turns * 360, { duration: seconds, ease: EASE_FRICTION })
       running.then(() => {
-        if (!stopped) timer = setTimeout(spin, 3500 + Math.random() * 3000)
+        if (!stopped) timer = setTimeout(spin, 14000 + Math.random() * 10000)
       })
     }
 
-    timer = setTimeout(spin, 1500 + Math.random() * 2000)
+    timer = setTimeout(spin, 12500 + Math.random() * 3000)
     return () => {
       stopped = true
       if (timer) clearTimeout(timer)
