@@ -381,6 +381,8 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
   { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -6%, fading out downwards, with `text-display`", token: "`--text-display`, `--tracking-display`" },
   { utility: "page-title", does: "The title of Games, Tables and Tournaments: one line, Geist at 720, tracking -6%, 8rem on a desktop, no fade, with `text-page-title`", token: "`--text-page-title`, `--tracking-display`" },
+  { utility: "tabletop", does: "The backdrop of the home's hero: a walnut table in perspective under a lamp, with dice, cards, chips and meeples on it, drawn from its `data-` attributes", token: "`--wood-*`, `--piece-*`" },
+  { utility: "title-piece, title-cards, title-over", does: "The pieces that stand for letters in the home's title (a die, a coin, a heart), two white cards half behind a letter, and the dark edge of that letter", token: "`--piece-*`" },
   { utility: "glass", does: "A container that floats over the page: the grey of a card at 92%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },
   { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },

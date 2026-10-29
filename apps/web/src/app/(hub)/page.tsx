@@ -2,13 +2,14 @@ import { indexEntry } from "@pbgo/catalog/filter"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Perks, Stats } from "@pbgo/ui/platform/stats"
 import { Tabletop } from "@pbgo/ui/platform/tabletop"
+import { TitleCards, TitlePiece } from "@pbgo/ui/platform/title-piece"
 import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
 import { HomeBody } from "@/components/home-body"
 import { EmptySection, PopularGames } from "@/components/home-sections"
 import { SiteFooter } from "@/components/site-footer"
 import { catalogCardProps } from "@/lib/game-card-props"
-import { figure, getPlayerCount } from "@/lib/hub-stats"
+import { figure, getHubFigures } from "@/lib/hub-stats"
 import { COMING_SOON } from "@/lib/coming-soon"
 
 // Plain <a> to the games (GameCard): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
@@ -22,7 +23,7 @@ import { COMING_SOON } from "@/lib/coming-soon"
 export default async function Home() {
   // The live games of the registry, then the games to come, already in their order (docs/catalog.md). Without Notion (no key, or
   // Notion down) the catalog is the live games alone, each from the registry.
-  const [{ entries }, players] = await Promise.all([getCatalog(), getPlayerCount()])
+  const [{ entries }, figures] = await Promise.all([getCatalog(), getHubFigures()])
   // Each card is the game's Notion row, a live game's included (its logo, or icon, and its background come from the catalog's picture
   // route; a picture the row does not have leaves the frame plain): the hub reads no game's Sanity project, only entering a game does.
   // The registry decides the card's variant alone. Each game goes to the browser with what the search reads of it (`indexEntry`)
@@ -36,24 +37,30 @@ export default async function Home() {
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
-          {/* The hero: the title in two lines of the same size, in sentence case, in Geist at a weight of 720 and a tracking of -6% (`display-title`), then what the platform
-              is: its figures (`Stats`: the players, counted in Supabase, and the games of the catalog) and what costs nothing (`Perks`), and the search bar under them (the field with the category,
-              then the filters, bare, in a row; glass), on a backdrop that is lighter at the top and fades into the black the sections sit on, with a plain table under a lamp laid over it
-              (`Tabletop`: the diamonds of Courtisans' table in perspective, scrolling slowly towards the viewer, the glow of the lamp and a fine grain; neither the grid of thin lines of
-              `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
+          {/* The hero, the page of a visitor who is not signed in (signed in, there is no title: the home is built from what they play): the title in two lines of the same size, in sentence case, in Geist
+              at a weight of 720 and a tracking of -6% (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a die that turns, the suits of a deck in turn and a coin that is tossed, for three "o", and two
+              white cards partly behind the last letter of "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now and the members, counted in Supabase, and the games of the catalog) and what
+              costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on a backdrop that is lighter at the top and fades into the
+              black the sections sit on, with a walnut table under a lamp laid over it (`Tabletop`: dice, playing cards, chips and meeples lying and standing on it, in
+              perspective, still; neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
           <section className="relative bg-linear-to-b from-card to-background pt-navbar">
             <Tabletop />
-            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center">
+            <div className="relative mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
               <h1 className="display-title">
-                <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
+                <span className="block text-display">Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>{" "}
+                <span className="block text-display">b<TitlePiece kind="coin">o</TitlePiece>ard game<span className="title-over">s</span> <TitleCards />online</span>
               </h1>
               <Stats
                 className="mt-8"
-                items={[...(players === null ? [] : [{ value: figure(players), label: "players" }]), { value: figure(games.length), label: "games" }]}
+                items={[
+                  ...(figures.online === null ? [] : [{ value: figure(figures.online), label: "players online" }]),
+                  ...(figures.members === null ? [] : [{ value: figure(figures.members), label: "members" }]),
+                  { value: figure(games.length), label: "games" },
+                ]}
               />
               <Perks className="mt-6" items={["Free to play", "No sign-up needed"]} />
-              {/* 40px under what the platform is, which it covers none of */}
-              <div className="mt-10 w-full max-w-3xl">
+              {/* 56px under what the platform is, which it covers none of; from `sm` no wider than the title (`max-w-hero-bar`) */}
+              <div className="mt-14 w-full max-w-3xl sm:max-w-hero-bar">
                 <HeroSearch />
               </div>
             </div>

@@ -1,7 +1,7 @@
 /*
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
- * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
+ * Direction: a black that leans to brown and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
  * blurple on their buttons, Google's four colours in its mark), and a single gradient, neutral too: the backdrop of a page's first
  * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
  * in semibold, slightly tight line-height, small negative letter-spacing. Apart from those, game art is the only colour on the platform.
@@ -61,6 +61,13 @@
   --color-presence-dnd: var(--presence-dnd);
   --color-brand-facebook: var(--brand-facebook);
   --color-brand-discord: var(--brand-discord);
+  --color-piece-red: var(--piece-red);
+  --color-piece-gold: var(--piece-gold);
+  --color-piece-teal: var(--piece-teal);
+  --color-piece-navy: var(--piece-navy);
+  --color-piece-ivory: var(--piece-ivory);
+  --color-piece-ink: var(--piece-ink);
+  --color-piece-black: var(--piece-black);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -88,6 +95,8 @@
   /* Layout widths: `max-w-page` (a page that keeps a limit on a wide screen, up to a 1536px window: a game's page, the pages of the tabs; the hub's lists of games have none, they take the whole window), `max-w-reading` (legal text, forms) */
   --container-page: 96rem;
   --container-reading: 40rem;
+  /* How wide the search bar of the home's hero can be, from the `sm` breakpoint: a little narrower than the title, whose longest line is about 9 times its size wide (`--text-display`), so that on a tablet the bar is never wider than the title; 48rem at most, the width it has on a desktop */
+  --container-hero-bar: min(48rem, calc(var(--text-display) * 8.6));
 
   /* Height of the fixed navbar: its two 3.5rem containers in 1.5rem of padding all around (`p-6`), so 1.5rem from the top and from the sides of the window and 1.5rem of air under them: `h-navbar`, and `pt-navbar` / `scroll-mt-navbar` on what sits under it */
   --spacing-navbar: 6.5rem;
@@ -245,97 +254,484 @@
 }
 
 /*
- * The backdrop of the home's hero, `Tabletop`: a plain table seen from above at a low angle, in perspective, under a lamp, with the pattern of a game on
- * it. For now it is the one of Courtisans' table, its diamonds (a lozenge, a dashed one inside it and a dot at every node, tiled); one day each game's own
- * may take its turn, one every six seconds, the way the word of the title did (not done). One utility per layer, all drawn in `foreground` at a few percent
- * (a token mixed with `transparent`, never a colour of its own), so the title and the search bar keep the page:
- * - `tabletop`: the box, `absolute inset-0`, which fades out at its foot where the black of the page takes over;
- * - `tabletop-pool`, `tabletop-floor` and `tabletop-pattern`: the pattern, an SVG tile used as a mask over `foreground`, laid on a plane that is tilted back
- *   around its bottom edge (`perspective()` and `rotateX()`) and whose far end fades, that a pool of light, a radial mask, picks out of the dark. The pattern scrolls: it
- *   comes forward by one tile every `--tabletop-scroll` (16s) and starts again, a transform, so nothing is repainted, and not at all for a visitor who asks for less motion;
- * - `tabletop-lamp`: the glow of the lamp at the top;
- * - `tabletop-grain`: a fine noise, an SVG with `feTurbulence` used as a mask over `foreground`.
- * The tile is `--tabletop-tile` where the table is nearest, 6rem on a phone and growing with the window up to 10rem; the perspective and the height of
- * the plane are measured in tiles, so the drawing is the same at every width.
+ * The backdrop of the home's hero, `Tabletop`: a table of board games seen from above at a low angle, in perspective, under a lamp, with what is played on it lying and standing on it: dice,
+ * playing cards, chips and meeples. It is made of CSS and of a few inline SVGs, no image, and it is decorative (`aria-hidden`, no pointer). Its colours are the ones of a table and of its pieces
+ * (`--wood-*`, `--piece-*` of `.platform`), the hero's alone. One utility, the root, which styles what `Tabletop` draws inside it by their `data-slot` and `data-piece`:
+ * - the box is `absolute inset-0` and fades out at its foot where the black of the page takes over; `--tabletop-unit` is the size of the pieces, 1 from a tablet and less on a phone;
+ * - `tabletop-light`: the lamp, a pool of warm light at the top (`--piece-gold`), and what the red and the teal pieces throw on the room at the sides;
+ * - `tabletop-stage` and `tabletop-plane`: the eye is above the table and a little in front of it (`perspective`), and the table is a plane tilted back around its bottom edge (`--tabletop-tilt`)
+ *   whose far end fades out; `tabletop-wood` is its surface, planks with their seams and a fine grain along them;
+ * - `die`, `card`, `chips`, `meeple`: a piece lies on the plane (a die is a cube set on it, its six faces drawn with the number of pips they have, a card is flat, a stack of chips is discs one over the
+ *   other) or stands on it (a meeple, tilted back by the same angle as the plane, so that it is upright to the eye), and has a soft shadow under it. Where it is, how big, how it is turned and what
+ *   it is made of (its `data-tone`) is the piece's own, set by `Tabletop`. Nothing moves: the table is a still scene.
  */
 @utility tabletop {
-  --tabletop-tile: clamp(6rem, 11vw, 10rem);
+  --tabletop-unit: 1;
+  --tabletop-tilt: 63deg;
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, var(--foreground) 82%, transparent);
-  mask-image: linear-gradient(to bottom, var(--foreground) 82%, transparent);
-}
-
-@utility tabletop-pool {
-  position: absolute;
-  inset: 0;
-  -webkit-mask-image: radial-gradient(ellipse 62% 70% at 50% 82%, var(--foreground) 8%, transparent 74%);
-  mask-image: radial-gradient(ellipse 62% 70% at 50% 82%, var(--foreground) 8%, transparent 74%);
-}
-
-@utility tabletop-floor {
-  position: absolute;
-  inset-inline: -55%;
-  bottom: 0;
-  height: calc(var(--tabletop-tile) * 11);
-  transform-origin: 50% 100%;
-  transform: perspective(calc(var(--tabletop-tile) * 3.4)) rotateX(51deg);
-  -webkit-mask-image: linear-gradient(to top, var(--foreground) 62%, transparent);
-  mask-image: linear-gradient(to top, var(--foreground) 62%, transparent);
-}
-
-@utility tabletop-pattern {
-  position: absolute;
-  /* One tile higher than the plane, so that nothing is bare at its far end as the pattern comes forward */
-  inset: calc(var(--tabletop-tile) * -1) 0 0;
-  background-color: var(--foreground);
-  opacity: 0.16;
-  will-change: transform;
-  animation: tabletop-scroll var(--tabletop-scroll, 16s) linear infinite;
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  -webkit-mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
+  mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
+  @media (max-width: 40rem) {
+    --tabletop-unit: 0.62;
+    /* On a phone the text takes the whole width, so what would stand behind it is left out: the meeples and the pieces that are farther away */
+    & [data-piece="meeple"], & [data-farther] { display: none; }
   }
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Cpath d='M128 0 256 128 128 256 0 128Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M128 22 234 128 128 234 22 128Z' fill='none' stroke='white' stroke-width='3.5' stroke-dasharray='10 20'/%3E%3Cg fill='white'%3E%3Ccircle cx='128' cy='0' r='8'/%3E%3Ccircle cx='256' cy='128' r='8'/%3E%3Ccircle cx='128' cy='256' r='8'/%3E%3Ccircle cx='0' cy='128' r='8'/%3E%3Ccircle cx='128' cy='128' r='5.5'/%3E%3Ccircle cx='0' cy='0' r='5.5'/%3E%3Ccircle cx='256' cy='0' r='5.5'/%3E%3Ccircle cx='0' cy='256' r='5.5'/%3E%3Ccircle cx='256' cy='256' r='5.5'/%3E%3C/g%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Cpath d='M128 0 256 128 128 256 0 128Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M128 22 234 128 128 234 22 128Z' fill='none' stroke='white' stroke-width='3.5' stroke-dasharray='10 20'/%3E%3Cg fill='white'%3E%3Ccircle cx='128' cy='0' r='8'/%3E%3Ccircle cx='256' cy='128' r='8'/%3E%3Ccircle cx='128' cy='256' r='8'/%3E%3Ccircle cx='0' cy='128' r='8'/%3E%3Ccircle cx='128' cy='128' r='5.5'/%3E%3Ccircle cx='0' cy='0' r='5.5'/%3E%3Ccircle cx='256' cy='0' r='5.5'/%3E%3Ccircle cx='0' cy='256' r='5.5'/%3E%3Ccircle cx='256' cy='256' r='5.5'/%3E%3C/g%3E%3C/svg%3E");
-  -webkit-mask-size: var(--tabletop-tile) var(--tabletop-tile);
-  mask-size: var(--tabletop-tile) var(--tabletop-tile);
-  -webkit-mask-position: 50% 100%;
-  mask-position: 50% 100%;
-}
 
-/* The board scrolls towards the viewer by one tile and starts again: the pattern is the same one tile on, so the loop shows no seam */
-@keyframes tabletop-scroll {
-  to {
-    transform: translateY(var(--tabletop-tile));
+  & [data-slot="tabletop-light"] {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(60% 66% at 50% -22%, color-mix(in oklab, var(--piece-gold) 32%, transparent), transparent 70%),
+      radial-gradient(38% 50% at 6% 78%, color-mix(in oklab, var(--piece-red) 14%, transparent), transparent 70%),
+      radial-gradient(38% 50% at 94% 78%, color-mix(in oklab, var(--piece-teal) 14%, transparent), transparent 70%);
+  }
+
+  /* Over the table, where the title, the figures and the perks are read: the page's black, in a soft pool, so that small muted text keeps its contrast on the planks */
+  & [data-slot="tabletop-shade"] {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(ellipse max(36%, 17rem) 40% at 50% 54%, color-mix(in oklab, var(--background) 74%, transparent), color-mix(in oklab, var(--background) 38%, transparent) 62%, transparent 100%);
+  }
+
+  & [data-slot="tabletop-stage"] {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 640px;
+    perspective: 1050px;
+    perspective-origin: 50% -6%;
+    -webkit-mask-image: radial-gradient(ellipse 78% 92% at 50% 88%, var(--foreground) 26%, transparent 76%);
+    mask-image: radial-gradient(ellipse 78% 92% at 50% 88%, var(--foreground) 26%, transparent 76%);
+  }
+
+  & [data-slot="tabletop-plane"] {
+    position: absolute;
+    inset-inline: -36%;
+    bottom: -50px;
+    height: 1250px;
+    transform-origin: 50% 100%;
+    transform: rotateX(var(--tabletop-tilt));
+    transform-style: preserve-3d;
+  }
+
+  & [data-slot="tabletop-wood"] {
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, var(--wood-seam) 0 3px, transparent 3px 190px),
+      repeating-linear-gradient(90deg, var(--wood-1) 0 190px, var(--wood-2) 190px 380px, var(--wood-3) 380px 570px),
+      radial-gradient(ellipse 70% 62% at 50% 72%, color-mix(in oklab, var(--wood-1) 85%, var(--piece-gold)), var(--wood-2));
+  }
+  & [data-slot="tabletop-wood"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 14%, transparent) 0 1px, transparent 1px 9px, color-mix(in oklab, var(--piece-ivory) 3.5%, transparent) 9px 10px, transparent 10px 23px);
+    mix-blend-mode: multiply;
+  }
+
+  & [data-piece] {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    transform-style: preserve-3d;
+  }
+  & [data-slot="shadow"] {
+    position: absolute;
+    pointer-events: none;
+    background: color-mix(in oklab, var(--piece-ink) 80%, transparent);
+    filter: blur(8px);
+  }
+
+  /* A die: a cube, lifted by half its size so that it stands on the plane, turned by `--yaw` around the vertical. */
+  & [data-piece="die"] {
+    --size: calc(var(--s) * var(--tabletop-unit) * 1px);
+    --h: calc(var(--size) / 2);
+    --die: var(--piece-ivory);
+    --pip: var(--piece-ink);
+    width: var(--size);
+    height: var(--size);
+    transform: translateZ(var(--h)) rotateZ(var(--yaw));
+    &[data-tone="red"] { --die: var(--piece-red); --pip: var(--piece-ivory); }
+    &[data-tone="teal"] { --die: var(--piece-teal); --pip: var(--piece-ivory); }
+    &[data-tone="gold"] { --die: var(--piece-gold); --pip: var(--piece-ink); }
+  }
+  & [data-piece="die"] > [data-face] {
+    position: absolute;
+    inset: 0;
+    border-radius: 16%;
+    background-color: var(--die);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--piece-ivory) 25%, transparent), inset 0 -6px 12px color-mix(in oklab, var(--piece-ink) 18%, transparent);
+  }
+  & [data-piece="die"] > [data-face="top"] { transform: translateZ(var(--h)); }
+  & [data-piece="die"] > [data-face="bottom"] { transform: rotateX(90deg) translateZ(var(--h)); }
+  & [data-piece="die"] > [data-face="front"] { transform: rotateX(-90deg) translateZ(var(--h)); }
+  & [data-piece="die"] > [data-face="back"] { transform: rotateY(180deg) translateZ(var(--h)); }
+  & [data-piece="die"] > [data-face="right"] { transform: rotateY(90deg) translateZ(var(--h)); }
+  & [data-piece="die"] > [data-face="left"] { transform: rotateY(-90deg) translateZ(var(--h)); }
+  & [data-piece="die"] > [data-slot="shadow"] {
+    inset: 6%;
+    border-radius: 20%;
+    transform: translateZ(calc(var(--h) * -1 + 1px));
+  }
+  /* A card: flat on the plane, a little above it so that the one over it is the one that is shown, face up, or face down when its `--shows` is half a turn. */
+  & [data-piece="card"] {
+    --back: var(--piece-red);
+    width: calc(var(--w) * var(--tabletop-unit) * 1px);
+    height: calc(var(--w) * var(--tabletop-unit) * 1.43px);
+    transform: translateZ(calc(var(--z, 1) * 1px)) rotateZ(var(--rot));
+    &[data-tone="teal"] { --back: var(--piece-teal); }
+    &[data-tone="navy"] { --back: var(--piece-navy); }
+  }
+  & [data-piece="card"] > [data-slot="card-body"] {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform: rotateY(var(--shows, 0deg));
+  }
+  & [data-piece="card"] [data-side] {
+    position: absolute;
+    inset: 0;
+    border-radius: calc(var(--w) * var(--tabletop-unit) * 0.1px);
+    backface-visibility: hidden;
+    box-shadow: 0 5px 10px color-mix(in oklab, var(--piece-ink) 55%, transparent), 0 0 0 1px color-mix(in oklab, var(--piece-ink) 30%, transparent);
+  }
+  & [data-piece="card"] [data-side="face"] {
+    background: var(--piece-ivory);
+    color: var(--piece-ink);
+    &[data-suit="heart"], &[data-suit="diamond"] { color: var(--piece-red); }
+  }
+  & [data-piece="card"] [data-side="back"] {
+    transform: rotateY(180deg);
+    background: var(--piece-ivory);
+  }
+  & [data-piece="card"] [data-side="back"]::before {
+    content: "";
+    position: absolute;
+    inset: 6%;
+    border-radius: 6%;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in oklab, var(--piece-ivory) 35%, transparent) 6px 7px),
+      repeating-linear-gradient(-45deg, transparent 0 6px, color-mix(in oklab, var(--piece-ivory) 35%, transparent) 6px 7px),
+      var(--back);
+  }
+  & [data-piece="card"] [data-slot="rank"] {
+    position: absolute;
+    left: 9%;
+    top: 5%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: 700;
+    font-size: calc(var(--w) * var(--tabletop-unit) * 0.22px);
+    line-height: 1;
+  }
+  & [data-piece="card"] [data-slot="rank"] > svg { width: 0.8em; height: 0.8em; fill: currentColor; }
+  & [data-piece="card"] [data-slot="pip"] { position: absolute; inset: 28% 22%; fill: currentColor; }
+
+  /* A stack of chips: discs one over the other, with the notches of a chip round the rim. */
+  & [data-piece="chips"] {
+    --c: var(--piece-red);
+    width: calc(var(--s) * var(--tabletop-unit) * 1px);
+    height: calc(var(--s) * var(--tabletop-unit) * 1px);
+    &[data-tone="gold"] { --c: var(--piece-gold); }
+    &[data-tone="teal"] { --c: var(--piece-teal); }
+    &[data-tone="navy"] { --c: var(--piece-navy); }
+  }
+  & [data-piece="chips"] > i {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    corner-shape: round;
+    transform: translateZ(calc(var(--i) * 5px + 1px));
+    background: radial-gradient(circle, var(--c) 0 46%, var(--piece-ivory) 47% 56%, var(--c) 57%);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--piece-ink) 25%, transparent), inset 0 0 0 5px color-mix(in oklab, var(--piece-ivory) 8%, transparent);
+  }
+  & [data-piece="chips"] > i::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    corner-shape: round;
+    background: repeating-conic-gradient(from 8deg, var(--piece-ivory) 0 13deg, transparent 13deg 45deg);
+    -webkit-mask-image: radial-gradient(circle, transparent 0 80%, var(--foreground) 81% 100%);
+    mask-image: radial-gradient(circle, transparent 0 80%, var(--foreground) 81% 100%);
+  }
+  & [data-piece="chips"] > [data-slot="shadow"] {
+    inset: 2px;
+    border-radius: 50%;
+    corner-shape: round;
+  }
+
+  /* A meeple: upright, tilted back by the angle of the plane so that it faces the eye. */
+  & [data-piece="meeple"] {
+    --c: var(--piece-red);
+    width: calc(var(--s) * var(--tabletop-unit) * 1px);
+    height: calc(var(--s) * var(--tabletop-unit) * 1px);
+    &[data-tone="gold"] { --c: var(--piece-gold); }
+    &[data-tone="teal"] { --c: var(--piece-teal); }
+  }
+  & [data-piece="meeple"] > svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: var(--c);
+    transform: rotateX(calc(var(--tabletop-tilt) * -1));
+    transform-origin: 50% 100%;
+    filter: drop-shadow(0 -1px 0 color-mix(in oklab, var(--piece-ivory) 35%, transparent)) drop-shadow(0 3px 3px color-mix(in oklab, var(--piece-ink) 45%, transparent));
+  }
+  & [data-piece="meeple"] > [data-slot="shadow"] {
+    inset-inline: 8%;
+    bottom: -14%;
+    height: 34%;
+    border-radius: 50%;
+    corner-shape: round;
+    filter: blur(5px);
   }
 }
 
-@utility tabletop-lamp {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(
-    ellipse 62% 80% at 50% 14%,
-    color-mix(in oklab, var(--foreground) 17%, transparent),
-    color-mix(in oklab, var(--foreground) 5.5%, transparent) 46%,
-    transparent 72%
-  );
+/* The pips of a face of a die, from its `data-pips` (1 to 6): discs of `--pip` on the face, which is `background-color`, all of the same size (9.5% of the face for the radius, whatever the number). One utility for the dice of the table and for the one in the title. */
+@utility die-pips {
+  &[data-pips="1"] {
+    background-image: radial-gradient(ellipse 9.5% 9.5% at 50% 50%, var(--pip) 88%, transparent 100%);
+  }
+  &[data-pips="2"] {
+    background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 73%, var(--pip) 88%, transparent 100%);
+  }
+  &[data-pips="3"] {
+    background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 50% 50%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 73%, var(--pip) 88%, transparent 100%);
+  }
+  &[data-pips="4"] {
+    background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 27% 73%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 73%, var(--pip) 88%, transparent 100%);
+  }
+  &[data-pips="5"] {
+    background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 27%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 50% 50%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 27% 73%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 73%, var(--pip) 88%, transparent 100%);
+  }
+  &[data-pips="6"] {
+    background-image: radial-gradient(ellipse 9.5% 9.5% at 27% 24%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 24%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 27% 50%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 50%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 27% 76%, var(--pip) 88%, transparent 100%), radial-gradient(ellipse 9.5% 9.5% at 73% 76%, var(--pip) 88%, transparent 100%);
+  }
 }
 
-@utility tabletop-grain {
-  position: absolute;
-  inset: 0;
-  background-color: var(--foreground);
-  opacity: 0.14;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.3 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.3 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mask-size: 15rem 15rem;
+/*
+ * The pieces that stand for letters in the home's title (`TitlePiece`, `TitleCards`): a die that rolls, a coin and the four suits of a deck in turn for an "o", two white playing cards that overlap for an ornament. They are sized in
+ * `em`, the title's, so they follow it, and set on the baseline like the letter they replace (an "o" is 0.6em wide and a little over half an em high), in the colours of the pieces of the table (`--piece-*`). The
+ * letter is still in the page (`sr-only`), so the title reads as it is written to a screen reader and a search engine; the cards, which stand for none, are `aria-hidden` and left out on a phone, where the
+ * second line is as wide as the window lets it be.
+ */
+@utility title-piece {
+  display: inline-block;
+  position: relative;
+  vertical-align: baseline;
+  /* Where an "o" would sit: a letter has its tracking (-6%) after it and a box has none, so the piece, which would be too near the letter before it and too far from the one after it, is moved 0.04em to the right
+     (the margins add up to the same, so the letters around it do not move) */
+  margin-inline: 0.06em -0.02em;
+  /* A die: a small cube that turns now and then, to show another of its faces (`title-die`); its faces are set by `TitlePiece` */
+  &[data-kind="die"] {
+    width: 0.56em;
+    height: 0.56em;
+    perspective: 1.8em;
+    --pip: var(--piece-ink);
+  }
+  &[data-kind="die"] > [data-slot="cube"] {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    animation: title-die 18s ease-in-out infinite;
+  }
+  &[data-kind="die"] [data-face] {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.12em;
+    background-color: var(--piece-ivory);
+    box-shadow: inset 0 -0.04em 0.06em color-mix(in oklab, var(--piece-ink) 22%, transparent);
+  }
+  &[data-kind="die"] [data-face="front"] { transform: translateZ(0.28em); }
+  &[data-kind="die"] [data-face="right"] { transform: rotateY(90deg) translateZ(0.28em); }
+  &[data-kind="die"] [data-face="back"] { transform: rotateY(180deg) translateZ(0.28em); }
+  &[data-kind="die"] [data-face="left"] { transform: rotateY(-90deg) translateZ(0.28em); }
+  &[data-kind="die"] [data-face="top"] { transform: rotateX(90deg) translateZ(0.28em); }
+  &[data-kind="die"] [data-face="bottom"] { transform: rotateX(-90deg) translateZ(0.28em); }
+  /* A coin: tossed now and then and caught heads up or tails up in turn (`title-coin`), its two sides drawn apart, the "face" with a star and the "pile" with its value. It is lower than the baseline by 0.03em, and
+     0.005em more to the left than the die: a coin is round, and the "o" it stands for has an overshoot */
+  &[data-kind="coin"] {
+    margin-inline: 0.055em -0.015em;
+    vertical-align: -0.03em;
+    width: 0.6em;
+    height: 0.6em;
+    perspective: 1.6em;
+  }
+  &[data-kind="coin"] > [data-slot="coin"] {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    animation: title-coin 14s ease-in-out infinite;
+  }
+  &[data-kind="coin"] [data-face] {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    corner-shape: round;
+    backface-visibility: hidden;
+    background: radial-gradient(circle at 34% 28%, color-mix(in oklab, var(--piece-gold) 55%, var(--piece-ivory)), var(--piece-gold) 55%, color-mix(in oklab, var(--piece-gold) 70%, var(--piece-ink)));
+    box-shadow: inset 0 0 0 0.04em color-mix(in oklab, var(--piece-gold) 65%, var(--piece-ink)), 0 0.02em 0.04em color-mix(in oklab, var(--piece-ink) 35%, transparent);
+    color: color-mix(in oklab, var(--piece-gold) 45%, var(--piece-ink));
+  }
+  &[data-kind="coin"] [data-face]::before {
+    content: "";
+    position: absolute;
+    inset: 0.1em;
+    border-radius: 50%;
+    corner-shape: round;
+    box-shadow: inset 0 0 0 0.03em color-mix(in oklab, var(--piece-gold) 65%, var(--piece-ink));
+  }
+  &[data-kind="coin"] [data-face="heads"]::after {
+    content: "";
+    width: 0.27em;
+    height: 0.27em;
+    background: currentColor;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+  &[data-kind="coin"] [data-face="tails"] {
+    transform: rotateX(180deg);
+    font-size: 0.34em;
+    font-weight: var(--font-weight-strong);
+    line-height: 1;
+    letter-spacing: 0;
+  }
+  /* The suits of a deck, one over the other in the place of an "o": each is shown in its turn (`title-suit`), turning like a card, and the first is the one a visitor who asks for less motion keeps */
+  &[data-kind="suits"] {
+    width: 0.62em;
+    height: 0.58em;
+    vertical-align: -0.005em;
+    perspective: 1.2em;
+  }
+  &[data-kind="suits"] > svg {
+    position: absolute;
+    left: -10%;
+    top: -10%;
+    width: 120%;
+    height: 120%;
+    fill: var(--piece-red);
+    opacity: 0;
+    animation: title-suit 12s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 3s - 0.6s);
+  }
+  /* The black suits are black, as printed on a card (`--piece-black`), with no outline */
+  &[data-kind="suits"] > svg[data-suit="club"],
+  &[data-kind="suits"] > svg[data-suit="spade"] {
+    fill: var(--piece-black);
+  }
+}
+
+@keyframes title-suit {
+  0% { opacity: 0; transform: rotateY(-90deg) scale(0.6); }
+  3%, 22% { opacity: 1; transform: rotateY(0deg) scale(1); }
+  25%, 100% { opacity: 0; transform: rotateY(90deg) scale(0.6); }
+}
+
+/* The die of the title shows its front, then each of its sides in turn: it tumbles a full turn forward while it turns a quarter to the side, and rests a few seconds on each face; after four the cube is where it began */
+@keyframes title-die {
+  0%, 20% { transform: rotateX(0deg) rotateY(0deg); }
+  26%, 45% { transform: rotateX(360deg) rotateY(-90deg); }
+  51%, 70% { transform: rotateX(720deg) rotateY(-180deg); }
+  76%, 95% { transform: rotateX(1080deg) rotateY(-270deg); }
+  100% { transform: rotateX(1440deg) rotateY(-360deg); }
+}
+
+/* The coin is tossed (it rises by half of its size, a little bigger, and turns a turn and a half, slowing at the top) and caught tails up, rests, is tossed again and caught heads up: the two tosses are one cycle, and the cycle ends where it began */
+@keyframes title-coin {
+  0%, 20% { transform: translateY(0) scale(1) rotateX(0deg); animation-timing-function: ease-out; }
+  25% { transform: translateY(-0.55em) scale(1.2) rotateX(270deg); animation-timing-function: ease-in; }
+  30%, 60% { transform: translateY(0) scale(1) rotateX(540deg); animation-timing-function: ease-out; }
+  65% { transform: translateY(-0.55em) scale(1.2) rotateX(810deg); animation-timing-function: ease-in; }
+  70%, 100% { transform: translateY(0) scale(1) rotateX(1080deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-piece[data-kind="coin"] > [data-slot="coin"] { animation: none; }
+  .title-piece[data-kind="suits"] > svg { animation: none; }
+  .title-piece[data-kind="suits"] > svg:first-of-type { opacity: 1; }
+  .title-piece[data-kind="die"] > [data-slot="cube"] { animation: none; }
+}
+
+@utility title-cards {
+  display: none;
+  position: relative;
+  /* Behind the letters of the title: the title is its own stacking context (its mask), so the cards go under its text and over its backdrop */
+  z-index: -1;
+  width: 0.72em;
+  height: 0.74em;
+  vertical-align: baseline;
+  /* The pair starts a little under the last letter of the word before it (`title-over`: 0.14em of the letter, which the 0.34em pulls it back by) and the word after it starts 0.24em from the pair */
+  margin-inline: -0.34em 0.24em;
+  @media (min-width: 40rem) {
+    display: inline-block;
+  }
+  & > i {
+    position: absolute;
+    bottom: 0;
+    width: 0.52em;
+    height: 0.74em;
+    border-radius: 0.07em;
+    background: var(--foreground);
+    box-shadow: 0 0 0 0.02em color-mix(in oklab, var(--piece-ink) 40%, transparent), 0 0.03em 0.06em color-mix(in oklab, var(--piece-ink) 40%, transparent);
+    transform-origin: 50% 100%;
+  }
+  & > i::after {
+    content: "";
+    position: absolute;
+    inset: 0.06em;
+    border-radius: 0.04em;
+    box-shadow: inset 0 0 0 0.02em color-mix(in oklab, var(--piece-ink) 22%, transparent);
+  }
+  & > i > svg {
+    position: absolute;
+    inset: 0.2em 0.1em;
+    width: calc(100% - 0.2em);
+    height: calc(100% - 0.4em);
+    fill: color-mix(in oklab, var(--piece-ink) 30%, transparent);
+  }
+  /* Two cards that overlap by more than half: the second is 0.2em from the first, a little turned the other way */
+  & > i:first-child {
+    left: 0;
+    transform: rotate(-13deg);
+  }
+  & > i:last-child {
+    left: 0.2em;
+    transform: rotate(11deg);
+  }
+}
+
+/* A letter of the title that the cards go behind (`title-cards`): white on white would lose its shape where it is over them, so its edge is darkened, which shows on nothing else, the page being dark. */
+@utility title-over {
+  text-shadow: 0 0 0.04em var(--piece-ink), 0 0 0.09em var(--piece-ink);
 }
 
 @layer base {
   .platform {
-    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
+    /*
+     * The neutral scale of the platform: Tailwind's, step for step (the same lightness), tinted toward brown, so that the black of the page is a dark chocolate and not a neutral black, the way the table of the hero
+     * is made of walnut. The hue is that of the wood (55); the chroma is small, a brown that is hardly one (0.008 for the page and for a container), and fades towards the whites (0.002), which stay almost white. Every grey
+     * of a platform screen is one of these steps, so changing them here changes the whole platform; `PLATFORM_THEME_COLOR` copies the first (`theme.test.ts` checks it).
+     */
+    --color-neutral-50: oklch(0.985 0.002 55);
+    --color-neutral-100: oklch(0.97 0.002 55);
+    --color-neutral-200: oklch(0.922 0.003 55);
+    --color-neutral-300: oklch(0.87 0.003 55);
+    --color-neutral-400: oklch(0.708 0.004 55);
+    --color-neutral-500: oklch(0.556 0.005 55);
+    --color-neutral-600: oklch(0.439 0.006 55);
+    --color-neutral-700: oklch(0.371 0.007 55);
+    --color-neutral-800: oklch(0.269 0.008 55);
+    --color-neutral-900: oklch(0.205 0.008 55);
+    --color-neutral-950: oklch(0.145 0.008 55);
+    /* Colours: that scale, then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
     /* The grey of every container: a card, a menu, a dialog, and the glass of the navbar, the dock, the bars (`glass`). Half way between neutral 900 and 800, a dark grey and not the page's black */
@@ -359,6 +755,18 @@
     /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Facebook's blue and Discord's blurple. Google's and Apple's are `foreground` and `background`; the marks are in `brands.tsx` */
     --brand-facebook: #1877f2;
     --brand-discord: #5865f2;
+    /* The colours of a game table, which are the hero's alone (`Tabletop`, and the pieces that stand for letters in its title, `TitlePiece`): what is played with (red, gold, teal and navy for dice, chips, cards and meeples, ivory and ink for a die and a card, and the black of the clubs and the spades), and what it is played on (the planks of the table, the seams between them) */
+    --piece-red: oklch(0.64 0.2 27);
+    --piece-gold: oklch(0.82 0.15 88);
+    --piece-teal: oklch(0.66 0.12 200);
+    --piece-navy: oklch(0.55 0.15 258);
+    --piece-ivory: oklch(0.96 0.02 85);
+    --piece-ink: oklch(0.22 0.02 60);
+    --piece-black: oklch(0 0 0);
+    --wood-1: oklch(0.47 0.07 62);
+    --wood-2: oklch(0.42 0.065 58);
+    --wood-3: oklch(0.45 0.075 64);
+    --wood-seam: oklch(0.2 0.04 52);
     /* What is cut out of a picture, the ring round a status dot, the outline of tags that overlap: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);
     /* The settings of the glass (`glass`): how much of the grey of a card it keeps, how much it blurs what is behind it, and how much it saturates it. 100% saturation leaves the colours as they are */

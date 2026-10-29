@@ -3,5 +3,5 @@
  * Each one copies a token of `styles/platform.css`; `theme.test.ts` fails when they drift apart.
  */
 
-/** `<meta name="theme-color">` of the platform pages: the `--background` token (neutral-950). */
-export const PLATFORM_THEME_COLOR = "#0a0a0a"
+/** `<meta name="theme-color">` of the platform pages: the `--background` token (neutral-950, the brown black of the platform). */
+export const PLATFORM_THEME_COLOR = "#0d0907"

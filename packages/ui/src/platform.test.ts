@@ -94,6 +94,31 @@ describe("presence colours", () => {
 })
 
 /**
+ * The colours of a game table are the home's hero's alone (`Tabletop`, and the pieces that stand for letters of its title): the colours of what is played with (`--piece-*`, each with its utility, so a
+ * piece is drawn from a token and a platform component never names one) and of what it is played on (`--wood-*`, which only the table's CSS reads).
+ */
+describe("game table colours", () => {
+  const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+
+  for (const name of ["red", "gold", "teal", "navy", "ivory", "ink", "black"]) {
+    it(`piece-${name} is a token with its utility`, () => {
+      expect(css).toMatch(new RegExp(`--piece-${name}:\\s*oklch\\(`))
+      expect(css).toContain(`--color-piece-${name}: var(--piece-${name})`)
+    })
+  }
+
+  for (const name of ["1", "2", "3", "seam"]) {
+    it(`wood-${name} is a token`, () => {
+      expect(css).toMatch(new RegExp(`--wood-${name}:\\s*oklch\\(`))
+    })
+  }
+
+  it("the table and the pieces of the title are utilities of the stylesheet", () => {
+    for (const utility of ["tabletop", "title-piece", "title-cards", "title-over"]) expect(css).toContain(`@utility ${utility} {`)
+  })
+})
+
+/**
  * A sign-in provider's button is its brand's colour where the brand has one to give: two tokens with their utilities, in the brand's own hex. The marks are in
  * `brands.tsx`, the one file with colour literals; Google's and Apple's tiles are `foreground` and `background`.
  */

@@ -5,7 +5,7 @@ import { cn } from "../utils"
 
 import { Button } from "./button"
 
-// The big search bar of a page: one glass bar, rounded by the step of a bar of 4rem (`rounded-3xl`) and not a pill, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
+// The big search bar of a page: one glass bar (97% of the grey of a card, a little more opaque than the glass of the navbar), rounded by the step of a bar of 4rem (`rounded-3xl`) and not a pill, with the magnifier at its start (a plain icon that is the button that sends the search), the text, a
 // button that clears it once there is one and, at its end, what a page puts there: the category of the games, a button that opens a panel
 // (`SearchBarSegment`). The other filters are not in the bar: they stand bare under it, centred on a line of their own (`SearchBarFilters`), each in
 // a place of its own with no background, no outline and no shadow (`SearchBarGroup`, with its `SearchBarIcon` and, where a filter has a value to
@@ -21,7 +21,7 @@ function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
         data-slot="search-bar"
         role="search"
         className={cn(
-          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border glass p-2 pl-3 shadow-float",
+          "group/search-bar flex h-16 w-full items-center gap-2 rounded-3xl border glass [--glass-opacity:97%] p-2 pl-3 shadow-float",
           className
         )}
         {...props}
@@ -139,7 +139,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       type="button"
       aria-label={`${label}: ${value}`}
       className={cn(
-        "group/segment flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
+        "group/segment flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-foreground/10",
         boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-3/5 rounded-xl px-3",
         // Picks are tags on their own grey that overlap a little, and the segment behind them is never filled: a little closer to its edge, and it is the tags that go lighter under the pointer and while the panel is open
         picks.length > 0 && "gap-2 px-2 hover:bg-transparent aria-expanded:bg-transparent",
@@ -159,7 +159,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
                 data-slot="search-bar-pick"
                 title={pick.label}
                 className={cn(
-                  "flex h-8 min-w-0 items-center gap-1.5 rounded-lg bg-muted px-2 transition-colors duration-fast group-hover/segment:bg-secondary-hover group-aria-expanded/segment:bg-secondary-hover",
+                  "flex h-8 min-w-0 items-center gap-1.5 rounded-lg bg-foreground/15 px-2 transition-colors duration-fast group-hover/segment:bg-foreground/25 group-aria-expanded/segment:bg-foreground/25",
                   index > 0 && "-ml-1.5 ring-2 ring-(color:--cutout)",
                   index === 2 && "hidden @md:flex"
                 )}
@@ -169,13 +169,13 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
               </span>
             ))}
           </span>
-          {countNarrow > 0 && <span className="text-sm text-muted-foreground tabular-nums @md:hidden">+{countNarrow}</span>}
-          {countWide > 0 && <span className="hidden text-sm text-muted-foreground tabular-nums @md:inline">+{countWide}</span>}
+          {countNarrow > 0 && <span className="text-sm text-foreground/70 tabular-nums @md:hidden">+{countNarrow}</span>}
+          {countWide > 0 && <span className="hidden text-sm text-foreground/70 tabular-nums @md:inline">+{countWide}</span>}
         </>
       ) : (
         <>
           <SearchBarIcon icon={icon} />
-          <span className={cn("truncate text-sm", idle && "text-muted-foreground", !boxed && idle && "hidden @3xl:inline")}>{value}</span>
+          <span className={cn("truncate text-sm", idle && "text-foreground/70", !boxed && idle && "hidden @3xl:inline")}>{value}</span>
         </>
       )}
     </button>
@@ -229,7 +229,7 @@ type SearchBarIconProps = Omit<React.ComponentProps<typeof HugeiconsIcon>, "icon
 /** The icon that says what a filter of the row is: the same size and colour everywhere, and decorative, since the label of its group says it to a screen reader. */
 function SearchBarIcon({ className, icon, ...props }: SearchBarIconProps) {
   return (
-    <HugeiconsIcon data-slot="search-bar-icon" aria-hidden="true" icon={icon} strokeWidth={2} className={cn("size-5 shrink-0 text-muted-foreground", className)} {...props} />
+    <HugeiconsIcon data-slot="search-bar-icon" aria-hidden="true" icon={icon} strokeWidth={2} className={cn("size-5 shrink-0 text-foreground/70", className)} {...props} />
   )
 }
 

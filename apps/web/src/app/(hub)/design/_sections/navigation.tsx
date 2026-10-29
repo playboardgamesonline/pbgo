@@ -13,7 +13,9 @@ import {
   SearchBarSubmit,
 } from "@pbgo/ui/platform/search-bar"
 import { Perks, Stats } from "@pbgo/ui/platform/stats"
+import { Suit } from "@pbgo/ui/platform/suits"
 import { Tabletop } from "@pbgo/ui/platform/tabletop"
+import { TitleCards, TitlePiece } from "@pbgo/ui/platform/title-piece"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
 import { FiltersSpecimen } from "../_components/filters-specimen"
@@ -337,7 +339,7 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 40px below them (`mt-10`) and covering none of it, and it is glass (`glass`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 56px below them (`mt-14`) and covering none of it, and from the `sm` breakpoint no wider than the title (`max-w-hero-bar`: 8.6 times the size of the title, 48rem at most, so on a tablet it is a little narrower than the title's longest line), and it is glass (`glass`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
@@ -346,7 +348,7 @@ export function SearchBars() {
     </h1>
     <Stats className="mt-8" items={…} />
     <Perks className="mt-6" items={…} />
-    <div className="mt-10 w-full max-w-3xl">
+    <div className="mt-14 w-full max-w-3xl sm:max-w-hero-bar">
       <SearchBar>…</SearchBar>
       <SearchBarFilters>…</SearchBarFilters>
     </div>
@@ -357,7 +359,7 @@ export function SearchBars() {
           <p className="display-title">
             <span className="block text-4xl">Play your favorite</span> <span className="block text-4xl">board games online</span>
           </p>
-          <Stats className="mt-6" items={[{ value: "12,480", label: "players" }, { value: "71", label: "games" }]} />
+          <Stats className="mt-6" items={[{ value: "128", label: "players online" }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
           <Perks className="mt-4" items={["Free to play", "No sign-up needed"]} />
           <div className="mt-8 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
@@ -432,20 +434,45 @@ export function Tabletops() {
     <Section
       id="tabletop"
       module="tabletop"
-      intro="The backdrop of the home's hero: a plain table seen from above at a low angle, in perspective, under a lamp, with the pattern of a game on it. For now it is the one of Courtisans' table, its diamonds (a lozenge, a dashed one inside it and a dot at every node, tiled); one day each game's own may take its turn, one every six seconds, but that is not done. It is made of no image: the pattern is an SVG tile used as a mask over `foreground`, laid on a plane tilted back with `perspective()` and `rotateX()` (its far end fades), that a pool of light, a radial mask, picks out of the dark; then come the glow of the lamp at the top and a fine grain (an SVG noise used the same way). Everything is `foreground` at a few percent, a token mixed with `transparent`, so the title and the search bar keep the page, and the layer fades out at its foot, where the black of the page takes over. It is decorative: `aria-hidden`, and it takes no click."
+      intro="The backdrop of the home's hero: a table of board games seen from above at a low angle, in perspective, under a lamp, with what is played on it lying and standing on it: dice (cubes with their six faces drawn, opposite faces making seven), playing cards (face up with their rank and suit, or face down), stacks of chips and meeples (upright, tilted back by the angle of the table so that they face the eye), each with a soft shadow. It is made of CSS and a few inline SVGs, no image: the table is planks and their seams with a fine grain along them (`--wood-*`), the lamp a pool of `--piece-gold` at the top with a hint of `--piece-red` and `--piece-teal` at the sides, the pieces `--piece-*`, the colours of a game table, which are this hero's alone. The table is a plane tilted back around its bottom edge (`perspective()` and `rotateX()`, its far end faded) and the layer fades out at its foot, where the page's black takes over; a soft pool of that black over its middle keeps the text there readable. Nothing moves. It is decorative: `aria-hidden`, and it takes no click."
     >
       <Demo
         title="Behind a hero"
-        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The tile of the pattern is `--tabletop-tile`, where the table is nearest: 6rem on a phone and growing with the window up to 10rem; the perspective and the height of the plane are measured in tiles, so the drawing is the same at every width. The board scrolls: the pattern comes forward by one tile every 16s (`--tabletop-scroll`) and starts again, a `transform`, so it is not repainted, and it stands still for a visitor who asks for less motion. The six classes it is made of (`tabletop`, `tabletop-pool`, `tabletop-floor`, `tabletop-pattern`, `tabletop-lamp` and `tabletop-grain`) are in `platform.css`."
+        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The pieces are where the text is not: the dice, the meeples and the chips on the left, a fan of cards on the right, a few farther away and smaller. On a phone they are smaller (`--tabletop-unit`) and the meeples and the farther ones are left out, since the text takes the whole width. The one utility, `tabletop`, is in `platform.css`; it draws what `Tabletop` sets by its `data-slot` and `data-piece`."
         className="p-0"
         code={`<section className="relative bg-linear-to-b from-card to-background">
   <Tabletop />
   <div className="relative …">…</div>
 </section>`}
       >
-        <div className="relative h-96 overflow-hidden bg-linear-to-b from-card to-background">
+        <div className="relative h-[34rem] overflow-hidden bg-linear-to-b from-card to-background">
           <Tabletop />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
+        </div>
+      </Demo>
+
+      <Demo
+        title="The pieces of the title"
+        description="Some letters of the home's title are pieces of a game table, sized in `em` so that they follow it and set on its baseline like the letter they stand for: a die that turns now and then to show another face, the suits of a deck of cards in turn (a heart, a diamond, a club, a spade) and a coin that is tossed and caught heads up (a star) and tails up (a 1) in turn, each for an o (`TitlePiece`; transforms only, still for a visitor who asks for less motion), and two white cards that overlap by more than half, partly behind the last letter of a word (`TitleCards`, left out under 40rem; that letter has `title-over`, a dark edge, so that white over white keeps its shape). The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine. The four suits of a deck are `Suit` (`@pbgo/ui/platform/suits`)."
+        className="flex flex-col items-center gap-6 py-10"
+        code={`<h1 className="display-title">
+  <span className="block text-display">Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>
+  <span className="block text-display">b<TitlePiece kind="coin">o</TitlePiece>ard game<span className="title-over">s</span> <TitleCards />online</span>
+</h1>`}
+      >
+        <p className="display-title text-center text-5xl">
+          <span className="block">
+            Play y<TitlePiece kind="die">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite
+          </span>
+          <span className="block">
+            b<TitlePiece kind="coin">o</TitlePiece>ard game<span className="title-over">s</span> <TitleCards className="inline-block" />online
+          </span>
+        </p>
+        <div className="flex items-center gap-4 text-foreground">
+          <Suit suit="heart" className="size-8 fill-piece-red" />
+          <Suit suit="diamond" className="size-8 fill-piece-red" />
+          <Suit suit="spade" className="size-8 fill-piece-black" />
+          <Suit suit="club" className="size-8 fill-piece-black" />
         </div>
       </Demo>
     </Section>
@@ -457,18 +484,19 @@ export function StatsSection() {
     <Section
       id="stats"
       module="stats"
-      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number followed by what it counts on the same line, side by side and apart by a short line (2px wide, with rounded corners). `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, the rest in `muted-foreground`) and say their figures as text, so a screen reader reads 12,480 players and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players are counted in Supabase, and the figure is left out when they cannot be (`docs/accounts.md`)."
+      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players are connected, how many accounts are registered, how many games there are, each in a pill (`rounded-xl`, filled with the colour of the text at 10%, no outline and no shadow, so that the numbers can roll up and down in it one day) that has a number followed by what it counts on the same line. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen reader reads 128 players online and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players online and the members are counted in Supabase, and a figure is left out when it cannot be (`docs/accounts.md`)."
     >
       <Demo
         title="Under a title"
-        description="The figures are a `dl`: each a term (what it counts) and its definition (the number), shown the other way round, the number above. The perks are a `ul` with a tick before each. On the home they stand under the title, 32px and 16px below it, and the search bar 40px under them."
+        description="The figures are a `dl`: each a term (what it counts) and its definition (the number), shown the other way round, the number first. The perks are a `ul` with a tick before each. On the home they stand under the title, 32px and 24px below it, and the search bar 56px under them."
         className="flex flex-col items-center gap-4 bg-linear-to-b from-card to-background py-10 text-center"
-        code={`<Stats items={[{ value: "12,480", label: "players" }, { value: "71", label: "games" }]} />
+        code={`<Stats items={[{ value: "128", label: "players online" }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
 <Perks items={["Free to play", "No sign-up needed"]} />`}
       >
         <Stats
           items={[
-            { value: "12,480", label: "players" },
+            { value: "128", label: "players online" },
+            { value: "12,480", label: "members" },
             { value: "71", label: "games" },
           ]}
         />
