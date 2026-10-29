@@ -25,6 +25,7 @@ import {
   Tables,
 } from "./_sections/surfaces"
 import { GlassSection } from "./_sections/glass"
+import { PlayfulMotion } from "./_sections/playful-motion"
 import { Colors, Depth, Layout, Motion, Radius, Typography, Utilities } from "./_sections/tokens"
 
 // Internal reference for the team and its agents: out of search results (noindex here, absent from the sitemap, which
@@ -97,6 +98,7 @@ export default function DesignPage() {
             <Depth />
             <GlassSection />
             <Motion />
+            <PlayfulMotion />
             <Utilities />
 
             <Buttons />

@@ -12,6 +12,7 @@ export const NAV = [
       { id: "depth", title: "Shadows and rings" },
       { id: "glass", title: "Glass" },
       { id: "motion", title: "Motion" },
+      { id: "playful-motion", title: "Playful motion" },
       { id: "utilities", title: "Utilities" },
     ],
   },

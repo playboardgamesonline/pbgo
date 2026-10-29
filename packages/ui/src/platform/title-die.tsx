@@ -34,13 +34,46 @@ function useShade(angle: MotionValue<number>, offset: number) {
   return useTransform(angle, (degrees) => shadeOf(degrees + offset))
 }
 
-function TitleDie() {
-  const angle = useMotionValue(0)
-  const reduced = useReducedMotion()
+type DieCubeProps = {
+  /** How far the cube has turned around its vertical axis, in degrees. */
+  angle: MotionValue<number>
+  /** How high it is lifted off its place, in ems: a hop. */
+  lift?: MotionValue<number>
+  /** How wide and how high it is drawn, 1 being what it is: a squash or a stretch. */
+  scaleX?: MotionValue<number>
+  scaleY?: MotionValue<number>
+}
+
+/** The cube itself, drawn from the motion values it is given, which `TitleDie` drives (and `/design` drives otherwise, to compare ways of rolling it). */
+function DieCube({ angle, lift, scaleX, scaleY }: DieCubeProps) {
   const front = useShade(angle, 0)
   const right = useShade(angle, 90)
   const back = useShade(angle, 180)
   const left = useShade(angle, 270)
+  const still = useMotionValue(0)
+  const one = useMotionValue(1)
+  const y = useTransform(lift ?? still, (ems) => `${-ems}em`)
+  return (
+    <motion.i data-slot="die" aria-hidden="true" style={{ rotateY: angle, y, scaleX: scaleX ?? one, scaleY: scaleY ?? one }}>
+      <b data-face="front" data-pips={5} className="die-pips">
+        <motion.i data-shade style={{ opacity: front }} />
+      </b>
+      <b data-face="right" data-pips={3} className="die-pips">
+        <motion.i data-shade style={{ opacity: right }} />
+      </b>
+      <b data-face="back" data-pips={2} className="die-pips">
+        <motion.i data-shade style={{ opacity: back }} />
+      </b>
+      <b data-face="left" data-pips={4} className="die-pips">
+        <motion.i data-shade style={{ opacity: left }} />
+      </b>
+    </motion.i>
+  )
+}
+
+function TitleDie() {
+  const angle = useMotionValue(0)
+  const reduced = useReducedMotion()
 
   React.useEffect(() => {
     if (reduced) return
@@ -63,22 +96,7 @@ function TitleDie() {
     }
   }, [reduced, angle])
 
-  return (
-    <motion.i data-slot="die" aria-hidden="true" style={{ rotateY: angle }}>
-      <b data-face="front" data-pips={5} className="die-pips">
-        <motion.i data-shade style={{ opacity: front }} />
-      </b>
-      <b data-face="right" data-pips={3} className="die-pips">
-        <motion.i data-shade style={{ opacity: right }} />
-      </b>
-      <b data-face="back" data-pips={2} className="die-pips">
-        <motion.i data-shade style={{ opacity: back }} />
-      </b>
-      <b data-face="left" data-pips={4} className="die-pips">
-        <motion.i data-shade style={{ opacity: left }} />
-      </b>
-    </motion.i>
-  )
+  return <DieCube angle={angle} />
 }
 
-export { TitleDie }
+export { DieCube, TitleDie }
