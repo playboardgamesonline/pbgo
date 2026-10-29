@@ -8,7 +8,7 @@ import { HomeBody } from "@/components/home-body"
 import { EmptySection, PopularGames } from "@/components/home-sections"
 import { SiteFooter } from "@/components/site-footer"
 import { catalogCardProps } from "@/lib/game-card-props"
-import { figure, PLAYERS_PLACEHOLDER } from "@/lib/hub-stats"
+import { figure, getPlayerCount } from "@/lib/hub-stats"
 import { COMING_SOON } from "@/lib/coming-soon"
 
 // Plain <a> to the games (GameCard): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
@@ -22,7 +22,7 @@ import { COMING_SOON } from "@/lib/coming-soon"
 export default async function Home() {
   // The live games of the registry, then the games to come, already in their order (docs/catalog.md). Without Notion (no key, or
   // Notion down) the catalog is the live games alone, each from the registry.
-  const { entries } = await getCatalog()
+  const [{ entries }, players] = await Promise.all([getCatalog(), getPlayerCount()])
   // Each card is the game's Notion row, a live game's included (its logo, or icon, and its background come from the catalog's picture
   // route; a picture the row does not have leaves the frame plain): the hub reads no game's Sanity project, only entering a game does.
   // The registry decides the card's variant alone. Each game goes to the browser with what the search reads of it (`indexEntry`)
@@ -37,7 +37,7 @@ export default async function Home() {
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
           {/* The hero: the title in two lines of the same size, in sentence case, in Geist at a weight of 720 and a tracking of -6% (`display-title`), then what the platform
-              is: its figures (`Stats`: the players, a placeholder, and the games of the catalog) and what costs nothing (`Perks`), and the search bar under them (the field with the category,
+              is: its figures (`Stats`: the players, counted in Supabase, and the games of the catalog) and what costs nothing (`Perks`), and the search bar under them (the field with the category,
               then the filters, bare, in a row; glass), on a backdrop that is lighter at the top and fades into the black the sections sit on, with a plain table under a lamp laid over it
               (`Tabletop`: the diamonds of Courtisans' table in perspective, scrolling slowly towards the viewer, the glow of the lamp and a fine grain; neither the grid of thin lines of
               `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
@@ -49,10 +49,7 @@ export default async function Home() {
               </h1>
               <Stats
                 className="mt-8"
-                items={[
-                  { value: figure(PLAYERS_PLACEHOLDER), label: "players" },
-                  { value: figure(games.length), label: "games" },
-                ]}
+                items={[...(players === null ? [] : [{ value: figure(players), label: "players" }]), { value: figure(games.length), label: "games" }]}
               />
               <Perks className="mt-4" items={["Free to play", "No sign-up needed"]} />
               {/* 40px under what the platform is, which it covers none of */}

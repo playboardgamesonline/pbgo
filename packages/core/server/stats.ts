@@ -65,3 +65,16 @@ export async function loadGameStats(slug: string): Promise<GameStats> {
     recent: rows.slice(0, 8).map((r) => ({ code: r.code, status: r.status, players: r.players.length, createdAt: r.created_at, updatedAt: r.updated_at })),
   }
 }
+
+/**
+ * How many players the platform has had, every game together, for the figure under the title of the home: the SQL function `player_count()` (migration `0003_player_count.sql`)
+ * counts the ids of the `players` of every table, once per game. It throws when it cannot count (no Supabase here, or the migration is not applied yet): the page decides what it shows then.
+ */
+export async function loadPlayerCount(): Promise<number> {
+  const { data, error } = await supabaseAdmin().rpc("player_count")
+  if (error) throw error
+  // A bigint comes as a number, or as a string past what a number holds; nothing, or an empty answer, is not a zero
+  const count = typeof data === "number" || (typeof data === "string" && data.trim() !== "") ? Number(data) : Number.NaN
+  if (!Number.isFinite(count) || count < 0) throw new Error(`player_count() answered ${JSON.stringify(data)}`)
+  return count
+}

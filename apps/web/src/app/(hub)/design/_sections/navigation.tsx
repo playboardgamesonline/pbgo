@@ -432,7 +432,7 @@ export function StatsSection() {
     <Section
       id="stats"
       module="stats"
-      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number over what it counts, side by side and apart by a thin line. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, the rest in `muted-foreground`) and say their figures as text, so a screen reader reads 12,480 players and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. The figure for the players is a placeholder for now (`docs/accounts.md`)."
+      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number over what it counts, side by side and apart by a thin line. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, the rest in `muted-foreground`) and say their figures as text, so a screen reader reads 12,480 players and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players are counted in Supabase, and the figure is left out when they cannot be (`docs/accounts.md`)."
     >
       <Demo
         title="Under a title"
