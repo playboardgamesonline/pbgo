@@ -68,7 +68,7 @@ export default async function FriendsPage() {
         <h2 id="add-friend" className="mb-1 font-heading text-2xl">
           Add a friend
         </h2>
-        <p className="mb-4 text-muted-foreground">Type their nickname and their tag, like Oré#4821.</p>
+        <p className="mb-4 text-muted-foreground">Type their username and their tag, like Oré#4821.</p>
         <AddFriendForm className="max-w-md" />
       </section>
 

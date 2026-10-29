@@ -16,7 +16,7 @@ import { FriendsRoster, PresenceDot } from "./friends-panel"
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
 // The social panel of a signed-in visitor, the way the Riot Client has it: three tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the conversations
-// with them; and the way to add a friend, `AddFriendForm` (the nickname and the tag side by side and one button under them), with the requests that wait for an answer under it, the ones that came in
+// with them; and the way to add a friend, `AddFriendForm` (the username and the tag side by side and one button under them), with the requests that wait for an answer under it, the ones that came in
 // and then the ones that went out, as the Riot Client lists them), the search of the friends, and the list. The tabs that have something for the visitor (messages
 // not read, requests to answer) carry a count. The tile behind the current tab is one element that glides to the tab that is pressed, and the pane of a tab comes in from the side the tab is
 // on while the one of the tab that was left goes out the other way (`AnimatePresence`, one after the other); a visitor who asks for less motion gets the change with no travel. With a
@@ -96,7 +96,7 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & {
   /** The games of the list of friends that are folded, by their key (`game:<slug>`), when the page keeps them (so that they stay folded when the panel is closed and opened again). */
   folded?: ReadonlySet<string>
   onFoldedChange?: (folded: ReadonlySet<string>) => void
-  /** What the form that adds a friend does with the nickname and the tag typed in it, written `nickname#tag` (`AddFriendForm`). The form is off without it. */
+  /** What the form that adds a friend does with the username and the tag typed in it, written `username#tag` (`AddFriendForm`). The form is off without it. */
   onSendRequest?: (who: string) => void
   /** What the buttons of a request do. Not drawn without it. */
   onAnswerRequest?: (request: FriendRequest, answer: "accept" | "decline" | "cancel") => void
@@ -148,7 +148,7 @@ function ConversationRow({ conversation, onOpen }: { conversation: Conversation;
 }
 
 /**
- * A request, as the Riot Client draws one: the picture, the nickname with the tag under it, and at the end a square button with rounded corners for each answer. One that came in is accepted (the white
+ * A request, as the Riot Client draws one: the picture, the username with the tag under it, and at the end a square button with rounded corners for each answer. One that came in is accepted (the white
  * button) or declined, one that went out is cancelled; the group it is in (`RequestGroup`) says which it is, so there is no word on the row.
  */
 function RequestRow({ request, onAnswer }: { request: FriendRequest; onAnswer?: (request: FriendRequest, answer: "accept" | "decline" | "cancel") => void }) {

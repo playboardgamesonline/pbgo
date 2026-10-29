@@ -7,9 +7,10 @@ import { cn } from "../utils"
 import { Button } from "./button"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "./input-group"
 
-// The way to add a friend, as the Riot Client has it: the nickname and the tag side by side (the tag is the narrow field, after a hash), and under them one button, as wide as both, that stays off (a dark grey one) until both
-// are filled, when it turns white. It decides nothing: `onSend` gets what was typed as `nickname#tag` (PLT-39), and without it the form is off. A hash typed in the nickname ends it: what comes after it (a whole id pasted
-// there, `Nickname#Tag`) goes to the tag field, which takes the focus. What was sent is cleared, so that the next friend can be typed at once.
+// The way to add a friend, as the Riot Client has it: the username and the tag side by side (the tag is the narrow field, after a hash), and under them one button, as wide as both, that stays off (a dark grey one) until both
+// are filled, when it turns white. It decides nothing: `onSend` gets what was typed as `username#tag` (PLT-39), and without it the form is off. A hash typed in the username ends it: what comes after it (a whole id pasted
+// there, `Username#Tag`) goes to the tag field, which takes the focus. What was sent is cleared, so that the next friend can be typed at once. A field that says "username" is where a password manager offers a login, so the
+// field is called `friend-username` and the managers are told to leave it alone (`data-1p-ignore`, `data-lpignore`).
 
 /** The width of the tag's field: a hash and a few characters. */
 const TAG_WIDTH = "w-26 shrink-0"
@@ -19,22 +20,22 @@ function AddFriendForm({
   className,
   ...props
 }: Omit<React.ComponentProps<"form">, "onSubmit" | "children"> & {
-  /** What sending does with the nickname and the tag, written as `nickname#tag`. The form is off without it. */
+  /** What sending does with the username and the tag, written as `username#tag`. The form is off without it. */
   onSend?: (who: string) => void
 }) {
-  const [nickname, setNickname] = React.useState("")
+  const [username, setUsername] = React.useState("")
   const [tag, setTag] = React.useState("")
   const tagField = React.useRef<HTMLInputElement>(null)
   const off = !onSend
-  const ready = nickname.trim() !== "" && tag.trim() !== ""
+  const ready = username.trim() !== "" && tag.trim() !== ""
 
-  function typeNickname(value: string) {
+  function typeUsername(value: string) {
     const hash = value.indexOf("#")
     if (hash === -1) {
-      setNickname(value)
+      setUsername(value)
       return
     }
-    setNickname(value.slice(0, hash))
+    setUsername(value.slice(0, hash))
     setTag(value.slice(hash + 1).replace(/#/g, ""))
     tagField.current?.focus()
   }
@@ -42,8 +43,8 @@ function AddFriendForm({
   function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!onSend || !ready) return
-    onSend(`${nickname.trim()}#${tag.trim()}`)
-    setNickname("")
+    onSend(`${username.trim()}#${tag.trim()}`)
+    setUsername("")
     setTag("")
   }
 
@@ -55,12 +56,14 @@ function AddFriendForm({
             <HugeiconsIcon icon={UserAdd01Icon} strokeWidth={2} />
           </InputGroupAddon>
           <InputGroupInput
-            name="nickname"
-            value={nickname}
-            onChange={(event) => typeNickname(event.target.value)}
-            placeholder="Nickname"
-            aria-label="Nickname of the friend"
+            name="friend-username"
+            value={username}
+            onChange={(event) => typeUsername(event.target.value)}
+            placeholder="Username"
+            aria-label="Username of the friend"
             autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
             disabled={off}
           />
         </InputGroup>
