@@ -46,12 +46,12 @@ type FriendsBarProps = Omit<React.ComponentProps<"div">, "children"> & {
   shared?: boolean
 }
 
-/** The picture of a game, round like an avatar, or the initial of its name. */
+/** The picture of a game, or the initial of its name on a square. Square, since only the picture of a person is round: a game is not an avatar. */
 function GameIcon({ name, src }: { name: string; src?: string }) {
   return (
-    <Avatar className="size-6">
-      {src && <AvatarImage src={src} alt="" />}
-      <AvatarFallback className="text-xs">{initials(name).slice(0, 1)}</AvatarFallback>
+    <Avatar className="size-6 rounded-none after:hidden">
+      {src && <AvatarImage src={src} alt="" className="rounded-none" />}
+      <AvatarFallback className="rounded-none text-xs">{initials(name).slice(0, 1)}</AvatarFallback>
     </Avatar>
   )
 }

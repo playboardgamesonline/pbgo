@@ -6,12 +6,12 @@ import { Button } from "@pbgo/ui/platform/button"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
 import { gameDate } from "@/lib/account-data"
 
-/** The picture of a game, from the catalog's route (the game's icon): the first letters of its name when the game has none. */
+/** The picture of a game, from the catalog's route (the game's icon): the first letters of its name when the game has none. Square: only the picture of a person is round. */
 function GameThumb({ slug, name }: { slug: string; name: string }) {
   return (
-    <Avatar className="size-10 rounded-xl after:rounded-xl">
-      <AvatarImage src={`/api/catalog/${slug}/icon`} alt="" className="rounded-xl" />
-      <AvatarFallback className="rounded-xl text-xs">{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+    <Avatar className="size-10 rounded-none after:hidden">
+      <AvatarImage src={`/api/catalog/${slug}/icon`} alt="" className="rounded-none" />
+      <AvatarFallback className="rounded-none text-xs">{name.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>
   )
 }

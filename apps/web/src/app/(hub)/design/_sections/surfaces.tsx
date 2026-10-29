@@ -190,11 +190,11 @@ const { entries } = await getCatalog()
 <GameCardVisual />
 
 // On the page of a game: larger, rounded like a card, loaded at once
-<GameCardVisual logo={logoUrl} background={backgroundUrl} loading="eager" className="rounded-4xl ring-1 ring-foreground/10" />`}
+<GameCardVisual logo={logoUrl} background={backgroundUrl} loading="eager" className="ring-1 ring-foreground/10" />`}
       >
-        <GameCardVisual logo={logo} background={background} className="rounded-4xl ring-1 ring-foreground/10" />
-        <GameCardVisual logo={logo} className="rounded-4xl ring-1 ring-foreground/10" />
-        <GameCardVisual className="rounded-4xl ring-1 ring-foreground/10" />
+        <GameCardVisual logo={logo} background={background} className="ring-1 ring-foreground/10" />
+        <GameCardVisual logo={logo} className="ring-1 ring-foreground/10" />
+        <GameCardVisual className="ring-1 ring-foreground/10" />
       </Demo>
     </Section>
   )
