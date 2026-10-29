@@ -20,6 +20,7 @@ import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
 import { FiltersSpecimen } from "../_components/filters-specimen"
 import { NavbarPlayground } from "../_components/navbar-playground"
+import { TablePerspectives } from "../_components/table-perspectives"
 import { Block, Bullets, Demo, Section } from "../_components/layout"
 
 export function Logos() {
@@ -449,6 +450,15 @@ export function Tabletops() {
           <Tabletop />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
+      </Demo>
+
+      <Demo
+        title="Perspectives"
+        description="Five ways of seeing the table, each in a hero of 1440 by 772 shown at half its size, with the navbar, the title, the figures and the search bar where they are on the home. The lamp is the same in all of them, over the boards and just under the header, and so is the dark of the header; what changes is how far the table is tilted (`--tabletop-tilt`), how far the eye is (`--tabletop-perspective`), where it is (`--tabletop-origin`), how the boards are turned in the plane of the table (`--tabletop-turn`) and how wide a board is (`--tabletop-plank`): they are custom properties of `.tabletop`, which a page sets on it."
+        className="p-0 border-0"
+        code={`<Tabletop style={{ "--tabletop-tilt": "54deg", "--tabletop-perspective": "1600px", "--tabletop-origin": "-35%", "--tabletop-plank": "300px" }} />`}
+      >
+        <TablePerspectives />
       </Demo>
 
       <Demo
