@@ -1,8 +1,8 @@
 // What the friends of a signed-in visitor are made of, for `@pbgo/ui/platform/friends-panel` (their list) and `friends-bar` (the pills of the navbar): the friend,
 // the sections they are listed in, the games and the tables they are at, and what is drawn from a name. No React in this file, so that it is tested as it is.
 
-/** What a friend is doing: in a game (they can be joined), online (they can be invited), inactive (online, but not there) or away. */
-export type FriendStatus = "playing" | "online" | "inactive" | "offline"
+/** What a friend is doing: in a game (they can be joined), online (they can be invited), inactive (online, but not there), do not disturb (online, and does not want to be asked) or away. */
+export type FriendStatus = "playing" | "online" | "inactive" | "dnd" | "offline"
 
 /** The game a friend is in, or is waiting to play in its lobby. */
 export type FriendGame = { slug: string; name: string }
@@ -31,6 +31,7 @@ const SECTIONS: readonly { status: FriendStatus; label: string }[] = [
   { status: "playing", label: "In a game" },
   { status: "online", label: "Online" },
   { status: "inactive", label: "Inactive" },
+  { status: "dnd", label: "Do not disturb" },
   { status: "offline", label: "Offline" },
 ]
 
@@ -45,7 +46,7 @@ export function sectionsOf(friends: readonly Friend[]): { status: FriendStatus; 
 export type GameFriends = { game: FriendGame; online: Friend[]; playing: Friend[]; count: number }
 
 /**
- * The games the friends are in right now, one entry per game, the most crowded first and then by name (a friend who is inactive in its lobby is there too). A friend who is away, or who is in no game, is in none:
+ * The games the friends are in right now, one entry per game, the most crowded first and then by name (a friend who is inactive, or who does not want to be disturbed, in its lobby is there too). A friend who is away, or who is in no game, is in none:
  * the pills of the navbar are the games, and the list of the friends is the page of them.
  */
 export function gamesOf(friends: readonly Friend[]): GameFriends[] {

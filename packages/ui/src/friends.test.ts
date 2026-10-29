@@ -8,11 +8,12 @@ const SKULL_KING = { slug: "skull-king", name: "Skull King" }
 
 describe("sectionsOf", () => {
   it("lists the friends in a game, then online, then away, each section in its own order", () => {
-    const sections = sectionsOf([friend("a", "offline"), friend("b", "online"), friend("c", "playing"), friend("d", "online"), friend("e", "playing"), friend("f", "inactive")])
+    const sections = sectionsOf([friend("a", "offline"), friend("b", "online"), friend("c", "playing"), friend("d", "online"), friend("e", "playing"), friend("f", "inactive"), friend("g", "dnd")])
     expect(sections.map((section) => [section.label, section.friends.map((one) => one.id)])).toEqual([
       ["In a game", ["c", "e"]],
       ["Online", ["b", "d"]],
       ["Inactive", ["f"]],
+      ["Do not disturb", ["g"]],
       ["Offline", ["a"]],
     ])
   })
@@ -30,11 +31,12 @@ describe("gamesOf", () => {
       friend("b", "online", { game: COURTISANS }),
       friend("c", "online", { game: COURTISANS }),
       friend("d", "inactive", { game: COURTISANS }),
+      friend("e", "dnd", { game: COURTISANS }),
     ])
     expect(courtisans?.game).toEqual(COURTISANS)
     expect(courtisans?.playing.map((one) => one.id)).toEqual(["a"])
-    expect(courtisans?.online.map((one) => one.id)).toEqual(["b", "c", "d"])
-    expect(courtisans?.count).toBe(4)
+    expect(courtisans?.online.map((one) => one.id)).toEqual(["b", "c", "d", "e"])
+    expect(courtisans?.count).toBe(5)
   })
 
   it("lists the most crowded game first, then by name", () => {

@@ -14,8 +14,8 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 // The friends of a signed-in visitor, as a list for a page or a panel: who is playing and where, who is online, who is not, a search among them, and the way to
 // add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
 // and what a press does are the page's. A status is a shape, a colour and a word, never the colour alone: a green disc (active), a blue disc with a play knocked out of
-// it (playing), an orange-yellow moon (inactive), a grey ring (offline), and the line under the name in the colour of the dot (`--presence-online`, `--presence-playing`,
-// `--presence-inactive`, the hues of the platform besides destructive). The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
+// it (playing), an orange-yellow moon (inactive), a red disc with a bar knocked out of it (do not disturb), a grey ring (offline), and the line under the name in the colour of
+// the dot (`--presence-online`, `--presence-playing`, `--presence-inactive`, `--presence-dnd`, the hues of the platform besides destructive). The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
 // they are in) and `SocialPanel`, which holds this list as its first tab (`FriendsRoster`).
 
 export type { Friend, FriendGame, FriendStatus, FriendTable } from "../friends"
@@ -25,19 +25,23 @@ const STATUS_TEXT: Record<FriendStatus, string> = {
   playing: "text-presence-playing",
   online: "text-presence-online",
   inactive: "text-presence-inactive",
+  dnd: "text-presence-dnd",
   offline: "text-muted-foreground",
 }
 
 /**
- * The shapes of the dots that are not a plain disc: a disc with a play knocked out of it (even-odd, so that what is under the dot shows through: its own
- * `bg-background`, never the picture, which the dot only half covers), and a moon.
+ * The shapes of the dots that are not a plain disc: a disc with a play knocked out of it and another with a bar knocked out of it (even-odd, so that what is
+ * under the dot shows through: its own `bg-background`, never the picture, which the dot only half covers), and a moon, the disc of the dot with a bite taken
+ * out of its upper left, thick, with its horns up and to the left, the way Discord draws its idle moon.
  */
 const PLAY_DISC = "M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24ZM8.6 5.6v12.8L18.8 12 8.6 5.6Z"
-const MOON = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+const DND_DISC = "M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24ZM5.2 9.6H18.8A1.4 1.4 0 0 1 20.2 11V13A1.4 1.4 0 0 1 18.8 14.4H5.2A1.4 1.4 0 0 1 3.8 13V11A1.4 1.4 0 0 1 5.2 9.6Z"
+const MOON = "M12.542 1.013A11 11 0 1 1 1.013 12.542 8.2 8.2 0 1 0 12.542 1.013Z"
 
 /**
- * The dot on the corner of a picture, four shapes so that a colour is never alone: a green disc for a friend who is online (active), a blue disc with a play knocked
- * out of it for one in a game, an orange-yellow moon for one who is inactive, and a grey ring for one who is away. Its size follows the picture's.
+ * The dot on the corner of a picture, five shapes so that a colour is never alone: a green disc for a friend who is online (active), a blue disc with a play knocked
+ * out of it for one in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and
+ * a grey ring for one who is away. Its size follows the picture's.
  */
 function PresenceDot({ status }: { status: FriendStatus }) {
   return (
@@ -48,6 +52,7 @@ function PresenceDot({ status }: { status: FriendStatus }) {
         status === "online" && "bg-presence-online",
         status === "playing" && "bg-background text-presence-playing",
         status === "inactive" && "bg-background text-presence-inactive",
+        status === "dnd" && "bg-background text-presence-dnd",
         status === "offline" && "border border-muted-foreground bg-background",
       )}
     >
@@ -60,8 +65,15 @@ function PresenceDot({ status }: { status: FriendStatus }) {
       )}
       {status === "inactive" && (
         <span aria-hidden="true" className="block size-full">
-          <svg viewBox="2.5 2.5 19 19" className="size-full" fill="currentColor">
+          <svg viewBox="0 0 24 24" className="size-full" fill="currentColor">
             <path d={MOON} />
+          </svg>
+        </span>
+      )}
+      {status === "dnd" && (
+        <span aria-hidden="true" className="block size-full">
+          <svg viewBox="0 0 24 24" className="size-full" fill="currentColor" fillRule="evenodd">
+            <path d={DND_DISC} />
           </svg>
         </span>
       )}

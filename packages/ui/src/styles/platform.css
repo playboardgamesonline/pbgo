@@ -1,7 +1,7 @@
 /*
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
- * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, and the brand of a sign-in provider: Facebook's blue and Discord's
+ * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
  * blurple on their buttons, Google's four colours in its mark), and a single gradient, neutral too: the backdrop of a page's first
  * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
  * in semibold, slightly tight line-height, small negative letter-spacing. Apart from those, game art is the only colour on the platform.
@@ -58,6 +58,7 @@
   --color-presence-online: var(--presence-online);
   --color-presence-playing: var(--presence-playing);
   --color-presence-inactive: var(--presence-inactive);
+  --color-presence-dnd: var(--presence-dnd);
   --color-brand-facebook: var(--brand-facebook);
   --color-brand-discord: var(--brand-discord);
   --color-border: var(--border);
@@ -286,7 +287,7 @@
 
 @layer base {
   .platform {
-    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, the three of a friend's presence (green online, blue in a game, orange-yellow inactive), which only a dot and a status line wear, and the two of a sign-in provider's button */
+    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot and a status line wear, and the two of a sign-in provider's button */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
     --card: var(--color-neutral-900);
@@ -305,6 +306,7 @@
     --presence-online: oklch(0.78 0.16 155);
     --presence-playing: oklch(0.76 0.13 235);
     --presence-inactive: oklch(0.82 0.16 80);
+    --presence-dnd: oklch(0.7 0.19 22);
     /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Facebook's blue and Discord's blurple. Google's and Apple's are `foreground` and `background`; the marks are in `brands.tsx` */
     --brand-facebook: #1877f2;
     --brand-discord: #5865f2;

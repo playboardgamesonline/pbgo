@@ -7,7 +7,8 @@ export const BRANDS = ["facebook", "google", "apple", "discord"] as const
 export type BrandName = (typeof BRANDS)[number]
 
 /*
- * The marks are the brands' own and are never redrawn: Simple Icons' (CC0) for Facebook, Apple and Discord, 24 × 24 in one colour, and Google's four in its own 48 × 48 mark.
+ * The marks are the brands' own and are never redrawn: Simple Icons' (CC0, `simple-icons@14.15.0`) for Facebook, Apple and Discord, 24 × 24 in one colour, and for Google the four
+ * paths, 48 × 48, of the G that its own sign-in script ships (`accounts.google.com/gsi/client`: they were checked against it, string for string). None comes from Brandfetch or another aggregator.
  * This file is the one place of the design system where a colour literal is allowed: the colours of a brand are the brand's, and only its guidelines may change them.
  */
 const SINGLE: Record<Exclude<BrandName, "google">, string> = {

@@ -18,7 +18,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 
 /** What the line under the name says: what the friend is doing, or the word of their presence. */
 function statusLine(friend: Friend): string {
-  return activityLine(friend) ?? (friend.status === "offline" ? "Offline" : friend.status === "playing" ? "In a game" : friend.status === "inactive" ? "Inactive" : "Online")
+  return activityLine(friend) ?? (friend.status === "offline" ? "Offline" : friend.status === "playing" ? "In a game" : friend.status === "inactive" ? "Inactive" : friend.status === "dnd" ? "Do not disturb" : "Online")
 }
 
 function ChatWindow({
