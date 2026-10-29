@@ -41,7 +41,7 @@ import {
   TableRow,
 } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
-import { BarListSpecimen, BarSpecimen, ChatSpecimen, FriendsSpecimen, SocialSpecimen } from "../_components/friends-specimen"
+import { BarListSpecimen, BarSpecimen, ChatSpecimen, FriendsSpecimen, PresenceLegend, SocialSpecimen } from "../_components/friends-specimen"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -688,8 +688,19 @@ export function FriendsPanels() {
     <Section
       id="friends-panel"
       module="friends-panel"
-      intro="The friends of a signed-in visitor, as a panel for a page: a header with the count of those online and the button to add a friend, a search field, the list in three sections (in a game, online, offline; an empty one is not drawn) and a footer button to invite a friend who has no account yet. It is drawn from the friends it is given (`Friend`: nickname, tag, picture, status and what they are doing) and decides nothing about them: where they come from (PLT-23) and what a button does are the page's, and a button whose handler is missing is not drawn. A status is a shape, a colour and a word, never the colour alone: the dot on the corner of the picture is blue and pulses for a friend in a game, is green and solid for one who is online and hollow for one who is away, the line under their name wears the colour of the dot, and the section says it too."
+      intro="The friends of a signed-in visitor, as a panel for a page: a header with the count of those online and the button to add a friend, a search field, the list in three sections (in a game, online, offline; an empty one is not drawn) and a footer button to invite a friend who has no account yet. It is drawn from the friends it is given (`Friend`: nickname, tag, picture, status and what they are doing) and decides nothing about them: where they come from (PLT-23) and what a button does are the page's, and a button whose handler is missing is not drawn. A status is a shape, a colour and a word, never the colour alone: the dot on the corner of the picture is a blue disc with a play knocked out of it for a friend in a game, a green disc for one who is online, an orange-yellow moon for one who is inactive and a grey ring for one who is away; the line under their name wears the colour of the dot, and the section says it too."
     >
+      <Demo
+        title="The four dots"
+        description="`PresenceDot` sits on the corner of a picture and takes the picture's size: a green disc for a friend who is online (active), a blue disc with a play knocked out of it, down to the colour of the page, for one who is in a game, an orange-yellow moon for one who is inactive, and a grey ring for one who is away. The line under a name wears the colour of its dot."
+        code={`<Avatar>
+  <AvatarImage src={url} alt="" />
+  <AvatarFallback>M</AvatarFallback>
+  <PresenceDot status="playing" />
+</Avatar>`}
+      >
+        <PresenceLegend />
+      </Demo>
       <Demo
         title="With friends, and with none"
         description="The panel is `h-full` and scrolls its list, so a page gives it a height and a width: here a box of `h-[34rem]`. It is the list of the page of a visitor's friends; the short way to the same friends, on every page, is the rail below. The buttons of a friend (Join for one in a game, Invite for one who is online) show when the row is hovered or focused, and always on a touch screen. Type in the search field to filter the list."
@@ -714,7 +725,7 @@ export function FriendsBars() {
     <Section
       id="friends-bar"
       module="friends-bar"
-      intro="The friends of a signed-in visitor, the way the Riot Client shows its social visibility: a small bar on the navbar, next to the account, with a pill for each game some of them are in (the picture of the game and how many of them are in it), up to four, the most crowded first. Under the pointer a pill takes the fill of the navbar's current item and a line under it, and a panel opens under the bar with that game's friends in two lists, `Online` (those who wait in its lobby, and those at one table together under it: `Table K7Q · 2/4`) then `Playing`, each with the picture and the dot of their presence, their name and what they are doing. A friend who is away, or on the hub and in no game, is in none of them: they are in the list of the page of the friends. With no friend in a game the bar is the button that invites one. Like the panel, a status is the dot on the picture (blue and pulsing for a friend who is playing, green and solid for one who is online) and the line under the name in the colour of the dot, and always a word too. Like the panel it is drawn from the friends it is given and decides nothing about them. The panel is a `Popover` anchored on the bar: it opens under the pointer (a short delay on the way out lets the pointer cross the gap to it), with the keyboard (a pill that has the focus) and, on a touch screen, when a pill is pressed, which closes it when pressed again; a narrow screen has room for fewer pills."
+      intro="The friends of a signed-in visitor, the way the Riot Client shows its social visibility: a small bar on the navbar, next to the account, with a pill for each game some of them are in (the picture of the game and how many of them are in it), up to four, the most crowded first. Under the pointer a pill takes the fill of the navbar's current item and a line under it, and a panel opens under the bar with that game's friends in two lists, `Online` (those who wait in its lobby, and those at one table together under it: `Table K7Q · 2/4`) then `Playing`, each with the picture and the dot of their presence, their name and what they are doing. A friend who is away, or on the hub and in no game, is in none of them: they are in the list of the page of the friends. With no friend in a game the bar is the button that invites one. Like the panel, a status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green disc online, an orange-yellow moon inactive) and the line under the name in the colour of the dot, and always a word too. Like the panel it is drawn from the friends it is given and decides nothing about them. The panel is a `Popover` anchored on the bar: it opens under the pointer (a short delay on the way out lets the pointer cross the gap to it), with the keyboard (a pill that has the focus) and, on a touch screen, when a pill is pressed, which closes it when pressed again; a narrow screen has room for fewer pills."
     >
       <Demo
         title="On the navbar, with friends and with none"

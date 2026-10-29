@@ -16,8 +16,8 @@ import { Popover, PopoverAnchor, PopoverContent } from "./popover"
 // "Online" (waiting in the game's lobby, the ones who share a table together under it: "Table K7Q · 2/4") and "Playing", each with the picture, the dot of their
 // presence, their name and what they are doing. The pill under the pointer takes the fill of the navbar's current item and a line under it; moving to another
 // pill changes the panel. A friend who is away, or on the hub and in no game, is in none: they are in the list of the page of the friends (`FriendsPanel`).
-// With no friend in a game the bar is the button that invites one. A status is the dot on the picture (blue and pulsing for a friend who is playing, green and solid
-// online) and the line of text under the name in the colour of the dot, and always a word too, never the colour alone.
+// With no friend in a game the bar is the button that invites one. A status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green
+// disc online, an orange-yellow moon inactive) and the line of text under the name in the colour of the dot, and always a word too, never the colour alone.
 //
 // The panel is a `Popover` anchored on the bar, which opens under the pointer (a short delay on the way out lets the pointer cross the gap to the panel), with the
 // keyboard (a pill that has the focus) and, where there is no pointer, when a pill is pressed (pressed again, or a press away, it closes). It is drawn from the

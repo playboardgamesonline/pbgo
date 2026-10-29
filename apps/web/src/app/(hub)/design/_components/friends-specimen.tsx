@@ -22,7 +22,7 @@ const FRIENDS: readonly Friend[] = [
   { id: "2", nickname: "Hervé", tag: "0412", avatarUrl: demoAvatar("🦉", "#0ea5e9"), status: "playing", game: SKULL_KING, table: { code: "9QD", size: 4, max: 6 }, activity: "Table 9QD · 4 min" },
   { id: "3", nickname: "Zoé", tag: "1033", avatarUrl: demoAvatar("🐼", "#14b8a6"), status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" },
   { id: "4", nickname: "Tom", tag: "7712", avatarUrl: demoAvatar("🐯", "#f59e0b"), status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" },
-  { id: "5", nickname: "Lina", tag: "2290", avatarUrl: demoAvatar("🐸", "#22c55e"), status: "online", game: HANABI, activity: "In the lobby" },
+  { id: "5", nickname: "Lina", tag: "2290", avatarUrl: demoAvatar("🐸", "#22c55e"), status: "inactive", game: HANABI, activity: "Inactive · 8 min" },
   { id: "6", nickname: "Jade", tag: "6604", avatarUrl: demoAvatar("🦄", "#ec4899"), status: "online", activity: "On the hub" },
   { id: "7", nickname: "Max", tag: "5501", avatarUrl: demoAvatar("🐧", "#6366f1"), status: "offline", activity: "2 h ago" },
   { id: "8", nickname: "Inès", tag: "3318", avatarUrl: demoAvatar("🦋", "#06b6d4"), status: "offline", activity: "Yesterday" },
@@ -151,5 +151,37 @@ export function ChatSpecimen() {
       onSend={(text) => setMessages((all) => [...all, { id: `sent-${all.length}`, from: "me", text, at: new Date().toISOString() }])}
       onClose={() => {}}
     />
+  )
+}
+
+const DOTS = [
+  { status: "online", label: "Active", detail: "a green disc" },
+  { status: "playing", label: "Playing", detail: "a blue disc, a play knocked out" },
+  { status: "inactive", label: "Inactive", detail: "an orange-yellow moon" },
+  { status: "offline", label: "Offline", detail: "a grey ring" },
+] as const
+
+/** The four dots of presence, on the three sizes of an avatar, each with its word: a shape, a colour and a word, never the colour alone. */
+export function PresenceLegend() {
+  return (
+    <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {DOTS.map(({ status, label, detail }, index) => (
+        <div key={status} className="flex flex-col gap-3 rounded-3xl border p-4">
+          <div className="flex items-end gap-3">
+            {(["sm", "default", "lg"] as const).map((size) => (
+              <Avatar key={size} size={size}>
+                <AvatarImage src={demoAvatar(["🐙", "🦉", "🐼", "🐯"][index] ?? "🐙", ["#8b5cf6", "#0ea5e9", "#14b8a6", "#f59e0b"][index] ?? "#8b5cf6")} alt="" />
+                <AvatarFallback>M</AvatarFallback>
+                <PresenceDot status={status} />
+              </Avatar>
+            ))}
+          </div>
+          <div>
+            <p className="text-sm text-foreground">{label}</p>
+            <p className="text-sm text-muted-foreground">{detail}</p>
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }

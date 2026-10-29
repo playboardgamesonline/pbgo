@@ -86,11 +86,11 @@ describe("radius", () => {
   })
 })
 
-/** The presence of a friend is the one thing the platform paints in a hue besides `destructive`: two tokens, each with its utilities. */
+/** The presence of a friend is the one thing the platform paints in a hue besides `destructive`: three tokens, each with its utilities. */
 describe("presence colours", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
-  for (const name of ["online", "playing"]) {
+  for (const name of ["online", "playing", "inactive"]) {
     it(`presence-${name} is a token with its utilities`, () => {
       expect(css).toMatch(new RegExp(`--presence-${name}:\\s*oklch\\(`))
       expect(css).toContain(`--color-presence-${name}: var(--presence-${name})`)

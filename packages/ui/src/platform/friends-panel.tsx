@@ -13,8 +13,9 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 
 // The friends of a signed-in visitor, as a list for a page or a panel: who is playing and where, who is online, who is not, a search among them, and the way to
 // add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
-// and what a press does are the page's. A status is a shape, a colour and a word, never the colour alone: a dot that pulses and is blue, a solid green one, a
-// hollow one, and the line under the name in the colour of the dot (`--presence-playing`, `--presence-online`, the two hues of the platform besides destructive). The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
+// and what a press does are the page's. A status is a shape, a colour and a word, never the colour alone: a green disc (active), a blue disc with a play knocked out of
+// it (playing), an orange-yellow moon (inactive), a grey ring (offline), and the line under the name in the colour of the dot (`--presence-online`, `--presence-playing`,
+// `--presence-inactive`, the hues of the platform besides destructive). The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
 // they are in) and `SocialPanel`, which holds this list as its first tab (`FriendsRoster`).
 
 export type { Friend, FriendGame, FriendStatus, FriendTable } from "../friends"
@@ -23,20 +24,48 @@ export type { Friend, FriendGame, FriendStatus, FriendTable } from "../friends"
 const STATUS_TEXT: Record<FriendStatus, string> = {
   playing: "text-presence-playing",
   online: "text-presence-online",
+  inactive: "text-presence-inactive",
   offline: "text-muted-foreground",
 }
 
-/** The dot on the corner of a picture: blue and pulsing for a friend in a game, green and solid for one who is online, and hollow for one who is away. */
+/**
+ * The shapes of the dots that are not a plain disc: a disc with a play knocked out of it (even-odd, so that what is under the dot shows through: its own
+ * `bg-background`, never the picture, which the dot only half covers), and a moon.
+ */
+const PLAY_DISC = "M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24ZM8.6 5.6v12.8L18.8 12 8.6 5.6Z"
+const MOON = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+
+/**
+ * The dot on the corner of a picture, four shapes so that a colour is never alone: a green disc for a friend who is online (active), a blue disc with a play knocked
+ * out of it for one in a game, an orange-yellow moon for one who is inactive, and a grey ring for one who is away. Its size follows the picture's.
+ */
 function PresenceDot({ status }: { status: FriendStatus }) {
   return (
     <AvatarBadge
       data-status={status}
       className={cn(
+        "p-0 group-data-[size=sm]/avatar:size-2.5 group-data-[size=default]/avatar:size-3 group-data-[size=lg]/avatar:size-3.5",
         status === "online" && "bg-presence-online",
-        status === "playing" && "animate-pulse bg-presence-playing",
+        status === "playing" && "bg-background text-presence-playing",
+        status === "inactive" && "bg-background text-presence-inactive",
         status === "offline" && "border border-muted-foreground bg-background",
       )}
-    />
+    >
+      {status === "playing" && (
+        <span aria-hidden="true" className="block size-full">
+          <svg viewBox="0 0 24 24" className="size-full" fill="currentColor" fillRule="evenodd">
+            <path d={PLAY_DISC} />
+          </svg>
+        </span>
+      )}
+      {status === "inactive" && (
+        <span aria-hidden="true" className="block size-full">
+          <svg viewBox="2.5 2.5 19 19" className="size-full" fill="currentColor">
+            <path d={MOON} />
+          </svg>
+        </span>
+      )}
+    </AvatarBadge>
   )
 }
 

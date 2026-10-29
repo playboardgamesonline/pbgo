@@ -1,7 +1,7 @@
 /*
  * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
  *
- * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game), and a single gradient, neutral too: the backdrop of a page's first
+ * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive), and a single gradient, neutral too: the backdrop of a page's first
  * screen (`bg-linear-to-b from-card to-background`), a little lighter at the top and black where the content starts. Geist Sans
  * in semibold, slightly tight line-height, small negative letter-spacing. Apart from that presence, game art is the only colour on the platform.
  * Corners are rounded by the menus' step at most (`rounded-3xl`) and never reach half the height of what they round: only the picture of a person is a circle.
@@ -56,6 +56,7 @@
   --color-destructive: var(--destructive);
   --color-presence-online: var(--presence-online);
   --color-presence-playing: var(--presence-playing);
+  --color-presence-inactive: var(--presence-inactive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -282,7 +283,7 @@
 
 @layer base {
   .platform {
-    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, and the two of a friend's presence (green online, blue in a game), which only a dot and a status line wear */
+    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, and the three of a friend's presence (green online, blue in a game, orange-yellow inactive), which only a dot and a status line wear */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
     --card: var(--color-neutral-900);
@@ -300,6 +301,7 @@
     --destructive: oklch(0.704 0.191 22.216);
     --presence-online: oklch(0.78 0.16 155);
     --presence-playing: oklch(0.76 0.13 235);
+    --presence-inactive: oklch(0.82 0.16 80);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: var(--color-neutral-400);
