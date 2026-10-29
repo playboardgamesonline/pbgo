@@ -12,6 +12,7 @@ import {
   SearchBarInput,
   SearchBarSubmit,
 } from "@pbgo/ui/platform/search-bar"
+import { Perks, Stats } from "@pbgo/ui/platform/stats"
 import { Tabletop } from "@pbgo/ui/platform/tabletop"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
@@ -81,7 +82,7 @@ export function FaceCycles() {
     <Section
       id="face-cycle"
       module="face-cycle"
-      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in Geist Black for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
+      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in Geist at a weight of 720 for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
     >
       <Demo
         title="A title with a word that turns"
@@ -336,14 +337,16 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar stands under the title, in the hero, 32px below it (`mt-8`) and covering none of it, and it is glass (`glass`, `backdrop-blur-xl`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 40px below them (`mt-10`) and covering none of it, and it is glass (`glass`, `backdrop-blur-xl`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
     <h1 className="display-title">
-      <span className="block text-display">Board games</span> <span className="block text-display">…</span>
+      <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
     </h1>
-    <div className="mt-8 w-full max-w-3xl">
+    <Stats className="mt-8" items={…} />
+    <Perks className="mt-4" items={…} />
+    <div className="mt-10 w-full max-w-3xl">
       <SearchBar>…</SearchBar>
       <SearchBarFilters>…</SearchBarFilters>
     </div>
@@ -352,9 +355,10 @@ export function SearchBars() {
       >
         <div className="flex flex-col items-center bg-linear-to-b from-card to-background px-6 pt-12 pb-10 text-center">
           <p className="display-title">
-            <span className="block text-4xl">Board games</span> <span className="block text-4xl">w/ friends</span>{" "}
-            <span className="block text-4xl">& rivals</span>
+            <span className="block text-4xl">Play your favorite</span> <span className="block text-4xl">board games online</span>
           </p>
+          <Stats className="mt-6" items={[{ value: "12,480", label: "players" }, { value: "71", label: "games" }]} />
+          <Perks className="mt-3" items={["Free to play", "No sign-up needed"]} />
           <div className="mt-8 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
@@ -407,7 +411,7 @@ export function Tabletops() {
     >
       <Demo
         title="Behind a hero"
-        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The tile of the pattern is `--tabletop-tile`, where the table is nearest: 6rem on a phone and growing with the window up to 10rem; the perspective and the height of the plane are measured in tiles, so the drawing is the same at every width. The six classes it is made of (`tabletop`, `tabletop-pool`, `tabletop-floor`, `tabletop-pattern`, `tabletop-lamp` and `tabletop-grain`) are in `platform.css`."
+        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The tile of the pattern is `--tabletop-tile`, where the table is nearest: 6rem on a phone and growing with the window up to 10rem; the perspective and the height of the plane are measured in tiles, so the drawing is the same at every width. The board scrolls: the pattern comes forward by one tile every 16s (`--tabletop-scroll`) and starts again, a `transform`, so it is not repainted, and it stands still for a visitor who asks for less motion. The six classes it is made of (`tabletop`, `tabletop-pool`, `tabletop-floor`, `tabletop-pattern`, `tabletop-lamp` and `tabletop-grain`) are in `platform.css`."
         className="p-0"
         code={`<section className="relative bg-linear-to-b from-card to-background">
   <Tabletop />
@@ -418,6 +422,32 @@ export function Tabletops() {
           <Tabletop />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
+      </Demo>
+    </Section>
+  )
+}
+
+export function StatsSection() {
+  return (
+    <Section
+      id="stats"
+      module="stats"
+      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players, how many games, each a number over what it counts, side by side and apart by a thin line. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, the rest in `muted-foreground`) and say their figures as text, so a screen reader reads 12,480 players and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. The figure for the players is a placeholder for now (`docs/accounts.md`)."
+    >
+      <Demo
+        title="Under a title"
+        description="The figures are a `dl`: each a term (what it counts) and its definition (the number), shown the other way round, the number above. The perks are a `ul` with a tick before each. On the home they stand under the title, 32px and 16px below it, and the search bar 40px under them."
+        className="flex flex-col items-center gap-4 bg-linear-to-b from-card to-background py-10 text-center"
+        code={`<Stats items={[{ value: "12,480", label: "players" }, { value: "71", label: "games" }]} />
+<Perks items={["Free to play", "No sign-up needed"]} />`}
+      >
+        <Stats
+          items={[
+            { value: "12,480", label: "players" },
+            { value: "71", label: "games" },
+          ]}
+        />
+        <Perks items={["Free to play", "No sign-up needed"]} />
       </Demo>
     </Section>
   )

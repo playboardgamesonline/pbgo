@@ -48,6 +48,7 @@ export const NAV = [
       { id: "social-panel", title: "Social panel" },
       { id: "board-pattern", title: "Board pattern" },
       { id: "tabletop", title: "Tabletop" },
+      { id: "stats", title: "Stats" },
       { id: "avatar", title: "Avatar" },
       { id: "alert", title: "Alert" },
       { id: "progress", title: "Progress, spinner, skeleton" },

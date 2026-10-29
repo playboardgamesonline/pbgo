@@ -107,13 +107,12 @@
   --color-scrim: oklch(0 0 0 / 0.6);
 
   /*
-   * The title of the home is three lines of capitals that are all the same size, `text-display`: BOARD GAMES, W/ FRIENDS and & RIVALS. They are not
-   * the same width and are not meant to be: in Geist Black they are 7.30em, 5.85em and 4.41em wide, so the title narrows as it goes down (the second
-   * four fifths of the first, the third three fifths of it). The size follows the window and grows from a phone to a desktop a little less fast than the window
-   * does (7.7vw and half a rem), up to 7.5rem so a very wide window does not get a poster: the first line takes 71% of the width of a 390 px phone
-   * and 60% of a 1440 px screen. It sets no line-height: the title's own (`display-title`) is tight.
+   * The title of the home is two lines of the same size, `text-display`: "Play your favorite" and "board games online", 7.60em and 8.55em wide in Geist at 720 with
+   * the tracking of the title (-6%), so the second is the longer and sets the size. The size follows the window and grows from a phone to a desktop a little less fast than
+   * the window does (5.8vw and 0.9rem), up to 7rem so a very wide window does not get a poster: the longer line takes 95% of the width of a 390 px phone (less its gutters)
+   * and 58% of a 1440 px screen. It sets no line-height: the title's own (`display-title`) is.
    */
-  --text-display: clamp(1.5rem, 7.7vw + 0.5rem, 7.5rem);
+  --text-display: clamp(2rem, 5.8vw + 0.9rem, 7rem);
 
   /* The one weight lighter than the platform's 600 that a text may have, 400: the finest print (`fine-print`) */
   --font-weight-regular: 400;
@@ -129,24 +128,23 @@
 }
 
 /*
- * The title of the home (`display-title`): the whole of it in Geist Black, in capitals, tight (a line-height of 0.9 and the tracking of the headings),
- * in the full colour of the text at the top and fading to 60% at the bottom: a mask over the whole title, from opaque to 60%, so that what is
- * behind it shows through a little more towards the foot. 900 is the one weight the platform sets on its own for text (Geist's variable font has it,
- * everything else is 600), as the display faces below do. The face is swapped here, with the size of the theme above, which follows the widths of
- * its lines.
+ * The title of the home (`display-title`): sentence case, in Geist at a weight of 720 (a variable font: a weight between the platform's 600 and the Black of its first title),
+ * with a tracking of -6% (`--tracking-display`) and a line-height of 1.05, so that the descenders of the first line clear the ascenders of the second. It is in the full colour
+ * of the text at the top and fades to 60% at the bottom: a mask over the whole title, from opaque to 60%, so that what is behind it shows through a little more towards the foot.
+ * 720 is the one weight the platform sets on its own for text besides the finest print and the display faces below (everything else is 600). The face is swapped here, with the
+ * size of the theme above, which follows the widths of its lines.
  */
 @utility display-title {
   font-family: var(--font-title);
-  font-weight: 900;
-  letter-spacing: var(--tracking-tight);
-  text-transform: uppercase;
-  line-height: 0.9;
+  font-weight: 720;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.05;
   -webkit-mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
   mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
 
   /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
   & > * {
-    letter-spacing: var(--tracking-tight);
+    letter-spacing: var(--tracking-display);
   }
 }
 
@@ -226,7 +224,8 @@
  * (a token mixed with `transparent`, never a colour of its own), so the title and the search bar keep the page:
  * - `tabletop`: the box, `absolute inset-0`, which fades out at its foot where the black of the page takes over;
  * - `tabletop-pool`, `tabletop-floor` and `tabletop-pattern`: the pattern, an SVG tile used as a mask over `foreground`, laid on a plane that is tilted back
- *   around its bottom edge (`perspective()` and `rotateX()`) and whose far end fades, that a pool of light, a radial mask, picks out of the dark;
+ *   around its bottom edge (`perspective()` and `rotateX()`) and whose far end fades, that a pool of light, a radial mask, picks out of the dark. The pattern scrolls: it
+ *   comes forward by one tile every `--tabletop-scroll` (16s) and starts again, a transform, so nothing is repainted, and not at all for a visitor who asks for less motion;
  * - `tabletop-lamp`: the glow of the lamp at the top;
  * - `tabletop-grain`: a fine noise, an SVG with `feTurbulence` used as a mask over `foreground`.
  * The tile is `--tabletop-tile` where the table is nearest, 6rem on a phone and growing with the window up to 10rem; the perspective and the height of
@@ -262,15 +261,28 @@
 
 @utility tabletop-pattern {
   position: absolute;
-  inset: 0;
+  /* One tile higher than the plane, so that nothing is bare at its far end as the pattern comes forward */
+  inset: calc(var(--tabletop-tile) * -1) 0 0;
   background-color: var(--foreground);
   opacity: 0.16;
+  will-change: transform;
+  animation: tabletop-scroll var(--tabletop-scroll, 16s) linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Cpath d='M128 0 256 128 128 256 0 128Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M128 22 234 128 128 234 22 128Z' fill='none' stroke='white' stroke-width='3.5' stroke-dasharray='10 20'/%3E%3Cg fill='white'%3E%3Ccircle cx='128' cy='0' r='8'/%3E%3Ccircle cx='256' cy='128' r='8'/%3E%3Ccircle cx='128' cy='256' r='8'/%3E%3Ccircle cx='0' cy='128' r='8'/%3E%3Ccircle cx='128' cy='128' r='5.5'/%3E%3Ccircle cx='0' cy='0' r='5.5'/%3E%3Ccircle cx='256' cy='0' r='5.5'/%3E%3Ccircle cx='0' cy='256' r='5.5'/%3E%3Ccircle cx='256' cy='256' r='5.5'/%3E%3C/g%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Cpath d='M128 0 256 128 128 256 0 128Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M128 22 234 128 128 234 22 128Z' fill='none' stroke='white' stroke-width='3.5' stroke-dasharray='10 20'/%3E%3Cg fill='white'%3E%3Ccircle cx='128' cy='0' r='8'/%3E%3Ccircle cx='256' cy='128' r='8'/%3E%3Ccircle cx='128' cy='256' r='8'/%3E%3Ccircle cx='0' cy='128' r='8'/%3E%3Ccircle cx='128' cy='128' r='5.5'/%3E%3Ccircle cx='0' cy='0' r='5.5'/%3E%3Ccircle cx='256' cy='0' r='5.5'/%3E%3Ccircle cx='0' cy='256' r='5.5'/%3E%3Ccircle cx='256' cy='256' r='5.5'/%3E%3C/g%3E%3C/svg%3E");
   -webkit-mask-size: var(--tabletop-tile) var(--tabletop-tile);
   mask-size: var(--tabletop-tile) var(--tabletop-tile);
   -webkit-mask-position: 50% 100%;
   mask-position: 50% 100%;
+}
+
+/* The board scrolls towards the viewer by one tile and starts again: the pattern is the same one tile on, so the loop shows no seam */
+@keyframes tabletop-scroll {
+  to {
+    transform: translateY(var(--tabletop-tile));
+  }
 }
 
 @utility tabletop-lamp {
@@ -341,6 +353,8 @@
     --font-title: var(--font-body);
     --tracking-body: -0.01em;
     --tracking-tight: -0.03em;
+    /* The title of the home: tighter still, -6% (`display-title`) */
+    --tracking-display: -0.06em;
 
     /* Slightly tight line-heights (Tailwind's `text-*` sizes are kept, only their line-height changes) */
     --text-xs--line-height: 1.3;

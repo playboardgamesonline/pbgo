@@ -47,7 +47,8 @@ const FONT_ROWS = [
   { variable: "--font-title", utility: "font-heading", use: "Headings and card titles. Same as the body font on the platform." },
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
-  { variable: "--text-display", utility: "text-display", use: "The three lines of the home's title, as big as the window lets them be (7.7vw and half a rem, up to 7.5rem): the first line takes 71% of a 390 px window and 60% of a 1440 px one. The lines are not the same width on purpose: the title narrows as it goes down. It sets no line-height: `display-title` does." },
+  { variable: "--text-display", utility: "text-display", use: "The two lines of the home's title, as big as the window lets them be (5.8vw and 0.9rem, up to 7rem): the longer line takes 95% of a 390 px window, less its gutters, and 58% of a 1440 px one. It sets no line-height: `display-title` does." },
+  { variable: "--tracking-display", use: "Letter-spacing of the home's title, -6% (`display-title`), tighter than the headings' `--tracking-tight`." },
 ] as const
 
 export function Typography() {
@@ -376,7 +377,8 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "px-gutter, py-section, pb-section", does: "Side padding of a page, rhythm between sections", token: "`--gutter`, `--section`" },
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
-  { utility: "display-title", does: "The home's title: Geist Black, capitals and tight, fading out downwards, with `text-display`", token: "`--text-display`" },
+  { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -6%, fading out downwards, with `text-display`", token: "`--text-display`, `--tracking-display`" },
+  { utility: "glass", does: "A container that floats over the page: the grey of a card at 94%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },
   { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },
