@@ -346,7 +346,7 @@ function SocialPanel({
 
 /**
  * The button of the dock's bar that opens and closes the social panel: the icon of a panel on the right, which opens it (`PanelRightOpenIcon`) while it is closed and closes
- * it (`PanelRightCloseIcon`) while it is open, the two crossfading. What waits for the visitor (messages not read, requests to answer) is not counted here: it is the count on the
+ * it (`PanelRightCloseIcon`) while it is open, the two crossfading, and it has a fill under the pointer only, open or not. What waits for the visitor (messages not read, requests to answer) is not counted here: it is the count on the
  * corner of their picture (`AvatarCount`), which is in the bar whether the dock is open or closed. The page decides what a press does.
  */
 function SocialPanelToggle({
@@ -365,7 +365,8 @@ function SocialPanelToggle({
       aria-label="Social"
       aria-expanded={open}
       title={open ? "Close the social panel" : "Open the social panel"}
-      className={cn("relative rounded-lg", className)}
+      // A ghost button is filled while its `aria-expanded` is true; this one is not: the icon says whether the panel is open, and the fill is for the pointer alone
+      className={cn("relative rounded-lg aria-expanded:bg-transparent aria-expanded:hover:bg-muted/50", className)}
       {...props}
     >
       <span aria-hidden="true" className="relative block size-5">
