@@ -103,12 +103,8 @@
    * four fifths of the first, the third three fifths of it). The size follows the window and grows from a phone to a desktop a little less fast than the window
    * does (7.7vw and half a rem), up to 7.5rem so a very wide window does not get a poster: the first line takes 71% of the width of a 390 px phone
    * and 60% of a 1440 px screen. It sets no line-height: the title's own (`display-title`) is tight.
-   * `-mt-title-overlap` is how far a bar laid over the title is pulled up: the 0.1em that a line of that line-height keeps under its baseline in Geist,
-   * and 0.1em more, a seventh of its capitals' height (0.71em), so the bar covers the foot of the last line, which is already
-   * fading out (the mask of `display-title`) and shows through its glass.
    */
   --text-display: clamp(1.5rem, 7.7vw + 0.5rem, 7.5rem);
-  --spacing-title-overlap: calc(var(--text-display) * 0.2);
 
   /* The one weight lighter than the platform's 600 that a text may have, 400: the finest print (`fine-print`) */
   --font-weight-regular: 400;
@@ -116,8 +112,8 @@
 
 /*
  * The title of the home (`display-title`): the whole of it in Geist Black, in capitals, tight (a line-height of 0.9 and the tracking of the headings),
- * in the full colour of the text at the top and fading to nothing at the bottom: a mask over the whole title, from opaque to transparent, so that
- * what is behind it shows through more and more. 900 is the one weight the platform sets on its own for text (Geist's variable font has it,
+ * in the full colour of the text at the top and fading to 40% at the bottom: a mask over the whole title, from opaque to 40%, so that what is
+ * behind it shows through a little more towards the foot. 900 is the one weight the platform sets on its own for text (Geist's variable font has it,
  * everything else is 600), as the display faces below do. The face is swapped here, with the size of the theme above, which follows the widths of
  * its lines.
  */
@@ -127,8 +123,8 @@
   letter-spacing: var(--tracking-tight);
   text-transform: uppercase;
   line-height: 0.9;
-  -webkit-mask-image: linear-gradient(to bottom, var(--foreground), transparent);
-  mask-image: linear-gradient(to bottom, var(--foreground), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 40%, transparent));
+  mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 40%, transparent));
 
   /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
   & > * {

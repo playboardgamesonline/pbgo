@@ -329,14 +329,14 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar is laid over the foot of the title, in the hero, and it is glass (`bg-background/60`, `backdrop-blur-xl`): the title shows through it, blurred. `relative` paints it over the text, and a negative top margin pulls it up by the 0.1em that the last line keeps under its baseline and a seventh of its capitals (`-mt-title-overlap`, a token that follows the size of the home's title, `text-display`, wherever it is; the specimen below is smaller, with `-mt-2` at `text-4xl`). Nothing is drawn behind it, no band and no border: only the backdrop of the page, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar stands under the title, in the hero, 32px below it (`mt-8`) and covering none of it, and it is glass (`bg-background/60`, `backdrop-blur-xl`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
         className="overflow-hidden p-0"
         code={`<section className="bg-linear-to-b from-card to-background pt-navbar">
   <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
     <h1 className="display-title">
       <span className="block text-display">Board games</span> <span className="block text-display">…</span>
     </h1>
-    <div className="relative -mt-title-overlap w-full max-w-3xl">
+    <div className="mt-8 w-full max-w-3xl">
       <SearchBar>…</SearchBar>
       <SearchBarFilters>…</SearchBarFilters>
     </div>
@@ -348,7 +348,7 @@ export function SearchBars() {
             <span className="block text-4xl">Board games</span> <span className="block text-4xl">w/ friends</span>{" "}
             <span className="block text-4xl">& rivals</span>
           </p>
-          <div className="relative -mt-2 w-full max-w-xl">
+          <div className="mt-8 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
               <SearchBarField>
                 <SearchBarSubmit aria-label="Search" />

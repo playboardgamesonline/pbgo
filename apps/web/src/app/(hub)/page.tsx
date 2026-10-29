@@ -12,7 +12,7 @@ import { COMING_SOON } from "@/lib/coming-soon"
 // A card opens the game's page on the hub, `/game/<slug>`.
 
 /**
- * The home: the title with the search bar laid over it, then the sections of the platform, each with a button to the page of its tab
+ * The home: the title with the search bar under it, then the sections of the platform, each with a button to the page of its tab
  * (popular games, tables and tournaments in progress, what's new), then the footer. Once the visitor starts a search the sections give way
  * to its results (`HomeBody`); the list of every game is `/games`.
  */
@@ -34,7 +34,7 @@ export default async function Home() {
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
           {/* The hero: the title in capitals, on three lines of the same size, all in Geist Black (`display-title`), narrowing as they go down, and the
-              search bar laid over its foot (two floors: the field and the round button, then the filters; glass, so the title shows through),
+              search bar 32px under it (the field with the category, then the filters, bare, in a row; glass),
               on a backdrop that is lighter at the top and fades into the black the sections sit on (neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn on it for now) */}
           <section className="bg-linear-to-b from-card to-background pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-14 pb-12 text-center">
@@ -42,9 +42,8 @@ export default async function Home() {
                 <span className="block text-display">Board games</span> <span className="block text-display">w/ friends</span>{" "}
                 <span className="block text-display">& rivals</span>
               </h1>
-              {/* Laid over the foot of the title: pulled up by `-mt-title-overlap` (it follows the size of the title), so it covers
-                  the foot of the last line, which shows through its glass. `relative` paints it over the text. */}
-              <div className="relative -mt-title-overlap w-full max-w-3xl">
+              {/* 32px under the title, which it covers none of */}
+              <div className="mt-8 w-full max-w-3xl">
                 <HeroSearch />
               </div>
             </div>
