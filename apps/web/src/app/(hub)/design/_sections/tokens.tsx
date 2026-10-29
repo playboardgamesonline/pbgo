@@ -379,7 +379,7 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
   { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -6%, fading out downwards, with `text-display`", token: "`--text-display`, `--tracking-display`" },
-  { utility: "glass", does: "A container that floats over the page: the grey of a card at 66%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },
+  { utility: "glass", does: "A container that floats over the page: the grey of a card at 80%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },
   { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },

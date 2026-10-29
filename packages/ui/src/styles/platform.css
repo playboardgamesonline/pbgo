@@ -344,7 +344,7 @@
     /* What is cut out of a picture, the ring round a status dot, the outline of tags that overlap: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);
     /* The settings of the glass (`glass`): how much of the grey of a card it keeps, how much it blurs what is behind it, and how much it saturates it. 100% saturation leaves the colours as they are */
-    --glass-opacity: 66%;
+    --glass-opacity: 80%;
     --glass-blur: 24px;
     --glass-saturate: 100%;
     --border: oklch(1 0 0 / 10%);
