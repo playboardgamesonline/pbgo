@@ -1,5 +1,5 @@
 import type { PlayedGame } from "@pbgo/accounts"
-import { demoAvatar } from "@pbgo/accounts/demo"
+import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
 import type { Friend } from "@pbgo/ui/friends"
 import type { Conversation, FriendRequest } from "@pbgo/ui/social"
 
@@ -10,22 +10,22 @@ const COURTISANS = { slug: "courtisans", name: "Courtisans" }
 const SKULL_KING = { slug: "skull-king", name: "Skull King" }
 const HANABI = { slug: "hanabi", name: "Hanabi" }
 
-const MARLY: Friend = { id: "f1", nickname: "Marly", tag: "4821", avatarUrl: demoAvatar("🐙", "#8b5cf6"), status: "playing", game: COURTISANS, table: { code: "K7P", size: 3, max: 4 }, activity: "Table K7P · 12 min" }
-const HERVE: Friend = { id: "f2", nickname: "Hervé", tag: "0412", avatarUrl: demoAvatar("🦉", "#0ea5e9"), status: "playing", game: SKULL_KING, table: { code: "9QD", size: 4, max: 6 }, activity: "Table 9QD · 4 min" }
-const ZOE: Friend = { id: "f3", nickname: "Zoé", tag: "1033", avatarUrl: demoAvatar("🐼", "#14b8a6"), status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" }
-const TOM: Friend = { id: "f4", nickname: "Tom", tag: "7712", avatarUrl: demoAvatar("🐯", "#f59e0b"), status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" }
-const LINA: Friend = { id: "f5", nickname: "Lina", tag: "2290", avatarUrl: demoAvatar("🐸", "#22c55e"), status: "inactive", game: HANABI, activity: "Inactive · 8 min" }
-const JADE: Friend = { id: "f9", nickname: "Jade", tag: "6604", avatarUrl: demoAvatar("🦄", "#ec4899"), status: "dnd", activity: "Do not disturb" }
-const MAX: Friend = { id: "f6", nickname: "Max", tag: "5501", avatarUrl: demoAvatar("🐧", "#6366f1"), status: "offline", activity: "2 h ago" }
-const INES: Friend = { id: "f7", nickname: "Inès", tag: "3318", avatarUrl: demoAvatar("🦋", "#06b6d4"), status: "offline", activity: "Yesterday" }
-const SAM: Friend = { id: "f8", nickname: "Sam", tag: "9042", avatarUrl: demoAvatar("🐻", "#a16207"), status: "offline", activity: "3 days ago" }
+const MARLY: Friend = { id: "f1", nickname: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, status: "playing", game: COURTISANS, table: { code: "K7P", size: 3, max: 4 }, activity: "Table K7P · 12 min" }
+const HERVE: Friend = { id: "f2", nickname: "Hervé", tag: "0412", avatarUrl: DEMO_AVATARS.herve, status: "playing", game: SKULL_KING, table: { code: "9QD", size: 4, max: 6 }, activity: "Table 9QD · 4 min" }
+const ZOE: Friend = { id: "f3", nickname: "Zoé", tag: "1033", avatarUrl: DEMO_AVATARS.zoe, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" }
+const TOM: Friend = { id: "f4", nickname: "Tom", tag: "7712", avatarUrl: DEMO_AVATARS.tom, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" }
+const LINA: Friend = { id: "f5", nickname: "Lina", tag: "2290", avatarUrl: DEMO_AVATARS.lina, status: "inactive", game: HANABI, activity: "Inactive · 8 min" }
+const JADE: Friend = { id: "f9", nickname: "Jade", tag: "6604", avatarUrl: DEMO_AVATARS.jade, status: "dnd", activity: "Do not disturb" }
+const MAX: Friend = { id: "f6", nickname: "Max", tag: "5501", avatarUrl: DEMO_AVATARS.max, status: "offline", activity: "2 h ago" }
+const INES: Friend = { id: "f7", nickname: "Inès", tag: "3318", avatarUrl: DEMO_AVATARS.ines, status: "offline", activity: "Yesterday" }
+const SAM: Friend = { id: "f8", nickname: "Sam", tag: "9042", avatarUrl: DEMO_AVATARS.sam, status: "offline", activity: "3 days ago" }
 
 export const DEMO_FRIENDS: readonly Friend[] = [MARLY, HERVE, ZOE, TOM, LINA, JADE, MAX, INES, SAM]
 
 export const DEMO_REQUESTS: readonly FriendRequest[] = [
-  { id: "r1", nickname: "Nolan", tag: "6150", avatarUrl: demoAvatar("🐺", "#64748b"), direction: "incoming" },
-  { id: "r2", nickname: "Clara", tag: "8827", avatarUrl: demoAvatar("🐳", "#3b82f6"), direction: "incoming" },
-  { id: "r3", nickname: "Yann", tag: "3069", avatarUrl: demoAvatar("🦔", "#d97706"), direction: "outgoing" },
+  { id: "r1", nickname: "Nolan", tag: "6150", avatarUrl: DEMO_AVATARS.nolan, direction: "incoming" },
+  { id: "r2", nickname: "Clara", tag: "8827", avatarUrl: DEMO_AVATARS.clara, direction: "incoming" },
+  { id: "r3", nickname: "Yann", tag: "3069", avatarUrl: DEMO_AVATARS.yann, direction: "outgoing" },
 ]
 
 const ago = (minutes: number, now: number) => new Date(now - minutes * 60_000).toISOString()

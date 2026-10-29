@@ -10,7 +10,8 @@
     "./client": "./src/client.tsx",
     "./server": "./src/server.ts",
     "./proxy": "./src/proxy.ts",
-    "./demo": "./src/demo.ts"
+    "./demo": "./src/demo.ts",
+    "./demo-avatars": "./src/demo-avatars.ts"
   },
   "scripts": {
     "test": "vitest run",
