@@ -111,7 +111,7 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
   /**
    * What is picked, when it is a few things that each have a name and an icon (the categories): the segment then draws them in place of its own icon and
    * `value`, up to three, each with its icon and, from 48rem of room, its name (under that the icons say it alone, and a third one waits for 28rem), then
-   * how many more there are, "+2": each pick is a tag on a grey of its own, and the segment behind them has no fill. `value` stays what a screen reader hears.
+   * how many more there are, "+2": each pick is a tag on a grey of its own that overlaps the one before it a little, outlined in the colour of the page; the segment behind them has no fill. `value` stays what a screen reader hears.
    */
   picks?: readonly SearchBarPick[]
 }
@@ -141,8 +141,8 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       className={cn(
         "group/segment flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
         boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-3/5 rounded-xl px-3",
-        // Picks are tags on their own grey, and the segment behind them is never filled: a little closer to its edge and further from one another, and it is the tags that go lighter under the pointer and while the panel is open
-        picks.length > 0 && "gap-2.5 px-2 hover:bg-transparent aria-expanded:bg-transparent",
+        // Picks are tags on their own grey that overlap a little, and the segment behind them is never filled: a little closer to its edge, and it is the tags that go lighter under the pointer and while the panel is open
+        picks.length > 0 && "gap-2 px-2 hover:bg-transparent aria-expanded:bg-transparent",
         className
       )}
       {...props}
@@ -151,12 +151,24 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
     >
       {picks.length > 0 ? (
         <>
-          {picks.slice(0, 3).map((pick, index) => (
-            <span key={pick.label} data-slot="search-bar-pick" title={pick.label} className={cn("flex h-8 min-w-0 items-center gap-1.5 rounded-lg bg-muted px-2 transition-colors duration-fast group-hover/segment:bg-secondary-hover group-aria-expanded/segment:bg-secondary-hover", index === 2 && "hidden @md:flex")}>
-              <SearchBarIcon icon={pick.icon} className="text-foreground" />
-              <span className="hidden max-w-28 truncate text-sm @3xl:inline">{pick.label}</span>
-            </span>
-          ))}
+          {/* The tags overlap a little, each outlined in the colour of the page, which masks the one behind it (the padding of a tag is what the next one covers, never its text) */}
+          <span data-slot="search-bar-picks" className="flex items-center">
+            {picks.slice(0, 3).map((pick, index) => (
+              <span
+                key={pick.label}
+                data-slot="search-bar-pick"
+                title={pick.label}
+                className={cn(
+                  "flex h-8 min-w-0 items-center gap-1.5 rounded-lg bg-muted px-2 transition-colors duration-fast group-hover/segment:bg-secondary-hover group-aria-expanded/segment:bg-secondary-hover",
+                  index > 0 && "-ml-1.5 ring-2 ring-background",
+                  index === 2 && "hidden @md:flex"
+                )}
+              >
+                <SearchBarIcon icon={pick.icon} className="text-foreground" />
+                <span className="hidden max-w-28 truncate text-sm @3xl:inline">{pick.label}</span>
+              </span>
+            ))}
+          </span>
           {countNarrow > 0 && <span className="text-sm text-muted-foreground tabular-nums @md:hidden">+{countNarrow}</span>}
           {countWide > 0 && <span className="hidden text-sm text-muted-foreground tabular-nums @md:inline">+{countWide}</span>}
         </>
