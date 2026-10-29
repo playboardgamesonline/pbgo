@@ -111,7 +111,7 @@ type SearchBarSegmentProps = Omit<React.ComponentProps<"button">, "children" | "
   /**
    * What is picked, when it is a few things that each have a name and an icon (the categories): the segment then draws them in place of its own icon and
    * `value`, up to three, each with its icon and, from 48rem of room, its name (under that the icons say it alone, and a third one waits for 28rem), then
-   * how many more there are, "+2". `value` stays what a screen reader hears.
+   * how many more there are, "+2": each pick is a tag on a grey of its own. `value` stays what a screen reader hears.
    */
   picks?: readonly SearchBarPick[]
 }
@@ -139,8 +139,10 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       type="button"
       aria-label={`${label}: ${value}`}
       className={cn(
-        "flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
+        "group/segment flex shrink-0 items-center gap-2 text-left outline-none select-none hover:bg-input/30 focus-visible:ring-3 focus-visible:ring-ring/30 aria-expanded:bg-muted",
         boxed ? "h-14 rounded-2xl px-4" : "h-12 max-w-3/5 rounded-xl px-3",
+        // Picks are tags on their own grey: a little closer to the edge of the segment and further from one another
+        picks.length > 0 && "gap-2.5 px-2",
         className
       )}
       {...props}
@@ -150,7 +152,7 @@ function SearchBarSegment({ className, icon, label, value, idle = false, boxed =
       {picks.length > 0 ? (
         <>
           {picks.slice(0, 3).map((pick, index) => (
-            <span key={pick.label} data-slot="search-bar-pick" title={pick.label} className={cn("flex min-w-0 items-center gap-1.5", index === 2 && "hidden @md:flex")}>
+            <span key={pick.label} data-slot="search-bar-pick" title={pick.label} className={cn("flex h-8 min-w-0 items-center gap-1.5 rounded-lg bg-muted px-2 group-aria-expanded/segment:bg-background/60", index === 2 && "hidden @md:flex")}>
               <SearchBarIcon icon={pick.icon} className="text-foreground" />
               <span className="hidden max-w-28 truncate text-sm @3xl:inline">{pick.label}</span>
             </span>
