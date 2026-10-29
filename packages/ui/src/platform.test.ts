@@ -114,7 +114,7 @@ describe("game table colours", () => {
   }
 
   it("the table and the pieces of the title are utilities of the stylesheet", () => {
-    for (const utility of ["tabletop", "title-piece", "title-cards", "title-over"]) expect(css).toContain(`@utility ${utility} {`)
+    for (const utility of ["tabletop", "title-piece", "title-cards"]) expect(css).toContain(`@utility ${utility} {`)
   })
 })
 

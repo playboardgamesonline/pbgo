@@ -149,7 +149,7 @@
 /*
  * The title of the home (`display-title`): sentence case, in Geist at a weight of 720 (a variable font: a weight between the platform's 600 and the Black of its first title),
  * with a tracking of -6% (`--tracking-display`) and a line-height of 1.05, so that the descenders of the first line clear the ascenders of the second. It is in the full colour
- * of the text all over, with no fade (it used to fade to 60% at the foot, through a mask). It is its own stacking context (`isolation`), which the cards of its second line need to go behind its letters.
+ * of the text all over, with no fade (it used to fade to 60% at the foot, through a mask).
  * 720 (`--font-weight-strong`) is the one weight the platform sets above 600 for text, the name of a person at the head of a profile having it too (everything else is 600). The face is swapped here, with the
  * size of the theme above, which follows the widths of its lines.
  */
@@ -158,7 +158,6 @@
   font-weight: var(--font-weight-strong);
   letter-spacing: var(--tracking-display);
   line-height: 1.05;
-  isolation: isolate;
 
   /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
   & > * {
@@ -662,13 +661,12 @@
 @utility title-cards {
   display: none;
   position: relative;
-  /* Behind the letters of the title: the title is its own stacking context (`isolation` of `display-title`), so the cards go under its text and over its backdrop */
-  z-index: -1;
   width: 0.72em;
   height: 0.74em;
   vertical-align: baseline;
-  /* The pair starts a little under the last letter of the word before it (`title-over`: 0.14em of the letter, which the 0.34em pulls it back by) and the word after it starts 0.24em from the pair */
-  margin-inline: -0.34em 0.24em;
+  /* The pair stands after the last letter of the word before it, as far from it as a word is from the next (the space of the text, and 0.1em: the first card leans out to the left by 0.16em at its top, so its top
+     is as far from the letter as its foot is far from it, less that) and the word after it starts 0.24em from the pair */
+  margin-inline: 0.1em 0.24em;
   @media (min-width: 40rem) {
     display: inline-block;
   }
@@ -705,11 +703,6 @@
     left: 0.2em;
     transform: rotate(11deg);
   }
-}
-
-/* A letter of the title that the cards go behind (`title-cards`): white on white would lose its shape where it is over them, so its edge is darkened, which shows on nothing else, the page being dark. */
-@utility title-over {
-  text-shadow: 0 0 0.04em var(--piece-ink), 0 0 0.09em var(--piece-ink);
 }
 
 @layer base {
