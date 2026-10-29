@@ -391,3 +391,17 @@
     @apply border-border outline-ring/50;
   }
 }
+
+/* A modal overlay (a menu, a select, a dialog, a sheet) locks the scroll of the page: `react-remove-scroll` puts `overflow: hidden` on `body[data-scroll-locked]`
+   and, so that the page does not move when its scrollbar goes, a `margin-right` of the scrollbar's width, which does nothing for what is fixed (the navbar jumped
+   by that width). What ui.shadcn.com does is done instead: the place of the scrollbar is always kept (`scrollbar-gutter: stable` on the page's `<html>`, which also
+   keeps a page from changing width between a short one and a long one), so that when the lock takes the scrollbar away the browser leaves an empty, inactive track
+   where it was, and the margin of the lock, which would move the page the other way, is taken off. Outside the layers, and the second rule more specific than the
+   lock's own, which is `!important` too. Only the page's `<html>`: the portals carry the `platform` class as well, and a menu must not keep a gutter of its own. */
+html.platform {
+  scrollbar-gutter: stable;
+}
+
+html.platform body[data-scroll-locked] {
+  margin-right: 0 !important;
+}

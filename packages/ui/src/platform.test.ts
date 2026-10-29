@@ -49,3 +49,20 @@ describe("platform components", () => {
     })
   }
 })
+
+/**
+ * A modal overlay (a menu, a select, a dialog, a sheet) locks the scroll of the page, and `react-remove-scroll` hides the scrollbar and adds a margin of its
+ * width to the body, so whatever is fixed (the navbar) jumped by that width. The page keeps the place of its scrollbar instead (an empty, inactive track while
+ * the lock is on, as on ui.shadcn.com) and the lock's margin is taken off: two rules of `platform.css`.
+ */
+describe("modal overlays", () => {
+  const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+
+  it("the page keeps the place of its scrollbar", () => {
+    expect(css).toMatch(/html\.platform\s*\{[^}]*scrollbar-gutter:\s*stable/)
+  })
+
+  it("the margin of the scroll lock is taken off the body", () => {
+    expect(css).toMatch(/html\.platform body\[data-scroll-locked\]\s*\{[^}]*margin-right:\s*0\s*!important/)
+  })
+})
