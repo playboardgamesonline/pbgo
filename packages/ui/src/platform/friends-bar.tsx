@@ -7,7 +7,7 @@ import { gamesOf, initials, tablesOf, type Friend, type GameFriends } from "../f
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { Button } from "./button"
-import { PresenceDot, STATUS_TEXT } from "./friends-panel"
+import { PresenceDot } from "./friends-panel"
 import { NavbarIsland } from "./navbar"
 import { Popover, PopoverAnchor, PopoverContent } from "./popover"
 
@@ -17,7 +17,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "./popover"
 // presence, their name and what they are doing. The pill under the pointer takes the fill of the navbar's current item and a line under it; moving to another
 // pill changes the panel. A friend who is away, or on the hub and in no game, is in none: they are in the list of the page of the friends (`FriendsPanel`).
 // With no friend in a game the bar is the button that invites one. A status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green
-// disc online, an orange-yellow moon inactive, a red disc with a bar do not disturb) and the line of text under the name in the colour of the dot, and always a word too, never the colour alone.
+// disc online, an orange-yellow moon inactive, a red disc with a bar do not disturb, a thick grey ring offline) and, under the name, a line of quiet text (only the dot is coloured), and always a word too, never the colour alone.
 //
 // The panel is a `Popover` anchored on the bar, which opens under the pointer (a short delay on the way out lets the pointer cross the gap to the panel), with the
 // keyboard (a pill that has the focus) and, where there is no pointer, when a pill is pressed (pressed again, or a press away, it closes). It is drawn from the
@@ -71,7 +71,7 @@ function BarFriend({ friend, onJoin }: { friend: Friend; onJoin?: (friend: Frien
           {friend.nickname}
           {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
         </p>
-        {friend.activity && <p className={cn("truncate text-xs", STATUS_TEXT[friend.status])}>{friend.activity}</p>}
+        {friend.activity && <p className="truncate text-xs text-muted-foreground">{friend.activity}</p>}
       </div>
       {joinable && onJoin && (
         <Button

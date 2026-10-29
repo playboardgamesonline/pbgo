@@ -111,7 +111,7 @@ export function SiteSocial({ account }: { account: Account }) {
                 </Avatar>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-foreground">{account.nickname}</span>
-                  <span className="block truncate text-xs text-presence-online">Online</span>
+                  <span className="block truncate text-xs text-muted-foreground">Online</span>
                 </span>
               </button>
             </AccountMenu>

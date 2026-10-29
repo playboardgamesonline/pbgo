@@ -287,7 +287,7 @@
 
 @layer base {
   .platform {
-    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot and a status line wear, and the two of a sign-in provider's button */
+    /* Colours: Tailwind's neutral scale (chroma 0), then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
     --card: var(--color-neutral-900);

@@ -8,7 +8,7 @@ import type { Message } from "../social"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { Button } from "./button"
-import { PresenceDot, STATUS_TEXT } from "./friends-panel"
+import { PresenceDot } from "./friends-panel"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 
 // The conversation with a friend, as the Riot Client opens it from its social panel: a card that floats at the bottom of the page, next to the panel, with the friend
@@ -63,7 +63,7 @@ function ChatWindow({
             {friend.nickname}
             {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
           </p>
-          <p className={cn("truncate text-xs", STATUS_TEXT[friend.status])}>{statusLine(friend)}</p>
+          <p className="truncate text-xs text-muted-foreground">{statusLine(friend)}</p>
         </div>
         <Button type="button" variant="ghost" size="icon-sm" aria-label="Close the chat" title="Close the chat" onClick={onClose}>
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />

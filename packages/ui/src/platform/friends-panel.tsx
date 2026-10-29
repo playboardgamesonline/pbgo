@@ -14,20 +14,11 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 // The friends of a signed-in visitor, as a list for a page or a panel: who is playing and where, who is online, who is not, a search among them, and the way to
 // add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
 // and what a press does are the page's. A status is a shape, a colour and a word, never the colour alone: a green disc (active), a blue disc with a play knocked out of
-// it (playing), an orange-yellow moon (inactive), a red disc with a bar knocked out of it (do not disturb), a grey ring (offline), and the line under the name in the colour of
-// the dot (`--presence-online`, `--presence-playing`, `--presence-inactive`, `--presence-dnd`, the hues of the platform besides destructive). The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
+// it (playing), an orange-yellow moon (inactive), a red disc with a bar knocked out of it (do not disturb), a thick grey ring (offline). Only the dot is coloured
+// (`--presence-online`, `--presence-playing`, `--presence-inactive`, `--presence-dnd`, the hues of the platform besides destructive): the line under the name is quiet text. The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
 // they are in) and `SocialPanel`, which holds this list as its first tab (`FriendsRoster`).
 
 export type { Friend, FriendGame, FriendStatus, FriendTable } from "../friends"
-
-/** The colour of the line that says what a friend is doing: the colour of their dot when they are in a game or online, quiet when they are away. */
-const STATUS_TEXT: Record<FriendStatus, string> = {
-  playing: "text-presence-playing",
-  online: "text-presence-online",
-  inactive: "text-presence-inactive",
-  dnd: "text-presence-dnd",
-  offline: "text-muted-foreground",
-}
 
 /**
  * The shapes of the dots that are not a plain disc: a disc with a play knocked out of it and another with a bar knocked out of it (even-odd, so that what is
@@ -41,7 +32,8 @@ const MOON = "M12.542 1.013A11 11 0 1 1 1.013 12.542 8.2 8.2 0 1 0 12.542 1.013Z
 /**
  * The dot on the corner of a picture, five shapes so that a colour is never alone: a green disc for a friend who is online (active), a blue disc with a play knocked
  * out of it for one in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and
- * a grey ring for one who is away. Its size follows the picture's.
+ * a thick grey ring for one who is away. Its size follows the picture's. The outline of that ring is a quarter of the dot (3px of 12, 2px on a small picture and 4px on a
+ * large one), like Discord's invisible, and not a hairline.
  */
 function PresenceDot({ status }: { status: FriendStatus }) {
   return (
@@ -53,7 +45,7 @@ function PresenceDot({ status }: { status: FriendStatus }) {
         status === "playing" && "bg-background text-presence-playing",
         status === "inactive" && "bg-background text-presence-inactive",
         status === "dnd" && "bg-background text-presence-dnd",
-        status === "offline" && "border border-muted-foreground bg-background",
+        status === "offline" && "border-3 border-muted-foreground bg-background group-data-[size=sm]/avatar:border-2 group-data-[size=lg]/avatar:border-4",
       )}
     >
       {status === "playing" && (
@@ -106,7 +98,7 @@ function FriendRow({
           {friend.nickname}
           {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
         </p>
-        {line && <p className={cn("truncate text-xs", STATUS_TEXT[friend.status])}>{line}</p>}
+        {line && <p className="truncate text-xs text-muted-foreground">{line}</p>}
       </div>
     </>
   )
@@ -266,4 +258,4 @@ function FriendsPanel({
   )
 }
 
-export { FriendsPanel, FriendsRoster, PresenceDot, STATUS_TEXT }
+export { FriendsPanel, FriendsRoster, PresenceDot }

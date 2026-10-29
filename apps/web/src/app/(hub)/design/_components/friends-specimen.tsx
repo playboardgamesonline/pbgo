@@ -121,7 +121,7 @@ export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: Socia
           </Avatar>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm text-foreground">Oré</span>
-            <span className="block truncate text-xs text-presence-online">Online</span>
+            <span className="block truncate text-xs text-muted-foreground">Online</span>
           </span>
         </div>
       }
@@ -159,7 +159,7 @@ const DOTS = [
   { status: "playing", label: "Playing", detail: "a blue disc, a play knocked out" },
   { status: "inactive", label: "Inactive", detail: "an orange-yellow moon" },
   { status: "dnd", label: "Do not disturb", detail: "a red disc, a bar knocked out" },
-  { status: "offline", label: "Offline", detail: "a grey ring" },
+  { status: "offline", label: "Offline", detail: "a thick grey ring" },
 ] as const
 
 /** The five dots of presence, on the three sizes of an avatar, each with its word: a shape, a colour and a word, never the colour alone. */
