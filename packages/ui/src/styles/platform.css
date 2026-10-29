@@ -112,7 +112,7 @@
 
 /*
  * The title of the home (`display-title`): the whole of it in Geist Black, in capitals, tight (a line-height of 0.9 and the tracking of the headings),
- * in the full colour of the text at the top and fading to 40% at the bottom: a mask over the whole title, from opaque to 40%, so that what is
+ * in the full colour of the text at the top and fading to 60% at the bottom: a mask over the whole title, from opaque to 60%, so that what is
  * behind it shows through a little more towards the foot. 900 is the one weight the platform sets on its own for text (Geist's variable font has it,
  * everything else is 600), as the display faces below do. The face is swapped here, with the size of the theme above, which follows the widths of
  * its lines.
@@ -123,8 +123,8 @@
   letter-spacing: var(--tracking-tight);
   text-transform: uppercase;
   line-height: 0.9;
-  -webkit-mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 40%, transparent));
-  mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 40%, transparent));
+  -webkit-mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
+  mask-image: linear-gradient(to bottom, var(--foreground), color-mix(in oklab, var(--foreground) 60%, transparent));
 
   /* An em is resolved where it is declared and inherited as a length, so a line that is bigger than the title would keep the title's: each carries its own */
   & > * {
