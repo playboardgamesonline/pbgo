@@ -359,7 +359,7 @@ export function SearchBars() {
           <p className="display-title">
             <span className="block text-4xl">Play your favorite</span> <span className="block text-4xl">board games online</span>
           </p>
-          <Stats className="mt-6" items={[{ value: "128", label: "players online" }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
+          <Stats className="mt-6" items={[{ value: "128", label: "players online", live: true }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
           <Perks className="mt-4" items={["Free to play", "No sign-up needed"]} />
           <div className="mt-8 w-full max-w-xl">
             <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
@@ -484,18 +484,18 @@ export function StatsSection() {
     <Section
       id="stats"
       module="stats"
-      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players are connected, how many accounts are registered, how many games there are, each in a pill (`rounded-xl`, filled with the colour of the text at 10%, no outline and no shadow, so that the numbers can roll up and down in it one day) that has a number followed by what it counts on the same line. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen reader reads 128 players online and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players online and the members are counted in Supabase, and a figure is left out when it cannot be (`docs/accounts.md`)."
+      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players are connected, how many accounts are registered, how many games there are, each in a pill (`rounded-xl`, filled with the colour of the text at 10%, no outline and no shadow, so that the numbers can roll up and down in it one day) that has a number (`text-base`) followed by what it counts on the same line; the figure of what is happening now, the players online, has a green dot before its number, the green of a friend who is online, a circle drawn in SVG. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen reader reads 128 players online and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players online and the members are counted in Supabase, and a figure is left out when it cannot be (`docs/accounts.md`)."
     >
       <Demo
         title="Under a title"
         description="The figures are a `dl`: each a term (what it counts) and its definition (the number), shown the other way round, the number first. The perks are a `ul` with a tick before each. On the home they stand under the title, 32px and 24px below it, and the search bar 56px under them."
         className="flex flex-col items-center gap-4 bg-linear-to-b from-card to-background py-10 text-center"
-        code={`<Stats items={[{ value: "128", label: "players online" }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
+        code={`<Stats items={[{ value: "128", label: "players online", live: true }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
 <Perks items={["Free to play", "No sign-up needed"]} />`}
       >
         <Stats
           items={[
-            { value: "128", label: "players online" },
+            { value: "128", label: "players online", live: true },
             { value: "12,480", label: "members" },
             { value: "71", label: "games" },
           ]}

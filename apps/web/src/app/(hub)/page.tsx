@@ -39,7 +39,7 @@ export default async function Home() {
         <main className="flex-1">
           {/* The hero, the page of a visitor who is not signed in (signed in, there is no title: the home is built from what they play): the title in two lines of the same size, in sentence case, in Geist
               at a weight of 720 and a tracking of -6% (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a die that turns, the suits of a deck in turn and a coin that spins, for three "o", and two
-              white cards partly behind the last letter of "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now and the members, counted in Supabase, and the games of the catalog) and what
+              white cards partly behind the last letter of "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now, with a green dot, and the members, counted in Supabase, and the games of the catalog) and what
               costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on a backdrop that is lighter at the top and fades into the
               black the sections sit on, with a walnut table under a lamp laid over it (`Tabletop`: dice, playing cards, chips and meeples lying and standing on it, in
               perspective, still; neither the grid of thin lines of `pattern-grid` nor the game pieces of `BoardPattern` are drawn) */}
@@ -53,7 +53,7 @@ export default async function Home() {
               <Stats
                 className="mt-8"
                 items={[
-                  ...(figures.online === null ? [] : [{ value: figure(figures.online), label: "players online" }]),
+                  ...(figures.online === null ? [] : [{ value: figure(figures.online), label: "players online", live: true }]),
                   ...(figures.members === null ? [] : [{ value: figure(figures.members), label: "members" }]),
                   { value: figure(games.length), label: "games" },
                 ]}
