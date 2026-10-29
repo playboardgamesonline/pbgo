@@ -12,6 +12,7 @@ import {
   SearchBarInput,
   SearchBarSubmit,
 } from "@pbgo/ui/platform/search-bar"
+import { Tabletop } from "@pbgo/ui/platform/tabletop"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { FaceRow } from "../_components/face-specimen"
 import { FiltersSpecimen } from "../_components/filters-specimen"
@@ -384,6 +385,31 @@ export function BoardPatterns() {
         </div>
         <div className="relative h-72 overflow-hidden bg-linear-to-b from-card to-background">
           <BoardPattern className="absolute inset-0 text-foreground opacity-20 mask-b-from-30%" />
+          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
+        </div>
+      </Demo>
+    </Section>
+  )
+}
+
+export function Tabletops() {
+  return (
+    <Section
+      id="tabletop"
+      module="tabletop"
+      intro="The backdrop of the home's hero: a table seen from above at a low angle, under a lamp. It is three layers and no image: a chessboard floor in perspective (a plane of `repeating-conic-gradient`, tilted back with `perspective()` and `rotateX()`) that a pool of light, a radial mask, picks out of the dark; the glow of the lamp at the top; and a fine grain (an SVG noise used as a mask over `foreground`). Everything is `foreground` at a few percent, a token mixed with `transparent`, so the title and the search bar keep the page, and the layer fades out at its foot, where the black of the page takes over. It is decorative: `aria-hidden`, and it takes no click."
+    >
+      <Demo
+        title="Behind a hero"
+        description="A layer that is `absolute inset-0` in a `relative` section whose content is `relative` too, so the content paints over it. The squares are `--tabletop-square`, 4rem on a phone and growing with the window up to 8rem; the perspective, the height of the floor and the horizon are all measured in squares, so the drawing is the same at every width. The five classes it is made of (`tabletop`, `tabletop-pool`, `tabletop-floor`, `tabletop-lamp` and `tabletop-grain`) are in `platform.css`."
+        className="p-0"
+        code={`<section className="relative bg-linear-to-b from-card to-background">
+  <Tabletop />
+  <div className="relative …">…</div>
+</section>`}
+      >
+        <div className="relative h-96 overflow-hidden bg-linear-to-b from-card to-background">
+          <Tabletop />
           <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
       </Demo>

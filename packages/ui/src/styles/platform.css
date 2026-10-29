@@ -201,6 +201,69 @@
   background-position: center top;
 }
 
+/*
+ * The backdrop of the home's hero, `Tabletop`: a table seen from above at a low angle, under a lamp. One utility per layer, all drawn in `foreground`
+ * at a few percent (a token mixed with `transparent`, never a colour of its own), so the title and the search bar keep the page:
+ * - `tabletop`: the box, `absolute inset-0`, which fades out at its foot where the black of the page takes over;
+ * - `tabletop-pool` and `tabletop-floor`: a chessboard in perspective (a plane of `repeating-conic-gradient` tilted back around its bottom edge, its
+ *   far end faded) that a pool of light, a radial mask, picks out of the dark;
+ * - `tabletop-lamp`: the glow of the lamp at the top;
+ * - `tabletop-grain`: a fine noise, an SVG with `feTurbulence` used as a mask over `foreground`.
+ * The squares are `--tabletop-square`, 4rem on a phone and growing with the window up to 8rem; the perspective, the height of the floor and the
+ * horizon are all measured in squares, so the drawing is the same at every width.
+ */
+@utility tabletop {
+  --tabletop-square: clamp(4rem, 9vw, 8rem);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, var(--foreground) 82%, transparent);
+  mask-image: linear-gradient(to bottom, var(--foreground) 82%, transparent);
+}
+
+@utility tabletop-pool {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: radial-gradient(ellipse 62% 70% at 50% 82%, var(--foreground) 8%, transparent 74%);
+  mask-image: radial-gradient(ellipse 62% 70% at 50% 82%, var(--foreground) 8%, transparent 74%);
+}
+
+@utility tabletop-floor {
+  position: absolute;
+  inset-inline: -55%;
+  bottom: 0;
+  height: calc(var(--tabletop-square) * 13);
+  transform-origin: 50% 100%;
+  transform: perspective(calc(var(--tabletop-square) * 4.2)) rotateX(51deg);
+  background-image: repeating-conic-gradient(color-mix(in oklab, var(--foreground) 15%, transparent) 0 25%, transparent 0 50%);
+  background-size: calc(var(--tabletop-square) * 2) calc(var(--tabletop-square) * 2);
+  background-position: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, var(--foreground) 62%, transparent);
+  mask-image: linear-gradient(to top, var(--foreground) 62%, transparent);
+}
+
+@utility tabletop-lamp {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    ellipse 62% 80% at 50% 14%,
+    color-mix(in oklab, var(--foreground) 17%, transparent),
+    color-mix(in oklab, var(--foreground) 5.5%, transparent) 46%,
+    transparent 72%
+  );
+}
+
+@utility tabletop-grain {
+  position: absolute;
+  inset: 0;
+  background-color: var(--foreground);
+  opacity: 0.14;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.3 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.3 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-size: 15rem 15rem;
+}
+
 @layer base {
   .platform {
     /* Colours: Tailwind's neutral scale (chroma 0), nothing else. Destructive is the only hue. */

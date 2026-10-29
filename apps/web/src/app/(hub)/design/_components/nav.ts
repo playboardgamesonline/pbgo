@@ -43,6 +43,7 @@ export const NAV = [
       { id: "game-card", title: "Game card" },
       { id: "section", title: "Section" },
       { id: "board-pattern", title: "Board pattern" },
+      { id: "tabletop", title: "Tabletop" },
       { id: "avatar", title: "Avatar" },
       { id: "alert", title: "Alert" },
       { id: "progress", title: "Progress, spinner, skeleton" },
