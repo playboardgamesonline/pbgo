@@ -39,7 +39,7 @@ function TitlePiece({ kind, children, className, ...props }: Omit<React.Componen
       {kind === "coin" && (
         <i data-slot="coin" aria-hidden="true">
           <b data-face="heads" />
-          <b data-face="tails">1</b>
+          <b data-face="tails" />
         </i>
       )}
     </span>

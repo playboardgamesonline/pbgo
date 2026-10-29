@@ -597,6 +597,10 @@
     background: currentColor;
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   }
+  /* The value of the coin is drawn, not written: the title must read "board" and not "bo1ard" to a search engine */
+  &[data-kind="coin"] [data-face="tails"]::after {
+    content: "1";
+  }
   &[data-kind="coin"] [data-face="tails"] {
     transform: rotateX(180deg);
     font-size: 0.34em;
