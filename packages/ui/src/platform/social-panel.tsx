@@ -107,6 +107,7 @@ function RequestRow({ request, onAnswer }: { request: FriendRequest; onAnswer?: 
   return (
     <li className="flex items-center gap-3 rounded-2xl px-2.5 py-2">
       <Avatar>
+        {request.avatarUrl && <AvatarImage src={request.avatarUrl} alt="" referrerPolicy="no-referrer" />}
         <AvatarFallback>{initials(request.nickname)}</AvatarFallback>
       </Avatar>
       <p className="min-w-0 flex-1 truncate text-sm text-foreground">

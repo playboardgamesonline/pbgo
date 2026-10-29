@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { requireAccount } from "@pbgo/accounts/server"
-import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
@@ -18,6 +18,7 @@ function Request({ request }: { request: FriendRequest }) {
     <Item variant="outline" size="sm">
       <ItemMedia>
         <Avatar>
+          {request.avatarUrl && <AvatarImage src={request.avatarUrl} alt="" referrerPolicy="no-referrer" />}
           <AvatarFallback>{request.nickname.slice(0, 1).toUpperCase()}</AvatarFallback>
         </Avatar>
       </ItemMedia>

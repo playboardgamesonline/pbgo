@@ -10,7 +10,14 @@ export type Message = { id: string; from: "me" | "them"; text: string; at: strin
 export type Conversation = { id: string; friend: Friend; messages: readonly Message[]; unread: number }
 
 /** A request to be friends that waits for an answer: to accept or decline when it came in, to cancel when it went out. */
-export type FriendRequest = { id: string; nickname: string; tag: string; direction: "incoming" | "outgoing" }
+export type FriendRequest = {
+  id: string
+  nickname: string
+  tag: string
+  /** Their picture; the initials of their name when there is none. */
+  avatarUrl?: string | null
+  direction: "incoming" | "outgoing"
+}
 
 /** The last message of a conversation, if it has any. */
 export const lastMessage = (conversation: Conversation): Message | undefined => conversation.messages.at(-1)
