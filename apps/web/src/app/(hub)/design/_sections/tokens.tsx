@@ -50,7 +50,7 @@ const FONT_ROWS = [
   { variable: "--text-display", utility: "text-display", use: "The two lines of the home's title, as big as the window lets them be (5.8vw and 0.9rem, up to 7rem): the longer line takes 95% of a 390 px window, less its gutters, and 58% of a 1440 px one. It sets no line-height: `display-title` does." },
   { variable: "--text-page-title", utility: "text-page-title", use: "The title of a page that lists something (Games, Tables, Tournaments): 8rem from a 850px window, and under that 16vw less 0.5rem (2.5rem at the least), so that \"Tournaments\", the longest, takes 87% of a 390 px window less its gutters. It sets no line-height: `page-title` does." },
   { variable: "--font-weight-strong", utility: "font-strong", use: "The one weight heavier than the platform's 600, 720: the title of the home (`display-title`) and the name of a person at the head of a profile. Geist is a variable font, so any weight between 100 and 900 exists." },
-  { variable: "--tracking-display", use: "Letter-spacing of the home's title, -6% (`display-title`), tighter than the headings' `--tracking-tight`." },
+  { variable: "--tracking-display", use: "Letter-spacing of the home's title, -0.048em (`display-title`), tighter than the headings' `--tracking-tight`." },
 ] as const
 
 export function Typography() {
@@ -379,8 +379,8 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "px-gutter, py-section, pb-section", does: "Side padding of a page, rhythm between sections", token: "`--gutter`, `--section`" },
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
-  { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -6%, in the full colour of the text, with `text-display`", token: "`--text-display`, `--tracking-display`" },
-  { utility: "page-title", does: "The title of Games, Tables and Tournaments: one line, Geist at 720, tracking -6%, 8rem on a desktop, no fade, with `text-page-title`", token: "`--text-page-title`, `--tracking-display`" },
+  { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -0.048em, in the full colour of the text, with `text-display`", token: "`--text-display`, `--tracking-display`" },
+  { utility: "page-title", does: "The title of Games, Tables and Tournaments: one line, Geist at 720, tracking -0.048em, 8rem on a desktop, no fade, with `text-page-title`", token: "`--text-page-title`, `--tracking-display`" },
   { utility: "tabletop", does: "The backdrop of the home's hero: a walnut table in perspective under a lamp, with dice, cards, chips and meeples on it, drawn from its `data-` attributes", token: "`--wood-*`, `--piece-*`" },
   { utility: "title-piece, title-cards", does: "The pieces that stand for letters in the home's title (a die, a coin, a heart) and the two white cards that stand after its last word", token: "`--piece-*`" },
   { utility: "glass", does: "A container that floats over the page: the grey of a card at 92%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },

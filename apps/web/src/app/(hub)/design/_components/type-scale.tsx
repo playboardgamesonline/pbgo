@@ -35,7 +35,7 @@ const HEADINGS: readonly Row[] = [
   { className: "font-heading text-6xl", use: "A game's page title from `md`" },
   { className: "font-heading text-7xl", use: "The home's title from `lg`" },
   { className: "font-heading text-8xl", use: "The home's title from `xl`" },
-  { className: "page-title", use: "The title of Games, Tables and Tournaments: 8rem from a 850px window, Geist at 720 with a tracking of -6%, one line" },
+  { className: "page-title", use: "The title of Games, Tables and Tournaments: 8rem from a 850px window, Geist at 720 with a tracking of -0.048em, one line" },
 ]
 
 function TypeRow({ className, use }: Row) {

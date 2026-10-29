@@ -116,7 +116,7 @@
 
   /*
    * The title of the home is two lines of the same size, `text-display`: "Play your favorite" and "board games online", 7.60em and 8.55em wide in Geist at 720 with
-   * the tracking of the title (-6%), so the second is the longer and sets the size. The size follows the window and grows from a phone to a desktop a little less fast than
+   * the tracking of the title (-0.048em), so the second is the longer and sets the size. The size follows the window and grows from a phone to a desktop a little less fast than
    * the window does (5.8vw and 0.9rem), up to 7rem so a very wide window does not get a poster: the longer line takes 95% of the width of a 390 px phone (less its gutters)
    * and 58% of a 1440 px screen. It sets no line-height: the title's own (`display-title`) is.
    */
@@ -147,7 +147,7 @@
 
 /*
  * The title of the home (`display-title`): sentence case, in Geist at a weight of 720 (a variable font: a weight between the platform's 600 and the Black of its first title),
- * with a tracking of -6% (`--tracking-display`) and a line-height of 1.05, so that the descenders of the first line clear the ascenders of the second. It is in the full colour
+ * with a tracking of -0.048em (`--tracking-display`) and a line-height of 1.05, so that the descenders of the first line clear the ascenders of the second. It is in the full colour
  * of the text all over, with no fade (it used to fade to 60% at the foot, through a mask).
  * 720 (`--font-weight-strong`) is the one weight the platform sets above 600 for text, the name of a person at the head of a profile having it too (everything else is 600). The face is swapped here, with the
  * size of the theme above, which follows the widths of its lines.
@@ -165,7 +165,7 @@
 }
 
 /*
- * The title of a page that lists something (`page-title`): Geist at a weight of 720 with the tracking of the home's title (-6%), the size of `--text-page-title` (8rem on a desktop) and a line-height of 1.05, in
+ * The title of a page that lists something (`page-title`): Geist at a weight of 720 with the tracking of the home's title (-0.048em), the size of `--text-page-title` (8rem on a desktop) and a line-height of 1.05, in
  * the full colour of the text. One line, so it has no fade and no padding of its own, and the head of the page centres it (`ListPageHeader`).
  */
 @utility page-title {
@@ -255,7 +255,22 @@
  * - `tabletop-shade`: the page's black over it, at the foot, under the text and at both sides, so that the table is lit in the middle and dark at its edges. Nothing moves: the table is a still scene.
  */
 @utility tabletop {
+  /* How the table is seen, which `/design` compares (section `tabletop`): how far the plane is tilted back, the distance of the eye, where the eye is (a share of the stage, up from its top), the boards turned in the
+     plane of the table, the width of a board where it is nearest, how lit the far end is, how strong the lamp is over the table, how dark the header is under the navbar, and how wide the pool of black behind the text is */
   --tabletop-tilt: 66deg;
+  --tabletop-perspective: 1200px;
+  --tabletop-origin: -25%;
+  --tabletop-turn: 0deg;
+  --tabletop-plank: 260px;
+  --tabletop-far: 60%;
+  --tabletop-lamp: 50%;
+  --tabletop-header: 92%;
+  --tabletop-pool: 40%;
+  /* On a phone the text takes the whole width and is higher up, under the lamp: the pool of black behind it is as wide as the window and the lamp is a little less, so that the figures keep their contrast (4.5:1) */
+  @media (max-width: 40rem) {
+    --tabletop-pool: 90%;
+    --tabletop-lamp: 30%;
+  }
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -263,35 +278,16 @@
   -webkit-mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
   mask-image: linear-gradient(to bottom, var(--foreground) 80%, transparent);
 
-  & [data-slot="tabletop-light"] {
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(60% 62% at 50% -5%, color-mix(in oklab, var(--piece-gold) 32%, transparent), transparent 70%);
-  }
-
-  /*
-   * Over the table: the page's black, twice. A soft pool where the title, the figures and the perks are read, so that small text keeps its contrast on the planks; and, under it, a gradient from the foot of the hero
-   * that rises to its upper third and is all but black at the bottom (92% at a sixth of the height, 62% at a third), so that the table is lit from above and goes dark where the search bar and its filters are,
-   * and runs into the black of the page under it.
-   */
-  & [data-slot="tabletop-shade"] {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 70%, transparent) 14%, color-mix(in oklab, var(--background) 28%, transparent) 30%, transparent 46%),
-      radial-gradient(ellipse max(36%, 17rem) 40% at 50% 54%, color-mix(in oklab, var(--background) 74%, transparent), color-mix(in oklab, var(--background) 38%, transparent) 62%, transparent 100%);
-  }
-
   & [data-slot="tabletop-stage"] {
     position: absolute;
     inset-inline: 0;
     bottom: 0;
     height: 1000px;
-    perspective: 1200px;
-    perspective-origin: 50% -25%;
-    /* The light falls off with the distance and under the figures, never towards the sides: the table has no edge, it goes on past the window on every side. Far away it is dim, at the title it is full, at the perks half, at the search bar a third */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) 25%, transparent) 228px, color-mix(in oklab, var(--foreground) 45%, transparent) 328px, color-mix(in oklab, var(--foreground) 80%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
-    mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) 25%, transparent) 228px, color-mix(in oklab, var(--foreground) 45%, transparent) 328px, color-mix(in oklab, var(--foreground) 80%, transparent) 448px, var(--foreground) 528px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
+    perspective: var(--tabletop-perspective);
+    perspective-origin: 50% var(--tabletop-origin);
+    /* The light falls off with the distance and under the figures, never towards the sides: the table has no edge, it goes on past the window on every side. Far away it is `--tabletop-far`, at the title it is full, at the perks half, at the search bar a third */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 80%, transparent) 328px, var(--foreground) 448px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
+    mask-image: linear-gradient(to bottom, transparent 0px, color-mix(in oklab, var(--foreground) var(--tabletop-far), transparent) 228px, color-mix(in oklab, var(--foreground) 80%, transparent) 328px, var(--foreground) 448px, var(--foreground) 648px, color-mix(in oklab, var(--foreground) 56%, transparent) 748px, color-mix(in oklab, var(--foreground) 30%, transparent) 858px, color-mix(in oklab, var(--foreground) 8%, transparent) 962px, transparent 1000px);
   }
 
   & [data-slot="tabletop-plane"] {
@@ -304,15 +300,16 @@
     transform-style: preserve-3d;
   }
 
+  /* The boards, in a layer bigger than the plane so that they can be turned in it without leaving a corner bare */
   & [data-slot="tabletop-wood"] {
     position: absolute;
-    inset: 0;
+    inset: -35%;
+    transform: rotate(var(--tabletop-turn));
     background:
-      repeating-linear-gradient(90deg, var(--wood-seam) 0 4px, transparent 4px 260px),
-      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 55%, transparent) 0 3px, transparent 3px 347px),
-      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-3) 55%, transparent) 0 180px, color-mix(in oklab, var(--wood-1) 45%, transparent) 180px 407px, transparent 407px 577px),
-      repeating-linear-gradient(90deg, var(--wood-1) 0 260px, var(--wood-2) 260px 520px, var(--wood-3) 520px 780px),
-      radial-gradient(ellipse 80% 15% at 50% 91%, color-mix(in oklab, var(--wood-1) 60%, var(--piece-gold)), color-mix(in oklab, var(--wood-1) 85%, var(--piece-gold)) 55%, var(--wood-2));
+      repeating-linear-gradient(90deg, var(--wood-seam) 0 4px, transparent 4px var(--tabletop-plank)),
+      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 55%, transparent) 0 3px, transparent 3px calc(var(--tabletop-plank) * 1.335)),
+      repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-3) 55%, transparent) 0 calc(var(--tabletop-plank) * 0.69), color-mix(in oklab, var(--wood-1) 45%, transparent) calc(var(--tabletop-plank) * 0.69) calc(var(--tabletop-plank) * 1.565), transparent calc(var(--tabletop-plank) * 1.565) calc(var(--tabletop-plank) * 2.22)),
+      repeating-linear-gradient(90deg, var(--wood-1) 0 var(--tabletop-plank), var(--wood-2) var(--tabletop-plank) calc(var(--tabletop-plank) * 2), var(--wood-3) calc(var(--tabletop-plank) * 2) calc(var(--tabletop-plank) * 3));
   }
   & [data-slot="tabletop-wood"]::after {
     content: "";
@@ -320,6 +317,34 @@
     inset: 0;
     background: repeating-linear-gradient(90deg, color-mix(in oklab, var(--wood-seam) 14%, transparent) 0 1px, transparent 1px 9px, color-mix(in oklab, var(--piece-ivory) 3.5%, transparent) 9px 10px, transparent 10px 23px);
     mix-blend-mode: multiply;
+  }
+
+  /*
+   * The lamp, over the table and not under it: its light is added to the planks (`screen`), a wide pool of `--piece-gold` at the top of the hero, just under the header, with a hot centre of ivory, so that the wood is lit where it is
+   * near the lamp and falls back to its own colour as it goes.
+   */
+  & [data-slot="tabletop-light"] {
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: screen;
+    background-image:
+      radial-gradient(ellipse 30% 22% at 50% 17%, color-mix(in oklab, var(--piece-ivory) calc(var(--tabletop-lamp) * 0.4), transparent), transparent 100%),
+      radial-gradient(ellipse 74% 58% at 50% 17%, color-mix(in oklab, var(--piece-gold) var(--tabletop-lamp), transparent), transparent 72%);
+  }
+
+  /*
+   * Over the table: the page's black. The header: the top of the hero, under the navbar, is the darkest part of it (`--tabletop-header` over the first pixels, and nothing 150px down), so that the bar reads and the
+   * lamp is under it and not behind it; a soft pool where the title, the figures and the perks are read, so that small text keeps its contrast on the planks; and a gradient from the foot of the hero that rises to
+   * its upper third and is all but black at the bottom (92% at a sixth of the height, 62% at a third), so that the table is lit from above and goes dark where the search bar and its filters are, and runs into the
+   * black of the page under it.
+   */
+  & [data-slot="tabletop-shade"] {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to bottom, color-mix(in oklab, var(--background) var(--tabletop-header), transparent) 0, color-mix(in oklab, var(--background) calc(var(--tabletop-header) * 0.6), transparent) 60px, transparent 150px),
+      linear-gradient(to top, var(--background) 0%, color-mix(in oklab, var(--background) 70%, transparent) 14%, color-mix(in oklab, var(--background) 28%, transparent) 30%, transparent 46%),
+      radial-gradient(ellipse var(--tabletop-pool) 44% at 50% 47%, color-mix(in oklab, var(--background) 62%, transparent), color-mix(in oklab, var(--background) 34%, transparent) 62%, transparent 100%);
   }
 }
 
@@ -355,9 +380,9 @@
   display: inline-block;
   position: relative;
   vertical-align: baseline;
-  /* Where an "o" would sit: a letter has its tracking (-6%) after it and a box has none, so the piece, which would be too near the letter before it and too far from the one after it, is moved 0.04em to the right
-     (the margins add up to the same, so the letters around it do not move) */
-  margin-inline: 0.06em -0.02em;
+  /* Where an "o" would sit: a letter has its tracking (-0.048em) after it and a box has none, so the piece would be too near the letter before it: its left margin is the tracking it lacks (0.048em), which puts it where
+     the glyph of an "o" would start, and the word after it keeps its place relative to the piece (-0.02em) */
+  margin-inline: 0.048em -0.02em;
   /* A die: a cube, 0.46em on a side, seen straight on, in perspective, and turning from the left to the right around its vertical axis, which `TitleDie` does: four sides, each a square with its pips (`die-pips`) and a little
      rounded, that are not drawn from the back (so the inside of a rounded corner shows nothing); there is no top and no bottom, since the eye is level with it and they would never show. The box of the piece is the room of an
      "o", the cube stands in it with its foot on the baseline (the perspective makes the front of it a sixth bigger than it is, so it is as high as the letters around it, which is what 0.46em allows for) */
@@ -407,7 +432,7 @@
   /* A coin: it spins on itself, from the top to the bottom, to show heads and tails in turn (`title-coin`; it does not rise), its two sides drawn apart, the "face" with a profile and the "pile" with a star. It is lower than the baseline by 0.03em, and
      0.005em more to the left than the die: a coin is round, and the "o" it stands for has an overshoot */
   &[data-kind="coin"] {
-    margin-inline: 0.055em -0.015em;
+    margin-inline: 0.043em -0.015em;
     vertical-align: -0.03em;
     width: 0.6em;
     height: 0.6em;
@@ -533,7 +558,7 @@
   vertical-align: baseline;
   /* The pair stands after the last letter of the word before it, as far from it as a word is from the next (the space of the text, and 0.1em: the first card leans out to the left by 0.16em at its top, so its top
      is as far from the letter as its foot is far from it, less that) and the word after it starts 0.24em from the pair */
-  margin-inline: 0.1em 0.24em;
+  margin-inline: 0.088em 0.24em;
   @media (min-width: 40rem) {
     display: inline-block;
   }
@@ -649,8 +674,8 @@
     --font-title: var(--font-body);
     --tracking-body: -0.01em;
     --tracking-tight: -0.03em;
-    /* The title of the home: tighter still, -6% (`display-title`) */
-    --tracking-display: -0.06em;
+    /* The title of the home: tighter still, -0.048em (`display-title`) */
+    --tracking-display: -0.048em;
 
     /* Slightly tight line-heights (Tailwind's `text-*` sizes are kept, only their line-height changes) */
     --text-xs--line-height: 1.3;

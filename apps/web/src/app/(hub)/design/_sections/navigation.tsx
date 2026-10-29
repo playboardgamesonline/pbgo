@@ -374,7 +374,7 @@ export function SearchBars() {
 
       <Demo
         title="The head of a page that lists something"
-        description="Games, Tables and Tournaments share one head (`ListPageHeader`): the title, centred at the top of the page in `page-title` (Geist at 720, tracking -6%, 8rem from a 850px window and 16vw less 0.5rem under it, so that Tournaments, the longest, fits a phone), then the bar of what the page lists, 32px under it (`gap-8`), on the backdrop of the home's hero. The bar says what it searches (`label` and `placeholder`: Search games, Search tables, Search tournaments), and each page has its own filters: Games has the category in the bar and the other four under it, Tables and Tournaments none yet. What's New has the same head with the title alone, since there is nothing in it to search."
+        description="Games, Tables and Tournaments share one head (`ListPageHeader`): the title, centred at the top of the page in `page-title` (Geist at 720, tracking -0.048em, 8rem from a 850px window and 16vw less 0.5rem under it, so that Tournaments, the longest, fits a phone), then the bar of what the page lists, 32px under it (`gap-8`), on the backdrop of the home's hero. The bar says what it searches (`label` and `placeholder`: Search games, Search tables, Search tournaments), and each page has its own filters: Games has the category in the bar and the other four under it, Tables and Tournaments none yet. What's New has the same head with the title alone, since there is nothing in it to search."
         className="overflow-hidden p-0"
         code={`<ListPageHeader title="Tables">
   <ListSearch label="Search tables" placeholder="Search tables..." />
