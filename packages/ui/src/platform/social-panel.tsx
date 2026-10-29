@@ -46,8 +46,8 @@ const PANE = {
 }
 
 /**
- * What marks the current tab: the tile behind it and a small white bar under it, as the Riot Client's tab has. Each is one element for the three tabs (`layoutId`), so that it travels when
- * another tab is pressed, with the spring of the navbar's fill.
+ * What marks the current tab: the tile behind it and a small white bar under it, as the Riot Client's tab has, glued to the foot of the tab bar (`-bottom-1.5`: 6px under the tab, which is where the
+ * bar ends) and a little apart from the tile. Each is one element for the three tabs (`layoutId`), so that it travels when another tab is pressed, with the spring of the navbar's fill.
  */
 function TabFill() {
   return (
@@ -56,7 +56,7 @@ function TabFill() {
       <motion.span
         layoutId="social-tab-bar"
         aria-hidden="true"
-        className="absolute -bottom-0.5 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-xs bg-foreground"
+        className="absolute -bottom-1.5 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-xs bg-foreground"
         transition={SPRING_TRAVEL}
       />
     </>
