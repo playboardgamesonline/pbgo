@@ -302,6 +302,14 @@ Each guarantee was checked by breaking it on purpose and watching a test fail.
 
 Code in the kit and in `content/` runs directly with Node (type stripping, no build): relative imports carry their `.ts` extension, type-only imports use `import type`, and only syntax that can be erased is used (`erasableSyntaxOnly`; the tests in `content/parity/` are the exception, Vitest alone reads them). The root `pnpm lint` does not cover game packages or the kit; they are linted with the shared config when needed.
 
+## The platform's seed
+
+The platform's own Sanity project (`docs/platform-sanity.md`) is seeded by the same pipeline, from `platform/content` (`@pbgo/platform`). What differs from a game's:
+- Its content is **read from Notion** when the pipeline asks for it, so `seed.ts` hands `runSeedCli` a `content` function (async, it returns the documents and the art slots together) in place of `docs` and `slots`; `--help` and a wrong option never reach Notion
+- Its documents point at each other by reference (a game at its creators, publishers, categories and related games). The checker of the tests knows the `reference`, `slug`, `date` and `datetime` kinds and the `unique()` and `custom()` rules, and `referenceProblems` fails a reference that points at nothing in the seed
+- Its art is the Notion pictures, brought into a folder outside the repo by a command of its own (`content:art`) and placed by `--art-dir` like any art
+- Its tests are the same four files as a game's (`data`, `schema`, `run`, `seed`), plus the ones of the picture download; the Studio has its own (`pnpm --filter platform-studio test`)
+
 ## Starting the pipeline for another game
 
 1. `pnpm add-game` (or `pnpm new-game <slug>` then `pnpm go-live <slug>`; the skill `game-new` runs it for the owner) gives the game its package, its Sanity project, its Studio, its rulebook PDFs and its write token (`apps/web/.env.local`). A rulebook that comes later goes in with `pnpm game-rules <slug>`.
@@ -316,4 +324,4 @@ Code in the kit and in `content/` runs directly with Node (type stripping, no bu
 - Only the types the seed manages are checked for leftovers (the "not in the seed" list).
 - An upgrade of `sharp` can change the bytes of a normalised image: a re-run then uploads a new asset and reports the old picture as kept.
 - Art that arrives without a source cannot be credited. The credits line names the authors and links the publisher, nothing about the artwork until that is known.
-- The schema checker used by the tests (`schema-check.ts`) does not follow `reference` fields: a document type that links to another needs a plain key instead, as the Exploding Kittens edition does for its card types.
+- The schema checker used by the tests (`schema-check.ts`) checks a `reference` field's shape and, with `referenceProblems`, that it points at a document of the seed of a type the field takes; it cannot say whether the target is published. A game's types still link seeded documents by a plain key (a draft cannot be published before what it points at, and a card and a color would wait for each other in no order), as the Exploding Kittens edition does for its card types; the platform's types use references and publish in an order (`docs/platform-sanity.md`).
