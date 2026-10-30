@@ -7,6 +7,8 @@ export default defineCliConfig({
   },
   studioHost: process.env.SANITY_STUDIO_HOST ?? "pbgo",
   deployment: {
+    // The Studio at pbgo.sanity.studio: with it a deployment does not ask which application this is
+    appId: "juahl5g7abxoc9cd5zpc3z47",
     autoUpdates: true,
   },
 })
