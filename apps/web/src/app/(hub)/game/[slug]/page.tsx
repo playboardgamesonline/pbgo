@@ -8,6 +8,7 @@ import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon, ChildIcon, Hourg
 import { gameJsonLd, gameMetadata, serializeJsonLd } from "@pbgo/catalog/seo"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
+import { CreditLink } from "@pbgo/ui/platform/credit-link"
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
 import { Item, ItemActions, ItemContent, ItemTitle } from "@pbgo/ui/platform/item"
 import { SiteFooter } from "@/components/site-footer"
@@ -16,8 +17,9 @@ import { SITE_NAME, SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its Notion row, a live game's included: the
 // game's Sanity project serves only once one enters the game. The button of a live game is a plain <a> to the game's own site
-// (`/<slug>`, another root layout, loaded whole); a game to come has the same button, disabled. Its picture is the one of its card,
-// and the games the catalog relates to it come last, as cards.
+// (`/<slug>`, another root layout, loaded whole); a game to come has the same button, disabled. Its picture is the one of its card.
+// The credits (its designers, its artists, its publishers) are under the text, and the page ends with the rulebooks, then the games the
+// catalog relates to it, as cards.
 // Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
 // whether it may be indexed, in its `robots` meta (`game.seo.indexable`: a live game follows the registry's flag, a game to come needs a
 // description in its Notion row), and carries its JSON-LD only when it may. The rule and the metadata are `@pbgo/catalog/seo`.
@@ -45,7 +47,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
           All games
         </Link>
 
-        {/* One column, then two from `lg`: the text on the left, the picture on the right, the credits and the rulebooks under the text. On a narrow screen the picture comes before them */}
+        {/* One column, then two from `lg`: the text on the left, the picture on the right, the credits under the text. On a narrow screen the picture comes before them */}
         <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
           <div className="flex flex-col items-start gap-6 lg:col-start-1">
             <h1 className="font-heading text-4xl md:text-6xl">{game.name}</h1>
@@ -98,65 +100,65 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
             className="rounded-4xl ring-1 ring-foreground/10 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
           />
 
-          {(game.facts.length > 0 || game.rulebooks.length > 0) && (
-            // Under the text: the credits follow one another, one line each, then the rulebooks in an area of their own, one link per language
-            <div className="flex flex-col gap-8 border-t pt-6 lg:col-start-1">
-              {game.facts.length > 0 && (
-                <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3">
-                  {game.facts.map((fact) => (
-                    <Fragment key={fact.label}>
-                      <dt className="text-muted-foreground">{fact.label}</dt>
-                      <dd>
-                        {fact.values.map((value, index) => (
-                          <Fragment key={`${value.text}-${index}`}>
-                            {index > 0 && ", "}
-                            {value.href ? (
-                              <a href={value.href} target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4">
-                                {value.text}
-                              </a>
-                            ) : (
-                              value.text
-                            )}
-                          </Fragment>
-                        ))}
-                      </dd>
-                    </Fragment>
-                  ))}
-                </dl>
-              )}
-
-              {/* A rulebook is a PDF in a language: each one is a bordered link opening it in a new tab. The language's code sits on a grey chip (hidden
-                  from screen readers: the title is in that language and the link says so), then the title with the game's name, then the arrow that says
-                  the link leaves the page. On hover the card turns grey, so the chip turns dark to stay visible */}
-              {game.rulebooks.length > 0 && (
-                <section aria-labelledby="rulebooks" className="flex max-w-xl flex-col gap-3">
-                  <h2 id="rulebooks" className="text-muted-foreground">
-                    {game.rulebooks.length === 1 ? "Rulebook" : "Rulebooks"}
-                  </h2>
-                  <ul className="flex flex-col gap-3">
-                    {game.rulebooks.map(({ language, label, href }) => (
-                      <li key={language}>
-                        <Item variant="outline" asChild>
-                          <a href={href} target="_blank" rel="noopener noreferrer" lang={language}>
-                            <Badge variant="secondary" aria-hidden className="min-w-9 group-hover/item:bg-background">
-                              {language.toUpperCase()}
-                            </Badge>
-                            <ItemContent>
-                              <ItemTitle className="line-clamp-none text-base">{label}</ItemTitle>
-                            </ItemContent>
-                            <ItemActions>
-                              <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} className="size-5 text-muted-foreground" aria-hidden />
-                            </ItemActions>
-                          </a>
-                        </Item>
-                      </li>
+          {game.facts.length > 0 && (
+            // Under the text: the credits follow one another, one line each (Designer, Artist, Publisher, each in the plural when there are several). A publisher is a link to its website,
+            // with the icon of that site before its name, the two being one link
+            <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-t pt-6 lg:col-start-1">
+              {game.facts.map((fact) => (
+                <Fragment key={fact.label}>
+                  <dt className="text-muted-foreground">{fact.label}</dt>
+                  <dd>
+                    {fact.values.map((value, index) => (
+                      <Fragment key={`${value.text}-${index}`}>
+                        {index > 0 && ", "}
+                        {value.href ? (
+                          <CreditLink href={value.href} icon={value.icon}>
+                            {value.text}
+                          </CreditLink>
+                        ) : (
+                          value.text
+                        )}
+                      </Fragment>
                     ))}
-                  </ul>
-                </section>
-              )}
-            </div>
+                  </dd>
+                </Fragment>
+              ))}
+            </dl>
           )}
         </div>
+
+        {/* The play zone and the tournaments come between the hero and the rules */}
+
+        {/* A rulebook is a PDF in a language: each one is a bordered link opening it in a new tab. The language's code sits on a grey chip (hidden
+            from screen readers: the title is in that language and the link says so), then the title with the game's name, then the arrow that says
+            the link leaves the page. On hover the card turns grey, so the chip turns dark to stay visible. The rulebooks end the page, over the related games, in a grid
+            that follows the width like theirs */}
+        {game.rulebooks.length > 0 && (
+          <section aria-labelledby="rulebooks" className="mt-section">
+            <h2 id="rulebooks" className="mb-6 font-heading text-2xl">
+              {game.rulebooks.length === 1 ? "Rulebook" : "Rulebooks"}
+            </h2>
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {game.rulebooks.map(({ language, label, href }) => (
+                <li key={language}>
+                  <Item variant="outline" asChild>
+                    <a href={href} target="_blank" rel="noopener noreferrer" lang={language}>
+                      <Badge variant="secondary" aria-hidden className="min-w-9 group-hover/item:bg-background">
+                        {language.toUpperCase()}
+                      </Badge>
+                      <ItemContent>
+                        <ItemTitle className="line-clamp-none text-base">{label}</ItemTitle>
+                      </ItemContent>
+                      <ItemActions>
+                        <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} className="size-5 text-muted-foreground" aria-hidden />
+                      </ItemActions>
+                    </a>
+                  </Item>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {game.related.length > 0 && (
           // The games the catalog relates to this one, listed like the home: the Related Games and the base game of its Notion row, from

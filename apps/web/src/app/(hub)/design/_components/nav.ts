@@ -45,6 +45,7 @@ export const NAV = [
       { id: "card", title: "Card" },
       { id: "plan-card", title: "Plan card" },
       { id: "game-card", title: "Game card" },
+      { id: "credit-link", title: "Credit link" },
       { id: "section", title: "Section" },
       { id: "friends-panel", title: "Friends panel" },
       { id: "friends-bar", title: "Friends bar" },

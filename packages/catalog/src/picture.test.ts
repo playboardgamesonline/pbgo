@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { MAX_PICTURE_BYTES, MAX_REDIRECTS, PICTURE_TIMEOUT_MS, PictureError, allowedUrl, fetchPicture, sniff } from "./picture"
+import { MAX_PICTURE_BYTES, MAX_REDIRECTS, PAGE, PICTURE_TIMEOUT_MS, PictureError, allowedUrl, download, fetchPicture, sniff } from "./picture"
 import { type PictureKind, pictureBytes, pictureResponse, webPage } from "./testing"
 
 const text = (value: string) => new TextEncoder().encode(value)
@@ -113,6 +113,7 @@ describe("sniff", () => {
     ["webp", "image/webp"],
     ["avif", "image/avif"],
     ["svg", "image/svg+xml"],
+    ["ico", "image/x-icon"],
   ])("knows a %s by its first bytes", (kind, type) => {
     expect(sniff(pictureBytes(kind))).toBe(type)
   })
@@ -168,6 +169,9 @@ describe("sniff", () => {
     ["a GIF that is cut short", text("GIF8")],
     ["a RIFF file that is not a WebP (a WAV)", Uint8Array.of(...text("RIFF"), 0, 0, 0, 0, ...text("WAVE"))],
     ["an ISO media file that is not an AVIF (an MP4)", Uint8Array.of(0, 0, 0, 0x20, ...text("ftypmp42"))],
+    ["an icon header that holds no image", Uint8Array.of(0, 0, 1, 0, 0, 0)],
+    ["a cursor file, which looks like an icon file and is not one", Uint8Array.of(0, 0, 2, 0, 1, 0)],
+    ["four zeros", new Uint8Array(4)],
   ])("does not take %s for a picture", (_name, bytes) => {
     expect(sniff(bytes)).toBeNull()
   })
@@ -474,5 +478,85 @@ describe("fetchPicture", () => {
     const link = _name === "a refused link" ? "http://files.example.com/secret/picture.png?X-Amz-Signature=topsecret" : LINK
     const error = await failure(fetchPicture(link, { fetch: fetcher(), maxBytes: 100 }))
     expect(error.message).not.toMatch(/topsecret|secret\/|picture\.png|X-Amz/i)
+  })
+})
+
+describe("download", () => {
+  const LINK = "https://example.com/"
+  const web = () => vi.fn<typeof fetch>()
+  const page = (body: string, init: ResponseInit = {}) => new Response(body, { headers: { "content-type": "text/html" }, ...init })
+
+  /** The error a download ends with, and only that. */
+  async function failure(started: Promise<unknown>): Promise<PictureError> {
+    try {
+      await started
+    } catch (error) {
+      expect(error).toBeInstanceOf(PictureError)
+      return error as PictureError
+    }
+    throw new Error("the download was expected to fail")
+  }
+
+  it("asks for what it is told it accepts, and says who asks only when it is told to", async () => {
+    const plain = web().mockResolvedValueOnce(page("<html></html>"))
+    await download(LINK, PAGE, { fetch: plain })
+    expect(plain.mock.calls[0]?.[1]?.headers).toEqual({ Accept: "text/html,application/xhtml+xml" })
+
+    const named = web().mockResolvedValueOnce(page("<html></html>"))
+    await download(LINK, PAGE, { fetch: named, userAgent: "Somebody/1.0" })
+    expect(named.mock.calls[0]?.[1]?.headers).toEqual({ Accept: "text/html,application/xhtml+xml", "User-Agent": "Somebody/1.0" })
+  })
+
+  it("gives where the redirects ended, which is what a link of a page is relative to", async () => {
+    const fetcher = web()
+      .mockResolvedValueOnce(new Response(null, { status: 301, headers: { location: "https://www.example.com/fr/" } }))
+      .mockResolvedValueOnce(page("<html></html>"))
+    const { url } = await download(LINK, PAGE, { fetch: fetcher })
+    expect(url.href).toBe("https://www.example.com/fr/")
+  })
+
+  it("is held to a limit that the caller shares between several downloads, in place of its own", async () => {
+    const signals: (AbortSignal | null | undefined)[] = []
+    const fetcher = web().mockImplementation(async (_input, init) => (signals.push(init?.signal), page("<html></html>")))
+    const shared = AbortSignal.timeout(5000)
+    await download(LINK, PAGE, { fetch: fetcher, signal: shared })
+    await download(LINK, PAGE, { fetch: fetcher, signal: shared })
+    expect(signals).toEqual([shared, shared])
+  })
+
+  it("keeps the first bytes of a page that is longer than the limit, and does not fail on it", async () => {
+    const fetcher = web().mockResolvedValueOnce(page(`<html>${"a".repeat(300)}</html>`))
+    const { bytes } = await download(LINK, PAGE, { fetch: fetcher, maxBytes: 100 })
+    expect(bytes.byteLength).toBe(100)
+    expect(new TextDecoder().decode(bytes)).toBe(`<html>${"a".repeat(94)}`)
+  })
+
+  it("keeps the first bytes of a page that comes in pieces, whichever piece crosses the limit", async () => {
+    const pieces = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const piece of ["a".repeat(60), "b".repeat(60), "c".repeat(60)]) controller.enqueue(new TextEncoder().encode(piece))
+        controller.close()
+      },
+    })
+    const fetcher = web().mockResolvedValueOnce(new Response(pieces))
+    const { bytes } = await download(LINK, PAGE, { fetch: fetcher, maxBytes: 100 })
+    expect(new TextDecoder().decode(bytes)).toBe(`${"a".repeat(60)}${"b".repeat(40)}`)
+  })
+
+  it("does not read the body of a page whose Content-Length is over the limit before it has to: it is cut like the others", async () => {
+    const fetcher = web().mockResolvedValueOnce(page(`<html>${"a".repeat(300)}</html>`, { headers: { "content-type": "text/html", "content-length": "9999" } }))
+    await expect(download(LINK, PAGE, { fetch: fetcher, maxBytes: 100 })).resolves.toMatchObject({ bytes: expect.objectContaining({ byteLength: 100 }) })
+  })
+
+  it("calls what it downloads a page in what it says, and a picture when it is one", async () => {
+    expect((await failure(download("http://example.com/", PAGE, { fetch: web() }))).message).toBe("The link of the page is not one the server follows")
+    expect((await failure(download(LINK, PAGE, { fetch: web().mockResolvedValueOnce(page("")) }))).message).toBe("example.com sent an empty file")
+    expect((await failure(fetchPicture("http://example.com/a.png", { fetch: web() }))).message).toBe("The link of the picture is not one the server follows")
+  })
+
+  it("still follows only the places that a picture may come from: the same rules for a page", async () => {
+    const fetcher = web().mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: "https://192.168.1.10/" } }))
+    const error = await failure(download(LINK, PAGE, { fetch: fetcher }))
+    expect(error.message).toBe("example.com redirected to a place the server does not follow")
   })
 })

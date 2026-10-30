@@ -83,6 +83,39 @@ export function pictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">, 
   return game.art[slot] ? `/api/catalog/${game.slug}/${slot}?v=${pictureVersion(game.editedAt)}` : null
 }
 
+/**
+ * The URL of the icon of a game's n-th publisher (`/api/catalog/<slug>/publisher-<n>`, see `route.ts`), or null when that publisher has no website to take it from.
+ * It carries the version of the game's row like a picture does, so an edit of the row sends the page to a new address. The address names a place in the row and never
+ * a website: the server finds the website in the row itself.
+ */
+export function publisherIconUrl(game: Pick<NotionGame, "slug" | "publishers" | "editedAt">, index: number): string | null {
+  return game.publishers[index]?.url ? `/api/catalog/${game.slug}/publisher-${index}?v=${pictureVersion(game.editedAt)}` : null
+}
+
+/** One line of the credits of a game's page: what the people are to it, and who they are. A publisher whose row has a website is a link to it, with its icon. */
+export type CreditLine = { label: string; values: { text: string; href?: string; icon?: string }[] }
+
+const plural = (count: number, one: string, many: string) => (count === 1 ? one : many)
+
+/**
+ * The credits a game's page shows, in this order and only the lines that have somebody: its designers, its artists and its publishers, the label in the singular for
+ * one and in the plural for more. A publisher whose row has a website is a link to it (`href`) with its icon (`icon`, `publisherIconUrl`); one with none is a name.
+ */
+export function creditLines(game: Pick<NotionGame, "slug" | "authors" | "illustrators" | "publishers" | "editedAt">): CreditLine[] {
+  const lines: CreditLine[] = [
+    { label: plural(game.authors.length, "Designer", "Designers"), values: game.authors.map((text) => ({ text })) },
+    { label: plural(game.illustrators.length, "Artist", "Artists"), values: game.illustrators.map((text) => ({ text })) },
+    {
+      label: plural(game.publishers.length, "Publisher", "Publishers"),
+      values: game.publishers.map(({ name, url }, index) => {
+        const icon = publisherIconUrl(game, index)
+        return url ? { text: name, href: url, ...(icon ? { icon } : {}) } : { text: name }
+      }),
+    },
+  ]
+  return lines.filter((line) => line.values.length > 0)
+}
+
 /** The picture of a game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
 export function cardPictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">): string | null {
   return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")

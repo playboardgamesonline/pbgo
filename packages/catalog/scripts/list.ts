@@ -40,7 +40,7 @@ const catalog = buildCatalog(GAMES, notionGames)
 // A live game that Notion has no row for is listed with what the registry knows of it (`registryRow`): its figures, no picture, no text
 const fromRegistry = (slug: string) => !notionGames.some((game) => game.slug === slug)
 
-const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "weight", "age", "categories", "authors", "illustrators", "publisher", "related"]
+const heads = ["slug", "name", "kind", "development", "art", "text", "players", "time", "weight", "age", "categories", "designers", "artists", "publishers", "related"]
 const rows = catalog.map((entry) => [
   entry.slug,
   entry.game.name,

@@ -93,7 +93,7 @@ describe("pnpm catalog:list", () => {
     expect(run.stdout).toMatch(/^charlie\s+Charlie\s+planned\s+- - -\s/m)
 
     // the last column: a link written on one row shows on both games, in the order of the list, the live game's row included
-    expect(run.stdout).toMatch(/^slug\s.*\spublisher\s+related$/m)
+    expect(run.stdout).toMatch(/^slug\s.*\spublishers\s+related$/m)
     expect(run.stdout).toMatch(/^alpha\s.*\scourtisans, charlie$/m)
     expect(run.stdout).toMatch(/^charlie\s.*\salpha$/m)
     expect(run.stdout).not.toMatch(/^(bravo|delta)\s.*\b(alpha|charlie|courtisans)$/m)

@@ -36,10 +36,13 @@ export const COLUMNS = {
   age: "Age",
   /** A multi-select: the categories of the game, which the hub's category filter offers. Not `Game family`, which is a franchise. */
   categories: "Tags",
-  /** Authors and illustrators are relations to the Creators database, editors a relation to the Editors one. */
-  authors: "Authors",
-  illustrators: "Illustrators",
-  editors: "Editors",
+  /**
+   * Designers and artists are relations to the Creators database, publishers a relation to the Editors one. The columns were named Authors, Illustrators and Editors until
+   * they were renamed in Notion, and a column that the reader no longer finds empties its field for every game: the credits of the pages went with them.
+   */
+  authors: "Designers",
+  illustrators: "Artists",
+  publishers: "Publishers",
   /** Filled for an expansion (it points to its base game): expansions are not part of the catalog, a standalone one apart (`type`). */
   parent: "Parent item",
   /** A select. A row with a `parent` whose type is `STANDALONE_EXPANSION` is a game of its own: it plays without its base game, so it is listed. */
@@ -398,7 +401,7 @@ function planned(
     categories: optionsOf(value(page, COLUMNS.categories)),
     authors: resolve(value(page, COLUMNS.authors), creators),
     illustrators: resolve(value(page, COLUMNS.illustrators), creators),
-    publishers: resolve(value(page, COLUMNS.editors), publishers),
+    publishers: resolve(value(page, COLUMNS.publishers), publishers),
     rules: byLanguage(rulesColumn, linkOf),
     art: {
       logo: hasPicture(value(page, COLUMNS.logo)),

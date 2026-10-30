@@ -5,6 +5,7 @@ import { Logo } from "@pbgo/ui/platform/logo"
 import { SITE_NAME } from "@/site"
 import { Code, PageNav } from "./_components/layout"
 import { Badges, Buttons, Checks, Comboboxes, Inputs, Meters, ProviderButtons, Selects, Sliders, TabsSection, ToggleGroups } from "./_sections/controls"
+import { CreditLinks } from "./_sections/credits"
 import { InGameUi } from "./_sections/in-game-ui"
 import { BoardPatterns, FaceCycles, Logos, Navbars, SearchBars, StatsSection, TitlePieces, Wordmarks } from "./_sections/navigation"
 import { CookieBanners, Dialogs, Dropdowns, Popovers, Sheets, Toasts, Tooltips } from "./_sections/overlays"
@@ -128,6 +129,7 @@ export default function DesignPage() {
             <Cards />
             <PlanCards />
             <GameCards />
+            <CreditLinks />
             <Sections />
             <FriendsPanels />
             <FriendsBars />

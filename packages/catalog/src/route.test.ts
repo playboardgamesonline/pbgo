@@ -2,7 +2,23 @@ import type { GameEntry } from "@pbgo/core/lib/binding"
 import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { pictureVersion } from "./catalog"
-import { external, fakeNotion, fakeWeb, gamePage, notionFailure, pictureBytes, pictureResponse, uploaded, webPage, type GameRow, type HostHandler, type PictureKind } from "./testing"
+import {
+  editorPage,
+  external,
+  fakeNotion,
+  fakeWeb,
+  gamePage,
+  htmlResponse,
+  notionFailure,
+  pictureBytes,
+  pictureResponse,
+  uploaded,
+  webPage,
+  type GameRow,
+  type HostHandler,
+  type NotionPage,
+  type PictureKind,
+} from "./testing"
 
 // `server-only` throws outside a server bundle
 vi.mock("server-only", () => ({}))
@@ -27,6 +43,8 @@ if (!LIVE || !PLANNED || REGISTRY.some((game) => game.slug === NOTION_ONLY)) {
 const FRESH = "public, max-age=3600, s-maxage=86400"
 const SHORT = "public, max-age=60, s-maxage=60"
 const REDIRECT = "public, max-age=0, s-maxage=10"
+const ICON = "public, max-age=86400, s-maxage=86400"
+const NO_ICON = "public, max-age=3600, s-maxage=3600"
 const SANDBOX = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
 
 const NOW = new Date("2026-10-22T12:00:00.000Z")
@@ -46,6 +64,8 @@ const database = (rows: GameRow[]) => answer(200, { object: "list", results: row
 type World = {
   /** The rows of the Games database. */
   rows?: GameRow[]
+  /** The rows of the Editors database, the publishers the rows of the games point to. */
+  editors?: NotionPage[]
   /** The picture hosts by name: a host that is not here cannot be reached. */
   hosts?: Record<string, HostHandler>
   /** The server's Notion key: the usual one unless the test says there is none. */
@@ -57,9 +77,9 @@ type World = {
 }
 
 /** Notion and the picture hosts as `World` describes them, and a picture route that has never been asked anything (and never logged anything). */
-async function world({ rows = [], hosts = {}, token = TOKEN, catalog, links }: World = {}) {
+async function world({ rows = [], editors = [], hosts = {}, token = TOKEN, catalog, links }: World = {}) {
   vi.stubEnv("NOTION_API_KEY", token ?? undefined)
-  const notion = fakeNotion({ games: rows.map(gamePage), editors: [], creators: [], development: [] })
+  const notion = fakeNotion({ games: rows.map(gamePage), editors, creators: [], development: [] })
   let linkReads = 0
   const web = fakeWeb(
     {
@@ -80,6 +100,8 @@ async function world({ rows = [], hosts = {}, token = TOKEN, catalog, links }: W
   const isNotion = (request: { url: string }) => new URL(request.url).host === "api.notion.com"
   return {
     web,
+    /** The route itself, for a request that `ask` does not write. */
+    get,
     /** The reads of the links of the pictures: the calls to Notion that were made without a cache. */
     reads: () => web.requests.filter((request) => isNotion(request) && request.init.cache === "no-store"),
     /** Everything that was asked of a picture host. */
@@ -469,5 +491,154 @@ describe("when the catalog cannot be read", () => {
     expect(w.downloads()).toEqual([])
     expect(logged()).toContain("Notion is unavailable, only the live games are listed")
     expect(logged()).not.toContain(TOKEN)
+  })
+})
+
+describe("the icon of a publisher", () => {
+  const SITE = "libellud.example"
+  const EDITOR = "22222222-aaaa-4bbb-8ccc-000000000001"
+  const editors = [editorPage({ id: EDITOR, name: "Libellud", url: `https://${SITE}/` })]
+  const rows = [row(PLANNED.slug, { editors: [EDITOR] })]
+  /** The website of the publisher: a page that links to an icon of 32 pixels, and the icon. */
+  const site: HostHandler = (url) => {
+    if (url.pathname === "/") return htmlResponse('<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">')
+    return url.pathname === "/icon-32.png" ? pictureResponse("png") : new Response("Not found", { status: 404 })
+  }
+  const hosts = { [SITE]: site }
+
+  it("is found on the website of the publisher and served from here: a day for the CDN, with the headers of a file that only an <img> shows", async () => {
+    const w = await world({ rows, editors, hosts })
+    const response = await w.ask(PLANNED.slug, "publisher-0")
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-type")).toBe("image/png")
+    expect(response.headers.get("cache-control")).toBe(ICON)
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff")
+    expect(response.headers.get("content-security-policy")).toBe(SANDBOX)
+    expect(await bytesOf(response)).toEqual(pictureBytes("png"))
+    // Only the website of the publisher is asked, and Notion is not asked for the links of any picture
+    expect(w.downloads().map((request) => request.url)).toEqual([`https://${SITE}/`, `https://${SITE}/icon-32.png`])
+    expect(w.reads()).toEqual([])
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it("is served for a live game too", async () => {
+    const w = await world({ rows: [row(LIVE.slug, { editors: [EDITOR] })], editors, hosts })
+    expect((await w.ask(LIVE.slug, "publisher-0")).status).toBe(200)
+  })
+
+  it("takes the website from the row of the game and never from the request", async () => {
+    const w = await world({ rows, editors, hosts: { ...hosts, "evil.example": () => pictureResponse("png") } })
+    const address = `https://pbgo.test/api/catalog/${PLANNED.slug}/publisher-0?v=${VERSION}&url=https://evil.example/x.png&site=https://evil.example/&host=evil.example`
+    const response = await w.get(new Request(address), { params: Promise.resolve({ slug: PLANNED.slug, slot: "publisher-0" }) })
+    expect(response.status).toBe(200)
+    expect(new Set(w.downloads().map((request) => new URL(request.url).host))).toEqual(new Set([SITE]))
+  })
+
+  it("is the one of the publisher in that place of the row, counted from 0, and a publisher with no website has none", async () => {
+    const [second, third] = ["22222222-aaaa-4bbb-8ccc-000000000002", "22222222-aaaa-4bbb-8ccc-000000000003"]
+    const w = await world({
+      rows: [row(PLANNED.slug, { editors: [EDITOR, second, third] })],
+      editors: [...editors, editorPage({ id: second, name: "No website" }), editorPage({ id: third, name: "Other", url: "https://other.example/" })],
+      hosts: { ...hosts, "other.example": (url) => (url.pathname === "/" ? htmlResponse('<link rel="icon" href="/o.jpg">') : pictureResponse("jpeg")) },
+    })
+    expect((await w.ask(PLANNED.slug, "publisher-1")).status).toBe(404)
+    expect(w.downloads()).toEqual([])
+    const response = await w.ask(PLANNED.slug, "publisher-2")
+    expect(response.headers.get("content-type")).toBe("image/jpeg")
+    expect(new Set(w.downloads().map((request) => new URL(request.url).host))).toEqual(new Set(["other.example"]))
+  })
+
+  it.each(["publisher", "publisher-", "publisher--1", "publisher-01", "publisher-100", "publisher-1.5", "publisher-0.png", "Publisher-0", "publishers-0", "publisher-0 ", "publisher-x"])(
+    "answers 404 for the slot %j, and asks nobody",
+    async (slot) => {
+      const w = await world({ rows, editors, hosts })
+      const response = await w.ask(PLANNED.slug, slot)
+      expect(response.status).toBe(404)
+      expect(response.headers.get("cache-control")).toBe(SHORT)
+      expect(w.web.requests).toEqual([])
+    },
+  )
+
+  it.each([
+    ["a game that is nowhere", "nope", "publisher-0"],
+    ["a place that its row has no publisher in", PLANNED.slug, "publisher-1"],
+  ])("answers 404 for %s, and downloads nothing", async (_label, slug, slot) => {
+    const w = await world({ rows, editors, hosts })
+    expect((await w.ask(slug, slot)).status).toBe(404)
+    expect(w.downloads()).toEqual([])
+  })
+
+  it("answers 404 for a publisher whose row gives no website, and downloads nothing", async () => {
+    const w = await world({ rows, editors: [editorPage({ id: EDITOR, name: "Libellud" })], hosts })
+    expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(404)
+    expect(w.downloads()).toEqual([])
+  })
+
+  it.each([
+    ["none", null],
+    ["an old one", "1abc"],
+    ["one that is not a version", "<script>alert(1)</script>"],
+  ])("sends an address with %s as a version to the right one, before anybody is asked", async (_label, version) => {
+    const w = await world({ rows, editors, hosts })
+    const response = await w.ask(PLANNED.slug, "publisher-0", version)
+    expect(response.status).toBe(307)
+    expect(response.headers.get("location")).toBe(`/api/catalog/${PLANNED.slug}/publisher-0?v=${VERSION}`)
+    expect(response.headers.get("cache-control")).toBe(REDIRECT)
+    expect(w.downloads()).toEqual([])
+  })
+
+  it("answers 404, for an hour, when the website has no icon the server can use, and says so once with the host and no address", async () => {
+    const w = await world({ rows, editors, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
+    const response = await w.ask(PLANNED.slug, "publisher-0")
+    expect(response.status).toBe(404)
+    expect(response.headers.get("cache-control")).toBe(NO_ICON)
+    await w.ask(PLANNED.slug, "publisher-0")
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(logged()).toContain(`[catalog] The icon of the publisher 1 of "${PLANNED.slug}" cannot be served: ${SITE} has no icon the server can use`)
+    expect(logged()).not.toContain("https://")
+  })
+
+  it("answers 404 when the website only sends web pages where its icon should be", async () => {
+    const w = await world({ rows, editors, hosts: { [SITE]: () => new Response(webPage(), { headers: { "content-type": "image/png" } }) } })
+    expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(404)
+  })
+
+  it("answers 503, kept by nobody, when the website cannot be reached: the next try may find the icon", async () => {
+    const w = await world({ rows, editors })
+    const response = await w.ask(PLANNED.slug, "publisher-0")
+    expect(response.status).toBe(503)
+    expect(response.headers.get("cache-control")).toBe("no-store")
+    expect(response.headers.get("retry-after")).toBe("300")
+    expect(logged()).toContain(`${SITE} could not be reached`)
+  })
+
+  it("leaves a website that could not be reached alone for five minutes, whoever asks, then asks again and recovers", async () => {
+    let up = false
+    const w = await world({ rows, editors, hosts: { [SITE]: (url, init) => (up ? site(url, init) : Promise.reject(new TypeError("fetch failed"))) } })
+    expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(503)
+    const asked = w.downloads().length
+    up = true
+    later(4 * 60_000)
+    const waiting = await w.ask(PLANNED.slug, "publisher-0")
+    expect(waiting.status).toBe(503)
+    expect(waiting.headers.get("retry-after")).toBe("60")
+    expect(w.downloads()).toHaveLength(asked)
+    later(61_000)
+    expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(200)
+  })
+
+  it("does not leave alone a website that answered and has no icon: it is the CDN that keeps that answer", async () => {
+    const w = await world({ rows, editors, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
+    await w.ask(PLANNED.slug, "publisher-0")
+    const asked = w.downloads().length
+    await w.ask(PLANNED.slug, "publisher-0")
+    expect(w.downloads().length).toBeGreaterThan(asked)
+  })
+
+  it("answers 503 when the catalog cannot be read: the game may well have a publisher", async () => {
+    const w = await world({ rows, editors, hosts, catalog: () => failing(500) })
+    const response = await w.ask(PLANNED.slug, "publisher-0")
+    expect(response.status).toBe(503)
+    expect(w.downloads()).toEqual([])
   })
 })

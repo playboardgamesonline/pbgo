@@ -45,7 +45,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 | `/api/<slug>/games/...`, `/api/<slug>/feedback` | `api/[game]/...` | the game's public API |
 | `/gamemaster/api/login\|logout`, `/gamemaster/api/<slug>/settings\|upload/<slot>\|tasks\|feedback` | `gamemaster/api/...` | the gamemaster's API: sign-in and sign-out, then everything that needs the session |
 | `/api/media` | `api/media/route.ts` | Sanity media proxy, shared by every game |
-| `/api/catalog/<slug>/<logo\|icon\|background>` | `api/catalog/[slug]/[slot]/route.ts` | the pictures of every game of the hub, live or not, read from its Notion row (`@pbgo/catalog/route`), see `docs/catalog.md` |
+| `/api/catalog/<slug>/<logo\|icon\|background\|publisher-<n>>` | `api/catalog/[slug]/[slot]/route.ts` | the pictures of every game of the hub, live or not, read from its Notion row, and the icon of each publisher's website, found there by the server (`@pbgo/catalog/route`), see `docs/catalog.md` |
 | `/ingest/*` | `next.config.ts` (`beforeFiles` rewrites) | PostHog behind the site's own domain: `/ingest/static/*` and `/ingest/array/*` to its assets host, the rest to its ingest host (EU). Only with a PostHog key and host, see `docs/analytics.md` |
 | `/robots.txt`, `/sitemap.xml` | `robots.ts`, `sitemap.ts` | site-wide |
 | `/favicon.ico` | `public/favicon.ico` | the hub's icon: a static file answers before `[game]`, so `favicon.ico` is never read as a slug. Not `app/favicon.ico`: Next adds that one to the head of every page, game pages included, next to their own `/<slug>/icons/*` |
