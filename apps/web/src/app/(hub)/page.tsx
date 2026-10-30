@@ -20,11 +20,11 @@ import { COMING_SOON } from "@/lib/coming-soon"
  * to its results (`HomeBody`); the list of every game is `/games`.
  */
 export default async function Home() {
-  // The live games of the registry, then the games to come, already in their order (docs/catalog.md). Without Notion (no key, or
-  // Notion down) the catalog is the live games alone, each from the registry.
+  // The live games of the registry, then the games to come, already in their order (docs/catalog.md). While the platform's Sanity
+  // project cannot be read the catalog is the live games alone, each from the registry.
   const [{ entries }, figures] = await Promise.all([getCatalog(), getHubFigures()])
-  // Each card is the game's Notion row, a live game's included (its logo, or icon, and its background come from the catalog's picture
-  // route; a picture the row does not have leaves the frame plain): the hub reads no game's Sanity project, only entering a game does.
+  // Each card is the game's game in the Studio, a live game's included (its logo, or icon, and its background come from the image CDN
+  // of the platform's project; a picture the game does not have leaves the frame plain): the hub reads no game's own Sanity project, only entering a game does.
   // The registry decides the card's variant alone. Each game goes to the browser with what the search reads of it (`indexEntry`)
   // beside its card: a search is answered there (`GameSearch`, which the bar of the hero and the results read), in the order of the
   // catalog, and this page stays static.

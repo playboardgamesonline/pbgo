@@ -157,12 +157,12 @@ export function PlanCards() {
 }
 
 export async function GameCards() {
-  // The cards of the live games, built as the hub builds every card: from the game's Notion row (`catalogCardProps`), the registry only
-  // making them play cards. Without Notion (no key, or Notion down) they are plain cards from the registry, with no picture
+  // The cards of the live games, built as the hub builds every card: from the game in the Studio (`catalogCardProps`), the registry only
+  // making them play cards. While the platform's Sanity project cannot be read they are plain cards from the registry, with no picture
   const { entries } = await getCatalog()
   const live = entries.filter((entry) => entry.live)
   // Pictures for the demo tiles that are not a game of the catalog: the first logo of the catalog stands in for a game's logo, and the
-  // first background for its background (a game has to have one in its Notion row first)
+  // first background for its background (a game has to have one in the Studio first)
   const pictures = entries.map((entry) => gamePicture(entry.game))
   const logo = pictures.find((picture) => picture.logo)?.logo
   const background = pictures.find((picture) => picture.background)?.background
@@ -174,7 +174,7 @@ export async function GameCards() {
     >
       <Demo
         title="The live games, and without art"
-        description="The first cards are the live games of the catalog, as the hub renders them. Each one is the game's Notion row, its name, its logo and its background (from the catalog's picture route) and its facts; the registry only makes it a play card. A game whose row has no background yet shows its logo on the plain grey frame. `players` and `duration` arrive already formatted: `catalogCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `logo` and a `background` the frame stays plain grey, no placeholder."
+        description="The first cards are the live games of the catalog, as the hub renders them. Each one is the game in the platform's Sanity project, its name, its logo and its background (from its image CDN) and its facts; the registry only makes it a play card. A game that has no background yet shows its logo on the plain grey frame. `players` and `duration` arrive already formatted: `catalogCardProps()` in `apps/web/src/lib/game-card-props.ts` does it, since the card does not know the visitor's language. Without a `logo` and a `background` the frame stays plain grey, no placeholder."
         className="grid gap-4 sm:grid-cols-2"
         code={`import { getCatalog } from "@pbgo/catalog/server"
 import { catalogCardProps } from "@/lib/game-card-props"
@@ -199,7 +199,7 @@ const { entries } = await getCatalog()
 
       <Demo
         title="A game to come"
-        description="The `soon` variant is the tile of a game that is not playable yet. It sits in the same list as the live games, built the same way: the same grey frame, the logo (or icon) over the background, the same facts (players, duration), plus a small Coming soon badge at its top right. Both pictures come from the catalog's picture route. Like any other tile it links to the game's page, where the button is disabled. The hub builds it with `catalogCardProps()`, the function of the live games, from a game of the Notion Games database (`docs/catalog.md`); the first pictures of the catalog stand in here. Without a picture the frame stays plain grey, no placeholder."
+        description="The `soon` variant is the tile of a game that is not playable yet. It sits in the same list as the live games, built the same way: the same grey frame, the logo (or icon) over the background, the same facts (players, duration), plus a small Coming soon badge at its top right. Both pictures come from the image CDN of the platform's Sanity project. Like any other tile it links to the game's page, where the button is disabled. The hub builds it with `catalogCardProps()`, the function of the live games, from a game of the platform's Sanity project (`docs/catalog.md`); the first pictures of the catalog stand in here. Without a picture the frame stays plain grey, no placeholder."
         className="grid gap-4 sm:grid-cols-2"
         code={`import { catalogCardProps } from "@/lib/game-card-props"
 

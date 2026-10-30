@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { pictureUrl, registryRow } from "./catalog"
 import { gameJsonLd, gameMetadata, gameSeo, isIndexable, metaDescription, serializeJsonLd, sitemapItems, type GameSeo } from "./seo"
-import { catalogEntry, registryGame } from "./testing"
+import { catalogEntry, cdn, registryGame } from "./testing"
 
 const SITE = "https://playboardgamesonline.app"
 const site = { url: SITE, name: "Play Board Games Online" }
@@ -16,21 +16,23 @@ const seo = (overrides: Partial<GameSeo> = {}): GameSeo => ({
   players: { min: 2, max: 4 },
   minutes: 20,
   age: 8,
-  authors: ["Wolfgang Warsch"],
-  illustrators: ["Oliver Freudenreich"],
+  creators: [
+    { name: "Wolfgang Warsch", roles: ["designer"] },
+    { name: "Oliver Freudenreich", roles: ["artist"] },
+  ],
   publishers: [{ name: "Pandasaurus Games", url: "https://pandasaurus.example" }],
   ...overrides,
 })
 
 /** The same game with nothing to say beyond its name. */
 const bare = (overrides: Partial<GameSeo> = {}) =>
-  seo({ description: null, image: null, players: null, minutes: null, age: null, authors: [], illustrators: [], publishers: [], ...overrides })
+  seo({ description: null, image: null, players: null, minutes: null, age: null, creators: [], publishers: [], ...overrides })
 
 describe("isIndexable", () => {
-  it("follows the registry's flag for a live game, whatever its Notion row says", () => {
+  it("follows the registry's flag for a live game, whatever its game in the Studio says", () => {
     expect(isIndexable(catalogEntry("courtisans", { live: true, indexable: true }))).toBe(true)
     expect(isIndexable(catalogEntry("courtisans", { live: true, indexable: false }))).toBe(false)
-    // A live game is not turned into a `noindex` by a row with no text, nor into an indexable page by a row with one
+    // A live game is not turned into a `noindex` by a game with no text, nor into an indexable page by a game with one
     expect(isIndexable(catalogEntry("courtisans", { live: true, indexable: true, game: { descriptions: {} } }))).toBe(true)
     expect(isIndexable(catalogEntry("courtisans", { live: true, indexable: false, game: { descriptions: { en: "A court intrigue." } } }))).toBe(false)
   })
@@ -97,15 +99,17 @@ describe("gameSeo", () => {
         players: { min: 2, max: 4 },
         duration: 20,
         age: 8,
-        authors: ["Wolfgang Warsch"],
-        illustrators: ["Oliver Freudenreich"],
+        creators: [
+          { name: "Wolfgang Warsch", roles: ["designer"] },
+          { name: "Oliver Freudenreich", roles: ["artist"] },
+        ],
         publishers: [{ name: "Pandasaurus Games", url: "https://pandasaurus.example" }],
-        art: { logo: true, icon: false, background: true },
-        editedAt: "2026-10-22T10:30:00.000Z",
+        pictures: { logo: cdn("logo-1x1.png"), icon: null, background: cdn("background-1x1.png") },
+        updatedAt: "2026-10-22T10:30:00.000Z",
       },
     })
 
-    it("carries the facts and the credits of the row, and the picture of its background", () => {
+    it("carries the facts and the credits of the game, and the picture of its background", () => {
       expect(gameSeo(entry, description)).toEqual({
         slug: "the-mind",
         name: "The Mind",
@@ -115,22 +119,24 @@ describe("gameSeo", () => {
         players: { min: 2, max: 4 },
         minutes: 20,
         age: 8,
-        authors: ["Wolfgang Warsch"],
-        illustrators: ["Oliver Freudenreich"],
+        creators: [
+          { name: "Wolfgang Warsch", roles: ["designer"] },
+          { name: "Oliver Freudenreich", roles: ["artist"] },
+        ],
         publishers: [{ name: "Pandasaurus Games", url: "https://pandasaurus.example" }],
       })
     })
 
-    it("is not indexable without a description in the row, whichever one the page shows", () => {
+    it("is not indexable without a description in the game, whichever one the page shows", () => {
       expect(gameSeo(catalogEntry("the-mind", { game: { descriptions: {} } }), null).indexable).toBe(false)
     })
 
-    it("has no picture to share when the row has none", () => {
+    it("has no picture to share when the game has none", () => {
       expect(gameSeo(catalogEntry("the-mind"), null).image).toBeNull()
     })
 
-    it("shares the logo when the row has no background, and says it is not wide", () => {
-      const withLogo = catalogEntry("the-mind", { game: { art: { logo: true, icon: false, background: false } } })
+    it("shares the logo when the game has no background, and says it is not wide", () => {
+      const withLogo = catalogEntry("the-mind", { game: { pictures: { logo: cdn("logo-1x1.png"), icon: null, background: null } } })
       expect(gameSeo(withLogo, null).image).toEqual({ url: pictureUrl(withLogo.game, "logo"), wide: false })
     })
   })
@@ -145,16 +151,18 @@ describe("gameSeo", () => {
         players: { min: 2, max: 5 },
         duration: 30,
         age: 12,
-        authors: ["A. Author"],
-        illustrators: ["An Illustrator"],
+        creators: [
+          { name: "A. Author", roles: ["designer"] },
+          { name: "An Illustrator", roles: ["artist"] },
+        ],
         publishers: [{ name: "Cour Éditions", url: "https://cour.example" }],
-        art: { logo: true, icon: true, background: true },
-        editedAt: "2026-10-26T09:00:00.000Z",
+        pictures: { logo: cdn("logo-1x1.png"), icon: cdn("icon-1x1.png"), background: cdn("background-1x1.png") },
+        updatedAt: "2026-10-26T09:00:00.000Z",
       },
     })
     const french = { text: "Une intrigue de cour.", language: "fr" } as const
 
-    it("takes everything from its Notion row, the credits and the picture too", () => {
+    it("takes everything from its game in the Studio, the credits and the picture too", () => {
       expect(gameSeo(entry, french)).toEqual({
         slug: "courtisans",
         name: "Courtisans",
@@ -164,8 +172,10 @@ describe("gameSeo", () => {
         players: { min: 2, max: 5 },
         minutes: 30,
         age: 12,
-        authors: ["A. Author"],
-        illustrators: ["An Illustrator"],
+        creators: [
+          { name: "A. Author", roles: ["designer"] },
+          { name: "An Illustrator", roles: ["artist"] },
+        ],
         publishers: [{ name: "Cour Éditions", url: "https://cour.example" }],
       })
     })
@@ -175,7 +185,7 @@ describe("gameSeo", () => {
       expect(gameSeo({ ...entry, game: { ...entry.game, descriptions: {} } }, null).indexable).toBe(true)
     })
 
-    it("is what the registry knows when Notion has no row for it: its figures, no text, no picture, no credit", () => {
+    it("is what the registry knows when the Studio has no game for it: its figures, no text, no picture, no credit", () => {
       const registry = registryGame("courtisans", { name: "Courtisans", live: true, indexable: true, players: { min: 2, max: 5 }, duration: { min: 30, max: 30 } })
       const unknown = catalogEntry("courtisans", { live: true, indexable: true, game: registryRow(registry) })
       expect(gameSeo(unknown, null)).toEqual({
@@ -187,8 +197,7 @@ describe("gameSeo", () => {
         players: { min: 2, max: 5 },
         minutes: 30,
         age: null,
-        authors: [],
-        illustrators: [],
+        creators: [],
         publishers: [],
       })
     })
@@ -298,6 +307,28 @@ describe("gameJsonLd", () => {
     })
   })
 
+  it("makes the designers and the solo designers its authors, and everyone else credited a contributor", () => {
+    const creators = [
+      { name: "Designer", roles: ["designer"] },
+      { name: "Solo", roles: ["soloDesigner"] },
+      { name: "Both", roles: ["designer", "artist"] },
+      { name: "Artist", roles: ["artist"] },
+      { name: "Developer", roles: ["developer"] },
+    ] satisfies GameSeo["creators"]
+    const data = gameJsonLd(seo({ creators }), SITE)
+    expect(data.author).toEqual(["Designer", "Solo", "Both"].map((name) => ({ "@type": "Person", name })))
+    expect(data.contributor).toEqual(["Artist", "Developer"].map((name) => ({ "@type": "Person", name })))
+  })
+
+  it("has no contributor when everybody credited designed the game, and no author when nobody did", () => {
+    expect(gameJsonLd(seo({ creators: [{ name: "A", roles: ["designer", "artist"] }] }), SITE)).not.toHaveProperty("contributor")
+    expect(gameJsonLd(seo({ creators: [{ name: "B", roles: ["artist"] }] }), SITE)).not.toHaveProperty("author")
+  })
+
+  it("keeps an address that is already whole, a picture of the image CDN, as it is", () => {
+    expect(gameJsonLd(seo({ image: { url: cdn("background-1x1.png"), wide: true } }), SITE).image).toBe(cdn("background-1x1.png"))
+  })
+
   it("has only what the game has: a field with no value is absent, not empty", () => {
     expect(Object.keys(gameJsonLd(bare(), SITE))).toEqual(["@context", "@type", "name", "url"])
   })
@@ -345,9 +376,9 @@ describe("sitemapItems", () => {
     { slug: "hanabi", indexable: false },
   ]
   const entries = [
-    catalogEntry("courtisans", { live: true, indexable: true, game: { editedAt: "2026-10-26T09:00:00.000Z" } }),
+    catalogEntry("courtisans", { live: true, indexable: true, game: { updatedAt: "2026-10-26T09:00:00.000Z" } }),
     catalogEntry("flip-7", { live: true, indexable: false }),
-    catalogEntry("the-mind", { game: { descriptions: { fr: "Un jeu de silence." }, editedAt: "2026-10-22T10:30:00.000Z" } }),
+    catalogEntry("the-mind", { game: { descriptions: { fr: "Un jeu de silence." }, updatedAt: "2026-10-22T10:30:00.000Z" } }),
     catalogEntry("bang", { game: { descriptions: {} } }),
   ]
   const urls = (items: ReturnType<typeof sitemapItems>) => items.map((item) => item.url)
@@ -375,7 +406,7 @@ describe("sitemapItems", () => {
     expect(urls(sitemapItems(SITE, registry, []))).toEqual([SITE, `${SITE}/games`, `${SITE}/courtisans`])
   })
 
-  it("dates the page of a game with the last edit of its Notion row, a game to come's and a live game's", () => {
+  it("dates the page of a game with the last edit of its game in the Studio, a game to come's and a live game's", () => {
     const items = sitemapItems(SITE, registry, entries)
     expect(items.find((candidate) => candidate.url === `${SITE}/game/the-mind`)).toStrictEqual({
       url: `${SITE}/game/the-mind`,
@@ -391,10 +422,10 @@ describe("sitemapItems", () => {
     })
   })
 
-  it("leaves the date out when the last edit does not read as one, and for a live game with no Notion row, which has none", () => {
+  it("leaves the date out when the last edit does not read as one, and for a live game with no game in the Studio, which has none", () => {
     const registered = registryRow(registryGame("courtisans", { live: true, indexable: true }))
     const undated = sitemapItems(SITE, registry, [
-      catalogEntry("the-mind", { game: { descriptions: { fr: "Un jeu." }, editedAt: "not a date" } }),
+      catalogEntry("the-mind", { game: { descriptions: { fr: "Un jeu." }, updatedAt: "not a date" } }),
       catalogEntry("courtisans", { live: true, indexable: true, game: registered }),
     ]).slice(3) // the hub, its list of games and the home of Courtisans come first
     expect(undated).toStrictEqual([
