@@ -7,6 +7,8 @@ packages:
   - "games/*"
   - "games/*/apps/*"
   - "games/*/packages/*"
+  - "platform"
+  - "platform/apps/*"
 
 # Dependencies allowed to run install scripts (pnpm fails on any other one that has some).
 allowBuilds:
@@ -81,6 +83,8 @@ catalog:
   "@sanity/vision": ^6.18.0
   "@sanity/icons": ^5.2.3
   "@sanity/client": ^8.9.0
+  "@sanity/ui": ^4.4.0
+  groq-js: ^2.0.0
   "@sanity/image-url": ^2.1.1
   next-sanity: ^13.3.4
   styled-components: ^6.5.3

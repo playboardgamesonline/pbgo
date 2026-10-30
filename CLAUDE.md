@@ -15,6 +15,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
   - `content/` — the game's Sanity content as versioned code (its data and its config) and a seed script that writes drafts, run by the shared `@pbgo/content-kit` (Hanabi, Exploding Kittens and Flip 7, see `docs/content-pipeline.md`)
   - `assets/` — sources (PDF, PSD, HD visuals), git-ignored. The seed's art folder is outside the repo (Hanabi: `~/Companies/PBGO/assets/hanabi`) and is passed with an absolute `--art-dir`
 - `template/` — the game template, itself a game (`@pbgo-game/template`, demo "La Plus Haute", served at `/template`). See `template/CLAUDE.md` and `template/docs/GAME_GUIDE.md`
+- `platform/` — the platform's own Sanity project (the hub's catalog, articles, changelog, announcements), package `@pbgo/platform`: `apps/studio` (`platform-studio`, its Studio) and `content/` (the seed that imports the Notion Games rows). See `docs/platform-sanity.md`
 - `packages/` — shared code (below)
 - `docs/` — the detail behind this map, one file per area (see Where to read more), and `content-pipeline.md` (seeding a game's Sanity content)
 - `supabase/migrations/` — schema of the single Supabase project
@@ -68,15 +69,16 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `@pbgo/engine-kit` — the engine ↔ web contract (`GameDefinition`, `waitingFor` / `autoPlayFor`, `EngineError`) and the building blocks of the card games. For every game the state is lean (ids and numbers only: no display data, no derived values, no log) and an order always comes from an array of the state, never from `Object.keys` (`jsonb` does not keep the order of the keys).
 - `@pbgo/table` — the shared table tools of the boards (react-three-fiber): the `Table` (canvas, camera with its entrance, floor, lights, share photo), the `Surface` laid on it, the `Card` every game draws and the pictures it wears (`paintFace`, `standIn`), with the zones, seats and the debug panel to come (PLT-62). It depends on core, core never imports it, and a game imports it from its lazy board chunk only (`docs/packages.md`).
 - `@pbgo/ui` — shadcn components: `@pbgo/ui/game/*` (game theme) and `@pbgo/ui/platform/*` (platform theme), see `docs/design-system.md`.
-- `@pbgo/studio-kit` (shared Sanity schemas, `createStudioConfig`, languages) and `@pbgo/content-kit` (the seed pipeline of a game's Sanity content), `@pbgo/tsconfig`, `@pbgo/eslint-config`.
+- `@pbgo/studio-kit` (shared Sanity schemas, `createStudioConfig` for a game's Studio and `createStandaloneStudioConfig` for one that is not a game's, languages) and `@pbgo/content-kit` (the seed pipeline of a Sanity project's content: a game's, the platform's), `@pbgo/tsconfig`, `@pbgo/eslint-config`.
 - Every external dependency comes from the pnpm catalog (`catalog:`, enforced by `pnpm check:catalog`). A new workspace package used by `apps/web` goes into `transpilePackages` (`apps/web/next.config.ts`).
 
 ## Commands (from the root)
 - `pnpm install` — once for the whole monorepo
 - `pnpm dev` — apps/web on http://localhost:3100 (hub + every game; `pnpm dev <slug>` prints its URL)
-- `pnpm dev:studio <slug>` — the game's Sanity Studio
+- `pnpm dev:studio <slug>` — the game's Sanity Studio (`pnpm dev:studio platform`: the platform's)
 - `pnpm build` (= `pnpm --filter web build`) · `pnpm typecheck` · `pnpm test` · `pnpm lint` · `pnpm check:catalog` · `pnpm check:public`
 - `pnpm --filter @<slug>/engine test` · `pnpm --filter @pbgo/core test`
+- `pnpm --filter @pbgo/platform content:seed` / `content:art` — the platform's seed (Notion rows → drafts) and the download of the Notion pictures (`docs/platform-sanity.md`)
 - `pnpm catalog:list` — what the hub catalog would list right now (live games + the Notion rows with a slug) and which rows it leaves out and why; reads `NOTION_API_KEY` (`docs/catalog.md`)
 - `pnpm new-game <slug> [--name "<Game Name>"]` — `games/<slug>` from `template/`, registered in `packages/games` (not live); the name defaults to the slug, capitalised
 - `pnpm go-live <slug>` — Sanity side: project, public dataset, CORS, studio deployed, project id written in the registry, write token in `apps/web/.env.local`
@@ -93,7 +95,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `robots.txt` disallows `/api/` (but opens `/api/catalog/`, the share images of the hub's game pages), `/ingest/`, `/gamemaster`, `/*/preview`, `/*/game/`; the sitemap lists the hub, the indexable games and the indexable `/game/<slug>` pages (never the gamemaster); non-indexable game pages carry `noindex`. The hub's `/game/<slug>` pages are not covered by `/*/game/`: each says itself whether it may be indexed (a live game follows its registry flag, a game to come needs a description in its Notion row, `docs/catalog.md`). Every `/gamemaster/**` response also has `X-Robots-Tag: noindex, nofollow` (`next.config.ts`) and the `noindex, nofollow` meta
 
 ## Content and data at a glance
-- Sanity: one project per game (`sanityProjectId` in the registry), dataset `production`. Supabase: one project for every game (production) plus `pbgo-preview` for local development and Vercel previews. Languages: FR / EN / ES / DE (`LANGUAGES` in `packages/studio-kit/src/constants.ts` is the single source)
+- Sanity: one project per game (`sanityProjectId` in the registry), dataset `production`, and the platform's own (`mhgqs6fe`, the hub's catalog and editorial: `docs/platform-sanity.md`). Supabase: one project for every game (production) plus `pbgo-preview` for local development and Vercel previews. Languages: FR / EN / ES / DE (`LANGUAGES` in `packages/studio-kit/src/constants.ts` is the single source)
 - Local values in `apps/web/.env.local`, never committed; `pnpm setup-env` fills them and the Vercel project from `~/.config/pbgo/secrets.env`
 - Detail: `docs/sanity-and-languages.md`, `docs/supabase-and-env.md`
 
@@ -120,6 +122,7 @@ Open the file of the area you touch before changing it: it holds the full rules 
 - `docs/gamemaster.md` — the back office: session, sidebar, setup data, previews, tasks
 - `docs/analytics.md` — a PostHog event, the consent banner, recordings, masking, table-code scrubbing
 - `docs/accounts.md` — sign-in with Facebook, Google, Apple and Discord, the pages of a signed-in visitor, the friends' panel, what is a placeholder, what to set up in Supabase
+- `docs/platform-sanity.md` — the platform's own Sanity project: the model of the catalog, the editorial and the (empty) shop block, its Studio, the seed of the Notion rows and its picture step, the order to publish in
 - `docs/catalog.md` — the hub catalog: which games it lists, the Notion Games database it reads (columns, Slug, cache, `NOTION_API_KEY`), the SEO of the game pages, `pnpm catalog:list`
 - `docs/sanity-and-languages.md` — a game's Sanity project, Studio forms, seeding, the media proxy; texts and the four languages
 - `docs/supabase-and-env.md` — environment variables and secrets, Supabase migrations, realtime, presence

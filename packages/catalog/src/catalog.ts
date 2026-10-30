@@ -44,6 +44,10 @@ export type NotionGame = {
   duration: number | null
   /** The weight BoardGameGeek gives the game, from 1 (light) to 5 (heavy): what the hub's complexity filter reads. Null when its row has none. */
   complexity: number | null
+  /** The id of the game on BoardGameGeek (the number in the address of its page). Null when its row has none. */
+  bggId: number | null
+  /** The day the game came out, `YYYY-MM-DD`: a year alone is its first of January. Null when its row has none. */
+  releaseDate: string | null
   /** The minimum age in years. */
   age: number | null
   /** The categories of the game: the options its `Tags` cell holds, in the order of the row, each one once. What the hub's category filter offers. */
@@ -58,6 +62,8 @@ export type NotionGame = {
   art: Record<ArtSlot, boolean>
   /** How soon the game is to come: what orders the coming-soon games (`comparePlanned`). */
   development: DevelopmentRank
+  /** A standalone expansion (it plays without its base game, so it is a game of the catalog): the slug of its base game, the row's `Parent item`. Null for any other game. */
+  standaloneOf: string | null
   /**
    * The slugs of the games the row itself points to: its related games and its base game (a standalone expansion), in the order of
    * the row, never its own slug, and only games the reader kept (an expansion has no page). One side of the link: Notion keeps the
@@ -183,6 +189,8 @@ export function registryRow(game: GameEntry): NotionGame {
     players: players ? { min: players.min, max: players.max } : null,
     duration: duration && duration.min === duration.max ? duration.min : null,
     complexity: null,
+    bggId: null,
+    releaseDate: null,
     age: null,
     categories: [],
     authors: [],
@@ -191,6 +199,7 @@ export function registryRow(game: GameEntry): NotionGame {
     rules: {},
     art: { logo: false, icon: false, background: false },
     development: { priority: null, status: null, effort: null },
+    standaloneOf: null,
     related: [],
     editedAt: "",
     notionPageId: "",

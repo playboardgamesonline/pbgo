@@ -1,0 +1,25 @@
+{
+  "name": "@pbgo/platform",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The platform's own Sanity project (playboardgamesonline): the catalog the hub lists, its articles, changelog and announcements. Its Studio is apps/studio, and content/ is the seed that imports the Notion Games rows.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p content",
+    "test": "vitest run",
+    "content:seed": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../apps/web/.env.local content/seed.ts",
+    "content:art": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../apps/web/.env.local content/fetch-art.ts",
+    "dev:studio": "pnpm --filter platform-studio dev",
+    "deploy:studio": "pnpm --filter platform-studio run deploy"
+  },
+  "devDependencies": {
+    "@pbgo/catalog": "workspace:*",
+    "@pbgo/content-kit": "workspace:*",
+    "@pbgo/games": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

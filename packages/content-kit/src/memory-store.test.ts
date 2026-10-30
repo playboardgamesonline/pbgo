@@ -105,6 +105,57 @@ describe("writeDrafts", () => {
     expect(store.docs.has("drafts.b")).toBe(true)
   })
 
+  describe("references", () => {
+    const strong = (id: string) => ({ _type: "reference", _ref: id })
+
+    it("refuses a draft that holds a strong reference to a document that is not published, as the dataset does, and writes nothing", async () => {
+      const store = new MemoryStore()
+      await expect(store.writeDrafts([create("drafts.a", { about: strong("b") }), create("drafts.c")])).rejects.toThrow('Mutation failed: Document "drafts.a" references non-existent document "b"')
+      expect(store.docs.size).toBe(0)
+    })
+
+    it("does not take a draft of the target for the target: only a published document is one", async () => {
+      const store = new MemoryStore()
+      await expect(store.writeDrafts([create("drafts.b"), create("drafts.a", { about: strong("b") })])).rejects.toThrow("references non-existent document")
+      store.put(doc("drafts.b"))
+      await expect(store.writeDrafts([create("drafts.a", { about: strong("b") })])).rejects.toThrow("references non-existent document")
+    })
+
+    it("takes a reference to a published document, in a list and in an object too", async () => {
+      const store = new MemoryStore()
+      store.put(doc("b"))
+      await store.writeDrafts([create("drafts.a", { about: strong("b"), list: [{ _key: "k", ...strong("b") }], nested: { by: strong("b") } })])
+      expect(store.docs.has("drafts.a")).toBe(true)
+    })
+
+    it("takes a weak reference to a document that is not there: that is what the Studio writes while the target is a draft", async () => {
+      const store = new MemoryStore()
+      await store.writeDrafts([create("drafts.a", { about: { ...strong("b"), _weak: true, _strengthenOnPublish: { type: "thing" } } })])
+      expect(store.docs.has("drafts.a")).toBe(true)
+    })
+
+    it("does not look at the asset of an image or of a file: an upload makes it exist", async () => {
+      const store = new MemoryStore()
+      await store.writeDrafts([create("drafts.a", { picture: { _type: "image", asset: strong("image-abc-10x10-webp") }, rules: { _type: "file", asset: strong("file-abc-pdf") } })])
+      expect(store.docs.has("drafts.a")).toBe(true)
+    })
+
+    it("checks what a patch sets, and leaves the draft as it is when it refuses", async () => {
+      const store = new MemoryStore()
+      store.put(doc("drafts.a"))
+      const before = structuredClone(store.docs.get("drafts.a"))
+      await expect(store.writeDrafts([patch("drafts.a", revOf(store, "drafts.a"), { about: strong("b") })])).rejects.toThrow('Document "drafts.a" references non-existent document "b"')
+      expect(store.docs.get("drafts.a")).toEqual(before)
+    })
+
+    it("does not check a draft that already exists: it is left as it is", async () => {
+      const store = new MemoryStore()
+      store.put(doc("drafts.a"))
+      await store.writeDrafts([create("drafts.a", { about: strong("nothing") })])
+      expect(store.docs.get("drafts.a")).not.toHaveProperty("about")
+    })
+  })
+
   it("keeps its own copy of what it is given", async () => {
     const store = new MemoryStore()
     const op = create("drafts.a", { nested: { n: 1 } })

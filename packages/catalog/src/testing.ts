@@ -34,6 +34,10 @@ export type GameRow = {
   duration?: number | null
   /** The `Complexity` number: BoardGameGeek's weight of the game. */
   complexity?: number | null
+  /** The `BGG ID` number: the game's id on BoardGameGeek. */
+  bggId?: number | null
+  /** The start of the `Release date`, as Notion writes it: a day (`2010-01-01`), or a day and a time. */
+  releaseDate?: string | null
   age?: string | null
   /** The options of the `Tags` multi-select. */
   tags?: string[]
@@ -80,6 +84,8 @@ export function gamePage(row: GameRow = {}): NotionPage {
     Players: property("select", option(row.players ?? null)),
     Duration: property("number", row.duration ?? null),
     Complexity: property("number", row.complexity ?? null),
+    "BGG ID": property("number", row.bggId ?? null),
+    "Release date": property("date", row.releaseDate ? { start: row.releaseDate, end: null, time_zone: null } : null),
     Age: property("select", option(row.age ?? null)),
     Tags: property("multi_select", (row.tags ?? []).map(option)),
     Designers: property("relation", (row.authors ?? []).map((id) => ({ id }))),
@@ -118,9 +124,9 @@ const relatedPage = (id: string, properties: Record<string, unknown>, flags: { a
   properties,
 })
 
-/** A row of the Editors database. The name is a title, the website may be empty. */
-export const editorPage = (editor: { id: string; name: string; url?: string | null }): NotionPage =>
-  relatedPage(editor.id, { Name: property("title", richText(editor.name)), URL: property("url", editor.url ?? null) })
+/** A row of the Editors database. The name is a title, the website and the logo may be empty. */
+export const editorPage = (editor: { id: string; name: string; url?: string | null; logo?: NotionFile[]; archived?: boolean; inTrash?: boolean }): NotionPage =>
+  relatedPage(editor.id, { Name: property("title", richText(editor.name)), URL: property("url", editor.url ?? null), Logo: property("files", editor.logo ?? []) }, editor)
 
 /** A row of the Creators database, a person. The name is a title; `roles` is the multi-select Notion keeps beside it. */
 export const creatorPage = (creator: { id: string; name: string; roles?: string[] }): NotionPage =>
@@ -350,6 +356,8 @@ export const notionGame = (slug: string, overrides: Partial<NotionGame> = {}): N
   players: null,
   duration: null,
   complexity: null,
+  bggId: null,
+  releaseDate: null,
   age: null,
   categories: [],
   authors: [],
@@ -358,6 +366,7 @@ export const notionGame = (slug: string, overrides: Partial<NotionGame> = {}): N
   rules: {},
   art: { logo: false, icon: false, background: false },
   development: developmentRank(),
+  standaloneOf: null,
   related: [],
   editedAt: "",
   notionPageId: `game-${slug}`,

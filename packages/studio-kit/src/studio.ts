@@ -5,7 +5,7 @@ import { ImagesIcon } from "@sanity/icons/Images"
 import { PlayIcon } from "@sanity/icons/Play"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
 import { defineConfig, type SchemaTypeDefinition } from "sanity"
-import { structureTool, type StructureResolver } from "sanity/structure"
+import { structureTool, type DefaultDocumentNodeResolver, type StructureResolver } from "sanity/structure"
 import { audio } from "./documents/audio"
 import { interfaceDoc } from "./documents/interface"
 import { settings } from "./documents/settings"
@@ -64,5 +64,32 @@ export function createStudioConfig({ title, projectId, dataset = "production", g
       actions: (actions, { schemaType }) =>
         singletonIds.includes(schemaType) ? actions.filter(({ action }) => action && ["publish", "discardChanges", "restore"].includes(action)) : actions,
     },
+  })
+}
+
+type StandaloneStudioOptions = {
+  title: string
+  projectId: string
+  dataset?: string
+  /** The Studio's own types: none of the shared game types (`settings`, `interface`, `audio`, `texts`, the locale objects) is added */
+  types: SchemaTypeDefinition[]
+  /** The sidebar: the Studio's own, not the singletons-then-collections list of a game */
+  structure: StructureResolver
+  /** What a document's pane shows beside its form (a tab that lists the games a person is credited in…), by type */
+  defaultDocumentNode?: DefaultDocumentNodeResolver
+}
+
+/**
+ * A Studio that is not a game's: the platform's own (`platform/apps/studio`). A game's Studio is `createStudioConfig`, with the shared
+ * singletons of a game; this one registers the types it is given and shows the sidebar it is given, and nothing else.
+ */
+export function createStandaloneStudioConfig({ title, projectId, dataset = "production", types, structure, defaultDocumentNode }: StandaloneStudioOptions) {
+  return defineConfig({
+    name: "default",
+    title,
+    projectId,
+    dataset,
+    plugins: [structureTool({ structure, defaultDocumentNode }), visionTool()],
+    schema: { types },
   })
 }
