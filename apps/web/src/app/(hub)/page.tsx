@@ -40,7 +40,7 @@ export default async function Home() {
               at a weight of 720 and a tracking of -0.048em (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a coin that spins, the suits of a deck in turn and a die that turns, for three "o", and two
               dark blue cards after "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now, with a green dot, and the members, counted in Supabase, and the games of the catalog) and what
               costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on the page's black,
-              flat, and nothing else (no gradient, no table, no grid of thin lines of `pattern-grid`, no game pieces of `BoardPattern`) */}
+              flat, and nothing else (no gradient, no table, no grid of thin lines, no game pieces) */}
           <section className="pt-navbar">
             <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
               <h1 className="display-title">

@@ -1,4 +1,4 @@
-// The platform's four display faces: the typefaces of the logo's four letters. A module of its own, not the file of `FaceCycle`, so that a server
+// The platform's four display faces: the typefaces of the logo's four letters. A module of its own, not the file of a component, so that a server
 // page can read the list (a value exported from a client component is not one a server component can use).
 
 /**

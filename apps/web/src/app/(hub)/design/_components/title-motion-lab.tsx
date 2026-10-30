@@ -9,7 +9,7 @@ import { TitleCoin } from "@pbgo/ui/platform/title-coin"
 import { TitleDie } from "@pbgo/ui/platform/title-die"
 import { TitleSuits } from "@pbgo/ui/platform/title-suits"
 
-// The three moves of the pieces of the home's title that were chosen here (the die: an expo snap; the coin: a toss pulse; the suits: a wheel), among five each, and calmed a little. The pieces are the real ones,
+// The three moves of the pieces of the home's title that were chosen here (the die: an expo snap; the coin: a toss pulse; the suits: a wheel), calmed a little. The pieces are the real ones,
 // the same that the home mounts, at a faster tempo so that they can be watched (a roll every few seconds instead of every fifteen), and the values written under them are read from `PLAYFUL` of `@pbgo/ui/motion`,
 // which the pieces read too: there is one place to change them. "Replay" mounts the piece again, which plays it at once.
 

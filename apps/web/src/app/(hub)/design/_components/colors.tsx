@@ -31,7 +31,7 @@ type Semantic = {
 }
 
 const SEMANTIC: readonly Semantic[] = [
-  { token: "background", swatch: "bg-background", on: "text-foreground", role: "The page. Set on <html> and on the admin wrapper, never on `.platform` itself." },
+  { token: "background", swatch: "bg-background", on: "text-foreground", role: "The page. Set on <html>, never on `.platform` itself." },
   { token: "foreground", swatch: "bg-foreground", on: "text-background", role: "Text and icons on the page." },
   { token: "card", swatch: "bg-card", on: "text-card-foreground", role: "The grey of every container: cards, code blocks, the game card, and the glass of the navbar, the dock, the bars (the `glass` utility: this grey at 92%). Two thirds neutral 900 and a third neutral 950." },
   { token: "popover", swatch: "bg-popover", on: "text-popover-foreground", role: "Floating surface: select, dropdown, dialog, sheet, tooltip content. The same grey as `card`." },

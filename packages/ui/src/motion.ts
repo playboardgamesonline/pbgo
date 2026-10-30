@@ -9,7 +9,7 @@ export const DURATION = { fast: 0.1, base: 0.15, slow: 0.25 } as const
 export const EASE_STANDARD = [0.2, 0, 0, 1] as const
 
 /**
- * How the pieces of the home's title play, chosen on `/design` (section `playful-motion`) among five ways each, and calmed a little after that: a die that rolls (`TitleDie`), a coin that is tossed
+ * How the pieces of the home's title play, chosen on `/design` (section `playful-motion`) and calmed a little after that: a die that rolls (`TitleDie`), a coin that is tossed
  * (`TitleCoin`) and a wheel of suits (`TitleSuits`). The platform's own motion is calm on purpose (the durations and the easing above); this is where it may play, and nowhere else. A piece
  * gets a curve, the seconds that a turn takes, and what it adds to the turn: a swell, a dip, a landing, a pop. Seconds, and degrees; `em` for a distance, so that it follows the size of the title.
  */

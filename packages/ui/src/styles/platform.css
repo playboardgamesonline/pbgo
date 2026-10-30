@@ -1,5 +1,5 @@
 /*
- * PBGO design system v1: the platform theme (hub, account, legal, admin, 404).
+ * PBGO design system v1: the platform theme (hub, account, legal, gamemaster, 404).
  *
  * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
  * blurple on their buttons, Google's four colours in its mark), and no gradient: the first screen of a page is the page's black,
@@ -8,22 +8,21 @@
  * person is a circle. A touch of corner smoothing (`--corner-smoothing`) softens them.
  *
  * TWO LAYERS, SAME TOKEN NAMES (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--radius`, `--font-body`…)
- *   - Platform layer: the values below, scoped to `.platform`. The class sits on <html> (hub, 404), on a wrapper <div>
- *     (admin) and on the root of every portal (select, dropdown, dialog, sheet, tooltip, toast), which React renders
- *     outside the wrapper. Components: `@pbgo/ui/platform/*`.
+ *   - Platform layer: the values below, scoped to `.platform`. The class sits on <html> (hub, gamemaster, 404) and on
+ *     the root of every portal (select, dropdown, dialog, sheet, tooltip, toast), which React renders outside the
+ *     page. Components: `@pbgo/ui/platform/*`.
  *   - Game layer: the values of `:root` in `@pbgo/core/styles/game.css`, overridden at runtime by the game's Sanity skin
  *     (inline style on <html>, `themeStyle()`). Components: `@pbgo/ui/game/*`. A game changes its look by changing
  *     those values, never by touching a component.
  *
  * THE BOUNDARY
- *   - The platform never sets a value on `:root` and a game never sets one on `.platform`, so the two never mix, even on
- *     a game page that hosts the admin.
+ *   - The platform never sets a value on `:root` and a game never sets one on `.platform`, so the two never mix.
  *   - Components read tokens and never name a colour, a font or a size of their own. Platform components live in
  *     `@pbgo/ui/platform/*` and do not know about games.
  *   - `@theme` below only defines NEW names (`shadow-surface`, `duration-fast`, `bg-scrim`…). A name Tailwind already
  *     has (`--text-sm--line-height`, `--tracking-tight`, `--default-transition-*`, `--font-weight-*`) gets its platform
  *     value on `.platform` instead, or every game would inherit it from `:root`.
- *   - `.platform` carries no background: a portal would paint it. <html> and the admin wrapper add `bg-background`.
+ *   - `.platform` carries no background: a portal would paint it. <html> adds `bg-background` itself.
  *
  * The reference of every token and component is the internal page `/design` (apps/web, noindex).
  */
@@ -189,7 +188,7 @@
 /*
  * The four display faces: `display-unkempt`, `display-jersey`, `display-fraktur` and `display-birthstone`, each the family, the weight and the size of
  * one typeface. They are the four letters of the logo (the P blackletter, the B handwritten, the G pixel, the O script), so the brand's own lettering
- * is what the rotating word of the home's title (`FaceCycle`) and the footer's PBGO (`Wordmark`) are set in. The fonts are Fontsource packages,
+ * is what the footer's PBGO (`Wordmark`) is set in. The fonts are Fontsource packages,
  * imported by the app (`apps/web/src/app/globals.css`) in the one weight each is set at here: the platform's 600 on a face that has no 600 would make
  * the browser draw a fake bold. The size is a scale of the parent's that gives each face the cap height of Geist's capitals (0.71 of the em; measured:
  * Fraktur 0.77, Unkempt 0.71, Jersey 0.56, Birthstone 0.77), since they are for capitals, so no letter looks taller or smaller than a Geist one next
@@ -229,18 +228,6 @@
     transparent 0
   );
   background-size: calc(var(--spacing) * 4) calc(var(--spacing) * 4);
-}
-
-/*
- * A grid of thin lines (`pattern-grid`): lines of one pixel, 3rem apart, in a faint `foreground`, with the grid centred on the width of its box. It is
- * the backdrop of the home's hero, on a layer of its own (`absolute inset-0`, `aria-hidden`), faded out towards the foot with a mask.
- */
-@utility pattern-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in oklch, var(--foreground) 10%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 10%, transparent) 1px, transparent 1px);
-  background-size: calc(var(--spacing) * 12) calc(var(--spacing) * 12);
-  background-position: center top;
 }
 
 /* The pips of a face of a die, from its `data-pips` (1 to 6): discs of `--pip` on the face, which is `background-color`, all of the same size (9.5% of the face for the radius, whatever the number). One utility for the faces of the die in the title. */

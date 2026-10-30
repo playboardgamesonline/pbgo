@@ -54,10 +54,8 @@ export const PAGES = [
     sections: [
       { id: "logo", title: "Logo" },
       { id: "wordmark", title: "Wordmark" },
-      { id: "face-cycle", title: "Face cycle" },
       { id: "navbar", title: "Navbar" },
       { id: "search-bar", title: "Search bar" },
-      { id: "board-pattern", title: "Board pattern" },
       { id: "title-pieces", title: "Title pieces" },
       { id: "stats", title: "Stats" },
     ],

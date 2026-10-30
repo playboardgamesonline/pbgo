@@ -12,8 +12,8 @@ type Step = {
 
 const STEPS: readonly Step[] = [
   { className: "rounded-xs", formula: "0.125rem, Tailwind's own", usedBy: "Tooltip, a line" },
-  { className: "rounded-sm", formula: "--radius × 0.6", usedBy: "Checkbox" },
-  { className: "rounded-md", formula: "--radius × 0.8", usedBy: "Chip: extra small button, badge, key cap, a game's icon of 1.5rem" },
+  { className: "rounded-sm", formula: "--radius × 0.6", usedBy: "Checkbox, badge" },
+  { className: "rounded-md", formula: "--radius × 0.8", usedBy: "Chip: extra small button, key cap, a game's icon of 1.5rem" },
   { className: "rounded-lg", formula: "--radius", usedBy: "Small control: small button, toggle, a tab in a tab bar, what is in a navbar island" },
   { className: "rounded-xl", formula: "--radius × 1.4", usedBy: "Control: button, field, tab bar, chat bubble, a game's icon of 2.5rem" },
   { className: "rounded-2xl", formula: "--radius × 1.8", usedBy: "Large control: navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },

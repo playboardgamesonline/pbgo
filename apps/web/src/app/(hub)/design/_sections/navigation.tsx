@@ -1,8 +1,6 @@
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
-import { BoardPattern } from "@pbgo/ui/platform/board-pattern"
 import { Button } from "@pbgo/ui/platform/button"
 import { DISPLAY_FACES } from "@pbgo/ui/faces"
-import { FaceCycle } from "@pbgo/ui/platform/face-cycle"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import {
@@ -74,37 +72,10 @@ export function Wordmarks() {
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>
-    </Section>
-  )
-}
-
-export function FaceCycles() {
-  return (
-    <Section
-      id="face-cycle"
-      module="face-cycle"
-      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in Geist at a weight of 720 for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
-    >
-      <Demo
-        title="A title with a word that turns"
-        description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child."
-        className="py-12 text-center"
-        code={`<h1 className="font-heading text-6xl uppercase">
-  <FaceCycle before="Play" className="block">board games</FaceCycle>{" "}
-  <span className="block">with friends & rivals</span>
-</h1>`}
-      >
-        <p className="font-heading text-4xl leading-tight uppercase sm:text-6xl">
-          <FaceCycle before="Play" className="block">
-            board games
-          </FaceCycle>{" "}
-          <span className="block">with friends & rivals</span>
-        </p>
-      </Demo>
 
       <Block
         title="The four faces"
-        description="Each is a utility of `platform.css` that sets the family, the weight and the size of one typeface, in the order the word goes through them; each font is a Fontsource package imported by the app, in the one weight it is set at. What the browser computed for the sample is printed beside it. The size is a scale of the parent's that gives the face the cap height of Geist's capitals, so a word in a face does not stand taller than the words around it."
+        description="Each is a utility of `platform.css` that sets the family, the weight and the size of one typeface, in the order of `faces.ts`; each font is a Fontsource package imported by the app, in the one weight it is set at. What the browser computed for the sample is printed beside it. The size is a scale of the parent's that gives the face the cap height of Geist's capitals, so a word in a face does not stand taller than the words around it."
       >
         <div className="divide-y rounded-3xl border p-6">
           {DISPLAY_FACES.map((face) => (
@@ -115,11 +86,8 @@ export function FaceCycles() {
 
       <Bullets
         items={[
-          "The word is one text in the page, written as it is, whichever face it is in: `before`, the word and `after` read as one sentence for a screen reader and a search engine, and the capitals are CSS (`uppercase` on the title).",
-          "A visitor who asks for less motion (`prefers-reduced-motion`) gets no rotation and no glide: the word stays in its first face, the most legible one.",
-          "The word has `line-height: 0`, so the lines of the title keep the height of the element's own whichever face it is in, and nothing moves when a font file arrives.",
           "Each face sets its own weight: the platform's 600 on a face that has none would be a fake bold. That is the one place the platform has more than one weight.",
-          "A face is swapped in `styles/platform.css` (its utility), in `faces.ts` (its place in the order) and in the app's `globals.css` (its import). Nothing else names a font. The footer's `Wordmark` is set in the same four faces.",
+          "A face is swapped in `styles/platform.css` (its utility), in `faces.ts` (its place in the order) and in the app's `globals.css` (its import). Nothing else names a font.",
         ]}
       />
     </Section>
@@ -399,35 +367,6 @@ export function SearchBars() {
               </SearchBarField>
             </SearchBar>
           </div>
-        </div>
-      </Demo>
-    </Section>
-  )
-}
-
-export function BoardPatterns() {
-  return (
-    <Section
-      id="board-pattern"
-      module="board-pattern"
-      intro="A backdrop of game pieces drawn in a line (dice, cards, a pawn, a crown, a suit, an hourglass, a gem, a joker), tilted and spread like the doodles of a wallpaper, to lay behind the top of a page and give it some life: the hub's hero had it, and it is off on the home for now. It is one SVG pattern whose tile repeats, so it is as light as a picture and as wide as its parent. It draws in `currentColor` at full strength: colour it with `text-foreground`, make it faint with `opacity` on the whole drawing and not with an alpha colour (strokes that cross would add up), and fade it out with a mask. It is decorative: `aria-hidden`, and it takes no click."
-    >
-      <Demo
-        title="Behind a hero"
-        description="As it was on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
-        className="grid gap-4 p-0 sm:grid-cols-2"
-        code={`<section className="relative overflow-hidden">
-  <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
-  <div className="relative …">…</div>
-</section>`}
-      >
-        <div className="relative h-72 overflow-hidden">
-          <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
-          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
-        </div>
-        <div className="relative h-72 overflow-hidden">
-          <BoardPattern className="absolute inset-0 text-foreground opacity-20 mask-b-from-30%" />
-          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
         </div>
       </Demo>
     </Section>

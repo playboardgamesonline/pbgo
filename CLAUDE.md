@@ -99,7 +99,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 
 ## Rules of work
 - English everywhere: code, comments, docs, commits, PRs. Only player-facing texts are in other languages: a game's live in its Sanity project, the platform's in `UI_TEXTS` and `translations.ts`
-- Platform UI (hub, account, legal, admin, 404) uses only `@pbgo/ui` tokens and components, never a hard-coded colour, font or spacing; a new component goes into `@pbgo/ui` first (see `docs/design-system.md`)
+- Platform UI (hub, account, legal, gamemaster, 404) uses only `@pbgo/ui` tokens and components, never a hard-coded colour, font or spacing; a new component goes into `@pbgo/ui` first (see `docs/design-system.md`)
 - Branch named after the Linear issue (`plt-<n>-<topic>`); the PR description references the issue ID; never merge your own PR
 - A PR that adds a migration says so in its description: Oré runs `pnpm setup-env` right after merging it, which applies the migration to preview, then to production (see `docs/supabase-and-env.md`)
 - A recurring job is a skill of the agent that carries it out, `.claude/skills/<game|engine|platform>-<job>/SKILL.md`, listed in `.claude/skills/README.md`: its questions, rules and commands are written there once and other docs point to it. `CLAUDE.md` describes the codebase, it holds no procedure
@@ -116,7 +116,7 @@ Open the file of the area you touch before changing it: it holds the full rules 
 - `docs/routing.md` — a route, a layout, a 404, a reserved slug, the rate limits
 - `docs/packages.md` — `packages/`: the registry, a game's binding package, core's server, `engine-kit`, `ui`, the Sanity and content kits
 - `docs/game-ui.md` — what a game shows around the board: HUD, announcements, seat label, game over, skin, chat, room for the cookie banner, `UI_THEME`, compact layout, motion
-- `docs/design-system.md` — a platform screen (hub, account, legal, admin, 404) or a `@pbgo/ui` component
+- `docs/design-system.md` — a platform screen (hub, account, legal, gamemaster, 404) or a `@pbgo/ui` component
 - `docs/gamemaster.md` — the back office: session, sidebar, setup data, previews, tasks
 - `docs/analytics.md` — a PostHog event, the consent banner, recordings, masking, table-code scrubbing
 - `docs/accounts.md` — sign-in with Facebook, Google, Apple and Discord, the pages of a signed-in visitor, the friends' panel, what is a placeholder, what to set up in Supabase
