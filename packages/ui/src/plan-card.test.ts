@@ -1,7 +1,8 @@
 import * as React from "react"
+import { DiceIcon } from "@hugeicons/core-free-icons"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { PlanCard, type PlanCardProps } from "./platform/plan-card"
+import { PlanCard, PlanVisual, type PlanCardProps } from "./platform/plan-card"
 
 function render(props: Partial<PlanCardProps> = {}): string {
   return renderToStaticMarkup(
@@ -38,6 +39,27 @@ describe("PlanCard", () => {
     expect(html).not.toContain("/ month")
   })
 
+  it("says how the price is billed under it, before the button", () => {
+    const html = render({ note: "Billed monthly" })
+    const at = (text: string) => html.indexOf(text)
+    expect(at("€0.99")).toBeLessThan(at("Billed monthly"))
+    expect(at("Billed monthly")).toBeLessThan(at("Coming soon"))
+  })
+
+  it("has no line under the price when it is given none", () => {
+    expect(render()).not.toContain("Billed")
+  })
+
+  it("draws a picture above the name, which a screen reader skips", () => {
+    const html = render({ visual: React.createElement("span", null, "picture") })
+    expect(html).toMatch(/<div data-slot="plan-card-visual" aria-hidden="true"[^>]*><span>picture<\/span><\/div>/)
+    expect(html.indexOf("picture")).toBeLessThan(html.indexOf(">Plus</h2>"))
+  })
+
+  it("draws nothing above the name without a picture", () => {
+    expect(render()).not.toContain("plan-card-visual")
+  })
+
   it("lists what the plan includes, one item each, with a tick that a screen reader skips", () => {
     const html = render()
     expect(html.match(/<li/g)).toHaveLength(2)
@@ -52,7 +74,27 @@ describe("PlanCard", () => {
     expect(at("Coming soon")).toBeLessThan(at("Everything in Free"))
   })
 
+  it("is half transparent and told so when the plan cannot be taken", () => {
+    const html = render({ disabled: true })
+    expect(html).toContain('aria-disabled="true"')
+    expect(html).toContain("opacity-50")
+  })
+
+  it("is whole otherwise", () => {
+    const html = render()
+    expect(html).not.toContain("aria-disabled")
+    expect(html).not.toContain("opacity-50")
+  })
+
   it("keeps the class it is given", () => {
     expect(render({ className: "md:col-span-2" })).toContain("md:col-span-2")
+  })
+})
+
+describe("PlanVisual", () => {
+  it("is an icon that only decorates", () => {
+    const html = renderToStaticMarkup(React.createElement(PlanVisual, { icon: DiceIcon }))
+    expect(html).toContain('data-slot="plan-visual"')
+    expect(html).toMatch(/<svg[^>]*aria-hidden="true"/)
   })
 })
