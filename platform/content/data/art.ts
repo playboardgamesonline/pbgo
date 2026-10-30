@@ -1,8 +1,8 @@
 import { setField } from "@pbgo/content-kit"
 import type { ArtSlot } from "@pbgo/content-kit"
-import { ART_SLOTS, type ArtSlot as Picture } from "@pbgo/catalog"
-import type { NotionGame } from "@pbgo/catalog"
-import type { PublisherRow } from "@pbgo/catalog/notion"
+import { ART_SLOTS, type ArtSlot as Picture } from "../notion/types.ts"
+import type { NotionGame } from "../notion/types.ts"
+import type { PublisherRow } from "../notion/reader.ts"
 import { gameId, publisherId } from "./ids.ts"
 import { publishers } from "./taxonomy.ts"
 

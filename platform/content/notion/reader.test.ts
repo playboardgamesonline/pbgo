@@ -1,7 +1,7 @@
 import { slugProblem } from "@pbgo/games/slug"
 import { describe, expect, it } from "vitest"
-import type { NotionGame } from "./catalog"
-import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readNotionGames, readPictureLinks, readPublishers } from "./notion"
+import type { NotionGame } from "./types.ts"
+import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readNotionGames, readPictureLinks, readPublishers } from "./reader.ts"
 import {
   creatorPage,
   developmentDatabase,
@@ -16,7 +16,7 @@ import {
   type Answer,
   type GameRow,
   type SchemaAnswer,
-} from "./testing"
+} from "./testing.ts"
 
 const TOKEN = "ntn_testsecret123"
 const EDITOR_1 = "9f1c2d3e-0000-4000-8000-00000000e001"
@@ -73,7 +73,8 @@ describe("the requests", () => {
 
   it("adds the caller's options to every request, but they cannot replace the method, the headers or the body", async () => {
     const notion = fakeNotion({ games: [gamePage()], editors: [], creators: [], development: [] })
-    const init: RequestInit = { method: "PUT", headers: { Authorization: "Bearer other" }, body: "{}", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } }
+    // `next` is what Next adds to a fetch: this package does not know its types, the reader hands any option on as it is
+    const init = { method: "PUT", headers: { Authorization: "Bearer other" }, body: "{}", cache: "force-cache", next: { revalidate: 600, tags: ["catalog"] } } as RequestInit
     await readNotionGames({ token: TOKEN, fetch: notion.fetch, init })
     expect(notion.calls).toHaveLength(4)
     for (const call of notion.calls) {

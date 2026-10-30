@@ -117,13 +117,10 @@ describe("rank", () => {
 
 describe("fetchFavicon", () => {
   const SITE = "libellud.example"
-  const nobody = { fetch: (() => {
-    throw new Error("Notion is not part of this")
-  }) as unknown as typeof fetch }
   const notFound = () => new Response("Not found", { status: 404 })
 
   /** A web where the site of the publisher is `site` and nobody else is. */
-  const web = (site: HostHandler, hosts: Record<string, HostHandler> = {}) => fakeWeb(nobody, { [SITE]: site, ...hosts })
+  const web = (site: HostHandler, hosts: Record<string, HostHandler> = {}) => fakeWeb({ [SITE]: site, ...hosts })
   const icons = (...entries: [string, () => Response][]): HostHandler => {
     const table = new Map(entries)
     return (url) => table.get(url.pathname)?.() ?? notFound()
@@ -246,7 +243,7 @@ describe("fetchFavicon", () => {
     })
 
     it("says it may be there another time when nobody could be reached", async () => {
-      const error = await fetchFavicon(`https://${SITE}/`, { fetch: fakeWeb(nobody, {}).fetch }).catch((reason: unknown) => reason)
+      const error = await fetchFavicon(`https://${SITE}/`, { fetch: fakeWeb().fetch }).catch((reason: unknown) => reason)
       expect((error as PictureError).retryable).toBe(true)
       expect((error as PictureError).message).toContain(`${SITE} could not be reached`)
     })

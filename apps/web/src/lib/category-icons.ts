@@ -28,8 +28,8 @@ import type { HugeiconsIcon } from "@hugeicons/react"
 export type CategoryIcon = ComponentProps<typeof HugeiconsIcon>["icon"]
 
 /**
- * The icon of each category of the games (the options of the `Tags` column of Notion, `docs/catalog.md`), by name in lower case. A placeholder: the day Notion has a
- * table of the categories, with an icon, a colour and a description for each, the name of a category finds them there and this goes away. Until then a category
+ * The icon of each category of the games (the categories of the platform's Sanity project, `docs/catalog.md`), by name in lower case. A placeholder: the day the hub reads the icon, the colour
+ * and the description that a category has in the Studio, the name of a category finds them there and this goes away. Until then a category
  * that is not here, a new tag, has the plain tag.
  */
 const ICONS: Readonly<Record<string, CategoryIcon>> = {
@@ -55,7 +55,7 @@ const ICONS: Readonly<Record<string, CategoryIcon>> = {
   "take that": BoxingGloveIcon,
 }
 
-/** The icon of a category, by its name as Notion spells it; the tag for one that has none yet. */
+/** The icon of a category, by its name as the Studio spells it; the tag for one that has none yet. */
 export function categoryIcon(name: string): CategoryIcon {
   return ICONS[name.trim().toLowerCase()] ?? Tag01Icon
 }

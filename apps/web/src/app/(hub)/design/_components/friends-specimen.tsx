@@ -14,7 +14,7 @@ import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platfor
 import { gamesOf, type Friend } from "@pbgo/ui/friends"
 import type { Conversation, FriendRequest, Message } from "@pbgo/ui/social"
 
-/** The picture of a game on the hub: its icon in the Notion row of the catalog (an initial on a tile where there is none). */
+/** The picture of a game on the hub: its icon in the catalog (an initial on a tile where there is none). */
 const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
 
 const COURTISANS = { slug: "courtisans", name: "Courtisans" }

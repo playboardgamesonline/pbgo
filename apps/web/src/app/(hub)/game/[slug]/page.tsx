@@ -17,16 +17,16 @@ import { getOpenTables, getTournaments } from "@/lib/game-activity"
 import { getGamePage } from "@/lib/game-page"
 import { SITE_NAME, SITE_URL } from "@/site"
 
-// The page of a game on the hub, where every card of the list leads. Every game's page is its Notion row, a live game's included: the
-// game's Sanity project serves only once one enters the game. Its head is the title, the facts, the description, the credits (its
-// designers, its artists, its publishers, under the text) and a picture, the one of its card. Under it come, in this order: a big zone
+// The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
+// game's own project serves only once one enters the game. Its head is the title, the facts, the description, the credits (everybody
+// credited on it, by role, then its publishers, under the text) and a picture, the one of its card. Under it come, in this order: a big zone
 // to create a game and the tables being created (`GamePlay`: the zone is a plain <a> to the game's own site, `/<slug>`, another root
 // layout, loaded whole, and has no button of its own; a game to come has it half transparent), the tournaments (`GameTournaments`),
 // the rulebooks, and the games the catalog recommends with it, as cards. The tables and the tournaments have no source yet
 // (`lib/game-activity.ts`): their sections say so.
 // Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
 // whether it may be indexed, in its `robots` meta (`game.seo.indexable`: a live game follows the registry's flag, a game to come needs a
-// description in its Notion row), and carries its JSON-LD only when it may. The rule and the metadata are `@pbgo/catalog/seo`.
+// description in its game in the Studio), and carries its JSON-LD only when it may. The rule and the metadata are `@pbgo/catalog/seo`.
 
 export async function generateMetadata({ params }: PageProps<"/game/[slug]">): Promise<Metadata> {
   const game = await getGamePage((await params).slug)
@@ -158,8 +158,8 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         )}
 
         {game.related.length > 0 && (
-          // The games the catalog recommends with this one, listed like the home: its family first (the Related Games and the base game of its
-          // Notion row, from either side), then the games that look like it, by their categories and by the players that play both (`rankRelated`,
+          // The games the catalog recommends with this one, listed like the home: its family first (the related games and the base game of its
+          // game in the Studio, from either side), then the games that look like it, by their categories and by the players that play both (`rankRelated`,
           // docs/catalog.md). Their cards carry no `data-game`: analytics counts the games opened from the home, not from here
           <section aria-labelledby="related-games" className="mt-section">
             <h2 id="related-games" className="mb-6 font-heading text-2xl">

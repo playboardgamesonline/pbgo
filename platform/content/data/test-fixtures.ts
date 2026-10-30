@@ -1,5 +1,5 @@
-import type { NotionGame } from "@pbgo/catalog"
-import type { PublisherRow } from "@pbgo/catalog/notion"
+import type { NotionGame } from "../notion/types.ts"
+import type { PublisherRow } from "../notion/reader.ts"
 import type { Doc } from "@pbgo/content-kit/testing"
 import { buildSeedContent } from "./index.ts"
 import type { SeedSource } from "./index.ts"

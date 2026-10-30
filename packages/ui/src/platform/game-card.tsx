@@ -42,7 +42,7 @@ const PICTURE = "size-full transition-transform duration-slow ease-standard grou
 function GameCardVisual({ className, logo, background, loading = "lazy", ...props }: GameCardVisualProps) {
   return (
     <div data-slot="game-card-visual" className={cn("relative aspect-4/3 overflow-hidden bg-muted", className)} {...props}>
-      {/* Plain <img>s: the package is framework-free and the art is a URL, which the hub takes from the catalog's picture route (the game's Notion row).
+      {/* Plain <img>s: the package is framework-free and the art is a URL, which the hub takes from the image CDN of the platform's Sanity project (`@pbgo/catalog`).
           The background comes first, so that the logo is drawn over it; the logo is contained, not cropped */}
       {background && (
         // eslint-disable-next-line @next/next/no-img-element

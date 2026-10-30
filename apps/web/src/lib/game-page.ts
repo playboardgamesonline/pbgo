@@ -14,7 +14,7 @@ export type GameFact = CreditLine
 /** The rulebook of one language: its link, titled in that language with the game's name ("Règles du jeu - Flip 7"). */
 export type GameRulebook = { language: Locale; label: string; href: string }
 
-/** What a game's page on the hub (`/game/<slug>`) shows: the values of the game's Notion row, whether the game is live or to come. */
+/** What a game's page on the hub (`/game/<slug>`) shows: the values of the game in the platform's Sanity project, whether the game is live or to come. */
 export type GamePage = {
   slug: string
   name: string
@@ -27,7 +27,7 @@ export type GamePage = {
   duration: string | null
   /** Worded like the two above, drawn beside them ("Ages 8+"). */
   age: string | null
-  /** The credits (designers, artists, publishers) one after the other: only the lines that have a value. */
+  /** The credits one after the other: a line for each role somebody has on the game (designers, artists…), then the publishers; only the lines that have a value. */
   facts: GameFact[]
   /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no rulebook area. */
   rulebooks: GameRulebook[]
@@ -55,7 +55,7 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
 }
 
 /**
- * The page of one entry of the catalog, the same for every game: its Notion row worded for the visitor, then the cards of its related
+ * The page of one entry of the catalog, the same for every game: its game in the Studio worded for the visitor, then the cards of its related
  * games. `entry.related` is already ranked (`rankRelated`), listed games only, never the entry itself.
  */
 function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale): GamePage {
@@ -82,7 +82,7 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
 
 /**
  * The page of a game of the catalog (`/game/<slug>`), null when the catalog does not list the slug: the page then answers 404.
- * Every game's page is its Notion row, so without Notion (no key, or Notion down) only the live games have a page, from the registry.
+ * Every game's page is its game in the Studio, so while the platform's Sanity project cannot be read only the live games have a page, from the registry.
  * Read once per request, however many times the page and its metadata ask. Reading the visitor's language makes the page dynamic.
  */
 export const getGamePage = cache(async (slug: string): Promise<GamePage | null> => {

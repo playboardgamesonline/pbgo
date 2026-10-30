@@ -175,3 +175,26 @@ export const UI_TEXT_GROUPS = [
   { name: "lobby", title: "Invitation & lobby" },
   { name: "game", title: "In game" },
 ] as const
+
+/**
+ * What a person did on a game of the platform's catalog: the credits of BoardGameGeek, in its words (an "editor" there edits the text,
+ * the rules or the cards; the publisher of a game is a `publisher`). A person can have several on one game, and is a designer of one
+ * game and an artist of another: the roles belong to the line of the game, not to the person. The Studio of the platform lists them
+ * (`platform/apps/studio`), and the hub words its credit lines from the same list (`@pbgo/catalog`).
+ */
+export const CREATOR_ROLES = [
+  { title: "Designer", value: "designer" },
+  { title: "Solo designer", value: "soloDesigner" },
+  { title: "Developer", value: "developer" },
+  { title: "Artist", value: "artist" },
+  { title: "Graphic designer", value: "graphicDesigner" },
+  { title: "Editor", value: "editor" },
+  { title: "Sculptor", value: "sculptor" },
+  { title: "Writer", value: "writer" },
+  { title: "Insert designer", value: "insertDesigner" },
+] as const
+
+export type CreatorRole = (typeof CREATOR_ROLES)[number]["value"]
+
+/** The title of a role as the Studio and the hub show it; a value the list does not have (a role removed since) is shown as it is. */
+export const roleTitle = (role: string): string => CREATOR_ROLES.find((entry) => entry.value === role)?.title ?? role

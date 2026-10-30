@@ -1,4 +1,4 @@
-import type { PictureLinks } from "@pbgo/catalog/notion"
+import type { PictureLinks } from "./notion/reader.ts"
 import { describe, expect, it, vi } from "vitest"
 import { artJobs, fetchArt, formatFetchReport, stemOf } from "./art-files.ts"
 import type { Downloaded } from "./art-files.ts"

@@ -5,12 +5,12 @@
 import type { Metadata, MetadataRoute } from "next"
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import { OG_LOCALES, type Locale } from "@pbgo/core/lib/i18n"
-import { pickLocalized, sharePicture, type CatalogEntry } from "./catalog"
+import { pickLocalized, sharePicture, type CatalogEntry, type Creator } from "./catalog"
 
 /**
  * Whether search engines may index the hub page of a game (`/game/<slug>`): the one rule behind the page's `robots` meta, its JSON-LD and
- * its line of the sitemap. A live game follows the registry's `indexable` flag, as its own home does, so a Notion that is down never
- * turns it into a `noindex`. A game to come is indexable once its Notion row has a description, in any language: until then the page
+ * its line of the sitemap. A live game follows the registry's `indexable` flag, as its own home does, so a Sanity project that is down never
+ * turns it into a `noindex`. A game to come is indexable once its game in the Studio has a description, in any language: until then the page
  * has nothing to say and stays out of the results.
  */
 export function isIndexable(entry: CatalogEntry): boolean {
@@ -52,13 +52,13 @@ export type GameSeo = {
   minutes: number | null
   /** The minimum age in years. */
   age: number | null
-  authors: string[]
-  illustrators: string[]
+  /** The people credited on the game, with what they did on it. */
+  creators: Creator[]
   publishers: { name: string; url: string | null }[]
 }
 
 /**
- * The SEO data of a game's page, from the values of its Notion row (`registryRow` for a live game that has none, which has no picture
+ * The SEO data of a game's page, from the values of its game in the Studio (`registryRow` for a live game that has none, which has no picture
  * and no text). `description` is the one the page shows, in the visitor's language (`pickLocalized`).
  */
 export function gameSeo(entry: CatalogEntry, description: GameSeo["description"]): GameSeo {
@@ -72,8 +72,7 @@ export function gameSeo(entry: CatalogEntry, description: GameSeo["description"]
     players: game.players,
     minutes: game.duration,
     age: game.age,
-    authors: game.authors,
-    illustrators: game.illustrators,
+    creators: game.creators,
     publishers: game.publishers,
   }
 }
@@ -132,6 +131,9 @@ function isoDuration(minutes: number): string {
 
 const people = (names: string[]) => names.map((name) => ({ "@type": "Person", name }))
 
+/** The people who made the game (its designers, solo designers included) are its authors in JSON-LD; everyone else credited on it is a contributor. */
+const isAuthor = (creator: Creator) => creator.roles.some((role) => role === "designer" || role === "soloDesigner")
+
 /**
  * The schema.org `Game` of a game's page, for a `<script type="application/ld+json">`. Only what the game has: a field with no value is
  * absent, not empty. The illustrators are `contributor`s (schema.org has no `illustrator` on a Game). There is no `inLanguage`: the text is
@@ -140,6 +142,8 @@ const people = (names: string[]) => names.map((name) => ({ "@type": "Person", na
 export function gameJsonLd(game: GameSeo, site: string): Record<string, unknown> {
   const image = game.image ? absoluteUrl(site, game.image.url) : null
   const { players } = game
+  const authors = game.creators.filter(isAuthor).map((creator) => creator.name)
+  const contributors = game.creators.filter((creator) => !isAuthor(creator)).map((creator) => creator.name)
   return {
     "@context": "https://schema.org",
     "@type": "Game",
@@ -152,8 +156,8 @@ export function gameJsonLd(game: GameSeo, site: string): Record<string, unknown>
       : {}),
     ...(game.minutes ? { timeRequired: isoDuration(game.minutes) } : {}),
     ...(game.age === null ? {} : { typicalAgeRange: `${game.age}-` }),
-    ...(game.authors.length ? { author: people(game.authors) } : {}),
-    ...(game.illustrators.length ? { contributor: people(game.illustrators) } : {}),
+    ...(authors.length ? { author: people(authors) } : {}),
+    ...(contributors.length ? { contributor: people(contributors) } : {}),
     ...(game.publishers.length
       ? { publisher: game.publishers.map(({ name, url }) => ({ "@type": "Organization", name, ...(url ? { url } : {}) })) }
       : {}),
@@ -167,9 +171,9 @@ export function serializeJsonLd(data: unknown): string {
 
 export type SitemapItem = MetadataRoute.Sitemap[number]
 
-/** When a game's page last changed: its Notion row's last edit. A live game with no row (`registryRow`) has no such date. */
+/** When a game's page last changed: its game's last edit in the Studio. A live game with none (`registryRow`) has no such date. */
 function lastModified(entry: CatalogEntry): Date | undefined {
-  const time = Date.parse(entry.game.editedAt)
+  const time = Date.parse(entry.game.updatedAt)
   return Number.isFinite(time) ? new Date(time) : undefined
 }
 

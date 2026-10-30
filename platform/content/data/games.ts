@@ -1,5 +1,5 @@
 import type { SeedDoc } from "@pbgo/content-kit"
-import type { NotionGame } from "@pbgo/catalog"
+import type { NotionGame } from "../notion/types.ts"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 import type { CreatorRole, GameKind } from "../../apps/studio/schemaTypes/constants.ts"
 import { categoryId, creatorId, gameId, item, publisherId, reference } from "./ids.ts"

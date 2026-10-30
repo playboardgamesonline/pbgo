@@ -31,7 +31,7 @@ export type GameEntry = {
   players?: { min: number; max: number }
   /** Length of a game in minutes, shown by the hub ("30 min", "20–40 min"); absent while unknown */
   duration?: { min: number; max: number }
-  /** The game's own Sanity project: its content and its admin settings, read once one enters the game. The hub reads none: its card and its page are the game's Notion row (`@pbgo/catalog`) */
+  /** The game's own Sanity project: its content and its admin settings, read once one enters the game. The hub reads none: its card and its page are the game in the platform's Sanity project (`@pbgo/catalog`) */
   sanityProjectId: string
   /** Playable in production. Off: home page "coming soon" only (every page stays playable outside production). */
   live: boolean
