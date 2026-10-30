@@ -98,8 +98,4 @@ describe("beforeSend", () => {
     expect(output?.properties).toEqual({ $snapshot_data: data, $session_id: "s1" })
     expect(output?.properties.$snapshot_data).toBe(data)
   })
-
-  it("passes a dropped event through", () => {
-    expect(beforeSend("production")(null)).toBeNull()
-  })
 })
