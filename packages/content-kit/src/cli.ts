@@ -10,7 +10,7 @@ export type CliOptions = {
 /** A wrong command line: reported with the usage, not with a stack trace. */
 export class UsageError extends Error {}
 
-export const HELP = `Seeds the game's Sanity content as DRAFTS (cards, credits, art). Safe to run again.
+export const HELP = `Seeds the Sanity content as DRAFTS (a game's cards, credits and art; the platform's catalog). Safe to run again.
 
 Usage: node content/seed.ts [options]
 
