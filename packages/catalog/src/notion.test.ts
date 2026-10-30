@@ -830,14 +830,33 @@ describe("the columns", () => {
   it("are reported when an optional one is missing, once each, and the games are still read", async () => {
     const pages = [gamePage({ slug: "hanabi", name: "Hanabi" }), gamePage({ slug: "bang", name: "Bang" })]
     for (const page of pages) {
-      delete page.properties.Illustrators
+      delete page.properties.Artists
       delete page.properties["Rules DE"]
     }
     const read = await readGames(pages)
     expect(read.games.map((game) => game.slug)).toEqual(["hanabi", "bang"])
     expect(read.warnings).toEqual([
-      'The Games database has no "Illustrators" column: it is left empty for every game',
+      'The Games database has no "Artists" column: it is left empty for every game',
       'The Games database has no "Rules DE" column: it is left empty for every game',
+    ])
+  })
+
+  it("leave the credits empty and say so when the columns that hold them are not the ones the reader knows, as they were when they were renamed to Designers, Artists and Publishers", async () => {
+    const page = gamePage({ slug: "hanabi", name: "Hanabi", authors: [CREATOR_1], illustrators: [CREATOR_2], editors: [EDITOR_1] })
+    for (const [now, before] of [
+      ["Designers", "Authors"],
+      ["Artists", "Illustrators"],
+      ["Publishers", "Editors"],
+    ] as const) {
+      page.properties[before] = page.properties[now]
+      delete page.properties[now]
+    }
+    const read = await readGames([page], [editorPage({ id: EDITOR_1, name: "Editor One" })], [creatorPage({ id: CREATOR_1, name: "Author One" }), creatorPage({ id: CREATOR_2, name: "Illustrator One" })])
+    expect(read.games[0]).toMatchObject({ authors: [], illustrators: [], publishers: [] })
+    expect(read.warnings).toEqual([
+      'The Games database has no "Designers" column: it is left empty for every game',
+      'The Games database has no "Artists" column: it is left empty for every game',
+      'The Games database has no "Publishers" column: it is left empty for every game',
     ])
   })
 

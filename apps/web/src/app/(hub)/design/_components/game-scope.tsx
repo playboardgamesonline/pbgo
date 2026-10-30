@@ -6,7 +6,7 @@ import { cn } from "@pbgo/ui/utils"
 
 /**
  * "In-game UI" is the one place where this platform page draws a game's layer. The hub's `.platform` class sits on <html> and sets
- * values a game never has (Geist, a weight of 600 for everything, tight line-heights, a 0.625 rem radius), so a specimen is drawn
+ * values a game never has (Geist, a weight of 600 for everything, tight line-heights, a 0.75 rem radius), so a specimen is drawn
  * inside a `GameScope`: a wrapper that puts the game's tokens back (what `game.css` and the game's Sanity skin would have set on
  * <html>), then the game's fonts. Nothing is set on :root, so the platform around it is untouched.
  */

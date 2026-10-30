@@ -3,7 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChartColors, LineColors, NeutralRamp, SemanticColors } from "../_components/colors"
 import { Block, Bullets, Code, Demo, Inline, Section } from "../_components/layout"
 import { MotionDemo } from "../_components/motion-demo"
-import { RadiusPresets } from "../_components/radius-presets"
 import { RadiusScale } from "../_components/radius-scale"
 import { TokenTable } from "../_components/token-table"
 import { TypeScale, WeightProof } from "../_components/type-scale"
@@ -34,7 +33,7 @@ export function Colors() {
       </Block>
       <Block
         title="Chart"
-        description="Five greys for the admin charts, read by lightness. There is no hue to tell series apart, so charts label their series."
+        description="Five greys for the charts of the gamemaster, read by lightness. There is no hue to tell series apart, so charts label their series."
       >
         <ChartColors />
       </Block>
@@ -57,7 +56,7 @@ export function Typography() {
   return (
     <Section
       id="typography"
-      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes. One exception: the home's title has one word that changes between four display faces (see Face cycle)."
+      intro="Geist Sans, a variable font loaded through `@fontsource-variable/geist`, in one weight. Line-heights are slightly tight and tighten as the size grows. Letter-spacing is slightly negative. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes."
     >
       <Block
         title="Scale"
@@ -93,7 +92,7 @@ export function Typography() {
         description="`font-mono` is the system monospace stack and is for code and token names only, as on this page. Add `tracking-normal` next to it: the platform's negative letter-spacing cramps a monospace."
         code={`<code className="font-mono text-xs tracking-normal">--radius</code>`}
       >
-        <p className="font-mono text-sm tracking-normal">@pbgo/ui/platform/button · --radius · 0.625rem</p>
+        <p className="font-mono text-sm tracking-normal">@pbgo/ui/platform/button · --radius · 0.75rem</p>
       </Demo>
     </Section>
   )
@@ -105,14 +104,15 @@ const RADIUS_ROLES = [
   { role: "Large control, island", height: "3rem to 3.5rem", utility: "rounded-2xl", radius: "22px", examples: "Navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },
   { role: "Control", height: "2.25rem to 2.5rem", utility: "rounded-xl", radius: "17px", examples: "Button, field (input, text area, select trigger, input group), tab bar, a tab of the social panel, a chat bubble, a game's icon of 2.5rem" },
   { role: "Small control", height: "2rem", utility: "rounded-lg", radius: "12px", examples: "Small button, toggle, a tab in a tab bar, the buttons and tabs inside a navbar island" },
-  { role: "Chip", height: "1.25rem to 1.5rem", utility: "rounded-md", radius: "10px", examples: "Extra small button, badge, key cap, a game's icon of 1.5rem" },
+  { role: "Chip", height: "1.5rem", utility: "rounded-md", radius: "10px", examples: "Extra small button, key cap, a game's icon of 1.5rem" },
+  { role: "Tag", height: "1.25rem", utility: "rounded-sm", radius: "7px", examples: "Badge, checkbox" },
   { role: "Circle", height: "Only a person", utility: "rounded-full", radius: "full", examples: "The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar" },
 ] as const
 
 const SMOOTHING = [
   { value: 1, label: "1: the arc of a circle" },
   { value: 1.2, label: "1.2: the one in use" },
-  { value: 1.5, label: "1.5: the one before, which squared the corners" },
+  { value: 1.5, label: "1.5: squares the corners" },
   { value: 2, label: "2: the squircle" },
 ] as const
 
@@ -131,7 +131,7 @@ export function Radius() {
       />
       <Block
         title="Which radius"
-        description="A corner is rounded by about a third of the height of what it rounds, and never by half of it, so that nothing is a capsule. Pick the step by the height: the taller the container, the rounder its corner, up to `rounded-4xl` for one from 6rem high."
+        description="A corner is rounded by about a third to two fifths of the height of what it rounds, and never by half of it, so that nothing is a capsule. Pick the step by the height: the taller the container, the rounder its corner, up to `rounded-4xl` for one from 6rem high."
       >
         <div className="overflow-hidden rounded-3xl border">
           <Table>
@@ -167,15 +167,6 @@ export function Radius() {
           "The home's search bar is `rounded-3xl` (64px high with 8px of padding), not a pill: what is in it takes its radius less the padding, so its category button is 17px (`rounded-xl`).",
         ]}
       />
-      <Demo
-        title="How round"
-        description="The same components under three bases. `--radius` is the one knob: every step is a multiple of it. 12px is the one in use; at 14px a button of 2.25rem is a capsule, which is the one thing a corner must not be."
-        code={`.platform {
-  --radius: 0.75rem;
-}`}
-      >
-        <RadiusPresets />
-      </Demo>
       <Demo
         title="Corner smoothing"
         description="Every corner is a superellipse, not an arc of a circle, the way iOS draws its continuous corners (`corner-shape`, in Chromium; elsewhere the plain arc stays). Each box has the same `rounded-3xl`; only the exponent changes, and a `rounded-full` always keeps its arc."
@@ -365,9 +356,9 @@ export function Motion() {
 
       <Bullets
         items={[
-          "The platform moves in JavaScript in two places: the fill behind the current item of the navbar (`layoutId`, `SPRING_TRAVEL`) and the word of the home's title that changes face (`FaceCycle`: out and in with `DURATION.slow` and `EASE_STANDARD`, the rest of its line gliding). Everything else is a CSS transition.",
+          "The platform moves in JavaScript only for what CSS cannot do, a layout animation, a sequence or a spring: the fill behind the current item of the navbar (`layoutId`, `SPRING_TRAVEL`), the social dock and its panels, a card that moves and the pieces of the home's title (`PLAYFUL`). Everything else is a CSS transition.",
           "An animation answers an action (a click, a hover) or says that something changed. Use the tokens, never a duration or an easing written in a component, and reach for `motion` only for a layout animation, a sequence or a spring.",
-          "Less motion is honoured everywhere: in CSS the durations become 0ms, in JavaScript `Navbar` mounts `MotionConfig reducedMotion=user` (the fill jumps) and `FaceCycle` does not rotate at all, since an animation that starts by itself is the one a visitor who asks for less motion must never get.",
+          "Less motion is honoured everywhere: in CSS the durations become 0ms, in JavaScript `Navbar` mounts `MotionConfig reducedMotion=user` (the fill jumps) and the pieces of the home's title stay still, since an animation that starts by itself is the one a visitor who asks for less motion must never get.",
           "The games' UI shares the curve, not the durations: it has its own timings, tuned by the game's `UI_THEME` (`docs/game-ui.md`).",
         ]}
       />
@@ -390,7 +381,6 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "bg-secondary-hover", does: "Hover state of a `secondary` surface", token: "`secondary` mixed with 8% of `foreground`" },
   { utility: "font-heading", does: "Heading font", token: "`--font-title`" },
   { utility: "pattern-checker", does: "Checkerboard that makes translucency visible", token: "`foreground` at 8%" },
-  { utility: "pattern-grid", does: "A grid of thin lines, 3rem apart, in a faint `foreground`: the home's hero had it, and has not for now", token: "`--foreground`, `--spacing`" },
 ]
 
 export function Utilities() {

@@ -337,7 +337,7 @@ export function CookieBanners() {
     <Section
       id="cookie-banner"
       module="cookie-banner"
-      intro="The question about statistics and recordings: a card that floats at the bottom of the screen, centred, with a title, a sentence that ends with a link to the details, then Refuse and Accept. They are the same button side by side, so refusing is as easy and as visible as accepting. The card never sits over the page: its caller measures the box around it, margin included, and makes the room (`@pbgo/analytics` publishes its height as `--consent-h` on `<body>`), so the page ends above it and a screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the banner carries the `platform` class itself, since it also sits over a game page. The frames below pin it with `absolute` and make the room on the frame, where a page pins it with `fixed` and makes it on `<body>`."
+      intro="The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side two big buttons, Reject optional (`ghost`) and Accept all. They are the same size and the same shape, side by side, so refusing is as easy to hit as accepting; from `lg` the card is a bar and they are 3.5rem high (`h-14`), centred on it; under it they are below the words, 3rem high, and on a phone they share the width. The card never sits over the page: its caller measures the box around it, margin included, and makes the room (`@pbgo/analytics` publishes its height as `--consent-h` on `<body>`), so the page ends above it and a screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the banner carries the `platform` class itself, since it also sits over a game page. The frames below pin it with `absolute` and make the room on the frame, where a page pins it with `fixed` and makes it on `<body>`."
     >
       <Demo
         title="First visit"
@@ -359,7 +359,7 @@ useLayoutEffect(() => reserveSpace(banner.current, document.body), [])
       </Demo>
       <Demo
         title="Reopened from the Cookies link"
-        description="A visitor who already answered can change their mind from the footer or the settings menu. The card then has a close button in its title row, closes on Escape and takes the focus, and closing it keeps the answer."
+        description="A visitor who already answered can change their mind from the footer or the settings menu. The card then has a close button at its top right corner, closes on Escape and takes the focus, and closing it keeps the answer."
         code={`<CookieBanner
   texts={BANNER_TEXTS[locale]}
   moreHref="/legal#cookies"

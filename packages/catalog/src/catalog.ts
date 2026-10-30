@@ -83,6 +83,39 @@ export function pictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">, 
   return game.art[slot] ? `/api/catalog/${game.slug}/${slot}?v=${pictureVersion(game.editedAt)}` : null
 }
 
+/**
+ * The URL of the icon of a game's n-th publisher (`/api/catalog/<slug>/publisher-<n>`, see `route.ts`), or null when that publisher has no website to take it from.
+ * It carries the version of the game's row like a picture does, so an edit of the row sends the page to a new address. The address names a place in the row and never
+ * a website: the server finds the website in the row itself.
+ */
+export function publisherIconUrl(game: Pick<NotionGame, "slug" | "publishers" | "editedAt">, index: number): string | null {
+  return game.publishers[index]?.url ? `/api/catalog/${game.slug}/publisher-${index}?v=${pictureVersion(game.editedAt)}` : null
+}
+
+/** One line of the credits of a game's page: what the people are to it, and who they are. A publisher whose row has a website is a link to it, with its icon. */
+export type CreditLine = { label: string; values: { text: string; href?: string; icon?: string }[] }
+
+const plural = (count: number, one: string, many: string) => (count === 1 ? one : many)
+
+/**
+ * The credits a game's page shows, in this order and only the lines that have somebody: its designers, its artists and its publishers, the label in the singular for
+ * one and in the plural for more. A publisher whose row has a website is a link to it (`href`) with its icon (`icon`, `publisherIconUrl`); one with none is a name.
+ */
+export function creditLines(game: Pick<NotionGame, "slug" | "authors" | "illustrators" | "publishers" | "editedAt">): CreditLine[] {
+  const lines: CreditLine[] = [
+    { label: plural(game.authors.length, "Designer", "Designers"), values: game.authors.map((text) => ({ text })) },
+    { label: plural(game.illustrators.length, "Artist", "Artists"), values: game.illustrators.map((text) => ({ text })) },
+    {
+      label: plural(game.publishers.length, "Publisher", "Publishers"),
+      values: game.publishers.map(({ name, url }, index) => {
+        const icon = publisherIconUrl(game, index)
+        return url ? { text: name, href: url, ...(icon ? { icon } : {}) } : { text: name }
+      }),
+    },
+  ]
+  return lines.filter((line) => line.values.length > 0)
+}
+
 /** The picture of a game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
 export function cardPictureUrl(game: Pick<NotionGame, "slug" | "art" | "editedAt">): string | null {
   return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")
@@ -104,9 +137,10 @@ export function sharePicture(game: Pick<NotionGame, "slug" | "art" | "editedAt">
  * for one to come).
  * - `live` is the registry's flag and the only thing that makes the game playable from its page ("Create a game", else a greyed
  *   "Coming soon"). `indexable` is the registry's too, false for a game the registry does not know.
- * - `related` is the slugs of the other games of the catalog it is linked to, whichever side of the link Notion has: its related
- *   games, its base game, the games that name it as theirs. In catalog order, never its own slug, and only games that are listed
- *   (a page for each).
+ * - `related` is the slugs of the games its page recommends (`rankRelated`), the most relevant first, never its own slug, only games that are
+ *   listed (a page for each) and at most `RELATED_MAX`. First its family, the games it is linked to whichever side of the link Notion has
+ *   (its related games, its base game, the games that name it as theirs), in catalog order; then the games that look like it, by their
+ *   categories and by the players that play both.
  */
 export type CatalogEntry = { slug: string; live: boolean; indexable: boolean; game: NotionGame; related: string[] }
 
@@ -124,6 +158,11 @@ export type CatalogOptions = {
    * but no picture. The catalog of a deployment never does, since a game that Notion does not announce is not announced.
    */
   registryGames?: boolean
+  /**
+   * For each game, how many of its players also played each other game (`AlsoPlayed`): the signal "players of this game also play" that ranks the games a page recommends after its family. Nothing feeds it yet, since
+   * no account has a history to count: without it the games that look like a game are ranked by their categories alone.
+   */
+  alsoPlayed?: AlsoPlayed
 }
 
 /** Games of the registry that are not in the catalog: the template is the demo of the shared base, not a game. */
@@ -182,6 +221,53 @@ export function comparePlanned(a: NotionGame, b: NotionGame): number {
   )
 }
 
+// The games a game's page recommends: its family first, then the games that look like it. They are in this file and not in a file of their own because `pnpm catalog:list` runs this one under plain Node, which strips the types
+// and resolves no other file of the package.
+
+/** The most games a page recommends: the grid is 2, 3, 4 or 5 cards wide, and twelve fill whole rows of the first three. */
+export const RELATED_MAX = 12
+
+/**
+ * For each game, how many of its players also played each other game: the signal "players of this game also play". Counts of distinct players, never who they are. The catalog does not have it yet
+ * (no account has a history to count), so `buildCatalog` takes it as an option and ranks by categories alone while it is not given.
+ */
+export type AlsoPlayed = ReadonlyMap<string, ReadonlyMap<string, number>>
+
+/** How alike two games are by their categories, from 0 (nothing in common, or one has none) to 1 (the same ones): the share of the categories of the two that both have (Jaccard). */
+export function categorySimilarity(a: readonly string[], b: readonly string[]): number {
+  const left = new Set(a)
+  const right = new Set(b)
+  if (left.size === 0 || right.size === 0) return 0
+  let shared = 0
+  for (const category of left) if (right.has(category)) shared++
+  return shared / (left.size + right.size - shared)
+}
+
+type Listed = { slug: string; game: Pick<NotionGame, "categories"> }
+
+/**
+ * The slugs of the games to recommend with `entry`, the most relevant first, at most `max`:
+ * 1. its family, the games its row or theirs links it to (`family`), in the catalog's order and whatever they look like;
+ * 2. then the games that look like it: how alike their categories are (`categorySimilarity`) plus, when it is known, how many of its players also play them (`alsoPlayed`, as a share of the game most played with it).
+ * Both signals count, so a game that has both comes before one that has only one, and a game that has neither is not recommended. A tie keeps the catalog's order, which puts the live games first.
+ */
+export function rankRelated(entry: Listed, listed: readonly Listed[], family: ReadonlySet<string> | undefined, alsoPlayed?: ReadonlyMap<string, number>, max = RELATED_MAX): string[] {
+  const others = listed.filter((other) => other.slug !== entry.slug)
+  const kin = others.filter((other) => family?.has(other.slug)).map((other) => other.slug)
+  const most = Math.max(0, ...(alsoPlayed?.values() ?? []))
+  const similar = others
+    .filter((other) => !family?.has(other.slug))
+    .map((other, order) => ({
+      slug: other.slug,
+      order,
+      score: categorySimilarity(entry.game.categories, other.game.categories) + (most > 0 ? (alsoPlayed?.get(other.slug) ?? 0) / most : 0),
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || a.order - b.order)
+    .map(({ slug }) => slug)
+  return [...kin, ...similar].slice(0, max)
+}
+
 /** Every link between two games, both ways, from the one side each `NotionGame.related` holds: the slug of a game → the slugs it is linked to. */
 function relatedLinks(rows: readonly NotionGame[]): Map<string, Set<string>> {
   const links = new Map<string, Set<string>>()
@@ -208,7 +294,7 @@ function relatedLinks(rows: readonly NotionGame[]): Map<string, Set<string>> {
  * - `live` and `indexable` are the registry's, whatever a row says. They are the only things the registry still decides.
  * - `UNLISTED_SLUGS` are never listed.
  * - With `options.registryGames` the registry's games that are not live and have no row are listed too (development with no token).
- * - Two games are related when either row says so, and `related` only names games that are listed.
+ * - Two games are family when either row says so, and `related` only names games that are listed; after the family come the games that look like the game (`rankRelated`, with `options.alsoPlayed` when it is known).
  */
 export function buildCatalog(games: readonly GameEntry[], rows: readonly NotionGame[], options: CatalogOptions = {}): CatalogEntry[] {
   const known = new Map(games.map((game) => [game.slug, game]))
@@ -227,7 +313,7 @@ export function buildCatalog(games: readonly GameEntry[], rows: readonly NotionG
     : []
   const listed = [...live, ...comingSoon, ...fromRegistry]
   const links = relatedLinks(rows)
-  return listed.map((entry) => ({ ...entry, related: listed.filter((other) => links.get(entry.slug)?.has(other.slug)).map((other) => other.slug) }))
+  return listed.map((entry) => ({ ...entry, related: rankRelated(entry, listed, links.get(entry.slug), options.alsoPlayed?.get(entry.slug)) }))
 }
 
 // The language to fall back on when the visitor's has no text: English, then French (the language of the games), then the others

@@ -3,13 +3,15 @@
 import * as React from "react"
 import { animate, motion, useMotionValue, useReducedMotion, useTransform, type AnimationPlaybackControls, type MotionValue } from "motion/react"
 import { PLAYFUL } from "../motion"
+import { rhythm, usePlayOnEnter } from "./title-play"
 
 // The die of the home's title, an "o": a cube seen straight on, in perspective (the utility `title-piece` of `styles/platform.css` draws it: four sides with their pips, and no top or bottom, which are never seen) that turns from the
 // left to the right around its vertical axis, as the coin of the title turns around its horizontal one (`TitleCoin`). It turns on that axis only, so only its four sides take turns to face the viewer: a six on the front, then a four,
 // a one and a three (opposite sides add up to seven, as they do on a real die). Every fifteen seconds it rolls, 2 or 3 whole turns (chance decides which) and the quarter turns it takes to switch to the other of a three and a six
 // (it shows the six at first, then lands on the three, then on the six again), and it plays while it does (`PLAYFUL.die`): an exponential in and out
 // (slow to wake up, all at once, a long gentle stop) and a swell toward the viewer at the fastest moment, as if it were thrown at them. To look solid, each side is darkened as it turns away from the light, which comes from
-// the left and the front. A visitor who asks for less motion keeps the six it starts on, and nothing moves.
+// the left and the front. It also rolls when the pointer comes onto it, if it is not rolling already (`usePlayOnEnter`), and the next roll then comes after the usual time. A visitor who asks for less motion keeps the six it starts
+// on, and nothing moves.
 
 /** The darkest a side gets, when it is edge-on to the viewer: the share of ink over its ivory. */
 const DARKEST = 0.5
@@ -33,13 +35,13 @@ function useShade(angle: MotionValue<number>, offset: number) {
 const SIDES = [6, 4, 1, 3] as const
 
 /** The cube itself, drawn from the motion values it is given, which `TitleDie` drives: how far it has turned around its vertical axis, in degrees, and how big it is, 1 being what it is. */
-function DieCube({ angle, scale }: { angle: MotionValue<number>; scale: MotionValue<number> }) {
+function DieCube({ ref, angle, scale }: { ref: React.Ref<HTMLElement>; angle: MotionValue<number>; scale: MotionValue<number> }) {
   const front = useShade(angle, 0)
   const right = useShade(angle, 90)
   const back = useShade(angle, 180)
   const left = useShade(angle, 270)
   return (
-    <motion.i data-slot="die" aria-hidden="true" style={{ rotateY: angle, scale }}>
+    <motion.i ref={ref} data-slot="die" aria-hidden="true" style={{ rotateY: angle, scale }}>
       <b data-face="front" data-pips={SIDES[0]} className="die-pips">
         <motion.i data-shade style={{ opacity: front }} />
       </b>
@@ -61,19 +63,18 @@ function TitleDie({ first = 4000, every = 15000 }: { first?: number; every?: num
   const angle = useMotionValue(0)
   const swell = useMotionValue(1)
   const reduced = useReducedMotion()
+  const root = React.useRef<HTMLElement>(null)
+  const playNow = React.useRef<(() => void) | null>(null)
+  usePlayOnEnter(root, playNow)
 
   React.useEffect(() => {
     if (reduced) return
-    let timer: ReturnType<typeof setTimeout> | undefined
     let running: AnimationPlaybackControls[] = []
     const { ease, secondsATurn, turns: range, lands, swell: size } = PLAYFUL.die
     // How far the cube has turned, round the circle, when each side it lands on faces the viewer
     const sides = lands.map((pips) => SIDES.indexOf(pips) * 90)
 
     const roll = () => {
-      timer = setTimeout(roll, every)
-      // A roll that is not over (a tab in the background holds the frames back while the timers go on) is left to end where it was going: on the six
-      if (angle.isAnimating()) return
       // Where the cube is, and the side it lands on: it switches, so it is never the one it shows (with a three and a six to land on, it is the other one)
       const now = Math.round(angle.get()) % 360
       const aims = sides.filter((side) => side !== now)
@@ -87,14 +88,18 @@ function TitleDie({ first = 4000, every = 15000 }: { first?: number; every?: num
       ]
     }
 
-    timer = setTimeout(roll, first)
+    // A roll that is not over (a tab in the background holds the frames back while the timers go on) is left to end where it was going: on the six
+    const beat = rhythm({ first, every, busy: () => angle.isAnimating(), start: roll })
+    playNow.current = beat.play
+
     return () => {
-      if (timer) clearTimeout(timer)
+      playNow.current = null
+      beat.stop()
       running.forEach((controls) => controls.stop())
     }
   }, [reduced, angle, swell, first, every])
 
-  return <DieCube angle={angle} scale={swell} />
+  return <DieCube ref={root} angle={angle} scale={swell} />
 }
 
 export { TitleDie }

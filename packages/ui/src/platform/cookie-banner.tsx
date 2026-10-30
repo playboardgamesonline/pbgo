@@ -10,11 +10,13 @@ import { Button } from "./button"
 type CookieBannerTexts = {
   /** The title of the card, which is also its accessible name. */
   label: string
-  /** One sentence: what is counted whatever the answer, and what accepting adds. */
+  /** One sentence: what the site needs, and what the visitor's permission adds. */
   body: string
+  /** Allows everything. */
   accept: string
+  /** Refuses everything that is optional. */
   refuse: string
-  /** The word of the link that ends the sentence and leads to the legal notice. */
+  /** The words of the link that ends the sentence and leads to the policy. */
   more: string
   close: string
 }
@@ -37,10 +39,14 @@ type CookieBannerProps = {
   ref?: React.Ref<HTMLDivElement>
 }
 
+/** Both answers are the same big button, 3rem high and 3.5rem from the bar layout on (`rounded-2xl`: a control of that height): refusing is as easy to hit as accepting, whatever their fill. */
+const ANSWER = "h-12 rounded-2xl px-6 text-base max-sm:flex-1 lg:h-14 lg:px-8"
+
 /**
- * The consent banner: a card that floats over the bottom of the screen, centred, with a title, a sentence that ends with a link
- * to the details, then Refuse and Accept. They are the same button side by side (same variant, same size), so refusing is as
- * easy and as visible as accepting. On a phone the card takes the width of the screen, less its margin.
+ * The consent banner: a wide card that floats over the bottom of the screen, centred, with a title and a sentence that ends with a
+ * link to the policy on its side, and two big buttons on the other: Reject optional (ghost) and Accept all. They are the same size
+ * and the same shape, side by side. From `lg` the card is a bar (the words, then the buttons, centred on its height); under it the
+ * words are over the buttons, which keep to the right, and on a phone they share the width of the card.
  *
  * It is `fixed`, but it must never sit over what the page shows. It floats inside a box that holds its margin (`px-4 pb-4`, `px-6 pb-6` from
  * `sm`: its own, since the page's gutter is 64px on a desktop), and the caller measures that box and makes the room (`@pbgo/analytics` publishes its height as `--consent-h`, see
@@ -75,30 +81,33 @@ function CookieBanner({ texts, moreHref, lang, onAccept, onRefuse, onClose, clas
         onKeyDown={(event) => {
           if (event.key === "Escape") onClose?.()
         }}
-        className="pointer-events-auto mx-auto flex w-full max-w-lg animate-in flex-col gap-3 rounded-4xl bg-card p-5 text-card-foreground shadow-float ring-1 ring-foreground/10 duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-4"
+        className={cn(
+          "pointer-events-auto relative mx-auto flex w-full max-w-4xl animate-in flex-col gap-3 rounded-4xl bg-card p-4 text-card-foreground shadow-float ring-1 ring-foreground/10 duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-4 sm:gap-4 sm:p-5 lg:flex-row lg:items-center lg:gap-8 lg:p-6",
+          reopened && "lg:pr-16"
+        )}
       >
-        <div className="flex items-center justify-between gap-3">
-          <h2 id={titleId} className="font-heading text-base">
+        {reopened && (
+          <Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" onClick={onClose}>
+            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+            <span className="sr-only">{texts.close}</span>
+          </Button>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+          <h2 id={titleId} className={cn("font-heading text-base", reopened && "pr-8 lg:pr-0")}>
             {texts.label}
           </h2>
-          {reopened && (
-            <Button variant="ghost" size="icon-sm" className="-mr-2 shrink-0" onClick={onClose}>
-              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-              <span className="sr-only">{texts.close}</span>
-            </Button>
-          )}
+          <p className="text-sm text-muted-foreground">
+            {texts.body}{" "}
+            <a href={moreHref} className="text-foreground underline underline-offset-4 hover:no-underline">
+              {texts.more}
+            </a>
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {texts.body}{" "}
-          <a href={moreHref} className="text-foreground underline underline-offset-4 hover:no-underline">
-            {texts.more}
-          </a>
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="lg" onClick={onRefuse}>
+        <div className="flex gap-2 sm:justify-end lg:shrink-0">
+          <Button variant="ghost" size="lg" className={ANSWER} onClick={onRefuse}>
             {texts.refuse}
           </Button>
-          <Button size="lg" onClick={onAccept}>
+          <Button size="lg" className={ANSWER} onClick={onAccept}>
             {texts.accept}
           </Button>
         </div>

@@ -9,7 +9,7 @@
  * below, to the names the specimen's wrapper sets (_components/game-scope.tsx). `@theme inline` emits no variable, so
  * the platform still sets no value on :root. game.css itself stays out of the hub.
  *
- * The four display faces (the rotating word of the home's title, `FaceCycle`, and the footer's PBGO, `Wordmark`) are imported here, the latin
+ * The four display faces (the footer's PBGO, `Wordmark`) are imported here, the latin
  * subset and the one weight each is set at in platform.css (`display-*`). The hub, the gamemaster and the 404 pages load this file and a game page
  * does not, so a game never carries them; a font file is downloaded only where a word uses it.
  */
