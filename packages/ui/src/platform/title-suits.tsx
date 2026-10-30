@@ -89,15 +89,14 @@ function TitleSuits({ first = 11000, every = 15000 }: { first?: number; every?: 
           ))}
         </motion.span>
       </motion.span>
-      {!reduced && (
-        <svg aria-hidden="true" focusable="false" width="0" height="0" className="absolute">
-          {Array.from({ length: LEVELS }, (_, index) => (
-            <filter key={index} id={`${id}-${index + 1}`} primitiveUnits="objectBoundingBox" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation={`0 ${(((index + 1) / LEVELS) * blur.max / WINDOW).toFixed(4)}`} />
-            </filter>
-          ))}
-        </svg>
-      )}
+      {/* Drawn for a visitor who asks for less motion too, who never uses it: what the client draws first must be what the server drew, and the server does not know the visitor's preference */}
+      <svg aria-hidden="true" focusable="false" width="0" height="0" className="absolute">
+        {Array.from({ length: LEVELS }, (_, index) => (
+          <filter key={index} id={`${id}-${index + 1}`} primitiveUnits="objectBoundingBox" colorInterpolationFilters="sRGB">
+            <feGaussianBlur stdDeviation={`0 ${(((index + 1) / LEVELS) * blur.max / WINDOW).toFixed(4)}`} />
+          </filter>
+        ))}
+      </svg>
     </>
   )
 }
