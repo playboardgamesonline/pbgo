@@ -3,10 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The hub catalog: every game of the hub in one list, the live games of the registry then the planned games of the Notion Games database, each with the values of its Notion row. `.` is the pure model, `./server` the cached reader for apps/web, `./route` the handler of the games' pictures, `./seo` the metadata, JSON-LD and sitemap of the game pages.",
+  "description": "The hub catalog: every game of the hub in one list, the live games of the registry then the planned games of the Notion Games database, each with the values of its Notion row. `.` is the pure model, `./server` the cached reader for apps/web, `./route` the handler of the games' pictures, `./seo` the metadata, JSON-LD and sitemap of the game pages, `./notion` and `./picture` the Notion reader and the picture download that the platform's seed (`platform/content`) reads the rows and the pictures with.",
   "exports": {
     ".": "./src/catalog.ts",
     "./filter": "./src/filter.ts",
+    "./notion": "./src/notion.ts",
+    "./picture": "./src/picture.ts",
     "./server": "./src/server.ts",
     "./route": "./src/route.ts",
     "./seo": "./src/seo.ts"
