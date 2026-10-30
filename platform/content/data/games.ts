@@ -61,7 +61,7 @@ export function buildGames(games: readonly NotionGame[]): SeedDoc[] {
       order: (position + 1) * ORDER_STEP,
     }
     if (game.bggId !== null) doc.bggId = game.bggId
-    if (game.standaloneOf !== null && known.has(game.standaloneOf)) doc.baseGame = reference(gameId(game.standaloneOf))
+    if (game.standaloneOf !== null && known.has(game.standaloneOf)) doc.baseGame = reference(gameId(game.standaloneOf), "game")
 
     if (game.players) {
       doc.playersMin = game.players.min
@@ -71,11 +71,11 @@ export function buildGames(games: readonly NotionGame[]): SeedDoc[] {
     if (game.age !== null) doc.minAge = game.age
     if (game.complexity !== null) doc.complexity = game.complexity
     if (game.releaseDate !== null) doc.releaseDate = game.releaseDate
-    if (game.categories.length > 0) doc.categories = game.categories.map((name) => item(categoryId(name)))
+    if (game.categories.length > 0) doc.categories = game.categories.map((name) => item(categoryId(name), "category"))
 
     const credits = creditsOf(game)
-    if (credits.length > 0) doc.creators = credits.map(({ creator, roles }) => ({ _key: creator, _type: "gameCreator", creator: reference(creator), roles }))
-    if (game.publishers.length > 0) doc.publishers = game.publishers.map(({ name }) => item(publisherId(name)))
+    if (credits.length > 0) doc.creators = credits.map(({ creator, roles }) => ({ _key: creator, _type: "gameCreator", creator: reference(creator, "creator"), roles }))
+    if (game.publishers.length > 0) doc.publishers = game.publishers.map(({ name }) => item(publisherId(name), "publisher"))
 
     if (game.descriptions.en) doc.description = game.descriptions.en
     for (const { id } of LANGUAGES) {
@@ -84,8 +84,8 @@ export function buildGames(games: readonly NotionGame[]): SeedDoc[] {
     }
 
     const others = related.get(game.slug) ?? []
-    // Weak, as the field is: two games are related both ways, so strong references would each wait for the other to be published
-    if (others.length > 0) doc.related = others.map((slug) => item(gameId(slug), true))
+    // Weak for good, as the field is: two games are related both ways, so strong references would each wait for the other to be published
+    if (others.length > 0) doc.related = others.map((slug) => item(gameId(slug), "game", true))
     return doc
   })
 }

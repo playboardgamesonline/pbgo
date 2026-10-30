@@ -5,6 +5,13 @@ import { categoryId, creatorId, gameId, publisherId } from "./ids.ts"
 import { buildSeedContent } from "./index.ts"
 import { notionGame, publisherRow, seedDocs, source } from "./test-fixtures.ts"
 
+/**
+ * A reference as the Studio writes it into a draft whose target is not published: weak, marked to be made strong when the draft is
+ * published. `weak`: the field is weak for good, and the mark says so.
+ */
+const link = (id: string, type: string, weak = false) => ({ _type: "reference", _ref: id, _weak: true, _strengthenOnPublish: weak ? { type, weak: true } : { type } })
+const listed = (id: string, type: string, weak = false) => ({ _key: id, ...link(id, type, weak) })
+
 const byId = (id: string) => {
   const found = seedDocs().find((doc) => doc._id === id)
   if (!found) throw new Error(`The seed has no document ${id}`)
@@ -123,21 +130,16 @@ describe("a game", () => {
 
   it("points at its categories and its publishers by reference, each in a list item that has a key", () => {
     const doc = byId("game-the-mind")
-    expect(doc.categories).toEqual([{ _key: "category-cooperation", _type: "reference", _ref: "category-cooperation" }])
-    expect(doc.publishers).toEqual([
-      { _key: "publisher-cocktail-games", _type: "reference", _ref: "publisher-cocktail-games" },
-      { _key: "publisher-pandasaurus", _type: "reference", _ref: "publisher-pandasaurus" },
-    ])
+    expect(doc.categories).toEqual([listed("category-cooperation", "category")])
+    expect(doc.publishers).toEqual([listed("publisher-cocktail-games", "publisher"), listed("publisher-pandasaurus", "publisher")])
   })
 
   it("credits a person once, on one line with every role they have on it: the designers are designers, the artists artists, and one can be both", () => {
     expect(byId("game-hanabi").creators).toEqual([
-      { _key: "creator-antoine-bauza", _type: "gameCreator", creator: { _type: "reference", _ref: "creator-antoine-bauza" }, roles: ["designer", "artist"] },
-      { _key: "creator-laura-michaud", _type: "gameCreator", creator: { _type: "reference", _ref: "creator-laura-michaud" }, roles: ["artist"] },
+      { _key: "creator-antoine-bauza", _type: "gameCreator", creator: link("creator-antoine-bauza", "creator"), roles: ["designer", "artist"] },
+      { _key: "creator-laura-michaud", _type: "gameCreator", creator: link("creator-laura-michaud", "creator"), roles: ["artist"] },
     ])
-    expect(byId("game-the-mind").creators).toEqual([
-      { _key: "creator-wolfgang-warsch", _type: "gameCreator", creator: { _type: "reference", _ref: "creator-wolfgang-warsch" }, roles: ["designer"] },
-    ])
+    expect(byId("game-the-mind").creators).toEqual([{ _key: "creator-wolfgang-warsch", _type: "gameCreator", creator: link("creator-wolfgang-warsch", "creator"), roles: ["designer"] }])
   })
 
   it("takes the English description only, and a link to the rules in each language that has one", () => {
@@ -154,20 +156,32 @@ describe("a game", () => {
   })
 
   it("is related to the games its row names, and to the games whose row names it: both ways, its own links first", () => {
-    expect(byId("game-hanabi").related).toEqual([{ _key: "game-the-mind", _type: "reference", _ref: "game-the-mind", _weak: true }])
-    expect(byId("game-the-mind").related).toEqual([{ _key: "game-hanabi", _type: "reference", _ref: "game-hanabi", _weak: true }])
-    expect(byId("game-flip-7").related).toEqual([{ _key: "game-flip-7-vengeance", _type: "reference", _ref: "game-flip-7-vengeance", _weak: true }])
-    expect(byId("game-flip-7-vengeance").related).toEqual([{ _key: "game-flip-7", _type: "reference", _ref: "game-flip-7", _weak: true }])
+    expect(byId("game-hanabi").related).toEqual([listed("game-the-mind", "game", true)])
+    expect(byId("game-the-mind").related).toEqual([listed("game-hanabi", "game", true)])
+    expect(byId("game-flip-7").related).toEqual([listed("game-flip-7-vengeance", "game", true)])
+    expect(byId("game-flip-7-vengeance").related).toEqual([listed("game-flip-7", "game", true)])
     expect("related" in byId("game-bare")).toBe(false)
   })
 
-  it("is related by weak references, and points at everything else by strong ones: games that name each other cannot wait for each other to be published", () => {
-    const weak = (value: unknown) => (Array.isArray(value) ? value : [value]).flatMap((entry) => (entry && typeof entry === "object" && "_ref" in entry ? [Boolean((entry as { _weak?: boolean })._weak)] : []))
+  it("writes every reference as the Studio writes one to a document that is not published: weak, and marked to be made strong on publication, except `related`, which stays weak", () => {
+    const marks = (value: unknown): { ref: string; weak: boolean | undefined; strengthen: unknown }[] =>
+      (Array.isArray(value) ? value : [value]).flatMap((entry) =>
+        entry && typeof entry === "object" && "_ref" in entry
+          ? [{ ref: String((entry as { _ref: unknown })._ref), weak: (entry as { _weak?: boolean })._weak, strengthen: (entry as { _strengthenOnPublish?: unknown })._strengthenOnPublish }]
+          : [],
+      )
     for (const doc of seedDocs().filter((candidate) => candidate._type === "game")) {
-      expect(weak(doc.related).every(Boolean), doc._id).toBe(true)
-      for (const field of ["categories", "publishers", "baseGame"]) expect(weak(doc[field]).some(Boolean), `${doc._id} › ${field}`).toBe(false)
-      for (const line of doc.creators ?? []) expect(weak(line.creator).some(Boolean), `${doc._id} › creators`).toBe(false)
+      for (const [field, type] of [["categories", "category"], ["publishers", "publisher"], ["baseGame", "game"]] as const) {
+        for (const mark of marks(doc[field])) expect(mark, `${doc._id} › ${field}`).toMatchObject({ weak: true, strengthen: { type } })
+      }
+      for (const line of doc.creators ?? []) expect(marks(line.creator)[0], `${doc._id} › creators`).toMatchObject({ weak: true, strengthen: { type: "creator" } })
+      for (const mark of marks(doc.related)) expect(mark, `${doc._id} › related`).toMatchObject({ weak: true, strengthen: { type: "game", weak: true } })
     }
+  })
+
+  it("is a reference only to a document the dataset refuses nothing about: every reference is weak, so a draft can point at what is not published", () => {
+    const strong = JSON.stringify(seedDocs()).match(/"_type":"reference","_ref":"[^"]+"(?!,"_weak":true)/g)
+    expect(strong).toBeNull()
   })
 
   it("is not related to a game that is not in the catalog, nor to itself", () => {

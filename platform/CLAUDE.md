@@ -13,7 +13,7 @@
 
 ## Rules
 - English everywhere, the texts of the Studio included: the translation system of Sanity comes later. The one multilingual thing is the link to the rules, a field per language
-- The seed writes drafts only and publishes nothing; creators, publishers and categories are published before the games (strong references), `related` is weak. Never run `content:seed --apply` or deploy the Studio without the owner's go
+- The seed writes drafts only and publishes nothing, and writes its references weak and marked to be made strong on publication (the dataset refuses a strong one to a document that is not published, a draft's included). Creators, publishers and categories are published before the games; `related` is weak for good. Never run `content:seed --apply` or deploy the Studio without the owner's go
 - The Studio forms follow the skill `game-sanity-create`: no description under a field, the title says it; the `game` in tabs
 - A document type added to the seed gets its tests in `data/` and a line in `docs/platform-sanity.md`; the model's shape is pinned by `schemaTypes/model.test.ts`
 

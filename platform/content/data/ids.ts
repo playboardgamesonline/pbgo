@@ -14,11 +14,21 @@ export const creatorId = (name: string): string => idOf("creator", name)
 export const publisherId = (name: string): string => idOf("publisher", name)
 export const categoryId = (name: string): string => idOf("category", name)
 
-/** A reference to a document, as a field holds it. */
-export const reference = (id: string): { _type: "reference"; _ref: string } => ({ _type: "reference", _ref: id })
+/** The types of document a reference of the seed points at. */
+export type Target = "game" | "creator" | "publisher" | "category"
 
 /**
- * A reference that is an item of a list: it needs a `_key`, and the id it points at is one that no other item of the list has. A weak
- * reference (`_weak`) does not wait for the document it points at to be published, and does not keep it from being deleted.
+ * A reference as the Studio writes it into a draft whose target is not published yet: weak, because the dataset refuses a strong reference
+ * to a document that is not published, a draft's own included, and marked `_strengthenOnPublish` so that the Studio makes it strong when
+ * the draft is published (which then needs the target published first). A field that is weak for good (`weak: true` in its schema,
+ * `related`) says so in the mark and stays weak.
  */
-export const item = (id: string, weak = false): { _key: string; _type: "reference"; _ref: string; _weak?: true } => ({ _key: id, ...reference(id), ...(weak ? { _weak: true as const } : {}) })
+export const reference = (id: string, type: Target, weak = false): { _type: "reference"; _ref: string; _weak: true; _strengthenOnPublish: { type: Target; weak?: true } } => ({
+  _type: "reference",
+  _ref: id,
+  _weak: true,
+  _strengthenOnPublish: weak ? { type, weak: true } : { type },
+})
+
+/** A reference that is an item of a list: it needs a `_key`, and the id it points at is one that no other item of the list has. */
+export const item = (id: string, type: Target, weak = false) => ({ _key: id, ...reference(id, type, weak) })
