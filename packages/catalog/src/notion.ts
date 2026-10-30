@@ -33,6 +33,10 @@ export const COLUMNS = {
   duration: "Duration",
   /** A number: the weight BoardGameGeek gives the game, from 1 (light) to 5 (heavy), written as BGG writes it (2.35). It sets the hub's complexity filter. */
   complexity: "Complexity",
+  /** A number: the id of the game on BoardGameGeek, the one in the address of its page. */
+  bggId: "BGG ID",
+  /** A date: when the game came out. Notion keeps the day, and a year alone is the first of January. */
+  releaseDate: "Release date",
   age: "Age",
   /** A multi-select: the categories of the game, which the hub's category filter offers. Not `Game family`, which is a franchise. */
   categories: "Tags",
@@ -58,7 +62,7 @@ export const COLUMNS = {
 const STANDALONE_EXPANSION = "Standalone expansion"
 
 /** The columns of the Editors database. */
-const EDITOR_COLUMNS = { name: "Name", url: "URL" } as const
+const EDITOR_COLUMNS = { name: "Name", url: "URL", logo: "Logo" } as const
 
 /** The columns of the Creators database, the people. Its `Role` is not read: the relation of the game says what a person is to it. */
 const CREATOR_COLUMNS = { name: "Name" } as const
@@ -215,6 +219,19 @@ const minutesOf = (raw: unknown): number | null => (typeof raw === "number" && N
 
 /** A weight on BoardGameGeek's scale: from 1 (light) to 5 (heavy). Anything else, a 0 included (BGG's own "not enough votes"), is no weight. */
 const weightOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isFinite(raw) && raw >= 1 && raw <= 5 ? raw : null)
+
+/** An id on BoardGameGeek: a whole number above zero. */
+const bggIdOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isInteger(raw) && raw > 0 ? raw : null)
+
+/** The day a date column holds, `YYYY-MM-DD` (a time of day is dropped), or null for an empty cell or a day that does not exist. */
+function dayOf(raw: unknown): string | null {
+  const start = isRecord(raw) && typeof raw.start === "string" ? raw.start.slice(0, 10) : ""
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(start)
+  if (!match) return null
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? start : null
+}
 
 /** A web link, or null: a rulebook or a website is only ever opened if it is http(s). `secureOnly`: https alone, for what the server itself fetches. */
 function linkOf(raw: unknown, secureOnly = false): string | null {
@@ -397,6 +414,8 @@ function planned(
     players: playersOf(optionOf(value(page, COLUMNS.players))),
     duration: minutesOf(value(page, COLUMNS.duration)),
     complexity: weightOf(value(page, COLUMNS.complexity)),
+    bggId: bggIdOf(value(page, COLUMNS.bggId)),
+    releaseDate: dayOf(value(page, COLUMNS.releaseDate)),
     age: ageOf(optionOf(value(page, COLUMNS.age))),
     categories: optionsOf(value(page, COLUMNS.categories)),
     authors: resolve(value(page, COLUMNS.authors), creators),
@@ -410,6 +429,7 @@ function planned(
     },
     development: developments.get(normalizeId(page.id)) ?? { priority: null, status: null, effort: null },
     // Settled by `readNotionGames`, once every row is known: a link is the id of a row, and the slug is the row's
+    standaloneOf: null,
     related: [],
     editedAt: editedAtOf(page),
     notionPageId: page.id,
@@ -457,7 +477,7 @@ export async function readNotionGames(options: NotionReadOptions): Promise<Notio
   }
 
   // A game and the ids of the rows it points to: they become slugs once every row is known
-  const kept: { game: NotionGame; links: string[] }[] = []
+  const kept: { game: NotionGame; links: string[]; base: string[] }[] = []
   const skipped: SkippedRow[] = []
   const slugs = new Map<string, string>()
   const slugOf = new Map<string, string>()
@@ -478,11 +498,37 @@ export async function readNotionGames(options: NotionReadOptions): Promise<Notio
     }
     slugs.set(slug, name)
     slugOf.set(normalizeId(page.id), slug)
-    kept.push({ game: planned(page, name, slug, editors.rows, creators.rows, development.ranks), links: [...relationOf(value(page, COLUMNS.related)), ...parent] })
+    // A row with a parent that got here is a standalone expansion: the parent is its base game
+    kept.push({ game: planned(page, name, slug, editors.rows, creators.rows, development.ranks), links: [...relationOf(value(page, COLUMNS.related)), ...parent], base: parent })
   }
   // A link to a row that is not a game of the catalog (an expansion, a row left out) is dropped, like an author the Creators database lacks
-  const games = kept.map(({ game, links }) => ({ ...game, related: [...new Set(links.flatMap((id) => slugOf.get(id) ?? []))].filter((slug) => slug !== game.slug) }))
+  const games = kept.map(({ game, links, base }) => ({
+    ...game,
+    related: [...new Set(links.flatMap((id) => slugOf.get(id) ?? []))].filter((slug) => slug !== game.slug),
+    standaloneOf: base.flatMap((id) => slugOf.get(id) ?? [])[0] ?? null,
+  }))
   return { games, skipped, expansions, warnings }
+}
+
+/**
+ * A row of the Editors database: a publisher, its website, and the link of its logo (null when it has none or the link is not one the server
+ * fetches). An uploaded file's link expires after about an hour, so it is read when it is used and kept nowhere.
+ */
+export type PublisherRow = { id: string; name: string; url: string | null; logo: string | null }
+
+/**
+ * Every publisher of the Editors database, in the order the rows were made, a row with no name left out. `readNotionGames` hands a game
+ * its publishers as `{ name, url }` and the logo is not part of it: the platform's seed and its picture step read the rows from here,
+ * read without a cache (`init: { cache: "no-store" }`) for the logos' sake. Throws a `NotionError`.
+ */
+export async function readPublishers(options: NotionReadOptions): Promise<PublisherRow[]> {
+  const rows: PublisherRow[] = []
+  for (const page of await queryAll(EDITORS_DATABASE_ID, options)) {
+    if (page.archived === true || page.in_trash === true) continue
+    const name = creditOf(value(page, EDITOR_COLUMNS.name))
+    if (name) rows.push({ id: page.id, name, url: linkOf(value(page, EDITOR_COLUMNS.url)), logo: pictureOf(value(page, EDITOR_COLUMNS.logo)) })
+  }
+  return rows
 }
 
 /** What a row's pictures are right now: the date of its last edit and the link of each picture it has, null for one it has not. */

@@ -1,7 +1,7 @@
 import { slugProblem } from "@pbgo/games/slug"
 import { describe, expect, it } from "vitest"
 import type { NotionGame } from "./catalog"
-import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readPictureLinks, readNotionGames } from "./notion"
+import { CREATORS_DATABASE_ID, DEVELOPMENT_DATABASE_ID, EDITORS_DATABASE_ID, GAMES_DATABASE_ID, NOTION_VERSION, NotionError, readNotionGames, readPictureLinks, readPublishers } from "./notion"
 import {
   creatorPage,
   developmentDatabase,
@@ -242,6 +242,8 @@ describe("a row of the Games database", () => {
           players: "2 - 5",
           duration: 25,
           complexity: 1.74,
+          bggId: 98778,
+          releaseDate: "2010-01-01",
           age: "8+",
           tags: ["Cards", "Party"],
           authors: [CREATOR_1, CREATOR_2],
@@ -266,6 +268,8 @@ describe("a row of the Games database", () => {
           players: { min: 2, max: 5 },
           duration: 25,
           complexity: 1.74,
+          bggId: 98778,
+          releaseDate: "2010-01-01",
           age: 8,
           categories: ["Cards", "Party"],
           authors: ["Author One", "Author Two"],
@@ -274,6 +278,7 @@ describe("a row of the Games database", () => {
           rules: { en: "https://example.com/rules-en.pdf" },
           art: { logo: true, icon: true, background: false },
           development: { priority: null, status: null, effort: null },
+          standaloneOf: null,
           related: [],
           editedAt: "2026-10-20T10:00:00.000Z",
           notionPageId: "11111111-aaaa-4bbb-8ccc-000000000001",
@@ -294,6 +299,8 @@ describe("a row of the Games database", () => {
       players: null,
       duration: null,
       complexity: null,
+      bggId: null,
+      releaseDate: null,
       age: null,
       categories: [],
       authors: [],
@@ -302,6 +309,7 @@ describe("a row of the Games database", () => {
       rules: {},
       art: { logo: false, icon: false, background: false },
       development: { priority: null, status: null, effort: null },
+      standaloneOf: null,
       related: [],
       editedAt: "2026-10-01T00:00:00.000Z",
       notionPageId: "game-hanabi",
@@ -384,6 +392,41 @@ describe("a row of the Games database", () => {
     expect(read.warnings).toContain('The Games database has no "Complexity" column: it is left empty for every game')
   })
 
+  it.each([
+    [98778, 98778],
+    [1, 1],
+    [0, null],
+    [-4, null],
+    [1.5, null],
+    [null, null],
+  ])("reads the BGG ID %j as %j", async (id, bggId) => {
+    expect((await one({ bggId: id })).bggId).toBe(bggId)
+  })
+
+  it.each([
+    ["2010-01-01", "2010-01-01"],
+    ["2019-11-05T10:30:00.000+01:00", "2019-11-05"],
+    ["2024-02-29", "2024-02-29"],
+    ["2023-02-29", null],
+    ["2010-13-01", null],
+    ["spring 2010", null],
+    [null, null],
+  ])("reads the Release date %j as %j", async (day, releaseDate) => {
+    expect((await one({ releaseDate: day })).releaseDate).toBe(releaseDate)
+  })
+
+  it("warns of a missing BGG ID or Release date column, and reads every game with none", async () => {
+    const page = gamePage({ name: "Sample", slug: "sample", bggId: 1, releaseDate: "2010-01-01" })
+    delete page.properties["BGG ID"]
+    delete page.properties["Release date"]
+    const read = await readGames([page])
+    expect(read.games[0]).toMatchObject({ bggId: null, releaseDate: null })
+    expect(read.warnings).toEqual([
+      'The Games database has no "BGG ID" column: it is left empty for every game',
+      'The Games database has no "Release date" column: it is left empty for every game',
+    ])
+  })
+
   it("joins a text Notion cut into parts, and drops a language whose text is empty", async () => {
     const page = gamePage({ name: "Sample", slug: "sample", descriptions: { de: "Beschreibung" } })
     page.properties["Description EN"] = { type: "rich_text", rich_text: [{ plain_text: "Two " }, { plain_text: "parts\n" }] }
@@ -420,8 +463,10 @@ describe("a row of the Games database", () => {
     page.properties["Description EN"] = { type: "number", number: 12 }
     page.properties.Age = undefined
     page.properties.Tags = { type: "rich_text", rich_text: [{ plain_text: "Cards" }] }
+    page.properties["BGG ID"] = { type: "rich_text", rich_text: [{ plain_text: "98778" }] }
+    page.properties["Release date"] = { type: "rich_text", rich_text: [{ plain_text: "2010" }] }
     const [game] = (await readGames([page])).games
-    expect(game).toMatchObject({ name: "Sample", players: null, duration: null, complexity: null, age: null, categories: [], descriptions: {} })
+    expect(game).toMatchObject({ name: "Sample", players: null, duration: null, complexity: null, bggId: null, releaseDate: null, age: null, categories: [], descriptions: {} })
   })
 })
 
@@ -697,6 +742,22 @@ describe("a row that is not a game", () => {
     expect(read.skipped).toEqual([])
   })
 
+  it("names its base game: the slug of the game its Parent item is, and none for any other game", async () => {
+    const read = await readGames([
+      gamePage({ slug: "flip-7", name: "Flip 7", type: "Base game" }),
+      gamePage({ slug: "flip-7-vengeance", name: "Flip 7 Vengeance", parent: ["game-flip-7"], type: "Standalone expansion" }),
+    ])
+    expect(read.games.map((game) => [game.slug, game.standaloneOf])).toEqual([["flip-7", null], ["flip-7-vengeance", "flip-7"]])
+  })
+
+  it("names no base game when its Parent item is not a game of the catalog", async () => {
+    const read = await readGames([
+      gamePage({ id: "row-base", slug: "", name: "Base" }),
+      gamePage({ slug: "vengeance", name: "Vengeance", parent: ["row-base"], type: "Standalone expansion" }),
+    ])
+    expect(read.games.map((game) => [game.slug, game.standaloneOf])).toEqual([["vengeance", null]])
+  })
+
   it.each([
     ["has no Type", null],
     ["is an Expansion", "Expansion"],
@@ -949,6 +1010,55 @@ describe("the links of the pictures", () => {
 
   it("fail with the error of Notion, never with the token", async () => {
     const error = await failureOf(linksOf(notionFailure(401, "unauthorized", "API token is invalid.")))
+    expect(error).toMatchObject({ status: 401, code: "unauthorized" })
+    expect(error.message).not.toContain(TOKEN)
+  })
+})
+
+describe("the publishers of the Editors database", () => {
+  const rowsOf = (editors: Answer) => readPublishers({ token: TOKEN, fetch: fakeNotion({ editors }).fetch })
+
+  it("are read with their website and the link of their logo, in the order the rows were made", async () => {
+    const rows = await rowsOf([
+      editorPage({ id: "row-1", name: "Cocktail Games", url: "https://cocktailgames.example.com", logo: [uploaded("logo.png")] }),
+      editorPage({ id: "row-2", name: "Magilano" }),
+    ])
+    expect(rows).toEqual([
+      { id: "row-1", name: "Cocktail Games", url: "https://cocktailgames.example.com", logo: uploaded("logo.png").file.url },
+      { id: "row-2", name: "Magilano", url: null, logo: null },
+    ])
+  })
+
+  it("leave out a row with no name, and a row that is archived or in the trash", async () => {
+    const rows = await rowsOf([
+      editorPage({ id: "kept", name: "Kept" }),
+      editorPage({ id: "nameless", name: "  " }),
+      editorPage({ id: "old", name: "Old", archived: true }),
+      editorPage({ id: "bin", name: "Bin", inTrash: true }),
+    ])
+    expect(rows.map((row) => row.id)).toEqual(["kept"])
+  })
+
+  it("lose a stray tab in the name and an address that is not http(s), like the publishers of a game", async () => {
+    const [row] = await rowsOf([editorPage({ id: "row", name: "\tdaVinci Games", url: "javascript:alert(1)" })])
+    expect(row).toMatchObject({ name: "daVinci Games", url: null })
+  })
+
+  it("take the first logo the server can fetch: https only", async () => {
+    const [row] = await rowsOf([editorPage({ id: "row", name: "Sample", logo: [external("http://example.com/plain.png"), external("https://example.com/second.png"), external("https://example.com/third.png")] })])
+    expect(row?.logo).toBe("https://example.com/second.png")
+  })
+
+  it("ask the Editors database alone, once, with the options of the caller", async () => {
+    const notion = fakeNotion({ editors: [editorPage({ id: "row", name: "Sample" })] })
+    await readPublishers({ token: TOKEN, fetch: notion.fetch, init: { cache: "no-store" } })
+    expect(notion.calls.map((call) => call.database)).toEqual([EDITORS_DATABASE_ID])
+    expect(notion.calls[0]?.init).toMatchObject({ method: "POST", cache: "no-store" })
+    expect(notion.calls[0]?.headers.Authorization).toBe(`Bearer ${TOKEN}`)
+  })
+
+  it("fail with the error of Notion, never with the token", async () => {
+    const error = await failureOf(rowsOf(notionFailure(401, "unauthorized", "API token is invalid.")))
     expect(error).toMatchObject({ status: 401, code: "unauthorized" })
     expect(error.message).not.toContain(TOKEN)
   })

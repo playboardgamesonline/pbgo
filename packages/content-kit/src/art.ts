@@ -21,7 +21,7 @@ export type ArtSlot = {
   place: (doc: SeedDoc, image: ImageValue) => void
 }
 
-const RASTER_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"])
+const RASTER_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif"])
 const IMAGE_EXTENSIONS = new Set([...RASTER_EXTENSIONS, ".svg"])
 const RATIO_TOLERANCE = 0.03
 

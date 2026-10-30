@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { MockInstance } from "vitest"
 import { HELP } from "./cli.ts"
 import { runSeedCli } from "./seed-cli.ts"
-import type { SeedConfig } from "./seed-cli.ts"
+import type { SeedConfig, SeedContent } from "./seed-cli.ts"
 
 // Only the paths that end before the dataset is reached are run here: a seed that gets further would write to a real project.
 
@@ -89,5 +89,37 @@ describe("runSeedCli", () => {
       ["--dry-run"],
     )
     expect(printed(error)).toEqual(["Error: plain text"])
+  })
+})
+
+// A seed that reads its content from somewhere (the platform's reads Notion) hands it over as `content`, built when the pipeline asks for it
+describe("runSeedCli with content that is built when asked for", () => {
+  const lazy = (content: () => Promise<SeedContent>): SeedConfig => ({
+    slug: "kit-test",
+    projectId: "abc123",
+    dataset: "production",
+    envFile: "/nonexistent/folder/.env.local",
+    content,
+  })
+
+  it("builds nothing for --help, for a wrong option, or before the token is read", async () => {
+    const content = vi.fn(async () => ({ docs: [], slots: [] }))
+    await runSeedCli(lazy(content), ["--help"])
+    await runSeedCli(lazy(content), ["--frobnicate"])
+    await runSeedCli(lazy(content), ["--dry-run"])
+    expect(content).not.toHaveBeenCalled()
+    expect(printed(error).at(-1)).toContain(`${TOKEN_NAME} is not set`)
+  })
+
+  it("never prints the token, even when what it reads fails with it", async () => {
+    vi.stubEnv(TOKEN_NAME, TOKEN)
+    await runSeedCli(
+      lazy(async () => {
+        throw new Error(`Notion answered 401 for ${TOKEN}`)
+      }),
+      ["--dry-run"],
+    )
+    expect(printed(error)).toEqual(["Error: Notion answered 401 for [token]"])
+    expect(process.exitCode).toBe(1)
   })
 })
