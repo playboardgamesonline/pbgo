@@ -1,113 +1,63 @@
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
-import { pictureVersion } from "./catalog"
-import {
-  editorPage,
-  external,
-  fakeNotion,
-  fakeWeb,
-  gamePage,
-  htmlResponse,
-  notionFailure,
-  pictureBytes,
-  pictureResponse,
-  uploaded,
-  webPage,
-  type GameRow,
-  type HostHandler,
-  type NotionPage,
-  type PictureKind,
-} from "./testing"
+import { iconVersion } from "./catalog"
+import { PLATFORM_PROJECT_ID } from "./sanity"
+import { cdn, fakeWeb, htmlResponse, pictureBytes, pictureResponse, sanityGame, webPage, type HostHandler } from "./testing"
 
 // `server-only` throws outside a server bundle
 vi.mock("server-only", () => ({}))
 
-const TOKEN = "ntn_testsecret123"
-/** Where Notion keeps the files that are uploaded to it (`uploaded()` in `testing.ts`). */
-const S3 = "prod-files-secure.s3.us-west-2.amazonaws.com"
-
 // The registry as the catalog reads it (its literal types would make `slug !== "template"` a comparison with no overlap)
 const REGISTRY: readonly GameEntry[] = GAMES
-/** A live game of the registry: the hub shows the pictures of its Notion row, as it does any game's. */
+/** A live game of the registry: the hub shows the pictures of its game in the Studio, as it does any game's. */
 const LIVE = REGISTRY.find((game) => game.live && game.slug !== "template")
-/** A game of the registry that is not live: it takes its Notion row. */
+/** A game of the registry that is not live: it takes its game of the Studio. */
 const PLANNED = REGISTRY.find((game) => !game.live && game.slug !== "template")
-/** A planned game that the registry does not know: only its Notion row makes it a game. */
-const NOTION_ONLY = "azul"
-if (!LIVE || !PLANNED || REGISTRY.some((game) => game.slug === NOTION_ONLY)) {
-  throw new Error(`The registry needs a live game and a game that is not live, and no "${NOTION_ONLY}", for this test`)
+/** A game that the registry does not know: only its game in the Studio makes it a game. */
+const STUDIO_ONLY = "azul"
+if (!LIVE || !PLANNED || REGISTRY.some((game) => game.slug === STUDIO_ONLY)) {
+  throw new Error(`The registry needs a live game and a game that is not live, and no "${STUDIO_ONLY}", for this test`)
 }
 
 // What each answer may be kept for: the contract the CDN and the browser see (the constants of `route.ts` are not exported on purpose)
-const FRESH = "public, max-age=3600, s-maxage=86400"
 const SHORT = "public, max-age=60, s-maxage=60"
 const REDIRECT = "public, max-age=0, s-maxage=10"
+const PICTURE_REDIRECT = "public, max-age=300, s-maxage=3600"
 const ICON = "public, max-age=86400, s-maxage=86400"
 const NO_ICON = "public, max-age=3600, s-maxage=3600"
 const SANDBOX = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
 
+const SANITY = `${PLATFORM_PROJECT_ID}.apicdn.sanity.io`
 const NOW = new Date("2026-10-22T12:00:00.000Z")
-const EDITED = "2026-10-05T10:20:30.000Z"
-const VERSION = pictureVersion(EDITED)
 
-/** A row of the Games database, edited at `EDITED` unless it says otherwise. */
-const row = (slug: string, overrides: GameRow = {}): GameRow => ({ slug, name: slug, editedAt: EDITED, ...overrides })
-
-const answer = (status: number, body: unknown, headers: Record<string, string> = {}) =>
-  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } })
-/** What Notion says when it refuses (a 429 says how long to wait in `retry-after`). */
-const failing = (status: number, headers: Record<string, string> = {}) => answer(status, notionFailure(status, "rate_limited", "No.").body, headers)
-/** What the Games database says when it has these rows. */
-const database = (rows: GameRow[]) => answer(200, { object: "list", results: rows.map(gamePage), has_more: false, next_cursor: null })
-
+/** The games of the Studio and the picture hosts as `World` describes them, and a picture route that has never been asked anything (and never logged anything). */
 type World = {
-  /** The rows of the Games database. */
-  rows?: GameRow[]
-  /** The rows of the Editors database, the publishers the rows of the games point to. */
-  editors?: NotionPage[]
-  /** The picture hosts by name: a host that is not here cannot be reached. */
+  /** The published games, as the query returns them. */
+  games?: Record<string, unknown>[]
+  /** The hosts of the web by name (the publishers' websites): a host that is not here cannot be reached. */
   hosts?: Record<string, HostHandler>
-  /** The server's Notion key: the usual one unless the test says there is none. */
-  token?: string | null
-  /** Answers the reads of the catalog (the calls Next caches) instead of the database. */
-  catalog?: () => Response
-  /** Answers the reads of the links of the pictures (the calls made without a cache) instead of the database: `call` counts them from 0, `normal` is what the database says. */
-  links?: (call: number, normal: () => Promise<Response>) => Response | Promise<Response>
+  /** What Sanity answers instead of the games, to say it cannot be read. */
+  sanity?: () => Response
 }
 
-/** Notion and the picture hosts as `World` describes them, and a picture route that has never been asked anything (and never logged anything). */
-async function world({ rows = [], editors = [], hosts = {}, token = TOKEN, catalog, links }: World = {}) {
-  vi.stubEnv("NOTION_API_KEY", token ?? undefined)
-  const notion = fakeNotion({ games: rows.map(gamePage), editors, creators: [], development: [] })
-  let linkReads = 0
-  const web = fakeWeb(
-    {
-      fetch: (async (input, init) => {
-        const normal = () => notion.fetch(input, init)
-        if (init?.cache === "no-store") return links ? links(linkReads++, normal) : normal()
-        return catalog ? catalog() : normal()
-      }) as typeof fetch,
-    },
-    hosts,
-  )
+async function world({ games = [], hosts = {}, sanity }: World = {}) {
+  const answer = sanity ?? (() => new Response(JSON.stringify({ result: games }), { headers: { "content-type": "application/json" } }))
+  const web = fakeWeb({ [SANITY]: answer, ...hosts })
   vi.stubGlobal("fetch", web.fetch)
   // A fresh copy of the module: the lines the previous test logged are forgotten with the old one
   vi.resetModules()
   const { pictureRoute } = await import("./route")
   const get = pictureRoute()
 
-  const isNotion = (request: { url: string }) => new URL(request.url).host === "api.notion.com"
   return {
     web,
     /** The route itself, for a request that `ask` does not write. */
     get,
-    /** The reads of the links of the pictures: the calls to Notion that were made without a cache. */
-    reads: () => web.requests.filter((request) => isNotion(request) && request.init.cache === "no-store"),
-    /** Everything that was asked of a picture host. */
-    downloads: () => web.requests.filter((request) => !isNotion(request)),
-    /** `GET /api/catalog/<slug>/<slot>?v=<version>`: the current version unless told otherwise, none with `null`. */
-    ask: (slug: string, slot: string, version: string | null = VERSION) =>
+    /** Everything that was asked of a host that is not Sanity. */
+    downloads: () => web.requests.filter((request) => new URL(request.url).host !== SANITY),
+    /** `GET /api/catalog/<slug>/<slot>?v=<version>`: none unless told. */
+    ask: (slug: string, slot: string, version: string | null = null) =>
       get(new Request(`https://pbgo.test/api/catalog/${slug}/${slot}${version === null ? "" : `?v=${version}`}`), { params: Promise.resolve({ slug, slot }) }),
   }
 }
@@ -131,374 +81,104 @@ afterEach(() => {
 /** Everything that was logged, as one text. */
 const logged = () => warn.mock.calls.map((call) => call.join(" ")).join("\n")
 const later = (ms: number) => vi.setSystemTime(Date.now() + ms)
-/** Lets everything that is not waiting for something else run. */
-const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 10))
 const bytesOf = async (response: Response) => new Uint8Array(await response.arrayBuffer())
 
-const png: Record<string, HostHandler> = { [S3]: () => pictureResponse("png") }
+const pictures = { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg") }
+const withPictures = (slug: string) => sanityGame(slug, { name: slug, ...pictures })
 
 describe("a picture of a game", () => {
-  it("is served as the file it is, kept a day by the CDN, with the headers of a file that only an <img> shows", async () => {
-    // The host says it sends a web page: the route believes the bytes, not the host
-    const w = await world({
-      rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })],
-      hosts: { [S3]: () => pictureResponse("png", { headers: { "content-type": "text/html" } }) },
-    })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(200)
-    expect(response.headers.get("content-type")).toBe("image/png")
-    expect(response.headers.get("cache-control")).toBe(FRESH)
-    expect(response.headers.get("x-content-type-options")).toBe("nosniff")
-    expect(response.headers.get("content-security-policy")).toBe(SANDBOX)
-    expect(await bytesOf(response)).toEqual(pictureBytes("png"))
-    expect(warn).not.toHaveBeenCalled()
-  })
-
-  it("comes from the link Notion gives now, and Notion's token never reaches the host of the picture", async () => {
-    const file = uploaded("logo.png")
-    const w = await world({ rows: [row(PLANNED.slug, { logo: [file] })], hosts: png })
-    await w.ask(PLANNED.slug, "logo")
-    const [read] = w.reads()
-    expect((read?.init.headers as Record<string, string>).Authorization).toBe(`Bearer ${TOKEN}`)
-    expect(w.downloads().map((request) => request.url)).toEqual([file.file.url])
-    const headers = Object.keys((w.downloads()[0]?.init.headers ?? {}) as Record<string, string>).map((name) => name.toLowerCase())
-    expect(headers).toEqual(["accept"])
-  })
-
-  it("is the one of the fresh read of Notion, not of the catalog's", async () => {
-    const w = await world({
-      rows: [row(PLANNED.slug, { logo: [uploaded("old.png")] })],
-      hosts: png,
-      // The same row, a link that has been renewed
-      links: () => database([row(PLANNED.slug, { logo: [uploaded("renewed.png")] })]),
-    })
-    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(200)
-    expect(w.downloads().map((request) => new URL(request.url).pathname)).toEqual(["/test/renewed.png"])
-  })
-
   it.each([
-    ["logo", "image/png"],
-    ["icon", "image/jpeg"],
-    ["background", "image/webp"],
-  ] as const)("serves the %s from its own file", async (slot, type) => {
-    const kinds: Record<string, PictureKind> = { "/test/logo.png": "png", "/test/icon.jpg": "jpeg", "/test/background.webp": "webp" }
-    const w = await world({
-      rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")], icon: [uploaded("icon.jpg")], background: [uploaded("background.webp")] })],
-      hosts: { [S3]: (url) => pictureResponse(kinds[url.pathname] ?? "gif") },
-    })
+    ["logo", `${pictures.logo}?w=800&fit=max&auto=format`],
+    ["icon", `${pictures.icon}?w=512&fit=max&auto=format`],
+    ["background", `${pictures.background}?w=1200&fit=max&auto=format`],
+  ])("sends the address of its %s to the image CDN of the platform's project, and downloads nothing", async (slot, location) => {
+    const w = await world({ games: [withPictures(PLANNED.slug)] })
     const response = await w.ask(PLANNED.slug, slot)
-    expect(response.status).toBe(200)
-    expect(response.headers.get("content-type")).toBe(type)
+    expect(response.status).toBe(308)
+    expect(response.headers.get("location")).toBe(location)
+    expect(response.headers.get("cache-control")).toBe(PICTURE_REDIRECT)
+    expect(w.downloads()).toEqual([])
   })
 
-  it("is served for a game the registry does not know, from a link to another site", async () => {
-    const w = await world({
-      rows: [row(NOTION_ONLY, { background: [external("https://cdn.example.org/azul/background.avif")] })],
-      hosts: { "cdn.example.org": () => pictureResponse("avif") },
-    })
-    const response = await w.ask(NOTION_ONLY, "background")
-    expect(response.status).toBe(200)
-    expect(response.headers.get("content-type")).toBe("image/avif")
+  it("sends a vector picture to its file as it is", async () => {
+    const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Vector", logo: cdn("logo-100x30.svg") })] })
+    expect((await w.ask(PLANNED.slug, "logo")).headers.get("location")).toBe(cdn("logo-100x30.svg"))
   })
 
-  it("is served for a live game too: the hub shows the pictures of its Notion row, not those of its Sanity project", async () => {
-    const w = await world({ rows: [row(LIVE.slug, { logo: [uploaded("logo.png")] })], hosts: png })
-    const response = await w.ask(LIVE.slug, "logo")
-    expect(response.status).toBe(200)
-    expect(response.headers.get("content-type")).toBe("image/png")
-    expect(response.headers.get("cache-control")).toBe(FRESH)
-    expect(await bytesOf(response)).toEqual(pictureBytes("png"))
+  it("is the same for a live game: the hub shows the pictures of its game in the Studio", async () => {
+    const w = await world({ games: [withPictures(LIVE.slug)] })
+    expect((await w.ask(LIVE.slug, "logo")).status).toBe(308)
   })
 
-  it("is kept a minute only when the row was edited after the catalog read it", async () => {
-    const w = await world({
-      rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })],
-      hosts: png,
-      // The same row, edited a minute later than the version of the URL
-      links: () => database([row(PLANNED.slug, { logo: [uploaded("logo.png")], editedAt: "2026-10-05T10:21:30.000Z" })]),
-    })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(200)
-    expect(response.headers.get("cache-control")).toBe(SHORT)
+  it("is the same for a game that the registry does not know", async () => {
+    const w = await world({ games: [withPictures(STUDIO_ONLY)] })
+    expect((await w.ask(STUDIO_ONLY, "background")).status).toBe(308)
+  })
+
+  it("ignores the version in the address: the addresses that were shared with one still lead to the picture", async () => {
+    const w = await world({ games: [withPictures(PLANNED.slug)] })
+    const location = (await w.ask(PLANNED.slug, "logo")).headers.get("location")
+    for (const version of ["abc", "0", "1zzz"]) expect((await w.ask(PLANNED.slug, "logo", version)).headers.get("location")).toBe(location)
+  })
+
+  it("never sends a visitor anywhere but to the image CDN of the project that was read", async () => {
+    const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Elsewhere", logo: "https://evil.example/logo.png" })] })
+    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(404)
   })
 })
 
 describe("a picture that is not there", () => {
   it.each(["banner", "Logo", "logo.png", "constructor", "__proto__", ""])("answers 404 for the slot %j, and asks nobody", async (slot) => {
-    const w = await world({ rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })], hosts: png })
+    const w = await world({ games: [withPictures(PLANNED.slug)] })
     const response = await w.ask(PLANNED.slug, slot)
     expect(response.status).toBe(404)
     expect(response.headers.get("cache-control")).toBe(SHORT)
-    expect(await response.text()).toBe("Not found")
     expect(w.web.requests).toEqual([])
   })
 
   it.each([
-    ["a slug that is nowhere", "nope"],
-    ["a game of the registry that has no row in Notion", PLANNED.slug],
-    ["a live game that has no row in Notion: the registry knows no picture of it", LIVE.slug],
-  ])("answers 404 for %s, without reading the links or downloading anything", async (_label, slug) => {
-    const w = await world({ rows: [row(NOTION_ONLY, { logo: [uploaded("logo.png")] })], hosts: png })
-    const response = await w.ask(slug, "logo")
-    expect(response.status).toBe(404)
-    expect(response.headers.get("cache-control")).toBe(SHORT)
-    expect(w.reads()).toEqual([])
-    expect(w.downloads()).toEqual([])
+    ["a game that is nowhere", "nope"],
+    ["a live game that the Studio has no game for: its row of the registry has no picture", LIVE.slug],
+    ["a game of the registry that is not live and has no game in the Studio", PLANNED.slug],
+  ])("answers 404 for %s", async (_label, slug) => {
+    const w = await world({ games: [withPictures(STUDIO_ONLY)] })
+    expect((await w.ask(slug, "logo")).status).toBe(404)
   })
 
-  it("answers 404 for a picture the row does not have, without reading the links or downloading anything", async () => {
-    const w = await world({ rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })], hosts: png })
+  it("answers 404 for a picture the game does not have, even when it has the others", async () => {
+    const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Half", logo: pictures.logo })] })
     const response = await w.ask(PLANNED.slug, "icon")
     expect(response.status).toBe(404)
-    expect(w.reads()).toEqual([])
-    expect(w.downloads()).toEqual([])
-  })
-
-  it("answers 404 when the server has no Notion key, and calls nobody", async () => {
-    const w = await world({ token: null, rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })], hosts: png })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(404)
-    expect(w.web.requests).toEqual([])
-    expect(warn).not.toHaveBeenCalled()
-  })
-
-  it.each([
-    ["the row was archived", () => database([row(PLANNED.slug, { logo: [uploaded("logo.png")], archived: true })])],
-    ["the row was deleted", () => database([])],
-    ["the picture was taken off the row", () => database([row(PLANNED.slug)])],
-    ["the picture became a link that is not a picture the server follows", () => database([row(PLANNED.slug, { logo: [external("http://example.com/logo.png")] })])],
-  ])("answers 404 when %s since the catalog read the row", async (_label, links) => {
-    const w = await world({ rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })], hosts: png, links })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(404)
     expect(response.headers.get("cache-control")).toBe(SHORT)
-    expect(w.downloads()).toEqual([])
-  })
-})
-
-describe("the version in the URL", () => {
-  it.each([
-    ["none", null],
-    ["an old one", "1abc"],
-    ["an empty one", ""],
-    ["one that is not a version", "<script>alert(1)</script>"],
-  ])("is corrected when it is %s: a redirect that costs nothing, kept ten seconds", async (_label, version) => {
-    const w = await world({ rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })], hosts: png })
-    const response = await w.ask(PLANNED.slug, "logo", version)
-    expect(response.status).toBe(307)
-    // Only what the route knows is in the address: a version that was sent is never repeated
-    expect(response.headers.get("location")).toBe(`/api/catalog/${PLANNED.slug}/logo?v=${VERSION}`)
-    expect(response.headers.get("cache-control")).toBe(REDIRECT)
-    expect(w.reads()).toEqual([])
-    expect(w.downloads()).toEqual([])
-  })
-})
-
-describe("when Notion cannot give the links", () => {
-  const rows = [row(PLANNED.slug, { logo: [uploaded("logo.png")], icon: [uploaded("icon.png")] })]
-
-  it("answers 503, not 404: the picture is there, it is only not known to be", async () => {
-    const w = await world({ rows, hosts: png, links: () => failing(500) })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(503)
-    expect(response.headers.get("cache-control")).toBe("no-store")
-    expect(response.headers.get("retry-after")).toBe("5")
-    expect(w.downloads()).toEqual([])
-    expect(logged()).toContain("[catalog] The pictures of the catalog cannot be read from Notion: Notion answered 500")
-    expect(logged()).not.toContain(TOKEN)
-  })
-
-  it("answers 503 when Notion cannot be reached at all", async () => {
-    const w = await world({
-      rows,
-      hosts: png,
-      links: () => {
-        throw new TypeError("fetch failed")
-      },
-    })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(503)
-    expect(logged()).toContain("Notion could not be reached (TypeError)")
-  })
-
-  it("says it once, however many pictures were asked for", async () => {
-    const w = await world({ rows, hosts: png, links: () => failing(500) })
-    await w.ask(PLANNED.slug, "logo")
-    await w.ask(PLANNED.slug, "icon")
-    later(60_000)
-    await w.ask(PLANNED.slug, "logo")
-    expect(w.reads()).toHaveLength(2)
-    expect(warn).toHaveBeenCalledTimes(1)
-  })
-
-  it("does not ask again for five seconds, then asks and recovers", async () => {
-    const w = await world({ rows, hosts: png, links: (call, normal) => (call === 0 ? failing(500) : normal()) })
-    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(503)
-    later(4000)
-    const waiting = await w.ask(PLANNED.slug, "icon")
-    expect(waiting.status).toBe(503)
-    expect(waiting.headers.get("retry-after")).toBe("1")
-    expect(w.reads()).toHaveLength(1)
-    later(1001)
-    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(200)
-    expect(w.reads()).toHaveLength(2)
+    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(308)
   })
 
   it.each([
-    ["wait two minutes", { "retry-after": "120" }, "120"],
-    ["wait four seconds", { "retry-after": "4" }, "5"],
-    ["say nothing about the wait", {}, "5"],
-  ])("does not wait for a rate limit that asks it to %s, and is told as long as it asks before the next read", async (_label, headers, wait) => {
-    const w = await world({ rows, hosts: png, links: (call, normal) => (call === 0 ? failing(429, headers) : normal()) })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(503)
-    expect(response.headers.get("retry-after")).toBe(wait)
-    expect(w.reads()).toHaveLength(1)
-    // Still inside the wait: nobody is asked
-    later(Number(wait) * 1000 - 1000)
-    expect((await w.ask(PLANNED.slug, "icon")).status).toBe(503)
-    expect(w.reads()).toHaveLength(1)
-    later(1001)
-    expect((await w.ask(PLANNED.slug, "icon")).status).toBe(200)
-    expect(w.reads()).toHaveLength(2)
-  })
-
-  it("waits once for a rate limit that is short, and then serves the picture", async () => {
-    const w = await world({ rows, hosts: png, links: (call, normal) => (call === 0 ? failing(429, { "retry-after": "0" }) : normal()) })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(200)
-    expect(w.reads()).toHaveLength(2)
-    expect(warn).not.toHaveBeenCalled()
-  })
-
-  it("waits only once", async () => {
-    const w = await world({ rows, hosts: png, links: () => failing(429, { "retry-after": "0" }) })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(503)
-    expect(w.reads()).toHaveLength(2)
-  })
-})
-
-describe("every picture of a page asked at once", () => {
-  const rows = [
-    row(PLANNED.slug, { logo: [uploaded("logo.png")], icon: [uploaded("icon.png")], background: [uploaded("background.png")] }),
-    row(NOTION_ONLY, { logo: [uploaded("azul.png")] }),
-  ]
-  const asks = (w: Awaited<ReturnType<typeof world>>) =>
-    Array.from({ length: 5 }, () => [w.ask(PLANNED.slug, "logo"), w.ask(PLANNED.slug, "icon"), w.ask(PLANNED.slug, "background"), w.ask(NOTION_ONLY, "logo")]).flat()
-
-  it("share one read of the links, whatever the number of pictures", async () => {
-    let open = () => {}
-    const gate = new Promise<void>((resolve) => {
-      open = resolve
-    })
-    const w = await world({
-      rows,
-      hosts: png,
-      links: async (_call, normal) => {
-        await gate
-        return normal()
-      },
-    })
-    const pending = asks(w)
-    await settle()
-    // The read is still open: whoever came meanwhile waits for it, nobody starts another
-    expect(w.reads()).toHaveLength(1)
-    open()
-    const responses = await Promise.all(pending)
-    expect(responses.map((response) => response.status)).toEqual(pending.map(() => 200))
-    expect(w.reads()).toHaveLength(1)
-  })
-
-  it("share one failure too: a Notion that is down is asked once, not by every picture", async () => {
-    const w = await world({ rows, hosts: png, links: () => failing(500) })
-    const responses = await Promise.all(asks(w))
-    expect(responses.map((response) => response.status)).toEqual(responses.map(() => 503))
-    expect(w.reads()).toHaveLength(1)
-  })
-
-  it("believe the links for thirty seconds, then ask again", async () => {
-    const w = await world({ rows, hosts: png })
-    await w.ask(PLANNED.slug, "logo")
-    later(29_000)
-    await w.ask(PLANNED.slug, "icon")
-    expect(w.reads()).toHaveLength(1)
-    later(2000)
-    await w.ask(PLANNED.slug, "background")
-    expect(w.reads()).toHaveLength(2)
-  })
-})
-
-describe("when the host of the picture fails", () => {
-  const rows = [row(PLANNED.slug, { logo: [uploaded("logo.png")] })]
-
-  it("answers 404 for a picture that is gone, and says so once, without the link that was signed", async () => {
-    const w = await world({ rows, hosts: { [S3]: () => new Response("gone", { status: 404 }) } })
-    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(404)
-    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(404)
-    expect(warn).toHaveBeenCalledTimes(1)
-    expect(logged()).toContain(`[catalog] The logo of "${PLANNED.slug}" cannot be served: ${S3} answered 404`)
-    expect(logged()).not.toContain("X-Amz")
-    expect(logged()).not.toContain(TOKEN)
-  })
-
-  it("answers 404 when the link leads to a web page, not a picture", async () => {
-    const w = await world({ rows, hosts: { [S3]: () => new Response(webPage(), { headers: { "content-type": "image/png" } }) } })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(404)
-    expect(logged()).toContain("sent something that is not a picture")
-  })
-
-  it.each([500, 503, 429])("answers 503, kept by nobody, when it answers %i: the next try may find the picture", async (status) => {
-    const w = await world({ rows, hosts: { [S3]: () => new Response("later", { status }) } })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(503)
-    expect(response.headers.get("cache-control")).toBe("no-store")
-    expect(response.headers.get("retry-after")).toBe("30")
-  })
-
-  it("answers 503 when it cannot be reached", async () => {
-    // No handler for the host: the network fails
-    const w = await world({ rows })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(503)
-    expect(logged()).toContain(`${S3} could not be reached`)
-  })
-
-  it.each([
-    ["an address", "https://192.168.1.10/logo.png"],
-    ["the address of a cloud's metadata", "https://169.254.169.254/latest/meta-data/"],
-    ["localhost", "https://localhost/logo.png"],
-    ["a name of a local network", "https://nas.local/logo.png"],
-    ["a port of its own", "https://example.com:8443/logo.png"],
-  ])("never follows a link to %s: 404, and nothing is asked of it", async (_label, link) => {
-    const w = await world({ rows: [row(PLANNED.slug, { logo: [external(link)] })], hosts: { "example.com": () => pictureResponse("png") } })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(404)
-    expect(w.downloads()).toEqual([])
-    expect(logged()).toContain("is not one the server follows")
+    ["the slug of the template", "template"],
+    ["a slug with a path in it", "../etc"],
+  ])("answers 404 for %s", async (_label, slug) => {
+    const w = await world({ games: [withPictures(PLANNED.slug)] })
+    expect((await w.ask(slug, "logo")).status).toBe(404)
   })
 })
 
 describe("when the catalog cannot be read", () => {
   it("answers 503: the game may well exist, it is not known to be missing", async () => {
-    const w = await world({ rows: [row(PLANNED.slug, { logo: [uploaded("logo.png")] })], hosts: png, catalog: () => failing(500) })
+    const w = await world({ games: [withPictures(PLANNED.slug)], sanity: () => new Response("{}", { status: 500 }) })
     const response = await w.ask(PLANNED.slug, "logo")
     expect(response.status).toBe(503)
     expect(response.headers.get("cache-control")).toBe("no-store")
     expect(response.headers.get("retry-after")).toBe("5")
-    expect(w.reads()).toEqual([])
     expect(w.downloads()).toEqual([])
-    expect(logged()).toContain("Notion is unavailable, only the live games are listed")
-    expect(logged()).not.toContain(TOKEN)
+    expect(logged()).toContain("The platform's Sanity project is unavailable, only the live games are listed")
   })
 })
 
 describe("the icon of a publisher", () => {
   const SITE = "libellud.example"
-  const EDITOR = "22222222-aaaa-4bbb-8ccc-000000000001"
-  const editors = [editorPage({ id: EDITOR, name: "Libellud", url: `https://${SITE}/` })]
-  const rows = [row(PLANNED.slug, { editors: [EDITOR] })]
+  const publishers = [{ name: "Libellud", url: `https://${SITE}/` }]
+  const games = [sanityGame(PLANNED.slug, { name: "Planned", publishers })]
+  const VERSION = iconVersion(`https://${SITE}/`)
   /** The website of the publisher: a page that links to an icon of 32 pixels, and the icon. */
   const site: HostHandler = (url) => {
     if (url.pathname === "/") return htmlResponse('<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">')
@@ -507,43 +187,41 @@ describe("the icon of a publisher", () => {
   const hosts = { [SITE]: site }
 
   it("is found on the website of the publisher and served from here: a day for the CDN, with the headers of a file that only an <img> shows", async () => {
-    const w = await world({ rows, editors, hosts })
-    const response = await w.ask(PLANNED.slug, "publisher-0")
+    const w = await world({ games, hosts })
+    const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(response.status).toBe(200)
     expect(response.headers.get("content-type")).toBe("image/png")
     expect(response.headers.get("cache-control")).toBe(ICON)
     expect(response.headers.get("x-content-type-options")).toBe("nosniff")
     expect(response.headers.get("content-security-policy")).toBe(SANDBOX)
     expect(await bytesOf(response)).toEqual(pictureBytes("png"))
-    // Only the website of the publisher is asked, and Notion is not asked for the links of any picture
+    // Only the website of the publisher is asked
     expect(w.downloads().map((request) => request.url)).toEqual([`https://${SITE}/`, `https://${SITE}/icon-32.png`])
-    expect(w.reads()).toEqual([])
     expect(warn).not.toHaveBeenCalled()
   })
 
   it("is served for a live game too", async () => {
-    const w = await world({ rows: [row(LIVE.slug, { editors: [EDITOR] })], editors, hosts })
-    expect((await w.ask(LIVE.slug, "publisher-0")).status).toBe(200)
+    const w = await world({ games: [sanityGame(LIVE.slug, { name: "Live", publishers })], hosts })
+    expect((await w.ask(LIVE.slug, "publisher-0", VERSION)).status).toBe(200)
   })
 
-  it("takes the website from the row of the game and never from the request", async () => {
-    const w = await world({ rows, editors, hosts: { ...hosts, "evil.example": () => pictureResponse("png") } })
+  it("takes the website from the game and never from the request", async () => {
+    const w = await world({ games, hosts: { ...hosts, "evil.example": () => pictureResponse("png") } })
     const address = `https://pbgo.test/api/catalog/${PLANNED.slug}/publisher-0?v=${VERSION}&url=https://evil.example/x.png&site=https://evil.example/&host=evil.example`
     const response = await w.get(new Request(address), { params: Promise.resolve({ slug: PLANNED.slug, slot: "publisher-0" }) })
     expect(response.status).toBe(200)
     expect(new Set(w.downloads().map((request) => new URL(request.url).host))).toEqual(new Set([SITE]))
   })
 
-  it("is the one of the publisher in that place of the row, counted from 0, and a publisher with no website has none", async () => {
-    const [second, third] = ["22222222-aaaa-4bbb-8ccc-000000000002", "22222222-aaaa-4bbb-8ccc-000000000003"]
+  it("is the one of the publisher in that place of the game, counted from 0, and a publisher with no website has none", async () => {
+    const other = "https://other.example/"
     const w = await world({
-      rows: [row(PLANNED.slug, { editors: [EDITOR, second, third] })],
-      editors: [...editors, editorPage({ id: second, name: "No website" }), editorPage({ id: third, name: "Other", url: "https://other.example/" })],
+      games: [sanityGame(PLANNED.slug, { name: "Planned", publishers: [...publishers, { name: "No website" }, { name: "Other", url: other }] })],
       hosts: { ...hosts, "other.example": (url) => (url.pathname === "/" ? htmlResponse('<link rel="icon" href="/o.jpg">') : pictureResponse("jpeg")) },
     })
     expect((await w.ask(PLANNED.slug, "publisher-1")).status).toBe(404)
     expect(w.downloads()).toEqual([])
-    const response = await w.ask(PLANNED.slug, "publisher-2")
+    const response = await w.ask(PLANNED.slug, "publisher-2", iconVersion(other))
     expect(response.headers.get("content-type")).toBe("image/jpeg")
     expect(new Set(w.downloads().map((request) => new URL(request.url).host))).toEqual(new Set(["other.example"]))
   })
@@ -551,7 +229,7 @@ describe("the icon of a publisher", () => {
   it.each(["publisher", "publisher-", "publisher--1", "publisher-01", "publisher-100", "publisher-1.5", "publisher-0.png", "Publisher-0", "publishers-0", "publisher-0 ", "publisher-x"])(
     "answers 404 for the slot %j, and asks nobody",
     async (slot) => {
-      const w = await world({ rows, editors, hosts })
+      const w = await world({ games, hosts })
       const response = await w.ask(PLANNED.slug, slot)
       expect(response.status).toBe(404)
       expect(response.headers.get("cache-control")).toBe(SHORT)
@@ -561,15 +239,15 @@ describe("the icon of a publisher", () => {
 
   it.each([
     ["a game that is nowhere", "nope", "publisher-0"],
-    ["a place that its row has no publisher in", PLANNED.slug, "publisher-1"],
+    ["a place that its game has no publisher in", PLANNED.slug, "publisher-1"],
   ])("answers 404 for %s, and downloads nothing", async (_label, slug, slot) => {
-    const w = await world({ rows, editors, hosts })
+    const w = await world({ games, hosts })
     expect((await w.ask(slug, slot)).status).toBe(404)
     expect(w.downloads()).toEqual([])
   })
 
-  it("answers 404 for a publisher whose row gives no website, and downloads nothing", async () => {
-    const w = await world({ rows, editors: [editorPage({ id: EDITOR, name: "Libellud" })], hosts })
+  it("answers 404 for a publisher with no website, and downloads nothing", async () => {
+    const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Planned", publishers: [{ name: "Libellud" }] })], hosts })
     expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(404)
     expect(w.downloads()).toEqual([])
   })
@@ -579,7 +257,7 @@ describe("the icon of a publisher", () => {
     ["an old one", "1abc"],
     ["one that is not a version", "<script>alert(1)</script>"],
   ])("sends an address with %s as a version to the right one, before anybody is asked", async (_label, version) => {
-    const w = await world({ rows, editors, hosts })
+    const w = await world({ games, hosts })
     const response = await w.ask(PLANNED.slug, "publisher-0", version)
     expect(response.status).toBe(307)
     expect(response.headers.get("location")).toBe(`/api/catalog/${PLANNED.slug}/publisher-0?v=${VERSION}`)
@@ -588,24 +266,24 @@ describe("the icon of a publisher", () => {
   })
 
   it("answers 404, for an hour, when the website has no icon the server can use, and says so once with the host and no address", async () => {
-    const w = await world({ rows, editors, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
-    const response = await w.ask(PLANNED.slug, "publisher-0")
+    const w = await world({ games, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
+    const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(response.status).toBe(404)
     expect(response.headers.get("cache-control")).toBe(NO_ICON)
-    await w.ask(PLANNED.slug, "publisher-0")
+    await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(warn).toHaveBeenCalledTimes(1)
     expect(logged()).toContain(`[catalog] The icon of the publisher 1 of "${PLANNED.slug}" cannot be served: ${SITE} has no icon the server can use`)
     expect(logged()).not.toContain("https://")
   })
 
   it("answers 404 when the website only sends web pages where its icon should be", async () => {
-    const w = await world({ rows, editors, hosts: { [SITE]: () => new Response(webPage(), { headers: { "content-type": "image/png" } }) } })
-    expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(404)
+    const w = await world({ games, hosts: { [SITE]: () => new Response(webPage(), { headers: { "content-type": "image/png" } }) } })
+    expect((await w.ask(PLANNED.slug, "publisher-0", VERSION)).status).toBe(404)
   })
 
   it("answers 503, kept by nobody, when the website cannot be reached: the next try may find the icon", async () => {
-    const w = await world({ rows, editors })
-    const response = await w.ask(PLANNED.slug, "publisher-0")
+    const w = await world({ games })
+    const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(response.status).toBe(503)
     expect(response.headers.get("cache-control")).toBe("no-store")
     expect(response.headers.get("retry-after")).toBe("300")
@@ -614,30 +292,30 @@ describe("the icon of a publisher", () => {
 
   it("leaves a website that could not be reached alone for five minutes, whoever asks, then asks again and recovers", async () => {
     let up = false
-    const w = await world({ rows, editors, hosts: { [SITE]: (url, init) => (up ? site(url, init) : Promise.reject(new TypeError("fetch failed"))) } })
-    expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(503)
+    const w = await world({ games, hosts: { [SITE]: (url, init) => (up ? site(url, init) : Promise.reject(new TypeError("fetch failed"))) } })
+    expect((await w.ask(PLANNED.slug, "publisher-0", VERSION)).status).toBe(503)
     const asked = w.downloads().length
     up = true
     later(4 * 60_000)
-    const waiting = await w.ask(PLANNED.slug, "publisher-0")
+    const waiting = await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(waiting.status).toBe(503)
     expect(waiting.headers.get("retry-after")).toBe("60")
     expect(w.downloads()).toHaveLength(asked)
     later(61_000)
-    expect((await w.ask(PLANNED.slug, "publisher-0")).status).toBe(200)
+    expect((await w.ask(PLANNED.slug, "publisher-0", VERSION)).status).toBe(200)
   })
 
   it("does not leave alone a website that answered and has no icon: it is the CDN that keeps that answer", async () => {
-    const w = await world({ rows, editors, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
-    await w.ask(PLANNED.slug, "publisher-0")
+    const w = await world({ games, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
+    await w.ask(PLANNED.slug, "publisher-0", VERSION)
     const asked = w.downloads().length
-    await w.ask(PLANNED.slug, "publisher-0")
+    await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(w.downloads().length).toBeGreaterThan(asked)
   })
 
   it("answers 503 when the catalog cannot be read: the game may well have a publisher", async () => {
-    const w = await world({ rows, editors, hosts, catalog: () => failing(500) })
-    const response = await w.ask(PLANNED.slug, "publisher-0")
+    const w = await world({ games, hosts, sanity: () => new Response("{}", { status: 500 }) })
+    const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(response.status).toBe(503)
     expect(w.downloads()).toEqual([])
   })

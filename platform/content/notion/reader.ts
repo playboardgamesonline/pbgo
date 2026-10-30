@@ -1,13 +1,11 @@
-// The Notion reader: the Games database (with the Editors and Creators ones it points to, and the Games Development one that points
-// to it) as `NotionGame`s, and the links of its pictures. A plain `fetch` against Notion's REST API, no SDK. No framework here
-// either: the caller hands in the token, and `init` carries Next's cache options (`server.ts`). Notion is the source of a planned
-// game's words and numbers, never of a live one's (those come from the game's Sanity project).
+// The Notion reader of the platform's seed: the Games database (with the Editors and Creators ones it points to, and the Games Development
+// one that points to it) as `NotionGame`s, and the links of its pictures. A plain `fetch` against Notion's REST API, no SDK, no
+// framework: the caller hands in the token. It was the hub's reader until the hub read the catalog from the platform's Sanity project
+// (PLT-90); only the seed (`content/seed.ts`, `content/fetch-art.ts`) reads Notion now.
 
-import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
-// A value import from a sibling file would need a `.ts` extension, which apps/web's tsc refuses: only types come from there
-import type { ArtSlot, DevelopmentRank, NotionGame, Publisher, Rank } from "./catalog"
+import type { ArtSlot, DevelopmentRank, Locale, NotionGame, Publisher, Rank } from "./types.ts"
 
 export const NOTION_API = "https://api.notion.com/v1"
 /** The API version the parsing below is written for: a database is queried at `/databases/<id>/query`, its schema is at `/databases/<id>`. */

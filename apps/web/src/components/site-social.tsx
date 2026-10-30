@@ -19,7 +19,7 @@ import { readFolded, writeFolded } from "@/lib/folded-games"
 import { useCopied } from "@/lib/use-copied"
 import { useSocial } from "@/lib/use-social"
 
-/** The picture of a game on the hub: its icon in the Notion row of the catalog (`docs/catalog.md`), served by the hub itself. */
+/** The picture of a game on the hub: its icon in the catalog (`docs/catalog.md`). */
 const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
 
 /**

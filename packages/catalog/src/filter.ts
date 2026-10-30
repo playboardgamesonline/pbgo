@@ -94,7 +94,7 @@ export type GameIndex = {
   complexity: number | null
   /** The minimum age in years. Null when the game does not say. */
   age: number | null
-  /** The names of its categories (the tags of its Notion row), in the order of the row. None when it has none. */
+  /** The names of its categories, in the order the Studio lists them. None when it has none. */
   categories: readonly string[]
 }
 
@@ -122,17 +122,17 @@ export function words(query: string): string[] {
 }
 
 /**
- * The part of a catalog entry the filter reads, the same for every game, a live one included: its name, its authors, its illustrators
- * and its publishers (never its descriptions: a word of a sentence is not what a visitor looks a game up by), then the players, the
- * duration, the complexity, the minimum age and the categories, which are the ones of its Notion row (of the registry for the players
- * and the duration of a live game with no row).
+ * The part of a catalog entry the filter reads, the same for every game, a live one included: its name, the people credited on it, whatever
+ * they did, and its publishers (never its descriptions: a word of a sentence is not what a visitor looks a game up by), then the
+ * players, the duration, the complexity, the minimum age and the categories, which are the ones of its game in the Studio (of the
+ * registry for the players and the duration of a live game with none).
  */
 export function indexEntry(entry: CatalogEntry): GameIndex {
-  const { name, authors, illustrators, publishers, players, duration, complexity, age, categories } = entry.game
+  const { name, creators, publishers, players, duration, complexity, age, categories } = entry.game
   return {
     slug: entry.slug,
     live: entry.live,
-    text: normalize([name, ...authors, ...illustrators, ...publishers.map((publisher) => publisher.name)].join(" ")),
+    text: normalize([name, ...creators.map((creator) => creator.name), ...publishers.map((publisher) => publisher.name)].join(" ")),
     players,
     duration,
     complexity,

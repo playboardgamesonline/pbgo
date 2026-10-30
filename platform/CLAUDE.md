@@ -8,7 +8,7 @@
   - `structure.ts` — the sidebar, three blocks: Catalog, Editorial and Shop (empty on purpose: no document type for it yet), and the "Games" tab of a creator and of a publisher; `views/` holds that tab (`games-of.ts` the query, `games-of-view.tsx` the part that needs the Studio)
   - `studio-forms.test.ts` (the rules of the forms of the skill `game-sanity-create`), `schemaTypes/model.test.ts` (the model as agreed: change it only on purpose), `schemaTypes/rules.test.ts`, `views/games-of.test.ts` (the queries, run by a GROQ engine)
 - `content/` — the seed, run by the shared `@pbgo/content-kit`
-  - `seed.ts` (`runSeedCli` with a `content` that reads Notion), `fetch-art.ts` (the Notion pictures into a folder outside the repo), `notion.ts` (the games as the hub lists them, the Editors rows), `art-files.ts` (what to download and how), `config.ts` (project, dataset, token name)
+  - `seed.ts` (`runSeedCli` with a `content` that reads Notion), `fetch-art.ts` (the Notion pictures into a folder outside the repo), `notion.ts` (the games in the order the hub used to list them, the Editors rows) with `notion/` (the Notion reader and `hubOrder`: the hub reads this project now, PLT-90, and Notion is only this seed's source), `art-files.ts` (what to download and how), `config.ts` (project, dataset, token name)
   - `data/` — the documents: `games.ts`, `taxonomy.ts` (creators, publishers, categories), `art.ts` (the slots), `ids.ts`, `index.ts`; the fixtures and tests (`data.test.ts` the documents, `schema.test.ts` against the Studio's own types, `run.test.ts` through the runner and an in-memory dataset)
 
 ## Rules

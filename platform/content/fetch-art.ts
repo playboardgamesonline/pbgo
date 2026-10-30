@@ -2,7 +2,7 @@
 // names of the art slots of the seed, so that `content/seed.ts --art-dir <folder>` can place them. Usage: `node content/fetch-art.ts --help`.
 import { mkdir, readdir, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
-import { readPictureLinks } from "@pbgo/catalog/notion"
+import { readPictureLinks } from "./notion/reader.ts"
 import { fetchPicture } from "@pbgo/catalog/picture"
 import { artJobs, fetchArt, formatFetchReport } from "./art-files.ts"
 import { notionOptions, readSource } from "./notion.ts"

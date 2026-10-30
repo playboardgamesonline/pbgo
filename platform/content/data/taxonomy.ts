@@ -1,5 +1,5 @@
 import type { SeedDoc } from "@pbgo/content-kit"
-import type { NotionGame } from "@pbgo/catalog"
+import type { NotionGame } from "../notion/types.ts"
 import { categoryId, creatorId, publisherId } from "./ids.ts"
 
 // What the games point at: the people credited on them, the companies that publish them and their categories. One document each, made

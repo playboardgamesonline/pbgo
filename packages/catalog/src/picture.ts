@@ -1,8 +1,8 @@
-// The picture download: one picture from the link a Notion row gives, for the route to serve. Everything the server does with a link
-// it did not write itself is here and nowhere else: which links it follows (`allowedUrl`), how far it follows them (redirects, time,
+// The picture download: one picture from a link, for the route to serve (the icon of a publisher's website) and for the platform's seed (the
+// pictures of its Notion rows). Everything the server does with a link it did not write itself is here and nowhere else: which links it follows (`allowedUrl`), how far it follows them (redirects, time,
 // size) and what it accepts as a picture (`sniff`). A plain `fetch`, no framework: the caller can hand in its own. The download
 // itself (`download`) is also what the icon of a publisher's website is looked for with (`favicon.ts`: its page, then its icons).
-// Not here: Notion (`notion.ts`), the cache headers and the answers (`route.ts`).
+// Not here: the cache headers and the answers (`route.ts`).
 
 /** A picture over this many bytes is refused: a Vercel function answers 4.5 MB at most, and a card is not that big. */
 export const MAX_PICTURE_BYTES = 4 * 1024 * 1024
@@ -17,8 +17,8 @@ const LOCAL_SUFFIXES = [".localhost", ".local", ".internal", ".localdomain", ".h
  * The link as a URL if the server may fetch it, else null: https, no credentials, the default port, and a public-looking host name.
  * Not an address (an IPv4 whatever the way it is written, an IPv6), not a name without a dot (`localhost`, `intranet`) and not one
  * that a network keeps for itself (`.local`, `.internal`…). `base` resolves a relative link, for a redirect.
- * The server does not resolve names, so a public name that points at a private address passes: the links come from a Notion
- * workspace, which is trusted as far as whoever can edit it (docs/catalog.md).
+ * The server does not resolve names, so a public name that points at a private address passes: the websites come from the Studio, which
+ * is trusted as far as whoever can edit it (docs/catalog.md).
  */
 export function allowedUrl(raw: string, base?: URL): URL | null {
   let url: URL
@@ -70,7 +70,7 @@ export function sniff(bytes: Uint8Array): string | null {
 }
 
 /**
- * A picture that could not be had. The message names the host and never the link (a Notion link carries a signature). `retryable`:
+ * A picture that could not be had. The message names the host and never the link (a link of Notion's carries a signature). `retryable`:
  * asking again later may work (the host is down or slow, or asks to wait), as opposed to the link being refused or not a picture.
  */
 export class PictureError extends Error {
@@ -111,7 +111,7 @@ const failure = (error: unknown) => (error instanceof Error ? error.name : "unkn
  * Downloads what is at a link, a picture or a page (`kind`). The link is checked with `allowedUrl`, and so is every redirect it leads
  * to (followed by hand, `MAX_REDIRECTS` at most, so that a host cannot send the server somewhere `allowedUrl` refuses). One time limit
  * covers the whole download, the size is capped while the body streams, and no header of the caller's goes along but `Accept` and,
- * when it is given, `User-Agent` (Notion's token never reaches a picture host). `url` is where the redirects ended, which is what a
+ * when it is given, `User-Agent` (no token ever reaches a picture host). `url` is where the redirects ended, which is what a
  * relative link of a page is relative to. Fails with a `PictureError`, and only with one.
  */
 export async function download(link: string, kind: Kind, options: PictureOptions = {}): Promise<{ bytes: Uint8Array<ArrayBuffer>; url: URL }> {
