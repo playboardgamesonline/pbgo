@@ -12,27 +12,9 @@ export const GAME_KINDS = [
 
 export type GameKind = (typeof GAME_KINDS)[number]["value"]
 
-/**
- * What a person did on a game: the credits of BoardGameGeek, in its words (an "editor" there edits the text, the rules or the cards;
- * the publisher of a game is a `publisher`). A person can have several on one game, and the same person is a designer of one game
- * and an artist of another: the roles belong to the line of the game, not to the person.
- */
-export const CREATOR_ROLES = [
-  { title: "Designer", value: "designer" },
-  { title: "Solo designer", value: "soloDesigner" },
-  { title: "Developer", value: "developer" },
-  { title: "Artist", value: "artist" },
-  { title: "Graphic designer", value: "graphicDesigner" },
-  { title: "Editor", value: "editor" },
-  { title: "Sculptor", value: "sculptor" },
-  { title: "Writer", value: "writer" },
-  { title: "Insert designer", value: "insertDesigner" },
-] as const
-
-export type CreatorRole = (typeof CREATOR_ROLES)[number]["value"]
-
-/** The title of a role as the Studio shows it; a value the list does not have (a role removed since) is shown as it is. */
-export const roleTitle = (role: string): string => CREATOR_ROLES.find((entry) => entry.value === role)?.title ?? role
+// What a person did on a game: the credits of BoardGameGeek. The list is the studio kit's, which the hub words its credit lines from too.
+export { CREATOR_ROLES, roleTitle } from "@pbgo/studio-kit/constants"
+export type { CreatorRole } from "@pbgo/studio-kit/constants"
 
 export const CHANGELOG_KINDS = [
   { title: "New game", value: "newGame" },
