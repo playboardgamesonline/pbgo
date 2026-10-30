@@ -75,7 +75,7 @@ describe("fetchArt", () => {
   })
 
   it("downloads what is not in the folder and writes each picture under its slot's name with the extension of its own bytes", async () => {
-    const types: Record<string, string> = { [LINK("b")]: "image/jpeg", [LINK("c")]: "image/svg+xml" }
+    const types: Record<string, string> = { [LINK("b")]: "image/jpeg", [LINK("c")]: "image/avif" }
     const written: string[] = []
     const report = await fetchArt({
       jobs,
@@ -86,7 +86,7 @@ describe("fetchArt", () => {
         written.push(file)
       },
     })
-    expect(written.sort()).toEqual(["game-b-logo.jpg", "game-c-icon.svg"])
+    expect(written.sort()).toEqual(["game-b-logo.jpg", "game-c-icon.avif"])
     expect(report).toMatchObject({ present: ["game-a-logo"], downloaded: expect.arrayContaining(["game-b-logo", "game-c-icon"]), failed: [], unsupported: [] })
   })
 

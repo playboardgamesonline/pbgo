@@ -64,7 +64,7 @@ It imports today's Notion Games rows, as the hub reads them (`@pbgo/catalog/noti
 
 Notion hosts the pictures (the games' logo, icon and background, a publisher's logo) behind links that expire after about an hour, so they are copied in two commands, not one:
 
-1. `pnpm --filter @pbgo/platform content:art --out <folder>` reads the links fresh and downloads the pictures the rows hold into a folder **outside the repo** (say `~/Companies/PBGO/assets/platform`), named after the slot each fills: `game-<slug>-logo.png`, `game-<slug>-icon`, `game-<slug>-background`, `publisher-<name>-logo`. A dry run by default, `--apply` downloads; a file that is already there is left as it is. A picture of a kind the art step does not read (GIF, AVIF, an icon file) is reported: convert it and put it in the folder by hand.
+1. `pnpm --filter @pbgo/platform content:art --out <folder>` reads the links fresh and downloads the pictures the rows hold into a folder **outside the repo** (say `~/Companies/PBGO/assets/platform`), named after the slot each fills: `game-<slug>-logo.png`, `game-<slug>-icon`, `game-<slug>-background`, `publisher-<name>-logo`. A dry run by default, `--apply` downloads; a file that is already there is left as it is. A picture of a kind the art step does not read (a GIF, an icon file) is reported: convert it and put it in the folder by hand. A cell that holds something that is not a picture (a video, say) is reported as "not a picture" and left out.
 2. `pnpm --filter @pbgo/platform content:seed --art-dir <folder>` normalizes the pictures (WebP, an SVG is kept), uploads those the dataset does not hold and places them; `--apply` to write. A picture never carries a credit: the sources are unknown.
 
 ## Publishing

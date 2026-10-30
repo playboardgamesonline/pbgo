@@ -39,7 +39,7 @@ export function artJobs(games: readonly NotionGame[], links: PictureLinks, rows:
 }
 
 /** The extension a picture's own bytes call for: only what the seed's art step reads. */
-const EXTENSIONS: Readonly<Record<string, string>> = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/svg+xml": ".svg" }
+const EXTENSIONS: Readonly<Record<string, string>> = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/avif": ".avif", "image/svg+xml": ".svg" }
 
 export type Downloaded = { bytes: Uint8Array; type: string }
 
@@ -51,7 +51,7 @@ export type FetchReport = {
   /** What a dry run would download. */
   pending: string[]
   downloaded: string[]
-  /** A picture of a kind the art step does not read (a GIF, an AVIF, an icon file): convert it and put it in the folder by hand. */
+  /** A picture of a kind the art step does not read (a GIF, an icon file): convert it and put it in the folder by hand. */
   unsupported: { name: string; type: string }[]
   failed: { name: string; reason: string }[]
 }
