@@ -11,6 +11,20 @@ const extensionOf = (filename: string) => {
 }
 
 /**
+ * The targets of the strong references a value holds: a reference that is not weak, and is not the asset of an image or of a file (an
+ * upload makes those exist). The dataset refuses a strong reference to a document that is not published, a draft's own included.
+ */
+function strongTargets(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(strongTargets)
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    if (record._type === "reference" && typeof record._ref === "string") return record._weak === true || /^(image|file)-/.test(record._ref) ? [] : [record._ref]
+    return Object.values(record).flatMap(strongTargets)
+  }
+  return []
+}
+
+/**
  * An in-memory dataset for the tests: the same contract as the Sanity adapter (`store.ts`), plus helpers that play the Studio
  * (`edit`, `publish`). Writes are atomic and enforce the same rules: drafts only, `createIfNotExists`, `ifRevisionID`.
  */
@@ -114,11 +128,17 @@ export class MemoryStore implements SeedStore {
     this.writes.push(structuredClone(ops))
     // Check everything first: a transaction is all or nothing
     for (const op of ops) {
-      assertDraftId(op.type === "createIfNotExists" ? op.doc._id : op.id)
+      const id = op.type === "createIfNotExists" ? op.doc._id : op.id
+      assertDraftId(id)
       if (op.type === "patch") {
         const doc = this.docs.get(op.id)
         if (!doc) throw new Error(`Cannot patch ${op.id}: it does not exist`)
         if (doc._rev !== op.ifRevisionID) throw new Error(`Revision mismatch on ${op.id}`)
+      }
+      // What is written: a draft that exists is left as it is, a patch writes its fields
+      const written = op.type === "createIfNotExists" ? (this.docs.has(id) ? {} : op.doc) : op.set
+      for (const target of strongTargets(written)) {
+        if (!this.docs.has(target)) throw new Error(`Mutation failed: Document "${id}" references non-existent document "${target}"`)
       }
     }
     for (const op of ops) {
