@@ -76,7 +76,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `pnpm install` — once for the whole monorepo
 - `pnpm dev` — apps/web on http://localhost:3100 (hub + every game; `pnpm dev <slug>` prints its URL)
 - `pnpm dev:studio <slug>` — the game's Sanity Studio (`pnpm dev:studio platform`: the platform's)
-- `pnpm build` (= `pnpm --filter web build`) · `pnpm typecheck` · `pnpm test` · `pnpm lint` · `pnpm check:catalog` · `pnpm check:public`
+- `pnpm build` (= `pnpm --filter web build`) · `pnpm typecheck` · `pnpm test` · `pnpm lint` · `pnpm check:catalog` · `pnpm check:public`: all six run on every pull request and on `main` (`.github/workflows/ci.yml`, no secret, no `.env.local`)
 - `pnpm --filter @<slug>/engine test` · `pnpm --filter @pbgo/core test`
 - `pnpm --filter @pbgo/platform content:seed` / `content:art` — the platform's seed (Notion rows → drafts) and the download of the Notion pictures (`docs/platform-sanity.md`)
 - `pnpm catalog:list` — what the hub catalog would list right now (the live games + the published games of the platform's Sanity project) and which games of the Studio it leaves out and why; needs no key (`docs/catalog.md`)
