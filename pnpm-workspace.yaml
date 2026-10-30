@@ -95,3 +95,8 @@ catalog:
   # options of `init` change, so an upgrade is a decision (`packages/analytics` checks the option names).
   posthog-js: 1.437.0
   posthog-node: 5.55.1
+
+  # Docs (the markdown files of docs/ rendered as pages, `@pbgo/docs`)
+  react-markdown: ^10.1.0
+  rehype-slug: ^6.0.0
+  remark-gfm: ^4.0.1
