@@ -82,9 +82,9 @@ export function gamePage(row: GameRow = {}): NotionPage {
     Complexity: property("number", row.complexity ?? null),
     Age: property("select", option(row.age ?? null)),
     Tags: property("multi_select", (row.tags ?? []).map(option)),
-    Authors: property("relation", (row.authors ?? []).map((id) => ({ id }))),
-    Illustrators: property("relation", (row.illustrators ?? []).map((id) => ({ id }))),
-    Editors: property("relation", (row.editors ?? []).map((id) => ({ id }))),
+    Designers: property("relation", (row.authors ?? []).map((id) => ({ id }))),
+    Artists: property("relation", (row.illustrators ?? []).map((id) => ({ id }))),
+    Publishers: property("relation", (row.editors ?? []).map((id) => ({ id }))),
     "Parent item": property("relation", (row.parent ?? []).map((id) => ({ id }))),
     Type: property("select", option(row.type ?? null)),
     "Related Games": property("relation", (row.related ?? []).map((id) => ({ id }))),
@@ -296,7 +296,7 @@ export function fakeWeb(notion: { fetch: typeof fetch }, hosts: Record<string, H
 
 // ---------- Pictures ----------
 
-export type PictureKind = "png" | "jpeg" | "gif" | "webp" | "avif" | "svg"
+export type PictureKind = "png" | "jpeg" | "gif" | "webp" | "avif" | "svg" | "ico"
 
 const ascii = (text: string) => [...text].map((char) => char.charCodeAt(0))
 // The first bytes of each kind of file: all a sniffer looks at
@@ -307,6 +307,8 @@ const HEADS: Record<PictureKind, number[]> = {
   webp: [...ascii("RIFF"), 0, 0, 0, 0, ...ascii("WEBP")],
   avif: [0, 0, 0, 0x1c, ...ascii("ftypavif")],
   svg: ascii('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">'),
+  // An icon file: its header says it holds one image
+  ico: [0, 0, 1, 0, 1, 0],
 }
 
 /** The bytes of a picture of that kind, `size` of them (its first bytes at least, then zeros): enough for a sniffer, not for a viewer. */
@@ -322,6 +324,10 @@ export const pictureResponse = (kind: PictureKind = "png", init: ResponseInit = 
 
 /** A web page, what a host sends when the link no longer leads to a picture (a sign-in page, an error page). */
 export const webPage = () => new TextEncoder().encode("<!doctype html><html><body>Sign in</body></html>")
+
+/** A web page with this in its head: what a host answers to the page of a publisher's website. */
+export const htmlResponse = (head: string, init: ResponseInit = {}) =>
+  new Response(`<!doctype html><html><head><title>A publisher</title>${head}</head><body>Games</body></html>`, { status: 200, headers: { "content-type": "text/html; charset=utf-8" }, ...init })
 
 // ---------- The games the catalog joins ----------
 

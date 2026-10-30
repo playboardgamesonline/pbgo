@@ -6,7 +6,7 @@ export function PlayfulMotion() {
   return (
     <Section
       id="playful-motion"
-      intro="The platform's own motion is calm on purpose (three short durations and one easing, above). The pieces of the home's title are where it may play: a die that rolls, a coin that is tossed, a wheel of suits, two cards that fold up. The first three were tried five ways each, with their easing and their duration written under them, and one was chosen and calmed a little: these are the four moves, played by the real pieces (`TitleDie`, `TitleCoin`, `TitleSuits`, `TitleCards`) at a faster tempo than the home's, with the values that the pieces read from `PLAYFUL` of `@pbgo/ui/motion`."
+      intro="The platform's own motion is calm on purpose (three short durations and one easing, above). The pieces of the home's title are where it may play: a die that rolls, a coin that is tossed, a wheel of suits, two cards that fold up. Each move was chosen and calmed a little: these are the four moves, played by the real pieces (`TitleDie`, `TitleCoin`, `TitleSuits`, `TitleCards`) at a faster tempo than the home's, with the values that the pieces read from `PLAYFUL` of `@pbgo/ui/motion`."
     >
       <TitleMotionLab />
       <Bullets

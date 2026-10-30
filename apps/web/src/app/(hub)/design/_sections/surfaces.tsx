@@ -42,6 +42,7 @@ import {
 } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
 import { BarListSpecimen, BarSpecimen, ChatSpecimen, FriendsSpecimen, DockSpecimen, PresenceLegend, SocialSpecimen } from "../_components/friends-specimen"
+import { PricingPlans } from "@/components/pricing-plans"
 import { Demo, Section } from "../_components/layout"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -118,6 +119,38 @@ export function Cards() {
             </CardDescription>
           </CardHeader>
         </Card>
+      </Demo>
+    </Section>
+  )
+}
+
+export function PlanCards() {
+  return (
+    <Section
+      id="plan-card"
+      module="plan-card"
+      intro="A plan of the Pricing page, in a `Card`: a small picture (`visual`: `PlanVisual`, an icon on a tinted square for want of art, which only decorates), its name (the heading of a labelled group), what it is for, its price in Geist at 720 (`text-4xl`, `text-5xl` from `xl`) with what it is for after it (`/ month`, muted, under the price when the room runs out; a free plan has none) and how it is billed under that (`note`: every plan has one, the free one's included, so that the buttons of a row stay level), the button that takes it, a hairline and the list of what it includes, a tick before each (the tick of `Perks`). The plans of a row are the same size and the same weight, and stretch to the tallest: none is highlighted. The card draws what it is given and the page decides what the button does: a plan that cannot be taken is `disabled`, half transparent and `aria-disabled`, with a disabled button. Over the row, a `ToggleGroup` picks how the paid plans are paid, month by month or a year at once (a quarter less): it changes the price and the note of the cards, and nothing else. The words and the prices of the page are `apps/web/src/lib/plans.ts`, drawn by `PricingPlans`; they are a first draft."
+    >
+      <Demo
+        title="Three plans"
+        description="As the Pricing page draws them: the selector, then three columns from `lg`, one under it. The free plan has the only live button; the paid ones are half transparent, with a disabled Coming soon, since the games are not licensed."
+        code={`<PlanCard
+  name="Plus"
+  price="€0.99"
+  period="/ month"
+  note="Billed monthly"
+  description="For players who come back."
+  visual={<PlanVisual icon={SparklesIcon} />}
+  features={["Everything in Free", "Advanced statistics"]}
+  disabled
+  action={
+    <Button size="lg" variant="outline" className="w-full" disabled>
+      Coming soon
+    </Button>
+  }
+/>`}
+      >
+        <PricingPlans />
       </Demo>
     </Section>
   )

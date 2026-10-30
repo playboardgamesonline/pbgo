@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, pickLocalized, pictureUrl, pictureVersion, registryRow, sharePicture } from "./catalog"
+import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, creditLines, pickLocalized, pictureUrl, pictureVersion, publisherIconUrl, registryRow, sharePicture } from "./catalog"
 import { DEVELOPMENT_OPTIONS, developmentRank, notionGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -220,6 +220,32 @@ describe("buildCatalog: the related games", () => {
     expect(planned.map((game) => game.related)).toEqual([["b"], []])
     expect(entries.map((entry) => entry.game)).toEqual(planned)
   })
+
+  describe("after the family, the games that look like it", () => {
+    const rows = [
+      notionGame("skyjo", { name: "Skyjo", categories: ["Cards", "Family"], related: ["skyjo-action"] }),
+      notionGame("skyjo-action", { name: "Skyjo Action" }),
+      notionGame("bang", { name: "Bang", categories: ["Cards", "Family"] }),
+      notionGame("the-mind", { name: "The Mind", categories: ["Cooperative", "Cards"] }),
+      notionGame("catan", { name: "Catan", categories: ["Strategy"] }),
+    ]
+
+    it("lists the games that share categories with it, the likeliest first, and leaves out the others", () => {
+      expect(relatedOf(buildCatalog([], rows)).skyjo).toEqual(["skyjo-action", "bang", "the-mind"])
+    })
+
+    it("recommends too the games that its players also play, when that is known", () => {
+      const alsoPlayed = new Map([["skyjo", new Map([["catan", 4]])]])
+      expect(relatedOf(buildCatalog([], rows, { alsoPlayed })).skyjo).toEqual(["skyjo-action", "bang", "catan", "the-mind"])
+    })
+
+    it("recommends at most `RELATED_MAX` games, the family first", () => {
+      const crowd = Array.from({ length: 20 }, (_, index) => notionGame(`game-${String(index).padStart(2, "0")}`, { name: `Game ${String(index).padStart(2, "0")}`, categories: ["Cards"] }))
+      const list = relatedOf(buildCatalog([], [notionGame("home", { name: "Zzz", categories: ["Cards"], related: ["game-19"] }), ...crowd])).home ?? []
+      expect(list).toHaveLength(RELATED_MAX)
+      expect(list[0]).toBe("game-19")
+    })
+  })
 })
 
 describe("comparePlanned", () => {
@@ -410,5 +436,87 @@ describe("pickLocalized", () => {
   it("is null when no language has a text", () => {
     expect(pickLocalized({}, "en")).toBeNull()
     expect(pickLocalized({ fr: "", en: "" }, "fr")).toBeNull()
+  })
+})
+
+describe("publisherIconUrl", () => {
+  const EDITED = "2026-10-22T10:00:00.000Z"
+  const game = notionGame("hanabi", {
+    editedAt: EDITED,
+    publishers: [
+      { name: "Cocktail Games", url: "https://www.cocktailgames.com" },
+      { name: "No website", url: null },
+      { name: "Third", url: "https://third.example" },
+    ],
+  })
+
+  it("is the address of the icon of the publisher in that place of the row (counted from 0), with the version of the row like a picture's", () => {
+    expect(publisherIconUrl(game, 0)).toBe(`/api/catalog/hanabi/publisher-0?v=${pictureVersion(EDITED)}`)
+    expect(publisherIconUrl(game, 2)).toBe(`/api/catalog/hanabi/publisher-2?v=${pictureVersion(EDITED)}`)
+  })
+
+  it("is null for a publisher with no website and for a place the row has none in: there is nothing to take an icon from", () => {
+    expect(publisherIconUrl(game, 1)).toBeNull()
+    expect(publisherIconUrl(game, 3)).toBeNull()
+    expect(publisherIconUrl(game, -1)).toBeNull()
+  })
+
+  it("changes when the row is edited, so that the page goes to a new address", () => {
+    expect(publisherIconUrl({ ...game, editedAt: "2026-10-22T11:00:00.000Z" }, 0)).not.toBe(publisherIconUrl(game, 0))
+  })
+
+  it("never holds the website: the address names a place in the row, and the server finds the website there", () => {
+    expect(publisherIconUrl(game, 0)).not.toContain("cocktailgames")
+  })
+})
+
+describe("creditLines", () => {
+  it("is the designers, the artists and the publishers, in that order", () => {
+    const lines = creditLines(notionGame("hanabi", { authors: ["Antoine Bauza"], illustrators: ["Laura Michaud"], publishers: [{ name: "Cocktail Games", url: null }] }))
+    expect(lines.map((line) => line.label)).toEqual(["Designer", "Artist", "Publisher"])
+    expect(lines.map((line) => line.values.map((value) => value.text))).toEqual([["Antoine Bauza"], ["Laura Michaud"], ["Cocktail Games"]])
+  })
+
+  it("has its label in the singular for one and in the plural for more", () => {
+    const lines = creditLines(
+      notionGame("skull-king", {
+        authors: ["Brent Beck", "Jeffrey Beck"],
+        illustrators: ["Apryl Stott", "Someone Else", "Third Person"],
+        publishers: [
+          { name: "A", url: null },
+          { name: "B", url: null },
+        ],
+      }),
+    )
+    expect(lines.map((line) => line.label)).toEqual(["Designers", "Artists", "Publishers"])
+  })
+
+  it("leaves out a line that has nobody, and is empty for a game with no credit at all", () => {
+    expect(creditLines(notionGame("hanabi", { illustrators: ["Laura Michaud"] })).map((line) => line.label)).toEqual(["Artist"])
+    expect(creditLines(notionGame("hanabi"))).toEqual([])
+  })
+
+  it("makes a link of a publisher that has a website, with its icon, and only a name of one that has none", () => {
+    const game = notionGame("hanabi", {
+      editedAt: "2026-10-22T10:00:00.000Z",
+      publishers: [
+        { name: "Cocktail Games", url: "https://www.cocktailgames.com" },
+        { name: "Spiral Éditions", url: null },
+        { name: "Oya", url: "https://www.oya.fr" },
+      ],
+    })
+    const [publishers] = creditLines(game)
+    expect(publishers?.values).toEqual([
+      { text: "Cocktail Games", href: "https://www.cocktailgames.com", icon: publisherIconUrl(game, 0) },
+      { text: "Spiral Éditions" },
+      // The icon is the one of its place in the row, the third, whether or not the second has a website
+      { text: "Oya", href: "https://www.oya.fr", icon: publisherIconUrl(game, 2) },
+    ])
+    expect(publishers?.values[2]?.icon).toContain("publisher-2")
+  })
+
+  it("makes no link of a designer or an artist: a name", () => {
+    const [designers] = creditLines(notionGame("hanabi", { authors: ["Antoine Bauza"] }))
+    expect(designers?.values).toEqual([{ text: "Antoine Bauza" }])
   })
 })

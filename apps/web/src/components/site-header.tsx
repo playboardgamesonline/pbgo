@@ -40,7 +40,7 @@ function currentOf(pathname: string): SiteCurrent | null {
 /**
  * The navbar of the hub's own pages (the home, the pages of the tabs and a game's page), fixed to the top of the window in two rounded-square
  * containers kept apart, on the edges of the window: the logo and the tabs on the left, the account on the right, with nothing drawn between
- * them. A page leaves `pt-navbar` under it (or lets its backdrop run under the two containers, as the home's hero does), and an anchor
+ * them. A page leaves `pt-navbar` under it, and an anchor
  * that lands under it has `scroll-mt-navbar`.
  * The hub's layout mounts it once, and it reads the address to know what is current: the page does not say. That is what lets the fill behind
  * the current item glide from one to the next when the visitor goes from page to page, which a bar that every page drew again could not do.

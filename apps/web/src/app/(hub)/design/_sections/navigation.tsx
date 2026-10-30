@@ -1,8 +1,6 @@
 import { Avatar, AvatarFallback } from "@pbgo/ui/platform/avatar"
-import { BoardPattern } from "@pbgo/ui/platform/board-pattern"
 import { Button } from "@pbgo/ui/platform/button"
 import { DISPLAY_FACES } from "@pbgo/ui/faces"
-import { FaceCycle } from "@pbgo/ui/platform/face-cycle"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import {
@@ -74,37 +72,10 @@ export function Wordmarks() {
           Unofficial, online adaptation of board games. All rights belong to their authors and the publisher.
         </p>
       </Demo>
-    </Section>
-  )
-}
-
-export function FaceCycles() {
-  return (
-    <Section
-      id="face-cycle"
-      module="face-cycle"
-      intro="A word of a title set in one of the platform's four display faces, which changes to the next every few seconds. The home's title is all in Geist at a weight of 720 for now (`display-title`); this is the component for when the rotation comes back, as it was on the home with the words board games turning in a title of Geist. The faces are the typefaces the logo's four letters are drawn in, so the brand's own lettering is what turns. It is for a word of a title, in capitals, from `text-3xl` up, and for nothing else: the capitals of the blackletter and of the script are the hardest to read, and none of the faces is sized for small text."
-    >
-      <Demo
-        title="A title with a word that turns"
-        description="The word fades out and the next fades in (`DURATION.slow`, `EASE_STANDARD`), and the rest of its line glides to its new place when the word changes width, since a centred line moves when one of its words does. Wait six seconds, or look at the faces below. The text before and after the word is plain text in the page's face: `before` is `Play`, the word is the child."
-        className="py-12 text-center"
-        code={`<h1 className="font-heading text-6xl uppercase">
-  <FaceCycle before="Play" className="block">board games</FaceCycle>{" "}
-  <span className="block">with friends & rivals</span>
-</h1>`}
-      >
-        <p className="font-heading text-4xl leading-tight uppercase sm:text-6xl">
-          <FaceCycle before="Play" className="block">
-            board games
-          </FaceCycle>{" "}
-          <span className="block">with friends & rivals</span>
-        </p>
-      </Demo>
 
       <Block
         title="The four faces"
-        description="Each is a utility of `platform.css` that sets the family, the weight and the size of one typeface, in the order the word goes through them; each font is a Fontsource package imported by the app, in the one weight it is set at. What the browser computed for the sample is printed beside it. The size is a scale of the parent's that gives the face the cap height of Geist's capitals, so a word in a face does not stand taller than the words around it."
+        description="Each is a utility of `platform.css` that sets the family, the weight and the size of one typeface, in the order of `faces.ts`; each font is a Fontsource package imported by the app, in the one weight it is set at. What the browser computed for the sample is printed beside it. The size is a scale of the parent's that gives the face the cap height of Geist's capitals, so a word in a face does not stand taller than the words around it."
       >
         <div className="divide-y rounded-3xl border p-6">
           {DISPLAY_FACES.map((face) => (
@@ -115,11 +86,8 @@ export function FaceCycles() {
 
       <Bullets
         items={[
-          "The word is one text in the page, written as it is, whichever face it is in: `before`, the word and `after` read as one sentence for a screen reader and a search engine, and the capitals are CSS (`uppercase` on the title).",
-          "A visitor who asks for less motion (`prefers-reduced-motion`) gets no rotation and no glide: the word stays in its first face, the most legible one.",
-          "The word has `line-height: 0`, so the lines of the title keep the height of the element's own whichever face it is in, and nothing moves when a font file arrives.",
           "Each face sets its own weight: the platform's 600 on a face that has none would be a fake bold. That is the one place the platform has more than one weight.",
-          "A face is swapped in `styles/platform.css` (its utility), in `faces.ts` (its place in the order) and in the app's `globals.css` (its import). Nothing else names a font. The footer's `Wordmark` is set in the same four faces.",
+          "A face is swapped in `styles/platform.css` (its utility), in `faces.ts` (its place in the order) and in the app's `globals.css` (its import). Nothing else names a font.",
         ]}
       />
     </Section>
@@ -160,11 +128,11 @@ export function Navbars() {
     <Section
       id="navbar"
       module="navbar"
-      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the backdrop of the page (the home's hero) shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The bar is pinned with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls; the page leaves `pt-navbar` under it (or lets its backdrop run under it) and gives an anchor that lands below it `scroll-mt-navbar`. The hub's layout mounts the bar once and it reads the address to know what is current, so it stays mounted from one page to the next and the fill behind the current item can glide. The tabs leave the first island under `md`, where the account needs the room, and the hub's tabs about the site (About, Pricing) leave it under `lg`, where there is not room for all of them beside the dock of a signed-in visitor. Between two groups of tabs, a hairline (`NavbarSeparator`: `w-px`, `h-5`, in the colour of a border): the hub has one between Tournaments and About, the tabs for playing then the ones about the site."
+      intro="The top of a page, in two containers kept apart over a transparent bar: the brand and the tabs on the left (`NavbarStart`), the account on the right (`NavbarEnd`). Each container is a glass island (a border, a blur, a light shadow), a rounded square (`rounded-2xl`, not a pill) whose content is one step less round (`rounded-lg`, the island's radius less its padding), and nothing is drawn between them: the page shows through the bar and the pointer goes through it, so the page shows behind both islands. The bar spans the window, not the width of the page, so the islands sit on its edges. The bar is pinned with `fixed inset-x-0 top-0 z-40` so that it stays in view while the page scrolls; the page leaves `pt-navbar` under it and gives an anchor that lands below it `scroll-mt-navbar`. The hub's layout mounts the bar once and it reads the address to know what is current, so it stays mounted from one page to the next and the fill behind the current item can glide. The tabs leave the first island under `md`, where the account needs the room, and the hub's tabs about the site (About, Pricing) leave it under `lg`, where there is not room for all of them beside the dock of a signed-in visitor. Between two groups of tabs, a hairline (`NavbarSeparator`: `w-px`, `h-5`, in the colour of a border): the hub has one between Tournaments and About, the tabs for playing then the ones about the site."
     >
       <Demo
         title="On the home, signed out"
-        description="The logo is the home's button, a square: on the home it is `current`, and no tab is. `current` puts the bar's fill (`bg-muted`) behind the item, the same one for the logo and for a tab, in the same white. On any other page the logo is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and `Let's play` the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it, a button is a pill elsewhere). The specimens sit on `bg-card`, a little lighter than the page, as the islands sit over the top of the home's hero."
+        description="The logo is the home's button, a square: on the home it is `current`, and no tab is. `current` puts the bar's fill (`bg-muted`) behind the item, the same one for the logo and for a tab, in the same white. On any other page the logo is as quiet as a tab. `NavbarTab` marks the page the visitor is in with `current`. A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off. The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`. Sign in is the ghost button and `Let's play` the primary one, both of size `lg`, the height of what an island holds, and `rounded-lg` inside the island (`NavbarEnd` does it: elsewhere a button is `rounded-xl`). The specimens sit on `bg-card`, a little lighter than the page, so that the glass of the islands can be seen."
         className="overflow-hidden bg-card p-0"
         code={`<Navbar>
   <NavbarStart>
@@ -344,10 +312,10 @@ export function SearchBars() {
 
       <Demo
         title="Under a title"
-        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 64px below them (`mt-16`) and covering none of it, and from the `sm` breakpoint no wider than the title (`max-w-hero-bar`: 8.6 times the size of the title, 48rem at most, so on a tablet it is a little narrower than the title's longest line), and it is glass (`glass`) over the backdrop of the page. Nothing is drawn behind it, no band and no border: only that backdrop, a neutral that is a little lighter at the top and fades into the black the content sits on."
+        description="On the home the bar stands under the title and what the platform is (its figures and what is free), in the hero, 64px below them (`mt-16`) and covering none of it, and from the `sm` breakpoint no wider than the title (`max-w-hero-bar`: 8.6 times the size of the title, 48rem at most, so on a tablet it is a little narrower than the title's longest line), and it is glass (`glass`) over the page's black. Nothing is drawn behind it, no band and no border: the page is flat, and the bar is the one thing on it that is a little lighter."
         className="overflow-hidden p-0"
         code={`<section className="pt-navbar">
-  <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-section pb-12 text-center">
+  <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
     <h1 className="display-title">
       <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
     </h1>
@@ -379,7 +347,7 @@ export function SearchBars() {
 
       <Demo
         title="The head of a page that lists something"
-        description="Games, Tables and Tournaments share one head (`ListPageHeader`): the title, centred at the top of the page in `page-title` (Geist at 720, tracking -0.048em, 8rem from a 850px window and 16vw less 0.5rem under it, so that Tournaments, the longest, fits a phone), then the bar of what the page lists, 32px under it (`gap-8`), on the backdrop of the home's hero. The bar says what it searches (`label` and `placeholder`: Search games, Search tables, Search tournaments), and each page has its own filters: Games has the category in the bar and the other four under it, Tables and Tournaments none yet. What's New has the same head with the title alone, since there is nothing in it to search."
+        description="Games, Tables and Tournaments share one head (`ListPageHeader`): the title, centred at the top of the page in `page-title` (Geist at 720, tracking -0.048em, 8rem from a 850px window and 16vw less 0.5rem under it, so that Tournaments, the longest, fits a phone), then the bar of what the page lists, 32px under it (`gap-8`), on the page's black. The bar says what it searches (`label` and `placeholder`: Search games, Search tables, Search tournaments), and each page has its own filters: Games has the category in the bar and the other four under it, Tables and Tournaments none yet. Pricing and About have the same head with the title alone, since there is nothing in them to search."
         className="overflow-hidden p-0"
         code={`<ListPageHeader title="Tables">
   <ListSearch label="Search tables" placeholder="Search tables..." />
@@ -405,41 +373,12 @@ export function SearchBars() {
   )
 }
 
-export function BoardPatterns() {
-  return (
-    <Section
-      id="board-pattern"
-      module="board-pattern"
-      intro="A backdrop of game pieces drawn in a line (dice, cards, a pawn, a crown, a suit, an hourglass, a gem, a joker), tilted and spread like the doodles of a wallpaper, to lay behind the top of a page and give it some life: the hub's hero had it, and it is off on the home for now. It is one SVG pattern whose tile repeats, so it is as light as a picture and as wide as its parent. It draws in `currentColor` at full strength: colour it with `text-foreground`, make it faint with `opacity` on the whole drawing and not with an alpha colour (strokes that cross would add up), and fade it out with a mask. It is decorative: `aria-hidden`, and it takes no click."
-    >
-      <Demo
-        title="Behind a hero"
-        description="As it was on the home: a layer that is `absolute inset-0` in a `relative overflow-hidden` section whose content is `relative` too, so it paints over the pieces. `opacity-8` and `mask-b-from-30%` make the pieces faint and fade them out towards the foot of the section, where the black of the page takes over. The second box is the same pattern at `opacity-20`, to see its drawing."
-        className="grid gap-4 p-0 sm:grid-cols-2"
-        code={`<section className="relative overflow-hidden">
-  <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
-  <div className="relative …">…</div>
-</section>`}
-      >
-        <div className="relative h-72 overflow-hidden">
-          <BoardPattern className="absolute inset-0 text-foreground opacity-8 mask-b-from-30%" />
-          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
-        </div>
-        <div className="relative h-72 overflow-hidden">
-          <BoardPattern className="absolute inset-0 text-foreground opacity-20 mask-b-from-30%" />
-          <p className="display-title relative pt-24 text-center text-4xl">Board games</p>
-        </div>
-      </Demo>
-    </Section>
-  )
-}
-
 export function TitlePieces() {
   return (
     <Section
       id="title-pieces"
       module="title-piece"
-      intro="Some letters of the home's title are pieces of a game table, and so are the ornaments between its words: a die, a coin and the suits of a deck of cards for three of its letters o, and two cards. They are drawn in CSS and SVG, in `em`, so that they follow the title and sit on its baseline like the letter they stand for, and they move now and then, not often (`PLAYFUL` of `@pbgo/ui/motion`, section `playful-motion`). They are on the page's black and nothing else: no table behind them. The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine."
+      intro="Some letters of the home's title are pieces of a game table, and so are the ornaments between its words: a die, a coin and the suits of a deck of cards for three of its letters o, and two cards. They are drawn in CSS and SVG, in `em`, so that they follow the title and sit on its baseline like the letter they stand for, and they move now and then, not often (`PLAYFUL` of `@pbgo/ui/motion`, section `playful-motion`), and a pointer that comes onto one plays it at once, if it is not playing already (hover the title below). They are on the page's black and nothing else: no table behind them. The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine."
     >
       <Demo
         title="The pieces of the title"
@@ -474,7 +413,7 @@ export function StatsSection() {
     <Section
       id="stats"
       module="stats"
-      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players are connected, how many accounts are registered, how many games there are, each in a pill (`rounded-xl`, filled with the colour of the text at 10%, no outline and no shadow, so that the numbers can roll up and down in it one day) that has a number (`text-base`) followed by what it counts on the same line; the figure of what is happening now, the players online, has a green dot before its number, the green of a friend who is online, a circle drawn in SVG. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen reader reads 128 players online and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players online and the members are counted in Supabase, and a figure is left out when it cannot be (`docs/accounts.md`)."
+      intro="What the home says about the platform under its title, in two lines. `Stats` is the figures: how many players are connected, how many accounts are registered, how many games there are, each in a pill (`rounded-xl`, filled with the colour of the text at 10%, no outline and no shadow, so that the numbers can roll up and down in it one day) that has a number (`text-sm`, like what it counts, but in the colour of the text) followed by what it counts on the same line; the figure of what is happening now, the players online, has a green dot before its number, the green of a friend who is online, a circle drawn in SVG. `Perks` is what costs the visitor nothing, the way a shop says free delivery: a few words each with a tick, in a row that wraps. Both are quiet (the number in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen reader reads 128 players online and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words. On the home the players online and the members are counted in Supabase, and a figure is left out when it cannot be (`docs/accounts.md`)."
     >
       <Demo
         title="Under a title"

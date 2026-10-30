@@ -1,6 +1,6 @@
 import "server-only"
 import { cache } from "react"
-import { pickLocalized, type CatalogEntry } from "@pbgo/catalog"
+import { creditLines, pickLocalized, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
 import { gameSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
@@ -8,8 +8,8 @@ import { getLocale } from "@pbgo/core/lib/locale-server"
 import type { GameCardProps, GameCardVisualProps } from "@pbgo/ui/platform/game-card"
 import { catalogCardProps, durationLabel, gamePicture, playersLabel } from "./game-card-props"
 
-/** One line of a game's facts: a label and its values, each one a link when it has an address. */
-export type GameFact = { label: string; values: { text: string; href?: string }[] }
+/** One line of a game's credits: a label and its values, each one a link when it has an address, with an icon when the site it leads to has one (`creditLines`). */
+export type GameFact = CreditLine
 
 /** The rulebook of one language: its link, titled in that language with the game's name ("Règles du jeu - Flip 7"). */
 export type GameRulebook = { language: Locale; label: string; href: string }
@@ -27,20 +27,17 @@ export type GamePage = {
   duration: string | null
   /** Worded like the two above, drawn beside them ("Ages 8+"). */
   age: string | null
-  /** The credits (authors, illustrators, publishers) one after the other: only the lines that have a value. */
+  /** The credits (designers, artists, publishers) one after the other: only the lines that have a value. */
   facts: GameFact[]
   /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no rulebook area. */
   rulebooks: GameRulebook[]
   /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
   picture: Pick<GameCardVisualProps, "logo" | "background">
-  /** The games the catalog relates to this one (docs/catalog.md), in the catalog's order, each as the props of its card. Empty: the page has no such section. */
+  /** The games the catalog recommends with this one (docs/catalog.md), the most relevant first (its family, then the games that look like it), each as the props of its card. Empty: the page has no such section. */
   related: { slug: string; card: GameCardProps }[]
   /** What the page tells search engines and social networks: its metadata, its JSON-LD, and whether it may be indexed (`@pbgo/catalog/seo`). */
   seo: GameSeo
 }
-
-const fact = (label: string, values: GameFact["values"]): GameFact[] => (values.length ? [{ label, values }] : [])
-const plural = (count: number, one: string, many: string) => (count === 1 ? one : many)
 
 /**
  * What a rulebook is called in its own language, before the game's name. A platform text, in code: the page is the platform's, not a
@@ -59,7 +56,7 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
 
 /**
  * The page of one entry of the catalog, the same for every game: its Notion row worded for the visitor, then the cards of its related
- * games. `entry.related` is already in the catalog's order, listed games only, never the entry itself.
+ * games. `entry.related` is already ranked (`rankRelated`), listed games only, never the entry itself.
  */
 function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale): GamePage {
   const { game } = entry
@@ -72,11 +69,7 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     players: playersLabel(game.players) ?? null,
     duration: durationLabel(game.duration) ?? null,
     age: game.age === null ? null : `Ages ${game.age}+`,
-    facts: [
-      ...fact(plural(game.authors.length, "Author", "Authors"), game.authors.map((text) => ({ text }))),
-      ...fact(plural(game.illustrators.length, "Illustrator", "Illustrators"), game.illustrators.map((text) => ({ text }))),
-      ...fact(plural(game.publishers.length, "Publisher", "Publishers"), game.publishers.map(({ name, url }) => ({ text: name, href: url ?? undefined }))),
-    ],
+    facts: creditLines(game),
     rulebooks: rulebooks(game.rules, locale, game.name),
     picture: gamePicture(game),
     related: entry.related.flatMap((slug) => {

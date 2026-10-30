@@ -4,12 +4,14 @@ import * as React from "react"
 import { animate, motion, useMotionValue, useReducedMotion, type AnimationPlaybackControls, type MotionValue } from "motion/react"
 import { PLAYFUL } from "../motion"
 import { HEADS, TAILS, type Drawing } from "./coin-drawings"
+import { usePlayOnEnter } from "./title-play"
 
 // The coin of the home's title, an "o": two sides drawn in lines, a laureate in profile and a star with facets in a wreath of laurel (`coin-drawings.ts`), on a struck gold coin that the utility `title-piece` of
 // `styles/platform.css` draws. It is tossed, from the top to the bottom, and it does not rise: now and then it spins for 1 or 2 whole turns (that is all the chance there is), and it plays while it does (`PLAYFUL.coin`):
 // it dips as if gathering itself, swells toward the viewer at the top of the toss, slows down as an ease in and out does, and lands with a squash that springs back. A whole number of turns, so it always stops flat
-// on its profile. It rests 14 to 24 seconds between two spins, and the first one comes 12 to 15 seconds after the page is shown, once the die has rolled and the suit has changed. A visitor who asks for less
-// motion gets the profile and nothing moves.
+// on its profile. It rests 14 to 24 seconds between two spins, and the first one comes 12 to 15 seconds after the page is shown, once the die has rolled and the suit has changed. It is also tossed when the pointer comes
+// onto it, if it is not in the air already (`usePlayOnEnter`): the toss that was waiting is called off, and the next one comes after the landing, as it always does. A visitor who asks for less motion gets the profile and
+// nothing moves.
 
 /** A drawing, as the stylesheet engraves it: the relief under it, a lighter copy of the outline a hair lower, then each line in the weight of its `data-line`. */
 function Engraved({ drawing }: { drawing: Drawing }) {
@@ -29,9 +31,9 @@ function Engraved({ drawing }: { drawing: Drawing }) {
 }
 
 /** The two sides of the coin, turned by `angle` degrees around its horizontal axis, and drawn `scale` times as big. */
-function CoinSides({ angle, scale }: { angle: MotionValue<number>; scale: MotionValue<number> }) {
+function CoinSides({ ref, angle, scale }: { ref: React.Ref<HTMLElement>; angle: MotionValue<number>; scale: MotionValue<number> }) {
   return (
-    <motion.i data-slot="coin" aria-hidden="true" style={{ rotateX: angle, scale }}>
+    <motion.i ref={ref} data-slot="coin" aria-hidden="true" style={{ rotateX: angle, scale }}>
       <b data-face="heads">
         <Engraved drawing={HEADS} />
       </b>
@@ -47,15 +49,21 @@ function TitleCoin({ first = 12500, rest = 14000 }: { first?: number; rest?: num
   const angle = useMotionValue(0)
   const scale = useMotionValue(1)
   const reduced = useReducedMotion()
+  const root = React.useRef<HTMLElement>(null)
+  const playNow = React.useRef<(() => void) | null>(null)
+  usePlayOnEnter(root, playNow)
 
   React.useEffect(() => {
     if (reduced) return
     let stopped = false
+    // From the first push to the end of the landing: the coin that is in the air is not tossed again
+    let spinning = false
     let timer: ReturnType<typeof setTimeout> | undefined
     let running: AnimationPlaybackControls[] = []
     const { ease, secondsATurn, turns: range, dip, swell, squash, landing } = PLAYFUL.coin
 
     const spin = async () => {
+      spinning = true
       const turns = range.min + Math.floor(Math.random() * (range.max - range.min + 1))
       const seconds = turns * secondsATurn * (0.96 + Math.random() * 0.08)
       running = [
@@ -69,18 +77,28 @@ function TitleCoin({ first = 12500, rest = 14000 }: { first?: number; rest?: num
       if (stopped) return
       running = [animate(scale, 1, landing)]
       await running[0]
-      if (!stopped) timer = setTimeout(spin, rest * (1 + Math.random() * 0.72))
+      if (stopped) return
+      spinning = false
+      timer = setTimeout(spin, rest * (1 + Math.random() * 0.72))
+    }
+
+    // A pointer over the coin tosses it, if it is not in the air: the toss that was waiting is called off, and the next one is set after the landing
+    playNow.current = () => {
+      if (spinning) return
+      clearTimeout(timer)
+      void spin()
     }
 
     timer = setTimeout(spin, first * (1 + Math.random() * 0.24))
     return () => {
       stopped = true
+      playNow.current = null
       if (timer) clearTimeout(timer)
       running.forEach((controls) => controls.stop())
     }
   }, [reduced, angle, scale, first, rest])
 
-  return <CoinSides angle={angle} scale={scale} />
+  return <CoinSides ref={root} angle={angle} scale={scale} />
 }
 
 export { TitleCoin }

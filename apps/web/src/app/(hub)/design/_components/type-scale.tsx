@@ -29,12 +29,11 @@ const TEXT: readonly Row[] = [
 const HEADINGS: readonly Row[] = [
   { className: "font-heading text-xl", use: "Small headings" },
   { className: "font-heading text-2xl", use: "Hub section headings" },
-  { className: "font-heading text-3xl", use: "Page title of a text page, section title; the home's title on a phone" },
-  { className: "font-heading text-4xl", use: "A game's page title below `md`, the title of this page" },
-  { className: "font-heading text-5xl", use: "The home's title from `sm`, the title of this page from `md`" },
+  { className: "font-heading text-3xl", use: "Page title of a text page, section title" },
+  { className: "font-heading text-4xl", use: "A game's page title below `md`, the title of a page of this system" },
+  { className: "font-heading text-5xl", use: "The title of a page of this system from `md`" },
   { className: "font-heading text-6xl", use: "A game's page title from `md`" },
-  { className: "font-heading text-7xl", use: "The home's title from `lg`" },
-  { className: "font-heading text-8xl", use: "The home's title from `xl`" },
+  { className: "display-title text-display", use: "The home's title: it follows the window (`5.8vw + 0.9rem` up to 7rem), Geist at 720" },
   { className: "page-title", use: "The title of Games, Tables and Tournaments: 8rem from a 850px window, Geist at 720 with a tracking of -0.048em, one line" },
 ]
 

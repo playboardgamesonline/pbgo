@@ -81,7 +81,7 @@ export function Buttons() {
 
       <Demo
         title="Sizes"
-        description="`default` is `h-9`. Use `sm` and `xs` inside dense UI (tables, toolbars, the admin), `lg` for a hero action."
+        description="`default` is `h-9`. Use `sm` and `xs` inside dense UI (tables, toolbars, the gamemaster), `lg` for a hero action."
         className={ROW}
         code={`<Button size="xs">Extra small</Button>
 <Button size="sm">Small</Button>

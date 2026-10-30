@@ -66,7 +66,7 @@ const SECTIONS: { id?: string; title: string; body: React.ReactNode[] }[] = [
     ],
   },
   {
-    // The banner's "Details" link lands here (`/legal#cookies`)
+    // The banner's "Privacy policy" link lands here (`/legal#cookies`), `/privacy` being a stub for now
     id: "cookies",
     title: "Cookies, storage and statistics",
     body: [

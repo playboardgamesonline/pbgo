@@ -39,7 +39,7 @@ export function Principles() {
   return (
     <Section
       id="principles"
-      intro="The platform (hub, account, legal, admin, 404) is black and white, dark only, set in Geist semibold. Everything on it is built from the tokens and components of `@pbgo/ui`. The only colour on a platform screen is a game's own art."
+      intro="The platform (hub, account, legal, gamemaster, 404) is black and white, dark only, set in Geist semibold. Everything on it is built from the tokens and components of `@pbgo/ui`. The only colour on a platform screen is a game's own art."
     >
       <Bullets items={PRINCIPLES} />
 
@@ -98,20 +98,20 @@ const SKIN_SNIPPET = `/* A game restyles by changing the value of a token. No co
 }`
 
 const COMPARISON: readonly { row: string; platform: string; game: string }[] = [
-  { row: "Used by", platform: "Hub, `/design`, legal, 404, the admin of every game", game: "A game's own pages: home, lobby, table, board" },
+  { row: "Used by", platform: "Hub, `/design`, legal, 404, the gamemaster", game: "A game's own pages: home, lobby, table, board" },
   { row: "Components", platform: "`@pbgo/ui/platform/*`", game: "`@pbgo/ui/game/*`" },
   { row: "Token values", platform: "`packages/ui/src/styles/platform.css`, scoped to `.platform`", game: "`:root` of `packages/core/styles/game.css` and the game's stylesheet, overridden by its Sanity skin" },
-  { row: "Who changes them", platform: "The design system: a pull request on `packages/ui`", game: "The game: its admin (Visual, Copy) through `themeStyle()`" },
+  { row: "Who changes them", platform: "The design system: a pull request on `packages/ui`", game: "The game: its setup in the gamemaster (Visual, Copy) through `themeStyle()`" },
   { row: "Theme", platform: "Black and white, dark only", game: "Whatever the game's skin says" },
-  { row: "`platform` class", platform: "On `<html>` (hub, 404), on the admin wrapper, on the root of every portal", game: "Never" },
+  { row: "`platform` class", platform: "On `<html>` (hub, gamemaster, 404), on the root of every portal", game: "Never" },
 ]
 
 const BOUNDARY = [
-  "The platform sets its values on `.platform`, never on `:root`. A game sets its values on `:root`, never on `.platform`. The two never mix, even on a game page that hosts the admin.",
+  "The platform sets its values on `.platform`, never on `:root`. A game sets its values on `:root`, never on `.platform`. The two never mix.",
   "A component reads tokens and never names a colour, a font or a size of its own. That is what lets a game restyle everything by changing values.",
   "`@theme` in `platform.css` only defines new names (`shadow-surface`, `duration-fast`, `bg-scrim`). A name Tailwind already has gets its platform value inside `.platform`, or every game would inherit it from `:root`.",
   "Portals (select, dropdown, dialog, sheet, tooltip, toast) render outside the wrapper that carries `platform`, so their root carries the class itself. The platform components do it already.",
-  "`.platform` carries no background: a portal would paint it. `<html>` and the admin wrapper add `bg-background` themselves.",
+  "`.platform` carries no background: a portal would paint it. `<html>` adds `bg-background` itself.",
 ] as const
 
 function Specimen() {

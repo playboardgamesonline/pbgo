@@ -7,7 +7,7 @@ import { cn } from "../utils"
 // (a small container, `rounded-xl` like the other small containers of the platform, filled with the colour of the text at 10%: a faint white that lets the backdrop through, with no outline and no shadow, so that
 // the number can roll up and down in it one day) that has a number followed by what it counts ("128 players online"); the one that counts what is happening now, the players connected, has a green dot before its number, the green of a friend who is online
 // (`text-presence-online`, a circle drawn in SVG: the class of a capsule is for the few files whose shape is a circle by nature, and this one is not). `Perks` is what costs the visitor nothing, the way
-// a shop says "free delivery": a few words each with a tick, in a row that wraps. Both are quiet (the number (`text-base`) in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen
+// a shop says "free delivery": a few words each with a tick, in a row that wraps. Both are quiet (the number and what it counts both `text-sm`, the number in the colour of the text, what it counts in the colour of the text at 80% and the perks at 70%, white a little faded and not a grey) and say their figures as text, so a screen
 // reader reads "128 players online" and not a picture of it. They draw what they are given and know where it comes from: the page gives the figures and the words.
 
 type StatsProps = Omit<React.ComponentProps<"dl">, "children"> & {
@@ -15,14 +15,14 @@ type StatsProps = Omit<React.ComponentProps<"dl">, "children"> & {
   items: readonly { value: string; label: string; live?: boolean }[]
 }
 
-/** A row of figures, each in its own pill: the number, a little bigger than the words, and what it counts after it on the same line. The row goes on another line when the room runs out. */
+/** A row of figures, each in its own pill: the number, as small as the words (it was a size above) but brighter, and what it counts after it on the same line. The row goes on another line when the room runs out. */
 function Stats({ items, className, ...props }: StatsProps) {
   return (
     <dl data-slot="stats" className={cn("flex flex-wrap items-center justify-center gap-2", className)} {...props}>
       {items.map((item) => (
         <div key={item.label} className="flex flex-row-reverse items-baseline gap-2 rounded-xl bg-foreground/10 px-4 py-2">
           <dt className="text-sm text-foreground/80">{item.label}</dt>
-          <dd className="flex items-baseline gap-2 text-base text-foreground tabular-nums">
+          <dd className="flex items-baseline gap-2 text-sm text-foreground tabular-nums">
             {item.live && (
               <svg aria-hidden="true" viewBox="0 0 8 8" className="size-2 shrink-0 self-center fill-current text-presence-online">
                 <circle cx="4" cy="4" r="4" />
