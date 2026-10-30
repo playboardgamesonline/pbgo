@@ -17,7 +17,7 @@ export default function PricingPage() {
         <ListPageHeader title="Pricing" />
         <section aria-label="Plans" className="mx-auto flex w-full max-w-page flex-col gap-10 px-gutter pt-4 pb-section">
           <p className="mx-auto max-w-2xl text-center text-lg text-muted-foreground">
-            Every game is free to play. A plan adds things around the games: your history, your look, your tournaments.
+            Every game is free to play. A plan adds what goes around the games: expansions, tournaments, sound and your history.
           </p>
           <PricingPlans />
           <p className="text-center text-sm text-muted-foreground">Prices are per month, in euros. The paid plans are not on sale yet.</p>

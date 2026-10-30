@@ -1,7 +1,7 @@
 /**
- * The plans of the Pricing page: a free one and two paid ones, at 0.99 and 3.99 euros a month (Oré's prices). The names, the descriptions and what each one includes are a first draft
- * of mine, to be changed: nothing here is built or on sale yet (the paid plans have a disabled "Coming soon" button), so no line may promise what a player could not get today without it being
- * said. What is true of the free plan is what the site does now.
+ * The plans of the Pricing page: a free one and two paid ones, at 0.99 and 3.99 euros a month (Oré's prices). The names and the descriptions are a first draft of mine. What each plan
+ * includes is Oré's for the expansions, the tournaments and the audio (said on 2026-10-30) and a first draft of mine for the rest, to be changed: nothing here is built or on sale yet
+ * (the paid plans have a disabled "Coming soon" button), so no line may promise what a player could not get today without it being said. What is true of the free plan is what the site does now.
  */
 export type Plan = {
   id: "free" | "plus" | "club"
@@ -26,7 +26,15 @@ export const PLANS: readonly Plan[] = [
     name: "Plus",
     price: 0.99,
     description: "For players who come back.",
-    features: ["Everything in Free", "Your whole history and your statistics", "A badge next to your name", "Avatar frames and table colours"],
+    features: [
+      "Everything in Free",
+      "Create games with premium expansions",
+      "Play in tournaments",
+      "In-game audio",
+      "Your whole history and your statistics",
+      "A badge next to your name",
+      "Avatar frames and table colours",
+    ],
   },
   {
     id: "club",
@@ -35,7 +43,7 @@ export const PLANS: readonly Plan[] = [
     description: "For groups and organisers.",
     features: [
       "Everything in Plus",
-      "Tournaments between friends, and public ones",
+      "Create tournaments, between friends or open to all",
       "Save your groups and invite them in one tap",
       "A first look at the new games",
       "A say in which games come next",
