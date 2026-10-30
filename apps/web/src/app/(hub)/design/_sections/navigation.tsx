@@ -439,7 +439,7 @@ export function TitlePieces() {
     <Section
       id="title-pieces"
       module="title-piece"
-      intro="Some letters of the home's title are pieces of a game table, and so are the ornaments between its words: a die, a coin and the suits of a deck of cards for three of its letters o, and two cards. They are drawn in CSS and SVG, in `em`, so that they follow the title and sit on its baseline like the letter they stand for, and they move now and then, not often (`PLAYFUL` of `@pbgo/ui/motion`, section `playful-motion`). They are on the page's black and nothing else: no table behind them. The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine."
+      intro="Some letters of the home's title are pieces of a game table, and so are the ornaments between its words: a die, a coin and the suits of a deck of cards for three of its letters o, and two cards. They are drawn in CSS and SVG, in `em`, so that they follow the title and sit on its baseline like the letter they stand for, and they move now and then, not often (`PLAYFUL` of `@pbgo/ui/motion`, section `playful-motion`), and a pointer that comes onto one plays it at once, if it is not playing already (hover the title below). They are on the page's black and nothing else: no table behind them. The letter stays in the page (`sr-only`), so the title reads as it is written for a screen reader and a search engine."
     >
       <Demo
         title="The pieces of the title"

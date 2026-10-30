@@ -4,11 +4,12 @@ import * as React from "react"
 import { animate, motion, useMotionValue, useReducedMotion, useTransform, useVelocity, type AnimationPlaybackControls } from "motion/react"
 import { PLAYFUL } from "../motion"
 import { Suit, type SuitName } from "./suits"
+import { rhythm, usePlayOnEnter } from "./title-play"
 
 // The suits of the home's title, one in the place of an "o": a wheel, like the reel of a slot machine (`PLAYFUL.suit`). Every fifteen seconds, the first time eleven seconds after the page is shown, it scrolls up through
 // the suits, a red one and a white one in turn (a black one would be lost on the page's black), with a wind-up and then slower and slower, blurred up and down by its own speed and stretched a little, goes a little past
-// its stop and settles back on a spring, and it always stops on the heart it started on: a whole number of laps of the four suits, two or three by chance. The heart is also the one that a visitor who asks for less
-// motion keeps, for whom nothing moves.
+// its stop and settles back on a spring, and it always stops on the heart it started on: a whole number of laps of the four suits, two or three by chance. It also turns when the pointer comes onto it, if it is not turning
+// already (`usePlayOnEnter`), and the next turn then comes after the usual time. The heart is also the one that a visitor who asks for less motion keeps, for whom nothing moves.
 // The wheel is one strip of suits that repeats every four, longer than the longest turn, in a window (the stylesheet draws it) that is taller than one suit: a suit comes in and goes out through a fade, at the top and at the
 // bottom, and at rest the window shows the one suit, the others being farther away than the fade reaches. Once it has stopped the strip is put back at the start of its pattern, which looks the same.
 //
@@ -34,6 +35,9 @@ const LEVELS = 10
 function TitleSuits({ first = 11000, every = 15000 }: { first?: number; every?: number }) {
   const reduced = useReducedMotion()
   const place = useMotionValue(0)
+  const root = React.useRef<HTMLSpanElement>(null)
+  const playNow = React.useRef<(() => void) | null>(null)
+  usePlayOnEnter(root, playNow)
   const id = React.useId().replace(/:/g, "")
   const y = useTransform(place, (places) => `${-places * PITCH}em`)
   const { stretch, maxStretch, blur } = PLAYFUL.suit.wheel
@@ -46,15 +50,11 @@ function TitleSuits({ first = 11000, every = 15000 }: { first?: number; every?: 
 
   React.useEffect(() => {
     if (reduced) return
-    let timer: ReturnType<typeof setTimeout> | undefined
     let running: AnimationPlaybackControls | undefined
     let stopped = false
     const { ease, secondsAPlace, laps, overshoot, settle } = PLAYFUL.suit.wheel
 
     const turn = async () => {
-      timer = setTimeout(turn, every)
-      // A turn that is not over (a tab in the background holds the frames back while the timers go on) is left to end where it was going: on a heart
-      if (place.isAnimating()) return
       // Back to the start of the pattern, the heart: it repeats every four places, so nothing moves
       const from = place.get() % SUITS.length
       place.set(from)
@@ -66,17 +66,21 @@ function TitleSuits({ first = 11000, every = 15000 }: { first?: number; every?: 
       running = animate(place, from + places, settle)
     }
 
-    timer = setTimeout(turn, first)
+    // A turn that is not over (a tab in the background holds the frames back while the timers go on) is left to end where it was going: on a heart
+    const beat = rhythm({ first, every, busy: () => place.isAnimating(), start: turn })
+    playNow.current = beat.play
+
     return () => {
       stopped = true
-      if (timer) clearTimeout(timer)
+      playNow.current = null
+      beat.stop()
       running?.stop()
     }
   }, [reduced, place, first, every])
 
   return (
     <>
-      <motion.span data-slot="suit-window" aria-hidden="true" style={{ filter }}>
+      <motion.span ref={root} data-slot="suit-window" aria-hidden="true" style={{ filter }}>
         <motion.span data-slot="suit-strip" style={{ y }}>
           {Array.from({ length: PLACES }, (_, index) => (
             <motion.span key={index} data-slot="suit-place" style={{ scaleY: longer }}>
