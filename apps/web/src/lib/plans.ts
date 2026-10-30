@@ -2,6 +2,7 @@
  * The plans of the Pricing page: a free one and two paid ones, at 0.99 and 3.99 euros a month (Oré's prices). The names and the descriptions are a first draft of mine. What each plan
  * includes is Oré's for the expansions, the tournaments and the audio (said on 2026-10-30) and a first draft of mine for the rest, to be changed: nothing here is built or on sale yet
  * (the paid plans have a disabled "Coming soon" button), so no line may promise what a player could not get today without it being said. What is true of the free plan is what the site does now.
+ * The skins (avatar frames, table colours) are in no plan: they are to be sold in a shop, with a virtual currency (Oré, 2026-10-30).
  */
 export type Plan = {
   id: "free" | "plus" | "club"
@@ -33,7 +34,6 @@ export const PLANS: readonly Plan[] = [
       "In-game audio",
       "Your whole history and your statistics",
       "A badge next to your name",
-      "Avatar frames and table colours",
     ],
   },
   {
