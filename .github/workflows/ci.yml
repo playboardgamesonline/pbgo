@@ -1,0 +1,54 @@
+# The repo's own gates on every pull request and on main (PLT-94): the commands of "Commands" in CLAUDE.md.
+# Nothing here needs a secret or an `apps/web/.env.local`, and nothing may: Dependabot's runs have a read-only token
+# and no secrets, and `pnpm build` only logs that the hub's Supabase figures are left out.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A new push to a pull request replaces its run in progress; every run on main goes to the end.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      # The actions are pinned to a commit (the tag it was taken at is in the comment).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No `version`: pnpm is the one of `packageManager` in the root package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      # Node is the one of .nvmrc; `cache: pnpm` keeps the pnpm store between runs, keyed on pnpm-lock.yaml.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # A gate that fails does not stop the next ones: a run shows everything that is red.
+      - run: pnpm check:catalog
+        if: ${{ !cancelled() }}
+      - run: pnpm check:public
+        if: ${{ !cancelled() }}
+      - run: pnpm typecheck
+        if: ${{ !cancelled() }}
+      - run: pnpm lint
+        if: ${{ !cancelled() }}
+      - run: pnpm test
+        if: ${{ !cancelled() }}
+      - run: pnpm build
+        if: ${{ !cancelled() }}
