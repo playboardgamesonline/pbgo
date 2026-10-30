@@ -71,6 +71,6 @@ if (catalog.some((entry) => entry.live && fromRegistry(entry.slug))) {
 if (notionGames.length > 0) {
   console.log("\ndevelopment: Priority / Status / Effort of the Games Development database, the order of the coming-soon games (a live game keeps its place in the registry)")
   console.log("art: Logo, Icon, Background · text: the languages that have a description · weight: the Complexity column, BoardGameGeek's weight from 1 to 5")
-  console.log("related: the games the page of a game lists as related, both ways: the row of either one says so (Related Games, or the base game of a standalone expansion)")
+  console.log("related: the games the page of a game recommends, the most relevant first: its family (both ways: the row of either one says so, Related Games or the base game of a standalone expansion), then the games that look like it by their categories")
 }
 if (notes.length > 0) console.log(`\n${notes.join("\n")}`)

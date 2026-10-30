@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ART_SLOTS, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, creditLines, pickLocalized, pictureUrl, pictureVersion, publisherIconUrl, registryRow, sharePicture } from "./catalog"
+import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, comparePlanned, creditLines, pickLocalized, pictureUrl, pictureVersion, publisherIconUrl, registryRow, sharePicture } from "./catalog"
 import { DEVELOPMENT_OPTIONS, developmentRank, notionGame, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -219,6 +219,32 @@ describe("buildCatalog: the related games", () => {
     const entries = buildCatalog([], planned)
     expect(planned.map((game) => game.related)).toEqual([["b"], []])
     expect(entries.map((entry) => entry.game)).toEqual(planned)
+  })
+
+  describe("after the family, the games that look like it", () => {
+    const rows = [
+      notionGame("skyjo", { name: "Skyjo", categories: ["Cards", "Family"], related: ["skyjo-action"] }),
+      notionGame("skyjo-action", { name: "Skyjo Action" }),
+      notionGame("bang", { name: "Bang", categories: ["Cards", "Family"] }),
+      notionGame("the-mind", { name: "The Mind", categories: ["Cooperative", "Cards"] }),
+      notionGame("catan", { name: "Catan", categories: ["Strategy"] }),
+    ]
+
+    it("lists the games that share categories with it, the likeliest first, and leaves out the others", () => {
+      expect(relatedOf(buildCatalog([], rows)).skyjo).toEqual(["skyjo-action", "bang", "the-mind"])
+    })
+
+    it("recommends too the games that its players also play, when that is known", () => {
+      const alsoPlayed = new Map([["skyjo", new Map([["catan", 4]])]])
+      expect(relatedOf(buildCatalog([], rows, { alsoPlayed })).skyjo).toEqual(["skyjo-action", "bang", "catan", "the-mind"])
+    })
+
+    it("recommends at most `RELATED_MAX` games, the family first", () => {
+      const crowd = Array.from({ length: 20 }, (_, index) => notionGame(`game-${String(index).padStart(2, "0")}`, { name: `Game ${String(index).padStart(2, "0")}`, categories: ["Cards"] }))
+      const list = relatedOf(buildCatalog([], [notionGame("home", { name: "Zzz", categories: ["Cards"], related: ["game-19"] }), ...crowd])).home ?? []
+      expect(list).toHaveLength(RELATED_MAX)
+      expect(list[0]).toBe("game-19")
+    })
   })
 })
 

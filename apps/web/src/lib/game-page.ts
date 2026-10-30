@@ -33,7 +33,7 @@ export type GamePage = {
   rulebooks: GameRulebook[]
   /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
   picture: Pick<GameCardVisualProps, "logo" | "background">
-  /** The games the catalog relates to this one (docs/catalog.md), in the catalog's order, each as the props of its card. Empty: the page has no such section. */
+  /** The games the catalog recommends with this one (docs/catalog.md), the most relevant first (its family, then the games that look like it), each as the props of its card. Empty: the page has no such section. */
   related: { slug: string; card: GameCardProps }[]
   /** What the page tells search engines and social networks: its metadata, its JSON-LD, and whether it may be indexed (`@pbgo/catalog/seo`). */
   seo: GameSeo
@@ -56,7 +56,7 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
 
 /**
  * The page of one entry of the catalog, the same for every game: its Notion row worded for the visitor, then the cards of its related
- * games. `entry.related` is already in the catalog's order, listed games only, never the entry itself.
+ * games. `entry.related` is already ranked (`rankRelated`), listed games only, never the entry itself.
  */
 function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale): GamePage {
   const { game } = entry
