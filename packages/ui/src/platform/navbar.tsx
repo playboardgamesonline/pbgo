@@ -58,7 +58,7 @@ function NavbarStart({ className, ...props }: React.ComponentProps<"div">) {
 
 /**
  * The right container, apart from the first: the avatar of the account, or the sign-in and sign-up buttons. The buttons are `rounded-lg` here,
- * like the tabs of the first island (a button is a pill elsewhere), so the page does not have to remember it.
+ * like the tabs of the first island (elsewhere a button is `rounded-xl`), so the page does not have to remember it.
  */
 function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-end" className={cn(islandClassName, "shrink-0 [&_[data-slot=button]]:rounded-lg", className)} {...props} />
