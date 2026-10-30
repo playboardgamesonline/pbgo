@@ -69,7 +69,7 @@ Notion hosts the pictures (the games' logo, icon and background, a publisher's l
 
 ## Publishing
 
-The seed never publishes. In the Studio, publish the creators, publishers and categories first, then the games (see the references above): the Studio's Publish makes the references strong. A publication by the API leaves them weak, which the hub reads just as well but which keeps nothing from being deleted. Once published, a document is public (a public dataset: its published documents can be read with no token).
+The seed never publishes. In the Studio, publish the creators, publishers and categories first, then the games (see the references above): the Studio's Publish makes the references strong. A publication made another way (a script, the Sanity MCP) has to do what the Studio does, or the references stay weak, which the hub reads just as well but which keeps nothing from being deleted: drop `_strengthenOnPublish` from each reference, and `_weak` with it unless the mark says the field is weak for good (`related`), create the published document and delete the draft, all in one transaction. That is how the 170 documents of the first seed were published (2026-10-30, on the owner's word), after a dry run that checks that no strong reference points at a document that would not be published. Once published, a document is public (a public dataset: its published documents can be read with no token).
 
 ## What reads it
 
