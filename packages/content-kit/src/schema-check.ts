@@ -1,5 +1,7 @@
+import { deepEqual } from "./merge.ts"
+
 // A small checker of documents against the definitions of a Sanity schema (what `defineType` and `defineField` return).
-// It knows the kinds of field, the option lists and the validation rules the types of a game use, and it throws on a
+// It knows the kinds of field, the option lists and the validation rules the types of a game (and of the platform) use, and it throws on a
 // rule it does not know rather than skipping it, so that a new kind of rule cannot slip through unchecked.
 
 type Shape = {
@@ -7,6 +9,8 @@ type Shape = {
   description?: unknown
   fields?: FieldDef[]
   of?: MemberDef[]
+  /** What a `reference` may point at: the types of the documents */
+  to?: MemberDef[]
   options?: { list?: unknown[] }
   validation?: unknown
 }
@@ -32,6 +36,19 @@ const SYSTEM_FIELDS = new Set(["_id", "_type", "_rev", "_createdAt", "_updatedAt
 const URL_PROTOCOLS = ["http:", "https:", "mailto:", "tel:"]
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
+
+/** `2026-02-28`, a day that exists (not `2026-02-31`): what a `date` field holds. */
+function isCalendarDate(value: unknown): boolean {
+  const parts = typeof value === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null
+  if (!parts) return false
+  const [year, month, day] = [Number(parts[1]), Number(parts[2]), Number(parts[3])]
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
+/** `2026-10-30T14:00:00.000Z`: what a `datetime` field holds, a day that exists with a time and a zone. */
+const isDateTime = (value: unknown): boolean =>
+  typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && isCalendarDate(value.slice(0, 10)) && !Number.isNaN(Date.parse(value))
 
 const show = (value: unknown) => {
   const text = JSON.stringify(value) ?? String(value)
@@ -64,6 +81,22 @@ export function constraintsOf(validation: unknown): Constraint[] {
 
 const sizeOf = (value: unknown) => (typeof value === "string" || Array.isArray(value) ? value.length : Number.NaN)
 
+/** An item of a list as `unique()` compares it: without its `_key`, which differs from one item to the next whatever they hold. */
+const withoutKey = (item: unknown): unknown => (isObject(item) ? Object.fromEntries(Object.entries(item).filter(([key]) => key !== "_key")) : item)
+
+/**
+ * What the function of a `custom()` rule answered, as the reason it refuses the value (nothing when it accepts it): `true` accepts, a
+ * text or an object with a `message` refuses. A function that answers later is not emulated, and one that needs the document is handed none.
+ */
+function verdictOf(answer: unknown): string | undefined {
+  if (answer === true || answer === undefined || answer === null) return undefined
+  if (answer instanceof Promise) throw new Error("A custom() rule that answers with a promise is not emulated by schema-check.ts")
+  if (typeof answer === "string") return answer
+  if (Array.isArray(answer)) return answer.map(verdictOf).find((reason) => reason !== undefined)
+  if (isObject(answer) && typeof answer.message === "string") return answer.message
+  return `is refused by its custom() rule (${show(answer)})`
+}
+
 /** Why a rule refuses a value that is there, or nothing when it accepts it. */
 function refusal(name: string, args: unknown[], value: unknown): string | undefined {
   switch (name) {
@@ -86,6 +119,17 @@ function refusal(name: string, args: unknown[], value: unknown): string | undefi
     }
     case "integer":
       return Number.isInteger(value) ? undefined : `must be an integer (got ${show(value)})`
+    case "unique": {
+      if (!Array.isArray(value)) return undefined
+      const items = value.map(withoutKey)
+      const repeated = items.findIndex((item, index) => items.findIndex((other) => deepEqual(item, other)) !== index)
+      return repeated < 0 ? undefined : `must not repeat ${show(items[repeated])}`
+    }
+    case "custom": {
+      const [validate] = args
+      if (typeof validate !== "function") throw new Error("custom() needs a function")
+      return verdictOf(validate(value, { path: [], document: undefined }))
+    }
     default:
       throw new Error(`The validation rule ${name}() is not emulated by schema-check.ts: add it there before a field the seed writes uses it`)
   }
@@ -135,6 +179,22 @@ export function problemsOf(value: unknown, def: Shape & { name?: string }, path:
       if (!protocol || !URL_PROTOCOLS.includes(protocol)) return [`${path} should be a URL (${URL_PROTOCOLS.join(" ")}), got ${show(value)}`]
       break
     }
+    case "date":
+      if (!isCalendarDate(value)) return [`${path} should be a date (YYYY-MM-DD), got ${show(value)}`]
+      break
+    case "datetime":
+      if (!isDateTime(value)) return [`${path} should be a date and time in ISO 8601 (2026-10-30T14:00:00.000Z), got ${show(value)}`]
+      break
+    case "slug":
+      if (!isObject(value) || value._type !== "slug" || typeof value.current !== "string" || value.current === "") {
+        return [`${path} should be a slug ({ _type: "slug", current }), got ${show(value)}`]
+      }
+      break
+    case "reference":
+      if (!isObject(value) || value._type !== "reference" || typeof value._ref !== "string" || value._ref === "") {
+        return [`${path} should be a reference ({ _type: "reference", _ref }), got ${show(value)}`]
+      }
+      break
     case "image": {
       const asset = isObject(value) ? value.asset : undefined
       const reference = isObject(asset) && asset._type === "reference" && typeof asset._ref === "string" && /^image-.+-\d+x\d+-[a-z0-9]+$/.test(asset._ref)
@@ -181,11 +241,13 @@ export function problemsOf(value: unknown, def: Shape & { name?: string }, path:
       return [`${path} has the type "${kind}", which schema-check.ts does not know`]
   }
 
-  // the list of a field is a closed set of values, which the Studio enforces
+  // the list of a field is a closed set of values, which the Studio enforces: for a list of values (an array), each one must be in it
   const list = def.options?.list
   if (Array.isArray(list)) {
     const allowed = list.map((entry) => (isObject(entry) && "value" in entry ? entry.value : entry))
-    if (!allowed.includes(value)) problems.push(`${path} is ${show(value)}, not one of ${allowed.map(show).join(", ")}`)
+    for (const chosen of kind === "array" && Array.isArray(value) ? value : [value]) {
+      if (!allowed.includes(chosen)) problems.push(`${path} is ${show(chosen)}, not one of ${allowed.map(show).join(", ")}`)
+    }
   }
   return [...ruleProblems(value, constraints, path), ...problems]
 }
@@ -244,3 +306,44 @@ export function imageFields(typeName: string, types: Types): string[] {
 
 /** An image path of a document (`$.valueGlyphs[3].glyph`) written like the image fields of its type (`game.valueGlyphs[].glyph`). */
 export const imageFieldOf = (typeName: string, path: string) => `${typeName}${path.replace(/^\$/, "").replace(/\[\d+\]/g, "[]")}`
+
+/** Every reference a value holds: where it is, what it points at, and the types of document its field allows (none listed: any). Images and files are not references of the seed. */
+export function referencesOf(value: unknown, def: Shape, path: string, types: Types): { path: string; ref: string; to: string[] }[] {
+  if (value === undefined || value === null) return []
+  const registered = types.get(def.type)
+  const kind = registered?.type ?? def.type
+  if (kind === "reference") {
+    const ref = isObject(value) && typeof value._ref === "string" ? value._ref : undefined
+    return ref === undefined ? [] : [{ path, ref, to: (def.to ?? registered?.to ?? []).map((member) => member.name ?? member.type) }]
+  }
+  if (kind === "object" && isObject(value)) {
+    return (def.fields ?? registered?.fields ?? []).flatMap((field) => referencesOf(value[field.name], field, `${path}.${field.name}`, types))
+  }
+  if (kind === "array" && Array.isArray(value)) {
+    const members = def.of ?? registered?.of ?? []
+    return value.flatMap((item, index) => {
+      const member = isObject(item) ? members.find((candidate) => (candidate.name ?? candidate.type) === item._type) : undefined
+      return member ? referencesOf(item, member, `${path}[${index}]`, types) : []
+    })
+  }
+  return []
+}
+
+/**
+ * The references of the seed that point nowhere: at a document that is not in the seed, or at one of a type the field does not take.
+ * A draft may point at a document that is not published yet, so nothing else keeps a reference from dangling before the Studio publishes it.
+ */
+export function referenceProblems(docs: readonly Record<string, unknown>[], types: Types): string[] {
+  const typeOf = new Map(docs.map((doc) => [String(doc._id), String(doc._type)]))
+  const problems: string[] = []
+  for (const doc of docs) {
+    for (const field of types.get(String(doc._type))?.fields ?? []) {
+      for (const { path, ref, to } of referencesOf(doc[field.name], field, `${String(doc._id)}.${field.name}`, types)) {
+        const target = typeOf.get(ref)
+        if (target === undefined) problems.push(`${path} points at "${ref}", which is not in the seed`)
+        else if (to.length > 0 && !to.includes(target)) problems.push(`${path} points at "${ref}", a "${target}", and the field takes ${to.map((name) => `"${name}"`).join(" or ")}`)
+      }
+    }
+  }
+  return problems
+}

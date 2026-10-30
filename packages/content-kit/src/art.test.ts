@@ -54,10 +54,10 @@ describe("scanArtDir", () => {
     expect(scan.found.map((entry) => entry.file)).toEqual(["a.png"])
   })
 
-  it("reads SVG, PNG, JPEG and WebP, in any case", async () => {
-    const dir = await temp.create({ "a.svg": "x", "b.PNG": "x", "c.jpg": "x", "d.JPEG": "x", "e.webP": "x" })
-    const scan = await scanArtDir(dir, ["a", "b", "c", "d", "e"].map((name) => slot(name)))
-    expect(scan.found).toHaveLength(5)
+  it("reads SVG, PNG, JPEG, WebP and AVIF, in any case", async () => {
+    const dir = await temp.create({ "a.svg": "x", "b.PNG": "x", "c.jpg": "x", "d.JPEG": "x", "e.webP": "x", "f.AVIF": "x" })
+    const scan = await scanArtDir(dir, ["a", "b", "c", "d", "e", "f"].map((name) => slot(name)))
+    expect(scan.found).toHaveLength(6)
   })
 
   it("ignores what is not an image", async () => {
@@ -180,6 +180,11 @@ describe("normalizeImage", () => {
   it("reads the content, not the extension", async () => {
     const out = await normalizeImage(await imageOf("#cc2200"), ".jpg", { maxSize: 100 })
     expect([out.width, out.height]).toEqual([40, 56])
+  })
+
+  it("turns an AVIF into WebP, like any raster", async () => {
+    const out = await normalizeImage(await imageOf("#cc2200", { width: 40, height: 56 }, "avif"), ".avif", { maxSize: 100 })
+    expect(out).toMatchObject({ ext: "webp", contentType: "image/webp", width: 40, height: 56 })
   })
 
   it("does not read what is not an image", async () => {

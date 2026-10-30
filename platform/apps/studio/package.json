@@ -1,0 +1,34 @@
+{
+  "name": "platform-studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "schema:deploy": "sanity schemas deploy"
+  },
+  "dependencies": {
+    "@pbgo/games": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
+    "@sanity/icons": "catalog:",
+    "@sanity/ui": "catalog:",
+    "@sanity/vision": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sanity": "catalog:",
+    "styled-components": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/content-kit": "workspace:*",
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "groq-js": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
