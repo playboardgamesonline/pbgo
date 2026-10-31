@@ -26,6 +26,13 @@ const SITE_TABS = [
 type SiteCurrent = (typeof SITE_TABS)[number]["id"] | "home" | "account"
 
 /**
+ * The address the bar reads. Once Vercel has regenerated the front page in the background, the server renders it at `/index` (the route in the page's flight data
+ * is `["", "index"]`, not `["", ""]`) while the browser reads `/`: read as it comes, the regenerated HTML has no bar, the browser draws one, and React throws a
+ * hydration error (#418) on every load of the front page. The server and the browser both read `/`.
+ */
+const addressOf = (pathname: string) => (pathname === "/index" ? "/" : pathname)
+
+/**
  * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab, Games on a
  * game's page on the hub (`/game/<slug>`), and nothing on the sign-in and the pages of an account (`/me`), which have the bar and no tab. `null` on a
  * page that has no bar (the design system, the legal pages, the 404).
@@ -50,7 +57,7 @@ function currentOf(pathname: string): SiteCurrent | null {
  * their place but are not drawn, so a signed-in visitor never sees them flash.
  */
 export function SiteHeader() {
-  const pathname = usePathname()
+  const pathname = addressOf(usePathname())
   const current = currentOf(pathname)
   const account = useAccount()
   if (current === null) return null
