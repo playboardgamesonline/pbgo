@@ -3,7 +3,7 @@ import type { UiTheme } from "./binding"
 
 /**
  * Resolvers of a game's `UI_THEME` (binding): each group of the theme over its defaults, field by field. Pure, so the shared
- * components, the painters of the tables and the `/design` specimens all read a theme the same way.
+ * components, the painters of the tables and the specimens of the design docs all read a theme the same way.
  */
 
 // A field a game leaves out (or sets to undefined) keeps its default
@@ -64,7 +64,7 @@ export const gameOverTheme = (theme?: UiTheme["gameOver"]): GameOverTheme => ove
 
 /**
  * Inline style of the game-over panel: the theme as CSS, plus the two variables its parts read, `--go-accent` (crown, winner's
- * points) and `--go-frame` (polaroid). The panel and the `/design` specimens both set it, so a game's value never lands on `:root`.
+ * points) and `--go-frame` (polaroid). The panel and the specimens of the design docs both set it, so a game's value never lands on `:root`.
  */
 export function gameOverStyle(theme: GameOverTheme): CSSProperties {
   return {

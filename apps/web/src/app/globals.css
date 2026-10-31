@@ -1,12 +1,12 @@
 /*
- * Styles of the platform pages (hub, legal, 404, /design, /docs): the platform layer of the design system, nothing else.
+ * Styles of the platform pages (hub, legal, 404, /docs): the platform layer of the design system, nothing else.
  * Tokens, utilities and the boundary with the games' own themes: packages/ui/src/styles/platform.css.
  *
- * One exception, on /design only: "In-game UI" draws four pure components of core with each game's own theme. Tailwind
+ * One exception, on /docs/design/in-game only: "In-game UI" draws four pure components of core with each game's own theme. Tailwind
  * only generates the classes of the files it is pointed at, and platform.css scans packages/ui, so the four are listed
  * here, one by one (not the folder: the connected components pull in the game runtime and have no business on a platform
  * page). Their utilities that only games have (font-display, bg-surface, bg-surface-dark, text-accent-game) are mapped
- * below, to the names the specimen's wrapper sets (_components/game-scope.tsx). `@theme inline` emits no variable, so
+ * below, to the names the specimen's wrapper sets (app/(hub)/docs/_specimens/game-scope.tsx). `@theme inline` emits no variable, so
  * the platform still sets no value on :root. game.css itself stays out of the hub.
  *
  * The four display faces (the footer's PBGO, `Wordmark`) are imported here, the latin

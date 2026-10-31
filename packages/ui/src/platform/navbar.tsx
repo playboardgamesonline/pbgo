@@ -20,7 +20,7 @@ import { Separator } from "./separator"
 // mounted from one page to the next, which is why the hub mounts it once, in its layout. A visitor who asks for less motion gets the jump.
 
 function Navbar({ className, children, ...props }: React.ComponentProps<"header">) {
-  // Each bar scopes its own fill, so that two bars on one page (the specimens of `/design`) do not trade it
+  // Each bar scopes its own fill, so that two bars on one page (the specimens of the design docs) do not trade it
   const group = React.useId()
   return (
     <MotionConfig reducedMotion="user">
@@ -66,7 +66,7 @@ function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
 
 /**
  * A glass island on its own, for what hangs on the bar beside the two containers. The hub's right container, once a visitor is signed in, is not one: it is the dock
- * (`SocialDock`), which grows from a bar into a side panel. `/design` uses an island to show the `FriendsBar`, which draws no container of its own.
+ * (`SocialDock`), which grows from a bar into a side panel. the design docs use an island to show the `FriendsBar`, which draws no container of its own.
  */
 function NavbarIsland({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-island" className={cn(islandClassName, "shrink-0", className)} {...props} />

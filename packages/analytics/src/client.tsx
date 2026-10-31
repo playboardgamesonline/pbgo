@@ -22,7 +22,7 @@ function choose(choice: Choice): void {
 
 /**
  * Whether the page reports and offers a choice: analytics are configured and the page is not one of those that stay out of it
- * (the gamemaster, the previews, `/design`). Components that add a way to reach the choice (a link, a menu row) check it first.
+ * (the gamemaster, the previews, the docs). Components that add a way to reach the choice (a link, a menu row) check it first.
  */
 export function useReporting(): boolean {
   const pathname = usePathname()
@@ -55,7 +55,7 @@ export function AnalyticsProvider() {
   }, [ready, consent, pathname])
 
   // The hub's two lists of games are the pages whose links are counted, the home (its popular games and its results) and `/games`: a card
-  // leads to the game's page on the hub (`/game/<slug>`, whose own button is not counted). `/design` shows the same cards as a specimen.
+  // leads to the game's page on the hub (`/game/<slug>`, whose own button is not counted). The docs of the design system show the same cards as a specimen.
   const onGameList = pathname === "/" || pathname === "/games"
   React.useEffect(() => {
     if (!reporting || !onGameList) return
