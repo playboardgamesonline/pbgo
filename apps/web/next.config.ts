@@ -60,9 +60,6 @@ const nextConfig: NextConfig = {
       { source: `/:game(${SLUGS})/admin/:path+`, destination: "/gamemaster/:game/:path+", permanent: true },
       // What's New was a page of the navbar and is now a section of About
       { source: "/whats-new", destination: "/about#whats-new", permanent: true },
-      // The design system moved into the docs (PLT-88): every old page of `/design` leads to the page that has its place in `/docs/design`, and the addresses are the same below it (`/design/components/controls` is
-      // `/docs/design/components/controls`). `:path*` also matches `/design` itself. A browser keeps the `#anchor` of the old address through a redirect, so a link to a section of a page still lands on it.
-      { source: "/design/:path*", destination: "/docs/design/:path*", permanent: true },
     ]
   },
   async rewrites() {
