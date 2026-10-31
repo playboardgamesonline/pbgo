@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Block, Bullets, Inline, Section, Snippet } from "../_components/layout"
 
 const PRINCIPLES = [
-  "Black and white: the palette is the `neutral` scale plus `destructive`. No accent colour, no gradient.",
+  "A black and white, with no tint: the palette is the `neutral` scale (Tailwind's, a chroma of 0 all along and a little darker in its four darkest steps, so that the page is a true black) plus `destructive`, and the four colours of a friend's presence (`presence-online`, green, `presence-playing`, blue, `presence-inactive`, orange-yellow, and `presence-dnd`, red), which only a dot wears, and the two brand colours of a sign-in provider's button (`brand-facebook`, `brand-discord`), which only that button wears, and the colours of the pieces that stand for letters of the home's title (`piece-*`), which only those pieces wear. No other accent colour, and no gradient: the first screen of a page is the page's black, flat.",
   "Dark only. The platform has no light theme and no `dark:` variants; `color-scheme` is `dark`.",
-  "One typeface, Geist, in one weight: everything is semibold (600). `font-medium` and `font-bold` resolve to the same weight, so do not write them. Text is slightly tight: about -0.01em on body text, -0.03em on headings.",
-  "Game art is the only colour on the platform. Never tint, overlay or recolour it.",
+  "One typeface, Geist, in one weight: everything is semibold (600). `font-medium` and `font-bold` resolve to the same weight, so do not write them. Two weights are set on purpose: 400 for the finest print (`fine-print`) and 720 for the title of the home and a person's name at the head of a profile (`font-strong`). Text is slightly tight: about -0.01em on body text, -0.03em on headings.",
+  "Apart from a friend's presence, a provider's brand and the pieces of the home's title, game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.",
+  "Rounded, never round: the taller a box, the rounder its corner, up to the menus' step (`rounded-4xl`, 31px, for a container from 6rem high), and a corner never reaches half the height of what it rounds, so nothing is a capsule. Only the picture of a person is a circle. Corners are smoothed a touch (`--corner-smoothing`).",
   "Depth comes from surface steps and hairlines (`ring-1 ring-foreground/10`), then from three shadows: `shadow-surface` at rest, `shadow-float` when lifted, `shadow-overlay` for dialogs and sheets.",
   "Tokens, not values: no hex, `rgb()`, arbitrary pixel sizes, font names or `bg-neutral-*` in platform UI. Write `bg-card`, `text-muted-foreground`, `rounded-3xl`, `px-gutter`.",
   "A missing piece goes into `@pbgo/ui` first, is shown on this page, then is used.",
@@ -38,7 +39,7 @@ export function Principles() {
   return (
     <Section
       id="principles"
-      intro="The platform (hub, account, legal, admin, 404) is black and white, dark only, set in Geist semibold. Everything on it is built from the tokens and components of `@pbgo/ui`. The only colour on a platform screen is a game's own art."
+      intro="The platform (hub, account, legal, gamemaster, 404) is black and white, dark only, set in Geist semibold. Everything on it is built from the tokens and components of `@pbgo/ui`. The only colour on a platform screen is a game's own art."
     >
       <Bullets items={PRINCIPLES} />
 
@@ -97,20 +98,20 @@ const SKIN_SNIPPET = `/* A game restyles by changing the value of a token. No co
 }`
 
 const COMPARISON: readonly { row: string; platform: string; game: string }[] = [
-  { row: "Used by", platform: "Hub, `/design`, legal, 404, the admin of every game", game: "A game's own pages: home, lobby, table, board" },
+  { row: "Used by", platform: "Hub, `/design`, legal, 404, the gamemaster", game: "A game's own pages: home, lobby, table, board" },
   { row: "Components", platform: "`@pbgo/ui/platform/*`", game: "`@pbgo/ui/game/*`" },
   { row: "Token values", platform: "`packages/ui/src/styles/platform.css`, scoped to `.platform`", game: "`:root` of `packages/core/styles/game.css` and the game's stylesheet, overridden by its Sanity skin" },
-  { row: "Who changes them", platform: "The design system: a pull request on `packages/ui`", game: "The game: its admin (Visual, Copy) through `themeStyle()`" },
+  { row: "Who changes them", platform: "The design system: a pull request on `packages/ui`", game: "The game: its setup in the gamemaster (Visual, Copy) through `themeStyle()`" },
   { row: "Theme", platform: "Black and white, dark only", game: "Whatever the game's skin says" },
-  { row: "`platform` class", platform: "On `<html>` (hub, 404), on the admin wrapper, on the root of every portal", game: "Never" },
+  { row: "`platform` class", platform: "On `<html>` (hub, gamemaster, 404), on the root of every portal", game: "Never" },
 ]
 
 const BOUNDARY = [
-  "The platform sets its values on `.platform`, never on `:root`. A game sets its values on `:root`, never on `.platform`. The two never mix, even on a game page that hosts the admin.",
+  "The platform sets its values on `.platform`, never on `:root`. A game sets its values on `:root`, never on `.platform`. The two never mix.",
   "A component reads tokens and never names a colour, a font or a size of its own. That is what lets a game restyle everything by changing values.",
   "`@theme` in `platform.css` only defines new names (`shadow-surface`, `duration-fast`, `bg-scrim`). A name Tailwind already has gets its platform value inside `.platform`, or every game would inherit it from `:root`.",
   "Portals (select, dropdown, dialog, sheet, tooltip, toast) render outside the wrapper that carries `platform`, so their root carries the class itself. The platform components do it already.",
-  "`.platform` carries no background: a portal would paint it. `<html>` and the admin wrapper add `bg-background` themselves.",
+  "`.platform` carries no background: a portal would paint it. `<html>` adds `bg-background` itself.",
 ] as const
 
 function Specimen() {

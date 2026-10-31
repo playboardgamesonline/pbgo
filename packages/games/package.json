@@ -30,7 +30,7 @@
     "@pbgo-game/sky-team": "workspace:*",
     "@pbgo-game/skyjo": "workspace:*",
     "@pbgo-game/template": "workspace:*",
-    "@pbgo-game/timebomb": "workspace:*",
+    "@pbgo-game/time-bomb": "workspace:*",
     "@pbgo-game/trio": "workspace:*",
     "@pbgo-game/welcome-to": "workspace:*",
     "@pbgo/core": "workspace:*",

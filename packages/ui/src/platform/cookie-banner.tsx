@@ -8,13 +8,15 @@ import { Button } from "./button"
 
 /** What the banner says, in the visitor's language: the caller picks the language, the banner only shows the words. */
 type CookieBannerTexts = {
-  /** Accessible name of the dialog. */
+  /** The title of the card, which is also its accessible name. */
   label: string
-  /** One sentence: what is counted whatever the answer, and what accepting adds. */
+  /** One sentence: what the site needs, and what the visitor's permission adds. */
   body: string
+  /** Allows everything. */
   accept: string
+  /** Refuses everything that is optional. */
   refuse: string
-  /** The word of the link that ends the sentence and leads to the legal notice. */
+  /** The words of the link that ends the sentence and leads to the policy. */
   more: string
   close: string
 }
@@ -33,25 +35,30 @@ type CookieBannerProps = {
    */
   onClose?(): void
   className?: string
-  /** The fixed element, for the caller that measures it to keep its room free (`@pbgo/analytics` does). */
+  /** The fixed box around the card (margin included), for the caller that measures it to keep its room free. */
   ref?: React.Ref<HTMLDivElement>
 }
 
+/** Both answers are the same big button, 3rem high and 3.5rem from the bar layout on (`rounded-2xl`: a control of that height): refusing is as easy to hit as accepting, whatever their fill. */
+const ANSWER = "h-12 rounded-2xl px-6 text-base max-sm:flex-1 lg:h-14 lg:px-8"
+
 /**
- * The consent banner: one line docked to the bottom of the screen, a sentence that ends with a link to the details, then Refuse
- * and Accept. They are the same button side by side (same variant, same size), so refusing is as easy and as visible as
- * accepting. Under the `sm` breakpoint the sentence takes a few short lines and the two buttons stack to its right, which keeps
- * the bar low on a phone as well.
+ * The consent banner: a wide card that floats over the bottom of the screen, centred, with a title and a sentence that ends with a
+ * link to the policy on its side, and two big buttons on the other: Reject optional (ghost) and Accept all. They are the same size
+ * and the same shape, side by side. From `lg` the card is a bar (the words, then the buttons, centred on its height); under it the
+ * words are over the buttons, which keep to the right, and on a phone they share the width of the card.
  *
- * It is `fixed`, but it must never sit over what the page shows. It does not float: the caller measures it and makes the room
- * (`@pbgo/analytics` publishes its height as `--consent-h`, see `reserve.ts`), so a page has nothing under the banner, whether it
- * is a hub page that scrolls or a game screen that fills the viewport.
+ * It is `fixed`, but it must never sit over what the page shows. It floats inside a box that holds its margin (`px-4 pb-4`, `px-6 pb-6` from
+ * `sm`: its own, since the page's gutter is 64px on a desktop), and the caller measures that box and makes the room (`@pbgo/analytics` publishes its height as `--consent-h`, see
+ * `reserve.ts`), so a page has nothing under the card, whether it is a hub page that scrolls or a game screen that fills the
+ * viewport.
  *
  * A game page is not `.platform`, so the banner carries the class itself, the way a portal does. The words and the answers come
  * from the caller, which owns the stored choice.
  */
 function CookieBanner({ texts, moreHref, lang, onAccept, onRefuse, onClose, className, ref }: CookieBannerProps) {
   const card = React.useRef<HTMLElement>(null)
+  const titleId = React.useId()
   const reopened = onClose !== undefined
 
   // A banner the visitor reopened gets the focus, or a keyboard user would tab through the whole page to find it
@@ -60,39 +67,49 @@ function CookieBanner({ texts, moreHref, lang, onAccept, onRefuse, onClose, clas
   }, [reopened])
 
   return (
-    <div ref={ref} data-slot="cookie-banner" className={cn("platform pointer-events-none fixed inset-x-0 bottom-0 z-50", className)}>
+    <div
+      ref={ref}
+      data-slot="cookie-banner"
+      className={cn("platform pointer-events-none fixed inset-x-0 bottom-0 z-50 px-4 pb-4 sm:px-6 sm:pb-6", className)}
+    >
       <section
         ref={card}
         role="dialog"
         lang={lang}
-        aria-label={texts.label}
+        aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={(event) => {
           if (event.key === "Escape") onClose?.()
         }}
-        className="pointer-events-auto animate-in border-t border-border bg-card text-card-foreground duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-2"
+        className={cn(
+          "pointer-events-auto relative mx-auto flex w-full max-w-4xl animate-in flex-col gap-3 rounded-4xl bg-card p-4 text-card-foreground shadow-float ring-1 ring-foreground/10 duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-4 sm:gap-4 sm:p-5 lg:flex-row lg:items-center lg:gap-8 lg:p-6",
+          reopened && "lg:pr-16"
+        )}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-center gap-x-4 px-gutter py-2 text-xs sm:gap-x-6 sm:py-2.5 sm:text-sm">
-          <p className="min-w-0 max-sm:flex-1">
+        {reopened && (
+          <Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" onClick={onClose}>
+            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+            <span className="sr-only">{texts.close}</span>
+          </Button>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+          <h2 id={titleId} className={cn("font-heading text-base", reopened && "pr-8 lg:pr-0")}>
+            {texts.label}
+          </h2>
+          <p className="text-sm text-muted-foreground">
             {texts.body}{" "}
             <a href={moreHref} className="text-foreground underline underline-offset-4 hover:no-underline">
               {texts.more}
             </a>
           </p>
-          <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row sm:gap-2">
-            <Button size="sm" className="max-sm:h-7 max-sm:text-xs" onClick={onRefuse}>
-              {texts.refuse}
-            </Button>
-            <Button size="sm" className="max-sm:h-7 max-sm:text-xs" onClick={onAccept}>
-              {texts.accept}
-            </Button>
-          </div>
-          {reopened && (
-            <Button variant="ghost" size="icon-sm" className="shrink-0 max-sm:self-start" onClick={onClose}>
-              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
-              <span className="sr-only">{texts.close}</span>
-            </Button>
-          )}
+        </div>
+        <div className="flex gap-2 sm:justify-end lg:shrink-0">
+          <Button variant="ghost" size="lg" className={ANSWER} onClick={onRefuse}>
+            {texts.refuse}
+          </Button>
+          <Button size="lg" className={ANSWER} onClick={onAccept}>
+            {texts.accept}
+          </Button>
         </div>
       </section>
     </div>

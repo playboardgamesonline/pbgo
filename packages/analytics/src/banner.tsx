@@ -31,8 +31,9 @@ type ConsentBannerProps = {
  * The banner in the visitor's language. Mounted only in the browser, after the stored answer was read, so nothing here has to
  * match what the server rendered.
  *
- * The banner is fixed and must never cover the page, so it keeps its room free (`reserveSpace`): the page ends above it and the
- * screens that fill the viewport are that much shorter. Done before the first paint, so nothing jumps under the banner.
+ * The banner floats over the bottom of the screen and must never cover the page, so it keeps its room free (`reserveSpace`): the
+ * page ends above it and the screens that fill the viewport are that much shorter. What is measured is the box around the card,
+ * margin included. Done before the first paint, so nothing jumps under the banner.
  *
  * `ph-no-capture`: the answer is reported by the `cookie_consent` event, once it holds. Autocapture of the click itself would add
  * a second event, and for a refusal after an acceptance it would go out under the identity that is being given up.

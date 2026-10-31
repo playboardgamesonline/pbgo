@@ -3,10 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The hub catalog: the live games of the registry and the planned games of the Notion Games database, joined into one list. `.` is the pure model, `./server` the cached reader for apps/web.",
+  "description": "The hub catalog: every game of the hub in one list, the live games of the registry then the games of the platform's Sanity project, each with the values of its game in the Studio (`sanity.ts` reads them). `.` is the pure model, `./server` the cached reader for apps/web, `./route` the handler of the icons of the publishers' websites (and of the old addresses of the pictures), `./seo` the metadata, JSON-LD and sitemap of the game pages, `./picture` the picture download that the platform's seed (`platform/content`) also downloads its pictures with.",
   "exports": {
     ".": "./src/catalog.ts",
-    "./server": "./src/server.ts"
+    "./filter": "./src/filter.ts",
+    "./picture": "./src/picture.ts",
+    "./server": "./src/server.ts",
+    "./route": "./src/route.ts",
+    "./seo": "./src/seo.ts"
   },
   "scripts": {
     "test": "vitest run",

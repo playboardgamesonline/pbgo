@@ -13,6 +13,7 @@ import {
 } from "@pbgo/ui/platform/dialog"
 import { Field, FieldLabel } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
+import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@pbgo/ui/platform/popover"
 import {
   Sheet,
   SheetClose,
@@ -23,6 +24,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@pbgo/ui/platform/sheet"
+import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@pbgo/ui/platform/tooltip"
 import { CookieBannerDemo } from "../_components/cookie-banner-demo"
 import { MenuDemo } from "../_components/menu-demo"
@@ -204,6 +206,55 @@ export function Dropdowns() {
   )
 }
 
+export function Popovers() {
+  return (
+    <Section
+      id="popover"
+      module="popover"
+      intro="A panel that opens on its trigger and holds a few controls, where a menu is too thin and a dialog too heavy: each filter of the search bar opens one. It closes on Escape and on a click outside, hands the focus back to its trigger, and carries the `platform` class itself since it renders in a portal, above the fixed navbar. Like the menus it is translucent and blurs what is behind it."
+    >
+      <Demo
+        title="A header and chips"
+        description="`PopoverHeader` puts the title on the left and what acts on the whole panel, a ghost Clear button, on the right. The panel is `w-72` and scrolls when the screen is too short for it; give `PopoverContent` another width with `className`. Name it with an `aria-label`, or with an `aria-labelledby` that points at its title. What the pick does, and whether the panel closes after it, belongs to the page (`open` and `onOpenChange`)."
+        className={ROW}
+        code={`<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">Players</Button>
+  </PopoverTrigger>
+  <PopoverContent aria-label="Number of players">
+    <PopoverHeader>
+      <PopoverTitle>Number of players</PopoverTitle>
+      <Button variant="ghost" size="sm">Clear</Button>
+    </PopoverHeader>
+    <ToggleGroup type="single" aria-label="Number of players">…</ToggleGroup>
+  </PopoverContent>
+</Popover>`}
+      >
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline">Players</Button>
+          </PopoverTrigger>
+          <PopoverContent aria-label="Number of players">
+            <PopoverHeader>
+              <PopoverTitle>Number of players</PopoverTitle>
+              <Button variant="ghost" size="sm">
+                Clear
+              </Button>
+            </PopoverHeader>
+            <ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
+              {["1", "2", "3", "4", "5", "6", "7", "8+"].map((count) => (
+                <ToggleGroupItem key={count} value={count}>
+                  {count}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </PopoverContent>
+        </Popover>
+      </Demo>
+    </Section>
+  )
+}
+
 export function Tooltips() {
   return (
     <Section
@@ -286,18 +337,18 @@ export function CookieBanners() {
     <Section
       id="cookie-banner"
       module="cookie-banner"
-      intro="The question about statistics and recordings: one line docked to the bottom of the screen, a sentence that ends with a link to the details, then Refuse and Accept. They are the same button side by side, so refusing is as easy and as visible as accepting. The bar never sits over the page: its caller measures it and makes the room (`@pbgo/analytics` publishes its height as `--consent-h` on `<body>`), so the page ends above it and a screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the bar carries the `platform` class itself, since it also sits over a game page. The frames below dock it with `absolute` and make the room on the frame, where a page docks it with `fixed` and makes it on `<body>`."
+      intro="The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side two big buttons, Reject optional (`ghost`) and Accept all. They are the same size and the same shape, side by side, so refusing is as easy to hit as accepting; from `lg` the card is a bar and they are 3.5rem high (`h-14`), centred on it; under it they are below the words, 3rem high, and on a phone they share the width. The card never sits over the page: its caller measures the box around it, margin included, and makes the room (`@pbgo/analytics` publishes its height as `--consent-h` on `<body>`), so the page ends above it and a screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The words and the answers come from the caller (`@pbgo/analytics` picks the language and keeps the stored answer); the banner carries the `platform` class itself, since it also sits over a game page. The frames below pin it with `absolute` and make the room on the frame, where a page pins it with `fixed` and makes it on `<body>`."
     >
       <Demo
         title="First visit"
-        description="No close button: the banner stays until the visitor answers. Try either button, and watch the button at the bottom of the page: it rises above the bar and drops back when the bar closes."
-        code={`const bar = useRef<HTMLDivElement>(null)
+        description="No close button: the banner stays until the visitor answers. Try either button, and watch the button at the bottom of the page: it rises above the card and drops back when the card closes."
+        code={`const banner = useRef<HTMLDivElement>(null)
 
-// the page ends above the bar (--consent-h)
-useLayoutEffect(() => reserveSpace(bar.current, document.body), [])
+// the page ends above the card (--consent-h)
+useLayoutEffect(() => reserveSpace(banner.current, document.body), [])
 
 <CookieBanner
-  ref={bar}
+  ref={banner}
   texts={BANNER_TEXTS[locale]}
   moreHref="/legal#cookies"
   onAccept={() => consentStore.choose("accepted")}
@@ -308,7 +359,7 @@ useLayoutEffect(() => reserveSpace(bar.current, document.body), [])
       </Demo>
       <Demo
         title="Reopened from the Cookies link"
-        description="A visitor who already answered can change their mind from the footer or the settings menu. The bar then has a close button, closes on Escape and takes the focus, and closing it keeps the answer."
+        description="A visitor who already answered can change their mind from the footer or the settings menu. The card then has a close button at its top right corner, closes on Escape and takes the focus, and closing it keeps the answer."
         code={`<CookieBanner
   texts={BANNER_TEXTS[locale]}
   moreHref="/legal#cookies"

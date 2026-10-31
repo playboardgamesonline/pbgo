@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@pbgo/ui/utils"
-import { GROUPS, sectionOf, type SectionId } from "./nav"
+import { sectionOf, type SectionId } from "./pages"
 
 /**
  * Inline code. Monospace needs its own tracking: the platform's negative letter-spacing cramps it. A chip stays on one
@@ -66,11 +66,10 @@ export function Section({
   intro?: ReactNode
   children: ReactNode
 }) {
-  const { group, title } = sectionOf(id)
+  const { title } = sectionOf(id)
   return (
     <section id={id} className="flex scroll-mt-24 flex-col gap-8 border-t pt-16 first:border-t-0 first:pt-0">
       <header className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">{group}</p>
         <h2 className="font-heading text-3xl">{title}</h2>
         {module && <Code className="w-fit">{`@pbgo/ui/platform/${module}`}</Code>}
         {intro && (
@@ -149,27 +148,5 @@ export function Bullets({ items }: { items: readonly string[] }) {
         </li>
       ))}
     </ul>
-  )
-}
-
-/** Side navigation: every section, by group. Plain anchors, no script. */
-export function PageNav() {
-  return (
-    <nav aria-label="Sections" className="flex flex-col gap-6 text-sm">
-      {GROUPS.map(({ group, items }) => (
-        <div key={group} className="flex flex-col gap-2">
-          <p className="px-3 text-muted-foreground">{group}</p>
-          <ul className="flex flex-col">
-            {items.map((item) => (
-              <li key={item.id}>
-                <a href={`#${item.id}`} className="block rounded-xl px-3 py-1.5 transition-colors hover:bg-muted">
-                  {item.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </nav>
   )
 }

@@ -1,3 +1,4 @@
+import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "@pbgo/ui/motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { ChartColors, LineColors, NeutralRamp, SemanticColors } from "../_components/colors"
 import { Block, Bullets, Code, Demo, Inline, Section } from "../_components/layout"
@@ -32,7 +33,7 @@ export function Colors() {
       </Block>
       <Block
         title="Chart"
-        description="Five greys for the admin charts, read by lightness. There is no hue to tell series apart, so charts label their series."
+        description="Five greys for the charts of the gamemaster, read by lightness. There is no hue to tell series apart, so charts label their series."
       >
         <ChartColors />
       </Block>
@@ -45,6 +46,10 @@ const FONT_ROWS = [
   { variable: "--font-title", utility: "font-heading", use: "Headings and card titles. Same as the body font on the platform." },
   { variable: "--tracking-body", use: "Letter-spacing of the page, set on `.platform`." },
   { variable: "--tracking-tight", utility: "tracking-tight", use: "Letter-spacing of `h1` to `h4`, a bit tighter than the body." },
+  { variable: "--text-display", utility: "text-display", use: "The two lines of the home's title, as big as the window lets them be (5.8vw and 0.9rem, up to 7rem): the longer line takes 95% of a 390 px window, less its gutters, and 58% of a 1440 px one. It sets no line-height: `display-title` does." },
+  { variable: "--text-page-title", utility: "text-page-title", use: "The title of a page that lists something (Games, Tables, Tournaments): 8rem from a 850px window, and under that 16vw less 0.5rem (2.5rem at the least), so that \"Tournaments\", the longest, takes 87% of a 390 px window less its gutters. It sets no line-height: `page-title` does." },
+  { variable: "--font-weight-strong", utility: "font-strong", use: "The one weight heavier than the platform's 600, 720: the title of the home (`display-title`) and the name of a person at the head of a profile. Geist is a variable font, so any weight between 100 and 900 exists." },
+  { variable: "--tracking-display", use: "Letter-spacing of the home's title, -0.048em (`display-title`), tighter than the headings' `--tracking-tight`." },
 ] as const
 
 export function Typography() {
@@ -62,7 +67,7 @@ export function Typography() {
 
       <Block
         title="One weight"
-        description="Every `font-*` weight utility resolves to 600, so a platform component never writes one. `font-medium` on a label changes nothing and is a sign the author reached for a value instead of a token."
+        description="Every `font-*` weight utility resolves to 600, so a platform component never writes one. `font-medium` on a label changes nothing and is a sign the author reached for a value instead of a token. The two weights that are not 600 have a name of their own: `font-regular` (400, the finest print) and `font-strong` (720, the title of the home and a person's name at the head of a profile)."
       >
         <WeightProof />
       </Block>
@@ -87,38 +92,108 @@ export function Typography() {
         description="`font-mono` is the system monospace stack and is for code and token names only, as on this page. Add `tracking-normal` next to it: the platform's negative letter-spacing cramps a monospace."
         code={`<code className="font-mono text-xs tracking-normal">--radius</code>`}
       >
-        <p className="font-mono text-sm tracking-normal">@pbgo/ui/platform/button · --radius · 0.625rem</p>
+        <p className="font-mono text-sm tracking-normal">@pbgo/ui/platform/button · --radius · 0.75rem</p>
       </Demo>
     </Section>
   )
 }
 
+const RADIUS_ROLES = [
+  { role: "Surface", height: "A container, from 6rem high", utility: "rounded-4xl", radius: "31px", examples: "Menu, popover, select, dialog, panels (friends, social, chat), card, game card and its picture, cookie banner, login card, an empty state" },
+  { role: "Bar", height: "4rem to 6rem", utility: "rounded-3xl", radius: "26px", examples: "The home's search bar: at the surfaces' step, half its height would make it a pill" },
+  { role: "Large control, island", height: "3rem to 3.5rem", utility: "rounded-2xl", radius: "22px", examples: "Navbar island, tab bar of the social panel, a row of a list, a menu item, an alert" },
+  { role: "Control", height: "2.25rem to 2.5rem", utility: "rounded-xl", radius: "17px", examples: "Button, field (input, text area, select trigger, input group), tab bar, a tab of the social panel, a chat bubble, a game's icon of 2.5rem" },
+  { role: "Small control", height: "2rem", utility: "rounded-lg", radius: "12px", examples: "Small button, toggle, a tab in a tab bar, the buttons and tabs inside a navbar island" },
+  { role: "Chip", height: "1.5rem", utility: "rounded-md", radius: "10px", examples: "Extra small button, key cap, a game's icon of 1.5rem" },
+  { role: "Tag", height: "1.25rem", utility: "rounded-sm", radius: "7px", examples: "Badge, checkbox" },
+  { role: "Circle", height: "Only a person", utility: "rounded-full", radius: "full", examples: "The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar" },
+] as const
+
+const SMOOTHING = [
+  { value: 1, label: "1: the arc of a circle" },
+  { value: 1.2, label: "1.2: the one in use" },
+  { value: 1.5, label: "1.5: squares the corners" },
+  { value: 2, label: "2: the squircle" },
+] as const
+
 export function Radius() {
   return (
     <Section
       id="radius"
-      intro="One base, `--radius`, and every step of the scale is a multiple of it, so a game skin that sets `--radius` rescales every corner at once. Each box below is measured on this page."
+      intro="One family of corners, taken from the menus: the taller the box, the rounder its corner, up to `rounded-4xl` (31px) for a surface and `rounded-2xl` for the rows in it. One base, `--radius`, and every step of the scale is a multiple of it, so a game skin that sets `--radius` rescales every corner at once. Each box below is measured on this page."
     >
       <RadiusScale />
       <TokenTable
-        rows={[{ variable: "--radius", use: "The base of the scale, on `.platform`. A game sets its own on `:root`." }]}
-      />
-      <Bullets
-        items={[
-          "Big surfaces are `rounded-4xl` (button, card, dialog, game card); fields and badges are `rounded-3xl`.",
-          "A shape nested in another takes a smaller step than its parent.",
-          "`rounded-full` is for circles and pills (avatar, switch, progress, tabs).",
-          "Never write `rounded-[10px]`: the guard test rejects an arbitrary radius.",
+        rows={[
+          { variable: "--radius", use: "The base of the scale, on `.platform`. A game sets its own on `:root`." },
+          { variable: "--corner-smoothing", use: "The exponent of the curve of every rounded corner (`corner-shape: superellipse()`), on `.platform`: 1 is the arc of a circle, 2 the squircle. 1.2, a touch." },
         ]}
       />
+      <Block
+        title="Which radius"
+        description="A corner is rounded by about a third to two fifths of the height of what it rounds, and never by half of it, so that nothing is a capsule. Pick the step by the height: the taller the container, the rounder its corner, up to `rounded-4xl` for one from 6rem high."
+      >
+        <div className="overflow-hidden rounded-3xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Role</TableHead>
+                <TableHead>Height</TableHead>
+                <TableHead>Utility</TableHead>
+                <TableHead>Used by</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {RADIUS_ROLES.map((row) => (
+                <TableRow key={row.utility}>
+                  <TableCell>{row.role}</TableCell>
+                  <TableCell className="whitespace-normal text-muted-foreground">{row.height}</TableCell>
+                  <TableCell>
+                    <Inline>{`${row.utility} · ${row.radius}`}</Inline>
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-muted-foreground">{row.examples}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Block>
+      <Bullets
+        items={[
+          "The reference is the menus, rounder than they were: a container from 6rem high is `rounded-4xl`, the largest step, and nothing is rounder. A bar of 4rem (the search bar) is `rounded-3xl`, since at `rounded-4xl` it would be a pill.",
+          "Only the picture of a person is a circle (`rounded-full`: `Avatar` and its dot). A game, its icon and its card are rounded like anything else, never a circle.",
+          "What sits in a padded container takes the container's radius less its padding: a navbar island is 22px with 8px of padding, so what is in it is 12px (`rounded-lg`, the nearest step).",
+          "Never write `rounded-[10px]`: the guard test rejects an arbitrary radius.",
+          "The home's search bar is `rounded-3xl` (64px high with 8px of padding), not a pill: what is in it takes its radius less the padding, so its category button is 17px (`rounded-xl`).",
+        ]}
+      />
+      <Demo
+        title="Corner smoothing"
+        description="Every corner is a superellipse, not an arc of a circle, the way iOS draws its continuous corners (`corner-shape`, in Chromium; elsewhere the plain arc stays). Each box has the same `rounded-3xl`; only the exponent changes, and a `rounded-full` always keeps its arc."
+        code={`.platform {
+  --corner-smoothing: 1.2;
+}
+.platform,
+.platform * {
+  corner-shape: superellipse(var(--corner-smoothing));
+}`}
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {SMOOTHING.map(({ value, label }) => (
+          <div key={value} className="flex flex-col gap-2">
+            <div className="h-28 rounded-3xl border bg-card" style={{ "--corner-smoothing": value } as React.CSSProperties} />
+            <p className="text-sm text-muted-foreground">{label}</p>
+          </div>
+        ))}
+      </Demo>
     </Section>
   )
 }
 
 const LAYOUT_ROWS = [
-  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page. Widens at the `sm` breakpoint." },
+  { variable: "--gutter", utility: "px-gutter", use: "Side padding of a page: 1rem on a phone, 1.5rem from the `sm` breakpoint and 4rem (64px) from `lg`, so a desktop keeps a small margin on each side." },
   { variable: "--section", utility: "py-section", use: "Vertical space between the sections of a page (`pb-section` between two). Widens at the `sm` breakpoint." },
-  { variable: "--container-page", utility: "max-w-page", use: "Width of a page: hub, legal, any content page." },
+  { variable: "--container-page", utility: "max-w-page", use: "Width of a page that keeps a limit on a wide screen: a game's page, the pages of the tabs, the centred header of a list. Nearly the whole window, up to this value. The hub's lists of games (the home's sections, `/games`) have none: they take the whole window." },
   { variable: "--container-reading", utility: "max-w-reading", use: "Width of running text, so a line stays readable." },
 ] as const
 
@@ -132,7 +207,7 @@ export function Layout() {
 
       <Demo
         title="Gutter"
-        description="The page content is inset by `px-gutter` on both sides. Resize the window past the `sm` breakpoint and it widens."
+        description="The page content is inset by `px-gutter` on both sides. Resize the window past the `sm` breakpoint, then past `lg`, and it widens."
         code={`<section className="mx-auto w-full max-w-page px-gutter py-section">…</section>`}
         className="p-0"
       >
@@ -204,7 +279,7 @@ export function Depth() {
 
       <Demo
         title="Scrim"
-        description="`bg-scrim` dims the page behind a dialog or a sheet. On the right half of this checkerboard it sits over the pattern; the pattern comes from the `pattern-checker` utility."
+        description="`bg-scrim` dims the page behind a dialog or a sheet. Game art is never dimmed with it: a picture shows as it is. On this checkerboard the left half is bare and the right half has the scrim; the pattern comes from the `pattern-checker` utility."
         code={`<div className="absolute inset-0 bg-scrim" />`}
       >
         <div className="relative h-32 overflow-hidden rounded-3xl pattern-checker">
@@ -228,7 +303,7 @@ export function Motion() {
   return (
     <Section
       id="motion"
-      intro="Three durations and one easing. Plain `transition` and `transition-colors` already use the base duration and the standard easing, so most components write neither."
+      intro="Three durations, one easing and one spring. Plain `transition` and `transition-colors` already use the base duration and the standard easing, so most components write neither. What CSS cannot do, a layout animation or a sequence, is done with `motion/react` (motion.dev) and reads the same numbers."
     >
       <Demo title="Durations">
         <MotionDemo />
@@ -240,6 +315,53 @@ export function Motion() {
           "Never write `duration-200`: the guard test rejects a numeric duration.",
         ]}
       />
+
+      <Block
+        title="In JavaScript"
+        description="`@pbgo/ui/motion` copies the three durations and the easing of the stylesheet in the units that `motion/react` takes (seconds, and a bezier as four numbers), and `motion.test.ts` reads `platform.css` and fails when a copy has drifted. The values below are imported from it, not typed here."
+      >
+        <div className="rounded-3xl border p-2">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Export</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>CSS</TableHead>
+                <TableHead>Use</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                { name: "DURATION.fast", value: `${DURATION.fast} s`, css: "--transition-duration-fast", use: "Overlays entering and leaving." },
+                { name: "DURATION.base", value: `${DURATION.base} s`, css: "--transition-duration-base", use: "Hover and focus: what `transition` uses." },
+                { name: "DURATION.slow", value: `${DURATION.slow} s`, css: "--transition-duration-slow", use: "Things that travel; the word of the home's title fading out and in." },
+                { name: "EASE_STANDARD", value: `[${EASE_STANDARD.join(", ")}]`, css: "--ease-standard", use: "The one easing, quick to leave and slow to settle: cubic-bezier(0.2, 0, 0, 1). The games' UI uses it too." },
+                { name: "SPRING_TRAVEL", value: `spring, stiffness ${SPRING_TRAVEL.stiffness}, damping ${SPRING_TRAVEL.damping}`, css: "", use: "Something that moves to a place it was not, and has to feel attached to the hand that asked: the fill that glides between the tabs of the navbar. Stiff, no overshoot worth seeing, settled in about a quarter of a second." },
+              ].map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell>
+                    <Code>{row.name}</Code>
+                  </TableCell>
+                  <TableCell className="whitespace-normal font-mono text-xs tracking-normal">{row.value}</TableCell>
+                  <TableCell>{row.css && <Code>{row.css}</Code>}</TableCell>
+                  <TableCell className="min-w-56 whitespace-normal text-muted-foreground">
+                    <Inline>{row.use}</Inline>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Block>
+
+      <Bullets
+        items={[
+          "The platform moves in JavaScript only for what CSS cannot do, a layout animation, a sequence or a spring: the fill behind the current item of the navbar (`layoutId`, `SPRING_TRAVEL`), the social dock and its panels, a card that moves and the pieces of the home's title (`PLAYFUL`). Everything else is a CSS transition.",
+          "An animation answers an action (a click, a hover) or says that something changed. Use the tokens, never a duration or an easing written in a component, and reach for `motion` only for a layout animation, a sequence or a spring.",
+          "Less motion is honoured everywhere: in CSS the durations become 0ms, in JavaScript `Navbar` mounts `MotionConfig reducedMotion=user` (the fill jumps) and the pieces of the home's title stay still, since an animation that starts by itself is the one a visitor who asks for less motion must never get.",
+          "The games' UI shares the curve, not the durations: it has its own timings, tuned by the game's `UI_THEME` (`docs/game-ui.md`).",
+        ]}
+      />
     </Section>
   )
 }
@@ -248,6 +370,11 @@ const UTILITIES: readonly { utility: string; does: string; token: string }[] = [
   { utility: "px-gutter, py-section, pb-section", does: "Side padding of a page, rhythm between sections", token: "`--gutter`, `--section`" },
   { utility: "max-w-page, max-w-reading", does: "Width of a page, width of running text", token: "`--container-page`, `--container-reading`" },
   { utility: "shadow-surface, shadow-float, shadow-overlay", does: "The three heights of a surface", token: "`--shadow-*`" },
+  { utility: "display-title", does: "The home's title: sentence case, Geist at 720, tracking -0.048em, in the full colour of the text, with `text-display`", token: "`--text-display`, `--tracking-display`" },
+  { utility: "page-title", does: "The title of Games, Tables and Tournaments: one line, Geist at 720, tracking -0.048em, 8rem on a desktop, no fade, with `text-page-title`", token: "`--text-page-title`, `--tracking-display`" },
+  { utility: "title-piece, title-cards", does: "The pieces that stand for letters in the home's title (a die, a coin, a heart) and the two dark blue cards that stand after its last word", token: "`--piece-*`" },
+  { utility: "glass", does: "A container that floats over the page: the grey of a card at 92%, and `--cutout` set to that grey", token: "`--card`, `--cutout`" },
+  { utility: "fine-print", does: "The finest print of a page: the footer's line on what the site is not", token: "`--text-xs`, `--foreground`" },
   { utility: "duration-fast, duration-base, duration-slow", does: "Duration of a transition", token: "`--transition-duration-*`" },
   { utility: "ease-standard", does: "The easing of a transition", token: "`--ease-standard`" },
   { utility: "bg-scrim", does: "Dimming layer behind a dialog or a sheet", token: "`--color-scrim`" },

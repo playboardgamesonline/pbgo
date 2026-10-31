@@ -1,108 +1,90 @@
-import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon, DiceIcon, Link01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
-import Link from "next/link"
+import { indexEntry } from "@pbgo/catalog/filter"
+import { getCatalog } from "@pbgo/catalog/server"
+import { Perks, Stats } from "@pbgo/ui/platform/stats"
+import { TitleCards, TitlePiece } from "@pbgo/ui/platform/title-piece"
+import { GameSearch } from "@/components/game-search"
+import { HeroSearch } from "@/components/hero-search"
+import { HomeBody } from "@/components/home-body"
+import { EmptySection, PopularGames } from "@/components/home-sections"
+import { SiteFooter } from "@/components/site-footer"
+import { catalogCardProps } from "@/lib/game-card-props"
+import { figure, getHubFigures } from "@/lib/hub-stats"
+import { COMING_SOON } from "@/lib/coming-soon"
 
-import { ConsentLink } from "@pbgo/analytics/client"
-import { gameCover } from "@pbgo/core/sanity/cover"
-import { Badge } from "@pbgo/ui/platform/badge"
-import { Button } from "@pbgo/ui/platform/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
-import { GameCard } from "@pbgo/ui/platform/game-card"
-import { Separator } from "@pbgo/ui/platform/separator"
-import { gameCardProps } from "@/lib/game-card-props"
-import { SITE_DESCRIPTION, SITE_NAME } from "@/site"
-import { listedGames } from "@pbgo/games/registry"
+// Plain <a> to the games (GameCard): `@pbgo/ui` is framework-free, and the hub never prefetches a game's code.
+// A card opens the game's page on the hub, `/game/<slug>`.
 
-// Plain <a> to the games (GameCard, Button asChild): the hub and the games have separate root layouts, so this is a full
-// page load anyway, and the hub never prefetches a game's code.
-
-const STEPS = [
-  { icon: DiceIcon, title: "Pick a game", text: "Choose a board or card game and open a table in one click." },
-  { icon: Link01Icon, title: "Share the link", text: "Send the table link or code to your friends. Nobody needs an account." },
-  { icon: UserGroupIcon, title: "Play together", text: "Everyone plays from their own browser, rules and scoring handled for you." },
-]
-
+/**
+ * The home: the title with what the platform is under it (its figures and what is free), then the search bar, then the sections of the platform, each with a button to the page of its tab
+ * (popular games, tables and tournaments in progress, what's new), then the footer. Once the visitor starts a search the sections give way
+ * to its results (`HomeBody`); the list of every game is `/games`.
+ */
 export default async function Home() {
-  const games = listedGames()
-  const first = games[0]
-  // The cover art of each card is read from the game's Sanity project (cached for 60 s); a game without one shows the placeholder
-  const cards = await Promise.all(games.map(async (game) => ({ game, cover: await gameCover(game) })))
+  // The live games of the registry, then the games to come, already in their order (docs/catalog.md). While the platform's Sanity
+  // project cannot be read the catalog is the live games alone, each from the registry.
+  const [{ entries }, figures] = await Promise.all([getCatalog(), getHubFigures()])
+  // Each card is the game's game in the Studio, a live game's included (its logo, or icon, and its background come from the image CDN
+  // of the platform's project; a picture the game does not have leaves the frame plain): the hub reads no game's own Sanity project, only entering a game does.
+  // The registry decides the card's variant alone. Each game goes to the browser with what the search reads of it (`indexEntry`)
+  // beside its card: a search is answered there (`GameSearch`, which the bar of the hero and the results read), in the order of the
+  // catalog, and this page stays static.
+  const games = entries.map((entry) => ({ ...indexEntry(entry), props: catalogCardProps(entry) }))
 
-  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
+  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner). It starts at the top of the window: the
+  // fixed navbar is two containers with nothing between them, and the backdrop of the hero runs under both (`pt-navbar` keeps its text clear of them)
   return (
-    <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 w-full max-w-page items-center justify-between px-gutter">
-          <Link href="/" className="flex items-center gap-2">
-            <HugeiconsIcon icon={DiceIcon} strokeWidth={2} className="size-5" />
-            {SITE_NAME}
-          </Link>
-          <Button variant="ghost" asChild>
-            <a href="#games">Games</a>
-          </Button>
-        </div>
-      </header>
+    <GameSearch games={games}>
+      <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
+        <main className="flex-1">
+          {/* The hero, the page of a visitor who is not signed in (signed in, there is no title: the home is built from what they play): the title in two lines of the same size, in sentence case, in Geist
+              at a weight of 720 and a tracking of -0.048em (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a coin that spins, the suits of a deck in turn and a die that turns, for three "o", and two
+              dark blue cards after "games", `TitleCards`), then what the platform is: its figures in pills (`Stats`: the players connected now, with a green dot, and the members, counted in Supabase, and the games of the catalog) and what
+              costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on the page's black,
+              flat, and nothing else (no gradient, no table, no grid of thin lines, no game pieces) */}
+          <section className="pt-navbar">
+            <div className="mx-auto flex w-full max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
+              <h1 className="display-title">
+                <span className="block text-display">Play y<TitlePiece kind="coin">o</TitlePiece>ur fav<TitlePiece kind="suits">o</TitlePiece>rite</span>{" "}
+                <span className="block text-display">b<TitlePiece kind="die">o</TitlePiece>ard games <TitleCards />online</span>
+              </h1>
+              <Stats
+                className="mt-8"
+                items={[
+                  ...(figures.online === null ? [] : [{ value: figure(figures.online), label: "players online", live: true }]),
+                  ...(figures.members === null ? [] : [{ value: figure(figures.members), label: "members" }]),
+                  { value: figure(games.length), label: "games" },
+                ]}
+              />
+              <Perks className="mt-6" items={["Free to play", "No sign-up needed"]} />
+              {/* 64px under what the platform is, which it covers none of; from `sm` no wider than the title (`max-w-hero-bar`) */}
+              <div className="mt-16 w-full max-w-3xl sm:max-w-hero-bar">
+                <HeroSearch />
+              </div>
+            </div>
+          </section>
 
-      <main className="flex-1">
-        <section className="mx-auto flex w-full max-w-page flex-col items-start gap-6 px-gutter py-section">
-          <Badge variant="secondary">Free · No sign-up · In your browser</Badge>
-          <h1 className="max-w-2xl font-heading text-4xl md:text-6xl">Board games online, with friends.</h1>
-          <p className="max-w-xl text-lg text-muted-foreground">{SITE_DESCRIPTION}</p>
-          <div className="flex flex-wrap gap-3">
-            {first && (
-              <Button size="lg" asChild>
-                <a href={`/${first.slug}`} data-game={first.slug}>
-                  Play {first.name}
-                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                </a>
-              </Button>
-            )}
-            <Button size="lg" variant="outline" asChild>
-              <a href="#games">Browse games</a>
-            </Button>
-          </div>
-        </section>
+          <HomeBody>
+            <PopularGames games={games} />
+            <EmptySection
+              id="tables-in-progress"
+              label="Tables in progress"
+              href="/tables"
+              action="See all tables"
+              {...COMING_SOON.tables}
+            />
+            <EmptySection
+              id="tournaments-in-progress"
+              label="Tournaments in progress"
+              href="/tournaments"
+              action="See all tournaments"
+              {...COMING_SOON.tournaments}
+            />
+            <EmptySection id="whats-new" label="What's new" href="/about#whats-new" action="See what's new" {...COMING_SOON.whatsNew} />
+          </HomeBody>
+        </main>
 
-        <section id="games" className="mx-auto w-full max-w-page scroll-mt-20 px-gutter pb-section">
-          <h2 className="mb-6 font-heading text-2xl">Games</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {cards.map(({ game, cover }) => (
-              <GameCard key={game.slug} {...gameCardProps(game, cover)} data-game={game.slug} />
-            ))}
-          </div>
-        </section>
-
-        <section className="mx-auto w-full max-w-page px-gutter pb-section">
-          <h2 className="mb-6 font-heading text-2xl">How it works</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            {STEPS.map((step) => (
-              <Card key={step.title} size="sm">
-                <CardHeader>
-                  <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-muted">
-                    <HugeiconsIcon icon={step.icon} strokeWidth={2} className="size-5" />
-                  </div>
-                  <CardTitle>{step.title}</CardTitle>
-                  <CardDescription>{step.text}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </section>
-      </main>
-
-      <footer className="mx-auto w-full max-w-page px-gutter pb-10">
-        <Separator className="mb-6" />
-        <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>Unofficial, free online adaptations. Every game belongs to its authors and publisher.</p>
-          <div className="flex items-center gap-4">
-            {/* Only where analytics are on: it reopens the choice of the cookie banner */}
-            <ConsentLink className="cursor-pointer underline-offset-4 hover:underline">Cookies</ConsentLink>
-            <Link href="/legal" className="underline-offset-4 hover:underline">
-              Legal notice
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+        <SiteFooter />
+      </div>
+    </GameSearch>
   )
 }

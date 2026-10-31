@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields } from "./schema-check.ts"
+import { constraintsOf, documentProblems, emptyFields, imageFieldOf, imageFields, problemsOf, referenceProblems, referencesOf } from "./schema-check.ts"
 import type { TypeDef, Types } from "./schema-check.ts"
 
 // The checker that schema.test.ts relies on, tried on a small schema of its own: a check that cannot fail proves nothing.
@@ -9,7 +9,7 @@ import type { TypeDef, Types } from "./schema-check.ts"
 type Loose = Record<string, any>
 
 /** The Rule a validation function is handed: any chain of calls. */
-type Rule = Record<"required" | "regex" | "integer" | "min" | "max" | "length" | "custom" | "warning" | "info" | "error", (...args: unknown[]) => Rule>
+type Rule = Record<"required" | "regex" | "integer" | "min" | "max" | "length" | "custom" | "unique" | "uri" | "warning" | "info" | "error", (...args: unknown[]) => Rule>
 
 const label: TypeDef = {
   name: "label",
@@ -48,7 +48,7 @@ const thing: TypeDef = {
     },
     { name: "notes", type: "array", of: [{ type: "string" }] },
     { name: "soft", type: "string", validation: (rule: Rule) => rule.min(3).warning("short") },
-    { name: "odd", type: "string", validation: (rule: Rule) => rule.custom(() => true) },
+    { name: "odd", type: "string", validation: (rule: Rule) => rule.uri() },
   ],
 }
 
@@ -183,7 +183,7 @@ describe("documentProblems", () => {
   })
 
   it("refuses to guess a rule it does not know, once the field holds a value", () => {
-    expect(() => documentProblems({ ...valid(), odd: "x" }, types)).toThrow("custom() is not emulated by schema-check.ts")
+    expect(() => documentProblems({ ...valid(), odd: "x" }, types)).toThrow("uri() is not emulated by schema-check.ts")
   })
 
   it("lets a rule it does not know go by on a field that holds nothing", () => {
@@ -191,10 +191,182 @@ describe("documentProblems", () => {
   })
 
   it("names a kind of field it does not know, once the field holds a value", () => {
-    const odd: TypeDef = { name: "odd", type: "document", fields: [{ name: "when", type: "datetime" }] }
+    const odd: TypeDef = { name: "odd", type: "document", fields: [{ name: "where", type: "geopoint" }] }
     const known: Types = new Map([[odd.name, odd]])
     expect(documentProblems({ _id: "odd", _type: "odd" }, known)).toEqual([])
-    expect(documentProblems({ _id: "odd", _type: "odd", when: "2026-01-01" }, known)).toEqual(['odd.when has the type "datetime", which schema-check.ts does not know'])
+    expect(documentProblems({ _id: "odd", _type: "odd", where: { lat: 48.8, lng: 2.3 } }, known)).toEqual(['odd.where has the type "geopoint", which schema-check.ts does not know'])
+  })
+})
+
+// The kinds the platform's documents bring: a reference, a slug, a date, a date and time, a list of values and the rules that go with them
+describe("documentProblems: references, slugs, dates and lists", () => {
+  const person: TypeDef = { name: "person", type: "document", fields: [{ name: "name", type: "string" }] }
+  const entry: TypeDef = {
+    name: "entry",
+    type: "document",
+    fields: [
+      {
+        name: "slug",
+        type: "slug",
+        validation: (rule: Rule) => rule.required().custom((slug: { current?: string } | undefined) => (slug?.current?.startsWith("x-") ? true : "must start with x-")),
+      },
+      { name: "day", type: "date" },
+      { name: "at", type: "datetime" },
+      { name: "author", type: "reference", to: [{ type: "person" }] },
+      { name: "friends", type: "array", of: [{ type: "reference", to: [{ type: "person" }] }], validation: (rule: Rule) => rule.unique() },
+      {
+        name: "roles",
+        type: "array",
+        of: [{ type: "string" }],
+        options: { list: [{ title: "Designer", value: "designer" }, "artist"] },
+        validation: (rule: Rule) => rule.unique().min(1),
+      },
+      {
+        name: "credits",
+        type: "array",
+        of: [
+          {
+            name: "credit",
+            type: "object",
+            fields: [
+              { name: "person", type: "reference", to: [{ type: "person" }] },
+              { name: "roles", type: "array", of: [{ type: "string" }] },
+            ],
+          },
+        ],
+        validation: (rule: Rule) => rule.unique(),
+      },
+    ],
+  }
+  const entryTypes: Types = new Map([person, entry].map((type) => [type.name, type]))
+  const reference = (id: string, key?: string): Loose => ({ _type: "reference", _ref: id, ...(key ? { _key: key } : {}) })
+  const validEntry = (): Loose => ({
+    _id: "entry-1",
+    _type: "entry",
+    slug: { _type: "slug", current: "x-one" },
+    day: "2026-02-28",
+    at: "2026-10-30T14:00:00.000Z",
+    author: reference("person-1"),
+    friends: [reference("person-1", "a"), reference("person-2", "b")],
+    roles: ["designer", "artist"],
+    credits: [
+      { _key: "c1", _type: "credit", person: reference("person-1"), roles: ["designer"] },
+      { _key: "c2", _type: "credit", person: reference("person-2"), roles: ["artist"] },
+    ],
+  })
+
+  it("accepts a document that follows its type", () => {
+    expect(documentProblems(validEntry(), entryTypes)).toEqual([])
+  })
+
+  it("accepts a date and time with an offset, and with or without seconds", () => {
+    for (const at of ["2026-10-30T14:00:00+02:00", "2026-10-30T14:00Z", "2026-10-30T14:00:00.5Z"]) expect(documentProblems({ ...validEntry(), at }, entryTypes), at).toEqual([])
+  })
+
+  it.each<[string, (doc: Loose) => void, string]>([
+    ["a slug given as text", (doc) => (doc.slug = "x-one"), "entry-1.slug should be a slug"],
+    ["a slug with nothing in it", (doc) => (doc.slug = { _type: "slug", current: "" }), "entry-1.slug should be a slug"],
+    ["a slug that is missing", (doc) => delete doc.slug, "entry-1.slug is required"],
+    ["a slug of another type", (doc) => (doc.slug = { _type: "string", current: "x-one" }), "entry-1.slug should be a slug"],
+    ["a slug its custom rule refuses", (doc) => (doc.slug.current = "one"), "entry-1.slug must start with x-"],
+    ["a date that does not exist", (doc) => (doc.day = "2026-02-31"), "entry-1.day should be a date"],
+    ["a date with a time", (doc) => (doc.day = "2026-02-28T10:00:00Z"), "entry-1.day should be a date"],
+    ["a date given as a number", (doc) => (doc.day = 20260228), "entry-1.day should be a date"],
+    ["a date and time with no zone", (doc) => (doc.at = "2026-10-30T14:00:00"), "entry-1.at should be a date and time"],
+    ["a date and time on a day that does not exist", (doc) => (doc.at = "2026-02-31T10:00:00Z"), "entry-1.at should be a date and time"],
+    ["a date and time given as a date", (doc) => (doc.at = "2026-10-30"), "entry-1.at should be a date and time"],
+    ["a reference given as text", (doc) => (doc.author = "person-1"), "entry-1.author should be a reference"],
+    ["a reference with no target", (doc) => (doc.author = { _type: "reference" }), "entry-1.author should be a reference"],
+    ["a reference of another type", (doc) => (doc.author = { _type: "person", _ref: "person-1" }), "entry-1.author should be a reference"],
+    ["an item of a list of references that is not one", (doc) => (doc.friends[1] = { _key: "b", _type: "person" }), 'which the array does not accept (reference)'],
+    ["a list of references that repeats one", (doc) => (doc.friends[1] = reference("person-1", "b")), "entry-1.friends must not repeat"],
+    ["a value that is not in the list of an array", (doc) => (doc.roles = ["designer", "writer"]), 'entry-1.roles is "writer", not one of "designer", "artist"'],
+    ["a list of values that repeats one", (doc) => (doc.roles = ["artist", "artist"]), 'entry-1.roles must not repeat "artist"'],
+    ["a list of values with none", (doc) => (doc.roles = []), "entry-1.roles must be at least 1"],
+    ["a list of objects that repeats one, whatever its key", (doc) => (doc.credits[1] = { ...doc.credits[0], _key: "c2" }), "entry-1.credits must not repeat"],
+  ])("flags %s, and only that", (_name, change, expected) => {
+    const doc = validEntry()
+    change(doc)
+    const problems = documentProblems(doc, entryTypes)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain(expected)
+  })
+})
+
+describe("custom() rules", () => {
+  const verdict = (answer: unknown) => problemsOf("x", { type: "string", validation: (rule: Rule) => rule.custom(() => answer) }, "v", new Map())
+
+  it("calls the function with the value", () => {
+    const check = (value: string) => problemsOf(value, { type: "string", validation: (rule: Rule) => rule.custom((given: unknown) => (given === "ok" ? true : "must be ok")) }, "v", new Map())
+    expect(check("ok")).toEqual([])
+    expect(check("no")).toEqual(["v must be ok"])
+  })
+
+  it("reads true, nothing, a text, a message and a list of them as what the Studio does", () => {
+    expect(verdict(true)).toEqual([])
+    expect(verdict(undefined)).toEqual([])
+    expect(verdict("too short")).toEqual(["v too short"])
+    expect(verdict({ message: "bad" })).toEqual(["v bad"])
+    expect(verdict([true, "second"])).toEqual(["v second"])
+    expect(verdict({})).toEqual(["v is refused by its custom() rule ({})"])
+  })
+
+  it("does not emulate a function that answers later, nor a rule that is not given one", () => {
+    expect(() => verdict(Promise.resolve(true))).toThrow("promise")
+    expect(() => problemsOf("x", { type: "string", validation: (rule: Rule) => rule.custom() }, "v", new Map())).toThrow("custom() needs a function")
+  })
+
+  it("is not called for a field that holds nothing (required() says that)", () => {
+    expect(problemsOf(undefined, { type: "string", validation: (rule: Rule) => rule.custom(() => "never") }, "v", new Map())).toEqual([])
+  })
+})
+
+describe("referencesOf and referenceProblems", () => {
+  const person: TypeDef = { name: "person", type: "document", fields: [{ name: "name", type: "string" }] }
+  const note: TypeDef = {
+    name: "note",
+    type: "document",
+    fields: [
+      { name: "about", type: "reference", to: [{ type: "person" }] },
+      { name: "also", type: "array", of: [{ type: "reference", to: [{ type: "person" }, { type: "note" }] }] },
+      { name: "credit", type: "object", fields: [{ name: "by", type: "reference", to: [{ type: "person" }] }] },
+      { name: "anyone", type: "reference" },
+      { name: "picture", type: "image" },
+    ],
+  }
+  const noteTypes: Types = new Map([person, note].map((type) => [type.name, type]))
+  const reference = (id: string): Loose => ({ _type: "reference", _ref: id })
+  const docs = (): Loose[] => [
+    { _id: "person-1", _type: "person", name: "A" },
+    { _id: "note-1", _type: "note", about: reference("person-1"), also: [{ _key: "k", ...reference("note-2") }], credit: { by: reference("person-1") }, anyone: reference("note-2") },
+    { _id: "note-2", _type: "note", picture: { _type: "image", asset: reference("image-abc-10x10-webp") } },
+  ]
+
+  it("lists the references of a value, in objects and arrays, with the types they may point at", () => {
+    const [, first] = docs()
+    expect(first && note.fields?.flatMap((field) => referencesOf(first[field.name], field, `note-1.${field.name}`, noteTypes))).toEqual([
+      { path: "note-1.about", ref: "person-1", to: ["person"] },
+      { path: "note-1.also[0]", ref: "note-2", to: ["person", "note"] },
+      { path: "note-1.credit.by", ref: "person-1", to: ["person"] },
+      { path: "note-1.anyone", ref: "note-2", to: [] },
+    ])
+  })
+
+  it("finds nothing wrong with references that all point at a document of the seed, of a type their field takes", () => {
+    expect(referenceProblems(docs(), noteTypes)).toEqual([])
+  })
+
+  it("does not take the asset of an image for a reference of the seed", () => {
+    expect(referenceProblems([docs()[2] as Loose], noteTypes)).toEqual([])
+  })
+
+  it("flags a reference to a document that is not in the seed, and one to a document of another type", () => {
+    const broken = docs()
+    Object.assign(broken[1] as Loose, { about: reference("person-9"), credit: { by: reference("note-2") } })
+    expect(referenceProblems(broken, noteTypes)).toEqual([
+      'note-1.about points at "person-9", which is not in the seed',
+      'note-1.credit.by points at "note-2", a "note", and the field takes "person"',
+    ])
   })
 })
 

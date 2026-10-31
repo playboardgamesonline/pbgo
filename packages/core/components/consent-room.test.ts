@@ -4,9 +4,10 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
 /**
- * Guard of the consent banner's room. The banner is a bar docked to the bottom of the screen: `@pbgo/analytics` measures it, publishes
- * its height as `--consent-h` on <body> (0px without a banner) and pads the page by it. A screen as tall as the viewport would run under
- * the bar, and an element fixed against the bottom of the screen would sit under it: that is how a button of a game ends up hidden.
+ * Guard of the consent banner's room. The banner is a card that floats at the bottom of the screen, inside a box that holds its margin:
+ * `@pbgo/analytics` measures that box, publishes its height as `--consent-h` on <body> (0px without a banner) and pads the page by it.
+ * A screen as tall as the viewport would run under the card, and an element fixed against the bottom of the screen would sit under
+ * it: that is how a button of a game ends up hidden.
  * Subtract the variable (`h-[calc(100dvh-var(--consent-h,0px))]`) or offset by it (`bottom-[var(--consent-h,0px)]`).
  *
  * The check reads the classes of the screens a visitor opens with the banner up: the hub, the games and their template, one line at a
@@ -45,7 +46,7 @@ const PINNED = new RegExp(`${START}(?:fixed|sticky)(?![\\w-])`)
 const AT_BOTTOM = new RegExp(`${START}-?bottom-`)
 const WHOLE_SCREEN = new RegExp(`${START}-?inset-(?!x-|s-|e-|shadow|ring)`)
 
-/** What a line of classes does that the bar would hide: the rules it breaks (none when it already offsets by `--consent-h`). */
+/** What a line of classes does that the banner would hide: the rules it breaks (none when it already offsets by `--consent-h`). */
 function problems(line: string): string[] {
   if (line.includes("--consent-h")) return []
   const found: string[] = []
@@ -80,7 +81,7 @@ describe("the room of the consent banner", () => {
     expect(FILES.some((file) => file.includes("/admin/") || file.includes("/design/"))).toBe(false)
   })
 
-  it("sees what would hide under the bar", () => {
+  it("sees what would hide under the banner", () => {
     expect(problems('<main className="relative h-dvh w-full">')).toHaveLength(1)
     expect(problems('<div className="flex md:min-h-screen">')).toHaveLength(1)
     expect(problems('<div className="min-h-[100svh]">')).toHaveLength(1)
@@ -99,7 +100,7 @@ describe("the room of the consent banner", () => {
     expect(problems('<div className="border-bottom-2 max-h-screen">')).toEqual([])
   })
 
-  it("leaves no screen, and no element fixed to the bottom, under the bar", () => {
+  it("leaves no screen, and no element fixed to the bottom, under the banner", () => {
     const hits = FILES.flatMap((file) =>
       readFileSync(join(ROOT, file), "utf8")
         .split("\n")

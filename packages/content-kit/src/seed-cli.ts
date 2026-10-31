@@ -7,7 +7,14 @@ import { run } from "./run.ts"
 import { connect } from "./store.ts"
 import type { SeedDoc } from "./types.ts"
 
-/** What a game hands to the pipeline: the dataset its content goes to, and the content. */
+/** The documents of a seed and the art slots they have. */
+export type SeedContent = { docs: SeedDoc[]; slots: ArtSlot[] }
+
+/**
+ * What a game hands to the pipeline: the dataset its content goes to, and the content. Written down in the code (`docs`, `slots`), or
+ * read from somewhere and so built when it is asked for (`content`: the platform's seed reads Notion, which is async and tells which
+ * pictures there are, so its slots come out of the same read as its documents).
+ */
 export type SeedConfig = {
   slug: string
   projectId: string
@@ -15,10 +22,17 @@ export type SeedConfig = {
   dataset: string
   /** The git-ignored env file that holds `SANITY_API_WRITE_TOKEN_<SLUG>` when the environment does not */
   envFile: string
-  /** Builds every document of the seed; called after the options are checked and the token is read, so `--help` and a wrong option never build the data */
-  docs: () => SeedDoc[]
-  slots: ArtSlot[]
-}
+} & (
+  | {
+      /** Builds every document of the seed; called after the options are checked and the token is read, so `--help` and a wrong option never build the data */
+      docs: () => SeedDoc[]
+      slots: ArtSlot[]
+    }
+  | {
+      /** Builds the documents and the slots together, when it is asked for like `docs` is (after the options and the token) */
+      content: () => SeedContent | Promise<SeedContent>
+    }
+)
 
 /**
  * The command of a game (`node content/seed.ts [options]`): reads the options, the token and the content, runs the seed and prints the report.
@@ -34,10 +48,11 @@ export async function runSeedCli(config: SeedConfig, argv: string[] = process.ar
     }
     token = readToken({ slug: config.slug, envFile: config.envFile })
     const store = connect({ projectId: config.projectId, dataset: config.dataset, apiVersion, token })
+    const { docs, slots } = "content" in config ? await config.content() : { docs: config.docs(), slots: config.slots }
     const result = await run({
       store,
-      docs: config.docs(),
-      slots: config.slots,
+      docs,
+      slots,
       options: { apply: cli.apply, overwrite: cli.overwrite, only: cli.only, artDir: cli.artDir },
     })
     console.log(formatReport(result, { projectId: config.projectId, dataset: config.dataset, verbose: cli.verbose }))

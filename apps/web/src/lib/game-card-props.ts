@@ -1,29 +1,41 @@
-import type { GameEntry } from "@pbgo/core/lib/binding"
+import { cardPictureUrl, pictureUrl, type CatalogEntry, type CatalogGame } from "@pbgo/catalog"
+import type { GameCardProps } from "@pbgo/ui/platform/game-card"
 
-/** "2–5 players", "2 players". The platform speaks English; a game's own pages are localized by the game. */
-export function playersLabel(players: GameEntry["players"]): string | undefined {
+/** "2–5 players", "2 players", "2+ players" (a game whose maximum is not known). The platform speaks English; a game's own pages are localized by the game. */
+export function playersLabel(players: { min: number; max: number | null } | undefined | null): string | undefined {
   if (!players) return undefined
   const { min, max } = players
+  if (max === null) return `${min}+ players`
   return min === max ? `${max} player${max > 1 ? "s" : ""}` : `${min}–${max} players`
 }
 
-/** "30 min", "20–40 min". */
-export function durationLabel(duration: GameEntry["duration"]): string | undefined {
-  if (!duration) return undefined
-  const { min, max } = duration
-  return min === max ? `${max} min` : `${min}–${max} min`
+/** "30 min": a game gives its duration as one figure, in minutes. A figure it does not have is undefined. */
+export function durationLabel(minutes: number | undefined | null): string | undefined {
+  return minutes === undefined || minutes === null ? undefined : `${minutes} min`
 }
 
 /**
- * Props of the hub's `GameCard` (`@pbgo/ui/platform/game-card`) for a game of the registry. `cover` is the card's art, read from the
- * game's Sanity project by `gameCover()` (`@pbgo/core/sanity/cover`); without one the card shows its neutral placeholder.
+ * The picture of a game, as `GameCardVisual` (`@pbgo/ui/platform/game-card`) takes it: its logo (else its icon) and its background, from
+ * the image CDN of the platform's Sanity project, sized for the page (`pictureUrl`). A picture the game does not have is left out and the
+ * frame stays plain. The game's card and its page both draw this one picture, so both come from here.
  */
-export function gameCardProps(game: GameEntry, cover?: string | null) {
+export function gamePicture(game: CatalogGame) {
+  return { logo: cardPictureUrl(game) ?? undefined, background: pictureUrl(game, "background") ?? undefined }
+}
+
+/**
+ * Props of the hub's `GameCard` for an entry of the catalog, the same for every game: what its game in the Studio says (its name, its picture,
+ * its players and its duration), then the card's variant, the one thing the registry decides: a live game is a "play" card, any other
+ * a "Coming soon" one. The `order` of the Studio and the rest only sort the list, the card shows none of them. It goes to `/game/<slug>` like
+ * every card: every game of the catalog has a page there, whose button enters the game when it is live.
+ */
+export function catalogCardProps(entry: CatalogEntry): GameCardProps {
+  const { game } = entry
   return {
-    href: `/${game.slug}`,
+    variant: entry.live ? "play" : "soon",
+    href: `/game/${entry.slug}`,
     name: game.name,
-    tagline: game.tagline,
-    visual: cover ?? undefined,
+    ...gamePicture(game),
     players: playersLabel(game.players),
     duration: durationLabel(game.duration),
   }

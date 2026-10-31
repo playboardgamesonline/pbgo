@@ -1,0 +1,83 @@
+"use client"
+
+import * as React from "react"
+import { Slider as SliderPrimitive } from "radix-ui"
+import { cn } from "../utils"
+
+// A slider for a value, or a range, along a scale: a track, a fill between the thumbs (from the start when there is one) and, for a scale of a few
+// stops, a dot on the track at each. Radix keeps a thumb inside the slider by shifting it half its own width, which it has to measure, so a thumb
+// that is drawn at its full size sits somewhere else on the server than in the browser. The thumb here has no size (`size-0`): there is nothing to
+// measure and nothing to shift, and its centre is exactly where the fill, the dots and the pointer put it. The handle, a white capsule 8px wide and 20px
+// high, is drawn around that centre by its `::before`, and the larger target of a finger by its `::after`. The handles stick out of the track by half
+// their width at each end: leave that room around the slider (a margin of half a handle, `mx-1`, keeps them off what stands beside it).
+
+const THUMB =
+  "relative block size-0 outline-none " +
+  "before:absolute before:top-1/2 before:left-1/2 before:h-5 before:w-2 before:-translate-1/2 before:rounded-full before:bg-primary before:shadow-surface before:ring-ring/30 before:transition-[box-shadow,scale] " +
+  "after:absolute after:top-1/2 after:left-1/2 after:size-8 after:-translate-1/2 after:rounded-full " +
+  "hover:before:scale-110 hover:before:ring-4 focus-visible:before:ring-4 focus-visible:before:ring-ring/60"
+
+type SliderProps = Omit<React.ComponentProps<typeof SliderPrimitive.Root>, "children"> & {
+  /** What a screen reader calls each thumb, in the order of the thumbs: "Shortest", "Longest". Radix says "Minimum" and "Maximum" for a pair without it. */
+  thumbLabels?: readonly string[]
+  /** What a screen reader hears for the value of a thumb, where the number alone says too little: a position on a scale is not the time it stands for. */
+  valueText?: (value: number, thumb: number) => string
+  /** A dot on the track at each step (`true`), for a scale of a few stops where the thumbs jump from one to the next, or at each of the values listed, for a scale with too many steps to mark them all. */
+  ticks?: boolean | readonly number[]
+}
+
+/**
+ * One thumb, or more: as many as the `value` (or the `defaultValue`) has numbers. The fill is `bg-primary` between the thumbs, and from the start
+ * with a single one. It is `touch-none`, so a finger drags a thumb instead of scrolling the page.
+ */
+function Slider({
+  className,
+  value,
+  defaultValue,
+  min = 0,
+  max = 100,
+  step = 1,
+  thumbLabels,
+  valueText,
+  ticks = false,
+  ...props
+}: SliderProps) {
+  const values = value ?? defaultValue ?? [min]
+  const marks = ticks === true ? Array.from({ length: Math.max(1, Math.round((max - min) / step)) + 1 }, (_, index) => min + index * step) : ticks || []
+  return (
+    <SliderPrimitive.Root
+      data-slot="slider"
+      value={value}
+      defaultValue={defaultValue}
+      min={min}
+      max={max}
+      step={step}
+      className={cn("relative flex h-6 w-full touch-none items-center select-none data-disabled:opacity-50", className)}
+      {...props}
+    >
+      <SliderPrimitive.Track data-slot="slider-track" className="relative h-1.5 w-full grow rounded-full bg-foreground/20">
+        <SliderPrimitive.Range data-slot="slider-range" className="absolute h-full rounded-full bg-primary" />
+        {marks.map((mark) => (
+          <span
+            key={mark}
+            data-slot="slider-tick"
+            aria-hidden="true"
+            className="absolute top-1/2 size-1 -translate-1/2 rounded-full bg-background/70"
+            style={{ left: `${((mark - min) / (max - min || 1)) * 100}%` }}
+          />
+        ))}
+      </SliderPrimitive.Track>
+      {values.map((thumb, index) => (
+        <SliderPrimitive.Thumb
+          key={index}
+          data-slot="slider-thumb"
+          aria-label={thumbLabels?.[index]}
+          aria-valuetext={valueText?.(thumb, index)}
+          className={THUMB}
+        />
+      ))}
+    </SliderPrimitive.Root>
+  )
+}
+
+export { Slider }

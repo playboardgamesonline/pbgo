@@ -10,7 +10,7 @@ import { consentStore } from "./store"
 
 export { trackClient }
 
-/** A link of the hub that opens a game (the hero button, the game cards): a plain link to `/<slug>`, `data-game` holds the slug. */
+/** A link of the hub to a game (the cards of the live games): a plain link, `data-game` holds the slug. */
 const GAME_LINK = "a[data-game]"
 
 /** The visitor's answer: stored, followed by the SDK at once, then reported in the mode they just chose. */
@@ -54,9 +54,11 @@ export function AnalyticsProvider() {
     if (ready) syncConsent(consent)
   }, [ready, consent, pathname])
 
-  // The hub is the only page whose links lead straight to a game: `/design` shows the same cards as a specimen.
+  // The hub's two lists of games are the pages whose links are counted, the home (its popular games and its results) and `/games`: a card
+  // leads to the game's page on the hub (`/game/<slug>`, whose own button is not counted). `/design` shows the same cards as a specimen.
+  const onGameList = pathname === "/" || pathname === "/games"
   React.useEffect(() => {
-    if (!reporting || pathname !== "/") return
+    if (!reporting || !onGameList) return
     function onClick(event: MouseEvent) {
       const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(GAME_LINK) : null
       const game = link?.dataset.game
@@ -65,7 +67,7 @@ export function AnalyticsProvider() {
     }
     document.addEventListener("click", onClick)
     return () => document.removeEventListener("click", onClick)
-  }, [reporting, pathname])
+  }, [reporting, onGameList])
 
   if (!reporting || !ready || !open) return null
   return <ConsentBanner reopened={consent !== null} onChoose={choose} onClose={consentStore.dismiss} />

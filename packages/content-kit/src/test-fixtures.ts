@@ -11,10 +11,11 @@ export type Size = { width: number; height: number }
 export type Doc = SeedDoc & Record<string, any>
 
 /** A plain-colour image. Two colours give two different files, so two different content hashes. */
-export async function imageOf(color: string, size: Size = { width: 40, height: 56 }, format: "png" | "jpeg" | "webp" = "png"): Promise<Buffer> {
+export async function imageOf(color: string, size: Size = { width: 40, height: 56 }, format: "png" | "jpeg" | "webp" | "avif" = "png"): Promise<Buffer> {
   const image = sharp({ create: { width: size.width, height: size.height, channels: 3, background: color } })
   if (format === "jpeg") return image.jpeg().toBuffer()
   if (format === "webp") return image.webp().toBuffer()
+  if (format === "avif") return image.avif().toBuffer()
   return image.png().toBuffer()
 }
 

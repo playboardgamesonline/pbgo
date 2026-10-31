@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Legal notice", alternates: { canonic
 const lead = "text-foreground"
 
 /**
- * What the site measures, in full: the cookie banner is a single line that says the essentials and links here. Only on a
- * deployment that has the analytics key: without it nothing below happens, and the notice must not say it does.
+ * What the site measures, in full: the cookie banner is a small card that says the essentials in one sentence and links here.
+ * Only on a deployment that has the analytics key: without it nothing below happens, and the notice must not say it does.
  */
 const STATISTICS = [
   "We use PostHog, on its European cloud, to see how the site is used and to fix what breaks. IP addresses are discarded. Two kinds of counts run whatever you choose, and neither stores anything on your device:",
@@ -31,7 +31,7 @@ const STATISTICS = [
   </>,
   <>
     You can change your choice at any time with{" "}
-    <ConsentLink className="cursor-pointer text-foreground underline underline-offset-4">this link</ConsentLink>, the Cookies link in the footer or a game&apos;s settings menu. We ask again after 13 months. Questions about your data:{" "}
+    <ConsentLink className="cursor-pointer text-foreground underline underline-offset-4">this link</ConsentLink>, the Cookie settings link in the footer or a game&apos;s settings menu. We ask again after 13 months. Questions about your data:{" "}
     <a className="text-foreground underline underline-offset-4" href={`mailto:${CONTACT}`}>
       {CONTACT}
     </a>
@@ -66,7 +66,7 @@ const SECTIONS: { id?: string; title: string; body: React.ReactNode[] }[] = [
     ],
   },
   {
-    // The banner's "Details" link lands here (`/legal#cookies`)
+    // The banner's "Privacy policy" link lands here (`/legal#cookies`), `/privacy` being a stub for now
     id: "cookies",
     title: "Cookies, storage and statistics",
     body: [

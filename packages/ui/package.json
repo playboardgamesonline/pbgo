@@ -4,8 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./brands": "./src/brands.tsx",
+    "./faces": "./src/faces.ts",
+    "./friends": "./src/friends.ts",
     "./game/*": "./src/game/*.tsx",
+    "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
+    "./social": "./src/social.ts",
     "./styles/*": "./src/styles/*",
     "./theme": "./src/theme.ts",
     "./utils": "./src/utils.ts"
@@ -21,6 +26,7 @@
     "clsx": "catalog:",
     "input-otp": "catalog:",
     "lucide-react": "catalog:",
+    "motion": "catalog:",
     "radix-ui": "catalog:",
     "sonner": "catalog:",
     "tailwind-merge": "catalog:",
