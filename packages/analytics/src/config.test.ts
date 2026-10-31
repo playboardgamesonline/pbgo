@@ -71,10 +71,8 @@ describe("resolveConfig", () => {
 })
 
 describe("isExcludedPath", () => {
-  it("never reports from the gamemaster, the previews it shows, the design reference nor the docs", () => {
+  it("never reports from the gamemaster, the previews it shows nor the docs", () => {
     for (const path of [
-      "/design",
-      "/design/components/controls",
       "/docs",
       "/docs/design",
       "/docs/engine/rules",

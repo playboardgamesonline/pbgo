@@ -1,9 +1,9 @@
 import * as React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { Markdown } from "./markdown"
+import { Markdown, type Specimens } from "./markdown"
 
-const render = (markdown: string, section = "design") => renderToStaticMarkup(React.createElement(Markdown, { markdown, section }))
+const render = (markdown: string, dir: readonly string[] = ["design"], specimens?: Specimens) => renderToStaticMarkup(React.createElement(Markdown, { markdown, dir, specimens }))
 
 describe("Markdown", () => {
   it("gives every heading an id, the way GitHub makes it, and a link to it", () => {
@@ -19,6 +19,12 @@ describe("Markdown", () => {
     const html = render("A `chip` here.\n\n```ts\nconst a = 1\n```")
     expect(html).toMatch(/<pre[^>]*><code[^>]*>const a = 1\n<\/code><\/pre>/)
     expect(html).toMatch(/<code class="[^"]*bg-muted[^"]*">chip<\/code>/)
+  })
+
+  it("keeps a short chip of code on one line and lets a long one wrap", () => {
+    const html = render("A `rounded-4xl` chip and a `packages/ui/src/platform/something-very-long/index.tsx` one.")
+    expect(html).toMatch(/<code class="[^"]*whitespace-nowrap[^"]*">rounded-4xl<\/code>/)
+    expect(html).toMatch(/<code class="(?![^"]*whitespace-nowrap)[^"]*break-words[^"]*">packages\/ui\/src\/platform\/something-very-long\/index.tsx<\/code>/)
   })
 
   it("draws a table of GitHub's flavour with the platform's table", () => {
@@ -44,6 +50,14 @@ describe("Markdown", () => {
     expect(html).toContain('href="#sixth"')
   })
 
+  it("keeps the text to a readable measure and lets a table, a block of code and a section rule take the whole page", () => {
+    const html = render("## Section\n\nA paragraph.\n\n| a |\n| --- |\n| b |\n\n```ts\ncode\n```")
+    expect(html).toMatch(/<h2[^>]*class="(?![^"]*max-w-reading)[^"]*border-t[^"]*"/)
+    expect(html).toMatch(/<p class="[^"]*max-w-reading/)
+    expect(html).not.toMatch(/<table[^>]*max-w-reading/)
+    expect(html).not.toMatch(/<pre[^>]*max-w-reading/)
+  })
+
   it("leads a link to another page of the docs to that page, and opens another site in a new tab", () => {
     const html = render("[engine](../engine/index.md) and [the web](https://example.com/x) and [here](#a)")
     expect(html).toContain('<a href="/docs/engine"')
@@ -51,9 +65,15 @@ describe("Markdown", () => {
     expect(html).toContain('<a href="#a"')
   })
 
+  it("reads a relative link from the folders of the page, the way the disk has them", () => {
+    const html = render("[foundations](../02-foundations.md#radius) and [a sibling](01-controls.md)", ["design", "03-components"])
+    expect(html).toContain('<a href="/docs/design/foundations#radius"')
+    expect(html).toContain('<a href="/docs/design/components/controls"')
+  })
+
   it("shows a link to a file that has no page as a name, and an unsafe link as its text", () => {
     const html = render("[the guide](../../packages/engine-kit/README.md) and [click](javascript:alert(1))")
-    expect(html).not.toContain("<a href=\"../../packages")
+    expect(html).not.toContain('<a href="../../packages')
     expect(html).toMatch(/<code[^>]*>the guide<\/code>/)
     expect(html).not.toContain("javascript:")
     expect(html).toContain("click")
@@ -71,5 +91,41 @@ describe("Markdown", () => {
     const html = render("text")
     expect(html).toContain("data-selectable")
     expect(html).toContain("select-text")
+  })
+})
+
+describe("Markdown specimens", () => {
+  const specimens: Specimens = {
+    "button-variants": () => React.createElement("button", { type: "button" }, "A live button"),
+    "second-one": () => React.createElement("p", null, "Another piece"),
+  }
+
+  it("draws the specimen the text of a specimen block names, where the block stands, and not the block", () => {
+    const html = render("Before.\n\n```specimen\nbutton-variants\n```\n\nAfter.", ["design"], specimens)
+    expect(html).toMatch(/Before\.<\/p>\s*<div data-slot="docs-specimen"[^>]*><button type="button">A live button<\/button><\/div>\s*<p[^>]*>After\./)
+    expect(html).not.toContain("<pre")
+    expect(html).not.toContain("language-specimen")
+  })
+
+  it("gives the specimen the lines of its block after the name", () => {
+    const withBody: Specimens = { table: ({ body }) => React.createElement("p", null, body.split("\n").length, " rows: ", body) }
+    const html = render("```specimen\ntable\n--a | b\n--c | d\n```", ["design"], withBody)
+    expect(html).toContain("2 rows: --a | b\n--c | d")
+  })
+
+  it("keeps the text of a specimen from being selected, and the code of a page selectable", () => {
+    const html = render("```specimen\nsecond-one\n```", ["design"], specimens)
+    expect(html).toMatch(/data-slot="docs-specimen" class="[^"]*select-none/)
+  })
+
+  it("draws a block of another language as code, even when it names a specimen", () => {
+    const html = render("```ts\nbutton-variants\n```", ["design"], specimens)
+    expect(html).toContain("<pre")
+    expect(html).not.toContain("A live button")
+  })
+
+  it("stops on a name the site does not know, and on a page that has no specimens to draw from", () => {
+    expect(() => render("```specimen\nnope\n```", ["design"], specimens)).toThrow('the specimen "nope"')
+    expect(() => render("```specimen\nbutton-variants\n```")).toThrow('the specimen "button-variants"')
   })
 })

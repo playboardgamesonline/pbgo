@@ -11,13 +11,13 @@ import { describe, expect, it } from "vitest"
  * Subtract the variable (`h-[calc(100dvh-var(--consent-h,0px))]`) or offset by it (`bottom-[var(--consent-h,0px)]`).
  *
  * The check reads the classes of the screens a visitor opens with the banner up: the hub, the games and their template, one line at a
- * time (a class string split over two lines is not seen). The gamemaster, `/design`, `/docs` and the previews never show the banner, so they
+ * time (a class string split over two lines is not seen). The gamemaster, `/docs` and the previews never show the banner, so they
  * are not scanned.
  */
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url))
 
-const SKIPPED = new Set(["node_modules", ".next", "admin", "design", "docs"])
+const SKIPPED = new Set(["node_modules", ".next", "admin", "docs"])
 const SCANNED = [
   "packages/core/components",
   "packages/core/pages",
@@ -78,7 +78,7 @@ describe("the room of the consent banner", () => {
     expect(FILES.length).toBeGreaterThan(40)
     expect(FILES).toEqual(expect.arrayContaining(["packages/core/components/game/hud.tsx", "packages/core/components/home/screen.tsx"]))
     expect(FILES.some((file) => file.startsWith("games/courtisans/src/"))).toBe(true)
-    expect(FILES.some((file) => file.includes("/admin/") || file.includes("/design/") || file.includes("/docs/"))).toBe(false)
+    expect(FILES.some((file) => file.includes("/admin/") || file.includes("/docs/"))).toBe(false)
   })
 
   it("sees what would hide under the banner", () => {

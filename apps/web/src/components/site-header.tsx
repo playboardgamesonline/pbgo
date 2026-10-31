@@ -35,7 +35,7 @@ const addressOf = (pathname: string) => (pathname === "/index" ? "/" : pathname)
 /**
  * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab, Games on a
  * game's page on the hub (`/game/<slug>`), and nothing on the sign-in and the pages of an account (`/me`), which have the bar and no tab. `null` on a
- * page that has no bar (the design system, the legal pages, the 404).
+ * page that has no bar (the docs, the legal pages, the 404).
  */
 function currentOf(pathname: string): SiteCurrent | null {
   if (pathname === "/") return "home"

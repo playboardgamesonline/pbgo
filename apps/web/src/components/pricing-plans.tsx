@@ -15,7 +15,7 @@ const ICONS: Record<PlanId, IconSvgElement> = { free: DiceIcon, plus: SparklesIc
 /**
  * A selector between paying month by month and a year at once (a quarter less), then the three plans in a row from `lg` (under it one column, the cards 28rem wide at the most and centred: three columns of a tablet are too narrow
  * for a price and its period), the cards the same height. The selector changes what the cards say about their price, and nothing else moves. The free plan has the one live button, to the games; the paid ones cannot be taken (the
- * games are not licensed): they are faded, and their button says so and is disabled, since a click would have nowhere to go. The Pricing page and `/design` draw it.
+ * games are not licensed): they are faded, and their button says so and is disabled, since a click would have nowhere to go. The Pricing page and the docs of the design system draw it.
  */
 export function PricingPlans() {
   const [billing, setBilling] = React.useState<Billing>("monthly")
