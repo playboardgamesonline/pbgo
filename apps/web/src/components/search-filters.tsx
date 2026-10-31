@@ -244,7 +244,7 @@ function AgeFilter({ current, onPick }: { current: number | null; onPick: (next:
 }
 
 /**
- * The four filters that stand under the bar, from the picks they are given and the way to change them (so `/design` can draw them with picks of its
+ * The four filters that stand under the bar, from the picks they are given and the way to change them (so the docs of the design system can draw them with picks of their
  * own), each in a place of its own with no background: the number of players, as a stepper that starts on 4; the duration, as a slider with one
  * thumb that starts on 20′; the complexity, as bars that fill and start on 3; and the age of the youngest player, from a menu that starts on 8+. A pick filters the list at once and
  * goes into the address. The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.

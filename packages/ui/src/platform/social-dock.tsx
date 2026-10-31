@@ -143,7 +143,7 @@ type SocialDockProps = {
   toggle: React.ReactNode
   /** The panel: what the dock shows under the bar while it is open. */
   children: React.ReactNode
-  /** How high the open dock is, in px, where the window is not what it is measured against (the specimens of `/design`). */
+  /** How high the open dock is, in px, where the window is not what it is measured against (the specimens of the design docs). */
   height?: number
   className?: string
 }

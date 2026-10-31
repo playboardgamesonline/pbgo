@@ -13,7 +13,7 @@ import { gameOverStyle, type GameOverTheme, type SeatTheme } from "../../lib/ui-
 import { SeatAvatarMark, SeatLabel } from "./seat-label"
 
 // The panel of the end screen, apart from `game-over.tsx` (which reads the game, shares the result and replays): nothing here needs
-// a game, so `/design` draws it on the hub without the lobby, the toolbar or the share code that file brings along.
+// a game, so the design docs draw it on the hub without the lobby, the toolbar or the share code that file brings along.
 
 /** The score chips of a result, in the panel's ink: one `label +n` per line of the detail */
 function Details({ result, large, centered }: { result: PlayerResult; large?: boolean; centered?: boolean }) {
@@ -236,7 +236,7 @@ export type GameOverPanelProps = {
 
 /**
  * The end-of-game panel: the winners as the hero (avatar, crown, name, points, score breakdown), the others as a ranking, the
- * share thumbnail on its corner. Pure presentation, no game context: the connected `GameOver` feeds it from the game, `/design`
+ * share thumbnail on its corner. Pure presentation, no game context: the connected `GameOver` feeds it from the game, the design docs
  * with samples. The look comes from `theme` (`UI_THEME.gameOver`) and `seat`; the box takes the room of its parent, a flex column.
  * On a short screen (`short`) the hero stands at the left and the ranking scrolls at the right.
  */

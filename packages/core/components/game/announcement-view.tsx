@@ -25,7 +25,7 @@ import { SeatAvatarMark } from "./seat-label"
  * One full-screen announcement, drawn: the veil over the table, the two hairlines that frame the title, the title and its
  * subtitle, and for a victory the winner's medallion and crown. Everything is told by the settings and the timeline of
  * `lib/announcement-settings.ts`; this file has no leva, no sound and no game context, so the live component (`announcement.tsx`)
- * and the `/design` specimens render the same thing.
+ * and the specimens of the design docs render the same thing.
  *
  * The parts come in one after the other (veil, hairlines drawn from the centre, title rising into focus, subtitle) and leave in
  * the same order, each with its own transition, so the root is a plain element: the exit of every part is what `AnimatePresence`
@@ -323,7 +323,7 @@ function seatMove(t: AnnouncementTimeline, i: number, lead = t.seat.delay) {
 
 /**
  * The announcement with the `AnimatePresence` its parts need to play their exit. In a game the HUD mounts and unmounts it; a
- * page that has no `motion` of its own (the `/design` specimens) flips `show` instead, and the parts leave in order as in a game.
+ * page that has no `motion` of its own (the specimens of the design docs) flips `show` instead, and the parts leave in order as in a game.
  */
 export function AnnouncementPresence({ show, ...view }: AnnouncementViewProps & { show: boolean }) {
   return <AnimatePresence>{show && <AnnouncementView {...view} />}</AnimatePresence>

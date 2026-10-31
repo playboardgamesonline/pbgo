@@ -86,8 +86,8 @@ function CollapsedStrip({ strip, labels, theme, defaultOpen }: { strip: StripDat
 /**
  * Seat by seat, who a simultaneous step still waits for, in the ticker's own look (it inherits the text color and shadow of the
  * banner it sits in), each seat as its seat label. Pure presentation, no game context: `PlayersStrip` feeds it from the game,
- * `/design` with samples (and the `theme` of the game shown). Up to 8 seats every player is a chip, beyond that it collapses to
- * "n/N ready" (`defaultOpen`: with the full list already showing, as `/design` draws it).
+ * the design docs with samples (and the `theme` of the game shown). Up to 8 seats every player is a chip, beyond that it collapses to
+ * "n/N ready" (`defaultOpen`: with the full list already showing, as the design docs draw it).
  */
 export function PlayersStripView({
   strip,

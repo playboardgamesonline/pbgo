@@ -250,7 +250,7 @@ function SocialPanel({
   const incoming = requests.filter((request) => request.direction === "incoming")
   const outgoing = requests.filter((request) => request.direction === "outgoing")
   const sorted = sortedConversations(conversations)
-  // Each panel has its own tile and its own ids, so that two panels on one page (the specimens of `/design`) do not trade them
+  // Each panel has its own tile and its own ids, so that two panels on one page (the specimens of the design docs) do not trade them
   const group = React.useId()
 
   function pick(next: SocialTab) {
