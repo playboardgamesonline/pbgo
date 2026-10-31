@@ -1,6 +1,6 @@
 # In-game UI
 
-Everything about the UI that `@pbgo/core` draws inside a game, always in the game's own look and never the platform's: first what core provides (screens, HUD, announcements, seat label, game over, skin), then the Game UI rules (chat, room for the cookie banner, theme contract, compact layout, motion, debug). The platform look is in `docs/design-system.md`.
+Everything about the UI that `@pbgo/core` draws inside a game, always in the game's own look and never the platform's: first what core provides (screens, HUD, announcements, seat label, game over, skin), then the Game UI rules (chat, room for the cookie banner, theme contract, compact layout, motion, debug). The platform look is in `docs/design/index.md`.
 
 ## In-game UI of `@pbgo/core`
 

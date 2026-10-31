@@ -26,6 +26,7 @@
     "@pbgo/analytics": "workspace:*",
     "@pbgo/catalog": "workspace:*",
     "@pbgo/core": "workspace:*",
+    "@pbgo/docs": "workspace:*",
     "@pbgo/games": "workspace:*",
     "@pbgo/ui": "workspace:*",
     "@vercel/analytics": "catalog:",
