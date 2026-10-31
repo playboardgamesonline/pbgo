@@ -8,7 +8,7 @@
  * `/gamemaster/<slug>` (`login`, `logout`, `api`), plus a game's own segments. `ingest` is the PostHog proxy (a rewrite).
  * `slug.test.ts` reads the folders of the app and fails when one of them is missing here.
  */
-export const RESERVED_SLUGS: readonly string[] = ["api", "legal", "design", "docs", "gamemaster", "ingest", "login", "logout", "auth", "me", "media", "catalog", "admin", "preview", "game", "games", "privacy", "terms", "tables", "tournaments", "whats-new", "pricing", "about", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
+export const RESERVED_SLUGS: readonly string[] = ["api", "legal", "docs", "gamemaster", "ingest", "login", "logout", "auth", "me", "media", "catalog", "admin", "preview", "game", "games", "privacy", "terms", "tables", "tournaments", "whats-new", "pricing", "about", "icons", "robots.txt", "sitemap.xml", "favicon.ico"]
 
 /** Words of lowercase letters and digits joined by single dashes */
 export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
