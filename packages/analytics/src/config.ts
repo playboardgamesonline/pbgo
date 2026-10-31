@@ -84,10 +84,10 @@ export const ANALYTICS_ENABLED = CONFIG !== null
 
 /**
  * The pages that never report: the gamemaster, and the previews it shows in iframes (served below `/gamemaster/<slug>/preview`
- * or, opened directly, `/<slug>/preview`), then `/design`, the team's own reference, whose demo of the banner would meet the real one.
+ * or, opened directly, `/<slug>/preview`), then `/design` and `/docs`, the team's own reference, whose demo of the banner (`/design`) would meet the real one.
  * The preview pattern is the one of `PREVIEW_PATH` in `@pbgo/core/lib/preview`, which this package cannot import.
  */
-const EXCLUDED_PATH = /^(?:\/(?:gamemaster|design)(?:\/|$)|\/[^/]+\/preview(?:\/|$))/
+const EXCLUDED_PATH = /^(?:\/(?:gamemaster|design|docs)(?:\/|$)|\/[^/]+\/preview(?:\/|$))/
 
 export function isExcludedPath(pathname: string): boolean {
   return EXCLUDED_PATH.test(pathname)

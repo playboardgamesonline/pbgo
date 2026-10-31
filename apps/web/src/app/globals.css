@@ -1,5 +1,5 @@
 /*
- * Styles of the platform pages (hub, legal, 404, /design): the platform layer of the design system, nothing else.
+ * Styles of the platform pages (hub, legal, 404, /design, /docs): the platform layer of the design system, nothing else.
  * Tokens, utilities and the boundary with the games' own themes: packages/ui/src/styles/platform.css.
  *
  * One exception, on /design only: "In-game UI" draws four pure components of core with each game's own theme. Tailwind
@@ -27,6 +27,8 @@
 @source "../../../../packages/core/components/game/players-strip-view.tsx";
 @source "../../../../packages/core/components/game/announcement-view.tsx";
 @source "../../../../packages/core/components/game/game-over-panel.tsx";
+/* The page of markdown of /docs is drawn in its own package (`@pbgo/docs/markdown`), which Tailwind does not scan */
+@source "../../../../packages/docs/src/markdown.tsx";
 
 @theme inline {
   --font-display: var(--font-title);
