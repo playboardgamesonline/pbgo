@@ -5,9 +5,9 @@ import { useEffect, useMemo, useState } from "react"
 import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import { CAMERA, PHOTO, useCameraSettings } from "./camera"
 import { TurnCrown } from "./crown"
-import { CARD_SETTINGS, Card, Surface, Table, type Pose } from "@pbgo/table"
+import { CARD_SETTINGS, Surface, Table, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { GLOWS } from "./glows"
-import { DECK_POSE, backPose, handPose, trickPose, collectedPose, LAYOUT_SETTINGS, seats } from "./layout"
+import { DECK_POSE, backFrame, backLayout, backPose, collectedPose, handLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { EASING_NAMES } from "@pbgo/core/components/game/easing"
@@ -60,6 +60,23 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
   const [mat] = useState(matTexture)
 
   const hand = view.me?.hand ?? []
+  const raised = myTurn ? hand.findIndex((c) => c.id === hovered) : -1
+  const handCards: ZoneCard[] = hand.map((c) => ({
+    key: c.id,
+    id: c.id,
+    front: faceTexture(c),
+    back,
+    glow: myTurn && hovered === c.id ? GLOWS.selection : null,
+    gloss: hovered === c.id,
+    onHover: (s) => setHovered((v) => (s ? c.id : v === c.id ? null : v)),
+    onClick: myTurn
+      ? (e) => {
+          e.stopPropagation()
+          setHovered(null)
+          onPlay(c.id)
+        }
+      : undefined,
+  }))
   const trickCards: { p: PlayedCard; pose: Pose; from?: Pose }[] = view.trick.map((p, rank) => {
     const seat = slots.get(p.playerId)!
     return { p, pose: trickPose(seat, rank), from: p.playerId === meId ? undefined : backPose(seat, 0, 1) }
@@ -73,6 +90,7 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
           from: p.playerId === meId ? undefined : backPose(slots.get(p.playerId)!, 0, 1),
         }))
       : []
+  const middle = [...collectedCards, ...trickCards]
   const winners = view.results?.winners ?? []
 
   return (
@@ -100,39 +118,25 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
               <TurnCrown show={active} icon={crownIcon} position={[-((after ? 0 : AVATAR.gap + AVATAR.size) + 0.6), 0, 0]} />
             </TableText>
             <TableText text={`${j.points} pt${j.points > 1 ? "s" : ""}`} style={{ color: "#f5f2ea", weight: 700 }} height={0.42} position={[pos[0], 0.03, pos[2] + 0.35]} />
-            {j.id !== meId &&
-              Array.from({ length: j.cardCount }, (_, i) => (
-                <Card key={`back-${j.id}-${i}`} target={backPose(s, i, j.cardCount)} from={{ ...DECK_POSE, delay: i * 0.08 }} front={back} back={back} size={CARD_SIZE} />
-              ))}
+            {j.id !== meId && (
+              <Zone
+                frame={backFrame(s)}
+                layout={backLayout(s, j.cardCount)}
+                size={CARD_SIZE}
+                enter={DECK_POSE}
+                cards={Array.from({ length: j.cardCount }, (_, i) => ({ key: `back-${j.id}-${i}`, front: back, back }))}
+              />
+            )}
           </group>
         )
       })}
-      {hand.map((c, i) => (
-        <Card
-          key={c.id}
-          id={c.id}
-          target={handPose(i, hand.length, myTurn && hovered === c.id)}
-          from={{ ...DECK_POSE, delay: i * 0.08 }}
-          front={faceTexture(c)}
-          back={back}
-          size={CARD_SIZE}
-          glow={myTurn && hovered === c.id ? GLOWS.selection : null}
-          gloss={hovered === c.id}
-          onHover={(s) => setHovered((v) => (s ? c.id : v === c.id ? null : v))}
-          onClick={
-            myTurn
-              ? (e) => {
-                  e.stopPropagation()
-                  setHovered(null)
-                  onPlay(c.id)
-                }
-              : undefined
-          }
-        />
-      ))}
-      {[...collectedCards, ...trickCards].map(({ p, pose, from }) => (
-        <Card key={p.card.id} id={p.card.id} target={pose} from={from} front={faceTexture(p.card)} back={back} size={CARD_SIZE} />
-      ))}
+      <Zone layout={handLayout(hand.length, raised)} size={CARD_SIZE} enter={DECK_POSE} cards={handCards} />
+      {/* The middle of the table: the trick being played, and the last one on its way to its winner. Each card lies by its player's seat, so the layout is the game's own */}
+      <Zone
+        layout={middle.map(({ pose }) => pose)}
+        size={CARD_SIZE}
+        cards={middle.map(({ p, from }) => ({ key: p.card.id, id: p.card.id, front: faceTexture(p.card), back, from }))}
+      />
     </>
   )
 }
