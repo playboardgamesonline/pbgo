@@ -2,9 +2,12 @@ import { LANGUAGES } from "@pbgo/studio-kit/constants"
 import type { Locale } from "./events"
 
 /**
- * The language of the banner. The hub is static and every page reads the visitor's language on the server, but the banner is
+ * How the banner would pick its language. The hub is static and every page reads the visitor's language on the server, but the banner is
  * a client island: it resolves its own, the way the site does (cookie, then browser, English when unsupported), without
  * importing `@pbgo/core`, which depends on this package.
+ *
+ * Not used for now: the site is in English only (the owner, 2026-11-01) and `banner.tsx` speaks English to everyone. It stays, with its tests
+ * and the one in core that keeps it equal to `fromAcceptLanguage`, for the language pass (PLT-32).
  */
 
 /** Same cookie as `LOCALE_COOKIE` of `@pbgo/core/lib/i18n` (a test in core keeps them equal). */

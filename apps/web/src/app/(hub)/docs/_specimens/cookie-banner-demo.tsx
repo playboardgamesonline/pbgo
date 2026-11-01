@@ -10,8 +10,9 @@ import { CookieBanner } from "@pbgo/ui/platform/cookie-banner"
  * stand-in page and the room is made on the stand-in page itself, so the button at its bottom rises above the card and drops back
  * when the card closes. Any answer closes it and a button brings it back. A first visit shows it at once; a reopened one waits for
  * the click on the "Cookies" link, as on a real page (it takes the focus when it appears, which the page should not do on load).
+ * `view` is the one the card opens on: the bar, or its choices (a visitor gets there with Customize).
  */
-export function CookieBannerDemo({ reopened = false }: { reopened?: boolean }) {
+export function CookieBannerDemo({ reopened = false, view = "bar" }: { reopened?: boolean; view?: "bar" | "preferences" }) {
   const [open, setOpen] = React.useState(!reopened)
   const page = React.useRef<HTMLDivElement>(null)
   const banner = React.useRef<HTMLDivElement>(null)
@@ -35,8 +36,10 @@ export function CookieBannerDemo({ reopened = false }: { reopened?: boolean }) {
           className="absolute"
           texts={BANNER_TEXTS.en}
           moreHref="#cookie-banner"
+          defaultView={view}
           onAccept={close}
           onRefuse={close}
+          onSave={close}
           onClose={reopened ? close : undefined}
         />
       )}

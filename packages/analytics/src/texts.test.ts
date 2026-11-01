@@ -10,6 +10,8 @@ import { BANNER_TEXTS } from "./texts"
  */
 const BODY_MAX = 230
 const WORD_MAX = 24
+/** What a row of the choices says under its title: two lines in a column that is 30rem wide. */
+const ROW_MAX = 190
 
 describe("BANNER_TEXTS", () => {
   it("has a text for every language of the site", () => {
@@ -31,8 +33,23 @@ describe("BANNER_TEXTS", () => {
       for (const field of ["accept", "refuse"] as const) {
         expect(texts[field].length, `${locale}.${field}`).toBeLessThanOrEqual(WORD_MAX)
       }
+      // Customize has the whole width of the block over the two others
+      expect(texts.customize.length, `${locale}.customize`).toBeLessThanOrEqual(WORD_MAX + 6)
       // The link ends the sentence: it reads as part of it
       expect(texts.more.length, `${locale}.more`).toBeLessThanOrEqual(30)
+    }
+  })
+
+  it("keeps the words of the choices short too: a sentence, three rows of a title and a line, a word beside each switch", () => {
+    for (const [locale, texts] of Object.entries(BANNER_TEXTS)) {
+      expect(texts.intro.length, `${locale}.intro`).toBeLessThanOrEqual(BODY_MAX)
+      for (const field of ["necessaryBody", "analyticsBody", "marketingBody"] as const) {
+        expect(texts[field].length, `${locale}.${field}`).toBeLessThanOrEqual(ROW_MAX)
+        expect(texts[field], `${locale}.${field}`).not.toContain("\n")
+      }
+      for (const field of ["necessary", "analytics", "marketing", "required", "on", "off", "unused", "save", "back"] as const) {
+        expect(texts[field].length, `${locale}.${field}`).toBeLessThanOrEqual(WORD_MAX)
+      }
     }
   })
 })
