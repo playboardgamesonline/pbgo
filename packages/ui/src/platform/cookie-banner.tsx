@@ -16,14 +16,14 @@ type CookieBannerTexts = {
   accept: string
   /** Refuses everything that is optional. */
   refuse: string
-  /** The words of the link that ends the sentence and leads to the policy. */
+  /** The words of the link that ends the sentence and leads to the policy: the banner puts the full stop after it. */
   more: string
   close: string
 }
 
 type CookieBannerProps = {
   texts: CookieBannerTexts
-  /** Where the link of `texts.more` leads: the part of the legal notice about cookies and statistics. */
+  /** Where the link of `texts.more` leads: the cookie policy. */
   moreHref: string
   /** The language of `texts`, when it can differ from the page's (the hub is rendered in English for every visitor). */
   lang?: string
@@ -44,7 +44,7 @@ const ANSWER = "h-12 rounded-2xl px-6 text-base max-sm:flex-1 lg:h-14 lg:px-8"
 
 /**
  * The consent banner: a wide card that floats over the bottom of the screen, centred, with a title and a sentence that ends with a
- * link to the policy on its side, and two big buttons on the other: Reject optional (ghost) and Accept all. They are the same size
+ * link to the policy on its side, and two big buttons on the other: Reject optional (secondary, the grey one) and Accept all. They are the same size
  * and the same shape, side by side. From `lg` the card is a bar (the words, then the buttons, centred on its height); under it the
  * words are over the buttons, which keep to the right, and on a phone they share the width of the card.
  *
@@ -101,10 +101,11 @@ function CookieBanner({ texts, moreHref, lang, onAccept, onRefuse, onClose, clas
             <a href={moreHref} className="text-foreground underline underline-offset-4 hover:no-underline">
               {texts.more}
             </a>
+            .
           </p>
         </div>
         <div className="flex gap-2 sm:justify-end lg:shrink-0">
-          <Button variant="ghost" size="lg" className={ANSWER} onClick={onRefuse}>
+          <Button variant="secondary" size="lg" className={ANSWER} onClick={onRefuse}>
             {texts.refuse}
           </Button>
           <Button size="lg" className={ANSWER} onClick={onAccept}>

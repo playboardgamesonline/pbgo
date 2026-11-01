@@ -44,14 +44,16 @@ describe("ConsentBanner", () => {
     }
   })
 
-  it("draws refusing as a ghost button and accepting as the plain one", () => {
+  it("draws refusing as the grey (secondary) button and accepting as the plain one", () => {
     const html = render(false)
-    expect(button(html, BANNER_TEXTS.en.refuse).variant).toBe("ghost")
+    expect(button(html, BANNER_TEXTS.en.refuse).variant).toBe("secondary")
     expect(button(html, BANNER_TEXTS.en.accept).variant).toBe("default")
   })
 
-  it("links to the part of the legal notice about cookies", () => {
-    expect(render(false)).toContain('href="/legal#cookies"')
+  it("ends its sentence with a link to the cookie policy, the full stop after it", () => {
+    const html = render(false)
+    expect(html).toContain('href="/legal/cookies"')
+    expect(html).toMatch(new RegExp(`${BANNER_TEXTS.en.body} <a [^>]*href="/legal/cookies"[^>]*>${BANNER_TEXTS.en.more}</a>\\.</p>`))
   })
 
   it("has no way to close it until the visitor has answered", () => {

@@ -107,7 +107,7 @@ toast-kinds
 
 Module: `@pbgo/ui/platform/cookie-banner`
 
-The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side two big buttons, Reject optional (`ghost`) and Accept all.
+The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side two big buttons, Reject optional (`secondary`, the grey one) and Accept all.
 
 The buttons are the same size and the same shape, side by side, so refusing is as easy to hit as accepting. The card follows the width of the screen:
 
@@ -133,7 +133,7 @@ cookie-banner-first-visit
 
 ### Reopened from the Cookies link
 
-A visitor who already answered can change their mind from the cookies section of the legal notice, from the footer of a game's home page or from a game's settings menu. The card then has a close button at its top right corner, closes on Escape and takes the focus, and closing it keeps the answer. Press Cookies in the specimen to open it.
+A visitor who already answered can change their mind from the Cookie Policy page, from the footer of a game's home page or from a game's settings menu. The card then has a close button at its top right corner, closes on Escape and takes the focus, and closing it keeps the answer. Press Cookies in the specimen to open it.
 
 ```specimen
 cookie-banner-reopened

@@ -266,7 +266,7 @@ useLayoutEffect(() => reserveSpace(banner.current, document.body), [])
 <CookieBanner
   ref={banner}
   texts={BANNER_TEXTS[locale]}
-  moreHref="/legal#cookies"
+  moreHref="/legal/cookies"
   onAccept={() => consentStore.choose("accepted")}
   onRefuse={() => consentStore.choose("refused")}
 />`}>
@@ -279,7 +279,7 @@ function CookieBannerReopened() {
   return (
     <Frame code={`<CookieBanner
   texts={BANNER_TEXTS[locale]}
-  moreHref="/legal#cookies"
+  moreHref="/legal/cookies"
   onAccept={…}
   onRefuse={…}
   onClose={consentStore.dismiss}

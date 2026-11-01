@@ -47,7 +47,7 @@ export function ConsentBanner({ reopened, onChoose, onClose }: ConsentBannerProp
       ref={root}
       texts={BANNER_TEXTS[locale]}
       lang={locale}
-      moreHref="/legal#cookies"
+      moreHref="/legal/cookies"
       onAccept={() => onChoose("accepted")}
       onRefuse={() => onChoose("refused")}
       onClose={reopened ? onClose : undefined}
