@@ -17,10 +17,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorScheme: "dark" }
 
 /**
- * Root layout of the hub pages (`/`, `/games`, `/game/<slug>`, `/tables`, `/tournaments`, `/pricing`, `/about`, `/legal`, `/design`).
+ * Root layout of the hub pages (`/`, `/games`, `/game/<slug>`, `/tables`, `/tournaments`, `/pricing`, `/about`, `/legal`, `/docs`).
  * Each game has its own root layout, `app/[game]/layout.tsx`.
  * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports. So is the navbar
- * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the design system, the
+ * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the docs, the
  * legal pages, the 404).
  */
 export default function HubLayout({ children }: Readonly<{ children: React.ReactNode }>) {

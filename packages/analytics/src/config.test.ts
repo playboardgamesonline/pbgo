@@ -71,9 +71,11 @@ describe("resolveConfig", () => {
 })
 
 describe("isExcludedPath", () => {
-  it("never reports from the gamemaster, the previews it shows nor the design reference", () => {
+  it("never reports from the gamemaster, the previews it shows nor the docs", () => {
     for (const path of [
-      "/design",
+      "/docs",
+      "/docs/design",
+      "/docs/engine/rules",
       "/gamemaster",
       "/gamemaster/login",
       "/gamemaster/hanabi/setup/identity",
@@ -95,6 +97,8 @@ describe("isExcludedPath", () => {
       "/hanabi/game/ABC123",
       "/gamemasters",
       "/designs",
+      "/documents",
+      "/docs-and-more",
       "/preview/game/ABC123",
       "/hanabi/previews",
     ]) {

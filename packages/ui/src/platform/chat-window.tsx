@@ -28,9 +28,10 @@ function ChatWindow({
   onInvite,
   onRemove,
   onBlock,
+  autoFocus = true,
   className,
   ...props
-}: Omit<React.ComponentProps<"section">, "children"> & {
+}: Omit<React.ComponentProps<"section">, "children" | "autoFocus"> & {
   friend: Friend
   /** The messages, the oldest first. */
   messages: readonly Message[]
@@ -43,16 +44,19 @@ function ChatWindow({
   onInvite?: (friend: Friend) => void
   onRemove?: (friend: Friend) => void
   onBlock?: (friend: Friend) => void
+  /** Whether the field takes the focus when the chat opens, which a chat that a visitor has just opened wants. A page that draws the window among other things (the docs) does not: focusing a field scrolls the page to it. */
+  autoFocus?: boolean
 }) {
   const [text, setText] = React.useState("")
   // The same rule as the row of the friend in the list: a friend who plays can be joined, so can one who waits at a table that has room; one who is online anywhere else can be invited
   const joinable = friend.status === "playing" || (friend.status === "online" && friend.table !== undefined && friend.table.size < friend.table.max)
   const play = joinable ? onJoin : friend.status === "online" ? onInvite : undefined
-  const end = React.useRef<HTMLDivElement>(null)
+  const log = React.useRef<HTMLDivElement>(null)
 
-  // The last message stays in view
+  // The last message stays in view: the list scrolls and nothing else does (`scrollIntoView` would scroll every box that holds the window, the page included)
   React.useEffect(() => {
-    end.current?.scrollIntoView({ block: "end" })
+    const list = log.current
+    if (list) list.scrollTop = list.scrollHeight
   }, [messages.length])
 
   return (
@@ -99,7 +103,7 @@ function ChatWindow({
         </Button>
       </header>
 
-      <div role="log" aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={log} role="log" aria-live="polite" className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {messages.length === 0 && <p className="m-auto text-center text-sm text-muted-foreground">Say hello to {friend.nickname}.</p>}
         {messages.map((message) => (
           <p
@@ -112,7 +116,6 @@ function ChatWindow({
             {message.text}
           </p>
         ))}
-        <div ref={end} />
       </div>
 
       <form
@@ -126,7 +129,7 @@ function ChatWindow({
         }}
       >
         <InputGroup>
-          <InputGroupInput value={text} onChange={(event) => setText(event.target.value)} placeholder="Message" aria-label={`Message ${friend.nickname}`} autoComplete="off" autoFocus />
+          <InputGroupInput value={text} onChange={(event) => setText(event.target.value)} placeholder="Message" aria-label={`Message ${friend.nickname}`} autoComplete="off" autoFocus={autoFocus} />
           <InputGroupAddon align="inline-end">
             <Button type="submit" size="icon-xs" variant="ghost" aria-label="Send" title="Send" disabled={text.trim() === ""}>
               <HugeiconsIcon icon={SentIcon} strokeWidth={2} />

@@ -77,7 +77,7 @@ function BarFriend({ friend, onJoin }: { friend: Friend; onJoin?: (friend: Frien
 
 /**
  * What the panel of a game says: "Online", the friends who wait in its lobby, those at one table together under it ("Table K7Q · 2/4") and the others after,
- * then "Playing". A list with nobody in it is not drawn. It is the content of the panel, shown on its own by `/design`.
+ * then "Playing". A list with nobody in it is not drawn. It is the content of the panel, shown on its own by the design docs.
  */
 function FriendsBarList({ entry, onJoin }: { entry: GameFriends; onJoin?: (friend: Friend) => void }) {
   return (

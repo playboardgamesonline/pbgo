@@ -2,7 +2,7 @@
 // cartoons, pixel art and abstract gradients, each on a bold gradient. They were drawn once with DiceBear 9 (`@dicebear/core` and `@dicebear/collection`, MIT), in styles that
 // are all CC0 (Lorelei by Lisa Wischofsky, Open Peeps by Pablo Stanley, Notionists by Zoish, Pixel Art, Thumbs, Glass, Shapes and Rings by DiceBear), each with the seed of its
 // person and the same options (`backgroundType` `gradientLinear`, `backgroundColor` a dozen bold colours, `size` 96), and are written here as data URIs: nothing is fetched,
-// no file is needed (`apps/web/public` holds none) and it works offline. Only `/design` and the data of the demo account (`apps/web/src/lib/demo-data.ts`, loaded in development)
+// no file is needed (`apps/web/public` holds none) and it works offline. Only the docs of the design system and the data of the demo account (`apps/web/src/lib/demo-data.ts`, loaded in development)
 // import this file, so it is not in what a visitor's browser loads elsewhere. Generated: to change a picture, draw it again with another seed or style, do not edit it.
 
 export const DEMO_AVATARS = {

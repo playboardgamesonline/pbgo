@@ -3,7 +3,7 @@ import { EASE_STANDARD, fade, travel, type Motion } from "./motion-preference"
 
 /**
  * What the game-over panel (`components/game/game-over.tsx`) reads from the results, apart from the DOM: who is the hero, who is
- * in the ranking, how a score is written and when each part comes in. Pure, so the panel and the `/design` specimens agree.
+ * in the ranking, how a score is written and when each part comes in. Pure, so the panel and the specimens of the design docs agree.
  */
 
 /** A player of the finished game as the panel shows them: the result, the name and the seat */

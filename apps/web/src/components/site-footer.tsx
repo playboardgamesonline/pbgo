@@ -1,13 +1,12 @@
 import Link from "next/link"
-import { ConsentLink } from "@pbgo/analytics/client"
 import { Wordmark } from "@pbgo/ui/platform/wordmark"
 import { AUTHOR, COPYRIGHT_YEAR, SITE_NAME } from "@/site"
 
 /**
  * The footer of the hub's own pages (the home, the list of games, a game's page and the pages of the other tabs), as wide as the site, with no
  * margin and no maximum width. From the top: one row with the copyright and who built the site on the left and the legal pages on the right (Privacy
- * Policy, Cookie Policy, which is the cookies section of the legal notice, Terms of Use and, only where analytics are on, Cookie settings, which
- * reopens the choice of the cookie banner and which the legal notice points to), then the name of the brand as big letters (`Wordmark`, in the faces of the logo, fading
+ * Policy, Cookie Policy, which is the cookies section of the legal notice, and Terms of Use: the choice of the cookie banner is reopened from that section
+ * and from a game's settings menu, the footer has no link of its own for it), then the name of the brand as big letters (`Wordmark`, in the faces of the logo, fading
  * out, from edge to edge of the window) and, alone under them and centred, what the site is not: the finest print of the page (`fine-print`), a little
  * apart from the letters (`mt-3`). Each text has 4px of padding of its own (`p-1`) and the row 20px (`p-5`), so the texts are 24px from the edges of the window, like the
  * navbar's, and no more. There is no line between the parts. The privacy policy and the terms of use are pages that are not written yet.
@@ -33,7 +32,6 @@ export function SiteFooter() {
           <Link href="/terms" className={link}>
             Terms of Use
           </Link>
-          <ConsentLink className={`cursor-pointer ${link}`}>Cookie settings</ConsentLink>
         </nav>
       </div>
       <Wordmark />

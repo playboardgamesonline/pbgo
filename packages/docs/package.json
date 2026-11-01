@@ -1,0 +1,36 @@
+{
+  "name": "@pbgo/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The docs/ folder of the repo as pages of the site: `.` is the pure model (sections, pages, titles, links), `./server` the reader of the folder for apps/web, `./markdown` the renderer of one page.",
+  "exports": {
+    ".": "./src/docs.ts",
+    "./server": "./src/server.ts",
+    "./markdown": "./src/markdown.tsx"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pbgo/ui": "workspace:*",
+    "react-markdown": "catalog:",
+    "rehype-slug": "catalog:",
+    "remark-gfm": "catalog:",
+    "server-only": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

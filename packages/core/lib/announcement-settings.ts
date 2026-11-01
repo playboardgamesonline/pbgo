@@ -6,7 +6,7 @@ import { announcementTheme } from "./ui-theme"
 /**
  * Everything the full-screen announcements (start, round, your turn, victory) are made of, as plain data: the settings of a
  * preset, how a game's `UI_THEME.announcement` seeds them, and the timeline they play. Pure (no React, no leva), so the
- * component (`components/game/announcement-view.tsx`), the leva panel (`announcement.tsx`), the `/design` specimens and the tests
+ * component (`components/game/announcement-view.tsx`), the leva panel (`announcement.tsx`), the specimens of the design docs and the tests
  * all read the same numbers.
  */
 
@@ -185,7 +185,7 @@ export function announcementSettings(preset: Partial<AnnouncementSettings> = {},
 
 /**
  * `percent` of the height of the screen. A game reads the viewport (`--vh` is not set, so it is `1vh`); a specimen drawn on a stage
- * of its own (`/design`, scaled down) sets `--vh` on the stage to a hundredth of the stage's height, and sizes like a screen of that height.
+ * of its own (the design docs, scaled down) sets `--vh` on the stage to a hundredth of the stage's height, and sizes like a screen of that height.
  */
 export const vh = (percent: number) => `calc(var(--vh, 1vh) * ${percent})`
 
