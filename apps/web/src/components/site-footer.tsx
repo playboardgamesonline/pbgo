@@ -6,7 +6,7 @@ import { AUTHOR, COPYRIGHT_YEAR, SITE_NAME } from "@/site"
 /**
  * The footer of the hub's own pages (the home, the list of games, a game's page and the pages of the other tabs), as wide as the site, with no
  * margin and no maximum width. From the top: one row with the copyright and who built the site on the left and the legal pages on the right (the
- * pages of `LEGAL_PAGES`: Legal Notice, Privacy Policy, Cookie Policy and Terms of Use, each a page of its own under `/legal`; the choice of the cookie
+ * pages of `LEGAL_PAGES`: Privacy Policy, Cookie Policy and Terms of Use, each a page of its own under `/legal`; the choice of the cookie
  * banner is reopened from the Cookie Policy and from a game's settings menu, the footer has no link of its own for it), then the name of the brand as big letters (`Wordmark`, in the faces of the logo, fading
  * out, from edge to edge of the window) and, alone under them and centred, what the site is not: the finest print of the page (`fine-print`), a little
  * apart from the letters (`mt-3`). Each text has 4px of padding of its own (`p-1`) and the row 20px (`p-5`), so the texts are 24px from the edges of the window, like the

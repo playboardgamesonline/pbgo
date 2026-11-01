@@ -71,7 +71,7 @@ function WordmarkFooter() {
 </footer>`}>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-5 text-sm text-muted-foreground">
         <p className="p-1">© 2026 Play Board Games Online · Built by oré</p>
-        <p className="p-1">Legal Notice · Privacy Policy · Cookie Policy · Terms of Use</p>
+        <p className="p-1">Privacy Policy · Cookie Policy · Terms of Use</p>
       </div>
       <Wordmark />
       <p className="mt-3 p-1 text-center fine-print">

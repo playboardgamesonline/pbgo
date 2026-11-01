@@ -51,7 +51,7 @@ The fill fades in a straight line from white (`--foreground`) at 16% at the top 
 
 `SiteFooter` (in `apps/web`) is the footer of the hub's pages, as wide as the site, with no line between its parts. From the top:
 
-1. One row. On the left, the copyright and who built the site (`COPYRIGHT_YEAR`, `SITE_NAME` and `AUTHOR` of `@/site`, the author's name being a link to their site). On the right, the legal pages, the list `LEGAL_PAGES` of `@/lib/legal-pages`: Legal Notice, Privacy Policy, Cookie Policy and Terms of Use, each a page of its own under `/legal`. The Privacy Policy and the Terms of Use are `LegalStubPage`s until their text is written.
+1. One row. On the left, the copyright and who built the site (`COPYRIGHT_YEAR`, `SITE_NAME` and `AUTHOR` of `@/site`, the author's name being a link to their site). On the right, the legal pages, the list `LEGAL_PAGES` of `@/lib/legal-pages`: Privacy Policy, Cookie Policy and Terms of Use, each a page of its own under `/legal` (the legal notice, `/legal`, is not linked: the owner has not decided whether the site needs one). The Privacy Policy and the Terms of Use are `LegalStubPage`s until their text is written.
 2. The wordmark, from edge to edge. It takes the width of its parent and its height follows, so it keeps its proportions from a phone to a desktop.
 3. Alone under it and centred, what the site is not: an unofficial adaptation, the games belong to their authors and the publisher. It is the finest print of the page (`fine-print`: `text-xs`, a regular weight (400) and `foreground` at 20%, so dark that it is hard to read), a little apart from the letters (`mt-3`, and its own `p-1`) and with `pb-5` under it.
 

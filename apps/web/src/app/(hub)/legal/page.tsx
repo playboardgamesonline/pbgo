@@ -5,6 +5,11 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 
 export const metadata: Metadata = { title: "Legal Notice", alternates: { canonical: "/legal" } }
 
+/**
+ * Who publishes the site, who hosts it, and what the games are. The footer does not link to it: the owner is not sure the site needs a notice of
+ * its own (other sites have none), so it stays at its address, unlinked, until they decide: keep it, fold it into the terms of use, or drop it.
+ * It is the claims contact and the "unofficial adaptation" line that PLT-11 asks for.
+ */
 export default function Legal() {
   return (
     <LegalPage title="Legal Notice" href="/legal">
