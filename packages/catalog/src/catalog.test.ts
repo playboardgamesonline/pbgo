@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CREATOR_ROLES } from "@pbgo/studio-kit/constants"
-import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, compareGames, creditLines, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, sharePicture } from "./catalog"
+import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, sharePicture } from "./catalog"
 import { catalogGame, cdn, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -271,6 +271,21 @@ describe("compareGames", () => {
   })
 })
 
+describe("expansionsOf", () => {
+  const expansion = (slug: string, base: string, name: string, order: number | null = null) => ({ slug, name, base, order, pictures: { logo: null, icon: null, background: null } })
+
+  it("picks the expansions whose base game it is, in the order of the Studio and then by name", () => {
+    const all = [expansion("b-more", "courtisans", "B"), expansion("flip-more", "flip-7", "More"), expansion("c-more", "courtisans", "C", 1), expansion("a-more", "courtisans", "A")]
+    expect(expansionsOf(all, "courtisans").map((one) => one.slug)).toEqual(["c-more", "a-more", "b-more"])
+  })
+
+  it("is none for a game that has none, and does not change what it is given", () => {
+    const all = [expansion("flip-more", "flip-7", "More")]
+    expect(expansionsOf(all, "courtisans")).toEqual([])
+    expect(all.map((one) => one.slug)).toEqual(["flip-more"])
+  })
+})
+
 describe("pictureUrl", () => {
   const game = catalogGame("love-letter", { pictures: { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg") } })
 
@@ -278,6 +293,11 @@ describe("pictureUrl", () => {
     expect(pictureUrl(game, "logo")).toBe(`${cdn("logo-1600x476.webp")}?w=800&fit=max&auto=format`)
     expect(pictureUrl(game, "icon")).toBe(`${cdn("icon-512x512.png")}?w=512&fit=max&auto=format`)
     expect(pictureUrl(game, "background")).toBe(`${cdn("background-2400x1350.jpg")}?w=1200&fit=max&auto=format`)
+  })
+
+  it("asks the CDN for the width it is given: a small tile asks for less than the page does", () => {
+    expect(pictureUrl(game, "background", 480)).toBe(`${cdn("background-2400x1350.jpg")}?w=480&fit=max&auto=format`)
+    expect(pictureUrl(catalogGame("hanabi", { pictures: { logo: cdn("logo-100x30.svg"), icon: null, background: null } }), "logo", 320)).toBe(cdn("logo-100x30.svg"))
   })
 
   it("is the file as it is for a vector picture: the CDN does not resize an SVG", () => {

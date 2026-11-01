@@ -44,6 +44,18 @@ afterEach(() => {
 const logged = () => warn.mock.calls.map((call) => call.join(" ")).join("\n")
 
 describe("when the platform's Sanity project answers", () => {
+  it("carries the expansions of the Studio apart from the games: they have no page", async () => {
+    const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityGame("bang-more", { name: "Bang: More", kind: "expansion", baseGame: "bang" })])
+    expect(catalog.expansions.map((expansion) => [expansion.slug, expansion.base])).toEqual([["bang-more", "bang"]])
+    expect(catalog.entries.map((entry) => entry.slug)).not.toContain("bang-more")
+  })
+
+  it("says once that an expansion cannot be offered, and which of its fields to put right", async () => {
+    const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityGame("orphan", { name: "Orphan", kind: "expansion" })])
+    expect(catalog.expansions).toEqual([])
+    expect(logged()).toContain('[catalog] The expansion "Orphan" of the Studio is left out: it has no base game')
+  })
+
   it("lists the live games, then the games of the Studio in their order", async () => {
     const { catalog } = await catalogOf([
       sanityGame("bang", { name: "Bang", order: 30 }),
@@ -148,6 +160,7 @@ describe("when the platform's Sanity project cannot be read", () => {
   it("falls back on the live games of the registry and says why, once", async () => {
     const { catalog } = await catalogOf(sanityFailure(500, "something broke"))
     expect(catalog.source).toBe("unavailable")
+    expect(catalog.expansions).toEqual([])
     expect(catalog.entries.map((entry) => [entry.slug, entry.live])).toEqual(LIVE_SLUGS.map((slug) => [slug, true]))
     expect(catalog.entries.map((entry) => entry.game)).toEqual(LIVE.map(registryRow))
     expect(warn).toHaveBeenCalledTimes(1)

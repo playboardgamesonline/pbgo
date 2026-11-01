@@ -80,14 +80,14 @@ describe("pnpm catalog:list", () => {
     expect(run.stdout).toContain("Sanity read: 1 games, 2 skipped.")
     expect(run.stdout).toMatch(/^skipped\s+Api: .*a route of the site/m)
     expect(run.stdout).toMatch(/^skipped\s+game-nameless: it has no name/m)
-    expect(run.stdout).toMatch(/^expansions\s+1 left out: .*is expansion/m)
+    expect(run.stdout).toMatch(/^expansion\s+Alpha: More \(alpha\): offered in the lobby of its base game, no page of its own/m)
     expect(run.stdout).not.toMatch(/^alpha-more\s/m)
   }, 30_000)
 
   it("does not mention expansions when there is none", () => {
     const run = list({ result: [sanityGame("alpha", { name: "Alpha" })] })
     expect(run.status, run.stderr).toBe(0)
-    expect(run.stdout).not.toMatch(/^expansions\s/m)
+    expect(run.stdout).not.toMatch(/^expansion\s/m)
   }, 30_000)
 
   it("exits with a failure and says why when the project cannot be read, listing nothing", () => {

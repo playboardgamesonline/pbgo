@@ -62,6 +62,22 @@ export type CatalogGame = {
 }
 
 /**
+ * An expansion of a game: a published `game` of the platform's Sanity project whose `kind` is `expansion`, played with its base game. It is no game of the hub and has no page: the lobby of its base game offers it, as a picture with its
+ * name, and a table says which it is played with. Plain data like `CatalogGame`.
+ */
+export type CatalogExpansion = {
+  /** What a table calls it: its slug in the Studio, unique among the expansions. */
+  slug: string
+  name: string
+  /** The slug of the game it is played with, one that the hub lists. */
+  base: string
+  /** What orders the expansions of a game, lowest first (`compareGames`); null for one with none. */
+  order: number | null
+  /** The address of each picture in the image CDN of the platform's Sanity project, as for a game (`pictureUrl` sizes it). */
+  pictures: Record<ArtSlot, string | null>
+}
+
+/**
  * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its background across the
  * frame, and the page draws the same ones larger. Never more than the file holds.
  */
@@ -70,12 +86,12 @@ const PICTURE_WIDTH: Record<ArtSlot, number> = { logo: 800, icon: 512, backgroun
 /**
  * The URL of a game's picture, sized for the page: the address of the file in the image CDN, with a width and `auto=format`, so that a
  * browser that takes WebP or AVIF gets that. A vector picture (SVG) is served as it is. Null when the game has none: a picture it does
- * not have is a plain frame, nothing else.
+ * not have is a plain frame, nothing else. `width` is how wide the CDN is asked for it, the page's own by default: a small tile asks for less.
  */
-export function pictureUrl(game: Pick<CatalogGame, "pictures">, slot: ArtSlot): string | null {
+export function pictureUrl(game: Pick<CatalogGame, "pictures">, slot: ArtSlot, width: number = PICTURE_WIDTH[slot]): string | null {
   const url = game.pictures[slot]
   if (!url) return null
-  return url.endsWith(".svg") ? url : `${url}?w=${PICTURE_WIDTH[slot]}&fit=max&auto=format`
+  return url.endsWith(".svg") ? url : `${url}?w=${width}&fit=max&auto=format`
 }
 
 /**
@@ -153,9 +169,9 @@ export type CatalogEntry = { slug: string; live: boolean; indexable: boolean; ga
 
 /**
  * The catalog and where it came from. `source`: "ok" when the platform's Sanity project answered, "unavailable" when it did not (the
- * failure is logged). Without it the catalog is the live games of the registry, each one a `registryRow`.
+ * failure is logged). Without it the catalog is the live games of the registry, each one a `registryRow`. `expansions` are the ones of the games, read apart since they have no page (`expansionsOf` picks a game's).
  */
-export type Catalog = { entries: CatalogEntry[]; source: "ok" | "unavailable" }
+export type Catalog = { entries: CatalogEntry[]; expansions: CatalogExpansion[]; source: "ok" | "unavailable" }
 
 /** What else `buildCatalog` can be asked for. */
 export type CatalogOptions = {
@@ -219,11 +235,16 @@ export function compareGames(a: Pick<CatalogGame, "order" | "name">, b: Pick<Cat
   return NAMES.compare(a.name, b.name)
 }
 
+/** The expansions of a game, the ones whose base game it is, in the order of the Studio (`compareGames`: their `order`, then their names). */
+export function expansionsOf(expansions: readonly CatalogExpansion[], slug: string): CatalogExpansion[] {
+  return expansions.filter((expansion) => expansion.base === slug).sort(compareGames)
+}
+
 // The games a game's page recommends: its family first, then the games that look like it. They are in this file and not in a file of their own because `pnpm catalog:list` runs this one under plain Node, which strips the types
 // and resolves no other file of the package.
 
-/** The most games a page recommends: the grid is 2, 3, 4 or 5 cards wide, and twelve fill whole rows of the first three. */
-export const RELATED_MAX = 12
+/** The most games a page recommends: nine, in the one row of cards that scrolls sideways under the title "Similar games". */
+export const RELATED_MAX = 9
 
 /**
  * For each game, how many of its players also played each other game: the signal "players of this game also play". Counts of distinct players, never who they are. The catalog does not have it yet

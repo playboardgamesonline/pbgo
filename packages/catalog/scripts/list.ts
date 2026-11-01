@@ -15,7 +15,11 @@ try {
   sanityGames = read.games
   header = `Sanity read: ${read.games.length} games, ${read.skipped.length} skipped.`
   for (const game of read.skipped) notes.push(`skipped  ${game.name || game.id}: ${game.reason}`)
-  if (read.expansions > 0) notes.push(`expansions  ${read.expansions} left out: a game of the Studio whose kind is expansion is played with another game, so the hub lists no page for it`)
+  // A game of the Studio whose kind is expansion has no page: the lobby of its base game offers it, with its pictures
+  for (const expansion of read.expansions) {
+    const pictures = [["L", expansion.pictures.logo], ["I", expansion.pictures.icon], ["B", expansion.pictures.background]].flatMap(([label, url]) => (url ? [label] : []))
+    notes.push(`expansion  ${expansion.name} (${expansion.base}): offered in the lobby of its base game, no page of its own, pictures ${pictures.join(" ") || "none"}`)
+  }
   for (const warning of read.warnings) notes.push(`warning  ${warning}`)
 } catch (error) {
   console.error(`The platform's Sanity project could not be read: ${error instanceof Error ? error.message : "unknown error"}`)

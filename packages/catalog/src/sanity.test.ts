@@ -419,17 +419,54 @@ describe("a document that is not a game of the site", () => {
 })
 
 describe("an expansion", () => {
-  it("is counted and left out, never reported: it is played with another game, so it has no page", async () => {
+  it("is no game of the hub, so it has no page: it is read apart, for the lobby of its base game to offer", async () => {
     const reading = await read([
       sanityGame("flip-7", { name: "Flip 7", kind: "game" }),
-      sanityGame("flip-7-more", { name: "Flip 7: More", kind: "expansion", baseGame: "flip-7" }),
-      // a name that is no name does not make it a skipped game: it is an expansion first
-      sanityGame("nameless-more", { _id: "game-nameless-more", name: null, kind: "expansion" }),
+      sanityGame("flip-7-more", { name: "Flip 7: More", kind: "expansion", baseGame: "flip-7", order: 20 }),
     ])
     expect(reading.games.map((game) => game.slug)).toEqual(["flip-7"])
-    expect(reading.expansions).toBe(2)
+    expect(reading.expansions).toEqual([{ slug: "flip-7-more", name: "Flip 7: More", base: "flip-7", order: 20, pictures: { logo: null, icon: null, background: null } }])
     expect(reading.skipped).toEqual([])
     expect(reading.warnings).toEqual([])
+  })
+
+  it("keeps the pictures it has, when they are in the image CDN of the project, and none that is elsewhere", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7" }),
+      sanityGame("flip-7-more", { name: "More", kind: "expansion", baseGame: "flip-7", logo: cdn("logo-800x300.png"), icon: "https://example.com/icon.png", background: cdn("background-1200x800.jpg") }),
+    ])
+    expect(reading.expansions[0]?.pictures).toEqual({ logo: cdn("logo-800x300.png"), icon: null, background: cdn("background-1200x800.jpg") })
+  })
+
+  it("is read with the order of the Studio, or none", async () => {
+    const reading = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityGame("a", { name: "A", kind: "expansion", baseGame: "flip-7" }), sanityGame("b", { name: "B", kind: "expansion", baseGame: "flip-7", order: "3" })])
+    expect(reading.expansions.map((expansion) => expansion.order)).toEqual([null, null])
+  })
+
+  it("is left out, and reported, when it cannot be offered: no name, no slug of its own, no base game, a base game the hub does not list", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7" }),
+      sanityGame("more", { name: "More", kind: "expansion", baseGame: "flip-7" }),
+      // a name that is no name does not make it a skipped game: it is an expansion first
+      sanityGame("nameless-more", { _id: "game-nameless-more", name: null, kind: "expansion", baseGame: "flip-7" }),
+      sanityGame("more", { _id: "game-more-2", name: "More again", kind: "expansion", baseGame: "flip-7" }),
+      sanityGame("orphan", { name: "Orphan", kind: "expansion" }),
+      sanityGame("lost", { name: "Lost", kind: "expansion", baseGame: "ghost" }),
+    ])
+    expect(reading.games.map((game) => game.slug)).toEqual(["flip-7"])
+    expect(reading.expansions.map((expansion) => expansion.slug)).toEqual(["more"])
+    expect(reading.skipped).toEqual([])
+    expect(reading.warnings).toEqual([
+      'The expansion "game-nameless-more" of the Studio is left out: it has no name',
+      'The expansion "More again" of the Studio is left out: its slug "more" is already the one of an older expansion',
+      'The expansion "Orphan" of the Studio is left out: it has no base game',
+      'The expansion "Lost" of the Studio is left out: its base game "ghost" is not a game the hub lists',
+    ])
+  })
+
+  it("never lets a control character reach a line of a warning", async () => {
+    const reading = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityGame("more", { name: "More\u001b[31m", kind: "expansion", baseGame: "ghost\u001b[31m" })])
+    expect(JSON.stringify(reading.warnings)).not.toMatch(/\u001b/)
   })
 
   it("is no link of its base game or of any game: a link to it is dropped", async () => {
@@ -445,18 +482,18 @@ describe("an expansion", () => {
     const reading = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityGame("flip-7-vengeance", { name: "Flip 7 Vengeance", kind: "reimplementation", baseGame: "flip-7" })])
     expect(reading.games.map((game) => game.slug)).toEqual(["flip-7", "flip-7-vengeance"])
     expect(reading.games[1]?.related).toEqual(["flip-7"])
-    expect(reading.expansions).toBe(0)
+    expect(reading.expansions).toEqual([])
   })
 
   it("is not what a document with no kind is: it is a game", async () => {
     const reading = await read([sanityGame("sample", { name: "Sample", kind: undefined })])
     expect(reading.games.map((game) => game.slug)).toEqual(["sample"])
-    expect(reading.expansions).toBe(0)
+    expect(reading.expansions).toEqual([])
   })
 })
 
 describe("an empty project", () => {
   it("has no game, and says so: the hub then lists the live games of the registry alone", async () => {
-    expect(await read([])).toEqual({ games: [], skipped: [], expansions: 0, warnings: ["The platform's Sanity project has no published game: the hub lists the live games of the registry alone"] })
+    expect(await read([])).toEqual({ games: [], skipped: [], expansions: [], warnings: ["The platform's Sanity project has no published game: the hub lists the live games of the registry alone"] })
   })
 })

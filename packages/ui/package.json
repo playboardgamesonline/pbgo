@@ -8,10 +8,13 @@
     "./faces": "./src/faces.ts",
     "./friends": "./src/friends.ts",
     "./game/*": "./src/game/*.tsx",
+    "./leaderboard": "./src/leaderboard.ts",
     "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
+    "./results": "./src/results.ts",
     "./social": "./src/social.ts",
     "./styles/*": "./src/styles/*",
+    "./tables": "./src/tables.ts",
     "./theme": "./src/theme.ts",
     "./utils": "./src/utils.ts"
   },

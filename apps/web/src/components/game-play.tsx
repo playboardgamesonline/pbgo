@@ -1,85 +1,63 @@
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { Card, CardContent, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
-import { cn } from "@pbgo/ui/utils"
-import type { OpenTable } from "@/lib/game-activity"
+import { COMING_SOON } from "@/lib/coming-soon"
+import type { Expansion, GameTable, ViewerTable } from "@/lib/game-activity"
+import { tableDetailProps, tableEntryProps } from "@/lib/game-activity-props"
+import { GameLobby, ownTableDetail } from "./game-lobby"
+import { OpenTables } from "./open-tables"
 
-// What a game's page offers right under its head, before anything else: a big zone to create a game, which is the way into the game itself (a plain <a> to `/<slug>`, another root layout, loaded whole: the hub knows nothing
-// of the game's options, they are in its own site) and, next to it, the tables that are being created. The zone is the link, so it has no button of its own. A game that is not live has the same zone, half transparent and not a
-// link, and no list of tables; one that is live has the list, empty until there is something to list (`getOpenTables`).
+// What a game's page offers right under its head, before anything else: on the left the tables that are open, the ones that wait for players, as the rows of a list (`OpenTables`, seven twelfths of the width from `lg`), and on the right a tall space
+// (`GameLobby`, five twelfths): the lobby the visitor is in, or the space to open one, which gives way to the details of the row that the visitor picks. The tables being played are not listed: a visitor who sits at one finds it in the space
+// (`viewerTable`). The row is as tall as the space needs on a wide screen (`lg:h-176`, so that picking a row does not move what is below it) and both cards start at the same height; on a narrow screen the space comes first, since opening a table is
+// what most visitors came to do. A game that is not live has the space alone, half transparent, and no tables.
 
-/** The zone's own look: a card of the platform with the hover of a game's card. */
-const ZONE =
-  "group/play relative flex min-h-56 flex-col justify-between gap-8 overflow-hidden rounded-4xl bg-card p-8 text-card-foreground shadow-surface ring-1 ring-foreground/10 outline-none md:p-10"
+/** `expansions` are the ones the game has: the settings of the space offer them, and a table says which it is played with. `now` is when the age of every table is counted from: the page's own (the default), or a fixed one for the docs' specimens, which are built once. */
+export function GamePlay({
+  slug,
+  name,
+  live,
+  players,
+  tables,
+  viewerTable,
+  expansions = [],
+  now,
+}: {
+  slug: string
+  name: string
+  live: boolean
+  players: string | null
+  tables: readonly GameTable[]
+  viewerTable: ViewerTable | null
+  expansions?: readonly Expansion[]
+  now?: number
+}) {
+  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} viewerTable={viewerTable} expansions={expansions} now={now} />
 
-export function GamePlay({ slug, name, live, players, tables }: { slug: string; name: string; live: boolean; players: string | null; tables: readonly OpenTable[] }) {
+  if (!live) {
+    return (
+      <section aria-label={`Play ${name}`} className="grid">
+        {lobby}
+      </section>
+    )
+  }
+
+  // What a visitor can still sit at: the tables that wait for players. The one they sit at, if it is listed, is theirs: its free seats invite, and its details are their lobby's
+  const open = tables.filter((table) => table.status === "lobby")
   return (
-    <section aria-labelledby="play" className="grid gap-4 lg:grid-cols-3">
-      <h2 id="play" className="sr-only">
-        Play {name}
-      </h2>
-      {live ? (
-        <a
-          href={`/${slug}`}
-          className={cn(ZONE, "transition-[box-shadow,background-color] hover:bg-secondary hover:shadow-float hover:ring-foreground/20 focus-visible:ring-3 focus-visible:ring-ring/30 lg:col-span-2")}
-        >
-          <span className="font-heading text-3xl md:text-5xl">Create a game</span>
-          <span className="flex items-end justify-between gap-6">
-            <span className="flex flex-col gap-1">
-              <span className="max-w-md text-muted-foreground">Open a table, share its link and play with your friends.</span>
-              {players && <span className="text-sm text-muted-foreground">{players}</span>}
-            </span>
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-foreground text-background transition-transform duration-slow ease-standard group-hover/play:translate-x-1">
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} aria-hidden="true" className="size-6" />
-            </span>
-          </span>
-        </a>
-      ) : (
-        <div aria-disabled="true" className={cn(ZONE, "opacity-50 lg:col-span-3")}>
-          <span className="font-heading text-3xl md:text-5xl">Coming soon</span>
-          <span className="max-w-md text-muted-foreground">You will be able to open a table of {name} here.</span>
-        </div>
-      )}
-
-      {live && (
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="font-heading text-lg">Tables being created</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {tables.length > 0 ? (
-              <ul className="flex flex-col gap-3">
-                {tables.map((table) => (
-                  <li key={table.code}>
-                    <Item variant="outline" size="sm" asChild>
-                      <a href={`/${slug}/game/${table.code}`}>
-                        <ItemContent>
-                          <ItemTitle>{table.host}</ItemTitle>
-                          <ItemDescription>
-                            {table.taken} / {table.seats} players
-                          </ItemDescription>
-                        </ItemContent>
-                        <ItemActions>
-                          <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} aria-hidden="true" className="size-5 text-muted-foreground" />
-                        </ItemActions>
-                      </a>
-                    </Item>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Empty className="p-2 md:p-4">
-                <EmptyHeader>
-                  <EmptyTitle>No table is waiting</EmptyTitle>
-                  <EmptyDescription>The tables that wait for players will be listed here.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-          </CardContent>
-        </Card>
-      )}
+    <section aria-label={`Play ${name}`} className="grid gap-x-4 gap-y-8 lg:h-176 lg:grid-cols-12">
+      <OpenTables
+        rows={open.map((table) => {
+          const mine = viewerTable !== null && viewerTable.id === table.id
+          return {
+            id: table.id,
+            entry: tableEntryProps(table, slug, now, expansions, mine),
+            detail: mine ? ownTableDetail(viewerTable, slug, now, expansions) : tableDetailProps(table, slug, now, false, expansions),
+          }
+        })}
+        summary={open.length > 0 ? `${open.length} waiting` : undefined}
+        lobby={lobby}
+        createHref={`/${slug}`}
+        emptyTitle={COMING_SOON.tables.heading}
+        emptyDescription={COMING_SOON.tables.description}
+      />
     </section>
   )
 }

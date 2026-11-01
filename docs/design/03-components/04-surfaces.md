@@ -1,6 +1,6 @@
 # Surfaces and data
 
-The containers and what they hold: cards, plans, games, credits, the blocks of a hub page, avatars, alerts, progress, separators, lists, empty states and tables.
+The containers and what they hold: cards, plans, games, credits, the tables of a game and its leaderboard, the blocks of a hub page, avatars, alerts, progress, separators, lists, empty states and tables.
 
 ## Card
 
@@ -131,6 +131,252 @@ The lines of a game's page, as it draws them: names for the designers and the ar
 
 ```specimen
 credit-link-in-the-credits-of-a-game
+```
+
+## Table card
+
+Module: `@pbgo/ui/platform/table-card`
+
+`TableCard` is one table of a game as the hub lists it: who sits at it, whether it waits for players or is being played, how old it is, and the way in. `TableList` lays the cards of a game out, or says that there is none to list. The home's "Tables in progress" and the page of the tables will draw it, in a grid, for the tables of every game; the page of a game lists its own as [rows](#table-entry), beside the [lobby panel](#lobby-panel).
+
+They draw what they are given and decide nothing. Which tables there are, in which order and what a visitor may do at each one is the page's: `getTables` (`apps/web/src/lib/game-activity.ts`) reads them, `tableCardProps` (`game-activity-props.ts`) words them, and `@pbgo/ui/tables` holds the rules, tested without React (`seatsOf`, `namesOf`, `tableAction`, `ageOf`). Nothing lists the tables of a game yet (a table is reached by its link until the platform schema of PLT-13 has them), so a real page draws the empty state below. The tables in these specimens are made up, in the shape that data will have.
+
+### Waiting and playing
+
+A card is, from the top:
+
+- whether the table waits for players (an outlined [`Badge`](01-controls.md#badge), a clock) or is being played (a `secondary` one, a play), and how old it is: when it was opened ("Opened 4 min ago") or how long it has been played ("Playing for 18 min");
+- its name, the host's ("Marly's table"), and under it what is worth knowing before sitting down: "Fast turns" or "Async" (the usual pace is not said), then the expansions it is played with;
+- its seats, and how many are taken ("3 / 5");
+- who is at it, in words (up to three names, then "and 2 others"), and the button that leads in.
+
+The card is a surface, `rounded-4xl` with `shadow-surface` and a hairline, like a [game card](#game-card), and a card that leads somewhere rises under the pointer the way a game card does ([`shadow-float`](../02-foundations.md#shadows-and-rings), the `secondary` fill). Its button is the one link, stretched over the whole card, so that a click anywhere is a click on it and no button sits inside a link. `size="sm"` tightens it (`p-4`, a smaller gap) for a column that holds several. The tables a page lists are the public ones: a private table is reached by its link and never listed.
+
+```specimen
+table-card-waiting-and-playing
+```
+
+### What a visitor may do
+
+`tableAction` decides it from the state of the table and the seats left:
+
+| Table | Button |
+| --- | --- |
+| Waits, a seat is free | Join |
+| Waits, no seat is free | Full, disabled: it is about to start |
+| Is played | none, the card is only read: nobody looks on at a game for now |
+
+A button leads to the table's page, `/<slug>/game/<code>`: a plain link, the table being in the game's own site, another root layout, which a visitor loads whole.
+```specimen
+table-card-what-a-visitor-may-do
+```
+
+### Of several games
+
+On a page that lists the tables of several games, a card says which game it is of above its name: the game's icon, when it has one, and its name (`game`). The page of a game leaves it out.
+
+```specimen
+table-card-of-several-games
+```
+
+### The seats
+
+`TableSeats` draws a picture for each person at the table, their initials when they have none, and a dashed place for each seat nobody has taken, so that how many seats there are and how many are left read at a glance. Only the picture of a person is a circle, and a seat is the place of one. The name of each seat is for screen readers; the pointer finds a player's card on their picture ([Hover card](03-overlays.md#hover-card)), and the card says the names in words under the seats. The seats wrap onto a second line when they do not fit, since a table can have ten.
+
+`seatsOf` makes them from the people at the table and the number of seats it has: each person in the seat they took, one whose seat is not the table's in the first seat left, and "Deleted player" for one who has deleted their account. A name written `Alex#0042` is drawn `Alex` (`nicknameOf`): the tag tells two players of one name apart on their profile.
+
+```specimen
+table-card-the-seats
+```
+
+### The list, and when it is empty
+
+`TableList` is a list of cards in one column, which a page spreads over as many columns as it has room for by giving the list its own (`md:grid-cols-2`, where a row of cards is as tall as its tallest and each card's way in sits at its bottom). With none to list it is an empty state, compact (`p-6`), that says so, fills the height it is given and, when it is given the address where a table is opened (`createHref`), has a button that leads there. A page that has a lobby panel beside the list gives it the panel's address: both lead to the same place, and the button is for the visitor whose eyes went to the empty state first. The empty state's words are the page's to change (`emptyTitle`, `emptyDescription`; the page says what the home and the page of the tables say, `COMING_SOON.tables`).
+
+```specimen
+table-card-the-list
+```
+
+## Table entry
+
+Module: `@pbgo/ui/platform/table-entry`
+
+A table as one row of a list, which is how a game's page lists its open tables (`OpenTables`, `apps/web/src/components/open-tables.tsx`), in two lines. On the first, who opened it ("Hosted by Marly"), what to know before sitting down ("Fast turns · First expansion") and how old it is ("Opened 4 min ago", "Full · Opened 8 min ago" for a table with no seat left). On the second, a circle for each seat of the table, all of them and none over another, so that the room that is left is seen at once, with the nickname of each person under their picture and a crown on the one who opened the table. There is no badge that says it waits: a game's page lists only the tables that wait for players. Like the [table card](#table-card) it draws what it is given and decides nothing, and it shares its rules (`tableEntryProps` of `game-activity-props.ts`, then `@pbgo/ui/tables`: `hostOf`, `seatCount`, `tableAction`).
+
+A seat nobody has taken is a dashed circle with a plus in it, and the plus does what the seat is for ([open seat](#open-seat)): for a visitor who is not at the table it is a link that joins it, labelled "Join"; at the table the visitor sits at (`mine`) it opens a menu to invite a friend or copy the link, labelled "Invite". The pointer finds a player's card on their picture ([Hover card](03-overlays.md#hover-card): name, rating, record), and a press on the row anywhere but on a plus shows the table's details, with its settings, in the [lobby panel](#lobby-panel) beside the list. The first line is a `button` (`aria-pressed`, `aria-controls` the panel) that says the row once to a screen reader (who hosts it, how many seats are taken, what to know, its age); the seats under it are a list of their own, read as they are. The picked row has the `muted` fill.
+
+### The rows
+
+Five rows, the second one picked, then four of them in a narrow column. A row follows the width of its list, not the window's (`TableEntries` is the container it measures), and its circles wrap onto a second line when they do not fit, a table having up to ten seats. The fourth row is the table the visitor sits at: its free seat invites where the others join.
+
+```specimen
+table-entry-the-rows
+```
+
+## Open seat
+
+Module: `@pbgo/ui/platform/open-seat`
+
+A seat that nobody has taken, as a dashed circle with a plus in it, and the plus does something. For a visitor who is not at the table it joins it (`join`): a link to the table's page, the table being in the game's own site, another root layout that a visitor loads whole. For one who is at it it opens a small menu to bring someone (`invite`): "Invite a friend", which a page that has friends gives a way to do (`onInvite`) and which is disabled without, there being no friend yet (PLT-23), and "Copy link", which copies the table's address and says so for a moment ("Link copied") before the menu closes. With neither it is the dashed place alone, which only says that there is room. The circle is a picture's size (`size-8`) unless it is given another (`size-10` in a row), and a little more there under the pointer. A table has several of these and they all do the same, so only one of them is a stop for the keyboard (`tabbable`).
+
+```specimen
+open-seat-join-and-invite
+```
+
+## Lobby panel
+
+Module: `@pbgo/ui/platform/lobby-panel`
+
+The tall space on the right of a game's page, beside the open tables, where a visitor plays: the lobby they are in, or, when they are in none, the space to open one, which gives way to the details of the table that they pick in the list. A lobby is a table that waits for players. It is a [`Card`](#card) that is not shorter than 32rem from `lg`, with a roomier `--card-spacing`, and whose content takes the height that is left, so that its footer, the way in, stays at the bottom whether the panel holds two lines or twelve rows; it is built from the parts of a card (`CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`) and from `LobbySeats`, `LobbySettings` and `LobbySetting`; `LobbyDetail` is a table drawn in it. What it says, what its settings are and where its button leads are the page's: `GameLobby` (`apps/web/src/components/game-lobby.tsx`).
+
+A table is opened in the game's own site (`/<slug>`, another root layout, which a visitor loads whole), so the space says what it is, "Create a game", and leads there with its one button, "Open a table". Its settings are at the bottom, over the way in ([below](#the-settings)): the expansions of the game, the speed of the game and who may find the table. Every table counts for the leaderboard and none can be looked on at for now, so neither is a setting. What a visitor sets here stays in the page, a lobby having no place to keep it yet (the tables of PLT-13).
+
+### Open a lobby
+
+Two panels: the one of a game that has no expansion, which is the page for now, and the one of a game that has some. The settings are at the bottom, over the way in, under a hairline: the expansions as pictures, the speed of the game and who may find the table. The space above them is empty: the panel has nothing else to say. A single setting that is one word and one control is still a row, `LobbySetting`: its name on the left, with a quiet line under it when it needs one, and its control on the right; a control gives itself a name (`aria-label`), since the label of a row is not a `<label>`.
+
+```specimen
+lobby-panel-open-a-lobby
+```
+
+### Your lobby
+
+A visitor who sits at a table finds it here instead (`getViewerTable`: public or private, waiting for players or being played), drawn as any table's [details](#a-tables-details) are, under the name "Your lobby" or "Your game" and with a button back into it, "Back to your lobby" or, for a game in play, "Rejoin your game". A lobby that waits has an icon at the top right that leaves it (`leave`, the page's `LeaveLobbyButton`, which calls the game's own route; the page then asks again where the visitor sits); a game in play has none, that route taking a visitor out of a lobby only. The settings are the visitor's to set when they opened the lobby (`viewerIsHost`) and are only read otherwise. The plus of its free seats opens the menu of an [open seat](#open-seat): "Invite a friend", disabled until there are friends to invite, and "Copy link". Three panels: a lobby the visitor opened, one a friend opened, and a game in play.
+
+```specimen
+lobby-panel-your-lobby
+```
+
+### A table's details
+
+`LobbyDetail` is what the panel shows for one table: whether it waits or is played and how old it is, its name ("Max's table"), the table's code, its people (`LobbySeats`: the picture and the name of each, "Host" on the one who opened it, their rating on the right, a dash for a player who has none, a dashed place that says "Waiting for a player" for each seat nobody has taken, whose plus is an [open seat](#open-seat): it joins the table, or, in the visitor's own lobby, opens the menu that invites a friend or copies the link; one under another in a narrow panel, in two columns from 28rem, the panel being the container), its settings at the bottom (`LobbySettings`, only read here: the expansions it is played with, as pictures with the outline, and how fast), and the way in, Join or a disabled "Full". When the page gives it `onClose` a close button sits at the top right: it puts the table down and the panel is the space to open a lobby again.
+
+The names are written here, and the pictures of the list only say who is there: this is where a visitor learns whom they would play with. `tableDetailProps` (`game-activity-props.ts`) makes it from a table.
+
+```specimen
+lobby-panel-a-tables-details
+```
+
+### The settings
+
+`LobbySettings` (`@pbgo/ui/platform/lobby-settings`, a client component) is what a table is played with and how fast, in groups with a small title, at the bottom of the panel:
+
+- **Expansions**: the game's own, each a picture in a 3 × 2 frame with its name under it (its initials on the `muted` fill when it has neither a background nor a logo). When the lobby is the visitor's to set (`editable`) each is a button (`aria-pressed`) that chooses it or leaves it, and a 2px outline in the colour of the text says it is chosen (a hover shows a faint one); a screen reader hears the state. When a visitor only reads a table, the group is "Played with" and holds the chosen ones alone, outlined, and a table that is played with none has no group. A game that has no expansion has no group at all: the page reads them with `getExpansions`, which asks the catalog for the games of the platform's Sanity project of kind `expansion` that name the game as their base game, with their pictures (the background fills the frame and the logo, or the icon, is drawn over it, as on a game's card), so a game has some as soon as they are created and published in the Studio; the specimens below draw imagined ones.
+- **Speed**: the pace of the game, `PACES` of `@pbgo/ui/tables` (Fast, Normal, No timer, Async), a group of chips that picks one when it is set and a word when it is read.
+- **Who can find it**: Public or Private, only for a lobby that is opened or set; the tables of the list are all public.
+
+The columns follow the panel (`@container`): two expansions across in a narrow panel, three from 28rem. Nothing is kept: `onChange` gives what was set to a page that has somewhere to put it. Every table counts for the leaderboard and none can be looked on at for now, so "ranked" and "spectators" are not settings; they come back here the day a game needs them.
+
+```specimen
+lobby-settings-set-and-read
+```
+
+### Beside the open tables
+
+`GamePlay` (`apps/web/src/components/game-play.tsx`) is the first block under the head of a game's page: the open tables on the left, seven twelfths of the width from `lg`, as the rows of a list ([table entry](#table-entry)), and the panel on the right, five twelfths, wide enough for the pictures of the expansions. A press on a row picks it and the panel shows its details; a press on it again, the close button or Escape puts it down, and the panel is the space to open a lobby, or the lobby the visitor is in. The two cards start at the same height and have the same, `lg:h-176`: it does not depend on what they hold, so that picking a row moves nothing below, and the list scrolls inside it. A header says what the list holds ("4 waiting"). With no table to list it is an empty state with a button that opens one, the panel being the same.
+
+On a narrow screen the panel comes first, since opening a table is what most visitors came to do, then the list; a press on a row scrolls the panel into view, and the way in is in the panel, since a row that narrow has no room for it. A game that is not live has the panel alone, half transparent and with no way in, and no tables. Below, drawn at the width of a page and scaled to this column: a game with tables and a panel with settings, a visitor in a lobby of an empty game, and a game to come.
+
+```specimen
+lobby-panel-beside-the-open-tables
+```
+
+## Stat tile
+
+Module: `@pbgo/ui/platform/stat-tile`
+
+One figure and what it counts: the label, quiet, then the figure, big, then a word more when there is one. It is no card: no outline and no fill, the figure (`text-5xl`) and the room around it are what make it stand out, and the figures of a row stand in a line across what holds them. The tiles of a row go in a list of terms (`<dl>`: each is a term and its values, so that a screen reader reads "Games played: 24"). A tile draws what it is given and writes no figure itself: the page words them (`statFigures` of `game-activity-props.ts`, with `winRate` of `@pbgo/ui/results`).
+
+### The figures
+
+The four of a game's page: how many games a visitor played with the time they spent at them under it ("38 h played": minutes under an hour, hours after, `timePlayed` of `@pbgo/ui/results`), their win rate with how many wins that is, their rating with the best they reached, and their place on the board, out of how many players ("27th of 143 players"; "Not ranked yet" for a visitor with no place). A figure that is not known, a rating before any ranked game, is a dash. The row follows the width of its container: four figures in a line from 36rem, two by two under it.
+
+```specimen
+stat-tile-the-figures
+```
+
+## Leaderboard
+
+Module: `@pbgo/ui/platform/leaderboard`
+
+`Leaderboard` is the best players of a game, as its page lists them: their place, who they are, their rating, the games they won and the games they played. The signed-in visitor finds themselves on it. Like the table card it draws what it is given: the order is the rating's (Elo, 1500 to start with), the rows come from `getStandings` (`apps/web/src/lib/game-activity.ts`: the `ratings` of PLT-13 with the nickname and the picture of the `profiles` row), `leaderboardRow` (`game-activity-props.ts`) picks what a row shows of a standing, and `boardOf` (`@pbgo/ui/leaderboard`, tested without React) decides which rows are drawn. Nobody is ranked yet, so a real page draws the empty state below; the players in these specimens are made up.
+
+### The top, and the visitor in it
+
+A table, a real one with a caption for screen readers, of the first `size` players (all of the rows it is given by default; a game's page gives it a hundred): place, picture and nickname, rating, wins and games played. The top three have their place in Geist semibold and their name in the full colour of the text; the others are quiet (`muted-foreground`). The platform has no medal colour to give, and its only hue is a game's art. A nickname too long for its column is cut with an ellipsis.
+
+The visitor's own row has the `muted` fill, a "You" badge after the name and `aria-current`. When they are in the top it is the row in the top, and nothing is added after it.
+
+```specimen
+leaderboard-the-top
+```
+
+### The visitor outside the top
+
+A visitor who is signed in and has a rating but is not in the top has their row after it, behind a gap (three dots) that says other players stand between; the first player after the top has no gap. A player is on the board after five ranked games (`LEADERBOARD_MIN_GAMES`): until then their place is a dash, and their row, which they can still see, follows the top behind the gap. The first board below shows the visitor 27th, the second a visitor who is not ranked yet.
+
+```specimen
+leaderboard-the-visitor-outside-the-top
+```
+
+### A long board
+
+A board is as tall as its rows, up to the height its page gives it (`max-h-176` on a game's page, the height of the open tables above it): past that it scrolls inside its card, with the wheel, a swipe or the keyboard (the scrolling part is a focusable region, named by the board's label). Its header stays at the top, and the visitor's own row stays in view wherever they stand on the board: it keeps its place in the list, sticks under the header when the board is scrolled past it, and to the bottom when it is scrolled short of it. A visitor who is not among the rows has their row at the end, behind the gap, and it sticks to the bottom until the end of the board comes. The rows draw their borders themselves (`border-separate`), since a border that the table collapses would not stay with a `sticky` cell. The first board below has forty players and the visitor 27th among them, the second the visitor outside them.
+
+```specimen
+leaderboard-scrolling
+```
+
+### In a narrow column, and empty
+
+The board is a container (`@container`). Under 28rem wide, as in a third of a page, the column of the games played is left out so that the name keeps its room. With nobody ranked it is an empty state, with a trophy, that says what the board will hold; the page words it.
+
+```specimen
+leaderboard-narrow-and-empty
+```
+
+### Your stats
+
+On the left of the board, a visitor's own figures in the game (`GameStats`, `apps/web/src/components/game-stats.tsx`): the four [stat tiles](#stat-tile), then their achievements, each an [achievement tile](#achievement-tile). A visitor who is not signed in has nothing to show, so it invites them to sign in (`getPlayerStats` returns null for nobody), and one who is signed in and has played nothing has the figures at their start, dashes where there is no rating yet, and no achievement. Achievements are the page's guess: PLT-13's schema has no table for them, so they stay empty until there is one to read.
+
+```specimen
+game-stats-signed-in-and-out
+```
+
+### Your latest games
+
+Under their stats, on the left, their ten latest games in the game (`GameHistory`, `apps/web/src/components/game-history.tsx`). A row has, on the left, the game's name with the expansions it was played with after it ("Courtisans + First expansion") and the pictures of the others at the table, with no names (the group is labelled for a screen reader, and the pointer says each name); on the right, how long ago it was ("3 d ago"), what it scored ("42 pts"), what it did to their rating ("+14 Elo") and the experience it gave ("+120 XP"), and at the far end how it ended, as a badge in a dark tint: a win in green (`success`), a loss in red (`destructive`), a draw or a game that was left outlined. The change of rating wears the colour of the result. Their place among the players ("1st of 4") is for a screen reader; a card narrower than 24rem leaves out the score, and one narrower than 28rem the experience. The first three are there at once, the third fading out at the bottom (a mask on the list, as in the home's previews) under a "Show more" button that is pulled up over the fade; it unrolls the other games, the fade gives way, and the button, now "Show less", comes down under the last one. It is a [collapsible](01-controls.md#collapsible): what is not shown is not in the page until the button opens it. A visitor with no game has no such block, and one with three or fewer has all of them, with no fade and no button.
+
+```specimen
+game-history-closed-and-open
+```
+
+### On a game's page
+
+The second row of a game's page, drawn at the width of a page: the stats on the left, two thirds of it, with the latest games under them (`GameStats` holds `GameHistory` as its children), and the board on the right, the first hundred (`LEADERBOARD_SIZE`), which scroll inside a card no taller than the open tables above it, and the visitor's own row, which stays in view. Under `lg` the two stack. A game to come has neither. Below, a visitor who is signed in and one who is not, with the empty board that every game has for now.
+
+```specimen
+leaderboard-on-a-games-page
+```
+
+## Achievement tile
+
+Module: `@pbgo/ui/platform/achievement-tile`
+
+One thing a visitor earned in a game, as a badge: an emblem drawn in SVG, its name, and the day they earned it. It has no card, no outline and no fill around it, and the emblem (6rem, `AchievementBadge`) is what stands out. The badges of a game's stats go in a grid that follows its container, three across, then four, then six, under the title of the group, which has a small pill ([`Badge`](01-controls.md#badge)) that counts them. A game gives no art for its achievements yet, so the emblem is drawn from the achievement's id (`badgeOf`, `packages/ui/src/achievements.ts`, tested without React): one of five shapes (a hexagon, a shield, a seal, a diamond, an octagon) in the `muted` fill with a hairline and a dotted ring inside, and one of six marks in the middle (an award, a trophy, a star, a crown, a target, a flash), the same ones every time and not the same for every achievement. The platform has no colour to give a medal, and its only hue is a game's art. A name too long for the room is cut with an ellipsis and the pointer says it whole (`title`), with what it was for, which a screen reader reads as well. A visitor who has earned none has the pill at 0 and is told what the place is for, and no badge is drawn. PLT-13's schema has no table for achievements, so a real page has none to list yet; the ones below are made up.
+
+```specimen
+achievement-tile-the-badges
+```
+
+## Scroll row
+
+Module: `@pbgo/ui/platform/scroll-row`
+
+A titled row of cards that does not wrap and scrolls sideways, for a list of which the page shows the first and lets the visitor walk along: the games similar to a game, on its page under "Similar games" (nine at most). The cards keep one width (16rem, 18rem from `sm`), so that the next one is always half in view and says that there is more, and they snap to the start of the row as it scrolls. The row runs out to the edges of the page, past its gutters, and its first card starts where the page does. It scrolls with the pointer, a trackpad, a swipe or the keyboard (a card is a link, and focus brings it into view); it draws no scrollbar. Two outlined icon buttons at the end of the title move it by most of its width, which a mouse with no sideways wheel needs: they are only there when the row holds more than it shows, and each is disabled at its end. The move is instant when less motion is asked for. What the row holds is the page's: the title and the cards.
+
+```specimen
+scroll-row-similar-games
 ```
 
 ## Section
