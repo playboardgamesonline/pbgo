@@ -52,3 +52,12 @@ export function onTable(x: number, z: number, { y = RESTING_HEIGHT, face = "up",
   if (delay !== undefined) pose.delay = delay
   return pose
 }
+
+export type Offset = { x?: number; y?: number; z?: number }
+
+/** The same pose moved by an offset: a card lifted under the pointer, nudged toward the player. The original is left alone */
+export function shifted(pose: Pose, { x = 0, y = 0, z = 0 }: Offset): Pose {
+  const next: Pose = { position: pose.position.clone().add(new Vector3(x, y, z)), quaternion: pose.quaternion.clone(), scale: pose.scale }
+  if (pose.delay !== undefined) next.delay = pose.delay
+  return next
+}

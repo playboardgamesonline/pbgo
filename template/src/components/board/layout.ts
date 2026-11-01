@@ -1,7 +1,7 @@
-import type { Pose } from "@pbgo/table"
-import { Euler, Quaternion, Vector3 } from "three"
+import { fan, inFrame, onTable, type Pose, RESTING_HEIGHT, row, seats as ringOf, shifted, type Spot } from "@pbgo/table"
 
-export type Seat = { x: number; z: number; yaw: number }
+/** A seat at the table: where it stands and the yaw that sends what lies there away from the middle */
+export type Seat = Required<Spot>
 
 export const LAYOUT_SETTINGS = {
   radiusX: 7.4,
@@ -15,64 +15,46 @@ export const LAYOUT_SETTINGS = {
   trickGap: 0.3,
 }
 
-const q = (x: number, y: number, z: number) => new Quaternion().setFromEuler(new Euler(x, y, z))
-const flat = (yaw: number) => q(-Math.PI / 2, 0, yaw)
-
+/** The seat of each player: the viewer in front, the others around the far half in turn order */
 export function seats(ids: string[], meId: string | null): Map<string, Seat> {
   const R = LAYOUT_SETTINGS
-  const start = Math.max(0, ids.indexOf(meId ?? ""))
-  const seating = [...ids.slice(start), ...ids.slice(0, start)]
-  const others = seating.length - 1
-  const result = new Map<string, Seat>()
-  seating.forEach((id, i) => {
-    if (i === 0 && meId) {
-      result.set(id, { x: 0, z: R.radiusZ, yaw: 0 })
-      return
-    }
-    const k = meId ? i - 1 : i
-    const n = meId ? others : seating.length
-    const angle = n === 1 ? -Math.PI / 2 : Math.PI + 0.35 + (k / (n - 1)) * (Math.PI - 0.7)
-    const x = Math.cos(angle) * R.radiusX
-    const z = Math.sin(angle) * R.radiusZ
-    result.set(id, { x, z, yaw: Math.atan2(x, z) + Math.PI })
-  })
-  return result
+  const viewer = ids.indexOf(meId ?? "")
+  const ring = ringOf(ids.length, { radiusX: R.radiusX, radiusZ: R.radiusZ, me: viewer < 0 ? null : viewer })
+  return new Map(ids.map((id, i): [string, Seat] => [id, ring[i]]))
 }
 
-export function handPose(i: number, n: number, raised: boolean): Pose {
+/** The slots of a hand of `n` cards, a fan in front of the viewer. The card at index `raised` (-1: none) lifts toward them */
+export function handLayout(n: number, raised: number): Pose[] {
   const R = LAYOUT_SETTINGS
-  const x = (i - (n - 1) / 2) * R.handGap
-  const curve = Math.abs(i - (n - 1) / 2) * 0.06
-  return {
-    position: new Vector3(x, R.handY + (raised ? R.hoverLift : 0) + i * 0.004, R.handZ + curve - (raised ? 0.25 : 0)),
-    quaternion: q(-Math.PI / 2 + R.handTilt, 0, -(i - (n - 1) / 2) * 0.05),
-    scale: R.handScale,
-  }
+  const slots = fan(n, { gap: R.handGap, y: R.handY, rise: 0.004, z: R.handZ, curve: 0.06, tilt: R.handTilt, roll: 0.05, scale: R.handScale })
+  return slots.map((slot, i) => (i === raised ? shifted(slot, { y: R.hoverLift, z: -0.25 }) : slot))
 }
 
+/** The frame of an opponent's cards: just beyond their seat, turned like it */
+export function backFrame(seat: Seat): Spot {
+  return { x: seat.x * 1.08, z: seat.z * 1.08, yaw: seat.yaw }
+}
+
+/** The backs of an opponent's `n` cards: a row in the frame of their seat, each card rolled by the seat's yaw plus a half turn as they have always been drawn (`turn` cancels the frame's yaw to get there) */
+export function backLayout(seat: Seat, n: number): Pose[] {
+  return row(n, { gap: 0.32, y: 0.02, rise: 0.004, face: "down", turn: -(2 * seat.yaw + Math.PI), scale: 0.62 })
+}
+
+/** Where the back of card `i` of an opponent's `n` lies on the table: the card they play flies from there */
 export function backPose(seat: Seat, i: number, n: number): Pose {
-  const offset = (i - (n - 1) / 2) * 0.32
-  const cos = Math.cos(seat.yaw)
-  const sin = Math.sin(seat.yaw)
-  const recoil = 1.1
-  return {
-    position: new Vector3(seat.x * 1.08 + cos * offset + sin * recoil * 0, 0.02 + i * 0.004, seat.z * 1.08 - sin * offset),
-    quaternion: q(Math.PI / 2, 0, seat.yaw + Math.PI),
-    scale: 0.62,
-  }
+  return inFrame(backFrame(seat), backLayout(seat, n)[i])
 }
 
+/** A card played to the middle: on the line to its player's seat, a hair off true by its rank */
 export function trickPose(seat: Seat, rank: number): Pose {
   const R = LAYOUT_SETTINGS
-  return {
-    position: new Vector3(seat.x * R.trickGap, 0.03 + rank * 0.012, seat.z * R.trickGap),
-    quaternion: flat(seat.yaw + ((rank * 37) % 11) * 0.02 - 0.1),
-    scale: 1,
-  }
+  return onTable(seat.x * R.trickGap, seat.z * R.trickGap, { y: RESTING_HEIGHT + rank * 0.012, yaw: seat.yaw + ((rank * 37) % 11) * 0.02 - 0.1 })
 }
 
+/** A won trick, shrunk to a small stack beside the winner's seat */
 export function collectedPose(seat: Seat): Pose {
-  return { position: new Vector3(seat.x * 1.05, 0.04, seat.z * 1.05), quaternion: flat(seat.yaw), scale: 0.35 }
+  return onTable(seat.x * 1.05, seat.z * 1.05, { y: 0.04, yaw: seat.yaw, scale: 0.35 })
 }
 
-export const DECK_POSE: Pose = { position: new Vector3(0, 3.2, -0.5), quaternion: q(Math.PI / 2, 0, 0), scale: 0.9 }
+/** Where the cards are dealt from: above the middle of the table, face down */
+export const DECK_POSE = onTable(0, -0.5, { y: 3.2, face: "down", scale: 0.9 })
