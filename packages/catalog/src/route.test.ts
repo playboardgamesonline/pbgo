@@ -3,7 +3,7 @@ import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { iconVersion } from "./catalog"
 import { PLATFORM_PROJECT_ID } from "./sanity"
-import { cdn, fakeWeb, htmlResponse, pictureBytes, pictureResponse, sanityGame, sanityResult, webPage, type HostHandler } from "./testing"
+import { cdn, fakeWeb, groqSanity, htmlResponse, imageAsset, imageOf, pictureBytes, pictureResponse, row, sanityGame, sanityResult, webPage, type HostHandler } from "./testing"
 
 // `server-only` throws outside a server bundle
 vi.mock("server-only", () => ({}))
@@ -37,8 +37,8 @@ type World = {
   games?: Record<string, unknown>[]
   /** The hosts of the web by name (the publishers' websites): a host that is not here cannot be reached. */
   hosts?: Record<string, HostHandler>
-  /** What Sanity answers instead of the games, to say it cannot be read. */
-  sanity?: () => Response
+  /** What Sanity answers instead of the games, to say it cannot be read, or to run the query over documents (`groqSanity`). */
+  sanity?: HostHandler
 }
 
 async function world({ games = [], hosts = {}, sanity }: World = {}) {
@@ -98,6 +98,24 @@ describe("a picture of a game", () => {
     expect(response.headers.get("location")).toBe(location)
     expect(response.headers.get("cache-control")).toBe(PICTURE_REDIRECT)
     expect(w.downloads()).toEqual([])
+  })
+
+  it("is the same for a game whose pictures are rows of a language (PLT-104): the query picks the English row, and the old address of the picture leads to its file", async () => {
+    const english = imageAsset("bbb", 800, 300, "png")
+    const french = imageAsset("ccc", 800, 300, "png")
+    const icon = imageAsset("ddd", 512, 512, "png")
+    const game = {
+      _id: `game-${PLANNED.slug}`,
+      _type: "game",
+      name: "Rows",
+      slug: { _type: "slug", current: PLANNED.slug },
+      logo: [row("Image", "fr", imageOf(french)), row("Image", "en", imageOf(english, { hotspot: { x: 0.5, y: 0.5, width: 1, height: 1 } }))],
+      icon: imageOf(icon),
+    }
+    const w = await world({ sanity: groqSanity([english, french, icon, game]) })
+    expect((await w.ask(PLANNED.slug, "logo")).headers.get("location")).toBe(`${english.url}?w=800&fit=max&auto=format`)
+    expect((await w.ask(PLANNED.slug, "icon")).headers.get("location")).toBe(`${icon.url}?w=512&fit=max&auto=format`)
+    expect((await w.ask(PLANNED.slug, "background")).status).toBe(404)
   })
 
   it("sends a vector picture to its file as it is", async () => {

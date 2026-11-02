@@ -4,21 +4,33 @@ import { Globe02Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { setLanguage } from "@pbgo/accounts/set-language"
 import { trackClient } from "@pbgo/analytics/client"
 import { cn } from "@pbgo/ui/utils"
-import { LOCALE_COOKIE, LOCALE_NAMES, LOCALES, type Locale } from "../lib/i18n"
+import { LOCALE_NAMES, LOCALES, type Locale } from "../lib/i18n"
 import { ICON_BUTTON } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
 
-/** Visitor's language: kept in a one-year cookie (same URL for everyone), the page is rendered again in the new language. */
-export function setLocaleCookie(locale: Locale) {
-  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`
+/**
+ * Changes the visitor's language to one of the game's: the one setter of `@pbgo/accounts` keeps it in a one-year cookie (same URL for everyone) and on their account when they have one,
+ * then the page is rendered again in the new language. Resolves with whether it changed: nothing does when the account cannot be written, and the language stays what it was.
+ */
+export function useChooseLocale(): (locale: Locale) => Promise<boolean> {
+  const { locale } = useSkin()
+  const router = useRouter()
+  return async (next) => {
+    if (next === locale || (await setLanguage(next)) === "failed") return false
+    trackClient("language_changed", { from: locale, to: next })
+    document.documentElement.lang = next
+    router.refresh()
+    return true
+  }
 }
 
 export function LanguageSelect({ className }: { className?: string }) {
   const { locale } = useSkin()
   const t = useText()
-  const router = useRouter()
+  const chooseLocale = useChooseLocale()
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -37,11 +49,7 @@ export function LanguageSelect({ className }: { className?: string }) {
 
   const choose = (l: Locale) => {
     setOpen(false)
-    if (l === locale) return
-    trackClient("language_changed", { from: locale, to: l })
-    setLocaleCookie(l)
-    document.documentElement.lang = l
-    router.refresh()
+    void chooseLocale(l)
   }
 
   return (

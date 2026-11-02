@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache"
 import { CORE_ERROR_MESSAGES } from "../lib/api"
 import { audioQuery, audioTag, type AudioDoc, toSoundConfig } from "../lib/audio-server"
 import type { GameBinding, GameModule } from "../lib/binding"
-import { LOCALES, type Locale, type Localized } from "../lib/i18n"
+import { DEFAULT_LOCALE, LOCALES, type Locale, type Localized } from "../lib/i18n"
 import {
   byLocale,
   clampPlayers,
@@ -163,7 +163,7 @@ export async function readAdminData(game: GameModule): Promise<AdminData> {
     safe(c?.fetch<AudioDoc>(audioQuery(at("audio")), {}, RAW_PERSPECTIVE)),
   ])
   const partial = toSkin(game, skinDoc)
-  const skin = mergeSkin(baseSkin(game.binding, "fr"), partial)
+  const skin = mergeSkin(baseSkin(game.binding, DEFAULT_LOCALE), partial)
   const images = Object.fromEntries(
     VISUAL_IMAGE_SLOTS.map((slot) => {
       const custom = !!(slot === "hostIcon" ? partial.hostIcon : partial.decor?.[DECOR_KEY[slot as Exclude<VisualSlot, "hostIcon">]])
@@ -276,6 +276,7 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
     const authors = (input.creditsAuthors ?? {}) as Partial<Record<Locale, unknown>>
     const { set, unset } = split({
       title,
+      // the single-language fields that the translated ones replaced keep the French text, which `toSettings` still reads as the French description and authors
       description: text(descriptions.fr, 400),
       creditsAuthors: text(authors.fr, 240),
       ...Object.fromEntries(LOCALES.flatMap((l) => [[`descriptionI18n.${l}`, text(descriptions[l], 400)], [`creditsAuthorsI18n.${l}`, text(authors[l], 240)]])),

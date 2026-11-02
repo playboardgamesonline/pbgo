@@ -2,6 +2,7 @@ import "server-only"
 import { ImageResponse } from "next/og"
 import sharp from "sharp"
 import type { GameModule } from "../lib/binding"
+import { DEFAULT_LOCALE } from "../lib/i18n"
 import { mediaUrl } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
 import { loadSkin } from "../lib/skin-server"
@@ -46,7 +47,7 @@ const imageResponse = (buffer: Buffer, contentType: string) =>
 /* ------------------------------------------------------------------ favicon */
 
 export async function renderIcon(game: GameModule, size: number) {
-  const settings = await loadSettings(game, "fr")
+  const settings = await loadSettings(game, DEFAULT_LOCALE)
   const favicon = await loadImage(settings.favicon)
   if (favicon) {
     const out = await sharp(favicon).resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
@@ -82,7 +83,7 @@ export async function renderIcon(game: GameModule, size: number) {
 export const SHARE_SIZE = { width: 1200, height: 630 }
 
 export async function renderShareImage(game: GameModule) {
-  const [settings, skin] = await Promise.all([loadSettings(game, "fr"), loadSkin(game, "fr")])
+  const [settings, skin] = await Promise.all([loadSettings(game, DEFAULT_LOCALE), loadSkin(game, DEFAULT_LOCALE)])
   const custom = await loadImage(settings.shareImage)
   if (custom) return imageResponse(await sharp(custom).resize(1200, 630, { fit: "cover" }).jpeg({ quality: 88 }).toBuffer(), "image/jpeg")
 

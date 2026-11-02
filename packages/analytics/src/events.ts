@@ -1,7 +1,10 @@
-import type { LANGUAGES } from "@pbgo/studio-kit/constants"
+import type { LANGUAGES, PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
 
 /** `fr` | `en` | `es` | `de`: derived from the single source of the languages. */
 export type Locale = (typeof LANGUAGES)[number]["id"]
+
+/** Any language a visitor can choose (the platform's twelve, the four above among them): the hub's own language picker reports one of them. */
+export type Language = (typeof PLATFORM_LANGUAGES)[number]["id"]
 
 /**
  * Events sent by the server, from the API routes, after the write they describe. snake_case, one property `game` = the slug
@@ -39,6 +42,6 @@ export type ClientEvents = {
   game_opened_from_hub: { game: string }
   invite_link_copied: { game: string }
   rules_opened: { game: string }
-  language_changed: { from: Locale; to: Locale }
+  language_changed: { from: Language; to: Language }
   cookie_consent: { choice: "accepted" | "refused"; marketing: boolean }
 }

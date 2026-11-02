@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { API_VERSION, DatasetError, createHttpStore } from "./http-store.ts"
+import { API_VERSION, CATALOG_DOCUMENTS_QUERY, DatasetError, createHttpStore, createTranslationStore } from "./http-store.ts"
 import type { Mutation } from "./expansions.ts"
 
 // The migration's HTTP store against a fake `fetch`: the addresses it calls, what it sends, and that the token is in a header only.
@@ -120,5 +120,62 @@ describe("the token", () => {
   it("is not repeated by an answer that is not JSON either", async () => {
     const failure = await store(fakeFetch(new Response("<html>Bad gateway</html>", { status: 502, statusText: "Bad Gateway" })).send).expansionGames().catch((error: unknown) => error)
     expect((failure as DatasetError).message).toBe("The dataset answered 502: Bad Gateway")
+  })
+})
+
+describe("the documents of the catalog (PLT-104)", () => {
+  const translations = (send: typeof fetch) => createTranslationStore({ projectId: "mhgqs6fe", dataset: "production", token: TOKEN, fetch: send })
+
+  it("are read with one query over every perspective: the games, the expansions and the categories, drafts and versions with the published ones", async () => {
+    const { send, calls } = fakeFetch(json({ result: [{ _id: "game-x", _type: "game" }, { _id: "drafts.category-y", _type: "category" }] }))
+    const found = await translations(send).documents()
+    expect(found.map((doc) => doc._id)).toEqual(["game-x", "drafts.category-y"])
+    const [call] = calls
+    expect(call?.url.origin).toBe("https://mhgqs6fe.api.sanity.io")
+    expect(call?.url.pathname).toBe(`/v${API_VERSION}/data/query/production`)
+    expect(call?.url.searchParams.get("query")).toBe(CATALOG_DOCUMENTS_QUERY)
+    expect(CATALOG_DOCUMENTS_QUERY).toBe('*[_type in ["game", "expansion", "category"]]')
+    expect(call?.url.searchParams.get("perspective")).toBe("raw")
+    expect(authorization(call)).toBe(`Bearer ${TOKEN}`)
+  })
+
+  it("are none when the dataset holds none, and an error when the answer is not a list: that is not an empty dataset", async () => {
+    expect(await translations(fakeFetch(json({ result: [] })).send).documents()).toEqual([])
+    for (const answer of [{}, { result: null }, { result: { not: "a list" } }]) {
+      const failure = await translations(fakeFetch(json(answer)).send).documents().catch((error: unknown) => error)
+      expect(failure).toBeInstanceOf(DatasetError)
+      expect((failure as DatasetError).message).toBe("The dataset answered with something that is not a list of documents")
+    }
+  })
+
+  it("are patched in one request, which is one transaction, with the token in a header and in no address", async () => {
+    const { send, calls } = fakeFetch(json({ transactionId: "t1" }))
+    const patches = [{ patch: { id: "game-x", ifRevisionID: "r1", set: { description: [] }, unset: ["rulesFr"] } }, { patch: { id: "drafts.game-y", ifRevisionID: "r2", set: { names: [] } } }]
+    await translations(send).commit(patches)
+    expect(calls).toHaveLength(1)
+    const [call] = calls
+    expect(call?.url.pathname).toBe(`/v${API_VERSION}/data/mutate/production`)
+    expect(call?.url.searchParams.get("returnIds")).toBe("true")
+    expect(call?.init.method).toBe("POST")
+    expect(JSON.parse(String(call?.init.body))).toEqual({ mutations: patches })
+    expect(call?.url.href).not.toContain(TOKEN)
+    expect(String(call?.init.body)).not.toContain(TOKEN)
+  })
+
+  it("makes no call for no patch", async () => {
+    const { send, calls } = fakeFetch()
+    await translations(send).commit([])
+    expect(calls).toEqual([])
+  })
+
+  it("say what the dataset answers when it refuses, never the token", async () => {
+    const refused = json({ error: { description: "Document revision does not match" } }, 409)
+    const failure = await translations(fakeFetch(refused).send).commit([{ patch: { id: "game-x", ifRevisionID: "old" } }]).catch((error: unknown) => error)
+    expect(failure).toBeInstanceOf(DatasetError)
+    expect((failure as DatasetError).status).toBe(409)
+    expect((failure as DatasetError).message).toBe("The dataset answered 409: Document revision does not match")
+    const unreachable = await translations(fakeFetch(new TypeError("fetch failed")).send).documents().catch((error: unknown) => error)
+    expect((unreachable as DatasetError).message).toBe("The dataset could not be reached (TypeError)")
+    expect((unreachable as DatasetError).message).not.toContain(TOKEN)
   })
 })

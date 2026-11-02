@@ -1,12 +1,16 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { accountOf, emailOf, type Account, type Provider } from "./account"
 import { supabaseAuthConfig } from "./config"
-import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed } from "./demo"
+import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed, isDemoAccount } from "./demo"
+import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
 import { safeNext } from "./redirect"
+import { syncLanguage } from "./language-sync"
+import { isChangingLanguage } from "./set-language"
 
 // The accounts in the browser: who is signed in (for the navbar, which is on static pages and so cannot ask the server), and the way to start a
 // sign-in. The session lives in cookies (`@supabase/ssr`), which the server reads too, so the two always agree.
@@ -85,7 +89,78 @@ export async function signInWithPassword(identifier: string, password: string): 
   if (!supabase) return "Sign-in is not available here."
   const email = emailOf(identifier)
   if (email === null) return "Use your e-mail address for now: usernames are coming."
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-  if (!error) return null
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (!error) {
+    // This device takes the language of the account at once, so that the page it opens next, a game's perhaps, is drawn in it (`useLanguageSync` does the rest)
+    const language = data.user ? languageOf(data.user) : null
+    if (language) document.cookie = languageCookie(language)
+    return null
+  }
   return error.code === "invalid_credentials" ? "That e-mail and that password do not go together." : "Sign-in did not work. Try again."
+}
+
+/** What became of a language handed to the account: kept, not kept because nobody is signed in (a guest, the demo account), or not kept because the account could not be written. */
+export type SavedLanguage = "saved" | "no-session" | "failed"
+
+/**
+ * Keeps the visitor's language on their account: Supabase Auth merges it, key by key, into the account's `user_metadata` under the one key that is ours (`LANGUAGE_KEY`) and leaves the others,
+ * which the providers fill at each sign-in, as they are. It is the only writer of the language (`setLanguage` of `./set-language` calls it), so that it moves to a `profiles.locale` column
+ * the day the profiles exist (PLT-13) by changing this function and `languageOf` alone. The access token keeps the metadata it was issued with until it is renewed, so nothing may read the
+ * language from the claims: `useAccount` reads the session's user, which `updateUser` has just replaced.
+ */
+export async function saveLanguage(language: PlatformLanguage): Promise<SavedLanguage> {
+  const supabase = browserClient()
+  if (!supabase) return "no-session"
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) return "no-session"
+  const { error } = await supabase.auth.updateUser({ data: { [LANGUAGE_KEY]: language } })
+  return error ? "failed" : "saved"
+}
+
+/**
+ * The session this browser holds keeps the account's metadata as it was when the session was last renewed, an hour ago at most, so a language chosen on another device is not in it yet (the
+ * claims of the token are no fresher). Asks the Auth server for the user and, when the language it holds is not the one in the session, renews the session: the renewed one carries the new
+ * metadata, `useAccount` hands it to the sync and the sync writes the cookie. Nothing happens when the two agree, when nobody is signed in or the server cannot be reached, nor while a change
+ * of language is on its way. Resolves with whether the session was renewed.
+ */
+export async function renewIfLanguageChanged(): Promise<boolean> {
+  const supabase = browserClient()
+  if (!supabase) return false
+  const [fresh, held] = await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
+  const user = fresh.data.user
+  const session = held.data.session
+  if (!user || !session || isChangingLanguage() || languageOf(user) === languageOf(session.user)) return false
+  const { error } = await supabase.auth.refreshSession()
+  return !error
+}
+
+/**
+ * Keeps the device of a signed-in visitor in step with their account's language, each time the browser reads their session: on a page load, on a sign-in, on the renewal of the token and on a
+ * change made in another tab. The account wins, so the cookie, which the server reads, is rewritten to its language and the page rendered again if it was in another; an account that keeps none
+ * yet (its first sign-in) takes the language in use. A change made on another device is found once per page load of the hub (`renewIfLanguageChanged`: one request to the Auth server, the
+ * session is renewed only when the language differs). Nothing for a guest and for the demo account. Mount it once, where `useAccount` already is (`LanguageSync` of the app); the server never
+ * reads the account for this, so the pages stay static.
+ */
+export function useLanguageSync(): void {
+  const state = useAccount()
+  const router = useRouter()
+  const signedIn = state.status === "signed-in" && !isDemoAccount(state.account) ? state.account.id : null
+  useEffect(() => {
+    if (signedIn) renewIfLanguageChanged().catch(() => {})
+  }, [signedIn])
+  useEffect(() => {
+    syncLanguage(
+      state,
+      { cookies: document.cookie, languages: navigator.languages },
+      {
+        writeCookie: (language) => {
+          document.cookie = languageCookie(language)
+        },
+        saveAccount: (language) => {
+          saveLanguage(language).catch(() => {})
+        },
+        refresh: () => router.refresh(),
+      },
+    )
+  }, [state, router])
 }

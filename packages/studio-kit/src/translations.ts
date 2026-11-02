@@ -1,12 +1,14 @@
-import type { UiTextKey } from "./constants"
+import { UI_TEXTS, type UiTextKey } from "./constants"
 
 /**
- * Default translations of the shared labels (French lives in `UI_TEXTS`). A label typed in the admin (Copy) always takes precedence.
+ * Default translations of the shared labels, in each language of the games. English is the default language: it is what a page shows when it is asked for no other, and the
+ * language every text falls back on. French is the text each `UI_TEXTS` entry carries, so it is not typed twice. A label typed in the admin (Copy) always takes precedence.
  * Variables in braces: {code}, {name}, {count}, {max}… to be kept as is.
  */
-export type TranslatedLocale = "en" | "es" | "de"
+export type TranslatedLocale = "fr" | "en" | "es" | "de"
 
 export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>> = {
+  fr: Object.fromEntries(UI_TEXTS.map((t) => [t.key, t.fr])) as Record<UiTextKey, string>,
   en: {
     nicknamePlaceholder: "YOUR NICKNAME…",
     createButton: "Create a game",
@@ -417,8 +419,33 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
   },
 }
 
-/** Shared error messages (code → message) per language; French lives in `CORE_ERROR_MESSAGES`. */
+/** Shared error messages (code → message) per language; the English ones are also `CORE_ERROR_MESSAGES` of core, which a test keeps equal. */
 export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>> = {
+  fr: {
+    INVALID_NICKNAME: "Choisissez un pseudo.",
+    INVALID_CODE: "Ce code de partie n'est pas valide.",
+    GAME_NOT_FOUND: "Aucune partie ne correspond à ce code.",
+    GAME_IN_PROGRESS: "Cette partie a déjà commencé.",
+    GAME_FULL: "Cette partie est complète.",
+    HOST_ONLY: "Seul l'hôte peut faire ça.",
+    NOT_ENOUGH_PLAYERS: "Il manque des joueurs pour lancer la partie.",
+    NOT_YOUR_TURN: "Ce n'est pas votre tour.",
+    UNKNOWN_CARD: "Cette carte n'est pas dans votre main.",
+    CONFLICT: "Quelqu'un a joué en même temps, réessayez.",
+    DEBUG_DISABLED: "Le debug est désactivé sur ce serveur (DEBUG_GAMES=1).",
+    NOT_STALLED: "La partie avance encore : attendez un peu avant de jouer à sa place.",
+    NOT_WAITING: "La partie n'attend plus ce joueur : il a joué entre-temps.",
+    SERVER_ERROR: "Une erreur est survenue.",
+    EMPTY_TEXT: "Écrivez d'abord votre message.",
+    INVALID_EMAIL: "Cette adresse e-mail n'est pas valide.",
+    INVALID_IMAGE: "Cette image n'est pas lisible (PNG, JPG ou WebP).",
+    FILE_TOO_BIG: "Cette capture est trop lourde (3 Mo maximum).",
+    TOO_MANY_REQUESTS: "Trop d'envois : réessayez dans un instant.",
+    RATE_LIMITED: "Trop de requêtes : patientez quelques secondes avant de réessayer.",
+    FORBIDDEN: "Action refusée.",
+    TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
+    AUTOPLAY_UNSUPPORTED: "Ce jeu ne sait pas jouer à la place de ce joueur.",
+  },
   en: {
     INVALID_NICKNAME: "Pick a nickname.",
     INVALID_CODE: "This game code is not valid.",

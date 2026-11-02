@@ -4,7 +4,7 @@ import { DocumentTextIcon } from "@sanity/icons/DocumentText"
 import { ImagesIcon } from "@sanity/icons/Images"
 import { PlayIcon } from "@sanity/icons/Play"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
-import { defineConfig, type SchemaTypeDefinition } from "sanity"
+import { defineConfig, type PluginOptions, type SchemaTypeDefinition } from "sanity"
 import { structureTool, type DefaultDocumentNodeResolver, type StructureResolver } from "sanity/structure"
 import { audio } from "./documents/audio"
 import { interfaceDoc } from "./documents/interface"
@@ -77,19 +77,21 @@ type StandaloneStudioOptions = {
   structure: StructureResolver
   /** What a document's pane shows beside its form (a tab that lists the games a person is credited in…), by type */
   defaultDocumentNode?: DefaultDocumentNodeResolver
+  /** More plugins, after the structure and the Vision tool: the translation of the fields (`fieldTranslations`) for one */
+  plugins?: PluginOptions[]
 }
 
 /**
  * A Studio that is not a game's: the platform's own (`platform/apps/studio`). A game's Studio is `createStudioConfig`, with the shared
  * singletons of a game; this one registers the types it is given and shows the sidebar it is given, and nothing else.
  */
-export function createStandaloneStudioConfig({ title, projectId, dataset = "production", types, structure, defaultDocumentNode }: StandaloneStudioOptions) {
+export function createStandaloneStudioConfig({ title, projectId, dataset = "production", types, structure, defaultDocumentNode, plugins = [] }: StandaloneStudioOptions) {
   return defineConfig({
     name: "default",
     title,
     projectId,
     dataset,
-    plugins: [structureTool({ structure, defaultDocumentNode }), visionTool()],
+    plugins: [structureTool({ structure, defaultDocumentNode }), visionTool(), ...plugins],
     schema: { types },
   })
 }

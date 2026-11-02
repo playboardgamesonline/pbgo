@@ -6,7 +6,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 
 ## Code conventions
 - **All code is in English**, the game's vocabulary included: functions, variables, types, files, folders, API routes, URLs, SQL tables and columns, storage keys, error codes, comments.
-- **Multilingual by design**: only player-facing texts are in French (or another language), and a game's texts live in Sanity only (`localeString` / `localeText` fields): no copy in the code, no fallback, a text Sanity does not hold yet reads `[missing: <key>]`. Only the platform's own labels (`UI_TEXTS` and their translations in `@pbgo/studio-kit`) are in code. Never a French word in an identifier.
+- **Multilingual by design**: only player-facing texts are in French (or another language), and a game's texts live in Sanity only (`localeString` / `localeText` fields): no copy in the code, and a text reads the language asked, then English (the default language and the fallback), then `[missing: <key>]`. Only the platform's own labels (`UI_TEXTS` and their translations in `@pbgo/studio-kit`) are in code. Never a French word in an identifier.
 - Few comments, explicit names.
 - Game glossary (FR → EN), to extend for each new game:
   - partie → `game` · joueur → `player` · pseudo → `nickname` · hôte → `host` · moi → `me`

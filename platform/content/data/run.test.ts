@@ -129,6 +129,70 @@ describe("the platform seed", () => {
     expect(result.orphans).toEqual([])
   })
 
+  describe("with the translated fields (PLT-104)", () => {
+    type Row = { _key: string; _type: string; language: string; value?: string }
+    // the Studio gives a row it adds a key of its own
+    const keyedByTheStudio = (rows: Row[]) => rows.map((entry) => ({ ...entry, _key: `studio-${entry.language}` }))
+    const rowsOf = (store: MemoryStore, id: string, field: string) => (store.docs.get(id)?.[field] ?? []) as Row[]
+
+    it("finds the rows the Studio keyed itself by their language, and has nothing to do", async () => {
+      const store = new MemoryStore()
+      await everything(store, apply)
+      store.edit("drafts.game-hanabi", (doc) => {
+        doc.description = keyedByTheStudio(doc.description as Row[])
+        doc.rules = keyedByTheStudio(doc.rules as Row[])
+      })
+      const again = await everything(store, apply)
+      expect(again.written).toBe(0)
+      expect(again.plan.every((item) => item.action === "unchanged" && item.changes.length === 0)).toBe(true)
+      expect(rowsOf(store, "drafts.game-hanabi", "description").map((entry) => entry._key)).toEqual(["studio-en", "studio-fr"])
+    })
+
+    it("keeps an English text edited in the Studio, and says so, without a second row of English", async () => {
+      const store = new MemoryStore()
+      await everything(store, apply)
+      store.edit("drafts.game-hanabi", (doc) => {
+        doc.description = keyedByTheStudio(doc.description as Row[]).map((entry) => (entry.language === "en" ? { ...entry, value: "Reworded in the Studio." } : entry))
+      })
+      const again = await everything(store, apply)
+      expect(rowsOf(store, "drafts.game-hanabi", "description").map((entry) => [entry.language, entry.value])).toEqual([["en", "Reworded in the Studio."], ["fr", "Un jeu de cartes coopératif."]])
+      const diverged = again.plan.flatMap((item) => item.changes.filter((change) => change.kind === "diverged").map((change) => `${item.id} › ${change.path}`))
+      expect(diverged).toEqual(['game-hanabi › description[_key=="studio-en"].value'])
+    })
+
+    it("adds a language the draft lacks in its place, and touches no other row", async () => {
+      const store = new MemoryStore()
+      await everything(store, apply)
+      store.edit("drafts.game-hanabi", (doc) => {
+        doc.description = [{ _key: "j1", _type: "internationalizedArrayDescriptionValue", language: "ja", value: "協力カードゲーム。" }, ...(doc.description as Row[]).filter((entry) => entry.language === "en")]
+      })
+      await everything(store, apply)
+      expect(rowsOf(store, "drafts.game-hanabi", "description").map((entry) => entry.language)).toEqual(["ja", "en", "fr"])
+    })
+
+    it("fills the empty row of English that a converted published document has, in a draft made from it, and leaves the published document alone", async () => {
+      const store = new MemoryStore()
+      const published = { _id: "game-hanabi", _type: "game", name: "Hanabi", description: [{ _key: "k1", _type: "internationalizedArrayDescriptionValue", language: "en" }] }
+      store.put(published)
+      const result = await everything(store, apply)
+      expect(result.plan.find((item) => item.id === "game-hanabi")?.action).toBe("create-from-published")
+      expect(store.docs.get("game-hanabi")).toMatchObject(published)
+      expect(rowsOf(store, "drafts.game-hanabi", "description").map((entry) => [entry._key, entry.language, entry.value])).toEqual([
+        ["k1", "en", "A cooperative card game in which nobody sees their own cards."],
+        ["fr", "fr", "Un jeu de cartes coopératif."],
+      ])
+    })
+
+    it("does nothing to a published document that has the text of the seed in rows: no draft appears", async () => {
+      const store = new MemoryStore()
+      await everything(store, apply)
+      for (const doc of seed) store.publish(doc._id)
+      const again = await everything(store, apply)
+      expect(again.written).toBe(0)
+      expect([...store.docs.keys()].some(isDraft)).toBe(false)
+    })
+  })
+
   describe("with its pictures", () => {
     it("uploads the files of an art folder and places them, a game's logo and a publisher's", async () => {
       const dir = await temp.create({
@@ -141,10 +205,12 @@ describe("the platform seed", () => {
       expect(result.art?.uploaded).toBe(3)
       expect(store.uploads).toHaveLength(3)
       const hanabi = store.docs.get("drafts.game-hanabi")
-      expect(hanabi?.logo).toMatchObject({ _type: "image" })
+      // the logo of a game is translated (PLT-104): Notion's is the English one
+      expect(hanabi?.logo).toMatchObject([{ _key: "en", language: "en", value: { _type: "image" } }])
       expect(hanabi?.background).toMatchObject({ _type: "image" })
       expect(store.docs.get("drafts.publisher-cocktail-games")?.logo).toMatchObject({ _type: "image" })
-      expect(store.docs.get("drafts.game-the-mind")?.logo).toBeUndefined()
+      // a game without a picture has the empty row of English of its logo and nothing in it
+      expect(store.docs.get("drafts.game-the-mind")?.logo).toEqual([{ _key: "en", _type: "internationalizedArrayImageValue", language: "en" }])
     })
 
     it("does nothing more the second time", async () => {

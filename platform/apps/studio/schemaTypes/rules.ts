@@ -1,5 +1,6 @@
 import { nameProblem, slugProblem } from "@pbgo/games/slug"
-import type { ValidationContext } from "sanity"
+import { DEFAULT_PLATFORM_LANGUAGE, PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
+import type { Path, ValidationContext } from "sanity"
 
 // The validations the types share. A custom rule answers `true` for what it accepts, or the sentence the editor reads.
 
@@ -41,4 +42,58 @@ export const checkPlayersMax = (max: number | undefined, context: ValidationCont
 export const checkEndsAfterStart = (endsAt: string | undefined, context: ValidationContext): true | string => {
   const startsAt = context.document?.startsAt
   return endsAt !== undefined && typeof startsAt === "string" && Date.parse(endsAt) <= Date.parse(startsAt) ? "It ends before it starts" : true
+}
+
+// The translated fields (PLT-104) are arrays of rows `{ _key, language, value }`, one row per language. Nothing is required of them: about
+// forty games have no description yet. What the Studio asks is that English, the language every other one falls back on, is never missing
+// where another language is there.
+//
+// A field's own `validation` replaces the one of its type, and the type of a translated field is made by the plugin, which checks the
+// languages of the rows in its own: so these rules do it too (`checkRows`), as the plugin does.
+
+type Row = Record<string, unknown>
+
+const rowsOf = (value: unknown): Row[] => (Array.isArray(value) ? value.filter(isRecord) : [])
+
+const LANGUAGE_IDS: ReadonlySet<string> = new Set(PLATFORM_LANGUAGES.map((language) => language.id))
+
+/** Does a translation hold something: a text that is not blank, a picture that has its file. A row can be there with nothing in it, the row of English that every translated field has. */
+export const isFilled = (value: unknown): boolean =>
+  typeof value === "string" ? value.trim() !== "" : isRecord(value) && isRecord(value.asset) && typeof value.asset._ref === "string" && value.asset._ref !== ""
+
+/** What a rule of a translated field answers when it refuses: a sentence, and the place it is about (the row of this key, or its value). */
+type Refusal = { message: string; paths: Path[] }
+
+const rowAt = (row: Row): Path => [{ _key: String(row._key) }]
+const valueAt = (row: Row): Path => [...rowAt(row), "value"]
+
+/** The rows are of languages of the platform, one row for each. */
+export const checkRows = (value: unknown): true | Refusal => {
+  const seen = new Set<string>()
+  for (const row of rowsOf(value)) {
+    const language = typeof row.language === "string" ? row.language : ""
+    if (!LANGUAGE_IDS.has(language)) return { message: language ? `"${language}" is not a language of the platform` : "A row has no language", paths: [rowAt(row)] }
+    if (seen.has(language)) return { message: "There can only be one row per language", paths: [rowAt(row)] }
+    seen.add(language)
+  }
+  return true
+}
+
+/** The rows are right, and a language has a value only if English has one too: it is what the others fall back on. A field with no value at all, or only English, is fine. */
+export const checkTranslations = (value: unknown): true | Refusal => {
+  const wrong = checkRows(value)
+  if (wrong !== true) return wrong
+  const rows = rowsOf(value)
+  const filled = rows.filter((row) => isFilled(row.value))
+  if (filled.length === 0 || filled.some((row) => row.language === DEFAULT_PLATFORM_LANGUAGE)) return true
+  const english = rows.find((row) => row.language === DEFAULT_PLATFORM_LANGUAGE)
+  return { message: "Fill English first: it is what every other language falls back on", paths: [valueAt(english ?? filled[0] ?? {})] }
+}
+
+/** The names of a document: the rows are right, and the name in English is the `name` of the document, so its row stays empty: there would be two English names to disagree. */
+export const checkNameTranslations = (value: unknown): true | Refusal => {
+  const wrong = checkRows(value)
+  if (wrong !== true) return wrong
+  const english = rowsOf(value).find((row) => row.language === DEFAULT_PLATFORM_LANGUAGE && isFilled(row.value))
+  return english ? { message: "English is the Name above: leave this row empty", paths: [valueAt(english)] } : true
 }

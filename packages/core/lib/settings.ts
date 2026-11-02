@@ -21,9 +21,9 @@ const FONT_WEIGHTS: Record<string, string> = {
 }
 
 // Credits of the original game, shown in the footer (empty: no adaptation notice)
-// authors: free text after "un jeu de", e.g. "Romaric Galonnier et Anthony Perone, illustré par Noëmie Chevalier"
+// authors: free text after "a game by", e.g. "Jane Martin and Paul Durand, illustrated by Alex Roy"
 export type Credits = {
-  /** In the language of the request (falls back to French) */
+  /** In the language of the request (falls back to English) */
   authors: string | null
   publisher: string | null
   publisherUrl: string | null
@@ -55,7 +55,7 @@ export type ThemeColors = { background: string; foreground: string; accent: stri
 
 export type SiteSettings = {
   title: string
-  /** In the language of the request (falls back to French) */
+  /** In the language of the request (falls back to English) */
   description: string
   /** Every language, as saved (or default): for the admin */
   descriptions: ByLocale<string>

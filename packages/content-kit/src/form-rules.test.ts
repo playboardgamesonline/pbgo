@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formProblems, studioTypes } from "./form-rules.ts"
+import { formProblems, pluginTypes, studioTypes } from "./form-rules.ts"
 import type { TypeDef, Types } from "./schema-check.ts"
 
 // The rules of the Studio forms, tried on small schemas of their own: a check that cannot fail proves nothing.
@@ -115,5 +115,27 @@ describe("studioTypes", () => {
     expect(() => studioTypes(undefined)).toThrow("no list of schema types")
     expect(() => studioTypes({})).toThrow("no list of schema types")
     expect(() => studioTypes({ schema: { types: () => [] } })).toThrow("no list of schema types")
+  })
+})
+
+describe("the types of the plugins", () => {
+  const stringArray = { name: "internationalizedArrayString", type: "array", of: [{ name: "internationalizedArrayStringValue", type: "internationalizedArrayStringValue" }] }
+  const stringRow = { name: "internationalizedArrayStringValue", type: "object", fields: [{ name: "value", type: "string" }] }
+
+  it("are the ones the plugins of the config register, and the ones their own plugins do", () => {
+    const config = { plugins: [{ name: "structure" }, { name: "translations", schema: { types: [stringArray] }, plugins: [{ name: "inner", schema: { types: [stringRow] } }] }] }
+    expect([...pluginTypes(config).keys()]).toEqual(["internationalizedArrayString", "internationalizedArrayStringValue"])
+  })
+
+  it("are none for a config without plugins, or a plugin that registers no type", () => {
+    expect(pluginTypes({}).size).toBe(0)
+    expect(pluginTypes({ plugins: [{ name: "structure" }, { schema: {} }] }).size).toBe(0)
+    expect(pluginTypes(undefined).size).toBe(0)
+  })
+
+  it("stay apart from the types of the Studio itself", () => {
+    const config = { schema: { types: [game()] }, plugins: [{ schema: { types: [stringArray] } }] }
+    expect([...studioTypes(config).keys()]).toEqual(["game"])
+    expect([...pluginTypes(config).keys()]).toEqual(["internationalizedArrayString"])
   })
 })

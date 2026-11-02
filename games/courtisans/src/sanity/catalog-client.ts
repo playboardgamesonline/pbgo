@@ -1,7 +1,7 @@
 import "server-only"
 import type { Family, Role } from "@courtisans/engine"
 import type { LoaderContext } from "@pbgo/core/lib/binding"
-import { type Locale, LOCALES, only } from "@pbgo/core/lib/i18n"
+import { type Locale, LOCALES, translate } from "@pbgo/core/lib/i18n"
 import { isMissing, missing } from "@pbgo/core/lib/missing"
 import { type SanityImageSource, urlFor } from "@pbgo/core/sanity/image"
 import { cardKey, type ClientCatalog, MISSING_CATALOG, type Vocabulary, WORD_FIELDS } from "../lib/catalog"
@@ -15,6 +15,7 @@ function reportMissing(slug: string, locale: Locale, catalog: ClientCatalog) {
     catalog.missionsButtonText,
     catalog.banquetStartText,
     ...Object.values(catalog.words),
+    ...Object.values(catalog.missionTexts),
     ...Object.values(catalog.families).map((family) => family.name),
     ...Object.values(catalog.roles).map((role) => role.name),
     ...(catalog.statusWords.light.length ? [] : [missing("statusLight")]),
@@ -45,7 +46,7 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       if (!key || !familiesMap[key]) continue
       familiesMap[key] = {
         ...familiesMap[key],
-        name: only(f.name, locale) ?? familiesMap[key].name,
+        name: translate(f.name, locale) ?? familiesMap[key].name,
         color: f.color ?? familiesMap[key].color,
         pictogramUrl: url(f.pictogram, 128),
       }
@@ -54,7 +55,7 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
     for (const r of roles) {
       const key = r.key as Role | undefined
       if (!key || !rolesMap[key]) continue
-      rolesMap[key] = { ...rolesMap[key], name: only(r.name, locale) ?? rolesMap[key].name, pictogramUrl: url(r.pictogram, 128) }
+      rolesMap[key] = { ...rolesMap[key], name: translate(r.name, locale) ?? rolesMap[key].name, pictogramUrl: url(r.pictogram, 128) }
     }
 
     const cards: Record<string, string> = { ...d.cards }
@@ -80,10 +81,11 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       blueMissionBackUrl: url(game?.blueMissionBack, 520),
       arrowUpUrl: url(game?.arrowUp, 256),
       arrowDownUrl: url(game?.arrowDown, 256),
-      missionTexts: Object.fromEntries(missions.flatMap((m) => (only(m.text, locale)?.trim() ? [[m._id, only(m.text, locale)!.trim()]] : []))),
-      missionsButtonText: only(texts?.missionsButton, locale)?.trim() || d.missionsButtonText,
-      banquetStartText: only(texts?.banquetStarts, locale)?.trim() || d.banquetStartText,
-      words: Object.fromEntries(WORD_FIELDS.map((field) => [field, only(texts?.[field], locale)?.trim() || missing(field)])) as Vocabulary,
+      // The language asked, else English, else the marker: no mission reads another language's text, French least of all
+      missionTexts: Object.fromEntries(missions.map((m) => [m._id, translate(m.text, locale)?.trim() || missing(`missions.${m._id}`)])),
+      missionsButtonText: translate(texts?.missionsButton, locale)?.trim() || d.missionsButtonText,
+      banquetStartText: translate(texts?.banquetStarts, locale)?.trim() || d.banquetStartText,
+      words: Object.fromEntries(WORD_FIELDS.map((field) => [field, translate(texts?.[field], locale)?.trim() || missing(field)])) as Vocabulary,
       // Mission texts name a status in whatever wording their author chose, in any language: the union of the languages is highlighted
       statusWords: {
         light: LOCALES.flatMap((l) => texts?.statusLight?.[l] ?? []),
