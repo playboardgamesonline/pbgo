@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Cancel01Icon, Loading03Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, Loading03Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { queueTime } from "../queue"
 import { cn } from "../utils"
@@ -37,7 +37,7 @@ type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "s
 }
 
 /**
- * The main button of a game's page, "Find a game" (its children, with the icon of a search). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
+ * The main button of a game's page, "Find a game" (its children, with no icon). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
  * a counter of the time waited with a cross that stops it, on the same fill; the cross takes the focus when it was the keyboard that pressed, and the button takes it back when the cross was pressed. A disabled button is
  * the one of a game that cannot be played yet, and has no counter.
  */
@@ -90,7 +90,6 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
       }}
       {...props}
     >
-      <HugeiconsIcon icon={Search01Icon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
       {children}
     </Button>
   )
