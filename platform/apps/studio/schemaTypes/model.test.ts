@@ -1,7 +1,7 @@
 import { studioTypes } from "@pbgo/content-kit/form-rules"
 import { describe, expect, it } from "vitest"
 import studio from "../sanity.config"
-import { ANNOUNCEMENT_TONES, CHANGELOG_KINDS, CREATOR_ROLES, GAME_KINDS, roleTitle } from "./constants"
+import { ANNOUNCEMENT_TONES, CHANGELOG_KINDS, CREATOR_ROLES, GAME_KINDS, roleTitle, TRANSLATED_FIELDS } from "./constants"
 
 // The model of the platform's Sanity project as it was agreed (PLT-19): these tests pin its shape, so that a type or a field cannot
 // change without somebody noticing that the hub (PLT-90) and the seed read it.
@@ -64,11 +64,11 @@ describe("a game", () => {
 
   it("is in seven tabs, from what it is to what is shown of it", () => {
     expect(tabs()).toEqual({
-      identity: ["name", "slug", "bggId", "kind", "baseGame", "order"],
+      identity: ["name", "names", "slug", "bggId", "kind", "baseGame", "order"],
       facts: ["playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "categories"],
       credits: ["creators", "publishers"],
       texts: ["tagline", "description"],
-      rules: ["rulesFr", "rulesEn", "rulesEs", "rulesDe"],
+      rules: ["rules"],
       visuals: ["cover", "logo", "icon", "background", "boxFront"],
       related: ["related"],
     })
@@ -78,9 +78,9 @@ describe("a game", () => {
     expect(typeOf("game").groups?.find((group) => group.default)?.name).toBe("identity")
   })
 
-  it("has a link to the rules in each of the languages of the platform, and no other text in several languages", () => {
-    expect(fieldNames("game").filter((name) => name.startsWith("rules"))).toEqual(["rulesFr", "rulesEn", "rulesEs", "rulesDe"])
-    expect(fieldNames("game").filter((name) => /^(description|tagline)/.test(name))).toEqual(["tagline", "description"])
+  it("has one link to the rules, translated like its texts: the four fields of the old model are gone", () => {
+    expect(fieldNames("game").filter((name) => name.startsWith("rules"))).toEqual(["rules"])
+    expect(fieldOf("game", "rules").type).toBe("internationalizedArrayUrl")
   })
 
   it("credits people with their roles on a line, and publishers apart: the list is not called credits", () => {
@@ -90,9 +90,9 @@ describe("a game", () => {
     expect(fieldOf("game", "publishers").of?.map((member) => member.type)).toEqual(["reference"])
   })
 
-  it("keeps a cover and the front of its box apart", () => {
-    expect(fieldOf("game", "cover").type).toBe("image")
-    expect(fieldOf("game", "boxFront").type).toBe("image")
+  it("keeps a cover and the front of its box apart, as two pictures a language can change", () => {
+    expect(fieldOf("game", "cover").type).toBe("internationalizedArrayImage")
+    expect(fieldOf("game", "boxFront").type).toBe("internationalizedArrayImage")
   })
 
   it("is related to other games by weak references, which the others are not: two games that name each other cannot be published otherwise", () => {
@@ -119,11 +119,11 @@ describe("an expansion", () => {
 
   it("is in six tabs, the ones of a game without Related", () => {
     expect(tabs()).toEqual({
-      identity: ["name", "slug", "baseGame", "bggId"],
+      identity: ["name", "names", "slug", "baseGame", "bggId"],
       facts: ["playersMin", "playersMax", "duration", "minAge", "releaseDate"],
       credits: ["creators", "publishers"],
       texts: ["description"],
-      rules: ["rulesFr", "rulesEn", "rulesEs", "rulesDe"],
+      rules: ["rules"],
       visuals: ["cover", "boxFront"],
     })
   })
@@ -144,9 +144,9 @@ describe("an expansion", () => {
     for (const field of ["kind", "order", "categories", "complexity", "related", "tagline", "logo", "icon", "background"]) expect(fieldNames("expansion"), field).not.toContain(field)
   })
 
-  it("has two pictures, the cover of the expansion and the front of its box", () => {
-    expect(fieldOf("expansion", "cover").type).toBe("image")
-    expect(fieldOf("expansion", "boxFront").type).toBe("image")
+  it("has two pictures, the cover of the expansion and the front of its box, which a language can change", () => {
+    expect(fieldOf("expansion", "cover").type).toBe("internationalizedArrayImage")
+    expect(fieldOf("expansion", "boxFront").type).toBe("internationalizedArrayImage")
   })
 
   it("credits people with their roles on a line and publishers apart, as a game does", () => {
@@ -178,9 +178,63 @@ describe("the other catalog documents", () => {
   it.each([
     ["creator", ["name", "photo", "website", "bggId"]],
     ["publisher", ["name", "website", "logo", "bggId"]],
-    ["category", ["name", "icon", "color", "description"]],
+    ["category", ["name", "names", "icon", "color", "description"]],
   ])("a %s has %j", (name, fields) => {
     expect(fieldNames(name)).toEqual(fields)
+  })
+})
+
+describe("the translated fields (PLT-104)", () => {
+  // the fields whose type is one of the plugin's arrays, by document type
+  const translatedOf = (type: string) => (typeOf(type).fields ?? []).filter((field) => field.type.startsWith("internationalizedArray")).map((field) => field.name)
+
+  it("are the ones TRANSLATED_FIELDS lists, which the seed writes and the migration converts: no field of the Studio is translated without it", () => {
+    for (const type of Object.keys(TRANSLATED_FIELDS)) expect(translatedOf(type).sort(), type).toEqual(Object.keys(TRANSLATED_FIELDS[type as keyof typeof TRANSLATED_FIELDS]).sort())
+    for (const name of types.keys()) if (!(name in TRANSLATED_FIELDS)) expect(translatedOf(name), name).toEqual([])
+  })
+
+  it("are of the kind TRANSLATED_FIELDS says", () => {
+    const kinds = { string: "internationalizedArrayString", url: "internationalizedArrayUrl", image: "internationalizedArrayImage", description: "internationalizedArrayDescription", localizedName: "internationalizedArrayLocalizedName" }
+    for (const [type, fields] of Object.entries(TRANSLATED_FIELDS)) {
+      for (const [name, kind] of Object.entries(fields)) expect([type, name, fieldOf(type, name).type]).toEqual([type, name, kinds[kind as keyof typeof kinds]])
+    }
+  })
+
+  it("leave the English name a plain text, the reference of the slug, the order and the search, and the names in the other languages beside it", () => {
+    for (const type of ["game", "expansion", "category"]) {
+      expect(fieldOf(type, "name").type, type).toBe("string")
+      expect(rulesOf(fieldOf(type, "name")), type).toContain("required")
+      expect(fieldOf(type, "names").type, type).toBe("internationalizedArrayLocalizedName")
+    }
+    expect((fieldOf("game", "slug") as { options?: { source?: string } }).options?.source).toBe("name")
+    expect((fieldOf("expansion", "slug") as { options?: { source?: string } }).options?.source).toBe("name")
+  })
+
+  it("leave the icon and the background plain pictures: what the languages share", () => {
+    expect(fieldOf("game", "icon").type).toBe("image")
+    expect(fieldOf("game", "background").type).toBe("image")
+    expect(fieldOf("category", "icon").type).toBe("image")
+  })
+
+  it("keep the options of the picture they were made from: the hotspot of a cover and of a background", () => {
+    const options = (type: string, name: string) => (fieldOf(type, name) as { options?: { hotspot?: boolean } }).options
+    expect(options("game", "cover")).toEqual({ hotspot: true })
+    expect(options("expansion", "cover")).toEqual({ hotspot: true })
+    expect(options("game", "background")).toEqual({ hotspot: true })
+  })
+
+  it("ask for nothing, and ask that a language be filled in only where English is: each one is under the rule of the translations, none is required", () => {
+    for (const [type, fields] of Object.entries(TRANSLATED_FIELDS)) {
+      for (const name of Object.keys(fields)) {
+        expect(rulesOf(fieldOf(type, name)), `${type}.${name}`).toContain("custom")
+        expect(rulesOf(fieldOf(type, name)), `${type}.${name}`).not.toContain("required")
+      }
+    }
+  })
+
+  it("have no field of the old model left: no rules link per language, nothing named after a language", () => {
+    for (const type of ["game", "expansion"]) expect(fieldNames(type).filter((name) => /^rules.+/.test(name))).toEqual([])
+    for (const type of ["game", "expansion", "category"]) expect(fieldNames(type).filter((name) => /(Fr|En|Es|De)$/.test(name))).toEqual([])
   })
 })
 

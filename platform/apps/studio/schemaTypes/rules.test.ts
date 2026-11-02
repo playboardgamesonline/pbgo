@@ -1,6 +1,6 @@
 import type { ValidationContext } from "sanity"
 import { describe, expect, it } from "vitest"
-import { checkCreatorsOnce, checkEndsAfterStart, checkName, checkNotItself, checkPlayersMax, checkSlug } from "./rules"
+import { checkCreatorsOnce, checkEndsAfterStart, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkRows, checkSlug, checkTranslations, isFilled } from "./rules"
 
 /** What the Studio hands a rule: the document being edited, which is not there when a seed checks the rule. */
 const within = (document?: Record<string, unknown>) => ({ document }) as unknown as ValidationContext
@@ -93,5 +93,100 @@ describe("checkEndsAfterStart", () => {
     expect(checkEndsAfterStart(undefined, within({ startsAt: "2026-10-30T10:00:00Z" }))).toBe(true)
     expect(checkEndsAfterStart("2026-10-29T10:00:00Z", within({}))).toBe(true)
     expect(checkEndsAfterStart("2026-10-29T10:00:00Z", within())).toBe(true)
+  })
+})
+
+// The translated fields: rows `{ _key, language, value }`, a row per language.
+const row = (language: string, value?: unknown) => ({ _key: language, _type: "internationalizedArrayStringValue", language, ...(value === undefined ? {} : { value }) })
+const picture = (id = "image-abc-10x10-webp") => ({ _type: "image", asset: { _type: "reference", _ref: id } })
+
+describe("isFilled", () => {
+  it("is true for a text that is not blank and for a picture that has its file", () => {
+    expect(isFilled("A game")).toBe(true)
+    expect(isFilled(picture())).toBe(true)
+  })
+
+  it("is false for nothing, a blank text, and a picture without a file (a hotspot alone)", () => {
+    for (const value of [undefined, null, "", "   ", {}, { _type: "image" }, { _type: "image", hotspot: { x: 0.5, y: 0.5 } }, { _type: "image", asset: { _type: "reference" } }, { _type: "image", asset: { _ref: "" } }]) {
+      expect(isFilled(value), JSON.stringify(value)).toBe(false)
+    }
+  })
+})
+
+describe("checkRows", () => {
+  it("accepts no rows, and one row for each of the languages of the platform", () => {
+    expect(checkRows(undefined)).toBe(true)
+    expect(checkRows([])).toBe(true)
+    expect(checkRows([row("en", "A"), row("fr", "B"), row("ko", "C")])).toBe(true)
+  })
+
+  it("refuses a language the platform does not have, and says which row it is", () => {
+    expect(checkRows([row("en", "A"), row("it", "B")])).toEqual({ message: '"it" is not a language of the platform', paths: [[{ _key: "it" }]] })
+  })
+
+  it("refuses a row with no language, the old format of the plugin", () => {
+    expect(checkRows([{ _key: "en", value: "A" }])).toEqual({ message: "A row has no language", paths: [[{ _key: "en" }]] })
+  })
+
+  it("refuses two rows of one language, and points at the second", () => {
+    expect(checkRows([row("en", "A"), { ...row("fr", "B"), _key: "first" }, { ...row("fr", "C"), _key: "second" }])).toEqual({ message: "There can only be one row per language", paths: [[{ _key: "second" }]] })
+  })
+})
+
+describe("checkTranslations", () => {
+  it("accepts a field with no value, an empty English row (the one every field has), and English alone", () => {
+    expect(checkTranslations(undefined)).toBe(true)
+    expect(checkTranslations([row("en")])).toBe(true)
+    expect(checkTranslations([row("en", "A game")])).toBe(true)
+  })
+
+  it("accepts other languages once English has a value, in any order of the rows", () => {
+    expect(checkTranslations([row("en", "A game"), row("fr", "Un jeu"), row("ja", "ゲーム")])).toBe(true)
+    expect(checkTranslations([row("fr", "Un jeu"), row("en", "A game")])).toBe(true)
+  })
+
+  it("refuses a language that has a value when English has none, and points at the value of English", () => {
+    expect(checkTranslations([row("en"), row("fr", "Un jeu")])).toEqual({ message: "Fill English first: it is what every other language falls back on", paths: [[{ _key: "en" }, "value"]] })
+    expect(checkTranslations([row("en", "   "), row("fr", "Un jeu")])).toMatchObject({ paths: [[{ _key: "en" }, "value"]] })
+  })
+
+  it("points at the first value when there is no row of English at all", () => {
+    expect(checkTranslations([row("es", "Un juego"), row("fr", "Un jeu")])).toMatchObject({ paths: [[{ _key: "es" }, "value"]] })
+  })
+
+  it("accepts empty rows of other languages, with a value in English or with none at all", () => {
+    expect(checkTranslations([row("en", "A"), row("fr")])).toBe(true)
+    expect(checkTranslations([row("en"), row("fr")])).toBe(true)
+  })
+
+  it("holds for pictures as for texts: a file in French needs one in English", () => {
+    expect(checkTranslations([row("en", picture()), row("fr", picture("image-def-20x20-png"))])).toBe(true)
+    expect(checkTranslations([row("en", { _type: "image" }), row("fr", picture())])).toMatchObject({ message: expect.stringContaining("Fill English first") })
+  })
+
+  it("keeps the rules of the rows: a language that is not one, a language twice", () => {
+    expect(checkTranslations([row("en", "A"), row("xx", "B")])).toMatchObject({ message: '"xx" is not a language of the platform' })
+    expect(checkTranslations([row("en", "A"), { ...row("en", "B"), _key: "again" }])).toMatchObject({ message: "There can only be one row per language" })
+  })
+
+  it("is not fooled by what is not a list of rows", () => {
+    expect(checkTranslations("a text")).toBe(true)
+    expect(checkTranslations([null, "x", 3])).toBe(true)
+  })
+})
+
+describe("checkNameTranslations", () => {
+  it("accepts names in the other languages, and an empty row of English", () => {
+    expect(checkNameTranslations(undefined)).toBe(true)
+    expect(checkNameTranslations([row("en")])).toBe(true)
+    expect(checkNameTranslations([row("en"), row("fr", "Les Loups-garous de Thiercelieux"), row("ja", "汝は人狼なりや？")])).toBe(true)
+  })
+
+  it("refuses a name in English: the English name is the Name of the document", () => {
+    expect(checkNameTranslations([row("en", "Werewolves")])).toEqual({ message: "English is the Name above: leave this row empty", paths: [[{ _key: "en" }, "value"]] })
+  })
+
+  it("keeps the rules of the rows", () => {
+    expect(checkNameTranslations([row("en"), row("fr", "A"), { ...row("fr", "B"), _key: "again" }])).toMatchObject({ message: "There can only be one row per language" })
   })
 })

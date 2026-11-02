@@ -1,15 +1,16 @@
 import { MAX_SLUG_LENGTH, slugFromName } from "@pbgo/games/slug"
-import { LANGUAGES } from "@pbgo/studio-kit/constants"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
 import { defineArrayMember, defineField, defineType, type PreviewValue } from "sanity"
 import { GAME_KINDS } from "./constants"
-import { checkCreatorsOnce, checkName, checkNotItself, checkPlayersMax, checkSlug } from "./rules"
-
-const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
+import { checkCreatorsOnce, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkSlug, checkTranslations } from "./rules"
+import { translated } from "./translations"
 
 /**
  * A game of the catalog: what the hub lists and shows of it, live or to come. Its tabs run from what it is to what is shown of it.
- * The texts are in English for now (the translation system of Sanity comes later); only the links to the rules are per language.
+ * What is said or shown of it in a language is translated field by field (PLT-104): its tagline, its description, its link to the rules,
+ * its logo, its cover, the front of its box and its name (`TRANSLATED_FIELDS`), each an array of rows with a language, English first. The
+ * English `name` stays a plain text, the reference of the slug, the order and the search; `names` holds it in the other languages.
+ * The rest (the figures, the credits, the references, the icon and the background) is the same in every language.
  */
 export const game = defineType({
   name: "game",
@@ -28,6 +29,13 @@ export const game = defineType({
   fields: [
     // Identity
     defineField({ name: "name", title: "Name", type: "string", group: "identity", validation: (rule) => rule.required().custom(checkName) }),
+    defineField({
+      name: "names",
+      title: "Name in other languages (English: the name above)",
+      type: translated("localizedName"),
+      group: "identity",
+      validation: (rule) => rule.custom(checkNameTranslations),
+    }),
     defineField({
       name: "slug",
       title: "Slug",
@@ -97,19 +105,19 @@ export const game = defineType({
       validation: (rule) => rule.unique(),
     }),
 
-    // Texts
-    defineField({ name: "tagline", title: "Tagline", type: "string", group: "texts" }),
-    defineField({ name: "description", title: "Description", type: "text", rows: 8, group: "texts" }),
+    // Texts: a row per language, English first
+    defineField({ name: "tagline", title: "Tagline", type: translated("string"), group: "texts", validation: (rule) => rule.custom(checkTranslations) }),
+    defineField({ name: "description", title: "Description", type: translated("description"), group: "texts", validation: (rule) => rule.custom(checkTranslations) }),
 
-    // Rules: the one multilingual field, a link per language
-    ...LANGUAGES.map(({ id }) => defineField({ name: `rules${capitalized(id)}`, title: `Rules link (${id.toUpperCase()})`, type: "url", group: "rules" })),
+    // Rules: a link per language
+    defineField({ name: "rules", title: "Rules link", type: translated("url"), group: "rules", validation: (rule) => rule.custom(checkTranslations) }),
 
-    // Visuals
-    defineField({ name: "cover", title: "Cover", type: "image", options: { hotspot: true }, group: "visuals" }),
-    defineField({ name: "logo", title: "Logo", type: "image", group: "visuals" }),
+    // Visuals: the cover, the logo and the front of the box can differ by language (a title written in it); the icon and the background do not
+    defineField({ name: "cover", title: "Cover", type: translated("image"), options: { hotspot: true }, group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
+    defineField({ name: "logo", title: "Logo", type: translated("image"), group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
     defineField({ name: "icon", title: "Icon", type: "image", group: "visuals" }),
     defineField({ name: "background", title: "Background", type: "image", options: { hotspot: true }, group: "visuals" }),
-    defineField({ name: "boxFront", title: "Box (front)", type: "image", group: "visuals" }),
+    defineField({ name: "boxFront", title: "Box (front)", type: translated("image"), group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
 
     // Related
     defineField({
@@ -123,7 +131,7 @@ export const game = defineType({
     }),
   ],
   preview: {
-    select: { title: "name", slug: "slug.current", kind: "kind", media: "logo" },
+    select: { title: "name", slug: "slug.current", kind: "kind", media: "logo.0.value" },
     prepare: ({ title, slug, kind, media }: { title?: string; slug?: string; kind?: string; media?: PreviewValue["media"] }) => ({
       title: title ?? "Untitled game",
       subtitle: [slug, kind && kind !== "game" ? kind : undefined].filter(Boolean).join(" · "),

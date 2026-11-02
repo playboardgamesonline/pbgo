@@ -12,6 +12,9 @@ import { notionExpansion, notionGame, publisherRow, seedDocs, source } from "./t
 const link = (id: string, type: string, weak = false) => ({ _type: "reference", _ref: id, _weak: true, _strengthenOnPublish: weak ? { type, weak: true } : { type } })
 const listed = (id: string, type: string, weak = false) => ({ _key: id, ...link(id, type, weak) })
 
+/** A row of a translated field as the seed writes it: its key is its language. */
+const row = (type: string, language: string, value: string) => ({ _key: language, _type: `internationalizedArray${type}Value`, language, value })
+
 const byId = (id: string) => {
   const found = seedDocs().find((doc) => doc._id === id)
   if (!found) throw new Error(`The seed has no document ${id}`)
@@ -154,13 +157,24 @@ describe("a game", () => {
     expect(byId("game-the-mind").creators).toEqual([{ _key: "creator-wolfgang-warsch", _type: "gameCreator", creator: link("creator-wolfgang-warsch", "creator"), roles: ["designer"] }])
   })
 
-  it("takes the English description only, and a link to the rules in each language that has one", () => {
+  it("takes its description and its link to the rules in each language its row has them in: a row for each, English first, the key of a row being its language", () => {
     const doc = byId("game-hanabi")
-    expect(doc.description).toBe("A cooperative card game in which nobody sees their own cards.")
-    expect(doc.rulesFr).toBe("https://example.com/hanabi-fr.pdf")
-    expect(doc.rulesEn).toBe("https://example.com/hanabi-en.pdf")
-    expect("rulesEs" in doc || "rulesDe" in doc).toBe(false)
-    expect(Object.keys(doc).filter((key) => /^description./.test(key))).toEqual([])
+    expect(doc.description).toEqual([
+      row("Description", "en", "A cooperative card game in which nobody sees their own cards."),
+      row("Description", "fr", "Un jeu de cartes coopératif."),
+    ])
+    expect(doc.rules).toEqual([row("Url", "en", "https://example.com/hanabi-en.pdf"), row("Url", "fr", "https://example.com/hanabi-fr.pdf")])
+  })
+
+  it("has no field of the old model: no link to the rules per language", () => {
+    for (const key of ["rulesFr", "rulesEn", "rulesEs", "rulesDe"]) expect(key in byId("game-hanabi"), key).toBe(false)
+  })
+
+  it("writes no row for a language its row leaves empty, and no empty row of English: that is for the Studio", () => {
+    expect(byId("game-the-mind")).not.toHaveProperty("description")
+    expect(byId("game-the-mind")).not.toHaveProperty("rules")
+    const { docs } = buildSeedContent({ games: [notionGame("a", { descriptions: { fr: "Un jeu.", de: "" }, rules: { es: "https://example.com/es.pdf" } })], publishers: [] })
+    expect(docs.find((doc) => doc._id === "game-a")).toMatchObject({ description: [row("Description", "fr", "Un jeu.")], rules: [row("Url", "es", "https://example.com/es.pdf")] })
   })
 
   it("writes no tagline, no cover, no box and no status: Notion has none of them, and the status stays in the registry", () => {
@@ -263,11 +277,11 @@ describe("an expansion", () => {
     expect(byId("creator-ada-marsh")).toEqual({ _id: "creator-ada-marsh", _type: "creator", name: "Ada Marsh" })
   })
 
-  it("takes the English description only, and a link to the rules in each language that has one", () => {
+  it("takes its description and its link to the rules in each language its row has them in, as a game does", () => {
     const doc = byId("expansion-hanabi-extra")
-    expect(doc.description).toBe("Rainbow fireworks join the deck.")
-    expect(doc.rulesEn).toBe("https://example.com/hanabi-extra-en.pdf")
-    expect("rulesFr" in doc || "rulesEs" in doc || "rulesDe" in doc).toBe(false)
+    expect(doc.description).toEqual([row("Description", "en", "Rainbow fireworks join the deck."), row("Description", "fr", "Des feux d'artifice arc-en-ciel.")])
+    expect(doc.rules).toEqual([row("Url", "en", "https://example.com/hanabi-extra-en.pdf")])
+    for (const key of ["rulesFr", "rulesEn", "rulesEs", "rulesDe"]) expect(key in doc, key).toBe(false)
   })
 
   it("has nothing that places a game on the hub, nor a picture: no kind, order, categories, complexity, related, tagline, cover or box", () => {
@@ -371,7 +385,10 @@ describe("the art slots", () => {
       const doc = docs.find((candidate) => candidate._id === slot.docId)
       if (!doc) throw new Error(`No document for ${slot.name}`)
       slot.place(doc, image)
-      expect(doc[slot.name.split("-").at(-1) ?? ""], slot.name).toEqual(image)
+      const field = doc[slot.name.split("-").at(-1) ?? ""]
+      // the logo of a game is translated (PLT-104): Notion's is the English one; the icon, the background and a publisher's logo are plain pictures
+      if (slot.name.startsWith("game-") && slot.name.endsWith("-logo")) expect(field, slot.name).toEqual([{ _key: "en", _type: "internationalizedArrayImageValue", language: "en", value: image }])
+      else expect(field, slot.name).toEqual(image)
     }
   })
 
