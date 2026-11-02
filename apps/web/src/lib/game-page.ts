@@ -1,6 +1,6 @@
 import "server-only"
 import { cache } from "react"
-import { creditLines, pickLocalized, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
+import { bggUrl, creditLines, pickLocalized, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
 import { gameSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
@@ -27,10 +27,14 @@ export type GamePage = {
   duration: string | null
   /** Worded like the two above, drawn beside them ("Ages 8+"). */
   age: string | null
+  /** The year the game came out, worded the same way ("Released 2024"): a year is all the Studio's date says for sure. */
+  released: string | null
   /** The credits one after the other: a line for each role somebody has on the game (designers, artists…), then the publishers; only the lines that have a value. */
   facts: GameFact[]
-  /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no rulebook area. */
+  /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no button for the rules. */
   rulebooks: GameRulebook[]
+  /** The game's page on BoardGameGeek. Null when the Studio has no id for it there: the page has no such button. */
+  bgg: string | null
   /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
   picture: Pick<GameCardVisualProps, "logo" | "background">
   /** The games the catalog recommends with this one (docs/catalog.md), the most relevant first (its family, then the games that look like it), each as the props of its card. Empty: the page has no such section. */
@@ -61,6 +65,7 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
 function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale): GamePage {
   const { game } = entry
   const description = pickLocalized(game.descriptions, locale)
+  const year = releaseYear(game)
   return {
     slug: entry.slug,
     name: game.name,
@@ -69,8 +74,10 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     players: playersLabel(game.players) ?? null,
     duration: durationLabel(game.duration) ?? null,
     age: game.age === null ? null : `Ages ${game.age}+`,
+    released: year === null ? null : `Released ${year}`,
     facts: creditLines(game),
     rulebooks: rulebooks(game.rules, locale, game.name),
+    bgg: bggUrl(game),
     picture: gamePicture(game),
     related: entry.related.flatMap((slug) => {
       const related = entries.find((candidate) => candidate.slug === slug)

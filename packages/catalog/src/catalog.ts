@@ -117,6 +117,19 @@ export function publisherIconUrl(game: Pick<CatalogGame, "slug" | "publishers">,
   return website ? `/api/catalog/${game.slug}/publisher-${index}?v=${iconVersion(website)}` : null
 }
 
+/** The address of a game's page on BoardGameGeek, from its id there; null when the game has none. BoardGameGeek sends that short address to the page with the game's name in it. */
+export function bggUrl(game: Pick<CatalogGame, "bggId">): string | null {
+  return game.bggId === null ? null : `https://boardgamegeek.com/boardgame/${game.bggId}`
+}
+
+/**
+ * The year a game came out, four digits, or null. A year is all that the date says for sure: the Studio keeps a day, and takes the first of January (or of the month) when it knows
+ * less, so the day is never shown.
+ */
+export function releaseYear(game: Pick<CatalogGame, "releaseDate">): string | null {
+  return game.releaseDate === null ? null : game.releaseDate.slice(0, 4)
+}
+
 /** One line of the credits of a game's page: what the people are to it, and who they are. A publisher whose row has a website is a link to it, with its icon. */
 export type CreditLine = { label: string; values: { text: string; href?: string; icon?: string }[] }
 

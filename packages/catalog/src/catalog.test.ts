@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CREATOR_ROLES } from "@pbgo/studio-kit/constants"
-import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, sharePicture } from "./catalog"
+import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, bggUrl, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
 import { catalogGame, cdn, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -268,6 +268,30 @@ describe("compareGames", () => {
 
   it("keeps the names that differ only by case or accents in the order they came in", () => {
     expect(order(catalogGame("first", { name: "Echecs" }), catalogGame("second", { name: "échecs" }))).toEqual(["first", "second"])
+  })
+})
+
+describe("bggUrl", () => {
+  it("is the page of the game on BoardGameGeek, from its id", () => {
+    expect(bggUrl(catalogGame("hanabi", { bggId: 98778 }))).toBe("https://boardgamegeek.com/boardgame/98778")
+  })
+
+  it("is null for a game that has no id there: no search is made up in its place", () => {
+    expect(bggUrl(catalogGame("omens"))).toBeNull()
+  })
+})
+
+describe("releaseYear", () => {
+  it.each([
+    ["2024-03-15", "2024"],
+    ["2010-01-01", "2010"],
+    ["1999-12-31", "1999"],
+  ])("is the year of %s: %s, whatever the day, which may only be the first of the month or of the year", (releaseDate, year) => {
+    expect(releaseYear(catalogGame("a", { releaseDate }))).toBe(year)
+  })
+
+  it("is null for a game that has no date", () => {
+    expect(releaseYear(catalogGame("a"))).toBeNull()
   })
 })
 

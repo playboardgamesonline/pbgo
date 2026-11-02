@@ -133,6 +133,31 @@ The lines of a game's page, as it draws them: names for the designers and the ar
 credit-link-in-the-credits-of-a-game
 ```
 
+## Game head
+
+`GameHead` (`apps/web/src/components/game-head.tsx`) is the top of a game's page on the hub, the first thing a visitor sees. On the left, the name; under it the game's figures on one line, each with a small icon, the players, how long, from what age and the year it came out ("Released 2024": the Studio keeps a day but takes the first of the month or of the year when it knows less, so only the year is said); the description; a row of buttons; and, under a hairline, the credits (`CreditLink` for a publisher's website). On the right, the picture of the game's card drawn larger. Every figure, the description and the credits are drawn only when the Studio has them, and nothing is written in place of one that is missing.
+
+The row has two groups, with the room of a button between them:
+
+- **What the page is for**: "Find a game", a secondary button that leads to the open tables, and "Create a game", the primary one (the white fill of the page) that leads to the space that opens a lobby (`FIND_ANCHOR` and `CREATE_ANCHOR` of `game-play.tsx`, the names that `GamePlay` gives them on the page, since a name is one per page; the target stops under the fixed navbar, `scroll-mt-navbar`). On a wide screen the two are side by side, so the two buttons bring the same block into view; on a narrow screen the space comes first and the list after it, so each goes to its own. A game that is not live has both disabled: there is nothing to play yet.
+- **Where to read more**, kept for a game to come: "Rules" and "BoardGameGeek", outline buttons with an arrow up-right for a link that leaves the page. The rules are the rulebooks of the Studio (`RulesButton`, `apps/web/src/components/rules-button.tsx`): with one language the button is the link, which opens the PDF in a new tab, and with several it opens a menu with a row for each, the visitor's language first, a chip with the language's code (EN, FR, ES, DE; hidden from screen readers, the link carries the `lang`) then the title in that language ("Règles du jeu - Flip 7"). BoardGameGeek is `https://boardgamegeek.com/boardgame/<id>` from the game's BGG id (`bggUrl` of `@pbgo/catalog`); a game that has none has no such button, and no search is made up in its place. A game with neither has no second group. A shop that sells the game, a partner's, would be a third button there: nothing is built, there is no data for it.
+
+On a narrow screen the head is one column and the groups wrap, so the picture comes between the buttons and the credits.
+
+### A live game
+
+```specimen
+game-head-a-live-game
+```
+
+### A game to come, and one with little data
+
+The first has both buttons disabled and one rulebook, so its rules are a link and not a menu. The second is a game the Studio knows little of: only its name and its players.
+
+```specimen
+game-head-a-game-to-come-and-one-with-little
+```
+
 ## Table card
 
 Module: `@pbgo/ui/platform/table-card`
