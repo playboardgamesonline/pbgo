@@ -1,4 +1,5 @@
 import { ordinal } from "@pbgo/accounts"
+import { PLATFORM_LANGUAGES } from "@pbgo/accounts/language"
 import type { LeaderboardRow } from "@pbgo/ui/leaderboard"
 import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
@@ -12,6 +13,9 @@ import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTim
 // that picks what a leaderboard row shows of a standing. The components of `@pbgo/ui` draw what they are given; the docs' specimens run their demo rows through these functions too, so that they show what the page will.
 
 /** The pace of a table, when it is worth saying: a table with a clock on every turn, or one that leaves days to play. The usual pace (`normal`, `none`) is not said. */
+/** The languages a lobby may ask its players to speak: the platform's twelve, each as its own name (a lobby's settings offer them, `LobbySettings`). */
+export const LANGUAGE_OPTIONS = PLATFORM_LANGUAGES.map(({ id, title }) => ({ value: id, label: title }))
+
 const PACE: Partial<Record<TurnTimer, string>> = { fast: "Fast turns", async: "Async" }
 
 /** The seats of a table, in order: each person with their name, tag, picture, record and whether they opened it, `null` for a seat nobody took. */
@@ -99,8 +103,8 @@ export function leaderboardRow(standing: Standing): LeaderboardRow {
 
 /**
  * What the panel says of a table: the one a visitor sits at (`mine`: "Your lobby", with, while it waits, a button that cannot be pressed and says how many have joined of those expected, which the one who opened it replaces with the page's button that starts the game (`editable`), and, for a game in play, a button back into it) or one they picked in the list of the open tables (its host's name, with the button that fits what they may do there: Join, or
- * Full, which cannot be pressed). It is the table's age and code, its people with their names, its settings at the bottom (the expansions of the game, `expansions`, and which of them the table is played with; how fast; and, for the visitor's own
- * lobby, who may find it) and where it leads. `editable` is for a lobby that the visitor opened and still waits: they set it, and the others only read. `now` is when its age is counted from.
+ * Full, which cannot be pressed). It is the table's age and code, its people with their names, its settings at the bottom (the expansions of the game, `expansions`, and which of them the table is played with; how fast), for the visitor's own
+ * lobby who may find it, at the top right, and where it leads. `editable` is for a lobby that the visitor opened and still waits: they set it, and the others only read. `now` is when its age is counted from.
  */
 export function tableDetailProps(table: GameTable, slug: string, now: number = Date.now(), mine = false, expansions: readonly Expansion[] = [], editable = false): Omit<LobbyDetailProps, "onClose"> {
   const state: TableState = table.status === "lobby" ? "waiting" : "playing"
@@ -118,8 +122,10 @@ export function tableDetailProps(table: GameTable, slug: string, now: number = D
       expansions,
       chosen: table.expansions,
       pace: table.turnTimer,
-      ...(editable ? { editable: true, visibility: table.visibility } : {}),
+      ...(editable ? { editable: true, languages: LANGUAGE_OPTIONS } : {}),
     },
+    // Who may find a lobby is for its host to set, at the top of the panel: every other table is read
+    ...(editable ? { visibility: table.visibility } : {}),
     action: mine
       ? state === "playing"
         ? { label: "Rejoin your game", href }

@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/pl
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { Leaderboard } from "@pbgo/ui/platform/leaderboard"
 import { LobbySettings } from "@pbgo/ui/platform/lobby-settings"
+import { LobbyAccess, LobbyVisibility } from "@pbgo/ui/platform/lobby-visibility"
 import { OpenSeat } from "@pbgo/ui/platform/open-seat"
 import { RankBadge } from "@pbgo/ui/platform/rank-badge"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
@@ -21,6 +22,7 @@ import { TableEntries, TableEntry } from "@pbgo/ui/platform/table-entry"
 import { UserCard } from "@pbgo/ui/platform/user-card"
 import { TIERS, type Division, type Rank } from "@pbgo/ui/ranks"
 import { seatsOf, type PlayerRecord } from "@pbgo/ui/tables"
+import { GameCredits, type GameCreditsProps } from "@/components/game-credits"
 import { GameHead, type GameHeadProps } from "@/components/game-head"
 import { GameHistory } from "@/components/game-history"
 import { GameLeaderboard } from "@/components/game-leaderboard"
@@ -28,7 +30,7 @@ import { GameLobby } from "@/components/game-lobby"
 import { GamePlay } from "@/components/game-play"
 import { GameStats } from "@/components/game-stats"
 import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TablePlayer, ViewerTable } from "@/lib/game-activity"
-import { leaderboardRow, statFigures, tableCardProps, tableDetailProps, tableEntryProps } from "@/lib/game-activity-props"
+import { LANGUAGE_OPTIONS, leaderboardRow, statFigures, tableCardProps, tableDetailProps, tableEntryProps } from "@/lib/game-activity-props"
 import { ClosableDetail } from "./lobby-detail-specimen"
 import { Fit } from "./scaled"
 import { Frame } from "./text"
@@ -337,7 +339,7 @@ function OpenSeatJoinAndInvite() {
   )
 }
 
-/** What the head of an imagined game's page shows: the categories, the figures and the description, the credits with the year, the rules in two languages, a link to buy the game and BoardGameGeek's icon with the game's page there. Its picture is the plain frame of a game that has none. */
+/** What the head of an imagined game's page shows: the categories, the figures and the description, and the rules in two languages. Its picture is the plain frame of a game that has none. */
 const HEAD: GameHeadProps = {
   slug: "a-game",
   name: "A game",
@@ -352,26 +354,30 @@ const HEAD: GameHeadProps = {
     { name: "Alliances", href: "#alliances" },
     { name: "Betrayal", href: "#betrayal" },
   ],
+  rulebooks: [
+    { language: "en", label: "Rulebook - A game", href: "#rulebook-en" },
+    { language: "fr", label: "Règles du jeu - A game", href: "#rulebook-fr" },
+  ],
+  picture: {},
+}
+
+/** What the credits of an imagined game show: the roles, the publisher with a website, the year, a link to buy the game and BoardGameGeek's icon with the game's page there. */
+const CREDITS: GameCreditsProps = {
   facts: [
     { label: "Designers", values: [{ text: "Ada Lovelace" }, { text: "Grace Hopper" }] },
     { label: "Artist", values: [{ text: "Édith Piaf" }] },
     { label: "Publisher", values: [{ text: "A Publisher", href: "https://example.com" }] },
     { label: "Released", values: [{ text: "2024" }] },
   ],
-  rulebooks: [
-    { language: "en", label: "Rulebook - A game", href: "#rulebook-en" },
-    { language: "fr", label: "Règles du jeu - A game", href: "#rulebook-fr" },
-  ],
   // The icon is the real one, served by the catalog route for a game that has an id there: this game has none in the catalog, so the address is another game's
   bgg: { href: "https://boardgamegeek.com/boardgame/39856", icon: bggIconUrl({ slug: "azul", bggId: 230802 })! },
   shop: "https://example.com/shop/a-game",
-  picture: {},
 }
 
 function GameHeadALiveGame() {
   return (
     <Frame
-      code={`// A live game: under the credits, a link to buy the game when the Studio has a shop's page for it and BoardGameGeek's icon when it has the game's id. Then the big buttons:
+      code={`// A live game: the way back at the top of the left column, the rest at its foot, level with the picture's: the name, the figures, the description, the categories and the three main buttons.
 // "Find a game" starts a queue, "Create a game" leads to the space that opens a lobby, and the rules are a picto beside them (a menu when the game has several languages, a link when it has one)
 <GameHead {...game} />`}
     >
@@ -386,18 +392,61 @@ function GameHeadAGameToComeAndOneWithLittle() {
   return (
     <Frame
       className="flex flex-col gap-12"
-      code={`// A game to come: "Coming soon" beside the name, the two big buttons disabled, the credits and the rules stay (here one rulebook, so the picto is a link)
+      code={`// A game to come: "Coming soon" beside the name, the two big buttons disabled, the rules stay (here one rulebook, so the picto is a link)
 <GameHead {...game} live={false} rulebooks={[rulebook]} />
 
 // A game the Studio knows little of: what it has is drawn, nothing is written in place of the rest
-<GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} shop={null} picture={{}} />`}
+<GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} rulebooks={[]} picture={{}} />`}
     >
       <Fit width={PAGE}>
         <GameHead {...HEAD} live={false} rulebooks={HEAD.rulebooks.slice(0, 1)} />
       </Fit>
       <Fit width={PAGE}>
-        <GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} shop={null} picture={{}} />
+        <GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} rulebooks={[]} picture={{}} />
       </Fit>
+    </Frame>
+  )
+}
+
+function GameCreditsTheCreditsOfAGame() {
+  return (
+    <Frame
+      className="flex flex-col gap-12"
+      code={`// The credits of a game, lower on its page: a line for each role, the publisher with its website and the year, then, under the lines, a link to buy the game when the Studio has a shop's page for it and BoardGameGeek's icon when it has the game's id
+<GameCredits {...game} />
+
+// A game the Studio has no shop's page and no BoardGameGeek id for: its lines alone. With none of the three the section is not drawn
+<GameCredits facts={game.facts} bgg={null} shop={null} />`}
+    >
+      <Fit width={PAGE}>
+        <GameCredits {...CREDITS} />
+      </Fit>
+      <Fit width={PAGE}>
+        <GameCredits facts={CREDITS.facts} bgg={null} shop={null} />
+      </Fit>
+    </Frame>
+  )
+}
+
+function LobbyVisibilityPublicAndPrivate() {
+  const note = "flex flex-col items-center gap-2 text-sm text-muted-foreground"
+  return (
+    <Frame
+      className="flex flex-wrap items-start gap-12"
+      code={`<LobbyVisibility />                          // a lobby that is about to be opened: public
+<LobbyVisibility defaultValue="private" />   // the visitor's own lobby, which they made private
+
+// Around a panel, LobbyAccess keeps the choice for the toggle and for the criteria of the settings, which only a public lobby asks for
+<LobbyAccess defaultVisibility="public">…</LobbyAccess>`}
+    >
+      <div className={note}>
+        <LobbyVisibility />
+        Public
+      </div>
+      <div className={note}>
+        <LobbyVisibility defaultValue="private" />
+        Private
+      </div>
     </Frame>
   )
 }
@@ -406,14 +455,19 @@ function LobbySettingsSetAndRead() {
   return (
     <Frame
       className="grid gap-6 md:grid-cols-2"
-      code={`// A lobby the visitor opened: they choose the expansions and the speed. An expansion is its cover, the front of its box when it has no cover, its initials when it has neither
-<LobbySettings expansions={expansions} chosen={["first"]} pace="normal" visibility="public" editable />
+      code={`// A lobby the visitor opened: they choose the expansions and the speed, and, while it is public (the toggle at the top of the panel, which the LobbyAccess around it shares), the minimum rank and the language.
+// An expansion is its cover, the front of its box when it has no cover, its initials when it has neither
+<LobbyAccess defaultVisibility="public">
+  <LobbySettings expansions={expansions} chosen={["first"]} pace="normal" languages={languages} editable />
+</LobbyAccess>
 
 // A table of the list: only what it is played with, and how fast
 <LobbySettings expansions={expansions} chosen={table.expansions} pace={table.turnTimer} />`}
     >
       <div className="rounded-4xl bg-card p-8 shadow-surface ring-1 ring-foreground/10">
-        <LobbySettings expansions={[...EXPANSIONS, BARE_EXPANSION]} chosen={["first"]} pace="normal" visibility="public" editable />
+        <LobbyAccess defaultVisibility="public">
+          <LobbySettings expansions={[...EXPANSIONS, BARE_EXPANSION]} chosen={["first"]} pace="normal" languages={LANGUAGE_OPTIONS} editable />
+        </LobbyAccess>
       </div>
       <div className="rounded-4xl bg-card p-8 shadow-surface ring-1 ring-foreground/10">
         <LobbySettings expansions={EXPANSIONS} chosen={["first", "second"]} pace="fast" />
@@ -806,6 +860,8 @@ export const gamePageSpecimens: Specimens = {
   "open-seat-join-and-invite": OpenSeatJoinAndInvite,
   "game-head-a-live-game": GameHeadALiveGame,
   "game-head-a-game-to-come-and-one-with-little": GameHeadAGameToComeAndOneWithLittle,
+  "game-credits-the-credits-of-a-game": GameCreditsTheCreditsOfAGame,
+  "lobby-visibility-public-and-private": LobbyVisibilityPublicAndPrivate,
   "lobby-settings-set-and-read": LobbySettingsSetAndRead,
   "lobby-panel-open-a-lobby": LobbyPanelOpenALobby,
   "lobby-panel-your-lobby": LobbyPanelYourLobby,

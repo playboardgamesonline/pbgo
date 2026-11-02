@@ -1,13 +1,11 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { notFound } from "next/navigation"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 
 import { getAccount } from "@pbgo/accounts/server"
 import { gameJsonLd, gameMetadata, serializeJsonLd } from "@pbgo/catalog/seo"
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
+import { GameCredits } from "@/components/game-credits"
 import { GameHead } from "@/components/game-head"
 import { GameHistory } from "@/components/game-history"
 import { GameLeaderboard } from "@/components/game-leaderboard"
@@ -20,10 +18,10 @@ import { getGamePage } from "@/lib/game-page"
 import { SITE_NAME, SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
-// game's own project serves only once one enters the game. Its head (`GameHead`) is the title, the figures (the players, how long, from what age, the year it came out), the description, the categories, the credits (everybody credited on it, by role, then its publishers, with a link to buy the game
-// and BoardGameGeek's icon under them), the big buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules) and a picture, the one of its card. Under it come, in this order: the tables that are open on the left and a tall space on the right
+// game's own project serves only once one enters the game. Its head (`GameHead`) is the way back to the games, at the top of its left column, then, at the foot of the column, level with the picture, the title, the figures (the players, how long, how complex, from what age), the description, the categories and the three main
+// buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules), and, on the right, a picture, the one of its card. Under it come, in this order: the tables that are open on the left and a tall space on the right
 // to play, the lobby the visitor is in or the space to open one (`GamePlay`: the space leads to the game's own site, `/<slug>`, another root layout, loaded whole; a game to come has it half transparent and no tables), then the visitor's stats on the left, with their latest games under them (the first three, the rest behind a button), and
-// the leaderboard on the right, which scrolls (`GameStats`, `GameHistory`, `GameLeaderboard`; a game to come has none of them), the tournaments (`GameTournaments`), and the games the catalog
+// the leaderboard on the right, which scrolls (`GameStats`, `GameHistory`, `GameLeaderboard`; a game to come has none of them), the tournaments (`GameTournaments`), the credits (`GameCredits`: everybody credited on the game, by role, then its publishers and the year it came out, with a link to buy the game and BoardGameGeek's icon under them), and the games the catalog
 // finds similar to it, nine at most, as one row of cards that scrolls sideways (`ScrollRow`). None of what the tables, the lobby, the stats, the leaderboard and the tournaments show has a source yet (`lib/game-activity.ts`, whose types are already the rows of PLT-13's schema): their blocks say so.
 // Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
 // whether it may be indexed, in its `robots` meta (`game.seo.indexable`: a live game follows the registry's flag, a game to come needs a
@@ -58,11 +56,6 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
       )}
 
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
-        <Link href="/games" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:underline">
-          <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4" />
-          All games
-        </Link>
-
         <GameHead
           slug={game.slug}
           name={game.name}
@@ -73,14 +66,11 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
           complexity={game.complexity}
           age={game.age}
           categories={game.categories}
-          facts={game.facts}
           rulebooks={game.rulebooks}
-          bgg={game.bgg}
-          shop={game.shop}
           picture={game.picture}
         />
 
-        {/* Between the head and the similar games: the tables and the space to play (the head's "Create a game" leads to the space), the visitor's stats and the leaderboard, then the tournaments. A game that is not live has the space alone and the tournaments: there is nothing to play, so no stats and no board */}
+        {/* Between the head and the similar games: the tables and the space to play (the head's "Create a game" leads to the space), the visitor's stats and the leaderboard, then the tournaments and the credits. A game that is not live has the space alone, the tournaments and the credits: there is nothing to play, so no stats and no board */}
         <div className="mt-section flex flex-col gap-section">
           <GamePlay slug={game.slug} name={game.name} live={game.live} players={game.players} minPlayers={game.minPlayers} tables={tables} viewerTable={viewerTable} expansions={expansions} anchored />
           {game.live && (
@@ -92,6 +82,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
             </div>
           )}
           <GameTournaments tournaments={tournaments} />
+          <GameCredits facts={game.facts} bgg={game.bgg} shop={game.shop} />
         </div>
 
         {game.related.length > 0 && (
