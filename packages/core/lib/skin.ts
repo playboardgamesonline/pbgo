@@ -1,4 +1,4 @@
-import { UI_TEXTS, type UiTextKey } from "@pbgo/studio-kit/constants"
+import type { UiTextKey } from "@pbgo/studio-kit/constants"
 import { ERROR_TRANSLATIONS, UI_TRANSLATIONS } from "@pbgo/studio-kit/translations"
 import type { GameBinding } from "./binding"
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n"
@@ -48,12 +48,13 @@ export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "home" | "erro
  */
 export type GameSkinDefaults = Partial<Pick<Skin, "playerColors" | "desktopOnly">>
 
-export const DEFAULT_TEXTS = Object.fromEntries(UI_TEXTS.map((t) => [t.key, t.fr])) as UiTexts
+/** The platform's chrome in the default language, English: the base of every skin, which a language of the games then replaces with its own translations. */
+export const DEFAULT_TEXTS: UiTexts = UI_TRANSLATIONS[DEFAULT_LOCALE]
 
 export const DEFAULT_PLAYER_COLORS = ["#e8795a", "#9d8cf2", "#e56fa4", "#6fb4e5", "#e8b43a", "#6fd3a8"]
 
 /**
- * The skin of a game that Sanity holds nothing for: the platform's chrome (`UI_TEXTS`, its translations) and the behaviour defaults.
+ * The skin of a game that Sanity holds nothing for, in the default language (English): the platform's chrome (`UI_TRANSLATIONS`) and the behaviour defaults.
  * A game's own texts are not in it: the tagline and the victory sentences read `[missing: <key>]` until Sanity has them.
  */
 export const DEFAULT_SKIN: Skin = {

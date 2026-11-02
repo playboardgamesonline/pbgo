@@ -3,7 +3,7 @@ import type { Locale } from "./events"
 
 /**
  * How the banner would pick its language. The hub is static and every page reads the visitor's language on the server, but the banner is
- * a client island: it resolves its own, the way the site does (cookie, then browser, English when unsupported), without
+ * a client island: it resolves its own, the way the site does (cookie, then browser, English otherwise), without
  * importing `@pbgo/core`, which depends on this package.
  *
  * Not used for now: the site is in English only (the owner, 2026-11-01) and `banner.tsx` speaks English to everyone. It stays, with its tests
@@ -38,16 +38,14 @@ export function cookieValue(cookies: string, name: string): string | undefined {
 }
 
 /**
- * The visitor's cookie wins, then the first language of the browser that the site speaks (`fr-CA` is French). No language at all:
- * French, the site's default; none of them supported: English. Same rules as `fromAcceptLanguage` of core. A cookie that holds one of the
+ * The visitor's cookie wins, then the first language of the browser that the site speaks (`fr-CA` is French). No language at all, or none
+ * of them supported: English, the site's default. Same rules as `fromAcceptLanguage` of core. A cookie that holds one of the
  * platform's twelve languages that the banner lacks (Japanese, say) is English, as it is in the games (`localeFor` of core), not the language the browser comes second with.
  */
 export function pickLocale(input: { cookie?: string; languages?: readonly string[] }): Locale {
   if (isLocale(input.cookie)) return input.cookie
   if (input.cookie !== undefined && CHOOSABLE.includes(input.cookie)) return "en"
-  const languages = input.languages ?? []
-  if (languages.length === 0) return "fr"
-  for (const language of languages) {
+  for (const language of input.languages ?? []) {
     const primary = language.toLowerCase().split("-")[0]
     if (isLocale(primary)) return primary
   }

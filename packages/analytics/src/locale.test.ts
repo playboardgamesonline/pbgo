@@ -43,10 +43,10 @@ describe("pickLocale", () => {
     expect(pickLocale({ languages: ["FR-ca"] })).toBe("fr")
   })
 
-  it("is English when none is supported, French when the browser says nothing", () => {
+  it("is English when none is supported, and when the browser says nothing: English is the site's default", () => {
     expect(pickLocale({ languages: ["ja", "pt-BR"] })).toBe("en")
-    expect(pickLocale({ languages: [] })).toBe("fr")
-    expect(pickLocale({})).toBe("fr")
+    expect(pickLocale({ languages: [] })).toBe("en")
+    expect(pickLocale({})).toBe("en")
   })
 })
 

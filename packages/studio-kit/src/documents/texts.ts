@@ -43,7 +43,7 @@ export const createTexts = (extraFields: FieldDefinition[] = [], extraGroups: Fi
             defineField({ name: "code", title: "Code", type: "string" }),
             defineField({ name: "message", title: "Message", type: "localeString" }),
           ],
-          preview: { select: { title: "code", subtitle: "message.fr" } },
+          preview: { select: { title: "code", subtitle: "message.en" } },
         },
       ],
     }),

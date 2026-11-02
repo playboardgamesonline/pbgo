@@ -48,7 +48,7 @@ export const FONT_CHOICES = [
 
 /**
  * Interface labels shared by every game, editable in Sanity (document "Texts", tab "Interface") and in Admin › Copy.
- * `fr` = default value. Variables in braces: {code}, {name}, {count}, {max}.
+ * `fr` is the French text; the defaults of the other languages, English (the default language) first, are in `translations.ts`. Variables in braces: {code}, {name}, {count}, {max}.
  */
 export const UI_TEXTS = [
   // Home

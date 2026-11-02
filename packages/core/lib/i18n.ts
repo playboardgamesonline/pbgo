@@ -12,10 +12,11 @@ export type Locale = (typeof LANGUAGES)[number]["id"]
 type Assert<T extends true> = T
 export type SitesRenderOnlyChoosableLanguages = Assert<Locale extends PlatformLanguage ? true : false>
 
-export const DEFAULT_LOCALE = "fr" as const satisfies Locale
-
-/** What a site renders for a visitor whose language it does not have. */
-export const FALLBACK_LOCALE = "en" as const satisfies Locale
+/**
+ * English: the default language, which a page is drawn in when nothing asks for another (a visitor with no cookie and a browser in a language the games lack, a request with no
+ * `Accept-Language` at all), and the fallback of every text (`translate`). The other languages are options.
+ */
+export const DEFAULT_LOCALE = "en" as const satisfies Locale
 
 /** Name of each language in that language, shown by the language picker. */
 export const LOCALE_NAMES: Record<Locale, string> = Object.fromEntries(LANGUAGES.map((l) => [l.id, l.title])) as Record<Locale, string>
@@ -29,9 +30,9 @@ export const isLocale = (v: unknown): v is Locale => typeof v === "string" && (L
  * The language a site renders for a visitor's language: their own when the site has it, else English. A visitor chooses among the platform's twelve languages and the games render
  * four, so one who chose Japanese (or whose account did) reads English there, not the language their browser comes second with.
  */
-export const localeFor = (language: PlatformLanguage): Locale => (isLocale(language) ? language : FALLBACK_LOCALE)
+export const localeFor = (language: PlatformLanguage): Locale => (isLocale(language) ? language : DEFAULT_LOCALE)
 
-/** First supported language of the Accept-Language header (`fr-CA,fr;q=0.9,en;q=0.8` → `fr`), else English (unsupported language) or the default language (no header). */
+/** First supported language of the Accept-Language header (`fr-CA,fr;q=0.9,en;q=0.8` → `fr`), else English: a browser in a language the games lack, or no header at all (a crawler). */
 export function fromAcceptLanguage(header: string | null | undefined): Locale {
   const wanted = (header ?? "")
     .split(",")
@@ -41,33 +42,38 @@ export function fromAcceptLanguage(header: string | null | undefined): Locale {
     })
     .filter((x) => x.lang && Number.isFinite(x.q))
     .sort((a, b) => b.q - a.q)
-  // browser in an unsupported language: English; no header (crawlers): French
-  return wanted.map((x) => x.lang).find(isLocale) ?? (wanted.length ? "en" : DEFAULT_LOCALE)
+  return wanted.map((x) => x.lang).find(isLocale) ?? DEFAULT_LOCALE
 }
 
 export type Localized<T = string> = Partial<Record<Locale, T | null>> | null | undefined
 
-/** Value in the requested language, else in French, else in the first language filled in. */
+/** Whether a value of a text is there: not null, not blank, not an empty list. */
+const has = <T>(v: T | null | undefined): v is T => v != null && (typeof v !== "string" || v.trim() !== "") && !(Array.isArray(v) && v.length === 0)
+
+/**
+ * The value of a text for a visitor: in the language asked, else in English, else nothing. English is the default language and the fallback of every text; when it has no value
+ * either, the caller shows `[missing: <key>]` for a text it requires (`lib/missing.ts`) and draws nothing for one it does not. No other language ever stands in: not French, which
+ * was the default before English, and not "the first language that has a value".
+ */
 export function translate<T>(value: Localized<T>, locale: Locale = DEFAULT_LOCALE): T | undefined {
   if (!value) return undefined
-  const has = (v: T | null | undefined) => v != null && (typeof v !== "string" || v.trim() !== "") && !(Array.isArray(v) && v.length === 0)
   const own = value[locale]
-  if (has(own)) return own as T
-  const fr = value[DEFAULT_LOCALE]
-  if (has(fr)) return fr as T
-  return LOCALES.map((l) => value[l]).find(has) ?? undefined
+  if (has(own)) return own
+  const fallback = value[DEFAULT_LOCALE]
+  return has(fallback) ? fallback : undefined
 }
 
 /**
- * Value in the requested language only (no French fallback) for the other languages: a gap in a language stays visible
- * (the platform's own wording for its chrome, `[missing: <key>]` for a text of the game) instead of reading another
- * language. In French, same rule as `translate`.
+ * The value written in exactly that language, with no fallback: what a game's owner typed to replace the platform's own wording (a label of the interface, the message of one of
+ * the platform's errors). The platform has its wording in every language of the games, so a label typed in English must not take the place of the Spanish one.
  */
-export function only<T>(value: Localized<T>, locale: Locale): T | undefined {
-  if (locale === DEFAULT_LOCALE) return translate(value, locale)
-  const v = value?.[locale]
-  return v == null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && v.length === 0) ? undefined : v
+export function written<T>(value: Localized<T>, locale: Locale): T | undefined {
+  const own = value?.[locale]
+  return has(own) ? own : undefined
 }
+
+/** @deprecated The same as `translate` since English became the default language and the fallback: a gap in a language reads English, then `[missing: <key>]`. Kept for the branches that still import it. */
+export const only = translate
 
 /** OpenGraph code (`og:locale`) of each language */
 export const OG_LOCALES: Record<Locale, string> = { fr: "fr_FR", en: "en_US", es: "es_ES", de: "de_DE" }

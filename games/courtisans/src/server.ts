@@ -1,6 +1,6 @@
 import "server-only"
 import type { LoaderContext, ServerBinding } from "@pbgo/core/lib/binding"
-import { only } from "@pbgo/core/lib/i18n"
+import { translate } from "@pbgo/core/lib/i18n"
 import { getCatalog } from "./sanity/catalog"
 import { getClientCatalog } from "./sanity/catalog-client"
 import { loadMissions } from "./server/missions"
@@ -19,7 +19,7 @@ export const SEO: ServerBinding["SEO"] = async ({ locale, sanity }) => {
   if (!sanity) return {}
   try {
     const { texts } = await getCatalog(sanity)
-    return { genres: only(texts?.genres, locale), heading: only(texts?.homeHeading, locale)?.trim() }
+    return { genres: translate(texts?.genres, locale), heading: translate(texts?.homeHeading, locale)?.trim() }
   } catch (error) {
     console.error("Sanity catalog unavailable", error)
     return {}

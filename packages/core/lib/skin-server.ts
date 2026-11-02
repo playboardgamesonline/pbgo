@@ -2,8 +2,9 @@ import "server-only"
 import { cache } from "react"
 import { sanityClient } from "../sanity/client"
 import { type SanityImageSource, urlFor } from "../sanity/image"
+import { CORE_ERROR_MESSAGES } from "./api"
 import type { GameEntry, GameModule } from "./binding"
-import { type Locale, only, type Localized } from "./i18n"
+import { DEFAULT_LOCALE, type Locale, translate, type Localized, written } from "./i18n"
 import { getLocale } from "./locale-server"
 import { isMissing } from "./missing"
 import { mediaUrl } from "./settings"
@@ -62,14 +63,24 @@ const HEX = /^#[0-9a-fA-F]{6}$/
 
 export type { SkinDoc }
 
-export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = "fr"): Partial<SkinDefaults> {
+/**
+ * What Sanity says of the skin, in a language. The texts of the game (tagline, title and introduction, victory sentences, the messages of its own errors) follow the chain of every
+ * text: the language asked, else English, else nothing, and the skin then keeps its `[missing: <key>]` marker or draws nothing. What the platform already words in every language
+ * (the labels of the interface, the messages of its own errors) is replaced only by what is written in that very language: a label typed in English must not take the place of
+ * the Spanish one.
+ */
+export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = DEFAULT_LOCALE): Partial<SkinDefaults> {
   const ui = doc?.interface
   const t = doc?.texts
   const labels = Object.fromEntries(
-    ["ui_home", "ui_lobby", "ui_game"].flatMap((g) => Object.entries((t?.[g] as Record<string, Localized>) ?? {}).map(([k, v]) => [k, only(v, locale)?.trim()])),
+    ["ui_home", "ui_lobby", "ui_game"].flatMap((g) => Object.entries((t?.[g] as Record<string, Localized>) ?? {}).map(([k, v]) => [k, written(v, locale)?.trim()])),
   )
   const colors = (ui?.playerColors ?? []).filter((c) => HEX.test(c))
-  const phrases = (only(t?.victoryPhrases, locale) ?? []).filter((p) => p.trim())
+  const phrases = (translate(t?.victoryPhrases, locale) ?? []).filter((p) => p.trim())
+  const errors = (t?.errorMessages ?? []).flatMap((e) => {
+    const message = (e.code && e.code in CORE_ERROR_MESSAGES ? written(e.message, locale) : translate(e.message, locale))?.trim()
+    return e.code && message ? [[e.code, message]] : []
+  })
   return {
     decor: {
       background: image(game, ui?.background, 2400),
@@ -81,8 +92,8 @@ export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = "fr"): P
     hostIcon: picto(game, ui?.hostIcon),
     ...(colors.length ? { playerColors: colors } : {}),
     ...(typeof ui?.desktopOnly === "boolean" ? { desktopOnly: ui.desktopOnly } : {}),
-    home: { title: only(t?.homeTitle, locale)?.trim() || null, intro: only(t?.homeIntro, locale)?.trim() || null, tagline: only(t?.tagline, locale)?.trim() || null },
-    errors: Object.fromEntries((t?.errorMessages ?? []).flatMap((e) => (e.code && only(e.message, locale)?.trim() ? [[e.code, only(e.message, locale)!.trim()]] : []))),
+    home: { title: translate(t?.homeTitle, locale)?.trim() || null, intro: translate(t?.homeIntro, locale)?.trim() || null, tagline: translate(t?.tagline, locale)?.trim() || null },
+    errors: Object.fromEntries(errors),
     ...(phrases.length ? { victoryPhrases: phrases } : {}),
     texts: labels,
   }

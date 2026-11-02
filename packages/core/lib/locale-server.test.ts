@@ -41,17 +41,22 @@ describe("getLocale", () => {
     expect(await getLocale()).toBe("es")
   })
 
-  it("keeps the defaults of the games without a cookie: the browser's language, English when it is one they lack, French when there is no header", async () => {
+  it("follows the browser without a cookie: its language when the games have it, English when they lack it", async () => {
     request.acceptLanguage = "de-AT"
     expect(await getLocale()).toBe("de")
     request.acceptLanguage = "ja"
     expect(await getLocale()).toBe("en")
-    request.acceptLanguage = null
-    expect(await getLocale()).toBe("fr")
   })
 
-  it("is French outside of a request", async () => {
+  it("is English when the request has no Accept-Language at all (a crawler), the default language of the site", async () => {
+    request.acceptLanguage = null
+    expect(await getLocale()).toBe("en")
+    request.cookie = "xx"
+    expect(await getLocale()).toBe("en")
+  })
+
+  it("is English outside of a request", async () => {
     request.broken = true
-    expect(await getLocale()).toBe("fr")
+    expect(await getLocale()).toBe("en")
   })
 })

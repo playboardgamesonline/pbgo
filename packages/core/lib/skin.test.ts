@@ -2,7 +2,7 @@ import { ERROR_TRANSLATIONS } from "@pbgo/studio-kit/translations"
 import { describe, expect, it } from "vitest"
 import type { GameBinding } from "./binding"
 import type { Locale } from "./i18n"
-import { baseSkin, fill, mergeSkin } from "./skin"
+import { baseSkin, DEFAULT_SKIN, DEFAULT_TEXTS, fill, mergeSkin } from "./skin"
 
 describe("baseSkin", () => {
   // the scoreboard dialog is named by this text for screen readers
@@ -55,10 +55,17 @@ describe("baseSkin", () => {
     expect(skin.home.intro).toBeNull()
   })
 
-  it("carries the platform's error messages for the other languages and none for French", () => {
-    expect(baseSkin({} as GameBinding, "fr").errors).toEqual({})
-    expect(baseSkin({} as GameBinding, "en").errors).toEqual(ERROR_TRANSLATIONS.en)
+  it("carries the platform's error messages for the other languages and none for English, the default: the platform's own are English", () => {
+    expect(baseSkin({} as GameBinding, "en").errors).toEqual({})
+    expect(baseSkin({} as GameBinding, "fr").errors).toEqual(ERROR_TRANSLATIONS.fr)
     expect(baseSkin({} as GameBinding, "de").errors).toEqual(ERROR_TRANSLATIONS.de)
+  })
+
+  it("draws the platform's chrome in English by default", () => {
+    expect(DEFAULT_SKIN.locale).toBe("en")
+    expect(DEFAULT_SKIN.texts.scoreboard).toBe("Scoreboard")
+    expect(DEFAULT_SKIN.texts.createButton).toBe("Create a game")
+    expect(baseSkin({} as GameBinding, "en").texts).toEqual(DEFAULT_TEXTS)
   })
 
   it("keeps the behaviour a game declares and nothing else", () => {

@@ -3,7 +3,7 @@ import { cache } from "react"
 import { sanityClient } from "../sanity/client"
 import { fixedUrlFor, type SanityImageSource, urlFor } from "../sanity/image"
 import type { GameModule } from "./binding"
-import type { Locale, Localized } from "./i18n"
+import { DEFAULT_LOCALE, type Locale, type Localized } from "./i18n"
 import { getLocale } from "./locale-server"
 import { byLocale, clampPlayers, RULES_FIELD, clampTimeout, cleanOptions, defaultSettings, defaultTheme, isFont, isHex, type SiteSettings, type ThemeColors, type UploadedFile } from "./settings"
 
@@ -70,10 +70,11 @@ const pickText = (v: Localized, l: Locale) => {
   return typeof x === "string" && x.trim() ? x.trim() : ""
 }
 
-export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = "fr"): SiteSettings {
+export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = DEFAULT_LOCALE): SiteSettings {
   const defaults = defaultSettings(game.binding)
   if (!doc) return defaults
-  // The description and the authors are texts: Sanity holds them, in every language, and the code holds no copy (empty until they are entered).
+  // The description and the authors are texts: Sanity holds them, in every language, and the code holds no copy (empty until they are entered). The single-language fields they
+  // replaced hold French. A page reads the language asked, else English: no other language stands in.
   const descriptions = byLocale((l) => pickText(doc.descriptionI18n, l) || (l === "fr" ? doc.description?.trim() || "" : ""))
   const authors = byLocale((l) => pickText(doc.creditsAuthorsI18n, l) || (l === "fr" ? doc.creditsAuthors?.trim() || "" : ""))
   const theme = Object.fromEntries(
@@ -81,7 +82,7 @@ export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = 
   ) as ThemeColors
   return {
     title: doc.title?.trim() || defaults.title,
-    description: descriptions[locale] || descriptions.fr,
+    description: descriptions[locale] || descriptions[DEFAULT_LOCALE],
     descriptions,
     creditsAuthors: authors,
     logo: hasImage(doc.logo) ? urlFor(game, doc.logo).width(1200).url() : null,
@@ -105,7 +106,7 @@ export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = 
       fontAccent: file(doc.accentFontFile),
     },
     credits: {
-      authors: authors[locale] || authors.fr || null,
+      authors: authors[locale] || authors[DEFAULT_LOCALE] || null,
       publisher: doc.publisher?.trim() || defaults.credits.publisher,
       publisherUrl: url(doc.publisherUrl) ?? defaults.credits.publisherUrl,
     },
@@ -115,10 +116,10 @@ export function toSettings(game: GameModule, doc: SettingsDoc, locale: Locale = 
 /** `slug:locale` of the languages already reported, so the log holds one line per missing description and not one per request. */
 const reported = new Set<string>()
 
-/** Logs the games whose description Sanity does not hold in a language (the page then reads the French one, or has none), once per game and language. */
+/** Logs the games whose description Sanity holds neither in a language nor in English (the page then has none), once per game and language. */
 function reportMissing(game: GameModule, locale: Locale, settings: SiteSettings) {
   const id = `${game.slug}:${locale}`
-  if (settings.descriptions[locale] || reported.has(id)) return
+  if (settings.description || reported.has(id)) return
   reported.add(id)
   console.error(`[missing] ${game.slug} (${locale}): description is not in Sanity`)
 }
