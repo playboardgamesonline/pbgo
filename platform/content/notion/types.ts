@@ -71,3 +71,14 @@ export type NotionGame = {
   editedAt: string
   notionPageId: string
 }
+
+/**
+ * An expansion of the Notion Games database: a row with a `Parent item` whose `Type` is not a standalone expansion (25 today). The reader
+ * does not read them yet, it only counts them; this is the shape their documents are built from (`buildExpansions`), so that they can be
+ * seeded into the Studio's `expansion` type one day without changing the builder. A game's row without what an expansion has no field
+ * for: no categories, complexity, `Related Games` or pictures (an expansion has a cover and a box front, which Notion has neither).
+ */
+export type NotionExpansion = Pick<NotionGame, "slug" | "name" | "descriptions" | "players" | "duration" | "bggId" | "releaseDate" | "age" | "authors" | "illustrators" | "publishers" | "rules"> & {
+  /** The slug of the game it is played with, the row's `Parent item`. */
+  base: string
+}

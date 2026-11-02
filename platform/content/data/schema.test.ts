@@ -3,6 +3,8 @@ import { documentProblems, imageFields, referenceProblems } from "@pbgo/content-
 import type { TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
 import { DATASET, PLATFORM_DIR, PROJECT_ID } from "../config.ts"
+import { planMigration } from "../migration/expansions.ts"
+import { COURTISANS_DRAFT, PUBLISHED_AROUND } from "../migration/test-fixtures.ts"
 import { buildSeedContent } from "./index.ts"
 import { seedDocs, source } from "./test-fixtures.ts"
 
@@ -77,6 +79,71 @@ describe("the seed documents", () => {
   })
 })
 
+describe("the expansions of the seed", () => {
+  const expansionOf = (docs: ReturnType<typeof seedDocs>) => {
+    const found = docs.find((doc) => doc._id === "expansion-hanabi-extra")
+    if (!found) throw new Error("no Hanabi expansion")
+    return found
+  }
+
+  it("are caught when one has no base game: an expansion cannot be published without one", () => {
+    const docs = seedDocs()
+    const expansion = expansionOf(docs)
+    delete expansion.baseGame
+    expect(documentProblems(expansion, types)).toEqual(["expansion-hanabi-extra.baseGame is required"])
+  })
+
+  it("are caught when one points at a game the seed lacks, or at a document that is not a game", () => {
+    const docs = seedDocs()
+    const expansion = expansionOf(docs)
+    expansion.baseGame = { ...expansion.baseGame, _ref: "game-ghost" }
+    expect(referenceProblems(docs, types)).toEqual(['expansion-hanabi-extra.baseGame points at "game-ghost", which is not in the seed'])
+    expansion.baseGame = { ...expansion.baseGame, _ref: "creator-ada-marsh" }
+    expect(referenceProblems(docs, types)).toEqual(['expansion-hanabi-extra.baseGame points at "creator-ada-marsh", a "creator", and the field takes "game"'])
+  })
+
+  it("are caught when one has a field only a game has: a kind, categories, an order", () => {
+    const expansion = expansionOf(seedDocs())
+    Object.assign(expansion, { kind: "game", order: 10, categories: [] })
+    expect(documentProblems(expansion, types)).toEqual([
+      'expansion-hanabi-extra.kind is not a field of "expansion"',
+      'expansion-hanabi-extra.order is not a field of "expansion"',
+      'expansion-hanabi-extra.categories is not a field of "expansion"',
+    ])
+  })
+
+  it("are caught when one breaks a rule it shares with a game: a creator on two lines, a slug the site cannot serve", () => {
+    const expansion = expansionOf(seedDocs())
+    expansion.creators = [...expansion.creators, { ...expansion.creators[0], _key: "again" }]
+    expansion.slug = { _type: "slug", current: "Hanabi!" }
+    const problems = documentProblems(expansion, types)
+    expect(problems.some((problem) => problem.includes("A creator is on one line"))).toBe(true)
+    expect(problems.some((problem) => problem.includes("is not a slug"))).toBe(true)
+  })
+})
+
+describe("the migration of the expansions made as games", () => {
+  const migrated = () => {
+    const { migrations, problems } = planMigration([COURTISANS_DRAFT], new Map(PUBLISHED_AROUND.map((doc) => [doc._id, doc])))
+    expect(problems).toEqual([])
+    const doc = migrations[0]?.doc
+    if (!doc) throw new Error("nothing was migrated")
+    return doc
+  }
+
+  it("makes a document that follows the Studio schema of an expansion: every field is one, of the right kind, under its rules", () => {
+    expect(documentProblems(migrated(), types)).toEqual([])
+  })
+
+  it("makes a document that points at documents that are there, of a type their field takes", () => {
+    expect(referenceProblems([migrated(), ...PUBLISHED_AROUND], types)).toEqual([])
+  })
+
+  it("is needed: the draft it starts from is a game with a kind the Studio no longer lists", () => {
+    expect(documentProblems(COURTISANS_DRAFT, types)).toEqual(['drafts.game-courtisans-diplomats-confidants.kind is "expansion", not one of "game", "reimplementation"'])
+  })
+})
+
 describe("the art slots", () => {
   it("each land on an image field of the type of their document", () => {
     const { docs, slots } = buildSeedContent(source())
@@ -97,5 +164,12 @@ describe("the art slots", () => {
     const covered = new Set(slots.map((slot) => slot.name.split("-").at(-1)))
     expect([...covered].sort()).toEqual(["background", "icon", "logo"])
     expect(imageFields("game", types).sort()).toEqual(["game.background", "game.boxFront", "game.cover", "game.icon", "game.logo"])
+  })
+
+  it("have none for an expansion, whose cover and box front Notion has no picture of either", () => {
+    expect(imageFields("expansion", types).sort()).toEqual(["expansion.boxFront", "expansion.cover"])
+    const { docs, slots } = buildSeedContent(source())
+    const expansions = new Set(docs.filter((doc) => doc._type === "expansion").map((doc) => doc._id))
+    expect(slots.filter((slot) => expansions.has(slot.docId))).toEqual([])
   })
 })
