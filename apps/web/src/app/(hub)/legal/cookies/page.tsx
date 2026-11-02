@@ -55,7 +55,7 @@ export default function CookiePolicy() {
         This page lists what the site keeps on your device, why, and for how long. A cookie is a small file that your browser keeps for a site; local storage is a similar space that only the site that wrote to it can read.
       </LegalText>
       <LegalText>
-        Nothing is stored when you arrive. The site writes something only when you do what needs it (create or join a table, pick a language, sign in) or when you answer the cookie banner. No advertising cookies, no tracking across sites, and nothing is sold or shared for
+        Nothing is stored when you arrive. The site writes something only when you do what needs it (create or join a table, pick a language, sign in) or when you answer the cookie banner, and, once you are signed in, it keeps your language cookie in step with your account. No advertising cookies, no tracking across sites, and nothing is sold or shared for
         advertising. The site does not use cookies to personalise what you see or to market anything to you.
       </LegalText>
 
@@ -81,7 +81,10 @@ export default function CookiePolicy() {
       <LegalSection id="preferences" title="Choices kept on your device">
         <Stored
           items={[
-            { name: "pbgo-locale", text: "A cookie that remembers the language you picked. Kept one year; written when you choose a language." },
+            {
+              name: "pbgo-locale",
+              text: "A cookie that remembers your language. Kept one year; written when you choose a language and, if you have an account, when your account's language is applied to this device (when you sign in, and when you open the site after changing it on another device). Your account keeps your language too, so that it follows you from one device to the next.",
+            },
             {
               name: "pbgo-consent",
               text: "Local storage. Your answers to the cookie banner (analytics, marketing) and their date. We ask again after 13 months, and when a new kind of cookie comes in.",
