@@ -9,8 +9,9 @@ const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(
 /**
  * An expansion of a game of the catalog: what is played with its base game and not without it. A document type of its own, so that the
  * hub cannot list it as a game by missing a filter. It has the facts, the credits, the texts and the links to the rules of a game, two
- * pictures, and none of what places a game on the hub (categories, complexity, order, related). An expansion that plays without its
- * base game is a `reimplementation` of it, a game.
+ * pictures, and none of what places a game on the hub (categories, complexity, order, related). The figures (players, duration, minimum
+ * age) are those of the game played with the expansion, filled only where it changes them: an empty one is the base game's. An
+ * expansion that plays without its base game is a `reimplementation` of it, a game.
  */
 export const expansion = defineType({
   name: "expansion",
@@ -40,17 +41,24 @@ export const expansion = defineType({
     defineField({ name: "baseGame", title: "Base game", type: "reference", to: [{ type: "game" }], group: "identity", validation: (rule) => rule.required() }),
     defineField({ name: "bggId", title: "BGG ID", type: "number", group: "identity", validation: (rule) => rule.integer().min(1) }),
 
-    // Facts
-    defineField({ name: "playersMin", title: "Players (min)", type: "number", group: "facts", validation: (rule) => rule.integer().min(1) }),
+    // Facts: the figures of the game as it is played with the expansion; one that the expansion does not change is left empty, and is the base game's
+    defineField({
+      name: "playersMin",
+      title: "Players (min, with the expansion; empty: the base game's)",
+      type: "number",
+      group: "facts",
+      validation: (rule) => rule.integer().min(1),
+    }),
     defineField({
       name: "playersMax",
-      title: "Players (max, empty: no limit)",
+      title: "Players (max, with the expansion; empty: the base game's)",
       type: "number",
       group: "facts",
       validation: (rule) => rule.integer().min(1).custom(checkPlayersMax),
     }),
-    defineField({ name: "duration", title: "Duration (minutes)", type: "number", group: "facts", validation: (rule) => rule.integer().min(1) }),
-    defineField({ name: "minAge", title: "Minimum age", type: "number", group: "facts", validation: (rule) => rule.integer().min(0) }),
+    defineField({ name: "duration", title: "Duration (minutes; empty: the base game's)", type: "number", group: "facts", validation: (rule) => rule.integer().min(1) }),
+    defineField({ name: "minAge", title: "Minimum age (empty: the base game's)", type: "number", group: "facts", validation: (rule) => rule.integer().min(0) }),
+    // The expansion's own, like its credits and its texts
     defineField({ name: "releaseDate", title: "Release date", type: "date", group: "facts" }),
 
     // Credits

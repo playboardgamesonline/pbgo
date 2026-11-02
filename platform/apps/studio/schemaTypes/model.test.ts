@@ -155,6 +155,13 @@ describe("an expansion", () => {
     expect(((fieldOf("expansion", "publishers").of?.[0] as { to?: { type: string }[] }).to ?? []).map((target) => target.type)).toEqual(["publisher"])
   })
 
+  it("fills its figures only where it changes them: their titles say that an empty one is the base game's, and nothing but the base game is required", () => {
+    const title = (name: string) => (fieldOf("expansion", name) as { title?: string }).title ?? ""
+    for (const name of ["playersMin", "playersMax", "duration", "minAge"]) expect([name, title(name)]).toEqual([name, expect.stringContaining("empty: the base game's")])
+    expect(title("playersMax")).not.toContain("no limit")
+    for (const name of ["playersMin", "playersMax", "duration", "minAge", "releaseDate", "creators", "publishers", "description"]) expect(rulesOf(fieldOf("expansion", name)), name).not.toContain("required")
+  })
+
   it("is given its facts, credits, texts, rules and pictures as a game is: the same kind of field under the same rules", () => {
     const options = (field: FieldDef) => (field as { options?: Record<string, unknown> }).options
     for (const { name } of typeOf("expansion").fields ?? []) {
