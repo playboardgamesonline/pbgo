@@ -1,4 +1,5 @@
 import type { Doc, MigrationStore, Mutation } from "./expansions.ts"
+import type { Doc as CatalogDoc, PatchMutation, TranslationStore } from "./translations.ts"
 
 // The migration's view of the dataset: the project's HTTP API with the write token, a plain `fetch` (no SDK, as the hub's reader), so that
 // a test can hand in its own. The token travels in a header only: it is in no address, and no message here repeats it.
@@ -44,7 +45,8 @@ async function reasonOf(response: Response): Promise<string> {
   return response.statusText || "no reason given"
 }
 
-export function createHttpStore({ projectId, dataset, token, fetch: send = fetch }: HttpStoreOptions): MigrationStore {
+/** The calls of the dataset's HTTP API with the token in a header: what both stores below are made of. */
+function connect({ projectId, dataset, token, fetch: send = fetch }: HttpStoreOptions) {
   const base = `https://${projectId}.api.sanity.io/v${API_VERSION}/data`
 
   async function call(url: string, init: RequestInit = {}): Promise<unknown> {
@@ -58,6 +60,36 @@ export function createHttpStore({ projectId, dataset, token, fetch: send = fetch
     if (!response.ok) throw new DatasetError(`The dataset answered ${response.status}: ${await reasonOf(response)}`, response.status)
     return response.json()
   }
+
+  return { base, dataset, call }
+}
+
+/** The documents of the types that have translated fields, in every state: the drafts and the versions of a release are there with the published ones. */
+export const CATALOG_DOCUMENTS_QUERY = '*[_type in ["game", "expansion", "category"]]'
+
+/** The dataset as the migration of the translated fields (PLT-104) sees it: all the documents of the catalog types, and patches in one transaction. */
+export function createTranslationStore(options: HttpStoreOptions): TranslationStore {
+  const { base, dataset, call } = connect(options)
+  return {
+    async documents() {
+      // `raw` is the perspective that shows drafts and the versions of a release next to the published documents
+      const query = new URLSearchParams({ query: CATALOG_DOCUMENTS_QUERY, perspective: "raw" })
+      const body = await call(`${base}/query/${dataset}?${query}`)
+      // an answer that is not a list is not an empty dataset: the migration would say there is nothing to convert
+      if (!isRecord(body) || !Array.isArray(body.result)) throw new DatasetError("The dataset answered with something that is not a list of documents", 200)
+      return body.result as CatalogDoc[]
+    },
+
+    async commit(mutations: PatchMutation[]) {
+      if (mutations.length === 0) return
+      // One request is one transaction: every mutation is applied or none is
+      await call(`${base}/mutate/${dataset}?returnIds=true`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mutations }) })
+    },
+  }
+}
+
+export function createHttpStore(options: HttpStoreOptions): MigrationStore {
+  const { base, dataset, call } = connect(options)
 
   return {
     async expansionGames() {

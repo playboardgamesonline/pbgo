@@ -14,12 +14,15 @@
   "dependencies": {
     "@pbgo/games": "workspace:*",
     "@pbgo/studio-kit": "workspace:*",
+    "@sanity/assist": "catalog:",
     "@sanity/icons": "catalog:",
+    "@sanity/language-filter": "catalog:",
     "@sanity/ui": "catalog:",
     "@sanity/vision": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sanity": "catalog:",
+    "sanity-plugin-internationalized-array": "catalog:",
     "styled-components": "catalog:"
   },
   "devDependencies": {

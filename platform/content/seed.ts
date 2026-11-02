@@ -3,6 +3,7 @@
 import { runSeedCli } from "@pbgo/content-kit/seed"
 import { DATASET, ENV_FILE, PROJECT_ID, SLUG } from "./config.ts"
 import { buildSeedContent } from "./data/index.ts"
+import { missingEnglish } from "./data/translated.ts"
 import { notionOptions, readSource } from "./notion.ts"
 
 await runSeedCli({
@@ -13,7 +14,9 @@ await runSeedCli({
   // Built when the pipeline asks, after the options are checked and the token is read: `--help` never goes to Notion
   content: async () => {
     const { games, publishers, notes } = await readSource(notionOptions())
-    console.log(notes.join("\n"), "\n")
-    return buildSeedContent({ games, publishers })
+    const content = buildSeedContent({ games, publishers })
+    // English is what every language falls back on: a row that has a text in another language and none in English cannot be published as it is
+    console.log([...notes, ...missingEnglish(content.docs).map((gap) => `no English  ${gap}`)].join("\n"), "\n")
+    return content
   },
 })
