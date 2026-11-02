@@ -11,6 +11,7 @@
     "./leaderboard": "./src/leaderboard.ts",
     "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
+    "./queue": "./src/queue.ts",
     "./results": "./src/results.ts",
     "./social": "./src/social.ts",
     "./styles/*": "./src/styles/*",

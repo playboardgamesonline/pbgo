@@ -9,6 +9,7 @@ import { ChatWindow } from "@pbgo/ui/platform/chat-window"
 import { FriendsBar } from "@pbgo/ui/platform/friends-bar"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { PanelPresence } from "@pbgo/ui/platform/panel-presence"
+import { QueuePill } from "@pbgo/ui/platform/queue"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
@@ -16,6 +17,7 @@ import { unreadOf, type Conversation, type Message } from "@pbgo/ui/social"
 import { cn } from "@pbgo/ui/utils"
 import { AccountMenu } from "@/components/account-menu"
 import { readFolded, writeFolded } from "@/lib/folded-games"
+import { leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
 import { useCopied } from "@/lib/use-copied"
 import { useSocial } from "@/lib/use-social"
 
@@ -29,7 +31,7 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
  * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
  * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name and
  * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A press on a friend or a conversation opens the
- * chat with them (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open. The demo account of development has friends, messages and requests whose
+ * chat with them (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open. While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. The demo account of development has friends, messages and requests whose
  * buttons do nothing; a real account has none until PLT-23, so its bar is the button that invites a friend, which copies the address of the sign-in, where a friend can come and sign in.
  */
 export function SiteSocial({ account }: { account: Account }) {
@@ -47,6 +49,10 @@ export function SiteSocial({ account }: { account: Account }) {
   const [read, setRead] = useState<ReadonlySet<string>>(new Set())
   const preview = account.id === DEMO_ACCOUNT.id
   const nothing = () => {}
+  // The search for a game that the visitor has begun, wherever they began it (the button of a game's page): the bar shows it while the panel is closed, and the panel has a card for it
+  const queue = useQueue()
+  const seconds = useQueueSeconds(queue)
+  const searching = queue ? { game: queue.name, seconds, onCancel: leaveQueue } : undefined
 
   // The conversations as the visitor has made them in this page: what they sent is in them, what they opened is read, and a friend they wrote to first has one
   const conversations = useMemo<Conversation[]>(() => {
@@ -100,6 +106,8 @@ export function SiteSocial({ account }: { account: Account }) {
         open={open}
         games={
           <>
+            {/* The bar grows to the left, over the navbar's tabs, in a window narrower than 1024px: there the button of the page and the panel's card show the wait, and the bar has no pill */}
+            {searching && <QueuePill {...searching} className="max-lg:hidden" />}
             <FriendsBar
               friends={social.friends}
               gameIcon={gameIcon}
@@ -135,6 +143,7 @@ export function SiteSocial({ account }: { account: Account }) {
         <SocialPanel
           bare
           id="social-panel"
+          queue={searching}
           tab={tab}
           onTabChange={setTab}
           friends={social.friends}

@@ -13,6 +13,7 @@ import { AddFriendForm } from "./add-friend-form"
 import { Badge } from "./badge"
 import { Button } from "./button"
 import { FriendsRoster, PresenceDot } from "./friends-panel"
+import { QueueCard, type QueueCardProps } from "./queue"
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
 // The social panel of a signed-in visitor, the way the Riot Client has it: three tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the conversations
@@ -23,7 +24,7 @@ import { Tabs, TabsList, TabsTrigger } from "./tabs"
 // surface of its own it is a column for a page, with a `header` (whatever the page puts at the top, usually a picture, a name and a status); `bare` draws none: it is then the body of the
 // dock of the navbar (`SocialDock`), which is its surface and whose bar holds the button that opens and closes it (`SocialPanelToggle`). It is drawn from what it is given and decides
 // nothing: where the friends, the messages and the requests come from (PLT-23) and what a press does are the page's, and a button whose handler is missing is not drawn (the form that
-// adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`).
+// adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`). While the visitor looks for a game the panel has a card for it at the top, over the tabs, whatever tab is open (`QueueCard`).
 
 export type SocialTab = "friends" | "messages" | "add"
 
@@ -73,6 +74,8 @@ const COLUMN = "min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrol
 type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & {
   /** What is at the top, above the tabs: the visitor, if the page wants one there. Nothing when the dock above it already shows them. */
   header?: React.ReactNode
+  /** The search for a game that the visitor has begun, when there is one: a card between the header and the tabs with the game, the time waited and the cross that stops it. */
+  queue?: Pick<QueueCardProps, "game" | "seconds" | "onCancel">
   /** The panel lives in a container that is drawn around it (`SocialDock`): it draws none of its own, no border, no fill, no shadow. */
   bare?: boolean
   /** The tab that is shown, when the page decides it (a press on a game of the bar takes the visitor to the friends); the panel changes it itself, and tells `onTabChange`. */
@@ -221,6 +224,7 @@ function RequestGroup({ label, requests, onAnswer }: { label: string; requests: 
  */
 function SocialPanel({
   header,
+  queue,
   bare = false,
   friends,
   gameIcon,
@@ -312,6 +316,8 @@ function SocialPanel({
       {...props}
     >
       {header && <div className="min-w-0">{header}</div>}
+
+      {queue && <QueueCard {...queue} />}
 
       <Tabs value={tab} onValueChange={(value) => pick(value as SocialTab)} className="min-h-0 flex-1 gap-4">
         <LayoutGroup id={group}>

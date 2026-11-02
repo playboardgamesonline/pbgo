@@ -20,8 +20,8 @@ import { getGamePage } from "@/lib/game-page"
 import { SITE_NAME, SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
-// game's own project serves only once one enters the game. Its head (`GameHead`) is the title, the figures (the players, how long, from what age, the year it came out), the description, a row of buttons (to find a game and to create one, which lead to the blocks below; to read
-// the rules and to see the game on BoardGameGeek), the credits (everybody credited on it, by role, then its publishers, under the text) and a picture, the one of its card. Under it come, in this order: the tables that are open on the left and a tall space on the right
+// game's own project serves only once one enters the game. Its head (`GameHead`) is the title, the figures (the players, how long, from what age, the year it came out), the description, a row of buttons (to find a game, which starts a queue, and to create one, which leads to the space below; to read
+// the rules), the credits (everybody credited on it, by role, then its publishers, under the text) and a picture, the one of its card. Under it come, in this order: the tables that are open on the left and a tall space on the right
 // to play, the lobby the visitor is in or the space to open one (`GamePlay`: the space leads to the game's own site, `/<slug>`, another root layout, loaded whole; a game to come has it half transparent and no tables), then the visitor's stats on the left, with their latest games under them (the first three, the rest behind a button), and
 // the leaderboard on the right, which scrolls (`GameStats`, `GameHistory`, `GameLeaderboard`; a game to come has none of them), the tournaments (`GameTournaments`), and the games the catalog
 // finds similar to it, nine at most, as one row of cards that scrolls sideways (`ScrollRow`). None of what the tables, the lobby, the stats, the leaderboard and the tournaments show has a source yet (`lib/game-activity.ts`, whose types are already the rows of PLT-13's schema): their blocks say so.
@@ -64,20 +64,22 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         </Link>
 
         <GameHead
+          slug={game.slug}
           name={game.name}
           live={game.live}
           description={game.description}
           players={game.players}
           duration={game.duration}
+          complexity={game.complexity}
           age={game.age}
-          released={game.released}
+          categories={game.categories}
           facts={game.facts}
           rulebooks={game.rulebooks}
           bgg={game.bgg}
           picture={game.picture}
         />
 
-        {/* Between the head and the similar games: the tables and the space to play (the buttons of the head lead to them), the visitor's stats and the leaderboard, then the tournaments. A game that is not live has the space alone and the tournaments: there is nothing to play, so no stats and no board */}
+        {/* Between the head and the similar games: the tables and the space to play (the head's "Create a game" leads to the space), the visitor's stats and the leaderboard, then the tournaments. A game that is not live has the space alone and the tournaments: there is nothing to play, so no stats and no board */}
         <div className="mt-section flex flex-col gap-section">
           <GamePlay slug={game.slug} name={game.name} live={game.live} players={game.players} tables={tables} viewerTable={viewerTable} expansions={expansions} anchored />
           {game.live && (

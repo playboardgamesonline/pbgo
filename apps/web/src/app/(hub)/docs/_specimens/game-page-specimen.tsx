@@ -317,19 +317,26 @@ function OpenSeatJoinAndInvite() {
   )
 }
 
-/** What the head of an imagined game's page shows: the figures and the description, the credits, the rules in two languages and a page on BoardGameGeek. Its picture is the plain frame of a game that has none. */
+/** What the head of an imagined game's page shows: the categories, the figures and the description, the credits with the year, the rules in two languages and a page on BoardGameGeek. Its picture is the plain frame of a game that has none. */
 const HEAD: GameHeadProps = {
+  slug: "a-game",
   name: "A game",
   live: true,
   description: { text: "At the Queen's court, make the families you back shine and drag the others into disgrace. Play your cards at the Queen's table, in your estate or an opponent's, and fulfil your secret missions.", language: "en" },
   players: "2–5 players",
   duration: "20 min",
+  complexity: "Complexity 2.4/5",
   age: "Ages 8+",
-  released: "Released 2024",
+  categories: [
+    { name: "Ambiance", href: "#ambiance" },
+    { name: "Alliances", href: "#alliances" },
+    { name: "Betrayal", href: "#betrayal" },
+  ],
   facts: [
     { label: "Designers", values: [{ text: "Ada Lovelace" }, { text: "Grace Hopper" }] },
     { label: "Artist", values: [{ text: "Édith Piaf" }] },
     { label: "Publisher", values: [{ text: "A Publisher", href: "https://example.com" }] },
+    { label: "Released", values: [{ text: "2024" }] },
   ],
   rulebooks: [
     { language: "en", label: "Rulebook - A game", href: "#rulebook-en" },
@@ -342,8 +349,8 @@ const HEAD: GameHeadProps = {
 function GameHeadALiveGame() {
   return (
     <Frame
-      code={`// A live game: "Find a game" leads to the open tables, "Create a game" to the space that opens a lobby. The rules are a menu when
-// the game has several languages (a link when it has one), and BoardGameGeek is there when the Studio has the game's id
+      code={`// A live game: "Find a game" starts a queue, "Create a game" leads to the space that opens a lobby. The rules are a menu when the game has several
+// languages (a link when it has one), and BoardGameGeek is there, under the credits, when the Studio has the game's id
 <GameHead {...game} />`}
     >
       <Fit width={PAGE}>
@@ -357,17 +364,17 @@ function GameHeadAGameToComeAndOneWithLittle() {
   return (
     <Frame
       className="flex flex-col gap-12"
-      code={`// A game to come: both buttons are disabled, the links stay (here with one rulebook, so the rules are a link)
+      code={`// A game to come: "Coming soon" beside the name, both buttons disabled, the rules stay (here one rulebook, so they are a link)
 <GameHead {...game} live={false} rulebooks={[rulebook]} />
 
 // A game the Studio knows little of: what it has is drawn, nothing is written in place of the rest
-<GameHead name="A game" live description={null} players={null} duration={null} age={null} released={null} facts={[]} rulebooks={[]} bgg={null} picture={{}} />`}
+<GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} picture={{}} />`}
     >
       <Fit width={PAGE}>
         <GameHead {...HEAD} live={false} rulebooks={HEAD.rulebooks.slice(0, 1)} />
       </Fit>
       <Fit width={PAGE}>
-        <GameHead name="A game" live description={null} players="2–5 players" duration={null} age={null} released={null} facts={[]} rulebooks={[]} bgg={null} picture={{}} />
+        <GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} picture={{}} />
       </Fit>
     </Frame>
   )

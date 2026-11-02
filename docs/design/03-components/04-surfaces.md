@@ -135,14 +135,16 @@ credit-link-in-the-credits-of-a-game
 
 ## Game head
 
-`GameHead` (`apps/web/src/components/game-head.tsx`) is the top of a game's page on the hub, the first thing a visitor sees. On the left, the name; under it the game's figures on one line, each with a small icon, the players, how long, from what age and the year it came out ("Released 2024": the Studio keeps a day but takes the first of the month or of the year when it knows less, so only the year is said); the description; a row of buttons; and, under a hairline, the credits (`CreditLink` for a publisher's website). On the right, the picture of the game's card drawn larger. Every figure, the description and the credits are drawn only when the Studio has them, and nothing is written in place of one that is missing.
+`GameHead` (`apps/web/src/components/game-head.tsx`) is the top of a game's page on the hub, the first thing a visitor sees. On the left, the name, with a "Coming soon" badge beside it (outline, as the card of a game to come has it) when the game is not live; under it the game's categories as chips (`Badge`, secondary, the icon of the category before its name, `categoryIcon`, the one of the category filter), each a link to the games' list showing that category (`/games?category=<name>`); under them the figures of the game on one line, each with a small icon: the players, how long, how complex ("Complexity 2.4/5", the weight BoardGameGeek gives it: the figure is not drawn for a game whose Studio row has none, which is most of them for now) and from what age; then the description and a row of buttons. Under a hairline, on the left, the credits, one line each with the lines 12px apart, the last being the year the game came out ("Released 2024": the Studio keeps a day but takes the first of the month or of the year when it knows less, so only the year is said), and the button that sees the game on BoardGameGeek. On the right, the picture of the game's card drawn larger. Every one of these is drawn only when the Studio has it, and nothing is written in place of one that is missing.
 
-The row has two groups, with the room of a button between them:
+The row of buttons has two parts, with the room of a button between them:
 
-- **What the page is for**: "Find a game", a secondary button that leads to the open tables, and "Create a game", the primary one (the white fill of the page) that leads to the space that opens a lobby (`FIND_ANCHOR` and `CREATE_ANCHOR` of `game-play.tsx`, the names that `GamePlay` gives them on the page, since a name is one per page; the target stops under the fixed navbar, `scroll-mt-navbar`). On a wide screen the two are side by side, so the two buttons bring the same block into view; on a narrow screen the space comes first and the list after it, so each goes to its own. A game that is not live has both disabled: there is nothing to play yet.
-- **Where to read more**, kept for a game to come: "Rules" and "BoardGameGeek", outline buttons with an arrow up-right for a link that leaves the page. The rules are the rulebooks of the Studio (`RulesButton`, `apps/web/src/components/rules-button.tsx`): with one language the button is the link, which opens the PDF in a new tab, and with several it opens a menu with a row for each, the visitor's language first, a chip with the language's code (EN, FR, ES, DE; hidden from screen readers, the link carries the `lang`) then the title in that language ("Règles du jeu - Flip 7"). BoardGameGeek is `https://boardgamegeek.com/boardgame/<id>` from the game's BGG id (`bggUrl` of `@pbgo/catalog`); a game that has none has no such button, and no search is made up in its place. A game with neither has no second group. A shop that sells the game, a partner's, would be a third button there: nothing is built, there is no data for it.
+- **What the page is for**: "Find a game", the main button (the white fill of the page), puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindGameButton`, `QueueButton`: see [Queue](#queue)). Next to it, in the second place (the grey fill), "Create a game" leads to the space that opens a lobby, under the head (`CREATE_ANCHOR` of `game-play.tsx`, the name that `GamePlay` gives the space on the page, since a name is one per page; the target stops under the fixed navbar, `scroll-mt-navbar`). A game that is not live has both disabled, under the "Coming soon" badge: there is nothing to play yet.
+- **Rules**, an outline button, which a game to come keeps. The rules are the rulebooks of the Studio (`RulesButton`, `apps/web/src/components/rules-button.tsx`): with one language the button is the link, which opens the PDF in a new tab, and with several it opens a menu with a row for each, the visitor's language first, a chip with the language's code (EN, FR, ES, DE; hidden from screen readers, the link carries the `lang`) then the title in that language ("Règles du jeu - Flip 7"). A game with no rulebook has no such button.
 
-On a narrow screen the head is one column and the groups wrap, so the picture comes between the buttons and the credits.
+The BoardGameGeek button, an outline button with an arrow up-right (a link that leaves the page), is under the credits and not in the row: it is `https://boardgamegeek.com/boardgame/<id>` from the game's BGG id (`bggUrl` of `@pbgo/catalog`). A game that has none has no such button, and no search is made up in its place. A shop that sells the game, a partner's, would be one more button there: nothing is built, there is no data for it.
+
+On a narrow screen the head is one column and the buttons wrap, so the picture comes between the buttons and the credits.
 
 ### A live game
 
@@ -152,11 +154,35 @@ game-head-a-live-game
 
 ### A game to come, and one with little data
 
-The first has both buttons disabled and one rulebook, so its rules are a link and not a menu. The second is a game the Studio knows little of: only its name and its players.
+The first has the "Coming soon" badge, both buttons disabled and one rulebook, so its rules are a link and not a menu. The second is a game the Studio knows little of: only its name and its players.
 
 ```specimen
 game-head-a-game-to-come-and-one-with-little
 ```
+
+## Queue
+
+Module: `@pbgo/ui/platform/queue` (the counter and the reading of what is kept: `@pbgo/ui/queue`)
+
+A visitor who presses "Find a game" is looking for a game: they are in the queue of that game, and the same wait is shown in three places. Nothing matches players yet, so no table is found for them and the counter runs until they stop it. The day the platform matches players (the tables of PLT-13), the two functions of `apps/web/src/lib/matchmaking.ts` that start and stop a search are what ask for it, and the blocks do not change.
+
+- **The button** (`QueueButton`): "Find a game" with the icon of a search. A press starts the search and the button becomes, in the same place and at the same width (so that nothing next to it moves) and on the same fill, a counter of the time waited, a turning ring before it, with a cross that stops the search. The counter is written as minutes and seconds, with hours once there are some (`queueTime`: "0:12", "12:05", "1:02:03"), in figures of one width so that the digits do not shift. The keyboard follows the button: after a press the cross has the focus, and after the cross the button has it back (not when the search was stopped from elsewhere). A disabled button is the one of a game that cannot be played yet.
+- **The card** (`QueueCard`), at the top of the social panel, over the tabs, whatever tab is open: the ring, "Looking for a game", the name of the game under it, the counter and a ghost cross (`queue` of `SocialPanel`).
+- **The pill** (`QueuePill`), in the bar of the dock while the panel is closed, before the games the friends are in: the ring, the counter and the cross, with the game's name for the pointer. It folds away with those games as the dock opens, and the card takes over. In a window narrower than 1024px it is not drawn: the bar grows to the left, over the navbar's tabs, and the button of the page and the card show the wait.
+- **One queue for the hub**: it is kept in `apps/web/src/lib/matchmaking.ts` for every page, and in the browser's session storage, so that a reload does not forget it (`parseQueue` reads it back and drops what is older than two hours, or not a queue at all). A visitor looks for one game at a time: pressing the button of another game replaces the search, and the button of the first is then "Find a game" again. The server renders nobody in a queue, so a page is first drawn idle and the counter appears once the browser has read it. A visitor who is not signed in has the button and the counter and no social panel.
+- **For a screen reader**, each of the three is a group called "Searching for a game" (the card and the pill add the game), the counter is a `timer`, which it reads when asked and never announces each second, and the cross is "Stop searching".
+
+```specimen
+queue-button-searching-and-disabled
+```
+
+The button, idle (press it), searching and disabled. The ones here keep a queue of their own.
+
+```specimen
+queue-card-and-pill
+```
+
+The card in a panel and the pill in a bar, a moment into the wait.
 
 ## Table card
 

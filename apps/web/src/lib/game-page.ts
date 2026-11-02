@@ -11,6 +11,9 @@ import { catalogCardProps, durationLabel, gamePicture, playersLabel } from "./ga
 /** One line of a game's credits: a label and its values, each one a link when it has an address, with an icon when the site it leads to has one (`creditLines`). */
 export type GameFact = CreditLine
 
+/** A category of a game, and the games' list showing the games that have it. */
+export type GameCategory = { name: string; href: string }
+
 /** The rulebook of one language: its link, titled in that language with the game's name ("Règles du jeu - Flip 7"). */
 export type GameRulebook = { language: Locale; label: string; href: string }
 
@@ -25,11 +28,13 @@ export type GamePage = {
   /** Already formatted, like the card's ("2–5 players", "30 min"). */
   players: string | null
   duration: string | null
-  /** Worded like the two above, drawn beside them ("Ages 8+"). */
+  /** The weight BoardGameGeek gives the game, worded like the figures around it ("Complexity 2.4/5"): drawn between the duration and the age. Null while the Studio has none. */
+  complexity: string | null
+  /** Worded like the figures above, drawn beside them ("Ages 8+"). */
   age: string | null
-  /** The year the game came out, worded the same way ("Released 2024"): a year is all the Studio's date says for sure. */
-  released: string | null
-  /** The credits one after the other: a line for each role somebody has on the game (designers, artists…), then the publishers; only the lines that have a value. */
+  /** The categories of the game in the order the Studio lists them, each with the page of the games that have it (the games' list, filtered): drawn as chips under the name. */
+  categories: GameCategory[]
+  /** The credits one after the other: a line for each role somebody has on the game (designers, artists…), then the publishers, then the year it came out ("Released 2024": a year is all the Studio's date says for sure); only the lines that have a value. */
   facts: GameFact[]
   /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no button for the rules. */
   rulebooks: GameRulebook[]
@@ -73,9 +78,10 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     description,
     players: playersLabel(game.players) ?? null,
     duration: durationLabel(game.duration) ?? null,
+    complexity: game.complexity === null ? null : `Complexity ${game.complexity.toFixed(1)}/5`,
     age: game.age === null ? null : `Ages ${game.age}+`,
-    released: year === null ? null : `Released ${year}`,
-    facts: creditLines(game),
+    categories: game.categories.map((name) => ({ name, href: `/games?${new URLSearchParams({ category: name })}` })),
+    facts: [...creditLines(game), ...(year === null ? [] : [{ label: "Released", values: [{ text: year }] }])],
     rulebooks: rulebooks(game.rules, locale, game.name),
     bgg: bggUrl(game),
     picture: gamePicture(game),

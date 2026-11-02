@@ -102,7 +102,7 @@ Module: `@pbgo/ui/platform/social-panel`
 
 The social panel of a signed-in visitor, the way the Riot Client has it: a column on the right of the page that is the same container as the bar of the games and the account's picture. The dock (`SocialDock`, `@pbgo/ui/platform/social-dock`) is a bar while it is closed and a real side panel while it is open, one glass surface that grows and shrinks between the two.
 
-The panel (`SocialPanel`) is under the bar, which becomes its header. A press on a friend or on a conversation opens the chat with them (`ChatWindow`), a card that floats at the bottom of the page next to the panel.
+The panel (`SocialPanel`) is under the bar, which becomes its header. A press on a friend or on a conversation opens the chat with them (`ChatWindow`), a card that floats at the bottom of the page next to the panel. While the visitor looks for a game, a card at the top of the panel, over the tabs, shows the wait and stops it, and a pill in the closed bar does the same ([Queue](04-surfaces.md#queue)).
 
 ### One container, two states
 
