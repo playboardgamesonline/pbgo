@@ -178,6 +178,9 @@ export function planMigration(games: readonly Doc[], existing: ReadonlyMap<strin
 
     const links: Link[] = []
     if (!refOf(game.baseGame)) own.push("it has no base game: pick it in the Studio first, an expansion cannot be published without one")
+    // a line that points at nothing would be written with an empty reference: it is for the owner to fill or remove
+    if (Array.isArray(game.creators)) game.creators.forEach((line, index) => (isRecord(line) && refOf(line.creator) ? undefined : own.push(`creators[${index}] has no creator: pick one in the Studio, or remove the line`)))
+    if (Array.isArray(game.publishers)) game.publishers.forEach((entry, index) => (refOf(entry) ? undefined : own.push(`publishers[${index}] is not a reference to a publisher: pick one in the Studio, or remove it`)))
     for (const target of targetsOf(game)) {
       const published = existing.get(target.id)
       const draft = existing.get(draftIdOf(target.id))

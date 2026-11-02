@@ -156,6 +156,14 @@ describe("what stops the migration, which then writes nothing", () => {
     expect(stops([draftWith({}, ["baseGame"])])).toEqual(["drafts.game-courtisans-diplomats-confidants: it has no base game: pick it in the Studio first, an expansion cannot be published without one"])
   })
 
+  it("is a credit with no creator, or a publisher that is no reference: they would be written empty", () => {
+    const lineWithoutCreator = { _key: "line", _type: "gameCreator", roles: ["designer"] }
+    expect(stops([draftWith({ creators: [lineWithoutCreator] })])).toEqual(["drafts.game-courtisans-diplomats-confidants: creators[0] has no creator: pick one in the Studio, or remove the line"])
+    expect(stops([draftWith({ publishers: [{ _key: "p", _type: "reference" }] })])).toEqual([
+      "drafts.game-courtisans-diplomats-confidants: publishers[0] is not a reference to a publisher: pick one in the Studio, or remove it",
+    ])
+  })
+
   it("is a reference to a document the dataset does not have, or of another type", () => {
     const missing = PUBLISHED_AROUND.filter((doc) => doc._id !== "creator-anthony-perone")
     expect(stops([COURTISANS_DRAFT], missing)).toEqual(["drafts.game-courtisans-diplomats-confidants: creators[1] points at creator-anthony-perone, which is not in the dataset"])
