@@ -272,11 +272,16 @@ describe("compareGames", () => {
 })
 
 describe("expansionsOf", () => {
-  const expansion = (slug: string, base: string, name: string, order: number | null = null) => ({ slug, name, base, order, pictures: { logo: null, icon: null, background: null } })
+  const expansion = (slug: string, base: string, name: string) => ({ slug, name, base, pictures: { cover: null, boxFront: null } })
 
-  it("picks the expansions whose base game it is, in the order of the Studio and then by name", () => {
-    const all = [expansion("b-more", "courtisans", "B"), expansion("flip-more", "flip-7", "More"), expansion("c-more", "courtisans", "C", 1), expansion("a-more", "courtisans", "A")]
-    expect(expansionsOf(all, "courtisans").map((one) => one.slug)).toEqual(["c-more", "a-more", "b-more"])
+  it("picks the expansions whose base game it is, by name: an expansion has no order in the Studio", () => {
+    const all = [expansion("b-more", "courtisans", "B"), expansion("flip-more", "flip-7", "More"), expansion("c-more", "courtisans", "C"), expansion("a-more", "courtisans", "A")]
+    expect(expansionsOf(all, "courtisans").map((one) => one.slug)).toEqual(["a-more", "b-more", "c-more"])
+  })
+
+  it("puts the names in the order a reader expects: case and accents aside, numbers in their order", () => {
+    const all = [expansion("ten", "g", "Extension 10"), expansion("two", "g", "Extension 2"), expansion("accent", "g", "Écho"), expansion("plain", "g", "Echo 2"), expansion("last", "g", "Zèbre")]
+    expect(expansionsOf(all, "g").map((one) => one.slug)).toEqual(["accent", "plain", "two", "ten", "last"])
   })
 
   it("is none for a game that has none, and does not change what it is given", () => {
@@ -308,6 +313,15 @@ describe("pictureUrl", () => {
   it("is null for a picture the game does not have: no fallback, the page draws a plain frame", () => {
     expect(pictureUrl(catalogGame("omens"), "icon")).toBeNull()
     expect(ART_SLOTS.map((slot) => pictureUrl(catalogGame("omens"), slot))).toEqual([null, null, null])
+  })
+
+  it("sizes the cover and the box front of an expansion the same way: its cover across a frame, the box smaller, and null for the one it does not have", () => {
+    const expansion = { pictures: { cover: cdn("cover-2400x1350.jpg"), boxFront: null } }
+    expect(pictureUrl(expansion, "cover")).toBe(`${cdn("cover-2400x1350.jpg")}?w=1200&fit=max&auto=format`)
+    expect(pictureUrl(expansion, "cover", 480)).toBe(`${cdn("cover-2400x1350.jpg")}?w=480&fit=max&auto=format`)
+    expect(pictureUrl(expansion, "boxFront")).toBeNull()
+    expect(pictureUrl({ pictures: { cover: null, boxFront: cdn("box-800x800.png") } }, "boxFront")).toBe(`${cdn("box-800x800.png")}?w=600&fit=max&auto=format`)
+    expect(pictureUrl({ pictures: { cover: cdn("cover.svg"), boxFront: null } }, "cover")).toBe(cdn("cover.svg"))
   })
 
   it("never points anywhere but at the image CDN of a project", () => {

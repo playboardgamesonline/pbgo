@@ -17,6 +17,9 @@ export type Creator = { name: string; roles: CreatorRole[] }
 export const ART_SLOTS = ["logo", "icon", "background"] as const
 export type ArtSlot = (typeof ART_SLOTS)[number]
 
+/** The two pictures an expansion can have: its cover and the front of its box. It has none of the three of a game. */
+export type ExpansionSlot = "cover" | "boxFront"
+
 /**
  * A game of the catalog: everything the hub and its page show, for a live game as for one to come. It is a published `game` of the
  * platform's Sanity project (`sanity.ts` reads it, `docs/platform-sanity.md` is its model) or, for a live game that has none, what the
@@ -62,8 +65,8 @@ export type CatalogGame = {
 }
 
 /**
- * An expansion of a game: a published `game` of the platform's Sanity project whose `kind` is `expansion`, played with its base game. It is no game of the hub and has no page: the lobby of its base game offers it, as a picture with its
- * name, and a table says which it is played with. Plain data like `CatalogGame`.
+ * An expansion of a game: a published `expansion` of the platform's Sanity project (PLT-102), played with its base game. It is no game of the hub and has no page: the lobby of its base game offers it, as a picture with its name, and a table says
+ * which it is played with. Plain data like `CatalogGame`. It has none of the figures, credits and texts of its document yet: nothing on the hub shows them.
  */
 export type CatalogExpansion = {
   /** What a table calls it: its slug in the Studio, unique among the expansions. */
@@ -71,25 +74,25 @@ export type CatalogExpansion = {
   name: string
   /** The slug of the game it is played with, one that the hub lists. */
   base: string
-  /** What orders the expansions of a game, lowest first (`compareGames`); null for one with none. */
-  order: number | null
-  /** The address of each picture in the image CDN of the platform's Sanity project, as for a game (`pictureUrl` sizes it). */
-  pictures: Record<ArtSlot, string | null>
+  /** The address of each picture in the image CDN of the platform's Sanity project, as for a game (`pictureUrl` sizes it); null for a picture it does not have. */
+  pictures: Record<ExpansionSlot, string | null>
 }
 
 /**
  * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its background across the
- * frame, and the page draws the same ones larger. Never more than the file holds.
+ * frame, and the page draws the same ones larger; an expansion's cover fills a frame like a background and the front of its box is
+ * drawn smaller. Never more than the file holds.
  */
-const PICTURE_WIDTH: Record<ArtSlot, number> = { logo: 800, icon: 512, background: 1200 }
+const PICTURE_WIDTH: Record<ArtSlot | ExpansionSlot, number> = { logo: 800, icon: 512, background: 1200, cover: 1200, boxFront: 600 }
 
 /**
- * The URL of a game's picture, sized for the page: the address of the file in the image CDN, with a width and `auto=format`, so that a
- * browser that takes WebP or AVIF gets that. A vector picture (SVG) is served as it is. Null when the game has none: a picture it does
- * not have is a plain frame, nothing else. `width` is how wide the CDN is asked for it, the page's own by default: a small tile asks for less.
+ * The URL of a picture of a game or of an expansion, sized for the page: the address of the file in the image CDN, with a width and
+ * `auto=format`, so that a browser that takes WebP or AVIF gets that. A vector picture (SVG) is served as it is. Null when it has none:
+ * a picture it does not have is a plain frame, nothing else. `width` is how wide the CDN is asked for it, the page's own by default: a
+ * small tile asks for less.
  */
-export function pictureUrl(game: Pick<CatalogGame, "pictures">, slot: ArtSlot, width: number = PICTURE_WIDTH[slot]): string | null {
-  const url = game.pictures[slot]
+export function pictureUrl<Slot extends ArtSlot | ExpansionSlot>(owner: { pictures: Record<Slot, string | null> }, slot: NoInfer<Slot>, width: number = PICTURE_WIDTH[slot]): string | null {
+  const url = owner.pictures[slot]
   if (!url) return null
   return url.endsWith(".svg") ? url : `${url}?w=${width}&fit=max&auto=format`
 }
@@ -235,9 +238,9 @@ export function compareGames(a: Pick<CatalogGame, "order" | "name">, b: Pick<Cat
   return NAMES.compare(a.name, b.name)
 }
 
-/** The expansions of a game, the ones whose base game it is, in the order of the Studio (`compareGames`: their `order`, then their names). */
+/** The expansions of a game, the ones whose base game it is, by name, case and accents aside, numbers in their order: an expansion has no `order` in the Studio (`docs/platform-sanity.md`). */
 export function expansionsOf(expansions: readonly CatalogExpansion[], slug: string): CatalogExpansion[] {
-  return expansions.filter((expansion) => expansion.base === slug).sort(compareGames)
+  return expansions.filter((expansion) => expansion.base === slug).sort((a, b) => NAMES.compare(a.name, b.name))
 }
 
 // The games a game's page recommends: its family first, then the games that look like it. They are in this file and not in a file of their own because `pnpm catalog:list` runs this one under plain Node, which strips the types

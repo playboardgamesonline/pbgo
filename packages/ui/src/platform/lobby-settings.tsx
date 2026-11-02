@@ -11,8 +11,8 @@ import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 // and picks a speed; one who reads a table of the list sees only what it is played with and how fast. Every table counts for the leaderboard and none can be looked on at, so neither is a setting. Nothing is kept yet: no lobby has a place to keep
 // them (the tables of PLT-13), so what is set stays in the page; `onChange` is for the page that has somewhere to put it.
 
-/** An expansion of a game that a table may be played with: what it is called and its pictures, the background that fills its frame and the logo that is drawn over it (a stand-in with its initials when it has neither). */
-type ExpansionOption = { id: string; name: string; imageUrl?: string | null; logoUrl?: string | null }
+/** An expansion of a game that a table may be played with: what it is called and its pictures, its cover that fills its frame and the front of its box that is drawn whole in it when it has no cover (a stand-in with its initials when it has neither). */
+type ExpansionOption = { id: string; name: string; coverUrl?: string | null; boxUrl?: string | null }
 
 /** What the settings of a lobby say: the ids of the expansions it is played with, its pace and, when it is a lobby that is opened or set, whether it is listed (`public`) or reached by its link (`private`). */
 type LobbySettingsValue = { expansions: string[]; pace: Pace; visibility?: "public" | "private" }
@@ -40,20 +40,18 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-/** The picture of an expansion, in a 3 × 2 frame: its background fills it and its logo is drawn over it, contained, as the picture of a game's card is; the initials of its name on the `muted` fill when it has neither. */
+/** The picture of an expansion, in a 3 × 2 frame on the `muted` fill: its cover fills it; with no cover, the front of its box is drawn whole in it, contained, since a box is not made for that shape; with neither, the initials of its name. */
 function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
-  const { imageUrl, logoUrl } = expansion
+  const { coverUrl, boxUrl } = expansion
   return (
     <span className="relative block aspect-3/2 overflow-hidden rounded-xl bg-muted">
-      {imageUrl && (
+      {coverUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
-      )}
-      {logoUrl && (
+        <img src={coverUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
+      ) : boxUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt="" loading="lazy" decoding="async" className="relative size-full object-contain p-3" />
-      )}
-      {!imageUrl && !logoUrl && (
+        <img src={boxUrl} alt="" loading="lazy" decoding="async" className="size-full object-contain p-2" />
+      ) : (
         <span aria-hidden="true" className="flex size-full items-center justify-center font-heading text-2xl text-muted-foreground">
           {initials(expansion.name)}
         </span>
@@ -62,8 +60,8 @@ function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
   )
 }
 
-/** What an expansion is in the settings: its picture and its name in a frame, outlined when the table is played with it. */
-const TILE = "flex w-full flex-col gap-2 rounded-2xl p-1.5 text-left outline-2 transition-colors duration-fast"
+/** What an expansion is in the settings: its picture and its name in a frame, outlined when the table is played with it. The name wraps and is never cut (an expansion's name often starts with its game's, and says nothing before its end); the frames of a row are as tall as the tallest. */
+const TILE = "flex h-full w-full flex-col gap-2 rounded-2xl p-1.5 text-left outline-2 transition-colors duration-fast"
 
 /**
  * The settings of a lobby: the expansions of the game as pictures with their names (a visitor who sets the lobby presses one to choose it, and the outline says it is, `aria-pressed` for a screen reader; one who reads a table sees
@@ -96,12 +94,12 @@ function LobbySettings({ expansions = [], chosen = [], pace, visibility, editabl
                       className={cn(TILE, "focus-visible:ring-3 focus-visible:ring-ring/30", on ? "outline-foreground" : "outline-transparent hover:outline-foreground/30")}
                     >
                       <ExpansionPicture expansion={expansion} />
-                      <span className="truncate px-1 text-sm">{expansion.name}</span>
+                      <span className="px-1 text-sm">{expansion.name}</span>
                     </button>
                   ) : (
                     <div className={cn(TILE, "outline-foreground")}>
                       <ExpansionPicture expansion={expansion} />
-                      <span className="truncate px-1 text-sm">{expansion.name}</span>
+                      <span className="px-1 text-sm">{expansion.name}</span>
                     </div>
                   )}
                 </li>

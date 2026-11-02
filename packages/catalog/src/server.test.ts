@@ -2,7 +2,7 @@ import type { GameEntry } from "@pbgo/core/lib/binding"
 import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { registryRow } from "./catalog"
-import { fakeSanity, sanityFailure, sanityGame, type SanityAnswer } from "./testing"
+import { cdn, fakeSanity, sanityExpansion, sanityFailure, sanityGame, type SanityAnswer } from "./testing"
 
 // `server-only` throws outside a server bundle
 vi.mock("server-only", () => ({}))
@@ -45,15 +45,22 @@ const logged = () => warn.mock.calls.map((call) => call.join(" ")).join("\n")
 
 describe("when the platform's Sanity project answers", () => {
   it("carries the expansions of the Studio apart from the games: they have no page", async () => {
-    const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityGame("bang-more", { name: "Bang: More", kind: "expansion", baseGame: "bang" })])
-    expect(catalog.expansions.map((expansion) => [expansion.slug, expansion.base])).toEqual([["bang-more", "bang"]])
+    const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityExpansion("bang-more", { name: "Bang: More", baseGame: "bang", cover: cdn("cover-1200x800.jpg") })])
+    expect(catalog.expansions).toEqual([{ slug: "bang-more", name: "Bang: More", base: "bang", pictures: { cover: cdn("cover-1200x800.jpg"), boxFront: null } }])
     expect(catalog.entries.map((entry) => entry.slug)).not.toContain("bang-more")
   })
 
   it("says once that an expansion cannot be offered, and which of its fields to put right", async () => {
-    const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityGame("orphan", { name: "Orphan", kind: "expansion" })])
+    const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityExpansion("orphan", { name: "Orphan", baseGame: null })])
     expect(catalog.expansions).toEqual([])
-    expect(logged()).toContain('[catalog] The expansion "Orphan" of the Studio is left out: it has no base game')
+    expect(logged()).toContain('[catalog] The expansion "Orphan" of the Studio is left out: it has no base game, or its base game is not published')
+  })
+
+  it("says once that a game still has the kind expansion, which the Studio no longer has", async () => {
+    const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityGame("bang-old", { _id: "game-bang-old", name: "Bang: Old", kind: "expansion", baseGame: "bang" })])
+    expect(catalog.expansions).toEqual([])
+    expect(catalog.entries.map((entry) => entry.slug)).not.toContain("bang-old")
+    expect(logged()).toContain('[catalog] The game "Bang: Old" of the Studio is left out: its kind is expansion, which a game no longer has')
   })
 
   it("lists the live games, then the games of the Studio in their order", async () => {

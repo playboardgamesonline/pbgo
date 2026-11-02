@@ -91,18 +91,28 @@ const MY_LOBBY: ViewerTable = { ...table({ id: "me1", code: "Q8W2ER", status: "l
 const FRIENDS_LOBBY: ViewerTable = { ...table({ id: "me3", code: "R6T8YU", status: "lobby", players: [MARLY(0), JO(1)], seatsMax: 4, turnTimer: "fast", expansions: ["second"], createdAt: ago(6) }), viewerIsHost: false }
 const MY_GAME: ViewerTable = { ...table({ id: "me2", code: "T5Y7UI", status: "playing", visibility: "private", players: [JO(0), HERVE(1), LINA(2)], seatsMax: 3, createdAt: ago(40), startedAt: ago(26) }), viewerIsHost: true }
 
-/** A picture for an expansion that has none of its own here: a gradient and a numeral, drawn as an SVG. */
+/** A cover for an expansion that has none of its own here: a gradient and a numeral, drawn as an SVG. */
 const expansionArt = (hue: number, numeral: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 42% 34%)"/><stop offset="1" stop-color="hsl(${hue + 50} 48% 13%)"/></linearGradient></defs><rect width="160" height="120" fill="url(#g)"/><text x="80" y="78" text-anchor="middle" font-family="Georgia, serif" font-size="52" fill="white" fill-opacity=".82">${numeral}</text></svg>`,
   )}`
 
+/** The front of the box of an expansion that has no cover here: a tall box with a numeral, drawn as an SVG. */
+const expansionBox = (hue: number, numeral: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 120"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 52% 40%)"/><stop offset="1" stop-color="hsl(${hue + 40} 56% 16%)"/></linearGradient></defs><rect width="90" height="120" rx="6" fill="url(#b)"/><rect x="6" y="6" width="78" height="108" rx="3" fill="none" stroke="white" stroke-opacity=".5"/><text x="45" y="76" text-anchor="middle" font-family="Georgia, serif" font-size="40" fill="white" fill-opacity=".85">${numeral}</text></svg>`,
+  )}`
+
 /** The expansions of an imagined game: what its lobby offers, and what a table says it is played with. */
 const EXPANSIONS: Expansion[] = [
-  { id: "first", name: "First expansion", imageUrl: expansionArt(210, "I"), logoUrl: null },
-  { id: "second", name: "Second expansion", imageUrl: expansionArt(340, "II"), logoUrl: null },
-  { id: "third", name: "Third expansion", imageUrl: expansionArt(40, "III"), logoUrl: null },
+  { id: "first", name: "First expansion", coverUrl: expansionArt(210, "I"), boxUrl: null },
+  { id: "second", name: "Second expansion", coverUrl: expansionArt(340, "II"), boxUrl: null },
+  // no cover: the front of its box is drawn whole in the frame
+  { id: "third", name: "Third expansion", coverUrl: null, boxUrl: expansionBox(40, "III") },
 ]
+
+/** An expansion with no picture at all: its frame holds the initials of its name. */
+const BARE_EXPANSION: Expansion = { id: "fourth", name: "Fourth expansion", coverUrl: null, boxUrl: null }
 
 const standing = (rank: number, playerId: string, nickname: string, rating: number, wins: number, gamesPlayed: number, avatarUrl: string | null): Standing => ({
   playerId,
@@ -310,14 +320,14 @@ function LobbySettingsSetAndRead() {
   return (
     <Frame
       className="grid gap-6 md:grid-cols-2"
-      code={`// A lobby the visitor opened: they choose the expansions and the speed
+      code={`// A lobby the visitor opened: they choose the expansions and the speed. An expansion is its cover, the front of its box when it has no cover, its initials when it has neither
 <LobbySettings expansions={expansions} chosen={["first"]} pace="normal" visibility="public" editable />
 
 // A table of the list: only what it is played with, and how fast
 <LobbySettings expansions={expansions} chosen={table.expansions} pace={table.turnTimer} />`}
     >
       <div className="rounded-4xl bg-card p-8 shadow-surface ring-1 ring-foreground/10">
-        <LobbySettings expansions={EXPANSIONS} chosen={["first"]} pace="normal" visibility="public" editable />
+        <LobbySettings expansions={[...EXPANSIONS, BARE_EXPANSION]} chosen={["first"]} pace="normal" visibility="public" editable />
       </div>
       <div className="rounded-4xl bg-card p-8 shadow-surface ring-1 ring-foreground/10">
         <LobbySettings expansions={EXPANSIONS} chosen={["first", "second"]} pace="fast" />

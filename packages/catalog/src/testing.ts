@@ -22,7 +22,25 @@ export const sanityGame = (slug: string, overrides: Record<string, unknown> = {}
   ...overrides,
 })
 
-/** What Sanity answers: the result of the query, or a failure (status and body as Sanity writes them). */
+/** A published expansion as the query returns it: nothing but a name and a slug, unless the test says more (its `baseGame`, the slug of a game; its `cover` and `boxFront`). */
+export const sanityExpansion = (slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+  _type: "expansion",
+  _id: `expansion-${slug}`,
+  name: slug,
+  slug,
+  ...overrides,
+})
+
+/**
+ * The result of the query for these documents: the games and the expansions in two lists, as the query makes them. A document of the
+ * type `expansion` (`sanityExpansion`) is an expansion, whatever else is a game, odd values included.
+ */
+export const sanityResult = (documents: unknown[]) => {
+  const isExpansion = (document: unknown) => typeof document === "object" && document !== null && (document as { _type?: unknown })._type === "expansion"
+  return { games: documents.filter((document) => !isExpansion(document)), expansions: documents.filter(isExpansion) }
+}
+
+/** What Sanity answers: the documents the query finds (`sanityResult` sorts them out), or a failure (status and body as Sanity writes them). */
 export type SanityAnswer = unknown[] | { status: number; body: unknown }
 
 export type SanityCall = { url: URL; init: RequestInit }
@@ -35,7 +53,7 @@ export function fakeSanity(answer: SanityAnswer) {
   const calls: SanityCall[] = []
   const fetcher = (async (input: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: new URL(String(input)), init: init ?? {} })
-    return Array.isArray(answer) ? reply(200, { ms: 3, query: CATALOG_QUERY, result: answer }) : reply(answer.status, answer.body)
+    return Array.isArray(answer) ? reply(200, { ms: 3, query: CATALOG_QUERY, result: sanityResult(answer) }) : reply(answer.status, answer.body)
   }) as typeof fetch
   return { fetch: fetcher, calls }
 }

@@ -1,5 +1,5 @@
 // The reader of the platform's Sanity project: its published games, with the people, publishers and categories they point at, as
-// `CatalogGame`s. A plain `fetch` of the project's public API, through its CDN: the dataset is public, so there is no token and nothing
+// `CatalogGame`s, and its published expansions as `CatalogExpansion`s. A plain `fetch` of the project's public API, through its CDN: the dataset is public, so there is no token and nothing
 // secret to read. No SDK and no framework here: the caller can hand in its own `fetch`, and `init` carries Next's cache options
 // (`server.ts`). The model of the project is `docs/platform-sanity.md`; the Studio that edits it is `platform/apps/studio`.
 
@@ -19,21 +19,30 @@ const DEFAULT_TIMEOUT_MS = 5000
 const MAX_MESSAGE_LENGTH = 200
 
 /**
- * The published games, oldest first (so that two games with one slug are settled the same way every time: the older one wins), each with
- * what the hub shows of it. A reference is followed to the document it points at: the names of its categories, the people of its credits
- * with their roles, its publishers with their websites, the slugs of its related games and of its base game, and the address of the
- * file of each picture. A reference to a document that is not published is a `null`, which the reader drops.
+ * The published games and the published expansions, each oldest first (so that two with one slug are settled the same way every time:
+ * the older one wins). Two lists in one answer, one per document type, so that an expansion can never be read as a game: a game with
+ * what the hub shows of it, an expansion with what its base game's lobby shows of it. A reference is followed to the document it points
+ * at: the names of a game's categories, the people of its credits with their roles, its publishers with their websites, the slugs of its
+ * related games, and of the base game of a game or of an expansion, and the address of the file of each picture. A reference to a
+ * document that is not published is a `null`, which the reader drops.
  */
-export const CATALOG_QUERY = `*[_type == "game" && defined(slug.current)] | order(_createdAt asc) {
-  _id, _updatedAt, name, "slug": slug.current, kind, order, bggId, releaseDate,
-  playersMin, playersMax, duration, minAge, complexity, description,
-  rulesFr, rulesEn, rulesEs, rulesDe,
-  "categories": categories[]->name,
-  "creators": creators[]{ "name": creator->name, roles },
-  "publishers": publishers[]->{ name, "url": website },
-  "related": related[]->slug.current,
-  "baseGame": baseGame->slug.current,
-  "logo": logo.asset->url, "icon": icon.asset->url, "background": background.asset->url
+export const CATALOG_QUERY = `{
+  "games": *[_type == "game" && defined(slug.current)] | order(_createdAt asc) {
+    _id, _updatedAt, name, "slug": slug.current, kind, order, bggId, releaseDate,
+    playersMin, playersMax, duration, minAge, complexity, description,
+    rulesFr, rulesEn, rulesEs, rulesDe,
+    "categories": categories[]->name,
+    "creators": creators[]{ "name": creator->name, roles },
+    "publishers": publishers[]->{ name, "url": website },
+    "related": related[]->slug.current,
+    "baseGame": baseGame->slug.current,
+    "logo": logo.asset->url, "icon": icon.asset->url, "background": background.asset->url
+  },
+  "expansions": *[_type == "expansion" && defined(slug.current)] | order(_createdAt asc) {
+    _id, name, "slug": slug.current,
+    "baseGame": baseGame->slug.current,
+    "cover": cover.asset->url, "boxFront": boxFront.asset->url
+  }
 }`
 
 /** A failed call to the platform's Sanity project. The message never holds an address of a request. `status` is the HTTP status, 0 when Sanity could not be reached. */
@@ -64,7 +73,7 @@ export type SkippedGame = { id: string; name: string; reason: string }
 export type SanityRead = {
   games: CatalogGame[]
   skipped: SkippedGame[]
-  /** The expansions of the project (`kind`): played with another game, so they have no page on the hub; the lobby of their base game offers them. One that cannot be offered is left out and reported in `warnings`. */
+  /** The expansions of the project (`expansion` documents): played with another game, so they have no page on the hub; the lobby of their base game offers them. One that cannot be offered is left out and reported in `warnings`. */
   expansions: CatalogExpansion[]
   /** Things worth fixing in the Studio that do not stop the catalog. */
   warnings: string[]
@@ -143,23 +152,28 @@ const byLanguage = (read: (language: Locale) => string | null): Partial<Record<L
 
 const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
 
-/** Why a document cannot be a game of the site, in a few words, or undefined when it can. `taken`: the slugs of the games kept so far. */
-function problemOf(name: string, slug: string, taken: ReadonlySet<string>): string | undefined {
+/**
+ * Why a document cannot be a game of the site, or an expansion offered by one, in a few words, or undefined when it can: the rules of the
+ * Studio for a name and a slug, which the hub does not trust it to have kept. `taken`: the slugs of the ones of its type kept so far.
+ */
+function problemOf(name: string, slug: string, taken: ReadonlySet<string>, type: "game" | "expansion" = "game"): string | undefined {
   if (!name) return "it has no name"
   const nameIssue = nameProblem(name)
   if (nameIssue) return nameIssue
   const slugIssue = slugProblem(slug)
   if (slugIssue) return slugIssue
-  return taken.has(slug) ? `its slug "${slug}" is already the one of an older game` : undefined
+  return taken.has(slug) ? `its slug "${slug}" is already the one of an older ${type}` : undefined
 }
 
 /**
- * The games of the platform's Sanity project that the site can serve: every published `game` with a name and a slug it can use, except
- * the expansions (`kind`: a game that needs another one to be played is no game of the hub, so it has no page; it is read apart, in
- * `expansions`, for the lobby of its base game to offer, a reimplementation, which stands on its own, is listed). One that cannot be served is reported in
- * `skipped`, never guessed at: no name (or one that is not a line of text), a slug that is not one or is a route of the site, or the slug
- * of an older game (the older wins). A value the Studio lets through and the hub cannot use (a maximum of players under the minimum, a
- * link that is not http, a role the list lacks) leaves its field empty. Throws a `SanityError` when the project cannot be read.
+ * The games of the platform's Sanity project that the site can serve: every published `game` with a name and a slug it can use. A game
+ * that needs another one to be played is not a game but an `expansion`, a document of its own (PLT-102) with no page on the hub: it is
+ * read apart, in `expansions`, for the lobby of its base game to offer (a reimplementation, which stands on its own, is a game and is
+ * listed). One that cannot be served is reported in `skipped`, never guessed at: no name (or one that is not a line of text), a slug that
+ * is not one or is a route of the site, the slug of an older game (the older wins), or the kind `expansion`, which a game had before
+ * expansions were documents of their own. A value the Studio lets through and the hub cannot use (a maximum of players under the
+ * minimum, a link that is not http, a role the list lacks) leaves its field empty. An expansion that cannot be offered is left out and
+ * reported in `warnings`. Throws a `SanityError` when the project cannot be read.
  */
 export async function readSanityGames(options: SanityReadOptions = {}): Promise<SanityRead> {
   const projectId = options.projectId ?? PLATFORM_PROJECT_ID
@@ -179,20 +193,21 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
     const detail = isRecord(payload) && isRecord(payload.error) && typeof payload.error.description === "string" ? payload.error.description.slice(0, MAX_MESSAGE_LENGTH) : ""
     throw new SanityError(`Sanity answered ${response.status}${detail ? `: ${detail}` : ""}`, response.status)
   }
-  if (!isRecord(payload) || !Array.isArray(payload.result)) throw new SanityError("Sanity answered with something that is not a list of games", 200)
+  const result = isRecord(payload) ? payload.result : null
+  if (!isRecord(result) || !Array.isArray(result.games) || !Array.isArray(result.expansions)) throw new SanityError("Sanity answered with something that is not a list of games and a list of expansions", 200)
 
   const kept: { game: CatalogGame; links: string[] }[] = []
   const skipped: SkippedGame[] = []
   const slugs = new Set<string>()
-  const expansionDocuments: Record<string, unknown>[] = []
-  for (const raw of payload.result) {
+  for (const raw of result.games) {
     if (!isRecord(raw)) continue
-    if (raw.kind === "expansion") {
-      expansionDocuments.push(raw)
-      continue
-    }
     const id = typeof raw._id === "string" ? raw._id : ""
     const name = nameOf(raw.name)
+    // The kind a game had before expansions were documents of their own: it is no game of the hub, and no expansion either until it is moved to one
+    if (raw.kind === "expansion") {
+      skipped.push({ id, name: printable(name), reason: "its kind is expansion, which a game no longer has: an expansion is a document of its own, to be moved to one" })
+      continue
+    }
     const slug = typeof raw.slug === "string" ? raw.slug : ""
     const problem = problemOf(name, slug, slugs)
     if (problem) {
@@ -237,38 +252,24 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
 
   // A link to a game that is not in the catalog (not published, left out above) is dropped, like a person with no name
   const games = kept.map(({ game, links }) => ({ ...game, related: [...new Set(links)].filter((slug) => slug !== game.slug && slugs.has(slug)) }))
-  // An expansion is offered by the lobby of its base game: it needs a name, a slug of its own and a base game that the hub lists. One that lacks any of them is left out, and reported, since the Studio is where it is put right
+  // An expansion is offered by the lobby of its base game: it needs a name and a slug as a game does, and a base game that the hub lists. One that lacks any of them is left out, and reported, since the Studio is where it is put right
   const expansions: CatalogExpansion[] = []
   const warnings: string[] = []
   const expansionSlugs = new Set<string>()
-  for (const raw of expansionDocuments) {
+  for (const raw of result.expansions) {
+    if (!isRecord(raw)) continue
     const name = nameOf(raw.name)
-    const slug = typeof raw.slug === "string" ? raw.slug.trim() : ""
+    const slug = typeof raw.slug === "string" ? raw.slug : ""
     const base = typeof raw.baseGame === "string" ? raw.baseGame : ""
     const label = printable(name || (typeof raw._id === "string" ? raw._id : "")) || "without a name"
-    const problem = !name
-      ? "it has no name"
-      : !slug
-        ? "it has no slug"
-        : expansionSlugs.has(slug)
-          ? `its slug "${printable(slug)}" is already the one of an older expansion`
-          : !base
-            ? "it has no base game"
-            : !slugs.has(base)
-              ? `its base game "${printable(base)}" is not a game the hub lists`
-              : undefined
+    // The reference is a `null` when the base game is not published: the Studio makes it required, so that is the one way it can be missing
+    const problem = problemOf(name, slug, expansionSlugs, "expansion") ?? (!base ? "it has no base game, or its base game is not published" : !slugs.has(base) ? `its base game "${base}" is not a game the hub lists` : undefined)
     if (problem) {
-      warnings.push(`The expansion "${label}" of the Studio is left out: ${problem}`)
+      warnings.push(`The expansion "${label}" of the Studio is left out: ${printable(problem)}`)
       continue
     }
     expansionSlugs.add(slug)
-    expansions.push({
-      slug,
-      name,
-      base,
-      order: wholeOf(raw.order, 0),
-      pictures: { logo: pictureOf(raw.logo, projectId, dataset), icon: pictureOf(raw.icon, projectId, dataset), background: pictureOf(raw.background, projectId, dataset) },
-    })
+    expansions.push({ slug, name, base, pictures: { cover: pictureOf(raw.cover, projectId, dataset), boxFront: pictureOf(raw.boxFront, projectId, dataset) } })
   }
   if (games.length === 0) warnings.push("The platform's Sanity project has no published game: the hub lists the live games of the registry alone")
   return { games, skipped, expansions, warnings }

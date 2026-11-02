@@ -5,7 +5,7 @@ import type { Outcome } from "@pbgo/ui/results"
 import type { PlayerRating } from "@pbgo/ui/tables"
 
 // What is going on around a game, for its page on the hub: its tables (the ones that wait for players and the ones being played), the table the visitor sits at, its best players, what the visitor has done in it, its tournaments and the expansions that a table may be played with. Every table counts for the leaderboard and none can be looked on at, so the tables have neither as a setting. The page
-// reads them here and nowhere else. None of them exists yet, so each comes back empty and the page draws an empty state for it, but the expansions of a game: they are games of the platform's Sanity project, which the catalog reads (`getExpansions`). The types are already the shape the data will have: they are the rows of the platform schema of PLT-13
+// reads them here and nowhere else. None of them exists yet, so each comes back empty and the page draws an empty state for it, but the expansions of a game: they are `expansion` documents of the platform's Sanity project, which the catalog reads (`getExpansions`). The types are already the shape the data will have: they are the rows of the platform schema of PLT-13
 // (`platform.tables` and `table_players` for the tables, `ratings` and `profiles` for the standings, `game_participants`, `game_results` and `rating_changes` for what a visitor has done; the design is in the Linear documents
 // "PLT-13 final schema proposal" and "PLT-13 SQL"), written without Supabase, so that the day the schema is there only the bodies of these functions change and the page does not. The tournaments are PLT-31's and have no row in that
 // schema yet, and neither have achievements, whose shape here is the page's guess.
@@ -61,10 +61,10 @@ export type GameTable = {
 export type ViewerTable = GameTable & { viewerIsHost: boolean }
 
 /**
- * An expansion of a game that a table may be played with: what it is called and its pictures, its background (the tile's picture) and its logo (drawn over it, the icon when it has no logo). They are the games of the platform's Sanity project whose kind is `expansion` and
- * whose base game is the game: `@pbgo/catalog` reads them apart, since they have no page of their own.
+ * An expansion of a game that a table may be played with: what it is called and its pictures, its cover (the tile's picture) and the front of its box (drawn whole in the tile when it has no cover). They are the `expansion` documents of the platform's Sanity
+ * project whose base game is the game: `@pbgo/catalog` reads them apart, since they have no page of their own.
  */
-export type Expansion = { id: string; name: string; imageUrl: string | null; logoUrl: string | null }
+export type Expansion = { id: string; name: string; coverUrl: string | null; boxUrl: string | null }
 
 /** One player's standing in a game: a row of `platform.ratings` with the nickname and the picture of their `profiles` row. Only an account has one: a guest is never ranked. */
 export type Standing = {
@@ -191,16 +191,16 @@ export async function getHistory(slug: string, viewerId: string | null): Promise
 }
 
 /**
- * The expansions of the game that a table may be played with, with their pictures: the games of the platform's Sanity project of kind `expansion` that name it as their base game, in the order of the Studio (`@pbgo/catalog`, cached with the rest of the catalog).
- * A game that has none in the Studio has none: Courtisans has to be given some there (`docs/platform-sanity.md`).
+ * The expansions of the game that a table may be played with, with their pictures: the `expansion` documents of the platform's Sanity project that name it as their base game, by name (`@pbgo/catalog`, cached with the rest of the catalog). A game that has none
+ * in the Studio has none (`docs/platform-sanity.md`).
  */
 export async function getExpansions(slug: string): Promise<Expansion[]> {
   const { expansions } = await getCatalog()
   return expansionsOf(expansions, slug).map((expansion) => ({
     id: expansion.slug,
     name: expansion.name,
-    imageUrl: pictureUrl(expansion, "background", 480),
-    logoUrl: pictureUrl(expansion, "logo", 320) ?? pictureUrl(expansion, "icon", 320),
+    coverUrl: pictureUrl(expansion, "cover", 480),
+    boxUrl: pictureUrl(expansion, "boxFront", 320),
   }))
 }
 

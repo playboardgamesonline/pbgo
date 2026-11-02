@@ -15,10 +15,10 @@ try {
   sanityGames = read.games
   header = `Sanity read: ${read.games.length} games, ${read.skipped.length} skipped.`
   for (const game of read.skipped) notes.push(`skipped  ${game.name || game.id}: ${game.reason}`)
-  // A game of the Studio whose kind is expansion has no page: the lobby of its base game offers it, with its pictures
+  // An expansion of the Studio has no page: the lobby of its base game offers it, with its pictures
   for (const expansion of read.expansions) {
-    const pictures = [["L", expansion.pictures.logo], ["I", expansion.pictures.icon], ["B", expansion.pictures.background]].flatMap(([label, url]) => (url ? [label] : []))
-    notes.push(`expansion  ${expansion.name} (${expansion.base}): offered in the lobby of its base game, no page of its own, pictures ${pictures.join(" ") || "none"}`)
+    const pictures = [["cover", expansion.pictures.cover], ["box front", expansion.pictures.boxFront]].flatMap(([label, url]) => (url ? [label] : []))
+    notes.push(`expansion  ${expansion.name} (${expansion.base}): offered in the lobby of its base game, no page of its own, pictures ${pictures.join(", ") || "none"}`)
   }
   for (const warning of read.warnings) notes.push(`warning  ${warning}`)
 } catch (error) {

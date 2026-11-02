@@ -3,7 +3,7 @@ import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { iconVersion } from "./catalog"
 import { PLATFORM_PROJECT_ID } from "./sanity"
-import { cdn, fakeWeb, htmlResponse, pictureBytes, pictureResponse, sanityGame, webPage, type HostHandler } from "./testing"
+import { cdn, fakeWeb, htmlResponse, pictureBytes, pictureResponse, sanityGame, sanityResult, webPage, type HostHandler } from "./testing"
 
 // `server-only` throws outside a server bundle
 vi.mock("server-only", () => ({}))
@@ -42,7 +42,7 @@ type World = {
 }
 
 async function world({ games = [], hosts = {}, sanity }: World = {}) {
-  const answer = sanity ?? (() => new Response(JSON.stringify({ result: games }), { headers: { "content-type": "application/json" } }))
+  const answer = sanity ?? (() => new Response(JSON.stringify({ result: sanityResult(games) }), { headers: { "content-type": "application/json" } }))
   const web = fakeWeb({ [SANITY]: answer, ...hosts })
   vi.stubGlobal("fetch", web.fetch)
   // A fresh copy of the module: the lines the previous test logged are forgotten with the old one
