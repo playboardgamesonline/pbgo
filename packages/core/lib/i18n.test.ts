@@ -1,6 +1,8 @@
+import { isPlatformLanguage, LANGUAGE_COOKIE, type PlatformLanguage } from "@pbgo/accounts/language"
 import { LOCALE_COOKIE as BANNER_LOCALE_COOKIE, pickLocale } from "@pbgo/analytics"
-import { describe, expect, it } from "vitest"
-import { fromAcceptLanguage, LOCALE_COOKIE, LOCALES } from "./i18n"
+import { PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
+import { describe, expect, expectTypeOf, it } from "vitest"
+import { DEFAULT_LOCALE, FALLBACK_LOCALE, fromAcceptLanguage, LOCALE_COOKIE, localeFor, LOCALES, type Locale } from "./i18n"
 
 // The cookie banner of `@pbgo/analytics` cannot import core (core depends on it), so it keeps its own copy of what it needs to
 // speak the visitor's language. These tests are what keeps the copy honest.
@@ -24,5 +26,36 @@ describe("language of the cookie banner", () => {
 
   it("answers in every language of the site", () => {
     for (const locale of LOCALES) expect(pickLocale({ cookie: locale })).toBe(locale)
+  })
+
+  it("answers a cookie of the visitor's twelve languages the way the games do: its own language when the site has it, English when not", () => {
+    for (const { id } of PLATFORM_LANGUAGES) expect(pickLocale({ cookie: id, languages: ["de"] })).toBe(localeFor(id))
+  })
+})
+
+describe("the languages of a visitor and the languages of a site", () => {
+  it("make two sets: a visitor chooses among twelve, the games render four, and the four are among the twelve", () => {
+    expect(PLATFORM_LANGUAGES).toHaveLength(12)
+    expect([...LOCALES]).toEqual(["fr", "en", "es", "de"])
+    expectTypeOf<Locale>().toExtend<PlatformLanguage>()
+    expectTypeOf<PlatformLanguage>().not.toExtend<Locale>()
+    for (const locale of LOCALES) expect(isPlatformLanguage(locale)).toBe(true)
+  })
+
+  it("render a visitor's language when the site has it, English when it does not", () => {
+    for (const language of ["fr", "en", "es", "de"] as const) expect(localeFor(language)).toBe(language)
+    for (const language of ["zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"] as const) expect(localeFor(language)).toBe("en")
+    expect(FALLBACK_LOCALE).toBe("en")
+  })
+
+  it("keep French as the default of the games: the account's language does not change it (it decides what a crawler without a header is shown)", () => {
+    expect(DEFAULT_LOCALE).toBe("fr")
+    expect(fromAcceptLanguage(null)).toBe("fr")
+    expect(fromAcceptLanguage("ja,pt-BR;q=0.8")).toBe("en")
+  })
+
+  it("read the cookie of the language that the accounts write", () => {
+    expect(LOCALE_COOKIE).toBe(LANGUAGE_COOKIE)
+    expect(LOCALE_COOKIE).toBe("pbgo-locale")
   })
 })

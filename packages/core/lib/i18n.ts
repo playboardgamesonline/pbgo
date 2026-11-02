@@ -1,17 +1,35 @@
+import { LANGUAGE_COOKIE, type PlatformLanguage } from "@pbgo/accounts/language"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 
-/** Languages of the site: extend `LANGUAGES` (studio-kit), which also feeds the Sanity fields. */
+/**
+ * Languages a game's site can render: extend `LANGUAGES` (studio-kit), which also feeds the Sanity fields. Not the languages a visitor can choose: those are the platform's twelve
+ * (`PlatformLanguage`, `PLATFORM_LANGUAGES`), kept on their account and in the cookie, and a visitor whose language a site lacks reads English there (`localeFor`).
+ */
 export const LOCALES = LANGUAGES.map((l) => l.id) as unknown as readonly ("fr" | "en" | "es" | "de")[]
 export type Locale = (typeof LANGUAGES)[number]["id"]
 
+// Every language a site renders is one a visitor can choose: this stops compiling the day `LANGUAGES` gets a language that `PLATFORM_LANGUAGES` lacks
+type Assert<T extends true> = T
+export type SitesRenderOnlyChoosableLanguages = Assert<Locale extends PlatformLanguage ? true : false>
+
 export const DEFAULT_LOCALE = "fr" as const satisfies Locale
+
+/** What a site renders for a visitor whose language it does not have. */
+export const FALLBACK_LOCALE = "en" as const satisfies Locale
 
 /** Name of each language in that language, shown by the language picker. */
 export const LOCALE_NAMES: Record<Locale, string> = Object.fromEntries(LANGUAGES.map((l) => [l.id, l.title])) as Record<Locale, string>
 
-export const LOCALE_COOKIE = "pbgo-locale"
+/** The cookie of the visitor's language (`@pbgo/accounts`): it holds any of the platform's twelve languages, the games read the four they have. */
+export const LOCALE_COOKIE = LANGUAGE_COOKIE
 
 export const isLocale = (v: unknown): v is Locale => typeof v === "string" && (LOCALES as readonly string[]).includes(v)
+
+/**
+ * The language a site renders for a visitor's language: their own when the site has it, else English. A visitor chooses among the platform's twelve languages and the games render
+ * four, so one who chose Japanese (or whose account did) reads English there, not the language their browser comes second with.
+ */
+export const localeFor = (language: PlatformLanguage): Locale => (isLocale(language) ? language : FALLBACK_LOCALE)
 
 /** First supported language of the Accept-Language header (`fr-CA,fr;q=0.9,en;q=0.8` → `fr`), else English (unsupported language) or the default language (no header). */
 export function fromAcceptLanguage(header: string | null | undefined): Locale {
