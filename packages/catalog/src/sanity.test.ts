@@ -69,7 +69,7 @@ describe("the request", () => {
   })
 
   it("asks for what the reader maps: the query names each field", () => {
-    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "cover", "boxFront"]) {
+    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "cover", "boxFront"]) {
       expect(CATALOG_QUERY, field).toContain(field)
     }
   })
@@ -143,6 +143,7 @@ describe("a published game", () => {
           name: "Hanabi",
           order: 30,
           bggId: 98778,
+          buyUrl: "https://shop.example/hanabi",
           releaseDate: "2010-01-01",
           playersMin: 2,
           playersMax: 5,
@@ -177,6 +178,7 @@ describe("a published game", () => {
       duration: 25,
       complexity: 1.74,
       bggId: 98778,
+      buyUrl: "https://shop.example/hanabi",
       releaseDate: "2010-01-01",
       age: 8,
       categories: ["Cooperation", "Deduction"],
@@ -202,6 +204,7 @@ describe("a published game", () => {
       duration: null,
       complexity: null,
       bggId: null,
+      buyUrl: null,
       releaseDate: null,
       age: null,
       categories: [],
@@ -278,6 +281,19 @@ describe("a published game", () => {
     [null, null],
   ])("reads the BGG id %j as %j", async (id, bggId) => {
     expect((await one({ bggId: id })).bggId).toBe(bggId)
+  })
+
+  it.each([
+    ["https://shop.example/hanabi", "https://shop.example/hanabi"],
+    ["  https://shop.example/hanabi?ref=pbgo  ", "https://shop.example/hanabi?ref=pbgo"],
+    ["http://shop.example/hanabi", "http://shop.example/hanabi"],
+    ["javascript:alert(1)", null],
+    ["shop.example/hanabi", null],
+    ["", null],
+    [12, null],
+    [null, null],
+  ])("reads the link to buy the game %j as %j: only a web address is ever opened", async (link, buyUrl) => {
+    expect((await one({ buyUrl: link })).buyUrl).toBe(buyUrl)
   })
 
   it.each([

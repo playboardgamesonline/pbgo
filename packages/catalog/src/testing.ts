@@ -165,6 +165,7 @@ export const catalogGame = (slug: string, overrides: Partial<CatalogGame> = {}):
   duration: null,
   complexity: null,
   bggId: null,
+  buyUrl: null,
   releaseDate: null,
   age: null,
   categories: [],

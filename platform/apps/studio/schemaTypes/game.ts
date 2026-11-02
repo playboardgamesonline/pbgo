@@ -98,6 +98,14 @@ export const game = defineType({
       group: "credits",
       validation: (rule) => rule.unique(),
     }),
+    // The link under the credits of the game's page that leads to a shop that sells it: the page is drawn with it only when it is filled in
+    defineField({
+      name: "buyUrl",
+      title: "Where to buy (a shop's page for the game)",
+      type: "url",
+      group: "credits",
+      validation: (rule) => rule.uri({ scheme: ["https"] }),
+    }),
 
     // Texts: a row per language, English first
     translatedField({ name: "tagline", title: "Tagline", kind: "string", group: "texts" }),

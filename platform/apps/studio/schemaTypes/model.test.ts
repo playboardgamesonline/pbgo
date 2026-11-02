@@ -66,7 +66,7 @@ describe("a game", () => {
     expect(tabs()).toEqual({
       identity: ["name", "names", "slug", "bggId", "kind", "baseGame", "order"],
       facts: ["playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "categories"],
-      credits: ["creators", "publishers"],
+      credits: ["creators", "publishers", "buyUrl"],
       texts: ["tagline", "description"],
       rules: ["rules"],
       visuals: ["cover", "logo", "icon", "background", "boxFront"],

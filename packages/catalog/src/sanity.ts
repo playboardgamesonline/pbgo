@@ -41,7 +41,7 @@ export const HUB_LANGUAGE = "en"
  */
 export const CATALOG_QUERY = `{
   "games": *[_type == "game" && defined(slug.current)] | order(_createdAt asc) {
-    _id, _updatedAt, name, "slug": slug.current, kind, order, bggId, releaseDate,
+    _id, _updatedAt, name, "slug": slug.current, kind, order, bggId, buyUrl, releaseDate,
     playersMin, playersMax, duration, minAge, complexity,
     "description": coalesce(description[language == $language][0].value, description[language == "en"][0].value, string(description)),
     "rules": rules[]{ language, "link": value },
@@ -265,6 +265,7 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
         duration: wholeOf(raw.duration, 1),
         complexity: weightOf(raw.complexity),
         bggId: wholeOf(raw.bggId, 1),
+        buyUrl: linkOf(raw.buyUrl),
         releaseDate: dayOf(raw.releaseDate),
         age: wholeOf(raw.minAge, 1),
         categories: namesOf(raw.categories),

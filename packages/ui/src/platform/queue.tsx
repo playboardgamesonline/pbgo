@@ -55,8 +55,8 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
 
   if (searching) {
     return (
-      <div data-slot="queue-button" role="group" aria-label="Searching for a game" className={cn("inline-flex h-10 w-36 items-center rounded-xl bg-primary text-sm text-primary-foreground", className)}>
-        <span className="flex flex-1 items-center justify-center gap-2 pl-2">
+      <div data-slot="queue-button" role="group" aria-label="Searching for a game" className={cn("inline-flex h-12 w-40 items-center rounded-xl bg-primary text-base text-primary-foreground", className)}>
+        <span className="flex flex-1 items-center justify-center gap-2.5 pl-3">
           <Searching />
           <QueueTimer seconds={seconds} />
         </span>
@@ -69,7 +69,7 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
             pressed.current = true
             onCancel()
           }}
-          className="mr-1 flex size-8 shrink-0 items-center justify-center rounded-lg outline-none hover:bg-primary-foreground/10 focus-visible:ring-3 focus-visible:ring-primary-foreground/40"
+          className="mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-lg outline-none hover:bg-primary-foreground/10 focus-visible:ring-3 focus-visible:ring-primary-foreground/40"
         >
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" className="size-4" />
         </button>
@@ -81,9 +81,9 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
     <Button
       ref={find}
       type="button"
-      size="lg"
+      size="xl"
       disabled={disabled}
-      className={cn("min-w-36 justify-center", className)}
+      className={cn("min-w-40 justify-center", className)}
       onClick={() => {
         pressed.current = true
         onSearch()

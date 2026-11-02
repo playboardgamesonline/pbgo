@@ -5,6 +5,7 @@
 
 import type { Specimens } from "@pbgo/docs/markdown"
 import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
+import { bggIconUrl } from "@pbgo/catalog"
 import { AchievementTile } from "@pbgo/ui/platform/achievement-tile"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
@@ -336,7 +337,7 @@ function OpenSeatJoinAndInvite() {
   )
 }
 
-/** What the head of an imagined game's page shows: the categories, the figures and the description, the credits with the year, the rules in two languages and a page on BoardGameGeek. Its picture is the plain frame of a game that has none. */
+/** What the head of an imagined game's page shows: the categories, the figures and the description, the credits with the year, the rules in two languages, a link to buy the game and BoardGameGeek's icon with the game's page there. Its picture is the plain frame of a game that has none. */
 const HEAD: GameHeadProps = {
   slug: "a-game",
   name: "A game",
@@ -361,15 +362,17 @@ const HEAD: GameHeadProps = {
     { language: "en", label: "Rulebook - A game", href: "#rulebook-en" },
     { language: "fr", label: "Règles du jeu - A game", href: "#rulebook-fr" },
   ],
-  bgg: "https://boardgamegeek.com/boardgame/39856",
+  // The icon is the real one, served by the catalog route for a game that has an id there: this game has none in the catalog, so the address is another game's
+  bgg: { href: "https://boardgamegeek.com/boardgame/39856", icon: bggIconUrl({ slug: "azul", bggId: 230802 })! },
+  shop: "https://example.com/shop/a-game",
   picture: {},
 }
 
 function GameHeadALiveGame() {
   return (
     <Frame
-      code={`// A live game: "Find a game" starts a queue, "Create a game" leads to the space that opens a lobby. The rules are a menu when the game has several
-// languages (a link when it has one), and BoardGameGeek is there, under the credits, when the Studio has the game's id
+      code={`// A live game: "Find a game" starts a queue, "Create a game" leads to the space that opens a lobby. Under the credits come the rules (a menu when the game has several
+// languages, a link when it has one), a link to buy the game when the Studio has a shop's page for it, and BoardGameGeek's icon when the Studio has the game's id
 <GameHead {...game} />`}
     >
       <Fit width={PAGE}>
@@ -383,17 +386,17 @@ function GameHeadAGameToComeAndOneWithLittle() {
   return (
     <Frame
       className="flex flex-col gap-12"
-      code={`// A game to come: "Coming soon" beside the name, both buttons disabled, the rules stay (here one rulebook, so they are a link)
+      code={`// A game to come: "Coming soon" beside the name, both big buttons disabled, the credits and what is under them stay (here one rulebook, so the rules are a link)
 <GameHead {...game} live={false} rulebooks={[rulebook]} />
 
 // A game the Studio knows little of: what it has is drawn, nothing is written in place of the rest
-<GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} picture={{}} />`}
+<GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} shop={null} picture={{}} />`}
     >
       <Fit width={PAGE}>
         <GameHead {...HEAD} live={false} rulebooks={HEAD.rulebooks.slice(0, 1)} />
       </Fit>
       <Fit width={PAGE}>
-        <GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} picture={{}} />
+        <GameHead slug="a-game" name="A game" live description={null} players="2–5 players" duration={null} complexity={null} age={null} categories={[]} facts={[]} rulebooks={[]} bgg={null} shop={null} picture={{}} />
       </Fit>
     </Frame>
   )

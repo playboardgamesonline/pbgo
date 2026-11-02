@@ -1,6 +1,6 @@
 import "server-only"
 import { cache } from "react"
-import { bggUrl, creditLines, pickLocalized, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
+import { bggIconUrl, bggUrl, creditLines, pickLocalized, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
 import { gameSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
@@ -40,8 +40,10 @@ export type GamePage = {
   facts: GameFact[]
   /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no button for the rules. */
   rulebooks: GameRulebook[]
-  /** The game's page on BoardGameGeek. Null when the Studio has no id for it there: the page has no such button. */
-  bgg: string | null
+  /** The game's page on BoardGameGeek, with BoardGameGeek's icon (an address on this site: the server finds it there). Null when the Studio has no id for the game there: the page has no such button. */
+  bgg: { href: string; icon: string } | null
+  /** A shop's page for the game, which the page links to under its credits. Null when the Studio has none: the page has no such link. */
+  shop: string | null
   /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
   picture: Pick<GameCardVisualProps, "logo" | "background">
   /** The games the catalog recommends with this one (docs/catalog.md), the most relevant first (its family, then the games that look like it), each as the props of its card. Empty: the page has no such section. */
@@ -65,6 +67,13 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
   })
 }
 
+/** The game's page on BoardGameGeek and the icon that draws its link: both come from its id there, so a game has both or neither. */
+function bggLink(game: CatalogEntry["game"]): GamePage["bgg"] {
+  const href = bggUrl(game)
+  const icon = bggIconUrl(game)
+  return href && icon ? { href, icon } : null
+}
+
 /**
  * The page of one entry of the catalog, the same for every game: its game in the Studio worded for the visitor, then the cards of its related
  * games. `entry.related` is already ranked (`rankRelated`), listed games only, never the entry itself.
@@ -86,7 +95,8 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     categories: game.categories.map((name) => ({ name, href: `/games?${new URLSearchParams({ category: name })}` })),
     facts: [...creditLines(game), ...(year === null ? [] : [{ label: "Released", values: [{ text: year }] }])],
     rulebooks: rulebooks(game.rules, locale, game.name),
-    bgg: bggUrl(game),
+    bgg: bggLink(game),
+    shop: game.buyUrl,
     picture: gamePicture(game),
     related: entry.related.flatMap((slug) => {
       const related = entries.find((candidate) => candidate.slug === slug)

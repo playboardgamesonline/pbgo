@@ -78,7 +78,7 @@ export function GameLobby({
       </CardContent>
       <CardFooter className="flex-col items-stretch gap-3">
         {players && <p className="text-sm text-muted-foreground">{players}</p>}
-        <Button size="lg" className="h-12 w-full text-base" asChild>
+        <Button size="xl" className="w-full" asChild>
           <a href={`/${slug}`}>
             Open a table
             <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />

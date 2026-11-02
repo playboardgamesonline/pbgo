@@ -73,14 +73,14 @@ function LobbySetting({ label, description, className, children, ...props }: Lob
   )
 }
 
-/** The main button at the bottom of a lobby's panel: as tall as the way in of the space that opens one, and all the room that the secondary button beside it leaves. */
+/** The main button at the bottom of a lobby's panel: an `xl` button, like the way in of the space that opens one, and all the room that the secondary button beside it leaves. */
 function LobbyMainButton({ className, ...props }: Omit<React.ComponentProps<typeof Button>, "size">) {
-  return <Button size="lg" className={cn("h-12 min-w-0 flex-1 text-base", className)} {...props} />
+  return <Button size="xl" className={cn("min-w-0 flex-1", className)} {...props} />
 }
 
 /** A secondary button beside the main one: a square of the same height with an icon alone, which leaves the lobby. Its name is for screen readers and for the pointer (`aria-label`, `title`), which the caller gives. */
 function LobbySideButton({ className, ...props }: Omit<React.ComponentProps<typeof Button>, "size" | "variant">) {
-  return <Button variant="secondary" size="icon-lg" className={cn("size-12 shrink-0", className)} {...props} />
+  return <Button variant="secondary" size="icon-xl" className={className} {...props} />
 }
 
 type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> & {

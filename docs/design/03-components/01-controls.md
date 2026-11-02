@@ -18,7 +18,7 @@ button-variants
 
 ### Sizes
 
-`default` is `h-9`. Use `sm` and `xs` inside dense UI (tables, toolbars, the gamemaster), `lg` for a hero action.
+`default` is `h-9`. Use `sm` and `xs` inside dense UI (tables, toolbars, the gamemaster), `lg` for a hero action and `xl` (`h-12`, the text at 16px) for the one or two buttons that a page is for: the head of a game's page, the way in at the bottom of a lobby.
 
 ```specimen
 button-sizes

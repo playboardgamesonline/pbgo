@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CREATOR_ROLES } from "@pbgo/studio-kit/constants"
-import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, bggUrl, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
+import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, bggIconUrl, bggUrl, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
 import { catalogGame, cdn, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -278,6 +278,16 @@ describe("bggUrl", () => {
 
   it("is null for a game that has no id there: no search is made up in its place", () => {
     expect(bggUrl(catalogGame("omens"))).toBeNull()
+  })
+})
+
+describe("bggIconUrl", () => {
+  it("is the address on this site of BoardGameGeek's icon, named by the game and carrying the version of BoardGameGeek's website", () => {
+    expect(bggIconUrl(catalogGame("hanabi", { bggId: 98778 }))).toBe(`/api/catalog/hanabi/bgg?v=${iconVersion(BGG_SITE)}`)
+  })
+
+  it("is null for a game that has no page there to link to", () => {
+    expect(bggIconUrl(catalogGame("omens"))).toBeNull()
   })
 })
 

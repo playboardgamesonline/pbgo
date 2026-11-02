@@ -39,6 +39,8 @@ export type CatalogGame = {
   complexity: number | null
   /** The id of the game on BoardGameGeek (the number in the address of its page). Null when it has none. */
   bggId: number | null
+  /** The page of a shop that sells the game, the link its game's page gives to buy it (a web address, as the Studio keeps it). Null when the Studio has none: the page has no such link. */
+  buyUrl: string | null
   /** The day the game came out, `YYYY-MM-DD`: a year alone is its first of January. Null when it has none. */
   releaseDate: string | null
   /** The minimum age in years. */
@@ -117,9 +119,23 @@ export function publisherIconUrl(game: Pick<CatalogGame, "slug" | "publishers">,
   return website ? `/api/catalog/${game.slug}/publisher-${index}?v=${iconVersion(website)}` : null
 }
 
+/** BoardGameGeek's website: where its icon is looked for and where the address of every game's page there starts. */
+export const BGG_SITE = "https://boardgamegeek.com"
+
+/** The place of BoardGameGeek's icon in a game's address (`/api/catalog/<slug>/bgg`), the way `publisher-<n>` is a publisher's. */
+export const BGG_SLOT = "bgg"
+
 /** The address of a game's page on BoardGameGeek, from its id there; null when the game has none. BoardGameGeek sends that short address to the page with the game's name in it. */
 export function bggUrl(game: Pick<CatalogGame, "bggId">): string | null {
-  return game.bggId === null ? null : `https://boardgamegeek.com/boardgame/${game.bggId}`
+  return game.bggId === null ? null : `${BGG_SITE}/boardgame/${game.bggId}`
+}
+
+/**
+ * The URL of BoardGameGeek's icon, which a game's page draws on its link there (`/api/catalog/<slug>/bgg`, see `route.ts`), or null when the game has no page there to link to. Like a publisher's,
+ * it is served from this site, so that a visitor's browser never asks BoardGameGeek for it, and it carries the version of the website the server looks the icon up on. It names the game and never an address.
+ */
+export function bggIconUrl(game: Pick<CatalogGame, "slug" | "bggId">): string | null {
+  return game.bggId === null ? null : `/api/catalog/${game.slug}/${BGG_SLOT}?v=${iconVersion(BGG_SITE)}`
 }
 
 /**
@@ -222,6 +238,7 @@ export function registryRow(game: GameEntry): CatalogGame {
     duration: duration && duration.min === duration.max ? duration.min : null,
     complexity: null,
     bggId: null,
+    buyUrl: null,
     releaseDate: null,
     age: null,
     categories: [],

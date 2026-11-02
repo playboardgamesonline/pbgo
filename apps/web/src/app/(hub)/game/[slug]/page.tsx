@@ -76,6 +76,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
           facts={game.facts}
           rulebooks={game.rulebooks}
           bgg={game.bgg}
+          shop={game.shop}
           picture={game.picture}
         />
 
