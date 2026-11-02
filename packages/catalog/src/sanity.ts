@@ -2,6 +2,7 @@
 // `CatalogGame`s. A plain `fetch` of the project's public API, through its CDN: the dataset is public, so there is no token and nothing
 // secret to read. No SDK and no framework here: the caller can hand in its own `fetch`, and `init` carries Next's cache options
 // (`server.ts`). The model of the project is `docs/platform-sanity.md`; the Studio that edits it is `platform/apps/studio`.
+// The texts and the pictures of a game are translated field by field there (PLT-104): the query takes the language and picks it, else English.
 
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
@@ -19,21 +20,35 @@ const DEFAULT_TIMEOUT_MS = 5000
 const MAX_MESSAGE_LENGTH = 200
 
 /**
+ * What the hub reads: English, whatever the visitor's language, until the language pass (PLT-32). The language of the read is a parameter
+ * of the query (`$language`) and of this module, so that it is a change of this one line.
+ */
+export const HUB_LANGUAGE = "en"
+
+/**
  * The published games, oldest first (so that two games with one slug are settled the same way every time: the older one wins), each with
  * what the hub shows of it. A reference is followed to the document it points at: the names of its categories, the people of its credits
  * with their roles, its publishers with their websites, the slugs of its related games and of its base game, and the address of the
  * file of each picture. A reference to a document that is not published is a `null`, which the reader drops.
+ *
+ * A text and a picture that a language can change are an array of rows `{ language, value }` (PLT-104): the row of `$language`, else the
+ * one of English, else (a game that was not converted yet) the plain value the field used to hold, so that the same query reads a
+ * dataset before and after the migration. `string(description)` is the old text and nothing for an array, and `logo.asset->url` the old
+ * picture and nothing for an array. The links to the rules are the rows of `rules` as they are, and the four fields they replaced.
  */
 export const CATALOG_QUERY = `*[_type == "game" && defined(slug.current)] | order(_createdAt asc) {
   _id, _updatedAt, name, "slug": slug.current, kind, order, bggId, releaseDate,
-  playersMin, playersMax, duration, minAge, complexity, description,
+  playersMin, playersMax, duration, minAge, complexity,
+  "description": coalesce(description[language == $language][0].value, description[language == "en"][0].value, string(description)),
+  "rules": rules[]{ language, "link": value },
   rulesFr, rulesEn, rulesEs, rulesDe,
   "categories": categories[]->name,
   "creators": creators[]{ "name": creator->name, roles },
   "publishers": publishers[]->{ name, "url": website },
   "related": related[]->slug.current,
   "baseGame": baseGame->slug.current,
-  "logo": logo.asset->url, "icon": icon.asset->url, "background": background.asset->url
+  "logo": coalesce(logo[language == $language][0].value.asset->url, logo[language == "en"][0].value.asset->url, logo.asset->url),
+  "icon": icon.asset->url, "background": background.asset->url
 }`
 
 /** A failed call to the platform's Sanity project. The message never holds an address of a request. `status` is the HTTP status, 0 when Sanity could not be reached. */
@@ -56,6 +71,8 @@ export type SanityReadOptions = {
   /** The project and the dataset to read: the platform's own, unless a test says otherwise. */
   projectId?: string
   dataset?: string
+  /** The language of the texts and of the pictures, else English: `HUB_LANGUAGE` by default. One of `PLATFORM_LANGUAGES`, which the caller checks: it is part of the address the CDN keeps an answer under, so a language that comes from a visitor must not be passed as it is. */
+  language?: string
 }
 
 /** A game of the project that is not in the catalog, and why. */
@@ -143,6 +160,15 @@ const byLanguage = (read: (language: Locale) => string | null): Partial<Record<L
 
 const capitalized = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
 
+/**
+ * The link to the rules in a language: the row of that language in `rules` (the query gives each as `{ language, link }`), else the
+ * field of the old model that was named after it (`rulesFr`…), until the migration has run. Nothing when it is not an http(s) link.
+ */
+function rulesLinkOf(raw: Record<string, unknown>, language: Locale): string | null {
+  const row = Array.isArray(raw.rules) ? raw.rules.find((entry) => isRecord(entry) && entry.language === language) : undefined
+  return linkOf(isRecord(row) ? row.link : undefined) ?? linkOf(raw[`rules${capitalized(language)}`])
+}
+
 /** Why a document cannot be a game of the site, in a few words, or undefined when it can. `taken`: the slugs of the games kept so far. */
 function problemOf(name: string, slug: string, taken: ReadonlySet<string>): string | undefined {
   if (!name) return "it has no name"
@@ -165,7 +191,9 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
   const projectId = options.projectId ?? PLATFORM_PROJECT_ID
   const dataset = options.dataset ?? PLATFORM_DATASET
   const doFetch = options.fetch ?? fetch
-  const url = `https://${projectId}.apicdn.sanity.io/v${SANITY_API_VERSION}/data/query/${dataset}?perspective=published&query=${encodeURIComponent(CATALOG_QUERY)}`
+  // a parameter of the query is written `$name=<its value in JSON>`
+  const language = encodeURIComponent(JSON.stringify(options.language ?? HUB_LANGUAGE))
+  const url = `https://${projectId}.apicdn.sanity.io/v${SANITY_API_VERSION}/data/query/${dataset}?perspective=published&query=${encodeURIComponent(CATALOG_QUERY)}&%24language=${language}`
 
   let response: Response
   try {
@@ -225,7 +253,7 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
         categories: namesOf(raw.categories),
         creators: creatorsOf(raw.creators),
         publishers: publishersOf(raw.publishers),
-        rules: byLanguage((language) => linkOf(raw[`rules${capitalized(language)}`])),
+        rules: byLanguage((language) => rulesLinkOf(raw, language)),
         pictures,
         // Settled below, once every game is known: a link is the slug of a game the reader kept
         related: [],

@@ -60,8 +60,16 @@ describe("the request", () => {
     expect(sanity.calls[0]?.url.pathname).toBe(`/v${SANITY_API_VERSION}/data/query/staging`)
   })
 
+  it("carries the language of the read as a parameter of the query: English unless it is told another", async () => {
+    const sanity = fakeSanity([])
+    await readSanityGames({ fetch: sanity.fetch })
+    await readSanityGames({ fetch: sanity.fetch, language: "fr" })
+    expect(sanity.calls.map((call) => call.url.searchParams.get("$language"))).toEqual(['"en"', '"fr"'])
+    expect(CATALOG_QUERY).toContain("$language")
+  })
+
   it("asks for what the reader maps: the query names each field", () => {
-    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "order", "description", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background"]) {
+    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background"]) {
       expect(CATALOG_QUERY, field).toContain(field)
     }
   })
@@ -286,6 +294,22 @@ describe("a published game", () => {
     const game = await one({ rulesFr: "javascript:alert(1)", rulesEn: "  https://example.com/en.pdf  ", rulesEs: "ftp://example.com/es.pdf", rulesDe: "not a link" })
     expect(game.rules).toEqual({ en: "https://example.com/en.pdf" })
     expect((await one({ rulesFr: "http://example.com/fr.pdf" })).rules).toEqual({ fr: "http://example.com/fr.pdf" })
+  })
+
+  it("reads the links to the rules from the rows of `rules`, a row over the old field of its language, and the old field where the game has no row", async () => {
+    const rows = [{ language: "fr", link: "https://example.com/new-fr.pdf" }, { language: "es", link: "https://example.com/es.pdf" }, { language: "zh", link: "https://example.com/zh.pdf" }]
+    expect((await one({ rules: rows })).rules).toEqual({ fr: "https://example.com/new-fr.pdf", es: "https://example.com/es.pdf" })
+    expect((await one({ rules: rows, rulesFr: "https://example.com/old-fr.pdf", rulesDe: "https://example.com/old-de.pdf" })).rules).toEqual({
+      fr: "https://example.com/new-fr.pdf",
+      es: "https://example.com/es.pdf",
+      de: "https://example.com/old-de.pdf",
+    })
+  })
+
+  it("keeps a link of a row only when it is an http or https address, falling back on the old field of the language, and ignores a row that is not one", async () => {
+    const rows = [{ language: "fr", link: "javascript:alert(1)" }, { language: "en", link: "  https://example.com/en.pdf  " }, "x", null, { language: "de" }, { link: "https://example.com/none.pdf" }]
+    expect((await one({ rules: rows, rulesFr: "https://example.com/old-fr.pdf" })).rules).toEqual({ fr: "https://example.com/old-fr.pdf", en: "https://example.com/en.pdf" })
+    expect((await one({ rules: "not a list" })).rules).toEqual({})
   })
 
   it("keeps the categories in order, each once, and drops what is not a name (a reference to a document that is not published)", async () => {

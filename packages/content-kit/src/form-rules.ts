@@ -36,6 +36,24 @@ export function studioTypes(config: unknown): Types {
 }
 
 /**
+ * The types the plugins of a Studio register, as `studioTypes` returns the Studio's own: `sanity-plugin-internationalized-array` makes an
+ * array type and a row type for each kind of translated value, and a document that has such a field is checked against them. A plugin
+ * can hold more plugins.
+ */
+export function pluginTypes(config: unknown): Types {
+  const found = new Map<string, TypeDef>()
+  const visit = (plugins: unknown) => {
+    if (!Array.isArray(plugins)) return
+    for (const plugin of plugins as { schema?: { types?: unknown }; plugins?: unknown }[]) {
+      if (Array.isArray(plugin?.schema?.types)) for (const type of plugin.schema.types as TypeDef[]) found.set(type.name, type)
+      visit(plugin?.plugins)
+    }
+  }
+  visit((config as { plugins?: unknown } | undefined)?.plugins)
+  return found
+}
+
+/**
  * What breaks the rules of the Studio forms in a schema (the shared singletons included):
  * a `description` anywhere, and a `game` document that is not split into tabs. Empty when the forms are right.
  */

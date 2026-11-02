@@ -204,6 +204,63 @@ describe("mergeFill", () => {
     })
   })
 
+  describe("the rows of a translated field", () => {
+    // `{ _key, _type, language, value }`, a row per language: the Studio makes up the key of a row it adds
+    const row = (language: string, value?: unknown, key: string = language) => ({ _key: key, _type: "internationalizedArrayTextValue", language, ...(value === undefined ? {} : { value }) })
+    const languages = (result: { value: unknown }) => (result.value as { language: string }[]).map((entry) => entry.language)
+
+    it("are the same row when they hold the same language, whatever their key", () => {
+      const base = [row("en", "A", "k1")]
+      const result = mergeFill([row("en", "A")], base, "description", fill)
+      expect(result.changes).toEqual([])
+      expect(result.value).toBe(base)
+    })
+
+    it("fill the value of a row the Studio keeps empty (the row of English that every field has), under the key the Studio gave it", () => {
+      const result = mergeFill([row("en", "A")], [row("en", undefined, "k1")], "description", fill)
+      expect(result.value).toEqual([row("en", "A", "k1")])
+      expect(result.changes).toEqual([{ kind: "fill", path: 'description[_key=="k1"].value' }])
+    })
+
+    it("report an edited value without touching it, and name the row by the key it has", () => {
+      const result = mergeFill([row("en", "Seed")], [row("en", "Edited", "k1")], "description", fill)
+      expect(result.value).toEqual([row("en", "Edited", "k1")])
+      expect(result.changes).toEqual([{ kind: "diverged", path: 'description[_key=="k1"].value', seed: "Seed", current: "Edited" }])
+    })
+
+    it("replace an edited value with overwrite, and keep the key of the Studio", () => {
+      const result = mergeFill([row("en", "Seed")], [row("en", "Edited", "k1")], "description", overwrite)
+      expect(result.value).toEqual([row("en", "Seed", "k1")])
+    })
+
+    it("add a language the field does not have yet after the language that precedes it, wherever the keys are the Studio's", () => {
+      const result = mergeFill([row("en", "A"), row("fr", "B"), row("es", "C")], [row("en", "A", "k1"), row("es", "C", "k2")], "description", fill)
+      expect(languages(result)).toEqual(["en", "fr", "es"])
+      expect(result.changes).toEqual([{ kind: "fill", path: 'description[_key=="fr"]' }])
+      expect(result.value).toEqual([row("en", "A", "k1"), row("fr", "B"), row("es", "C", "k2")])
+    })
+
+    it("keep a language only Sanity has, and a row added in the Studio", () => {
+      const result = mergeFill([row("en", "A")], [row("en", "A", "k1"), row("ja", "日本語", "k2")], "description", fill)
+      expect(result.changes).toEqual([])
+      expect(languages(result)).toEqual(["en", "ja"])
+    })
+
+    it("are the same row when they hold the same language even if their type is not the same: a field has one row per language, and the difference is reported", () => {
+      const picture = { _key: "k1", _type: "internationalizedArrayImageValue", language: "en", value: { _type: "image" } }
+      const result = mergeFill([row("en", "A")], [picture], "description", fill)
+      expect(result.value).toEqual([picture])
+      expect(result.changes.map((change) => [change.kind, change.path])).toEqual([["diverged", 'description[_key=="k1"]._type'], ["diverged", 'description[_key=="k1"].value']])
+    })
+
+    it("are the only items found by something else than their key: an item that has a language is not a row", () => {
+      const step = (key: string, language: string, title: string) => ({ _key: key, _type: "step", language, title })
+      const result = mergeFill([step("a", "en", "A")], [step("b", "en", "B")], "steps", fill)
+      expect(result.changes).toEqual([{ kind: "fill", path: 'steps[_key=="a"]' }])
+      expect(result.value).toEqual([step("a", "en", "A"), step("b", "en", "B")])
+    })
+  })
+
   describe("arrays without keys", () => {
     it("compares them as a whole", () => {
       expect(mergeFill(["a", "b"], ["a", "b"], "tags", fill).changes).toEqual([])

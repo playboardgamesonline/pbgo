@@ -1,5 +1,7 @@
-import { setField } from "@pbgo/content-kit"
+import { setField, setRow } from "@pbgo/content-kit"
 import type { ArtSlot } from "@pbgo/content-kit"
+import { DEFAULT_PLATFORM_LANGUAGE, translatedRowType } from "@pbgo/studio-kit/constants"
+import { TRANSLATED_FIELDS } from "../../apps/studio/schemaTypes/constants.ts"
 import { ART_SLOTS, type ArtSlot as Picture } from "../notion/types.ts"
 import type { NotionExpansion, NotionGame } from "../notion/types.ts"
 import type { PublisherRow } from "../notion/reader.ts"
@@ -17,6 +19,12 @@ const PUBLISHER_LOGO_SIZE = 1024
 /** The name of the file that fills a slot, without its extension: the document, then the field. */
 export const slotName = (docId: string, field: string): string => `${docId}-${field}`
 
+/**
+ * Where a picture of a game goes: a translated field (the logo, PLT-104) holds one picture per language, and Notion's is the English one, so
+ * it goes in the row of English; the icon and the background are the same in every language, and go in the field.
+ */
+const placeOf = (picture: Picture) => (picture in TRANSLATED_FIELDS.game ? setRow(picture, translatedRowType("image"), DEFAULT_PLATFORM_LANGUAGE) : setField(picture))
+
 /** Every picture a game's row holds, flagged by the reader, as a slot of the seed. */
 export function gameSlots(games: readonly NotionGame[]): ArtSlot[] {
   return games.flatMap((game) =>
@@ -25,7 +33,7 @@ export function gameSlots(games: readonly NotionGame[]): ArtSlot[] {
       label: `${game.name}, ${picture}`,
       maxSize: MAX_SIZE[picture],
       docId: gameId(game.slug),
-      place: setField(picture),
+      place: placeOf(picture),
     })),
   )
 }

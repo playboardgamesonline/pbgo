@@ -6,26 +6,44 @@
   "exports": {
     ".": "./src/index.ts",
     "./constants": "./src/constants.ts",
+    "./field-translations": "./src/field-translations.ts",
     "./translations": "./src/translations.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "@sanity/assist": "catalog:",
     "@sanity/icons": "catalog:",
+    "@sanity/language-filter": "catalog:",
     "@sanity/vision": "catalog:",
     "react": "catalog:",
-    "sanity": "catalog:"
+    "sanity": "catalog:",
+    "sanity-plugin-internationalized-array": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@sanity/assist": {
+      "optional": true
+    },
+    "@sanity/language-filter": {
+      "optional": true
+    },
+    "sanity-plugin-internationalized-array": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@pbgo/tsconfig": "workspace:*",
+    "@sanity/assist": "catalog:",
     "@sanity/icons": "catalog:",
+    "@sanity/language-filter": "catalog:",
     "@sanity/vision": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sanity": "catalog:",
+    "sanity-plugin-internationalized-array": "catalog:",
     "styled-components": "catalog:",
     "typescript": "catalog:"
   }

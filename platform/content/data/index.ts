@@ -6,6 +6,7 @@ import { buildSlots } from "./art.ts"
 import { buildExpansions } from "./expansions.ts"
 import { buildGames } from "./games.ts"
 import { buildCategories, buildCreators, buildPublishers } from "./taxonomy.ts"
+import { withEnglishRows } from "./translated.ts"
 
 /** What the seed is made from: the games of the catalog, their expansions, and the rows of the Editors database. */
 export type SeedSource = {
@@ -25,7 +26,8 @@ export type SeedSource = {
 export function buildSeedContent({ games, expansions = [], publishers }: SeedSource): { docs: SeedDoc[]; slots: ArtSlot[] } {
   const credited = [...games, ...expansions]
   return {
-    docs: [...buildCreators(credited), ...buildPublishers(credited), ...buildCategories(games), ...buildGames(games), ...buildExpansions(expansions, games)],
+    // a category, a game and an expansion have the row of English in each of their translated fields, empty where the source has nothing
+    docs: [...buildCreators(credited), ...buildPublishers(credited), ...buildCategories(games), ...buildGames(games), ...buildExpansions(expansions, games)].map(withEnglishRows),
     slots: buildSlots(games, publishers, expansions),
   }
 }
