@@ -1,12 +1,12 @@
 // The lists the Studio's forms and the seed share. No import from Sanity: the seed (run by Node) and its tests read this file too.
 
 /**
- * What a game of the catalog is. A `game` stands on its own; an `expansion` needs another game to be played; a `reimplementation` is a
- * game of its own that rebuilds or extends another one (what Notion calls a standalone expansion, a new edition).
+ * What a game of the catalog is. A `game` stands on its own; a `reimplementation` is a game of its own that rebuilds or extends another
+ * one (what Notion calls a standalone expansion, a new edition). What needs another game to be played is not a kind of game: it is an
+ * `expansion`, a document type of its own.
  */
 export const GAME_KINDS = [
   { title: "Game", value: "game" },
-  { title: "Expansion", value: "expansion" },
   { title: "Reimplementation", value: "reimplementation" },
 ] as const
 
