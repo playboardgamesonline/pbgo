@@ -3,6 +3,7 @@ import {
   makeConsent,
   readConsent,
   writeConsent,
+  type Answer,
   type Choice,
   type Consent,
   type ConsentStore,
@@ -30,7 +31,13 @@ export type StoreEnv = {
 export const SERVER_SNAPSHOT: Snapshot = { ready: false, consent: null, open: false }
 
 function same(a: Snapshot, b: Snapshot): boolean {
-  return a.ready === b.ready && a.open === b.open && a.consent?.choice === b.consent?.choice && a.consent?.at === b.consent?.at
+  return (
+    a.ready === b.ready &&
+    a.open === b.open &&
+    a.consent?.choice === b.consent?.choice &&
+    a.consent?.marketing === b.consent?.marketing &&
+    a.consent?.at === b.consent?.at
+  )
 }
 
 /**
@@ -92,10 +99,10 @@ export function createConsentStore(env: StoreEnv) {
       }
     },
 
-    /** Stores the answer, dated now, and closes the banner. */
-    choose(choice: Choice): Consent {
+    /** Stores the answer, dated now, and closes the banner. A `Choice` answers every switch the same way (Accept all, Reject optional). */
+    choose(answer: Answer | Choice): Consent {
       const store = env.storage()
-      const consent = store ? writeConsent(store, choice, env.now()) : makeConsent(choice, env.now())
+      const consent = store ? writeConsent(store, answer, env.now()) : makeConsent(answer, env.now())
       kept = consent
       reopened = false
       update()

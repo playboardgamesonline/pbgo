@@ -111,11 +111,11 @@ export function LoginCard({ next, enabled, failed, className }: { next: string; 
       </p>
       <p className="mt-6 text-xs text-muted-foreground">
         By continuing you accept the{" "}
-        <Link href="/terms" className="underline underline-offset-4">
+        <Link href="/legal/terms" className="underline underline-offset-4">
           Terms of Use
         </Link>{" "}
         and the{" "}
-        <Link href="/privacy" className="underline underline-offset-4">
+        <Link href="/legal/privacy" className="underline underline-offset-4">
           Privacy Policy
         </Link>
         .

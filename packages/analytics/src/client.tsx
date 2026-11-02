@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { ConsentBanner } from "./banner"
 import { identifyPlayer, syncConsent, trackClient } from "./browser"
 import { ANALYTICS_ENABLED, isExcludedPath } from "./config"
-import type { Choice } from "./consent"
+import { answerOf, type Answer } from "./consent"
 import { consentStore } from "./store"
 
 export { trackClient }
@@ -14,10 +14,10 @@ export { trackClient }
 const GAME_LINK = "a[data-game]"
 
 /** The visitor's answer: stored, followed by the SDK at once, then reported in the mode they just chose. */
-function choose(choice: Choice): void {
-  const consent = consentStore.choose(choice)
+function choose(answer: Answer): void {
+  const consent = consentStore.choose(answer)
   syncConsent(consent)
-  trackClient("cookie_consent", { choice })
+  trackClient("cookie_consent", { choice: consent.choice, marketing: consent.marketing })
 }
 
 /**
@@ -70,7 +70,7 @@ export function AnalyticsProvider() {
   }, [reporting, onGameList])
 
   if (!reporting || !ready || !open) return null
-  return <ConsentBanner reopened={consent !== null} onChoose={choose} onClose={consentStore.dismiss} />
+  return <ConsentBanner reopened={consent !== null} current={answerOf(consent)} onChoose={choose} onClose={consentStore.dismiss} />
 }
 
 /**

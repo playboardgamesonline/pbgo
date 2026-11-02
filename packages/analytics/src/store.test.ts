@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { CONSENT_KEY, type ConsentStore } from "./consent"
+import { CONSENT_KEY, CONSENT_REVISION, type ConsentStore } from "./consent"
 import { createConsentStore, SERVER_SNAPSHOT, type StoreEnv } from "./store"
 
 const NOW = new Date("2026-10-13T09:00:00.000Z")
@@ -52,7 +52,7 @@ describe("consent store", () => {
     const { store } = setup({ storage: memoryStorage(stored("accepted", "2026-06-01T00:00:00.000Z")) })
     expect(store.getSnapshot()).toEqual({
       ready: true,
-      consent: { choice: "accepted", at: "2026-06-01T00:00:00.000Z" },
+      consent: { choice: "accepted", marketing: false, at: "2026-06-01T00:00:00.000Z" },
       open: false,
     })
   })
@@ -95,10 +95,23 @@ describe("consent store", () => {
       store.subscribe(listener)
       store.getSnapshot()
       const consent = store.choose("refused")
-      expect(consent).toEqual({ choice: "refused", at: NOW.toISOString() })
-      expect(JSON.parse((storage as ReturnType<typeof memoryStorage>).data[CONSENT_KEY])).toEqual(consent)
+      expect(consent).toEqual({ choice: "refused", marketing: false, at: NOW.toISOString() })
+      expect(JSON.parse((storage as ReturnType<typeof memoryStorage>).data[CONSENT_KEY])).toEqual({ ...consent, rev: CONSENT_REVISION })
       expect(store.getSnapshot()).toEqual({ ready: true, consent, open: false })
       expect(listener).toHaveBeenCalledTimes(1)
+    })
+
+    it("keeps the switches apart, and tells the subscribers when only the marketing one moved", () => {
+      const { store } = setup()
+      const listener = vi.fn()
+      store.subscribe(listener)
+      store.getSnapshot()
+      store.choose({ analytics: true, marketing: false })
+      expect(store.getSnapshot().consent).toMatchObject({ choice: "accepted", marketing: false })
+      store.choose({ analytics: true, marketing: true })
+      expect(store.getSnapshot().consent).toMatchObject({ choice: "accepted", marketing: true })
+      // The date is the same (the test's clock stands still): the marketing switch alone made the snapshot new
+      expect(listener).toHaveBeenCalledTimes(2)
     })
 
     it("closes a reopened banner", () => {
@@ -173,7 +186,7 @@ describe("consent store", () => {
         at: "2026-10-13T09:30:00.000Z",
       })
       otherTab()
-      expect(store.getSnapshot().consent).toEqual({ choice: "refused", at: "2026-10-13T09:30:00.000Z" })
+      expect(store.getSnapshot().consent).toEqual({ choice: "refused", marketing: false, at: "2026-10-13T09:30:00.000Z" })
     })
 
     it("listens only while someone subscribes", () => {

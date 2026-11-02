@@ -2,34 +2,31 @@
 
 import * as React from "react"
 import { CookieBanner } from "@pbgo/ui/platform/cookie-banner"
-import type { Choice } from "./consent"
+import { ACCEPT_ALL, REJECT_OPTIONAL, type Answer } from "./consent"
 import type { Locale } from "./events"
-import { cookieValue, LOCALE_COOKIE, pickLocale } from "./locale"
 import { reserveSpace } from "./reserve"
 import { BANNER_TEXTS } from "./texts"
 
-/** The language of the site as the visitor set it (the cookie of the language selector), else the browser's. */
-function readLanguage(): Locale {
-  return pickLocale({ cookie: cookieValue(document.cookie, LOCALE_COOKIE), languages: navigator.languages })
-}
-
-/** The selector changes `<html lang>` when the visitor picks another language, which is the cue to read it again. */
-function watchLanguage(notify: () => void): () => void {
-  const observer = new MutationObserver(notify)
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] })
-  return () => observer.disconnect()
-}
+/**
+ * The language of the banner: English, whoever the visitor is. The site, the hub and its legal pages, is in English only for now (the
+ * owner, 2026-11-01), so the banner no longer follows the visitor's language (`pbgo-locale`, then the browser's). The drafts of the other
+ * languages stay in `texts.ts`, and so do `pickLocale` and its tests (`locale.ts`), for the language pass (PLT-32): the day they come, this is
+ * the line that reads the visitor's language again.
+ */
+const BANNER_LANGUAGE: Locale = "en"
 
 type ConsentBannerProps = {
   /** The visitor already answered and asked to see the banner again: it then has a way out that keeps the answer. */
   reopened: boolean
-  onChoose(choice: Choice): void
+  /** What they answered, for the switches of the choices to open on it (none yet: all off). */
+  current?: Answer
+  onChoose(answer: Answer): void
   onClose(): void
 }
 
 /**
- * The banner in the visitor's language. Mounted only in the browser, after the stored answer was read, so nothing here has to
- * match what the server rendered.
+ * The banner, in English. Mounted only in the browser, after the stored answer was read, so nothing here has to match what the server
+ * rendered.
  *
  * The banner floats over the bottom of the screen and must never cover the page, so it keeps its room free (`reserveSpace`): the
  * page ends above it and the screens that fill the viewport are that much shorter. What is measured is the box around the card,
@@ -38,18 +35,20 @@ type ConsentBannerProps = {
  * `ph-no-capture`: the answer is reported by the `cookie_consent` event, once it holds. Autocapture of the click itself would add
  * a second event, and for a refusal after an acceptance it would go out under the identity that is being given up.
  */
-export function ConsentBanner({ reopened, onChoose, onClose }: ConsentBannerProps) {
-  const locale = React.useSyncExternalStore(watchLanguage, readLanguage, () => "en" as const)
+export function ConsentBanner({ reopened, current = REJECT_OPTIONAL, onChoose, onClose }: ConsentBannerProps) {
   const root = React.useRef<HTMLDivElement>(null)
   React.useLayoutEffect(() => (root.current ? reserveSpace(root.current, document.body) : undefined), [])
   return (
     <CookieBanner
       ref={root}
-      texts={BANNER_TEXTS[locale]}
-      lang={locale}
-      moreHref="/legal#cookies"
-      onAccept={() => onChoose("accepted")}
-      onRefuse={() => onChoose("refused")}
+      texts={BANNER_TEXTS[BANNER_LANGUAGE]}
+      lang={BANNER_LANGUAGE}
+      moreHref="/legal/cookies"
+      preferences={current}
+      onAccept={() => onChoose(ACCEPT_ALL)}
+      onRefuse={() => onChoose(REJECT_OPTIONAL)}
+      // The two switches of the choices: analytics, which the recordings hang on, and marketing, which no tool follows yet
+      onSave={onChoose}
       onClose={reopened ? onClose : undefined}
       className="ph-no-capture"
     />
