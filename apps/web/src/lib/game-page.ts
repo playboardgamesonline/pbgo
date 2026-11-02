@@ -27,6 +27,8 @@ export type GamePage = {
   description: { text: string; language: Locale } | null
   /** Already formatted, like the card's ("2–5 players", "30 min"). */
   players: string | null
+  /** The least players the game needs, the figure behind `players`: the button that starts a lobby waits for them. Null when the Studio has none. */
+  minPlayers: number | null
   duration: string | null
   /** The weight BoardGameGeek gives the game, worded like the figures around it ("Complexity 2.4/5"): drawn between the duration and the age. Null while the Studio has none. */
   complexity: string | null
@@ -77,6 +79,7 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     live: entry.live,
     description,
     players: playersLabel(game.players) ?? null,
+    minPlayers: game.players?.min ?? null,
     duration: durationLabel(game.duration) ?? null,
     complexity: game.complexity === null ? null : `Complexity ${game.complexity.toFixed(1)}/5`,
     age: game.age === null ? null : `Ages ${game.age}+`,

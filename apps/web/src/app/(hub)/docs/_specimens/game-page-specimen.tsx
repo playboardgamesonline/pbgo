@@ -93,6 +93,8 @@ const CROWD: GameTable = table({
 const MY_LOBBY: ViewerTable = { ...table({ id: "me1", code: "Q8W2ER", status: "lobby", visibility: "private", players: [JO(0), MARLY(1), ZOE(2)], seatsMax: 5, expansions: ["first"], createdAt: ago(3) }), viewerIsHost: true }
 const FRIENDS_LOBBY: ViewerTable = { ...table({ id: "me3", code: "R6T8YU", status: "lobby", players: [MARLY(0), JO(1)], seatsMax: 4, turnTimer: "fast", expansions: ["second"], createdAt: ago(6) }), viewerIsHost: false }
 const MY_GAME: ViewerTable = { ...table({ id: "me2", code: "T5Y7UI", status: "playing", visibility: "private", players: [JO(0), HERVE(1), LINA(2)], seatsMax: 3, createdAt: ago(40), startedAt: ago(26) }), viewerIsHost: true }
+/** A lobby the visitor has just opened and sits alone at: the game needs two players, so the button that starts it cannot be pressed yet. */
+const MY_NEW_LOBBY: ViewerTable = { ...table({ id: "me4", code: "N2M4PL", status: "lobby", players: [JO(0)], seatsMax: 5, createdAt: ago(1) }), viewerIsHost: true }
 
 /** A cover for an expansion that has none of its own here: a gradient and a numeral, drawn as an SVG. */
 const expansionArt = (hue: number, numeral: string) =>
@@ -437,13 +439,15 @@ function LobbyPanelYourLobby() {
   return (
     <Frame
       className="grid gap-6 md:grid-cols-2"
-      code={`<GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={await getViewerTable(slug, viewerId)} expansions={expansions} />
+      code={`<GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={await getViewerTable(slug, viewerId)} expansions={expansions} />
 
-// viewerIsHost: the settings are theirs to set. A game in play has no icon to leave: that route takes a visitor out of a lobby only`}
+// viewerIsHost: the settings are theirs to set and the main button starts the game, once the game has its minimum of players. Anybody else has a button that cannot be pressed and says
+// how many have joined of those expected. Both have the secondary button that leaves the lobby; a game in play has none (that route takes a visitor out of a lobby only) and a way back in`}
     >
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={FRIENDS_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={MY_GAME} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={MY_NEW_LOBBY} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={FRIENDS_LOBBY} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={MY_GAME} expansions={EXPANSIONS} now={NOW} />
     </Frame>
   )
 }
@@ -460,7 +464,7 @@ function LobbyPanelBesideTheOpenTables() {
         <GamePlay slug="a-game" name="A game" live players="2–5 players" tables={TABLES} viewerTable={null} expansions={EXPANSIONS} now={NOW} />
       </Fit>
       <Fit width={PAGE}>
-        <GamePlay slug="a-game" name="A game" live players="2–5 players" tables={[]} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
+        <GamePlay slug="a-game" name="A game" live players="2–5 players" minPlayers={2} tables={[]} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
       </Fit>
       <Fit width={PAGE}>
         <GamePlay slug="a-game" name="A game" live={false} players={null} tables={[]} viewerTable={null} now={NOW} />

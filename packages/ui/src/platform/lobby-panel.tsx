@@ -12,7 +12,7 @@ import { RankBadge } from "./rank-badge"
 import { SeatAvatar } from "./table-card"
 
 // The tall space beside the open tables of a game, where a visitor plays: the lobby they are in, a table they picked in the list, or, when they are in none and have picked none, the space to open one, with the settings of the game at its bottom
-// (the expansions, the speed of the game: `LobbySettings`). It is a `Card` taller than the cards of a list (a roomier `--card-spacing`) that fills the height it is given: its header and its footer, the way in, stay in place and its content, which takes
+// (the speed of the game, who may find it, the expansions: `LobbySettings`). It is a `Card` taller than the cards of a list (a roomier `--card-spacing`) that fills the height it is given: its header and its footer, the main button and the one beside it, stay in place and its content, which takes
 // the height that is left, scrolls when it holds more than fits. It is built from the parts of a card (`CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`) and from the pieces below; what it says, what its settings are
 // and where its button leads are the page's.
 
@@ -73,6 +73,16 @@ function LobbySetting({ label, description, className, children, ...props }: Lob
   )
 }
 
+/** The main button at the bottom of a lobby's panel: as tall as the way in of the space that opens one, and all the room that the secondary button beside it leaves. */
+function LobbyMainButton({ className, ...props }: Omit<React.ComponentProps<typeof Button>, "size">) {
+  return <Button size="lg" className={cn("h-12 min-w-0 flex-1 text-base", className)} {...props} />
+}
+
+/** A secondary button beside the main one: a square of the same height with an icon alone, which leaves the lobby. Its name is for screen readers and for the pointer (`aria-label`, `title`), which the caller gives. */
+function LobbySideButton({ className, ...props }: Omit<React.ComponentProps<typeof Button>, "size" | "variant">) {
+  return <Button variant="secondary" size="icon-lg" className={cn("size-12 shrink-0", className)} {...props} />
+}
+
 type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> & {
   /** `waiting`: it waits for players. `playing`: it is being played. */
   state: TableState
@@ -86,11 +96,13 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
   seats: readonly TableSeat[]
   /** The settings of the table, at the bottom: the expansions it is played with, how fast, and, for the visitor's own lobby, who may find it. None: the panel has none to show. */
   settings?: LobbySettingsProps | null
-  /** The button at the bottom: where it leads (`href`), or a button that cannot be pressed (`disabled`: "Full"). None: no button. */
+  /** The main button at the bottom: where it leads (`href`), or a button that cannot be pressed (`disabled`: "Full", "Waiting to start · 3/5"). None: no button, unless `start` is given. */
   action?: { label: string; href?: string; disabled?: boolean } | null
+  /** The main button of the visitor who opened the lobby, which starts it: the page's own (`StartGameButton`), drawn in place of `action`. */
+  start?: React.ReactNode
   /** What the button that closes the details does. Without it there is none: the visitor's own lobby has nothing to close. */
   onClose?: () => void
-  /** What leaves the lobby the visitor sits at: the page's own button, an icon alone (`LeaveLobbyButton`), drawn at the top right. */
+  /** What leaves the lobby the visitor sits at, whoever opened it: the page's own button (`LeaveLobbyButton`), a secondary one drawn beside the main button, an icon alone (`LobbySideButton`). */
   leave?: React.ReactNode
   /** What the plus of a free seat does for a visitor who is not at the table: it joins it (`OpenSeat`). */
   join?: OpenSeatProps["join"]
@@ -100,10 +112,11 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
 
 /**
  * A table in the panel: whether it waits or is played and how old it is, its name and its code, its people one under another (`LobbySeats`, names included, which the rows of the list leave out), its settings at the bottom (`LobbySettings`), and
- * the button that leads into it. It is the lobby a visitor sits at, which they may leave by the icon at the top right (`leave`), and the table they picked in the list of the open tables, which a button at the top closes (`onClose`) and gives the
- * panel back to what it showed before.
+ * the main button under them: the way into the table, a button that cannot be pressed and says that it waits to be started and how many have joined of those expected, or, for the one who opened it, the one that starts it (`start`). It is
+ * the lobby a visitor sits at, which they may leave by the secondary button beside the main one (`leave`), and the table they picked in the list of the open tables, which a button at the top closes (`onClose`) and gives the panel back
+ * to what it showed before.
  */
-function LobbyDetail({ state, age, title, description, seats, settings, action, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
+function LobbyDetail({ state, age, title, description, seats, settings, action, start, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
   const waiting = state === "waiting"
   return (
     <LobbyPanel {...props}>
@@ -116,15 +129,10 @@ function LobbyDetail({ state, age, title, description, seats, settings, action, 
             </Badge>
             <span className="truncate text-sm text-muted-foreground">{age}</span>
           </div>
-          {(leave || onClose) && (
-            <div className="flex shrink-0 items-center gap-1">
-              {leave}
-              {onClose && (
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="Close the details" onClick={onClose}>
-                  <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" />
-                </Button>
-              )}
-            </div>
+          {onClose && (
+            <Button type="button" variant="ghost" size="icon-sm" aria-label="Close the details" onClick={onClose} className="shrink-0">
+              <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" />
+            </Button>
           )}
         </div>
         <CardTitle className="text-3xl md:text-4xl">{title}</CardTitle>
@@ -134,25 +142,28 @@ function LobbyDetail({ state, age, title, description, seats, settings, action, 
         <LobbySeats seats={seats} join={join} invite={invite} />
         {settings && <LobbySettings {...settings} className="mt-auto border-t pt-6" />}
       </CardContent>
-      {action && (
-        <CardFooter>
-          {action.disabled || !action.href ? (
-            <Button size="lg" variant="secondary" className="h-12 w-full text-base" disabled>
-              {action.label}
-            </Button>
-          ) : (
-            <Button size="lg" className="h-12 w-full text-base" asChild>
-              <a href={action.href}>
-                {action.label}
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
-              </a>
-            </Button>
-          )}
+      {(action || start || leave) && (
+        <CardFooter className="gap-3">
+          {start ??
+            (action &&
+              (action.disabled || !action.href ? (
+                <LobbyMainButton variant="secondary" disabled>
+                  {action.label}
+                </LobbyMainButton>
+              ) : (
+                <LobbyMainButton asChild>
+                  <a href={action.href}>
+                    {action.label}
+                    <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
+                  </a>
+                </LobbyMainButton>
+              )))}
+          {leave}
         </CardFooter>
       )}
     </LobbyPanel>
   )
 }
 
-export { LobbyDetail, LobbyPanel, LobbySeats, LobbySetting }
+export { LobbyDetail, LobbyMainButton, LobbyPanel, LobbySeats, LobbySetting, LobbySideButton }
 export type { LobbyDetailProps, LobbySettingProps }

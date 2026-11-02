@@ -81,7 +81,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
 
         {/* Between the head and the similar games: the tables and the space to play (the head's "Create a game" leads to the space), the visitor's stats and the leaderboard, then the tournaments. A game that is not live has the space alone and the tournaments: there is nothing to play, so no stats and no board */}
         <div className="mt-section flex flex-col gap-section">
-          <GamePlay slug={game.slug} name={game.name} live={game.live} players={game.players} tables={tables} viewerTable={viewerTable} expansions={expansions} anchored />
+          <GamePlay slug={game.slug} name={game.name} live={game.live} players={game.players} minPlayers={game.minPlayers} tables={tables} viewerTable={viewerTable} expansions={expansions} anchored />
           {game.live && (
             <div className="grid gap-x-4 gap-y-section lg:grid-cols-3 lg:items-start">
               <GameStats slug={game.slug} stats={stats} className="lg:col-span-2">

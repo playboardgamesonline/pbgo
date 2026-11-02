@@ -98,7 +98,7 @@ export function leaderboardRow(standing: Standing): LeaderboardRow {
 }
 
 /**
- * What the panel says of a table: the one a visitor sits at (`mine`: "Your lobby", with a button back into it) or one they picked in the list of the open tables (its host's name, with the button that fits what they may do there: Join, or
+ * What the panel says of a table: the one a visitor sits at (`mine`: "Your lobby", with, while it waits, a button that cannot be pressed and says how many have joined of those expected, which the one who opened it replaces with the page's button that starts the game (`editable`), and, for a game in play, a button back into it) or one they picked in the list of the open tables (its host's name, with the button that fits what they may do there: Join, or
  * Full, which cannot be pressed). It is the table's age and code, its people with their names, its settings at the bottom (the expansions of the game, `expansions`, and which of them the table is played with; how fast; and, for the visitor's own
  * lobby, who may find it) and where it leads. `editable` is for a lobby that the visitor opened and still waits: they set it, and the others only read. `now` is when its age is counted from.
  */
@@ -107,6 +107,7 @@ export function tableDetailProps(table: GameTable, slug: string, now: number = D
   const seats = seatsOfTable(table)
   const href = `/${slug}/game/${table.code}`
   const way = actionOf(table, seats)
+  const { taken, total } = seatCount(seats)
   return {
     state,
     age: ageOfTable(table, now),
@@ -119,7 +120,18 @@ export function tableDetailProps(table: GameTable, slug: string, now: number = D
       pace: table.turnTimer,
       ...(editable ? { editable: true, visibility: table.visibility } : {}),
     },
-    action: mine ? { label: state === "waiting" ? "Back to your lobby" : "Rejoin your game", href } : way === "join" ? { label: "Join", href } : way === "full" ? { label: "Full", disabled: true } : null,
+    action: mine
+      ? state === "playing"
+        ? { label: "Rejoin your game", href }
+        : // the one who opened the lobby starts it with the page's own button (`start`); anybody else waits for them
+          editable
+          ? null
+          : { label: `Waiting to start · ${taken}/${total}`, disabled: true }
+      : way === "join"
+        ? { label: "Join", href }
+        : way === "full"
+          ? { label: "Full", disabled: true }
+          : null,
     // The plus of a free seat: for the visitor who sits at the table, the menu that invites a friend or copies the link; for another, the way in
     ...(mine && state === "waiting" ? { invite: { link: href } } : way === "join" ? { join: { href } } : {}),
   }

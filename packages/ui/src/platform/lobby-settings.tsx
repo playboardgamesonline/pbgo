@@ -6,8 +6,8 @@ import { initials } from "../friends"
 import { PACES, type Pace } from "../tables"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
-// The settings of a game's lobby, at the bottom of its panel (`LobbyDetail`, and the space that opens one): what the table is played with and how fast. The game's expansions, each a picture with its name and an outline when it is chosen, the
-// speed of the game (its pace: a clock on every turn, none, a day or more for each) and, for a lobby that is opened or set, who may find it. A visitor who sets them (`editable`: the lobby is theirs) presses an expansion to choose it or to leave it
+// The settings of a game's lobby, at the bottom of its panel (`LobbyDetail`, and the space that opens one): how fast it is played, who may find it (for a lobby that is opened or set) and what it is played with. The speed of the game (its pace: a clock on every turn, none, a day or more for each) and who
+// may find it come first, above the game's expansions, each a picture with its name and an outline when it is chosen. A visitor who sets them (`editable`: the lobby is theirs) presses an expansion to choose it or to leave it
 // and picks a speed; one who reads a table of the list sees only what it is played with and how fast. Every table counts for the leaderboard and none can be looked on at, so neither is a setting. Nothing is kept yet: no lobby has a place to keep
 // them (the tables of PLT-13), so what is set stays in the page; `onChange` is for the page that has somewhere to put it.
 
@@ -64,8 +64,8 @@ function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
 const TILE = "flex h-full w-full flex-col gap-2 rounded-2xl p-1.5 text-left outline-2 transition-colors duration-fast"
 
 /**
- * The settings of a lobby: the expansions of the game as pictures with their names (a visitor who sets the lobby presses one to choose it, and the outline says it is, `aria-pressed` for a screen reader; one who reads a table sees
- * only the ones it is played with), the speed, and who may find the table when the lobby is opened or set. Each is a group with its small title. The container decides the columns of the expansions (`@container`): two in a narrow
+ * The settings of a lobby: the speed, who may find the table when the lobby is opened or set, then the expansions of the game as pictures with their names (a visitor who sets the lobby presses one to choose it, and the outline says
+ * it is, `aria-pressed` for a screen reader; one who reads a table sees only the ones it is played with). Each is a group with its small title. The container decides the columns of the expansions (`@container`): two in a narrow
  * panel, three from 28rem.
  */
 function LobbySettings({ expansions = [], chosen = [], pace, visibility, editable = false, onChange, className, ...props }: LobbySettingsProps) {
@@ -79,6 +79,29 @@ function LobbySettings({ expansions = [], chosen = [], pace, visibility, editabl
   const shown = editable ? expansions : expansions.filter((expansion) => value.expansions.includes(expansion.id))
   return (
     <div data-slot="lobby-settings" data-editable={editable ? "" : undefined} className={cn("@container flex flex-col gap-5", className)} {...props}>
+      <div className="flex flex-wrap gap-x-6 gap-y-5">
+        <Group title="Speed">
+          {editable ? (
+            <ToggleGroup type="single" value={value.pace} onValueChange={(next) => next && change({ ...set, pace: next as Pace })} aria-label="Speed of the game">
+              {PACES.map(({ value: option, label }) => (
+                <ToggleGroupItem key={option} value={option}>
+                  {label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          ) : (
+            <p>{PACES.find((option) => option.value === value.pace)?.label}</p>
+          )}
+        </Group>
+        {editable && value.visibility !== undefined && (
+          <Group title="Who can find it">
+            <ToggleGroup type="single" value={value.visibility} onValueChange={(next) => next && change({ ...set, visibility: next as "public" | "private" })} aria-label="Who can find the table">
+              <ToggleGroupItem value="public">Public</ToggleGroupItem>
+              <ToggleGroupItem value="private">Private</ToggleGroupItem>
+            </ToggleGroup>
+          </Group>
+        )}
+      </div>
       {shown.length > 0 && (
         <Group title={editable ? "Expansions" : "Played with"}>
           <ul className="grid grid-cols-2 gap-3 @md:grid-cols-3">
@@ -108,29 +131,6 @@ function LobbySettings({ expansions = [], chosen = [], pace, visibility, editabl
           </ul>
         </Group>
       )}
-      <div className="flex flex-wrap gap-x-6 gap-y-5">
-        <Group title="Speed">
-          {editable ? (
-            <ToggleGroup type="single" value={value.pace} onValueChange={(next) => next && change({ ...set, pace: next as Pace })} aria-label="Speed of the game">
-              {PACES.map(({ value: option, label }) => (
-                <ToggleGroupItem key={option} value={option}>
-                  {label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          ) : (
-            <p>{PACES.find((option) => option.value === value.pace)?.label}</p>
-          )}
-        </Group>
-        {editable && value.visibility !== undefined && (
-          <Group title="Who can find it">
-            <ToggleGroup type="single" value={value.visibility} onValueChange={(next) => next && change({ ...set, visibility: next as "public" | "private" })} aria-label="Who can find the table">
-              <ToggleGroupItem value="public">Public</ToggleGroupItem>
-              <ToggleGroupItem value="private">Private</ToggleGroupItem>
-            </ToggleGroup>
-          </Group>
-        )}
-      </div>
     </div>
   )
 }
