@@ -13,7 +13,7 @@ import { CREATE_ANCHOR } from "./game-play"
 import { RulesButton } from "./rules-button"
 
 // The head of a game's page, the first thing a visitor sees. On the left: the name (with "Coming soon" beside it for a game that is not live), the figures of the
-// game on one line (the players, how long, how complex, from what age), under them the categories as chips that lead to the games' list showing that category, the description, and a row of buttons. The main button is "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts
+// game on one line (the players, how long, how complex, from what age), under them the description, then the categories as chips that lead to the games' list showing that category, and a row of buttons. The main button is "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts
 // (`FindGameButton`); beside it, in the second place, "Create a game", which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); then, apart, the rules (`RulesButton`: a link, or a menu of languages).
 // A game that is not live has the two disabled, and keeps the rules. Under a hairline come the credits, with the year the game came out as one of their lines, and the button to see the game on BoardGameGeek, which is there only when the
 // Studio has the game's id. A shop that sells the game, a partner's, would be one more button of the credits: nothing is built, there is no data. On the right, the picture of the game's card. One column, then two from `lg`; on a
@@ -37,33 +37,15 @@ export function GameHead({ slug, name, live, description, players, duration, com
           {!live && <Badge variant="outline">Coming soon</Badge>}
         </div>
 
-        {(figures.length > 0 || categories.length > 0) && (
-          <div className="flex flex-col gap-3">
-            {figures.length > 0 && (
-              <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground">
-                {figures.map(({ icon, text }) => (
-                  <li key={text} className="inline-flex items-center gap-1.5">
-                    <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" aria-hidden="true" />
-                    {text}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {categories.length > 0 && (
-              <ul aria-label="Categories" className="flex flex-wrap gap-2">
-                {categories.map(({ name: category, href }) => (
-                  <li key={category}>
-                    <Badge variant="secondary" asChild className="h-7 gap-1.5 px-2.5 text-sm [&>svg]:size-4!">
-                      <Link href={href}>
-                        <HugeiconsIcon icon={categoryIcon(category)} strokeWidth={2} aria-hidden="true" />
-                        {category}
-                      </Link>
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        {figures.length > 0 && (
+          <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground">
+            {figures.map(({ icon, text }) => (
+              <li key={text} className="inline-flex items-center gap-1.5">
+                <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" aria-hidden="true" />
+                {text}
+              </li>
+            ))}
+          </ul>
         )}
 
         {/* The text is the game's own, in the language it was found in; line breaks of the source are kept */}
@@ -71,6 +53,21 @@ export function GameHead({ slug, name, live, description, players, duration, com
           <p lang={description.language} className="max-w-xl text-pretty whitespace-pre-line text-muted-foreground">
             {description.text}
           </p>
+        )}
+
+        {categories.length > 0 && (
+          <ul aria-label="Categories" className="flex flex-wrap gap-2">
+            {categories.map(({ name: category, href }) => (
+              <li key={category}>
+                <Badge variant="secondary" asChild className="h-7 gap-1.5 px-2.5 text-sm [&>svg]:size-4!">
+                  <Link href={href}>
+                    <HugeiconsIcon icon={categoryIcon(category)} strokeWidth={2} aria-hidden="true" />
+                    {category}
+                  </Link>
+                </Badge>
+              </li>
+            ))}
+          </ul>
         )}
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
