@@ -35,6 +35,14 @@ describe("the platform seed", () => {
     expect(result.orphans).toEqual([])
   })
 
+  it("writes the expansions as drafts of their own type, pointing at the games they are played with", async () => {
+    const store = new MemoryStore()
+    await everything(store, apply)
+    expect(store.docs.get("drafts.expansion-hanabi-extra")).toMatchObject({ _type: "expansion", name: "Hanabi: Extra", baseGame: { _ref: "game-hanabi", _weak: true, _strengthenOnPublish: { type: "game" } } })
+    expect(store.docs.get("drafts.expansion-the-mind-extreme")).toMatchObject({ _type: "expansion", baseGame: { _ref: "game-the-mind" } })
+    expect([...store.docs.values()].filter((doc) => doc._type === "expansion")).toHaveLength(2)
+  })
+
   it("writes nothing for a dry run", async () => {
     const store = new MemoryStore()
     const result = await everything(store, dry)
@@ -93,6 +101,27 @@ describe("the platform seed", () => {
     expect(store.docs.get("drafts.game-made-by-hand")).toMatchObject({ name: "Made by hand" })
   })
 
+  it("reports an expansion made by hand in the Studio as in the dataset but not in the seed, and leaves it alone", async () => {
+    const store = new MemoryStore()
+    store.put({ _id: "drafts.expansion-made-by-hand", _type: "expansion", name: "Made by hand" })
+    const result = await everything(store, apply)
+    expect(result.orphans).toEqual(["expansion-made-by-hand"])
+    expect(store.docs.get("drafts.expansion-made-by-hand")).toMatchObject({ name: "Made by hand" })
+  })
+
+  it("keeps what was edited in an expansion in the Studio, and fills a gap left in it", async () => {
+    const store = new MemoryStore()
+    await everything(store, apply)
+    store.edit("drafts.expansion-hanabi-extra", (doc) => {
+      doc.duration = 45
+      delete doc.bggId
+    })
+    const again = await everything(store, apply)
+    expect(store.docs.get("drafts.expansion-hanabi-extra")).toMatchObject({ duration: 45, bggId: 140934 })
+    const diverged = again.plan.flatMap((item) => item.changes.filter((change) => change.kind === "diverged").map((change) => `${item.id} › ${change.path}`))
+    expect(diverged).toEqual(["expansion-hanabi-extra › duration"])
+  })
+
   it("leaves the editorial documents alone: their types are not the seed's", async () => {
     const store = new MemoryStore()
     store.put({ _id: "drafts.an-article", _type: "article", title: "Hello" })
@@ -130,8 +159,8 @@ describe("the platform seed", () => {
     it("says which pictures are still to come, and which files match no slot", async () => {
       const dir = await temp.create({ "game-hanabi-logo.png": await imageOf("#cc0000"), "game-hanabi-cover.png": await imageOf("#cc0000") })
       const result = await everything(new MemoryStore(), { ...dry, artDir: dir })
-      expect(result.art?.slotCount).toBe(5)
-      expect(result.art?.loaded.scan.missing).toHaveLength(4)
+      expect(result.art?.slotCount).toBe(6)
+      expect(result.art?.loaded.scan.missing).toHaveLength(5)
       expect(result.art?.loaded.scan.unmatched).toEqual(["game-hanabi-cover.png"])
     })
   })

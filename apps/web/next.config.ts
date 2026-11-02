@@ -60,6 +60,9 @@ const nextConfig: NextConfig = {
       { source: `/:game(${SLUGS})/admin/:path+`, destination: "/gamemaster/:game/:path+", permanent: true },
       // What's New was a page of the navbar and is now a section of About
       { source: "/whats-new", destination: "/about#whats-new", permanent: true },
+      // The privacy policy and the terms of use moved under /legal, next to the legal notice and the cookie policy
+      { source: "/privacy", destination: "/legal/privacy", permanent: true },
+      { source: "/terms", destination: "/legal/terms", permanent: true },
     ]
   },
   async rewrites() {

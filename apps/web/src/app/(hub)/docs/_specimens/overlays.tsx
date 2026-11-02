@@ -266,11 +266,29 @@ useLayoutEffect(() => reserveSpace(banner.current, document.body), [])
 <CookieBanner
   ref={banner}
   texts={BANNER_TEXTS[locale]}
-  moreHref="/legal#cookies"
+  moreHref="/legal/cookies"
   onAccept={() => consentStore.choose("accepted")}
   onRefuse={() => consentStore.choose("refused")}
+  onSave={consentStore.choose}
 />`}>
       <CookieBannerDemo />
+    </Frame>
+  )
+}
+
+function CookieBannerCustomize() {
+  return (
+    <Frame code={`// the same card, opened on its choices: a visitor gets there with Customize
+<CookieBanner
+  texts={BANNER_TEXTS[locale]}
+  moreHref="/legal/cookies"
+  preferences={{ analytics: false, marketing: false }} // what the visitor answered before, else off
+  defaultView="preferences"
+  onAccept={…}
+  onRefuse={…}
+  onSave={consentStore.choose}
+/>`}>
+      <CookieBannerDemo view="preferences" />
     </Frame>
   )
 }
@@ -279,9 +297,11 @@ function CookieBannerReopened() {
   return (
     <Frame code={`<CookieBanner
   texts={BANNER_TEXTS[locale]}
-  moreHref="/legal#cookies"
+  moreHref="/legal/cookies"
+  preferences={answerOf(consent)}
   onAccept={…}
   onRefuse={…}
+  onSave={…}
   onClose={consentStore.dismiss}
 />`}>
       <CookieBannerDemo reopened />
@@ -297,5 +317,6 @@ export const overlaysSpecimens: Specimens = {
   "tooltip-sides-and-icon-button": TooltipSidesAndIconButton,
   "toast-kinds": ToastKinds,
   "cookie-banner-first-visit": CookieBannerFirstVisit,
+  "cookie-banner-customize": CookieBannerCustomize,
   "cookie-banner-reopened": CookieBannerReopened,
 }

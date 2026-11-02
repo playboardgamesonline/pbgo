@@ -10,11 +10,12 @@ const idOf = (type: string, name: string): string => {
 }
 
 export const gameId = (slug: string): string => `game-${slug}`
+export const expansionId = (slug: string): string => `expansion-${slug}`
 export const creatorId = (name: string): string => idOf("creator", name)
 export const publisherId = (name: string): string => idOf("publisher", name)
 export const categoryId = (name: string): string => idOf("category", name)
 
-/** The types of document a reference of the seed points at. */
+/** The types of document a reference of the seed points at (nothing points at an expansion). */
 export type Target = "game" | "creator" | "publisher" | "category"
 
 /**

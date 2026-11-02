@@ -26,9 +26,28 @@ const fieldOf = (typeName: string, field: string): FieldDef => {
   return found
 }
 
+/** The rules a field's validation states, by name: its function (or each of its array) is handed a Rule that records the calls made on it. */
+const rulesOf = (field: FieldDef): string[] => {
+  const names: string[] = []
+  const rule: unknown = new Proxy(
+    {},
+    {
+      get:
+        (_target, name) =>
+        (..._args: unknown[]) => {
+          names.push(String(name))
+          return rule
+        },
+    },
+  )
+  const validators = Array.isArray(field.validation) ? field.validation : field.validation ? [field.validation] : []
+  for (const validator of validators) if (typeof validator === "function") validator(rule)
+  return names
+}
+
 describe("the types", () => {
   it("are the catalog and the editorial ones, and nothing of a game's Studio", () => {
-    expect([...types.keys()]).toEqual(["game", "gameCreator", "creator", "publisher", "category", "article", "changelogEntry", "announcement"])
+    expect([...types.keys()]).toEqual(["game", "expansion", "gameCreator", "creator", "publisher", "category", "article", "changelogEntry", "announcement"])
     for (const shared of ["settings", "interface", "audio", "texts", "localeString", "localeText", "localeStringList"]) expect(types.has(shared)).toBe(false)
   })
 
@@ -92,6 +111,69 @@ describe("a game", () => {
   })
 })
 
+describe("an expansion", () => {
+  const tabs = () => {
+    const expansion = typeOf("expansion")
+    return Object.fromEntries((expansion.groups ?? []).map((group) => [group.name, (expansion.fields ?? []).filter((field) => field.group === group.name).map((field) => field.name)]))
+  }
+
+  it("is in six tabs, the ones of a game without Related", () => {
+    expect(tabs()).toEqual({
+      identity: ["name", "slug", "baseGame", "bggId"],
+      facts: ["playersMin", "playersMax", "duration", "minAge", "releaseDate"],
+      credits: ["creators", "publishers"],
+      texts: ["description"],
+      rules: ["rulesFr", "rulesEn", "rulesEs", "rulesDe"],
+      visuals: ["cover", "boxFront"],
+    })
+  })
+
+  it("opens on its identity", () => {
+    expect(typeOf("expansion").groups?.find((group) => group.default)?.name).toBe("identity")
+  })
+
+  it("needs a base game, a strong reference to a game: the game cannot be deleted from under its expansions", () => {
+    const baseGame = fieldOf("expansion", "baseGame")
+    expect(baseGame.type).toBe("reference")
+    expect(baseGame.to?.map((target) => target.type)).toEqual(["game"])
+    expect((baseGame as { weak?: boolean }).weak).not.toBe(true)
+    expect(rulesOf(baseGame)).toContain("required")
+  })
+
+  it("is not a kind of game, and has none of what places a game on the hub: no kind, order, categories, complexity, related, tagline, logo, icon or background", () => {
+    for (const field of ["kind", "order", "categories", "complexity", "related", "tagline", "logo", "icon", "background"]) expect(fieldNames("expansion"), field).not.toContain(field)
+  })
+
+  it("has two pictures, the cover of the expansion and the front of its box", () => {
+    expect(fieldOf("expansion", "cover").type).toBe("image")
+    expect(fieldOf("expansion", "boxFront").type).toBe("image")
+  })
+
+  it("credits people with their roles on a line and publishers apart, as a game does", () => {
+    expect(fieldOf("expansion", "creators").of?.map((member) => member.type)).toEqual(["gameCreator"])
+    expect(fieldOf("expansion", "publishers").of?.map((member) => member.type)).toEqual(["reference"])
+    expect(((fieldOf("expansion", "publishers").of?.[0] as { to?: { type: string }[] }).to ?? []).map((target) => target.type)).toEqual(["publisher"])
+  })
+
+  it("fills its figures only where it changes them: their titles say that an empty one is the base game's, and nothing but the base game is required", () => {
+    const title = (name: string) => (fieldOf("expansion", name) as { title?: string }).title ?? ""
+    for (const name of ["playersMin", "playersMax", "duration", "minAge"]) expect([name, title(name)]).toEqual([name, expect.stringContaining("empty: the base game's")])
+    expect(title("playersMax")).not.toContain("no limit")
+    for (const name of ["playersMin", "playersMax", "duration", "minAge", "releaseDate", "creators", "publishers", "description"]) expect(rulesOf(fieldOf("expansion", name)), name).not.toContain("required")
+  })
+
+  it("is given its facts, credits, texts, rules and pictures as a game is: the same kind of field under the same rules", () => {
+    const options = (field: FieldDef) => (field as { options?: Record<string, unknown> }).options
+    for (const { name } of typeOf("expansion").fields ?? []) {
+      if (name === "baseGame") continue
+      const own = fieldOf("expansion", name)
+      const game = fieldOf("game", name)
+      expect([name, own.type, options(own), rulesOf(own)]).toEqual([name, game.type, options(game), rulesOf(game)])
+      expect([name, own.of?.map((member) => member.type)]).toEqual([name, game.of?.map((member) => member.type)])
+    }
+  })
+})
+
 describe("the other catalog documents", () => {
   it.each([
     ["creator", ["name", "photo", "website", "bggId"]],
@@ -118,8 +200,8 @@ describe("the editorial documents", () => {
 })
 
 describe("the lists", () => {
-  it("name the kinds of game", () => {
-    expect(GAME_KINDS.map((kind) => kind.value)).toEqual(["game", "expansion", "reimplementation"])
+  it("name the kinds of game: an expansion is not one, it is a type of its own", () => {
+    expect(GAME_KINDS.map((kind) => kind.value)).toEqual(["game", "reimplementation"])
   })
 
   it("are the credits of BoardGameGeek, in its words", () => {
