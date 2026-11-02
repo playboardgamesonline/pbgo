@@ -26,15 +26,6 @@ export const PLATFORM_LANGUAGES = [
 
 export const DEFAULT_PLATFORM_LANGUAGE = "en"
 
-/**
- * The name of the type that a translated field of this kind has (`sanity-plugin-internationalized-array` makes it, field translations are
- * `field-translations.ts`): `translatedType("string")` is `internationalizedArrayString`, the one of a custom kind named `description` is
- * `internationalizedArrayDescription`. The plugin writes the first letter in capitals, so a kind is one word, or camelCase. A row of the
- * array is of the same type followed by `Value` (`translatedRowType`).
- */
-export const translatedType = (kind: string): string => `internationalizedArray${kind.charAt(0).toUpperCase()}${kind.slice(1)}`
-export const translatedRowType = (kind: string): string => `${translatedType(kind)}Value`
-
 // Fonts offered in Admin › Visual and in the studio (single source, re-exported by @pbgo/core/lib/settings)
 export const FONT_CHOICES = [
   "Inter",
@@ -228,3 +219,12 @@ export type CreatorRole = (typeof CREATOR_ROLES)[number]["value"]
 
 /** The title of a role as the Studio and the hub show it; a value the list does not have (a role removed since) is shown as it is. */
 export const roleTitle = (role: string): string => CREATOR_ROLES.find((entry) => entry.value === role)?.title ?? role
+
+/**
+ * The name of the type that a translated field of this kind has (`sanity-plugin-internationalized-array` makes it; `field-translations.ts` sets the
+ * plugin up): `translatedType("string")` is `internationalizedArrayString`, the one of a custom kind named `description` is
+ * `internationalizedArrayDescription`. The plugin writes the first letter in capitals, so a kind is one word, or camelCase. A row of the
+ * array is of the same type followed by `Value` (`translatedRowType`).
+ */
+export const translatedType = (kind: string): string => `internationalizedArray${kind.charAt(0).toUpperCase()}${kind.slice(1)}`
+export const translatedRowType = (kind: string): string => `${translatedType(kind)}Value`
