@@ -371,8 +371,8 @@ const HEAD: GameHeadProps = {
 function GameHeadALiveGame() {
   return (
     <Frame
-      code={`// A live game: "Find a game" starts a queue, "Create a game" leads to the space that opens a lobby. Under the credits come the rules (a menu when the game has several
-// languages, a link when it has one), a link to buy the game when the Studio has a shop's page for it, and BoardGameGeek's icon when the Studio has the game's id
+      code={`// A live game: under the credits, a link to buy the game when the Studio has a shop's page for it and BoardGameGeek's icon when it has the game's id. Then the big buttons:
+// "Find a game" starts a queue, "Create a game" leads to the space that opens a lobby, and the rules are a picto beside them (a menu when the game has several languages, a link when it has one)
 <GameHead {...game} />`}
     >
       <Fit width={PAGE}>
@@ -386,7 +386,7 @@ function GameHeadAGameToComeAndOneWithLittle() {
   return (
     <Frame
       className="flex flex-col gap-12"
-      code={`// A game to come: "Coming soon" beside the name, both big buttons disabled, the credits and what is under them stay (here one rulebook, so the rules are a link)
+      code={`// A game to come: "Coming soon" beside the name, the two big buttons disabled, the credits and the rules stay (here one rulebook, so the picto is a link)
 <GameHead {...game} live={false} rulebooks={[rulebook]} />
 
 // A game the Studio knows little of: what it has is drawn, nothing is written in place of the rest
