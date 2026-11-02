@@ -136,7 +136,7 @@ const STANDINGS: Standing[] = [
   standing(1, "herve", "Hervé", { tier: "Legend" }, 41, 63, DEMO_AVATARS.herve),
   standing(2, "zoe", "Zoé", { tier: "Legend" }, 38, 60, DEMO_AVATARS.zoe),
   standing(3, "marly", "Marly", { tier: "Legend" }, 52, 97, DEMO_AVATARS.marly),
-  standing(4, "tom", "Tom", { tier: "Champion", division: 3 }, 22, 41, DEMO_AVATARS.tom),
+  standing(4, "tom", "Tom", { tier: "Grandmaster", division: 3 }, 22, 41, DEMO_AVATARS.tom),
   standing(5, "lina", "Lina", { tier: "Master", division: 3 }, 19, 38, DEMO_AVATARS.lina),
   standing(6, "jade", "Jade", { tier: "Master", division: 3 }, 17, 35, DEMO_AVATARS.jade),
   standing(7, "max", "Max", { tier: "Master", division: 2 }, 25, 52, DEMO_AVATARS.max),
@@ -150,10 +150,10 @@ const STANDINGS: Standing[] = [
 /** The visitor: they are 27th, so outside a top of five. */
 const ME: Standing = standing(27, "jo", "Jo", { tier: "Diamond", division: 2 }, 14, 24, null)
 
-/** The ranks of a board of forty, from the best: three Legends, a Champion, then the Masters, the Diamonds and the Platinums. */
+/** The ranks of a board of forty, from the best: three Legends, a Grandmaster, then the Masters, the Diamonds and the Platinums. */
 const MANY_RANKS: Rank[] = [
   ...times(3, { tier: "Legend" }),
-  { tier: "Champion", division: 3 },
+  { tier: "Grandmaster", division: 3 },
   ...times(2, { tier: "Master", division: 3 }),
   ...times(3, { tier: "Master", division: 2 }),
   ...times(3, { tier: "Master", division: 1 }),

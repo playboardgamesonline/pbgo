@@ -2,7 +2,7 @@
 // the rank from it and from the player's position among the game's players, and sends the tier and the division alone. Nothing here computes a rank: the file says what a rank is and how it is written, and the hub draws what it is given.
 
 /** The nine tiers, from the lowest to the highest. */
-export const TIERS = ["Apprentice", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Champion", "Legend"] as const
+export const TIERS = ["Apprentice", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster", "Legend"] as const
 
 export type Tier = (typeof TIERS)[number]
 

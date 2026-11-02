@@ -3,7 +3,7 @@ import { TIERS, rankLabel, type Division, type Rank } from "./ranks"
 
 describe("TIERS", () => {
   it("are nine, from the lowest to the highest", () => {
-    expect(TIERS).toEqual(["Apprentice", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Champion", "Legend"])
+    expect(TIERS).toEqual(["Apprentice", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster", "Legend"])
   })
 })
 
@@ -13,7 +13,7 @@ describe("rankLabel", () => {
     [{ tier: "Bronze", division: 2 }, "Bronze II"],
     [{ tier: "Gold", division: 2 }, "Gold II"],
     [{ tier: "Platinum", division: 3 }, "Platinum III"],
-    [{ tier: "Champion", division: 3 }, "Champion III"],
+    [{ tier: "Grandmaster", division: 3 }, "Grandmaster III"],
   ] satisfies [Rank, string][])("writes %j as %s", (rank, label) => {
     expect(rankLabel(rank)).toBe(label)
   })
