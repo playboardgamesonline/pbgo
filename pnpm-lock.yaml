@@ -2053,6 +2053,9 @@ importers:
 
   packages/accounts:
     dependencies:
+      '@pbgo/studio-kit':
+        specifier: workspace:*
+        version: link:../studio-kit
       '@supabase/ssr':
         specifier: 'catalog:'
         version: 0.12.7(@supabase/supabase-js@2.118.0)

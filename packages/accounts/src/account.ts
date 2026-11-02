@@ -1,5 +1,7 @@
-// What the hub knows of a signed-in visitor, made of what their provider says of them: the user of Supabase Auth, as Facebook, Google, Apple or Discord fill it in.
-// Pure and without any import, so that the browser, the server, the proxy and the tests read it the same way (docs/accounts.md).
+// What the hub knows of a signed-in visitor, made of what their provider says of them: the user of Supabase Auth, as Facebook, Google, Apple or Discord fill it in,
+// and the language they chose. Pure, so that the browser, the server, the proxy and the tests read it the same way (docs/accounts.md).
+
+import { languageOf, type PlatformLanguage } from "./language"
 
 /** The providers a visitor can sign in with, in the order of the buttons. They are enabled in the Supabase project (Authentication › Providers). */
 export const PROVIDERS = ["facebook", "google", "apple", "discord"] as const
@@ -21,6 +23,8 @@ export type Account = {
   provider: Provider | null
   /** When the account was made, as Supabase Auth dates it (an ISO date); null when it is not known. */
   createdAt: string | null
+  /** The language they chose, which their account keeps (`languageOf`); null until they choose one, and for the demo account of development, which keeps nothing. */
+  language: PlatformLanguage | null
 }
 
 /** The part of Supabase Auth's user that an account is made of: what the browser and the server both hold of a session. */
@@ -56,6 +60,7 @@ export function accountOf(user: AuthUser): Account {
     avatarUrl: text(claims.avatar_url) ?? text(claims.picture),
     provider: PROVIDERS.find((provider) => provider === user.app_metadata?.provider) ?? null,
     createdAt: text(user.created_at),
+    language: languageOf(user),
   }
 }
 

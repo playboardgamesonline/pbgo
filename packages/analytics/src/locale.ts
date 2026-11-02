@@ -1,4 +1,4 @@
-import { LANGUAGES } from "@pbgo/studio-kit/constants"
+import { LANGUAGES, PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
 import type { Locale } from "./events"
 
 /**
@@ -14,6 +14,9 @@ import type { Locale } from "./events"
 export const LOCALE_COOKIE = "pbgo-locale"
 
 const LOCALES: readonly string[] = LANGUAGES.map((language) => language.id)
+
+/** The twelve languages a visitor can choose: the cookie holds any of them, the banner speaks four. */
+const CHOOSABLE: readonly string[] = PLATFORM_LANGUAGES.map((language) => language.id)
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && LOCALES.includes(value)
@@ -36,10 +39,12 @@ export function cookieValue(cookies: string, name: string): string | undefined {
 
 /**
  * The visitor's cookie wins, then the first language of the browser that the site speaks (`fr-CA` is French). No language at all:
- * French, the site's default; none of them supported: English. Same rules as `fromAcceptLanguage` of core.
+ * French, the site's default; none of them supported: English. Same rules as `fromAcceptLanguage` of core. A cookie that holds one of the
+ * platform's twelve languages that the banner lacks (Japanese, say) is English, as it is in the games (`localeFor` of core), not the language the browser comes second with.
  */
 export function pickLocale(input: { cookie?: string; languages?: readonly string[] }): Locale {
   if (isLocale(input.cookie)) return input.cookie
+  if (input.cookie !== undefined && CHOOSABLE.includes(input.cookie)) return "en"
   const languages = input.languages ?? []
   if (languages.length === 0) return "fr"
   for (const language of languages) {

@@ -32,6 +32,12 @@ describe("pickLocale", () => {
     expect(pickLocale({ cookie: "xx", languages: ["es-MX", "en"] })).toBe("es")
   })
 
+  it("gives English for a cookie that holds a language of the platform that the banner lacks, whatever the browser says", () => {
+    expect(pickLocale({ cookie: "ja", languages: ["fr-FR"] })).toBe("en")
+    expect(pickLocale({ cookie: "pt", languages: ["de"] })).toBe("en")
+    expect(pickLocale({ cookie: "zh" })).toBe("en")
+  })
+
   it("takes the first language of the browser that the site speaks", () => {
     expect(pickLocale({ languages: ["pt-BR", "de-AT", "fr"] })).toBe("de")
     expect(pickLocale({ languages: ["FR-ca"] })).toBe("fr")

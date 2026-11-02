@@ -56,6 +56,7 @@ describe("accountOf", () => {
       avatarUrl: "https://lh3.googleusercontent.com/a/ore",
       provider: "google",
       createdAt: "2026-10-01T09:00:00.000Z",
+      language: null,
     })
   })
 
@@ -105,7 +106,7 @@ describe("accountOf", () => {
 
   it("reads a blank or a non-text claim as missing", () => {
     const account = accountOf({ id: "u-7", email: "  ", user_metadata: { full_name: "   ", name: 42, avatar_url: "" } })
-    expect(account).toEqual({ id: "u-7", nickname: "Player", email: null, avatarUrl: null, provider: null, createdAt: null })
+    expect(account).toEqual({ id: "u-7", nickname: "Player", email: null, avatarUrl: null, provider: null, createdAt: null, language: null })
   })
 
   it("knows no provider that is not one of ours", () => {
@@ -114,6 +115,19 @@ describe("accountOf", () => {
 
   it("trims the text it takes", () => {
     expect(accountOf({ id: "u-9", user_metadata: { full_name: "  Oré  " } }).nickname).toBe("Oré")
+  })
+
+  it("keeps the language the account keeps, next to what the provider says", () => {
+    const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_locale: "ja" } })
+    expect(account.language).toBe("ja")
+    expect(account.nickname).toBe("Oré Louvel")
+    expect(account.avatarUrl).toBe("https://lh3.googleusercontent.com/a/ore")
+  })
+
+  it("has no language for an account that chose none, and does not take the `locale` of a provider for one", () => {
+    expect(accountOf(google).language).toBeNull()
+    expect(accountOf({ ...google, user_metadata: { ...google.user_metadata, locale: "fr" } }).language).toBeNull()
+    expect(accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_locale: "klingon" } }).language).toBeNull()
   })
 })
 

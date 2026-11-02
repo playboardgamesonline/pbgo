@@ -31,7 +31,7 @@ export {
   type Consent,
   type ConsentStore,
 } from "./consent"
-export type { ClientEvents, Locale, ServerEvents } from "./events"
+export type { ClientEvents, Language, Locale, ServerEvents } from "./events"
 export { cookieValue, isLocale, LOCALE_COOKIE, pickLocale } from "./locale"
 export { RESERVED_HEIGHT_VAR, reserveSpace } from "./reserve"
 export { CODE_PLACEHOLDER, scrubCapture, scrubDeep, scrubText, type Capture } from "./scrub"

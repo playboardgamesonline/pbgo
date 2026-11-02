@@ -5,6 +5,27 @@ export const LANGUAGES = [
   { id: "de", title: "Deutsch" },
 ] as const
 
+/**
+ * Languages of the platform's content (the catalog), English first: it is the default and the fallback of every text.
+ * `LANGUAGES` stays the four languages of the games until their Studios move to the same system.
+ */
+export const PLATFORM_LANGUAGES = [
+  { id: "en", title: "English" },
+  { id: "fr", title: "Français" },
+  { id: "es", title: "Español" },
+  { id: "de", title: "Deutsch" },
+  { id: "zh", title: "中文 (简体)" },
+  { id: "ja", title: "日本語" },
+  { id: "ru", title: "Русский" },
+  { id: "ar", title: "العربية" },
+  { id: "bn", title: "বাংলা" },
+  { id: "hi", title: "हिन्दी" },
+  { id: "pt", title: "Português" },
+  { id: "ko", title: "한국어" },
+] as const
+
+export const DEFAULT_PLATFORM_LANGUAGE = "en"
+
 // Fonts offered in Admin › Visual and in the studio (single source, re-exported by @pbgo/core/lib/settings)
 export const FONT_CHOICES = [
   "Inter",
