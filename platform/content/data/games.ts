@@ -1,30 +1,14 @@
 import type { SeedDoc } from "@pbgo/content-kit"
 import type { NotionGame } from "../notion/types.ts"
-import { LANGUAGES } from "@pbgo/studio-kit/constants"
-import type { CreatorRole, GameKind } from "../../apps/studio/schemaTypes/constants.ts"
-import { categoryId, creatorId, gameId, item, publisherId, reference } from "./ids.ts"
+import type { GameKind } from "../../apps/studio/schemaTypes/constants.ts"
+import { categoryId, gameId, item, reference } from "./ids.ts"
+import { sharedFields } from "./shared.ts"
 
 /** The games are numbered 10, 20, 30… in the order the hub lists them, so that one can be slipped between two in the Studio without renumbering. */
 export const ORDER_STEP = 10
 
-/** What a standalone expansion becomes: a game of its own that rebuilds another one. Every other game of the catalog is a game. */
+/** What a standalone expansion becomes: a game of its own that rebuilds another one. Every other game of the catalog is a game (an expansion that needs its base game is an `expansion`, see `expansions.ts`). */
 const kindOf = (game: NotionGame): GameKind => (game.standaloneOf === null ? "game" : "reimplementation")
-
-/** The roles Notion tells of: the people of its Designers column are designers, those of its Artists column artists, and a person can be both. */
-function creditsOf(game: NotionGame): { creator: string; roles: CreatorRole[] }[] {
-  const lines = new Map<string, CreatorRole[]>()
-  const add = (names: readonly string[], role: CreatorRole) => {
-    for (const name of names) {
-      const id = creatorId(name)
-      const roles = lines.get(id) ?? []
-      if (!roles.includes(role)) roles.push(role)
-      lines.set(id, roles)
-    }
-  }
-  add(game.authors, "designer")
-  add(game.illustrators, "artist")
-  return [...lines].map(([creator, roles]) => ({ creator, roles }))
-}
 
 /**
  * The games each game is related to, both ways: Notion keeps a link on the row of one game and, by hand, on the other if at all. A game
@@ -60,28 +44,12 @@ export function buildGames(games: readonly NotionGame[]): SeedDoc[] {
       kind: kindOf(game),
       order: (position + 1) * ORDER_STEP,
     }
-    if (game.bggId !== null) doc.bggId = game.bggId
     if (game.standaloneOf !== null && known.has(game.standaloneOf)) doc.baseGame = reference(gameId(game.standaloneOf), "game")
 
-    if (game.players) {
-      doc.playersMin = game.players.min
-      if (game.players.max !== null) doc.playersMax = game.players.max
-    }
-    if (game.duration !== null) doc.duration = game.duration
-    if (game.age !== null) doc.minAge = game.age
+    // The figures, the credits, the description and the rules a game has as an expansion does, then what only a game has
+    Object.assign(doc, sharedFields(game))
     if (game.complexity !== null) doc.complexity = game.complexity
-    if (game.releaseDate !== null) doc.releaseDate = game.releaseDate
     if (game.categories.length > 0) doc.categories = game.categories.map((name) => item(categoryId(name), "category"))
-
-    const credits = creditsOf(game)
-    if (credits.length > 0) doc.creators = credits.map(({ creator, roles }) => ({ _key: creator, _type: "gameCreator", creator: reference(creator, "creator"), roles }))
-    if (game.publishers.length > 0) doc.publishers = game.publishers.map(({ name }) => item(publisherId(name), "publisher"))
-
-    if (game.descriptions.en) doc.description = game.descriptions.en
-    for (const { id } of LANGUAGES) {
-      const link = game.rules[id]
-      if (link) doc[`rules${id.charAt(0).toUpperCase()}${id.slice(1)}`] = link
-    }
 
     const others = related.get(game.slug) ?? []
     // Weak for good, as the field is: two games are related both ways, so strong references would each wait for the other to be published

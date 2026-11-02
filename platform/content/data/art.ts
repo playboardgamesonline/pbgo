@@ -1,7 +1,7 @@
 import { setField } from "@pbgo/content-kit"
 import type { ArtSlot } from "@pbgo/content-kit"
 import { ART_SLOTS, type ArtSlot as Picture } from "../notion/types.ts"
-import type { NotionGame } from "../notion/types.ts"
+import type { NotionExpansion, NotionGame } from "../notion/types.ts"
 import type { PublisherRow } from "../notion/reader.ts"
 import { gameId, publisherId } from "./ids.ts"
 import { publishers } from "./taxonomy.ts"
@@ -30,13 +30,16 @@ export function gameSlots(games: readonly NotionGame[]): ArtSlot[] {
   )
 }
 
-/** The logo of every publisher that has one in its Editors row, among the publishers the games list (the others are not seeded). */
-export function publisherSlots(games: readonly NotionGame[], rows: readonly PublisherRow[]): ArtSlot[] {
+/** The logo of every publisher that has one in its Editors row, among the publishers the games and the expansions list (the others are not seeded). */
+export function publisherSlots(games: readonly Pick<NotionGame, "publishers">[], rows: readonly PublisherRow[]): ArtSlot[] {
   const withLogo = new Set(rows.filter((row) => row.logo !== null).map((row) => publisherId(row.name)))
   return [...publishers(games)]
     .filter(([id]) => withLogo.has(id))
     .map(([id, { name }]) => ({ name: slotName(id, "logo"), label: `${name}, logo`, maxSize: PUBLISHER_LOGO_SIZE, docId: id, place: setField("logo") }))
 }
 
-/** All the slots of the seed. */
-export const buildSlots = (games: readonly NotionGame[], rows: readonly PublisherRow[]): ArtSlot[] => [...gameSlots(games), ...publisherSlots(games, rows)]
+/** All the slots of the seed. An expansion has no slot of its own (Notion holds no cover or box front), only its publishers can bring a logo. */
+export const buildSlots = (games: readonly NotionGame[], rows: readonly PublisherRow[], expansions: readonly Pick<NotionExpansion, "publishers">[] = []): ArtSlot[] => [
+  ...gameSlots(games),
+  ...publisherSlots([...games, ...expansions], rows),
+]
