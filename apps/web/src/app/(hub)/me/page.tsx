@@ -1,7 +1,6 @@
 import { cookies, headers } from "next/headers"
 import Link from "next/link"
 import { LANGUAGE_COOKIE, perGame, resolveLanguage, statsOf } from "@pbgo/accounts"
-import { isDemoAccount } from "@pbgo/accounts/demo"
 import { requireAccount } from "@pbgo/accounts/server"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
@@ -24,7 +23,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * The profile: the figures of the games a visitor has played, the games one by one, and the last of them, then the settings, which are the language for now. The games are empty for a real
+ * The profile: the figures of the games a visitor has played, the games one by one, and the last of them, then the settings. The games are empty for a real
  * account until they are recorded (PLT-13 and PLT-16): the page says so and leads to the games. The language shown is the one in use, in the order of the site: the account's, else the
  * cookie's, else the browser's, else English; an account that has never chosen takes it as soon as a page of the hub reads its session (`LanguageSync`).
  */
@@ -114,7 +113,7 @@ export default async function ProfilePage() {
         <h2 id="settings" className="mb-4 font-heading text-2xl">
           Settings
         </h2>
-        <LanguageRow language={language} kept={isDemoAccount(account) ? "device" : "account"} />
+        <LanguageRow language={language} />
       </section>
     </div>
   )
