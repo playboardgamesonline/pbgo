@@ -67,9 +67,10 @@ describe("ConsentBanner", () => {
     expect(refuse.at).toBeLessThan(accept.at)
     expect(html.match(/<button/g)).toHaveLength(3)
     expect(new Set([customize.size, refuse.size, accept.size]).size).toBe(1)
-    // Told apart by their fill only: they take the same sizes, so refusing is as easy to hit as accepting
+    // Told apart by their fill only: they take the same size and the corners of the navbar's Sign in and Let's play (2.5rem high, `rounded-lg`)
     for (const { className } of [customize, refuse, accept]) {
-      for (const name of ["h-10", "px-4", "text-sm", "rounded-2xl", "lg:px-5"]) expect(className.split(" ")).toContain(name)
+      for (const name of ["h-10", "px-4", "text-sm", "rounded-lg"]) expect(className.split(" ")).toContain(name)
+      expect(className.split(" ")).not.toContain("rounded-xl")
     }
   })
 

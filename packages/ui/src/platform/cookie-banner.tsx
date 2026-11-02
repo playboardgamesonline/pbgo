@@ -48,6 +48,9 @@ type CookiePreferences = {
 
 const NOTHING: CookiePreferences = { analytics: false, marketing: false }
 
+/** The corners of the navbar's Sign in and Let's play: their group sets its buttons to `rounded-lg` (12px), where the Button's `lg` says `rounded-xl`. */
+const ROUND = "rounded-lg"
+
 type CookieBannerProps = {
   texts: CookieBannerTexts
   /** Where the links of `texts.more` lead: the cookie policy. */
@@ -72,14 +75,11 @@ type CookieBannerProps = {
   ref?: React.Ref<HTMLDivElement>
 }
 
-/** The three buttons of the bar are the same size and the same shape, 2.5rem high: refusing is as easy to hit as accepting, whatever their fill. */
-const ANSWER = "h-10 rounded-2xl px-4 text-sm lg:px-5"
-
 /**
  * The consent banner: a wide card that floats over the bottom of the screen, centred, with a title and a sentence that ends with a
  * link to the policy on its side, and three buttons on the other, the way Claude's has them: Customize (secondary, the grey one) over
  * Reject optional (secondary) and Accept all (the plain one). They are the same size and the same shape, so refusing is as easy to hit as
- * accepting. From `lg` the card is a bar (the words, then the buttons, centred on its height, the block as wide as its longest label);
+ * accepting, and that size is the one of the navbar's Sign in and Let's play: the `lg` of the Button with their corners (2.5rem high, `rounded-lg`, `text-sm`). From `lg` the card is a bar (the words, then the buttons, centred on its height, the block as wide as its longest label);
  * under it the words are over the buttons, which take the width of the card.
  *
  * Customize swaps the card's content for the choices one by one, in a list of switches: what the site needs (always on), the analytics
@@ -179,13 +179,13 @@ function CookieBanner({
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 lg:w-max lg:shrink-0">
-              <Button variant="secondary" size="lg" className={cn(ANSWER, "col-span-2")} onClick={() => go("preferences")}>
+              <Button variant="secondary" size="lg" className={cn(ROUND, "col-span-2")} onClick={() => go("preferences")}>
                 {texts.customize}
               </Button>
-              <Button variant="secondary" size="lg" className={ANSWER} onClick={onRefuse}>
+              <Button variant="secondary" size="lg" className={ROUND} onClick={onRefuse}>
                 {texts.refuse}
               </Button>
-              <Button size="lg" className={ANSWER} onClick={onAccept}>
+              <Button size="lg" className={ROUND} onClick={onAccept}>
                 {texts.accept}
               </Button>
             </div>
@@ -219,10 +219,10 @@ function CookieBanner({
                 />
               </ul>
               <div className="flex gap-2 max-sm:[&>*]:flex-1 sm:justify-end">
-                <Button variant="ghost" size="lg" className={ANSWER} onClick={() => go("bar")}>
+                <Button variant="ghost" size="lg" className={ROUND} onClick={() => go("bar")}>
                   {texts.back}
                 </Button>
-                <Button size="lg" className={ANSWER} onClick={() => onSave(choices)}>
+                <Button size="lg" className={ROUND} onClick={() => onSave(choices)}>
                   {texts.save}
                 </Button>
               </div>

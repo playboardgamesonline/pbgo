@@ -109,7 +109,7 @@ Module: `@pbgo/ui/platform/cookie-banner`
 
 The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side three buttons laid out the way Claude's are: Customize (`secondary`, the grey one) over Reject optional (`secondary`) and Accept all, which are side by side.
 
-The buttons are the same size and the same shape (2.5rem high, `h-10`, `text-sm`), so refusing is as easy to hit as accepting. The card follows the width of the screen:
+The buttons are the same size and the same shape, so refusing is as easy to hit as accepting: the size of the navbar's Sign in and Let's play, the `lg` of the Button with their corners (2.5rem high, `rounded-lg` which is 12px, `text-sm`). The card follows the width of the screen:
 
 - from `lg` it is a bar, the words on the left and the three buttons on the right, centred on its height; the block is as wide as the longest of its labels (`w-max`), so a long label in another language widens it instead of overflowing;
 - under `lg` the words are over the buttons, which take the width of the card, Customize on a line of its own.
