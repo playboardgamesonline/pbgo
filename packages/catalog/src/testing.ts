@@ -3,6 +3,7 @@
 // Studio) with the line it makes. Not exported by the package.
 
 import type { GameEntry } from "@pbgo/core/lib/binding"
+import { evaluate, parse } from "groq-js"
 import type { CatalogEntry, CatalogGame } from "./catalog"
 import { CATALOG_QUERY, PLATFORM_DATASET, PLATFORM_PROJECT_ID } from "./sanity"
 
@@ -39,6 +40,34 @@ export function fakeSanity(answer: SanityAnswer) {
   }) as typeof fetch
   return { fetch: fetcher, calls }
 }
+
+/**
+ * The project's API with a real GROQ engine behind it (groq-js): the query of the request is run over `dataset` with the parameters it
+ * carries (`$name=<JSON>`), on the published documents (a draft's id starts with `drafts.`). For the tests that must prove what the query
+ * does to a game written in either shape, which the answers of `fakeSanity` (already the result) cannot.
+ */
+export function groqSanity(dataset: readonly Record<string, unknown>[]): HostHandler {
+  const published = dataset.filter((doc) => !String(doc._id).startsWith("drafts."))
+  return async (url) => {
+    const query = url.searchParams.get("query") ?? ""
+    const params = Object.fromEntries([...url.searchParams].filter(([name]) => name.startsWith("$")).map(([name, value]) => [name.slice(1), JSON.parse(value) as unknown]))
+    const result = await (await evaluate(parse(query, { params }), { dataset: published, params })).get()
+    return reply(200, { ms: 1, query, result })
+  }
+}
+
+/** The file of a picture in the dataset and the address the image CDN serves it at: `imageAsset("abc", 1600, 476, "webp")`. */
+export const imageAsset = (hash: string, width: number, height: number, extension: string) => ({
+  _id: `image-${hash}-${width}x${height}-${extension}`,
+  _type: "sanity.imageAsset",
+  url: cdn(`${hash}-${width}x${height}.${extension}`),
+})
+
+/** An image field that points at an asset, with the hotspot the Studio keeps beside it when somebody sets one. */
+export const imageOf = (asset: { _id: string }, extra: Record<string, unknown> = {}) => ({ _type: "image", asset: { _type: "reference", _ref: asset._id }, ...extra })
+
+/** A row of a translated field, as the plugin of the Studio writes it (`type` is the kind of value: `String`, `Image`, `Url`…). */
+export const row = (type: string, language: string, value?: unknown) => ({ _key: language, _type: `internationalizedArray${type}Value`, language, ...(value === undefined ? {} : { value }) })
 
 // ---------- A fake web ----------
 

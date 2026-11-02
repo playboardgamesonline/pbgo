@@ -30,6 +30,7 @@
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "groq-js": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "typescript": "catalog:",
