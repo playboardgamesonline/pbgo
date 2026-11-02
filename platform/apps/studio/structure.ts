@@ -1,7 +1,9 @@
 import { BasketIcon } from "@sanity/icons/Basket"
 import { EditIcon } from "@sanity/icons/Edit"
+import { PackageIcon } from "@sanity/icons/Package"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
 import type { DefaultDocumentNodeResolver, StructureResolver } from "sanity/structure"
+import { ExpansionsOf } from "./views/expansions-of-view"
 import { GamesOf } from "./views/games-of-view"
 
 // The sidebar is three blocks. The Catalog is what the hub lists, the Editorial what it tells, and the Shop is kept for what it will
@@ -21,6 +23,10 @@ export const structure: StructureResolver = (S) =>
                 .title("Games")
                 .icon(ThLargeIcon)
                 .child(S.documentTypeList("game").title("Games").defaultOrdering([{ field: "order", direction: "asc" }, { field: "name", direction: "asc" }])),
+              S.listItem()
+                .title("Expansions")
+                .icon(PackageIcon)
+                .child(S.documentTypeList("expansion").title("Expansions").defaultOrdering([{ field: "name", direction: "asc" }])),
               S.documentTypeListItem("creator").title("Creators"),
               S.documentTypeListItem("publisher").title("Publishers"),
               S.documentTypeListItem("category").title("Categories"),
@@ -41,8 +47,14 @@ export const structure: StructureResolver = (S) =>
       S.listItem().title("Shop").icon(BasketIcon).child(S.list().title("Shop").items([])),
     ])
 
-/** A creator and a publisher get a "Games" tab next to their form: the games that credit them. */
-export const defaultDocumentNode: DefaultDocumentNodeResolver = (S, { schemaType }) =>
-  schemaType === "creator" || schemaType === "publisher"
-    ? S.document().views([S.view.form(), S.view.component(GamesOf).title("Games").icon(ThLargeIcon).options({ of: schemaType })])
-    : S.document().views([S.view.form()])
+/**
+ * A creator and a publisher get a "Games" tab next to their form: the games that credit them. A game gets an "Expansions" tab: the
+ * expansions played with it.
+ */
+export const defaultDocumentNode: DefaultDocumentNodeResolver = (S, { schemaType }) => {
+  if (schemaType === "creator" || schemaType === "publisher") {
+    return S.document().views([S.view.form(), S.view.component(GamesOf).title("Games").icon(ThLargeIcon).options({ of: schemaType })])
+  }
+  if (schemaType === "game") return S.document().views([S.view.form(), S.view.component(ExpansionsOf).title("Expansions").icon(PackageIcon)])
+  return S.document().views([S.view.form()])
+}
