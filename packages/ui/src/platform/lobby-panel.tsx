@@ -27,26 +27,27 @@ function LobbyPanel({ className, ...props }: React.ComponentProps<typeof Card>) 
   )
 }
 
-/** The picture of a seat: 40px in a narrow panel, 56px from 28rem (the panel is the container). */
-const SEAT_PICTURE = "size-10 @md:size-14"
+/** The picture of a seat fills its column: a fifth of the panel, less the room between the seats, so that the people are as large as the panel allows. */
+const SEAT_PICTURE = "size-auto w-full aspect-square"
 
 /**
- * The people of a lobby, five to a row, as many seats as the table was set for (at most three rows, fifteen): the picture of each player with their name under it (cut with an ellipsis when it does not fit), a crown over the one who opened the table, and, for each seat
+ * The people of a lobby, five to a row, as many seats as the table was set for (at most three rows, fifteen, and one row for a table of five or fewer): the picture of each player with their name under it (cut with an ellipsis when it does not fit), a crown over the one who opened the table, and, for each seat
  * nobody has taken, a dashed place with a plus in it that does what the seat is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the link) and, under it, what it does. They are the blocks of a row of the list
- * (`TableEntry`), larger and with the room that a panel has for five. The pointer finds a player's card on their picture, which says the rest (rank, record). A table of two or three has its seats at the left, in the columns of a table of five.
+ * (`TableEntry`), as large as the panel allows: each picture fills its column, a fifth of the panel's width less a small room between them. The pointer finds a player's card on their picture, which says the rest (rank, record). A table of two or three has its seats at the left, in the columns of a table of five.
  */
 function LobbySeats({ seats, join, invite, className, ...props }: Omit<React.ComponentProps<"ul">, "children"> & { seats: readonly TableSeat[]; join?: OpenSeatProps["join"]; invite?: OpenSeatProps["invite"] }) {
   const firstFree = seats.indexOf(null)
   const word = invite ? "Invite" : join ? "Join" : "Open"
   return (
-    <ul data-slot="lobby-seats" aria-label="Players" className={cn("grid grid-cols-5 gap-x-2 gap-y-6", className)} {...props}>
+    <ul data-slot="lobby-seats" aria-label="Players" className={cn("grid grid-cols-5 gap-x-1.5 gap-y-5", className)} {...props}>
       {seats.map((seat, index) => (
-        <li key={index} data-slot="lobby-seat" data-free={seat ? undefined : ""} className="flex min-w-0 flex-col items-center gap-1.5">
-          <span className="relative">
-            {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3 left-1/2 z-10 size-4 -translate-x-1/2 @md:-top-4 @md:size-5" />}
+        <li key={index} data-slot="lobby-seat" data-free={seat ? undefined : ""} className="flex min-w-0 flex-col items-center gap-2">
+          {/* The link or the button of a free seat is made as wide as the column too, for its circle to fill it */}
+          <span className="relative block w-full [&>a]:w-full [&>button]:w-full">
+            {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3.5 left-1/2 z-10 size-5 -translate-x-1/2" />}
             {seat ? <SeatAvatar seat={seat} className={SEAT_PICTURE} /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className={SEAT_PICTURE} />}
           </span>
-          <span className={cn("w-full truncate text-center text-xs", !seat && "text-muted-foreground")}>
+          <span className={cn("w-full truncate text-center text-xs @md:text-sm", !seat && "text-muted-foreground")}>
             {seat?.host && <span className="sr-only">Host: </span>}
             {seat ? seat.name : word}
           </span>

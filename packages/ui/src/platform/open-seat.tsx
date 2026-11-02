@@ -22,12 +22,12 @@ type OpenSeatProps = {
   className?: string
 }
 
-/** The circle: dashed, and a little more there under the pointer of what holds it (`group/seat`). */
+/** The circle: dashed, and a little more there under the pointer of what holds it (`group/seat`). The plus in it is a third of it, and never smaller than it is in the circles of a list (`size-3.5`). */
 function Place({ className }: { className?: string }) {
   return (
     <Avatar className={cn("after:hidden", className)}>
       <AvatarFallback className="border border-dashed border-border bg-transparent text-muted-foreground transition-colors duration-fast group-hover/seat:border-foreground/50 group-hover/seat:text-foreground">
-        <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-3.5" aria-hidden="true" />
+        <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} className="size-1/3 min-h-3.5 min-w-3.5" aria-hidden="true" />
       </AvatarFallback>
     </Avatar>
   )
