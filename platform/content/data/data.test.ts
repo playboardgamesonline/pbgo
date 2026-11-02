@@ -14,6 +14,8 @@ const listed = (id: string, type: string, weak = false) => ({ _key: id, ...link(
 
 /** A row of a translated field as the seed writes it: its key is its language. */
 const row = (type: string, language: string, value: string) => ({ _key: language, _type: `internationalizedArray${type}Value`, language, value })
+/** The empty row of English that the seed gives a translated field its source has nothing for. */
+const emptyRow = (type: string) => ({ _key: "en", _type: `internationalizedArray${type}Value`, language: "en" })
 
 const byId = (id: string) => {
   const found = seedDocs().find((doc) => doc._id === id)
@@ -86,8 +88,8 @@ describe("the documents of the seed", () => {
     expect(docs.find((doc) => doc._id === "publisher-no-site")).toEqual({ _id: "publisher-no-site", _type: "publisher", name: "No Site" })
   })
 
-  it("give a category its name, and leave its icon, its color and its description to the Studio", () => {
-    expect(byId("category-push-your-luck")).toEqual({ _id: "category-push-your-luck", _type: "category", name: "Push your luck" })
+  it("give a category its name and the empty row of English of its names, and leave its icon, its color and its description to the Studio", () => {
+    expect(byId("category-push-your-luck")).toEqual({ _id: "category-push-your-luck", _type: "category", name: "Push your luck", names: [emptyRow("LocalizedName")] })
   })
 
   it("refuse two names that make one id, which only the source can settle", () => {
@@ -139,8 +141,10 @@ describe("a game", () => {
     expect("playersMax" in doc).toBe(false)
   })
 
-  it("leaves out everything its row leaves empty, and writes no empty value", () => {
-    expect(Object.keys(byId("game-bare")).sort()).toEqual(["_id", "_type", "kind", "name", "order", "slug"])
+  it("leaves out everything its row leaves empty, and writes no empty value: all it writes for it is the empty row of English that each translated field has", () => {
+    const doc = byId("game-bare")
+    expect(Object.keys(doc).sort()).toEqual(["_id", "_type", "boxFront", "cover", "description", "kind", "logo", "name", "names", "order", "rules", "slug", "tagline"])
+    expect(doc).toMatchObject({ names: [emptyRow("LocalizedName")], tagline: [emptyRow("String")], description: [emptyRow("Description")], rules: [emptyRow("Url")], logo: [emptyRow("Image")], cover: [emptyRow("Image")], boxFront: [emptyRow("Image")] })
   })
 
   it("points at its categories and its publishers by reference, each in a list item that has a key", () => {
@@ -170,15 +174,18 @@ describe("a game", () => {
     for (const key of ["rulesFr", "rulesEn", "rulesEs", "rulesDe"]) expect(key in byId("game-hanabi"), key).toBe(false)
   })
 
-  it("writes no row for a language its row leaves empty, and no empty row of English: that is for the Studio", () => {
-    expect(byId("game-the-mind")).not.toHaveProperty("description")
-    expect(byId("game-the-mind")).not.toHaveProperty("rules")
+  it("writes no row for a language its row leaves empty, the empty row of English coming first where English has no text", () => {
+    expect(byId("game-the-mind")).toMatchObject({ description: [emptyRow("Description")], rules: [emptyRow("Url")] })
     const { docs } = buildSeedContent({ games: [notionGame("a", { descriptions: { fr: "Un jeu.", de: "" }, rules: { es: "https://example.com/es.pdf" } })], publishers: [] })
-    expect(docs.find((doc) => doc._id === "game-a")).toMatchObject({ description: [row("Description", "fr", "Un jeu.")], rules: [row("Url", "es", "https://example.com/es.pdf")] })
+    expect(docs.find((doc) => doc._id === "game-a")).toMatchObject({
+      description: [emptyRow("Description"), row("Description", "fr", "Un jeu.")],
+      rules: [emptyRow("Url"), row("Url", "es", "https://example.com/es.pdf")],
+    })
   })
 
-  it("writes no tagline, no cover, no box and no status: Notion has none of them, and the status stays in the registry", () => {
-    for (const key of ["tagline", "cover", "boxFront", "status"]) expect(key in byId("game-hanabi")).toBe(false)
+  it("writes no tagline, no cover and no box, only their empty row of English, and no status: Notion has none of them, and the status stays in the registry", () => {
+    expect(byId("game-hanabi")).toMatchObject({ tagline: [emptyRow("String")], cover: [emptyRow("Image")], boxFront: [emptyRow("Image")] })
+    expect("status" in byId("game-hanabi")).toBe(false)
   })
 
   it("is related to the games its row names, and to the games whose row names it: both ways, its own links first", () => {
@@ -284,12 +291,15 @@ describe("an expansion", () => {
     for (const key of ["rulesFr", "rulesEn", "rulesEs", "rulesDe"]) expect(key in doc, key).toBe(false)
   })
 
-  it("has nothing that places a game on the hub, nor a picture: no kind, order, categories, complexity, related, tagline, cover or box", () => {
-    for (const key of ["kind", "order", "categories", "complexity", "related", "tagline", "cover", "boxFront", "logo", "icon", "background"]) expect(key in byId("expansion-hanabi-extra"), key).toBe(false)
+  it("has nothing that places a game on the hub, and no picture but the empty row of English of its cover and its box: no kind, order, categories, complexity, related, tagline, logo, icon or background", () => {
+    for (const key of ["kind", "order", "categories", "complexity", "related", "tagline", "logo", "icon", "background"]) expect(key in byId("expansion-hanabi-extra"), key).toBe(false)
+    expect(byId("expansion-hanabi-extra")).toMatchObject({ cover: [emptyRow("Image")], boxFront: [emptyRow("Image")] })
   })
 
-  it("leaves out everything its row leaves empty, and writes no empty value", () => {
-    expect(Object.keys(byId("expansion-the-mind-extreme")).sort()).toEqual(["_id", "_type", "baseGame", "name", "slug"])
+  it("leaves out everything its row leaves empty, and writes no empty value: all it writes for it is the empty row of English that each translated field has", () => {
+    const doc = byId("expansion-the-mind-extreme")
+    expect(Object.keys(doc).sort()).toEqual(["_id", "_type", "baseGame", "boxFront", "cover", "description", "name", "names", "rules", "slug"])
+    expect(doc).toMatchObject({ names: [emptyRow("LocalizedName")], description: [emptyRow("Description")], rules: [emptyRow("Url")], cover: [emptyRow("Image")], boxFront: [emptyRow("Image")] })
   })
 
   it("leaves the base game out when it is not in the catalog: the Studio asks for it, an expansion cannot be published without one", () => {

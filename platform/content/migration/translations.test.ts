@@ -191,6 +191,53 @@ describe("the links to the rules", () => {
   })
 })
 
+describe("a language without English", () => {
+  const frenchOnly = changed(OLD_BARE, { rulesFr: "https://example.com/fr.pdf" })
+
+  it("is a game that has its rules in French only: converted as it is, with no English guessed, and said to be one the Studio will refuse", () => {
+    const plan = planTranslations([frenchOnly])
+    expect(plan.problems).toEqual([])
+    expect(plan.conversions.map((conversion) => conversion.id)).toEqual(["game-bare"])
+    expect(plan.conversions[0]?.set.rules).toEqual([row("Url", "en"), row("Url", "fr", "https://example.com/fr.pdf")])
+    expect(plan.englishGaps).toEqual([{ id: "game-bare", type: "game", field: "rules", languages: ["fr"] }])
+  })
+
+  it("is said whether or not the migration changes it: a document that is converted already has the same gap", () => {
+    const plan = planTranslations([applied(frenchOnly, conversionOf(frenchOnly))])
+    expect(plan.conversions).toEqual([])
+    expect(plan.unchanged).toBe(1)
+    expect(plan.englishGaps).toEqual([{ id: "game-bare", type: "game", field: "rules", languages: ["fr"] }])
+  })
+
+  it("is not one when English has a value, or when no language has", () => {
+    expect(planTranslations([changed(OLD_BARE, { rulesFr: "https://example.com/fr.pdf", rulesEn: "https://example.com/en.pdf" }), OLD_HANABI, OLD_CATEGORY]).englishGaps).toEqual([])
+  })
+
+  it("does not stop the migration: it writes, and says so again once it has", async () => {
+    const dataset = new MemoryDataset([frenchOnly])
+    const outcome = await migrate(dataset, { apply: true })
+    expect(outcome.mode).toBe("applied")
+    expect(outcome.afterProblems).toEqual([])
+    expect(dataset.commits).toHaveLength(1)
+  })
+
+  it("is said in the dry run, by field and by the languages it is in, and by document with --verbose", () => {
+    const docs = [frenchOnly, changed(OLD_BARE, { _id: "game-two", rulesFr: "https://example.com/two-fr.pdf" }), changed(OLD_BARE, { _id: "game-three", rulesDe: "https://example.com/three-de.pdf" })]
+    const plan = planTranslations(docs)
+    const text = describePlan(plan, { projectId: "mhgqs6fe", dataset: "production", mode: "dry-run" })
+    expect(text).toContain("3 translated fields will have a language and no English: the Studio asks for English first")
+    expect(text).toContain("The migration does not guess it; the hub is not affected.")
+    expect(text).toMatch(/game\.rules {2}in fr +2/)
+    expect(text).toMatch(/game\.rules {2}in de +1/)
+    expect(text).not.toContain("game-two: rules in fr")
+    expect(describePlan(plan, { projectId: "mhgqs6fe", dataset: "production", mode: "dry-run", verbose: true })).toContain("  game-two: rules in fr")
+  })
+
+  it("is not mentioned when there is none", () => {
+    expect(describePlan(planTranslations(all), { projectId: "mhgqs6fe", dataset: "production", mode: "dry-run" })).not.toContain("no English")
+  })
+})
+
 describe("what it will not convert", () => {
   const problemsOf = (...docs: Doc[]) => planTranslations(docs).problems
 

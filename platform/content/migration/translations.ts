@@ -1,6 +1,6 @@
 import { PLATFORM_LANGUAGES, translatedRowType } from "@pbgo/studio-kit/constants"
 import { TRANSLATED_FIELDS, type TranslatedDocumentType, type TranslatedKind } from "../../apps/studio/schemaTypes/constants.ts"
-import { checkRows } from "../../apps/studio/schemaTypes/rules.ts"
+import { checkRows, isFilled } from "../../apps/studio/schemaTypes/rules.ts"
 
 // PLT-104: the texts and pictures of the catalog were plain values (a text, a picture) with one field per language for the links to the
 // rules; they are now translated field by field, an array of rows `{ language, value }` (`TRANSLATED_FIELDS`). This converts the documents
@@ -160,12 +160,20 @@ export type Conversion = {
   notes: [string, string, string][]
 }
 
+/** A translated field that has a language with a value and none in English once the documents are as the plan leaves them: the Studio refuses to publish it (`checkTranslations`). */
+export type EnglishGap = { id: string; type: TranslatedDocumentType; field: string; languages: string[] }
+
 export type Plan = {
   /** How many documents of each type the dataset holds, published and drafts: what was looked at. */
   found: Record<string, { published: number; drafts: number }>
   conversions: Conversion[]
   /** The documents that have what they need already. */
   unchanged: number
+  /**
+   * The translated fields that will have a language and no English, converted or not (a link to the rules that was only in French is only
+   * in French). The migration changes none of them: English is not guessed. It does not stop the plan, and the owner may want to know.
+   */
+  englishGaps: EnglishGap[]
   /** Why the plan cannot be run: when there is one, nothing is written. */
   problems: string[]
 }
@@ -182,6 +190,7 @@ export function planTranslations(docs: readonly Doc[]): Plan {
   const problems: string[] = []
   const conversions: Conversion[] = []
   const found: Plan["found"] = Object.fromEntries(Object.keys(TRANSLATED_FIELDS).map((type) => [type, { published: 0, drafts: 0 }]))
+  const englishGaps: EnglishGap[] = []
   let unchanged = 0
 
   for (const doc of docs) {
@@ -201,6 +210,8 @@ export function planTranslations(docs: readonly Doc[]): Plan {
     for (const [name, kind] of Object.entries(TRANSLATED_FIELDS[doc._type] as Record<string, TranslatedKind>)) {
       const result = convertField(doc, name, kind, problems)
       if (!result) continue
+      const filled = result.rows.filter((row) => isFilled(row.value)).map((row) => String(row.language))
+      if (filled.length > 0 && !filled.includes(ENGLISH)) englishGaps.push({ id: doc._id, type: doc._type, field: name, languages: filled })
       const changes = result.unset.length > 0 || !deepEqual(result.rows, doc[name])
       if (changes) {
         set[name] = result.rows
@@ -213,7 +224,7 @@ export function planTranslations(docs: readonly Doc[]): Plan {
     else conversions.push({ id: doc._id, type: doc._type, state, rev: doc._rev, set, unset, notes })
   }
 
-  return { found, conversions, unchanged, problems }
+  return { found, conversions, unchanged, englishGaps, problems }
 }
 
 /** The transaction of a plan: one patch for each document, which refuses the document if it was saved since it was read. */
@@ -273,6 +284,19 @@ export function describePlan(plan: Plan, { projectId, dataset, mode, source, ver
     for (const entry of (conversion.set.rules as Row[] | undefined) ?? []) if (!isNothing(entry.value)) links.set(String(entry.language), (links.get(String(entry.language)) ?? 0) + 1)
   }
   if (links.size > 0) lines.push(`Links to the rules, by language: ${ORDER.filter((language) => links.has(language)).map((language) => `${language} ${links.get(language)}`).join(", ")}.`)
+
+  if (plan.englishGaps.length > 0) {
+    // by field and by the languages it is in: `game.rules  in fr  8`
+    const gaps = new Map<string, number>()
+    for (const gap of plan.englishGaps) gaps.set(`${gap.type}.${gap.field}  in ${gap.languages.join(", ")}`, (gaps.get(`${gap.type}.${gap.field}  in ${gap.languages.join(", ")}`) ?? 0) + 1)
+    const width = Math.max(...[...gaps.keys()].map((key) => key.length))
+    lines.push(
+      "",
+      `${plural(plan.englishGaps.length, "translated field")} will have a language and no English: the Studio asks for English first, and will not publish a change to the document until it has one. The migration does not guess it; the hub is not affected.`,
+      ...[...gaps].sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => `  ${key.padEnd(width)}  ${String(count).padStart(4)}`),
+    )
+    if (verbose) lines.push(...plan.englishGaps.map((gap) => `  ${gap.id}: ${gap.field} in ${gap.languages.join(", ")}`))
+  }
 
   if (verbose) {
     lines.push("")

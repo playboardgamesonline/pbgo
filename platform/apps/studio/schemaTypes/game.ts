@@ -2,8 +2,8 @@ import { MAX_SLUG_LENGTH, slugFromName } from "@pbgo/games/slug"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
 import { defineArrayMember, defineField, defineType, type PreviewValue } from "sanity"
 import { GAME_KINDS } from "./constants"
-import { checkCreatorsOnce, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkSlug, checkTranslations } from "./rules"
-import { translated } from "./translations"
+import { checkCreatorsOnce, checkName, checkNotItself, checkPlayersMax, checkSlug } from "./rules"
+import { translatedField } from "./translations"
 
 /**
  * A game of the catalog: what the hub lists and shows of it, live or to come. Its tabs run from what it is to what is shown of it.
@@ -29,13 +29,7 @@ export const game = defineType({
   fields: [
     // Identity
     defineField({ name: "name", title: "Name", type: "string", group: "identity", validation: (rule) => rule.required().custom(checkName) }),
-    defineField({
-      name: "names",
-      title: "Name in other languages (English: the name above)",
-      type: translated("localizedName"),
-      group: "identity",
-      validation: (rule) => rule.custom(checkNameTranslations),
-    }),
+    translatedField({ name: "names", title: "Name in other languages (English: the name above)", kind: "localizedName", group: "identity" }),
     defineField({
       name: "slug",
       title: "Slug",
@@ -106,18 +100,18 @@ export const game = defineType({
     }),
 
     // Texts: a row per language, English first
-    defineField({ name: "tagline", title: "Tagline", type: translated("string"), group: "texts", validation: (rule) => rule.custom(checkTranslations) }),
-    defineField({ name: "description", title: "Description", type: translated("description"), group: "texts", validation: (rule) => rule.custom(checkTranslations) }),
+    translatedField({ name: "tagline", title: "Tagline", kind: "string", group: "texts" }),
+    translatedField({ name: "description", title: "Description", kind: "description", group: "texts" }),
 
     // Rules: a link per language
-    defineField({ name: "rules", title: "Rules link", type: translated("url"), group: "rules", validation: (rule) => rule.custom(checkTranslations) }),
+    translatedField({ name: "rules", title: "Rules link", kind: "url", group: "rules" }),
 
     // Visuals: the cover, the logo and the front of the box can differ by language (a title written in it); the icon and the background do not
-    defineField({ name: "cover", title: "Cover", type: translated("image"), options: { hotspot: true }, group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
-    defineField({ name: "logo", title: "Logo", type: translated("image"), group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
+    translatedField({ name: "cover", title: "Cover", kind: "image", options: { hotspot: true }, group: "visuals" }),
+    translatedField({ name: "logo", title: "Logo", kind: "image", group: "visuals" }),
     defineField({ name: "icon", title: "Icon", type: "image", group: "visuals" }),
     defineField({ name: "background", title: "Background", type: "image", options: { hotspot: true }, group: "visuals" }),
-    defineField({ name: "boxFront", title: "Box (front)", type: translated("image"), group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
+    translatedField({ name: "boxFront", title: "Box (front)", kind: "image", group: "visuals" }),
 
     // Related
     defineField({

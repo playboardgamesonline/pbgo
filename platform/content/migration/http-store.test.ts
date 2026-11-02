@@ -139,8 +139,13 @@ describe("the documents of the catalog (PLT-104)", () => {
     expect(authorization(call)).toBe(`Bearer ${TOKEN}`)
   })
 
-  it("are none when the answer holds no result", async () => {
-    expect(await translations(fakeFetch(json({})).send).documents()).toEqual([])
+  it("are none when the dataset holds none, and an error when the answer is not a list: that is not an empty dataset", async () => {
+    expect(await translations(fakeFetch(json({ result: [] })).send).documents()).toEqual([])
+    for (const answer of [{}, { result: null }, { result: { not: "a list" } }]) {
+      const failure = await translations(fakeFetch(json(answer)).send).documents().catch((error: unknown) => error)
+      expect(failure).toBeInstanceOf(DatasetError)
+      expect((failure as DatasetError).message).toBe("The dataset answered with something that is not a list of documents")
+    }
   })
 
   it("are patched in one request, which is one transaction, with the token in a header and in no address", async () => {

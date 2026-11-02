@@ -1,8 +1,8 @@
 import { MAX_SLUG_LENGTH, slugFromName } from "@pbgo/games/slug"
 import { PackageIcon } from "@sanity/icons/Package"
 import { defineArrayMember, defineField, defineType, type PreviewValue } from "sanity"
-import { checkCreatorsOnce, checkName, checkNameTranslations, checkPlayersMax, checkSlug, checkTranslations } from "./rules"
-import { translated } from "./translations"
+import { checkCreatorsOnce, checkName, checkPlayersMax, checkSlug } from "./rules"
+import { translatedField } from "./translations"
 
 /**
  * An expansion of a game of the catalog: what is played with its base game and not without it. A document type of its own, so that the
@@ -28,13 +28,7 @@ export const expansion = defineType({
   fields: [
     // Identity
     defineField({ name: "name", title: "Name", type: "string", group: "identity", validation: (rule) => rule.required().custom(checkName) }),
-    defineField({
-      name: "names",
-      title: "Name in other languages (English: the name above)",
-      type: translated("localizedName"),
-      group: "identity",
-      validation: (rule) => rule.custom(checkNameTranslations),
-    }),
+    translatedField({ name: "names", title: "Name in other languages (English: the name above)", kind: "localizedName", group: "identity" }),
     defineField({
       name: "slug",
       title: "Slug",
@@ -86,14 +80,14 @@ export const expansion = defineType({
     }),
 
     // Texts: a row per language, English first
-    defineField({ name: "description", title: "Description", type: translated("description"), group: "texts", validation: (rule) => rule.custom(checkTranslations) }),
+    translatedField({ name: "description", title: "Description", kind: "description", group: "texts" }),
 
     // Rules: a link per language
-    defineField({ name: "rules", title: "Rules link", type: translated("url"), group: "rules", validation: (rule) => rule.custom(checkTranslations) }),
+    translatedField({ name: "rules", title: "Rules link", kind: "url", group: "rules" }),
 
     // Visuals: the picture of the expansion and the front of its box, each of which can differ by language
-    defineField({ name: "cover", title: "Cover", type: translated("image"), options: { hotspot: true }, group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
-    defineField({ name: "boxFront", title: "Box (front)", type: translated("image"), group: "visuals", validation: (rule) => rule.custom(checkTranslations) }),
+    translatedField({ name: "cover", title: "Cover", kind: "image", options: { hotspot: true }, group: "visuals" }),
+    translatedField({ name: "boxFront", title: "Box (front)", kind: "image", group: "visuals" }),
   ],
   preview: {
     select: { title: "name", base: "baseGame.name", slug: "slug.current", media: "cover.0.value" },

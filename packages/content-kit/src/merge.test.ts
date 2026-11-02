@@ -246,10 +246,11 @@ describe("mergeFill", () => {
       expect(languages(result)).toEqual(["en", "ja"])
     })
 
-    it("are not matched by language across types: a row of a text is not the row of a picture", () => {
+    it("are the same row when they hold the same language even if their type is not the same: a field has one row per language, and the difference is reported", () => {
       const picture = { _key: "k1", _type: "internationalizedArrayImageValue", language: "en", value: { _type: "image" } }
       const result = mergeFill([row("en", "A")], [picture], "description", fill)
-      expect(result.changes).toEqual([{ kind: "fill", path: 'description[_key=="en"]' }])
+      expect(result.value).toEqual([picture])
+      expect(result.changes.map((change) => [change.kind, change.path])).toEqual([["diverged", 'description[_key=="k1"]._type'], ["diverged", 'description[_key=="k1"].value']])
     })
 
     it("are the only items found by something else than their key: an item that has a language is not a row", () => {

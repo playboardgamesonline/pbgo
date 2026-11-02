@@ -196,9 +196,10 @@ describe("the art slots", () => {
     for (const slot of slots) {
       const doc = docs.find((candidate) => candidate._id === slot.docId)
       if (!doc) throw new Error(`No document for ${slot.name}`)
-      const before = Object.keys(doc)
+      const before = structuredClone(doc)
       slot.place(doc, image)
-      const placed = Object.keys(doc).filter((key) => !before.includes(key))
+      // the field that changed: a new one, or one the seed already gave its empty row of English
+      const placed = Object.keys(doc).filter((key) => JSON.stringify(doc[key]) !== JSON.stringify(before[key]))
       expect(placed, slot.name).toHaveLength(1)
       expect(fieldsOf(doc._type), slot.name).toContain(`${doc._type}.${placed[0]}`)
     }

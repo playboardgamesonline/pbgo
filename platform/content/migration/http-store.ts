@@ -75,7 +75,9 @@ export function createTranslationStore(options: HttpStoreOptions): TranslationSt
       // `raw` is the perspective that shows drafts and the versions of a release next to the published documents
       const query = new URLSearchParams({ query: CATALOG_DOCUMENTS_QUERY, perspective: "raw" })
       const body = await call(`${base}/query/${dataset}?${query}`)
-      return isRecord(body) && Array.isArray(body.result) ? (body.result as CatalogDoc[]) : []
+      // an answer that is not a list is not an empty dataset: the migration would say there is nothing to convert
+      if (!isRecord(body) || !Array.isArray(body.result)) throw new DatasetError("The dataset answered with something that is not a list of documents", 200)
+      return body.result as CatalogDoc[]
     },
 
     async commit(mutations: PatchMutation[]) {

@@ -209,7 +209,8 @@ describe("the platform seed", () => {
       expect(hanabi?.logo).toMatchObject([{ _key: "en", language: "en", value: { _type: "image" } }])
       expect(hanabi?.background).toMatchObject({ _type: "image" })
       expect(store.docs.get("drafts.publisher-cocktail-games")?.logo).toMatchObject({ _type: "image" })
-      expect(store.docs.get("drafts.game-the-mind")?.logo).toBeUndefined()
+      // a game without a picture has the empty row of English of its logo and nothing in it
+      expect(store.docs.get("drafts.game-the-mind")?.logo).toEqual([{ _key: "en", _type: "internationalizedArrayImageValue", language: "en" }])
     })
 
     it("does nothing more the second time", async () => {

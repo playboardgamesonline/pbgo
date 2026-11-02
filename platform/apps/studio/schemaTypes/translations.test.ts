@@ -4,7 +4,7 @@ import { createSchema, validateDocument } from "sanity"
 import { describe, expect, it } from "vitest"
 import studio from "../sanity.config"
 import { TRANSLATED_FIELDS, TRANSLATED_KINDS } from "./constants"
-import { TRANSLATED_FIELD_TYPES } from "./translations"
+import { TRANSLATED_FIELD_TYPES, englishRow } from "./translations"
 
 // The translated fields as the Studio builds them: the schema compiled with the plugin's own types, and a document run through the Studio's
 // validation. The form itself (the buttons, the rows, the picture input) cannot be opened by a test; what decides how it behaves is checked
@@ -60,6 +60,16 @@ describe("the schema, compiled with the plugin", () => {
     // the plugin copies every option of the array but its own (`apiVersion`, `languages`, `select`) onto the value of each row when it draws it
     for (const type of ["game", "expansion"]) expect(fieldOf(type, "cover").type.options.hotspot, `${type}.cover`).toBe(true)
     for (const [type, name] of [["game", "logo"], ["game", "boxFront"], ["expansion", "boxFront"]]) expect(fieldOf(type!, name!).type.options.hotspot, `${type}.${name}`).toBeUndefined()
+  })
+
+  it("starts a new document with the empty row of English in each of its translated fields: the plugin only puts a missing one back in the fields of the open tab, so nothing is left to it", () => {
+    for (const [type, fields] of Object.entries(TRANSLATED_FIELDS)) {
+      for (const [name, kind] of Object.entries(fields)) {
+        expect(fieldOf(type, name).type.initialValue, `${type}.${name}`).toEqual([englishRow(kind)])
+      }
+    }
+    expect(englishRow("image")).toEqual({ _key: "en", _type: "internationalizedArrayImageValue", language: "en" })
+    expect(englishRow("localizedName")).toEqual({ _key: "en", _type: "internationalizedArrayLocalizedNameValue", language: "en" })
   })
 
   it("lists the languages of the platform on every array, English first", () => {

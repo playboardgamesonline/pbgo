@@ -71,7 +71,7 @@ export type SanityReadOptions = {
   /** The project and the dataset to read: the platform's own, unless a test says otherwise. */
   projectId?: string
   dataset?: string
-  /** The language of the texts and of the pictures, else English: `HUB_LANGUAGE`. */
+  /** The language of the texts and of the pictures, else English: `HUB_LANGUAGE` by default. One of `PLATFORM_LANGUAGES`, which the caller checks: it is part of the address the CDN keeps an answer under, so a language that comes from a visitor must not be passed as it is. */
   language?: string
 }
 

@@ -16,11 +16,11 @@ const isKeyed = (value: unknown[]): value is Record<string, unknown>[] => value.
  */
 const isRow = (item: Record<string, unknown>) => typeof item.language === "string" && typeof item._type === "string" && /^internationalizedArray.+Value$/.test(item._type)
 
-/** The place in `items` of the item that `item` stands for: the one that has its `_key`, else, for a row, the row of its language. */
+/** The place in `items` of the item that `item` stands for: the one that has its `_key`, else, for a row, the row of its language (one row per language in a field, whatever the type of its rows). */
 function findItem(items: Record<string, unknown>[], item: Record<string, unknown>): number {
   const byKey = items.findIndex((candidate) => candidate._key === item._key)
   if (byKey >= 0 || !isRow(item)) return byKey
-  return items.findIndex((candidate) => isRow(candidate) && candidate._type === item._type && candidate.language === item.language)
+  return items.findIndex((candidate) => isRow(candidate) && candidate.language === item.language)
 }
 
 /** Structural equality, blind to the order of object keys (the dataset does not keep it). */
