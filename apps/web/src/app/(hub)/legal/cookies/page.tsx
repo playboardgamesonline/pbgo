@@ -82,7 +82,10 @@ export default function CookiePolicy() {
         <Stored
           items={[
             { name: "pbgo-locale", text: "A cookie that remembers the language you picked. Kept one year; written when you choose a language." },
-            { name: "pbgo-consent", text: "Local storage. Your answer to the cookie banner and its date. We ask again after 13 months." },
+            {
+              name: "pbgo-consent",
+              text: "Local storage. Your answers to the cookie banner (analytics, marketing) and their date. We ask again after 13 months, and when a new kind of cookie comes in.",
+            },
             {
               name: "<game>:profile, <game>:sound, <game>:music, <game>:volumes",
               text: "Local storage. Your nickname and your sound settings in that game. They stay until you clear your browser's data.",
@@ -98,6 +101,12 @@ export default function CookiePolicy() {
       <LegalSection id="statistics" title="Statistics">
         {ANALYTICS_ENABLED && STATISTICS.map((paragraph, i) => <LegalText key={i}>{paragraph}</LegalText>)}
         <LegalText>The pages of the games also use Vercel Analytics for audience measurement. It is anonymous and sets no cookie.</LegalText>
+      </LegalSection>
+
+      <LegalSection id="marketing" title="Marketing">
+        <LegalText>
+          The cookie banner has a marketing choice, off unless you switch it on. The site uses no marketing cookie today, so the switch changes nothing yet. We will ask you again before we use one.
+        </LegalText>
       </LegalSection>
 
       <LegalSection title="Contact">

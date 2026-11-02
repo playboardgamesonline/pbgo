@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { CookieBanner } from "@pbgo/ui/platform/cookie-banner"
-import type { Choice } from "./consent"
+import { ACCEPT_ALL, REJECT_OPTIONAL, type Answer } from "./consent"
 import type { Locale } from "./events"
 import { reserveSpace } from "./reserve"
 import { BANNER_TEXTS } from "./texts"
@@ -18,9 +18,9 @@ const BANNER_LANGUAGE: Locale = "en"
 type ConsentBannerProps = {
   /** The visitor already answered and asked to see the banner again: it then has a way out that keeps the answer. */
   reopened: boolean
-  /** What they answered, for the analytics switch of the choices to open on it (none yet: off). */
-  current?: Choice | null
-  onChoose(choice: Choice): void
+  /** What they answered, for the switches of the choices to open on it (none yet: all off). */
+  current?: Answer
+  onChoose(answer: Answer): void
   onClose(): void
 }
 
@@ -35,7 +35,7 @@ type ConsentBannerProps = {
  * `ph-no-capture`: the answer is reported by the `cookie_consent` event, once it holds. Autocapture of the click itself would add
  * a second event, and for a refusal after an acceptance it would go out under the identity that is being given up.
  */
-export function ConsentBanner({ reopened, current = null, onChoose, onClose }: ConsentBannerProps) {
+export function ConsentBanner({ reopened, current = REJECT_OPTIONAL, onChoose, onClose }: ConsentBannerProps) {
   const root = React.useRef<HTMLDivElement>(null)
   React.useLayoutEffect(() => (root.current ? reserveSpace(root.current, document.body) : undefined), [])
   return (
@@ -44,11 +44,11 @@ export function ConsentBanner({ reopened, current = null, onChoose, onClose }: C
       texts={BANNER_TEXTS[BANNER_LANGUAGE]}
       lang={BANNER_LANGUAGE}
       moreHref="/legal/cookies"
-      analytics={current === "accepted"}
-      onAccept={() => onChoose("accepted")}
-      onRefuse={() => onChoose("refused")}
-      // The choices have one switch the visitor sets: analytics, which the recordings hang on. On is what Accept all answers, off Reject optional
-      onSave={({ analytics }) => onChoose(analytics ? "accepted" : "refused")}
+      preferences={current}
+      onAccept={() => onChoose(ACCEPT_ALL)}
+      onRefuse={() => onChoose(REJECT_OPTIONAL)}
+      // The two switches of the choices: analytics, which the recordings hang on, and marketing, which no tool follows yet
+      onSave={onChoose}
       onClose={reopened ? onClose : undefined}
       className="ph-no-capture"
     />

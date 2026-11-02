@@ -30,24 +30,23 @@ type CookieBannerTexts = {
   analyticsBody: string
   marketing: string
   marketingBody: string
-  /** What stands beside the switch of what the site needs (always on), of what the visitor allows, and of what the site does not use. */
+  /** What stands beside a switch: the word for what the site needs (always on), then the two a switch of the visitor can show. */
   required: string
   on: string
   off: string
-  unused: string
   /** Keeps the choices as the switches are set. */
   save: string
   /** Back to the card, nothing kept. */
   back: string
 }
 
-/**
- * What the visitor lets the site do beyond what it needs to work: the switches of the choices. Marketing is not one of them yet: the site
- * uses none, so its row is there to say so and has no switch to set (it joins this type the day a tool needs the visitor's word).
- */
+/** What the visitor lets the site do beyond what it needs to work: the switches of the choices. */
 type CookiePreferences = {
   analytics: boolean
+  marketing: boolean
 }
+
+const NOTHING: CookiePreferences = { analytics: false, marketing: false }
 
 type CookieBannerProps = {
   texts: CookieBannerTexts
@@ -55,8 +54,8 @@ type CookieBannerProps = {
   moreHref: string
   /** The language of `texts`, when it can differ from the page's (the hub is rendered in English for every visitor). */
   lang?: string
-  /** How the analytics switch stands when the choices open: what the visitor answered before, else off. */
-  analytics?: boolean
+  /** How the switches stand when the choices open: what the visitor answered before, else all off. */
+  preferences?: CookiePreferences
   /** The view the card opens on, for a specimen or a test; a visitor always starts on the bar. */
   defaultView?: "bar" | "preferences"
   onAccept(): void
@@ -73,8 +72,8 @@ type CookieBannerProps = {
   ref?: React.Ref<HTMLDivElement>
 }
 
-/** The three buttons of the bar are the same size and the same shape, 2.75rem high: refusing is as easy to hit as accepting, whatever their fill. */
-const ANSWER = "h-11 rounded-2xl px-4 text-base lg:px-5"
+/** The three buttons of the bar are the same size and the same shape, 2.5rem high: refusing is as easy to hit as accepting, whatever their fill. */
+const ANSWER = "h-10 rounded-2xl px-4 text-sm lg:px-5"
 
 /**
  * The consent banner: a wide card that floats over the bottom of the screen, centred, with a title and a sentence that ends with a
@@ -84,9 +83,9 @@ const ANSWER = "h-11 rounded-2xl px-4 text-base lg:px-5"
  * under it the words are over the buttons, which take the width of the card.
  *
  * Customize swaps the card's content for the choices one by one, in a list of switches: what the site needs (always on), the analytics
- * (an identifier kept on the device, and the recordings that hang on it), and the marketing, which the site does not use and says so, then
- * Back and Save. Nothing is pre-ticked: the switch opens on what the visitor answered before, else off. The card never grows taller than the
- * window: past that its content scrolls.
+ * (an identifier kept on the device, and the recordings that hang on it) and the marketing, then Back and Save. Nothing is pre-ticked: the
+ * switches open on what the visitor answered before, else off. The site has no marketing cookie yet, but the switch is real and its answer
+ * is kept, for the day one comes. The card never grows taller than the window: past that its content scrolls.
  *
  * It is `fixed`, but it must never sit over what the page shows. It floats inside a box that holds its margin (`px-4 pb-4`, `px-6 pb-6` from
  * `sm`: its own, since the page's gutter is 64px on a desktop), and the caller measures that box and makes the room (`@pbgo/analytics` publishes its height as `--consent-h`, see
@@ -96,12 +95,24 @@ const ANSWER = "h-11 rounded-2xl px-4 text-base lg:px-5"
  * A game page is not `.platform`, so the banner carries the class itself, the way a portal does. The words and the answers come
  * from the caller, which owns the stored choice.
  */
-function CookieBanner({ texts, moreHref, lang, analytics = false, defaultView = "bar", onAccept, onRefuse, onSave, onClose, className, ref }: CookieBannerProps) {
+function CookieBanner({
+  texts,
+  moreHref,
+  lang,
+  preferences = NOTHING,
+  defaultView = "bar",
+  onAccept,
+  onRefuse,
+  onSave,
+  onClose,
+  className,
+  ref,
+}: CookieBannerProps) {
   const card = React.useRef<HTMLElement>(null)
   const titleId = React.useId()
   const reopened = onClose !== undefined
   const [view, setView] = React.useState<"bar" | "preferences">(defaultView)
-  const [choices, setChoices] = React.useState<CookiePreferences>({ analytics })
+  const [choices, setChoices] = React.useState<CookiePreferences>(preferences)
   const moved = React.useRef(false)
 
   // A banner the visitor reopened gets the focus, or a keyboard user would tab through the whole page to find it
@@ -116,7 +127,7 @@ function CookieBanner({ texts, moreHref, lang, analytics = false, defaultView = 
 
   function go(next: "bar" | "preferences") {
     moved.current = true
-    if (next === "preferences") setChoices({ analytics })
+    if (next === "preferences") setChoices(preferences)
     setView(next)
   }
 
@@ -197,9 +208,15 @@ function CookieBanner({ texts, moreHref, lang, analytics = false, defaultView = 
                   body={texts.analyticsBody}
                   status={choices.analytics ? texts.on : texts.off}
                   checked={choices.analytics}
-                  onCheckedChange={(on) => setChoices({ analytics: on })}
+                  onCheckedChange={(on) => setChoices({ ...choices, analytics: on })}
                 />
-                <PreferenceRow label={texts.marketing} body={texts.marketingBody} status={texts.unused} checked={false} disabled />
+                <PreferenceRow
+                  label={texts.marketing}
+                  body={texts.marketingBody}
+                  status={choices.marketing ? texts.on : texts.off}
+                  checked={choices.marketing}
+                  onCheckedChange={(on) => setChoices({ ...choices, marketing: on })}
+                />
               </ul>
               <div className="flex gap-2 max-sm:[&>*]:flex-1 sm:justify-end">
                 <Button variant="ghost" size="lg" className={ANSWER} onClick={() => go("bar")}>

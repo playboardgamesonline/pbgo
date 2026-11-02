@@ -1,6 +1,6 @@
 import * as React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { CookieBanner } from "@pbgo/ui/platform/cookie-banner"
+import { CookieBanner, type CookiePreferences } from "@pbgo/ui/platform/cookie-banner"
 import { describe, expect, it } from "vitest"
 import { ConsentBanner } from "./banner"
 import { BANNER_TEXTS } from "./texts"
@@ -9,13 +9,16 @@ function render(reopened: boolean): string {
   return renderToStaticMarkup(React.createElement(ConsentBanner, { reopened, onChoose() {}, onClose() {} }))
 }
 
-/** The card opened on its choices, with the analytics switch as it stands. */
-function renderChoices(analytics: boolean): string {
+const NOTHING: CookiePreferences = { analytics: false, marketing: false }
+const EVERYTHING: CookiePreferences = { analytics: true, marketing: true }
+
+/** The card opened on its choices, with the switches as they stand. */
+function renderChoices(preferences: CookiePreferences): string {
   return renderToStaticMarkup(
     React.createElement(CookieBanner, {
       texts: BANNER_TEXTS.en,
       moreHref: "/legal/cookies",
-      analytics,
+      preferences,
       defaultView: "preferences",
       onAccept() {},
       onRefuse() {},
@@ -66,7 +69,7 @@ describe("ConsentBanner", () => {
     expect(new Set([customize.size, refuse.size, accept.size]).size).toBe(1)
     // Told apart by their fill only: they take the same sizes, so refusing is as easy to hit as accepting
     for (const { className } of [customize, refuse, accept]) {
-      for (const name of ["h-11", "px-4", "text-base", "rounded-2xl", "lg:px-5"]) expect(className.split(" ")).toContain(name)
+      for (const name of ["h-10", "px-4", "text-sm", "rounded-2xl", "lg:px-5"]) expect(className.split(" ")).toContain(name)
     }
   })
 
@@ -91,7 +94,7 @@ describe("ConsentBanner", () => {
 
 describe("the choices of the banner", () => {
   it("list what the site needs, the analytics and the marketing, in that order, under the title of the card", () => {
-    const html = renderChoices(false)
+    const html = renderChoices(NOTHING)
     const { label, necessary, analytics, marketing } = BANNER_TEXTS.en
     const at = [label, necessary, analytics, marketing].map((words) => html.indexOf(`>${words}</`))
     expect(at.every((index) => index >= 0), "every row is there").toBe(true)
@@ -99,27 +102,35 @@ describe("the choices of the banner", () => {
     expect(html.match(/<h2/g)).toHaveLength(1)
   })
 
-  it("keep what the site needs on and out of reach, and the marketing off and out of reach: only the analytics can be set", () => {
-    expect(switches(renderChoices(false))).toEqual([
+  it("keep what the site needs on and out of reach, and let the visitor set the analytics and the marketing, off to begin with", () => {
+    expect(switches(renderChoices(NOTHING))).toEqual([
       { checked: true, disabled: true },
       { checked: false, disabled: false },
-      { checked: false, disabled: true },
+      { checked: false, disabled: false },
     ])
   })
 
-  it("open the analytics switch on what the visitor answered before", () => {
-    expect(switches(renderChoices(true))[1]).toEqual({ checked: true, disabled: false })
+  it("open the switches on what the visitor answered before, each on its own", () => {
+    expect(switches(renderChoices(EVERYTHING))).toEqual([
+      { checked: true, disabled: true },
+      { checked: true, disabled: false },
+      { checked: true, disabled: false },
+    ])
+    expect(switches(renderChoices({ analytics: true, marketing: false })).map((s) => s.checked)).toEqual([true, true, false])
+    expect(switches(renderChoices({ analytics: false, marketing: true })).map((s) => s.checked)).toEqual([true, false, true])
   })
 
   it("say what stands beside each switch", () => {
-    const { required, on, off, unused } = BANNER_TEXTS.en
-    const refused = renderChoices(false)
-    for (const words of [required, off, unused]) expect(refused).toContain(`>${words}</span>`)
-    expect(renderChoices(true)).toContain(`>${on}</span>`)
+    const { required, on, off } = BANNER_TEXTS.en
+    const count = (html: string, words: string) => html.match(new RegExp(`>${words}</span>`, "g"))?.length ?? 0
+    const refused = renderChoices(NOTHING)
+    expect([count(refused, required), count(refused, on), count(refused, off)]).toEqual([1, 0, 2])
+    const accepted = renderChoices(EVERYTHING)
+    expect([count(accepted, required), count(accepted, on), count(accepted, off)]).toEqual([1, 2, 0])
   })
 
   it("end with Back and Save, and the same link to the cookie policy", () => {
-    const html = renderChoices(false)
+    const html = renderChoices(NOTHING)
     expect(button(html, BANNER_TEXTS.en.back).at).toBeLessThan(button(html, BANNER_TEXTS.en.save).at)
     expect(html).toMatch(new RegExp(`${BANNER_TEXTS.en.intro} <a [^>]*href="/legal/cookies"[^>]*>${BANNER_TEXTS.en.more}</a>\\.</p>`))
   })

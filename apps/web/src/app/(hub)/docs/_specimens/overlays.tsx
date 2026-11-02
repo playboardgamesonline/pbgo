@@ -269,7 +269,7 @@ useLayoutEffect(() => reserveSpace(banner.current, document.body), [])
   moreHref="/legal/cookies"
   onAccept={() => consentStore.choose("accepted")}
   onRefuse={() => consentStore.choose("refused")}
-  onSave={({ analytics }) => consentStore.choose(analytics ? "accepted" : "refused")}
+  onSave={consentStore.choose}
 />`}>
       <CookieBannerDemo />
     </Frame>
@@ -282,11 +282,11 @@ function CookieBannerCustomize() {
 <CookieBanner
   texts={BANNER_TEXTS[locale]}
   moreHref="/legal/cookies"
-  analytics={false} // what the visitor answered before, else off
+  preferences={{ analytics: false, marketing: false }} // what the visitor answered before, else off
   defaultView="preferences"
   onAccept={…}
   onRefuse={…}
-  onSave={({ analytics }) => consentStore.choose(analytics ? "accepted" : "refused")}
+  onSave={consentStore.choose}
 />`}>
       <CookieBannerDemo view="preferences" />
     </Frame>
@@ -298,7 +298,7 @@ function CookieBannerReopened() {
     <Frame code={`<CookieBanner
   texts={BANNER_TEXTS[locale]}
   moreHref="/legal/cookies"
-  analytics={consent.choice === "accepted"}
+  preferences={answerOf(consent)}
   onAccept={…}
   onRefuse={…}
   onSave={…}

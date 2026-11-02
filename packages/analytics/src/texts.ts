@@ -16,8 +16,9 @@ import type { Locale } from "./events"
  * the screen until the visitor answers (`texts.test.ts` caps it).
  *
  * "Customize" opens the choices one by one, modelled on Claude's: what the site needs (always on), the analytics (the identifier
- * kept on the device, and the recordings that hang on it) and the marketing, which the site does not use today and says so. The fields
- * after `close` are the words of that view.
+ * kept on the device, and the recordings that hang on it) and the marketing, a switch like the other, off: the site has no marketing
+ * cookie yet, but the owner wants the choice to be there for the day it has one (the cookie policy says so). The fields after `close`
+ * are the words of that view.
  */
 export type BannerTexts = {
   /** The title of the card, in both of its views, which is also its accessible name. */
@@ -42,11 +43,10 @@ export type BannerTexts = {
   analyticsBody: string
   marketing: string
   marketingBody: string
-  /** What stands beside the switch of what the site needs (always on), of what the visitor allows, and of what the site does not use. */
+  /** What stands beside a switch: the word for what the site needs (always on), then the two a switch of the visitor can show. */
   required: string
   on: string
   off: string
-  unused: string
   /** Keeps the choices as the switches are set. */
   save: string
   /** Back to the card, nothing kept. */
@@ -68,11 +68,10 @@ export const BANNER_TEXTS: Record<Locale, BannerTexts> = {
     analytics: "Statistiques",
     analyticsBody: "Comptent les visites, les clics et les erreurs avec un identifiant gardé sur cet appareil, et peuvent enregistrer le déroulé d'une visite. Saisies, chat et pseudos sont masqués.",
     marketing: "Marketing",
-    marketingBody: "Publicité et personnalisation. Pas utilisé aujourd'hui : on te demandera ici avant de le faire.",
+    marketingBody: "Nous permet de personnaliser ton expérience et de te présenter nos services.",
     required: "Requis",
     on: "Activé",
     off: "Désactivé",
-    unused: "Pas utilisé",
     save: "Enregistrer mes choix",
     back: "Retour",
   },
@@ -90,11 +89,10 @@ export const BANNER_TEXTS: Record<Locale, BannerTexts> = {
     analytics: "Analytics",
     analyticsBody: "Counts visits, clicks and errors with an identifier kept on this device, and may record how a visit goes. Inputs, chat and nicknames are masked.",
     marketing: "Marketing",
-    marketingBody: "Ads and personalization. Not used today: we will ask you here before we ever do.",
+    marketingBody: "Lets us personalize your experience and market our services to you.",
     required: "Required",
     on: "On",
     off: "Off",
-    unused: "Not used",
     save: "Save preferences",
     back: "Back",
   },
@@ -112,11 +110,10 @@ export const BANNER_TEXTS: Record<Locale, BannerTexts> = {
     analytics: "Estadísticas",
     analyticsBody: "Cuentan visitas, clics y errores con un identificador guardado en este dispositivo, y pueden grabar cómo va una visita. Entradas, chat y apodos se enmascaran.",
     marketing: "Marketing",
-    marketingBody: "Publicidad y personalización. No se usa hoy: te lo preguntaremos aquí antes de hacerlo.",
+    marketingBody: "Nos permite personalizar tu experiencia y promocionar nuestros servicios.",
     required: "Obligatorio",
     on: "Activado",
     off: "Desactivado",
-    unused: "No se usa",
     save: "Guardar preferencias",
     back: "Volver",
   },
@@ -134,11 +131,10 @@ export const BANNER_TEXTS: Record<Locale, BannerTexts> = {
     analytics: "Statistiken",
     analyticsBody: "Zählen Besuche, Klicks und Fehler mit einer Kennung auf diesem Gerät und können den Ablauf eines Besuchs aufzeichnen. Eingaben, Chat und Spitznamen sind maskiert.",
     marketing: "Marketing",
-    marketingBody: "Werbung und Personalisierung. Heute nicht genutzt: wir fragen dich hier, bevor wir es tun.",
+    marketingBody: "Erlaubt uns, dein Erlebnis zu personalisieren und dir unsere Dienste zu bewerben.",
     required: "Erforderlich",
     on: "An",
     off: "Aus",
-    unused: "Nicht genutzt",
     save: "Auswahl speichern",
     back: "Zurück",
   },

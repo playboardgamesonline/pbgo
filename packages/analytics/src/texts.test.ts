@@ -47,7 +47,7 @@ describe("BANNER_TEXTS", () => {
         expect(texts[field].length, `${locale}.${field}`).toBeLessThanOrEqual(ROW_MAX)
         expect(texts[field], `${locale}.${field}`).not.toContain("\n")
       }
-      for (const field of ["necessary", "analytics", "marketing", "required", "on", "off", "unused", "save", "back"] as const) {
+      for (const field of ["necessary", "analytics", "marketing", "required", "on", "off", "save", "back"] as const) {
         expect(texts[field].length, `${locale}.${field}`).toBeLessThanOrEqual(WORD_MAX)
       }
     }

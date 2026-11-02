@@ -109,12 +109,12 @@ Module: `@pbgo/ui/platform/cookie-banner`
 
 The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side three buttons laid out the way Claude's are: Customize (`secondary`, the grey one) over Reject optional (`secondary`) and Accept all, which are side by side.
 
-The buttons are the same size and the same shape (2.75rem high, `h-11`), so refusing is as easy to hit as accepting. The card follows the width of the screen:
+The buttons are the same size and the same shape (2.5rem high, `h-10`, `text-sm`), so refusing is as easy to hit as accepting. The card follows the width of the screen:
 
 - from `lg` it is a bar, the words on the left and the three buttons on the right, centred on its height; the block is as wide as the longest of its labels (`w-max`), so a long label in another language widens it instead of overflowing;
 - under `lg` the words are over the buttons, which take the width of the card, Customize on a line of its own.
 
-Customize swaps the content of the card for the choices, one row each, with a switch: Necessary (what the site needs, on and out of reach), Analytics (an identifier kept on the device, and the session recordings that hang on it), and Marketing, which the site does not use today: its switch is off and out of reach, and its line says so, so the row is there for the day a tool needs the visitor's word. The word beside each switch (Required, On, Off, Not used) says where it stands. The card ends with Back and Save preferences: Save keeps what the Analytics switch says (on is what Accept all answers, off what Reject optional answers), and Escape goes back. The card never grows taller than the window: past that its content scrolls.
+Customize swaps the content of the card for the choices, one row each, with a switch: Necessary (what the site needs, on and out of reach), Analytics (an identifier kept on the device, and the session recordings that hang on it), and Marketing, a switch like the other and off to begin with: the site has no marketing cookie yet, but the choice is there, and its answer kept, for the day it has one. The word beside each switch (Required, On, Off) says where it stands. The card ends with Back and Save preferences: Save keeps the switches as they are set (Accept all turns both on, Reject optional both off), and Escape goes back. The card never grows taller than the window: past that its content scrolls.
 
 The words and the answers come from the caller: `@pbgo/analytics` keeps the stored answer, and the words are in English for everyone while the site is in English only. The banner carries the `platform` class itself, since it also sits over a game page.
 
@@ -134,7 +134,7 @@ cookie-banner-first-visit
 
 ### Customize
 
-The same card opened on its choices. Switch Analytics on and off, then Save or go Back; the Necessary and Marketing switches do not move.
+The same card opened on its choices. Switch Analytics and Marketing on and off, then Save or go Back; the Necessary switch does not move.
 
 ```specimen
 cookie-banner-customize
