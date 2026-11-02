@@ -9,7 +9,7 @@ import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
 import { Textarea } from "@pbgo/ui/platform/textarea"
 import { cn } from "@pbgo/ui/utils"
-import { LOCALES, type Locale } from "../../../lib/i18n"
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "../../../lib/i18n"
 import type { CopyEntry, CopyGroup } from "../../../server/settings"
 import { LangTabs } from "./lang-tabs"
 import { DraftAlert, ReadOnlyAlert, SaveBar, SetupLayout, useSection, type AdminData } from "./index"
@@ -36,7 +36,7 @@ export function CopyPage({ initial }: { initial: AdminData }) {
   const { data, draft, setDraft, disabled } = s
   const [query, setQuery] = useState("")
   const [group, setGroup] = useState<CopyGroup>("home")
-  const [lang, setLang] = useState<Locale>("fr")
+  const [lang, setLang] = useState<Locale>(DEFAULT_LOCALE)
   const value = (key: string, l: Locale = lang) => draft.values[key]?.[l] ?? null
   const setValue = (key: string, v: string | null) => setDraft((d) => ({ ...d, values: { ...d.values, [key]: { ...d.values[key]!, [lang]: v } } }))
   const phrases = draft.victoryPhrases[lang] ?? []
@@ -134,8 +134,8 @@ export function CopyPage({ initial }: { initial: AdminData }) {
 
 function CopyRow({ entry, lang, value, onChange, disabled }: { entry: CopyEntry; lang: Locale; value: string | null; onChange: (v: string | null) => void; disabled: boolean }) {
   const fallback = entry.fallbacks[lang]
-  // The variables to keep come from the platform's wording, else from the French text entered in Sanity (a text of the game has no other reference)
-  const vars = variables(entry.fallbacks.fr || (entry.values.fr ?? ""))
+  // The variables to keep come from the platform's wording, else from the English text entered in Sanity (a text of the game has no other reference)
+  const vars = variables(entry.fallbacks[DEFAULT_LOCALE] || (entry.values[DEFAULT_LOCALE] ?? ""))
   const lost = value ? vars.filter((v) => !value.includes(v)) : []
   const Field = entry.multiline ? Textarea : Input
   return (

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { AnalyticsProvider } from "@pbgo/analytics/client"
 import { PLATFORM_THEME_COLOR } from "@pbgo/ui/theme"
 import "../globals.css"
+import { LanguageSync } from "@/components/language-sync"
 import { PlatformDocument } from "@/components/platform-document"
 import { SiteHeader } from "@/components/site-header"
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/site"
@@ -21,12 +22,13 @@ export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorSchem
  * Each game has its own root layout, `app/[game]/layout.tsx`.
  * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports. So is the navbar
  * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the docs, the
- * legal pages, the 404).
+ * legal pages, the 404). `LanguageSync` is mounted once too: it keeps the device of a signed-in visitor in the language of their account.
  */
 export default function HubLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <PlatformDocument>
       <SiteHeader />
+      <LanguageSync />
       {children}
       <AnalyticsProvider />
     </PlatformDocument>

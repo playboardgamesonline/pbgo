@@ -5,7 +5,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@pbgo/ui/platfo
 import { Input } from "@pbgo/ui/platform/input"
 import { Textarea } from "@pbgo/ui/platform/textarea"
 import { useState } from "react"
-import { LOCALE_NAMES, type Locale } from "../../../lib/i18n"
+import { DEFAULT_LOCALE, LOCALE_NAMES, type Locale } from "../../../lib/i18n"
 import { siteTitle, type SiteSettings } from "../../../lib/settings"
 import { shareImagePath } from "../../../lib/site-url"
 import type { CreditTexts } from "../../../lib/skin"
@@ -22,8 +22,8 @@ export function IdentityPage({ initial, domain, credits: creditLabels }: { initi
   const slug = useAdminSlug()
   const s = useSection("identity", initial, pick)
   const { data, draft, set, disabled } = s
-  const [lang, setLang] = useState<Locale>("fr")
-  const settings = { ...data.settings, ...draft, description: draft.descriptions[lang] || draft.descriptions.fr, credits: { ...draft.credits, authors: draft.creditsAuthors[lang] || draft.creditsAuthors.fr || null } }
+  const [lang, setLang] = useState<Locale>(DEFAULT_LOCALE)
+  const settings = { ...data.settings, ...draft, description: draft.descriptions[lang] || draft.descriptions[DEFAULT_LOCALE], credits: { ...draft.credits, authors: draft.creditsAuthors[lang] || draft.creditsAuthors[DEFAULT_LOCALE] || null } }
   const setCredit = (k: "publisher" | "publisherUrl", v: string) => set("credits", { ...draft.credits, [k]: v || null })
   const description = draft.descriptions[lang]
   const authors = draft.creditsAuthors[lang]
@@ -92,13 +92,13 @@ export function IdentityPage({ initial, domain, credits: creditLabels }: { initi
                 rows={4}
                 value={description}
                 maxLength={400}
-                placeholder={lang === "fr" ? undefined : draft.descriptions.fr}
+                placeholder={lang === DEFAULT_LOCALE ? undefined : draft.descriptions[DEFAULT_LOCALE]}
                 onChange={(e) => set("descriptions", { ...draft.descriptions, [lang]: e.target.value })}
                 disabled={disabled}
               />
               <FieldDescription>
-                Google result and share card · {description.length}/400 {description.length < 80 && lang === "fr" && "· aim for 120–160 characters"}
-                {lang !== "fr" && !description && "· empty: the French text is shown"}
+                Google result and share card · {description.length}/400 {description.length < 80 && lang === DEFAULT_LOCALE && "· aim for 120–160 characters"}
+                {lang !== DEFAULT_LOCALE && !description && "· empty: the English text is shown"}
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -138,7 +138,7 @@ export function IdentityPage({ initial, domain, credits: creditLabels }: { initi
               <FieldLabel htmlFor="credits-authors">A game by · {LOCALE_NAMES[lang]}</FieldLabel>
               <Input
                 id="credits-authors"
-                placeholder={lang === "fr" ? "Jeanne Martin et Paul Durand, illustré par Alex Roy" : draft.creditsAuthors.fr}
+                placeholder={lang === DEFAULT_LOCALE ? "Jane Martin and Paul Durand, illustrated by Alex Roy" : draft.creditsAuthors[DEFAULT_LOCALE]}
                 value={authors}
                 onChange={(e) => set("creditsAuthors", { ...draft.creditsAuthors, [lang]: e.target.value })}
                 disabled={disabled}

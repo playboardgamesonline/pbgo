@@ -13,11 +13,10 @@ import { MENU_FONT } from "./menu-style"
 import { FeedbackButton } from "./feedback"
 import { GameSettingsDialog } from "./game-settings"
 import { InfoDialog } from "./info-dialog"
-import { setLocaleCookie } from "./language-select"
+import { useChooseLocale } from "./language-select"
 import { useSiteSettings } from "./settings-provider"
 import { SoundButton, SoundPanel } from "./sound/sound"
 import { useSkin, useText } from "./skin-provider"
-import { useRouter } from "next/navigation"
 
 /** 1 px strokes everywhere: the circle's border and the icons (vector-effect) have exactly the same width. No background, no gradient. */
 const HAIRLINE = "[&_svg_*]:[vector-effect:non-scaling-stroke]"
@@ -46,7 +45,7 @@ export function Toolbar({
   const { locale } = useSkin()
   const { credits, rulesPdf } = useSiteSettings()
   const reporting = useReporting()
-  const router = useRouter()
+  const chooseLocale = useChooseLocale()
   const [open, setOpen] = useState(false)
   const [soundOpen, setSoundOpen] = useState(false)
   const [dialog, setDialog] = useState<"settings" | "cookies" | "legal" | null>(null)
@@ -72,12 +71,11 @@ export function Toolbar({
     }
   }, [open, soundOpen])
 
-  const choose = (l: (typeof LOCALES)[number]) => {
-    if (l === locale) return
-    trackClient("language_changed", { from: locale, to: l })
-    setLocaleCookie(l)
-    document.documentElement.lang = l
-    router.refresh()
+  // The select shows what the visitor picked until the page is drawn again: if the change does not happen it has to show the language that is still in use
+  const choose = (select: HTMLSelectElement) => {
+    void chooseLocale(select.value as (typeof LOCALES)[number]).then((changed) => {
+      if (!changed) select.value = locale
+    })
   }
   const openDialog = (d: "settings" | "cookies" | "legal") => {
     setOpen(false)
@@ -138,7 +136,7 @@ export function Toolbar({
             value={locale}
             tabIndex={tab}
             aria-label={t("language")}
-            onChange={(e) => choose(e.target.value as (typeof LOCALES)[number])}
+            onChange={(e) => choose(e.target)}
             className="cursor-pointer rounded-md border border-foreground/40 bg-transparent py-1 pr-1 pl-2 text-xs font-semibold outline-none hover:border-foreground/70 focus-visible:border-foreground"
           >
             {LOCALES.map((l) => (

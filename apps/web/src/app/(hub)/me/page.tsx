@@ -1,11 +1,13 @@
+import { cookies, headers } from "next/headers"
 import Link from "next/link"
-import { perGame, statsOf } from "@pbgo/accounts"
+import { LANGUAGE_COOKIE, perGame, resolveLanguage, statsOf } from "@pbgo/accounts"
 import { requireAccount } from "@pbgo/accounts/server"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { GameRecord } from "@/components/game-record"
+import { LanguageRow } from "@/components/language-row"
 import { accountData } from "@/lib/account-data"
 
 /** One figure of the profile, with what it counts. */
@@ -21,12 +23,15 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * The profile: the figures of the games a visitor has played, the games one by one, and the last of them. It is empty for a real account until the games
- * are recorded (PLT-13 and PLT-16): it says so and leads to the games.
+ * The profile: the figures of the games a visitor has played, the games one by one, and the last of them, then the settings. The games are empty for a real
+ * account until they are recorded (PLT-13 and PLT-16): the page says so and leads to the games. The language shown is the one in use, in the order of the site: the account's, else the
+ * cookie's, else the browser's, else English; an account that has never chosen takes it as soon as a page of the hub reads its session (`LanguageSync`).
  */
 export default async function ProfilePage() {
   const account = await requireAccount("/me")
   const { games } = accountData(account)
+  const [store, requestHeaders] = await Promise.all([cookies(), headers()])
+  const language = resolveLanguage({ account: account.language, cookie: store.get(LANGUAGE_COOKIE)?.value, browser: requestHeaders.get("accept-language") })
   const stats = statsOf(games)
   const rows = perGame(games)
   const recent = games.filter((game) => game.state === "finished").slice(0, 3)
@@ -103,6 +108,13 @@ export default async function ProfilePage() {
           </div>
         </section>
       )}
+
+      <section aria-labelledby="settings">
+        <h2 id="settings" className="mb-4 font-heading text-2xl">
+          Settings
+        </h2>
+        <LanguageRow language={language} />
+      </section>
     </div>
   )
 }

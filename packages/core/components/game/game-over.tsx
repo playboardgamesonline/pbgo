@@ -38,7 +38,7 @@ const defaultPointsText = (points: number) => fill(DEFAULT_SKIN.texts.pointsShor
 /**
  * Victory sentence picked from the skin's phrases with a deterministic hash (everyone sees the same one).
  * Template `{pseudo}` / `{points}`: the announcement keeps what comes before `{pseudo}`, the names and points go in the subtitle.
- * `pointsText` writes the winner's points in that subtitle: pass `(points) => t("pointsShort", { points })` for the visitor's language (default: French).
+ * `pointsText` writes the winner's points in that subtitle: pass `(points) => t("pointsShort", { points })` for the visitor's language (default: English).
  * `winners`: their player ids, in ranking order (for the medallions of the victory announcement, `seatsOf`).
  */
 export function winnerAnnouncement(
