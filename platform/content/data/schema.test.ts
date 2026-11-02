@@ -3,6 +3,8 @@ import { documentProblems, imageFields, referenceProblems } from "@pbgo/content-
 import type { TypeDef, Types } from "@pbgo/content-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
 import { DATASET, PLATFORM_DIR, PROJECT_ID } from "../config.ts"
+import { planMigration } from "../migration/expansions.ts"
+import { COURTISANS_DRAFT, PUBLISHED_AROUND } from "../migration/test-fixtures.ts"
 import { buildSeedContent } from "./index.ts"
 import { seedDocs, source } from "./test-fixtures.ts"
 
@@ -117,6 +119,28 @@ describe("the expansions of the seed", () => {
     const problems = documentProblems(expansion, types)
     expect(problems.some((problem) => problem.includes("A creator is on one line"))).toBe(true)
     expect(problems.some((problem) => problem.includes("is not a slug"))).toBe(true)
+  })
+})
+
+describe("the migration of the expansions made as games", () => {
+  const migrated = () => {
+    const { migrations, problems } = planMigration([COURTISANS_DRAFT], new Map(PUBLISHED_AROUND.map((doc) => [doc._id, doc])))
+    expect(problems).toEqual([])
+    const doc = migrations[0]?.doc
+    if (!doc) throw new Error("nothing was migrated")
+    return doc
+  }
+
+  it("makes a document that follows the Studio schema of an expansion: every field is one, of the right kind, under its rules", () => {
+    expect(documentProblems(migrated(), types)).toEqual([])
+  })
+
+  it("makes a document that points at documents that are there, of a type their field takes", () => {
+    expect(referenceProblems([migrated(), ...PUBLISHED_AROUND], types)).toEqual([])
+  })
+
+  it("is needed: the draft it starts from is a game with a kind the Studio no longer lists", () => {
+    expect(documentProblems(COURTISANS_DRAFT, types)).toEqual(['drafts.game-courtisans-diplomats-confidants.kind is "expansion", not one of "game", "reimplementation"'])
   })
 })
 
