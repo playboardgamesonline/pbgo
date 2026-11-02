@@ -8,7 +8,7 @@ import { SeatAvatar } from "./table-card"
 
 // A table in the list of the open tables of a game, as a block of two lines. On the first, who opened it ("Hosted by Marly"), what to know before sitting down ("Fast turns · First expansion") and how old it is. On the second, a circle for each seat of the table,
 // all of them, none over another, so that the room that is left is seen at once: a picture and the nickname under it for a person, a crown on the one who opened it, and for a seat nobody has taken a dashed circle with a plus in it, which does what the seat
-// is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the link). The pointer finds a player's card on their picture (rating, record), and a press on the row shows the table's details beside the
+// is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the link). The pointer finds a player's card on their picture (rank, record), and a press on the row shows the table's details beside the
 // list (`LobbyDetail`). Like `TableCard` it draws what it is given and decides nothing: the page keeps which row is picked. It is not a client component: a row with no `onSelect` (a list that is only read) is drawn on the server, and then has no handler at all.
 
 type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {

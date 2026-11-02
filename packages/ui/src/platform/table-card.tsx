@@ -41,7 +41,7 @@ const WAYS = { join: "Join" } as const
 
 /**
  * The picture of one seat: the person in it (their picture, the initials of their name when they have none), or a dashed place for a seat nobody has taken. Only the picture of a person is a circle, and a seat is the place of one.
- * Under the pointer the picture of a person opens their card (`UserCard`: name and tag, rating, record), unless `card` is false. The name is for the page to say: this draws the picture alone.
+ * Under the pointer the picture of a person opens their card (`UserCard`: name and tag, rank, record), unless `card` is false. The name is for the page to say: this draws the picture alone.
  */
 function SeatAvatar({ seat, className, card = true }: { seat: TableSeat; className?: string; card?: boolean }) {
   if (!seat) {

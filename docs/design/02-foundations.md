@@ -9,7 +9,7 @@ Every colour of a platform screen is one of these tokens. The names are shared w
 The palette has these colours and no other:
 
 - the neutral ramp, Tailwind's `neutral` scale with no tint at all, of which every grey is a step;
-- `--destructive` and `--success`, the two signal colours: a loss or an error, and a win. The results of games and the changes of rating wear the second as a dark tint, a fifth of the colour for the fill and the colour itself for the text, as a destructive badge does;
+- `--destructive` and `--success`, the two signal colours: a loss or an error, and a win. The results of games wear the second as a dark tint, a fifth of the colour for the fill and the colour itself for the text, as a destructive badge does;
 - the four colours of a friend's presence (`--presence-online`, `--presence-playing`, `--presence-inactive` and `--presence-dnd`), which only a dot wears;
 - the two colours of a sign-in provider's button (`--brand-facebook` and `--brand-discord`), which only that button wears (see [Provider button](03-components/01-controls.md#provider-button));
 - the colours of the pieces of the home's title (`--piece-red|gold|navy|ivory|ink`), which only those pieces wear (see [Title pieces](03-components/02-navigation.md#title-pieces)).

@@ -2,7 +2,8 @@ import "server-only"
 import { expansionsOf, pictureUrl } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
 import type { Outcome } from "@pbgo/ui/results"
-import type { PlayerRating } from "@pbgo/ui/tables"
+import type { Rank } from "@pbgo/ui/ranks"
+import type { PlayerRecord } from "@pbgo/ui/tables"
 
 // What is going on around a game, for its page on the hub: its tables (the ones that wait for players and the ones being played), the table the visitor sits at, its best players, what the visitor has done in it, its tournaments and the expansions that a table may be played with. Every table counts for the leaderboard and none can be looked on at, so the tables have neither as a setting. The page
 // reads them here and nowhere else. None of them exists yet, so each comes back empty and the page draws an empty state for it, but the expansions of a game: they are `expansion` documents of the platform's Sanity project, which the catalog reads (`getExpansions`). The types are already the shape the data will have: they are the rows of the platform schema of PLT-13
@@ -29,8 +30,8 @@ export type TablePlayer = {
   name: string | null
   /** `profiles.avatar_url`, the picture their provider gives. Null for a guest and for an account whose provider gives none. */
   avatarUrl: string | null
-  /** Their row of `platform.ratings` for this game (the rating, the games they played and won), which their card says. Null for a guest, and for an account that has not played the game ranked. */
-  rating: PlayerRating | null
+  /** Their rank in this game and the games they played and won, which their card says. The rank is derived on the server from their hidden rating (`platform.ratings`) and arrives as a tier and a division: the rating is never here. Null for a guest, and for an account that has not played the game ranked. */
+  record: PlayerRecord | null
 }
 
 /** A table of a game that waits for players or is being played: a row of `platform.tables` with the people seated at it. The page lists the public ones (`getTables`); the visitor's own, public or private, is `getViewerTable`'s. */
@@ -66,7 +67,7 @@ export type ViewerTable = GameTable & { viewerIsHost: boolean }
  */
 export type Expansion = { id: string; name: string; coverUrl: string | null; boxUrl: string | null }
 
-/** One player's standing in a game: a row of `platform.ratings` with the nickname and the picture of their `profiles` row. Only an account has one: a guest is never ranked. */
+/** One player's standing in a game: their row of `platform.ratings` as the browser may have it, a rank, with the nickname and the picture of their `profiles` row. Only an account has one: a guest is never ranked. */
 export type Standing = {
   /** `players.id` */
   playerId: string
@@ -74,13 +75,13 @@ export type Standing = {
   nickname: string
   tag: number
   avatarUrl: string | null
-  /** `ratings.rating`: Elo, 1500 to start with. */
-  rating: number
+  /** Their rank: derived on the server from the hidden rating (`ratings.rating`, an Elo) and from their position among the game's players. The rating orders the board and is never sent. */
+  rank: Rank
   /** `ratings.wins` and `ratings.games_played`. */
   wins: number
   gamesPlayed: number
-  /** Their place by rating, 1 for the best. Null while they have played fewer than `LEADERBOARD_MIN_GAMES` ranked games: the board leaves a player out until then (`ratings_board_idx`). */
-  rank: number | null
+  /** Their place on the board, 1 for the best, in the order of the hidden rating. Null while they have played fewer than `LEADERBOARD_MIN_GAMES` ranked games: the board leaves a player out until then (`ratings_board_idx`). */
+  place: number | null
 }
 
 /** The leaderboard of a game: its best players, and the signed-in visitor's own standing wherever it is. */
@@ -100,7 +101,7 @@ export const LEADERBOARD_MIN_GAMES = 5
 /** An achievement a visitor earned in a game. PLT-13's schema has no table for them: this is the shape the page needs, a name, what it was for and when, and it stays empty until there is somewhere to read them. */
 export type Achievement = { id: string; name: string; description: string; earnedAt: string }
 
-/** What a signed-in visitor has done in a game: the figures of their `game_participants` rows (the tables they finished) and of their `ratings` row, and their place on the board. */
+/** What a signed-in visitor has done in a game: the figures of their `game_participants` rows (the tables they finished), their rank and their place on the board. */
 export type PlayerStats = {
   /** How many games they finished, ranked or not: the rows of `game_participants`. */
   gamesPlayed: number
@@ -108,18 +109,16 @@ export type PlayerStats = {
   secondsPlayed: number
   /** How many of them they won (`outcome` is `win` or `coop_win`). */
   wins: number
-  /** `ratings.rating` (Elo): null while they have none, or in a game that has no rating. */
-  rating: number | null
-  /** `ratings.peak`: the best rating they reached. */
-  peak: number | null
-  /** Their place on the board, as `Standing.rank`: null while they are not on it. */
-  rank: number | null
+  /** Their rank in the game, as `Standing.rank`: null while they have none (no ranked game yet). */
+  rank: Rank | null
+  /** Their place on the board, as `Standing.place`: null while they are not on it. */
+  place: number | null
   /** How many players are on the board (the rows of `ratings` of this game with `LEADERBOARD_MIN_GAMES` games), which their place is one of. */
   rankedPlayers: number
   achievements: Achievement[]
 }
 
-/** One game a visitor finished: a row of their `game_participants` with its `game_results` and the change of their rating (`rating_changes`). */
+/** One game a visitor finished: a row of their `game_participants` with its `game_results`. What it did to their hidden rating is not here, and no rank change is drawn. */
 export type HistoryEntry = {
   /** `game_results.table_id` */
   tableId: string
@@ -127,14 +126,12 @@ export type HistoryEntry = {
   finishedAt: string
   /** `game_participants.outcome`. */
   outcome: Outcome
-  /** `game_participants.rank`: 1 is first, ties share a rank. Null where no ranking applies (a game played together). */
-  rank: number | null
+  /** `game_participants.rank`, their place at the end of the game: 1 is first, ties share a place. Null where no ranking applies (a game played together). */
+  place: number | null
   /** `game_results.player_count` */
   playerCount: number
   /** `game_participants.score` */
   score: number | null
-  /** What the game did to their rating: `after - before` of `rating_changes`, null when it did not move it (a game that was left). Every game counts for the rating. */
-  ratingChange: number | null
   /** The expansions the game was played with, by `Expansion.id`: none for the base game. The page's guess, like `GameTable.expansions`. */
   expansions: string[]
   /** The experience the game gave them (XP), null when it gave none. The page's guess: the schema has no such column. */
@@ -169,7 +166,7 @@ export async function getViewerTable(slug: string, viewerId: string | null): Pro
 }
 
 /**
- * The leaderboard of the game: the `LEADERBOARD_SIZE` best players by rating, and the standing of the signed-in visitor (`viewerId`, as above). Nobody is ranked yet: ratings come with the accounts of PLT-13's second phase.
+ * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, in the order of a rating that stays on the server (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). Nobody is ranked yet: ranks come with the accounts of PLT-13's second phase.
  */
 export async function getStandings(slug: string, viewerId: string | null): Promise<GameStandings> {
   void slug
@@ -180,7 +177,7 @@ export async function getStandings(slug: string, viewerId: string | null): Promi
 /** What the signed-in visitor has done in this game, or null when nobody is signed in. Nothing is recorded yet, so a visitor who is signed in has done nothing. */
 export async function getPlayerStats(slug: string, viewerId: string | null): Promise<PlayerStats | null> {
   void slug
-  return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rating: null, peak: null, rank: null, rankedPlayers: 0, achievements: [] }
+  return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, place: null, rankedPlayers: 0, achievements: [] }
 }
 
 /** The games the signed-in visitor finished in this game, the latest first, at most `HISTORY_SIZE`. There are none yet. */

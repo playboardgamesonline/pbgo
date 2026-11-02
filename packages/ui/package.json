@@ -12,6 +12,7 @@
     "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
     "./queue": "./src/queue.ts",
+    "./ranks": "./src/ranks.ts",
     "./results": "./src/results.ts",
     "./social": "./src/social.ts",
     "./styles/*": "./src/styles/*",

@@ -8,6 +8,7 @@ import { Button } from "./button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card"
 import { LobbySettings, type LobbySettingsProps } from "./lobby-settings"
 import { OpenSeat, type OpenSeatProps } from "./open-seat"
+import { RankBadge } from "./rank-badge"
 import { SeatAvatar } from "./table-card"
 
 // The tall space beside the open tables of a game, where a visitor plays: the lobby they are in, a table they picked in the list, or, when they are in none and have picked none, the space to open one, with the settings of the game at its bottom
@@ -27,7 +28,7 @@ function LobbyPanel({ className, ...props }: React.ComponentProps<typeof Card>) 
 }
 
 /**
- * The people of a lobby: a picture and a name for each, a "Host" badge on the one who opened it and their rating in the game on the right (a dash for a guest, who has none), and a dashed place that says it waits for a player for each seat
+ * The people of a lobby: a picture and a name for each, their rank in the game under the name (none for a guest, who has none), a "Host" badge on the one who opened it, and a dashed place that says it waits for a player for each seat
  * nobody has taken. One under another in a narrow panel, in two columns from 28rem (the panel is the container), so that a table of five does not take the height that its settings need. The picture opens the player's card under the pointer, which
  * says the rest. A table card shows the same seats in a row (`TableSeats`); a lobby has the room for their names.
  */
@@ -38,14 +39,11 @@ function LobbySeats({ seats, join, invite, className, ...props }: Omit<React.Com
       {seats.map((seat, index) => (
         <li key={index} data-slot="lobby-seat" data-free={seat ? undefined : ""} className="flex items-center gap-3">
           {!seat && (join || invite) ? <OpenSeat join={join} invite={invite} tabbable={index === firstFree} /> : <SeatAvatar seat={seat} />}
-          <span className={cn("min-w-0 flex-1 truncate", !seat && "text-muted-foreground")}>{seat ? seat.name : "Waiting for a player"}</span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className={cn("truncate", !seat && "text-muted-foreground")}>{seat ? seat.name : "Waiting for a player"}</span>
+            {seat?.record && <RankBadge rank={seat.record.rank} quiet className="justify-start" />}
+          </span>
           {seat?.host && <Badge variant="secondary">Host</Badge>}
-          {seat && (
-            <span className="w-12 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
-              <span className="sr-only">Rating: </span>
-              {seat.rating ? Math.round(seat.rating.rating) : "—"}
-            </span>
-          )}
         </li>
       ))}
     </ul>

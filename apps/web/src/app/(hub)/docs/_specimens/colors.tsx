@@ -41,7 +41,7 @@ const SEMANTIC: readonly Semantic[] = [
   { token: "muted", swatch: "bg-muted", on: "text-muted-foreground", role: "Wells, skeletons, inline code, the unselected side of a switch." },
   { token: "accent", swatch: "bg-accent", on: "text-accent-foreground", role: "Hover and focus of a menu row or a ghost button." },
   { token: "destructive", swatch: "bg-destructive", on: "text-background", role: "Errors and irreversible actions, and the count of what waits for someone (`Badge` `notification`)." },
-  { token: "success", swatch: "bg-success", on: "text-background", role: "A win: the badge of a game won (`Badge` `success`, a dark tint) and a change of rating that goes up. A loss is `destructive`." },
+  { token: "success", swatch: "bg-success", on: "text-background", role: "A win: the badge of a game won (`Badge` `success`, a dark tint). A loss is `destructive`." },
   { token: "presence-online", swatch: "bg-presence-online", on: "text-background", role: "A friend who is online: the dot on their picture (solid). Only the dot is coloured, never the text." },
   { token: "presence-playing", swatch: "bg-presence-playing", on: "text-background", role: "A friend who is in a game: the dot (a disc with a play knocked out of it). A word says it too, never the colour alone." },
   { token: "presence-inactive", swatch: "bg-presence-inactive", on: "text-background", role: "A friend who is online but inactive: the dot (a moon)." },

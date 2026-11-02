@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { agoOf, recordOf, resultOf, signed, timePlayed, winRate, type Outcome } from "./results"
+import { agoOf, recordOf, resultOf, timePlayed, winRate, type Outcome } from "./results"
 
 describe("resultOf", () => {
   it("calls a game won, lost or drawn whether it was played against the others or with them", () => {
@@ -19,21 +19,6 @@ describe("winRate", () => {
 
   it("is nothing for a visitor who played no game", () => {
     expect(winRate(0, 0)).toBeNull()
-  })
-})
-
-describe("signed", () => {
-  it("writes the sign of a change of rating, with a true minus sign", () => {
-    expect(signed(14)).toBe("+14")
-    expect(signed(-9)).toBe("−9")
-    expect(signed(0)).toBe("0")
-  })
-
-  it("rounds to a whole number, and does not write -0", () => {
-    expect(signed(13.6)).toBe("+14")
-    expect(signed(-8.5)).toBe("−8")
-    expect(signed(0.4)).toBe("0")
-    expect(signed(-0.4)).toBe("0")
   })
 })
 

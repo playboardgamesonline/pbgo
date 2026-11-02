@@ -16,11 +16,16 @@ describe("seatsOf", () => {
     ])
   })
 
-  it("keeps the tag and the rating of a player with their seat", () => {
-    const rating = { rating: 1431, gamesPlayed: 24, wins: 14 }
-    const [first, second] = seatsOf([{ seat: 0, name: "Alex", tag: "0042", rating }, { seat: 1, name: "Guest" }], 2)
-    expect(first).toMatchObject({ name: "Alex", tag: "0042", rating })
-    expect(second?.rating ?? null).toBeNull()
+  it("keeps the tag and the record of a player with their seat", () => {
+    const record = { rank: { tier: "Gold", division: 2 } as const, gamesPlayed: 24, wins: 14 }
+    const [first, second] = seatsOf([{ seat: 0, name: "Alex", tag: "0042", record }, { seat: 1, name: "Guest" }], 2)
+    expect(first).toMatchObject({ name: "Alex", tag: "0042", record })
+    expect(second?.record ?? null).toBeNull()
+  })
+
+  it("has no rating to keep: a player's record is a rank and the games, never the rating the rank comes from", () => {
+    const [first] = seatsOf([{ seat: 0, name: "Alex", record: { rank: { tier: "Legend" }, gamesPlayed: 90, wins: 70 } }], 1)
+    expect(Object.keys(first?.record ?? {}).sort()).toEqual(["gamesPlayed", "rank", "wins"])
   })
 
   it("says which seat is the host's", () => {

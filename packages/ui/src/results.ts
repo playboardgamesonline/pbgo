@@ -1,4 +1,4 @@
-// What the finished games of a visitor say, for their figures and their history on a game's page: how a game ended for them, the share of games they won, a change of rating as it is written, and the time they played. No React in this file, so that it
+// What the finished games of a visitor say, for their figures and their history on a game's page: how a game ended for them, the share of games they won, how a record is written, and the time they played. No React in this file, so that it
 // is tested as it is. The hub's page works these out from its rows (`apps/web/src/lib/game-activity-props.ts`) and the blocks draw what they are given.
 
 /** How a game ended for a player, as the platform records it (`game_participants.outcome`). */
@@ -26,12 +26,6 @@ export function resultOf(outcome: Outcome): Result {
 /** The share of games won, in whole percent: null when no game was played, since there is nothing to share. */
 export function winRate(wins: number, played: number): number | null {
   return played > 0 ? Math.round((wins / played) * 100) : null
-}
-
-/** A change of rating with its sign, as a whole number: "+14", "−9" (a true minus sign, which the typeface draws as wide as the plus) and "0" when it did not move. */
-export function signed(change: number): string {
-  const rounded = Math.round(change)
-  return rounded > 0 ? `+${rounded}` : rounded < 0 ? `−${Math.abs(rounded)}` : "0"
 }
 
 /** What a player has won, in words: "14 wins in 24 games", "1 win in 1 game". */

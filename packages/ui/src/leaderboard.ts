@@ -1,16 +1,18 @@
-// What a game's leaderboard is made of for `@pbgo/ui/platform/leaderboard`: a row, and which rows the board draws. No React in this file, so that it is tested as it is. The hub's page makes its rows from the ratings of the
-// game (`apps/web/src/lib/game-activity-props.ts`) and the board draws what it is given.
+import type { Rank } from "./ranks"
+
+// What a game's leaderboard is made of for `@pbgo/ui/platform/leaderboard`: a row, and which rows the board draws. No React in this file, so that it is tested as it is. The hub's page makes its rows from the standings of the
+// game (`apps/web/src/lib/game-activity-props.ts`) and the board draws what it is given. A row says a rank, never the rating that orders the board: that stays on the server.
 
 /** A player on a leaderboard, as the board draws them. */
 export type LeaderboardRow = {
   /** Tells the rows apart, and the visitor's own among them. */
   id: string
-  /** Their place: 1 is the best. Null while they are not ranked yet, a player being ranked only after a few games. */
-  rank: number | null
+  /** Their place: 1 is the best. Null while they are not on the board yet, a player being on it only after a few games. */
+  place: number | null
   name: string
   avatarUrl?: string | null
-  /** What the board is ordered by (an Elo rating, 1500 to start with); it is drawn as a whole number. */
-  rating: number
+  /** Their rank in the game: the tier and the division the board draws. The rows come in the order of the rating the rank comes from, which is not here. */
+  rank: Rank
   wins: number
   /** How many ranked games they have played. */
   played: number
@@ -33,6 +35,6 @@ export type Board = {
 export function boardOf(top: readonly LeaderboardRow[], you: LeaderboardRow | null | undefined, size: number): Board {
   const rows = top.slice(0, Math.max(0, size))
   const own = you && !rows.some((row) => row.id === you.id) ? you : null
-  const gap = own !== null && rows.length > 0 && (own.rank === null || own.rank > rows.length + 1)
+  const gap = own !== null && rows.length > 0 && (own.place === null || own.place > rows.length + 1)
   return { rows, own, gap }
 }

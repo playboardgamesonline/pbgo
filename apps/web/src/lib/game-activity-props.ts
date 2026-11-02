@@ -3,7 +3,8 @@ import type { LeaderboardRow } from "@pbgo/ui/leaderboard"
 import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
-import { agoOf, resultOf, signed, timePlayed, winRate, type Result } from "@pbgo/ui/results"
+import { rankLabel, type Rank } from "@pbgo/ui/ranks"
+import { agoOf, resultOf, timePlayed, winRate, type Result } from "@pbgo/ui/results"
 import { ageOf, DELETED_PLAYER, nicknameOf, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTimer } from "./game-activity"
 
@@ -13,16 +14,16 @@ import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTim
 /** The pace of a table, when it is worth saying: a table with a clock on every turn, or one that leaves days to play. The usual pace (`normal`, `none`) is not said. */
 const PACE: Partial<Record<TurnTimer, string>> = { fast: "Fast turns", async: "Async" }
 
-/** The seats of a table, in order: each person with their name, tag, picture, rating and whether they opened it, `null` for a seat nobody took. */
+/** The seats of a table, in order: each person with their name, tag, picture, record and whether they opened it, `null` for a seat nobody took. */
 export function seatsOfTable(table: GameTable): TableSeat[] {
   return seatsOf(
-    table.players.map(({ seat, name, avatarUrl, playerId, rating }) => ({
+    table.players.map(({ seat, name, avatarUrl, playerId, record }) => ({
       seat,
       name: name === null ? null : nicknameOf(name),
       tag: name === null ? null : tagOf(name),
       avatarUrl,
       host: playerId === table.hostId,
-      rating,
+      record,
     })),
     table.seatsMax,
   )
@@ -83,14 +84,14 @@ export function tableListProps(tables: readonly GameTable[], slug: string, now: 
   return tables.map((table) => ({ id: table.id, card: tableCardProps(table, slug, now) }))
 }
 
-/** The row of a leaderboard for a standing: the nickname alone (the tag tells two players of one name apart on their profile), the rest as the rating has it. */
+/** The row of a leaderboard for a standing: the nickname alone (the tag tells two players of one name apart on their profile), the rest as the standing has it: a place and a rank, never a rating. */
 export function leaderboardRow(standing: Standing): LeaderboardRow {
   return {
     id: standing.playerId,
-    rank: standing.rank,
+    place: standing.place,
     name: standing.nickname,
     avatarUrl: standing.avatarUrl,
-    rating: standing.rating,
+    rank: standing.rank,
     wins: standing.wins,
     played: standing.gamesPlayed,
   }
@@ -124,20 +125,20 @@ export function tableDetailProps(table: GameTable, slug: string, now: number = D
   }
 }
 
-/** One figure of a visitor's stats, worded: a label, the figure, and a word more when there is one. */
-export type StatFigure = { label: string; value: string; hint?: string }
+/** One figure of a visitor's stats, worded: a label, the figure, and a word more when there is one. The figure of a rank carries the rank too, so that the block can draw it as a badge. */
+export type StatFigure = { label: string; value: string; hint?: string; rank?: Rank }
 
-/** The four figures of a visitor's stats in a game: how many games they played and for how long, how many they won, their rating and their place on the board, out of how many players. A figure that is not known is a dash. */
+/** The four figures of a visitor's stats in a game: how many games they played and for how long, how many they won, their rank and their position on the board, out of how many players. A figure that is not known is a dash. */
 export function statFigures(stats: PlayerStats): StatFigure[] {
   const rate = winRate(stats.wins, stats.gamesPlayed)
   return [
     { label: "Games played", value: String(stats.gamesPlayed), hint: `${timePlayed(stats.secondsPlayed)} played` },
     { label: "Win rate", value: rate === null ? "—" : `${rate}%`, hint: `${stats.wins} ${stats.wins === 1 ? "win" : "wins"}` },
-    { label: "Rating", value: stats.rating === null ? "—" : String(Math.round(stats.rating)), hint: stats.peak === null ? undefined : `Best ${Math.round(stats.peak)}` },
+    { label: "Rank", value: stats.rank === null ? "—" : rankLabel(stats.rank), hint: stats.rank === null ? "Not ranked yet" : undefined, ...(stats.rank === null ? {} : { rank: stats.rank }) },
     {
-      label: "Rank",
-      value: stats.rank === null ? "—" : ordinal(stats.rank),
-      hint: stats.rank === null ? "Not ranked yet" : `of ${stats.rankedPlayers} ${stats.rankedPlayers === 1 ? "player" : "players"}`,
+      label: "Position",
+      value: stats.place === null ? "—" : ordinal(stats.place),
+      hint: stats.place === null ? "Not on the board yet" : `of ${stats.rankedPlayers} ${stats.rankedPlayers === 1 ? "player" : "players"}`,
     },
   ]
 }
@@ -156,8 +157,6 @@ export type HistoryRow = {
   place: string
   /** "42 pts": none for a game that has no score. */
   score?: string
-  /** "+14", "−9": what it did to their rating; none when it did not move it. */
-  change?: string
   /** "+120 XP": what it gave them; none when it gave nothing. */
   xp?: string
   /** The others at the table, each with the name they sat down with (without its tag) and their picture. */
@@ -180,9 +179,8 @@ export function historyRows(entries: readonly HistoryEntry[], game: { name: stri
     title: game.name,
     expansions: entry.expansions.flatMap((id) => game.expansions?.find((expansion) => expansion.id === id)?.name ?? []),
     when: agoOf(entry.finishedAt, now),
-    place: entry.rank === null ? `${entry.playerCount} players` : `${ordinal(entry.rank)} of ${entry.playerCount}`,
+    place: entry.place === null ? `${entry.playerCount} players` : `${ordinal(entry.place)} of ${entry.playerCount}`,
     score: entry.score === null ? undefined : `${entry.score} pts`,
-    change: entry.ratingChange === null ? undefined : signed(entry.ratingChange),
     xp: entry.xp === null || entry.xp === 0 ? undefined : `+${entry.xp} XP`,
     opponents: entry.opponents.map(({ name, avatarUrl }) => ({ name: name === null ? DELETED_PLAYER : nicknameOf(name), avatarUrl })),
   }))

@@ -524,7 +524,7 @@
     --accent: var(--color-neutral-800);
     --accent-foreground: var(--color-neutral-50);
     --destructive: oklch(0.704 0.191 22.216);
-    /* The colour of a win: with `--destructive`, the second signal colour. The results of games and the changes of rating wear it as a tint over the dark, a fifth of the colour for the fill and the colour itself for the text (`Badge variant="success"`) */
+    /* The colour of a win: with `--destructive`, the second signal colour. The results of games wear it as a tint over the dark, a fifth of the colour for the fill and the colour itself for the text (`Badge variant="success"`) */
     --success: oklch(0.78 0.16 155);
     --presence-online: oklch(0.78 0.16 155);
     --presence-playing: oklch(0.76 0.13 235);

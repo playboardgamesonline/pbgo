@@ -254,7 +254,7 @@ Module: `@pbgo/ui/platform/table-entry`
 
 A table as one row of a list, which is how a game's page lists its open tables (`OpenTables`, `apps/web/src/components/open-tables.tsx`), in two lines. On the first, who opened it ("Hosted by Marly"), what to know before sitting down ("Fast turns · First expansion") and how old it is ("Opened 4 min ago", "Full · Opened 8 min ago" for a table with no seat left). On the second, a circle for each seat of the table, all of them and none over another, so that the room that is left is seen at once, with the nickname of each person under their picture and a crown on the one who opened the table. There is no badge that says it waits: a game's page lists only the tables that wait for players. Like the [table card](#table-card) it draws what it is given and decides nothing, and it shares its rules (`tableEntryProps` of `game-activity-props.ts`, then `@pbgo/ui/tables`: `hostOf`, `seatCount`, `tableAction`).
 
-A seat nobody has taken is a dashed circle with a plus in it, and the plus does what the seat is for ([open seat](#open-seat)): for a visitor who is not at the table it is a link that joins it, labelled "Join"; at the table the visitor sits at (`mine`) it opens a menu to invite a friend or copy the link, labelled "Invite". The pointer finds a player's card on their picture ([Hover card](03-overlays.md#hover-card): name, rating, record), and a press on the row anywhere but on a plus shows the table's details, with its settings, in the [lobby panel](#lobby-panel) beside the list. The first line is a `button` (`aria-pressed`, `aria-controls` the panel) that says the row once to a screen reader (who hosts it, how many seats are taken, what to know, its age); the seats under it are a list of their own, read as they are. The picked row has the `muted` fill.
+A seat nobody has taken is a dashed circle with a plus in it, and the plus does what the seat is for ([open seat](#open-seat)): for a visitor who is not at the table it is a link that joins it, labelled "Join"; at the table the visitor sits at (`mine`) it opens a menu to invite a friend or copy the link, labelled "Invite". The pointer finds a player's card on their picture ([Hover card](03-overlays.md#hover-card): name, rank, record), and a press on the row anywhere but on a plus shows the table's details, with its settings, in the [lobby panel](#lobby-panel) beside the list. The first line is a `button` (`aria-pressed`, `aria-controls` the panel) that says the row once to a screen reader (who hosts it, how many seats are taken, what to know, its age); the seats under it are a list of their own, read as they are. The picked row has the `muted` fill.
 
 ### The rows
 
@@ -300,7 +300,7 @@ lobby-panel-your-lobby
 
 ### A table's details
 
-`LobbyDetail` is what the panel shows for one table: whether it waits or is played and how old it is, its name ("Max's table"), the table's code, its people (`LobbySeats`: the picture and the name of each, "Host" on the one who opened it, their rating on the right, a dash for a player who has none, a dashed place that says "Waiting for a player" for each seat nobody has taken, whose plus is an [open seat](#open-seat): it joins the table, or, in the visitor's own lobby, opens the menu that invites a friend or copies the link; one under another in a narrow panel, in two columns from 28rem, the panel being the container), its settings at the bottom (`LobbySettings`, only read here: the expansions it is played with, as pictures with the outline, and how fast), and the way in, Join or a disabled "Full". When the page gives it `onClose` a close button sits at the top right: it puts the table down and the panel is the space to open a lobby again.
+`LobbyDetail` is what the panel shows for one table: whether it waits or is played and how old it is, its name ("Max's table"), the table's code, its people (`LobbySeats`: the picture and the name of each, "Host" on the one who opened it, their rank under the name as a quiet word (`RankBadge` with `quiet`; nothing for a player who has none), a dashed place that says "Waiting for a player" for each seat nobody has taken, whose plus is an [open seat](#open-seat): it joins the table, or, in the visitor's own lobby, opens the menu that invites a friend or copies the link; one under another in a narrow panel, in two columns from 28rem, the panel being the container), its settings at the bottom (`LobbySettings`, only read here: the expansions it is played with, as pictures with the outline, and how fast), and the way in, Join or a disabled "Full". When the page gives it `onClose` a close button sits at the top right: it puts the table down and the panel is the space to open a lobby again.
 
 The names are written here, and the pictures of the list only say who is there: this is where a visitor learns whom they would play with. `tableDetailProps` (`game-activity-props.ts`) makes it from a table.
 
@@ -332,6 +332,21 @@ On a narrow screen the panel comes first, since opening a table is what most vis
 lobby-panel-beside-the-open-tables
 ```
 
+## Rank badge
+
+Module: `@pbgo/ui/platform/rank-badge` (the type and the way a rank is written: `@pbgo/ui/ranks`)
+
+`RankBadge` is a player's rank in a game, a small badge: the name of the tier and, but for Legend, its division ("Gold II"). The platform shows a rank where it would show a rating: a player's rating, an Elo, is hidden, never drawn and never sent to the browser. The server derives the rank from it and from the player's position among the game's players, and the browser only ever gets a tier and a division (`Rank`). No type of the hub's page has a rating.
+
+- **Nine tiers**, from the lowest to the highest: Apprentice, Bronze, Silver, Gold, Platinum, Diamond, Master, Champion, Legend (`TIERS`). Each tier but Legend has three divisions, I, II and III, I the lowest and III the highest inside the tier; Legend has none. `rankLabel` writes them: "Gold II", "Legend".
+- It is plain on purpose: the outline badge (the one that is not a status: `success` and `destructive` are the results of games, `secondary` is a label such as "Host"), with no colour, no icon and no word besides the tier's own, until the owner asks for them.
+- A screen reader hears "Rank: Gold II", unless something around the badge already says it is a rank (the header of the leaderboard's column, the label of the card or of the stat tile: `labelled`). `quiet` draws it as a word under a name (the seats of a [lobby panel](#lobby-panel): no border, no padding, the muted colour), and `className` sizes it where it is a figure (the visitor's [stat tile](#stat-tile): `h-9 rounded-lg px-3 text-xl`).
+- It is what the [leaderboard](#leaderboard) has in its column of ranks, what the seats of a lobby say under a name, what a player's [card](03-overlays.md#hover-card) says, and the figure of the visitor's rank in their stats.
+
+```specimen
+rank-badge-the-tiers
+```
+
 ## Stat tile
 
 Module: `@pbgo/ui/platform/stat-tile`
@@ -340,7 +355,7 @@ One figure and what it counts: the label, quiet, then the figure, big, then a wo
 
 ### The figures
 
-The four of a game's page: how many games a visitor played with the time they spent at them under it ("38 h played": minutes under an hour, hours after, `timePlayed` of `@pbgo/ui/results`), their win rate with how many wins that is, their rating with the best they reached, and their place on the board, out of how many players ("27th of 143 players"; "Not ranked yet" for a visitor with no place). A figure that is not known, a rating before any ranked game, is a dash. The row follows the width of its container: four figures in a line from 36rem, two by two under it.
+The four of a game's page: how many games a visitor played with the time they spent at them under it ("38 h played": minutes under an hour, hours after, `timePlayed` of `@pbgo/ui/results`), their win rate with how many wins that is, their rank, drawn as a [rank badge](#rank-badge) at the size of a figure, and their position on the board, out of how many players ("27th of 143 players"; "Not on the board yet" for a visitor with no position). A figure that is not known, a rank before any ranked game, is a dash. A rating is never one of the figures. The row follows the width of its container: four figures in a line from 36rem, two by two under it.
 
 ```specimen
 stat-tile-the-figures
@@ -350,11 +365,11 @@ stat-tile-the-figures
 
 Module: `@pbgo/ui/platform/leaderboard`
 
-`Leaderboard` is the best players of a game, as its page lists them: their place, who they are, their rating, the games they won and the games they played. The signed-in visitor finds themselves on it. Like the table card it draws what it is given: the order is the rating's (Elo, 1500 to start with), the rows come from `getStandings` (`apps/web/src/lib/game-activity.ts`: the `ratings` of PLT-13 with the nickname and the picture of the `profiles` row), `leaderboardRow` (`game-activity-props.ts`) picks what a row shows of a standing, and `boardOf` (`@pbgo/ui/leaderboard`, tested without React) decides which rows are drawn. Nobody is ranked yet, so a real page draws the empty state below; the players in these specimens are made up.
+`Leaderboard` is the best players of a game, as its page lists them: their place, who they are, their rank, the games they won and the games they played. The signed-in visitor finds themselves on it. Like the table card it draws what it is given: the order is that of a rating (an Elo) that stays on the server: no row carries it, each says a rank. The rows come from `getStandings` (`apps/web/src/lib/game-activity.ts`: the `ratings` of PLT-13 as ranks, with the nickname and the picture of the `profiles` row), `leaderboardRow` (`game-activity-props.ts`) picks what a row shows of a standing, and `boardOf` (`@pbgo/ui/leaderboard`, tested without React) decides which rows are drawn. Nobody is ranked yet, so a real page draws the empty state below; the players in these specimens are made up.
 
 ### The top, and the visitor in it
 
-A table, a real one with a caption for screen readers, of the first `size` players (all of the rows it is given by default; a game's page gives it a hundred): place, picture and nickname, rating, wins and games played. The top three have their place in Geist semibold and their name in the full colour of the text; the others are quiet (`muted-foreground`). The platform has no medal colour to give, and its only hue is a game's art. A nickname too long for its column is cut with an ellipsis.
+A table, a real one with a caption for screen readers, of the first `size` players (all of the rows it is given by default; a game's page gives it a hundred): place, picture and nickname, rank (a [rank badge](#rank-badge)), wins and games played. There is no column of points. The top three have their place in Geist semibold and their name in the full colour of the text; the others are quiet (`muted-foreground`). The platform has no medal colour to give, and its only hue is a game's art. A nickname too long for its column is cut with an ellipsis.
 
 The visitor's own row has the `muted` fill, a "You" badge after the name and `aria-current`. When they are in the top it is the row in the top, and nothing is added after it.
 
@@ -364,7 +379,7 @@ leaderboard-the-top
 
 ### The visitor outside the top
 
-A visitor who is signed in and has a rating but is not in the top has their row after it, behind a gap (three dots) that says other players stand between; the first player after the top has no gap. A player is on the board after five ranked games (`LEADERBOARD_MIN_GAMES`): until then their place is a dash, and their row, which they can still see, follows the top behind the gap. The first board below shows the visitor 27th, the second a visitor who is not ranked yet.
+A visitor who is signed in and has a rank but is not in the top has their row after it, behind a gap (three dots) that says other players stand between; the first player after the top has no gap. A player is on the board after five ranked games (`LEADERBOARD_MIN_GAMES`): until then their place is a dash, and their row, which they can still see, follows the top behind the gap. The first board below shows the visitor 27th, the second a visitor who is not ranked yet.
 
 ```specimen
 leaderboard-the-visitor-outside-the-top
@@ -396,7 +411,7 @@ game-stats-signed-in-and-out
 
 ### Your latest games
 
-Under their stats, on the left, their ten latest games in the game (`GameHistory`, `apps/web/src/components/game-history.tsx`). A row has, on the left, the game's name with the expansions it was played with after it ("Courtisans + First expansion") and the pictures of the others at the table, with no names (the group is labelled for a screen reader, and the pointer says each name); on the right, how long ago it was ("3 d ago"), what it scored ("42 pts"), what it did to their rating ("+14 Elo") and the experience it gave ("+120 XP"), and at the far end how it ended, as a badge in a dark tint: a win in green (`success`), a loss in red (`destructive`), a draw or a game that was left outlined. The change of rating wears the colour of the result. Their place among the players ("1st of 4") is for a screen reader; a card narrower than 24rem leaves out the score, and one narrower than 28rem the experience. The first three are there at once, the third fading out at the bottom (a mask on the list, as in the home's previews) under a "Show more" button that is pulled up over the fade; it unrolls the other games, the fade gives way, and the button, now "Show less", comes down under the last one. It is a [collapsible](01-controls.md#collapsible): what is not shown is not in the page until the button opens it. A visitor with no game has no such block, and one with three or fewer has all of them, with no fade and no button.
+Under their stats, on the left, their ten latest games in the game (`GameHistory`, `apps/web/src/components/game-history.tsx`). A row has, on the left, the game's name with the expansions it was played with after it ("Courtisans + First expansion") and the pictures of the others at the table, with no names (the group is labelled for a screen reader, and the pointer says each name); on the right, how long ago it was ("3 d ago"), what it scored ("42 pts") and the experience it gave ("+120 XP"), and at the far end how it ended, as a badge in a dark tint: a win in green (`success`), a loss in red (`destructive`), a draw or a game that was left outlined. A rating is never shown, nor what a game did to it. Their place among the players ("1st of 4") is for a screen reader; a card narrower than 24rem leaves out the score, and one narrower than 28rem the experience. The first three are there at once, the third fading out at the bottom (a mask on the list, as in the home's previews) under a "Show more" button that is pulled up over the fade; it unrolls the other games, the fade gives way, and the button, now "Show less", comes down under the last one. It is a [collapsible](01-controls.md#collapsible): what is not shown is not in the page until the button opens it. A visitor with no game has no such block, and one with three or fewer has all of them, with no fade and no button.
 
 ```specimen
 game-history-closed-and-open

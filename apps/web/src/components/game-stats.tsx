@@ -8,11 +8,12 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardContent } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
+import { RankBadge } from "@pbgo/ui/platform/rank-badge"
 import { StatTile } from "@pbgo/ui/platform/stat-tile"
 import type { PlayerStats } from "@/lib/game-activity"
 import { dayOf, statFigures } from "@/lib/game-activity-props"
 
-// What the signed-in visitor has done in a game, on its page: how many games they played, their win rate, their rating and their place on the board out of how many players, then the achievements they earned, as badges (a drawn emblem, the
+// What the signed-in visitor has done in a game, on its page: how many games they played, their win rate, their rank and their position on the board out of how many players, then the achievements they earned, as badges (a drawn emblem, the
 // name, the day), counted in a small pill beside their title. A visitor who is not signed in has nothing to show, so it invites them to (`stats` is null: `getPlayerStats` knows nobody). A visitor who is signed in and has played nothing has the figures at their start, and no achievement.
 // What goes under the card (the visitor's latest games, `GameHistory`) is its children, in the same section.
 
@@ -30,7 +31,7 @@ export function GameStats({ slug, stats, className, children }: { slug: string; 
               <HugeiconsIcon icon={Analytics01Icon} strokeWidth={2} aria-hidden="true" />
             </EmptyMedia>
             <EmptyTitle>Keep track of your games</EmptyTitle>
-            <EmptyDescription>Sign in to see your games, your win rate, your rating and your achievements in this game.</EmptyDescription>
+            <EmptyDescription>Sign in to see your games, your win rate, your rank and your achievements in this game.</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button variant="outline" asChild>
@@ -42,8 +43,8 @@ export function GameStats({ slug, stats, className, children }: { slug: string; 
         <Card className="@container">
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-8 @xl:grid-cols-4">
-              {statFigures(stats).map((figure) => (
-                <StatTile key={figure.label} {...figure} />
+              {statFigures(stats).map(({ rank, value, ...figure }) => (
+                <StatTile key={figure.label} {...figure} value={rank ? <RankBadge rank={rank} labelled className="h-9 rounded-lg px-3 text-xl" /> : value} />
               ))}
             </dl>
           </CardContent>

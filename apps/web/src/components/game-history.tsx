@@ -14,14 +14,11 @@ import { historyRows, type HistoryRow } from "@/lib/game-activity-props"
 
 // The latest games of the signed-in visitor in a game, under their stats: the first three at once, the third fading out at the bottom (a mask on the list, as in `SectionPreview`) under a button that unrolls the rest, ten games at most. A row is
 // called by the name of the game, with the expansions it was played with after it, and shows the pictures of the others at the table (no names: the group is labelled for a screen reader, and the pointer says each). On its right, how long ago it was,
-// what it scored, what it did to their rating and the experience it gave, and at the far end how it ended, in a dark tint: green for a win, red for a loss, outlined for a draw or a game that was left. The change of rating takes the colour of the
+// what it scored and the experience it gave, and at the far end how it ended, in a dark tint: green for a win, red for a loss, outlined for a draw or a game that was left. There is no change of rating: a rating is never shown. The colour of the
 // result. A visitor with no game has no such block, and one with three or fewer has no fade and no button.
 
 /** How many games are there before the rest is asked for. */
 const PEEK = 3
-
-/** The colour of the change of rating, by how the game ended: the result's own for a win and a loss, none for the others. */
-const TONE: Record<Result, string> = { won: "text-success", lost: "text-destructive", draw: "text-muted-foreground", abandoned: "text-muted-foreground" }
 
 /** How a game ended, as a badge: a win in green, a loss in red, both dark tints, and a draw or a game that was left outlined. */
 function ResultBadge({ result }: { result: Result }) {
@@ -62,7 +59,6 @@ function HistoryItem({ row }: { row: HistoryRow }) {
         <span className="text-muted-foreground">{row.when}</span>
         <span className="flex items-center gap-3 tabular-nums">
           {row.score && <span className="hidden @sm:inline">{row.score}</span>}
-          {row.change && <span className={TONE[row.result]}>{row.change} Elo</span>}
           {row.xp && <span className="hidden text-muted-foreground @md:inline">{row.xp}</span>}
         </span>
       </div>

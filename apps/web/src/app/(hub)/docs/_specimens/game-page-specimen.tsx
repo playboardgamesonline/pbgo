@@ -12,12 +12,14 @@ import { GameCard } from "@pbgo/ui/platform/game-card"
 import { Leaderboard } from "@pbgo/ui/platform/leaderboard"
 import { LobbySettings } from "@pbgo/ui/platform/lobby-settings"
 import { OpenSeat } from "@pbgo/ui/platform/open-seat"
+import { RankBadge } from "@pbgo/ui/platform/rank-badge"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
 import { StatTile } from "@pbgo/ui/platform/stat-tile"
 import { SeatAvatar, TableCard, TableList, TableSeats } from "@pbgo/ui/platform/table-card"
 import { TableEntries, TableEntry } from "@pbgo/ui/platform/table-entry"
 import { UserCard } from "@pbgo/ui/platform/user-card"
-import { seatsOf, type PlayerRating } from "@pbgo/ui/tables"
+import { TIERS, type Division, type Rank } from "@pbgo/ui/ranks"
+import { seatsOf, type PlayerRecord } from "@pbgo/ui/tables"
 import { GameHead, type GameHeadProps } from "@/components/game-head"
 import { GameHistory } from "@/components/game-history"
 import { GameLeaderboard } from "@/components/game-leaderboard"
@@ -36,19 +38,19 @@ const ago = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString()
 /** The width of a page of the hub on a desktop: the window less its two gutters of 64px, at 1440. */
 const PAGE = 1312
 
-const elo = (rating: number, wins: number, gamesPlayed: number): PlayerRating => ({ rating, wins, gamesPlayed })
-const seated = (playerId: string, seat: number, name: string | null, avatarUrl: string | null = null, rating: PlayerRating | null = null): TablePlayer => ({ playerId, seat, name, avatarUrl, rating })
+const record = (rank: Rank, wins: number, gamesPlayed: number): PlayerRecord => ({ rank, wins, gamesPlayed })
+const seated = (playerId: string, seat: number, name: string | null, avatarUrl: string | null = null, record: PlayerRecord | null = null): TablePlayer => ({ playerId, seat, name, avatarUrl, record })
 
-const MARLY = (seat: number) => seated("marly", seat, "Marly#4821", DEMO_AVATARS.marly, elo(1620, 52, 97))
-const HERVE = (seat: number) => seated("herve", seat, "Hervé#0412", DEMO_AVATARS.herve, elo(1684, 41, 63))
-const ZOE = (seat: number) => seated("zoe", seat, "Zoé#1033", DEMO_AVATARS.zoe, elo(1651, 38, 60))
-const LINA = (seat: number) => seated("lina", seat, "Lina#2290", DEMO_AVATARS.lina, elo(1577, 19, 38))
-const MAX = (seat: number) => seated("max", seat, "Max#5501", DEMO_AVATARS.max, elo(1544, 25, 52))
-const INES = (seat: number) => seated("ines", seat, "Inès#3318", DEMO_AVATARS.ines, elo(1531, 14, 30))
-const SAM = (seat: number) => seated("sam", seat, "Sam#9042", DEMO_AVATARS.sam, elo(1519, 12, 27))
-const NOLAN = (seat: number) => seated("nolan", seat, "Nolan#7710", DEMO_AVATARS.nolan, elo(1507, 9, 22))
+const MARLY = (seat: number) => seated("marly", seat, "Marly#4821", DEMO_AVATARS.marly, record({ tier: "Legend" }, 52, 97))
+const HERVE = (seat: number) => seated("herve", seat, "Hervé#0412", DEMO_AVATARS.herve, record({ tier: "Legend" }, 41, 63))
+const ZOE = (seat: number) => seated("zoe", seat, "Zoé#1033", DEMO_AVATARS.zoe, record({ tier: "Legend" }, 38, 60))
+const LINA = (seat: number) => seated("lina", seat, "Lina#2290", DEMO_AVATARS.lina, record({ tier: "Master", division: 3 }, 19, 38))
+const MAX = (seat: number) => seated("max", seat, "Max#5501", DEMO_AVATARS.max, record({ tier: "Master", division: 2 }, 25, 52))
+const INES = (seat: number) => seated("ines", seat, "Inès#3318", DEMO_AVATARS.ines, record({ tier: "Master", division: 2 }, 14, 30))
+const SAM = (seat: number) => seated("sam", seat, "Sam#9042", DEMO_AVATARS.sam, record({ tier: "Master", division: 1 }, 12, 27))
+const NOLAN = (seat: number) => seated("nolan", seat, "Nolan#7710", DEMO_AVATARS.nolan, record({ tier: "Master", division: 1 }, 9, 22))
 const TOM = (seat: number) => seated("tom", seat, "Tom", null)
-const JO = (seat: number) => seated("jo", seat, "Jo#0007", DEMO_AVATARS.jade, elo(1431, 14, 24))
+const JO = (seat: number) => seated("jo", seat, "Jo#0007", DEMO_AVATARS.jade, record({ tier: "Diamond", division: 2 }, 14, 24))
 
 const table = (overrides: Partial<GameTable> & Pick<GameTable, "id" | "code" | "status" | "players">): GameTable => ({
   visibility: "public",
@@ -115,41 +117,59 @@ const EXPANSIONS: Expansion[] = [
 /** An expansion with no picture at all: its frame holds the initials of its name. */
 const BARE_EXPANSION: Expansion = { id: "fourth", name: "Fourth expansion", coverUrl: null, boxUrl: null }
 
-const standing = (rank: number, playerId: string, nickname: string, rating: number, wins: number, gamesPlayed: number, avatarUrl: string | null): Standing => ({
+const standing = (place: number, playerId: string, nickname: string, rank: Rank, wins: number, gamesPlayed: number, avatarUrl: string | null): Standing => ({
   playerId,
   nickname,
-  tag: 1000 + rank,
+  tag: 1000 + place,
   avatarUrl,
-  rating,
+  rank,
   wins,
   gamesPlayed,
-  rank,
+  place,
 })
 
-/** The best twelve players of a game, as `ratings` would give them. */
+/** `count` players of one rank, for the ranks of a long board. */
+const times = (count: number, rank: Rank): Rank[] => Array.from({ length: count }, () => rank)
+
+/** The best twelve players of a game, each with the rank the server would send (never the rating it comes from). */
 const STANDINGS: Standing[] = [
-  standing(1, "herve", "Hervé", 1684, 41, 63, DEMO_AVATARS.herve),
-  standing(2, "zoe", "Zoé", 1651, 38, 60, DEMO_AVATARS.zoe),
-  standing(3, "marly", "Marly", 1620, 52, 97, DEMO_AVATARS.marly),
-  standing(4, "tom", "Tom", 1598, 22, 41, DEMO_AVATARS.tom),
-  standing(5, "lina", "Lina", 1577, 19, 38, DEMO_AVATARS.lina),
-  standing(6, "jade", "Jade", 1560, 17, 35, DEMO_AVATARS.jade),
-  standing(7, "max", "Max", 1544, 25, 52, DEMO_AVATARS.max),
-  standing(8, "ines", "Inès", 1531, 14, 30, DEMO_AVATARS.ines),
-  standing(9, "sam", "Sam", 1519, 12, 27, DEMO_AVATARS.sam),
-  standing(10, "nolan", "A player with a very long nickname", 1507, 9, 22, DEMO_AVATARS.nolan),
-  standing(11, "clara", "Clara", 1498, 8, 21, DEMO_AVATARS.clara),
-  standing(12, "robin", "Robin", 1490, 7, 20, null),
+  standing(1, "herve", "Hervé", { tier: "Legend" }, 41, 63, DEMO_AVATARS.herve),
+  standing(2, "zoe", "Zoé", { tier: "Legend" }, 38, 60, DEMO_AVATARS.zoe),
+  standing(3, "marly", "Marly", { tier: "Legend" }, 52, 97, DEMO_AVATARS.marly),
+  standing(4, "tom", "Tom", { tier: "Champion", division: 3 }, 22, 41, DEMO_AVATARS.tom),
+  standing(5, "lina", "Lina", { tier: "Master", division: 3 }, 19, 38, DEMO_AVATARS.lina),
+  standing(6, "jade", "Jade", { tier: "Master", division: 3 }, 17, 35, DEMO_AVATARS.jade),
+  standing(7, "max", "Max", { tier: "Master", division: 2 }, 25, 52, DEMO_AVATARS.max),
+  standing(8, "ines", "Inès", { tier: "Master", division: 2 }, 14, 30, DEMO_AVATARS.ines),
+  standing(9, "sam", "Sam", { tier: "Master", division: 1 }, 12, 27, DEMO_AVATARS.sam),
+  standing(10, "nolan", "A player with a very long nickname", { tier: "Master", division: 1 }, 9, 22, DEMO_AVATARS.nolan),
+  standing(11, "clara", "Clara", { tier: "Master", division: 1 }, 8, 21, DEMO_AVATARS.clara),
+  standing(12, "robin", "Robin", { tier: "Diamond", division: 3 }, 7, 20, null),
 ]
 
 /** The visitor: they are 27th, so outside a top of five. */
-const ME: Standing = standing(27, "jo", "Jo", 1431, 14, 24, null)
+const ME: Standing = standing(27, "jo", "Jo", { tier: "Diamond", division: 2 }, 14, 24, null)
+
+/** The ranks of a board of forty, from the best: three Legends, a Champion, then the Masters, the Diamonds and the Platinums. */
+const MANY_RANKS: Rank[] = [
+  ...times(3, { tier: "Legend" }),
+  { tier: "Champion", division: 3 },
+  ...times(2, { tier: "Master", division: 3 }),
+  ...times(3, { tier: "Master", division: 2 }),
+  ...times(3, { tier: "Master", division: 1 }),
+  ...times(5, { tier: "Diamond", division: 3 }),
+  ...times(6, { tier: "Diamond", division: 2 }),
+  ...times(5, { tier: "Diamond", division: 1 }),
+  ...times(5, { tier: "Platinum", division: 3 }),
+  ...times(4, { tier: "Platinum", division: 2 }),
+  ...times(3, { tier: "Platinum", division: 1 }),
+]
 
 /** Forty players, for a board that has to scroll. */
 const MANY: Standing[] = Array.from({ length: 40 }, (_, index) => {
   const base = STANDINGS[index % STANDINGS.length]!
   const first = index < STANDINGS.length
-  return standing(index + 1, `p${index + 1}`, first ? base.nickname : `${base.nickname} ${Math.floor(index / STANDINGS.length) + 1}`, 1700 - index * 7, Math.max(3, 40 - index), 70 - index, first ? base.avatarUrl : null)
+  return standing(index + 1, `p${index + 1}`, first ? base.nickname : `${base.nickname} ${Math.floor(index / STANDINGS.length) + 1}`, MANY_RANKS[index]!, Math.max(3, 40 - index), 70 - index, first ? base.avatarUrl : null)
 })
 
 /** What the visitor has done in the game, with the achievements they earned. */
@@ -157,9 +177,8 @@ const STATS: PlayerStats = {
   gamesPlayed: 24,
   secondsPlayed: 38 * 3600 + 25 * 60,
   wins: 14,
-  rating: 1431,
-  peak: 1502,
-  rank: 27,
+  rank: { tier: "Diamond", division: 2 },
+  place: 27,
   rankedPlayers: 143,
   achievements: [
     { id: "a1", name: "First win", description: "Win a game.", earnedAt: "2026-10-04T18:20:00Z" },
@@ -169,16 +188,15 @@ const STATS: PlayerStats = {
 }
 
 /** A visitor who is signed in and has played nothing. */
-const NO_STATS: PlayerStats = { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rating: null, peak: null, rank: null, rankedPlayers: 143, achievements: [] }
+const NO_STATS: PlayerStats = { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, place: null, rankedPlayers: 143, achievements: [] }
 
 const opponent = (name: string | null, avatarUrl: string | null = null) => ({ name, avatarUrl })
 
 const entry = (
   n: number,
   outcome: HistoryEntry["outcome"],
-  rank: number | null,
+  place: number | null,
   playerCount: number,
-  ratingChange: number | null,
   score: number | null,
   xp: number | null,
   expansions: string[],
@@ -188,10 +206,9 @@ const entry = (
   tableId: `g${n}`,
   finishedAt: new Date(NOW - daysAgo * 86_400_000).toISOString(),
   outcome,
-  rank,
+  place,
   playerCount,
   score,
-  ratingChange,
   expansions,
   xp,
   opponents,
@@ -199,12 +216,12 @@ const entry = (
 
 /** The visitor's latest games, the latest first: two wins, two losses, a draw and a game that was left, three of them with expansions. */
 const HISTORY: HistoryEntry[] = [
-  entry(1, "win", 1, 4, 14, 42, 120, ["first"], [opponent("Marly#4821", DEMO_AVATARS.marly), opponent("Zoé#1033", DEMO_AVATARS.zoe), opponent("Tom")], 0.4),
-  entry(2, "loss", 3, 4, -9, 31, 45, [], [opponent("Hervé#0412", DEMO_AVATARS.herve), opponent("Lina#2290", DEMO_AVATARS.lina), opponent("Sam#9042", DEMO_AVATARS.sam)], 2),
-  entry(3, "win", 1, 3, 12, 38, 110, ["first", "second"], [opponent("Max#5501", DEMO_AVATARS.max), opponent("Inès#3318", DEMO_AVATARS.ines)], 4),
-  entry(4, "draw", 1, 2, 0, 30, 60, [], [opponent("Nolan#7710", DEMO_AVATARS.nolan)], 6),
-  entry(5, "loss", 2, 2, -11, 22, 35, ["second"], [opponent(null)], 9),
-  entry(6, "abandoned", null, 4, null, null, null, [], [opponent("Marly#4821", DEMO_AVATARS.marly), opponent("Zoé#1033", DEMO_AVATARS.zoe), opponent("Tom")], 12),
+  entry(1, "win", 1, 4, 42, 120, ["first"], [opponent("Marly#4821", DEMO_AVATARS.marly), opponent("Zoé#1033", DEMO_AVATARS.zoe), opponent("Tom")], 0.4),
+  entry(2, "loss", 3, 4, 31, 45, [], [opponent("Hervé#0412", DEMO_AVATARS.herve), opponent("Lina#2290", DEMO_AVATARS.lina), opponent("Sam#9042", DEMO_AVATARS.sam)], 2),
+  entry(3, "win", 1, 3, 38, 110, ["first", "second"], [opponent("Max#5501", DEMO_AVATARS.max), opponent("Inès#3318", DEMO_AVATARS.ines)], 4),
+  entry(4, "draw", 1, 2, 30, 60, [], [opponent("Nolan#7710", DEMO_AVATARS.nolan)], 6),
+  entry(5, "loss", 2, 2, 22, 35, ["second"], [opponent(null)], 9),
+  entry(6, "abandoned", null, 4, null, null, [], [opponent("Marly#4821", DEMO_AVATARS.marly), opponent("Zoé#1033", DEMO_AVATARS.zoe), opponent("Tom")], 12),
 ]
 
 const card = (game: GameTable) => ({ ...tableCardProps(game, "a-game", NOW, EXPANSIONS), href: "#table-card" })
@@ -452,6 +469,34 @@ function LobbyPanelBesideTheOpenTables() {
   )
 }
 
+function RankBadgeTheTiers() {
+  const divisions: Division[] = [1, 2, 3]
+  return (
+    <Frame
+      className="flex flex-col gap-8"
+      code={`<RankBadge rank={{ tier: "Gold", division: 2 }} />   // Gold II
+<RankBadge rank={{ tier: "Legend" }} />               // Legend: no division
+
+// Where a rank is a word under a name, and where it is a big figure
+<RankBadge rank={rank} quiet />
+<RankBadge rank={rank} className="h-9 rounded-lg px-3 text-xl" />`}
+    >
+      <ul className="flex flex-col gap-3">
+        {TIERS.map((tier) => (
+          <li key={tier} className="flex flex-wrap items-center gap-2">
+            {tier === "Legend" ? <RankBadge rank={{ tier }} /> : divisions.map((division) => <RankBadge key={division} rank={{ tier, division }} />)}
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap items-center gap-6">
+        <RankBadge rank={{ tier: "Gold", division: 2 }} quiet />
+        <RankBadge rank={{ tier: "Gold", division: 2 }} />
+        <RankBadge rank={{ tier: "Gold", division: 2 }} className="h-9 rounded-lg px-3 text-xl" />
+      </div>
+    </Frame>
+  )
+}
+
 function StatTileTheFigures() {
   return (
     <Frame
@@ -516,7 +561,7 @@ function LeaderboardTheTop() {
     <Frame
       code={`<Leaderboard rows={standings.top.map(leaderboardRow)} you={leaderboardRow(standings.viewer)} size={5} />
 
-// A row is { id, rank, name, avatarUrl, rating, wins, played }`}
+// A row is { id, place, name, avatarUrl, rank, wins, played }: a rank, never the rating that orders the board`}
     >
       <Leaderboard rows={STANDINGS.map(leaderboardRow)} you={leaderboardRow(STANDINGS[3]!)} size={10} />
     </Frame>
@@ -527,11 +572,11 @@ function LeaderboardTheVisitorOutsideTheTop() {
   return (
     <Frame
       code={`<Leaderboard rows={rows} you={leaderboardRow(me)} />   // me is 27th: their row follows the top, behind a gap
-<Leaderboard rows={rows} you={{ …, rank: null }} /> // not ranked yet: a dash for a place`}
+<Leaderboard rows={rows} you={{ …, place: null }} /> // not on the board yet: a dash for a place`}
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <Leaderboard rows={STANDINGS.map(leaderboardRow)} you={leaderboardRow(ME)} size={5} />
-        <Leaderboard rows={STANDINGS.map(leaderboardRow)} you={{ ...leaderboardRow(ME), rank: null, wins: 1, played: 3, rating: 1512 }} size={5} />
+        <Leaderboard rows={STANDINGS.map(leaderboardRow)} you={{ ...leaderboardRow(ME), place: null, wins: 1, played: 3, rank: { tier: "Gold", division: 1 } }} size={5} />
       </div>
     </Frame>
   )
@@ -545,7 +590,7 @@ function LeaderboardScrolling() {
 <Leaderboard rows={standings.top.map(leaderboardRow)} you={leaderboardRow(standings.viewer)} className="max-h-120" />`}
     >
       <Leaderboard rows={MANY.map(leaderboardRow)} you={leaderboardRow(MANY[26]!)} className="max-h-120" />
-      <Leaderboard rows={MANY.map(leaderboardRow)} you={{ ...leaderboardRow(ME), rank: 143 }} className="max-h-120" />
+      <Leaderboard rows={MANY.map(leaderboardRow)} you={{ ...leaderboardRow(ME), place: 143, rank: { tier: "Platinum", division: 1 } }} className="max-h-120" />
     </Frame>
   )
 }
@@ -619,12 +664,12 @@ function LeaderboardOnAGamesPage() {
   )
 }
 
-/** A picture of a seat with a rating, a guest's and an account's that has not played the game ranked: what the cards say. */
+/** A picture of a seat with a rank, a guest's and an account's that has not played the game ranked: what the cards say. */
 const SEATS = seatsOf(
   [
-    { seat: 0, name: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, host: true, rating: elo(1620, 52, 97) },
-    { seat: 1, name: "Inès", tag: "3318", avatarUrl: DEMO_AVATARS.ines, rating: null },
-    { seat: 2, name: "Tom", tag: null, avatarUrl: null, rating: null },
+    { seat: 0, name: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, host: true, record: record({ tier: "Legend" }, 52, 97) },
+    { seat: 1, name: "Inès", tag: "3318", avatarUrl: DEMO_AVATARS.ines, record: null },
+    { seat: 2, name: "Tom", tag: null, avatarUrl: null, record: null },
   ],
   3,
 )
@@ -763,6 +808,7 @@ export const gamePageSpecimens: Specimens = {
   "hover-card-a-players-card": HoverCardAPlayersCard,
   "achievement-tile-the-badges": AchievementTileTheBadges,
   "scroll-row-similar-games": ScrollRowSimilarGames,
+  "rank-badge-the-tiers": RankBadgeTheTiers,
   "stat-tile-the-figures": StatTileTheFigures,
   "collapsible-open-and-closed": CollapsibleOpenAndClosed,
   "leaderboard-the-top": LeaderboardTheTop,
