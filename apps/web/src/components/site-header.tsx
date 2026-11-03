@@ -7,8 +7,13 @@ import { useAccount } from "@pbgo/accounts/client"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
+import { cn } from "@pbgo/ui/utils"
 import { SiteSocial } from "@/components/site-social"
+import { useScrolledPast } from "@/lib/use-scrolled-past"
 import { SITE_NAME } from "@/site"
+
+/** How far a game's page is scrolled before the left bar comes in (the page is read as just arrived until then). */
+const ARRIVAL_SCROLL = 16
 
 /**
  * The tabs of the navbar, in order, each with the page it leads to and its `group`: the ones for playing, then the ones about the site, with a hairline between the two groups (`NavbarSeparator`).
@@ -48,7 +53,8 @@ function currentOf(pathname: string): SiteCurrent | null {
  * The navbar of the hub's own pages (the home, the pages of the tabs and a game's page), fixed to the top of the window in two rounded-square
  * containers kept apart, on the edges of the window: the logo and the tabs on the left, the account on the right, with nothing drawn between
  * them. A page leaves `pt-navbar` under it, and an anchor
- * that lands under it has `scroll-mt-navbar`.
+ * that lands under it has `scroll-mt-navbar`. On a game's page the left container is not drawn while the visitor has just arrived (the page at its top) and comes in
+ * on the first scroll (`arriving`, `useScrolledPast`); the same container, kept in the page's flow, is where it stands.
  * The hub's layout mounts it once, and it reads the address to know what is current: the page does not say. That is what lets the fill behind
  * the current item glide from one to the next when the visitor goes from page to page, which a bar that every page drew again could not do.
  * The account is on the right: Sign in (to `/login`, which brings the visitor back to this page) and Let's play (a placeholder for now), or, once the
@@ -60,12 +66,20 @@ export function SiteHeader() {
   const pathname = addressOf(usePathname())
   const current = currentOf(pathname)
   const account = useAccount()
+  const scrolled = useScrolledPast(ARRIVAL_SCROLL)
   if (current === null) return null
   const hidden = account.status === "loading" ? "invisible" : undefined
+  // On a game's page the left bar is not drawn while the visitor has just arrived (the page is at its top): its art is what they see. It comes in as soon as they scroll, and a keyboard focus brings it back
+  const arriving = pathname.startsWith("/game/") && !scrolled
 
   return (
     <Navbar className="fixed inset-x-0 top-0 z-40">
-      <NavbarStart>
+      <NavbarStart
+        className={cn(
+          "transition-[opacity,translate] duration-base ease-standard motion-reduce:transition-none",
+          arriving && "pointer-events-none -translate-y-2 opacity-0 focus-within:pointer-events-auto focus-within:translate-y-0 focus-within:opacity-100"
+        )}
+      >
         <NavbarBrand asChild current={current === "home"}>
           <Link href="/" aria-label={SITE_NAME}>
             <Logo className="h-6" />
