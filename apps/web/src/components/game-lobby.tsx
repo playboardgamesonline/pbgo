@@ -5,11 +5,11 @@ import { CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardT
 import { LobbyDetail, LobbyPanel } from "@pbgo/ui/platform/lobby-panel"
 import { LobbyAccess } from "@pbgo/ui/platform/lobby-access"
 import { LobbyPlayers } from "@pbgo/ui/platform/lobby-players"
-import { LobbySettings } from "@pbgo/ui/platform/lobby-settings"
+import { LobbySettings, type HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import { playerRange } from "@pbgo/ui/tables"
 import { cn } from "@pbgo/ui/utils"
 import type { Expansion, ViewerTable } from "@/lib/game-activity"
-import { LANGUAGE_OPTIONS, tableDetailProps } from "@/lib/game-activity-props"
+import { expansionOption, LANGUAGE_OPTIONS, tableDetailProps } from "@/lib/game-activity-props"
 import { LeaveLobbyButton } from "./leave-lobby-button"
 import { StartGameButton } from "./start-game-button"
 
@@ -25,11 +25,11 @@ const TITLE = "text-3xl md:text-4xl"
  * What the panel says of the table the visitor sits at: its details as that visitor has them and, for a lobby that waits, the button that starts it (the one who opened it has it, and presses it once the game has its `minPlayers`; the others
  * have a button that cannot be pressed) and the one that leaves it. The page uses it for the space on the right and for the row of the list that is the same table.
  */
-export function ownTableDetail(table: ViewerTable, slug: string, expansions: readonly Expansion[], minPlayers: number | null = null, maxPlayers: number | null = null) {
+export function ownTableDetail(table: ViewerTable, slug: string, expansions: readonly Expansion[], minPlayers: number | null = null, maxPlayers: number | null = null, helpers: readonly HelperOption[] = []) {
   const waiting = table.status === "lobby"
   const host = waiting && table.viewerIsHost
   return {
-    ...tableDetailProps(table, slug, true, expansions, host, { min: minPlayers, max: maxPlayers }),
+    ...tableDetailProps(table, slug, true, expansions, host, { min: minPlayers, max: maxPlayers }, helpers),
     start: host ? <StartGameButton slug={slug} code={table.code} joined={table.players.length} needed={minPlayers} /> : undefined,
     leave: waiting ? <LeaveLobbyButton slug={slug} code={table.code} /> : undefined,
   }
@@ -40,22 +40,23 @@ export function GameLobby({
   slug,
   name,
   live,
-  players,
   minPlayers = null,
   maxPlayers = null,
   viewerTable,
   expansions = [],
+  helpers = [],
   flat = false,
   className,
 }: {
   slug: string
   name: string
   live: boolean
-  players: string | null
   minPlayers?: number | null
   maxPlayers?: number | null
   viewerTable: ViewerTable | null
   expansions?: readonly Expansion[]
+  /** The aids that a player may have while they play, which the game offers: a row each in the settings. */
+  helpers?: readonly HelperOption[]
   /** The panel stands inside the container of the open tables and draws no surface of its own (`LobbyPanel`). */
   flat?: boolean
   className?: string
@@ -71,7 +72,7 @@ export function GameLobby({
     )
   }
 
-  if (viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers)} flat={flat} className={className} />
+  if (viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers, helpers)} flat={flat} className={className} />
 
   const range = playerRange(minPlayers, maxPlayers)
   return (
@@ -86,11 +87,10 @@ export function GameLobby({
       <CardContent className="flex flex-col">
         <div className="flex flex-col gap-6 border-t pt-6">
           <LobbyPlayers range={range} defaultCount={range.max} />
-          <LobbySettings expansions={expansions} pace="normal" editable />
+          <LobbySettings expansions={expansions.map(expansionOption)} helpers={helpers} pace="normal" editable />
         </div>
       </CardContent>
-      <CardFooter className="flex-col items-stretch gap-3">
-        {players && <p className="text-sm text-muted-foreground">{players}</p>}
+      <CardFooter>
         <Button size="xl" className="w-full" asChild>
           <a href={`/${slug}`}>
             Open a table

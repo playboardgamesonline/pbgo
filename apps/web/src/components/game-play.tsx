@@ -1,4 +1,5 @@
 import { COMING_SOON } from "@/lib/coming-soon"
+import type { HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { Expansion, GameTable, ViewerTable } from "@/lib/game-activity"
 import { tableDetailProps, tableEntryProps } from "@/lib/game-activity-props"
 import { GameLobby, ownTableDetail } from "./game-lobby"
@@ -17,30 +18,31 @@ export function GamePlay({
   slug,
   name,
   live,
-  players,
   minPlayers = null,
   maxPlayers = null,
   tables,
   viewerTable,
   expansions = [],
+  helpers = [],
   now,
   anchored = false,
 }: {
   slug: string
   name: string
   live: boolean
-  players: string | null
   minPlayers?: number | null
   maxPlayers?: number | null
   tables: readonly GameTable[]
   viewerTable: ViewerTable | null
   expansions?: readonly Expansion[]
+  /** The aids that a player may have while they play, which the game offers: the settings of the lobby give each a row. */
+  helpers?: readonly HelperOption[]
   now?: number
   /** Give the space the name that the head's button leads to. Only the page does: a name is one per page, and the specimens show several. */
   anchored?: boolean
 }) {
   // In a game that is live the panel stands inside the container of the open tables, and draws no surface of its own
-  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} flat={live} />
+  const lobby = <GameLobby slug={slug} name={name} live={live} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} helpers={helpers} flat={live} />
 
   if (!live) {
     return (
@@ -57,7 +59,7 @@ export function GamePlay({
           id: viewerTable.id,
           own: true,
           entry: { ...tableEntryProps(viewerTable, slug, now, expansions, true), hostedByYou: viewerTable.viewerIsHost },
-          detail: ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers),
+          detail: ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers, helpers),
         },
       ]
     : []

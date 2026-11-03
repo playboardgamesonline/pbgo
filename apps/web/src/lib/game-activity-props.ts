@@ -1,13 +1,17 @@
+import { Brain02Icon, ChildIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { ordinal } from "@pbgo/accounts"
 import { PLATFORM_LANGUAGES } from "@pbgo/accounts/language"
 import type { LeaderboardRow } from "@pbgo/ui/leaderboard"
 import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
+import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
 import { rankLabel, type Rank } from "@pbgo/ui/ranks"
 import { agoOf, resultOf, timePlayed, winRate, type Result } from "@pbgo/ui/results"
 import { ageOf, DELETED_PLAYER, hostOf, nicknameOf, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
+import { categoryIcon } from "./category-icons"
 import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTimer } from "./game-activity"
+import { durationLabel, playersLabel } from "./game-card-props"
 
 // What the blocks of a game's page draw, made of the rows of `game-activity.ts`: the one place that words a table (its name, its age, what to know before sitting down, what a visitor may do at it), a visitor's figures and games, and
 // that picks what a leaderboard row shows of a standing. The components of `@pbgo/ui` draw what they are given; the docs' specimens run their demo rows through these functions too, so that they show what the page will.
@@ -36,6 +40,31 @@ export function seatsOfTable(table: GameTable): TableSeat[] {
 /** What a visitor may do at a table: the rule of `tableAction` applied to the seats left. */
 function actionOf(table: GameTable, seats: readonly TableSeat[]) {
   return tableAction(table.status === "lobby" ? "waiting" : "playing", seatCount(seats).free)
+}
+
+/**
+ * An expansion as the settings of a lobby draw it (`LobbySettings`): its name, its pictures and its description as they are; what it changes about the game as the figures of the head of the page say them, with the same icons and in the same order (the
+ * players, the duration, the complexity, the age), nothing for a figure that does not differ from its game's (`getExpansions` leaves it out); and the categories that it brings, as tags with the icon of each category.
+ */
+export function expansionOption(expansion: Expansion): ExpansionOption {
+  const { id, name, description, coverUrl, coverRatio, boxUrl, boxRatio } = expansion
+  const facts: (ExpansionFact | null)[] = [
+    expansion.players ? { icon: UserMultipleIcon, text: playersLabel(expansion.players) ?? "" } : null,
+    expansion.duration === null ? null : { icon: HourglassIcon, text: durationLabel(expansion.duration) ?? "" },
+    expansion.complexity === null ? null : { icon: Brain02Icon, text: `Complexity ${expansion.complexity.toFixed(1)}/5` },
+    expansion.age === null ? null : { icon: ChildIcon, text: `Ages ${expansion.age}+` },
+  ]
+  return {
+    id,
+    name,
+    description,
+    facts: facts.filter((fact) => fact !== null),
+    tags: expansion.categories.map((label) => ({ label, icon: categoryIcon(label) })),
+    coverUrl,
+    coverRatio,
+    boxUrl,
+    boxRatio,
+  }
 }
 
 /** The facts of a table worth saying before sitting down: the pace when it is not the usual one, then the expansions it is played with (every table counts for the leaderboard, so that is not said). */
@@ -112,7 +141,8 @@ export function tableDetailProps(
   mine = false,
   expansions: readonly Expansion[] = [],
   editable = false,
-  players: { min: number | null; max: number | null } = { min: null, max: null }
+  players: { min: number | null; max: number | null } = { min: null, max: null },
+  helpers: readonly HelperOption[] = []
 ): Omit<LobbyDetailProps, "onClose"> {
   const state: TableState = table.status === "lobby" ? "waiting" : "playing"
   const seats = seatsOfTable(table)
@@ -126,10 +156,11 @@ export function tableDetailProps(
     description: mine && state === "waiting" ? `Table ${table.code}. Share its link to fill the seats.` : `Table ${table.code}`,
     seats,
     settings: {
-      expansions,
+      expansions: expansions.map(expansionOption),
       chosen: table.expansions,
       pace: table.turnTimer,
-      ...(editable ? { editable: true } : {}),
+      // The helpers are for the lobby the visitor sets: a table of the list says none
+      ...(editable ? { editable: true, helpers } : {}),
     },
     // Who may join a lobby and how many players it has are for its host to set, at the top of the panel and above the seats: every other table is read
     ...(editable ? { access: { defaultVisibility: table.visibility, languages: LANGUAGE_OPTIONS }, playerRange: playerRange(players.min, players.max) } : {}),

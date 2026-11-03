@@ -1,6 +1,8 @@
 import "server-only"
-import { expansionsOf, pictureRatio, pictureUrl } from "@pbgo/catalog"
+import { expansionsOf, pickLocalized, pictureRatio, pictureUrl } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
+import type { Locale } from "@pbgo/core/lib/i18n"
+import { getLocale } from "@pbgo/core/lib/locale-server"
 import type { Outcome } from "@pbgo/ui/results"
 import type { Rank } from "@pbgo/ui/ranks"
 import type { PlayerRecord } from "@pbgo/ui/tables"
@@ -62,10 +64,25 @@ export type GameTable = {
 export type ViewerTable = GameTable & { viewerIsHost: boolean }
 
 /**
- * An expansion of a game that a table may be played with: what it is called and its pictures, its cover (the tile's picture) and the front of its box (the tile's when it has no cover), each with its shape, its width over its height, as its source has it (`pictureRatio`), so that the tile
- * can take that shape. They are the `expansion` documents of the platform's Sanity project whose base game is the game: `@pbgo/catalog` reads them apart, since they have no page of their own.
+ * An expansion of a game that a table may be played with: what it is called and its pictures, its cover (the card's picture) and the front of its box (the card's when it has no cover), each with its shape, its width over its height, as its source has it (`pictureRatio`), so that the card
+ * can take that shape; its description, in the visitor's language when the Studio has it in that one, else in another; what it changes about the game, each figure only when it differs from the base game's, and null when it does not (the
+ * players it takes, the minutes, the weight on BoardGameGeek's scale, the minimum age); and the categories it brings that the base game does not have.
+ * They are the `expansion` documents of the platform's Sanity project whose base game is the game: `@pbgo/catalog` reads them apart, since they have no page of their own.
  */
-export type Expansion = { id: string; name: string; coverUrl: string | null; coverRatio: number | null; boxUrl: string | null; boxRatio: number | null }
+export type Expansion = {
+  id: string
+  name: string
+  description: { text: string; language: Locale } | null
+  players: { min: number; max: number | null } | null
+  duration: number | null
+  complexity: number | null
+  age: number | null
+  categories: string[]
+  coverUrl: string | null
+  coverRatio: number | null
+  boxUrl: string | null
+  boxRatio: number | null
+}
 
 /** One player's standing in a game: their row of `platform.ratings` as the browser may have it, a rank, with the nickname and the picture of their `profiles` row. Only an account has one: a guest is never ranked. */
 export type Standing = {
@@ -188,19 +205,33 @@ export async function getHistory(slug: string, viewerId: string | null): Promise
 }
 
 /**
- * The expansions of the game that a table may be played with, with their pictures: the `expansion` documents of the platform's Sanity project that name it as their base game, by name (`@pbgo/catalog`, cached with the rest of the catalog). A game that has none
+ * The expansions of the game that a table may be played with, with their pictures, their description and what they change: the `expansion` documents of the platform's Sanity project that name it as their base game, by name (`@pbgo/catalog`, cached with the rest of the catalog). A game that has none
  * in the Studio has none (`docs/platform-sanity.md`).
  */
 export async function getExpansions(slug: string): Promise<Expansion[]> {
-  const { expansions } = await getCatalog()
-  return expansionsOf(expansions, slug).map((expansion) => ({
-    id: expansion.slug,
-    name: expansion.name,
-    coverUrl: pictureUrl(expansion, "cover", 480),
-    coverRatio: pictureRatio(expansion.pictures.cover),
-    boxUrl: pictureUrl(expansion, "boxFront", 320),
-    boxRatio: pictureRatio(expansion.pictures.boxFront),
-  }))
+  const { entries, expansions } = await getCatalog()
+  const locale = await getLocale()
+  const base = entries.find((entry) => entry.slug === slug)?.game
+  // The Studio fills a figure of an expansion only where it changes the game's: an expansion says what it changes, and the figures that its game already has are not said again
+  const round = (weight: number) => Math.round(weight * 10) / 10
+  return expansionsOf(expansions, slug).map((expansion) => {
+    const min = expansion.playersMin ?? base?.players?.min ?? null
+    const max = expansion.playersMax ?? base?.players?.max ?? null
+    return {
+      id: expansion.slug,
+      name: expansion.name,
+      description: pickLocalized(expansion.descriptions, locale),
+      players: base?.players && min !== null && (min !== base.players.min || max !== base.players.max) ? { min, max } : null,
+      duration: expansion.duration !== null && expansion.duration !== (base?.duration ?? null) ? expansion.duration : null,
+      complexity: expansion.complexity !== null && round(expansion.complexity) !== (base?.complexity == null ? null : round(base.complexity)) ? expansion.complexity : null,
+      age: expansion.age !== null && expansion.age !== (base?.age ?? null) ? expansion.age : null,
+      categories: expansion.categories.filter((category) => !base?.categories.includes(category)),
+      coverUrl: pictureUrl(expansion, "cover", 480),
+      coverRatio: pictureRatio(expansion.pictures.cover),
+      boxUrl: pictureUrl(expansion, "boxFront", 320),
+      boxRatio: pictureRatio(expansion.pictures.boxFront),
+    }
+  })
 }
 
 /** The tournaments of the game, upcoming, in progress and finished. There are none yet. */

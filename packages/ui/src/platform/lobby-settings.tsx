@@ -1,29 +1,57 @@
 "use client"
 
 import * as React from "react"
-import { InfinityIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowDown01Icon, InfinityIcon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { cn } from "../utils"
 import { initials } from "../friends"
 import { PACES, SPEEDS, type Pace } from "../tables"
+import { Badge } from "./badge"
+import { Button } from "./button"
 import { Checkbox } from "./checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./collapsible"
 import { Label } from "./label"
+import { Switch } from "./switch"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
 // The settings of a game's lobby, under the seats in its panel (`LobbyDetail`, and the space that opens one): how fast it is played, what it is played with and whether it has helpers. The speed of the game is a segmented toggle of four, in this order and in one container as wide as the settings: no timer (an icon alone, an
-// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width, the thumb behind the one that is picked gliding to the next when another is; then come the game's expansions, each a picture in the shape of its source with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
-// is theirs) picks a speed, presses an expansion to choose it or to leave it and ticks the box; one who reads a table of the list has the same slider, which cannot be pressed, and sees only what it is played with besides (a pace that is not on the slider, a table played a day a turn, is said in words). How many may play and who may join are not here: the number of players is above the seats
+// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width, the thumb behind the one that is picked gliding to the next when another is; then come the game's expansions, each a card with a small checkbox, its picture, in the shape of its source, and at the right of the picture its name, its description and what it changes about the game, and, for an expansion that has settings of its own, a button that unrolls them; and, last, the helpers, the aids that a player may have while they play: a title like the others and a row for each that the game offers, with what it is called, what it does and a switch. A visitor who sets them (`editable`: the lobby
+// is theirs) picks a speed, ticks an expansion to choose it or to leave it and switches the helpers; one who reads a table of the list has the same slider, which cannot be pressed, and sees only what it is played with besides (a pace that is not on the slider, a table played a day a turn, is said in words). How many may play and who may join are not here: the number of players is above the seats
 // (`LobbyPlayers`) and who may join is the button at the top right of the panel (`LobbyAccess`). Every table counts for the leaderboard and none can be looked on at, so neither is a setting. Nothing is kept yet: no lobby has a place to keep them (the tables of PLT-13), so what
 // is set stays in the page; `onChange` is for the page that has somewhere to put it.
 
-/**
- * An expansion of a game that a table may be played with: what it is called and its pictures, its cover and the front of its box (the one that is drawn is the cover, else the box; a stand-in with its initials when it has neither), each with its shape, its width over its height, when the page knows it,
- * so that the tile has the shape of its source before the picture has arrived.
- */
-type ExpansionOption = { id: string; name: string; coverUrl?: string | null; coverRatio?: number | null; boxUrl?: string | null; boxRatio?: number | null }
+/** A setting that a switch has on or off, as a row: what it is called ("Show the score calculation"), in one line of text. Its `id` is the game's own, which the table will carry. */
+type SettingOption = { id: string; label: string }
 
-/** What the settings of a lobby say: the ids of the expansions it is played with, its pace and whether it has helpers. */
-type LobbySettingsValue = { expansions: string[]; pace: Pace; helpers: boolean }
+/** A helper of a game, an aid that a player may have while they play: a setting of the lobby with a row of its own. */
+type HelperOption = SettingOption
+
+/** A figure that an expansion changes, with the icon that the head of the game's page gives that figure ("2–6 players", "Ages 10+"). */
+type ExpansionFact = { icon: IconSvgElement; text: string }
+
+/** A category that an expansion brings, as a tag with the icon of that category. */
+type ExpansionTag = { label: string; icon: IconSvgElement }
+
+/**
+ * An expansion of a game that a table may be played with: what it is called, its pictures, its cover and the front of its box (the one that is drawn is the cover, else the box; a stand-in with its initials when it has neither), each with its shape, its width over its height, when the page knows it,
+ * so that its card has the shape of its source before the picture has arrived; its description, in the language it was found in; the figures that it changes, only those that differ from its game's, each with its icon (`facts`: "2–6 players"); the categories
+ * that it brings, each a tag with its icon (`tags`); and, for an expansion that has some, its own settings (`settings`), which its card shows under a button when it is chosen.
+ */
+type ExpansionOption = {
+  id: string
+  name: string
+  description?: { text: string; language: string } | null
+  facts?: readonly ExpansionFact[]
+  tags?: readonly ExpansionTag[]
+  settings?: readonly SettingOption[]
+  coverUrl?: string | null
+  coverRatio?: number | null
+  boxUrl?: string | null
+  boxRatio?: number | null
+}
+
+/** What the settings of a lobby say: the ids of the expansions it is played with, its pace, the ids of the helpers it has on, and for each expansion the ids of its settings that are on. */
+type LobbySettingsValue = { expansions: string[]; pace: Pace; helpers: string[]; expansionSettings: Record<string, string[]> }
 
 type LobbySettingsProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   /** The expansions the game has. A game that has none has no group for them. */
@@ -32,8 +60,10 @@ type LobbySettingsProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   chosen?: readonly string[]
   /** How fast the table is played. */
   pace: Pace
-  /** Whether the table has helpers, the aids a player may have while they play. Only a lobby that is opened or set says it: a table of the list does not. */
-  helpers?: boolean
+  /** The helpers the game offers, the aids a player may have while they play: a row each, for a lobby that is opened or set (a table of the list says none). A game that offers none has no group for them. */
+  helpers?: readonly HelperOption[]
+  /** The helpers the lobby has on, by id: every one the game offers when it is not said. */
+  chosenHelpers?: readonly string[]
   /** Whether the visitor sets them (the lobby is theirs) or reads them (a table of the list). */
   editable?: boolean
   onChange?: (value: LobbySettingsValue) => void
@@ -49,24 +79,32 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 }
 
 /**
- * The picture of an expansion, in the shape of its source: its cover, else the front of its box, drawn whole and as wide as the tile, which is as tall as the picture makes it (a cover is a banner, the front of a box is a portrait or close to a square): nothing is cut and nothing is lost in a frame
- * that is not the picture's own. Its shape (`coverRatio`, `boxRatio`) is the frame's before the picture is in, so that the tile does not jump when it comes; a picture whose shape the page does not know has its own once it is in. With neither a cover nor a box there is no source to follow: the
- * initials of its name, in a 3 × 2 frame on the `muted` fill.
+ * The picture of an expansion, in the shape of its source: its cover, else the front of its box, drawn whole at the left of its card, and no taller than a box of 6rem (8rem when the settings are 28rem wide, `@container`) that its shape fits in: a portrait is 6rem
+ * tall and narrower, a banner is 6rem wide and lower, nothing is cut. Its shape (`coverRatio`, `boxRatio`) is the frame's before the picture is in, so that the card does not jump when it comes; a picture whose shape the page does not know is 6rem wide and has its own height once it is
+ * in. With neither a cover nor a box there is no source to follow: the initials of its name, in a 3 × 2 frame on the `muted` fill. `className` is for what the card does to it (it dims and loses its colour when the expansion is not chosen).
  */
-function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
+function ExpansionPicture({ expansion, className }: { expansion: ExpansionOption; className?: string }) {
   const { coverUrl, coverRatio, boxUrl, boxRatio } = expansion
   const source = coverUrl ? { url: coverUrl, ratio: coverRatio } : boxUrl ? { url: boxUrl, ratio: boxRatio } : null
   if (!source) {
     return (
-      <span aria-hidden="true" className="flex aspect-3/2 items-center justify-center rounded-xl bg-muted font-heading text-2xl text-muted-foreground">
+      <span aria-hidden="true" className={cn("flex aspect-3/2 w-24 shrink-0 items-center justify-center rounded-xl bg-muted font-heading text-2xl text-muted-foreground @md:w-32", className)}>
         {initials(expansion.name)}
       </span>
     )
   }
+  const { ratio } = source
   return (
-    <span className="block overflow-hidden rounded-xl bg-muted" style={source.ratio ? { aspectRatio: source.ratio } : undefined}>
+    <span
+      className={cn(
+        "block shrink-0 overflow-hidden rounded-xl bg-muted",
+        ratio ? "w-[min(6rem,calc(6rem*var(--ratio)))] @md:w-[min(8rem,calc(8rem*var(--ratio)))]" : "w-24 @md:w-32",
+        className
+      )}
+      style={ratio ? ({ "--ratio": ratio, aspectRatio: ratio } as React.CSSProperties) : undefined}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={source.url} alt="" loading="lazy" decoding="async" className={source.ratio ? "size-full object-cover" : "block h-auto w-full"} />
+      <img src={source.url} alt="" loading="lazy" decoding="async" className={ratio ? "size-full object-cover" : "block h-auto w-full"} />
     </span>
   )
 }
@@ -77,18 +115,136 @@ const CHIP = "h-10"
 /** A slider that is read (a table of the list, `disabled`) keeps the speed that it says as strong as when it is set, and dims the others: a value to read is not a control that is off. */
 const READ = "data-[state=on]:disabled:opacity-100"
 
-/** What an expansion is in the settings: its picture and its name in a frame, outlined when the table is played with it. The name wraps and is never cut (an expansion's name often starts with its game's, and says nothing before its end); the frames of a row are as tall as the tallest. */
-const TILE = "flex h-full w-full flex-col gap-2 rounded-2xl p-1.5 text-left outline-2 transition-colors duration-fast"
+/**
+ * The card of an expansion: a small checkbox at its left, then its picture and, at the right of the picture, its name, under it its description (three lines at most, the whole text being its tooltip), then what it changes about the game, the figures that differ from its game's, each
+ * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
+ * that unrolls them under the card, as rows with a switch, once it is chosen. One who reads a table sees only the cards of the ones it is played with, with no box and no button. The box is named by the title and described by the rest. The name wraps and is never cut (an expansion's name
+ * often starts with its game's, and says nothing before its end).
+ */
+const CARD = "flex w-full flex-col"
+
+function ExpansionCard({
+  expansion,
+  chosen,
+  onChosenChange,
+  settingsOn = [],
+  onSettingChange,
+}: {
+  expansion: ExpansionOption
+  chosen: boolean
+  onChosenChange?: (chosen: boolean) => void
+  settingsOn?: readonly string[]
+  onSettingChange?: (setting: string, on: boolean) => void
+}) {
+  const id = React.useId()
+  const [open, setOpen] = React.useState(false)
+  const { name, description, facts = [], tags = [], settings = [] } = expansion
+  const editable = onChosenChange !== undefined
+  const described = [description ? `${id}-description` : null, facts.length > 0 ? `${id}-facts` : null, tags.length > 0 ? `${id}-tags` : null].filter((part) => part !== null).join(" ")
+  const body = (
+    <>
+      <ExpansionPicture expansion={expansion} className={cn("transition-[opacity,filter] duration-fast", !chosen && "opacity-50 grayscale")} />
+      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span id={`${id}-name`} className="text-base leading-snug">
+          {name}
+        </span>
+        {description && (
+          <span id={`${id}-description`} lang={description.language} title={description.text} className="line-clamp-3 text-sm text-muted-foreground">
+            {description.text}
+          </span>
+        )}
+        {facts.length > 0 && (
+          <span id={`${id}-facts`} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            {facts.map(({ icon, text }) => (
+              <span key={text} className="inline-flex items-center gap-1.5">
+                <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" aria-hidden="true" />
+                {text}
+              </span>
+            ))}
+          </span>
+        )}
+        {tags.length > 0 && (
+          <span id={`${id}-tags`} className="flex flex-wrap gap-1.5">
+            {tags.map(({ label, icon }) => (
+              <Badge key={label} variant="secondary" className="h-6 gap-1.5 px-2 text-xs [&>svg]:size-3.5!">
+                <HugeiconsIcon icon={icon} strokeWidth={2} aria-hidden="true" />
+                {label}
+              </Badge>
+            ))}
+          </span>
+        )}
+      </span>
+    </>
+  )
+  const hasSettings = editable && settings.length > 0
+  return (
+    <Collapsible
+      open={hasSettings && chosen && open}
+      onOpenChange={setOpen}
+      data-slot="lobby-expansion"
+      data-chosen={chosen ? "" : undefined}
+      className={CARD}
+    >
+      <div className="flex items-start gap-3">
+        {editable ? (
+          <>
+            <Checkbox
+              id={`${id}-choice`}
+              checked={chosen}
+              onCheckedChange={(next) => onChosenChange(next === true)}
+              aria-labelledby={`${id}-name`}
+              aria-describedby={described || undefined}
+              className="mt-1 shrink-0"
+            />
+            <label htmlFor={`${id}-choice`} className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+              {body}
+            </label>
+          </>
+        ) : (
+          <div className="flex min-w-0 flex-1 items-start gap-3">{body}</div>
+        )}
+        {hasSettings && (
+          <CollapsibleTrigger asChild>
+            <Button type="button" variant="ghost" size="icon-sm" disabled={!chosen} aria-label={`Settings of ${name}`} className="shrink-0 data-[state=open]:[&_svg]:rotate-180">
+              <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="transition-transform duration-fast" aria-hidden="true" />
+            </Button>
+          </CollapsibleTrigger>
+        )}
+      </div>
+      {hasSettings && (
+        <CollapsibleContent>
+          <ul className="mt-3 flex flex-col gap-4 border-t pt-4 pb-1">
+            {settings.map((setting) => (
+              <SwitchRow key={setting.id} option={setting} on={settingsOn.includes(setting.id)} onChange={(on) => onSettingChange?.(setting.id, on)} />
+            ))}
+          </ul>
+        </CollapsibleContent>
+      )}
+    </Collapsible>
+  )
+}
+
+/** A setting as a row, small: its name, in one line of text, and at the right the switch that has it on or off. A helper of the game is one, and so is a setting of an expansion. */
+function SwitchRow({ option, on, onChange }: { option: SettingOption; on: boolean; onChange: (on: boolean) => void }) {
+  const id = React.useId()
+  return (
+    <li data-slot="lobby-switch" className="flex items-center justify-between gap-3">
+      <Label htmlFor={id} className="min-w-0 text-sm leading-snug">
+        {option.label}
+      </Label>
+      <Switch id={id} size="sm" checked={on} onCheckedChange={onChange} />
+    </li>
+  )
+}
 
 /**
- * The settings of a lobby: the speed, then the expansions of the game as pictures with their names (a visitor who sets the lobby presses one to choose it, and the outline says it is, `aria-pressed` for a screen reader; one who reads a table sees only the ones it is
- * played with), then, for a visitor who sets the lobby, the box of the helpers. Each group has its small title. The container decides the columns of the expansions (`@container`): two in a narrow panel, three from 28rem.
+ * The settings of a lobby: the speed, then the expansions of the game as cards (a visitor who sets the lobby ticks one to choose it; one who reads a table sees only the ones it is played with), then, for a visitor who sets the lobby, the helpers that the game
+ * offers, a small row and a switch each. Each group has its small title. The container decides the width of the picture of an expansion and whether the names of the speeds fit (`@container`).
  */
-function LobbySettings({ expansions = [], chosen = [], pace, helpers = true, editable = false, onChange, className, ...props }: LobbySettingsProps) {
-  const helpersId = React.useId()
-  const [set, setSet] = React.useState<LobbySettingsValue>({ expansions: [...chosen], pace, helpers })
+function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, onChange, className, ...props }: LobbySettingsProps) {
+  const [set, setSet] = React.useState<LobbySettingsValue>({ expansions: [...chosen], pace, helpers: chosenHelpers ? [...chosenHelpers] : helpers.map((helper) => helper.id), expansionSettings: {} })
   // What is read comes from the table that is given, so that the panel follows the row that is picked; what is set is the visitor's own
-  const value = editable ? set : { expansions: [...chosen], pace, helpers }
+  const value = editable ? set : { expansions: [...chosen], pace, helpers: [], expansionSettings: {} }
   const change = (next: LobbySettingsValue) => {
     setSet(next)
     onChange?.(next)
@@ -126,42 +282,44 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = true, edi
       </Group>
       {shown.length > 0 && (
         <Group title={editable ? "Expansions" : "Played with"}>
-          <ul className="grid grid-cols-2 gap-3 @md:grid-cols-3">
+          <ul className="flex flex-col gap-4">
             {shown.map((expansion) => {
               const on = value.expansions.includes(expansion.id)
               return (
                 <li key={expansion.id}>
-                  {editable ? (
-                    <button
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => change({ ...set, expansions: on ? set.expansions.filter((id) => id !== expansion.id) : [...set.expansions, expansion.id] })}
-                      className={cn(TILE, "focus-visible:ring-3 focus-visible:ring-ring/30", on ? "outline-foreground" : "outline-transparent hover:outline-foreground/30")}
-                    >
-                      <ExpansionPicture expansion={expansion} />
-                      <span className="px-1 text-sm">{expansion.name}</span>
-                    </button>
-                  ) : (
-                    <div className={cn(TILE, "outline-foreground")}>
-                      <ExpansionPicture expansion={expansion} />
-                      <span className="px-1 text-sm">{expansion.name}</span>
-                    </div>
-                  )}
+                  <ExpansionCard
+                    expansion={expansion}
+                    chosen={on}
+                    onChosenChange={editable ? (next) => change({ ...set, expansions: next ? [...set.expansions, expansion.id] : set.expansions.filter((id) => id !== expansion.id) }) : undefined}
+                    settingsOn={set.expansionSettings[expansion.id]}
+                    onSettingChange={(setting, enabled) => {
+                      const current = set.expansionSettings[expansion.id] ?? []
+                      change({ ...set, expansionSettings: { ...set.expansionSettings, [expansion.id]: enabled ? [...current, setting] : current.filter((id) => id !== setting) } })
+                    }}
+                  />
                 </li>
               )
             })}
           </ul>
         </Group>
       )}
-      {editable && (
-        <div className="flex items-center gap-3">
-          <Checkbox id={helpersId} checked={set.helpers} onCheckedChange={(next) => change({ ...set, helpers: next === true })} />
-          <Label htmlFor={helpersId}>Helpers</Label>
-        </div>
+      {editable && helpers.length > 0 && (
+        <Group title="Helpers">
+          <ul className="flex flex-col gap-4">
+            {helpers.map((helper) => (
+              <SwitchRow
+                key={helper.id}
+                option={helper}
+                on={set.helpers.includes(helper.id)}
+                onChange={(on) => change({ ...set, helpers: on ? [...set.helpers, helper.id] : set.helpers.filter((id) => id !== helper.id) })}
+              />
+            ))}
+          </ul>
+        </Group>
       )}
     </div>
   )
 }
 
 export { LobbySettings }
-export type { ExpansionOption, LobbySettingsProps, LobbySettingsValue }
+export type { ExpansionFact, ExpansionOption, ExpansionTag, HelperOption, LobbySettingsProps, LobbySettingsValue, SettingOption }
