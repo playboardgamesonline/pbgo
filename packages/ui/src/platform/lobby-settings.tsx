@@ -88,7 +88,7 @@ function ExpansionPicture({ expansion, className }: { expansion: ExpansionOption
   const source = coverUrl ? { url: coverUrl, ratio: coverRatio } : boxUrl ? { url: boxUrl, ratio: boxRatio } : null
   if (!source) {
     return (
-      <span aria-hidden="true" className={cn("flex aspect-3/2 w-24 shrink-0 items-center justify-center rounded-xl bg-muted font-heading text-2xl text-muted-foreground @md:w-32", className)}>
+      <span aria-hidden="true" className={cn("flex aspect-3/2 w-24 shrink-0 items-center justify-center rounded-lg bg-muted font-heading text-2xl text-muted-foreground @md:w-32", className)}>
         {initials(expansion.name)}
       </span>
     )
@@ -97,7 +97,7 @@ function ExpansionPicture({ expansion, className }: { expansion: ExpansionOption
   return (
     <span
       className={cn(
-        "block shrink-0 overflow-hidden rounded-xl bg-muted",
+        "block shrink-0 overflow-hidden rounded-lg bg-muted",
         ratio ? "w-[min(6rem,calc(6rem*var(--ratio)))] @md:w-[min(8rem,calc(8rem*var(--ratio)))]" : "w-24 @md:w-32",
         className
       )}
@@ -116,12 +116,12 @@ const CHIP = "h-10"
 const READ = "data-[state=on]:disabled:opacity-100"
 
 /**
- * The card of an expansion: a small checkbox at its left, then its picture and, at the right of the picture, its name, under it its description (three lines at most, the whole text being its tooltip), then what it changes about the game, the figures that differ from its game's, each
- * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
+ * The card of an expansion: a small checkbox at its left, then its picture and, at the right of the picture, its name, under it its description (two lines at most, the whole text being its tooltip), then what it changes about the game, the figures that differ from its game's, each
+ * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not, and the card, which has a fill a step lighter than the panel's when it is chosen and a half of it under the pointer. The card's corners (`rounded-2xl`) are the picture's (`rounded-lg`) and the room round it (`p-2`); it reaches 8px out of the column (`-mx-2`) so that what is in it stands where the titles of the groups do. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
  * that unrolls them under the card, as rows with a switch, once it is chosen. One who reads a table sees only the cards of the ones it is played with, with no box and no button. The box is named by the title and described by the rest. The name wraps and is never cut (an expansion's name
  * often starts with its game's, and says nothing before its end).
  */
-const CARD = "flex w-full flex-col"
+const CARD = "-mx-2 flex flex-col rounded-2xl p-2 transition-colors duration-fast"
 
 function ExpansionCard({
   expansion,
@@ -149,28 +149,33 @@ function ExpansionCard({
           {name}
         </span>
         {description && (
-          <span id={`${id}-description`} lang={description.language} title={description.text} className="line-clamp-3 text-sm text-muted-foreground">
+          <span id={`${id}-description`} lang={description.language} title={description.text} className="line-clamp-2 text-sm text-muted-foreground">
             {description.text}
           </span>
         )}
-        {facts.length > 0 && (
-          <span id={`${id}-facts`} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            {facts.map(({ icon, text }) => (
-              <span key={text} className="inline-flex items-center gap-1.5">
-                <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" aria-hidden="true" />
-                {text}
+        {(facts.length > 0 || tags.length > 0) && (
+          // What the expansion changes stands apart from what it says: twice the room that the title has before the description
+          <span className="mt-1.5 flex flex-col gap-2">
+            {facts.length > 0 && (
+              <span id={`${id}-facts`} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                {facts.map(({ icon, text }) => (
+                  <span key={text} className="inline-flex items-center gap-1.5">
+                    <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" aria-hidden="true" />
+                    {text}
+                  </span>
+                ))}
               </span>
-            ))}
-          </span>
-        )}
-        {tags.length > 0 && (
-          <span id={`${id}-tags`} className="flex flex-wrap gap-1.5">
-            {tags.map(({ label, icon }) => (
-              <Badge key={label} variant="secondary" className="h-6 gap-1.5 px-2 text-xs [&>svg]:size-3.5!">
-                <HugeiconsIcon icon={icon} strokeWidth={2} aria-hidden="true" />
-                {label}
-              </Badge>
-            ))}
+            )}
+            {tags.length > 0 && (
+              <span id={`${id}-tags`} className="flex flex-wrap gap-1.5">
+                {tags.map(({ label, icon }) => (
+                  <Badge key={label} variant="secondary" className="h-6 gap-1.5 px-2 text-xs [&>svg]:size-3.5!">
+                    <HugeiconsIcon icon={icon} strokeWidth={2} aria-hidden="true" />
+                    {label}
+                  </Badge>
+                ))}
+              </span>
+            )}
           </span>
         )}
       </span>
@@ -183,7 +188,7 @@ function ExpansionCard({
       onOpenChange={setOpen}
       data-slot="lobby-expansion"
       data-chosen={chosen ? "" : undefined}
-      className={CARD}
+      className={cn(CARD, editable && (chosen ? "bg-muted" : "hover:bg-muted/50"))}
     >
       <div className="flex items-start gap-3">
         {editable ? (
@@ -282,7 +287,7 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
       </Group>
       {shown.length > 0 && (
         <Group title={editable ? "Expansions" : "Played with"}>
-          <ul className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-2">
             {shown.map((expansion) => {
               const on = value.expansions.includes(expansion.id)
               return (

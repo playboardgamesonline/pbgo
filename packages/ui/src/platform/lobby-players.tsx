@@ -51,13 +51,14 @@ function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, in
           onCountChange?.(Number(next))
         }}
       >
-        <SelectTrigger id={selectId}>
+        {/* A trigger 36px high with 12px corners, as the button beside it has, a list of 16px corners round items of 10px that stand 6px in from its edge (`SelectGroup`): each corner is the one inside it plus the room between. A small list is no capsule */}
+        <SelectTrigger id={selectId} className="rounded-lg">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent align="end" className="min-w-0">
+        <SelectContent align="end" className="min-w-0 rounded-xl">
           <SelectGroup>
             {numbers.map((number) => (
-              <SelectItem key={number} value={String(number)}>
+              <SelectItem key={number} value={String(number)} className="rounded-md">
                 {number}
               </SelectItem>
             ))}

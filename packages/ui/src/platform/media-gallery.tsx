@@ -195,7 +195,7 @@ function MediaGallery({ className, name, cover, media = [], ...props }: MediaGal
                   aria-label={tile.label}
                   tabIndex={index === shown ? 0 : -1}
                   onClick={() => setPicked(index)}
-                  className="relative isolate aspect-16/10 shrink-0 basis-[calc((100%_-_1rem)/3)] snap-start overflow-hidden rounded-2xl bg-muted opacity-60 ring-1 ring-foreground/10 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/30 aria-selected:opacity-100 @md:basis-[calc((100%_-_1.5rem)/4)]"
+                  className="relative isolate aspect-16/10 shrink-0 basis-[calc((100%_-_1rem)/3)] snap-start overflow-hidden rounded-lg bg-muted opacity-60 ring-1 ring-foreground/10 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/30 aria-selected:opacity-100 @md:basis-[calc((100%_-_1.5rem)/4)]"
                 >
                   <Thumbnail slide={tile} cover={cover} />
                   {index === shown && (
