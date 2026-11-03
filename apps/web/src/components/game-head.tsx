@@ -11,7 +11,7 @@ import { CREATE_ANCHOR } from "./game-play"
 import { RulesButton } from "./rules-button"
 
 // The head of a game's page, the first thing a visitor sees: the game's own background across the whole width of the page, from the very top (the navbar is over it), the art fading into the page under the text, from the left, where the text is, and at the foot, where the page goes on
-// (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left whose foot is the foot of the head, the way back to the games' list ("All games") at its top, 8rem over the logo on a wide screen (4rem on a phone), and everything else at its foot: the game's logo in place of its name (the name, written, for a game
+// (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left whose foot is the foot of the head, the way back to the games' list ("Back") at its top, 8rem over the logo on a wide screen (4rem on a phone), and everything else at its foot: the game's logo in place of its name (the name, written, for a game
 // that has no logo), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three main
 // buttons, all 48px high, "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindGameButton`); "Create a game", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
 // to the rulebook, or a menu of languages that a press opens). Under the buttons come the credits of the game, quiet (`GameCredits`). What the signed-in visitor has done in the game is not here: it is in the thin banner under the head (`GameHistoryStats`). A game that is not live has the first two buttons disabled and keeps the rules.
@@ -39,9 +39,9 @@ export function GameHead({ slug, name, live, description, players, duration, com
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-t from-background via-background/30 to-transparent" />
 
       <div className="mx-auto flex min-h-136 w-full max-w-page flex-col justify-between gap-16 px-gutter pt-navbar pb-10 md:min-h-152 md:gap-32 md:pb-14">
-        <Link href="/games" className="mt-2 inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground underline-offset-4 hover:underline">
+        <Link href="/games" aria-label="Back to all games" className="mt-2 inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground underline-offset-4 hover:underline">
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4" />
-          All games
+          Back
         </Link>
 
         <div className="flex flex-col items-start gap-6">
