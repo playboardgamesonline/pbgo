@@ -93,8 +93,8 @@ export type CatalogExpansion = {
 
 /**
  * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its background across the
- * frame, and the page draws the same ones larger; an expansion's cover fills a frame like a background and the front of its box is
- * drawn smaller. Never more than the file holds.
+ * frame, and the page draws the same ones larger; an expansion's cover is drawn wide, like a background, and the front of its box
+ * smaller. Never more than the file holds.
  */
 const PICTURE_WIDTH: Record<ArtSlot | ExpansionSlot, number> = { logo: 800, icon: 512, background: 1200, cover: 1200, boxFront: 600 }
 
@@ -112,6 +112,16 @@ export function pictureUrl<Slot extends ArtSlot | ExpansionSlot>(owner: { pictur
 /** The address of a file of the image CDN, asked for `width` pixels wide at most and in the best format the browser takes (an SVG is served as it is): how a picture of a gallery is sized. */
 export function sizedPictureUrl(url: string, width: number): string {
   return url.endsWith(".svg") ? url : `${url}?w=${width}&fit=max&auto=format`
+}
+
+/**
+ * The width over the height of a picture of the image CDN, read from its address: the CDN names each file after the size of the picture (`<hash>-650x590.webp`), so its shape is known before it arrives, and a frame can be given it to keep
+ * the page still. Null for no picture and for an address that carries no size (or one that makes no shape).
+ */
+export function pictureRatio(url: string | null): number | null {
+  const size = url === null ? null : /-(\d+)x(\d+)\.[a-z0-9]+(?:\?.*)?$/i.exec(url)
+  const ratio = size ? Number(size[1]) / Number(size[2]) : NaN
+  return Number.isFinite(ratio) && ratio > 0 ? ratio : null
 }
 
 /**

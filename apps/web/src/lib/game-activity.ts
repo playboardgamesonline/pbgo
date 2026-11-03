@@ -1,5 +1,5 @@
 import "server-only"
-import { expansionsOf, pictureUrl } from "@pbgo/catalog"
+import { expansionsOf, pictureRatio, pictureUrl } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
 import type { Outcome } from "@pbgo/ui/results"
 import type { Rank } from "@pbgo/ui/ranks"
@@ -62,10 +62,10 @@ export type GameTable = {
 export type ViewerTable = GameTable & { viewerIsHost: boolean }
 
 /**
- * An expansion of a game that a table may be played with: what it is called and its pictures, its cover (the tile's picture) and the front of its box (drawn whole in the tile when it has no cover). They are the `expansion` documents of the platform's Sanity
- * project whose base game is the game: `@pbgo/catalog` reads them apart, since they have no page of their own.
+ * An expansion of a game that a table may be played with: what it is called and its pictures, its cover (the tile's picture) and the front of its box (the tile's when it has no cover), each with its shape, its width over its height, as its source has it (`pictureRatio`), so that the tile
+ * can take that shape. They are the `expansion` documents of the platform's Sanity project whose base game is the game: `@pbgo/catalog` reads them apart, since they have no page of their own.
  */
-export type Expansion = { id: string; name: string; coverUrl: string | null; boxUrl: string | null }
+export type Expansion = { id: string; name: string; coverUrl: string | null; coverRatio: number | null; boxUrl: string | null; boxRatio: number | null }
 
 /** One player's standing in a game: their row of `platform.ratings` as the browser may have it, a rank, with the nickname and the picture of their `profiles` row. Only an account has one: a guest is never ranked. */
 export type Standing = {
@@ -197,7 +197,9 @@ export async function getExpansions(slug: string): Promise<Expansion[]> {
     id: expansion.slug,
     name: expansion.name,
     coverUrl: pictureUrl(expansion, "cover", 480),
+    coverRatio: pictureRatio(expansion.pictures.cover),
     boxUrl: pictureUrl(expansion, "boxFront", 320),
+    boxRatio: pictureRatio(expansion.pictures.boxFront),
   }))
 }
 

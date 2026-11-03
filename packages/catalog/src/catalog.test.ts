@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CREATOR_ROLES } from "@pbgo/studio-kit/constants"
-import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, bggIconUrl, bggUrl, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
+import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, bggIconUrl, bggUrl, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureRatio, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
 import { catalogGame, cdn, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -360,6 +360,27 @@ describe("pictureUrl", () => {
 
   it("never points anywhere but at the image CDN of a project", () => {
     for (const slot of ART_SLOTS) expect(pictureUrl(game, slot)).toMatch(/^https:\/\/cdn\.sanity\.io\/images\//)
+  })
+})
+
+describe("pictureRatio", () => {
+  it("is the width over the height that the CDN puts in the name of a file, so that a frame has the picture's shape before it arrives", () => {
+    expect(pictureRatio(cdn("cover-1600x900.jpg"))).toBeCloseTo(16 / 9)
+    expect(pictureRatio(cdn("box-800x800.png"))).toBe(1)
+    expect(pictureRatio(cdn("box-600x800.webp"))).toBe(0.75)
+  })
+
+  it("reads the size of an address that was sized (`?w=…`) and of a vector picture as well", () => {
+    expect(pictureRatio(`${cdn("cover-1600x900.jpg")}?w=480&fit=max&auto=format`)).toBeCloseTo(16 / 9)
+    expect(pictureRatio(cdn("logo-100x30.svg"))).toBeCloseTo(10 / 3)
+  })
+
+  it("is null for no picture, for an address with no size and for a size that makes no shape", () => {
+    expect(pictureRatio(null)).toBeNull()
+    expect(pictureRatio(cdn("cover.jpg"))).toBeNull()
+    expect(pictureRatio("https://example.com/box.png")).toBeNull()
+    expect(pictureRatio(cdn("box-0x800.png"))).toBeNull()
+    expect(pictureRatio(cdn("box-800x0.png"))).toBeNull()
   })
 })
 

@@ -11,13 +11,16 @@ import { Label } from "./label"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
 // The settings of a game's lobby, under the seats in its panel (`LobbyDetail`, and the space that opens one): how fast it is played, what it is played with and whether it has helpers. The speed of the game is a segmented toggle of four, in this order and in one container as wide as the settings: no timer (an icon alone, an
-// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width, the thumb behind the one that is picked gliding to the next when another is; then come the game's expansions, each a picture with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
+// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width, the thumb behind the one that is picked gliding to the next when another is; then come the game's expansions, each a picture in the shape of its source with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
 // is theirs) picks a speed, presses an expansion to choose it or to leave it and ticks the box; one who reads a table of the list has the same slider, which cannot be pressed, and sees only what it is played with besides (a pace that is not on the slider, a table played a day a turn, is said in words). How many may play and who may join are not here: the number of players is above the seats
 // (`LobbyPlayers`) and who may join is the button at the top right of the panel (`LobbyAccess`). Every table counts for the leaderboard and none can be looked on at, so neither is a setting. Nothing is kept yet: no lobby has a place to keep them (the tables of PLT-13), so what
 // is set stays in the page; `onChange` is for the page that has somewhere to put it.
 
-/** An expansion of a game that a table may be played with: what it is called and its pictures, its cover that fills its frame and the front of its box that is drawn whole in it when it has no cover (a stand-in with its initials when it has neither). */
-type ExpansionOption = { id: string; name: string; coverUrl?: string | null; boxUrl?: string | null }
+/**
+ * An expansion of a game that a table may be played with: what it is called and its pictures, its cover and the front of its box (the one that is drawn is the cover, else the box; a stand-in with its initials when it has neither), each with its shape, its width over its height, when the page knows it,
+ * so that the tile has the shape of its source before the picture has arrived.
+ */
+type ExpansionOption = { id: string; name: string; coverUrl?: string | null; coverRatio?: number | null; boxUrl?: string | null; boxRatio?: number | null }
 
 /** What the settings of a lobby say: the ids of the expansions it is played with, its pace and whether it has helpers. */
 type LobbySettingsValue = { expansions: string[]; pace: Pace; helpers: boolean }
@@ -45,22 +48,25 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-/** The picture of an expansion, in a 3 × 2 frame on the `muted` fill: its cover fills it; with no cover, the front of its box is drawn whole in it, contained, since a box is not made for that shape; with neither, the initials of its name. */
+/**
+ * The picture of an expansion, in the shape of its source: its cover, else the front of its box, drawn whole and as wide as the tile, which is as tall as the picture makes it (a cover is a banner, the front of a box is a portrait or close to a square): nothing is cut and nothing is lost in a frame
+ * that is not the picture's own. Its shape (`coverRatio`, `boxRatio`) is the frame's before the picture is in, so that the tile does not jump when it comes; a picture whose shape the page does not know has its own once it is in. With neither a cover nor a box there is no source to follow: the
+ * initials of its name, in a 3 × 2 frame on the `muted` fill.
+ */
 function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
-  const { coverUrl, boxUrl } = expansion
+  const { coverUrl, coverRatio, boxUrl, boxRatio } = expansion
+  const source = coverUrl ? { url: coverUrl, ratio: coverRatio } : boxUrl ? { url: boxUrl, ratio: boxRatio } : null
+  if (!source) {
+    return (
+      <span aria-hidden="true" className="flex aspect-3/2 items-center justify-center rounded-xl bg-muted font-heading text-2xl text-muted-foreground">
+        {initials(expansion.name)}
+      </span>
+    )
+  }
   return (
-    <span className="relative block aspect-3/2 overflow-hidden rounded-xl bg-muted">
-      {coverUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={coverUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
-      ) : boxUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={boxUrl} alt="" loading="lazy" decoding="async" className="size-full object-contain p-2" />
-      ) : (
-        <span aria-hidden="true" className="flex size-full items-center justify-center font-heading text-2xl text-muted-foreground">
-          {initials(expansion.name)}
-        </span>
-      )}
+    <span className="block overflow-hidden rounded-xl bg-muted" style={source.ratio ? { aspectRatio: source.ratio } : undefined}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={source.url} alt="" loading="lazy" decoding="async" className={source.ratio ? "size-full object-cover" : "block h-auto w-full"} />
     </span>
   )
 }
