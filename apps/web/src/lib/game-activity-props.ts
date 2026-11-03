@@ -15,7 +15,7 @@ import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTim
 /** The languages a lobby may ask its players to speak: the platform's twelve, each as its own name (the button that says who may join offers them, `LobbyAccess`). */
 export const LANGUAGE_OPTIONS = PLATFORM_LANGUAGES.map(({ id, title }) => ({ value: id, label: title }))
 
-/** The words that say the pace of a table, when it is worth saying: a table with no clock, one that leaves days to play, or a clock that is not the usual one. The usual pace (`normal`) is not said. */
+/** The pace of a table, when it is worth saying: a table with no clock, one that leaves days to play, or a clock that is not the usual one. The usual pace (`normal`) is not said. */
 const PACE: Partial<Record<TurnTimer, string>> = { none: "No timer", slow: "Slow turns", fast: "Fast turns", async: "Async" }
 
 /** The seats of a table, in order: each person with their name, tag, picture, record and whether they opened it, `null` for a seat nobody took. */
@@ -38,20 +38,10 @@ function actionOf(table: GameTable, seats: readonly TableSeat[]) {
   return tableAction(table.status === "lobby" ? "waiting" : "playing", seatCount(seats).free)
 }
 
-/** The names of the expansions a table is played with, among the ones the game has. */
-function expansionNamesOf(table: GameTable, expansions: readonly Expansion[]): string[] {
-  return table.expansions.flatMap((id) => expansions.find((expansion) => expansion.id === id)?.name ?? [])
-}
-
 /** The facts of a table worth saying before sitting down: the pace when it is not the usual one, then the expansions it is played with (every table counts for the leaderboard, so that is not said). */
 function factsOf(table: GameTable, expansions: readonly Expansion[]): string[] {
-  return [PACE[table.turnTimer], ...expansionNamesOf(table, expansions)].filter((fact) => fact !== undefined)
-}
-
-/** The pace of a table as a row of the list says it, with its picto: the pace and the words for it, or none when it is the usual one. */
-function paceOfTable(table: GameTable): TableEntryProps["pace"] {
-  const label = PACE[table.turnTimer]
-  return label === undefined ? null : { pace: table.turnTimer, label }
+  const names = table.expansions.flatMap((id) => expansions.find((expansion) => expansion.id === id)?.name ?? [])
+  return [PACE[table.turnTimer], ...names].filter((fact) => fact !== undefined)
 }
 
 /** The name of a table: its host's, or its code when the host has deleted their account. */
@@ -79,15 +69,14 @@ export function tableCardProps(table: GameTable, slug: string, now: number = Dat
   }
 }
 
-/** The row of a table in the list of the open tables of the game `slug`: who hosts it, a circle for each of its seats, how fast it is played when that is worth saying, what else to know about it and how old it is (`TableEntry`). `mine` is for the table that the visitor sits at, whose free seats invite instead of join. */
+/** The row of a table in the list of the open tables of the game `slug`: who hosts it, a circle for each of its seats, what to know about it and how old it is (`TableEntry`). `mine` is for the table that the visitor sits at, whose free seats invite instead of join. */
 export function tableEntryProps(table: GameTable, slug: string, now: number = Date.now(), expansions: readonly Expansion[] = [], mine = false): Omit<TableEntryProps, "selected" | "onSelect" | "controls"> {
   const seats = seatsOfTable(table)
   return {
     state: table.status === "lobby" ? "waiting" : "playing",
     seats,
     age: ageOfTable(table, now),
-    pace: paceOfTable(table),
-    facts: expansionNamesOf(table, expansions),
+    facts: factsOf(table, expansions),
     action: actionOf(table, seats),
     href: `/${slug}/game/${table.code}`,
     mine,

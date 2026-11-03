@@ -2,13 +2,12 @@ import * as React from "react"
 import { CrownIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
-import { hostOf, seatCount, type Pace, type TableAction, type TableSeat, type TableState } from "../tables"
+import { hostOf, seatCount, type TableAction, type TableSeat, type TableState } from "../tables"
 import { OpenSeat } from "./open-seat"
-import { PaceIcon } from "./pace-icon"
 import { SeatAvatar } from "./table-card"
 
 // A table in the list of the open tables of a game, as a block of three lines. On the first, how many sit at it of how many it has (a small picture of people, then "3/5"), who opened it ("Hosted by Marly") and how old it is. On the second, what to know before sitting down
-// ("Fast turns · First expansion"): the speed when it is not the usual one, with its picto (`PaceIcon`, the one the speed slider of a lobby has), then the expansions, and no line at all when there is nothing to say. On the third, a circle for each seat of the table, all of them, none over another, so that the room that is left is seen at once: a picture and
+// ("Fast turns · First expansion"): the speed when it is not the usual one, then the expansions, and no line at all when there is nothing to say. On the third, a circle for each seat of the table, all of them, none over another, so that the room that is left is seen at once: a picture and
 // the nickname under it for a person, a crown on the one who opened it, and for a seat nobody has taken a dashed circle with a plus in it, which does what the seat is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the
 // link). The pictures are large and close together (48px, four apart). The pointer finds a player's card on their picture, and a press on the row picks it, which the page shows by the panel beside the list (`LobbyDetail`). Like `TableCard` it draws what it is given and decides nothing: the
 // page keeps which row is picked. It is not a client component: a row with no `onSelect` (a list that is only read) is drawn on the server, and then has no handler at all.
@@ -20,9 +19,7 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   seats: readonly TableSeat[]
   /** When it was opened, or how long it has been played: already formatted ("Opened 4 min ago"). */
   age: string
-  /** How fast it is played, when that is worth saying (a pace that is not the usual one): the pace, for its picto, and the words that say it ("Fast turns"). None: nothing is said of it. */
-  pace?: { pace: Pace; label: string } | null
-  /** What else to know before sitting down ("First expansion"), already formatted. */
+  /** What to know before sitting down ("Fast turns", "First expansion"), already formatted. */
   facts?: readonly string[]
   /** What a visitor may do: `join` makes the free seats a way in, `full` says there is none. None: nothing to do. */
   action?: TableAction | null
@@ -40,9 +37,8 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   controls?: string
 }
 
-function TableEntry({ className, state, seats, age, pace = null, facts = [], action, href, mine = false, hostedByYou = false, selected = false, onSelect, controls, ...props }: TableEntryProps) {
+function TableEntry({ className, state, seats, age, facts = [], action, href, mine = false, hostedByYou = false, selected = false, onSelect, controls, ...props }: TableEntryProps) {
   const { taken, total } = seatCount(seats)
-  const said = [...(pace ? [pace.label] : []), ...facts]
   const host = hostedByYou ? "you" : (hostOf(seats) ?? "a player who left")
   const full = action === "full"
   const firstFree = seats.indexOf(null)
@@ -74,7 +70,7 @@ function TableEntry({ className, state, seats, age, pace = null, facts = [], act
       >
         {/* What the row says, once, for screen readers: the seats under it name everybody and are read as they are */}
         <span className="sr-only">
-          {`Table hosted by ${host}, ${taken} of ${total} seats taken${said.length > 0 ? `, ${said.join(", ")}` : ""}. ${age}.`}
+          {`Table hosted by ${host}, ${taken} of ${total} seats taken${facts.length > 0 ? `, ${facts.join(", ")}` : ""}. ${age}.`}
         </span>
         <span aria-hidden="true" className="flex w-full min-w-0 items-center gap-3">
           <span data-slot="table-entry-count" className="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground tabular-nums">
@@ -90,16 +86,9 @@ function TableEntry({ className, state, seats, age, pace = null, facts = [], act
             {age}
           </span>
         </span>
-        {said.length > 0 && (
-          <span aria-hidden="true" data-slot="table-entry-facts" className="flex w-full min-w-0 items-center gap-x-1.5 text-sm text-muted-foreground">
-            {pace && (
-              <span data-slot="table-entry-pace" className="inline-flex shrink-0 items-center gap-1.5">
-                <PaceIcon pace={pace.pace} />
-                {pace.label}
-              </span>
-            )}
-            {pace && facts.length > 0 && <span>·</span>}
-            {facts.length > 0 && <span className="truncate">{facts.join(" · ")}</span>}
+        {facts.length > 0 && (
+          <span aria-hidden="true" data-slot="table-entry-facts" className="truncate text-sm text-muted-foreground">
+            {facts.join(" · ")}
           </span>
         )}
       </button>

@@ -1,16 +1,17 @@
 "use client"
 
 import * as React from "react"
+import { InfinityIcon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 import { initials } from "../friends"
 import { PACES, SPEEDS, type Pace } from "../tables"
 import { Checkbox } from "./checkbox"
 import { Label } from "./label"
-import { PaceIcon } from "./pace-icon"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
 // The settings of a game's lobby, under the seats in its panel (`LobbyDetail`, and the space that opens one): how fast it is played, what it is played with and whether it has helpers. The speed of the game is a segmented toggle of four, in this order and in one container as wide as the settings: no timer (an icon alone, an
-// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width, each with its picto before its name (`PaceIcon`, which the rows of the list use as well; the picto alone when the settings are narrower than 21rem), the thumb behind the one that is picked gliding to the next when another is; then come the game's expansions, each a picture with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
+// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width, the thumb behind the one that is picked gliding to the next when another is; then come the game's expansions, each a picture with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
 // is theirs) picks a speed, presses an expansion to choose it or to leave it and ticks the box; one who reads a table of the list has the same slider, which cannot be pressed, and sees only what it is played with besides (a pace that is not on the slider, a table played a day a turn, is said in words). How many may play and who may join are not here: the number of players is above the seats
 // (`LobbyPlayers`) and who may join is the button at the top right of the panel (`LobbyAccess`). Every table counts for the leaderboard and none can be looked on at, so neither is a setting. Nothing is kept yet: no lobby has a place to keep them (the tables of PLT-13), so what
 // is set stays in the page; `onChange` is for the page that has somewhere to put it.
@@ -64,9 +65,6 @@ function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
   )
 }
 
-/** The words that name a pace. */
-const paceName = (pace: Pace) => PACES.find((option) => option.value === pace)?.label
-
 /** The chips of the speed are taller than a chip's usual 2rem: the slider is the one control of the panel that is pressed to set something, and it is read first. */
 const CHIP = "h-10"
 
@@ -107,22 +105,17 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = true, edi
               speed === "none" ? (
                 // No timer is an infinity and nothing else, narrower than the others, which share the rest of the width alike: its name is for a screen reader and for the pointer
                 <ToggleGroupItem key={speed} value={speed} fit aria-label="No timer" title="No timer" className={cn("w-12 px-0", CHIP, READ)}>
-                  <PaceIcon pace={speed} />
+                  <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
                 </ToggleGroupItem>
               ) : (
-                // The others have their picto and their name; when the settings are narrower than 21rem the names do not fit three chips and the picto stands alone, the name staying for a screen reader and for the pointer
-                <ToggleGroupItem key={speed} value={speed} aria-label={paceName(speed)} title={paceName(speed)} className={cn("gap-1.5 px-1.5", CHIP, READ)}>
-                  <PaceIcon pace={speed} />
-                  <span className="hidden @[21rem]:inline">{paceName(speed)}</span>
+                <ToggleGroupItem key={speed} value={speed} className={cn(CHIP, READ)}>
+                  {PACES.find((pace) => pace.value === speed)?.label}
                 </ToggleGroupItem>
               )
             )}
           </ToggleGroup>
         ) : (
-          <p className="flex items-center gap-2">
-            <PaceIcon pace={value.pace} />
-            {paceName(value.pace)}
-          </p>
+          <p>{PACES.find((option) => option.value === value.pace)?.label}</p>
         )}
       </Group>
       {shown.length > 0 && (
