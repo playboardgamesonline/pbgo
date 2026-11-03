@@ -101,7 +101,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 
 ## Rules of work
 - English everywhere: code, comments, docs, commits, PRs. Only player-facing texts are in other languages: a game's live in its Sanity project, the platform's in `UI_TEXTS` and `translations.ts`
-- Platform UI (hub, account, legal, gamemaster, 404) uses only `@pbgo/ui` tokens and components, never a hard-coded colour, font or spacing; a new component goes into `@pbgo/ui` first and into its page of the docs (see `docs/design/01-guidelines.md`)
+- Platform UI (hub, account, legal, gamemaster, 404) uses only `@pbgo/ui` tokens and components, never a hard-coded colour, font or spacing; a new component goes into `@pbgo/ui` first and, when other screens will use it, into its page of the docs (see `docs/design/01-guidelines.md`); the design of one page is never documented in `docs/design/`
 - Branch named after the Linear issue (`plt-<n>-<topic>`); the PR description references the issue ID; never merge your own PR
 - A PR that adds a migration says so in its description: Oré runs `pnpm setup-env` right after merging it, which applies the migration to preview, then to production (see `docs/supabase-and-env.md`)
 - A recurring job is a skill of the agent that carries it out, `.claude/skills/<game|engine|platform>-<job>/SKILL.md`, listed in `.claude/skills/README.md`: its questions, rules and commands are written there once and other docs point to it. `CLAUDE.md` describes the codebase, it holds no procedure

@@ -7,6 +7,7 @@ import { PROVIDERS, PROVIDER_NAMES } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Checkbox } from "@pbgo/ui/platform/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@pbgo/ui/platform/input-group"
@@ -682,6 +683,44 @@ function ToggleGroupDisabled() {
   )
 }
 
+function CollapsibleOpenAndClosed() {
+  const rows = ["Marly, Zoé and Tom", "Hervé, Lina and Sam", "Max and Inès"]
+  return (
+    <Frame
+      className="grid items-start gap-6 md:grid-cols-2"
+      code={`<Collapsible>
+  <CollapsibleTrigger asChild>
+    <button className="group/trigger …">
+      Show more
+      <HugeiconsIcon icon={ArrowDown01Icon} className="group-data-[state=open]/trigger:rotate-180" />
+    </button>
+  </CollapsibleTrigger>
+  <CollapsibleContent>…</CollapsibleContent>
+</Collapsible>`}
+    >
+      {[false, true].map((open) => (
+        <Collapsible key={String(open)} defaultOpen={open} className="overflow-hidden rounded-3xl border">
+          <CollapsibleTrigger className="group/trigger flex w-full items-center justify-between gap-3 px-6 py-4 text-left outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset">
+            {open ? "Open when it is drawn" : "Closed when it is drawn"}
+            <span aria-hidden className="text-muted-foreground transition-transform duration-base ease-standard group-data-[state=open]/trigger:rotate-180">
+              ⌄
+            </span>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ul className="border-t">
+              {rows.map((row) => (
+                <li key={row} className="border-b px-6 py-3 text-sm text-muted-foreground last:border-b-0">
+                  {row}
+                </li>
+              ))}
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
+      ))}
+    </Frame>
+  )
+}
+
 export const controlsSpecimens: Specimens = {
   "button-variants": ButtonVariants,
   "button-sizes": ButtonSizes,
@@ -710,4 +749,5 @@ export const controlsSpecimens: Specimens = {
   "tabs-vertical": TabsVertical,
   "toggle-group-single-and-multiple": ToggleGroupSingleAndMultiple,
   "toggle-group-disabled": ToggleGroupDisabled,
+  "collapsible-open-and-closed": CollapsibleOpenAndClosed,
 }

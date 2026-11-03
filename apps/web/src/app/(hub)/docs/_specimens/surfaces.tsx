@@ -20,8 +20,6 @@ import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, Tabl
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
 import { PricingPlans } from "@/components/pricing-plans"
 import { CreditLink } from "@pbgo/ui/platform/credit-link"
-import { gamePageSpecimens } from "./game-page-specimen"
-import { queueSpecimens } from "./queue-specimen"
 import { Frame } from "./text"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -641,6 +639,4 @@ export const surfacesSpecimens: Specimens = {
   "item-variants": ItemVariants,
   "item-sizes-and-separators": ItemSizesAndSeparators,
   "table-scoreboard": TableScoreboard,
-  ...gamePageSpecimens,
-  ...queueSpecimens,
 }
