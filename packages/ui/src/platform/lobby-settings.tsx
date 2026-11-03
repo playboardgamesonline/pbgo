@@ -10,8 +10,8 @@ import { Checkbox } from "./checkbox"
 import { Label } from "./label"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
-// The settings of a game's lobby, at the bottom of its panel (`LobbyDetail`, and the space that opens one): how fast it is played, what it is played with and whether it has helpers. The speed of the game is a toggle of four, in this order: no timer (an icon alone, an
-// infinity), slow, normal and fast (`SPEEDS`); then come the game's expansions, each a picture with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
+// The settings of a game's lobby, at the bottom of its panel (`LobbyDetail`, and the space that opens one): how fast it is played, what it is played with and whether it has helpers. The speed of the game is a segmented toggle of four, in this order and in one container as wide as the settings: no timer (an icon alone, an
+// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width; then come the game's expansions, each a picture with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
 // is theirs) picks a speed, presses an expansion to choose it or to leave it and ticks the box; one who reads a table of the list sees only what it is played with and how fast. How many may play and who may join are not here: the number of players is above the seats
 // (`LobbyPlayers`) and who may join is the button at the top right of the panel (`LobbyAccess`). Every table counts for the leaderboard and none can be looked on at, so neither is a setting. Nothing is kept yet: no lobby has a place to keep them (the tables of PLT-13), so what
 // is set stays in the page; `onChange` is for the page that has somewhere to put it.
@@ -86,11 +86,11 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = true, edi
     <div data-slot="lobby-settings" data-editable={editable ? "" : undefined} className={cn("@container flex flex-col gap-5", className)} {...props}>
       <Group title="Speed">
         {editable ? (
-          <ToggleGroup type="single" value={value.pace} onValueChange={(next) => next && change({ ...set, pace: next as Pace })} aria-label="Speed of the game">
+          <ToggleGroup type="single" variant="segmented" value={value.pace} onValueChange={(next) => next && change({ ...set, pace: next as Pace })} aria-label="Speed of the game">
             {SPEEDS.map((speed) =>
               speed === "none" ? (
-                // No timer is an infinity and nothing else: its name is for a screen reader and for the pointer
-                <ToggleGroupItem key={speed} value={speed} aria-label="No timer" title="No timer" className="w-8 px-0">
+                // No timer is an infinity and nothing else, narrower than the others, which share the rest of the width alike: its name is for a screen reader and for the pointer
+                <ToggleGroupItem key={speed} value={speed} fit aria-label="No timer" title="No timer" className="w-12 px-0">
                   <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
                 </ToggleGroupItem>
               ) : (

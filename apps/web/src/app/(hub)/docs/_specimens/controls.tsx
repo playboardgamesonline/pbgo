@@ -2,7 +2,7 @@
 
 import type { Specimens } from "@pbgo/docs/markdown"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Add01Icon, ArrowRight01Icon, CheckmarkCircle02Icon, Download01Icon, Mail01Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { Add01Icon, ArrowRight01Icon, CheckmarkCircle02Icon, Download01Icon, InfinityIcon, Mail01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { PROVIDERS, PROVIDER_NAMES } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
@@ -610,6 +610,31 @@ function TabsVertical() {
   )
 }
 
+function ToggleGroupSegmented() {
+  return (
+    <Frame
+      className="flex max-w-md flex-col gap-4"
+      code={`<ToggleGroup type="single" variant="segmented" defaultValue="normal" aria-label="Speed">
+  <ToggleGroupItem value="none" fit aria-label="No timer" title="No timer" className="w-12 px-0">
+    <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} />
+  </ToggleGroupItem>
+  <ToggleGroupItem value="slow">Slow</ToggleGroupItem>
+  <ToggleGroupItem value="normal">Normal</ToggleGroupItem>
+  <ToggleGroupItem value="fast">Fast</ToggleGroupItem>
+</ToggleGroup>`}
+    >
+      <ToggleGroup type="single" variant="segmented" defaultValue="normal" aria-label="Speed">
+        <ToggleGroupItem value="none" fit aria-label="No timer" title="No timer" className="w-12 px-0">
+          <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} />
+        </ToggleGroupItem>
+        <ToggleGroupItem value="slow">Slow</ToggleGroupItem>
+        <ToggleGroupItem value="normal">Normal</ToggleGroupItem>
+        <ToggleGroupItem value="fast">Fast</ToggleGroupItem>
+      </ToggleGroup>
+    </Frame>
+  )
+}
+
 function ToggleGroupSingleAndMultiple() {
   return (
     <Frame className="flex flex-col gap-4" code={`<ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
@@ -661,6 +686,7 @@ export const controlsSpecimens: Specimens = {
   "button-variants": ButtonVariants,
   "button-sizes": ButtonSizes,
   "button-icon-buttons": ButtonIconButtons,
+  "toggle-group-segmented": ToggleGroupSegmented,
   "button-with-an-icon": ButtonWithAnIcon,
   "button-states-and-as-a-link": ButtonStatesAndAsALink,
   "provider-button-a-row-of-four": ProviderButtonARowOfFour,

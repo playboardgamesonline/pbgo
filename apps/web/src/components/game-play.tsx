@@ -39,7 +39,7 @@ export function GamePlay({
   /** Give the space the name that the head's button leads to. Only the page does: a name is one per page, and the specimens show several. */
   anchored?: boolean
 }) {
-  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} now={now} />
+  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} />
 
   if (!live) {
     return (
@@ -59,7 +59,7 @@ export function GamePlay({
           return {
             id: table.id,
             entry: tableEntryProps(table, slug, now, expansions, mine),
-            detail: mine ? ownTableDetail(viewerTable, slug, now, expansions, minPlayers, maxPlayers) : tableDetailProps(table, slug, now, false, expansions),
+            detail: mine ? ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers) : tableDetailProps(table, slug, false, expansions),
           }
         })}
         summary={open.length > 0 ? `${open.length} waiting` : undefined}

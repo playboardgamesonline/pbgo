@@ -461,24 +461,24 @@ function LobbyPlayersTheNumberAndTheSeats() {
   return (
     <Frame
       className="grid gap-6 md:grid-cols-2"
-      code={`// The visitor's own lobby: they set the number of players, between the game's least and most, and never under the people who sit. The seats follow the number
-<LobbyPlayers seats={seats} range={{ min: 2, max: 5 }} invite={{ link }} />
+      code={`// The visitor's own lobby: they set the number of players, between the game's least and most, and never under the people who sit, at the left of the top row, and the button that says who may join is at its right. The seats follow the number
+<LobbyPlayers seats={seats} range={{ min: 2, max: 5 }} invite={{ link }} actions={<LobbyAccess />} />
 
 // A lobby that is about to be opened has no seats yet: the number alone
 <LobbyPlayers range={{ min: 2, max: 5 }} defaultCount={5} />
 
-// A table of the list: its seats as they are, five to a row
-<LobbyPlayers seats={table.seats} join={{ href }} />`}
+// A table of the list: who opened it and how many sit at it of how many it has, and its seats as they are, five to a row
+<LobbyPlayers seats={table.seats} createdBy="Hervé" join={{ href }} />`}
     >
       <div className={card}>
-        <LobbyPlayers seats={[{ name: "Jo", host: true }, { name: "Marly" }, { name: "Zoé" }, null, null]} range={{ min: 2, max: 7 }} invite={{ link: "/a-game/game/Q8W2ER" }} />
+        <LobbyPlayers seats={[{ name: "Jo", host: true }, { name: "Marly" }, { name: "Zoé" }, null, null]} range={{ min: 2, max: 7 }} invite={{ link: "/a-game/game/Q8W2ER" }} actions={<LobbyAccess />} />
       </div>
       <div className="flex flex-col gap-6">
         <div className={card}>
           <LobbyPlayers range={{ min: 2, max: 5 }} defaultCount={5} />
         </div>
         <div className={card}>
-          <LobbyPlayers seats={[{ name: "Hervé", host: true }, { name: "Lina" }, null, null]} join={{ href: "#join" }} />
+          <LobbyPlayers seats={[{ name: "Hervé", host: true }, { name: "Lina" }, null, null]} createdBy="Hervé" join={{ href: "#join" }} />
         </div>
       </div>
     </Frame>
@@ -531,10 +531,10 @@ function LobbyPanelYourLobby() {
 // viewerIsHost: the settings are theirs to set and the main button starts the game, once the game has its minimum of players. Anybody else has a button that cannot be pressed and says
 // how many have joined of those expected. Both have the secondary button that leaves the lobby; a game in play has none (that route takes a visitor out of a lobby only) and a way back in`}
     >
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_NEW_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={FRIENDS_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_GAME} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_LOBBY} expansions={EXPANSIONS} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_NEW_LOBBY} expansions={EXPANSIONS} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={FRIENDS_LOBBY} expansions={EXPANSIONS} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_GAME} expansions={EXPANSIONS} />
     </Frame>
   )
 }
@@ -551,7 +551,7 @@ function LobbyPanelBesideTheOpenTables() {
         <GamePlay slug="a-game" name="A game" live players="2–5 players" tables={TABLES} viewerTable={null} expansions={EXPANSIONS} now={NOW} />
       </Fit>
       <Fit width={PAGE}>
-        <GamePlay slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} tables={[]} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
+        <GamePlay slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} tables={[]} viewerTable={MY_LOBBY} expansions={EXPANSIONS} />
       </Fit>
       <Fit width={PAGE}>
         <GamePlay slug="a-game" name="A game" live={false} players={null} tables={[]} viewerTable={null} now={NOW} />
@@ -817,12 +817,12 @@ function LobbyPanelATablesDetails() {
   return (
     <Frame
       className="grid gap-6 md:grid-cols-2"
-      code={`<LobbyDetail {...tableDetailProps(table, "a-game", now, false, expansions)} onClose={() => setPickedId(null)} />
+      code={`<LobbyDetail {...tableDetailProps(table, "a-game", false, expansions)} onClose={() => setPickedId(null)} />
 
 // A table that is full has a button that cannot be pressed: { label: "Full", disabled: true }`}
     >
-      <ClosableDetail {...tableDetailProps(TABLES[1]!, "a-game", NOW, false, EXPANSIONS)} />
-      <ClosableDetail {...tableDetailProps(WAYS[1]!, "a-game", NOW, false, EXPANSIONS)} />
+      <ClosableDetail {...tableDetailProps(TABLES[1]!, "a-game", false, EXPANSIONS)} />
+      <ClosableDetail {...tableDetailProps(WAYS[1]!, "a-game", false, EXPANSIONS)} />
     </Frame>
   )
 }

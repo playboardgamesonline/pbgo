@@ -25,17 +25,17 @@ const TITLE = "text-3xl md:text-4xl"
  * What the panel says of the table the visitor sits at: its details as that visitor has them and, for a lobby that waits, the button that starts it (the one who opened it has it, and presses it once the game has its `minPlayers`; the others
  * have a button that cannot be pressed) and the one that leaves it. The page uses it for the space on the right and for the row of the list that is the same table.
  */
-export function ownTableDetail(table: ViewerTable, slug: string, now: number | undefined, expansions: readonly Expansion[], minPlayers: number | null = null, maxPlayers: number | null = null) {
+export function ownTableDetail(table: ViewerTable, slug: string, expansions: readonly Expansion[], minPlayers: number | null = null, maxPlayers: number | null = null) {
   const waiting = table.status === "lobby"
   const host = waiting && table.viewerIsHost
   return {
-    ...tableDetailProps(table, slug, now, true, expansions, host, { min: minPlayers, max: maxPlayers }),
+    ...tableDetailProps(table, slug, true, expansions, host, { min: minPlayers, max: maxPlayers }),
     start: host ? <StartGameButton slug={slug} code={table.code} joined={table.players.length} needed={minPlayers} /> : undefined,
     leave: waiting ? <LeaveLobbyButton slug={slug} code={table.code} /> : undefined,
   }
 }
 
-/** `expansions` are the ones the game has, which the settings offer. `minPlayers` is the least players the game needs, which the button that starts a lobby waits for, and `maxPlayers` the most it takes: a lobby may be set for any number between them. `now` is when the age of the visitor's table is counted from. */
+/** `expansions` are the ones the game has, which the settings offer. `minPlayers` is the least players the game needs, which the button that starts a lobby waits for, and `maxPlayers` the most it takes: a lobby may be set for any number between them. */
 export function GameLobby({
   slug,
   name,
@@ -45,7 +45,6 @@ export function GameLobby({
   maxPlayers = null,
   viewerTable,
   expansions = [],
-  now,
   className,
 }: {
   slug: string
@@ -56,7 +55,6 @@ export function GameLobby({
   maxPlayers?: number | null
   viewerTable: ViewerTable | null
   expansions?: readonly Expansion[]
-  now?: number
   className?: string
 }) {
   if (!live) {
@@ -70,7 +68,7 @@ export function GameLobby({
     )
   }
 
-  if (viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, now, expansions, minPlayers, maxPlayers)} className={className} />
+  if (viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers)} className={className} />
 
   const range = playerRange(minPlayers, maxPlayers)
   return (

@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 import type { TableSeat, TableState } from "../tables"
 import { Button } from "./button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card"
+import { Card, CardContent, CardDescription, CardFooter, CardTitle } from "./card"
 import { LobbyAccess, type LobbyAccessProps } from "./lobby-access"
 import { LobbyPlayers } from "./lobby-players"
 import { LobbySeats } from "./lobby-seats"
@@ -63,9 +63,7 @@ function LobbySideButton({ className, ...props }: Omit<React.ComponentProps<type
 type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> & {
   /** `waiting`: it waits for players. `playing`: it is being played. */
   state: TableState
-  /** When it was opened, or how long it has been played: already formatted ("Opened 4 min ago"). */
-  age: string
-  /** Who opened the table, as the line at the top says it ("you", "Marly"): "Table created by you". */
+  /** Who opened the table, as the line at the top says it ("you", "Marly"): "Table created by Marly (3/5)". The visitor who sets the lobby has the number of players there instead. */
   createdBy: string
   /** What the table is called: "Your lobby", "Marly's table". Not drawn: it names the panel for a screen reader. */
   title: string
@@ -94,36 +92,31 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
 }
 
 /**
- * A table in the panel: who opened it and how long ago, in a small line at the top (its name and its code are for a screen reader), its people, five to a row (`LobbyPlayers`, with the number of them to set when the lobby is the visitor's), its settings at the bottom
+ * A table in the panel: at the top left a small line that says who opened it and how many sit at it of how many it has (its name and its code are for a screen reader), or, when the lobby is the visitor's, the number of players to set; its people, five to a row (`LobbyPlayers`); its settings at the bottom
  * (`LobbySettings`), and the main button under them: the way into the table, a button that cannot be pressed and says that it waits to be started and how many have joined of those expected, or, for the one who opened it, the one that starts it (`start`). It is the lobby a visitor
  * sits at, which they may leave by the secondary button beside the main one (`leave`) and, when it is theirs, set who may join by the button at the top right (`access`), and the table they picked in the list of the open tables, which a button at the top right closes (`onClose`)
  * and gives the panel back to what it showed before.
  */
-function LobbyDetail({ state, age, createdBy, title, description, seats, settings, access, playerRange, action, start, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
+function LobbyDetail({ state, createdBy, title, description, seats, settings, access, playerRange, action, start, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
+  // At the right of the top row: who may join, for the visitor's own lobby, and the way to put a table that was picked down
+  const actions =
+    access || onClose ? (
+      <>
+        {access && <LobbyAccess {...access} />}
+        {onClose && (
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="Close the details" onClick={onClose}>
+            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" />
+          </Button>
+        )}
+      </>
+    ) : undefined
   return (
     <LobbyPanel data-state={state} {...props}>
-      <CardHeader>
-        {/* Its name and its code are for a screen reader (they name the panel): the line says who opened the table, how long ago or how long it has been played, and the seats who is at it */}
-        <div className="flex min-h-8 items-center justify-between gap-3">
-          <p className="min-w-0 truncate text-sm text-muted-foreground">
-            Table created by <span className="text-foreground">{createdBy}</span> · {age.charAt(0).toLowerCase() + age.slice(1)}
-          </p>
-          {(access || onClose) && (
-            <div className="flex shrink-0 items-center gap-2">
-              {access && <LobbyAccess {...access} />}
-              {onClose && (
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="Close the details" onClick={onClose}>
-                  <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" />
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-        <CardTitle className="sr-only">{title}</CardTitle>
-        <CardDescription className="sr-only">{description}</CardDescription>
-      </CardHeader>
+      {/* Its name and its code are for a screen reader (they name the panel): the line at the top says who opened the table and the seats who is at it */}
+      <CardTitle className="sr-only">{title}</CardTitle>
+      <CardDescription className="sr-only">{description}</CardDescription>
       <CardContent className="flex flex-col gap-6">
-        <LobbyPlayers seats={seats} range={playerRange} join={join} invite={invite} />
+        <LobbyPlayers seats={seats} range={playerRange} createdBy={createdBy} actions={actions} join={join} invite={invite} />
         {settings && <LobbySettings {...settings} className="mt-auto border-t pt-6" />}
       </CardContent>
       {(action || start || leave) && (

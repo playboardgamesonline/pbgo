@@ -103,13 +103,12 @@ export function leaderboardRow(standing: Standing): LeaderboardRow {
 
 /**
  * What the panel says of a table: the one a visitor sits at (`mine`: "Your lobby", with, while it waits, a button that cannot be pressed and says how many have joined of those expected, which the one who opened it replaces with the page's button that starts the game (`editable`), and, for a game in play, a button back into it) or one they picked in the list of the open tables (its host's name, with the button that fits what they may do there: Join, or
- * Full, which cannot be pressed). It is who opened it and how long ago, its age and code, its people with their names, its settings at the bottom (the expansions of the game, `expansions`, and which of them the table is played with; how fast), for the visitor's own
- * lobby the number of players they may set (`players`, the game's least and most) and who may join, at the top right, and where it leads. `editable` is for a lobby that the visitor opened and still waits: they set it, and the others only read. `now` is when its age is counted from.
+ * Full, which cannot be pressed). It is who opened it (the line at the top, "Table created by Marly (3/5)"), its code, its people with their names, its settings at the bottom (the expansions of the game, `expansions`, and which of them the table is played with; how fast), for the visitor's own
+ * lobby the number of players they may set (`players`, the game's least and most), at the top left in place of that line, and who may join, at the top right, and where it leads. `editable` is for a lobby that the visitor opened and still waits: they set it, and the others only read.
  */
 export function tableDetailProps(
   table: GameTable,
   slug: string,
-  now: number = Date.now(),
   mine = false,
   expansions: readonly Expansion[] = [],
   editable = false,
@@ -122,7 +121,6 @@ export function tableDetailProps(
   const { taken, total } = seatCount(seats)
   return {
     state,
-    age: ageOfTable(table, now),
     createdBy: mine ? "you" : (hostOf(seats) ?? "a player who left"),
     title: mine ? (state === "waiting" ? "Your lobby" : "Your game") : nameOfTable(table),
     description: mine && state === "waiting" ? `Table ${table.code}. Share its link to fill the seats.` : `Table ${table.code}`,
