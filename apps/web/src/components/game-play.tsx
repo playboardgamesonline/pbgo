@@ -66,12 +66,10 @@ export function GamePlay({
     ...own,
     ...open.map((table) => ({ id: table.id, entry: tableEntryProps(table, slug, now, expansions, false), detail: tableDetailProps(table, slug, false, expansions) })),
   ]
-  const waiting = rows.filter((row) => row.entry.state === "waiting").length
   return (
     <section aria-label={`Play ${name}`}>
       <OpenTables
         rows={rows}
-        summary={waiting > 0 ? `${waiting} waiting` : undefined}
         lobby={lobby}
         createHref={`/${slug}`}
         emptyTitle={COMING_SOON.tables.heading}

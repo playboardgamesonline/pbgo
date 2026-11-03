@@ -6,7 +6,7 @@ import { fitSeats, seatCount, type TableSeat } from "../tables"
 import { Label } from "./label"
 import { LobbySeats } from "./lobby-seats"
 import type { OpenSeatProps } from "./open-seat"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./select"
 
 // The top of a table's panel and its seats. On the left of the top row, for the visitor who sets the lobby, "Number of players" and a select, from the game's least players to its most (`range`, `playerRange` of `@pbgo/ui/tables`) and never under the people who already
 // sit, who are never dropped; for anybody else, a small line that says who opened the table and how many sit at it of how many it has ("Table created by Marly (3/5)", `createdBy`). On its right, what the page puts there (`actions`: the button that says who may join, or
@@ -51,15 +51,17 @@ function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, in
           onCountChange?.(Number(next))
         }}
       >
-        <SelectTrigger id={selectId} className="w-20">
+        <SelectTrigger id={selectId}>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent align="end">
-          {numbers.map((number) => (
-            <SelectItem key={number} value={String(number)}>
-              {number}
-            </SelectItem>
-          ))}
+        <SelectContent align="end" className="min-w-0">
+          <SelectGroup>
+            {numbers.map((number) => (
+              <SelectItem key={number} value={String(number)}>
+                {number}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
     </div>

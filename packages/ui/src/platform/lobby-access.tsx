@@ -8,7 +8,7 @@ import { TIERS, type Tier } from "../ranks"
 import { Button } from "./button"
 import { Label } from "./label"
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "./popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./select"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
 // Who may join a lobby, as one button at the top right of its panel: an icon that says what it is now (a globe for a public lobby, a lock for a private one, a globe with a lock when a public one asks for something of its players), and a press opens a small panel
@@ -98,13 +98,15 @@ function LobbyAccess({ defaultVisibility = "public", defaultMinRank = null, defa
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ANY}>Any rank</SelectItem>
-                  {/* The lowest tier is every player's: asking for it asks for nothing */}
-                  {TIERS.slice(1).map((tier) => (
-                    <SelectItem key={tier} value={tier}>
-                      {tier} and above
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectItem value={ANY}>Any rank</SelectItem>
+                    {/* The lowest tier is every player's: asking for it asks for nothing */}
+                    {TIERS.slice(1).map((tier) => (
+                      <SelectItem key={tier} value={tier}>
+                        {tier} and above
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
@@ -116,12 +118,14 @@ function LobbyAccess({ defaultVisibility = "public", defaultMinRank = null, defa
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ANY}>Any language</SelectItem>
-                    {languages.map(({ value: code, label }) => (
-                      <SelectItem key={code} value={code}>
-                        {label}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectItem value={ANY}>Any language</SelectItem>
+                      {languages.map(({ value: code, label }) => (
+                        <SelectItem key={code} value={code}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>

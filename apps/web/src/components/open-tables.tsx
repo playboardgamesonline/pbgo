@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
+import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { LobbyDetail, type LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import { TableEntries, TableEntry, type TableEntryProps } from "@pbgo/ui/platform/table-entry"
@@ -12,14 +13,13 @@ import { HugeiconsIcon } from "@hugeicons/react"
 // is (a lobby they opened or joined, or a game they play), and it is the selected one when nothing else is picked, so that the panel shows it; a visitor who sits at no table has no row of their own and the panel is the space to open one (`lobby`). A press on another row picks it
 // and a second press, the button of the details, or Escape puts it down, which gives the panel back to the visitor's own table. The row that is selected is highlighted in the colour of the panel and runs into it, so that the two read as one: the list says which, and the panel what.
 // Both sides are as tall as the container, which the panel's content sets (the list takes that height and adds nothing to it, `lg:h-0 lg:min-h-full`), and the list scrolls inside, with no scrollbar beside the panel (a fade at its foot says there is more), so that the row that is selected can run into it. On a narrow screen the panel is above the list, so a row that is picked brings it into view. Which rows there are,
-// and what they say, is the page's (`GamePlay`). The page may give the panel a name to be reached by (`lobbyId`: the button at the top of a game's page that creates a game leads to it); the specimens do not, since a name is one per page.
+// and what they say, is the page's (`GamePlay`). The title, "Tables" with the number of rows in a pill, stands over the container, as the titles of the page's other sections do. The page may give the panel a name to be reached by (`lobbyId`: the button at the top of a game's page that creates a game leads to it); the specimens do not, since a name is one per page.
 
 /** A row of the list and the details that it opens, both worded by the page. `own` is the visitor's own table: the first row, selected while nothing else is. */
 export type OpenTableRow = { id: string; own?: boolean; entry: Omit<TableEntryProps, "selected" | "onSelect" | "controls">; detail: Omit<LobbyDetailProps, "onClose"> }
 
 export function OpenTables({
   rows,
-  summary,
   lobby,
   createHref,
   emptyTitle,
@@ -27,8 +27,6 @@ export function OpenTables({
   lobbyId,
 }: {
   rows: readonly OpenTableRow[]
-  /** What the list says of itself next to its title ("2 waiting"). */
-  summary?: string
   /** What the panel shows when no row is picked: it is rendered by the server (the visitor's own table, or the space to open one), and draws no surface of its own (`flat`). */
   lobby: ReactNode
   /** Where a table is opened: the empty state has a button that leads there. */
@@ -66,49 +64,51 @@ export function OpenTables({
   }
 
   return (
-    <section aria-labelledby={headingId} className="grid overflow-hidden rounded-4xl bg-card text-card-foreground shadow-surface ring-1 ring-foreground/10 lg:grid-cols-12">
-      <div className="flex min-h-0 flex-col lg:col-span-7 lg:h-0 lg:min-h-full">
-        <header className="flex items-baseline justify-between gap-4 px-8 pt-8 pb-4">
-          <h2 id={headingId} className="font-heading text-2xl">
-            Open tables
-          </h2>
-          {summary && <p className="text-sm text-muted-foreground">{summary}</p>}
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 lg:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
-          {rows.length > 0 ? (
-            <TableEntries aria-label="Open tables">
-              {rows.map(({ id, entry }) => (
-                <TableEntry
-                  key={id}
-                  {...entry}
-                  selected={id === selectedId}
-                  controls={panelId}
-                  onSelect={() => pick(id)}
-                  // The row that is selected is the colour of the panel and runs into it, over the room that the list keeps at its right
-                  className="data-[selected]:bg-muted/40 data-[selected]:hover:bg-muted/40 lg:data-[selected]:-mr-4 lg:data-[selected]:rounded-r-none"
-                />
-              ))}
-            </TableEntries>
-          ) : (
-            <Empty className="h-full p-6">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} aria-hidden="true" />
-                </EmptyMedia>
-                <EmptyTitle>{emptyTitle}</EmptyTitle>
-                <EmptyDescription>{emptyDescription}</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button variant="outline" asChild>
-                  <a href={createHref}>Open a table</a>
-                </Button>
-              </EmptyContent>
-            </Empty>
-          )}
+    <section aria-labelledby={headingId}>
+      <h2 id={headingId} className="mb-6 flex items-center gap-3 font-heading text-2xl">
+        Tables
+        <Badge variant="secondary" className="h-6 px-2.5 text-sm">
+          {rows.length}
+        </Badge>
+      </h2>
+      <div className="grid overflow-hidden rounded-4xl bg-card text-card-foreground shadow-surface ring-1 ring-foreground/10 lg:grid-cols-12">
+        <div className="flex min-h-0 flex-col lg:col-span-7 lg:h-0 lg:min-h-full">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+            {rows.length > 0 ? (
+              <TableEntries aria-label="Tables">
+                {rows.map(({ id, entry }) => (
+                  <TableEntry
+                    key={id}
+                    {...entry}
+                    selected={id === selectedId}
+                    controls={panelId}
+                    onSelect={() => pick(id)}
+                    // The row that is selected is the colour of the panel and runs into it, over the room that the list keeps at its right
+                    className="data-[selected]:bg-muted/40 data-[selected]:hover:bg-muted/40 lg:data-[selected]:-mr-4 lg:data-[selected]:rounded-r-none"
+                  />
+                ))}
+              </TableEntries>
+            ) : (
+              <Empty className="h-full p-6">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} aria-hidden="true" />
+                  </EmptyMedia>
+                  <EmptyTitle>{emptyTitle}</EmptyTitle>
+                  <EmptyDescription>{emptyDescription}</EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button variant="outline" asChild>
+                    <a href={createHref}>Open a table</a>
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            )}
+          </div>
         </div>
-      </div>
-      <div id={panelId} ref={panel} aria-live="polite" className="order-first min-h-0 scroll-mt-navbar bg-muted/40 lg:order-none lg:col-span-5">
-        {picked ? <LobbyDetail key={picked.id} flat {...picked.detail} onClose={() => setPickedId(null)} /> : lobby}
+        <div id={panelId} ref={panel} aria-live="polite" className="order-first min-h-0 scroll-mt-navbar bg-muted/40 lg:order-none lg:col-span-5">
+          {picked ? <LobbyDetail key={picked.id} flat {...picked.detail} onClose={() => setPickedId(null)} /> : lobby}
+        </div>
       </div>
     </section>
   )
