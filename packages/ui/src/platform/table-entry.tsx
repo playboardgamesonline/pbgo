@@ -9,7 +9,7 @@ import { SeatAvatar } from "./table-card"
 // A table in the list of the open tables of a game, as a block of three lines. On the first, how many sit at it of how many it has (a small picture of people, then "3/5"), who opened it ("Hosted by Marly") and how old it is. On the second, what to know before sitting down
 // ("Fast turns · First expansion"): the speed when it is not the usual one, then the expansions, and no line at all when there is nothing to say. On the third, a circle for each seat of the table, all of them, none over another, so that the room that is left is seen at once: a picture and
 // the nickname under it for a person, a crown on the one who opened it, and for a seat nobody has taken a dashed circle with a plus in it, which does what the seat is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the
-// link). The pictures are large and close together (48px, four apart). The pointer finds a player's card on their picture, and a press on the row picks it, which the page shows by the panel beside the list (`LobbyDetail`). Like `TableCard` it draws what it is given and decides nothing: the
+// link). The pictures are large and close together (48px, eight apart). The pointer finds a player's card on their picture, and a press on the row picks it, which the page shows by the panel beside the list (`LobbyDetail`). Like `TableCard` it draws what it is given and decides nothing: the
 // page keeps which row is picked. It is not a client component: a row with no `onSelect` (a list that is only read) is drawn on the server, and then has no handler at all.
 
 type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
@@ -92,15 +92,15 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, mi
           </span>
         )}
       </button>
-      {/* A seat is a column 52px wide round a picture and a name that are 48px wide: no room between the columns, so that the pictures, and the names under them, are 4px apart, as the comment above says */}
+      {/* A seat is a column 56px wide round a picture of 48px and a name of 52px: no room between the columns, so that the pictures are 8px apart and the names under them 4px, as the comment above says */}
       <ul data-slot="table-entry-seats" aria-label="Seats" className="flex flex-wrap gap-y-4 px-4 pt-7 pb-4">
         {seats.map((seat, index) => (
-          <li key={index} data-slot="table-entry-seat" data-free={seat ? undefined : ""} className="flex w-13 flex-col items-center gap-1.5">
+          <li key={index} data-slot="table-entry-seat" data-free={seat ? undefined : ""} className="flex w-14 flex-col items-center gap-1.5">
             <span className="relative">
               {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3 left-1/2 z-10 size-4 -translate-x-1/2" />}
               {seat ? <SeatAvatar seat={seat} className="size-12" /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className="size-12" />}
             </span>
-            <span className={cn("w-12 truncate text-center text-xs", !seat && "text-muted-foreground")}>{seat ? seat.name : word}</span>
+            <span className={cn("w-13 truncate text-center text-xs", !seat && "text-muted-foreground")}>{seat ? seat.name : word}</span>
           </li>
         ))}
       </ul>
