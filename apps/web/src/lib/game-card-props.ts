@@ -24,6 +24,18 @@ export function gamePicture(game: CatalogGame) {
   return { logo: cardPictureUrl(game) ?? undefined, background: pictureUrl(game, "background") ?? undefined }
 }
 
+/** How wide the image CDN is asked for the pictures of a game's page head: its background across a wide screen, and its logo, drawn at 24rem at the most (twice that for a sharp one on a dense screen). The CDN never makes a picture bigger than its file. */
+const HERO_BACKGROUND_WIDTH = 2400
+const HERO_LOGO_WIDTH = 800
+
+/**
+ * The pictures of the head of a game's page: its background, which is the page's own across the whole width, and its logo, which stands in place of its name. Both are sized for that (`pictureUrl`), not as the card has them. Only the logo: a game that has
+ * an icon and no logo has no picture of its name, and the head writes it. A picture the game does not have is left out.
+ */
+export function heroPicture(game: CatalogGame): { logo?: string; background?: string } {
+  return { logo: pictureUrl(game, "logo", HERO_LOGO_WIDTH) ?? undefined, background: pictureUrl(game, "background", HERO_BACKGROUND_WIDTH) ?? undefined }
+}
+
 /** How wide the image CDN is asked for a picture of the gallery: the viewer's, and a tile's. */
 const GALLERY_WIDTH = 1200
 const GALLERY_THUMB_WIDTH = 320

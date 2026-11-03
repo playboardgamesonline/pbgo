@@ -8,7 +8,7 @@ import { getLocale } from "@pbgo/core/lib/locale-server"
 import type { GalleryMedia } from "@pbgo/ui/gallery"
 import type { GameCardProps, GameCardVisualProps } from "@pbgo/ui/platform/game-card"
 import type { HelperOption } from "@pbgo/ui/platform/lobby-settings"
-import { catalogCardProps, durationLabel, galleryMedia, gamePicture, playersLabel } from "./game-card-props"
+import { catalogCardProps, durationLabel, galleryMedia, gamePicture, heroPicture, playersLabel } from "./game-card-props"
 
 /** One line of a game's credits: a label and its values, each one a link when it has an address, with an icon when the site it leads to has one (`creditLines`). */
 export type GameFact = CreditLine
@@ -48,9 +48,11 @@ export type GamePage = {
   bgg: { href: string; icon: string } | null
   /** A shop's page for the game, which the page links to under its credits. Null when the Studio has none: the page has no such link. */
   shop: string | null
-  /** The cover, the first slide of the head's gallery, is the game's card's picture: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
+  /** The pictures of the head: the game's background, drawn across the whole width of the page behind it, and its logo, drawn in place of its name. A picture the game does not have is left out: the head writes the name, and has no art. */
+  hero: { logo?: string; background?: string }
+  /** The cover, the first slide of the head's gallery, is the game's card's picture: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. The gallery is not drawn for now (see `gallery`). */
   picture: Pick<GameCardVisualProps, "logo" | "background">
-  /** The pictures and the clips that follow the cover in the head's gallery, in the order the Studio lists them. Empty: the head has the cover alone. */
+  /** The pictures and the clips that follow the cover in the head's gallery, in the order the Studio lists them. Empty: the head has the cover alone. Read and kept, and not drawn for now: the head's background is the game's own, and the gallery will have a place again later. */
   gallery: GalleryMedia[]
   /** The aids that a player may have while they play, in the order the Studio lists them: a row each in the settings of a lobby. Empty: the settings have no helpers. */
   helpers: HelperOption[]
@@ -106,6 +108,7 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     rulebooks: rulebooks(game.rules, locale, game.name),
     bgg: bggLink(game),
     shop: game.buyUrl,
+    hero: heroPicture(game),
     picture: gamePicture(game),
     gallery: galleryMedia(game),
     helpers: game.helpers.map(({ key, title }) => ({ id: key, label: title })),

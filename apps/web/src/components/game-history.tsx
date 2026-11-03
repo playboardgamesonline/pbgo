@@ -1,21 +1,22 @@
 import { useId } from "react"
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, Clock01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { initials } from "@pbgo/ui/friends"
 import { Avatar, AvatarFallback, AvatarGroup, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import type { Result } from "@pbgo/ui/results"
 import { namesOf } from "@pbgo/ui/tables"
 import { cn } from "@pbgo/ui/utils"
 import type { Expansion, HistoryEntry } from "@/lib/game-activity"
 import { historyRows, type HistoryRow } from "@/lib/game-activity-props"
 
-// The latest games of the signed-in visitor in a game, under their stats: the first three at once, the third fading out at the bottom (a mask on the list, as in `SectionPreview`) under a button that unrolls the rest, ten games at most. A row is
+// The latest games of the signed-in visitor in a game, on the left of their stats (`GameHistoryStats`): the first three at once, the third fading out at the bottom (a mask on the list, as in `SectionPreview`) under a button that unrolls the rest, ten games at most. A row is
 // called by the name of the game, with the expansions it was played with after it, and shows the pictures of the others at the table (no names: the group is labelled for a screen reader, and the pointer says each). On its right, how long ago it was,
 // what it scored and the experience it gave, and at the far end how it ended, in a dark tint: green for a win, red for a loss, outlined for a draw or a game that was left. There is no change of rating: a rating is never shown. The colour of the
-// result. A visitor with no game has no such block, and one with three or fewer has no fade and no button.
+// result. A visitor with no game has an empty state in its place, and one with three or fewer has no fade and no button.
 
 /** How many games are there before the rest is asked for. */
 const PEEK = 3
@@ -83,7 +84,19 @@ export function GameHistory({
 }) {
   const headingId = useId()
   const rows = historyRows(entries, { name, expansions }, now)
-  if (rows.length === 0) return null
+  if (rows.length === 0) {
+    return (
+      <Empty className="border p-6">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} aria-hidden="true" />
+          </EmptyMedia>
+          <EmptyTitle>No game yet</EmptyTitle>
+          <EmptyDescription>The games you play in {name} will be listed here, the latest first.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
   const rest = rows.slice(PEEK)
   return (
     <Collapsible defaultOpen={defaultOpen} className="group/history @container overflow-hidden rounded-3xl bg-card text-card-foreground shadow-surface ring-1 ring-foreground/10">

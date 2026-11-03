@@ -7,10 +7,9 @@ import { GameCard } from "@pbgo/ui/platform/game-card"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
 import { GameCredits } from "@/components/game-credits"
 import { GameHead } from "@/components/game-head"
-import { GameHistory } from "@/components/game-history"
+import { GameHistoryStats } from "@/components/game-history-stats"
 import { GameLeaderboard } from "@/components/game-leaderboard"
 import { GamePlay } from "@/components/game-play"
-import { GameStats } from "@/components/game-stats"
 import { GameTournaments } from "@/components/game-tournaments"
 import { SiteFooter } from "@/components/site-footer"
 import { getExpansions, getHistory, getPlayerStats, getStandings, getTables, getTournaments, getViewerTable } from "@/lib/game-activity"
@@ -18,11 +17,11 @@ import { getGamePage } from "@/lib/game-page"
 import { SITE_NAME, SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
-// game's own project serves only once one enters the game. Its head (`GameHead`) is the way back to the games, at the top of its left column, then, at the foot of the column, level with the picture, the title, the figures (the players, how long, how complex, from what age), the description, the categories and the three main
-// buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules), and, on the right, its gallery: the picture of its card first, then the pictures and the clips of the game being played that the Studio has. Under it come, in this order: the tables that are open on the left and a tall space on the right
-// to play, the lobby the visitor is in or the space to open one (`GamePlay`: the space leads to the game's own site, `/<slug>`, another root layout, loaded whole; a game to come has it half transparent and no tables), then the visitor's stats on the left, with their latest games under them (the first three, the rest behind a button), and
-// the leaderboard on the right, which scrolls (`GameStats`, `GameHistory`, `GameLeaderboard`; a game to come has none of them), the tournaments (`GameTournaments`), the credits (`GameCredits`: everybody credited on the game, by role, then its publishers and the year it came out, with a link to buy the game and BoardGameGeek's icon under them), and the games the catalog
-// finds similar to it, nine at most, as one row of cards that scrolls sideways (`ScrollRow`). None of what the tables, the lobby, the stats, the leaderboard and the tournaments show has a source yet (`lib/game-activity.ts`, whose types are already the rows of PLT-13's schema): their blocks say so.
+// game's own project serves only once one enters the game. Its head (`GameHead`) has the game's background across the whole width of the page, the way back to the games at its top, then, at its foot, the game's logo in place of its name, the figures (the players, how long, how complex, from what age), the description, the categories and a row of controls: the
+// three main buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules) and, beside them, the visitor's first three figures in a strip (the gallery of the game's pictures and clips is not drawn for now). Under it come, in this order: the tables that are open on the left and a tall space on the right
+// to play, the lobby the visitor is in or the space to open one (`GamePlay`: the space leads to the game's own site, `/<slug>`, another root layout, loaded whole; a game to come has it half transparent, with its button off, and no tables), then "History & Stats": the visitor's latest games on the left (the first three, the rest behind a button) and
+// their stats in a column on the right (`GameHistoryStats`; a game to come has none), the tournaments on the left and the leaderboard, which scrolls, on the right (`GameTournaments`, `GameLeaderboard`; a game to come has the tournaments alone), the credits (`GameCredits`: everybody credited on the game, by role, then its publishers and the year it came out, with a link to buy the game
+// and BoardGameGeek's icon under them), and the games the catalog finds similar to it, nine at most, as one row of cards that scrolls sideways (`ScrollRow`). None of what the tables, the lobby, the stats, the leaderboard and the tournaments show has a source yet (`lib/game-activity.ts`, whose types are already the rows of PLT-13's schema): their blocks say so.
 // Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
 // whether it may be indexed, in its `robots` meta (`game.seo.indexable`: a live game follows the registry's flag, a game to come needs a
 // description in its game in the Studio), and carries its JSON-LD only when it may. The rule and the metadata are `@pbgo/catalog/seo`.
@@ -48,41 +47,41 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
     getExpansions(game.slug),
   ])
 
-  // The page starts under the fixed navbar (`pt-navbar`) and ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
+  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner). It starts at the very top: the head's background is under the fixed navbar, and the head keeps its own text below it (`pt-navbar`)
   return (
-    <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col pt-navbar">
+    <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
       {game.seo.indexable && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(gameJsonLd(game.seo, SITE_URL)) }} />
       )}
 
-      <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
-        <GameHead
-          slug={game.slug}
-          name={game.name}
-          live={game.live}
-          description={game.description}
-          players={game.players}
-          duration={game.duration}
-          complexity={game.complexity}
-          age={game.age}
-          categories={game.categories}
-          rulebooks={game.rulebooks}
-          picture={game.picture}
-          gallery={game.gallery}
-        />
+      <GameHead
+        slug={game.slug}
+        name={game.name}
+        live={game.live}
+        description={game.description}
+        players={game.players}
+        duration={game.duration}
+        complexity={game.complexity}
+        age={game.age}
+        categories={game.categories}
+        rulebooks={game.rulebooks}
+        hero={game.hero}
+        stats={game.live ? stats : null}
+      />
 
-        {/* Between the head and the similar games: the tables and the space to play (the head's "Create a game" leads to the space), the visitor's stats and the leaderboard, then the tournaments and the credits. A game that is not live has the space alone, the tournaments and the credits: there is nothing to play, so no stats and no board */}
-        <div className="mt-section flex flex-col gap-section">
+      <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
+        {/* Under the head, in this order: the tables and the space to play (the head's "Create a game" leads to the space), the visitor's games and stats (History & Stats), the tournaments and the leaderboard side by side, then the credits. A game that is not live has the space, the tournaments and the credits: there is nothing to play, so no games, no stats and no board */}
+        <div className="flex flex-col gap-section">
           <GamePlay slug={game.slug} name={game.name} live={game.live} minPlayers={game.minPlayers} maxPlayers={game.maxPlayers} tables={tables} viewerTable={viewerTable} expansions={expansions} helpers={game.helpers} anchored />
-          {game.live && (
-            <div className="grid gap-x-4 gap-y-section lg:grid-cols-3 lg:items-start">
-              <GameStats slug={game.slug} stats={stats} className="lg:col-span-2">
-                <GameHistory entries={history} name={game.name} expansions={expansions} />
-              </GameStats>
+          {game.live && <GameHistoryStats slug={game.slug} name={game.name} stats={stats} history={history} expansions={expansions} />}
+          {game.live ? (
+            <div className="grid gap-x-4 gap-y-section lg:grid-cols-2 lg:items-start">
+              <GameTournaments tournaments={tournaments} />
               <GameLeaderboard standings={standings} />
             </div>
+          ) : (
+            <GameTournaments tournaments={tournaments} />
           )}
-          <GameTournaments tournaments={tournaments} />
           <GameCredits facts={game.facts} bgg={game.bgg} shop={game.shop} />
         </div>
 
