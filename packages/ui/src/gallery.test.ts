@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { slideAfterKey, slideLabel } from "./gallery"
+import { slideAfterKey, slideLabel, windowAfter } from "./gallery"
 
 describe("the name of a slide", () => {
   it("is the game and what the slide is: the cover, or the place of a picture or a clip among the others", () => {
@@ -45,5 +45,48 @@ describe("the keys that move between the thumbnails", () => {
     expect(slideAfterKey(0, "ArrowRight", 1)).toBe(0)
     expect(slideAfterKey(0, "ArrowLeft", 1)).toBe(0)
     expect(slideAfterKey(0, "End", 0)).toBe(0)
+  })
+})
+
+describe("the window of tiles that shows", () => {
+  // Six slides, four tiles in view at once
+  it("stays where it is while the slide that is shown and its neighbours are in it", () => {
+    expect(windowAfter(0, 0, 6, 4)).toBe(0)
+    expect(windowAfter(0, 1, 6, 4)).toBe(0)
+    expect(windowAfter(0, 2, 6, 4)).toBe(0)
+    expect(windowAfter(1, 3, 6, 4)).toBe(1)
+    expect(windowAfter(2, 4, 6, 4)).toBe(2)
+  })
+
+  it("moves a tile when the slide that is shown is the last in view, so that the next one shows", () => {
+    expect(windowAfter(0, 3, 6, 4)).toBe(1)
+    expect(windowAfter(1, 4, 6, 4)).toBe(2)
+  })
+
+  it("stops at the window that ends with the last slide", () => {
+    expect(windowAfter(2, 5, 6, 4)).toBe(2)
+  })
+
+  it("moves back the same way, so that the previous one shows", () => {
+    expect(windowAfter(2, 2, 6, 4)).toBe(1)
+    expect(windowAfter(1, 1, 6, 4)).toBe(0)
+    expect(windowAfter(1, 0, 6, 4)).toBe(0)
+  })
+
+  it("goes all the way for a jump to the end or to the start", () => {
+    expect(windowAfter(0, 5, 6, 4)).toBe(2)
+    expect(windowAfter(2, 0, 6, 4)).toBe(0)
+  })
+
+  it("holds three tiles as it holds four", () => {
+    expect(windowAfter(0, 2, 6, 3)).toBe(1)
+    expect(windowAfter(1, 3, 6, 3)).toBe(2)
+    expect(windowAfter(0, 5, 6, 3)).toBe(3)
+  })
+
+  it("never moves when every slide is in view", () => {
+    expect(windowAfter(0, 3, 4, 4)).toBe(0)
+    expect(windowAfter(0, 1, 3, 4)).toBe(0)
+    expect(windowAfter(0, 2, 3, 3)).toBe(0)
   })
 })

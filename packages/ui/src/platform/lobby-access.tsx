@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { GlobeIcon, GlobeLockIcon, LockIcon } from "@hugeicons/core-free-icons"
+import { GlobalIcon, LockKeyholeIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 import { TIERS, type Tier } from "../ranks"
@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } 
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./select"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
-// Who may join a lobby, as one button at the top right of its panel: an icon that says what it is now (a globe for a public lobby, a lock for a private one, a globe with a lock when a public one asks for something of its players), and a press opens a small panel
+// Who may join a lobby, as one button at the top right of its panel: an icon that says what it is now (a globe, with no stand, for a public lobby, whatever it asks of its players, and a padlock for a private one), and a press opens a small panel
 // that sets it. There the visitor picks Public, a table that is listed with the open tables, or Private, one that is reached by its link alone; and, for a public one, the criteria that restrict who may sit at it: a minimum rank and a language (each a select whose
 // first choice asks for nothing). Only a lobby that is opened or set has it (`LobbyDetail` for the visitor's own, and the space that opens one): every table of the list is public and asks for nothing. Nothing is kept yet (no lobby has a place to keep it: the
 // tables of PLT-13), so what is set stays in the page; `onChange` is for the page that has somewhere to put it.
@@ -64,7 +64,7 @@ function LobbyAccess({ defaultVisibility = "public", defaultMinRank = null, defa
           className={className}
           {...props}
         >
-          <HugeiconsIcon icon={public_ ? (restricted ? GlobeLockIcon : GlobeIcon) : LockIcon} strokeWidth={2} aria-hidden="true" />
+          <HugeiconsIcon icon={public_ ? GlobalIcon : LockKeyholeIcon} strokeWidth={2} aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" aria-labelledby={titleId} className="w-80">
@@ -80,11 +80,11 @@ function LobbyAccess({ defaultVisibility = "public", defaultMinRank = null, defa
           className="w-full flex-nowrap"
         >
           <ToggleGroupItem value="public" className="flex-1">
-            <HugeiconsIcon icon={GlobeIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
+            <HugeiconsIcon icon={GlobalIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
             Public
           </ToggleGroupItem>
           <ToggleGroupItem value="private" className="flex-1">
-            <HugeiconsIcon icon={LockIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
+            <HugeiconsIcon icon={LockKeyholeIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
             Private
           </ToggleGroupItem>
         </ToggleGroup>

@@ -10,11 +10,11 @@ import { FindGameButton } from "./find-game-button"
 import { CREATE_ANCHOR } from "./game-play"
 import { RulesButton } from "./rules-button"
 
-// The head of a game's page, the first thing a visitor sees: on the right, the game's gallery (`MediaGallery`: the picture of its card first, then up to five pictures and clips of the game being played, in a viewer with a row of tiles under it; the cover alone when the Studio has none); on the left, a column as tall as the gallery when that is the taller, with the way back to the games' list ("All games") at its top and everything else at its foot, level with
+// The head of a game's page, the first thing a visitor sees: on the right, the game's gallery (`MediaGallery`: the picture of its card first, then up to five pictures and clips of the game being played, in a 4:3 viewer with a row of tiles under it, three or four of them showing at once; the cover alone when the Studio has none); on the left, a column as tall as the gallery when that is the taller, with the way back to the games' list ("All games") at its top and everything else at its foot, level with
 // the gallery's (`justify-between`). That is the name (with "Coming soon" beside it for a game that is not live), the figures of the game on one line (the players, how long, how complex, from what age), under them the description, then the categories as chips that lead to the games'
 // list showing that category, and, last, the three main buttons, all 48px high: "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindGameButton`); "Create a game", in outline, which leads to the space under the head that opens
 // a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto beside them, the rules (`RulesButton`: a link to the rulebook, or a menu of languages that a press opens). A game that is not live has the first two disabled and keeps the rules. Nothing stands in for what
-// is missing. The credits are not here but lower on the page (`GameCredits`). One column, then two from `lg`; on a narrow screen the gallery comes after the buttons. When the text is taller than the gallery, which the narrowest `lg` widths do, the column is as tall as the text.
+// is missing. The credits are not here but lower on the page (`GameCredits`). One column, then two from `lg`; on a narrow screen the gallery comes after the buttons. When the text is taller than the gallery, which the narrowest `lg` widths do, the column is as tall as the text and the gallery stands at its foot.
 
 export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "picture" | "gallery">
 
@@ -94,7 +94,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
       </div>
 
       {/* The game's gallery: the cover first, the picture of its card drawn larger (its logo over its background, a plain frame when the game has neither), then the pictures and the clips of the game being played, when the Studio has some. The cover is the page's first picture, so it loads at once */}
-      <MediaGallery name={name} cover={picture} media={gallery} className="lg:col-start-2 lg:row-start-1 lg:self-stretch" />
+      <MediaGallery name={name} cover={picture} media={gallery} className="lg:col-start-2 lg:row-start-1 lg:self-end" />
     </div>
   )
 }

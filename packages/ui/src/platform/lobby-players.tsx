@@ -9,7 +9,7 @@ import type { OpenSeatProps } from "./open-seat"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./select"
 
 // The top of a table's panel and its seats. On the left of the top row, for the visitor who sets the lobby, "Number of players" and a select, from the game's least players to its most (`range`, `playerRange` of `@pbgo/ui/tables`) and never under the people who already
-// sit, who are never dropped; for anybody else, a small line that says who opened the table and how many sit at it of how many it has ("Table created by Marly (3/5)", `createdBy`). On its right, what the page puts there (`actions`: the button that says who may join, or
+// sit, who are never dropped; for anybody else, a line of the same size that says who opened the table and how many sit at it of how many it has ("Table created by Marly (3/5)", `createdBy`). On its right, what the page puts there (`actions`: the button that says who may join, or
 // the one that closes the details). Under the row, the seats, as many as the number says, five to a row (`LobbySeats`): a number that is more than the table has adds free seats and one that is less takes the free ones away (`fitSeats`). The space that opens a lobby has no table
 // yet, so it has the row alone, the select, and no seats. Nothing is kept yet (the tables of PLT-13), so what is set stays in the page; `onCountChange` is for the page that has somewhere to put it.
 
@@ -41,7 +41,7 @@ function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, in
   const numbers = range ? Array.from({ length: Math.max(0, range.max - least + 1) }, (_, index) => least + index) : []
   const left = range ? (
     <div className="flex items-center gap-3">
-      <Label htmlFor={selectId} className="text-muted-foreground">
+      <Label htmlFor={selectId} className="text-base text-muted-foreground">
         Number of players
       </Label>
       <Select
@@ -66,7 +66,7 @@ function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, in
       </Select>
     </div>
   ) : createdBy && seats ? (
-    <p className="min-w-0 truncate text-sm text-muted-foreground">
+    <p className="min-w-0 truncate text-base text-muted-foreground">
       Table created by <span className="text-foreground">{createdBy}</span> ({taken}/{total})
     </p>
   ) : null

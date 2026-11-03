@@ -1,5 +1,5 @@
 // What the gallery of a game's page (`MediaGallery`) needs that is not drawing: the pictures and the clips it is given, how a slide is named for a screen
-// reader, and where each key of the keyboard goes among the thumbnails. Pure, so that it is tested.
+// reader, where each key of the keyboard goes among the thumbnails and where the row of thumbnails starts. Pure, so that it is tested.
 
 /**
  * A picture or a clip that follows the cover. `src` is the file the viewer shows (a clip's video, a picture sized for it) and `thumb` a picture sized for the small tile that
@@ -43,4 +43,15 @@ export function slideAfterKey(index: number, key: string, count: number): number
     default:
       return index
   }
+}
+
+/**
+ * Where the row of tiles starts, the index of the first tile that shows, once the slide at `shown` is in the viewer, among `count`, when the row shows `visible` tiles at once and starts at `start` now. The row stays where it is when the slide
+ * and the ones on each side of it are in view; otherwise it moves as little as it takes to have them in, a whole tile at a time, so that the last tile in view always leads to the next one. It never starts before the first tile, nor after the window that ends with the last.
+ */
+export function windowAfter(start: number, shown: number, count: number, visible: number): number {
+  const before = Math.max(0, shown - 1)
+  const after = Math.min(count - 1, shown + 1)
+  const nearest = Math.min(Math.max(start, after - visible + 1), before)
+  return Math.max(0, Math.min(nearest, count - visible))
 }

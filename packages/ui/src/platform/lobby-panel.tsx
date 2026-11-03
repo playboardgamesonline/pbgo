@@ -12,8 +12,8 @@ import { LobbySettings, type LobbySettingsProps } from "./lobby-settings"
 import type { OpenSeatProps } from "./open-seat"
 
 // The tall space beside the open tables of a game, where a visitor plays: the lobby they are in, a table they picked in the list, or, when they are in none and have picked none, the space to open one. At its top right, when the lobby is the visitor's, one button
-// says who may join it and sets it (`LobbyAccess`); under it the number of players and the seats (`LobbyPlayers`); at its bottom the settings of the game (`LobbySettings`: the speed, the expansions, the helpers). It is a `Card` taller than the cards of a list (a roomier
-// `--card-spacing`) that is as tall as what it holds, and as the row it stands in when that is taller: it never scrolls. Its header stays at the top and its footer, the main button and the one beside it, at the bottom, and its content takes the room that is left between them.
+// says who may join it and sets it (`LobbyAccess`); under it the number of players and the seats (`LobbyPlayers`); and right under the seats, with a hairline between, the settings of the game (`LobbySettings`: the speed, the expansions, the helpers). It is a `Card` taller than the cards of a list (a roomier
+// `--card-spacing`) that is as tall as what it holds, and as the row it stands in when that is taller: it never scrolls. What it holds is one block at the top, its parts as far apart as a gap and no more, and its footer, the main button and the one beside it, stays at the bottom: the room that is left is between the two.
 // It is built from the parts of a card (`CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`) and from the pieces below; what it says, what its settings are and where its button leads are the page's.
 
 /**
@@ -74,7 +74,7 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
   description: string
   /** Every seat of the table in order, `null` for one nobody has taken. */
   seats: readonly TableSeat[]
-  /** The settings of the table, at the bottom: the expansions it is played with and how fast. None: the panel has none to show. */
+  /** The settings of the table, under the seats: how fast it is played and the expansions it is played with. None: the panel has none to show. */
   settings?: LobbySettingsProps | null
   /** Who may join the table, for the visitor's own lobby, which they set: the one button at the top right (`LobbyAccess`), with where it starts and the languages it offers. None: not drawn, as for every table of the list, which is public. */
   access?: Pick<LobbyAccessProps, "defaultVisibility" | "defaultMinRank" | "defaultLanguage" | "languages">
@@ -95,8 +95,8 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
 }
 
 /**
- * A table in the panel: at the top left a small line that says who opened it and how many sit at it of how many it has (its name and its code are for a screen reader), or, when the lobby is the visitor's, the number of players to set; its people, five to a row (`LobbyPlayers`); its settings at the bottom
- * (`LobbySettings`), and the main button under them: the way into the table, a button that cannot be pressed and says that it waits to be started and how many have joined of those expected, or, for the one who opened it, the one that starts it (`start`). It is the lobby a visitor
+ * A table in the panel: at the top left a line that says who opened it and how many sit at it of how many it has (its name and its code are for a screen reader), or, when the lobby is the visitor's, the number of players to set; its people, five to a row (`LobbyPlayers`); its settings right under them
+ * (`LobbySettings`), and, at the foot of the panel, the main button: the way into the table, a button that cannot be pressed and says that it waits to be started and how many have joined of those expected, or, for the one who opened it, the one that starts it (`start`). It is the lobby a visitor
  * sits at, which they may leave by the secondary button beside the main one (`leave`) and, when it is theirs, set who may join by the button at the top right (`access`), and the table they picked in the list of the open tables, which a button at the top right closes (`onClose`)
  * and gives the panel back to what it showed before.
  */
@@ -120,7 +120,7 @@ function LobbyDetail({ state, createdBy, title, description, seats, settings, ac
       <CardDescription className="sr-only">{description}</CardDescription>
       <CardContent className="flex flex-col gap-6">
         <LobbyPlayers seats={seats} range={playerRange} createdBy={createdBy} actions={actions} join={join} invite={invite} />
-        {settings && <LobbySettings {...settings} className="mt-auto border-t pt-6" />}
+        {settings && <LobbySettings {...settings} className="border-t pt-6" />}
       </CardContent>
       {(action || start || leave) && (
         <CardFooter className="gap-3">

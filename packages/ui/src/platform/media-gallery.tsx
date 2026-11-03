@@ -4,17 +4,18 @@ import * as React from "react"
 import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from "motion/react"
-import { slideAfterKey, slideLabel, type GalleryMedia, type SlideKind } from "../gallery"
+import { slideAfterKey, slideLabel, windowAfter, type GalleryMedia, type SlideKind } from "../gallery"
 import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "../motion"
 import { cn } from "../utils"
 import { Button } from "./button"
 import { GameCardVisual, type GameCardVisualProps } from "./game-card"
 
-// The picture of a game's page, made a small gallery: a viewer that shows one slide, in 16:9 and taller when the column it stands in is stretched (the head's text is taller than the gallery), up to 4:3, so that its foot stays level with the text's, and under it a tile for each slide, which a press, or an arrow key on the row, puts in the viewer. The first slide is the cover, the picture of the game's card (`GameCardVisual`: its
-// logo over its background); then come the pictures and the clips of a game being played (`GalleryMedia`). A game that has none has the cover alone, in the viewer, with no row of tiles. A clip plays as soon as it is shown, in a loop and with no sound, unless the visitor asks for less motion,
-// and a button on it pauses and plays it; it stops when another slide is put in the viewer. The slide that is shown has a ring on its tile, one element for the whole row that glides from a tile to the next with the spring of the navbar's fill (`SPRING_TRAVEL`), and the viewer
-// goes from a slide to the next by fading the new one in over the old (a visitor who asks for less motion gets the ring where it goes at once). The tiles are the tabs of a tab list and the viewer is its panel, so that the arrows, Home and End move between them (`slideAfterKey`) and a screen reader
-// says where it is (`slideLabel`). Nothing stands in for what a clip lacks: with no poster the tile and the viewer wait for its first frame. It draws what it is given and decides nothing: which slides a game has is the page's.
+// The picture of a game's page, made a small gallery: a viewer that shows one slide, always in 4:3 (the pictures and the clips are cut to it, the cover is the card's own shape), and under it a row of tiles, also 4:3, one for each slide, which a press, or an arrow key on the row, puts in the viewer.
+// The first slide is the cover, the picture of the game's card (`GameCardVisual`: its logo over its background); then come the pictures and the clips of a game being played (`GalleryMedia`). A game that has none has the cover alone, in the viewer, with no row of tiles.
+// The row shows three tiles, four when the gallery is wide (from 28rem), and never more: the others are a swipe away, or a press on the last tile of the window, since the window moves, a whole tile at a time, as far as it takes to have the slide that is shown, and the ones on each side of it, in it
+// (`useEffect` below; a visitor who asks for less motion gets it at once). A clip plays as soon as it is shown, in a loop and with no sound, unless the visitor asks for less motion, and a button on it pauses and plays it; it stops when another slide is put in the viewer. The slide that is shown has a ring on its tile, one element for
+// the whole row that glides from a tile to the next with the spring of the navbar's fill (`SPRING_TRAVEL`), and the viewer goes from a slide to the next by fading the new one in over the old (a visitor who asks for less motion gets the ring where it goes at once). The tiles are the tabs of a tab list and the viewer is its panel, so
+// that the arrows, Home and End move between them (`slideAfterKey`) and a screen reader says where it is (`slideLabel`). Nothing stands in for what a clip lacks: with no poster the tile and the viewer wait for its first frame. It draws what it is given and decides nothing: which slides a game has is the page's.
 
 type MediaGalleryProps = Omit<React.ComponentProps<"div">, "children"> & {
   /** The game's name: it names each slide for a screen reader. */
@@ -107,7 +108,9 @@ function Thumbnail({ slide, cover }: { slide: Slide; cover: MediaGalleryProps["c
 
 function MediaGallery({ className, name, cover, media = [], ...props }: MediaGalleryProps) {
   const id = React.useId()
+  const strip = React.useRef<HTMLDivElement>(null)
   const tiles = React.useRef<(HTMLButtonElement | null)[]>([])
+  const reduceMotion = useReducedMotion()
   const [picked, setPicked] = React.useState(0)
   const slides: Slide[] = [
     { id: "cover", kind: "cover", label: slideLabel(name, "cover", 0, media.length) },
@@ -116,26 +119,42 @@ function MediaGallery({ className, name, cover, media = [], ...props }: MediaGal
   // The list of media may get shorter while the gallery is open: the slide that is shown is then the last there is
   const shown = Math.min(picked, slides.length - 1)
   const slide = slides[shown] as Slide
+  const count = slides.length
   const panelId = `${id}-panel`
   const tabId = (index: number) => `${id}-tab-${index}`
 
+  // The row is a window on the tiles: when another slide is shown, it moves a whole tile at a time to the nearest place that has that slide and its neighbours in it, so that the last tile of the window leads to the next one.
+  // How many tiles the window holds is read from the layout (three, or four when it is wide), so that the styles alone say it; the row is the offset parent of its tiles (`relative`) for their `offsetLeft` to count from its edge
+  React.useEffect(() => {
+    const row = strip.current
+    const [first, second] = tiles.current
+    if (!row || !first || !second) return
+    const inset = first.offsetLeft
+    const step = second.offsetLeft - first.offsetLeft
+    const visible = Math.max(1, Math.round((row.clientWidth - 2 * inset + step - first.offsetWidth) / step))
+    const start = Math.round(row.scrollLeft / step)
+    const next = windowAfter(start, shown, count, visible)
+    if (next !== start) row.scrollTo({ left: next * step, behavior: reduceMotion ? "auto" : "smooth" })
+  }, [shown, count, reduceMotion])
+
   const move = (event: React.KeyboardEvent) => {
-    const next = slideAfterKey(shown, event.key, slides.length)
+    const next = slideAfterKey(shown, event.key, count)
     if (next === shown) return
     event.preventDefault()
     setPicked(next)
-    tiles.current[next]?.focus()
+    // The window moves to it (the effect above): the browser is not asked to scroll it into view as well
+    tiles.current[next]?.focus({ preventScroll: true })
   }
 
   return (
     <MotionConfig reducedMotion="user">
       <div data-slot="media-gallery" className={cn("@container flex flex-col gap-3", className)} {...props}>
         <div
-          role={slides.length > 1 ? "tabpanel" : undefined}
-          id={slides.length > 1 ? panelId : undefined}
-          aria-labelledby={slides.length > 1 ? tabId(shown) : undefined}
+          role={count > 1 ? "tabpanel" : undefined}
+          id={count > 1 ? panelId : undefined}
+          aria-labelledby={count > 1 ? tabId(shown) : undefined}
           data-slot="media-gallery-viewer"
-          className="relative aspect-video max-h-[75cqw] min-h-0 flex-1 overflow-hidden rounded-4xl bg-muted ring-1 ring-foreground/10"
+          className="relative aspect-4/3 overflow-hidden rounded-4xl bg-muted ring-1 ring-foreground/10"
         >
           {/* The new slide fades in over the old one, which stays whole until it is covered: no dip to the frame's grey between them */}
           <AnimatePresence initial={false}>
@@ -151,9 +170,17 @@ function MediaGallery({ className, name, cover, media = [], ...props }: MediaGal
           </AnimatePresence>
         </div>
 
-        {slides.length > 1 && (
+        {count > 1 && (
           <LayoutGroup id={id}>
-            <div role="tablist" aria-label={`${name}: cover, pictures and clips`} onKeyDown={move} className="flex gap-2">
+            {/* The row keeps 4px round its tiles, which the ring of a tile in focus needs to show, and takes them back with a negative margin: its tiles stand where the viewer's edges are */}
+            <motion.div
+              layoutScroll
+              ref={strip}
+              role="tablist"
+              aria-label={`${name}: cover, pictures and clips`}
+              onKeyDown={move}
+              className="relative -m-1 flex snap-x snap-mandatory scroll-px-1 gap-2 overflow-x-auto overscroll-x-contain p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {slides.map((tile, index) => (
                 <button
                   key={tile.id}
@@ -168,7 +195,7 @@ function MediaGallery({ className, name, cover, media = [], ...props }: MediaGal
                   aria-label={tile.label}
                   tabIndex={index === shown ? 0 : -1}
                   onClick={() => setPicked(index)}
-                  className="relative isolate aspect-video max-w-32 min-w-0 flex-1 overflow-hidden rounded-2xl bg-muted opacity-60 ring-1 ring-foreground/10 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/30 aria-selected:opacity-100"
+                  className="relative isolate aspect-4/3 shrink-0 basis-[calc((100%_-_1rem)/3)] snap-start overflow-hidden rounded-2xl bg-muted opacity-60 ring-1 ring-foreground/10 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/30 aria-selected:opacity-100 @md:basis-[calc((100%_-_1.5rem)/4)]"
                 >
                   <Thumbnail slide={tile} cover={cover} />
                   {index === shown && (
@@ -182,7 +209,7 @@ function MediaGallery({ className, name, cover, media = [], ...props }: MediaGal
                   )}
                 </button>
               ))}
-            </div>
+            </motion.div>
           </LayoutGroup>
         )}
       </div>

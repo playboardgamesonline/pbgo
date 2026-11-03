@@ -15,7 +15,7 @@ import { StartGameButton } from "./start-game-button"
 
 // The tall space on the right of a game's page, where a visitor plays: the lobby they are in, or, when they are in none, the space to open one. A lobby is a table that waits for players. Opening one is done in the game's own site (a plain <a> to
 // `/<slug>`, another root layout, loaded whole): the hub knows nothing of what a game's table asks for beyond what the page reads (the expansions it has, `getExpansions`), and the choices made here are not carried to the table, since a lobby has no place
-// to keep them yet. The number of players (between the game's least and most) and the settings of the game are at the bottom of the space, as they are in a lobby that exists (`LobbyPlayers`, `LobbySettings`: the speed, the expansions as pictures with an outline for the ones chosen, the helpers), and who may join the table is the one button at its top right (`LobbyAccess`: public or private and, for a public table, a minimum rank and a language). A visitor's own lobby
+// to keep them yet. The number of players (between the game's least and most) and the settings of the game follow its head, with a hairline between, as they follow the seats in a lobby that exists (`LobbyPlayers`, `LobbySettings`: the speed, the expansions as pictures with an outline for the ones chosen, the helpers), and who may join the table is the one button at its top right (`LobbyAccess`: public or private and, for a public table, a minimum rank and a language). A visitor's own lobby
 // is the details of any table (`LobbyDetail`) with, under them, the button that starts the game for the one who opened the lobby (`StartGameButton`, which waits for enough players) or, for anybody else, one that cannot be pressed and says how many have joined of those expected, and, beside it, a secondary button to leave it (which only a lobby that waits has), with the plus of its free seats opening the menu that invites a friend or copies the link, and with the number of players, the settings and the button of who may join, that are theirs to set when they
 // opened it (`ownTableDetail`). A game that is not live has the same space, half transparent and without a way in. A table picked in the list of the open tables takes the space's place for as long as it is picked (`OpenTables`).
 
@@ -84,7 +84,7 @@ export function GameLobby({
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col">
-        <div className="mt-auto flex flex-col gap-6 border-t pt-6">
+        <div className="flex flex-col gap-6 border-t pt-6">
           <LobbyPlayers range={range} defaultCount={range.max} />
           <LobbySettings expansions={expansions} pace="normal" editable />
         </div>
