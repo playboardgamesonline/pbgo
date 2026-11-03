@@ -123,6 +123,12 @@ const READ = "data-[state=on]:disabled:opacity-100"
  */
 const CARD = "-mx-2 flex flex-col rounded-2xl p-2 transition-colors duration-fast"
 
+/**
+ * The room that a line leaves above its capitals and under its baseline, taken off (`1lh` is the line, `1cap` the height of a capital: half of what is left of the line goes at each end), so that what is round a text is its margins and the gaps alone and the distances in a card are the ones that are seen:
+ * the top of the picture is the top of the capitals of the name, 8px from the card's, and the bottom of the card is 8px from the lowest of the picture and the last row.
+ */
+const TRIM = "my-[calc((1cap_-_1lh)/2)]"
+
 function ExpansionCard({
   expansion,
   chosen,
@@ -144,24 +150,24 @@ function ExpansionCard({
   const body = (
     <>
       <ExpansionPicture expansion={expansion} className={cn("transition-[opacity,filter] duration-fast", !chosen && "opacity-50 grayscale")} />
-      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <span id={`${id}-name`} className="text-base leading-snug">
+      <span className="flex min-w-0 flex-1 flex-col gap-3">
+        <span id={`${id}-name`} className={cn("text-base leading-snug", TRIM)}>
           {name}
         </span>
         {description && (
-          <span id={`${id}-description`} lang={description.language} title={description.text} className="line-clamp-2 text-sm text-muted-foreground">
+          <span id={`${id}-description`} lang={description.language} title={description.text} className={cn("line-clamp-2 text-sm text-muted-foreground", TRIM)}>
             {description.text}
           </span>
         )}
         {(facts.length > 0 || tags.length > 0) && (
-          // What the expansion changes stands apart from what it says: twice the room that the title has before the description
-          <span className="mt-1.5 flex flex-col gap-2">
+          // What the expansion changes stands apart from what it says: 16px under the description (12px of the column's gap and 4px of its own), where the name has 12px above it; the figures and the tags are 8px apart
+          <span className="mt-1 flex flex-col gap-2">
             {facts.length > 0 && (
               <span id={`${id}-facts`} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 {facts.map(({ icon, text }) => (
                   <span key={text} className="inline-flex items-center gap-1.5">
                     <HugeiconsIcon icon={icon} strokeWidth={2} className="size-4" aria-hidden="true" />
-                    {text}
+                    <span className={TRIM}>{text}</span>
                   </span>
                 ))}
               </span>
@@ -169,7 +175,7 @@ function ExpansionCard({
             {tags.length > 0 && (
               <span id={`${id}-tags`} className="flex flex-wrap gap-1.5">
                 {tags.map(({ label, icon }) => (
-                  <Badge key={label} variant="secondary" className="h-6 gap-1.5 px-2 text-xs [&>svg]:size-3.5!">
+                  <Badge key={label} variant="secondary" className="h-6 gap-1.5 bg-foreground/10 px-2 text-xs [&>svg]:size-3.5!">
                     <HugeiconsIcon icon={icon} strokeWidth={2} aria-hidden="true" />
                     {label}
                   </Badge>
@@ -199,7 +205,7 @@ function ExpansionCard({
               onCheckedChange={(next) => onChosenChange(next === true)}
               aria-labelledby={`${id}-name`}
               aria-describedby={described || undefined}
-              className="mt-1 shrink-0"
+              className="-mt-0.5 shrink-0"
             />
             <label htmlFor={`${id}-choice`} className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
               {body}
@@ -210,8 +216,8 @@ function ExpansionCard({
         )}
         {hasSettings && (
           <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-sm" disabled={!chosen} aria-label={`Settings of ${name}`} className="shrink-0 data-[state=open]:[&_svg]:rotate-180">
-              <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="transition-transform duration-fast" aria-hidden="true" />
+            <Button type="button" variant="ghost" size="icon-xs" disabled={!chosen} aria-label={`Settings of ${name}`} className="-mt-1.5 shrink-0 data-[state=open]:[&_svg]:rotate-180">
+              <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-4 transition-transform duration-fast" aria-hidden="true" />
             </Button>
           </CollapsibleTrigger>
         )}
