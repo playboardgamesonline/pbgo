@@ -10,7 +10,7 @@ import { cn } from "../utils"
 import { Button } from "./button"
 import { GameCardVisual, type GameCardVisualProps } from "./game-card"
 
-// The picture of a game's page, made a small gallery: a viewer that shows one slide, always in 4:3 (the pictures and the clips are cut to it, the cover is the card's own shape), and under it a row of tiles, also 4:3, one for each slide, which a press, or an arrow key on the row, puts in the viewer.
+// The picture of a game's page, made a small gallery: a viewer that shows one slide, always in 16:10 (the pictures and the clips are cut to it, and so is the cover), and under it a row of tiles, also 16:10, one for each slide, which a press, or an arrow key on the row, puts in the viewer.
 // The first slide is the cover, the picture of the game's card (`GameCardVisual`: its logo over its background); then come the pictures and the clips of a game being played (`GalleryMedia`). A game that has none has the cover alone, in the viewer, with no row of tiles.
 // The row shows three tiles, four when the gallery is wide (from 28rem), and never more: the others are a swipe away, or a press on the last tile of the window, since the window moves, a whole tile at a time, as far as it takes to have the slide that is shown, and the ones on each side of it, in it
 // (`useEffect` below; a visitor who asks for less motion gets it at once). A clip plays as soon as it is shown, in a loop and with no sound, unless the visitor asks for less motion, and a button on it pauses and plays it; it stops when another slide is put in the viewer. The slide that is shown has a ring on its tile, one element for
@@ -154,7 +154,7 @@ function MediaGallery({ className, name, cover, media = [], ...props }: MediaGal
           id={count > 1 ? panelId : undefined}
           aria-labelledby={count > 1 ? tabId(shown) : undefined}
           data-slot="media-gallery-viewer"
-          className="relative aspect-4/3 overflow-hidden rounded-4xl bg-muted ring-1 ring-foreground/10"
+          className="relative aspect-16/10 overflow-hidden rounded-4xl bg-muted ring-1 ring-foreground/10"
         >
           {/* The new slide fades in over the old one, which stays whole until it is covered: no dip to the frame's grey between them */}
           <AnimatePresence initial={false}>
@@ -195,7 +195,7 @@ function MediaGallery({ className, name, cover, media = [], ...props }: MediaGal
                   aria-label={tile.label}
                   tabIndex={index === shown ? 0 : -1}
                   onClick={() => setPicked(index)}
-                  className="relative isolate aspect-4/3 shrink-0 basis-[calc((100%_-_1rem)/3)] snap-start overflow-hidden rounded-2xl bg-muted opacity-60 ring-1 ring-foreground/10 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/30 aria-selected:opacity-100 @md:basis-[calc((100%_-_1.5rem)/4)]"
+                  className="relative isolate aspect-16/10 shrink-0 basis-[calc((100%_-_1rem)/3)] snap-start overflow-hidden rounded-2xl bg-muted opacity-60 ring-1 ring-foreground/10 transition-opacity outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/30 aria-selected:opacity-100 @md:basis-[calc((100%_-_1.5rem)/4)]"
                 >
                   <Thumbnail slide={tile} cover={cover} />
                   {index === shown && (

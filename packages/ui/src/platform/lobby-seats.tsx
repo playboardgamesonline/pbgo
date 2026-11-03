@@ -6,7 +6,7 @@ import type { TableSeat } from "../tables"
 import { OpenSeat, type OpenSeatProps } from "./open-seat"
 import { SeatAvatar } from "./table-card"
 
-/** The picture of a seat fills its column, a fifth of the panel less the room between the seats, up to 72px: the people are large and close together, as in a row of the list, with 4px between them. */
+/** The picture of a seat fills its column, a fifth of the panel less the room between the seats, up to 72px: the people are large and close together, as in a row of the list, with 4px between them. The columns are 72px at most and start at the left, so the 4px stay in a wide panel too. */
 const SEAT_PICTURE = "size-auto w-full aspect-square"
 
 /**
@@ -18,11 +18,11 @@ function LobbySeats({ seats, join, invite, className, ...props }: Omit<React.Com
   const firstFree = seats.indexOf(null)
   const word = invite ? "Invite" : join ? "Join" : "Open"
   return (
-    <ul data-slot="lobby-seats" aria-label="Players" className={cn("grid grid-cols-5 gap-x-1 gap-y-5", className)} {...props}>
+    <ul data-slot="lobby-seats" aria-label="Players" className={cn("grid grid-cols-[repeat(5,minmax(0,4.5rem))] gap-x-1 gap-y-5", className)} {...props}>
       {seats.map((seat, index) => (
         <li key={index} data-slot="lobby-seat" data-free={seat ? undefined : ""} className="flex min-w-0 flex-col items-center gap-2">
           {/* The link or the button of a free seat is made as wide as the column too, for its circle to fill it */}
-          <span className="relative mx-auto block w-full max-w-18 [&>a]:w-full [&>button]:w-full">
+          <span className="relative block w-full [&>a]:w-full [&>button]:w-full">
             {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3.5 left-1/2 z-10 size-5 -translate-x-1/2" />}
             {seat ? <SeatAvatar seat={seat} className={SEAT_PICTURE} /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className={SEAT_PICTURE} />}
           </span>
