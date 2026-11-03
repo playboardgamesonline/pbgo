@@ -12,7 +12,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/pl
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { Leaderboard } from "@pbgo/ui/platform/leaderboard"
 import { LobbySettings } from "@pbgo/ui/platform/lobby-settings"
-import { LobbyAccess, LobbyVisibility } from "@pbgo/ui/platform/lobby-visibility"
+import { LobbyAccess } from "@pbgo/ui/platform/lobby-access"
+import { LobbyPlayers } from "@pbgo/ui/platform/lobby-players"
 import { OpenSeat } from "@pbgo/ui/platform/open-seat"
 import { RankBadge } from "@pbgo/ui/platform/rank-badge"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
@@ -428,24 +429,57 @@ function GameCreditsTheCreditsOfAGame() {
   )
 }
 
-function LobbyVisibilityPublicAndPrivate() {
+function LobbyAccessWhoCanJoin() {
   const note = "flex flex-col items-center gap-2 text-sm text-muted-foreground"
   return (
     <Frame
       className="flex flex-wrap items-start gap-12"
-      code={`<LobbyVisibility />                          // a lobby that is about to be opened: public
-<LobbyVisibility defaultValue="private" />   // the visitor's own lobby, which they made private
+      code={`<LobbyAccess languages={languages} />                                   // a lobby that is about to be opened: public, asking for nothing
+<LobbyAccess defaultVisibility="private" />                              // the visitor's own lobby, which they made private
+<LobbyAccess defaultMinRank="Gold" defaultLanguage="fr" languages={languages} />   // public, and asking for something: the globe has a lock
 
-// Around a panel, LobbyAccess keeps the choice for the toggle and for the criteria of the settings, which only a public lobby asks for
-<LobbyAccess defaultVisibility="public">…</LobbyAccess>`}
+// A press opens the panel that sets it: Public or Private and, for a public lobby, a minimum rank and a language`}
     >
       <div className={note}>
-        <LobbyVisibility />
+        <LobbyAccess languages={LANGUAGE_OPTIONS} />
         Public
       </div>
       <div className={note}>
-        <LobbyVisibility defaultValue="private" />
+        <LobbyAccess defaultVisibility="private" />
         Private
+      </div>
+      <div className={note}>
+        <LobbyAccess defaultMinRank="Gold" defaultLanguage="fr" languages={LANGUAGE_OPTIONS} />
+        Public, with criteria
+      </div>
+    </Frame>
+  )
+}
+
+function LobbyPlayersTheNumberAndTheSeats() {
+  const card = "rounded-4xl bg-card p-8 shadow-surface ring-1 ring-foreground/10"
+  return (
+    <Frame
+      className="grid gap-6 md:grid-cols-2"
+      code={`// The visitor's own lobby: they set the number of players, between the game's least and most, and never under the people who sit. The seats follow the number
+<LobbyPlayers seats={seats} range={{ min: 2, max: 5 }} invite={{ link }} />
+
+// A lobby that is about to be opened has no seats yet: the number alone
+<LobbyPlayers range={{ min: 2, max: 5 }} defaultCount={5} />
+
+// A table of the list: its seats as they are, five to a row
+<LobbyPlayers seats={table.seats} join={{ href }} />`}
+    >
+      <div className={card}>
+        <LobbyPlayers seats={[{ name: "Jo", host: true }, { name: "Marly" }, { name: "Zoé" }, null, null]} range={{ min: 2, max: 7 }} invite={{ link: "/a-game/game/Q8W2ER" }} />
+      </div>
+      <div className="flex flex-col gap-6">
+        <div className={card}>
+          <LobbyPlayers range={{ min: 2, max: 5 }} defaultCount={5} />
+        </div>
+        <div className={card}>
+          <LobbyPlayers seats={[{ name: "Hervé", host: true }, { name: "Lina" }, null, null]} join={{ href: "#join" }} />
+        </div>
       </div>
     </Frame>
   )
@@ -455,19 +489,15 @@ function LobbySettingsSetAndRead() {
   return (
     <Frame
       className="grid gap-6 md:grid-cols-2"
-      code={`// A lobby the visitor opened: they choose the expansions and the speed, and, while it is public (the toggle at the top of the panel, which the LobbyAccess around it shares), the minimum rank and the language.
+      code={`// A lobby the visitor opened: they pick the speed (no timer is an infinity alone), choose the expansions and tick the helpers.
 // An expansion is its cover, the front of its box when it has no cover, its initials when it has neither
-<LobbyAccess defaultVisibility="public">
-  <LobbySettings expansions={expansions} chosen={["first"]} pace="normal" languages={languages} editable />
-</LobbyAccess>
+<LobbySettings expansions={expansions} chosen={["first"]} pace="normal" editable />
 
 // A table of the list: only what it is played with, and how fast
 <LobbySettings expansions={expansions} chosen={table.expansions} pace={table.turnTimer} />`}
     >
       <div className="rounded-4xl bg-card p-8 shadow-surface ring-1 ring-foreground/10">
-        <LobbyAccess defaultVisibility="public">
-          <LobbySettings expansions={[...EXPANSIONS, BARE_EXPANSION]} chosen={["first"]} pace="normal" languages={LANGUAGE_OPTIONS} editable />
-        </LobbyAccess>
+        <LobbySettings expansions={[...EXPANSIONS, BARE_EXPANSION]} chosen={["first"]} pace="normal" editable />
       </div>
       <div className="rounded-4xl bg-card p-8 shadow-surface ring-1 ring-foreground/10">
         <LobbySettings expansions={EXPANSIONS} chosen={["first", "second"]} pace="fast" />
@@ -481,13 +511,13 @@ function LobbyPanelOpenALobby() {
     <Frame
       className="grid gap-6 md:grid-cols-2"
       code={`// A game with no expansion, as the page has it for now: the speed, who may find the table, and the way to the game's own site
-<GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={null} />
+<GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={null} />
 
 // A game that has some: each a picture with its name, outlined when it is chosen
-<GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={null} expansions={await getExpansions(slug)} />`}
+<GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={null} expansions={await getExpansions(slug)} />`}
     >
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={null} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" viewerTable={null} expansions={EXPANSIONS} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={null} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={null} expansions={EXPANSIONS} />
     </Frame>
   )
 }
@@ -496,15 +526,15 @@ function LobbyPanelYourLobby() {
   return (
     <Frame
       className="grid gap-6 md:grid-cols-2"
-      code={`<GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={await getViewerTable(slug, viewerId)} expansions={expansions} />
+      code={`<GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={await getViewerTable(slug, viewerId)} expansions={expansions} />
 
 // viewerIsHost: the settings are theirs to set and the main button starts the game, once the game has its minimum of players. Anybody else has a button that cannot be pressed and says
 // how many have joined of those expected. Both have the secondary button that leaves the lobby; a game in play has none (that route takes a visitor out of a lobby only) and a way back in`}
     >
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={MY_NEW_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={FRIENDS_LOBBY} expansions={EXPANSIONS} now={NOW} />
-      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} viewerTable={MY_GAME} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_NEW_LOBBY} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={FRIENDS_LOBBY} expansions={EXPANSIONS} now={NOW} />
+      <GameLobby slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} viewerTable={MY_GAME} expansions={EXPANSIONS} now={NOW} />
     </Frame>
   )
 }
@@ -521,7 +551,7 @@ function LobbyPanelBesideTheOpenTables() {
         <GamePlay slug="a-game" name="A game" live players="2–5 players" tables={TABLES} viewerTable={null} expansions={EXPANSIONS} now={NOW} />
       </Fit>
       <Fit width={PAGE}>
-        <GamePlay slug="a-game" name="A game" live players="2–5 players" minPlayers={2} tables={[]} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
+        <GamePlay slug="a-game" name="A game" live players="2–5 players" minPlayers={2} maxPlayers={5} tables={[]} viewerTable={MY_LOBBY} expansions={EXPANSIONS} now={NOW} />
       </Fit>
       <Fit width={PAGE}>
         <GamePlay slug="a-game" name="A game" live={false} players={null} tables={[]} viewerTable={null} now={NOW} />
@@ -861,7 +891,8 @@ export const gamePageSpecimens: Specimens = {
   "game-head-a-live-game": GameHeadALiveGame,
   "game-head-a-game-to-come-and-one-with-little": GameHeadAGameToComeAndOneWithLittle,
   "game-credits-the-credits-of-a-game": GameCreditsTheCreditsOfAGame,
-  "lobby-visibility-public-and-private": LobbyVisibilityPublicAndPrivate,
+  "lobby-access-who-can-join": LobbyAccessWhoCanJoin,
+  "lobby-players-the-number-and-the-seats": LobbyPlayersTheNumberAndTheSeats,
   "lobby-settings-set-and-read": LobbySettingsSetAndRead,
   "lobby-panel-open-a-lobby": LobbyPanelOpenALobby,
   "lobby-panel-your-lobby": LobbyPanelYourLobby,

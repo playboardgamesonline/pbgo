@@ -1,20 +1,20 @@
 import * as React from "react"
-import { ArrowRight01Icon, Cancel01Icon, Clock01Icon, CrownIcon, PlayIcon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, Cancel01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 import type { TableSeat, TableState } from "../tables"
-import { Badge } from "./badge"
 import { Button } from "./button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card"
+import { LobbyAccess, type LobbyAccessProps } from "./lobby-access"
+import { LobbyPlayers } from "./lobby-players"
+import { LobbySeats } from "./lobby-seats"
 import { LobbySettings, type LobbySettingsProps } from "./lobby-settings"
-import { LobbyAccess, LobbyVisibility, type LobbyVisibilityValue } from "./lobby-visibility"
-import { OpenSeat, type OpenSeatProps } from "./open-seat"
-import { SeatAvatar } from "./table-card"
+import type { OpenSeatProps } from "./open-seat"
 
-// The tall space beside the open tables of a game, where a visitor plays: the lobby they are in, a table they picked in the list, or, when they are in none and have picked none, the space to open one, with the settings of the game at its bottom
-// (the speed of the game and the expansions: `LobbySettings`), and, at its top right, who may find the lobby when it is the visitor's (`LobbyVisibility`, two icons in a toggle). It is a `Card` taller than the cards of a list (a roomier `--card-spacing`) that is as tall as what it holds, and as the row it stands in when
-// that is taller: it never scrolls. Its header stays at the top and its footer, the main button and the one beside it, at the bottom, and its content takes the room that is left between them. It is built from the parts of a card (`CardHeader`, `CardTitle`, `CardDescription`, `CardContent`,
-// `CardFooter`) and from the pieces below; what it says, what its settings are and where its button leads are the page's.
+// The tall space beside the open tables of a game, where a visitor plays: the lobby they are in, a table they picked in the list, or, when they are in none and have picked none, the space to open one. At its top right, when the lobby is the visitor's, one button
+// says who may join it and sets it (`LobbyAccess`); under it the number of players and the seats (`LobbyPlayers`); at its bottom the settings of the game (`LobbySettings`: the speed, the expansions, the helpers). It is a `Card` taller than the cards of a list (a roomier
+// `--card-spacing`) that is as tall as what it holds, and as the row it stands in when that is taller: it never scrolls. Its header stays at the top and its footer, the main button and the one beside it, at the bottom, and its content takes the room that is left between them.
+// It is built from the parts of a card (`CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`) and from the pieces below; what it says, what its settings are and where its button leads are the page's.
 
 /** The panel: a `Card` that fills the height of the row it stands in and grows with its content, which never scrolls, and is not shorter than 32rem from `lg` when nothing gives it a height. */
 function LobbyPanel({ className, ...props }: React.ComponentProps<typeof Card>) {
@@ -24,36 +24,6 @@ function LobbyPanel({ className, ...props }: React.ComponentProps<typeof Card>) 
       className={cn("@container h-full gap-6 [--card-spacing:--spacing(8)] *:data-[slot=card-content]:flex-1 lg:min-h-128", className)}
       {...props}
     />
-  )
-}
-
-/** The picture of a seat fills its column: a fifth of the panel, less the room between the seats, so that the people are as large as the panel allows. */
-const SEAT_PICTURE = "size-auto w-full aspect-square"
-
-/**
- * The people of a lobby, five to a row, as many seats as the table was set for (at most three rows, fifteen, and one row for a table of five or fewer): the picture of each player with their name under it (cut with an ellipsis when it does not fit), a crown over the one who opened the table, and, for each seat
- * nobody has taken, a dashed place with a plus in it that does what the seat is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the link) and, under it, what it does. They are the blocks of a row of the list
- * (`TableEntry`), as large as the panel allows: each picture fills its column, a fifth of the panel's width less a small room between them. The pointer finds a player's card on their picture, which says the rest (rank, record). A table of two or three has its seats at the left, in the columns of a table of five.
- */
-function LobbySeats({ seats, join, invite, className, ...props }: Omit<React.ComponentProps<"ul">, "children"> & { seats: readonly TableSeat[]; join?: OpenSeatProps["join"]; invite?: OpenSeatProps["invite"] }) {
-  const firstFree = seats.indexOf(null)
-  const word = invite ? "Invite" : join ? "Join" : "Open"
-  return (
-    <ul data-slot="lobby-seats" aria-label="Players" className={cn("grid grid-cols-5 gap-x-1.5 gap-y-5", className)} {...props}>
-      {seats.map((seat, index) => (
-        <li key={index} data-slot="lobby-seat" data-free={seat ? undefined : ""} className="flex min-w-0 flex-col items-center gap-2">
-          {/* The link or the button of a free seat is made as wide as the column too, for its circle to fill it */}
-          <span className="relative block w-full [&>a]:w-full [&>button]:w-full">
-            {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3.5 left-1/2 z-10 size-5 -translate-x-1/2" />}
-            {seat ? <SeatAvatar seat={seat} className={SEAT_PICTURE} /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className={SEAT_PICTURE} />}
-          </span>
-          <span className={cn("w-full truncate text-center text-xs @md:text-sm", !seat && "text-muted-foreground")}>
-            {seat?.host && <span className="sr-only">Host: </span>}
-            {seat ? seat.name : word}
-          </span>
-        </li>
-      ))}
-    </ul>
   )
 }
 
@@ -95,6 +65,8 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
   state: TableState
   /** When it was opened, or how long it has been played: already formatted ("Opened 4 min ago"). */
   age: string
+  /** Who opened the table, as the line at the top says it ("you", "Marly"): "Table created by you". */
+  createdBy: string
   /** What the table is called: "Your lobby", "Marly's table". Not drawn: it names the panel for a screen reader. */
   title: string
   /** The table's code, and what to do with it. Not drawn either: a screen reader reads it after the name. */
@@ -103,8 +75,10 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
   seats: readonly TableSeat[]
   /** The settings of the table, at the bottom: the expansions it is played with and how fast. None: the panel has none to show. */
   settings?: LobbySettingsProps | null
-  /** Who may find the table, for the visitor's own lobby, which they set: a toggle of two icons at the top right (`LobbyVisibility`). None: not drawn, as for every table of the list, which is public. */
-  visibility?: LobbyVisibilityValue
+  /** Who may join the table, for the visitor's own lobby, which they set: the one button at the top right (`LobbyAccess`), with where it starts and the languages it offers. None: not drawn, as for every table of the list, which is public. */
+  access?: Pick<LobbyAccessProps, "defaultVisibility" | "defaultMinRank" | "defaultLanguage" | "languages">
+  /** How many players the visitor's own lobby may be set for: the select above the seats (`LobbyPlayers`). None: the seats are drawn as they are, as for every table of the list. */
+  playerRange?: { min: number; max: number }
   /** The main button at the bottom: where it leads (`href`), or a button that cannot be pressed (`disabled`: "Full", "Waiting to start · 3/5"). None: no button, unless `start` is given. */
   action?: { label: string; href?: string; disabled?: boolean } | null
   /** The main button of the visitor who opened the lobby, which starts it: the page's own (`StartGameButton`), drawn in place of `action`. */
@@ -120,28 +94,23 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
 }
 
 /**
- * A table in the panel: whether it waits or is played and how old it is (its name and its code are for a screen reader), its people, five to a row (`LobbySeats`), its settings at the bottom (`LobbySettings`), and
- * the main button under them: the way into the table, a button that cannot be pressed and says that it waits to be started and how many have joined of those expected, or, for the one who opened it, the one that starts it (`start`). It is
- * the lobby a visitor sits at, which they may leave by the secondary button beside the main one (`leave`) and, when it is theirs, set who may find it by the toggle at the top right (`visibility`), and the table they picked in the list of the open tables, which a button at the top
- * right closes (`onClose`) and gives the panel back to what it showed before.
+ * A table in the panel: who opened it and how long ago, in a small line at the top (its name and its code are for a screen reader), its people, five to a row (`LobbyPlayers`, with the number of them to set when the lobby is the visitor's), its settings at the bottom
+ * (`LobbySettings`), and the main button under them: the way into the table, a button that cannot be pressed and says that it waits to be started and how many have joined of those expected, or, for the one who opened it, the one that starts it (`start`). It is the lobby a visitor
+ * sits at, which they may leave by the secondary button beside the main one (`leave`) and, when it is theirs, set who may join by the button at the top right (`access`), and the table they picked in the list of the open tables, which a button at the top right closes (`onClose`)
+ * and gives the panel back to what it showed before.
  */
-function LobbyDetail({ state, age, title, description, seats, settings, visibility, action, start, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
-  const waiting = state === "waiting"
-  const panel = (
-    <LobbyPanel {...props}>
+function LobbyDetail({ state, age, createdBy, title, description, seats, settings, access, playerRange, action, start, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
+  return (
+    <LobbyPanel data-state={state} {...props}>
       <CardHeader>
-        {/* Its name and its code are for a screen reader (they name the panel): the status row says what the table is and the seats who is at it */}
+        {/* Its name and its code are for a screen reader (they name the panel): the line says who opened the table, how long ago or how long it has been played, and the seats who is at it */}
         <div className="flex min-h-8 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Badge variant={waiting ? "outline" : "secondary"}>
-              <HugeiconsIcon icon={waiting ? Clock01Icon : PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
-              {waiting ? "Waiting" : "Playing"}
-            </Badge>
-            <span className="truncate text-sm text-muted-foreground">{age}</span>
-          </div>
-          {(visibility || onClose) && (
+          <p className="min-w-0 truncate text-sm text-muted-foreground">
+            Table created by <span className="text-foreground">{createdBy}</span> · {age.charAt(0).toLowerCase() + age.slice(1)}
+          </p>
+          {(access || onClose) && (
             <div className="flex shrink-0 items-center gap-2">
-              {visibility && <LobbyVisibility />}
+              {access && <LobbyAccess {...access} />}
               {onClose && (
                 <Button type="button" variant="ghost" size="icon-sm" aria-label="Close the details" onClick={onClose}>
                   <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" />
@@ -154,7 +123,7 @@ function LobbyDetail({ state, age, title, description, seats, settings, visibili
         <CardDescription className="sr-only">{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <LobbySeats seats={seats} join={join} invite={invite} />
+        <LobbyPlayers seats={seats} range={playerRange} join={join} invite={invite} />
         {settings && <LobbySettings {...settings} className="mt-auto border-t pt-6" />}
       </CardContent>
       {(action || start || leave) && (
@@ -178,8 +147,6 @@ function LobbyDetail({ state, age, title, description, seats, settings, visibili
       )}
     </LobbyPanel>
   )
-  // A lobby that the visitor sets keeps who may find it for the toggle at its top and the criteria of its settings, which only a public lobby asks for
-  return visibility ? <LobbyAccess defaultVisibility={visibility}>{panel}</LobbyAccess> : panel
 }
 
 export { LobbyDetail, LobbyMainButton, LobbyPanel, LobbySeats, LobbySetting, LobbySideButton }

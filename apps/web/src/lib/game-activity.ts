@@ -17,8 +17,8 @@ export type TableStatus = "lobby" | "playing"
 /** Who may find a table (`tables.visibility`): a `public` one is listed on the game's page, a `private` one is reached by its link. */
 export type TableVisibility = "private" | "public"
 
-/** The pace of a table (`tables.turn_timer`): `fast` and `normal` have a clock on every turn, `none` has none, `async` leaves a day or more to play. */
-export type TurnTimer = "fast" | "normal" | "none" | "async"
+/** The pace of a table (`tables.turn_timer`): `slow`, `normal` and `fast` have a clock on every turn, from the longest to the shortest, `none` has none, `async` leaves a day or more to play. */
+export type TurnTimer = "none" | "slow" | "normal" | "fast" | "async"
 
 /** One person seated at a table: a row of `table_players` that has not left (`left_at is null`), with the picture of their profile. */
 export type TablePlayer = {

@@ -24,16 +24,41 @@ export type TableState = "waiting" | "playing"
 /** What a visitor may do at a table: sit down (`join`), or nothing because it is `full`. A table that is played has no way in: no game lets anyone look on for now. */
 export type TableAction = "join" | "full"
 
-/** How fast a table is played, the speed of the game (`tables.turn_timer`): a clock on every turn, short (`fast`) or usual (`normal`), no clock (`none`), or a day or more for each turn (`async`). */
-export type Pace = "fast" | "normal" | "none" | "async"
+/** How fast a table is played, the speed of the game (`tables.turn_timer`): no clock (`none`), a clock on every turn, long (`slow`), usual (`normal`) or short (`fast`), or a day or more for each turn (`async`). */
+export type Pace = "none" | "slow" | "normal" | "fast" | "async"
 
-/** The paces in the order a setting offers them, with the words that name them. */
+/** Every pace, with the words that name it, in the order of a setting: from no clock to the shortest. */
 export const PACES: readonly { value: Pace; label: string }[] = [
-  { value: "fast", label: "Fast" },
-  { value: "normal", label: "Normal" },
   { value: "none", label: "No timer" },
+  { value: "slow", label: "Slow" },
+  { value: "normal", label: "Normal" },
+  { value: "fast", label: "Fast" },
   { value: "async", label: "Async" },
 ]
+
+/** The paces a lobby offers to the visitor who sets it, in that order: a table that is played a day a turn (`async`) is not one of them, and is still read as what it is. */
+export const SPEEDS: readonly Pace[] = ["none", "slow", "normal", "fast"]
+
+/** The most seats a table is drawn with: three rows of five. */
+export const MAX_SEATS = 15
+
+/**
+ * How many players a lobby may be set for: from the game's least to its most, and never more than the seats a table is drawn with. A game that says no most ("3 or more") goes up to the seats there are, one that says
+ * nothing at all is for two and more, and a most under the least is the least.
+ */
+export function playerRange(min: number | null, max: number | null): { min: number; max: number } {
+  const least = Math.min(MAX_SEATS, Math.max(1, min ?? 2))
+  return { min: least, max: Math.min(MAX_SEATS, Math.max(least, max ?? MAX_SEATS)) }
+}
+
+/**
+ * The seats of a table set for `count` players: the people who sit, in their order, then free seats up to the count. Nobody is dropped to fit a count that is under the people who sit, so a table is never drawn with fewer
+ * seats than it has players.
+ */
+export function fitSeats(seats: readonly TableSeat[], count: number): TableSeat[] {
+  const seated = seats.filter((seat): seat is SeatedPlayer => seat !== null)
+  return Array.from({ length: Math.max(count, seated.length) }, (_, index) => seated[index] ?? null)
+}
 
 /** A player of a table as the platform keeps them: the seat they took, the name they sat down with (null once they have deleted their account), its tag, their picture, whether they opened the table, and their record in the game. */
 export type SeatClaim = { seat: number; name: string | null; tag?: string | null; avatarUrl?: string | null; host?: boolean; record?: PlayerRecord | null }

@@ -6,17 +6,17 @@ import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
 import { rankLabel, type Rank } from "@pbgo/ui/ranks"
 import { agoOf, resultOf, timePlayed, winRate, type Result } from "@pbgo/ui/results"
-import { ageOf, DELETED_PLAYER, nicknameOf, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
+import { ageOf, DELETED_PLAYER, hostOf, nicknameOf, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTimer } from "./game-activity"
 
 // What the blocks of a game's page draw, made of the rows of `game-activity.ts`: the one place that words a table (its name, its age, what to know before sitting down, what a visitor may do at it), a visitor's figures and games, and
 // that picks what a leaderboard row shows of a standing. The components of `@pbgo/ui` draw what they are given; the docs' specimens run their demo rows through these functions too, so that they show what the page will.
 
 /** The pace of a table, when it is worth saying: a table with a clock on every turn, or one that leaves days to play. The usual pace (`normal`, `none`) is not said. */
-/** The languages a lobby may ask its players to speak: the platform's twelve, each as its own name (a lobby's settings offer them, `LobbySettings`). */
+/** The languages a lobby may ask its players to speak: the platform's twelve, each as its own name (the button that says who may join offers them, `LobbyAccess`). */
 export const LANGUAGE_OPTIONS = PLATFORM_LANGUAGES.map(({ id, title }) => ({ value: id, label: title }))
 
-const PACE: Partial<Record<TurnTimer, string>> = { fast: "Fast turns", async: "Async" }
+const PACE: Partial<Record<TurnTimer, string>> = { slow: "Slow turns", fast: "Fast turns", async: "Async" }
 
 /** The seats of a table, in order: each person with their name, tag, picture, record and whether they opened it, `null` for a seat nobody took. */
 export function seatsOfTable(table: GameTable): TableSeat[] {
@@ -103,10 +103,18 @@ export function leaderboardRow(standing: Standing): LeaderboardRow {
 
 /**
  * What the panel says of a table: the one a visitor sits at (`mine`: "Your lobby", with, while it waits, a button that cannot be pressed and says how many have joined of those expected, which the one who opened it replaces with the page's button that starts the game (`editable`), and, for a game in play, a button back into it) or one they picked in the list of the open tables (its host's name, with the button that fits what they may do there: Join, or
- * Full, which cannot be pressed). It is the table's age and code, its people with their names, its settings at the bottom (the expansions of the game, `expansions`, and which of them the table is played with; how fast), for the visitor's own
- * lobby who may find it, at the top right, and where it leads. `editable` is for a lobby that the visitor opened and still waits: they set it, and the others only read. `now` is when its age is counted from.
+ * Full, which cannot be pressed). It is who opened it and how long ago, its age and code, its people with their names, its settings at the bottom (the expansions of the game, `expansions`, and which of them the table is played with; how fast), for the visitor's own
+ * lobby the number of players they may set (`players`, the game's least and most) and who may join, at the top right, and where it leads. `editable` is for a lobby that the visitor opened and still waits: they set it, and the others only read. `now` is when its age is counted from.
  */
-export function tableDetailProps(table: GameTable, slug: string, now: number = Date.now(), mine = false, expansions: readonly Expansion[] = [], editable = false): Omit<LobbyDetailProps, "onClose"> {
+export function tableDetailProps(
+  table: GameTable,
+  slug: string,
+  now: number = Date.now(),
+  mine = false,
+  expansions: readonly Expansion[] = [],
+  editable = false,
+  players: { min: number | null; max: number | null } = { min: null, max: null }
+): Omit<LobbyDetailProps, "onClose"> {
   const state: TableState = table.status === "lobby" ? "waiting" : "playing"
   const seats = seatsOfTable(table)
   const href = `/${slug}/game/${table.code}`
@@ -115,6 +123,7 @@ export function tableDetailProps(table: GameTable, slug: string, now: number = D
   return {
     state,
     age: ageOfTable(table, now),
+    createdBy: mine ? "you" : (hostOf(seats) ?? "a player who left"),
     title: mine ? (state === "waiting" ? "Your lobby" : "Your game") : nameOfTable(table),
     description: mine && state === "waiting" ? `Table ${table.code}. Share its link to fill the seats.` : `Table ${table.code}`,
     seats,
@@ -122,10 +131,10 @@ export function tableDetailProps(table: GameTable, slug: string, now: number = D
       expansions,
       chosen: table.expansions,
       pace: table.turnTimer,
-      ...(editable ? { editable: true, languages: LANGUAGE_OPTIONS } : {}),
+      ...(editable ? { editable: true } : {}),
     },
-    // Who may find a lobby is for its host to set, at the top of the panel: every other table is read
-    ...(editable ? { visibility: table.visibility } : {}),
+    // Who may join a lobby and how many players it has are for its host to set, at the top of the panel and above the seats: every other table is read
+    ...(editable ? { access: { defaultVisibility: table.visibility, languages: LANGUAGE_OPTIONS }, playerRange: playerRange(players.min, players.max) } : {}),
     action: mine
       ? state === "playing"
         ? { label: "Rejoin your game", href }

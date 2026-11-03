@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ageOf, DELETED_PLAYER, hostOf, lasted, namesOf, nicknameOf, PACES, seatCount, seatsOf, tableAction, tagOf, type TableSeat } from "./tables"
+import { ageOf, DELETED_PLAYER, fitSeats, hostOf, lasted, MAX_SEATS, namesOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, SPEEDS, tableAction, tagOf, type TableSeat } from "./tables"
 
 const NOW = Date.parse("2026-11-01T12:00:00Z")
 const ago = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString()
@@ -126,9 +126,46 @@ describe("hostOf", () => {
 })
 
 describe("PACES", () => {
-  it("name every pace once, in the order a setting offers them", () => {
-    expect(PACES.map((pace) => pace.value)).toEqual(["fast", "normal", "none", "async"])
+  it("name every pace once, from no clock to the shortest", () => {
+    expect(PACES.map((pace) => pace.value)).toEqual(["none", "slow", "normal", "fast", "async"])
     expect(new Set(PACES.map((pace) => pace.label)).size).toBe(PACES.length)
+  })
+
+  it("offer a lobby four of them: no timer, slow, normal and fast, and not the one that leaves a day a turn", () => {
+    expect(SPEEDS).toEqual(["none", "slow", "normal", "fast"])
+    for (const speed of SPEEDS) expect(PACES.map((pace) => pace.value)).toContain(speed)
+  })
+})
+
+describe("playerRange", () => {
+  it.each([
+    [2, 5, { min: 2, max: 5 }],
+    [3, null, { min: 3, max: MAX_SEATS }],
+    [null, null, { min: 2, max: MAX_SEATS }],
+    [4, 2, { min: 4, max: 4 }],
+    [0, 1, { min: 1, max: 1 }],
+    [2, 40, { min: 2, max: MAX_SEATS }],
+    [20, 30, { min: MAX_SEATS, max: MAX_SEATS }],
+  ])("is %j to %j players for a game of %j", (min, max, range) => {
+    expect(playerRange(min, max)).toEqual(range)
+  })
+})
+
+describe("fitSeats", () => {
+  const [alex, sam] = [{ name: "Alex", host: true }, { name: "Sam" }]
+
+  it("keeps the people in their order and frees the rest up to the count", () => {
+    expect(fitSeats([alex, null, sam, null], 5)).toEqual([alex, sam, null, null, null])
+    expect(fitSeats([alex, sam, null, null, null], 3)).toEqual([alex, sam, null])
+  })
+
+  it("never draws fewer seats than there are people", () => {
+    expect(fitSeats([alex, sam, null], 1)).toEqual([alex, sam])
+    expect(fitSeats([], 0)).toEqual([])
+  })
+
+  it("is a table of free seats when nobody sits", () => {
+    expect(fitSeats([], 3)).toEqual([null, null, null])
   })
 })
 

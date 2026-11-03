@@ -12,13 +12,14 @@ import { OpenTables } from "./open-tables"
 /** The name by which the head of a game's page reaches the space to create a game (the `id` that `anchored` sets). */
 export const CREATE_ANCHOR = "create-a-game"
 
-/** `expansions` are the ones the game has: the settings of the space offer them, and a table says which it is played with. `minPlayers` is the least players the game needs, which the button that starts a lobby waits for. `now` is when the age of every table is counted from: the page's own (the default), or a fixed one for the docs' specimens, which are built once. */
+/** `expansions` are the ones the game has: the settings of the space offer them, and a table says which it is played with. `minPlayers` and `maxPlayers` are the least players and the most the game takes: a lobby is set for a number between them, and `minPlayers` is the least the game needs, which the button that starts a lobby waits for. `now` is when the age of every table is counted from: the page's own (the default), or a fixed one for the docs' specimens, which are built once. */
 export function GamePlay({
   slug,
   name,
   live,
   players,
   minPlayers = null,
+  maxPlayers = null,
   tables,
   viewerTable,
   expansions = [],
@@ -30,6 +31,7 @@ export function GamePlay({
   live: boolean
   players: string | null
   minPlayers?: number | null
+  maxPlayers?: number | null
   tables: readonly GameTable[]
   viewerTable: ViewerTable | null
   expansions?: readonly Expansion[]
@@ -37,7 +39,7 @@ export function GamePlay({
   /** Give the space the name that the head's button leads to. Only the page does: a name is one per page, and the specimens show several. */
   anchored?: boolean
 }) {
-  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} minPlayers={minPlayers} viewerTable={viewerTable} expansions={expansions} now={now} />
+  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} now={now} />
 
   if (!live) {
     return (
@@ -57,7 +59,7 @@ export function GamePlay({
           return {
             id: table.id,
             entry: tableEntryProps(table, slug, now, expansions, mine),
-            detail: mine ? ownTableDetail(viewerTable, slug, now, expansions, minPlayers) : tableDetailProps(table, slug, now, false, expansions),
+            detail: mine ? ownTableDetail(viewerTable, slug, now, expansions, minPlayers, maxPlayers) : tableDetailProps(table, slug, now, false, expansions),
           }
         })}
         summary={open.length > 0 ? `${open.length} waiting` : undefined}

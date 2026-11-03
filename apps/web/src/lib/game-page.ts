@@ -29,6 +29,8 @@ export type GamePage = {
   players: string | null
   /** The least players the game needs, the figure behind `players`: the button that starts a lobby waits for them. Null when the Studio has none. */
   minPlayers: number | null
+  /** The most players the game takes, the other figure behind `players`: a lobby may be set for as many. Null when the Studio has none, or when the game takes any number from its least. */
+  maxPlayers: number | null
   duration: string | null
   /** The weight BoardGameGeek gives the game, worded like the figures around it ("Complexity 2.4/5"): drawn between the duration and the age. Null while the Studio has none. */
   complexity: string | null
@@ -89,6 +91,7 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     description,
     players: playersLabel(game.players) ?? null,
     minPlayers: game.players?.min ?? null,
+    maxPlayers: game.players?.max ?? null,
     duration: durationLabel(game.duration) ?? null,
     complexity: game.complexity === null ? null : `Complexity ${game.complexity.toFixed(1)}/5`,
     age: game.age === null ? null : `Ages ${game.age}+`,
