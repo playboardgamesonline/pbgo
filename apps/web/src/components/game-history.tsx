@@ -9,12 +9,12 @@ import { namesOf } from "@pbgo/ui/tables"
 import type { Expansion, HistoryEntry } from "@/lib/game-activity"
 import { historyRows, type HistoryRow } from "@/lib/game-activity-props"
 
-// The latest games of the signed-in visitor in a game, on the left of their stats in the band under the head (`GameHistoryStats`): the last three, one row each, in no card of their own (the band is the card). A row is called by the name of the game, with the expansions it was played with after it, and shows
+// The latest games of the signed-in visitor in a game, in the window that the button of the banner under the head opens (`GameHistoryStats`): the last ten at most, one row each, in no card of their own (the window is the card). A row is called by the name of the game, with the expansions it was played with after it, and shows
 // the pictures of the others at the table (no names: the group is labelled for a screen reader, and the pointer says each). On its right, how long ago it was, what it scored and the experience it gave, and at the far end how it ended, in a dark tint: green for a win, red for a loss, outlined for a draw
 // or a game that was left. There is no change of rating: a rating is never shown. A visitor with no game has an empty state in its place.
 
-/** How many games the band shows. */
-const LATEST = 3
+/** How many games the window lists. */
+const LATEST = 10
 
 /** How a game ended, as a badge: a win in green, a loss in red, both dark tints, and a draw or a game that was left outlined. */
 function ResultBadge({ result }: { result: Result }) {

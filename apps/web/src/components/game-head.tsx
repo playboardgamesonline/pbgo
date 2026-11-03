@@ -18,7 +18,7 @@ import { RulesButton } from "./rules-button"
 // (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left whose foot is the foot of the head, the way back to the games' list ("All games") at its top and everything else at its foot: the game's logo in place of its name (the name, written, for a game
 // that has no logo), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three main
 // buttons, all 48px high, "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindGameButton`); "Create a game", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
-// to the rulebook, or a menu of languages that a press opens), then, beside them, what the signed-in visitor has done in the game, as a strip of three figures as tall as the buttons (`StatList`: games played, win rate, rank), the stats in full being in the band under the head (`GameHistoryStats`), and, for a visitor who is
+// to the rulebook, or a menu of languages that a press opens), then, beside them, what the signed-in visitor has done in the game, as a strip of three figures as tall as the buttons (`StatList`: games played, win rate, rank), the stats in full being in the thin banner under the head (`GameHistoryStats`), and, for a visitor who is
 // not signed in, a link in its place that invites them to sign in. Under the buttons come the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled, keeps the rules and has no strip. Nothing stands in for what is missing: a game with no background has a plain head. The gallery of
 // the game's pictures and clips (`MediaGallery`) is not drawn for now: it will have a place again.
 
@@ -34,7 +34,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
     { icon: Brain02Icon, text: complexity },
     { icon: ChildIcon, text: age },
   ].filter((figure): figure is { icon: IconSvgElement; text: string } => figure.text !== null)
-  // Games played, win rate and rank: the fourth figure (the position on the board) is for the column of the band under the head
+  // Games played, win rate and rank: the fourth figure (the position on the board) is for the banner under the head
   const strip = stats
     ? statFigures(stats)
         .slice(0, 3)
