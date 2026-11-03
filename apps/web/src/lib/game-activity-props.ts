@@ -12,11 +12,11 @@ import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTim
 // What the blocks of a game's page draw, made of the rows of `game-activity.ts`: the one place that words a table (its name, its age, what to know before sitting down, what a visitor may do at it), a visitor's figures and games, and
 // that picks what a leaderboard row shows of a standing. The components of `@pbgo/ui` draw what they are given; the docs' specimens run their demo rows through these functions too, so that they show what the page will.
 
-/** The pace of a table, when it is worth saying: a table with a clock on every turn, or one that leaves days to play. The usual pace (`normal`, `none`) is not said. */
+/** The pace of a table, when it is worth saying: a table with no clock, one that leaves days to play, or a clock that is not the usual one. The usual pace (`normal`) is not said. */
 /** The languages a lobby may ask its players to speak: the platform's twelve, each as its own name (the button that says who may join offers them, `LobbyAccess`). */
 export const LANGUAGE_OPTIONS = PLATFORM_LANGUAGES.map(({ id, title }) => ({ value: id, label: title }))
 
-const PACE: Partial<Record<TurnTimer, string>> = { slow: "Slow turns", fast: "Fast turns", async: "Async" }
+const PACE: Partial<Record<TurnTimer, string>> = { none: "No timer", slow: "Slow turns", fast: "Fast turns", async: "Async" }
 
 /** The seats of a table, in order: each person with their name, tag, picture, record and whether they opened it, `null` for a seat nobody took. */
 export function seatsOfTable(table: GameTable): TableSeat[] {

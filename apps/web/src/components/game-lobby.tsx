@@ -45,6 +45,7 @@ export function GameLobby({
   maxPlayers = null,
   viewerTable,
   expansions = [],
+  flat = false,
   className,
 }: {
   slug: string
@@ -55,11 +56,13 @@ export function GameLobby({
   maxPlayers?: number | null
   viewerTable: ViewerTable | null
   expansions?: readonly Expansion[]
+  /** The panel stands inside the container of the open tables and draws no surface of its own (`LobbyPanel`). */
+  flat?: boolean
   className?: string
 }) {
   if (!live) {
     return (
-      <LobbyPanel aria-disabled="true" className={cn("opacity-50 lg:min-h-56", className)}>
+      <LobbyPanel aria-disabled="true" flat={flat} className={cn("opacity-50 lg:min-h-56", className)}>
         <CardHeader>
           <CardTitle className={TITLE}>Coming soon</CardTitle>
           <CardDescription className="text-base">You will be able to open a table of {name} here.</CardDescription>
@@ -68,11 +71,11 @@ export function GameLobby({
     )
   }
 
-  if (viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers)} className={className} />
+  if (viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers)} flat={flat} className={className} />
 
   const range = playerRange(minPlayers, maxPlayers)
   return (
-    <LobbyPanel className={className}>
+    <LobbyPanel flat={flat} className={className}>
       <CardHeader>
         <CardTitle className={TITLE}>Create a game</CardTitle>
         <CardDescription className="text-base">Open a table, share its link and play with your friends.</CardDescription>

@@ -16,12 +16,15 @@ import type { OpenSeatProps } from "./open-seat"
 // `--card-spacing`) that is as tall as what it holds, and as the row it stands in when that is taller: it never scrolls. Its header stays at the top and its footer, the main button and the one beside it, at the bottom, and its content takes the room that is left between them.
 // It is built from the parts of a card (`CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`) and from the pieces below; what it says, what its settings are and where its button leads are the page's.
 
-/** The panel: a `Card` that fills the height of the row it stands in and grows with its content, which never scrolls, and is not shorter than 32rem from `lg` when nothing gives it a height. */
-function LobbyPanel({ className, ...props }: React.ComponentProps<typeof Card>) {
+/**
+ * The panel: a `Card` that fills the height of the row it stands in and grows with its content, which never scrolls, and is not shorter than 32rem from `lg` when nothing gives it a height. `flat` is for a panel that stands
+ * inside a container that has the look of a card already, beside the list of the open tables: it keeps the room and the parts of a card and draws no surface, no ring, no shadow and no corner of its own.
+ */
+function LobbyPanel({ className, flat = false, ...props }: React.ComponentProps<typeof Card> & { flat?: boolean }) {
   return (
     <Card
       data-slot="lobby-panel"
-      className={cn("@container h-full gap-6 [--card-spacing:--spacing(8)] *:data-[slot=card-content]:flex-1 lg:min-h-128", className)}
+      className={cn("@container h-full gap-6 [--card-spacing:--spacing(8)] *:data-[slot=card-content]:flex-1 lg:min-h-128", flat && "rounded-none bg-transparent shadow-none! ring-0", className)}
       {...props}
     />
   )

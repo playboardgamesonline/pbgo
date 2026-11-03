@@ -4,10 +4,10 @@ import { tableDetailProps, tableEntryProps } from "@/lib/game-activity-props"
 import { GameLobby, ownTableDetail } from "./game-lobby"
 import { OpenTables } from "./open-tables"
 
-// What a game's page offers right under its head, before anything else: on the left the tables that are open, the ones that wait for players, as the rows of a list (`OpenTables`, seven twelfths of the width from `lg`), and on the right a tall space
-// (`GameLobby`, five twelfths): the lobby the visitor is in, or the space to open one, which gives way to the details of the row that the visitor picks. The tables being played are not listed: a visitor who sits at one finds it in the space
-// (`viewerTable`). The row is as tall as the space needs on a wide screen, and no taller (the space never scrolls and has no height of its own beyond a floor of 32rem; the list of tables, which scrolls inside its card, takes the row's height and does not give it, `OpenTables`), and both cards start at the same height; on a narrow screen the space comes first, since opening a table is
-// what most visitors came to do. A game that is not live has the space alone, half transparent, and no tables. On the page of a game the space is reached by name (`anchored`): the button of the head that creates a game leads to it.
+// What a game's page offers right under its head, before anything else, in one container (`OpenTables`): on the left the tables that are open, the ones that wait for players, as the rows of a list (seven twelfths of the width from `lg`), and on the right a tall panel (`GameLobby`,
+// five twelfths): the lobby the visitor is in, or the space to open one, which gives way to the details of the row that the visitor picks. The visitor's own table is the first row of the list, whatever it is (a lobby they opened or joined, or a game they play), and the row that is selected is the one the
+// panel shows. The other tables being played are not listed. The container is as tall as the panel needs on a wide screen, and no taller (the panel never scrolls and has no height of its own beyond a floor of 32rem; the list of tables, which scrolls inside, takes that height and does not give it); on a narrow
+// screen the panel comes first, since opening a table is what most visitors came to do. A game that is not live has the panel alone, half transparent, and no tables. On the page of a game the panel is reached by name (`anchored`): the button of the head that creates a game leads to it.
 
 /** The name by which the head of a game's page reaches the space to create a game (the `id` that `anchored` sets). */
 export const CREATE_ANCHOR = "create-a-game"
@@ -39,7 +39,8 @@ export function GamePlay({
   /** Give the space the name that the head's button leads to. Only the page does: a name is one per page, and the specimens show several. */
   anchored?: boolean
 }) {
-  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} />
+  // In a game that is live the panel stands inside the container of the open tables, and draws no surface of its own
+  const lobby = <GameLobby slug={slug} name={name} live={live} players={players} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} flat={live} />
 
   if (!live) {
     return (
@@ -49,20 +50,28 @@ export function GamePlay({
     )
   }
 
-  // What a visitor can still sit at: the tables that wait for players. The one they sit at, if it is listed, is theirs: its free seats invite, and its details are their lobby's
-  const open = tables.filter((table) => table.status === "lobby")
+  // The visitor's own table, which is theirs whatever its state, then what they can still sit at: the tables that wait for players. A free seat of their own invites, and its details are their lobby's
+  const own = viewerTable
+    ? [
+        {
+          id: viewerTable.id,
+          own: true,
+          entry: { ...tableEntryProps(viewerTable, slug, now, expansions, true), hostedByYou: viewerTable.viewerIsHost },
+          detail: ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers),
+        },
+      ]
+    : []
+  const open = tables.filter((table) => table.status === "lobby" && table.id !== viewerTable?.id)
+  const rows = [
+    ...own,
+    ...open.map((table) => ({ id: table.id, entry: tableEntryProps(table, slug, now, expansions, false), detail: tableDetailProps(table, slug, false, expansions) })),
+  ]
+  const waiting = rows.filter((row) => row.entry.state === "waiting").length
   return (
-    <section aria-label={`Play ${name}`} className="grid gap-x-4 gap-y-8 lg:grid-cols-12">
+    <section aria-label={`Play ${name}`}>
       <OpenTables
-        rows={open.map((table) => {
-          const mine = viewerTable !== null && viewerTable.id === table.id
-          return {
-            id: table.id,
-            entry: tableEntryProps(table, slug, now, expansions, mine),
-            detail: mine ? ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers) : tableDetailProps(table, slug, false, expansions),
-          }
-        })}
-        summary={open.length > 0 ? `${open.length} waiting` : undefined}
+        rows={rows}
+        summary={waiting > 0 ? `${waiting} waiting` : undefined}
         lobby={lobby}
         createHref={`/${slug}`}
         emptyTitle={COMING_SOON.tables.heading}
