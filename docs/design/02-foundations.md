@@ -44,7 +44,7 @@ colors-neutral-ramp
 
 ### The one grey
 
-The platform has one grey for every container: `--card`, which `--popover` equals. It is two thirds neutral 900 and a third neutral 950, a dark grey, and not the black of the page (`--background`). The glass of the search bar is a step lighter, `--card-bar`: half way between neutral 900 and 800. What floats over the page keeps most of this grey and blurs what is behind it: see [Glass](#glass).
+The platform has one grey for every container: `--card`, which `--popover` equals. It is two thirds neutral 900 and a third neutral 950, a dark grey, and not the black of the page (`--background`). A step lighter, `--card-bar` (half way between neutral 900 and 800), is for what is read before the rest: the glass of the search bar, and a panel that stands raised beside a list. What floats over the page keeps most of this grey and blurs what is behind it: see [Glass](#glass).
 
 ### Chart
 

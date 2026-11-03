@@ -511,7 +511,7 @@
     /* The grey of every container: a card, a menu, a dialog, and the glass of the navbar, the dock, the bars (`glass`). Two thirds neutral 900 and a third neutral 950 (0.156 of lightness, it was 0.205), a dark grey that is darker than it was and is still not the page's black */
     --card: color-mix(in oklab, var(--color-neutral-900) 66%, var(--color-neutral-950));
     --card-foreground: var(--color-neutral-50);
-    /* The grey of the glass of the search bar: a step lighter than the other containers (half way between neutral 900 and 800, 0.205), so that it is the one that is read first on the page */
+    /* A step lighter than the other containers (half way between neutral 900 and 800, 0.205), for what is read before the rest: the glass of the search bar, and a panel that stands raised beside a list */
     --card-bar: color-mix(in oklab, var(--color-neutral-900) 50%, var(--color-neutral-800));
     --popover: var(--card);
     --popover-foreground: var(--color-neutral-50);

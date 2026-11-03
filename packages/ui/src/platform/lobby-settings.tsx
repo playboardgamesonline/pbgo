@@ -11,8 +11,8 @@ import { Label } from "./label"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
 // The settings of a game's lobby, at the bottom of its panel (`LobbyDetail`, and the space that opens one): how fast it is played, what it is played with and whether it has helpers. The speed of the game is a segmented toggle of four, in this order and in one container as wide as the settings: no timer (an icon alone, an
-// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width; then come the game's expansions, each a picture with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
-// is theirs) picks a speed, presses an expansion to choose it or to leave it and ticks the box; one who reads a table of the list sees only what it is played with and how fast. How many may play and who may join are not here: the number of players is above the seats
+// infinity, narrower), then slow, normal and fast (`SPEEDS`) of the same width, the thumb behind the one that is picked gliding to the next when another is; then come the game's expansions, each a picture with its name and an outline when it is chosen; and, last, a box to tick for the helpers, the aids that a player may have while they play. A visitor who sets them (`editable`: the lobby
+// is theirs) picks a speed, presses an expansion to choose it or to leave it and ticks the box; one who reads a table of the list has the same slider, which cannot be pressed, and sees only what it is played with besides (a pace that is not on the slider, a table played a day a turn, is said in words). How many may play and who may join are not here: the number of players is above the seats
 // (`LobbyPlayers`) and who may join is the button at the top right of the panel (`LobbyAccess`). Every table counts for the leaderboard and none can be looked on at, so neither is a setting. Nothing is kept yet: no lobby has a place to keep them (the tables of PLT-13), so what
 // is set stays in the page; `onChange` is for the page that has somewhere to put it.
 
@@ -65,6 +65,9 @@ function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
   )
 }
 
+/** A slider that is read (a table of the list, `disabled`) keeps the speed that it says as strong as when it is set, and dims the others: a value to read is not a control that is off. */
+const READ = "data-[state=on]:disabled:opacity-100"
+
 /** What an expansion is in the settings: its picture and its name in a frame, outlined when the table is played with it. The name wraps and is never cut (an expansion's name often starts with its game's, and says nothing before its end); the frames of a row are as tall as the tallest. */
 const TILE = "flex h-full w-full flex-col gap-2 rounded-2xl p-1.5 text-left outline-2 transition-colors duration-fast"
 
@@ -85,16 +88,24 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = true, edi
   return (
     <div data-slot="lobby-settings" data-editable={editable ? "" : undefined} className={cn("@container flex flex-col gap-5", className)} {...props}>
       <Group title="Speed">
-        {editable ? (
-          <ToggleGroup type="single" variant="segmented" value={value.pace} onValueChange={(next) => next && change({ ...set, pace: next as Pace })} aria-label="Speed of the game">
+        {editable || SPEEDS.includes(value.pace) ? (
+          // Every table has the slider: the visitor who sets the lobby moves it, the one who reads a table of the list sees where it stands and cannot press it
+          <ToggleGroup
+            type="single"
+            variant="segmented"
+            value={value.pace}
+            disabled={!editable}
+            onValueChange={(next) => next && change({ ...set, pace: next as Pace })}
+            aria-label="Speed of the game"
+          >
             {SPEEDS.map((speed) =>
               speed === "none" ? (
                 // No timer is an infinity and nothing else, narrower than the others, which share the rest of the width alike: its name is for a screen reader and for the pointer
-                <ToggleGroupItem key={speed} value={speed} fit aria-label="No timer" title="No timer" className="w-12 px-0">
+                <ToggleGroupItem key={speed} value={speed} fit aria-label="No timer" title="No timer" className={cn("w-12 px-0", READ)}>
                   <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
                 </ToggleGroupItem>
               ) : (
-                <ToggleGroupItem key={speed} value={speed}>
+                <ToggleGroupItem key={speed} value={speed} className={READ}>
                   {PACES.find((pace) => pace.value === speed)?.label}
                 </ToggleGroupItem>
               )

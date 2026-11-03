@@ -11,9 +11,18 @@ import { HugeiconsIcon } from "@hugeicons/react"
 
 // The open tables of a game and the panel that goes with them, in one container: a card with two sides, on the left the tables as rows, on the right the panel, which shows the details of the row that is selected. The visitor's own table is the first row, whatever it
 // is (a lobby they opened or joined, or a game they play), and it is the selected one when nothing else is picked, so that the panel shows it; a visitor who sits at no table has no row of their own and the panel is the space to open one (`lobby`). A press on another row picks it
-// and a second press, the button of the details, or Escape puts it down, which gives the panel back to the visitor's own table. The row that is selected is highlighted in the colour of the panel and runs into it, so that the two read as one: the list says which, and the panel what.
+// and a second press, the button of the details, or Escape puts it down, which gives the panel back to the visitor's own table. The panel is a step lighter than the container (`--card-bar`, opaque) and casts a light shadow on the list (`shadow-float`, from `lg`: the list is above it, so the shadow falls behind the rows); the row that is selected has the same grey and runs into the panel, over the shadow, so that the two read as one: the list says which, and the panel what.
 // Both sides are as tall as the container, which the panel's content sets (the list takes that height and adds nothing to it, `lg:h-0 lg:min-h-full`), and the list scrolls inside, with no scrollbar beside the panel (a fade at its foot says there is more), so that the row that is selected can run into it. On a narrow screen the panel is above the list, so a row that is picked brings it into view. Which rows there are,
 // and what they say, is the page's (`GamePlay`). The title, "Tables" with the number of rows in a pill, stands over the container, as the titles of the page's other sections do. The page may give the panel a name to be reached by (`lobbyId`: the button at the top of a game's page that creates a game leads to it); the specimens do not, since a name is one per page.
+
+// What the row that is selected wears from `lg`, when the panel is beside the list. It has the grey of the panel and runs into it, over the room that the list keeps at its right (the padding that it takes there keeps what it says where it was), with no
+// corner on that side. Where its top and its foot meet the panel the corner is concave, a quarter of a circle as big as the room between two rows (`size-2`) in the same grey, so that the row and the panel are one shape, as a tab is with its sheet.
+const RUNS_INTO_THE_PANEL = [
+  "data-[selected]:bg-(--card-bar) data-[selected]:hover:bg-(--card-bar)",
+  "lg:data-[selected]:relative lg:data-[selected]:-mr-4 lg:data-[selected]:rounded-r-none lg:data-[selected]:pr-4",
+  "lg:data-[selected]:before:absolute lg:data-[selected]:before:right-0 lg:data-[selected]:before:bottom-full lg:data-[selected]:before:size-2 lg:data-[selected]:before:content-[''] lg:data-[selected]:before:bg-[radial-gradient(circle_at_top_left,transparent_calc(0.5rem_-_0.5px),var(--card-bar)_0.5rem)]",
+  "lg:data-[selected]:after:absolute lg:data-[selected]:after:top-full lg:data-[selected]:after:right-0 lg:data-[selected]:after:size-2 lg:data-[selected]:after:content-[''] lg:data-[selected]:after:bg-[radial-gradient(circle_at_bottom_left,transparent_calc(0.5rem_-_0.5px),var(--card-bar)_0.5rem)]",
+].join(" ")
 
 /** A row of the list and the details that it opens, both worded by the page. `own` is the visitor's own table: the first row, selected while nothing else is. */
 export type OpenTableRow = { id: string; own?: boolean; entry: Omit<TableEntryProps, "selected" | "onSelect" | "controls">; detail: Omit<LobbyDetailProps, "onClose"> }
@@ -72,7 +81,7 @@ export function OpenTables({
         </Badge>
       </h2>
       <div className="grid overflow-hidden rounded-4xl bg-card text-card-foreground shadow-surface ring-1 ring-foreground/10 lg:grid-cols-12">
-        <div className="flex min-h-0 flex-col lg:col-span-7 lg:h-0 lg:min-h-full">
+        <div className="flex min-h-0 flex-col lg:relative lg:z-20 lg:col-span-7 lg:h-0 lg:min-h-full">
           <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             {rows.length > 0 ? (
               <TableEntries aria-label="Tables">
@@ -83,8 +92,7 @@ export function OpenTables({
                     selected={id === selectedId}
                     controls={panelId}
                     onSelect={() => pick(id)}
-                    // The row that is selected is the colour of the panel and runs into it, over the room that the list keeps at its right
-                    className="data-[selected]:bg-muted/40 data-[selected]:hover:bg-muted/40 lg:data-[selected]:-mr-4 lg:data-[selected]:rounded-r-none"
+                    className={RUNS_INTO_THE_PANEL}
                   />
                 ))}
               </TableEntries>
@@ -106,7 +114,7 @@ export function OpenTables({
             )}
           </div>
         </div>
-        <div id={panelId} ref={panel} aria-live="polite" className="order-first min-h-0 scroll-mt-navbar bg-muted/40 lg:order-none lg:col-span-5">
+        <div id={panelId} ref={panel} aria-live="polite" className="relative z-10 order-first min-h-0 scroll-mt-navbar bg-(--card-bar) lg:order-none lg:col-span-5 lg:shadow-float">
           {picked ? <LobbyDetail key={picked.id} flat {...picked.detail} onClose={() => setPickedId(null)} /> : lobby}
         </div>
       </div>

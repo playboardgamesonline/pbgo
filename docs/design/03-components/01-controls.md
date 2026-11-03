@@ -307,7 +307,7 @@ toggle-group-disabled
 
 ### Segmented
 
-`variant="segmented"` puts the chips in one container, as the tabs of a tab list are: the width of its parent, on the `muted` fill, with a 4px margin round the chips and 4px between them, each chip the same width and the one that is picked primary. For a choice of a few words that a form is about, such as a speed (slow, normal, fast). A chip that should be narrower, an icon alone, is `fit` and has a width of its own (`w-12`); its name is then for a screen reader and the pointer (`aria-label`, `title`).
+`variant="segmented"` puts the chips in one container, as the tabs of a tab list are: the width of its parent, on the `muted` fill, with a 4px margin round the chips and 4px between them, each chip the same width, and behind the one that is picked a primary thumb that glides to the next chip when another is picked, with the spring of the navbar's fill (`SPRING_TRAVEL`; it jumps when less motion is asked for). For a choice of a few words that a form is about, such as a speed (slow, normal, fast). A chip that should be narrower, an icon alone, is `fit` and has a width of its own (`w-12`); its name is then for a screen reader and the pointer (`aria-label`, `title`).
 
 ```specimen
 toggle-group-segmented
