@@ -221,6 +221,12 @@ export type CreatorRole = (typeof CREATOR_ROLES)[number]["value"]
 export const roleTitle = (role: string): string => CREATOR_ROLES.find((entry) => entry.value === role)?.title ?? role
 
 /**
+ * The most pictures and clips a game's gallery holds after its cover (PLT-56): the page shows the cover first, then what the Studio puts in the
+ * `gallery` of the game, pictures and short clips of a game being played. The limit of that field in the Studio and of what the hub reads.
+ */
+export const GALLERY_MAX = 5
+
+/**
  * The name of the type that a translated field of this kind has (`sanity-plugin-internationalized-array` makes it; `field-translations.ts` sets the
  * plugin up): `translatedType("string")` is `internationalizedArrayString`, the one of a custom kind named `description` is
  * `internationalizedArrayDescription`. The plugin writes the first letter in capitals, so a kind is one word, or camelCase. A row of the

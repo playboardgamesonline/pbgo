@@ -1,7 +1,8 @@
+import { GALLERY_MAX } from "@pbgo/studio-kit/constants"
 import { describe, expect, it } from "vitest"
 import type { CatalogGame } from "./catalog"
 import { CATALOG_QUERY, PLATFORM_DATASET, PLATFORM_PROJECT_ID, SANITY_API_VERSION, SanityError, readSanityGames } from "./sanity"
-import { cdn, fakeSanity, sanityExpansion, sanityFailure, sanityGame, type SanityAnswer } from "./testing"
+import { cdn, cdnFile, fakeSanity, sanityExpansion, sanityFailure, sanityGame, type SanityAnswer } from "./testing"
 
 /** What `readSanityGames` makes of the games a fake Sanity answers. */
 const read = (answer: SanityAnswer) => readSanityGames({ fetch: fakeSanity(answer).fetch })
@@ -69,7 +70,7 @@ describe("the request", () => {
   })
 
   it("asks for what the reader maps: the query names each field", () => {
-    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "cover", "boxFront"]) {
+    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "gallery", "video", "poster", "cover", "boxFront"]) {
       expect(CATALOG_QUERY, field).toContain(field)
     }
   })
@@ -189,6 +190,7 @@ describe("a published game", () => {
       publishers: [{ name: "Cocktail Games", url: "https://www.cocktailgames.com" }],
       rules: { fr: "https://example.com/hanabi-fr.pdf", en: "https://example.com/hanabi-en.pdf" },
       pictures: { logo: cdn("logo-1600x476.webp"), icon: null, background: cdn("background-2400x1200.svg") },
+      gallery: [],
       related: ["the-mind"],
       order: 30,
       updatedAt: "2026-10-30T12:00:00Z",
@@ -212,6 +214,7 @@ describe("a published game", () => {
       publishers: [],
       rules: {},
       pictures: { logo: null, icon: null, background: null },
+      gallery: [],
       related: [],
       order: null,
       updatedAt: "2026-10-30T10:00:00Z",
@@ -410,6 +413,63 @@ describe("a published game", () => {
     ])("are none for %s", async (_label, value) => {
       expect((await one({ logo: value })).pictures.logo).toBeNull()
     })
+  })
+})
+
+describe("its gallery", () => {
+  const picture = (name: string, extra: Record<string, unknown> = {}) => ({ image: cdn(name), ...extra })
+  const clip = (name: string, extra: Record<string, unknown> = {}) => ({ video: cdnFile(name), ...extra })
+
+  it("is the pictures and the clips of the Studio's list, in its order, with what they show", async () => {
+    const game = await one({
+      gallery: [
+        clip("table-1.mp4", { poster: cdn("poster-1.jpg"), caption: "  Playing a \t card  " }),
+        picture("night.jpg", { caption: "The estate" }),
+        clip("table-2.webm"),
+      ],
+    })
+    expect(game.gallery).toEqual([
+      { kind: "video", url: cdnFile("table-1.mp4"), poster: cdn("poster-1.jpg"), caption: "Playing a card" },
+      { kind: "image", url: cdn("night.jpg"), caption: "The estate" },
+      { kind: "video", url: cdnFile("table-2.webm"), poster: null, caption: null },
+    ])
+  })
+
+  it.each([[undefined], [null], [[]], ["a list"], [{ not: "a list" }]])("is empty when the Studio's list is %j", async (gallery) => {
+    expect((await one({ gallery })).gallery).toEqual([])
+  })
+
+  it("leaves out an item that is not an object or has no file", async () => {
+    const game = await one({ gallery: ["picture.jpg", null, 12, {}, { caption: "Nothing to show" }, picture("kept.jpg")] })
+    expect(game.gallery).toEqual([{ kind: "image", url: cdn("kept.jpg"), caption: null }])
+  })
+
+  it.each([
+    ["a clip of another project", clip("a.mp4").video.replace(PLATFORM_PROJECT_ID, "other")],
+    ["a clip of another dataset", clip("a.mp4").video.replace(PLATFORM_DATASET, "staging")],
+    ["a clip on another host", "https://example.com/a.mp4"],
+    ["a clip that is not https", `http://cdn.sanity.io/files/${PLATFORM_PROJECT_ID}/${PLATFORM_DATASET}/a.mp4`],
+    ["a file that is not a clip a page plays", cdnFile("a.mov")],
+    ["a clip in the image CDN", cdn("a.mp4")],
+  ])("leaves out %s: the hub never points a visitor anywhere else", async (_label, video) => {
+    expect((await one({ gallery: [{ video }, picture("kept.jpg")] })).gallery).toEqual([{ kind: "image", url: cdn("kept.jpg"), caption: null }])
+  })
+
+  it("keeps a clip's poster only when it is a picture of the project", async () => {
+    const game = await one({ gallery: [clip("a.mp4", { poster: "https://example.com/poster.jpg" }), clip("b.mp4", { poster: cdn("p.jpg", "other", PLATFORM_DATASET) })] })
+    expect(game.gallery.map((item) => (item.kind === "video" ? item.poster : "image"))).toEqual([null, null])
+  })
+
+  it("is cut to what the Studio lets in, after the items that were left out", async () => {
+    const items = [{ video: "https://example.com/no.mp4" }, ...Array.from({ length: 8 }, (_, n) => picture(`p${n}.jpg`))]
+    const game = await one({ gallery: items })
+    expect(game.gallery).toHaveLength(GALLERY_MAX)
+    expect(game.gallery.map((item) => item.url)).toEqual(Array.from({ length: GALLERY_MAX }, (_, n) => cdn(`p${n}.jpg`)))
+  })
+
+  it("has captions of a line, cut at a hundred and forty characters", async () => {
+    const [item] = (await one({ gallery: [picture("a.jpg", { caption: `${"x".repeat(200)}\u0007` })] })).gallery
+    expect(item?.caption).toBe("x".repeat(140))
   })
 })
 

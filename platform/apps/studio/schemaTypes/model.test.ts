@@ -47,7 +47,7 @@ const rulesOf = (field: FieldDef): string[] => {
 
 describe("the types", () => {
   it("are the catalog and the editorial ones, and nothing of a game's Studio", () => {
-    expect([...types.keys()]).toEqual(["game", "expansion", "gameCreator", "creator", "publisher", "category", "article", "changelogEntry", "announcement"])
+    expect([...types.keys()]).toEqual(["game", "expansion", "gameCreator", "galleryClip", "creator", "publisher", "category", "article", "changelogEntry", "announcement"])
     for (const shared of ["settings", "interface", "audio", "texts", "localeString", "localeText", "localeStringList"]) expect(types.has(shared)).toBe(false)
   })
 
@@ -69,7 +69,7 @@ describe("a game", () => {
       credits: ["creators", "publishers", "buyUrl"],
       texts: ["tagline", "description"],
       rules: ["rules"],
-      visuals: ["cover", "logo", "icon", "background", "boxFront"],
+      visuals: ["cover", "logo", "icon", "background", "boxFront", "gallery"],
       related: ["related"],
     })
   })
@@ -93,6 +93,17 @@ describe("a game", () => {
   it("keeps a cover and the front of its box apart, as two pictures a language can change", () => {
     expect(fieldOf("game", "cover").type).toBe("internationalizedArrayImage")
     expect(fieldOf("game", "boxFront").type).toBe("internationalizedArrayImage")
+  })
+
+  it("has a gallery of pictures and clips that holds as many as the hub reads and is the same in every language: a clip is a video file, with a poster and a caption", () => {
+    const gallery = fieldOf("game", "gallery")
+    expect(gallery.type).toBe("array")
+    expect(gallery.of?.map((member) => (member as { name?: string }).name ?? member.type)).toEqual(["galleryImage", "galleryClip"])
+    expect(rulesOf(gallery)).toContain("max")
+    expect(Object.keys(TRANSLATED_FIELDS.game)).not.toContain("gallery")
+    expect(fieldNames("galleryClip")).toEqual(["video", "poster", "caption"])
+    expect(fieldOf("galleryClip", "video").type).toBe("file")
+    expect(rulesOf(fieldOf("galleryClip", "video"))).toContain("required")
   })
 
   it("is related to other games by weak references, which the others are not: two games that name each other cannot be published otherwise", () => {

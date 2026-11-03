@@ -21,6 +21,15 @@ export type ArtSlot = (typeof ART_SLOTS)[number]
 export type ExpansionSlot = "cover" | "boxFront"
 
 /**
+ * A picture or a short clip of a game being played, which its page shows after its cover (`CatalogGame.gallery`): the address of its file in the
+ * CDN of the platform's Sanity project (the image CDN for a picture and for the poster of a clip, the file CDN for a clip), and what it shows in a few
+ * words when the Studio says (null: the page names it by its place). A clip is read with the poster that was set for it, else the page draws its first frame.
+ */
+export type GalleryItem =
+  | { kind: "image"; url: string; caption: string | null }
+  | { kind: "video"; url: string; poster: string | null; caption: string | null }
+
+/**
  * A game of the catalog: everything the hub and its page show, for a live game as for one to come. It is a published `game` of the
  * platform's Sanity project (`sanity.ts` reads it, `docs/platform-sanity.md` is its model) or, for a live game that has none, what the
  * registry knows (`registryRow`). Plain data (strings, numbers, arrays), so it travels through the cache and into a client component as
@@ -54,6 +63,8 @@ export type CatalogGame = {
   rules: Partial<Record<Locale, string>>
   /** The address of each picture in the image CDN of the platform's Sanity project, the file itself and whole (`pictureUrl` sizes it); null for a picture the game does not have. */
   pictures: Record<ArtSlot, string | null>
+  /** The pictures and the clips the game's page shows after its cover, in the order the Studio lists them, `GALLERY_MAX` at most. Empty: the page shows the cover alone. */
+  gallery: GalleryItem[]
   /**
    * The slugs of the games it is related to, in the order the Studio lists them, never its own slug, and only games the reader kept:
    * its related games, then its base game. One side of the link as far as the Studio goes: `buildCatalog` makes it go both ways
@@ -95,7 +106,11 @@ const PICTURE_WIDTH: Record<ArtSlot | ExpansionSlot, number> = { logo: 800, icon
  */
 export function pictureUrl<Slot extends ArtSlot | ExpansionSlot>(owner: { pictures: Record<Slot, string | null> }, slot: NoInfer<Slot>, width: number = PICTURE_WIDTH[slot]): string | null {
   const url = owner.pictures[slot]
-  if (!url) return null
+  return url ? sizedPictureUrl(url, width) : null
+}
+
+/** The address of a file of the image CDN, asked for `width` pixels wide at most and in the best format the browser takes (an SVG is served as it is): how a picture of a gallery is sized. */
+export function sizedPictureUrl(url: string, width: number): string {
   return url.endsWith(".svg") ? url : `${url}?w=${width}&fit=max&auto=format`
 }
 
@@ -246,6 +261,7 @@ export function registryRow(game: GameEntry): CatalogGame {
     publishers: [],
     rules: {},
     pictures: { logo: null, icon: null, background: null },
+    gallery: [],
     related: [],
     order: null,
     updatedAt: "",

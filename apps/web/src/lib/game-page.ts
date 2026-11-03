@@ -5,8 +5,9 @@ import { gameSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
+import type { GalleryMedia } from "@pbgo/ui/gallery"
 import type { GameCardProps, GameCardVisualProps } from "@pbgo/ui/platform/game-card"
-import { catalogCardProps, durationLabel, gamePicture, playersLabel } from "./game-card-props"
+import { catalogCardProps, durationLabel, galleryMedia, gamePicture, playersLabel } from "./game-card-props"
 
 /** One line of a game's credits: a label and its values, each one a link when it has an address, with an icon when the site it leads to has one (`creditLines`). */
 export type GameFact = CreditLine
@@ -46,8 +47,10 @@ export type GamePage = {
   bgg: { href: string; icon: string } | null
   /** A shop's page for the game, which the page links to under its credits. Null when the Studio has none: the page has no such link. */
   shop: string | null
-  /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
+  /** The cover, the first slide of the head's gallery, is the game's card's picture: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
   picture: Pick<GameCardVisualProps, "logo" | "background">
+  /** The pictures and the clips that follow the cover in the head's gallery, in the order the Studio lists them. Empty: the head has the cover alone. */
+  gallery: GalleryMedia[]
   /** The games the catalog recommends with this one (docs/catalog.md), the most relevant first (its family, then the games that look like it), each as the props of its card. Empty: the page has no such section. */
   related: { slug: string; card: GameCardProps }[]
   /** What the page tells search engines and social networks: its metadata, its JSON-LD, and whether it may be indexed (`@pbgo/catalog/seo`). */
@@ -101,6 +104,7 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     bgg: bggLink(game),
     shop: game.buyUrl,
     picture: gamePicture(game),
+    gallery: galleryMedia(game),
     related: entry.related.flatMap((slug) => {
       const related = entries.find((candidate) => candidate.slug === slug)
       return related ? [{ slug, card: catalogCardProps(related) }] : []

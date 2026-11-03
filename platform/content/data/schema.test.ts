@@ -219,7 +219,8 @@ describe("the art slots", () => {
     const { slots } = buildSeedContent(source())
     const covered = new Set(slots.map((slot) => slot.name.split("-").at(-1)))
     expect([...covered].sort()).toEqual(["background", "icon", "logo"])
-    expect(fieldsOf("game").sort()).toEqual(["game.background", "game.boxFront", "game.cover", "game.icon", "game.logo"])
+    // The gallery's pictures and the posters of its clips are the Studio's too (a picture of a gallery is an item of a list, a poster a field of a clip)
+    expect(fieldsOf("game").sort()).toEqual(["game.background", "game.boxFront", "game.cover", "game.gallery[]", "game.gallery[].poster", "game.icon", "game.logo"])
   })
 
   it("have none for an expansion, whose cover and box front Notion has no picture of either", () => {

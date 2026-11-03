@@ -14,6 +14,9 @@ const reply = (status: number, body: unknown) => new Response(JSON.stringify(bod
 /** The address of a picture's file in the image CDN of the platform's project, as the query returns it. */
 export const cdn = (file: string, project = PLATFORM_PROJECT_ID, dataset = PLATFORM_DATASET) => `https://cdn.sanity.io/images/${project}/${dataset}/${file}`
 
+/** The address of a clip's file in the file CDN of the platform's project, as the query returns it. */
+export const cdnFile = (file: string, project = PLATFORM_PROJECT_ID, dataset = PLATFORM_DATASET) => `https://cdn.sanity.io/files/${project}/${dataset}/${file}`
+
 /** A published game as the query returns it: nothing but what it needs to be a game (a name and a slug), unless the test says more. */
 export const sanityGame = (slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   _id: `game-${slug}`,
@@ -173,6 +176,7 @@ export const catalogGame = (slug: string, overrides: Partial<CatalogGame> = {}):
   publishers: [],
   rules: {},
   pictures: { logo: null, icon: null, background: null },
+  gallery: [],
   related: [],
   order: null,
   updatedAt: "",

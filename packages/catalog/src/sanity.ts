@@ -6,9 +6,9 @@
 
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
-import { CREATOR_ROLES, LANGUAGES, type CreatorRole } from "@pbgo/studio-kit/constants"
+import { CREATOR_ROLES, GALLERY_MAX, LANGUAGES, type CreatorRole } from "@pbgo/studio-kit/constants"
 // A value import from a sibling file would need a `.ts` extension, which apps/web's tsc refuses: only types come from there
-import type { ArtSlot, CatalogExpansion, CatalogGame, Creator, Publisher } from "./catalog"
+import type { ArtSlot, CatalogExpansion, CatalogGame, Creator, GalleryItem, Publisher } from "./catalog"
 
 /** The platform's own project (`playboardgamesonline`) and its dataset: the one the Studio of `platform/apps/studio` edits and the seed of `platform/content` fills. */
 export const PLATFORM_PROJECT_ID = "mhgqs6fe"
@@ -37,7 +37,8 @@ export const HUB_LANGUAGE = "en"
  * one of English, else (a document that was not converted yet) the plain value the field used to hold, so that the same query reads a
  * dataset before and after the migration. `string(description)` is the old text and nothing for an array, and `logo.asset->url` the old
  * picture and nothing for an array; the `cover` and the `boxFront` of an expansion are read the same way. The links to the rules are the
- * rows of `rules` as they are, and the four fields they replaced.
+ * rows of `rules` as they are, and the four fields they replaced. The gallery of a game (PLT-56) is read as its items are stored: a picture is an
+ * object with an `asset`, a clip an object with a `video` file and, when it has one, a `poster`; each gives the address of its file.
  */
 export const CATALOG_QUERY = `{
   "games": *[_type == "game" && defined(slug.current)] | order(_createdAt asc) {
@@ -52,7 +53,8 @@ export const CATALOG_QUERY = `{
     "related": related[]->slug.current,
     "baseGame": baseGame->slug.current,
     "logo": coalesce(logo[language == $language][0].value.asset->url, logo[language == "en"][0].value.asset->url, logo.asset->url),
-    "icon": icon.asset->url, "background": background.asset->url
+    "icon": icon.asset->url, "background": background.asset->url,
+    "gallery": gallery[]{ caption, "image": asset->url, "video": video.asset->url, "poster": poster.asset->url }
   },
   "expansions": *[_type == "expansion" && defined(slug.current)] | order(_createdAt asc) {
     _id, name, "slug": slug.current,
@@ -139,6 +141,30 @@ function linkOf(raw: unknown): string | null {
 /** The address of a picture's file, only when it is in the image CDN of the project that was read: the hub never points a visitor anywhere else. */
 const pictureOf = (raw: unknown, projectId: string, dataset: string): string | null =>
   typeof raw === "string" && raw.startsWith(`https://cdn.sanity.io/images/${projectId}/${dataset}/`) ? raw : null
+
+/** The address of a clip's file, only when it is in the file CDN of the project that was read and is a format that a page plays: MP4 or WebM. Like a picture's, the hub never points a visitor anywhere else. */
+const clipOf = (raw: unknown, projectId: string, dataset: string): string | null =>
+  typeof raw === "string" && raw.startsWith(`https://cdn.sanity.io/files/${projectId}/${dataset}/`) && /\.(?:mp4|webm)$/i.test(raw) ? raw : null
+
+/** What a caption of the gallery may be: a line, a hundred and forty characters at most. */
+const MAX_CAPTION_LENGTH = 140
+
+/**
+ * The gallery of a game: its clips and its pictures whose files the hub may point a visitor at, in the order the Studio lists them, `GALLERY_MAX` at most. An item whose file is not
+ * one (another project, another format, none) is left out, and so is one that is not an object; a clip keeps its poster only when that is a picture of the project.
+ */
+function galleryOf(raw: unknown, projectId: string, dataset: string): GalleryItem[] {
+  if (!Array.isArray(raw)) return []
+  const items = raw.flatMap((entry): GalleryItem[] => {
+    if (!isRecord(entry)) return []
+    const caption = nameOf(entry.caption).slice(0, MAX_CAPTION_LENGTH) || null
+    const clip = clipOf(entry.video, projectId, dataset)
+    if (clip) return [{ kind: "video", url: clip, poster: pictureOf(entry.poster, projectId, dataset), caption }]
+    const image = pictureOf(entry.image, projectId, dataset)
+    return image ? [{ kind: "image", url: image, caption }] : []
+  })
+  return items.slice(0, GALLERY_MAX)
+}
 
 const ROLES: readonly CreatorRole[] = CREATOR_ROLES.map((role) => role.value)
 
@@ -273,6 +299,7 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
         publishers: publishersOf(raw.publishers),
         rules: byLanguage((language) => rulesLinkOf(raw, language)),
         pictures,
+        gallery: galleryOf(raw.gallery, projectId, dataset),
         // Settled below, once every game is known: a link is the slug of a game the reader kept
         related: [],
         order: wholeOf(raw.order, 0),

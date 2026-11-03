@@ -3,22 +3,22 @@ import { ArrowLeft01Icon, Brain02Icon, ChildIcon, HourglassIcon, PlusSignIcon, U
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
-import { GameCardVisual } from "@pbgo/ui/platform/game-card"
+import { MediaGallery } from "@pbgo/ui/platform/media-gallery"
 import { categoryIcon } from "@/lib/category-icons"
 import type { GamePage } from "@/lib/game-page"
 import { FindGameButton } from "./find-game-button"
 import { CREATE_ANCHOR } from "./game-play"
 import { RulesButton } from "./rules-button"
 
-// The head of a game's page, the first thing a visitor sees: on the right, the picture of the game's card; on the left, a column as tall as the picture, with the way back to the games' list ("All games") at its top and everything else at its foot, level with
-// the picture's (`justify-between`). That is the name (with "Coming soon" beside it for a game that is not live), the figures of the game on one line (the players, how long, how complex, from what age), under them the description, then the categories as chips that lead to the games'
+// The head of a game's page, the first thing a visitor sees: on the right, the game's gallery (`MediaGallery`: the picture of its card first, then up to five pictures and clips of the game being played, in a viewer with a row of tiles under it; the cover alone when the Studio has none); on the left, a column as tall as the gallery when that is the taller, with the way back to the games' list ("All games") at its top and everything else at its foot, level with
+// the gallery's (`justify-between`). That is the name (with "Coming soon" beside it for a game that is not live), the figures of the game on one line (the players, how long, how complex, from what age), under them the description, then the categories as chips that lead to the games'
 // list showing that category, and, last, the three main buttons, all 48px high: "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindGameButton`); "Create a game", in outline, which leads to the space under the head that opens
 // a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto beside them, the rules (`RulesButton`: a link to the rulebook, or a menu of languages that a press opens). A game that is not live has the first two disabled and keeps the rules. Nothing stands in for what
-// is missing. The credits are not here but lower on the page (`GameCredits`). One column, then two from `lg`; on a narrow screen the picture comes after the buttons. When the text is taller than the picture, which the narrowest `lg` widths do, the column is as tall as the text.
+// is missing. The credits are not here but lower on the page (`GameCredits`). One column, then two from `lg`; on a narrow screen the gallery comes after the buttons. When the text is taller than the gallery, which the narrowest `lg` widths do, the column is as tall as the text.
 
-export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "picture">
+export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "picture" | "gallery">
 
-export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, picture }: GameHeadProps) {
+export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, picture, gallery }: GameHeadProps) {
   const figures = [
     { icon: UserMultipleIcon, text: players },
     { icon: HourglassIcon, text: duration },
@@ -93,8 +93,8 @@ export function GameHead({ slug, name, live, description, players, duration, com
         </div>
       </div>
 
-      {/* The picture of the game's card, drawn larger: its logo over its background, a plain frame when the game has neither. It is the page's first picture, so it loads at once */}
-      <GameCardVisual {...picture} loading="eager" className="rounded-4xl ring-1 ring-foreground/10 lg:col-start-2 lg:row-start-1 lg:self-start" />
+      {/* The game's gallery: the cover first, the picture of its card drawn larger (its logo over its background, a plain frame when the game has neither), then the pictures and the clips of the game being played, when the Studio has some. The cover is the page's first picture, so it loads at once */}
+      <MediaGallery name={name} cover={picture} media={gallery} className="lg:col-start-2 lg:row-start-1 lg:self-stretch" />
     </div>
   )
 }

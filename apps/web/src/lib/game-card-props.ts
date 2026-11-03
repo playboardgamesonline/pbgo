@@ -1,4 +1,5 @@
-import { cardPictureUrl, pictureUrl, type CatalogEntry, type CatalogGame } from "@pbgo/catalog"
+import { cardPictureUrl, pictureUrl, sizedPictureUrl, type CatalogEntry, type CatalogGame } from "@pbgo/catalog"
+import type { GalleryMedia } from "@pbgo/ui/gallery"
 import type { GameCardProps } from "@pbgo/ui/platform/game-card"
 
 /** "2–5 players", "2 players", "2+ players" (a game whose maximum is not known). The platform speaks English; a game's own pages are localized by the game. */
@@ -21,6 +22,28 @@ export function durationLabel(minutes: number | undefined | null): string | unde
  */
 export function gamePicture(game: CatalogGame) {
   return { logo: cardPictureUrl(game) ?? undefined, background: pictureUrl(game, "background") ?? undefined }
+}
+
+/** How wide the image CDN is asked for a picture of the gallery: the viewer's, and a tile's. */
+const GALLERY_WIDTH = 1200
+const GALLERY_THUMB_WIDTH = 320
+
+/**
+ * The pictures and the clips that follow the cover of a game's page, as the gallery (`MediaGallery`) takes them: each picture sized for the viewer and for its tile, a clip as its file
+ * and, when it has one, its poster sized the same two ways. A clip with no poster is drawn from its first frame, by the gallery.
+ */
+export function galleryMedia(game: Pick<CatalogGame, "gallery">): GalleryMedia[] {
+  return game.gallery.map((item): GalleryMedia => {
+    if (item.kind === "image") return { kind: "image", src: sizedPictureUrl(item.url, GALLERY_WIDTH), thumb: sizedPictureUrl(item.url, GALLERY_THUMB_WIDTH), caption: item.caption }
+    const { poster } = item
+    return {
+      kind: "video",
+      src: item.url,
+      poster: poster ? sizedPictureUrl(poster, GALLERY_WIDTH) : undefined,
+      thumb: poster ? sizedPictureUrl(poster, GALLERY_THUMB_WIDTH) : undefined,
+      caption: item.caption,
+    }
+  })
 }
 
 /**
