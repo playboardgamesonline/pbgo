@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { boardOf, type LeaderboardRow } from "./leaderboard"
 
-const row = (id: string, place: number | null): LeaderboardRow => ({ id, place, name: id, rank: { tier: "Gold", division: 2 }, wins: 1, played: 5 })
+const row = (id: string, place: number | null): LeaderboardRow => ({ id, place, name: id, rank: { tier: "Gold", division: 2 } })
 const top = (count: number) => Array.from({ length: count }, (_, index) => row(`p${index + 1}`, index + 1))
 
 describe("boardOf", () => {

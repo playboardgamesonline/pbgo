@@ -13,13 +13,13 @@ export function BggButton({ href, icon }: { href: string; icon: string }) {
   const interactive = useSyncExternalStore(subscribe, () => true, () => false)
   const [broken, setBroken] = useState(false)
   return (
-    <Button variant="outline" size={broken ? "default" : "icon"} asChild>
+    <Button variant="ghost" size={broken ? "xs" : "icon-xs"} className="text-muted-foreground/60 hover:text-foreground" asChild>
       <a href={href} target="_blank" rel="noopener noreferrer" aria-label="BoardGameGeek" title="BoardGameGeek">
         {broken
           ? "BGG"
           : interactive && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={icon} alt="" width={20} height={20} decoding="async" className="block size-5 object-contain" onError={() => setBroken(true)} />
+              <img src={icon} alt="" width={16} height={16} decoding="async" className="block size-4 object-contain opacity-60 transition-opacity duration-fast group-hover/button:opacity-100" onError={() => setBroken(true)} />
             )}
       </a>
     </Button>

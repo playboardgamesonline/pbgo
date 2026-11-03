@@ -10,7 +10,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./
 import { RankBadge } from "./rank-badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table"
 
-// The best players of a game, as its page on the hub lists them: their place, who they are, their rank and how many games they won out of how many they played. There are no points: the rating that orders the board is never sent. It is drawn from the rows it is given and decides nothing: who is on
+// The best players of a game, as its page on the hub lists them: their place, who they are and their rank: no count of wins or of games. There are no points: the rating that orders the board is never sent. It is drawn from the rows it is given and decides nothing: who is on
 // the board and in which order is the page's (`@pbgo/ui/leaderboard` has the rule for which rows are drawn). The signed-in visitor finds themselves on it, in the top or after it. The board is as tall as its rows, up to the height the page gives
 // it (`className`, `max-h-176`): past it the board scrolls, its header staying at the top and the visitor's own row in view, under the header or at the bottom, wherever they stand on the board.
 
@@ -54,24 +54,18 @@ function LeaderboardLine({ row, you }: { row: LeaderboardRow; you: boolean }) {
           {you && <Badge variant="secondary" className="hidden @sm:inline-flex">You</Badge>}
         </div>
       </TableCell>
-      <TableCell data-slot="leaderboard-rank" className="px-2 text-right @sm:px-3">
+      <TableCell data-slot="leaderboard-rank" className="pr-4 pl-2 text-right @sm:pr-6 @sm:pl-3">
         <RankBadge rank={row.rank} labelled />
-      </TableCell>
-      <TableCell data-slot="leaderboard-wins" className="pr-4 pl-2 text-right tabular-nums @sm:pr-6 @sm:pl-3 @md:px-3">
-        {row.wins}
-      </TableCell>
-      <TableCell data-slot="leaderboard-played" className="hidden pr-6 text-right text-muted-foreground tabular-nums @md:table-cell">
-        {row.played}
       </TableCell>
     </TableRow>
   )
 }
 
 /**
- * The leaderboard of a game: a table of the players (their place, their name and picture, their rank, their wins and the games they played), the top three in the full colour of the text and the rest quiet. The visitor's own row is
+ * The leaderboard of a game: a table of the players (their place, their name and picture and their rank), the top three in the full colour of the text and the rest quiet. The visitor's own row is
  * marked (the `muted` fill, `aria-current`, and a "You" badge where the board is wide enough for it) and, when they are not among the rows, comes after them, behind a gap that says other players stand between. It is a card as tall as its rows, up to
  * the `max-h-…` that `className` gives it: past that the rows scroll inside it, by the wheel, the finger or the keyboard (the scrolling part is a focusable region), under a header that stays and with the visitor's row always in view. With nobody
- * ranked it is an empty state that says what it will hold. The container decides what fits (`@container`): the column of the games played is left out of a narrow board, the third of a page, so that the name still has room.
+ * ranked it is an empty state that says what it will hold. The container decides what fits (`@container`): the paddings are narrower on a narrow board, the third of a page, so that the name still has room.
  */
 function Leaderboard({ rows, you, size = rows.length, label = "Leaderboard", emptyTitle = "No ranked game yet", emptyDescription = "The best players of this game will be listed here.", className, ...props }: LeaderboardProps) {
   const { rows: top, own, gap } = boardOf(rows, you, size)
@@ -110,9 +104,7 @@ function Leaderboard({ rows, you, size = rows.length, label = "Leaderboard", emp
               <span className="sr-only">Place</span>
             </TableHead>
             <TableHead className="px-2 text-muted-foreground @sm:px-3">Player</TableHead>
-            <TableHead className="px-2 text-right text-muted-foreground @sm:px-3">Rank</TableHead>
-            <TableHead className="pr-4 pl-2 text-right text-muted-foreground @sm:pr-6 @sm:pl-3 @md:px-3">Wins</TableHead>
-            <TableHead className="hidden pr-6 text-right text-muted-foreground @md:table-cell">Games</TableHead>
+            <TableHead className="pr-4 pl-2 text-right text-muted-foreground @sm:pr-6 @sm:pl-3">Rank</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -121,7 +113,7 @@ function Leaderboard({ rows, you, size = rows.length, label = "Leaderboard", emp
           ))}
           {gap && (
             <TableRow aria-hidden="true" className="hover:bg-transparent">
-              <TableCell colSpan={5} className="py-0 text-center text-muted-foreground">
+              <TableCell colSpan={3} className="py-0 text-center text-muted-foreground">
                 <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} className="mx-auto size-4" />
               </TableCell>
             </TableRow>

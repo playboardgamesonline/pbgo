@@ -125,8 +125,6 @@ export function leaderboardRow(standing: Standing): LeaderboardRow {
     name: standing.nickname,
     avatarUrl: standing.avatarUrl,
     rank: standing.rank,
-    wins: standing.wins,
-    played: standing.gamesPlayed,
   }
 }
 

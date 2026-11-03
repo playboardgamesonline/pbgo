@@ -13,9 +13,6 @@ export type LeaderboardRow = {
   avatarUrl?: string | null
   /** Their rank in the game: the tier and the division the board draws. The rows come in the order of the rating the rank comes from, which is not here. */
   rank: Rank
-  wins: number
-  /** How many ranked games they have played. */
-  played: number
 }
 
 /** What a board draws. */
