@@ -17,7 +17,7 @@ import { StartGameButton } from "./start-game-button"
 // `/<slug>`, another root layout, loaded whole): the hub knows nothing of what a game's table asks for beyond what the page reads (the expansions it has, `getExpansions`), and the choices made here are not carried to the table, since a lobby has no place
 // to keep them yet. The number of players (between the game's least and most) and the settings of the game follow its head, with a hairline between, as they follow the seats in a lobby that exists (`LobbyPlayers`, `LobbySettings`: the speed, the expansions as pictures with an outline for the ones chosen, the helpers), and who may join the table is the one button at its top right (`LobbyAccess`: public or private and, for a public table, a minimum rank and a language). A visitor's own lobby
 // is the details of any table (`LobbyDetail`) with, under them, the button that starts the game for the one who opened the lobby (`StartGameButton`, which waits for enough players) or, for anybody else, one that cannot be pressed and says how many have joined of those expected, and, beside it, a secondary button to leave it (which only a lobby that waits has), with the plus of its free seats opening the menu that invites a friend or copies the link, and with the number of players, the settings and the button of who may join, that are theirs to set when they
-// opened it (`ownTableDetail`). A game that is not live has the same space, half transparent and without a way in. A table picked in the list of the open tables takes the space's place for as long as it is picked (`OpenTables`).
+// opened it (`ownTableDetail`). A game that is not live has the same space, half transparent, with the settings that its game has and a button that is off (`live`). A table picked in the list of the open tables takes the space's place for as long as it is picked (`OpenTables`).
 
 const TITLE = "text-3xl md:text-4xl"
 
@@ -38,7 +38,6 @@ export function ownTableDetail(table: ViewerTable, slug: string, expansions: rea
 /** `expansions` are the ones the game has, which the settings offer. `minPlayers` is the least players the game needs, which the button that starts a lobby waits for, and `maxPlayers` the most it takes: a lobby may be set for any number between them. */
 export function GameLobby({
   slug,
-  name,
   live,
   minPlayers = null,
   maxPlayers = null,
@@ -49,7 +48,6 @@ export function GameLobby({
   className,
 }: {
   slug: string
-  name: string
   live: boolean
   minPlayers?: number | null
   maxPlayers?: number | null
@@ -61,22 +59,19 @@ export function GameLobby({
   flat?: boolean
   className?: string
 }) {
-  if (!live) {
-    return (
-      <LobbyPanel aria-disabled="true" flat={flat} className={cn("opacity-50 lg:min-h-56", className)}>
-        <CardHeader>
-          <CardTitle className={TITLE}>Coming soon</CardTitle>
-          <CardDescription className="text-base">You will be able to open a table of {name} here.</CardDescription>
-        </CardHeader>
-      </LobbyPanel>
-    )
-  }
-
-  if (viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers, helpers)} flat={flat} className={className} />
+  // A game that is live has tables, and the visitor may sit at one: it is their lobby. A game that is not has none
+  if (live && viewerTable) return <LobbyDetail key={viewerTable.id} {...ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers, helpers)} flat={flat} className={className} />
 
   const range = playerRange(minPlayers, maxPlayers)
+  const open = (
+    <>
+      Open a table
+      <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
+    </>
+  )
   return (
-    <LobbyPanel flat={flat} className={className}>
+    // A game that is not live has the same space, half transparent, with the settings that its game has and no way in: its button is off
+    <LobbyPanel aria-disabled={live ? undefined : "true"} flat={flat} className={cn(!live && "opacity-50", className)}>
       <CardHeader>
         <CardTitle className={TITLE}>Create a game</CardTitle>
         <CardDescription className="text-base">Open a table, share its link and play with your friends.</CardDescription>
@@ -91,12 +86,15 @@ export function GameLobby({
         </div>
       </CardContent>
       <CardFooter>
-        <Button size="xl" className="w-full" asChild>
-          <a href={`/${slug}`}>
-            Open a table
-            <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
-          </a>
-        </Button>
+        {live ? (
+          <Button size="xl" className="w-full" asChild>
+            <a href={`/${slug}`}>{open}</a>
+          </Button>
+        ) : (
+          <Button size="xl" className="w-full" disabled>
+            {open}
+          </Button>
+        )}
       </CardFooter>
     </LobbyPanel>
   )

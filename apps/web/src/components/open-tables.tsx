@@ -38,8 +38,8 @@ export function OpenTables({
   rows: readonly OpenTableRow[]
   /** What the panel shows when no row is picked: it is rendered by the server (the visitor's own table, or the space to open one), and draws no surface of its own (`flat`). */
   lobby: ReactNode
-  /** Where a table is opened: the empty state has a button that leads there. */
-  createHref: string
+  /** Where a table is opened: the empty state has a button that leads there. None: a game where no table can be opened has no button. */
+  createHref?: string
   emptyTitle: string
   emptyDescription: string
   /** The `id` of the panel beside it, for a link to reach it: the rows say they control it. */
@@ -105,11 +105,13 @@ export function OpenTables({
                   <EmptyTitle>{emptyTitle}</EmptyTitle>
                   <EmptyDescription>{emptyDescription}</EmptyDescription>
                 </EmptyHeader>
-                <EmptyContent>
-                  <Button variant="outline" asChild>
-                    <a href={createHref}>Open a table</a>
-                  </Button>
-                </EmptyContent>
+                {createHref && (
+                  <EmptyContent>
+                    <Button variant="outline" asChild>
+                      <a href={createHref}>Open a table</a>
+                    </Button>
+                  </EmptyContent>
+                )}
               </Empty>
             )}
           </div>

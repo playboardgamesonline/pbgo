@@ -117,15 +117,15 @@ const READ = "data-[state=on]:disabled:opacity-100"
 
 /**
  * The card of an expansion: a small checkbox at its left, then its picture and, at the right of the picture, its name, under it its description (two lines at most, the whole text being its tooltip), then what it changes about the game, the figures that differ from its game's, each
- * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not, and the card, which has a fill a step lighter than the panel's when it is chosen and a half of it under the pointer. The card's corners (`rounded-2xl`) are the picture's (`rounded-lg`) and the room round it (`p-2`); it reaches 8px out of the column (`-mx-2`) so that what is in it stands where the titles of the groups do. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
+ * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not, and the card, which has a fill a step lighter than the panel's when it is chosen and a half of it under the pointer. The card's corners (`rounded-3xl`) are the picture's (`rounded-lg`) and the room round it (`p-3`); it reaches 12px out of the column (`-mx-3`) so that what is in it stands where the titles of the groups do. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
  * that unrolls them under the card, as rows with a switch, once it is chosen. One who reads a table sees only the cards of the ones it is played with, with no box and no button. The box is named by the title and described by the rest. The name wraps and is never cut (an expansion's name
  * often starts with its game's, and says nothing before its end).
  */
-const CARD = "-mx-2 flex flex-col rounded-2xl p-2 transition-colors duration-fast"
+const CARD = "-mx-3 flex flex-col rounded-3xl p-3 transition-colors duration-fast"
 
 /**
  * The room that a line leaves above its capitals and under its baseline, taken off (`1lh` is the line, `1cap` the height of a capital: half of what is left of the line goes at each end), so that what is round a text is its margins and the gaps alone and the distances in a card are the ones that are seen:
- * the top of the picture is the top of the capitals of the name, 8px from the card's, and the bottom of the card is 8px from the lowest of the picture and the last row.
+ * the picture is 12px from the card's top, the capitals of the name start 6px under the top of the picture (`pt-1.5` of the text column), and the bottom of the card is 12px from the lowest of the picture and the last row.
  */
 const TRIM = "my-[calc((1cap_-_1lh)/2)]"
 
@@ -150,7 +150,7 @@ function ExpansionCard({
   const body = (
     <>
       <ExpansionPicture expansion={expansion} className={cn("transition-[opacity,filter] duration-fast", !chosen && "opacity-50 grayscale")} />
-      <span className="flex min-w-0 flex-1 flex-col gap-3">
+      <span className="flex min-w-0 flex-1 flex-col gap-3 pt-1.5">
         <span id={`${id}-name`} className={cn("text-base leading-snug", TRIM)}>
           {name}
         </span>
@@ -205,7 +205,7 @@ function ExpansionCard({
               onCheckedChange={(next) => onChosenChange(next === true)}
               aria-labelledby={`${id}-name`}
               aria-describedby={described || undefined}
-              className="-mt-0.5 shrink-0"
+              className="mt-1 shrink-0"
             />
             <label htmlFor={`${id}-choice`} className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
               {body}
@@ -216,7 +216,7 @@ function ExpansionCard({
         )}
         {hasSettings && (
           <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-xs" disabled={!chosen} aria-label={`Settings of ${name}`} className="-mt-1.5 shrink-0 data-[state=open]:[&_svg]:rotate-180">
+            <Button type="button" variant="ghost" size="icon-xs" disabled={!chosen} aria-label={`Settings of ${name}`} className="shrink-0 data-[state=open]:[&_svg]:rotate-180">
               <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-4 transition-transform duration-fast" aria-hidden="true" />
             </Button>
           </CollapsibleTrigger>

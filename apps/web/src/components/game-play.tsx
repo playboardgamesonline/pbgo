@@ -8,7 +8,7 @@ import { OpenTables } from "./open-tables"
 // What a game's page offers right under its head, before anything else, in one container (`OpenTables`): on the left the tables that are open, the ones that wait for players, as the rows of a list (seven twelfths of the width from `lg`, eight from `xl`), and on the right a tall panel (`GameLobby`,
 // five twelfths, four from `xl`): the lobby the visitor is in, or the space to open one, which gives way to the details of the row that the visitor picks. The visitor's own table is the first row of the list, whatever it is (a lobby they opened or joined, or a game they play), and the row that is selected is the one the
 // panel shows. The other tables being played are not listed. The container is as tall as the panel needs on a wide screen, and no taller (the panel never scrolls and has no height of its own beyond a floor of 44rem; the list of tables, which scrolls inside, takes that height and does not give it); on a narrow
-// screen the panel comes first, since opening a table is what most visitors came to do. A game that is not live has the panel alone, half transparent, and no tables. On the page of a game the panel is reached by name (`anchored`): the button of the head that creates a game leads to it.
+// screen the panel comes first, since opening a table is what most visitors came to do. A game that is not live has the same container: its list says that the tables are coming, with no button, and its panel is half transparent with its button off. On the page of a game the panel is reached by name (`anchored`): the button of the head that creates a game leads to it.
 
 /** The name by which the head of a game's page reaches the space to create a game (the `id` that `anchored` sets). */
 export const CREATE_ANCHOR = "create-a-game"
@@ -41,19 +41,11 @@ export function GamePlay({
   /** Give the space the name that the head's button leads to. Only the page does: a name is one per page, and the specimens show several. */
   anchored?: boolean
 }) {
-  // In a game that is live the panel stands inside the container of the open tables, and draws no surface of its own
-  const lobby = <GameLobby slug={slug} name={name} live={live} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} helpers={helpers} flat={live} />
+  // The panel stands inside the container of the open tables, and draws no surface of its own
+  const lobby = <GameLobby slug={slug} live={live} minPlayers={minPlayers} maxPlayers={maxPlayers} viewerTable={viewerTable} expansions={expansions} helpers={helpers} flat />
 
-  if (!live) {
-    return (
-      <section aria-label={`Play ${name}`} className="grid">
-        {lobby}
-      </section>
-    )
-  }
-
-  // The visitor's own table, which is theirs whatever its state, then what they can still sit at: the tables that wait for players. A free seat of their own invites, and its details are their lobby's
-  const own = viewerTable
+  // The visitor's own table, which is theirs whatever its state, then what they can still sit at: the tables that wait for players. A free seat of their own invites, and its details are their lobby's. A game that is not live has no table, whoever asks
+  const own = live && viewerTable
     ? [
         {
           id: viewerTable.id,
@@ -63,7 +55,7 @@ export function GamePlay({
         },
       ]
     : []
-  const open = tables.filter((table) => table.status === "lobby" && table.id !== viewerTable?.id)
+  const open = live ? tables.filter((table) => table.status === "lobby" && table.id !== viewerTable?.id) : []
   const rows = [
     ...own,
     ...open.map((table) => ({ id: table.id, entry: tableEntryProps(table, slug, now, expansions, false), detail: tableDetailProps(table, slug, false, expansions) })),
@@ -73,9 +65,9 @@ export function GamePlay({
       <OpenTables
         rows={rows}
         lobby={lobby}
-        createHref={`/${slug}`}
-        emptyTitle={COMING_SOON.tables.heading}
-        emptyDescription={COMING_SOON.tables.description}
+        createHref={live ? `/${slug}` : undefined}
+        emptyTitle={live ? COMING_SOON.tables.heading : "Coming soon"}
+        emptyDescription={live ? COMING_SOON.tables.description : `You will be able to open a table of ${name} here.`}
         lobbyId={anchored ? CREATE_ANCHOR : undefined}
       />
     </section>
