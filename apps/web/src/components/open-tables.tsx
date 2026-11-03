@@ -81,7 +81,7 @@ export function OpenTables({
         </Badge>
       </h2>
       <div className="grid overflow-hidden rounded-4xl bg-card text-card-foreground shadow-surface ring-1 ring-foreground/10 lg:grid-cols-12">
-        <div className="flex min-h-0 flex-col lg:relative lg:z-20 lg:col-span-7 lg:h-0 lg:min-h-full">
+        <div className="flex min-h-0 flex-col lg:relative lg:z-20 lg:col-span-7 lg:h-0 lg:min-h-full xl:col-span-8">
           <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             {rows.length > 0 ? (
               <TableEntries aria-label="Tables">
@@ -114,7 +114,7 @@ export function OpenTables({
             )}
           </div>
         </div>
-        <div id={panelId} ref={panel} aria-live="polite" className="relative z-10 order-first min-h-0 scroll-mt-navbar bg-(--card-bar) lg:order-none lg:col-span-5 lg:shadow-float">
+        <div id={panelId} ref={panel} aria-live="polite" className="relative z-10 order-first min-h-0 scroll-mt-navbar bg-(--card-bar) lg:order-none lg:col-span-5 lg:shadow-float xl:col-span-4">
           {picked ? <LobbyDetail key={picked.id} flat {...picked.detail} onClose={() => setPickedId(null)} /> : lobby}
         </div>
       </div>

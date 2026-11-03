@@ -4,9 +4,9 @@ import { tableDetailProps, tableEntryProps } from "@/lib/game-activity-props"
 import { GameLobby, ownTableDetail } from "./game-lobby"
 import { OpenTables } from "./open-tables"
 
-// What a game's page offers right under its head, before anything else, in one container (`OpenTables`): on the left the tables that are open, the ones that wait for players, as the rows of a list (seven twelfths of the width from `lg`), and on the right a tall panel (`GameLobby`,
-// five twelfths): the lobby the visitor is in, or the space to open one, which gives way to the details of the row that the visitor picks. The visitor's own table is the first row of the list, whatever it is (a lobby they opened or joined, or a game they play), and the row that is selected is the one the
-// panel shows. The other tables being played are not listed. The container is as tall as the panel needs on a wide screen, and no taller (the panel never scrolls and has no height of its own beyond a floor of 32rem; the list of tables, which scrolls inside, takes that height and does not give it); on a narrow
+// What a game's page offers right under its head, before anything else, in one container (`OpenTables`): on the left the tables that are open, the ones that wait for players, as the rows of a list (seven twelfths of the width from `lg`, eight from `xl`), and on the right a tall panel (`GameLobby`,
+// five twelfths, four from `xl`): the lobby the visitor is in, or the space to open one, which gives way to the details of the row that the visitor picks. The visitor's own table is the first row of the list, whatever it is (a lobby they opened or joined, or a game they play), and the row that is selected is the one the
+// panel shows. The other tables being played are not listed. The container is as tall as the panel needs on a wide screen, and no taller (the panel never scrolls and has no height of its own beyond a floor of 44rem; the list of tables, which scrolls inside, takes that height and does not give it); on a narrow
 // screen the panel comes first, since opening a table is what most visitors came to do. A game that is not live has the panel alone, half transparent, and no tables. On the page of a game the panel is reached by name (`anchored`): the button of the head that creates a game leads to it.
 
 /** The name by which the head of a game's page reaches the space to create a game (the `id` that `anchored` sets). */

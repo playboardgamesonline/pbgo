@@ -65,6 +65,9 @@ function ExpansionPicture({ expansion }: { expansion: ExpansionOption }) {
   )
 }
 
+/** The chips of the speed are taller than a chip's usual 2rem: the slider is the one control of the panel that is pressed to set something, and it is read first. */
+const CHIP = "h-10"
+
 /** A slider that is read (a table of the list, `disabled`) keeps the speed that it says as strong as when it is set, and dims the others: a value to read is not a control that is off. */
 const READ = "data-[state=on]:disabled:opacity-100"
 
@@ -101,11 +104,11 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = true, edi
             {SPEEDS.map((speed) =>
               speed === "none" ? (
                 // No timer is an infinity and nothing else, narrower than the others, which share the rest of the width alike: its name is for a screen reader and for the pointer
-                <ToggleGroupItem key={speed} value={speed} fit aria-label="No timer" title="No timer" className={cn("w-12 px-0", READ)}>
+                <ToggleGroupItem key={speed} value={speed} fit aria-label="No timer" title="No timer" className={cn("w-12 px-0", CHIP, READ)}>
                   <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
                 </ToggleGroupItem>
               ) : (
-                <ToggleGroupItem key={speed} value={speed} className={READ}>
+                <ToggleGroupItem key={speed} value={speed} className={cn(CHIP, READ)}>
                   {PACES.find((pace) => pace.value === speed)?.label}
                 </ToggleGroupItem>
               )
