@@ -13,7 +13,7 @@ export const GAME_KINDS = [
 export type GameKind = (typeof GAME_KINDS)[number]["value"]
 
 // What a person did on a game: the credits of BoardGameGeek. The list is the studio kit's, which the hub words its credit lines from too.
-export { CREATOR_ROLES, GALLERY_MAX, roleTitle } from "@pbgo/studio-kit/constants"
+export { CREATOR_ROLES, GALLERY_MAX, HELPERS_MAX, roleTitle } from "@pbgo/studio-kit/constants"
 export type { CreatorRole } from "@pbgo/studio-kit/constants"
 
 /**

@@ -26,7 +26,7 @@ export const sanityGame = (slug: string, overrides: Record<string, unknown> = {}
   ...overrides,
 })
 
-/** A published expansion as the query returns it: nothing but a name and a slug, unless the test says more (its `baseGame`, the slug of a game; its `cover` and `boxFront`). */
+/** A published expansion as the query returns it: nothing but a name and a slug, unless the test says more (its `baseGame`, the slug of a game; its `description`, `playersMax` and `minAge`; its `cover` and `boxFront`). */
 export const sanityExpansion = (slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   _type: "expansion",
   _id: `expansion-${slug}`,
@@ -177,6 +177,7 @@ export const catalogGame = (slug: string, overrides: Partial<CatalogGame> = {}):
   rules: {},
   pictures: { logo: null, icon: null, background: null },
   gallery: [],
+  helpers: [],
   related: [],
   order: null,
   updatedAt: "",

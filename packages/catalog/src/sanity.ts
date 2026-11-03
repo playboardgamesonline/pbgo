@@ -6,9 +6,9 @@
 
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { cleanName, nameProblem, slugProblem } from "@pbgo/games/slug"
-import { CREATOR_ROLES, GALLERY_MAX, LANGUAGES, type CreatorRole } from "@pbgo/studio-kit/constants"
+import { CREATOR_ROLES, GALLERY_MAX, HELPERS_MAX, LANGUAGES, type CreatorRole } from "@pbgo/studio-kit/constants"
 // A value import from a sibling file would need a `.ts` extension, which apps/web's tsc refuses: only types come from there
-import type { ArtSlot, CatalogExpansion, CatalogGame, Creator, GalleryItem, Publisher } from "./catalog"
+import type { ArtSlot, CatalogExpansion, CatalogGame, Creator, GalleryItem, GameHelper, Publisher } from "./catalog"
 
 /** The platform's own project (`playboardgamesonline`) and its dataset: the one the Studio of `platform/apps/studio` edits and the seed of `platform/content` fills. */
 export const PLATFORM_PROJECT_ID = "mhgqs6fe"
@@ -36,9 +36,9 @@ export const HUB_LANGUAGE = "en"
  * A text and a picture that a language can change are an array of rows `{ language, value }` (PLT-104): the row of `$language`, else the
  * one of English, else (a document that was not converted yet) the plain value the field used to hold, so that the same query reads a
  * dataset before and after the migration. `string(description)` is the old text and nothing for an array, and `logo.asset->url` the old
- * picture and nothing for an array; the `cover` and the `boxFront` of an expansion are read the same way. The links to the rules are the
+ * picture and nothing for an array; the `description`, the `cover` and the `boxFront` of an expansion are read the same way. The links to the rules are the
  * rows of `rules` as they are, and the four fields they replaced. The gallery of a game (PLT-56) is read as its items are stored: a picture is an
- * object with an `asset`, a clip an object with a `video` file and, when it has one, a `poster`; each gives the address of its file.
+ * object with an `asset`, a clip an object with a `video` file and, when it has one, a `poster`; each gives the address of its file. The helpers of a game (PLT-56) are read as they are stored: a key and a title.
  */
 export const CATALOG_QUERY = `{
   "games": *[_type == "game" && defined(slug.current)] | order(_createdAt asc) {
@@ -54,10 +54,14 @@ export const CATALOG_QUERY = `{
     "baseGame": baseGame->slug.current,
     "logo": coalesce(logo[language == $language][0].value.asset->url, logo[language == "en"][0].value.asset->url, logo.asset->url),
     "icon": icon.asset->url, "background": background.asset->url,
-    "gallery": gallery[]{ caption, "image": asset->url, "video": video.asset->url, "poster": poster.asset->url }
+    "gallery": gallery[]{ caption, "image": asset->url, "video": video.asset->url, "poster": poster.asset->url },
+    "helpers": helpers[]{ key, title }
   },
   "expansions": *[_type == "expansion" && defined(slug.current)] | order(_createdAt asc) {
     _id, name, "slug": slug.current,
+    playersMin, playersMax, duration, minAge, complexity,
+    "description": coalesce(description[language == $language][0].value, description[language == "en"][0].value, string(description)),
+    "categories": categories[]->name,
     "baseGame": baseGame->slug.current,
     "cover": coalesce(cover[language == $language][0].value.asset->url, cover[language == "en"][0].value.asset->url, cover.asset->url),
     "boxFront": coalesce(boxFront[language == $language][0].value.asset->url, boxFront[language == "en"][0].value.asset->url, boxFront.asset->url)
@@ -164,6 +168,28 @@ function galleryOf(raw: unknown, projectId: string, dataset: string): GalleryIte
     return image ? [{ kind: "image", url: image, caption }] : []
   })
   return items.slice(0, GALLERY_MAX)
+}
+
+const MAX_HELPER_TITLE_LENGTH = 80
+/** What a game calls a helper: lowercase letters and digits joined by single dashes, 40 characters at most. */
+const HELPER_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * The helpers of a game, in the order the Studio lists them, `HELPERS_MAX` at most: each with the key the game calls it by and a name for the lobby to say, one line cut at the length the Studio allows. One that is not an
+ * object, has no name or has no key the game could call it by is left out, and so is a second one with a key that is already taken (the first keeps it).
+ */
+function helpersOf(raw: unknown): GameHelper[] {
+  if (!Array.isArray(raw)) return []
+  const keys = new Set<string>()
+  const helpers = raw.flatMap((entry): GameHelper[] => {
+    if (!isRecord(entry)) return []
+    const key = typeof entry.key === "string" && entry.key.length <= 40 && HELPER_KEY.test(entry.key) ? entry.key : ""
+    const title = nameOf(entry.title).slice(0, MAX_HELPER_TITLE_LENGTH)
+    if (!key || !title || keys.has(key)) return []
+    keys.add(key)
+    return [{ key, title }]
+  })
+  return helpers.slice(0, HELPERS_MAX)
 }
 
 const ROLES: readonly CreatorRole[] = CREATOR_ROLES.map((role) => role.value)
@@ -300,6 +326,7 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
         rules: byLanguage((language) => rulesLinkOf(raw, language)),
         pictures,
         gallery: galleryOf(raw.gallery, projectId, dataset),
+        helpers: helpersOf(raw.helpers),
         // Settled below, once every game is known: a link is the slug of a game the reader kept
         related: [],
         order: wholeOf(raw.order, 0),
@@ -327,7 +354,20 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
       continue
     }
     expansionSlugs.add(slug)
-    expansions.push({ slug, name, base, pictures: { cover: pictureOf(raw.cover, projectId, dataset), boxFront: pictureOf(raw.boxFront, projectId, dataset) } })
+    const description = textOf(raw.description)
+    expansions.push({
+      slug,
+      name,
+      base,
+      descriptions: description ? { en: description } : {},
+      playersMin: wholeOf(raw.playersMin, 1),
+      playersMax: wholeOf(raw.playersMax, 1),
+      duration: wholeOf(raw.duration, 1),
+      age: wholeOf(raw.minAge, 1),
+      complexity: weightOf(raw.complexity),
+      categories: namesOf(raw.categories),
+      pictures: { cover: pictureOf(raw.cover, projectId, dataset), boxFront: pictureOf(raw.boxFront, projectId, dataset) },
+    })
   }
   if (games.length === 0) warnings.push("The platform's Sanity project has no published game: the hub lists the live games of the registry alone")
   return { games, skipped, expansions, warnings }

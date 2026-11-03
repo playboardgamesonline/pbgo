@@ -227,6 +227,12 @@ export const roleTitle = (role: string): string => CREATOR_ROLES.find((entry) =>
 export const GALLERY_MAX = 5
 
 /**
+ * The most helpers a game offers in its lobby (PLT-56): the aids that a player may have while they play ("Show the score calculation"), a row and a switch each. The limit of the
+ * `helpers` field of a game in the Studio and of what the hub reads.
+ */
+export const HELPERS_MAX = 8
+
+/**
  * The name of the type that a translated field of this kind has (`sanity-plugin-internationalized-array` makes it; `field-translations.ts` sets the
  * plugin up): `translatedType("string")` is `internationalizedArrayString`, the one of a custom kind named `description` is
  * `internationalizedArrayDescription`. The plugin writes the first letter in capitals, so a kind is one word, or camelCase. A row of the

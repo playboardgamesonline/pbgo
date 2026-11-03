@@ -106,13 +106,13 @@ describe("the expansions of the seed", () => {
     expect(referenceProblems(docs, types)).toEqual(['expansion-hanabi-extra.baseGame points at "creator-ada-marsh", a "creator", and the field takes "game"'])
   })
 
-  it("are caught when one has a field only a game has: a kind, categories, an order", () => {
+  it("are caught when one has a field only a game has: a kind, an order, related games", () => {
     const expansion = expansionOf(seedDocs())
-    Object.assign(expansion, { kind: "game", order: 10, categories: [] })
+    Object.assign(expansion, { kind: "game", order: 10, related: [] })
     expect(documentProblems(expansion, types)).toEqual([
       'expansion-hanabi-extra.kind is not a field of "expansion"',
       'expansion-hanabi-extra.order is not a field of "expansion"',
-      'expansion-hanabi-extra.categories is not a field of "expansion"',
+      'expansion-hanabi-extra.related is not a field of "expansion"',
     ])
   })
 

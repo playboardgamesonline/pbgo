@@ -1,4 +1,4 @@
-import { GALLERY_MAX } from "@pbgo/studio-kit/constants"
+import { GALLERY_MAX, HELPERS_MAX } from "@pbgo/studio-kit/constants"
 import { describe, expect, it } from "vitest"
 import type { CatalogGame } from "./catalog"
 import { CATALOG_QUERY, PLATFORM_DATASET, PLATFORM_PROJECT_ID, SANITY_API_VERSION, SanityError, readSanityGames } from "./sanity"
@@ -70,7 +70,7 @@ describe("the request", () => {
   })
 
   it("asks for what the reader maps: the query names each field", () => {
-    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "gallery", "video", "poster", "cover", "boxFront"]) {
+    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "gallery", "video", "poster", "helpers", "cover", "boxFront"]) {
       expect(CATALOG_QUERY, field).toContain(field)
     }
   })
@@ -78,9 +78,10 @@ describe("the request", () => {
   it("asks for the games and the expansions as two lists, each of its own document type, so that neither can be read as the other", () => {
     expect(CATALOG_QUERY).toMatch(/"games": \*\[_type == "game" && /)
     expect(CATALOG_QUERY).toMatch(/"expansions": \*\[_type == "expansion" && /)
-    // the figures, credits and texts of a game are not asked of an expansion, nor the pictures of a game: the lobby draws a cover or a box
+    // the credits and the placing of a game are not asked of an expansion, nor the pictures of a game: the lobby draws a cover or a box, and says what the expansion changes (its figures, the categories it brings)
     const expansions = CATALOG_QUERY.slice(CATALOG_QUERY.indexOf('"expansions"'))
-    for (const field of ["kind", "related", "categories", "logo", "icon", "background"]) expect(expansions, field).not.toContain(field)
+    for (const field of ["kind", "related", "logo", "icon", "background"]) expect(expansions, field).not.toContain(field)
+    for (const field of ["playersMin", "playersMax", "duration", "minAge", "complexity", "categories", "description"]) expect(expansions, field).toContain(field)
     // an expansion has no `order` field (`order(` is the sort of the list)
     expect(expansions).not.toMatch(/\border\b(?!\()/)
     expect(expansions).toContain('"baseGame": baseGame->slug.current')
@@ -191,6 +192,7 @@ describe("a published game", () => {
       rules: { fr: "https://example.com/hanabi-fr.pdf", en: "https://example.com/hanabi-en.pdf" },
       pictures: { logo: cdn("logo-1600x476.webp"), icon: null, background: cdn("background-2400x1200.svg") },
       gallery: [],
+      helpers: [],
       related: ["the-mind"],
       order: 30,
       updatedAt: "2026-10-30T12:00:00Z",
@@ -215,6 +217,7 @@ describe("a published game", () => {
       rules: {},
       pictures: { logo: null, icon: null, background: null },
       gallery: [],
+      helpers: [],
       related: [],
       order: null,
       updatedAt: "2026-10-30T10:00:00Z",
@@ -536,11 +539,54 @@ describe("a document that is not a game of the site", () => {
   })
 })
 
+describe("its helpers", () => {
+  it("are the aids of the Studio's list, in its order: a key and a name each", async () => {
+    const game = await one({
+      helpers: [
+        { key: "show-score", title: "  Show the score  calculation " },
+        { key: "hints", title: "Hints" },
+      ],
+    })
+    expect(game.helpers).toEqual([
+      { key: "show-score", title: "Show the score calculation" },
+      { key: "hints", title: "Hints" },
+    ])
+  })
+
+  it("are none when the Studio has none, or when what it has is not a list", async () => {
+    expect((await one({})).helpers).toEqual([])
+    expect((await one({ helpers: null })).helpers).toEqual([])
+    expect((await one({ helpers: "show-score" })).helpers).toEqual([])
+  })
+
+  it("leave out a helper that is no object, has no name or has no key the game could call it by, and a key that is already taken", async () => {
+    const game = await one({
+      helpers: [
+        "show-score",
+        { key: "no-title", title: "   " },
+        { title: "No key" },
+        { key: "Show Score", title: "A key in capitals" },
+        { key: "x".repeat(41), title: "A key that is too long" },
+        { key: "kept", title: "Kept" },
+        { key: "kept", title: "The same key again" },
+      ],
+    })
+    expect(game.helpers).toEqual([{ key: "kept", title: "Kept" }])
+  })
+
+  it("hold as many as the Studio allows, the first ones, and a name no longer than it allows", async () => {
+    const many = Array.from({ length: HELPERS_MAX + 3 }, (_, index) => ({ key: `helper-${index}`, title: `Helper ${index}` }))
+    expect((await one({ helpers: many })).helpers.map((helper) => helper.key)).toEqual(many.slice(0, HELPERS_MAX).map((helper) => helper.key))
+    const [long] = (await one({ helpers: [{ key: "long", title: "t".repeat(120) }] })).helpers
+    expect(long?.title).toHaveLength(80)
+  })
+})
+
 describe("an expansion", () => {
   it("is no game of the hub, so it has no page: it is read apart, for the lobby of its base game to offer", async () => {
     const reading = await read([sanityGame("flip-7", { name: "Flip 7", kind: "game" }), sanityExpansion("flip-7-more", { name: "Flip 7: More", baseGame: "flip-7" })])
     expect(reading.games.map((game) => game.slug)).toEqual(["flip-7"])
-    expect(reading.expansions).toEqual([{ slug: "flip-7-more", name: "Flip 7: More", base: "flip-7", pictures: { cover: null, boxFront: null } }])
+    expect(reading.expansions).toEqual([{ slug: "flip-7-more", name: "Flip 7: More", base: "flip-7", descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [], pictures: { cover: null, boxFront: null } }])
     expect(reading.skipped).toEqual([])
     expect(reading.warnings).toEqual([])
   })
@@ -557,7 +603,54 @@ describe("an expansion", () => {
       }),
     ])
     expect(reading.expansions).toEqual([
-      { slug: "courtisans-diplomats-confidants", name: "Courtisans: Diplomates & Confidants", base: "courtisans", pictures: { cover: cdn("cover-1600x900.jpg"), boxFront: cdn("box-800x800.png") } },
+      {
+        slug: "courtisans-diplomats-confidants",
+        name: "Courtisans: Diplomates & Confidants",
+        base: "courtisans",
+        descriptions: {},
+        playersMin: null,
+        playersMax: null,
+        duration: null,
+        age: null,
+        complexity: null,
+        categories: [],
+        pictures: { cover: cdn("cover-1600x900.jpg"), boxFront: cdn("box-800x800.png") },
+      },
+    ])
+  })
+
+  it("has its description, its figures and its categories as the Studio gives them: the figures that it changes, and none of the base game's", async () => {
+    const reading = await read([
+      sanityGame("courtisans", { name: "Courtisans", playersMax: 5, minAge: 8 }),
+      sanityExpansion("diplomats", {
+        name: "Diplomats",
+        baseGame: "courtisans",
+        description: "  New characters take a seat.\n\nThey form alliances.  ",
+        playersMin: 1,
+        playersMax: 6,
+        duration: 30,
+        minAge: 10,
+        complexity: 2.5,
+        categories: ["Alliances", "  Bluff ", "Alliances"],
+      }),
+      sanityExpansion("silent", { name: "Silent", baseGame: "courtisans" }),
+    ])
+    const figures = ({ slug, descriptions, playersMin, playersMax, duration, age, complexity, categories }: (typeof reading.expansions)[number]) => ({ slug, descriptions, playersMin, playersMax, duration, age, complexity, categories })
+    expect(reading.expansions.map(figures)).toEqual([
+      { slug: "diplomats", descriptions: { en: "New characters take a seat.\n\nThey form alliances." }, playersMin: 1, playersMax: 6, duration: 30, age: 10, complexity: 2.5, categories: ["Alliances", "Bluff"] },
+      { slug: "silent", descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [] },
+    ])
+  })
+
+  it("reads the figures only as whole numbers from 1 (a weight from 1 to 5), and a description only as text", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7" }),
+      sanityExpansion("odd", { name: "Odd", baseGame: "flip-7", description: 12, playersMin: 0, playersMax: "6", duration: 2.5, minAge: 0, complexity: 7, categories: "Cooperation" }),
+      sanityExpansion("also-odd", { name: "Also odd", baseGame: "flip-7", description: "   ", playersMax: 2.5, minAge: -3, complexity: "2" }),
+    ])
+    expect(reading.expansions.map(({ descriptions, playersMin, playersMax, duration, age, complexity, categories }) => ({ descriptions, playersMin, playersMax, duration, age, complexity, categories }))).toEqual([
+      { descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [] },
+      { descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [] },
     ])
   })
 

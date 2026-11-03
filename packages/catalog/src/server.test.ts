@@ -46,7 +46,7 @@ const logged = () => warn.mock.calls.map((call) => call.join(" ")).join("\n")
 describe("when the platform's Sanity project answers", () => {
   it("carries the expansions of the Studio apart from the games: they have no page", async () => {
     const { catalog } = await catalogOf([sanityGame("bang", { name: "Bang" }), sanityExpansion("bang-more", { name: "Bang: More", baseGame: "bang", cover: cdn("cover-1200x800.jpg") })])
-    expect(catalog.expansions).toEqual([{ slug: "bang-more", name: "Bang: More", base: "bang", pictures: { cover: cdn("cover-1200x800.jpg"), boxFront: null } }])
+    expect(catalog.expansions).toEqual([{ slug: "bang-more", name: "Bang: More", base: "bang", descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [], pictures: { cover: cdn("cover-1200x800.jpg"), boxFront: null } }])
     expect(catalog.entries.map((entry) => entry.slug)).not.toContain("bang-more")
   })
 

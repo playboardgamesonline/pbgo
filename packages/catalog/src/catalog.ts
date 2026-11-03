@@ -30,6 +30,12 @@ export type GalleryItem =
   | { kind: "video"; url: string; poster: string | null; caption: string | null }
 
 /**
+ * A helper of a game, an aid that a player may have while they play, which the game's lobby offers as a small row with a switch (PLT-56): `key` is what the game calls it (unique among the game's helpers),
+ * `title` is what the lobby says ("Show the score calculation").
+ */
+export type GameHelper = { key: string; title: string }
+
+/**
  * A game of the catalog: everything the hub and its page show, for a live game as for one to come. It is a published `game` of the
  * platform's Sanity project (`sanity.ts` reads it, `docs/platform-sanity.md` is its model) or, for a live game that has none, what the
  * registry knows (`registryRow`). Plain data (strings, numbers, arrays), so it travels through the cache and into a client component as
@@ -65,6 +71,8 @@ export type CatalogGame = {
   pictures: Record<ArtSlot, string | null>
   /** The pictures and the clips the game's page shows after its cover, in the order the Studio lists them, `GALLERY_MAX` at most. Empty: the page shows the cover alone. */
   gallery: GalleryItem[]
+  /** The helpers the game's lobby offers, in the order the Studio lists them, `HELPERS_MAX` at most. Empty: the lobby has none. */
+  helpers: GameHelper[]
   /**
    * The slugs of the games it is related to, in the order the Studio lists them, never its own slug, and only games the reader kept:
    * its related games, then its base game. One side of the link as far as the Studio goes: `buildCatalog` makes it go both ways
@@ -78,8 +86,8 @@ export type CatalogGame = {
 }
 
 /**
- * An expansion of a game: a published `expansion` of the platform's Sanity project (PLT-102), played with its base game. It is no game of the hub and has no page: the lobby of its base game offers it, as a picture with its name, and a table says
- * which it is played with. Plain data like `CatalogGame`. It has none of the figures, credits and texts of its document yet: nothing on the hub shows them.
+ * An expansion of a game: a published `expansion` of the platform's Sanity project (PLT-102), played with its base game. It is no game of the hub and has no page: the lobby of its base game offers it, as a card with its picture, its name and its description, and a table says
+ * which it is played with. Plain data like `CatalogGame`. It has its description, its figures and its categories, the ones that the lobby says before an expansion is chosen; the rest of its document (credits, links to the rules, release date) is not read yet: nothing on the hub shows it.
  */
 export type CatalogExpansion = {
   /** What a table calls it: its slug in the Studio, unique among the expansions. */
@@ -87,6 +95,19 @@ export type CatalogExpansion = {
   name: string
   /** The slug of the game it is played with, one that the hub lists. */
   base: string
+  /** A description per language, only the languages the expansion has one in: English for now. Pick one with `pickLocalized`. */
+  descriptions: Partial<Record<Locale, string>>
+  /**
+   * The figures of the game played with the expansion, each only when the Studio says it (an empty one is the base game's, and so is null here): the least and the most players, the minutes, the minimum age in years and the weight
+   * on BoardGameGeek's scale. The lobby says the ones that differ from its game's.
+   */
+  playersMin: number | null
+  playersMax: number | null
+  duration: number | null
+  age: number | null
+  complexity: number | null
+  /** The names of the categories it brings, in the order the Studio lists them (the ones of its base game need not be among them): its card in the lobby shows them as tags. */
+  categories: string[]
   /** The address of each picture in the image CDN of the platform's Sanity project, as for a game (`pictureUrl` sizes it); null for a picture it does not have. */
   pictures: Record<ExpansionSlot, string | null>
 }
@@ -272,6 +293,7 @@ export function registryRow(game: GameEntry): CatalogGame {
     rules: {},
     pictures: { logo: null, icon: null, background: null },
     gallery: [],
+    helpers: [],
     related: [],
     order: null,
     updatedAt: "",

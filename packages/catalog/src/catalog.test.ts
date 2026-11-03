@@ -306,7 +306,7 @@ describe("releaseYear", () => {
 })
 
 describe("expansionsOf", () => {
-  const expansion = (slug: string, base: string, name: string) => ({ slug, name, base, pictures: { cover: null, boxFront: null } })
+  const expansion = (slug: string, base: string, name: string) => ({ slug, name, base, descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [], pictures: { cover: null, boxFront: null } })
 
   it("picks the expansions whose base game it is, by name: an expansion has no order in the Studio", () => {
     const all = [expansion("b-more", "courtisans", "B"), expansion("flip-more", "flip-7", "More"), expansion("c-more", "courtisans", "C"), expansion("a-more", "courtisans", "A")]

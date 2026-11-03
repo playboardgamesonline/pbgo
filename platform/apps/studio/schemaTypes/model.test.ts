@@ -47,7 +47,7 @@ const rulesOf = (field: FieldDef): string[] => {
 
 describe("the types", () => {
   it("are the catalog and the editorial ones, and nothing of a game's Studio", () => {
-    expect([...types.keys()]).toEqual(["game", "expansion", "gameCreator", "galleryClip", "creator", "publisher", "category", "article", "changelogEntry", "announcement"])
+    expect([...types.keys()]).toEqual(["game", "expansion", "gameCreator", "galleryClip", "gameHelper", "creator", "publisher", "category", "article", "changelogEntry", "announcement"])
     for (const shared of ["settings", "interface", "audio", "texts", "localeString", "localeText", "localeStringList"]) expect(types.has(shared)).toBe(false)
   })
 
@@ -68,7 +68,7 @@ describe("a game", () => {
       facts: ["playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "categories"],
       credits: ["creators", "publishers", "buyUrl"],
       texts: ["tagline", "description"],
-      rules: ["rules"],
+      rules: ["rules", "helpers"],
       visuals: ["cover", "logo", "icon", "background", "boxFront", "gallery"],
       related: ["related"],
     })
@@ -106,6 +106,18 @@ describe("a game", () => {
     expect(rulesOf(fieldOf("galleryClip", "video"))).toContain("required")
   })
 
+  it("has helpers, the aids a player may have while they play: a list that holds as many as the hub reads, the same in every language, each with a name and the key that the game calls it by", () => {
+    const helpers = fieldOf("game", "helpers")
+    expect(helpers.type).toBe("array")
+    expect(helpers.of?.map((member) => member.type)).toEqual(["gameHelper"])
+    expect(rulesOf(helpers)).toContain("max")
+    expect(rulesOf(helpers)).toContain("custom")
+    expect(Object.keys(TRANSLATED_FIELDS.game)).not.toContain("helpers")
+    expect(fieldNames("gameHelper")).toEqual(["title", "key"])
+    expect(rulesOf(fieldOf("gameHelper", "title"))).toContain("required")
+    expect(rulesOf(fieldOf("gameHelper", "key"))).toEqual(expect.arrayContaining(["required", "custom"]))
+  })
+
   it("is related to other games by weak references, which the others are not: two games that name each other cannot be published otherwise", () => {
     const member = fieldOf("game", "related").of?.[0] as { weak?: boolean } | undefined
     expect(member?.weak).toBe(true)
@@ -131,7 +143,7 @@ describe("an expansion", () => {
   it("is in six tabs, the ones of a game without Related", () => {
     expect(tabs()).toEqual({
       identity: ["name", "names", "slug", "baseGame", "bggId"],
-      facts: ["playersMin", "playersMax", "duration", "minAge", "releaseDate"],
+      facts: ["playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "categories"],
       credits: ["creators", "publishers"],
       texts: ["description"],
       rules: ["rules"],
@@ -151,8 +163,18 @@ describe("an expansion", () => {
     expect(rulesOf(baseGame)).toContain("required")
   })
 
-  it("is not a kind of game, and has none of what places a game on the hub: no kind, order, categories, complexity, related, tagline, logo, icon or background", () => {
-    for (const field of ["kind", "order", "categories", "complexity", "related", "tagline", "logo", "icon", "background"]) expect(fieldNames("expansion"), field).not.toContain(field)
+  it("is not a kind of game, and has none of what places a game on the hub: no kind, order, related, tagline, logo, icon or background", () => {
+    for (const field of ["kind", "order", "related", "tagline", "logo", "icon", "background"]) expect(fieldNames("expansion"), field).not.toContain(field)
+  })
+
+  it("has the complexity and the categories that it brings, which its card in the lobby shows: a weight from 1 to 5 and references to categories, none of them required", () => {
+    expect(fieldOf("expansion", "complexity").type).toBe("number")
+    expect(rulesOf(fieldOf("expansion", "complexity"))).toEqual(expect.arrayContaining(["min", "max"]))
+    expect(rulesOf(fieldOf("expansion", "complexity"))).not.toContain("required")
+    const categories = fieldOf("expansion", "categories")
+    expect(categories.type).toBe("array")
+    expect((categories.of?.[0] as { to?: { type: string }[] }).to?.map((target) => target.type)).toEqual(["category"])
+    expect(rulesOf(categories)).not.toContain("required")
   })
 
   it("has two pictures, the cover of the expansion and the front of its box, which a language can change", () => {
@@ -170,7 +192,7 @@ describe("an expansion", () => {
     const title = (name: string) => (fieldOf("expansion", name) as { title?: string }).title ?? ""
     for (const name of ["playersMin", "playersMax", "duration", "minAge"]) expect([name, title(name)]).toEqual([name, expect.stringContaining("empty: the base game's")])
     expect(title("playersMax")).not.toContain("no limit")
-    for (const name of ["playersMin", "playersMax", "duration", "minAge", "releaseDate", "creators", "publishers", "description"]) expect(rulesOf(fieldOf("expansion", name)), name).not.toContain("required")
+    for (const name of ["playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "categories", "creators", "publishers", "description"]) expect(rulesOf(fieldOf("expansion", name)), name).not.toContain("required")
   })
 
   it("is given its facts, credits, texts, rules and pictures as a game is: the same kind of field under the same rules", () => {

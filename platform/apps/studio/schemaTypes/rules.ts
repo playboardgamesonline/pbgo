@@ -32,6 +32,16 @@ export const checkCreatorsOnce = (lines: unknown): true | string => {
   return new Set(people).size === people.length ? true : "A creator is on one line: give them all their roles there"
 }
 
+/** The key of a helper is what the game calls it: lowercase letters and digits, joined by single dashes, 40 characters at most. */
+export const checkHelperKey = (key: string | undefined): true | string =>
+  key === undefined || (key.length <= 40 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)) ? true : "Lowercase letters and digits joined by single dashes, 40 characters at most (for instance: show-score)"
+
+/** A key names one helper of a game: two with the same key would be one aid twice. */
+export const checkHelpersOnce = (helpers: unknown): true | string => {
+  const keys = (Array.isArray(helpers) ? helpers : []).flatMap((helper) => (isRecord(helper) && typeof helper.key === "string" ? helper.key : []))
+  return new Set(keys).size === keys.length ? true : "A key names one helper: give each its own"
+}
+
 /** The most players is not under the fewest (a game with no most is "or more"). The document is not there when a seed checks the rule. */
 export const checkPlayersMax = (max: number | undefined, context: ValidationContext): true | string => {
   const min = context.document?.playersMin
