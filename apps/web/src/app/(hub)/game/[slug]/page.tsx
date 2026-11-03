@@ -6,7 +6,6 @@ import { gameJsonLd, gameMetadata, serializeJsonLd } from "@pbgo/catalog/seo"
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
 import { GameHead } from "@/components/game-head"
-import { GameHistoryStats } from "@/components/game-history-stats"
 import { GameLeaderboard } from "@/components/game-leaderboard"
 import { GamePlay } from "@/components/game-play"
 import { GameTournaments } from "@/components/game-tournaments"
@@ -17,8 +16,9 @@ import { SITE_NAME, SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
 // game's own project serves only once one enters the game. Its head (`GameHead`) has the game's background across the whole width of the page, the way back to the games at its top, then, at its foot, the game's logo in place of its name, the figures (the players, how long, how complex, from what age), the description, the categories and a row of controls: the
-// three main buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules), then, under them, the credits of the game, small and quiet (`GameCredits`: everybody credited on the game, by role, then its publishers and the year it came out, with a link to buy the game and BoardGameGeek's icon at the end of the line; the gallery of the
-// game's pictures and clips is not drawn for now). Under it come, in this order: a thin banner of the visitor's stats, with a button that opens their latest games in a window (`GameHistoryStats`; a game to come has none, nor a visitor with no game), the tables that are open on the left and a tall space on the right to play, the lobby the visitor is in or the space to open one (`GamePlay`: the space leads to the game's
+// three main buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules) and, at the right of the rules, what the visitor has done in the game as one strip (`GameStatsStrip`: when they last played, how long they have played, their rank, how far they are in the achievements; a press opens their latest games in a window; a game to come has none),
+// then, under them, the credits of the game, small and quiet (`GameCredits`: everybody credited on the game, by role, then its publishers and the year it came out, with a link to buy the game and BoardGameGeek's icon at the end of the line; the gallery of the game's pictures and clips is not drawn for now).
+// Under it come, in this order: the tables that are open on the left and a tall space on the right to play, the lobby the visitor is in or the space to open one (`GamePlay`: the space leads to the game's
 // own site, `/<slug>`, another root layout, loaded whole; a game to come has it half transparent, with its button off, and no tables), the tournaments on the left and the leaderboard, which scrolls, on the right (`GameTournaments`, `GameLeaderboard`; a game to come has the tournaments alone), and the games the catalog finds similar to it, nine at most, as one row of cards that scrolls sideways (`ScrollRow`).
 // None of what the tables, the lobby, the stats, the leaderboard and the tournaments show has a source yet (`lib/game-activity.ts`, whose types are already the rows of PLT-13's schema): their blocks say so.
 // Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
@@ -68,11 +68,13 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         facts={game.facts}
         bgg={game.bgg}
         shop={game.shop}
+        stats={stats}
+        history={history}
+        expansions={expansions}
       />
 
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
-        {/* Under the head, in this order: the thin banner of the visitor's stats and the button of their games (nothing for a visitor with no game, none for a game to come), the tables and the space to play (the head's "Create a game" leads to the space), then the tournaments and the leaderboard side by side. A game that is not live has the space and the tournaments: there is nothing to play, so no games, no stats and no board. The credits are in the head */}
-        {game.live && <GameHistoryStats name={game.name} stats={stats} history={history} expansions={expansions} className="mb-8 md:mb-12" />}
+        {/* Under the head, in this order: the tables and the space to play (the head's "Create a game" leads to the space), then the tournaments and the leaderboard side by side. A game that is not live has the space and the tournaments: there is nothing to play, so no stats and no board. The credits and the visitor's strip are in the head */}
         <div className="flex flex-col gap-section">
           <GamePlay slug={game.slug} name={game.name} live={game.live} minPlayers={game.minPlayers} maxPlayers={game.maxPlayers} tables={tables} viewerTable={viewerTable} expansions={expansions} helpers={game.helpers} anchored />
           {game.live ? (

@@ -133,6 +133,8 @@ export type PlayerStats = {
   /** How many players are on the board (the rows of `ratings` of this game with `LEADERBOARD_MIN_GAMES` games), which their place is one of. */
   rankedPlayers: number
   achievements: Achievement[]
+  /** How many achievements the game has in all, the earned ones included: what the progress of their achievements is counted against. The page's guess, like `Achievement`: nothing lists a game's achievements yet, so it is 0. */
+  achievementsTotal: number
 }
 
 /** One game a visitor finished: a row of their `game_participants` with its `game_results`. What it did to their hidden rating is not here, and no rank change is drawn. */
@@ -194,7 +196,7 @@ export async function getStandings(slug: string, viewerId: string | null): Promi
 /** What the signed-in visitor has done in this game, or null when nobody is signed in. Nothing is recorded yet, so a visitor who is signed in has done nothing. */
 export async function getPlayerStats(slug: string, viewerId: string | null): Promise<PlayerStats | null> {
   void slug
-  return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, place: null, rankedPlayers: 0, achievements: [] }
+  return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, place: null, rankedPlayers: 0, achievements: [], achievementsTotal: 0 }
 }
 
 /** The games the signed-in visitor finished in this game, the latest first, at most `HISTORY_SIZE`. There are none yet. */

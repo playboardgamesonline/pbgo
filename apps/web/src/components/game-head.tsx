@@ -4,22 +4,32 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { categoryIcon } from "@/lib/category-icons"
+import type { Expansion, HistoryEntry, PlayerStats } from "@/lib/game-activity"
 import type { GamePage } from "@/lib/game-page"
 import { FindGameButton } from "./find-game-button"
 import { GameCredits } from "./game-credits"
 import { CREATE_ANCHOR } from "./game-play"
+import { GameStatsStrip } from "./game-stats-strip"
 import { RulesButton } from "./rules-button"
 
 // The head of a game's page, the first thing a visitor sees: the game's own background across the whole width of the page, from the very top (the navbar is over it), the art fading into the page under the text, from the left, where the text is, and at the foot, where the page goes on
 // (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left whose foot is the foot of the head, the way back to the games' list ("Back") at its top, 8rem over the logo on a wide screen (4rem on a phone), and everything else at its foot: the game's logo in place of its name (the name, written, for a game
 // that has no logo), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three main
 // buttons, all 48px high, "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindGameButton`); "Create a game", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
-// to the rulebook, or a menu of languages that a press opens). Under the buttons come the credits of the game, quiet (`GameCredits`). What the signed-in visitor has done in the game is not here: it is in the thin banner under the head (`GameHistoryStats`). A game that is not live has the first two buttons disabled and keeps the rules.
+// to the rulebook, or a menu of languages that a press opens), then, at the right of the rules, what the signed-in visitor has done in the game, as one strip, 48px high like the buttons (`GameStatsStrip`: when they last played, how long they have played, their rank and how far they are in the achievements), which a press turns into their latest games in a window.
+// Under the buttons come the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled, no strip, and keeps the rules.
 // Nothing stands in for what is missing: a game with no background has a plain head. The gallery of the game's pictures and clips (`MediaGallery`) is not drawn for now: it will have a place again.
 
-export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop">
+export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop"> & {
+  /** What the visitor has done in the game: a strip of it stands at the right of the rules. Null: no strip (a visitor who is not signed in, a game that is not live). */
+  stats?: PlayerStats | null
+  /** Their latest games, the latest first, which the strip opens in a window. */
+  history?: readonly HistoryEntry[]
+  /** The expansions the game has, which a game of the history says it was played with. */
+  expansions?: readonly Expansion[]
+}
 
-export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop }: GameHeadProps) {
+export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop, stats = null, history = [], expansions = [] }: GameHeadProps) {
   const figures = [
     { icon: UserMultipleIcon, text: players },
     { icon: HourglassIcon, text: duration },
@@ -115,6 +125,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
               </Button>
             )}
             <RulesButton rulebooks={rulebooks} />
+            {live && stats && <GameStatsStrip name={name} stats={stats} history={history} expansions={expansions} className="max-xl:w-full xl:ml-3" />}
           </div>
 
           <GameCredits facts={facts} bgg={bgg} shop={shop} className="mt-6" />

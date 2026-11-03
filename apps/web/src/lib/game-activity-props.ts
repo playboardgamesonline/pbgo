@@ -6,11 +6,10 @@ import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
-import { rankLabel, type Rank } from "@pbgo/ui/ranks"
-import { agoOf, resultOf, timePlayed, winRate, type Result } from "@pbgo/ui/results"
+import { agoOf, resultOf, type Result } from "@pbgo/ui/results"
 import { ageOf, DELETED_PLAYER, hostOf, nicknameOf, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import { categoryIcon } from "./category-icons"
-import type { Expansion, GameTable, HistoryEntry, PlayerStats, Standing, TurnTimer } from "./game-activity"
+import type { Expansion, GameTable, HistoryEntry, Standing, TurnTimer } from "./game-activity"
 import { durationLabel, playersLabel } from "./game-card-props"
 
 // What the blocks of a game's page draw, made of the rows of `game-activity.ts`: the one place that words a table (its name, its age, what to know before sitting down, what a visitor may do at it), a visitor's figures and games, and
@@ -177,24 +176,6 @@ export function tableDetailProps(
     // The plus of a free seat: for the visitor who sits at the table, the menu that invites a friend or copies the link; for another, the way in
     ...(mine && state === "waiting" ? { invite: { link: href } } : way === "join" ? { join: { href } } : {}),
   }
-}
-
-/** One figure of a visitor's stats, worded: a label, the figure, and a word more when there is one. The figure of a rank carries the rank too, so that the block can draw it as a badge. */
-export type StatFigure = { label: string; value: string; hint?: string; rank?: Rank }
-
-/** The four figures of a visitor's stats in a game: how many games they played and for how long, how many they won, their rank and their position on the board, out of how many players. A figure that is not known is a dash. */
-export function statFigures(stats: PlayerStats): StatFigure[] {
-  const rate = winRate(stats.wins, stats.gamesPlayed)
-  return [
-    { label: "Games played", value: String(stats.gamesPlayed), hint: `${timePlayed(stats.secondsPlayed)} played` },
-    { label: "Win rate", value: rate === null ? "—" : `${rate}%`, hint: `${stats.wins} ${stats.wins === 1 ? "win" : "wins"}` },
-    { label: "Rank", value: stats.rank === null ? "—" : rankLabel(stats.rank), hint: stats.rank === null ? "Not ranked yet" : undefined, ...(stats.rank === null ? {} : { rank: stats.rank }) },
-    {
-      label: "Position",
-      value: stats.place === null ? "—" : ordinal(stats.place),
-      hint: stats.place === null ? "Not on the board yet" : `of ${stats.rankedPlayers} ${stats.rankedPlayers === 1 ? "player" : "players"}`,
-    },
-  ]
 }
 
 /** A game of a visitor's history, as a row draws it. */
