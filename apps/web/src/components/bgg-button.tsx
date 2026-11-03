@@ -13,7 +13,7 @@ export function BggButton({ href, icon }: { href: string; icon: string }) {
   const interactive = useSyncExternalStore(subscribe, () => true, () => false)
   const [broken, setBroken] = useState(false)
   return (
-    <Button variant="ghost" size={broken ? "xs" : "icon-xs"} className="text-muted-foreground/60 hover:text-foreground" asChild>
+    <Button variant="ghost" size={broken ? "sm" : "icon-sm"} className="text-muted-foreground/60 hover:text-foreground" asChild>
       <a href={href} target="_blank" rel="noopener noreferrer" aria-label="BoardGameGeek" title="BoardGameGeek">
         {broken
           ? "BGG"

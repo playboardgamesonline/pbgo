@@ -8,8 +8,7 @@ import { GameHistory } from "./game-history"
 import { GameStats } from "./game-stats"
 
 // What the signed-in visitor has done in a game, as a thin banner under the head of its page, in one card with no title: their stats in one line (`GameStats`: how many games they played, their win rate, their rank, their position and their achievements, two figures to a row on a narrow screen)
-// and, at its end, one button, "See history", which opens their latest games in a window (`GameHistory`, ten at most; the button cannot be pressed when there is none). A visitor who is not signed in has no banner (the head invites them to sign in) and nor has one who has neither a game nor an achievement: the head's strip
-// says their figures.
+// and, at its end, one button, "See history", which opens their latest games in a window (`GameHistory`, ten at most; the button cannot be pressed when there is none). A visitor who is not signed in has no banner, and nor has one who has neither a game nor an achievement.
 
 export function GameHistoryStats({
   name,

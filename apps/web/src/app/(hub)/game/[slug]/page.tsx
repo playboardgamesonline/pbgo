@@ -17,7 +17,7 @@ import { SITE_NAME, SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
 // game's own project serves only once one enters the game. Its head (`GameHead`) has the game's background across the whole width of the page, the way back to the games at its top, then, at its foot, the game's logo in place of its name, the figures (the players, how long, how complex, from what age), the description, the categories and a row of controls: the
-// three main buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules) and, beside them, the visitor's first three figures in a strip, then, under them, the credits of the game, small and quiet (`GameCredits`: everybody credited on the game, by role, then its publishers and the year it came out, with a link to buy the game and BoardGameGeek's icon at the end of the line; the gallery of the
+// three main buttons (to find a game, which starts a queue, to create one, which leads to the space below, and a picto that opens the rules), then, under them, the credits of the game, small and quiet (`GameCredits`: everybody credited on the game, by role, then its publishers and the year it came out, with a link to buy the game and BoardGameGeek's icon at the end of the line; the gallery of the
 // game's pictures and clips is not drawn for now). Under it come, in this order: a thin banner of the visitor's stats, with a button that opens their latest games in a window (`GameHistoryStats`; a game to come has none, nor a visitor with no game), the tables that are open on the left and a tall space on the right to play, the lobby the visitor is in or the space to open one (`GamePlay`: the space leads to the game's
 // own site, `/<slug>`, another root layout, loaded whole; a game to come has it half transparent, with its button off, and no tables), the tournaments on the left and the leaderboard, which scrolls, on the right (`GameTournaments`, `GameLeaderboard`; a game to come has the tournaments alone), and the games the catalog finds similar to it, nine at most, as one row of cards that scrolls sideways (`ScrollRow`).
 // None of what the tables, the lobby, the stats, the leaderboard and the tournaments show has a source yet (`lib/game-activity.ts`, whose types are already the rows of PLT-13's schema): their blocks say so.
@@ -68,7 +68,6 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         facts={game.facts}
         bgg={game.bgg}
         shop={game.shop}
-        stats={game.live ? stats : null}
       />
 
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">

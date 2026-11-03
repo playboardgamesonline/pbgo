@@ -3,11 +3,7 @@ import { ArrowLeft01Icon, Brain02Icon, ChildIcon, HourglassIcon, PlusSignIcon, U
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
-import { RankBadge } from "@pbgo/ui/platform/rank-badge"
-import { StatList } from "@pbgo/ui/platform/stat-list"
 import { categoryIcon } from "@/lib/category-icons"
-import type { PlayerStats } from "@/lib/game-activity"
-import { statFigures } from "@/lib/game-activity-props"
 import type { GamePage } from "@/lib/game-page"
 import { FindGameButton } from "./find-game-button"
 import { GameCredits } from "./game-credits"
@@ -15,31 +11,21 @@ import { CREATE_ANCHOR } from "./game-play"
 import { RulesButton } from "./rules-button"
 
 // The head of a game's page, the first thing a visitor sees: the game's own background across the whole width of the page, from the very top (the navbar is over it), the art fading into the page under the text, from the left, where the text is, and at the foot, where the page goes on
-// (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left whose foot is the foot of the head, the way back to the games' list ("All games") at its top and everything else at its foot: the game's logo in place of its name (the name, written, for a game
+// (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left whose foot is the foot of the head, the way back to the games' list ("All games") at its top, 8rem over the logo on a wide screen (4rem on a phone), and everything else at its foot: the game's logo in place of its name (the name, written, for a game
 // that has no logo), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three main
 // buttons, all 48px high, "Find a game", which puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindGameButton`); "Create a game", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
-// to the rulebook, or a menu of languages that a press opens), then, beside them, what the signed-in visitor has done in the game, as a strip of three figures as tall as the buttons (`StatList`: games played, win rate, rank), the stats in full being in the thin banner under the head (`GameHistoryStats`), and, for a visitor who is
-// not signed in, a link in its place that invites them to sign in. Under the buttons come the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled, keeps the rules and has no strip. Nothing stands in for what is missing: a game with no background has a plain head. The gallery of
-// the game's pictures and clips (`MediaGallery`) is not drawn for now: it will have a place again.
+// to the rulebook, or a menu of languages that a press opens). Under the buttons come the credits of the game, quiet (`GameCredits`). What the signed-in visitor has done in the game is not here: it is in the thin banner under the head (`GameHistoryStats`). A game that is not live has the first two buttons disabled and keeps the rules.
+// Nothing stands in for what is missing: a game with no background has a plain head. The gallery of the game's pictures and clips (`MediaGallery`) is not drawn for now: it will have a place again.
 
-export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop"> & {
-  /** What the visitor has done in the game: the first three figures of it stand beside the buttons. Null: a visitor who is not signed in (a link to sign in stands there, in a game that is live) or a game that is not live (nothing). */
-  stats?: PlayerStats | null
-}
+export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop">
 
-export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop, stats = null }: GameHeadProps) {
+export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop }: GameHeadProps) {
   const figures = [
     { icon: UserMultipleIcon, text: players },
     { icon: HourglassIcon, text: duration },
     { icon: Brain02Icon, text: complexity },
     { icon: ChildIcon, text: age },
   ].filter((figure): figure is { icon: IconSvgElement; text: string } => figure.text !== null)
-  // Games played, win rate and rank: the fourth figure (the position on the board) is for the banner under the head
-  const strip = stats
-    ? statFigures(stats)
-        .slice(0, 3)
-        .map(({ rank, value, label }) => ({ label, value: rank ? <RankBadge rank={rank} labelled className="h-6 rounded-md px-2 text-sm" /> : value }))
-    : null
 
   return (
     <div data-slot="game-head" className="relative isolate overflow-hidden">
@@ -52,7 +38,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-background/90 via-background/50 to-transparent" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-t from-background via-background/30 to-transparent" />
 
-      <div className="mx-auto flex min-h-136 w-full max-w-page flex-col justify-between gap-12 px-gutter pt-navbar pb-10 md:min-h-152 md:gap-20 md:pb-14">
+      <div className="mx-auto flex min-h-136 w-full max-w-page flex-col justify-between gap-16 px-gutter pt-navbar pb-10 md:min-h-152 md:gap-32 md:pb-14">
         <Link href="/games" className="mt-2 inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground underline-offset-4 hover:underline">
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4" />
           All games
@@ -129,19 +115,6 @@ export function GameHead({ slug, name, live, description, players, duration, com
               </Button>
             )}
             <RulesButton rulebooks={rulebooks} />
-            {strip ? (
-              <StatList variant="strip" items={strip} aria-label="Your stats in this game" className="lg:ml-3" />
-            ) : (
-              live && (
-                // A visitor who is not signed in has no figures: a link of the strip's shape and height invites them to
-                <Link
-                  href={`/login?next=${encodeURIComponent(`/game/${slug}`)}`}
-                  className="glass inline-flex h-12 items-center rounded-xl px-5 text-sm text-muted-foreground ring-1 ring-foreground/10 transition-colors duration-fast hover:text-foreground lg:ml-3"
-                >
-                  Sign in to keep track of your games
-                </Link>
-              )
-            )}
           </div>
 
           <GameCredits facts={facts} bgg={bgg} shop={shop} className="mt-6" />

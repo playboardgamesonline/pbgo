@@ -7,7 +7,7 @@ import { cn } from "@pbgo/ui/utils"
 import type { GamePage } from "@/lib/game-page"
 import { BggButton } from "./bgg-button"
 
-// The credits of a game, in the head of its page under the buttons, small and quiet (12px, the labels at 60% of the muted text and the names at the muted text): the people and the publishers one term each in a line that wraps (Designer, Artist, Publisher, each in the plural when there are several, then the year the game came out),
+// The credits of a game, in the head of its page under the buttons, small and quiet (14px, the labels at 60% of the muted text and the names at the muted text): the people and the publishers one term each in a line that wraps (Designer, Artist, Publisher, each in the plural when there are several, then the year the game came out),
 // and, at the end of the line, the buttons that belong to them, as small and as quiet: a link to buy the game in a shop, there only when the Studio has a shop's page for the game, and BoardGameGeek's icon, a small button that leads to the game's page
 // there (`BggButton`), there only when the Studio has the game's id. A publisher is a link to its website, with the icon of that site before its name, the two being one link. Nothing is drawn when the Studio has none of it: nothing stands in for what is missing.
 
@@ -17,7 +17,7 @@ export function GameCredits({ facts, bgg, shop, className }: GameCreditsProps) {
   if (facts.length === 0 && !bgg && !shop) return null
 
   return (
-    <div role="group" aria-label="Credits" data-slot="game-credits" className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground/60", className)}>
+    <div role="group" aria-label="Credits" data-slot="game-credits" className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground/60", className)}>
       {facts.length > 0 && (
         <dl className="flex flex-wrap gap-x-6 gap-y-1">
           {facts.map((fact) => (
@@ -44,7 +44,7 @@ export function GameCredits({ facts, bgg, shop, className }: GameCreditsProps) {
       {(shop || bgg) && (
         <div className="flex items-center gap-2">
           {shop && (
-            <Button variant="ghost" size="xs" className="text-muted-foreground/60 hover:text-foreground" asChild>
+            <Button variant="ghost" size="sm" className="text-muted-foreground/60 hover:text-foreground" asChild>
               <a href={shop} target="_blank" rel="noopener noreferrer">
                 <HugeiconsIcon icon={ShoppingBag01Icon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
                 Buy the game
