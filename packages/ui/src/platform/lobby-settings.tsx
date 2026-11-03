@@ -117,11 +117,11 @@ const READ = "data-[state=on]:disabled:opacity-100"
 
 /**
  * The card of an expansion: a small checkbox at its left, then its picture and, at the right of the picture, its name, under it its description (two lines at most, the whole text being its tooltip), then what it changes about the game, the figures that differ from its game's, each
- * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not, and the card, which has a fill a step lighter than the panel's when it is chosen and a half of it under the pointer. The card's corners (`rounded-3xl`) are the picture's (`rounded-lg`) and the room round it (`p-3`); it reaches 12px out of the column (`-mx-3`) so that what is in it stands where the titles of the groups do. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
+ * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not, and the card, which has a fill a step lighter than the panel's when it is chosen and a half of it under the pointer. The card's corners are `rounded-xl`, one step over the picture's (`rounded-lg`): a tile, not a pill; it has 12px of room round its content (`p-3`) and reaches 12px out of the column (`-mx-3`) so that what is in it stands where the titles of the groups do. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
  * that unrolls them under the card, as rows with a switch, once it is chosen. One who reads a table sees only the cards of the ones it is played with, with no box and no button. The box is named by the title and described by the rest. The name wraps and is never cut (an expansion's name
  * often starts with its game's, and says nothing before its end).
  */
-const CARD = "-mx-3 flex flex-col rounded-3xl p-3 transition-colors duration-fast"
+const CARD = "-mx-3 flex flex-col rounded-xl p-3 transition-colors duration-fast"
 
 /**
  * The room that a line leaves above its capitals and under its baseline, taken off (`1lh` is the line, `1cap` the height of a capital: half of what is left of the line goes at each end), so that what is round a text is its margins and the gaps alone and the distances in a card are the ones that are seen:
@@ -273,6 +273,8 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
             disabled={!editable}
             onValueChange={(next) => next && change({ ...set, pace: next as Pace })}
             aria-label="Speed of the game"
+            // It reaches 12px out of the column on each side, as the cards of the expansions do, so that the two blocks have the same edges
+            className="-mx-3 w-auto"
           >
             {SPEEDS.map((speed) =>
               speed === "none" ? (
