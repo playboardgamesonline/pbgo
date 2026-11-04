@@ -120,7 +120,7 @@ export type Achievement = { id: string; name: string; description: string; earne
 
 /**
  * How far a player is from the next division of their rank, in the points the platform shows for it: `points` earned toward the `needed` that make the division. Rank points, which the server derives with the rank and sends in its place: the hidden
- * rating itself is never sent.
+ * rating itself is never sent. `points` goes from 0 to `needed - 1`: at `needed` a player moves up a division, so 99 of 100 is the most the hub ever shows.
  */
 export type RankProgress = { points: number; needed: number }
 

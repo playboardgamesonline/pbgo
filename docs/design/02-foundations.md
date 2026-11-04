@@ -12,7 +12,8 @@ The palette has these colours and no other:
 - `--destructive` and `--success`, the two signal colours: a loss or an error, and a win. The results of games wear the second as a dark tint, a fifth of the colour for the fill and the colour itself for the text, as a destructive badge does;
 - the four colours of a friend's presence (`--presence-online`, `--presence-playing`, `--presence-inactive` and `--presence-dnd`), which only a dot wears;
 - the two colours of a sign-in provider's button (`--brand-facebook` and `--brand-discord`), which only that button wears (see [Provider button](03-components/01-controls.md#provider-button));
-- the colours of the pieces of the home's title (`--piece-red|gold|navy|ivory|ink`), which only those pieces wear (see [Title pieces](03-components/02-navigation.md#title-pieces)).
+- the colours of the pieces of the home's title (`--piece-red|gold|navy|ivory|ink`), which only those pieces wear (see [Title pieces](03-components/02-navigation.md#title-pieces));
+- the colours of the rank crests (`--crest-grandmaster-top|bottom`, the owner's violet from the top of a shield to its foot, and `--crest-star-light|shade`, the white and the grey of the light in its star), which only a crest wears (`rank-crests.tsx`: one SVG a tier, as the owner hands them over, Grandmaster's so far).
 
 ### Surfaces and actions
 

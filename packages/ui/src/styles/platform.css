@@ -539,6 +539,11 @@
     --piece-gold: oklch(0.82 0.15 88);
     --piece-ivory: oklch(0.96 0.02 85);
     --piece-ink: oklch(0.22 0.02 60);
+    /* The colours of the rank crests (`rank-crests.tsx`), exactly the owner's: Grandmaster's violet from the top of its shield to its foot, and the white and the grey of the light in the star of a crest */
+    --crest-grandmaster-top: #aa80ff;
+    --crest-grandmaster-bottom: #6214ff;
+    --crest-star-light: #ffffff;
+    --crest-star-shade: #e0e0e0;
     /* What is cut out of a picture, the ring round a status dot: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);
     /* The settings of the glass (`glass`): how much of the grey of a card it keeps, how much it blurs what is behind it, and how much it saturates it. 100% saturation leaves the colours as they are */
