@@ -6,8 +6,8 @@ import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
-import { agoOf, resultOf, type Result } from "@pbgo/ui/results"
-import { ageOf, DELETED_PLAYER, hostOf, nicknameOf, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
+import { resultOf, type Result } from "@pbgo/ui/results"
+import { ageOf, hostOf, nicknameOf, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import { categoryIcon } from "./category-icons"
 import type { Expansion, GameTable, HistoryEntry, Standing, TurnTimer } from "./game-activity"
 import { durationLabel, playersLabel } from "./game-card-props"
@@ -178,45 +178,31 @@ export function tableDetailProps(
   }
 }
 
-/** A game of a visitor's history, as a row draws it. */
-export type HistoryRow = {
-  id: string
-  result: Result
-  /** The game's name: what a row is called. */
-  title: string
-  /** The expansions it was played with, by name: none for the base game. */
-  expansions: string[]
-  /** How long ago it was: "3 d ago". */
-  when: string
-  /** "3rd of 4", or "4 players" where no ranking applies: for a screen reader, the row has no room for it. */
-  place: string
-  /** "42 pts": none for a game that has no score. */
-  score?: string
-  /** "+120 XP": what it gave them; none when it gave nothing. */
-  xp?: string
-  /** The others at the table, each with the name they sat down with (without its tag) and their picture. */
-  opponents: { name: string; avatarUrl: string | null }[]
-}
-
 const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })
 
 /** "28 Oct": the day of an ISO date, written in UTC so that the server and the browser write the same one. */
 export const dayOf = (iso: string): string => DAY.format(new Date(iso))
 
-/**
- * The rows of a visitor's history, in the order they come (the latest first). A row is called by the name of the game, `game.name`, and says which of its expansions (`game.expansions`) it was played with. `now` is when how long ago it was is counted
- * from: the page's own (the default), or a fixed one for the docs' specimens, which are built once.
- */
-export function historyRows(entries: readonly HistoryEntry[], game: { name: string; expansions?: readonly Expansion[] }, now: number = Date.now()): HistoryRow[] {
-  return entries.map((entry) => ({
-    id: entry.tableId,
+const FULL_DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
+
+/** "28 Oct 2026": the day of an ISO date with its year, in UTC like `dayOf`. */
+export const fullDayOf = (iso: string): string => FULL_DAY.format(new Date(iso))
+
+/** The latest game a visitor finished, as the bar under the head says it. */
+export type LastGame = {
+  /** "28 Oct 2026": the day it ended, with its year. */
+  day: string
+  /** How it ended for them: the bar words it and gives it its colour. */
+  result: Result
+  /** Where they came: "1st", "2nd", "3rd", with no count of the players; none where no ranking applies (a game played together). */
+  place: string | null
+}
+
+/** What the bar under the head says of the latest game a visitor finished (`HistoryEntry`: the one the history starts with). */
+export function lastGameOf(entry: HistoryEntry): LastGame {
+  return {
+    day: fullDayOf(entry.finishedAt),
     result: resultOf(entry.outcome),
-    title: game.name,
-    expansions: entry.expansions.flatMap((id) => game.expansions?.find((expansion) => expansion.id === id)?.name ?? []),
-    when: agoOf(entry.finishedAt, now),
-    place: entry.place === null ? `${entry.playerCount} players` : `${ordinal(entry.place)} of ${entry.playerCount}`,
-    score: entry.score === null ? undefined : `${entry.score} pts`,
-    xp: entry.xp === null || entry.xp === 0 ? undefined : `+${entry.xp} XP`,
-    opponents: entry.opponents.map(({ name, avatarUrl }) => ({ name: name === null ? DELETED_PLAYER : nicknameOf(name), avatarUrl })),
-  }))
+    place: entry.place === null ? null : ordinal(entry.place),
+  }
 }

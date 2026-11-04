@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest"
-import { agoOf, recordOf, resultOf, timePlayed, winRate, type Outcome } from "./results"
+import { agoOf, recordOf, resultOf, resultWord, timePlayed, winRate, type Outcome } from "./results"
 
 describe("resultOf", () => {
   it("calls a game won, lost or drawn whether it was played against the others or with them", () => {
     const words: Record<Outcome, string> = { win: "won", coop_win: "won", loss: "lost", coop_loss: "lost", draw: "draw", abandoned: "abandoned" }
     for (const [outcome, word] of Object.entries(words)) expect(resultOf(outcome as Outcome), outcome).toBe(word)
+  })
+})
+
+describe("resultWord", () => {
+  it("writes each of the four results with a capital", () => {
+    expect(["won", "lost", "draw", "abandoned"].map((result) => resultWord(result as Parameters<typeof resultWord>[0]))).toEqual(["Won", "Lost", "Draw", "Abandoned"])
   })
 })
 
@@ -69,14 +75,16 @@ describe("timePlayed", () => {
     expect(timePlayed(59 * 60 + 59)).toBe("59 min")
   })
 
-  it("counts in hours from one hour, with a decimal under ten and whole after, and never in days", () => {
-    expect(timePlayed(3600)).toBe("1 h")
-    expect(timePlayed(3 * 3600)).toBe("3 h")
+  it("counts in hours from one hour, always with one decimal, counted down, and never in days", () => {
+    expect(timePlayed(3600)).toBe("1.0 h")
+    expect(timePlayed(3600 + 5 * 60)).toBe("1.0 h")
+    expect(timePlayed(3600 + 6 * 60)).toBe("1.1 h")
+    expect(timePlayed(3 * 3600)).toBe("3.0 h")
     expect(timePlayed(9.5 * 3600)).toBe("9.5 h")
     expect(timePlayed(9 * 3600 + 59 * 60)).toBe("9.9 h")
-    expect(timePlayed(10 * 3600)).toBe("10 h")
-    expect(timePlayed(38 * 3600 + 25 * 60)).toBe("38 h")
-    expect(timePlayed(240 * 3600)).toBe("240 h")
+    expect(timePlayed(10 * 3600)).toBe("10.0 h")
+    expect(timePlayed(38 * 3600 + 25 * 60)).toBe("38.4 h")
+    expect(timePlayed(240 * 3600)).toBe("240.0 h")
   })
 
   it("takes what is not a time for none", () => {

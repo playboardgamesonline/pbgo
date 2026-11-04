@@ -1,4 +1,4 @@
-// The queue of a visitor who is looking for a game, for the button of a game's page and for the social panel, which both show it: the game they look for and since when, the time they have waited as a counter ("0:12"), and the way a
+// The queue of a visitor who is looking for a table, for the button of a game's page and for the social panel, which both show it: the game they look for and since when, the time they have waited as a counter ("0:12"), and the way a
 // queue that was kept in the browser is read back. Pure, so that it is tested as it is. The hub keeps the queue in the page (`apps/web/src/lib/matchmaking.ts`) and the blocks draw what they are given. No game is found for
 // them yet: nothing matches players, so a queue lasts until the visitor stops it.
 

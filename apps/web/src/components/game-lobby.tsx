@@ -71,7 +71,7 @@ export function GameLobby({
   return (
     <LobbyPanel flat={flat} className={className}>
       <CardHeader>
-        <CardTitle className={TITLE}>Create a game</CardTitle>
+        <CardTitle className={TITLE}>Create a table</CardTitle>
         <CardDescription className="text-base">Open a table, share its link and play with your friends.</CardDescription>
         <CardAction>
           <LobbyAccess languages={LANGUAGE_OPTIONS} />

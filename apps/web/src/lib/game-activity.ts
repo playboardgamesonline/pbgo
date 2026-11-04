@@ -118,6 +118,12 @@ export const LEADERBOARD_MIN_GAMES = 5
 /** An achievement a visitor earned in a game. PLT-13's schema has no table for them: this is the shape the page needs, a name, what it was for and when, and it stays empty until there is somewhere to read them. */
 export type Achievement = { id: string; name: string; description: string; earnedAt: string }
 
+/**
+ * How far a player is from the next division of their rank, in the points the platform shows for it: `points` earned toward the `needed` that make the division. Rank points, which the server derives with the rank and sends in its place: the hidden
+ * rating itself is never sent.
+ */
+export type RankProgress = { points: number; needed: number }
+
 /** What a signed-in visitor has done in a game: the figures of their `game_participants` rows (the tables they finished), their rank and their place on the board. */
 export type PlayerStats = {
   /** How many games they finished, ranked or not: the rows of `game_participants`. */
@@ -128,6 +134,8 @@ export type PlayerStats = {
   wins: number
   /** Their rank in the game, as `Standing.rank`: null while they have none (no ranked game yet). */
   rank: Rank | null
+  /** How far they are from the next rank: null where no points apply, with no rank yet and at the top, where a rank is a place and not a score. */
+  rankProgress: RankProgress | null
   /** Their place on the board, as `Standing.place`: null while they are not on it. */
   place: number | null
   /** How many players are on the board (the rows of `ratings` of this game with `LEADERBOARD_MIN_GAMES` games), which their place is one of. */
@@ -196,7 +204,7 @@ export async function getStandings(slug: string, viewerId: string | null): Promi
 /** What the signed-in visitor has done in this game, or null when nobody is signed in. Nothing is recorded yet, so a visitor who is signed in has done nothing. */
 export async function getPlayerStats(slug: string, viewerId: string | null): Promise<PlayerStats | null> {
   void slug
-  return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, place: null, rankedPlayers: 0, achievements: [], achievementsTotal: 0 }
+  return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, rankProgress: null, place: null, rankedPlayers: 0, achievements: [], achievementsTotal: 0 }
 }
 
 /** The games the signed-in visitor finished in this game, the latest first, at most `HISTORY_SIZE`. There are none yet. */

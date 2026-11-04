@@ -53,7 +53,7 @@ function AchievementBadge({ seed, className, ...props }: Omit<React.ComponentPro
           className="fill-foreground/5 stroke-foreground/30"
         />
       </svg>
-      <HugeiconsIcon icon={MARKS[mark]!} strokeWidth={1.75} className="relative size-9" />
+      <HugeiconsIcon icon={MARKS[mark]!} strokeWidth={1.75} className="relative size-[38%]" />
     </span>
   )
 }

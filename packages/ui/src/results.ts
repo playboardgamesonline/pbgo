@@ -23,6 +23,11 @@ export function resultOf(outcome: Outcome): Result {
   }
 }
 
+/** A result written on its own, in capitals at the start: "Won", "Lost", "Draw", "Abandoned". */
+export function resultWord(result: Result): string {
+  return result.charAt(0).toUpperCase() + result.slice(1)
+}
+
 /** The share of games won, in whole percent: null when no game was played, since there is nothing to share. */
 export function winRate(wins: number, played: number): number | null {
   return played > 0 ? Math.round((wins / played) * 100) : null
@@ -51,13 +56,13 @@ export function agoOf(since: string, now: number = Date.now()): string {
 }
 
 /**
- * A total of time played, in the unit that suits a whole history: "0 h" for none, "42 min" under an hour, "9.5 h" under ten hours and whole hours after, "38 h". Unlike `lasted` of `./tables`, which says how old a table is, it never counts
- * in days: a visitor's total is read in hours. What is not a time (a negative number, not a number) is none.
+ * A total of time played, in the unit that suits a whole history: "0 h" for none, "42 min" under an hour, and from an hour on hours with one decimal, "1.0 h", "9.5 h", "38.4 h", "240.0 h": a tenth of an hour is six minutes, counted down, never up. Unlike
+ * `lasted` of `./tables`, which says how old a table is, it never counts in days: a visitor's total is read in hours. What is not a time (a negative number, not a number) is none.
  */
 export function timePlayed(seconds: number): string {
   const minutes = Math.floor((Math.max(0, seconds) || 0) / 60)
   if (minutes === 0) return "0 h"
   if (minutes < 60) return `${minutes} min`
-  const hours = minutes / 60
-  return hours < 10 ? `${Math.floor(hours * 10) / 10} h` : `${Math.floor(hours)} h`
+  const tenths = Math.floor(minutes / 6)
+  return `${Math.floor(tenths / 10)}.${tenths % 10} h`
 }

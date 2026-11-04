@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { TIERS, rankLabel, type Division, type Rank } from "./ranks"
+import { TIERS, nextRank, rankLabel, type Division, type Rank } from "./ranks"
 
 describe("TIERS", () => {
   it("are nine, from the lowest to the highest", () => {
@@ -39,5 +39,29 @@ describe("rankLabel", () => {
     // @ts-expect-error there are three divisions
     const goldIV: Rank = { tier: "Gold", division: 4 }
     expect([legendWithDivision, goldWithNone, goldIV]).toHaveLength(3)
+  })
+})
+
+describe("nextRank", () => {
+  it.each([
+    [{ tier: "Apprentice", division: 1 }, "Apprentice II"],
+    [{ tier: "Diamond", division: 2 }, "Diamond III"],
+    [{ tier: "Gold", division: 3 }, "Platinum I"],
+    [{ tier: "Diamond", division: 3 }, "Master I"],
+    [{ tier: "Grandmaster", division: 3 }, "Legend"],
+  ] satisfies [Rank, string][])("puts %j under %s", (rank, label) => {
+    expect(rankLabel(nextRank(rank)!)).toBe(label)
+  })
+
+  it("has nothing above Legend", () => {
+    expect(nextRank({ tier: "Legend" })).toBeNull()
+  })
+
+  it("climbs the twenty-five ranks one at a time, from Apprentice I to Legend", () => {
+    const labels: string[] = []
+    for (let rank: Rank | null = { tier: "Apprentice", division: 1 }; rank !== null; rank = nextRank(rank)) labels.push(rankLabel(rank))
+    expect(labels).toHaveLength(25)
+    expect(new Set(labels).size).toBe(25)
+    expect(labels.at(-1)).toBe("Legend")
   })
 })

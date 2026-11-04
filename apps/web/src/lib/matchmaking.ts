@@ -40,7 +40,7 @@ const subscribe = (listener: () => void) => {
 const snapshot = (): Queue | null => (queue === undefined ? (queue = read()) : queue)
 const server = (): Queue | null => null
 
-/** The visitor starts looking for a game: from now, and for this one only. */
+/** The visitor starts looking for a table: from now, and for this game's only. */
 export function joinQueue(game: Pick<Queue, "slug" | "name">) {
   keep({ slug: game.slug, name: game.name, since: Date.now() })
 }

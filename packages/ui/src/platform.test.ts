@@ -57,10 +57,10 @@ describe("platform components", () => {
  */
 /**
  * Rounded, never round: the largest step is the surfaces' (`rounded-4xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
- * person with its dot, the place of a seat nobody has taken (a circle like the picture it waits for, which its focus ring follows) and the track and thumb of a switch, a slider and a progress bar (the strip of the head draws its own, small one, in a button, where the `Progress` component, which is a `div`, cannot stand).
+ * person with its dot, the place of a seat nobody has taken (a circle like the picture it waits for, which its focus ring follows) and the track and thumb of a switch, a slider and a progress bar.
  */
 describe("radius", () => {
-  const CIRCLES = new Set(["avatar.tsx", "open-seat.tsx", "progress.tsx", "slider.tsx", "stat-strip.tsx", "switch.tsx"])
+  const CIRCLES = new Set(["avatar.tsx", "open-seat.tsx", "progress.tsx", "slider.tsx", "switch.tsx"])
   const hitsOf = (files: readonly string[], pattern: RegExp) =>
     files.flatMap((file) =>
       readFileSync(new URL(file, DIRECTORY), "utf8")

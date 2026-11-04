@@ -7,7 +7,7 @@ import { queueTime } from "../queue"
 import { cn } from "../utils"
 import { Button } from "./button"
 
-// What a visitor sees while they look for a game, the same wait in three places: the button of a game's page, which becomes a counter with a cross that stops the search (`QueueButton`), the card at the top of the social panel
+// What a visitor sees while they look for a table, the same wait in three places: the button of a game's page, which becomes a counter with a cross that stops the search (`QueueButton`), the card at the top of the social panel
 // (`QueueCard`) and, while the panel is closed, a small pill in the bar of the dock (`QueuePill`). Each is drawn from what it is given, the time waited in whole seconds, and decides nothing: where the queue is kept and what
 // stopping it does are the page's (`apps/web/src/lib/matchmaking.ts`). The counter is a `timer`, which a screen reader reads when asked and never announces each second; what is announced is that a search began or stopped.
 
@@ -26,18 +26,18 @@ function Searching({ className }: { className?: string }) {
 }
 
 type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "size" | "asChild" | "onClick"> & {
-  /** Whether the visitor looks for a game of this button's game. */
+  /** Whether the visitor looks for a table of this button's game. */
   searching: boolean
   /** How long they have, in whole seconds. */
   seconds: number
-  /** What the button does while it is "Find a game": starts the search. */
+  /** What the button does while it is "Find a table": starts the search. */
   onSearch: () => void
   /** What the cross does: stops it. */
   onCancel: () => void
 }
 
 /**
- * The main button of a game's page, "Find a game" (its children, with no icon). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
+ * The main button of a game's page, "Find a table" (its children, with no icon). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
  * a counter of the time waited with a cross that stops it, on the same fill; the cross takes the focus when it was the keyboard that pressed, and the button takes it back when the cross was pressed. A disabled button is
  * the one of a game that cannot be played yet, and has no counter.
  */
@@ -55,7 +55,7 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
 
   if (searching) {
     return (
-      <div data-slot="queue-button" role="group" aria-label="Searching for a game" className={cn("inline-flex h-12 w-40 items-center rounded-xl bg-primary text-base text-primary-foreground", className)}>
+      <div data-slot="queue-button" role="group" aria-label="Searching for a table" className={cn("inline-flex h-12 w-40 items-center rounded-xl bg-primary text-base text-primary-foreground", className)}>
         <span className="flex flex-1 items-center justify-center gap-2.5 pl-3">
           <Searching />
           <QueueTimer seconds={seconds} />
@@ -105,10 +105,10 @@ type QueueCardProps = Omit<React.ComponentProps<"div">, "children"> & {
 /** The search as the social panel has it, at the top, over the tabs: what it is, which game, the time waited, and the cross that stops it. */
 function QueueCard({ game, seconds, onCancel, className, ...props }: QueueCardProps) {
   return (
-    <div data-slot="queue-card" role="group" aria-label={`Searching for a game of ${game}`} className={cn("flex items-center gap-3 rounded-2xl bg-input/50 py-2 pr-2 pl-4", className)} {...props}>
+    <div data-slot="queue-card" role="group" aria-label={`Searching for a table of ${game}`} className={cn("flex items-center gap-3 rounded-2xl bg-input/50 py-2 pr-2 pl-4", className)} {...props}>
       <Searching className="size-5 text-muted-foreground" />
       <div className="flex min-w-0 flex-1 flex-col">
-        <p className="text-sm text-foreground">Looking for a game</p>
+        <p className="text-sm text-foreground">Looking for a table</p>
         <p className="truncate text-xs text-muted-foreground">{game}</p>
       </div>
       <QueueTimer seconds={seconds} className="text-sm text-muted-foreground" />
@@ -131,8 +131,8 @@ function QueuePill({ game, seconds, onCancel, className, ...props }: QueuePillPr
     <div
       data-slot="queue-pill"
       role="group"
-      aria-label={`Searching for a game of ${game}`}
-      title={`Looking for a game of ${game}`}
+      aria-label={`Searching for a table of ${game}`}
+      title={`Looking for a table of ${game}`}
       className={cn("flex h-10 items-center gap-2 rounded-xl bg-input/50 pr-1 pl-3 text-sm", className)}
       {...props}
     >
