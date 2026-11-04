@@ -21,13 +21,16 @@ function StatBarItem({ label, visual, className, children, ...props }: StatBarIt
     <div data-slot="stat-bar-item" className={cn("flex min-w-0 items-center gap-4 bg-card px-6 py-5", className)} {...props}>
       {visual}
       <div className="flex min-w-0 flex-1 flex-col gap-2 self-stretch">
-        <span data-slot="stat-bar-label" className="mb-1 text-xs leading-4 tracking-wider text-muted-foreground uppercase">
-          {label}
-        </span>
+        <StatBarLabel className="mb-1">{label}</StatBarLabel>
         {children}
       </div>
     </div>
   )
+}
+
+/** A label in small capitals, written in sentence case ("Play time"): the style makes the capitals. The label of a cell, and any other that a cell has under its figure. */
+function StatBarLabel({ className, ...props }: React.ComponentProps<"span">) {
+  return <span data-slot="stat-bar-label" className={cn("text-xs leading-4 tracking-wider text-muted-foreground uppercase", className)} {...props} />
 }
 
 /** The figure of a cell: the heading font at 1.25rem, in tabular figures so that it does not shift as it changes. */
@@ -40,5 +43,5 @@ function StatBarNote({ className, ...props }: React.ComponentProps<"span">) {
   return <span data-slot="stat-bar-note" className={cn("text-xs leading-4 text-muted-foreground", className)} {...props} />
 }
 
-export { StatBar, StatBarItem, StatBarNote, StatBarValue }
+export { StatBar, StatBarItem, StatBarLabel, StatBarNote, StatBarValue }
 export type { StatBarItemProps }
