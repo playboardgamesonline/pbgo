@@ -7,9 +7,9 @@ import { cn } from "@pbgo/ui/utils"
 import type { GamePage } from "@/lib/game-page"
 import { BggButton } from "./bgg-button"
 
-// The credits of a game, in the head of its page under the buttons, small and quiet (14px, the labels at 60% of the muted text and the names at the muted text): the people and the publishers one term each in a line that wraps (Designer, Artist, Publisher, each in the plural when there are several, then the year the game came out),
-// and, at the end of the line, the buttons that belong to them, as small and as quiet: a link to buy the game in a shop, there only when the Studio has a shop's page for the game, and BoardGameGeek's icon, a small button that leads to the game's page
-// there (`BggButton`), there only when the Studio has the game's id. A publisher is a link to its website, with the icon of that site before its name, the two being one link. Nothing is drawn when the Studio has none of it: nothing stands in for what is missing.
+// The credits of a game, in the head of its page under the buttons, small and quiet (14px, the muted text): the people and the publishers, then the year the game came out, packed in one line that wraps, with no label and a "·" after each term but the last. The labels (Designer, Artist, Publisher, each in the plural when there are
+// several, and Released) are not drawn: a screen reader still has them, before each term, and does not read the dots. At the end of the line come the buttons that belong to them, as small and as quiet: a link to buy the game in a shop, there only when the Studio has a shop's page for the game, and BoardGameGeek's icon, a small button that
+// leads to the game's page there (`BggButton`), there only when the Studio has the game's id. A publisher is a link to its website, with the icon of that site before its name, the two being one link. Nothing is drawn when the Studio has none of it: nothing stands in for what is missing.
 
 export type GameCreditsProps = Pick<GamePage, "facts" | "bgg" | "shop"> & { className?: string }
 
@@ -19,27 +19,30 @@ export function GameCredits({ facts, bgg, shop, className }: GameCreditsProps) {
   return (
     <div role="group" aria-label="Credits" data-slot="game-credits" className={cn("flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground/60", className)}>
       {facts.length > 0 && (
-        <dl className="flex flex-wrap gap-x-6 gap-y-1">
-          {facts.map((fact) => (
-            <div key={fact.label} className="flex flex-wrap gap-x-2">
-              <dt>{fact.label}</dt>
-              <dd className="text-muted-foreground">
-                {fact.values.map((value, index) => (
-                  <Fragment key={`${value.text}-${index}`}>
-                    {index > 0 && ", "}
-                    {value.href ? (
-                      <CreditLink href={value.href} icon={value.icon} className="text-muted-foreground">
-                        {value.text}
-                      </CreditLink>
-                    ) : (
-                      value.text
-                    )}
-                  </Fragment>
-                ))}
-              </dd>
-            </div>
+        <ul className="flex flex-wrap">
+          {facts.map((fact, index) => (
+            <li key={fact.label} className="text-muted-foreground">
+              <span className="sr-only">{fact.label}: </span>
+              {fact.values.map((value, valueIndex) => (
+                <Fragment key={`${value.text}-${valueIndex}`}>
+                  {valueIndex > 0 && ", "}
+                  {value.href ? (
+                    <CreditLink href={value.href} icon={value.icon} className="text-muted-foreground">
+                      {value.text}
+                    </CreditLink>
+                  ) : (
+                    value.text
+                  )}
+                </Fragment>
+              ))}
+              {index < facts.length - 1 && (
+                <span aria-hidden="true" className="px-2 text-muted-foreground/60">
+                  ·
+                </span>
+              )}
+            </li>
           ))}
-        </dl>
+        </ul>
       )}
       {(shop || bgg) && (
         <div className="flex items-center gap-2">
