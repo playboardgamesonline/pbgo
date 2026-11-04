@@ -23,8 +23,9 @@ import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 // who is signed in, in a game that is live: the figures of a visitor who is not signed in, and of a game that cannot be played, are nobody's.
 // From 82.5rem (1320px) of width the four cells are in one row (in rem, like `sm`, so that the stylesheet puts the breakpoint after it): the rank's and the last played's a fifth wider than the achievements', the play time's a fifth narrower (the least wide:
 // its figure and its line need about 200px), so that the last played's line, up to about 245px, stays on one line, and so does the longest name of a rank. Under that width they are two by two, and one over the other on a phone. The room is the same in every
-// cell: 1.25rem above and under, a label on one line across the row, 0.75rem of air under it, then the figure, 0.5rem to 1rem before what is under it, so that the tallest cell, about 104px of text (the rank's, with the points under its bar; the last
-// played's has 96px), sets a bar 144px high.
+// cell: 1.5rem on every side, a label on one line across the row, 0.75rem of air under it, then the figure on a row 2rem high (the rank's name, the last played's date, the play time's hours), so that what is under the figure, the rank's bar, the
+// History button and the play time's line, starts at the same height in the three cells, 0.75rem under the row (0.5rem between a bar and what it reads). The tallest cells, the rank's and the last played's, have 104px of text, the
+// play time's and the achievements' 92px, and set a bar 152px high.
 
 /** How many of the earned achievements the bar draws, the latest first, each 4rem wide: three fit the cell at 1320px, where it is the narrowest of the row (the count of what is earned is in the label). */
 const BADGES_SHOWN = 3
@@ -49,9 +50,9 @@ export function GamePlayerBar({ slug, stats, latest }: { slug: string; stats: Pl
               value={Math.min(100, Math.max(0, (rankProgress.points / rankProgress.needed) * 100))}
               aria-label="Rank rating"
               aria-valuetext={`${rankProgress.points} of ${rankProgress.needed}`}
-              className="mt-2 h-1"
+              className="mt-1 h-1"
             />
-            <div className="-mt-1 flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3">
               <StatBarLabel>Rank rating</StatBarLabel>
               <StatBarNote className="text-sm leading-5 tabular-nums">
                 {Math.min(rankProgress.points, rankProgress.needed - 1)}/{rankProgress.needed}
@@ -66,17 +67,17 @@ export function GamePlayerBar({ slug, stats, latest }: { slug: string; stats: Pl
         )}
       </StatBarItem>
 
-      <StatBarItem label="Last played" className="pr-8">
+      <StatBarItem label="Last played">
         {last ? (
           <>
-            <div className="flex items-center gap-x-3 whitespace-nowrap">
+            <div className="flex h-8 items-center gap-x-3 whitespace-nowrap">
               <StatBarValue>{last.day}</StatBarValue>
               <div className="flex items-center gap-2">
                 {last.place && <span className="text-sm text-muted-foreground">{last.place}</span>}
                 <Badge variant={RESULT_BADGE[last.result]}>{resultWord(last.result)}</Badge>
               </div>
             </div>
-            <Button variant="outline" size="sm" asChild className="-ml-1 self-start">
+            <Button variant="outline" size="sm" asChild className="-ml-1 mt-1 self-start">
               <Link href={`/me/games?game=${slug}#history`}>
                 History
                 <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
@@ -119,12 +120,12 @@ export function GamePlayerBar({ slug, stats, latest }: { slug: string; stats: Pl
         )}
       </StatBarItem>
 
-      <StatBarItem label="Play time" className="pr-10">
+      <StatBarItem label="Play time">
         <div className="flex items-center gap-2">
           <HugeiconsIcon icon={Clock01Icon} strokeWidth={1.5} aria-hidden="true" className="size-8 shrink-0 text-muted-foreground" />
-          <StatBarValue className="text-3xl leading-9">{timePlayed(secondsPlayed)}</StatBarValue>
+          <StatBarValue className="text-3xl leading-8">{timePlayed(secondsPlayed)}</StatBarValue>
         </div>
-        <StatBarNote className="text-sm leading-5">{gamesPlayed === 0 ? "No game yet" : `Played ${gamesPlayed} ${gamesPlayed === 1 ? "game" : "games"}`}</StatBarNote>
+        <StatBarNote className="mt-1 text-sm leading-5">{gamesPlayed === 0 ? "No game yet" : `Played ${gamesPlayed} ${gamesPlayed === 1 ? "game" : "games"}`}</StatBarNote>
       </StatBarItem>
     </StatBar>
   )
