@@ -13,19 +13,19 @@ import type { HistoryEntry, PlayerStats } from "@/lib/game-activity"
 import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
 // What the signed-in visitor has done in a game, as the first section under the head of its page and above the tables: one bar of four cells (`StatBar`), in this order.
-// Rank: its emblem (4rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`), its name at 1.5rem, a thin bar under it and, under the bar, "Points" in small capitals at its left and the points they
-// have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). Last played: the day of their last game with its year, where they came ("1st") and how it ended as a badge (green for a win, red for a loss,
-// grey for a draw or a game left before its end), all on one line (the cell holds the longest, "28 Sept 2026 12th Abandoned"), and under them a button to their history, which is the visitor's own page, `/me/games`, at its History section, with the game
-// to filter by in `?game=`; the button stands 0.25rem out to the left of the text above it, so that its outline, which has rounded corners, lines up with it by eye. Achievements: the badges they have earned, the latest first, in one row
-// of 4.75rem badges, as tall as the text of the cells beside it, that holds as many as fit (`AchievementStrip`): a tile that says how many are left ("+7") takes the last place when there are more, and a press on it or on a badge opens the list of all of them. The count of all of them is in the label; the name,
+// Rank: its emblem (4rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`), its name at 1.5rem, a thin bar under it and, under the bar, "Pts" in small capitals at its left and the points they
+// have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). Last played: the day of their last game with its year and, under it, where they came ("1st") and how it ended as a badge (green for a win, red for a loss,
+// grey for a draw or a game left before its end), two lines of their own, and a button to their history at the top right of the cell, level with its label: the visitor's own page, `/me/games`, at its History section, with the game
+// to filter by in `?game=`. Achievements: the badges they have earned, the latest first, in one row
+// of 4.75rem badges, as tall as the text of the cells beside it, that holds as many as fit (`AchievementStrip`): the number of those that are left ("+7", with no outline: a round background under the pointer shows that it can be pressed) takes the last place when there are more, and a press on it or on a badge opens the list of all of them. The count of all of them is in the label; the name,
 // what it was for and the day are in a card under the pointer, in the window and in words for a screen reader. Play time: in hours, as big as 1.875rem, with a
 // light clock at its left and, under it, how many games they have played ("Played 24 games", at 0.875rem). A figure that is not known says so in words: "Unranked", "No game yet", "None yet" (and "0 h" for the time). The page gives the bar to a visitor
 // who is signed in, in a game that is live: the figures of a visitor who is not signed in, and of a game that cannot be played, are nobody's.
 // From 82.5rem (1320px) of width the four cells are in one row (in rem, like `sm`, so that the stylesheet puts the breakpoint after it): the rank's and the last played's 1.2fr, the achievements' 1.05fr (the three badges that the row holds need 236px) and the play time's 0.75fr (the least wide:
-// its figure and its line need about 200px), so that the last played's line, up to about 245px, stays on one line, and so does the longest name of a rank. Under that width they are two by two, and one over the other on a phone. The room is the same in every
-// cell: 1.5rem on every side, the label at its top and what it says at its foot with at least 1rem between them (`StatBarItem`: the labels stand on one line across the row and what each says ends on one line), the figure of the rank and of the last played on a row 2rem high with
-// the bar or the History button 0.75rem under it (0.5rem between a bar and what it reads). The texts of the rank, of the last played and of the achievements are 76px high (the badges are as tall as the figure and what is under it) and set a bar 156px high. The play time's hours and its line of games are a block
-// of their own, 0.25rem apart, which ends where the others do: on the line of the rank's points and of the foot of the History button.
+// its figure and its line need about 200px), so that the longest name of a rank stays on one line, and the last played's label and its button have room side by side. Under that width they are two by two, and one over the other on a phone. The room is the same in every
+// cell: 1.5rem on every side, the label at its top and what it says at its foot with at least 1rem between them (`StatBarItem`: the labels stand on one line across the row and what each says ends on one line), the rank's name on a row 2rem high with
+// the bar 0.75rem under it (0.5rem between the bar and what it reads). The texts of the rank and of the achievements are 76px high (the badges are as tall as the name and what is under it) and set a bar 156px high. The last played's two lines and the play time's hours and line of games are blocks
+// of their own, shorter, which end where the others do: on the line of the rank's points and of the foot of the badges.
 
 /** How a game ended, as a badge: a win is green, a loss red, and a draw or a game left before its end grey. */
 const RESULT_BADGE: Record<Result, "success" | "destructive" | "secondary"> = { won: "success", lost: "destructive", draw: "secondary", abandoned: "secondary" }
@@ -50,7 +50,7 @@ export function GamePlayerBar({ slug, stats, latest }: { slug: string; stats: Pl
               className="mt-1 h-1"
             />
             <div className="flex items-center justify-between gap-3">
-              <StatBarLabel>Points</StatBarLabel>
+              <StatBarLabel>Pts</StatBarLabel>
               <StatBarNote className="text-sm leading-5 tabular-nums">
                 {Math.min(rankProgress.points, rankProgress.needed - 1)}/{rankProgress.needed}
               </StatBarNote>
@@ -64,22 +64,26 @@ export function GamePlayerBar({ slug, stats, latest }: { slug: string; stats: Pl
         )}
       </StatBarItem>
 
-      <StatBarItem label="Last played">
-        {last ? (
-          <>
-            <div className="flex h-8 items-center gap-x-3 whitespace-nowrap">
-              <StatBarValue>{last.day}</StatBarValue>
-              <div className="flex items-center gap-2">
-                {last.place && <span className="text-sm text-muted-foreground">{last.place}</span>}
-                <Badge variant={RESULT_BADGE[last.result]}>{resultWord(last.result)}</Badge>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" asChild className="-ml-1 mt-1 self-start">
+      <StatBarItem
+        label="Last played"
+        action={
+          last && (
+            <Button variant="outline" size="sm" asChild>
               <Link href={`/me/games?game=${slug}#history`}>
                 History
                 <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
               </Link>
             </Button>
+          )
+        }
+      >
+        {last ? (
+          <>
+            <StatBarValue className="whitespace-nowrap">{last.day}</StatBarValue>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              {last.place && <span className="text-sm text-muted-foreground">{last.place}</span>}
+              <Badge variant={RESULT_BADGE[last.result]}>{resultWord(last.result)}</Badge>
+            </div>
           </>
         ) : (
           <>

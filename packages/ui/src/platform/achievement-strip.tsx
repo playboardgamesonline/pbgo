@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card"
 
 // The achievements a visitor has earned, as one row of badges for a place with the room of a row (a cell of the bar of a game's page): each badge 4.75rem wide, the latest first, and as many as the row holds. When it holds fewer than there are, its last
-// place is a tile that says how many are left ("+7"): the row is a window onto the achievements, not the list of them. Each badge and the tile open the same window, which lists every one with its picture, its name, what it was for and the day, and scrolls when
+// place is the number of those that are left ("+7", with no outline of its own: a round background under the pointer says that it can be pressed): the row is a window onto the achievements, not the list of them. Each badge and the tile open the same window, which lists every one with its picture, its name, what it was for and the day, and scrolls when
 // they do not fit, so that a touch, which has no hover, reaches what the card under the pointer says (the name, what it was for and the day, on each badge). The room is measured in the browser, the row's width over the width of a badge and its gap
 // (`slotsIn`), and kept as the window is resized; the server, and the first paint, draw three places, which is what the row holds where the bar of a game's page has its four cells in one line. A badge is drawn from the achievement's id (`AchievementBadge`).
 
@@ -81,9 +81,8 @@ function AchievementStrip({ achievements, total = 0, className, ...props }: Achi
         {hidden > 0 && (
           <li>
             <DialogTrigger asChild>
-              <button type="button" className={cn(PRESS, "relative flex size-19 items-center justify-center bg-muted ring-1 ring-foreground/15 transition-colors duration-fast hover:bg-accent focus-visible:ring-ring/30")}>
-                <span aria-hidden="true" className="absolute inset-2 rounded-xl border border-dashed border-foreground/30 bg-foreground/5" />
-                <span aria-hidden="true" className="relative font-heading text-xl tabular-nums">
+              <button type="button" className={cn(PRESS, "flex size-19 items-center justify-center rounded-full transition-colors duration-fast hover:bg-accent")}>
+                <span aria-hidden="true" className="font-heading text-xl tabular-nums">
                   +{hidden}
                 </span>
                 <span className="sr-only">Show all {achievements.length} achievements</span>
