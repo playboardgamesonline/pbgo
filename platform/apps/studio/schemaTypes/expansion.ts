@@ -1,7 +1,7 @@
-import { MAX_SLUG_LENGTH, slugFromName } from "@pbgo/games/slug"
+import { MAX_EXPANSION_SLUG_LENGTH, slugFromName } from "@pbgo/games/slug"
 import { PackageIcon } from "@sanity/icons/Package"
 import { defineArrayMember, defineField, defineType, type PreviewValue } from "sanity"
-import { checkCreatorsOnce, checkName, checkPlayersMax, checkSlug } from "./rules"
+import { checkCreatorsOnce, checkExpansionSlug, checkName, checkPlayersMax } from "./rules"
 import { translatedField } from "./translations"
 
 /**
@@ -35,8 +35,8 @@ export const expansion = defineType({
       title: "Slug",
       type: "slug",
       group: "identity",
-      options: { source: "name", maxLength: MAX_SLUG_LENGTH, slugify: slugFromName },
-      validation: (rule) => rule.required().custom(checkSlug),
+      options: { source: "name", maxLength: MAX_EXPANSION_SLUG_LENGTH, slugify: slugFromName },
+      validation: (rule) => rule.required().custom(checkExpansionSlug),
     }),
     // A strong reference (the default): the base game cannot be deleted while an expansion points at it
     defineField({ name: "baseGame", title: "Base game", type: "reference", to: [{ type: "game" }], group: "identity", validation: (rule) => rule.required() }),

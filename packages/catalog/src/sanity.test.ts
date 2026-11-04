@@ -695,6 +695,17 @@ describe("an expansion", () => {
     ])
   })
 
+  it("may have a slug of 48 characters where a game's is 40 at most, since it starts with its base game's: one longer is left out, and reported", async () => {
+    const base = "the-werewolves-of-millers-hollow"
+    const reading = await read([
+      sanityGame(base, { name: "The Werewolves of Millers Hollow" }),
+      sanityExpansion(`${base}-the-village`, { name: "The Village", baseGame: base }),
+      sanityExpansion("x".repeat(49), { name: "Too Long", baseGame: base }),
+    ])
+    expect(reading.expansions.map((expansion) => expansion.slug)).toEqual([`${base}-the-village`])
+    expect(reading.warnings).toEqual([expect.stringContaining(`The expansion "Too Long" of the Studio is left out: "${"x".repeat(49)}" is 49 characters long, 48 at most`)])
+  })
+
   it("may have the slug of a game: a slug is unique among the expansions of the Studio, not between them and its games", async () => {
     const reading = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityExpansion("flip-7", { name: "Flip 7: The Expansion", baseGame: "flip-7" })])
     expect(reading.expansions.map((expansion) => expansion.slug)).toEqual(["flip-7"])

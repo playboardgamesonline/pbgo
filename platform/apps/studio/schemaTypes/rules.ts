@@ -18,6 +18,9 @@ export const checkName = (name: string | undefined): true | string => (name === 
 /** A slug is what a game's slug can be: a page of the hub, and a route of the site once the game is live. The uniqueness is the slug field's own. */
 export const checkSlug = (slug: { current?: string } | undefined): true | string => (slug?.current === undefined ? true : (slugProblem(slug.current) ?? true))
 
+/** An expansion's slug is a game's but for its length: it names no package, token or Studio host, and starts with its base game's slug, so it may be longer (`MAX_EXPANSION_SLUG_LENGTH`). The uniqueness is the slug field's own. */
+export const checkExpansionSlug = (slug: { current?: string } | undefined): true | string => (slug?.current === undefined ? true : (slugProblem(slug.current, [], "expansion") ?? true))
+
 /** A game is not its own base game, nor related to itself. The document is not there when a seed checks the rule: nothing to compare with. */
 export const checkNotItself =
   (message: string) =>

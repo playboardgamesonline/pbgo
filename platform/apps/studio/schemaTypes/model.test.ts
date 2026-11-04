@@ -1,4 +1,5 @@
 import { studioTypes } from "@pbgo/content-kit/form-rules"
+import { MAX_EXPANSION_SLUG_LENGTH, MAX_SLUG_LENGTH } from "@pbgo/games/slug"
 import { describe, expect, it } from "vitest"
 import studio from "../sanity.config"
 import { ANNOUNCEMENT_TONES, CHANGELOG_KINDS, CREATOR_ROLES, GAME_KINDS, roleTitle, TRANSLATED_FIELDS } from "./constants"
@@ -201,9 +202,16 @@ describe("an expansion", () => {
       if (name === "baseGame") continue
       const own = fieldOf("expansion", name)
       const game = fieldOf("game", name)
-      expect([name, own.type, options(own), rulesOf(own)]).toEqual([name, game.type, options(game), rulesOf(game)])
+      // The slug is the one field that differs, on purpose: an expansion's may be longer, since it names no package, token or Studio host and starts with its base game's slug
+      const gameOptions = name === "slug" ? { ...options(game), maxLength: MAX_EXPANSION_SLUG_LENGTH } : options(game)
+      expect([name, own.type, options(own), rulesOf(own)]).toEqual([name, game.type, gameOptions, rulesOf(game)])
       expect([name, own.of?.map((member) => member.type)]).toEqual([name, game.of?.map((member) => member.type)])
     }
+  })
+
+  it("has a slug that may be longer than a game's: a game's names a package, a token and a Studio host, an expansion's none of them", () => {
+    const maxLength = (type: string) => (fieldOf(type, "slug") as { options?: { maxLength?: number } }).options?.maxLength
+    expect([maxLength("game"), maxLength("expansion")]).toEqual([MAX_SLUG_LENGTH, MAX_EXPANSION_SLUG_LENGTH])
   })
 })
 

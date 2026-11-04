@@ -240,7 +240,7 @@ function problemOf(name: string, slug: string, taken: ReadonlySet<string>, type:
   if (!name) return "it has no name"
   const nameIssue = nameProblem(name)
   if (nameIssue) return nameIssue
-  const slugIssue = slugProblem(slug)
+  const slugIssue = slugProblem(slug, [], type)
   if (slugIssue) return slugIssue
   return taken.has(slug) ? `its slug "${slug}" is already the one of an older ${type}` : undefined
 }

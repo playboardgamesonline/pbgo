@@ -1,4 +1,4 @@
-// What a game's slug and name can be: the one definition, read by the registry test and by the scripts that create a game
+// What a game's slug and name can be, and an expansion's slug: the one definition, read by the registry test and by the scripts that create a game
 // (scripts/lib.sh). Pure and without any import, so that Node runs it as it is (type stripping) and the test and the scripts
 // cannot disagree.
 
@@ -13,8 +13,17 @@ export const RESERVED_SLUGS: readonly string[] = ["api", "legal", "docs", "gamem
 /** Words of lowercase letters and digits joined by single dashes */
 export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
-/** A slug names a package, a token variable and a Studio host (a DNS label, 63 characters at most): a bound well below that. */
+/** A game's slug names a package, a token variable and a Studio host (a DNS label, 63 characters at most): a bound well below that. */
 export const MAX_SLUG_LENGTH = 40
+
+/**
+ * An expansion's slug names none of those: it is a key among the expansions, and it starts with its base game's slug and goes on with its own name
+ * (`the-werewolves-of-millers-hollow-the-village`), so it may be a little longer than a game's.
+ */
+export const MAX_EXPANSION_SLUG_LENGTH = 48
+
+/** What a slug is for: a game, or an expansion, whose slug may be longer. */
+export type SlugKind = "game" | "expansion"
 
 // The letters Unicode does not split into a letter and an accent
 const LETTERS: Record<string, string> = { œ: "oe", æ: "ae", ß: "ss", ø: "o", ł: "l", đ: "d" }
@@ -36,11 +45,12 @@ export function slugFromName(name: string): string {
     .replace(/^-+|-+$/g, "")
 }
 
-/** What is wrong with a slug for a new game, in a sentence, or `undefined` when it is fine. `taken` = the slugs of the games that exist. */
-export function slugProblem(slug: string, taken: readonly string[] = []): string | undefined {
+/** What is wrong with a slug for a new game, or for an expansion (`kind`), in a sentence, or `undefined` when it is fine. `taken` = the slugs of the games that exist. */
+export function slugProblem(slug: string, taken: readonly string[] = [], kind: SlugKind = "game"): string | undefined {
   if (!slug) return "The slug is empty"
   if (!SLUG_PATTERN.test(slug)) return `"${slug}" is not a slug: lowercase letters and digits, words joined by single dashes (the-crew, 6-nimmt)`
-  if (slug.length > MAX_SLUG_LENGTH) return `"${slug}" is ${slug.length} characters long, ${MAX_SLUG_LENGTH} at most (it names a package, a token and a Studio host)`
+  const max = kind === "game" ? MAX_SLUG_LENGTH : MAX_EXPANSION_SLUG_LENGTH
+  if (slug.length > max) return `"${slug}" is ${slug.length} characters long, ${max} at most${kind === "game" ? " (it names a package, a token and a Studio host)" : ""}`
   if (RESERVED_SLUGS.includes(slug)) return `"${slug}" is a route of the site, a game cannot take it`
   if (taken.includes(slug)) return `"${slug}" is already a game of the site`
   return undefined

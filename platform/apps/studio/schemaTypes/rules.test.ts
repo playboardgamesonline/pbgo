@@ -1,6 +1,6 @@
 import type { ValidationContext } from "sanity"
 import { describe, expect, it } from "vitest"
-import { checkCreatorsOnce, checkEndsAfterStart, checkHelperKey, checkHelpersOnce, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkRows, checkSlug, checkTranslations, isFilled } from "./rules"
+import { checkCreatorsOnce, checkEndsAfterStart, checkExpansionSlug, checkHelperKey, checkHelpersOnce, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkRows, checkSlug, checkTranslations, isFilled } from "./rules"
 
 /** What the Studio hands a rule: the document being edited, which is not there when a seed checks the rule. */
 const within = (document?: Record<string, unknown>) => ({ document }) as unknown as ValidationContext
@@ -30,6 +30,21 @@ describe("checkSlug", () => {
     expect(checkSlug({ current: "Flip 7" })).toContain("is not a slug")
     expect(checkSlug({ current: "api" })).toContain("a route of the site")
     expect(checkSlug({ current: "a".repeat(41) })).toContain("40 at most")
+  })
+})
+
+describe("checkExpansionSlug", () => {
+  it("accepts what an expansion's slug can be: a game's, and one up to 48 characters long, which starts with its base game's", () => {
+    expect(checkExpansionSlug({ current: "flip-7-more" })).toBe(true)
+    expect(checkExpansionSlug({ current: "the-werewolves-of-millers-hollow-the-village" })).toBe(true)
+    expect(checkExpansionSlug({ current: "a".repeat(48) })).toBe(true)
+    expect(checkExpansionSlug(undefined)).toBe(true)
+  })
+
+  it("refuses what is not one: capitals, a route of the site, a slug over 48 characters", () => {
+    expect(checkExpansionSlug({ current: "More Cards" })).toContain("is not a slug")
+    expect(checkExpansionSlug({ current: "api" })).toContain("a route of the site")
+    expect(checkExpansionSlug({ current: "a".repeat(49) })).toContain("48 at most")
   })
 })
 

@@ -338,7 +338,7 @@ describe("what the seed writes", () => {
   })
 
   it("is an expansion whose slug is one too, each of them one that no other expansion has", () => {
-    for (const doc of expansions()) expect(slugProblem(doc.slug.current), doc._id).toBeUndefined()
+    for (const doc of expansions()) expect(slugProblem(doc.slug.current, [], "expansion"), doc._id).toBeUndefined()
     expect(new Set(expansions().map((doc) => doc.slug.current)).size).toBe(expansions().length)
   })
 
