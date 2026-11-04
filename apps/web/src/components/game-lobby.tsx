@@ -7,7 +7,6 @@ import { LobbyAccess } from "@pbgo/ui/platform/lobby-access"
 import { LobbyPlayers } from "@pbgo/ui/platform/lobby-players"
 import { LobbySettings, type HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import { playerRange } from "@pbgo/ui/tables"
-import { cn } from "@pbgo/ui/utils"
 import type { Expansion, ViewerTable } from "@/lib/game-activity"
 import { expansionOption, LANGUAGE_OPTIONS, tableDetailProps } from "@/lib/game-activity-props"
 import { LeaveLobbyButton } from "./leave-lobby-button"
@@ -17,7 +16,7 @@ import { StartGameButton } from "./start-game-button"
 // `/<slug>`, another root layout, loaded whole): the hub knows nothing of what a game's table asks for beyond what the page reads (the expansions it has, `getExpansions`), and the choices made here are not carried to the table, since a lobby has no place
 // to keep them yet. The number of players (between the game's least and most) and the settings of the game follow its head, with a hairline between, as they follow the seats in a lobby that exists (`LobbyPlayers`, `LobbySettings`: the speed, the expansions as pictures with an outline for the ones chosen, the helpers), and who may join the table is the one button at its top right (`LobbyAccess`: public or private and, for a public table, a minimum rank and a language). A visitor's own lobby
 // is the details of any table (`LobbyDetail`) with, under them, the button that starts the game for the one who opened the lobby (`StartGameButton`, which waits for enough players) or, for anybody else, one that cannot be pressed and says how many have joined of those expected, and, beside it, a secondary button to leave it (which only a lobby that waits has), with the plus of its free seats opening the menu that invites a friend or copies the link, and with the number of players, the settings and the button of who may join, that are theirs to set when they
-// opened it (`ownTableDetail`). A game that is not live has the same space, half transparent, with the settings that its game has and a button that is off (`live`). A table picked in the list of the open tables takes the space's place for as long as it is picked (`OpenTables`).
+// opened it (`ownTableDetail`). A game that is not live has the same space, as it is for the others, with the settings that its game has and a button that does nothing and says "Coming soon" under its label (`live`). A table picked in the list of the open tables takes the space's place for as long as it is picked (`OpenTables`).
 
 const TITLE = "text-3xl md:text-4xl"
 
@@ -70,8 +69,7 @@ export function GameLobby({
     </>
   )
   return (
-    // A game that is not live has the same space, half transparent, with the settings that its game has and no way in: its button is off
-    <LobbyPanel aria-disabled={live ? undefined : "true"} flat={flat} className={cn(!live && "opacity-50", className)}>
+    <LobbyPanel flat={flat} className={className}>
       <CardHeader>
         <CardTitle className={TITLE}>Create a game</CardTitle>
         <CardDescription className="text-base">Open a table, share its link and play with your friends.</CardDescription>
@@ -91,8 +89,10 @@ export function GameLobby({
             <a href={`/${slug}`}>{open}</a>
           </Button>
         ) : (
-          <Button size="xl" className="w-full" disabled>
-            {open}
+          // The way in of a game that is not live does nothing, and is lit like the others: what it would say, then, under it, that it is coming
+          <Button size="xl" className="w-full flex-col gap-0 disabled:opacity-100" disabled>
+            <span className="flex items-center gap-2 leading-5">{open}</span>
+            <span className="text-xs leading-4 opacity-70">Coming soon</span>
           </Button>
         )}
       </CardFooter>
