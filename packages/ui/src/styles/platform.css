@@ -53,6 +53,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
   --color-presence-online: var(--presence-online);
   --color-presence-playing: var(--presence-playing);
   --color-presence-inactive: var(--presence-inactive);
@@ -510,7 +511,7 @@
     /* The grey of every container: a card, a menu, a dialog, and the glass of the navbar, the dock, the bars (`glass`). Two thirds neutral 900 and a third neutral 950 (0.156 of lightness, it was 0.205), a dark grey that is darker than it was and is still not the page's black */
     --card: color-mix(in oklab, var(--color-neutral-900) 66%, var(--color-neutral-950));
     --card-foreground: var(--color-neutral-50);
-    /* The grey of the glass of the search bar: a step lighter than the other containers (half way between neutral 900 and 800, 0.205), so that it is the one that is read first on the page */
+    /* A step lighter than the other containers (half way between neutral 900 and 800, 0.205), for what is read before the rest: the glass of the search bar, and a panel that stands raised beside a list */
     --card-bar: color-mix(in oklab, var(--color-neutral-900) 50%, var(--color-neutral-800));
     --popover: var(--card);
     --popover-foreground: var(--color-neutral-50);
@@ -523,6 +524,8 @@
     --accent: var(--color-neutral-800);
     --accent-foreground: var(--color-neutral-50);
     --destructive: oklch(0.704 0.191 22.216);
+    /* The colour of a win: with `--destructive`, the second signal colour. The results of games wear it as a tint over the dark, a fifth of the colour for the fill and the colour itself for the text (`Badge variant="success"`) */
+    --success: oklch(0.78 0.16 155);
     --presence-online: oklch(0.78 0.16 155);
     --presence-playing: oklch(0.76 0.13 235);
     --presence-inactive: oklch(0.82 0.16 80);
@@ -536,6 +539,11 @@
     --piece-gold: oklch(0.82 0.15 88);
     --piece-ivory: oklch(0.96 0.02 85);
     --piece-ink: oklch(0.22 0.02 60);
+    /* The colours of the rank crests (`rank-crests.tsx`), exactly the owner's: Grandmaster's violet from the top of its shield to its foot, and the white and the grey of the light in the star of a crest */
+    --crest-grandmaster-top: #aa80ff;
+    --crest-grandmaster-bottom: #6214ff;
+    --crest-star-light: #ffffff;
+    --crest-star-shade: #e0e0e0;
     /* What is cut out of a picture, the ring round a status dot: the colour of what the picture is on, the page's, or the grey of the container that `glass` makes */
     --cutout: var(--background);
     /* The settings of the glass (`glass`): how much of the grey of a card it keeps, how much it blurs what is behind it, and how much it saturates it. 100% saturation leaves the colours as they are */

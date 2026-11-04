@@ -1,6 +1,6 @@
 import type { ValidationContext } from "sanity"
 import { describe, expect, it } from "vitest"
-import { checkCreatorsOnce, checkEndsAfterStart, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkRows, checkSlug, checkTranslations, isFilled } from "./rules"
+import { checkCreatorsOnce, checkEndsAfterStart, checkExpansionSlug, checkHelperKey, checkHelpersOnce, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkRows, checkSlug, checkTranslations, isFilled } from "./rules"
 
 /** What the Studio hands a rule: the document being edited, which is not there when a seed checks the rule. */
 const within = (document?: Record<string, unknown>) => ({ document }) as unknown as ValidationContext
@@ -33,6 +33,21 @@ describe("checkSlug", () => {
   })
 })
 
+describe("checkExpansionSlug", () => {
+  it("accepts what an expansion's slug can be: a game's, and one up to 48 characters long, which starts with its base game's", () => {
+    expect(checkExpansionSlug({ current: "flip-7-more" })).toBe(true)
+    expect(checkExpansionSlug({ current: "the-werewolves-of-millers-hollow-the-village" })).toBe(true)
+    expect(checkExpansionSlug({ current: "a".repeat(48) })).toBe(true)
+    expect(checkExpansionSlug(undefined)).toBe(true)
+  })
+
+  it("refuses what is not one: capitals, a route of the site, a slug over 48 characters", () => {
+    expect(checkExpansionSlug({ current: "More Cards" })).toContain("is not a slug")
+    expect(checkExpansionSlug({ current: "api" })).toContain("a route of the site")
+    expect(checkExpansionSlug({ current: "a".repeat(49) })).toContain("48 at most")
+  })
+})
+
 describe("checkNotItself", () => {
   const check = checkNotItself("not itself")
 
@@ -47,6 +62,38 @@ describe("checkNotItself", () => {
     expect(check([reference("game-b"), reference("game-c")], within({ _id: "game-a" }))).toBe(true)
     expect(check(undefined, within({ _id: "game-a" }))).toBe(true)
     expect(check(reference("game-a"), within())).toBe(true)
+  })
+})
+
+describe("checkHelperKey", () => {
+  it.each(["show-score", "hints", "last-played-card", "a1", "x"])("accepts %s", (key) => {
+    expect(checkHelperKey(key)).toBe(true)
+  })
+
+  it("leaves an empty key to required()", () => {
+    expect(checkHelperKey(undefined)).toBe(true)
+  })
+
+  it.each(["Show-score", "show score", "show_score", "-show", "show-", "show--score", "scoré", "", "a".repeat(41)])("refuses %j and says what a key is", (key) => {
+    expect(checkHelperKey(key)).toContain("owercase")
+  })
+})
+
+describe("checkHelpersOnce", () => {
+  const helper = (key: string) => ({ _key: key, _type: "gameHelper", title: key, key })
+
+  it("accepts helpers with a key each, and none at all", () => {
+    expect(checkHelpersOnce([helper("show-score"), helper("hints")])).toBe(true)
+    expect(checkHelpersOnce([])).toBe(true)
+    expect(checkHelpersOnce(undefined)).toBe(true)
+  })
+
+  it("refuses two helpers with one key", () => {
+    expect(checkHelpersOnce([helper("show-score"), helper("hints"), helper("show-score")])).toContain("give each its own")
+  })
+
+  it("leaves a helper that has no key yet to required()", () => {
+    expect(checkHelpersOnce([{ _key: "1", _type: "gameHelper", title: "A" }, { _key: "2", _type: "gameHelper", title: "B" }])).toBe(true)
   })
 })
 

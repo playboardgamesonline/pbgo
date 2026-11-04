@@ -33,9 +33,9 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     const read = await readSanityGames({ init: { next: { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [CATALOG_TAG] } } })
     for (const warning of read.warnings) reportOnce(warning)
     for (const game of read.skipped) reportOnce(`The game "${game.name || game.id}" of the Studio is left out: ${game.reason}`)
-    return { entries: buildCatalog(GAMES, read.games), source: "ok" }
+    return { entries: buildCatalog(GAMES, read.games), expansions: read.expansions, source: "ok" }
   } catch (error) {
     reportOnce(`The platform's Sanity project is unavailable, only the live games are listed, from the registry: ${error instanceof Error ? error.message : "unknown error"}`)
-    return { entries: buildCatalog(GAMES, [], { registryGames }), source: "unavailable" }
+    return { entries: buildCatalog(GAMES, [], { registryGames }), expansions: [], source: "unavailable" }
   }
 })

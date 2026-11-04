@@ -5,9 +5,9 @@
 // page that asked draws a plain frame.
 // The same address, `publisher-<n>` for a slot, is the icon of the n-th publisher of the game (from 0): its page has no picture of its
 // own, so the server looks for the icon of its website (`favicon.ts`) and serves that, from this site, whose visitors then never meet
-// the publisher's.
+// the publisher's. And `bgg` is the icon of BoardGameGeek, which the game's page draws on its link there, found on BoardGameGeek's website the same way.
 
-import { ART_SLOTS, iconVersion, pictureUrl, type ArtSlot, type CatalogGame } from "./catalog"
+import { ART_SLOTS, BGG_SITE, BGG_SLOT, iconVersion, pictureUrl, type ArtSlot, type CatalogGame } from "./catalog"
 import { fetchFavicon } from "./favicon"
 import { PictureError } from "./picture"
 import { getCatalog, reportOnce } from "./server"
@@ -38,9 +38,10 @@ const isSlot = (value: string): value is ArtSlot => (ART_SLOTS as readonly strin
 /** `publisher-<n>`, n from 0, with no leading zero: one icon has one address, so the CDN keeps it once. */
 const PUBLISHER_SLOT = /^publisher-(0|[1-9]\d?)$/
 
-/** What an address asks for: one of the three pictures of the game, or the icon of one of its publishers. Null for anything else. */
-function wantedOf(slot: string): { picture: ArtSlot } | { publisher: number } | null {
+/** What an address asks for: one of the three pictures of the game, the icon of one of its publishers, or BoardGameGeek's. Null for anything else. */
+function wantedOf(slot: string): { picture: ArtSlot } | { publisher: number } | { bgg: true } | null {
   if (isSlot(slot)) return { picture: slot }
+  if (slot === BGG_SLOT) return { bgg: true }
   const place = PUBLISHER_SLOT.exec(slot)?.[1]
   return place === undefined ? null : { publisher: Number(place) }
 }
@@ -64,11 +65,11 @@ function staleVersion(request: Request, game: Pick<CatalogGame, "slug">, slot: s
 }
 
 /**
- * The icon of a publisher's website, found there (`fetchFavicon`): a day for the CDN, a 404 for a site that has none, a 503 for one that cannot be reached now, and that
+ * The icon of a website, a publisher's or BoardGameGeek's, found there (`fetchFavicon`): a day for the CDN, a 404 for a site that has none, a 503 for one that cannot be reached now, and that
  * site is then left alone for `SITE_FAILURE_MEMO_MS` (`failed`: website → until when), so that a website that is down, or that has a broken certificate, is not asked again
- * by every visit to its game's page.
+ * by every visit to its game's page. `what` says whose icon it is, for the line that is logged when it cannot be served.
  */
-async function publisherIcon(failed: Map<string, number>, slug: string, place: number, website: string): Promise<Response> {
+async function siteIcon(failed: Map<string, number>, what: string, website: string): Promise<Response> {
   const until = failed.get(website)
   if (until !== undefined && Date.now() < until) return unavailable((until - Date.now()) / 1000)
   try {
@@ -76,7 +77,7 @@ async function publisherIcon(failed: Map<string, number>, slug: string, place: n
     return new Response(icon.bytes, { headers: { ...SECURITY_HEADERS, "Content-Type": icon.type, "Cache-Control": ICON_FRESH } })
   } catch (error) {
     if (!(error instanceof PictureError)) throw error
-    reportOnce(`The icon of the publisher ${place + 1} of "${slug}" cannot be served: ${error.message}`)
+    reportOnce(`The icon of ${what} cannot be served: ${error.message}`)
     if (!error.retryable) return notFound(ICON_ABSENT)
     if (failed.size >= MAX_FAILED_SITES) failed.clear()
     failed.set(website, Date.now() + SITE_FAILURE_MEMO_MS)
@@ -86,12 +87,13 @@ async function publisherIcon(failed: Map<string, number>, slug: string, place: n
 
 /**
  * `GET /api/catalog/<slug>/<slot>?v=<version>` for `apps/web`. In this order, so that nothing costs more than it has to:
- * 1. The slot is one of the three, or `publisher-<n>`, and the slug is a game of the catalog: else 404. A live game that has no game
+ * 1. The slot is one of the three, `publisher-<n>` or `bgg`, and the slug is a game of the catalog: else 404. A live game that has no game
  *    in the Studio has no picture either (its `registryRow` has none).
  * 2. A picture is sent to its address in the image CDN of the platform's project (308), or is a 404 when the game does not have it.
  * 3. `publisher-<n>`: the game must name an n-th publisher and give it a website, `v` is the version of that website (`iconVersion`): a URL
  *    without it, or with an old one, is sent to the right one (307) before anything is looked for, so that nobody can make the server look
  *    for an icon under a `v` of their own. Then the icon is looked for on that website, whose address is the game's and never the request's.
+ * 4. `bgg`: the game must have a page on BoardGameGeek (its id there), and the icon is looked for on BoardGameGeek's website, a constant (`BGG_SITE`), under the same `v` rule.
  */
 export function pictureRoute() {
   const failedSites = new Map<string, number>()
@@ -111,7 +113,12 @@ export function pictureRoute() {
     if ("publisher" in wanted) {
       const website = game.publishers[wanted.publisher]?.url
       if (!website) return notFound()
-      return staleVersion(request, game, slot, website) ?? (await publisherIcon(failedSites, game.slug, wanted.publisher, website))
+      return staleVersion(request, game, slot, website) ?? (await siteIcon(failedSites, `the publisher ${wanted.publisher + 1} of "${game.slug}"`, website))
+    }
+
+    if ("bgg" in wanted) {
+      if (game.bggId === null) return notFound()
+      return staleVersion(request, game, slot, BGG_SITE) ?? (await siteIcon(failedSites, `BoardGameGeek, for "${game.slug}"`, BGG_SITE))
     }
 
     const picture = pictureUrl(game, wanted.picture)

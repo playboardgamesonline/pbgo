@@ -106,13 +106,13 @@ describe("the expansions of the seed", () => {
     expect(referenceProblems(docs, types)).toEqual(['expansion-hanabi-extra.baseGame points at "creator-ada-marsh", a "creator", and the field takes "game"'])
   })
 
-  it("are caught when one has a field only a game has: a kind, categories, an order", () => {
+  it("are caught when one has a field only a game has: a kind, an order, related games", () => {
     const expansion = expansionOf(seedDocs())
-    Object.assign(expansion, { kind: "game", order: 10, categories: [] })
+    Object.assign(expansion, { kind: "game", order: 10, related: [] })
     expect(documentProblems(expansion, types)).toEqual([
       'expansion-hanabi-extra.kind is not a field of "expansion"',
       'expansion-hanabi-extra.order is not a field of "expansion"',
-      'expansion-hanabi-extra.categories is not a field of "expansion"',
+      'expansion-hanabi-extra.related is not a field of "expansion"',
     ])
   })
 
@@ -219,7 +219,8 @@ describe("the art slots", () => {
     const { slots } = buildSeedContent(source())
     const covered = new Set(slots.map((slot) => slot.name.split("-").at(-1)))
     expect([...covered].sort()).toEqual(["background", "icon", "logo"])
-    expect(fieldsOf("game").sort()).toEqual(["game.background", "game.boxFront", "game.cover", "game.icon", "game.logo"])
+    // The gallery's pictures and the posters of its clips are the Studio's too (a picture of a gallery is an item of a list, a poster a field of a clip)
+    expect(fieldsOf("game").sort()).toEqual(["game.background", "game.boxFront", "game.cover", "game.gallery[]", "game.gallery[].poster", "game.icon", "game.logo"])
   })
 
   it("have none for an expansion, whose cover and box front Notion has no picture of either", () => {

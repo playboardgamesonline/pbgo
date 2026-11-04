@@ -44,6 +44,8 @@ describe("scrubText", () => {
       "/legal",
       "/legal#cookies",
       "Create a game",
+      "Create a table",
+      "Find a table",
       "Play Courtisans Online [PBGO]",
       "Table #4XV",
       "Table #4XV-XA",

@@ -1,6 +1,6 @@
 # Overlays
 
-What appears over the page: dialogs, sheets, menus, popovers, tooltips, toasts and the cookie banner.
+What appears over the page: dialogs, sheets, menus, popovers, tooltips, hover cards, toasts and the cookie banner.
 
 ## Dialog
 
@@ -81,6 +81,20 @@ A one-line hint on hover and focus, for an icon button or a truncated label. It 
 
 ```specimen
 tooltip-sides-and-icon-button
+```
+
+## Hover card
+
+Modules: `@pbgo/ui/platform/hover-card`, `@pbgo/ui/platform/user-card`
+
+A card that opens under the pointer when it rests on its trigger, for what a sighted visitor may want to glance at without pressing anything. It is for the pointer alone: a touch has no hover and the keyboard does not reach the trigger, so whatever the card says is also said somewhere that a press reaches. It opens after a short rest (200 ms), so that crossing a row of pictures flashes no card for each, and it stays while the pointer crosses the gap to it (100 ms). Like the popover it renders in a portal, so it carries the `platform` class itself and sits above the fixed navbar, it is glass, and it stays 16px inside the window. `HoverCardTrigger` takes the element the pointer rests on with `asChild` and adds no `data-slot` to it, an avatar keeping its own.
+
+### A player's card
+
+`UserCard` is what the picture of a player opens: a larger picture, their nickname and the tag after it (`#0412`, which tells two players of one name apart), a quiet line when there is something to say (the host of the table, or "Guest" for a player who has no tag), then their rank in the game and their record ("41 wins in 63 games"), or "Not ranked yet" for one who has played no ranked game. A seat's picture opens it already (`SeatAvatar`). The cards below are drawn as they open; the pictures under them open the same ones.
+
+```specimen
+hover-card-a-players-card
 ```
 
 ## Toast

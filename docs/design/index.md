@@ -1,6 +1,6 @@
 # Design system
 
-The design system of the platform and of the games: the two token layers of `@pbgo/ui` (platform and game), the palette, the components and the rules for them. Every token and every component of the platform is shown here live, as it renders today, with the rules that go with it: check them before building a screen. Hub, account, legal, the docs, gamemaster and 404 are built from these and from nothing else. The in-game UI is not: it is drawn in the look of each game, because each game owns its universe.
+The design system of the platform and of the games: the two token layers of `@pbgo/ui` (platform and game), the palette, the components and the rules for them. Every token and every building block of the platform is shown here live, as it renders today, with the rules that go with it: check them before building a screen. A page is not documented here, only what it is made of. Hub, account, legal, the docs, gamemaster and 404 are built from these and from nothing else. The in-game UI is not: it is drawn in the look of each game, because each game owns its universe.
 
 The platform's pieces are `@pbgo/ui/platform/*`, its tokens `@pbgo/ui/styles/platform.css` and the colour of its browser chrome `@pbgo/ui/theme`.
 

@@ -1,8 +1,8 @@
 import { MAX_SLUG_LENGTH, slugFromName } from "@pbgo/games/slug"
 import { ThLargeIcon } from "@sanity/icons/ThLarge"
 import { defineArrayMember, defineField, defineType, type PreviewValue } from "sanity"
-import { GAME_KINDS } from "./constants"
-import { checkCreatorsOnce, checkName, checkNotItself, checkPlayersMax, checkSlug } from "./rules"
+import { GALLERY_MAX, GAME_KINDS, HELPERS_MAX } from "./constants"
+import { checkCreatorsOnce, checkHelpersOnce, checkName, checkNotItself, checkPlayersMax, checkSlug } from "./rules"
 import { translatedField } from "./translations"
 
 /**
@@ -10,7 +10,7 @@ import { translatedField } from "./translations"
  * What is said or shown of it in a language is translated field by field (PLT-104): its tagline, its description, its link to the rules,
  * its logo, its cover, the front of its box and its name (`TRANSLATED_FIELDS`), each an array of rows with a language, English first. The
  * English `name` stays a plain text, the reference of the slug, the order and the search; `names` holds it in the other languages.
- * The rest (the figures, the credits, the references, the icon and the background) is the same in every language.
+ * The rest (the figures, the credits, the references, the icon, the background and the gallery) is the same in every language.
  */
 export const game = defineType({
   name: "game",
@@ -98,6 +98,14 @@ export const game = defineType({
       group: "credits",
       validation: (rule) => rule.unique(),
     }),
+    // The link under the credits of the game's page that leads to a shop that sells it: the page is drawn with it only when it is filled in
+    defineField({
+      name: "buyUrl",
+      title: "Where to buy (a shop's page for the game)",
+      type: "url",
+      group: "credits",
+      validation: (rule) => rule.uri({ scheme: ["https"] }),
+    }),
 
     // Texts: a row per language, English first
     translatedField({ name: "tagline", title: "Tagline", kind: "string", group: "texts" }),
@@ -105,6 +113,15 @@ export const game = defineType({
 
     // Rules: a link per language
     translatedField({ name: "rules", title: "Rules link", kind: "url", group: "rules" }),
+    // The aids that a player may have while they play, which the lobby offers one by one, `HELPERS_MAX` at most. The same in every language, for now: the key is the game's own
+    defineField({
+      name: "helpers",
+      title: `Helpers (the aids a player may have while they play, offered one by one in the lobby: up to ${HELPERS_MAX})`,
+      type: "array",
+      of: [defineArrayMember({ type: "gameHelper" })],
+      group: "rules",
+      validation: (rule) => rule.max(HELPERS_MAX).custom(checkHelpersOnce),
+    }),
 
     // Visuals: the cover, the logo and the front of the box can differ by language (a title written in it); the icon and the background do not
     translatedField({ name: "cover", title: "Cover", kind: "image", options: { hotspot: true }, group: "visuals" }),
@@ -112,6 +129,23 @@ export const game = defineType({
     defineField({ name: "icon", title: "Icon", type: "image", group: "visuals" }),
     defineField({ name: "background", title: "Background", type: "image", options: { hotspot: true }, group: "visuals" }),
     translatedField({ name: "boxFront", title: "Box (front)", kind: "image", group: "visuals" }),
+    // What the game's page shows after its cover, at the top right of its head: pictures and short clips of the game being played, `GALLERY_MAX` at most. The same in every language
+    defineField({
+      name: "gallery",
+      title: `Gallery (after the cover on the game's page: up to ${GALLERY_MAX} pictures or short clips of the game being played)`,
+      type: "array",
+      of: [
+        defineArrayMember({
+          type: "image",
+          name: "galleryImage",
+          title: "Picture",
+          fields: [defineField({ name: "caption", title: "What it shows, in a few words", type: "string", validation: (rule) => rule.max(140) })],
+        }),
+        defineArrayMember({ type: "galleryClip" }),
+      ],
+      group: "visuals",
+      validation: (rule) => rule.max(GALLERY_MAX),
+    }),
 
     // Related
     defineField({

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CREATOR_ROLES } from "@pbgo/studio-kit/constants"
-import { ART_SLOTS, RELATED_MAX, UNLISTED_SLUGS, buildCatalog, cardPictureUrl, compareGames, creditLines, iconVersion, pickLocalized, pictureUrl, publisherIconUrl, registryRow, sharePicture } from "./catalog"
+import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, bggIconUrl, bggUrl, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureRatio, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
 import { catalogGame, cdn, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -271,6 +271,60 @@ describe("compareGames", () => {
   })
 })
 
+describe("bggUrl", () => {
+  it("is the page of the game on BoardGameGeek, from its id", () => {
+    expect(bggUrl(catalogGame("hanabi", { bggId: 98778 }))).toBe("https://boardgamegeek.com/boardgame/98778")
+  })
+
+  it("is null for a game that has no id there: no search is made up in its place", () => {
+    expect(bggUrl(catalogGame("omens"))).toBeNull()
+  })
+})
+
+describe("bggIconUrl", () => {
+  it("is the address on this site of BoardGameGeek's icon, named by the game and carrying the version of BoardGameGeek's website", () => {
+    expect(bggIconUrl(catalogGame("hanabi", { bggId: 98778 }))).toBe(`/api/catalog/hanabi/bgg?v=${iconVersion(BGG_SITE)}`)
+  })
+
+  it("is null for a game that has no page there to link to", () => {
+    expect(bggIconUrl(catalogGame("omens"))).toBeNull()
+  })
+})
+
+describe("releaseYear", () => {
+  it.each([
+    ["2024-03-15", "2024"],
+    ["2010-01-01", "2010"],
+    ["1999-12-31", "1999"],
+  ])("is the year of %s: %s, whatever the day, which may only be the first of the month or of the year", (releaseDate, year) => {
+    expect(releaseYear(catalogGame("a", { releaseDate }))).toBe(year)
+  })
+
+  it("is null for a game that has no date", () => {
+    expect(releaseYear(catalogGame("a"))).toBeNull()
+  })
+})
+
+describe("expansionsOf", () => {
+  const expansion = (slug: string, base: string, name: string) => ({ slug, name, base, descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [], pictures: { cover: null, boxFront: null } })
+
+  it("picks the expansions whose base game it is, by name: an expansion has no order in the Studio", () => {
+    const all = [expansion("b-more", "courtisans", "B"), expansion("flip-more", "flip-7", "More"), expansion("c-more", "courtisans", "C"), expansion("a-more", "courtisans", "A")]
+    expect(expansionsOf(all, "courtisans").map((one) => one.slug)).toEqual(["a-more", "b-more", "c-more"])
+  })
+
+  it("puts the names in the order a reader expects: case and accents aside, numbers in their order", () => {
+    const all = [expansion("ten", "g", "Extension 10"), expansion("two", "g", "Extension 2"), expansion("accent", "g", "Écho"), expansion("plain", "g", "Echo 2"), expansion("last", "g", "Zèbre")]
+    expect(expansionsOf(all, "g").map((one) => one.slug)).toEqual(["accent", "plain", "two", "ten", "last"])
+  })
+
+  it("is none for a game that has none, and does not change what it is given", () => {
+    const all = [expansion("flip-more", "flip-7", "More")]
+    expect(expansionsOf(all, "courtisans")).toEqual([])
+    expect(all.map((one) => one.slug)).toEqual(["flip-more"])
+  })
+})
+
 describe("pictureUrl", () => {
   const game = catalogGame("love-letter", { pictures: { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg") } })
 
@@ -278,6 +332,11 @@ describe("pictureUrl", () => {
     expect(pictureUrl(game, "logo")).toBe(`${cdn("logo-1600x476.webp")}?w=800&fit=max&auto=format`)
     expect(pictureUrl(game, "icon")).toBe(`${cdn("icon-512x512.png")}?w=512&fit=max&auto=format`)
     expect(pictureUrl(game, "background")).toBe(`${cdn("background-2400x1350.jpg")}?w=1200&fit=max&auto=format`)
+  })
+
+  it("asks the CDN for the width it is given: a small tile asks for less than the page does", () => {
+    expect(pictureUrl(game, "background", 480)).toBe(`${cdn("background-2400x1350.jpg")}?w=480&fit=max&auto=format`)
+    expect(pictureUrl(catalogGame("hanabi", { pictures: { logo: cdn("logo-100x30.svg"), icon: null, background: null } }), "logo", 320)).toBe(cdn("logo-100x30.svg"))
   })
 
   it("is the file as it is for a vector picture: the CDN does not resize an SVG", () => {
@@ -290,8 +349,38 @@ describe("pictureUrl", () => {
     expect(ART_SLOTS.map((slot) => pictureUrl(catalogGame("omens"), slot))).toEqual([null, null, null])
   })
 
+  it("sizes the cover and the box front of an expansion the same way: its cover across a frame, the box smaller, and null for the one it does not have", () => {
+    const expansion = { pictures: { cover: cdn("cover-2400x1350.jpg"), boxFront: null } }
+    expect(pictureUrl(expansion, "cover")).toBe(`${cdn("cover-2400x1350.jpg")}?w=1200&fit=max&auto=format`)
+    expect(pictureUrl(expansion, "cover", 480)).toBe(`${cdn("cover-2400x1350.jpg")}?w=480&fit=max&auto=format`)
+    expect(pictureUrl(expansion, "boxFront")).toBeNull()
+    expect(pictureUrl({ pictures: { cover: null, boxFront: cdn("box-800x800.png") } }, "boxFront")).toBe(`${cdn("box-800x800.png")}?w=600&fit=max&auto=format`)
+    expect(pictureUrl({ pictures: { cover: cdn("cover.svg"), boxFront: null } }, "cover")).toBe(cdn("cover.svg"))
+  })
+
   it("never points anywhere but at the image CDN of a project", () => {
     for (const slot of ART_SLOTS) expect(pictureUrl(game, slot)).toMatch(/^https:\/\/cdn\.sanity\.io\/images\//)
+  })
+})
+
+describe("pictureRatio", () => {
+  it("is the width over the height that the CDN puts in the name of a file, so that a frame has the picture's shape before it arrives", () => {
+    expect(pictureRatio(cdn("cover-1600x900.jpg"))).toBeCloseTo(16 / 9)
+    expect(pictureRatio(cdn("box-800x800.png"))).toBe(1)
+    expect(pictureRatio(cdn("box-600x800.webp"))).toBe(0.75)
+  })
+
+  it("reads the size of an address that was sized (`?w=…`) and of a vector picture as well", () => {
+    expect(pictureRatio(`${cdn("cover-1600x900.jpg")}?w=480&fit=max&auto=format`)).toBeCloseTo(16 / 9)
+    expect(pictureRatio(cdn("logo-100x30.svg"))).toBeCloseTo(10 / 3)
+  })
+
+  it("is null for no picture, for an address with no size and for a size that makes no shape", () => {
+    expect(pictureRatio(null)).toBeNull()
+    expect(pictureRatio(cdn("cover.jpg"))).toBeNull()
+    expect(pictureRatio("https://example.com/box.png")).toBeNull()
+    expect(pictureRatio(cdn("box-0x800.png"))).toBeNull()
+    expect(pictureRatio(cdn("box-800x0.png"))).toBeNull()
   })
 })
 

@@ -1,7 +1,8 @@
+import { GALLERY_MAX, HELPERS_MAX } from "@pbgo/studio-kit/constants"
 import { describe, expect, it } from "vitest"
 import type { CatalogGame } from "./catalog"
 import { CATALOG_QUERY, PLATFORM_DATASET, PLATFORM_PROJECT_ID, SANITY_API_VERSION, SanityError, readSanityGames } from "./sanity"
-import { cdn, fakeSanity, sanityFailure, sanityGame, type SanityAnswer } from "./testing"
+import { cdn, cdnFile, fakeSanity, sanityExpansion, sanityFailure, sanityGame, type SanityAnswer } from "./testing"
 
 /** What `readSanityGames` makes of the games a fake Sanity answers. */
 const read = (answer: SanityAnswer) => readSanityGames({ fetch: fakeSanity(answer).fetch })
@@ -69,9 +70,21 @@ describe("the request", () => {
   })
 
   it("asks for what the reader maps: the query names each field", () => {
-    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background"]) {
+    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "gallery", "video", "poster", "helpers", "cover", "boxFront"]) {
       expect(CATALOG_QUERY, field).toContain(field)
     }
+  })
+
+  it("asks for the games and the expansions as two lists, each of its own document type, so that neither can be read as the other", () => {
+    expect(CATALOG_QUERY).toMatch(/"games": \*\[_type == "game" && /)
+    expect(CATALOG_QUERY).toMatch(/"expansions": \*\[_type == "expansion" && /)
+    // the credits and the placing of a game are not asked of an expansion, nor the pictures of a game: the lobby draws a cover or a box, and says what the expansion changes (its figures, the categories it brings)
+    const expansions = CATALOG_QUERY.slice(CATALOG_QUERY.indexOf('"expansions"'))
+    for (const field of ["kind", "related", "logo", "icon", "background"]) expect(expansions, field).not.toContain(field)
+    for (const field of ["playersMin", "playersMax", "duration", "minAge", "complexity", "categories", "description"]) expect(expansions, field).toContain(field)
+    // an expansion has no `order` field (`order(` is the sort of the list)
+    expect(expansions).not.toMatch(/\border\b(?!\()/)
+    expect(expansions).toContain('"baseGame": baseGame->slug.current')
   })
 })
 
@@ -110,9 +123,16 @@ describe("when Sanity cannot be read", () => {
     expect(error).toMatchObject({ status: 0, message: "The platform's Sanity project could not be reached (TimeoutError)" })
   })
 
-  it("rejects an answer that is not a list of games", async () => {
-    const odd = (async () => new Response(JSON.stringify({ result: { not: "a list" } }), { status: 200 })) as typeof fetch
-    expect(await failureOf(readSanityGames({ fetch: odd }))).toMatchObject({ status: 200, message: "Sanity answered with something that is not a list of games" })
+  it.each([
+    ["an object that is no list", { not: "a list" }],
+    ["one list, as the query answered before expansions were documents of their own", []],
+    ["games alone", { games: [] }],
+    ["expansions alone", { expansions: [] }],
+    ["lists that are not lists", { games: "all", expansions: null }],
+    ["nothing", null],
+  ])("rejects an answer that is not a list of games and a list of expansions: %s", async (_label, result) => {
+    const odd = (async () => new Response(JSON.stringify({ result }), { status: 200 })) as typeof fetch
+    expect(await failureOf(readSanityGames({ fetch: odd }))).toMatchObject({ status: 200, message: "Sanity answered with something that is not a list of games and a list of expansions" })
   })
 })
 
@@ -125,6 +145,7 @@ describe("a published game", () => {
           name: "Hanabi",
           order: 30,
           bggId: 98778,
+          buyUrl: "https://shop.example/hanabi",
           releaseDate: "2010-01-01",
           playersMin: 2,
           playersMax: 5,
@@ -159,6 +180,7 @@ describe("a published game", () => {
       duration: 25,
       complexity: 1.74,
       bggId: 98778,
+      buyUrl: "https://shop.example/hanabi",
       releaseDate: "2010-01-01",
       age: 8,
       categories: ["Cooperation", "Deduction"],
@@ -169,6 +191,8 @@ describe("a published game", () => {
       publishers: [{ name: "Cocktail Games", url: "https://www.cocktailgames.com" }],
       rules: { fr: "https://example.com/hanabi-fr.pdf", en: "https://example.com/hanabi-en.pdf" },
       pictures: { logo: cdn("logo-1600x476.webp"), icon: null, background: cdn("background-2400x1200.svg") },
+      gallery: [],
+      helpers: [],
       related: ["the-mind"],
       order: 30,
       updatedAt: "2026-10-30T12:00:00Z",
@@ -184,6 +208,7 @@ describe("a published game", () => {
       duration: null,
       complexity: null,
       bggId: null,
+      buyUrl: null,
       releaseDate: null,
       age: null,
       categories: [],
@@ -191,6 +216,8 @@ describe("a published game", () => {
       publishers: [],
       rules: {},
       pictures: { logo: null, icon: null, background: null },
+      gallery: [],
+      helpers: [],
       related: [],
       order: null,
       updatedAt: "2026-10-30T10:00:00Z",
@@ -260,6 +287,19 @@ describe("a published game", () => {
     [null, null],
   ])("reads the BGG id %j as %j", async (id, bggId) => {
     expect((await one({ bggId: id })).bggId).toBe(bggId)
+  })
+
+  it.each([
+    ["https://shop.example/hanabi", "https://shop.example/hanabi"],
+    ["  https://shop.example/hanabi?ref=pbgo  ", "https://shop.example/hanabi?ref=pbgo"],
+    ["http://shop.example/hanabi", "http://shop.example/hanabi"],
+    ["javascript:alert(1)", null],
+    ["shop.example/hanabi", null],
+    ["", null],
+    [12, null],
+    [null, null],
+  ])("reads the link to buy the game %j as %j: only a web address is ever opened", async (link, buyUrl) => {
+    expect((await one({ buyUrl: link })).buyUrl).toBe(buyUrl)
   })
 
   it.each([
@@ -379,6 +419,63 @@ describe("a published game", () => {
   })
 })
 
+describe("its gallery", () => {
+  const picture = (name: string, extra: Record<string, unknown> = {}) => ({ image: cdn(name), ...extra })
+  const clip = (name: string, extra: Record<string, unknown> = {}) => ({ video: cdnFile(name), ...extra })
+
+  it("is the pictures and the clips of the Studio's list, in its order, with what they show", async () => {
+    const game = await one({
+      gallery: [
+        clip("table-1.mp4", { poster: cdn("poster-1.jpg"), caption: "  Playing a \t card  " }),
+        picture("night.jpg", { caption: "The estate" }),
+        clip("table-2.webm"),
+      ],
+    })
+    expect(game.gallery).toEqual([
+      { kind: "video", url: cdnFile("table-1.mp4"), poster: cdn("poster-1.jpg"), caption: "Playing a card" },
+      { kind: "image", url: cdn("night.jpg"), caption: "The estate" },
+      { kind: "video", url: cdnFile("table-2.webm"), poster: null, caption: null },
+    ])
+  })
+
+  it.each([[undefined], [null], [[]], ["a list"], [{ not: "a list" }]])("is empty when the Studio's list is %j", async (gallery) => {
+    expect((await one({ gallery })).gallery).toEqual([])
+  })
+
+  it("leaves out an item that is not an object or has no file", async () => {
+    const game = await one({ gallery: ["picture.jpg", null, 12, {}, { caption: "Nothing to show" }, picture("kept.jpg")] })
+    expect(game.gallery).toEqual([{ kind: "image", url: cdn("kept.jpg"), caption: null }])
+  })
+
+  it.each([
+    ["a clip of another project", clip("a.mp4").video.replace(PLATFORM_PROJECT_ID, "other")],
+    ["a clip of another dataset", clip("a.mp4").video.replace(PLATFORM_DATASET, "staging")],
+    ["a clip on another host", "https://example.com/a.mp4"],
+    ["a clip that is not https", `http://cdn.sanity.io/files/${PLATFORM_PROJECT_ID}/${PLATFORM_DATASET}/a.mp4`],
+    ["a file that is not a clip a page plays", cdnFile("a.mov")],
+    ["a clip in the image CDN", cdn("a.mp4")],
+  ])("leaves out %s: the hub never points a visitor anywhere else", async (_label, video) => {
+    expect((await one({ gallery: [{ video }, picture("kept.jpg")] })).gallery).toEqual([{ kind: "image", url: cdn("kept.jpg"), caption: null }])
+  })
+
+  it("keeps a clip's poster only when it is a picture of the project", async () => {
+    const game = await one({ gallery: [clip("a.mp4", { poster: "https://example.com/poster.jpg" }), clip("b.mp4", { poster: cdn("p.jpg", "other", PLATFORM_DATASET) })] })
+    expect(game.gallery.map((item) => (item.kind === "video" ? item.poster : "image"))).toEqual([null, null])
+  })
+
+  it("is cut to what the Studio lets in, after the items that were left out", async () => {
+    const items = [{ video: "https://example.com/no.mp4" }, ...Array.from({ length: 8 }, (_, n) => picture(`p${n}.jpg`))]
+    const game = await one({ gallery: items })
+    expect(game.gallery).toHaveLength(GALLERY_MAX)
+    expect(game.gallery.map((item) => item.url)).toEqual(Array.from({ length: GALLERY_MAX }, (_, n) => cdn(`p${n}.jpg`)))
+  })
+
+  it("has captions of a line, cut at a hundred and forty characters", async () => {
+    const [item] = (await one({ gallery: [picture("a.jpg", { caption: `${"x".repeat(200)}\u0007` })] })).gallery
+    expect(item?.caption).toBe("x".repeat(140))
+  })
+})
+
 describe("the games a game is related to", () => {
   const slugsOf = async (docs: Record<string, unknown>[]) => Object.fromEntries((await read(docs)).games.map((game) => [game.slug, game.related]))
 
@@ -442,45 +539,237 @@ describe("a document that is not a game of the site", () => {
   })
 })
 
-describe("an expansion", () => {
-  it("is counted and left out, never reported: it is played with another game, so it has no page", async () => {
-    const reading = await read([
-      sanityGame("flip-7", { name: "Flip 7", kind: "game" }),
-      sanityGame("flip-7-more", { name: "Flip 7: More", kind: "expansion", baseGame: "flip-7" }),
-      // a name that is no name does not make it a skipped game: it is an expansion first
-      sanityGame("nameless-more", { _id: "game-nameless-more", name: null, kind: "expansion" }),
+describe("its helpers", () => {
+  it("are the aids of the Studio's list, in its order: a key and a name each", async () => {
+    const game = await one({
+      helpers: [
+        { key: "show-score", title: "  Show the score  calculation " },
+        { key: "hints", title: "Hints" },
+      ],
+    })
+    expect(game.helpers).toEqual([
+      { key: "show-score", title: "Show the score calculation" },
+      { key: "hints", title: "Hints" },
     ])
+  })
+
+  it("are none when the Studio has none, or when what it has is not a list", async () => {
+    expect((await one({})).helpers).toEqual([])
+    expect((await one({ helpers: null })).helpers).toEqual([])
+    expect((await one({ helpers: "show-score" })).helpers).toEqual([])
+  })
+
+  it("leave out a helper that is no object, has no name or has no key the game could call it by, and a key that is already taken", async () => {
+    const game = await one({
+      helpers: [
+        "show-score",
+        { key: "no-title", title: "   " },
+        { title: "No key" },
+        { key: "Show Score", title: "A key in capitals" },
+        { key: "x".repeat(41), title: "A key that is too long" },
+        { key: "kept", title: "Kept" },
+        { key: "kept", title: "The same key again" },
+      ],
+    })
+    expect(game.helpers).toEqual([{ key: "kept", title: "Kept" }])
+  })
+
+  it("hold as many as the Studio allows, the first ones, and a name no longer than it allows", async () => {
+    const many = Array.from({ length: HELPERS_MAX + 3 }, (_, index) => ({ key: `helper-${index}`, title: `Helper ${index}` }))
+    expect((await one({ helpers: many })).helpers.map((helper) => helper.key)).toEqual(many.slice(0, HELPERS_MAX).map((helper) => helper.key))
+    const [long] = (await one({ helpers: [{ key: "long", title: "t".repeat(120) }] })).helpers
+    expect(long?.title).toHaveLength(80)
+  })
+})
+
+describe("an expansion", () => {
+  it("is no game of the hub, so it has no page: it is read apart, for the lobby of its base game to offer", async () => {
+    const reading = await read([sanityGame("flip-7", { name: "Flip 7", kind: "game" }), sanityExpansion("flip-7-more", { name: "Flip 7: More", baseGame: "flip-7" })])
     expect(reading.games.map((game) => game.slug)).toEqual(["flip-7"])
-    expect(reading.expansions).toBe(2)
+    expect(reading.expansions).toEqual([{ slug: "flip-7-more", name: "Flip 7: More", base: "flip-7", descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [], pictures: { cover: null, boxFront: null } }])
     expect(reading.skipped).toEqual([])
     expect(reading.warnings).toEqual([])
   })
 
-  it("is no link of its base game or of any game: a link to it is dropped", async () => {
+  it("is read field by field: its name, its slug, the slug of its base game, its cover and the front of its box", async () => {
     const reading = await read([
-      sanityGame("flip-7", { name: "Flip 7", related: ["flip-7-more", "skyjo"] }),
-      sanityGame("flip-7-more", { name: "Flip 7: More", kind: "expansion", baseGame: "flip-7" }),
-      sanityGame("skyjo", { name: "Skyjo" }),
+      sanityGame("courtisans", { name: "Courtisans" }),
+      sanityExpansion("courtisans-diplomats-confidants", {
+        _id: "expansion-courtisans-diplomats-confidants",
+        name: "  Courtisans:  Diplomates & Confidants ",
+        baseGame: "courtisans",
+        cover: cdn("cover-1600x900.jpg"),
+        boxFront: cdn("box-800x800.png"),
+      }),
     ])
-    expect(reading.games.find((game) => game.slug === "flip-7")?.related).toEqual(["skyjo"])
+    expect(reading.expansions).toEqual([
+      {
+        slug: "courtisans-diplomats-confidants",
+        name: "Courtisans: Diplomates & Confidants",
+        base: "courtisans",
+        descriptions: {},
+        playersMin: null,
+        playersMax: null,
+        duration: null,
+        age: null,
+        complexity: null,
+        categories: [],
+        pictures: { cover: cdn("cover-1600x900.jpg"), boxFront: cdn("box-800x800.png") },
+      },
+    ])
+  })
+
+  it("has its description, its figures and its categories as the Studio gives them: the figures that it changes, and none of the base game's", async () => {
+    const reading = await read([
+      sanityGame("courtisans", { name: "Courtisans", playersMax: 5, minAge: 8 }),
+      sanityExpansion("diplomats", {
+        name: "Diplomats",
+        baseGame: "courtisans",
+        description: "  New characters take a seat.\n\nThey form alliances.  ",
+        playersMin: 1,
+        playersMax: 6,
+        duration: 30,
+        minAge: 10,
+        complexity: 2.5,
+        categories: ["Alliances", "  Bluff ", "Alliances"],
+      }),
+      sanityExpansion("silent", { name: "Silent", baseGame: "courtisans" }),
+    ])
+    const figures = ({ slug, descriptions, playersMin, playersMax, duration, age, complexity, categories }: (typeof reading.expansions)[number]) => ({ slug, descriptions, playersMin, playersMax, duration, age, complexity, categories })
+    expect(reading.expansions.map(figures)).toEqual([
+      { slug: "diplomats", descriptions: { en: "New characters take a seat.\n\nThey form alliances." }, playersMin: 1, playersMax: 6, duration: 30, age: 10, complexity: 2.5, categories: ["Alliances", "Bluff"] },
+      { slug: "silent", descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [] },
+    ])
+  })
+
+  it("reads the figures only as whole numbers from 1 (a weight from 1 to 5), and a description only as text", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7" }),
+      sanityExpansion("odd", { name: "Odd", baseGame: "flip-7", description: 12, playersMin: 0, playersMax: "6", duration: 2.5, minAge: 0, complexity: 7, categories: "Cooperation" }),
+      sanityExpansion("also-odd", { name: "Also odd", baseGame: "flip-7", description: "   ", playersMax: 2.5, minAge: -3, complexity: "2" }),
+    ])
+    expect(reading.expansions.map(({ descriptions, playersMin, playersMax, duration, age, complexity, categories }) => ({ descriptions, playersMin, playersMax, duration, age, complexity, categories }))).toEqual([
+      { descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [] },
+      { descriptions: {}, playersMin: null, playersMax: null, duration: null, age: null, complexity: null, categories: [] },
+    ])
+  })
+
+  it("keeps the pictures it has when they are in the image CDN of the project, and none that is elsewhere", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7" }),
+      sanityExpansion("more", { name: "More", baseGame: "flip-7", cover: cdn("cover-1200x800.jpg"), boxFront: "https://example.com/box.png" }),
+      sanityExpansion("less", { name: "Less", baseGame: "flip-7", cover: cdn("cover.png", "other", PLATFORM_DATASET), boxFront: 12 }),
+    ])
+    expect(reading.expansions.map((expansion) => expansion.pictures)).toEqual([
+      { cover: cdn("cover-1200x800.jpg"), boxFront: null },
+      { cover: null, boxFront: null },
+    ])
+  })
+
+  it("is plain data: it goes through the cache as JSON and comes back the same", async () => {
+    const { expansions } = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityExpansion("more", { name: "More", baseGame: "flip-7", cover: cdn("cover.jpg") })])
+    expect(JSON.parse(JSON.stringify(expansions))).toEqual(expansions)
+  })
+
+  it("is left out, and reported, when it cannot be offered: no name, a slug the Studio would refuse, the slug of an older expansion, no base game, a base game the hub does not list", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7" }),
+      sanityExpansion("more", { name: "More", baseGame: "flip-7" }),
+      sanityExpansion("nameless-more", { name: null, baseGame: "flip-7" }),
+      sanityExpansion("more", { _id: "expansion-more-2", name: "More again", baseGame: "flip-7" }),
+      sanityExpansion("Not A Slug", { name: "Wrong", baseGame: "flip-7" }),
+      // the base game is a `null` when it is not published
+      sanityExpansion("orphan", { name: "Orphan", baseGame: null }),
+      sanityExpansion("lost", { name: "Lost", baseGame: "ghost" }),
+    ])
+    expect(reading.games.map((game) => game.slug)).toEqual(["flip-7"])
+    expect(reading.expansions.map((expansion) => expansion.slug)).toEqual(["more"])
+    expect(reading.skipped).toEqual([])
+    expect(reading.warnings).toHaveLength(5)
+    expect(reading.warnings).toEqual([
+      'The expansion "expansion-nameless-more" of the Studio is left out: it has no name',
+      'The expansion "More again" of the Studio is left out: its slug "more" is already the one of an older expansion',
+      expect.stringContaining('The expansion "Wrong" of the Studio is left out: "Not A Slug" is not a slug'),
+      'The expansion "Orphan" of the Studio is left out: it has no base game, or its base game is not published',
+      'The expansion "Lost" of the Studio is left out: its base game "ghost" is not a game the hub lists',
+    ])
+  })
+
+  it("may have a slug of 48 characters where a game's is 40 at most, since it starts with its base game's: one longer is left out, and reported", async () => {
+    const base = "the-werewolves-of-millers-hollow"
+    const reading = await read([
+      sanityGame(base, { name: "The Werewolves of Millers Hollow" }),
+      sanityExpansion(`${base}-the-village`, { name: "The Village", baseGame: base }),
+      sanityExpansion("x".repeat(49), { name: "Too Long", baseGame: base }),
+    ])
+    expect(reading.expansions.map((expansion) => expansion.slug)).toEqual([`${base}-the-village`])
+    expect(reading.warnings).toEqual([expect.stringContaining(`The expansion "Too Long" of the Studio is left out: "${"x".repeat(49)}" is 49 characters long, 48 at most`)])
+  })
+
+  it("may have the slug of a game: a slug is unique among the expansions of the Studio, not between them and its games", async () => {
+    const reading = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityExpansion("flip-7", { name: "Flip 7: The Expansion", baseGame: "flip-7" })])
+    expect(reading.expansions.map((expansion) => expansion.slug)).toEqual(["flip-7"])
+    expect(reading.warnings).toEqual([])
+  })
+
+  it("never lets a control character reach a line of a warning", async () => {
+    const reading = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityExpansion("more", { name: "More\u001b[31m", baseGame: "ghost\u001b[31m" })])
+    expect(reading.warnings).toHaveLength(1)
+    expect(JSON.stringify(reading.warnings)).not.toMatch(/\u001b/)
+  })
+
+  it("comes only from the list of expansions: a document in the list of games is a game, whatever it says it is", async () => {
+    const answer = { result: { games: [{ _type: "expansion", _id: "x", name: "X", slug: "x", baseGame: "flip-7" }], expansions: [] } }
+    const listed = await readSanityGames({ fetch: (async () => new Response(JSON.stringify(answer), { status: 200 })) as typeof fetch })
+    expect(listed.expansions).toEqual([])
+    expect(listed.games.map((game) => game.slug)).toEqual(["x"])
   })
 
   it("is not a reimplementation, a game of its own that rebuilds another one: that one is listed, linked to its base game", async () => {
     const reading = await read([sanityGame("flip-7", { name: "Flip 7" }), sanityGame("flip-7-vengeance", { name: "Flip 7 Vengeance", kind: "reimplementation", baseGame: "flip-7" })])
     expect(reading.games.map((game) => game.slug)).toEqual(["flip-7", "flip-7-vengeance"])
     expect(reading.games[1]?.related).toEqual(["flip-7"])
-    expect(reading.expansions).toBe(0)
+    expect(reading.expansions).toEqual([])
   })
 
   it("is not what a document with no kind is: it is a game", async () => {
     const reading = await read([sanityGame("sample", { name: "Sample", kind: undefined })])
     expect(reading.games.map((game) => game.slug)).toEqual(["sample"])
-    expect(reading.expansions).toBe(0)
+    expect(reading.expansions).toEqual([])
+  })
+})
+
+describe("a game of the kind expansion, which a game had before expansions were documents of their own", () => {
+  const OLD_KIND = "its kind is expansion, which a game no longer has: an expansion is a document of its own, to be moved to one"
+
+  it("is skipped with its reason, is no expansion either, and a link to it is dropped", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7", related: ["flip-7-old", "skyjo"] }),
+      sanityGame("flip-7-old", { _id: "game-flip-7-old", name: "Flip 7: Old", kind: "expansion", baseGame: "flip-7" }),
+      sanityGame("skyjo", { name: "Skyjo" }),
+    ])
+    expect(reading.games.map((game) => game.slug)).toEqual(["flip-7", "skyjo"])
+    expect(reading.games[0]?.related).toEqual(["skyjo"])
+    expect(reading.expansions).toEqual([])
+    expect(reading.skipped).toEqual([{ id: "game-flip-7-old", name: "Flip 7: Old", reason: OLD_KIND }])
+  })
+
+  it("is skipped whatever else is wrong with it, and does not take the slug of a game", async () => {
+    const reading = await read([
+      sanityGame("flip-7", { name: "Flip 7", kind: "expansion" }),
+      sanityGame("flip-7", { _id: "game-flip-7-2", name: "Flip 7 again" }),
+      sanityGame("nameless", { _id: "game-nameless", name: null, kind: "expansion" }),
+    ])
+    expect(reading.games.map((game) => game.name)).toEqual(["Flip 7 again"])
+    expect(reading.skipped.map((game) => [game.id, game.reason])).toEqual([
+      ["game-flip-7", OLD_KIND],
+      ["game-nameless", OLD_KIND],
+    ])
   })
 })
 
 describe("an empty project", () => {
   it("has no game, and says so: the hub then lists the live games of the registry alone", async () => {
-    expect(await read([])).toEqual({ games: [], skipped: [], expansions: 0, warnings: ["The platform's Sanity project has no published game: the hub lists the live games of the registry alone"] })
+    expect(await read([])).toEqual({ games: [], skipped: [], expansions: [], warnings: ["The platform's Sanity project has no published game: the hub lists the live games of the registry alone"] })
   })
 })

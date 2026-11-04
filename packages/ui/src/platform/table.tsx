@@ -3,9 +3,10 @@
 import * as React from "react"
 import { cn } from "../utils"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+/** `container` is the `div` that holds the table and scrolls it sideways: give it a height (`max-h-…`, `overflow-y-auto`) and it scrolls the table up and down as well, a header and a row that are `sticky` then staying in view. */
+function Table({ className, container, ...props }: React.ComponentProps<"table"> & { container?: React.ComponentProps<"div"> }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div data-slot="table-container" {...container} className={cn("relative w-full overflow-x-auto", container?.className)}>
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}

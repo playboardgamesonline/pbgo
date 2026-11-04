@@ -1,15 +1,20 @@
 import "server-only"
 import { cache } from "react"
-import { creditLines, pickLocalized, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
+import { bggIconUrl, bggUrl, creditLines, pickLocalized, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
 import { gameSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
+import type { GalleryMedia } from "@pbgo/ui/gallery"
 import type { GameCardProps, GameCardVisualProps } from "@pbgo/ui/platform/game-card"
-import { catalogCardProps, durationLabel, gamePicture, playersLabel } from "./game-card-props"
+import type { HelperOption } from "@pbgo/ui/platform/lobby-settings"
+import { catalogCardProps, durationLabel, galleryMedia, gamePicture, heroPicture, playersLabel } from "./game-card-props"
 
 /** One line of a game's credits: a label and its values, each one a link when it has an address, with an icon when the site it leads to has one (`creditLines`). */
 export type GameFact = CreditLine
+
+/** A category of a game, and the games' list showing the games that have it. */
+export type GameCategory = { name: string; href: string }
 
 /** The rulebook of one language: its link, titled in that language with the game's name ("Règles du jeu - Flip 7"). */
 export type GameRulebook = { language: Locale; label: string; href: string }
@@ -24,15 +29,33 @@ export type GamePage = {
   description: { text: string; language: Locale } | null
   /** Already formatted, like the card's ("2–5 players", "30 min"). */
   players: string | null
+  /** The least players the game needs, the figure behind `players`: the button that starts a lobby waits for them. Null when the Studio has none. */
+  minPlayers: number | null
+  /** The most players the game takes, the other figure behind `players`: a lobby may be set for as many. Null when the Studio has none, or when the game takes any number from its least. */
+  maxPlayers: number | null
   duration: string | null
-  /** Worded like the two above, drawn beside them ("Ages 8+"). */
+  /** The weight BoardGameGeek gives the game, worded like the figures around it ("Complexity 2.4/5"): drawn between the duration and the age. Null while the Studio has none. */
+  complexity: string | null
+  /** Worded like the figures above, drawn beside them ("Ages 8+"). */
   age: string | null
-  /** The credits one after the other: a line for each role somebody has on the game (designers, artists…), then the publishers; only the lines that have a value. */
+  /** The categories of the game in the order the Studio lists them, each with the page of the games that have it (the games' list, filtered): drawn as chips under the name. */
+  categories: GameCategory[]
+  /** The credits one after the other: a line for each role somebody has on the game (designers, artists…), then the publishers, then the year it came out ("Released 2024": a year is all the Studio's date says for sure); only the lines that have a value. */
   facts: GameFact[]
-  /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no rulebook area. */
+  /** One per language the game has a rulebook in, the visitor's language first. Empty: the page has no button for the rules. */
   rulebooks: GameRulebook[]
-  /** The page's picture is the game's card's: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. */
+  /** The game's page on BoardGameGeek, with BoardGameGeek's icon (an address on this site: the server finds it there). Null when the Studio has no id for the game there: the page has no such button. */
+  bgg: { href: string; icon: string } | null
+  /** A shop's page for the game, which the page links to under its credits. Null when the Studio has none: the page has no such link. */
+  shop: string | null
+  /** The pictures of the head: the game's background, drawn across the whole width of the page behind it, and its logo, drawn in place of its name. A picture the game does not have is left out: the head writes the name, and has no art. */
+  hero: { logo?: string; background?: string }
+  /** The cover, the first slide of the head's gallery, is the game's card's picture: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. The gallery is not drawn for now (see `gallery`). */
   picture: Pick<GameCardVisualProps, "logo" | "background">
+  /** The pictures and the clips that follow the cover in the head's gallery, in the order the Studio lists them. Empty: the head has the cover alone. Read and kept, and not drawn for now: the head's background is the game's own, and the gallery will have a place again later. */
+  gallery: GalleryMedia[]
+  /** The aids that a player may have while they play, in the order the Studio lists them: a row each in the settings of a lobby. Empty: the settings have no helpers. */
+  helpers: HelperOption[]
   /** The games the catalog recommends with this one (docs/catalog.md), the most relevant first (its family, then the games that look like it), each as the props of its card. Empty: the page has no such section. */
   related: { slug: string; card: GameCardProps }[]
   /** What the page tells search engines and social networks: its metadata, its JSON-LD, and whether it may be indexed (`@pbgo/catalog/seo`). */
@@ -54,6 +77,13 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
   })
 }
 
+/** The game's page on BoardGameGeek and the icon that draws its link: both come from its id there, so a game has both or neither. */
+function bggLink(game: CatalogEntry["game"]): GamePage["bgg"] {
+  const href = bggUrl(game)
+  const icon = bggIconUrl(game)
+  return href && icon ? { href, icon } : null
+}
+
 /**
  * The page of one entry of the catalog, the same for every game: its game in the Studio worded for the visitor, then the cards of its related
  * games. `entry.related` is already ranked (`rankRelated`), listed games only, never the entry itself.
@@ -61,17 +91,27 @@ function rulebooks(links: Partial<Record<Locale, string | null>>, locale: Locale
 function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale): GamePage {
   const { game } = entry
   const description = pickLocalized(game.descriptions, locale)
+  const year = releaseYear(game)
   return {
     slug: entry.slug,
     name: game.name,
     live: entry.live,
     description,
     players: playersLabel(game.players) ?? null,
+    minPlayers: game.players?.min ?? null,
+    maxPlayers: game.players?.max ?? null,
     duration: durationLabel(game.duration) ?? null,
+    complexity: game.complexity === null ? null : `Complexity ${game.complexity.toFixed(1)}/5`,
     age: game.age === null ? null : `Ages ${game.age}+`,
-    facts: creditLines(game),
+    categories: game.categories.map((name) => ({ name, href: `/games?${new URLSearchParams({ category: name })}` })),
+    facts: [...creditLines(game), ...(year === null ? [] : [{ label: "Released", values: [{ text: year }] }])],
     rulebooks: rulebooks(game.rules, locale, game.name),
+    bgg: bggLink(game),
+    shop: game.buyUrl,
+    hero: heroPicture(game),
     picture: gamePicture(game),
+    gallery: galleryMedia(game),
+    helpers: game.helpers.map(({ key, title }) => ({ id: key, label: title })),
     related: entry.related.flatMap((slug) => {
       const related = entries.find((candidate) => candidate.slug === slug)
       return related ? [{ slug, card: catalogCardProps(related) }] : []

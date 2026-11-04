@@ -2,11 +2,12 @@
 
 import type { Specimens } from "@pbgo/docs/markdown"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Add01Icon, ArrowRight01Icon, CheckmarkCircle02Icon, Download01Icon, Mail01Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { Add01Icon, ArrowRight01Icon, CheckmarkCircle02Icon, Download01Icon, InfinityIcon, Mail01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { PROVIDERS, PROVIDER_NAMES } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Checkbox } from "@pbgo/ui/platform/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@pbgo/ui/platform/input-group"
@@ -49,11 +50,13 @@ function ButtonSizes() {
     <Frame className={ROW} code={`<Button size="xs">Extra small</Button>
 <Button size="sm">Small</Button>
 <Button>Default</Button>
-<Button size="lg">Large</Button>`}>
+<Button size="lg">Large</Button>
+<Button size="xl">Extra large</Button>`}>
       <Button size="xs">Extra small</Button>
       <Button size="sm">Small</Button>
       <Button>Default</Button>
       <Button size="lg">Large</Button>
+      <Button size="xl">Extra large</Button>
     </Frame>
   )
 }
@@ -73,6 +76,9 @@ function ButtonIconButtons() {
         <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
       </Button>
       <Button variant="outline" size="icon-lg" aria-label="Search">
+        <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
+      </Button>
+      <Button variant="outline" size="icon-xl" aria-label="Search">
         <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
       </Button>
     </Frame>
@@ -605,6 +611,31 @@ function TabsVertical() {
   )
 }
 
+function ToggleGroupSegmented() {
+  return (
+    <Frame
+      className="flex max-w-md flex-col gap-4"
+      code={`<ToggleGroup type="single" variant="segmented" defaultValue="normal" aria-label="Speed">
+  <ToggleGroupItem value="none" fit aria-label="No timer" title="No timer" className="w-12 px-0">
+    <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} />
+  </ToggleGroupItem>
+  <ToggleGroupItem value="slow">Slow</ToggleGroupItem>
+  <ToggleGroupItem value="normal">Normal</ToggleGroupItem>
+  <ToggleGroupItem value="fast">Fast</ToggleGroupItem>
+</ToggleGroup>`}
+    >
+      <ToggleGroup type="single" variant="segmented" defaultValue="normal" aria-label="Speed">
+        <ToggleGroupItem value="none" fit aria-label="No timer" title="No timer" className="w-12 px-0">
+          <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} />
+        </ToggleGroupItem>
+        <ToggleGroupItem value="slow">Slow</ToggleGroupItem>
+        <ToggleGroupItem value="normal">Normal</ToggleGroupItem>
+        <ToggleGroupItem value="fast">Fast</ToggleGroupItem>
+      </ToggleGroup>
+    </Frame>
+  )
+}
+
 function ToggleGroupSingleAndMultiple() {
   return (
     <Frame className="flex flex-col gap-4" code={`<ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
@@ -652,10 +683,49 @@ function ToggleGroupDisabled() {
   )
 }
 
+function CollapsibleOpenAndClosed() {
+  const rows = ["Marly, Zoé and Tom", "Hervé, Lina and Sam", "Max and Inès"]
+  return (
+    <Frame
+      className="grid items-start gap-6 md:grid-cols-2"
+      code={`<Collapsible>
+  <CollapsibleTrigger asChild>
+    <button className="group/trigger …">
+      Show more
+      <HugeiconsIcon icon={ArrowDown01Icon} className="group-data-[state=open]/trigger:rotate-180" />
+    </button>
+  </CollapsibleTrigger>
+  <CollapsibleContent>…</CollapsibleContent>
+</Collapsible>`}
+    >
+      {[false, true].map((open) => (
+        <Collapsible key={String(open)} defaultOpen={open} className="overflow-hidden rounded-3xl border">
+          <CollapsibleTrigger className="group/trigger flex w-full items-center justify-between gap-3 px-6 py-4 text-left outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset">
+            {open ? "Open when it is drawn" : "Closed when it is drawn"}
+            <span aria-hidden className="text-muted-foreground transition-transform duration-base ease-standard group-data-[state=open]/trigger:rotate-180">
+              ⌄
+            </span>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ul className="border-t">
+              {rows.map((row) => (
+                <li key={row} className="border-b px-6 py-3 text-sm text-muted-foreground last:border-b-0">
+                  {row}
+                </li>
+              ))}
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
+      ))}
+    </Frame>
+  )
+}
+
 export const controlsSpecimens: Specimens = {
   "button-variants": ButtonVariants,
   "button-sizes": ButtonSizes,
   "button-icon-buttons": ButtonIconButtons,
+  "toggle-group-segmented": ToggleGroupSegmented,
   "button-with-an-icon": ButtonWithAnIcon,
   "button-states-and-as-a-link": ButtonStatesAndAsALink,
   "provider-button-a-row-of-four": ProviderButtonARowOfFour,
@@ -679,4 +749,5 @@ export const controlsSpecimens: Specimens = {
   "tabs-vertical": TabsVertical,
   "toggle-group-single-and-multiple": ToggleGroupSingleAndMultiple,
   "toggle-group-disabled": ToggleGroupDisabled,
+  "collapsible-open-and-closed": CollapsibleOpenAndClosed,
 }

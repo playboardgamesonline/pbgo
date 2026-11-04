@@ -4,17 +4,17 @@ The rules to follow when building UI in this repository: the platform's screens 
 
 ## Principles
 
-The platform (hub, account, legal, gamemaster, 404) is black and white, dark only, set in Geist semibold. Everything on it is built from the tokens and components of `@pbgo/ui`. The only colour on a platform screen is a game's own art. Every token and component is documented in this section of the docs: it is the reference, so check it before building a screen.
+The platform (hub, account, legal, gamemaster, 404) is black and white, dark only, set in Geist semibold. Everything on it is built from the tokens and components of `@pbgo/ui`. The only colour on a platform screen is a game's own art. Every token and every building block is documented in this section of the docs: it is the reference, so check it before building a screen. The design of a page is not: this section describes what screens are made of, never one screen.
 
 - A black and white, with no tint: the palette is the `neutral` scale (Tailwind's, a chroma of 0 all along and a little darker in its four darkest steps, so that the page is a true black) plus `destructive`, and the four colours of a friend's presence (`--presence-online`, green, `--presence-playing`, blue, `--presence-inactive`, orange-yellow, and `--presence-dnd`, red), which only a dot wears, and the two brand colours of a sign-in provider's button (`--brand-facebook`, `--brand-discord`), which only that button wears, and the colours of the pieces that stand for letters of the home's title (`--piece-*`), which only those pieces wear. No other accent colour, and no gradient: the first screen of a page, the home's hero included, is the page's black, flat.
 - Dark only. The platform has no light theme and no `dark:` variants; `color-scheme` is `dark`.
 - One typeface, Geist, in one weight: everything is semibold (600), with tight line-heights. `font-medium` and `font-bold` resolve to the same weight, so do not write them. Two weights are set on purpose: 400 for the finest print (`fine-print`) and 720 for the title of the home and a person's name at the head of a profile (`font-strong`). Text is slightly tight: about -0.01em on body text, -0.03em on headings.
-- Apart from a friend's presence, a provider's brand and the pieces of the home's title, game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them.
+- Apart from a friend's presence, a provider's brand and the pieces of the home's title, game art is the only colour on the platform. Never tint, recolour or dim it: a logo is drawn straight on its background, with no layer between them. The one exception is art used as the backdrop of a page's head, under its text: it fades into the page, from the side the text is on and at the foot (gradients from `background`, nothing else laid over it).
 - Rounded, never round: the taller a box, the rounder its corner, up to the menus' step (`rounded-4xl`, 31px, for a container from 6rem high), and a corner never reaches half the height of what it rounds, so nothing is a capsule. Only the picture of a person is a circle. Corners are smoothed a touch (`--corner-smoothing`).
 - Depth comes from surface steps and hairlines (`ring-1 ring-foreground/10`), then from three shadows: `shadow-surface` at rest, `shadow-float` when lifted, `shadow-overlay` for dialogs and sheets.
 - Tokens, not values: no hex, `rgb()`, arbitrary pixel sizes, font names or `bg-neutral-*` in platform UI. Write `bg-card`, `text-muted-foreground`, `rounded-3xl`, `px-gutter`.
-- A missing piece goes into `@pbgo/ui` first, is documented in these docs with a live specimen ([Adding a component](#adding-a-component)), then is used.
-- Out of scope for v1: brand fonts, gradients, a light theme and game boards.
+- A missing piece goes into `@pbgo/ui` first, is documented in these docs with a live specimen when it is a building block that other screens will use ([Adding a component](#adding-a-component)), then is used. What only one page is made of (the head of a game's page, its lobby, its leaderboard) is not documented here.
+- Out of scope for v1: brand fonts, gradients (except the fade of a backdrop, above), a light theme and game boards.
 
 ### Do and do not
 
@@ -88,7 +88,7 @@ A game restyles by changing the value of a token. No component is touched:
 1. Add it with `pnpm dlx shadcn@latest add <comp>` (preset `beEgoY8u`).
 2. Move it to `packages/ui/src/platform` and import `cn` from `../utils`.
 3. Make it dark-only and token-only.
-4. Document it: a section of the page of [Components](03-components/index.md) that fits, with its live pieces as specimens (a `specimen` block in the page, the component in `apps/web/src/app/(hub)/docs/_specimens/`; see [Design system](index.md)).
+4. Document it, if it is a building block that other screens will use: a section of the page of [Components](03-components/index.md) that fits, with its live pieces as specimens (a `specimen` block in the page, the component in `apps/web/src/app/(hub)/docs/_specimens/`; see [Design system](index.md)). A piece made for one page is not documented: these docs never describe the design of a page.
 5. Then use it.
 
 ## Guards

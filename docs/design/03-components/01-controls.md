@@ -1,6 +1,6 @@
 # Controls
 
-What a visitor presses, types in or picks: buttons, badges, fields, checkboxes and switches, selects, comboboxes, sliders, meters, tabs and toggle groups.
+What a visitor presses, types in or picks: buttons, badges, fields, checkboxes and switches, selects, comboboxes, sliders, meters, tabs, toggle groups and collapsibles.
 
 ## Button
 
@@ -18,7 +18,7 @@ button-variants
 
 ### Sizes
 
-`default` is `h-9`. Use `sm` and `xs` inside dense UI (tables, toolbars, the gamemaster), `lg` for a hero action.
+`default` is `h-9`. Use `sm` and `xs` inside dense UI (tables, toolbars, the gamemaster), `lg` for a hero action and `xl` (`h-12`, the text at 16px) for the one or two buttons that a page is for.
 
 ```specimen
 button-sizes
@@ -95,7 +95,7 @@ A new provider adds its mark (`@pbgo/ui/brands`), its tile (`@pbgo/ui/platform/p
 
 Module: `@pbgo/ui/platform/badge`
 
-A short label: a status, a count, a category. Never an action; for that, use a `Button`. The count of what waits for someone, messages not read and requests to answer, is `notification`: solid red, as Discord's.
+A short label: a status, a count, a category. Never an action; for that, use a `Button`. The count of what waits for someone, messages not read and requests to answer, is `notification`: solid red, as Discord's. `destructive` and `success` are the two signal colours as a dark tint, a fifth of the colour under the colour itself: a loss and a win.
 
 ### Badge variants
 
@@ -303,4 +303,24 @@ A chip, or the whole group, can be `disabled`: it is dimmed and skipped by the k
 
 ```specimen
 toggle-group-disabled
+```
+
+### Segmented
+
+`variant="segmented"` puts the chips in one container, as the tabs of a tab list are: the width of its parent, on the `muted` fill, with a 4px margin round the chips and 4px between them, each chip the same width, and behind the one that is picked a primary thumb that glides to the next chip when another is picked, with the spring of the navbar's fill (`SPRING_TRAVEL`; it jumps when less motion is asked for). For a choice of a few words that a form is about, such as a speed (slow, normal, fast). A chip that should be narrower, an icon alone, is `fit` and has a width of its own (`w-12`); its name is then for a screen reader and the pointer (`aria-label`, `title`).
+
+```specimen
+toggle-group-segmented
+```
+
+## Collapsible
+
+Module: `@pbgo/ui/platform/collapsible`
+
+A block that unrolls: a trigger, and what it shows. It draws nothing of its own, the page gives the trigger its look (a row of a list, the head of a card) and says what the block holds; it only keeps whether the block is open and moves the height of what it holds, the way the heads of the [friends' roster](05-social.md#the-friends-tab) do: `DURATION.slow` with `EASE_STANDARD`, and no motion at all when less motion is asked for. `CollapsibleTrigger` says whether the block is open (`aria-expanded`) and what it opens (`aria-controls`), and `asChild` gives its behaviour to the element the page draws; the trigger carries `data-state`, so that a chevron turns with `group-data-[state=open]`. What is closed is not in the page: a screen reader does not read it and the keyboard does not reach it, and what it holds is only drawn once it opens. The block keeps its own state, or the page does (`open`, `onOpenChange`).
+
+### Open and closed
+
+```specimen
+collapsible-open-and-closed
 ```

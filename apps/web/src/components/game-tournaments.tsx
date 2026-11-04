@@ -1,5 +1,7 @@
+import { Calendar03Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { Badge } from "@pbgo/ui/platform/badge"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
 import { Progress } from "@pbgo/ui/platform/progress"
 import type { GameTournament } from "@/lib/game-activity"
@@ -46,19 +48,22 @@ function TournamentRow({ tournament }: { tournament: GameTournament }) {
 
 export function GameTournaments({ tournaments }: { tournaments: readonly GameTournament[] }) {
   return (
-    <section aria-labelledby="tournaments">
+    <section aria-labelledby="tournaments" className="@container">
       <h2 id="tournaments" className="mb-6 font-heading text-2xl">
         Tournaments
       </h2>
       {tournaments.length === 0 ? (
-        <Empty className="border">
+        <Empty className="border p-6">
           <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} aria-hidden="true" />
+            </EmptyMedia>
             <EmptyTitle>No tournament yet</EmptyTitle>
             <EmptyDescription>The upcoming, in progress and finished tournaments of this game will be listed here.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-8 @2xl:grid-cols-2 @4xl:grid-cols-3">
           {GROUPS.map(({ status, title }) => {
             const list = tournaments.filter((tournament) => tournament.status === status)
             return (

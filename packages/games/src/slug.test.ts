@@ -2,7 +2,7 @@ import { readdirSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import { GAMES } from "./registry"
-import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH, RESERVED_SLUGS, SLUG_PATTERN, cleanName, nameFromSlug, nameProblem, slugFromName, slugProblem } from "./slug"
+import { MAX_EXPANSION_SLUG_LENGTH, MAX_NAME_LENGTH, MAX_SLUG_LENGTH, RESERVED_SLUGS, SLUG_PATTERN, cleanName, nameFromSlug, nameProblem, slugFromName, slugProblem } from "./slug"
 
 describe("slugFromName", () => {
   it.each([
@@ -85,6 +85,26 @@ describe("slugProblem", () => {
   it("names the problem it found first: the shape, then the length, the route, the game", () => {
     expect(slugProblem("Api", ["Api"])).toContain("not a slug")
     expect(slugProblem("api", ["api"])).toContain("route of the site")
+  })
+})
+
+describe("slugProblem for an expansion", () => {
+  it("allows a slug a little longer than a game's: it starts with its base game's", () => {
+    expect(MAX_EXPANSION_SLUG_LENGTH).toBeGreaterThan(MAX_SLUG_LENGTH)
+    for (const slug of ["the-werewolves-of-millers-hollow-the-village", "x".repeat(MAX_EXPANSION_SLUG_LENGTH)]) expect(slugProblem(slug, [], "expansion"), slug).toBeUndefined()
+    // a game's slug is still bound by what it names
+    expect(slugProblem("the-werewolves-of-millers-hollow-the-village")).toContain(`${MAX_SLUG_LENGTH} at most`)
+  })
+
+  it("refuses a slug over its own bound, and does not give a game's reason for it: an expansion names no package, token or Studio host", () => {
+    const problem = slugProblem("x".repeat(MAX_EXPANSION_SLUG_LENGTH + 1), [], "expansion")
+    expect(problem).toContain(`${MAX_EXPANSION_SLUG_LENGTH + 1} characters long, ${MAX_EXPANSION_SLUG_LENGTH} at most`)
+    expect(problem).not.toContain("package")
+  })
+
+  it("keeps the other rules: the shape, and the routes of the site", () => {
+    expect(slugProblem("The-Crew", [], "expansion")).toContain("not a slug")
+    expect(slugProblem("api", [], "expansion")).toContain("route of the site")
   })
 })
 

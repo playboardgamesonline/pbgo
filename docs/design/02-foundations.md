@@ -9,10 +9,11 @@ Every colour of a platform screen is one of these tokens. The names are shared w
 The palette has these colours and no other:
 
 - the neutral ramp, Tailwind's `neutral` scale with no tint at all, of which every grey is a step;
-- `--destructive`, the one signal colour;
+- `--destructive` and `--success`, the two signal colours: a loss or an error, and a win. The results of games wear the second as a dark tint, a fifth of the colour for the fill and the colour itself for the text, as a destructive badge does;
 - the four colours of a friend's presence (`--presence-online`, `--presence-playing`, `--presence-inactive` and `--presence-dnd`), which only a dot wears;
 - the two colours of a sign-in provider's button (`--brand-facebook` and `--brand-discord`), which only that button wears (see [Provider button](03-components/01-controls.md#provider-button));
-- the colours of the pieces of the home's title (`--piece-red|gold|navy|ivory|ink`), which only those pieces wear (see [Title pieces](03-components/02-navigation.md#title-pieces)).
+- the colours of the pieces of the home's title (`--piece-red|gold|navy|ivory|ink`), which only those pieces wear (see [Title pieces](03-components/02-navigation.md#title-pieces));
+- the colours of the rank crests (`--crest-grandmaster-top|bottom`, the owner's violet from the top of a shield to its foot, and `--crest-star-light|shade`, the white and the grey of the light in its star), which only a crest wears (`rank-crests.tsx`: one SVG a tier, as the owner hands them over, Grandmaster's so far).
 
 ### Surfaces and actions
 
@@ -44,7 +45,7 @@ colors-neutral-ramp
 
 ### The one grey
 
-The platform has one grey for every container: `--card`, which `--popover` equals. It is two thirds neutral 900 and a third neutral 950, a dark grey, and not the black of the page (`--background`). The glass of the search bar is a step lighter, `--card-bar`: half way between neutral 900 and 800. What floats over the page keeps most of this grey and blurs what is behind it: see [Glass](#glass).
+The platform has one grey for every container: `--card`, which `--popover` equals. It is two thirds neutral 900 and a third neutral 950, a dark grey, and not the black of the page (`--background`). A step lighter, `--card-bar` (half way between neutral 900 and 800), is for what is read before the rest: the glass of the search bar, and a panel that stands raised beside a list. What floats over the page keeps most of this grey and blurs what is behind it: see [Glass](#glass).
 
 ### Chart
 

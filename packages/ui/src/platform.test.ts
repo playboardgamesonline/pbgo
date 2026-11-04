@@ -57,10 +57,10 @@ describe("platform components", () => {
  */
 /**
  * Rounded, never round: the largest step is the surfaces' (`rounded-4xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
- * person with its dot and the track and thumb of a switch, a slider and a progress bar.
+ * person with its dot, the place of a seat nobody has taken (a circle like the picture it waits for, which its focus ring follows) and the track and thumb of a switch, a slider and a progress bar.
  */
 describe("radius", () => {
-  const CIRCLES = new Set(["avatar.tsx", "progress.tsx", "slider.tsx", "switch.tsx"])
+  const CIRCLES = new Set(["avatar.tsx", "open-seat.tsx", "progress.tsx", "slider.tsx", "switch.tsx"])
   const hitsOf = (files: readonly string[], pattern: RegExp) =>
     files.flatMap((file) =>
       readFileSync(new URL(file, DIRECTORY), "utf8")
@@ -81,7 +81,7 @@ describe("radius", () => {
   })
 })
 
-/** The presence of a friend is the one thing the platform paints in a hue besides `destructive`: four tokens, each with its utilities. */
+/** The presence of a friend is the one thing the platform paints in a hue besides the signal colours (`destructive`, `success`): four tokens, each with its utilities. */
 describe("presence colours", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
@@ -89,6 +89,18 @@ describe("presence colours", () => {
     it(`presence-${name} is a token with its utilities`, () => {
       expect(css).toMatch(new RegExp(`--presence-${name}:\\s*oklch\\(`))
       expect(css).toContain(`--color-presence-${name}: var(--presence-${name})`)
+    })
+  }
+})
+
+/** `destructive` and `success` are the two signal colours, a loss or an error and a win: a token and its utilities each (`bg-success/20 text-success` is a win, `bg-destructive/20 text-destructive` a loss). */
+describe("signal colours", () => {
+  const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+
+  for (const name of ["destructive", "success"]) {
+    it(`${name} is a token with its utilities`, () => {
+      expect(css).toMatch(new RegExp(`--${name}:\\s*oklch\\(`))
+      expect(css).toContain(`--color-${name}: var(--${name})`)
     })
   }
 })

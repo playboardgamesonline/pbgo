@@ -3,7 +3,7 @@ import { GAMES } from "@pbgo/games/registry"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { iconVersion } from "./catalog"
 import { PLATFORM_PROJECT_ID } from "./sanity"
-import { cdn, fakeWeb, groqSanity, htmlResponse, imageAsset, imageOf, pictureBytes, pictureResponse, row, sanityGame, webPage, type HostHandler } from "./testing"
+import { cdn, fakeWeb, groqSanity, htmlResponse, imageAsset, imageOf, pictureBytes, pictureResponse, row, sanityGame, sanityResult, webPage, type HostHandler } from "./testing"
 
 // `server-only` throws outside a server bundle
 vi.mock("server-only", () => ({}))
@@ -42,7 +42,7 @@ type World = {
 }
 
 async function world({ games = [], hosts = {}, sanity }: World = {}) {
-  const answer = sanity ?? (() => new Response(JSON.stringify({ result: games }), { headers: { "content-type": "application/json" } }))
+  const answer = sanity ?? (() => new Response(JSON.stringify({ result: sanityResult(games) }), { headers: { "content-type": "application/json" } }))
   const web = fakeWeb({ [SANITY]: answer, ...hosts })
   vi.stubGlobal("fetch", web.fetch)
   // A fresh copy of the module: the lines the previous test logged are forgotten with the old one
@@ -336,5 +336,77 @@ describe("the icon of a publisher", () => {
     const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(response.status).toBe(503)
     expect(w.downloads()).toEqual([])
+  })
+})
+
+describe("the icon of BoardGameGeek", () => {
+  const SITE = "boardgamegeek.com"
+  const VERSION = iconVersion(`https://${SITE}`)
+  const games = [sanityGame(PLANNED.slug, { name: "Planned", bggId: 98778 }), sanityGame(LIVE.slug, { name: "Live", bggId: 2397 })]
+  // BoardGameGeek turns away a client that is not a browser from its pages (403): the icon every browser asks for, at the root, is the one that is left, and is enough
+  const site: HostHandler = (url) => (url.pathname === "/favicon.ico" ? pictureResponse("png") : new Response("Forbidden", { status: 403 }))
+  const hosts = { [SITE]: site }
+
+  it("is found on BoardGameGeek's website and served from here: a day for the CDN, with the headers of a file that only an <img> shows", async () => {
+    const w = await world({ games, hosts })
+    const response = await w.ask(PLANNED.slug, "bgg", VERSION)
+    expect(response.status).toBe(200)
+    expect(response.headers.get("content-type")).toBe("image/png")
+    expect(response.headers.get("cache-control")).toBe(ICON)
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff")
+    expect(response.headers.get("content-security-policy")).toBe(SANDBOX)
+    expect(await bytesOf(response)).toEqual(pictureBytes("png"))
+    // Only BoardGameGeek's website is asked, and the page before its root icon
+    expect(w.downloads().map((request) => request.url)).toEqual([`https://${SITE}/`, `https://${SITE}/favicon.ico`])
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it("takes the website from the code and never from the request", async () => {
+    const w = await world({ games, hosts: { ...hosts, "evil.example": () => pictureResponse("png") } })
+    const address = `https://pbgo.test/api/catalog/${PLANNED.slug}/bgg?v=${VERSION}&url=https://evil.example/x.png&site=https://evil.example/&host=evil.example`
+    const response = await w.get(new Request(address), { params: Promise.resolve({ slug: PLANNED.slug, slot: "bgg" }) })
+    expect(response.status).toBe(200)
+    expect(new Set(w.downloads().map((request) => new URL(request.url).host))).toEqual(new Set([SITE]))
+  })
+
+  it("answers 404 for a game that has no page there to link to, and for a game that is nowhere, and downloads nothing", async () => {
+    const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Planned" })], hosts })
+    expect((await w.ask(PLANNED.slug, "bgg", VERSION)).status).toBe(404)
+    expect((await w.ask("nope", "bgg", VERSION)).status).toBe(404)
+    expect(w.downloads()).toEqual([])
+  })
+
+  it.each([
+    ["none", null],
+    ["an old one", "1abc"],
+    ["one that is not a version", "<script>alert(1)</script>"],
+  ])("sends an address with %s as a version to the right one, before anybody is asked", async (_label, version) => {
+    const w = await world({ games, hosts })
+    const response = await w.ask(PLANNED.slug, "bgg", version)
+    expect(response.status).toBe(307)
+    expect(response.headers.get("location")).toBe(`/api/catalog/${PLANNED.slug}/bgg?v=${VERSION}`)
+    expect(response.headers.get("cache-control")).toBe(REDIRECT)
+    expect(w.downloads()).toEqual([])
+  })
+
+  it("answers 404, for an hour, when BoardGameGeek has no icon the server can use, and says so once with the host and no address", async () => {
+    const w = await world({ games, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
+    const response = await w.ask(PLANNED.slug, "bgg", VERSION)
+    expect(response.status).toBe(404)
+    expect(response.headers.get("cache-control")).toBe(NO_ICON)
+    await w.ask(PLANNED.slug, "bgg", VERSION)
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(logged()).toContain(`[catalog] The icon of BoardGameGeek, for "${PLANNED.slug}" cannot be served: ${SITE} has no icon the server can use`)
+    expect(logged()).not.toContain("https://")
+  })
+
+  it("leaves BoardGameGeek alone for five minutes when it cannot be reached, whichever game asks: one website, one wait", async () => {
+    const w = await world({ games })
+    const response = await w.ask(PLANNED.slug, "bgg", VERSION)
+    expect(response.status).toBe(503)
+    expect(response.headers.get("cache-control")).toBe("no-store")
+    const asked = w.downloads().length
+    expect((await w.ask(LIVE.slug, "bgg", VERSION)).status).toBe(503)
+    expect(w.downloads()).toHaveLength(asked)
   })
 })

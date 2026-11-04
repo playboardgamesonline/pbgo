@@ -18,6 +18,9 @@ export const checkName = (name: string | undefined): true | string => (name === 
 /** A slug is what a game's slug can be: a page of the hub, and a route of the site once the game is live. The uniqueness is the slug field's own. */
 export const checkSlug = (slug: { current?: string } | undefined): true | string => (slug?.current === undefined ? true : (slugProblem(slug.current) ?? true))
 
+/** An expansion's slug is a game's but for its length: it names no package, token or Studio host, and starts with its base game's slug, so it may be longer (`MAX_EXPANSION_SLUG_LENGTH`). The uniqueness is the slug field's own. */
+export const checkExpansionSlug = (slug: { current?: string } | undefined): true | string => (slug?.current === undefined ? true : (slugProblem(slug.current, [], "expansion") ?? true))
+
 /** A game is not its own base game, nor related to itself. The document is not there when a seed checks the rule: nothing to compare with. */
 export const checkNotItself =
   (message: string) =>
@@ -30,6 +33,16 @@ export const checkNotItself =
 export const checkCreatorsOnce = (lines: unknown): true | string => {
   const people = (Array.isArray(lines) ? lines : []).flatMap((line) => (isRecord(line) ? refsOf(line.creator) : []))
   return new Set(people).size === people.length ? true : "A creator is on one line: give them all their roles there"
+}
+
+/** The key of a helper is what the game calls it: lowercase letters and digits, joined by single dashes, 40 characters at most. */
+export const checkHelperKey = (key: string | undefined): true | string =>
+  key === undefined || (key.length <= 40 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)) ? true : "Lowercase letters and digits joined by single dashes, 40 characters at most (for instance: show-score)"
+
+/** A key names one helper of a game: two with the same key would be one aid twice. */
+export const checkHelpersOnce = (helpers: unknown): true | string => {
+  const keys = (Array.isArray(helpers) ? helpers : []).flatMap((helper) => (isRecord(helper) && typeof helper.key === "string" ? helper.key : []))
+  return new Set(keys).size === keys.length ? true : "A key names one helper: give each its own"
 }
 
 /** The most players is not under the fewest (a game with no most is "or more"). The document is not there when a seed checks the rule. */

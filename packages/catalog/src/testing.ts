@@ -14,6 +14,9 @@ const reply = (status: number, body: unknown) => new Response(JSON.stringify(bod
 /** The address of a picture's file in the image CDN of the platform's project, as the query returns it. */
 export const cdn = (file: string, project = PLATFORM_PROJECT_ID, dataset = PLATFORM_DATASET) => `https://cdn.sanity.io/images/${project}/${dataset}/${file}`
 
+/** The address of a clip's file in the file CDN of the platform's project, as the query returns it. */
+export const cdnFile = (file: string, project = PLATFORM_PROJECT_ID, dataset = PLATFORM_DATASET) => `https://cdn.sanity.io/files/${project}/${dataset}/${file}`
+
 /** A published game as the query returns it: nothing but what it needs to be a game (a name and a slug), unless the test says more. */
 export const sanityGame = (slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   _id: `game-${slug}`,
@@ -23,7 +26,25 @@ export const sanityGame = (slug: string, overrides: Record<string, unknown> = {}
   ...overrides,
 })
 
-/** What Sanity answers: the result of the query, or a failure (status and body as Sanity writes them). */
+/** A published expansion as the query returns it: nothing but a name and a slug, unless the test says more (its `baseGame`, the slug of a game; its `description`, `playersMax` and `minAge`; its `cover` and `boxFront`). */
+export const sanityExpansion = (slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+  _type: "expansion",
+  _id: `expansion-${slug}`,
+  name: slug,
+  slug,
+  ...overrides,
+})
+
+/**
+ * The result of the query for these documents: the games and the expansions in two lists, as the query makes them. A document of the
+ * type `expansion` (`sanityExpansion`) is an expansion, whatever else is a game, odd values included.
+ */
+export const sanityResult = (documents: unknown[]) => {
+  const isExpansion = (document: unknown) => typeof document === "object" && document !== null && (document as { _type?: unknown })._type === "expansion"
+  return { games: documents.filter((document) => !isExpansion(document)), expansions: documents.filter(isExpansion) }
+}
+
+/** What Sanity answers: the documents the query finds (`sanityResult` sorts them out), or a failure (status and body as Sanity writes them). */
 export type SanityAnswer = unknown[] | { status: number; body: unknown }
 
 export type SanityCall = { url: URL; init: RequestInit }
@@ -36,7 +57,7 @@ export function fakeSanity(answer: SanityAnswer) {
   const calls: SanityCall[] = []
   const fetcher = (async (input: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: new URL(String(input)), init: init ?? {} })
-    return Array.isArray(answer) ? reply(200, { ms: 3, query: CATALOG_QUERY, result: answer }) : reply(answer.status, answer.body)
+    return Array.isArray(answer) ? reply(200, { ms: 3, query: CATALOG_QUERY, result: sanityResult(answer) }) : reply(answer.status, answer.body)
   }) as typeof fetch
   return { fetch: fetcher, calls }
 }
@@ -147,6 +168,7 @@ export const catalogGame = (slug: string, overrides: Partial<CatalogGame> = {}):
   duration: null,
   complexity: null,
   bggId: null,
+  buyUrl: null,
   releaseDate: null,
   age: null,
   categories: [],
@@ -154,6 +176,8 @@ export const catalogGame = (slug: string, overrides: Partial<CatalogGame> = {}):
   publishers: [],
   rules: {},
   pictures: { logo: null, icon: null, background: null },
+  gallery: [],
+  helpers: [],
   related: [],
   order: null,
   updatedAt: "",

@@ -17,6 +17,24 @@ export type Creator = { name: string; roles: CreatorRole[] }
 export const ART_SLOTS = ["logo", "icon", "background"] as const
 export type ArtSlot = (typeof ART_SLOTS)[number]
 
+/** The two pictures an expansion can have: its cover and the front of its box. It has none of the three of a game. */
+export type ExpansionSlot = "cover" | "boxFront"
+
+/**
+ * A picture or a short clip of a game being played, which its page shows after its cover (`CatalogGame.gallery`): the address of its file in the
+ * CDN of the platform's Sanity project (the image CDN for a picture and for the poster of a clip, the file CDN for a clip), and what it shows in a few
+ * words when the Studio says (null: the page names it by its place). A clip is read with the poster that was set for it, else the page draws its first frame.
+ */
+export type GalleryItem =
+  | { kind: "image"; url: string; caption: string | null }
+  | { kind: "video"; url: string; poster: string | null; caption: string | null }
+
+/**
+ * A helper of a game, an aid that a player may have while they play, which the game's lobby offers as a small row with a switch (PLT-56): `key` is what the game calls it (unique among the game's helpers),
+ * `title` is what the lobby says ("Show the score calculation").
+ */
+export type GameHelper = { key: string; title: string }
+
 /**
  * A game of the catalog: everything the hub and its page show, for a live game as for one to come. It is a published `game` of the
  * platform's Sanity project (`sanity.ts` reads it, `docs/platform-sanity.md` is its model) or, for a live game that has none, what the
@@ -36,6 +54,8 @@ export type CatalogGame = {
   complexity: number | null
   /** The id of the game on BoardGameGeek (the number in the address of its page). Null when it has none. */
   bggId: number | null
+  /** The page of a shop that sells the game, the link its game's page gives to buy it (a web address, as the Studio keeps it). Null when the Studio has none: the page has no such link. */
+  buyUrl: string | null
   /** The day the game came out, `YYYY-MM-DD`: a year alone is its first of January. Null when it has none. */
   releaseDate: string | null
   /** The minimum age in years. */
@@ -49,6 +69,10 @@ export type CatalogGame = {
   rules: Partial<Record<Locale, string>>
   /** The address of each picture in the image CDN of the platform's Sanity project, the file itself and whole (`pictureUrl` sizes it); null for a picture the game does not have. */
   pictures: Record<ArtSlot, string | null>
+  /** The pictures and the clips the game's page shows after its cover, in the order the Studio lists them, `GALLERY_MAX` at most. Empty: the page shows the cover alone. */
+  gallery: GalleryItem[]
+  /** The helpers the game's lobby offers, in the order the Studio lists them, `HELPERS_MAX` at most. Empty: the lobby has none. */
+  helpers: GameHelper[]
   /**
    * The slugs of the games it is related to, in the order the Studio lists them, never its own slug, and only games the reader kept:
    * its related games, then its base game. One side of the link as far as the Studio goes: `buildCatalog` makes it go both ways
@@ -62,20 +86,63 @@ export type CatalogGame = {
 }
 
 /**
- * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its background across the
- * frame, and the page draws the same ones larger. Never more than the file holds.
+ * An expansion of a game: a published `expansion` of the platform's Sanity project (PLT-102), played with its base game. It is no game of the hub and has no page: the lobby of its base game offers it, as a card with its picture, its name and its description, and a table says
+ * which it is played with. Plain data like `CatalogGame`. It has its description, its figures and its categories, the ones that the lobby says before an expansion is chosen; the rest of its document (credits, links to the rules, release date) is not read yet: nothing on the hub shows it.
  */
-const PICTURE_WIDTH: Record<ArtSlot, number> = { logo: 800, icon: 512, background: 1200 }
+export type CatalogExpansion = {
+  /** What a table calls it: its slug in the Studio, unique among the expansions. */
+  slug: string
+  name: string
+  /** The slug of the game it is played with, one that the hub lists. */
+  base: string
+  /** A description per language, only the languages the expansion has one in: English for now. Pick one with `pickLocalized`. */
+  descriptions: Partial<Record<Locale, string>>
+  /**
+   * The figures of the game played with the expansion, each only when the Studio says it (an empty one is the base game's, and so is null here): the least and the most players, the minutes, the minimum age in years and the weight
+   * on BoardGameGeek's scale. The lobby says the ones that differ from its game's.
+   */
+  playersMin: number | null
+  playersMax: number | null
+  duration: number | null
+  age: number | null
+  complexity: number | null
+  /** The names of the categories it brings, in the order the Studio lists them (the ones of its base game need not be among them): its card in the lobby shows them as tags. */
+  categories: string[]
+  /** The address of each picture in the image CDN of the platform's Sanity project, as for a game (`pictureUrl` sizes it); null for a picture it does not have. */
+  pictures: Record<ExpansionSlot, string | null>
+}
 
 /**
- * The URL of a game's picture, sized for the page: the address of the file in the image CDN, with a width and `auto=format`, so that a
- * browser that takes WebP or AVIF gets that. A vector picture (SVG) is served as it is. Null when the game has none: a picture it does
- * not have is a plain frame, nothing else.
+ * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its background across the
+ * frame, and the page draws the same ones larger; an expansion's cover is drawn wide, like a background, and the front of its box
+ * smaller. Never more than the file holds.
  */
-export function pictureUrl(game: Pick<CatalogGame, "pictures">, slot: ArtSlot): string | null {
-  const url = game.pictures[slot]
-  if (!url) return null
-  return url.endsWith(".svg") ? url : `${url}?w=${PICTURE_WIDTH[slot]}&fit=max&auto=format`
+const PICTURE_WIDTH: Record<ArtSlot | ExpansionSlot, number> = { logo: 800, icon: 512, background: 1200, cover: 1200, boxFront: 600 }
+
+/**
+ * The URL of a picture of a game or of an expansion, sized for the page: the address of the file in the image CDN, with a width and
+ * `auto=format`, so that a browser that takes WebP or AVIF gets that. A vector picture (SVG) is served as it is. Null when it has none:
+ * a picture it does not have is a plain frame, nothing else. `width` is how wide the CDN is asked for it, the page's own by default: a
+ * small tile asks for less.
+ */
+export function pictureUrl<Slot extends ArtSlot | ExpansionSlot>(owner: { pictures: Record<Slot, string | null> }, slot: NoInfer<Slot>, width: number = PICTURE_WIDTH[slot]): string | null {
+  const url = owner.pictures[slot]
+  return url ? sizedPictureUrl(url, width) : null
+}
+
+/** The address of a file of the image CDN, asked for `width` pixels wide at most and in the best format the browser takes (an SVG is served as it is): how a picture of a gallery is sized. */
+export function sizedPictureUrl(url: string, width: number): string {
+  return url.endsWith(".svg") ? url : `${url}?w=${width}&fit=max&auto=format`
+}
+
+/**
+ * The width over the height of a picture of the image CDN, read from its address: the CDN names each file after the size of the picture (`<hash>-650x590.webp`), so its shape is known before it arrives, and a frame can be given it to keep
+ * the page still. Null for no picture and for an address that carries no size (or one that makes no shape).
+ */
+export function pictureRatio(url: string | null): number | null {
+  const size = url === null ? null : /-(\d+)x(\d+)\.[a-z0-9]+(?:\?.*)?$/i.exec(url)
+  const ratio = size ? Number(size[1]) / Number(size[2]) : NaN
+  return Number.isFinite(ratio) && ratio > 0 ? ratio : null
 }
 
 /**
@@ -96,6 +163,33 @@ export function iconVersion(website: string): string {
 export function publisherIconUrl(game: Pick<CatalogGame, "slug" | "publishers">, index: number): string | null {
   const website = game.publishers[index]?.url
   return website ? `/api/catalog/${game.slug}/publisher-${index}?v=${iconVersion(website)}` : null
+}
+
+/** BoardGameGeek's website: where its icon is looked for and where the address of every game's page there starts. */
+export const BGG_SITE = "https://boardgamegeek.com"
+
+/** The place of BoardGameGeek's icon in a game's address (`/api/catalog/<slug>/bgg`), the way `publisher-<n>` is a publisher's. */
+export const BGG_SLOT = "bgg"
+
+/** The address of a game's page on BoardGameGeek, from its id there; null when the game has none. BoardGameGeek sends that short address to the page with the game's name in it. */
+export function bggUrl(game: Pick<CatalogGame, "bggId">): string | null {
+  return game.bggId === null ? null : `${BGG_SITE}/boardgame/${game.bggId}`
+}
+
+/**
+ * The URL of BoardGameGeek's icon, which a game's page draws on its link there (`/api/catalog/<slug>/bgg`, see `route.ts`), or null when the game has no page there to link to. Like a publisher's,
+ * it is served from this site, so that a visitor's browser never asks BoardGameGeek for it, and it carries the version of the website the server looks the icon up on. It names the game and never an address.
+ */
+export function bggIconUrl(game: Pick<CatalogGame, "slug" | "bggId">): string | null {
+  return game.bggId === null ? null : `/api/catalog/${game.slug}/${BGG_SLOT}?v=${iconVersion(BGG_SITE)}`
+}
+
+/**
+ * The year a game came out, four digits, or null. A year is all that the date says for sure: the Studio keeps a day, and takes the first of January (or of the month) when it knows
+ * less, so the day is never shown.
+ */
+export function releaseYear(game: Pick<CatalogGame, "releaseDate">): string | null {
+  return game.releaseDate === null ? null : game.releaseDate.slice(0, 4)
 }
 
 /** One line of the credits of a game's page: what the people are to it, and who they are. A publisher whose row has a website is a link to it, with its icon. */
@@ -153,9 +247,9 @@ export type CatalogEntry = { slug: string; live: boolean; indexable: boolean; ga
 
 /**
  * The catalog and where it came from. `source`: "ok" when the platform's Sanity project answered, "unavailable" when it did not (the
- * failure is logged). Without it the catalog is the live games of the registry, each one a `registryRow`.
+ * failure is logged). Without it the catalog is the live games of the registry, each one a `registryRow`. `expansions` are the ones of the games, read apart since they have no page (`expansionsOf` picks a game's).
  */
-export type Catalog = { entries: CatalogEntry[]; source: "ok" | "unavailable" }
+export type Catalog = { entries: CatalogEntry[]; expansions: CatalogExpansion[]; source: "ok" | "unavailable" }
 
 /** What else `buildCatalog` can be asked for. */
 export type CatalogOptions = {
@@ -190,6 +284,7 @@ export function registryRow(game: GameEntry): CatalogGame {
     duration: duration && duration.min === duration.max ? duration.min : null,
     complexity: null,
     bggId: null,
+    buyUrl: null,
     releaseDate: null,
     age: null,
     categories: [],
@@ -197,6 +292,8 @@ export function registryRow(game: GameEntry): CatalogGame {
     publishers: [],
     rules: {},
     pictures: { logo: null, icon: null, background: null },
+    gallery: [],
+    helpers: [],
     related: [],
     order: null,
     updatedAt: "",
@@ -219,11 +316,16 @@ export function compareGames(a: Pick<CatalogGame, "order" | "name">, b: Pick<Cat
   return NAMES.compare(a.name, b.name)
 }
 
+/** The expansions of a game, the ones whose base game it is, by name, case and accents aside, numbers in their order: an expansion has no `order` in the Studio (`docs/platform-sanity.md`). */
+export function expansionsOf(expansions: readonly CatalogExpansion[], slug: string): CatalogExpansion[] {
+  return expansions.filter((expansion) => expansion.base === slug).sort((a, b) => NAMES.compare(a.name, b.name))
+}
+
 // The games a game's page recommends: its family first, then the games that look like it. They are in this file and not in a file of their own because `pnpm catalog:list` runs this one under plain Node, which strips the types
 // and resolves no other file of the package.
 
-/** The most games a page recommends: the grid is 2, 3, 4 or 5 cards wide, and twelve fill whole rows of the first three. */
-export const RELATED_MAX = 12
+/** The most games a page recommends: nine, in the one row of cards that scrolls sideways under the title "Similar games". */
+export const RELATED_MAX = 9
 
 /**
  * For each game, how many of its players also played each other game: the signal "players of this game also play". Counts of distinct players, never who they are. The catalog does not have it yet
