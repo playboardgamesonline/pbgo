@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight01Icon, Clock01Icon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, ClockFadingIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AchievementStrip } from "@pbgo/ui/platform/achievement-strip"
 import { Badge } from "@pbgo/ui/platform/badge"
@@ -23,9 +23,9 @@ import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 // who is signed in, in a game that is live: the figures of a visitor who is not signed in, and of a game that cannot be played, are nobody's.
 // From 82.5rem (1320px) of width the four cells are in one row (in rem, like `sm`, so that the stylesheet puts the breakpoint after it): the rank's and the last played's 1.2fr, the achievements' 1.05fr (the three badges that the row holds need 236px) and the play time's 0.75fr (the least wide:
 // its figure and its line need about 200px), so that the last played's line, up to about 245px, stays on one line, and so does the longest name of a rank. Under that width they are two by two, and one over the other on a phone. The room is the same in every
-// cell: 1.5rem on every side, a label on one line across the row, 0.75rem of air under it, then the figure on a row 2rem high (the rank's name, the last played's date, the play time's hours), so that what is under the figure, the rank's bar, the
-// History button and the play time's line, starts at the same height in the three cells, 0.75rem under the row (0.5rem between a bar and what it reads). The four cells have 104px of text and set a bar 152px high: the achievements' badges are as tall as what stands under the figure of the rank and of the last played, and the play
-// time's line stands at the foot of its cell, on the line of the rank's points and of the foot of the History button, 0.75rem under its figure at the least.
+// cell: 1.5rem on every side, the label at its top and what it says at its foot with at least 1rem between them (`StatBarItem`: the labels stand on one line across the row and what each says ends on one line), the figure of the rank and of the last played on a row 2rem high with
+// the bar or the History button 0.75rem under it (0.5rem between a bar and what it reads). The texts of the rank, of the last played and of the achievements are 76px high (the badges are as tall as the figure and what is under it) and set a bar 156px high. The play time's hours and its line of games are a block
+// of their own, 0.25rem apart, which ends where the others do: on the line of the rank's points and of the foot of the History button.
 
 /** How a game ended, as a badge: a win is green, a loss red, and a draw or a game left before its end grey. */
 const RESULT_BADGE: Record<Result, "success" | "destructive" | "secondary"> = { won: "success", lost: "destructive", draw: "secondary", abandoned: "secondary" }
@@ -100,12 +100,12 @@ export function GamePlayerBar({ slug, stats, latest }: { slug: string; stats: Pl
         )}
       </StatBarItem>
 
-      <StatBarItem label="Play time">
+      <StatBarItem label="Play time" contentClassName="gap-1">
         <div className="flex items-center gap-2">
-          <HugeiconsIcon icon={Clock01Icon} strokeWidth={1.5} aria-hidden="true" className="size-8 shrink-0 text-muted-foreground" />
+          <HugeiconsIcon icon={ClockFadingIcon} strokeWidth={1.5} aria-hidden="true" className="size-8 shrink-0 text-muted-foreground" />
           <StatBarValue className="text-3xl leading-8 whitespace-nowrap">{timePlayed(secondsPlayed)}</StatBarValue>
         </div>
-        <StatBarNote className="mt-auto pt-1 text-sm leading-5">{gamesPlayed === 0 ? "No game yet" : `Played ${gamesPlayed} ${gamesPlayed === 1 ? "game" : "games"}`}</StatBarNote>
+        <StatBarNote className="text-sm leading-5">{gamesPlayed === 0 ? "No game yet" : `Played ${gamesPlayed} ${gamesPlayed === 1 ? "game" : "games"}`}</StatBarNote>
       </StatBarItem>
     </StatBar>
   )
