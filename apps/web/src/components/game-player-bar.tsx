@@ -11,7 +11,7 @@ import type { HistoryEntry, PlayerStats } from "@/lib/game-activity"
 import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
 // What the signed-in visitor has done in a game, as the first section under the head of its page and above the tables: one bar of four cells (`StatBar`), in this order: the rank, the play time, the last played and the achievements.
-// Rank: its emblem (4rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`), its name at 1.5rem, a thin bar under it and, under the bar, "Pts" in small capitals at its left and the points they
+// Rank: its emblem (4rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`), its name at 1.5rem, on one line whatever the room (the longest, "Grandmaster III", needs 174px and goes into the cell's padding at the narrowest widths, which wrapping would not spare), a thin bar under it and, under the bar, "Pts" in small capitals at its left and the points they
 // have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). Play time: in hours, as big as 2.25rem, with a light clock that fades at its left. Last played: the day of their last game with its year and, under it, where they came ("1st") and how it ended as a badge (green for a win, red for a loss,
 // grey for a draw or a game left before its end), two lines of their own. Achievements: the badges they have earned, the latest first, in one row
 // of 4.75rem badges, as tall as the text of the cells beside it, that holds as many as fit (`AchievementStrip`): the number of those that are left ("+7", with no outline: a round background under the pointer shows that it can be pressed) takes the last place when there are more, and a press on it or on a badge opens the list of all of them. The count of all of them is in the label; the name,
@@ -38,7 +38,7 @@ export function GamePlayerBar({ stats, latest }: { stats: PlayerStats; latest: H
       <StatBarItem label="Rank" visual={<RankEmblem rank={rank} />}>
         {rank && next && rankProgress && rankProgress.needed > 0 ? (
           <>
-            <StatBarValue className="text-2xl leading-8">{rankLabel(rank)}</StatBarValue>
+            <StatBarValue className="text-2xl leading-8 whitespace-nowrap">{rankLabel(rank)}</StatBarValue>
             <Progress
               value={Math.min(100, Math.max(0, (rankProgress.points / rankProgress.needed) * 100))}
               aria-label="Rank points"
@@ -54,7 +54,7 @@ export function GamePlayerBar({ stats, latest }: { stats: PlayerStats; latest: H
           </>
         ) : (
           <>
-            <StatBarValue className="text-2xl leading-8">{rank ? rankLabel(rank) : "Unranked"}</StatBarValue>
+            <StatBarValue className="text-2xl leading-8 whitespace-nowrap">{rank ? rankLabel(rank) : "Unranked"}</StatBarValue>
             <StatBarNote>{!rank ? "Play ranked games to get a rank" : next ? `Next: ${rankLabel(next)}` : "Top of the board"}</StatBarNote>
           </>
         )}
