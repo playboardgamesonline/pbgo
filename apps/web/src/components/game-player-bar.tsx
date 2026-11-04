@@ -12,13 +12,13 @@ import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
 // What the signed-in visitor has done in a game, as the first section under the head of its page and above the tables: one bar of four cells (`StatBar`), in this order: the rank, the play time, the last played and the achievements.
 // Rank: its emblem (4rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`), its name at 1.5rem, a thin bar under it and, under the bar, "Pts" in small capitals at its left and the points they
-// have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). Play time: in hours, as big as 1.875rem, with a light clock that fades at its left. Last played: the day of their last game with its year and, under it, where they came ("1st") and how it ended as a badge (green for a win, red for a loss,
+// have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). Play time: in hours, as big as 2.25rem, with a light clock that fades at its left. Last played: the day of their last game with its year and, under it, where they came ("1st") and how it ended as a badge (green for a win, red for a loss,
 // grey for a draw or a game left before its end), two lines of their own. Achievements: the badges they have earned, the latest first, in one row
 // of 4.75rem badges, as tall as the text of the cells beside it, that holds as many as fit (`AchievementStrip`): the number of those that are left ("+7", with no outline: a round background under the pointer shows that it can be pressed) takes the last place when there are more, and a press on it or on a badge opens the list of all of them. The count of all of them is in the label; the name,
 // what it was for and the day are in a card under the pointer, in the window and in words for a screen reader. A figure that is not known says so in words: "Unranked", "No game yet", "None yet" (and "0 h" for the time). The page gives the bar to a visitor
 // who is signed in, in a game that is live: the figures of a visitor who is not signed in, and of a game that cannot be played, are nobody's.
-// From 82.5rem (1320px) of width the four cells are in one row (in rem, like `sm`, so that the stylesheet puts the breakpoint after it): the rank's 1.2fr, the play time's 0.75fr (the least wide: its clock and its figure need about 170px, 205px at four digits of hours), the last played's 1fr (its day, with its year, needs about 220px) and the achievements' 1.25fr (the three badges that the row holds need
-// 236px, four need 316px, which it has from about 1370px), so that the longest name of a rank stays on one line. Under that width they are two by two, and one over the other on a phone. The room is the same in every
+// From 82.5rem (1320px) of width the four cells are in one row (in rem, like `sm`, so that the stylesheet puts the breakpoint after it): the rank's 1.2fr, the play time's 0.8fr (the least wide: its clock and its figure need about 195px, 215px at three digits of hours), the last played's 1fr (its day, with its year, needs about 220px) and the achievements' 1.2fr (the three badges that the row holds need
+// 236px, four need 316px, which it has from about 1420px), so that the longest name of a rank stays on one line. Under that width they are two by two, and one over the other on a phone. The room is the same in every
 // cell: 1.5rem on every side, the label at its top and what it says at its foot with at least 1rem between them (`StatBarItem`: the labels stand on one line across the row and what each says ends on one line), the rank's name on a row 2rem high with
 // the bar 0.75rem under it (0.5rem between the bar and what it reads). The texts of the rank and of the achievements are 76px high (the badges are as tall as the name and what is under it) and set a bar 156px high. The last played's two lines and the play time's hours are blocks
 // of their own, shorter, which end where the others do: on the line of the rank's points and of the foot of the badges.
@@ -34,7 +34,7 @@ export function GamePlayerBar({ stats, latest }: { stats: PlayerStats; latest: H
   const last = latest ? lastGameOf(latest) : null
 
   return (
-    <StatBar aria-label="Your progress" className="sm:grid-cols-2 min-[82.5rem]:grid-cols-[minmax(0,1.2fr)_minmax(0,0.75fr)_minmax(0,1fr)_minmax(0,1.25fr)]">
+    <StatBar aria-label="Your progress" className="sm:grid-cols-2 min-[82.5rem]:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
       <StatBarItem label="Rank" visual={<RankEmblem rank={rank} />}>
         {rank && next && rankProgress && rankProgress.needed > 0 ? (
           <>
@@ -63,7 +63,7 @@ export function GamePlayerBar({ stats, latest }: { stats: PlayerStats; latest: H
       <StatBarItem label="Play time">
         <div className="flex items-center gap-2">
           <HugeiconsIcon icon={ClockFadingIcon} strokeWidth={1.5} aria-hidden="true" className="size-8 shrink-0 text-muted-foreground" />
-          <StatBarValue className="text-3xl leading-8 whitespace-nowrap">{timePlayed(secondsPlayed)}</StatBarValue>
+          <StatBarValue className="text-4xl leading-10 whitespace-nowrap">{timePlayed(secondsPlayed)}</StatBarValue>
         </div>
       </StatBarItem>
 
