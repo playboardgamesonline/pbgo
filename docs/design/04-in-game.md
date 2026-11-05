@@ -1,6 +1,6 @@
 # In-game UI
 
-Everything about the UI that `@pbgo/core` draws inside a game, always in the game's own look and never the platform's: first what core provides (screens, HUD, announcements, seat label, game over, skin), then how a game tunes it. What every game shares around its board is drawn on this page in the look of two games side by side, Courtisans and the template: each game owns its universe, and the platform's look stops at the table's edge. The rules of the in-game UI (the room for the cookie banner, the compact layout, motion, copy) are in [the guidelines](01-guidelines.md#in-game-ui), the platform's look in [Foundations](02-foundations.md).
+Everything about the UI that `@pbgo/core` draws inside a game, always in the game's own look and never the platform's: first what core provides (screens, HUD, announcements, seat label, game over, skin), then how a game tunes it. What every game shares around its board is drawn on this page in the look of two games side by side, Courtisans and the template: each game owns its universe, and the platform's look stops at the table's edge. The rules of the in-game UI (the room for the cookie banner, the compact layout, motion, copy) are in [the guidelines](01-guidelines/04-in-game-rules.md), the platform's look in [Foundations](02-foundations/index.md).
 
 ## Screens and game flow
 
@@ -112,5 +112,5 @@ This page is the one place where the site shows the in-game UI. Two games (Court
 
 - The hub does not load `game.css`: `globals.css` points `@source` at the four pure components (`seat-label`, `players-strip-view`, `announcement-view`, `game-over-panel`) and maps the utilities only games have (`font-display`, `bg-surface`, `bg-surface-dark`, `text-accent-game`) with `@theme inline`, which emits no variable. A new pure component drawn here needs its `@source` there.
 - The font files of a game are not loaded on the hub, so its families fall to the next of the stack (Georgia, a serif); the colours, layout and motion are the real ones. The colors, the sizes and the texts are the code defaults of each game, not the values saved in its Sanity project.
-- The compact layout of a short screen (the `short` variant, a phone held sideways) is keyed on the viewport and is not drawn here ([Compact layout](01-guidelines.md#compact-layout)).
+- The compact layout of a short screen (the `short` variant, a phone held sideways) is keyed on the viewport and is not drawn here ([Compact layout](01-guidelines/04-in-game-rules.md#compact-layout)).
 - Use `data-look`, never `data-game` (analytics counts the hub links that carry it).

@@ -38,7 +38,7 @@ Pictures and sounds live in the game's Sanity project, never in the repo: `apps/
 
 ## Admin UI
 - `/gamemaster` (every game's admin, `/gamemaster/<slug>/...`) uses the PBGO platform design system (black and white, dark only, Geist, shadcn preset `beEgoY8u` adapted), scoped by the `.platform` class. The reference of every token and component is the design docs, `/docs/design` (`docs/design/` at the repo root)
-- Components live in the shared package `@pbgo/ui/platform/*` (`packages/ui/src/platform`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/platform` (or `game`), replace the `@/lib/utils` imports with `../utils`, and keep it dark-only and token-only (no `dark:` variant, no colour, font or size of its own; see `docs/design/01-guidelines.md` at the repo root)
+- Components live in the shared package `@pbgo/ui/platform/*` (`packages/ui/src/platform`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/platform` (or `game`), replace the `@/lib/utils` imports with `../utils`, and keep it dark-only and token-only (no `dark:` variant, no colour, font or size of its own; see `docs/design/01-guidelines/01-principles.md` at the repo root)
 - The home page, the lobby and the board keep the game's theme (colors and fonts set in Admin › Visual)
 
 ## In-game UI

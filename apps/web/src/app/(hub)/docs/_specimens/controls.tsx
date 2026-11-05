@@ -1,4 +1,4 @@
-// The live specimens of the controls page of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
+// The live specimens of the controls pages of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
 
 import type { Specimens } from "@pbgo/docs/markdown"
 import { HugeiconsIcon } from "@hugeicons/react"
