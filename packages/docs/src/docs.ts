@@ -208,9 +208,22 @@ export function flatten(pages: readonly DocPage[]): DocPage[] {
   return pages.flatMap((page) => [page, ...flatten(page.pages)])
 }
 
+const isAt = (page: DocPage, segments: readonly string[]): boolean => page.segments.length === segments.length && page.segments.every((word, index) => word === segments[index])
+
 /** The page at an address (one word for each folder and one for the file, `["design", "components", "controls"]`), or null. */
 export function findPage(sections: readonly DocSection[], segments: readonly string[]): DocPage | null {
-  return flatten(sections).find((page) => page.segments.length === segments.length && page.segments.every((word, index) => word === segments[index])) ?? null
+  return flatten(sections).find((page) => isAt(page, segments)) ?? null
+}
+
+/**
+ * The page before and the page after one, reading a section from its landing page to its last page, which is the order of its menu (each page, then its own pages): the way through a doc one page at a time, as a long page was read by scrolling.
+ * Null at either end of the section, and at both for an address that is not a page of it.
+ */
+export function neighboursOf(section: DocSection, segments: readonly string[]): { previous: DocPage | null; next: DocPage | null } {
+  const pages = flatten([section])
+  const index = pages.findIndex((page) => isAt(page, segments))
+  if (index === -1) return { previous: null, next: null }
+  return { previous: pages[index - 1] ?? null, next: pages[index + 1] ?? null }
 }
 
 /** A text as a search reads it: in lowercase and without accents. */

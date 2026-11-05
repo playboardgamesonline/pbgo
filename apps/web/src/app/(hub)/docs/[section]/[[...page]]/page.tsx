@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { LANDING, flatten } from "@pbgo/docs"
+import { LANDING, flatten, neighboursOf } from "@pbgo/docs"
 import { Markdown } from "@pbgo/docs/markdown"
 import { getDocPage, getSections, getSpecimenNames } from "@pbgo/docs/server"
+import { DocsPager } from "@/components/docs-pager"
 import { SPECIMENS } from "../../_specimens"
 
 // A page of the docs: `/docs/<section>` is the landing page of a section (`docs/<section>/index.md`), `/docs/<section>/<page>` another file of its folder and `/docs/<section>/<group>/<page>` a file of a folder of it, each folder having its landing
@@ -40,5 +41,11 @@ export async function generateMetadata({ params }: PageProps<"/docs/[section]/[[
 export default async function DocsPageOfSection({ params }: PageProps<"/docs/[section]/[[...page]]">) {
   const doc = await pageOf(params)
   if (!doc) notFound()
-  return <Markdown markdown={doc.markdown} dir={doc.dir} specimens={SPECIMENS} />
+  const { previous, next } = neighboursOf(doc.section, doc.page.segments)
+  return (
+    <>
+      <Markdown markdown={doc.markdown} dir={doc.dir} specimens={SPECIMENS} />
+      <DocsPager previous={previous} next={next} />
+    </>
+  )
 }

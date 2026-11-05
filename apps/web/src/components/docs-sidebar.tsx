@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowDown01Icon, ArrowLeft02Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { filterPages, matchesQuery, type DocPage, type DocSection } from "@pbgo/docs"
-import { Button } from "@pbgo/ui/platform/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
+import { Logo } from "@pbgo/ui/platform/logo"
+import { NavbarBrand } from "@pbgo/ui/platform/navbar"
 import { cn } from "@pbgo/ui/utils"
 
 const ROW = "block rounded-lg px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -64,15 +65,15 @@ function PageSections({ headings, title }: { headings: readonly Heading[]; title
   )
 }
 
-/** The top of a doc's side menu: the way back to all the docs and the name of the doc, which leads to its landing page. */
+/** The top of a doc's side menu: the logo, the brand's button as the navbar has it, which leads back to all the docs, and the name of the doc, which leads to its landing page. */
 export function DocsHeader({ doc }: { doc: DocSection }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <Button variant="ghost" size="icon-sm" asChild>
+      <NavbarBrand asChild>
         <Link href="/docs" aria-label="All docs" title="All docs">
-          <HugeiconsIcon icon={ArrowLeft02Icon} strokeWidth={2} aria-hidden="true" />
+          <Logo className="h-6" />
         </Link>
-      </Button>
+      </NavbarBrand>
       <Link href={doc.href} className="min-w-0 truncate font-heading text-xl">
         {doc.title}
       </Link>
@@ -83,15 +84,22 @@ export function DocsHeader({ doc }: { doc: DocSection }) {
 /**
  * The side menu of a doc, under its name: a search of its pages, then its pages in the order of the disk, a group of pages being a section that folds like an accordion. It reads the address to know which page is current, the way the
  * site's navbar does, so that it stays mounted from one page of the doc to the next and keeps its scroll and what was folded or unfolded. The section that holds the current page is open until the visitor says otherwise, and a search opens
- * every section that has a page it found. Under the page that is open, its own sections. What is in the menu is what `@pbgo/docs` found on the disk: a new file is a new entry with nothing to write here.
+ * every section that has a page it found, and the menu scrolls to the current page when the address changes, as a doc of many pages is longer than the window. Under the page that is open, its own sections. What is in the menu is what
+ * `@pbgo/docs` found on the disk: a new file is a new entry with nothing to write here.
  */
 export function DocsSidebar({ doc }: { doc: DocSection }) {
   const pathname = usePathname()
   const headings = useHeadings()
+  const menu = useRef<HTMLElement>(null)
   const [query, setQuery] = useState("")
   const [opened, setOpened] = useState<Record<string, boolean>>({})
   const searching = query.trim() !== ""
   const pages = useMemo(() => filterPages(doc.pages, query), [doc.pages, query])
+
+  // The menu of the window that is too narrow for the side menu is folded in a closed `details`, where there is nothing to scroll to
+  useEffect(() => {
+    menu.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" })
+  }, [pathname])
 
   const link = (page: DocPage, label: string) => {
     const current = pathname === page.href
@@ -133,7 +141,7 @@ export function DocsSidebar({ doc }: { doc: DocSection }) {
   }
 
   return (
-    <nav aria-label={`${doc.title} pages`} className="flex flex-col gap-4 text-sm">
+    <nav ref={menu} aria-label={`${doc.title} pages`} className="flex flex-col gap-4 text-sm">
       <InputGroup>
         <InputGroupAddon>
           <HugeiconsIcon icon={Search01Icon} strokeWidth={2} aria-hidden="true" />

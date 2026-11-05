@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { LANDING, addressOf, buildSections, filterPages, findPage, flatten, frontMatterOf, hrefOf, isDocName, matchesQuery, pageNameOf, parseName, resolveLink, specimensOf, splitSpecimen, titleOf, type DocFile, type DocPage } from "./docs"
+import { LANDING, addressOf, buildSections, filterPages, findPage, flatten, frontMatterOf, hrefOf, isDocName, matchesQuery, neighboursOf, pageNameOf, parseName, resolveLink, specimensOf, splitSpecimen, titleOf, type DocFile, type DocPage } from "./docs"
 
 describe("isDocName and pageNameOf", () => {
   it("accept words of lowercase letters and digits joined by dashes", () => {
@@ -238,6 +238,20 @@ describe("flatten and findPage", () => {
     expect(findPage(sections, ["design", "components", "controls"])?.title).toBe("Controls")
     expect(findPage(sections, ["design"])?.title).toBe("Design")
     for (const address of [[], ["design", "controls"], ["design", "components", "controls", "x"], ["nope"], ["design", "index"]]) expect(findPage(sections, address), address.join("/")).toBeNull()
+  })
+
+  it("reads a section page by page: the neighbours of a page are the ones before and after it in the order of the menu, inside its section", () => {
+    const [design] = sections
+    if (!design) throw new Error("no section")
+    const titles = (segments: string[]) => {
+      const { previous, next } = neighboursOf(design, segments)
+      return [previous?.title ?? null, next?.title ?? null]
+    }
+    expect(titles(["design"])).toEqual([null, "Components"])
+    expect(titles(["design", "components"])).toEqual(["Design", "Controls"])
+    expect(titles(["design", "components", "controls"])).toEqual(["Components", null])
+    expect(titles(["engine"])).toEqual([null, null])
+    expect(titles(["design", "nope"])).toEqual([null, null])
   })
 })
 
