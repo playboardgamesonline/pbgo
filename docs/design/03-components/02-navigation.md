@@ -89,6 +89,7 @@ The top of a page, in two containers kept apart over a transparent bar: the bran
 | `NavbarStart` | The left island: the brand, then the tabs |
 | `NavbarEnd` | The right island: the account |
 | `NavbarIsland` | A glass island on its own, for what hangs on the bar beside the two containers, such as the [friends' bar](05-social.md#friends-bar) |
+| `NavbarBack` | The way back, in an island of its own at the left of the first one: an arrow in a `size-10` square, quiet like a tab. The page leaves it out where the bar has no room for it |
 | `NavbarBrand` | The home's button: a `size-10` square around the `Logo` |
 | `NavbarTabs` | The tabs, next to the brand in the same island |
 | `NavbarTab` | One tab, a link. `current` marks the page the visitor is in, `disabled` a page that does not exist yet |

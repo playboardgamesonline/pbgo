@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { BADGE_MARKS, BADGE_SHAPES, badgeOf, shownIn, slotsIn } from "./achievements"
+import { BADGE_MARKS, BADGE_SHAPES, badgeOf, slotsIn } from "./achievements"
 
 describe("badgeOf", () => {
   it("gives a shape and a mark that the badge has", () => {
@@ -39,23 +39,5 @@ describe("slotsIn", () => {
     expect(slotsIn(40, 76, 4)).toBe(1)
     expect(slotsIn(Number.NaN, 76, 4)).toBe(1)
     expect(slotsIn(300, 0, 0)).toBe(1)
-  })
-})
-
-describe("shownIn", () => {
-  it("shows all of them when they fit", () => {
-    expect(shownIn(0, 3)).toEqual({ shown: 0, hidden: 0 })
-    expect(shownIn(3, 3)).toEqual({ shown: 3, hidden: 0 })
-    expect(shownIn(1, 1)).toEqual({ shown: 1, hidden: 0 })
-  })
-
-  it("leaves the last place to the tile when they do not, which counts itself in what is left", () => {
-    expect(shownIn(4, 3)).toEqual({ shown: 2, hidden: 2 })
-    expect(shownIn(9, 3)).toEqual({ shown: 2, hidden: 7 })
-    expect(shownIn(9, 6)).toEqual({ shown: 5, hidden: 4 })
-  })
-
-  it("has only the tile in a row of one place", () => {
-    expect(shownIn(2, 1)).toEqual({ shown: 0, hidden: 2 })
   })
 })

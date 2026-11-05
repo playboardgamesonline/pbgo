@@ -23,13 +23,3 @@ export function slotsIn(width: number, size: number, gap: number): number {
   const slots = Math.floor((width + gap) / (size + gap))
   return Number.isFinite(slots) ? Math.max(1, slots) : 1
 }
-
-/**
- * What a row of `slots` places shows of `count` achievements: all of them when they fit, else one place fewer than the row has, the last place being a tile that says how many are left (`hidden`, which counts the place the tile
- * took).
- */
-export function shownIn(count: number, slots: number): { shown: number; hidden: number } {
-  if (count <= slots) return { shown: count, hidden: 0 }
-  const shown = Math.max(0, slots - 1)
-  return { shown, hidden: count - shown }
-}
