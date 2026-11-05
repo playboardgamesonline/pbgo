@@ -22,7 +22,7 @@ import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 // rows of three, with a "See all" button at the top right of the card, how many are earned over how many there are in brackets after the label ("Achievements (9/12)"), and, when there are more than six, "+5" for the sixth place, at the bottom right, over the first five; the button, that number and each badge open the list of all of them. A figure that is
 // not known says so in words: "Unranked", "No game yet", "None yet" and "—" for a win rate. The page gives the cards to a visitor who is signed in, in a game that is live: the figures of a visitor who is not signed in, and of a game that cannot be played, are nobody's.
 // From 80rem (1280px) of width the three cards are in one row: the rank's 20rem wide (its name row needs 226px of room, its two figures 204px), the achievements' 21rem (its label with the count and its button need 283px, its three badges 236px) and the recent games' the rest, with 1rem between them;
-// from `md` and under 80rem the rank's and the achievements' are side by side, half the width each, and the recent games' under them on the whole width; under `md` the three are one over the other. In each card the label is at its top and what it says at its foot, at least 1rem under it (`StatBarItem`: the labels stand on one line
+// from `md` and under 80rem the rank's and the recent games' are side by side, half the width each, and the achievements' under them on the whole width, where its badges have the room to be in as many columns as fit; under `md` the three are one over the other. In each card the label is at its top and what it says at its foot, at least 1rem under it (`StatBarItem`: the labels stand on one line
 // across the row and what each says ends on one line), with 1.5rem round them. The recent games' content is the tallest, three rows of 4.25rem (two lines of text 0.5rem apart with 0.75rem over and under them: `py-3`) with 0.25rem between them, less the 0.75rem under the last one: the list goes down into the card's padding by it (`-mb-3`), so that the box of the last game is as far from the bottom of the card as every row is from its sides (1.5rem of padding less the 0.75rem that a row goes out by, `-mx-3`: 0.75rem) and the text of the last game ends where what the other cards say does, 1.5rem from the bottom; the games are at the foot of their card, under the label. That is 200px, so the cards are 280px high; the achievements' two rows, 156px, and the rank's content, 142px (its emblem and name, the bar 0.75rem under them, 0.5rem between the bar and what it
 // reads, then its two figures), end where it does.
 
@@ -73,7 +73,6 @@ export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: strin
 
       <StatBarItem
         label="Recent games"
-        className="md:order-last md:col-span-2 min-[80rem]:order-none min-[80rem]:col-span-1"
         action={
           recent.length > 0 && (
             <Button variant="outline" size="sm" asChild>
@@ -144,6 +143,7 @@ export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: strin
       </StatBarItem>
 
       <AchievementsCard
+        className="md:col-span-2 min-[80rem]:col-span-1"
         achievements={earned.map(({ id, name, description, earnedAt }) => ({ id, name, description, date: dayOf(earnedAt) }))}
         total={achievementsTotal}
       />
