@@ -16,7 +16,7 @@ import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
 // What the signed-in visitor has done in a game, as the first section under the head of its page and above the tables: three cards a little apart (`StatBar`), in this order: the rank progress, the recent games and the achievements.
 // Rank progress: its emblem (2.5rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`) at the left of its name (1.5rem, on one line whatever the room: the longest, "Grandmaster III", needs 174px), so that the label, the emblem and the thin bar under them share one left edge,
-// then, under the bar, "Pts" in small capitals at its left and the points they have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). The bar and that line are always there, whatever the rank: the bar is empty and the points say "—" where the progress is not known (an unranked visitor, a rank with no points) and the bar is full at Legend, which has nothing above it; no line says which rank is next. Under them, two smaller figures, each with a picto at its left (`Metric`): the games they played and their win
+// then, under the bar, "Pts" in small capitals at its left and the points they have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). The bar and that line stop 1rem short of the right of the card's content (`mr-4`), so that the bar does not run along the whole card and the line ends where the bar does. They are always there, whatever the rank: the bar is empty and the points say "—" where the progress is not known (an unranked visitor, a rank with no points) and the bar is full at Legend, which has nothing above it; no line says which rank is next. Under them, two smaller figures, each with a picto at its left (`Metric`): the games they played and their win
 // rate (the games they won over the games they played, "58%", "—" before any game). Recent games: their latest games, the latest first (sorted here by the time they ended, as the achievements are, so that the three that are shown are the latest whatever order the page gives them), `RECENT_MAX` (three) of them, a row each, 4.25rem high, with a background under the pointer and a hairline between one row and the next (as wide as the content, in the 0.25rem between them): at its left the time it ended and the day with its year, in the same type (UTC) with a dot between them, and, at the right of the day, an hourglass and how long the game lasted, over the group icon and the number of players, the speed it was played at, a lightning icon and its word ("Slow", "Normal", "Fast", "No timer", "Async") whatever it was, and the expansions it was played with ("+" and their names, cut when they are long; on a list narrower than 21rem the length does not fit at the right of the day and goes after the players, and the expansions have a line of their own under them), at its right, stuck to the edge, where they came ("1st") and the rank points it
 // gave or took as a badge in the same colours as a win and a loss were ("+32" in green, "−11" in red, "0" or "—" in grey), and, at the top right of the card, level with its label, a "See history" button to the visitor's own page, `/me/games`, at its History section, with the game to filter by in `?game=`. Achievements (`AchievementsCard`): the badges they have earned, the latest first, in at most two
 // rows of three, with a "See all" button at the top right of the card, how many are earned over how many there are in brackets after the label ("Achievements (9/12)"), and, when there are more than six, "+5" for the sixth place, at the bottom right, over the first five; the button, that number and each badge open the list of all of them. A figure that is
@@ -55,15 +55,17 @@ export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: strin
           <RankEmblem rank={rank} className="size-10 text-xl" />
           <StatBarValue className="text-2xl leading-8 whitespace-nowrap">{rank ? rankLabel(rank) : "Unranked"}</StatBarValue>
         </div>
-        <Progress
-          value={barValue}
-          aria-label="Rank points"
-          aria-valuetext={progress ? `${progress.points} of ${progress.needed}` : rank?.tier === "Legend" ? "Top of the board" : "Not known"}
-          className="mt-1 h-1"
-        />
-        <div className="flex items-center justify-between gap-3">
-          <StatBarLabel>Pts</StatBarLabel>
-          <StatBarNote className="text-sm leading-5 tabular-nums">{progress ? `${Math.min(progress.points, progress.needed - 1)}/${progress.needed}` : "—"}</StatBarNote>
+        <div className="mt-1 mr-4 flex flex-col gap-2">
+          <Progress
+            value={barValue}
+            aria-label="Rank points"
+            aria-valuetext={progress ? `${progress.points} of ${progress.needed}` : rank?.tier === "Legend" ? "Top of the board" : "Not known"}
+            className="h-1"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <StatBarLabel>Pts</StatBarLabel>
+            <StatBarNote className="text-sm leading-5 tabular-nums">{progress ? `${Math.min(progress.points, progress.needed - 1)}/${progress.needed}` : "—"}</StatBarNote>
+          </div>
         </div>
         <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
           <Metric icon={DicesIcon} label="Games played" value={gamesPlayed} />
