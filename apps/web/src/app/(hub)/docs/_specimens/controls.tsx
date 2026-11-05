@@ -3,7 +3,6 @@
 import type { Specimens } from "@pbgo/docs/markdown"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Add01Icon, ArrowRight01Icon, CheckmarkCircle02Icon, Download01Icon, InfinityIcon, Mail01Icon, Search01Icon } from "@hugeicons/core-free-icons"
-import { PROVIDERS, PROVIDER_NAMES } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Checkbox } from "@pbgo/ui/platform/checkbox"
@@ -12,7 +11,6 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegen
 import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@pbgo/ui/platform/input-group"
 import { Label } from "@pbgo/ui/platform/label"
-import { ProviderButton } from "@pbgo/ui/platform/provider-button"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Slider } from "@pbgo/ui/platform/slider"
 import { Spinner } from "@pbgo/ui/platform/spinner"
@@ -132,34 +130,6 @@ function ButtonStatesAndAsALink() {
       <Button asChild variant="outline">
         <a href="#button">A link, styled as a button</a>
       </Button>
-    </Frame>
-  )
-}
-
-function ProviderButtonARowOfFour() {
-  return (
-    <Frame className="grid max-w-md grid-cols-4 gap-3" code={`<div role="group" aria-label="Sign in with" className="grid grid-cols-4 gap-3">
-  {PROVIDERS.map((provider) => (
-    <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} onClick={() => start(provider)} />
-  ))}
-</div>`}>
-      {PROVIDERS.map((provider) => (
-        <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} />
-      ))}
-    </Frame>
-  )
-}
-
-function ProviderButtonPendingAndOff() {
-  return (
-    <Frame className="grid max-w-md grid-cols-4 gap-3" code={`<ProviderButton brand="google" name="Google" pending />
-<ProviderButton brand="apple" name="Apple" disabled />`}>
-      {PROVIDERS.map((provider) => (
-        <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} pending disabled />
-      ))}
-      {PROVIDERS.map((provider) => (
-        <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} disabled />
-      ))}
     </Frame>
   )
 }
@@ -728,8 +698,6 @@ export const controlsSpecimens: Specimens = {
   "toggle-group-segmented": ToggleGroupSegmented,
   "button-with-an-icon": ButtonWithAnIcon,
   "button-states-and-as-a-link": ButtonStatesAndAsALink,
-  "provider-button-a-row-of-four": ProviderButtonARowOfFour,
-  "provider-button-pending-and-off": ProviderButtonPendingAndOff,
   "badge-variants": BadgeVariants,
   "badge-with-an-icon-and-as-a-link": BadgeWithAnIconAndAsALink,
   "input-and-textarea": InputAndTextarea,

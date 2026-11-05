@@ -8,7 +8,6 @@ import { GlassLab } from "./glass-lab"
 import { MotionDemo } from "./motion-demo"
 import { RadiusScale } from "./radius-scale"
 import { Code, Frame } from "./text"
-import { TitleMotionLab } from "./title-motion-lab"
 import { TokenTable } from "./token-table"
 import { TypeScale, WeightProof } from "./type-scale"
 
@@ -216,5 +215,4 @@ export const foundationsSpecimens: Specimens = {
   "glass-lab": GlassSettings,
   "motion-durations": MotionDurations,
   "motion-javascript": MotionJavascript,
-  "title-motion-lab": TitleMotionLab,
 }

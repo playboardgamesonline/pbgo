@@ -6,7 +6,7 @@ What appears over the page: dialogs, sheets, menus, popovers, tooltips, hover ca
 
 Module: `@pbgo/ui/platform/dialog`
 
-A modal that interrupts the page for one decision or one short form. It traps focus, closes on Escape and on a click outside, and carries the `platform` class itself since it renders in a portal.
+A modal that interrupts the page for one decision or one short form. It traps focus and closes on Escape and on a click outside.
 
 ### Confirmation and form
 
@@ -32,9 +32,7 @@ sheet-four-sides
 
 Module: `@pbgo/ui/platform/dropdown-menu`
 
-A list of actions behind one button. Rows can carry an icon, a shortcut, a check or a radio; groups take a label and are split by separators; a row can open a sub-menu.
-
-Its panel is glass, like a popover's and a select's: see [Glass, and where the blur lives](#glass-and-where-the-blur-lives).
+A list of actions behind one button. Rows can carry an icon, a shortcut, a check or a radio; groups take a label and are split by separators; a row can open a sub-menu. Its panel is glass, like a popover's and a select's: see [Glass, and where the blur lives](#glass-and-where-the-blur-lives).
 
 ### Every kind of row
 
@@ -48,14 +46,12 @@ dropdown-menu-every-kind-of-row
 
 Module: `@pbgo/ui/platform/popover`
 
-A panel that opens on its trigger and holds a few controls, where a menu is too thin and a dialog too heavy: each filter of the [search bar](02-navigation.md#search-bar) opens one.
-
-It closes on Escape and on a click outside, hands the focus back to its trigger, and carries the `platform` class itself since it renders in a portal, above the fixed navbar. Like the menus it is glass: see [Glass, and where the blur lives](#glass-and-where-the-blur-lives) below.
+A panel that opens on its trigger and holds a few controls, where a menu is too thin and a dialog too heavy. It closes on Escape and on a click outside and hands the focus back to its trigger. Like the menus it is glass: see [Glass, and where the blur lives](#glass-and-where-the-blur-lives) below.
 
 ### A header and chips
 
 - `PopoverHeader` puts the title on the left and what acts on the whole panel, a ghost Clear button, on the right.
-- The panel is `w-72` and scrolls when the screen is too short for it; give `PopoverContent` another width with `className`.
+- The panel scrolls when the screen is too short for it; give `PopoverContent` another width with `className`.
 - Name it with an `aria-label`, or with an `aria-labelledby` that points at its title.
 - What the pick does, and whether the panel closes after it, belongs to the page (`open` and `onOpenChange`).
 
@@ -65,11 +61,7 @@ popover-header-and-chips
 
 ### Glass, and where the blur lives
 
-The panels of a [select](01-controls.md#select), a [dropdown menu](#dropdown-menu) and a popover are glass: translucent, and blurring what is behind them. Each wears the `glass` utility (see [Glass](../02-foundations.md#glass)) and carries its blur on the panel element itself, which is the `backdrop-filter` of the utility, never on a `::before`.
-
-The reason: in Chromium, a descendant with a blend mode makes the panel an isolated group, and a pseudo-element backdrop then blurs nothing, so the page shows through the list, sharp. The `Avatar` ring is such a descendant (`mix-blend-lighten`).
-
-The game switcher of the gamemaster, a select with an `Avatar` in each of its rows, is the live check of this rule.
+The panels of a [select](01-controls.md#select), a [dropdown menu](#dropdown-menu) and a popover are glass. Each wears the `glass` utility (see [Glass](../02-foundations.md#glass)) and carries its blur on the panel element itself, never on a `::before`: in Chromium a descendant with a blend mode, like the `Avatar` ring, makes the panel an isolated group, and a pseudo-element backdrop then blurs nothing.
 
 ## Tooltip
 
@@ -87,11 +79,11 @@ tooltip-sides-and-icon-button
 
 Modules: `@pbgo/ui/platform/hover-card`, `@pbgo/ui/platform/user-card`
 
-A card that opens under the pointer when it rests on its trigger, for what a sighted visitor may want to glance at without pressing anything. It is for the pointer alone: a touch has no hover and the keyboard does not reach the trigger, so whatever the card says is also said somewhere that a press reaches. It opens after a short rest (200 ms), so that crossing a row of pictures flashes no card for each, and it stays while the pointer crosses the gap to it (100 ms). Like the popover it renders in a portal, so it carries the `platform` class itself and sits above the fixed navbar, it is glass, and it stays 16px inside the window. `HoverCardTrigger` takes the element the pointer rests on with `asChild` and adds no `data-slot` to it, an avatar keeping its own.
+A card that opens under the pointer when it rests on its trigger, for what a sighted visitor may want to glance at without pressing anything. It is for the pointer alone: a touch has no hover and the keyboard does not reach the trigger, so whatever the card says is also said somewhere a press reaches. `HoverCardTrigger` takes the element the pointer rests on with `asChild`.
 
 ### A player's card
 
-`UserCard` is what the picture of a player opens: a larger picture, their nickname and the tag after it (`#0412`, which tells two players of one name apart), a quiet line when there is something to say (the host of the table, or "Guest" for a player who has no tag), then their rank in the game and their record ("41 wins in 63 games"), or "Not ranked yet" for one who has played no ranked game. A seat's picture opens it already (`SeatAvatar`). The cards below are drawn as they open; the pictures under them open the same ones.
+`UserCard` is what the picture of a player opens: their nickname and tag, a quiet line when there is something to say, their rank in the game and their record. A seat's picture opens it already (`SeatAvatar`).
 
 ```specimen
 hover-card-a-players-card
@@ -101,13 +93,7 @@ hover-card-a-players-card
 
 Module: `@pbgo/ui/platform/sonner`
 
-A message that confirms something happened and fades by itself. Call `toast()` from anywhere.
-
-The `Toaster` is mounted once per layout:
-
-- the gamemaster layout mounts this one;
-- the games mount their own style (`AppToaster` in `packages/core/components/toaster.tsx`);
-- the specimen below mounts its own.
+A message that confirms something happened and fades by itself. Call `toast()` from anywhere; the `Toaster` is mounted once per layout (the gamemaster's; the games mount their own, `AppToaster`).
 
 ### Kinds
 
@@ -121,26 +107,19 @@ toast-kinds
 
 Module: `@pbgo/ui/platform/cookie-banner`
 
-The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred (`max-w-4xl`), with a title and a sentence that ends with a link to the policy, and on the other side three buttons laid out the way Claude's are: Customize (`secondary`, the grey one) over Reject optional (`secondary`) and Accept all, which are side by side.
+The question about statistics and recordings: a wide card that floats at the bottom of the screen, centred, with a title, a sentence that ends with a link to the policy, and three buttons: Customize (`secondary`), Reject optional (`secondary`) and Accept all. The buttons are the same size and shape, so refusing is as easy to hit as accepting. On a wide screen the card is a bar (the words on the left, the buttons on the right); on a narrow one the words are over the buttons.
 
-The buttons are the same size and the same shape, so refusing is as easy to hit as accepting: the size of the navbar's Sign in and Let's play, the `lg` of the Button with their corners (2.5rem high, `rounded-lg` which is 12px, `text-sm`). The card follows the width of the screen:
+Customize swaps the content of the card for the choices, one row each with a switch: Necessary (on and out of reach), Analytics and Marketing. The word beside each switch (Required, On, Off) says where it stands. The card ends with Back and Save preferences, and Escape goes back. Accept all turns both switches on, Reject optional both off.
 
-- from `lg` it is a bar, the words on the left and the three buttons on the right, centred on its height; the block is as wide as the longest of its labels (`w-max`), so a long label in another language widens it instead of overflowing;
-- under `lg` the words are over the buttons, which take the width of the card, Customize on a line of its own.
-
-Customize swaps the content of the card for the choices, one row each, with a switch: Necessary (what the site needs, on and out of reach), Analytics (an identifier kept on the device, and the session recordings that hang on it), and Marketing, a switch like the other and off to begin with: the site has no marketing cookie yet, but the choice is there, and its answer kept, for the day it has one. The word beside each switch (Required, On, Off) says where it stands. The card ends with Back and Save preferences: Save keeps the switches as they are set (Accept all turns both on, Reject optional both off), and Escape goes back. The card never grows taller than the window: past that its content scrolls.
-
-The words and the answers come from the caller: `@pbgo/analytics` keeps the stored answer, and the words are in English for everyone while the site is in English only. The banner carries the `platform` class itself, since it also sits over a game page.
+The words and the answers come from the caller: `@pbgo/analytics` keeps the stored answer. The banner carries the `platform` class itself, since it also sits over a game page.
 
 ### Room for the card
 
-The card never sits over the page. Its caller measures the box around it, margin included, and makes the room: `@pbgo/analytics` publishes the height of that box as `--consent-h` on `<body>`, so the page ends above the card. A screen that fills the viewport subtracts the variable, `h-[calc(100dvh-var(--consent-h,0px))]`. The full rule is in [Room for the cookie banner](../01-guidelines.md#room-for-the-cookie-banner).
-
-The specimens below put the banner on a stand-in page. They pin it with `absolute` and make the room on the stand-in page itself, where a real page pins it with `fixed` and makes it on `<body>`.
+The card never sits over the page: `@pbgo/analytics` publishes its height as `--consent-h` on `<body>`, and a screen as tall as the viewport subtracts it (see [Room for the cookie banner](../01-guidelines.md#room-for-the-cookie-banner)).
 
 ### First visit
 
-No close button: the banner stays until the visitor answers. Try either button, and watch the button at the bottom of the stand-in page: it rises above the card and drops back when the card closes.
+No close button: the banner stays until the visitor answers.
 
 ```specimen
 cookie-banner-first-visit
@@ -148,7 +127,7 @@ cookie-banner-first-visit
 
 ### Customize
 
-The same card opened on its choices. Switch Analytics and Marketing on and off, then Save or go Back; the Necessary switch does not move.
+The same card opened on its choices.
 
 ```specimen
 cookie-banner-customize
@@ -156,7 +135,7 @@ cookie-banner-customize
 
 ### Reopened from the Cookies link
 
-A visitor who already answered can change their mind from the Cookie Policy page, from the footer of a game's home page or from a game's settings menu. The card then has a close button at its top right corner, closes on Escape and takes the focus, and closing it keeps the answer. Press Cookies in the specimen to open it.
+A visitor who already answered can reopen it from the Cookie Policy page or a game's settings menu. The card then has a close button, closes on Escape and takes the focus; closing it keeps the answer.
 
 ```specimen
 cookie-banner-reopened

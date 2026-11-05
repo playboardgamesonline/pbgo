@@ -18,8 +18,6 @@ import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
-import { PricingPlans } from "@/components/pricing-plans"
-import { CreditLink } from "@pbgo/ui/platform/credit-link"
 import { Frame } from "./text"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -86,28 +84,6 @@ function CardDefaultAndSmall() {
           </CardDescription>
         </CardHeader>
       </Card>
-    </Frame>
-  )
-}
-
-function PlanCardThreePlans() {
-  return (
-    <Frame code={`<PlanCard
-  name="Plus"
-  price="€0.99"
-  period="/ month"
-  note="Billed monthly"
-  description="For players who come back."
-  visual={<PlanVisual icon={SparklesIcon} />}
-  features={["Everything in Free", "Advanced statistics"]}
-  disabled
-  action={
-    <Button size="lg" variant="outline" className="w-full" disabled>
-      Coming soon
-    </Button>
-  }
-/>`}>
-      <PricingPlans />
     </Frame>
   )
 }
@@ -181,32 +157,6 @@ async function GameCardThePictureAlone() {
       <GameCardVisual logo={logo} background={background} className="rounded-3xl ring-1 ring-foreground/10" />
       <GameCardVisual logo={logo} className="rounded-3xl ring-1 ring-foreground/10" />
       <GameCardVisual className="rounded-3xl ring-1 ring-foreground/10" />
-    </Frame>
-  )
-}
-
-function CreditLinkInTheCreditsOfAGame() {
-  return (
-    <Frame code={`<CreditLink href="https://www.cocktailgames.com" icon="/api/catalog/hanabi/publisher-0?v=…">
-  Cocktail Games
-</CreditLink>`}>
-      <dl className="grid max-w-md grid-cols-[auto_1fr] gap-x-8 gap-y-3">
-        <dt className="text-muted-foreground">Designer</dt>
-        <dd>Antoine Bauza</dd>
-        <dt className="text-muted-foreground">Artist</dt>
-        <dd>Laura Michaud</dd>
-        <dt className="text-muted-foreground">Publishers</dt>
-        <dd>
-          <CreditLink href="https://playboardgamesonline.app" icon="/favicon.ico">
-            Cocktail Games
-          </CreditLink>
-          {", "}
-          <CreditLink href="https://playboardgamesonline.app" icon="/docs/no-such-icon.png">
-            Oya
-          </CreditLink>
-          {", Spiral Éditions"}
-        </dd>
-      </dl>
     </Frame>
   )
 }
@@ -622,11 +572,9 @@ function TableScoreboard() {
 
 export const surfacesSpecimens: Specimens = {
   "card-default-and-small": CardDefaultAndSmall,
-  "plan-card-three-plans": PlanCardThreePlans,
   "game-card-the-live-games-and-without-art": GameCardTheLiveGamesAndWithoutArt,
   "game-card-a-game-to-come": GameCardAGameToCome,
   "game-card-the-picture-alone": GameCardThePictureAlone,
-  "credit-link-in-the-credits-of-a-game": CreditLinkInTheCreditsOfAGame,
   "section-a-preview-of-a-list": SectionAPreviewOfAList,
   "section-nothing-to-list-yet": SectionNothingToListYet,
   "avatar-sizes-badge-and-group": AvatarSizesBadgeAndGroup,
