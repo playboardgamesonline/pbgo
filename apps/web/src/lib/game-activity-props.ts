@@ -188,7 +188,7 @@ const FULL_DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "shor
 /** "28 Oct 2026": the day of an ISO date with its year, in UTC like `dayOf`. */
 export const fullDayOf = (iso: string): string => FULL_DAY.format(new Date(iso))
 
-/** The latest game a visitor finished, as the bar under the head says it. */
+/** A game a visitor finished, as a row of the recent games under the head says it. */
 export type LastGame = {
   /** "28 Oct 2026": the day it ended, with its year. */
   day: string
@@ -198,7 +198,7 @@ export type LastGame = {
   place: string | null
 }
 
-/** What the bar under the head says of the latest game a visitor finished (`HistoryEntry`: the one the history starts with). */
+/** What a row of the recent games under the head says of a game a visitor finished (`HistoryEntry`). */
 export function lastGameOf(entry: HistoryEntry): LastGame {
   return {
     day: fullDayOf(entry.finishedAt),

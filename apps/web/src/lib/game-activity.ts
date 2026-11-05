@@ -207,6 +207,15 @@ export async function getPlayerStats(slug: string, viewerId: string | null): Pro
   return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, rankProgress: null, place: null, rankedPlayers: 0, achievements: [], achievementsTotal: 0 }
 }
 
+/**
+ * How long a visitor who looks for a table of this game waits for one, in seconds, as the platform estimates it from the tables it made up lately: the figure that the head of the game's page calls the queue time. Nothing is estimated yet
+ * (the matchmaking is PLT-13's, and the queue the head puts a visitor in is in their browser), so it is null and the head leaves the figure out, as it leaves out any figure that cannot be counted.
+ */
+export async function getQueueEstimate(slug: string): Promise<number | null> {
+  void slug
+  return null
+}
+
 /** The games the signed-in visitor finished in this game, the latest first, at most `HISTORY_SIZE`. There are none yet. */
 export async function getHistory(slug: string, viewerId: string | null): Promise<HistoryEntry[]> {
   void slug
