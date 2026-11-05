@@ -18,8 +18,11 @@ export function badgeOf(seed: string): { shape: number; mark: number } {
   return { shape: hash % BADGE_SHAPES, mark: Math.floor(hash / BADGE_SHAPES) % BADGE_MARKS }
 }
 
-/** How many badges `size` wide, `gap` apart, a row `width` wide holds (all in the same unit): one at least, since a row always has a place. */
-export function slotsIn(width: number, size: number, gap: number): number {
-  const slots = Math.floor((width + gap) / (size + gap))
-  return Number.isFinite(slots) ? Math.max(1, slots) : 1
+/**
+ * What a block of `places` places shows of `count` achievements: all of them when they fit, else one place fewer than the block has, the last place being the number of those that are left (`hidden`, which counts the place that number took).
+ */
+export function shownIn(count: number, places: number): { shown: number; hidden: number } {
+  if (count <= places) return { shown: count, hidden: 0 }
+  const shown = Math.max(0, places - 1)
+  return { shown, hidden: count - shown }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { agoOf, recordOf, resultOf, resultWord, timePlayed, winRate, type Outcome } from "./results"
+import { agoOf, pointsLabel, pointsTone, recordOf, resultOf, resultWord, timePlayed, winRate, type Outcome } from "./results"
 
 describe("resultOf", () => {
   it("calls a game won, lost or drawn whether it was played against the others or with them", () => {
@@ -90,5 +90,22 @@ describe("timePlayed", () => {
   it("takes what is not a time for none", () => {
     expect(timePlayed(-30)).toBe("0 h")
     expect(timePlayed(Number.NaN)).toBe("0 h")
+  })
+})
+
+describe("pointsLabel", () => {
+  it("writes the points a game gave with a plus and the ones it took with a minus", () => {
+    expect([32, 1, -11, -1].map(pointsLabel)).toEqual(["+32", "+1", "−11", "−1"])
+  })
+
+  it("writes 0 for a game that moved nothing and a dash where no points apply", () => {
+    expect(pointsLabel(0)).toBe("0")
+    expect(pointsLabel(null)).toBe("—")
+  })
+})
+
+describe("pointsTone", () => {
+  it("is green for a gain, red for a loss and grey for none", () => {
+    expect([32, -11, 0, null].map(pointsTone)).toEqual(["success", "destructive", "secondary", "secondary"])
   })
 })

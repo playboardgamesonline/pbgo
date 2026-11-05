@@ -6,7 +6,6 @@ import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
-import { resultOf, type Result } from "@pbgo/ui/results"
 import { ageOf, hostOf, nicknameOf, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import { categoryIcon } from "./category-icons"
 import type { Expansion, GameTable, HistoryEntry, Standing, TurnTimer } from "./game-activity"
@@ -192,17 +191,14 @@ export const fullDayOf = (iso: string): string => FULL_DAY.format(new Date(iso))
 export type LastGame = {
   /** "28 Oct 2026": the day it ended, with its year. */
   day: string
-  /** How it ended for them: the bar words it and gives it its colour. */
-  result: Result
   /** Where they came: "1st", "2nd", "3rd", with no count of the players; none where no ranking applies (a game played together). */
   place: string | null
 }
 
-/** What a row of the recent games under the head says of a game a visitor finished (`HistoryEntry`). */
+/** What a row of the recent games under the head says of a game a visitor finished (`HistoryEntry`): the day and the place; the rank points and the players are the entry's own. */
 export function lastGameOf(entry: HistoryEntry): LastGame {
   return {
     day: fullDayOf(entry.finishedAt),
-    result: resultOf(entry.outcome),
     place: entry.place === null ? null : ordinal(entry.place),
   }
 }

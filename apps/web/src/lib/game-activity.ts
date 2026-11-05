@@ -145,7 +145,7 @@ export type PlayerStats = {
   achievementsTotal: number
 }
 
-/** One game a visitor finished: a row of their `game_participants` with its `game_results`. What it did to their hidden rating is not here, and no rank change is drawn. */
+/** One game a visitor finished: a row of their `game_participants` with its `game_results`. What it did to their hidden rating is not here, only what it did to their rank points. */
 export type HistoryEntry = {
   /** `game_results.table_id` */
   tableId: string
@@ -157,6 +157,8 @@ export type HistoryEntry = {
   place: number | null
   /** `game_results.player_count` */
   playerCount: number
+  /** The rank points the game gave them (+32) or took (-11), in the unit of the figure under their rank (100 to a division): derived on the server from the change of their hidden rating (`rating_changes`), which is never here. Null where no points apply (a game played together, a game with no ranking). */
+  points: number | null
   /** `game_participants.score` */
   score: number | null
   /** The expansions the game was played with, by `Expansion.id`: none for the base game. The page's guess, like `GameTable.expansions`. */

@@ -28,6 +28,23 @@ export function resultWord(result: Result): string {
   return result.charAt(0).toUpperCase() + result.slice(1)
 }
 
+/** What a game did to a player's rank points, in the colour of the badge that says it: a gain is `success`, a loss `destructive`, and nothing to say (no change, or no points at all) `secondary`. */
+export type PointsTone = "success" | "destructive" | "secondary"
+
+/** The rank points a game gave ("+32") or took ("−11", with a real minus), "0" for a game that moved nothing and "—" where no points apply (`null`). */
+export function pointsLabel(points: number | null): string {
+  if (points === null) return "—"
+  if (points > 0) return `+${points}`
+  if (points < 0) return `−${Math.abs(points)}`
+  return "0"
+}
+
+/** The tone of those points: green for a gain, red for a loss, grey for none. */
+export function pointsTone(points: number | null): PointsTone {
+  if (points === null || points === 0) return "secondary"
+  return points > 0 ? "success" : "destructive"
+}
+
 /** The share of games won, in whole percent: null when no game was played, since there is nothing to share. */
 export function winRate(wins: number, played: number): number | null {
   return played > 0 ? Math.round((wins / played) * 100) : null

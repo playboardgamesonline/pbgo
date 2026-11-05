@@ -3,17 +3,18 @@
 import * as React from "react"
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { slotsIn } from "../achievements"
+import { shownIn } from "../achievements"
+import { cn } from "../utils"
 import { AchievementBadge } from "./achievement-tile"
 import { Button } from "./button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./dialog"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card"
-import { StatBarItem, StatBarNote, StatBarValue } from "./stat-bar"
+import { StatBarItem, StatBarValue } from "./stat-bar"
 
-// The achievements a visitor has earned, as a card of the stat bar (`StatBarItem`) for a page that shows what a visitor did: the badges in up to two rows of 4.75rem, the latest first, as many as the card holds, and at the right of its label a "View all" button. The count of what is earned, over how many there are
-// when that is known, is under the badges ("9/12"), not in the label. The button and each badge open the same window, which lists every one with its picture, its name, what it was for and the day, and scrolls when they do not fit, so that a touch, which has no hover, reaches what the card under the pointer says on a badge (the
-// name, what it was for and the day). The room is measured in the browser, the row's width over the width of a badge and its gap (`slotsIn`), and kept as the card is resized; the server, and the first paint, draw three badges to a row. A visitor who has earned none has "None yet" and no button. A badge is drawn from the
-// achievement's id (`AchievementBadge`).
+// The achievements a visitor has earned, as a card of the stat bar (`StatBarItem`) for a page that shows what a visitor did: the badges in a block of at most two rows of three, 4.75rem each, the latest first, and at the right of its label a "View all" button. The count of what is earned, over how many there
+// are when that is known, is in the label, in brackets after its name ("Achievements (9/12)"). When there are more than six, the sixth place, at the bottom right, is the number of those that are left ("+5": the bare number, no outline, with a round background under the pointer to say that it can be pressed) and the
+// badges are the first five. The button, the number and each badge open the same window, which lists every one with its picture, its name, what it was for and the day, and scrolls when they do not fit, so that a touch, which has no hover, reaches what the card under the pointer says on a badge (the name, what it
+// was for and the day). A visitor who has earned none has "None yet" and no button. A badge is drawn from the achievement's id (`AchievementBadge`).
 
 type AchievementsCardItem = {
   id: string
@@ -31,44 +32,26 @@ type AchievementsCardProps = Omit<React.ComponentProps<typeof StatBarItem>, "lab
   total?: number
 }
 
-/** How many rows of badges the card holds. */
-const ROWS = 2
+/** The places of the block: three to a row, two rows. */
+const PLACES = 6
 
-/** The badges to a row until the card is measured, and on the server. */
-const FIRST_SLOTS = 3
-
-/** What a badge is pressed with: the ring that shows where the keyboard is. */
+/** What a badge and the number are pressed with: the ring that shows where the keyboard is. */
 const PRESS = "block cursor-pointer rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
 
 function AchievementsCard({ achievements, total = 0, ...props }: AchievementsCardProps) {
-  const row = React.useRef<HTMLUListElement>(null)
-  const [slots, setSlots] = React.useState(FIRST_SLOTS)
-  const empty = achievements.length === 0
-
-  React.useLayoutEffect(() => {
-    const element = row.current
-    if (!element) return
-    const measure = () => {
-      const place = element.firstElementChild
-      if (place) setSlots(slotsIn(element.clientWidth, place.getBoundingClientRect().width, parseFloat(getComputedStyle(element).columnGap) || 0))
-    }
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [empty])
-
-  if (empty) {
+  if (achievements.length === 0) {
     return (
       <StatBarItem label="Achievements" {...props}>
         <StatBarValue>None yet</StatBarValue>
       </StatBarItem>
     )
   }
+  const { shown, hidden } = shownIn(achievements.length, PLACES)
+  const label = total >= achievements.length && total > 0 ? `Achievements (${achievements.length}/${total})` : `Achievements (${achievements.length})`
   return (
     <Dialog>
       <StatBarItem
-        label="Achievements"
+        label={label}
         action={
           <DialogTrigger asChild>
             <Button variant="outline" size="sm">
@@ -80,8 +63,8 @@ function AchievementsCard({ achievements, total = 0, ...props }: AchievementsCar
         }
         {...props}
       >
-        <ul ref={row} data-slot="achievement-badges" aria-label="Your achievements" className="flex flex-wrap gap-1">
-          {achievements.slice(0, slots * ROWS).map(({ id, name, description, date }) => (
+        <ul data-slot="achievement-badges" aria-label="Your achievements" className="grid w-fit grid-cols-3 gap-1">
+          {achievements.slice(0, shown).map(({ id, name, description, date }) => (
             <li key={id}>
               <HoverCard>
                 <HoverCardTrigger asChild>
@@ -102,17 +85,19 @@ function AchievementsCard({ achievements, total = 0, ...props }: AchievementsCar
               </HoverCard>
             </li>
           ))}
-        </ul>
-        <StatBarNote className="text-sm leading-5 tabular-nums">
-          {total >= achievements.length && total > 0 ? (
-            <>
-              {achievements.length}/{total}
-              <span className="sr-only"> earned</span>
-            </>
-          ) : (
-            `${achievements.length} earned`
+          {hidden > 0 && (
+            <li>
+              <DialogTrigger asChild>
+                <button type="button" className={cn(PRESS, "flex size-19 items-center justify-center rounded-full transition-colors duration-fast hover:bg-accent")}>
+                  <span aria-hidden="true" className="font-heading text-xl tabular-nums">
+                    +{hidden}
+                  </span>
+                  <span className="sr-only">Show all {achievements.length} achievements</span>
+                </button>
+              </DialogTrigger>
+            </li>
           )}
-        </StatBarNote>
+        </ul>
       </StatBarItem>
       <DialogContent className="gap-0 overflow-hidden p-0">
         <DialogHeader className="p-6 pr-16">

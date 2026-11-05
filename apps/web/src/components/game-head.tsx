@@ -48,7 +48,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-background/90 via-background/50 to-transparent" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-t from-background via-background/30 to-transparent" />
 
-      <div className="mx-auto flex min-h-[calc((100svh-var(--consent-h,0px))*0.92)] lg:min-h-[calc((100svh-var(--consent-h,0px))*0.8)] w-full max-w-page flex-col justify-end gap-16 px-gutter pt-navbar pb-10 max-sm:justify-between md:gap-8 md:pb-14">
+      <div className="mx-auto flex min-h-[calc((100svh-var(--consent-h,0px))*0.92)] lg:min-h-[calc((100svh-var(--consent-h,0px))*0.8)] w-full flex-col justify-end gap-16 px-gutter pt-navbar pb-10 max-sm:justify-between md:gap-8 md:pb-14">
         <Link href="/games" aria-label="Back to all games" className="mt-2 inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground underline-offset-4 hover:underline sm:hidden">
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4" />
           Back

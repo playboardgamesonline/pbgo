@@ -25,7 +25,7 @@ function StatBarItem({ label, action, className, children, ...props }: StatBarIt
       {...props}
     >
       <div className="flex items-center justify-between gap-3">
-        <StatBarLabel>{label}</StatBarLabel>
+        <StatBarLabel className="min-w-0 truncate">{label}</StatBarLabel>
         {action && <div className="-my-2 shrink-0">{action}</div>}
       </div>
       <div data-slot="stat-bar-content" className="flex min-w-0 flex-col gap-2">
