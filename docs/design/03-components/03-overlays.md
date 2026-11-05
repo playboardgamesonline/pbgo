@@ -1,45 +1,29 @@
 # Overlays
 
-What appears over the page: dialogs, sheets, menus, popovers, tooltips, hover cards, toasts and the cookie banner.
+What appears over the page: dialogs, menus, popovers, hover cards, toasts and the cookie banner.
 
 ## Dialog
 
 Module: `@pbgo/ui/platform/dialog`
 
-A modal that interrupts the page for one decision or one short form. It traps focus and closes on Escape and on a click outside.
-
-### Confirmation and form
-
-The title and description name the decision. Footer buttons go from least to most committing, the destructive one last. `DialogFooter` adds a Close button with `showCloseButton`.
+A modal that interrupts the page for one piece of content. It traps focus and closes on Escape and on a click outside. The title and the description name it.
 
 ```specimen
-dialog-confirmation-and-form
-```
-
-## Sheet
-
-Module: `@pbgo/ui/platform/sheet`
-
-A panel that slides in from an edge: a menu on a phone, a settings drawer, a long form. Same behaviour as a dialog, but its panel travels, so it uses `duration-slow` (see [Motion](../02-foundations.md#motion)) where a dialog uses `duration-fast`.
-
-### Four sides
-
-```specimen
-sheet-four-sides
+dialog-default
 ```
 
 ## Dropdown menu
 
 Module: `@pbgo/ui/platform/dropdown-menu`
 
-A list of actions behind one button. Rows can carry an icon, a shortcut, a check or a radio; groups take a label and are split by separators; a row can open a sub-menu. Its panel is glass, like a popover's and a select's: see [Glass, and where the blur lives](#glass-and-where-the-blur-lives).
+A list of actions behind one button. Rows can carry an icon or a radio; a label heads a group and separators split them. Its panel is glass, like a popover's and a select's: see [Glass, and where the blur lives](#glass-and-where-the-blur-lives).
 
-### Every kind of row
+### Rows
 
-The checked state belongs to the caller: the component only draws it.
+The chosen value belongs to the caller: the component only draws it.
 
 ```specimen
-dropdown-menu-every-kind-of-row
+dropdown-menu-rows
 ```
 
 ## Popover
@@ -65,19 +49,7 @@ The panels of a [select](01-controls.md#select), a [dropdown menu](#dropdown-men
 
 ## Scroll lock
 
-A modal overlay (a menu, a select, a dialog, a sheet) locks the page's scroll, and `react-remove-scroll` would add a margin to the body that makes whatever is fixed, the navbar, jump. The page keeps the place of its scrollbar instead: `html.platform` has `scrollbar-gutter: stable`, and the lock's margin is taken off the body (`html.platform body[data-scroll-locked]`, in `platform.css`). `platform.test.ts` keeps both rules.
-
-## Tooltip
-
-Module: `@pbgo/ui/platform/tooltip`
-
-A one-line hint on hover and focus, for an icon button or a truncated label. It never holds anything the user must read or click. `TooltipProvider` goes once above the tooltips.
-
-### Sides, and on an icon button
-
-```specimen
-tooltip-sides-and-icon-button
-```
+A modal overlay (a menu, a select, a dialog) locks the page's scroll, and `react-remove-scroll` would add a margin to the body that makes whatever is fixed, the navbar, jump. The page keeps the place of its scrollbar instead: `html.platform` has `scrollbar-gutter: stable`, and the lock's margin is taken off the body (`html.platform body[data-scroll-locked]`, in `platform.css`). `platform.test.ts` keeps both rules.
 
 ## Hover card
 
@@ -97,11 +69,11 @@ hover-card-a-players-card
 
 Module: `@pbgo/ui/platform/sonner`
 
-A message that confirms something happened and fades by itself. Call `toast()` from anywhere; the `Toaster` is mounted once per layout (the gamemaster's; the games mount their own, `AppToaster`).
+A message that confirms something happened and fades by itself. Call `toast.success()` or `toast.error()` from anywhere; the `Toaster` is mounted once per layout (the gamemaster's; the games mount their own, `AppToaster`).
 
 ### Kinds
 
-Keep a toast to a few words. `toast.promise` follows a request from loading to done.
+Keep a toast to a few words.
 
 ```specimen
 toast-kinds

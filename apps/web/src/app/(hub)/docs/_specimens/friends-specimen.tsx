@@ -6,8 +6,7 @@ import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
 import { Avatar, AvatarCount, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { ChatWindow } from "@pbgo/ui/platform/chat-window"
 import { FriendsBar, FriendsBarList } from "@pbgo/ui/platform/friends-bar"
-import { FriendsPanel, PresenceDot } from "@pbgo/ui/platform/friends-panel"
-import { NavbarIsland } from "@pbgo/ui/platform/navbar"
+import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
@@ -36,29 +35,16 @@ const FRIENDS: readonly Friend[] = [
 ]
 
 /**
- * The friends' panel with every button it can have, in a column as high as a page: with friends, then with none. The buttons do nothing here, and the search
- * works.
- */
-export function FriendsSpecimen({ empty = false }: { empty?: boolean }) {
-  const nothing = () => {}
-  return (
-    <div className="h-[34rem] w-full">
-      <FriendsPanel friends={empty ? [] : FRIENDS} gameIcon={gameIcon} onAddFriend={nothing} onInvite={nothing} onJoin={nothing} onShareLink={nothing} />
-    </div>
-  )
-}
-
-/**
- * The friends' bar in an island of its own, at the right of a frame that stands for the navbar (the bar draws no container: the dock is the one that holds it on the hub): left to
+ * The friends' bar in a glass container of its own, at the right of a frame that stands for the navbar (the bar draws no container: the dock is the one that holds it on the hub): left to
  * itself it opens the panel of a game under the pointer, over the page. The buttons do nothing here.
  */
 export function BarSpecimen({ empty = false }: { empty?: boolean }) {
   const nothing = () => {}
   return (
     <div className="flex h-72 w-full items-start justify-end rounded-3xl border bg-card/40 p-6">
-      <NavbarIsland>
+      <div className="glass flex h-14 items-center rounded-2xl border px-2 shadow-surface">
         <FriendsBar friends={empty ? [] : FRIENDS} gameIcon={gameIcon} onJoin={nothing} onShareLink={nothing} />
-      </NavbarIsland>
+      </div>
     </div>
   )
 }

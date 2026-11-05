@@ -10,7 +10,7 @@ Every action is a `Button`. The variant says how much an action weighs, the size
 
 ### Button variants
 
-`default` is the one main action of a screen, `outline` and `secondary` the others. `ghost` lives in toolbars, `destructive` is for what cannot be undone, `link` sits inside a sentence.
+`default` is the one main action of a screen, `outline` and `secondary` the others. `ghost` lives in toolbars and `destructive` is for what cannot be undone.
 
 ```specimen
 button-variants
@@ -124,7 +124,7 @@ A choice among a handful of options, in a popover that opens over the trigger. F
 
 ### Default and small
 
-Groups take a `SelectLabel`; `SelectSeparator` splits them. The trigger comes in `default` and `sm`.
+The trigger comes in `default` and `sm`.
 
 ```specimen
 select-default-and-small
@@ -154,35 +154,12 @@ combobox-in-a-popover
 
 Module: `@pbgo/ui/platform/slider`
 
-A slider for a value or a range along a scale: one thumb, or two for a range, a track that fills between them and, for a few stops, a dot at each.
+A slider for a value along a scale: a thumb, and a track that fills from the start to it.
 
-It is Radix's `Slider` with one change: the thumb has no size of its own, so its centre is exactly where the fill and the pointer put it, and the handle is drawn around that centre. The handles stick out of the track by half their width at each end, so leave that room around the slider (`mx-1`).
-
-### One thumb
-
-The fill runs from the start to the thumb.
+It is Radix's `Slider` with one change: the thumb has no size of its own, so its centre is exactly where the fill and the pointer put it, and the handle is drawn around that centre. The handles stick out of the track by half their width at each end, so leave that room around the slider (`mx-1`). A screen reader hears the number of the thumb; `valueText` says what it stands for, and `thumbLabels` what the thumb is.
 
 ```specimen
 slider-one-thumb
-```
-
-- `ticks` draws a dot at each step, or at the values you list.
-- A screen reader hears the number of the thumb; `valueText` says what it stands for, and `thumbLabels` what each thumb is.
-
-### A range
-
-Two thumbs light what is between them. `minStepsBetweenThumbs` keeps them from meeting.
-
-```specimen
-slider-a-range
-```
-
-### Disabled slider
-
-`disabled` is Radix's. A slider has no "untouched" state: it always shows what it is set to.
-
-```specimen
-slider-disabled
 ```
 
 ## Meter
@@ -211,46 +188,24 @@ meter-never-empty
 
 Module: `@pbgo/ui/platform/tabs`
 
-Switches between panels of the same page without leaving it. The list comes as a filled list (`default`) or as an underlined row (`line`), horizontal or vertical.
-
-### Default
+A row of tabs that switches what a page shows without leaving it: the page draws the panel, the tabs only say which one. The list is a filled container.
 
 ```specimen
 tabs-default
-```
-
-### Line
-
-```specimen
-tabs-line
-```
-
-### Vertical
-
-```specimen
-tabs-vertical
 ```
 
 ## Toggle group
 
 Module: `@pbgo/ui/platform/toggle-group`
 
-A set of chips to pick from, for a short list of choices that all stay in view. `single` keeps one chip picked, `multiple` any number. The arrow keys move between the chips, and the group is one stop of the Tab key.
+A set of chips to pick one from, for a short list of choices that all stay in view. The arrow keys move between the chips, and the group is one stop of the Tab key.
 
-### Single and multiple
+### Single
 
-A picked chip turns primary. In a `single` group a second click on the picked chip unpicks it, and the value then reads as an empty string. Name each group with an `aria-label`.
-
-```specimen
-toggle-group-single-and-multiple
-```
-
-### Disabled chips
-
-A chip, or the whole group, can be `disabled`: it is dimmed and skipped by the keyboard.
+A picked chip turns primary. A second click on the picked chip unpicks it, and the value then reads as an empty string. Name each group with an `aria-label`.
 
 ```specimen
-toggle-group-disabled
+toggle-group-single
 ```
 
 ### Segmented

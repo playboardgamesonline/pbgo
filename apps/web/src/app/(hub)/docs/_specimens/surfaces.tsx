@@ -2,20 +2,20 @@
 
 import type { Specimens } from "@pbgo/docs/markdown"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Alert02Icon, Calendar03Icon, FolderAddIcon, InformationCircleIcon, MoreHorizontalIcon, Settings01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { Alert02Icon, FolderAddIcon, InformationCircleIcon, MoreHorizontalIcon, Settings01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { getCatalog } from "@pbgo/catalog/server"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
-import { Avatar, AvatarBadge, AvatarCount, AvatarFallback, AvatarGroup, AvatarGroupCount } from "@pbgo/ui/platform/avatar"
+import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Avatar, AvatarBadge, AvatarCount, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemSeparator, ItemTitle } from "@pbgo/ui/platform/item"
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
 import { Progress } from "@pbgo/ui/platform/progress"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { Spinner } from "@pbgo/ui/platform/spinner"
-import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
 import { Frame } from "./text"
 
@@ -160,7 +160,7 @@ async function GameCardThePictureAlone() {
   )
 }
 
-function AvatarSizesBadgeAndGroup() {
+function AvatarSizesBadgeAndCount() {
   return (
     <Frame className={ROW} code={`<Avatar size="sm"><AvatarFallback>AL</AvatarFallback></Avatar>
 <Avatar><AvatarFallback>SM</AvatarFallback></Avatar>
@@ -176,14 +176,7 @@ function AvatarSizesBadgeAndGroup() {
   <AvatarFallback>RO</AvatarFallback>
   <AvatarCount count={3} />
   <AvatarBadge />
-</Avatar>
-
-<AvatarGroup>
-  <Avatar><AvatarFallback>A</AvatarFallback></Avatar>
-  <Avatar><AvatarFallback>S</AvatarFallback></Avatar>
-  <Avatar><AvatarFallback>R</AvatarFallback></Avatar>
-  <AvatarGroupCount>+3</AvatarGroupCount>
-</AvatarGroup>`}>
+</Avatar>`}>
       <Avatar size="sm">
         <AvatarFallback>AL</AvatarFallback>
       </Avatar>
@@ -205,23 +198,11 @@ function AvatarSizesBadgeAndGroup() {
         <AvatarCount count={3} />
         <AvatarBadge />
       </Avatar>
-      <AvatarGroup>
-        <Avatar>
-          <AvatarFallback>A</AvatarFallback>
-        </Avatar>
-        <Avatar>
-          <AvatarFallback>S</AvatarFallback>
-        </Avatar>
-        <Avatar>
-          <AvatarFallback>R</AvatarFallback>
-        </Avatar>
-        <AvatarGroupCount>+3</AvatarGroupCount>
-      </AvatarGroup>
     </Frame>
   )
 }
 
-function AlertDefaultDestructiveAndWithAnAction() {
+function AlertDefaultAndDestructive() {
   return (
     <Frame className="flex flex-col gap-4" code={`<Alert>
   <HugeiconsIcon icon={InformationCircleIcon} strokeWidth={2} />
@@ -233,7 +214,6 @@ function AlertDefaultDestructiveAndWithAnAction() {
   <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
   <AlertTitle>The table could not be saved</AlertTitle>
   <AlertDescription>Check your connection and try again.</AlertDescription>
-  <AlertAction><Button variant="outline" size="xs">Retry</Button></AlertAction>
 </Alert>`}>
       <Alert>
         <HugeiconsIcon icon={InformationCircleIcon} strokeWidth={2} />
@@ -244,11 +224,6 @@ function AlertDefaultDestructiveAndWithAnAction() {
         <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
         <AlertTitle>The table could not be saved</AlertTitle>
         <AlertDescription>Check your connection and try again.</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="xs">
-            Retry
-          </Button>
-        </AlertAction>
       </Alert>
     </Frame>
   )
@@ -355,96 +330,41 @@ function EmptyIconMessageAndAction() {
   )
 }
 
-function ItemVariants() {
+function ItemSizes() {
   return (
-    <Frame className="flex flex-col gap-4" code={`<ItemGroup>
-  <Item variant="outline">
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Friday night</ItemTitle>
-      <ItemDescription>3 of 5 players · waiting to start</ItemDescription>
-    </ItemContent>
-    <ItemActions><Button variant="outline" size="sm">Join</Button></ItemActions>
-  </Item>
-</ItemGroup>`}>
-      <ItemGroup>
-        {(["default", "outline", "muted"] as const).map((variant) => (
-          <Item key={variant} variant={variant}>
-            <ItemMedia variant="icon">
-              <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle className="capitalize">{variant}</ItemTitle>
-              <ItemDescription>3 of 5 players · waiting to start</ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Button variant="outline" size="sm">
-                Join
-              </Button>
-            </ItemActions>
-          </Item>
-        ))}
-      </ItemGroup>
-    </Frame>
-  )
-}
+    <Frame className="flex flex-col gap-4" code={`<Item variant="outline">
+  <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
+  <ItemContent>
+    <ItemTitle>Default</ItemTitle>
+    <ItemDescription>The comfortable row.</ItemDescription>
+  </ItemContent>
+</Item>
 
-function ItemSizesAndSeparators() {
-  return (
-    <Frame code={`<ItemGroup>
-  <Item>
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Default</ItemTitle>
-      <ItemDescription>The comfortable row.</ItemDescription>
-    </ItemContent>
-  </Item>
-  <ItemSeparator />
-  <Item size="sm">
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Small</ItemTitle>
-      <ItemDescription>A denser row.</ItemDescription>
-    </ItemContent>
-  </Item>
-  <ItemSeparator />
-  <Item size="xs">
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Extra small</ItemTitle>
-    </ItemContent>
-  </Item>
-</ItemGroup>`}>
-      <ItemGroup>
-        <Item>
-          <ItemMedia variant="icon">
-            <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Default</ItemTitle>
-            <ItemDescription>The comfortable row.</ItemDescription>
-          </ItemContent>
-        </Item>
-        <ItemSeparator />
-        <Item size="sm">
-          <ItemMedia variant="icon">
-            <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Small</ItemTitle>
-            <ItemDescription>A denser row.</ItemDescription>
-          </ItemContent>
-        </Item>
-        <ItemSeparator />
-        <Item size="xs">
-          <ItemMedia variant="icon">
-            <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Extra small</ItemTitle>
-          </ItemContent>
-        </Item>
-      </ItemGroup>
+<Item variant="outline" size="sm">
+  <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
+  <ItemContent>
+    <ItemTitle>Small</ItemTitle>
+    <ItemDescription>A denser row.</ItemDescription>
+  </ItemContent>
+</Item>`}>
+      <Item variant="outline">
+        <ItemMedia variant="icon">
+          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>Default</ItemTitle>
+          <ItemDescription>The comfortable row.</ItemDescription>
+        </ItemContent>
+      </Item>
+      <Item variant="outline" size="sm">
+        <ItemMedia variant="icon">
+          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>Small</ItemTitle>
+          <ItemDescription>A denser row.</ItemDescription>
+        </ItemContent>
+      </Item>
     </Frame>
   )
 }
@@ -452,7 +372,6 @@ function ItemSizesAndSeparators() {
 function TableScoreboard() {
   return (
     <Frame className="p-2" code={`<Table>
-  <TableCaption>Final scores</TableCaption>
   <TableHeader>
     <TableRow>
       <TableHead>Player</TableHead>
@@ -465,15 +384,8 @@ function TableScoreboard() {
       <TableCell className="text-right">128</TableCell>
     </TableRow>
   </TableBody>
-  <TableFooter>
-    <TableRow>
-      <TableCell>Total</TableCell>
-      <TableCell className="text-right">128</TableCell>
-    </TableRow>
-  </TableFooter>
 </Table>`}>
       <Table>
-        <TableCaption>Final scores of the evening</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead className="w-16">Rank</TableHead>
@@ -492,12 +404,6 @@ function TableScoreboard() {
             </TableRow>
           ))}
         </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell colSpan={3}>Total</TableCell>
-            <TableCell className="text-right">{SCORES.reduce((sum, row) => sum + row.score, 0)}</TableCell>
-          </TableRow>
-        </TableFooter>
       </Table>
     </Frame>
   )
@@ -508,14 +414,13 @@ export const surfacesSpecimens: Specimens = {
   "game-card-the-live-games-and-without-art": GameCardTheLiveGamesAndWithoutArt,
   "game-card-a-game-to-come": GameCardAGameToCome,
   "game-card-the-picture-alone": GameCardThePictureAlone,
-  "avatar-sizes-badge-and-group": AvatarSizesBadgeAndGroup,
-  "alert-default-destructive-and-with-an-action": AlertDefaultDestructiveAndWithAnAction,
+  "avatar-sizes-badge-and-count": AvatarSizesBadgeAndCount,
+  "alert-default-and-destructive": AlertDefaultAndDestructive,
   "progress-bar": ProgressBar,
   "progress-spinner": ProgressSpinner,
   "progress-skeleton": ProgressSkeleton,
   "separator-horizontal-and-vertical": SeparatorHorizontalAndVertical,
   "empty-icon-message-and-action": EmptyIconMessageAndAction,
-  "item-variants": ItemVariants,
-  "item-sizes-and-separators": ItemSizesAndSeparators,
+  "item-sizes": ItemSizes,
   "table-scoreboard": TableScoreboard,
 }

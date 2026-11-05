@@ -1,12 +1,11 @@
 # Social
 
-The social panel is at the heart of the hub's navigation: the friends of a signed-in visitor, their conversations and their requests, one press away on every page of the hub. It is made of five parts:
+The social panel is at the heart of the hub's navigation: the friends of a signed-in visitor, their conversations and their requests, one press away on every page of the hub. It is made of four parts:
 
 - [`SocialDock`](#social-panel), the container that is the bar of the games and a side panel in one;
 - [`SocialPanel`](#the-three-tabs), its body, with the friends, the conversations and the way to add a friend;
 - [`ChatWindow`](#the-chat-window), the conversation with a friend;
-- [`FriendsBar`](#friends-bar), a chip for each game some friends are in;
-- [`FriendsPanel`](#friends-panel), the friends as a panel for a page, with the dot of their presence.
+- [`FriendsBar`](#friends-bar), a chip for each game some friends are in, with the [dot of their presence](#the-dots-of-presence) on every picture.
 
 All of them are drawn from the friends, conversations and requests they are given and decide nothing about them: where those come from and what a button does are the page's, and a button whose handler is missing is not drawn. The hub mounts them once, in the navbar (`SiteSocial` of `apps/web`, `docs/accounts.md`). The logic is in two modules without React, tested as they are: `@pbgo/ui/friends` (the friend, its sections, the games and the tables) and `@pbgo/ui/social` (the conversations, the requests and the time written on a message).
 
@@ -50,7 +49,7 @@ chat-window
 
 Module: `@pbgo/ui/platform/friends-bar`
 
-`FriendsBar` is the start of the dock's bar: a chip for each game some friends are in, with the picture of the game (`GameIcon`) and how many friends are in it. It draws up to three, the most crowded first, and fewer on a narrow screen. A friend who is away, or in no game, is in none of them: they are in the [friends panel](#friends-panel). With no friend in a game the bar is the button that invites one. It draws no container of its own: the page puts it in one (on the hub `SocialDock`; in the specimens of this page a `NavbarIsland`, see [Navbar](02-navigation.md#navbar)).
+`FriendsBar` is the start of the dock's bar: a chip for each game some friends are in, with the picture of the game (`GameIcon`) and how many friends are in it. It draws up to three, the most crowded first, and fewer on a narrow screen. A friend who is away, or in no game, is in none of them: they are in the friends tab of the social panel. With no friend in a game the bar is the button that invites one. It draws no container of its own: the dock is the one that holds it.
 
 ### On the navbar, with friends and with none
 
@@ -68,17 +67,9 @@ One card for all the chips, a `MovingCard` ([the card under the pointer](#the-ca
 friends-bar-panel
 ```
 
-## Friends panel
+## The dots of presence
 
 Module: `@pbgo/ui/platform/friends-panel`
-
-`FriendsPanel` is the friends of a signed-in visitor as a panel for a page (`/me/friends` uses it): a header with the count of those online and the button to add a friend, a search field, the roster and a footer button to invite a friend who has no account yet. It is `h-full` and scrolls its list, so a page gives it a height and a width. The buttons of a friend (Join for one in a game, Invite for one who is online) show when the row is hovered or focused, and always on a touch screen.
-
-```specimen
-friends-panel
-```
-
-### The dots of presence
 
 A status is a shape, a colour and a word, never the colour alone. `PresenceDot` sits on the corner of a picture and takes the picture's size, cut out of it by a ring of `--cutout`. It has one shape for each status of a friend (`FriendStatus`):
 

@@ -3,7 +3,7 @@
 import type { Specimens } from "@pbgo/docs/markdown"
 import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "@pbgo/ui/motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
-import { ChartColors, LineColors, NeutralRamp, SemanticColors } from "./colors"
+import { LineColors, NeutralRamp, SemanticColors } from "./colors"
 import { GlassLab } from "./glass-lab"
 import { MotionDemo } from "./motion-demo"
 import { RadiusScale } from "./radius-scale"
@@ -199,7 +199,6 @@ export const foundationsSpecimens: Specimens = {
   "colors-semantic": SemanticColors,
   "colors-lines": LineColors,
   "colors-neutral-ramp": NeutralRamp,
-  "colors-chart": ChartColors,
   "type-scale": TypeScale,
   "type-weights": WeightProof,
   "type-geist": Geist,

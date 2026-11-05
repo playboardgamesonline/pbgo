@@ -56,15 +56,14 @@ Module: `@pbgo/ui/platform/avatar`
 
 A round marker for a player. It shows the picture when there is one (`AvatarImage`) and the initials otherwise (`AvatarFallback`).
 
-### Sizes, badge and group
+### Sizes, badge and count
 
 - Four sizes: `sm`, the default, `lg` and `xl`.
-- `AvatarBadge` marks a state such as online or host, at the bottom right.
+- `AvatarBadge` marks a state, at the bottom right.
 - `AvatarCount` puts what waits for the person (messages not read, requests to answer) on the top right corner, as a [`notification`](01-controls.md#badge) badge. It draws nothing for 0.
-- `AvatarGroup` overlaps its avatars, so a group shows one initial each, and ends with `AvatarGroupCount`.
 
 ```specimen
-avatar-sizes-badge-and-group
+avatar-sizes-badge-and-count
 ```
 
 ## Alert
@@ -73,12 +72,12 @@ Module: `@pbgo/ui/platform/alert`
 
 A message that stays on the page: a notice, a warning, a failed request. For a passing confirmation, use a [toast](03-overlays.md#toast).
 
-### Default, destructive and with an action
+### Default and destructive
 
-The icon is the first child and sits in its own column. `AlertAction` is pinned to the top right.
+The icon is the first child and sits in its own column.
 
 ```specimen
-alert-default-destructive-and-with-an-action
+alert-default-and-destructive
 ```
 
 ## Progress, spinner, skeleton
@@ -141,33 +140,25 @@ empty-icon-message-and-action
 
 Module: `@pbgo/ui/platform/item`
 
-One row of a list: a media, a title and a description, and actions on the right. Use it for settings, tables to join and menus of a page; reach for a [card](#card) when the content is a block of its own.
+One row of a list, in an outlined frame (`variant="outline"`): a media, a title and a description, and actions on the right. Use it for settings and the rows of a page; reach for a [card](#card) when the content is a block of its own.
 
-### Variants
+### Sizes
 
-`default` has no frame, `outline` a hairline, `muted` a soft fill.
-
-```specimen
-item-variants
-```
-
-### Sizes and separators
-
-`default`, `sm` and `xs` trade padding for density. `ItemSeparator` splits rows inside a group.
+`default` and `sm` trade padding for density.
 
 ```specimen
-item-sizes-and-separators
+item-sizes
 ```
 
 ## Table
 
 Module: `@pbgo/ui/platform/table`
 
-Tabular data with a header row, hairline rows and an optional footer. It scrolls sideways inside its container instead of widening the page.
+Tabular data with a header row and hairline rows. It scrolls sideways inside its container instead of widening the page.
 
 ### Scoreboard
 
-Align numbers to the right. The caption sits under the table; the footer carries the total.
+Align numbers to the right.
 
 ```specimen
 table-scoreboard

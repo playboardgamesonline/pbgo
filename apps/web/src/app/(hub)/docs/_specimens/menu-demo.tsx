@@ -2,28 +2,21 @@
 
 import { useState } from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Copy01Icon, Delete02Icon, Edit02Icon, Settings02Icon, Share08Icon } from "@hugeicons/core-free-icons"
+import { Copy01Icon, Logout01Icon, Settings02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@pbgo/ui/platform/button"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@pbgo/ui/platform/dropdown-menu"
 
-/** A dropdown with every kind of row; the checked state lives here, the component only draws it. */
+/** A dropdown with the rows the site uses: a label, an item with an icon, a radio choice and a destructive item; the chosen value lives here, the component only draws it. */
 export function MenuDemo() {
-  const [sound, setSound] = useState(true)
   const [view, setView] = useState("grid")
   return (
     <DropdownMenu>
@@ -34,44 +27,20 @@ export function MenuDemo() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-60">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Table</DropdownMenuLabel>
-          <DropdownMenuItem>
-            <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-            Rename
-            <DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />
-            Copy link
-            <DropdownMenuShortcut>⌘C</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <HugeiconsIcon icon={Share08Icon} strokeWidth={2} />
-              Share
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem>Invite by link</DropdownMenuItem>
-              <DropdownMenuItem>Show the code</DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        </DropdownMenuGroup>
+        <DropdownMenuLabel>Table</DropdownMenuLabel>
+        <DropdownMenuItem>
+          <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} />
+          Copy link
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Display</DropdownMenuLabel>
-          <DropdownMenuCheckboxItem checked={sound} onCheckedChange={setSound}>
-            Sound
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuRadioGroup value={view} onValueChange={setView}>
-            <DropdownMenuRadioItem value="grid">Grid</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="list">List</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
+        <DropdownMenuRadioGroup value={view} onValueChange={setView}>
+          <DropdownMenuRadioItem value="grid">Grid</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="list">List</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive">
-          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-          Delete table
+          <HugeiconsIcon icon={Logout01Icon} strokeWidth={2} />
+          Leave the table
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

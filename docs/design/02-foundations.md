@@ -45,14 +45,6 @@ colors-neutral-ramp
 
 The platform has one grey for every container: `--card`, which `--popover` equals. It is not the black of the page (`--background`). A step lighter, `--card-bar`, is for what is read before the rest: the glass of the search bar, and a panel raised beside a list. What floats over the page keeps most of this grey and blurs what is behind it: see [Glass](#glass).
 
-### Chart
-
-Five greys for the gamemaster's charts, read by lightness. With no hue to tell series apart, a chart labels its series.
-
-```specimen
-colors-chart
-```
-
 ## Typography
 
 Geist Sans, a variable font, in one weight. Line-heights and letter-spacing are slightly tight. Sizes are Tailwind's `text-*`; the platform changes their line-heights, not their sizes.
@@ -198,7 +190,7 @@ depth-rings
 
 ### Scrim
 
-`bg-scrim` dims the page behind a dialog or a sheet. Game art is never dimmed with it.
+`bg-scrim` dims the page behind a dialog. Game art is never dimmed with it.
 
 ```specimen
 depth-scrim
@@ -232,9 +224,9 @@ motion-durations
 
 ```specimen
 token-table
---transition-duration-fast | duration-fast | Overlays entering and leaving: dialog, sheet backdrop, dropdown, tooltip.
+--transition-duration-fast | duration-fast | Overlays entering and leaving: dialog, dropdown, popover.
 --transition-duration-base | duration-base | The default of `transition` and `transition-colors`: hover and focus on controls.
---transition-duration-slow | duration-slow | Things that travel: a sheet sliding in, the game card art zooming.
+--transition-duration-slow | duration-slow | Things that travel: the dock opening, the game card art zooming.
 --ease-standard | ease-standard | The one easing.
 ```
 
@@ -271,7 +263,7 @@ Utilities the platform adds on top of Tailwind. Anything else is Tailwind's own 
 | `fine-print` | The finest print of a page: the footer's line on what the site is not | `--text-xs`, `--foreground` |
 | `duration-fast`, `duration-base`, `duration-slow` | Duration of a transition | `--transition-duration-*` |
 | `ease-standard` | The easing of a transition | `--ease-standard` |
-| `bg-scrim` | Dimming layer behind a dialog or a sheet | `--color-scrim` |
+| `bg-scrim` | Dimming layer behind a dialog | `--color-scrim` |
 | `bg-secondary-hover` | Hover state of a `secondary` surface | `secondary` mixed with `foreground` |
 | `font-heading` | Heading font | `--font-title` |
 | `pattern-checker` | Checkerboard that makes translucency visible | `foreground` |

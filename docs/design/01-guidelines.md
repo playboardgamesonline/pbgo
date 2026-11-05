@@ -54,7 +54,7 @@ Two layers share the same token names (`--background`, `--foreground`, `--primar
 | Token values | `packages/ui/src/styles/platform.css`, scoped to `.platform` | `:root` of `packages/core/styles/game.css` and the game's stylesheet, overridden at runtime by its Sanity skin (`themeStyle()`) |
 | Who changes them | The design system: a pull request on `packages/ui` | The game: its setup in the gamemaster (Visual, Copy) |
 | Theme | Black and white, dark only | Whatever the game's skin says |
-| `platform` class | On `<html>` (through `PlatformDocument`) and on the root of every portal (select, dropdown, dialog, sheet, tooltip, toast), which React renders outside the wrapper | Never |
+| `platform` class | On `<html>` (through `PlatformDocument`) and on the root of every portal (select, dropdown, dialog, popover, toast), which React renders outside the wrapper | Never |
 
 ### Rules of the boundary
 

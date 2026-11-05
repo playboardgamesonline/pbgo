@@ -7,20 +7,19 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { Checkbox } from "@pbgo/ui/platform/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@pbgo/ui/platform/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@pbgo/ui/platform/input-group"
 import { Label } from "@pbgo/ui/platform/label"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
-import { Slider } from "@pbgo/ui/platform/slider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { Switch } from "@pbgo/ui/platform/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
 import { Textarea } from "@pbgo/ui/platform/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { ComboboxSpecimen } from "./combobox-specimen"
 import { MeterSpecimen } from "./meter-specimen"
-import { RangeSliderSpecimen, SingleSliderSpecimen } from "./slider-specimen"
+import { SingleSliderSpecimen } from "./slider-specimen"
 import { Frame } from "./text"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -31,14 +30,12 @@ function ButtonVariants() {
 <Button variant="outline">Join</Button>
 <Button variant="secondary">Rules</Button>
 <Button variant="ghost">Cancel</Button>
-<Button variant="destructive">Delete table</Button>
-<Button variant="link">Learn more</Button>`}>
+<Button variant="destructive">Delete table</Button>`}>
       <Button>Create a table</Button>
       <Button variant="outline">Join</Button>
       <Button variant="secondary">Rules</Button>
       <Button variant="ghost">Cancel</Button>
       <Button variant="destructive">Delete table</Button>
-      <Button variant="link">Learn more</Button>
     </Frame>
   )
 }
@@ -140,15 +137,11 @@ function BadgeVariants() {
 <Badge variant="secondary">Beta</Badge>
 <Badge variant="outline">2–5 players</Badge>
 <Badge variant="destructive">Offline</Badge>
-<Badge variant="ghost">Draft</Badge>
-<Badge variant="link">Link</Badge>
 <Badge variant="notification">3</Badge>`}>
       <Badge>Live</Badge>
       <Badge variant="secondary">Beta</Badge>
       <Badge variant="outline">2–5 players</Badge>
       <Badge variant="destructive">Offline</Badge>
-      <Badge variant="ghost">Draft</Badge>
-      <Badge variant="link">Link</Badge>
       <Badge variant="notification">3</Badge>
     </Frame>
   )
@@ -192,44 +185,30 @@ function InputAndTextarea() {
 
 function InputField() {
   return (
-    <Frame code={`<FieldSet>
-  <FieldLegend>Create a table</FieldLegend>
-  <FieldGroup>
-    <Field>
-      <FieldLabel htmlFor="nickname">Nickname</FieldLabel>
-      <Input id="nickname" placeholder="Ana" />
-      <FieldDescription>Shown to the other players.</FieldDescription>
-    </Field>
-    <Field data-invalid>
-      <FieldLabel htmlFor="email">Email</FieldLabel>
-      <Input id="email" type="email" aria-invalid />
-      <FieldError errors={[{ message: "Enter a valid email address." }]} />
-    </Field>
-    <Field orientation="horizontal">
-      <Checkbox id="terms" />
-      <FieldLabel htmlFor="terms">I accept the rules of the table</FieldLabel>
-    </Field>
-  </FieldGroup>
-</FieldSet>`}>
-      <FieldSet className="max-w-sm">
-        <FieldLegend>Create a table</FieldLegend>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="field-nickname">Nickname</FieldLabel>
-            <Input id="field-nickname" placeholder="Ana" />
-            <FieldDescription>Shown to the other players.</FieldDescription>
-          </Field>
-          <Field data-invalid>
-            <FieldLabel htmlFor="field-email">Email</FieldLabel>
-            <Input id="field-email" type="email" defaultValue="ana@" aria-invalid />
-            <FieldError errors={[{ message: "Enter a valid email address." }]} />
-          </Field>
-          <Field orientation="horizontal">
-            <Checkbox id="field-terms" defaultChecked />
-            <FieldLabel htmlFor="field-terms">I accept the rules of the table</FieldLabel>
-          </Field>
-        </FieldGroup>
-      </FieldSet>
+    <Frame code={`<FieldGroup>
+  <Field>
+    <FieldLabel htmlFor="nickname">Nickname</FieldLabel>
+    <Input id="nickname" placeholder="Ana" />
+    <FieldDescription>Shown to the other players.</FieldDescription>
+  </Field>
+  <Field data-invalid>
+    <FieldLabel htmlFor="email">Email</FieldLabel>
+    <Input id="email" type="email" aria-invalid />
+    <FieldError errors={[{ message: "Enter a valid email address." }]} />
+  </Field>
+</FieldGroup>`}>
+      <FieldGroup className="max-w-sm">
+        <Field>
+          <FieldLabel htmlFor="field-nickname">Nickname</FieldLabel>
+          <Input id="field-nickname" placeholder="Ana" />
+          <FieldDescription>Shown to the other players.</FieldDescription>
+        </Field>
+        <Field data-invalid>
+          <FieldLabel htmlFor="field-email">Email</FieldLabel>
+          <Input id="field-email" type="email" defaultValue="ana@" aria-invalid />
+          <FieldError errors={[{ message: "Enter a valid email address." }]} />
+        </Field>
+      </FieldGroup>
     </Frame>
   )
 }
@@ -337,16 +316,8 @@ function SelectDefaultAndSmall() {
     <SelectValue placeholder="Language" />
   </SelectTrigger>
   <SelectContent>
-    <SelectGroup>
-      <SelectLabel>Language</SelectLabel>
-      <SelectItem value="fr">Français</SelectItem>
-      <SelectItem value="en">English</SelectItem>
-    </SelectGroup>
-    <SelectSeparator />
-    <SelectGroup>
-      <SelectLabel>Other</SelectLabel>
-      <SelectItem value="auto">Follow my browser</SelectItem>
-    </SelectGroup>
+    <SelectItem value="fr">Français</SelectItem>
+    <SelectItem value="en">English</SelectItem>
   </SelectContent>
 </Select>
 
@@ -358,33 +329,16 @@ function SelectDefaultAndSmall() {
     <SelectItem value="2">2 players</SelectItem>
     <SelectItem value="3">3 players</SelectItem>
   </SelectContent>
-</Select>
-
-<Select disabled>
-  <SelectTrigger className="w-48">
-    <SelectValue placeholder="Disabled" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="none">Nothing</SelectItem>
-  </SelectContent>
 </Select>`}>
       <Select defaultValue="en">
         <SelectTrigger className="w-48" aria-label="Language">
           <SelectValue placeholder="Language" />
         </SelectTrigger>
         <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Language</SelectLabel>
-            <SelectItem value="fr">Français</SelectItem>
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="es">Español</SelectItem>
-            <SelectItem value="de">Deutsch</SelectItem>
-          </SelectGroup>
-          <SelectSeparator />
-          <SelectGroup>
-            <SelectLabel>Other</SelectLabel>
-            <SelectItem value="auto">Follow my browser</SelectItem>
-          </SelectGroup>
+          <SelectItem value="fr">Français</SelectItem>
+          <SelectItem value="en">English</SelectItem>
+          <SelectItem value="es">Español</SelectItem>
+          <SelectItem value="de">Deutsch</SelectItem>
         </SelectContent>
       </Select>
       <Select defaultValue="3">
@@ -396,14 +350,6 @@ function SelectDefaultAndSmall() {
           <SelectItem value="3">3 players</SelectItem>
           <SelectItem value="4">4 players</SelectItem>
           <SelectItem value="5">5 players</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select disabled>
-        <SelectTrigger className="w-48" aria-label="Disabled">
-          <SelectValue placeholder="Disabled" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">Nothing</SelectItem>
         </SelectContent>
       </Select>
     </Frame>
@@ -453,31 +399,6 @@ function SliderOneThumb() {
   )
 }
 
-function SliderARange() {
-  return (
-    <Frame code={`<Slider
-  min={0}
-  max={100}
-  step={10}
-  minStepsBetweenThumbs={1}
-  value={range}
-  onValueChange={setRange}
-  ticks
-  thumbLabels={["From", "To"]}
-/>`}>
-      <RangeSliderSpecimen />
-    </Frame>
-  )
-}
-
-function SliderDisabled() {
-  return (
-    <Frame className="max-w-sm px-8" code={`<Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />`}>
-      <Slider min={0} max={6} defaultValue={[2, 4]} minStepsBetweenThumbs={1} ticks disabled />
-    </Frame>
-  )
-}
-
 function MeterLevels() {
   return (
     <Frame code={`<Meter
@@ -505,13 +426,11 @@ function MeterNeverEmpty() {
 
 function TabsDefault() {
   return (
-    <Frame code={`<Tabs defaultValue="rules">
+    <Frame code={`<Tabs value={view} onValueChange={setView}>
   <TabsList>
     <TabsTrigger value="rules">Rules</TabsTrigger>
     <TabsTrigger value="players">Players</TabsTrigger>
   </TabsList>
-  <TabsContent value="rules">…</TabsContent>
-  <TabsContent value="players">…</TabsContent>
 </Tabs>`}>
       <Tabs defaultValue="rules">
         <TabsList>
@@ -519,63 +438,6 @@ function TabsDefault() {
           <TabsTrigger value="players">Players</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
-        <TabsContent value="rules" className="pt-2 text-sm text-muted-foreground">
-          Everything a player needs to know before the first turn.
-        </TabsContent>
-        <TabsContent value="players" className="pt-2 text-sm text-muted-foreground">
-          Who is at the table, and who is yet to arrive.
-        </TabsContent>
-        <TabsContent value="history" className="pt-2 text-sm text-muted-foreground">
-          The turns played so far, newest first.
-        </TabsContent>
-      </Tabs>
-    </Frame>
-  )
-}
-
-function TabsLine() {
-  return (
-    <Frame code={`<TabsList variant="line">…</TabsList>`}>
-      <Tabs defaultValue="identity">
-        <TabsList variant="line">
-          <TabsTrigger value="identity">Identity</TabsTrigger>
-          <TabsTrigger value="mechanics">Mechanics</TabsTrigger>
-          <TabsTrigger value="visual">Visual</TabsTrigger>
-        </TabsList>
-        <TabsContent value="identity" className="pt-2 text-sm text-muted-foreground">
-          Name, tagline and links of the game.
-        </TabsContent>
-        <TabsContent value="mechanics" className="pt-2 text-sm text-muted-foreground">
-          Timers, default options and limits.
-        </TabsContent>
-        <TabsContent value="visual" className="pt-2 text-sm text-muted-foreground">
-          Images, colours and fonts of the skin.
-        </TabsContent>
-      </Tabs>
-    </Frame>
-  )
-}
-
-function TabsVertical() {
-  return (
-    <Frame code={`<Tabs orientation="vertical">
-  <TabsList variant="line">…</TabsList>
-</Tabs>`}>
-      <Tabs defaultValue="setup" orientation="vertical">
-        <TabsList variant="line">
-          <TabsTrigger value="setup">Setup</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-        </TabsList>
-        <TabsContent value="setup" className="px-4 text-sm text-muted-foreground">
-          Identity, mechanics, visual, audio and copy.
-        </TabsContent>
-        <TabsContent value="tasks" className="px-4 text-sm text-muted-foreground">
-          Launch checklist, backlog, bugs and feedback.
-        </TabsContent>
-        <TabsContent value="monitoring" className="px-4 text-sm text-muted-foreground">
-          Games, audience and health.
-        </TabsContent>
       </Tabs>
     </Frame>
   )
@@ -606,17 +468,12 @@ function ToggleGroupSegmented() {
   )
 }
 
-function ToggleGroupSingleAndMultiple() {
+function ToggleGroupSingle() {
   return (
-    <Frame className="flex flex-col gap-4" code={`<ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
+    <Frame code={`<ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
   <ToggleGroupItem value="3">3</ToggleGroupItem>
   <ToggleGroupItem value="4">4</ToggleGroupItem>
   <ToggleGroupItem value="5">5</ToggleGroupItem>
-</ToggleGroup>
-
-<ToggleGroup type="multiple" defaultValue={["Cards"]} aria-label="Categories">
-  <ToggleGroupItem value="Cards">Cards</ToggleGroupItem>
-  <ToggleGroupItem value="Party">Party</ToggleGroupItem>
 </ToggleGroup>`}>
       <ToggleGroup type="single" defaultValue="4" aria-label="Number of players">
         {["1", "2", "3", "4", "5", "6", "7", "8+"].map((count) => (
@@ -624,30 +481,6 @@ function ToggleGroupSingleAndMultiple() {
             {count}
           </ToggleGroupItem>
         ))}
-      </ToggleGroup>
-      <ToggleGroup type="multiple" defaultValue={["Cards", "Party"]} aria-label="Categories">
-        {["Bluffing", "Cards", "Co-op", "Party", "Strategy"].map((category) => (
-          <ToggleGroupItem key={category} value={category}>
-            {category}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-    </Frame>
-  )
-}
-
-function ToggleGroupDisabled() {
-  return (
-    <Frame code={`<ToggleGroup type="single" defaultValue="30" aria-label="Duration">
-  <ToggleGroupItem value="15" disabled>15 min</ToggleGroupItem>
-  <ToggleGroupItem value="30">30 min</ToggleGroupItem>
-</ToggleGroup>`}>
-      <ToggleGroup type="single" defaultValue="30" aria-label="Duration">
-        <ToggleGroupItem value="15" disabled>
-          15 min
-        </ToggleGroupItem>
-        <ToggleGroupItem value="30">30 min</ToggleGroupItem>
-        <ToggleGroupItem value="45">45 min</ToggleGroupItem>
       </ToggleGroup>
     </Frame>
   )
@@ -708,14 +541,9 @@ export const controlsSpecimens: Specimens = {
   "select-default-and-small": SelectDefaultAndSmall,
   "combobox-in-a-popover": ComboboxInAPopover,
   "slider-one-thumb": SliderOneThumb,
-  "slider-a-range": SliderARange,
-  "slider-disabled": SliderDisabled,
   "meter-levels": MeterLevels,
   "meter-never-empty": MeterNeverEmpty,
   "tabs-default": TabsDefault,
-  "tabs-line": TabsLine,
-  "tabs-vertical": TabsVertical,
-  "toggle-group-single-and-multiple": ToggleGroupSingleAndMultiple,
-  "toggle-group-disabled": ToggleGroupDisabled,
+  "toggle-group-single": ToggleGroupSingle,
   "collapsible-open-and-closed": CollapsibleOpenAndClosed,
 }

@@ -29,11 +29,10 @@ The top of a page: two glass islands over a transparent bar, the brand and the t
 | `Navbar` | The bar: transparent |
 | `NavbarStart` | The left island: the brand, then the tabs |
 | `NavbarEnd` | The right island: the account |
-| `NavbarIsland` | A glass island on its own, for what hangs on the bar beside the two containers, such as the [friends' bar](05-social.md#friends-bar) |
 | `NavbarBack` | The way back, in an island of its own at the left of the first one |
 | `NavbarBrand` | The home's button around the `Logo` |
 | `NavbarTabs` | The tabs, next to the brand in the same island |
-| `NavbarTab` | One tab, a link. `current` marks the page the visitor is in, `disabled` a page that does not exist yet |
+| `NavbarTab` | One tab, a link. `current` marks the page the visitor is in |
 | `NavbarSeparator` | A hairline between two groups of tabs |
 
 ### On the home, signed out
@@ -74,7 +73,6 @@ The bar is `fixed` at the top so it stays in view. The page leaves `pt-navbar` u
 
 - The tabs leave the first island on a narrow screen, where the account needs the room: only the logo is left.
 - `NavbarSeparator` splits the tabs for playing from the ones about the site, which leave the bar sooner, where there is no room for them next to the dock of a signed-in visitor.
-- A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off.
 - The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`.
 
 ## Search bar
