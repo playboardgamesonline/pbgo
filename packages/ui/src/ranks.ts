@@ -18,11 +18,3 @@ const NUMERALS: Record<Division, string> = { 1: "I", 2: "II", 3: "III" }
 export function rankLabel(rank: Rank): string {
   return rank.tier === "Legend" ? rank.tier : `${rank.tier} ${NUMERALS[rank.division]}`
 }
-
-/** The rank above a rank: the next division of its tier, else the first division of the next tier, and Legend, which has none, above Grandmaster III. Null for Legend: nothing is above it. */
-export function nextRank(rank: Rank): Rank | null {
-  if (rank.tier === "Legend") return null
-  if (rank.division < 3) return { tier: rank.tier, division: (rank.division + 1) as Division }
-  const tier = TIERS[TIERS.indexOf(rank.tier) + 1]!
-  return tier === "Legend" ? { tier } : { tier, division: 1 }
-}

@@ -332,33 +332,33 @@ function EmptyIconMessageAndAction() {
 
 function ItemSizes() {
   return (
-    <Frame className="flex flex-col gap-4" code={`<Item variant="outline">
-  <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
+    <Frame className="flex flex-col gap-4" code={`<Item>
+  <ItemMedia><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" /></ItemMedia>
   <ItemContent>
     <ItemTitle>Default</ItemTitle>
     <ItemDescription>The comfortable row.</ItemDescription>
   </ItemContent>
 </Item>
 
-<Item variant="outline" size="sm">
-  <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
+<Item size="sm">
+  <ItemMedia><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" /></ItemMedia>
   <ItemContent>
     <ItemTitle>Small</ItemTitle>
     <ItemDescription>A denser row.</ItemDescription>
   </ItemContent>
 </Item>`}>
-      <Item variant="outline">
-        <ItemMedia variant="icon">
-          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
+      <Item>
+        <ItemMedia>
+          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Default</ItemTitle>
           <ItemDescription>The comfortable row.</ItemDescription>
         </ItemContent>
       </Item>
-      <Item variant="outline" size="sm">
-        <ItemMedia variant="icon">
-          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
+      <Item size="sm">
+        <ItemMedia>
+          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Small</ItemTitle>

@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Your friends" }
 /** A request that waits for an answer: to accept or decline when it came in, to cancel when it went out. */
 function Request({ request }: { request: FriendRequest }) {
   return (
-    <Item variant="outline" size="sm">
+    <Item size="sm">
       <ItemMedia>
         <Avatar>
           {request.avatarUrl && <AvatarImage src={request.avatarUrl} alt="" referrerPolicy="no-referrer" />}

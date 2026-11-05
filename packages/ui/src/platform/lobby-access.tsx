@@ -3,7 +3,6 @@
 import * as React from "react"
 import { GlobalIcon, LockKeyholeIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { cn } from "../utils"
 import { TIERS, type Tier } from "../ranks"
 import { Button } from "./button"
 import { Label } from "./label"

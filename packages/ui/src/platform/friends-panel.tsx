@@ -21,7 +21,7 @@ import { MovingCard, useMovingCard, type MovingCardControl } from "./moving-card
 // (`--presence-online`, `--presence-playing`, `--presence-inactive`, `--presence-dnd`, the hues of the platform besides destructive): the line under the name is quiet text. The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
 // they are in) and `SocialPanel`, which holds this list as its first tab (`FriendsRoster`).
 
-export type { Friend, FriendGame, FriendStatus, FriendTable } from "../friends"
+export type { Friend, FriendStatus } from "../friends"
 
 /**
  * The shapes of the dots that are not a plain disc: a disc with a play knocked out of it and another with a bar knocked out of it (even-odd, so that what is

@@ -9,7 +9,6 @@ import { Badge } from "./badge"
 import { Button } from "./button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card"
 import { UserCard } from "./user-card"
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./empty"
 
 // A table of a game, as the hub lists it: who sits at it, whether it waits for players or is being played, how old it is, and the way in (join it). It is drawn from what it is given and decides nothing: which
 // tables there are, in which order, and what a visitor may do at each one is the page's (`@pbgo/ui/tables` has the words and the rule, the hub's `game-activity-props.ts` applies them). It sits on a game's page, on the home's
@@ -172,66 +171,5 @@ function TableCard({ className, size = "default", state, title, seats, age, fact
   )
 }
 
-type TableListProps = Omit<React.HTMLAttributes<HTMLElement>, "children"> & {
-  /** The tables to draw, in order, each with the props of its card. `id` tells them apart. */
-  tables: readonly { id: string; card: TableCardProps }[]
-  /** The size of every card of the list. */
-  size?: TableCardProps["size"]
-  /** What a screen reader calls the list. */
-  label?: string
-  /** Where a table is opened: the empty state has a button that leads there. Without it the empty state has none. */
-  createHref?: string
-  /** What the empty state says when no table is listed. */
-  emptyTitle?: string
-  emptyDescription?: string
-}
-
-/**
- * The tables of a game: one column of cards, which a page spreads over more by giving the list its own columns (`md:grid-cols-2`), or an empty state when there are none that a visitor could join or look at: it says so and, when it is
- * given where a table is opened (`createHref`), invites the visitor to open one. The empty state is compact (`p-6`, not the `p-12` of a page with nothing else) and fills the height it is given.
- */
-function TableList({
-  tables,
-  size,
-  label = "Tables",
-  createHref,
-  emptyTitle = "No table to join",
-  emptyDescription = "Tables that wait for players, and the ones being played, are listed here.",
-  className,
-  ...props
-}: TableListProps) {
-  if (tables.length === 0) {
-    return (
-      <div data-slot="table-list" data-empty="" className={cn("flex flex-col", className)} {...props}>
-        <Empty className="border p-6">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} aria-hidden="true" />
-            </EmptyMedia>
-            <EmptyTitle>{emptyTitle}</EmptyTitle>
-            <EmptyDescription>{emptyDescription}</EmptyDescription>
-          </EmptyHeader>
-          {createHref && (
-            <EmptyContent>
-              <Button variant="outline" asChild>
-                <a href={createHref}>Open a table</a>
-              </Button>
-            </EmptyContent>
-          )}
-        </Empty>
-      </div>
-    )
-  }
-  return (
-    <ul data-slot="table-list" aria-label={label} className={cn("grid gap-3", className)} {...props}>
-      {tables.map(({ id, card }) => (
-        <li key={id}>
-          <TableCard size={size} {...card} className={cn("h-full", card.className)} />
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-export { SeatAvatar, TableCard, TableList, TableSeats }
-export type { TableCardProps, TableListProps }
+export { SeatAvatar, TableCard, TableSeats }
+export type { TableCardProps }

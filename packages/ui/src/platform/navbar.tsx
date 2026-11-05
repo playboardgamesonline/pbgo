@@ -64,10 +64,7 @@ function NavbarEnd({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-end" className={cn(islandClassName, "shrink-0 [&_[data-slot=button]]:rounded-lg", className)} {...props} />
 }
 
-/**
- * A glass island on its own, for what hangs on the bar beside the two containers. The hub's right container, once a visitor is signed in, is not one: it is the dock
- * (`SocialDock`), which grows from a bar into a side panel. the design docs use an island to show the `FriendsBar`, which draws no container of its own.
- */
+/** A glass island: the container of the way back. The hub's right container, once a visitor is signed in, is not one: it is the dock (`SocialDock`), which grows from a bar into a side panel. */
 function NavbarIsland({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="navbar-island" className={cn(islandClassName, "shrink-0", className)} {...props} />
 }
@@ -143,29 +140,14 @@ const tabClassName = "inline-flex h-10 items-center whitespace-nowrap rounded-lg
 
 /**
  * One tab: a link, or its own link through `asChild` (the framework's). `current` marks the page the visitor is in.
- * A `disabled` tab is for a page that does not exist yet: text only, announced as a link that is off, and it keeps its `title` and nothing else.
  */
 function NavbarTab({
   className,
   asChild = false,
   current = false,
-  disabled = false,
   children,
   ...props
-}: React.ComponentProps<"a"> & { asChild?: boolean; current?: boolean; disabled?: boolean }) {
-  if (disabled) {
-    return (
-      <span
-        data-slot="navbar-tab"
-        role="link"
-        aria-disabled="true"
-        title={props.title}
-        className={cn(tabClassName, "cursor-default text-muted-foreground/60", className)}
-      >
-        {children}
-      </span>
-    )
-  }
+}: React.ComponentProps<"a"> & { asChild?: boolean; current?: boolean }) {
   const Comp = asChild ? Slot.Root : "a"
   return (
     <Comp
@@ -184,4 +166,4 @@ function NavbarTab({
   )
 }
 
-export { Navbar, NavbarStart, NavbarEnd, NavbarIsland, NavbarBack, NavbarBrand, NavbarTabs, NavbarSeparator, NavbarTab }
+export { Navbar, NavbarStart, NavbarEnd, NavbarBack, NavbarBrand, NavbarTabs, NavbarSeparator, NavbarTab }
