@@ -58,9 +58,6 @@ const nextConfig: NextConfig = {
       // goes straight to the first page (Identity), so it costs one redirect instead of two.
       { source: `/:game(${SLUGS})/admin`, destination: "/gamemaster/:game/identity", permanent: true },
       { source: `/:game(${SLUGS})/admin/:path+`, destination: "/gamemaster/:game/:path+", permanent: true },
-      // The platform is the door of the games (PLT-106): a game has no home of its own, its address leads to its page on the hub, where a table is opened, joined and started.
-      // Every slug of the registry, a game that is not playable here included: its page says "Coming soon", and its tables and API still answer 404
-      { source: `/:game(${SLUGS})`, destination: "/game/:game", permanent: true },
       // What's New was a page of the navbar and is now a section of About
       { source: "/whats-new", destination: "/about#whats-new", permanent: true },
       // The privacy policy and the terms of use moved under /legal, next to the legal notice and the cookie policy
@@ -75,6 +72,10 @@ const nextConfig: NextConfig = {
       // or the gamemaster's own /gamemaster/[game]/[[...section]] page would answer first.
       beforeFiles: [
         { source: `/gamemaster/:game(${SLUGS})/preview/:kind(game)`, destination: "/:game/preview/:kind" },
+        // The platform is the door of the games (PLT-106): a game has no home of its own, its address shows its page on the hub, where a table is opened, joined and started. A rewrite, not a redirect: the address stays
+        // `/<slug>` and the page (its canonical is `/game/<slug>`) is the hub's, in the hub's root layout. Every slug of the registry, a game that is not playable here included: its page says "Coming soon", and its tables
+        // and API still answer 404. In `beforeFiles`, so that nothing of the `[game]` segment answers for the slug
+        { source: `/:game(${SLUGS})`, destination: "/game/:game" },
         // Before the files too, or `/ingest/...` would be read as the `[game]` route of a game called "ingest".
         ...INGEST_REWRITES,
       ],

@@ -388,7 +388,7 @@ describe("sitemapItems", () => {
     for (const entry of entries) expect(listed.includes(`${SITE}/game/${entry.slug}`)).toBe(isIndexable(entry))
   })
 
-  it("lists no address of a game of its own: `/<slug>` leads to the hub page", () => {
+  it("lists no address of a game of its own: `/<slug>` shows the hub page, whose canonical is `/game/<slug>`", () => {
     const listed = urls(sitemapItems(SITE, entries))
     for (const entry of entries) expect(listed).not.toContain(`${SITE}/${entry.slug}`)
   })

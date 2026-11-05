@@ -6,7 +6,7 @@ import { SITE_URL } from "@/site"
  * crawled, nor is `/ingest/`, the analytics proxy, nor the sign-in and the pages of an account (`/login`, `/logout`, `/auth/`, `/me`). The one door left open in `/api/` is `/api/catalog/`, the icons of the games and of
  * their publishers, and the old addresses of the games' pictures, which now lead to the image CDN of the platform's Sanity project: the
  * share image of a game's page used to be one of them, and Facebook, X and the like keep the links they have seen and fetch them as
- * crawlers (the longest rule wins, so it beats `/api/`). A game has no home of its own (`/<slug>` leads to its hub page). The hub's game pages (`/game/<slug>`) stay
+ * crawlers (the longest rule wins, so it beats `/api/`). A game has no home of its own (`/<slug>` shows its hub page). The hub's game pages (`/game/<slug>`) stay
  * crawlable even when not indexable yet: their `noindex` meta keeps them out of results, and a crawler has to fetch the page to read it. A table on the hub
  * (`/game/<slug>/<code>`, the platform's page of a table that waits for players) is never crawled, like the tables of the games (`/<slug>/game/<code>`).
  */

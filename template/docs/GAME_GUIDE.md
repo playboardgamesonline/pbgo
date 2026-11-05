@@ -88,7 +88,7 @@ The ticker, the players strip, the seat label, the announcements (start, round, 
 apps/web/                          # 🌐 the only Next.js app (hub + every game)
 └─ src/app/
    ├─ (hub)/                       # / (hub), /legal
-   ├─ [game]/                      # /<slug>/game/<code> (the board), /<slug>/preview/<kind> (the admin lives at /gamemaster/<slug>); /<slug> leads to /game/<slug>, the hub's page where a table is opened
+   ├─ [game]/                      # /<slug>/game/<code> (the board), /<slug>/preview/<kind> (the admin lives at /gamemaster/<slug>); /<slug> shows /game/<slug>, the hub's page where a table is opened
    └─ api/[game]/…                 # /api/<slug>/games/…, tasks, feedback, admin (handlers of @pbgo/core)
 packages/
 ├─ core/                           # everything shared: server, lib, components, pages, route handlers

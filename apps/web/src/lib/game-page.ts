@@ -122,7 +122,7 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
 }
 
 /**
- * In development every game of the registry has a page, the demo template and a game under construction included: `pnpm dev` opens a game at `/<slug>` (which leads here), and a game that was just made has no game in the Studio
+ * In development every game of the registry has a page, the demo template and a game under construction included: `pnpm dev` opens a game at `/<slug>` (which shows this page), and a game that was just made has no game in the Studio
  * yet, and the template never has one. It is the registry's row, with nothing but a name and the figures it knows. A deployment lists only what the catalog announces.
  */
 function developmentEntry(slug: string): CatalogEntry | null {

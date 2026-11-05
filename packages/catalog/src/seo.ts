@@ -178,7 +178,7 @@ function lastModified(entry: CatalogEntry): Date | undefined {
 
 /**
  * The sitemap: the hub, its list of games (`/games`), then the hub page of every indexable game of the catalog (`isIndexable`, so the
- * sitemap lists exactly the pages that do not say `noindex`). A game has no home of its own (`/<slug>` leads to its hub page), so its
+ * sitemap lists exactly the pages that do not say `noindex`). A game has no home of its own (`/<slug>` shows its hub page, whose canonical is `/game/<slug>`), so its
  * address is not listed. `site` is the origin, without a trailing slash.
  */
 export function sitemapItems(site: string, entries: readonly CatalogEntry[]): SitemapItem[] {

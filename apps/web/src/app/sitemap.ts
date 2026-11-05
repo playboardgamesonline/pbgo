@@ -10,7 +10,7 @@ export const revalidate = 600
 /**
  * The hub, its list of games, then the hub page (`/game/<slug>`) of every game of the catalog that search engines may index: a live game
  * with the registry's flag, a game to come once its game in the Studio has a description (`isIndexable`). A game has no home of its own
- * (`/<slug>` leads to its hub page), so its address is not listed.
+ * (`/<slug>` shows its hub page, whose canonical is `/game/<slug>`), so its address is not listed.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { entries } = await getCatalog()
