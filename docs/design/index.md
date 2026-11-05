@@ -1,3 +1,8 @@
+---
+icon: paint-board
+description: The colours, type and components every screen of Play Board Games Online is built from, and the rules for using them.
+---
+
 # Design
 
 The tokens and components of `@pbgo/ui` in two layers, platform and game, with the rules for them. Every token and building block of the platform is shown here live: check them before building a screen. A page is not documented here, only what it is made of. Hub, account, legal, the docs, gamemaster and 404 are built from these and from nothing else; the in-game UI is not, each game draws it in its own look.

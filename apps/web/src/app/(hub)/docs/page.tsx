@@ -1,41 +1,47 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { flatten } from "@pbgo/docs"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { getSections } from "@pbgo/docs/server"
+import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
+import { ListPageHeader } from "@/components/list-page-header"
+import { SiteFooter } from "@/components/site-footer"
+import { docIconOf } from "@/lib/doc-icons"
 
-export const metadata: Metadata = { title: "Docs", description: "The documentation of the repository, rendered from its docs/ folder. Internal reference.", alternates: { canonical: "/docs" } }
+const DESCRIPTION = "The reference for how Play Board Games Online is designed and built: the look of its screens and the engines behind its games."
+
+export const metadata: Metadata = { title: "Docs", description: DESCRIPTION, alternates: { canonical: "/docs" } }
 
 /**
- * The way into the docs: a card for each section of the `docs/` folder, with the first lines of its landing page. There is no list to keep here, a new folder of `docs/` is a new card.
+ * The way into the docs, in the look of the pages of the navbar: the head they share (`ListPageHeader`, the title and a few words under it), then a card for each doc, with its icon, its name and its description, and the footer. There is
+ * no list to keep here: a doc is a folder of `docs/` whose landing page says its icon and its description in its front matter, and a new folder is a new card. A card leads to the doc, which has a look of its own, a side menu next to its pages.
  */
 export default async function DocsPage() {
-  const sections = await getSections()
+  const docs = await getSections()
   return (
-    <>
-      <div className="flex flex-col gap-4">
-        <h1 className="font-heading text-4xl md:text-5xl">Docs</h1>
-        <p className="max-w-reading text-lg text-muted-foreground">
-          The documentation of the repository, drawn from the markdown files of its <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs tracking-normal">docs/</code> folder: one source, and nothing written twice. A
-          folder is a section, a file in it is a page, a folder in it is a group of pages, and the first heading of a file is its title.
-        </p>
-      </div>
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {sections.map((section) => {
-          const count = flatten(section.pages).length + 1
-          return (
-            <li key={section.slug}>
-              <Link
-                href={section.href}
-                className="flex h-full flex-col gap-2 rounded-3xl border p-6 transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none"
-              >
-                <span className="font-heading text-xl">{section.title}</span>
-                {section.summary && <span className="text-muted-foreground">{section.summary}</span>}
-                <span className="mt-auto pt-2 text-sm text-muted-foreground">{count === 1 ? "1 page" : `${count} pages`}</span>
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
-    </>
+    <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
+      <main className="flex-1">
+        <ListPageHeader title="Docs" description={DESCRIPTION} />
+        <section aria-label="Docs" className="mx-auto w-full max-w-page px-gutter pb-section">
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {docs.map((doc) => (
+              <li key={doc.slug}>
+                <Link href={doc.href} className="group/doc block h-full rounded-4xl outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
+                  <Card className="h-full transition-colors group-hover/doc:bg-secondary">
+                    <CardHeader>
+                      <span className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-muted">
+                        <HugeiconsIcon icon={docIconOf(doc.icon)} strokeWidth={2} className="size-6" aria-hidden="true" />
+                      </span>
+                      <CardTitle className="text-xl">{doc.title}</CardTitle>
+                      {doc.description && <CardDescription className="text-base">{doc.description}</CardDescription>}
+                    </CardHeader>
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </main>
+      <SiteFooter />
+    </div>
   )
 }
