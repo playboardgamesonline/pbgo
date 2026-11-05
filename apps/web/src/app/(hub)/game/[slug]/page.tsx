@@ -71,7 +71,7 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         shop={game.shop}
       />
 
-      <main className="w-full flex-1 px-gutter py-8 md:py-12">
+      <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
         {/* Under the head, in this order: the visitor's cards, then the tables and the space to play (the head's "Create a table" leads to the space), then the tournaments and the leaderboard side by side. A game that is not live has the space and the tournaments: there is nothing to play, so no cards and no board. The credits are in the head */}
         <div className="flex flex-col gap-section">
           {game.live && stats && <GamePlayerBar slug={game.slug} stats={stats} recent={history} expansions={expansions} />}

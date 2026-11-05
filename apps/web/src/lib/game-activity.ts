@@ -161,6 +161,8 @@ export type HistoryEntry = {
   points: number | null
   /** How long the game lasted, in seconds: `game_results.finished_at` less the `started_at` of its table. Null when it is not known. */
   durationSeconds: number | null
+  /** `tables.turn_timer` of its table: the speed it was played at. */
+  turnTimer: TurnTimer
   /** `game_participants.score` */
   score: number | null
   /** The expansions the game was played with, by `Expansion.id`: none for the base game. The page's guess, like `GameTable.expansions`. */

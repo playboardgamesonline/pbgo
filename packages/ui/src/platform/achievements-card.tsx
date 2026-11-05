@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card"
 import { StatBarItem, StatBarValue } from "./stat-bar"
 
-// The achievements a visitor has earned, as a card of the stat bar (`StatBarItem`) for a page that shows what a visitor did: the badges in a block of at most two rows of three, 4.75rem each, the latest first, and at the right of its label a "View all" button. The count of what is earned, over how many there
+// The achievements a visitor has earned, as a card of the stat bar (`StatBarItem`) for a page that shows what a visitor did: the badges in a block of at most two rows of three, 4.75rem each, the latest first, and at the right of its label a "See all" button. The count of what is earned, over how many there
 // are when that is known, is in the label, in brackets after its name ("Achievements (9/12)"). When there are more than six, the sixth place, at the bottom right, is the number of those that are left ("+5": the bare number, no outline, with a round background under the pointer to say that it can be pressed) and the
 // badges are the first five. The button, the number and each badge open the same window, which lists every one with its picture, its name, what it was for and the day, and scrolls when they do not fit, so that a touch, which has no hover, reaches what the card under the pointer says on a badge (the name, what it
 // was for and the day). A visitor who has earned none has "None yet" and no button. A badge is drawn from the achievement's id (`AchievementBadge`).
@@ -55,7 +55,7 @@ function AchievementsCard({ achievements, total = 0, ...props }: AchievementsCar
         action={
           <DialogTrigger asChild>
             <Button variant="outline" size="sm">
-              View all
+              See all
               <span className="sr-only"> achievements</span>
               <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
             </Button>

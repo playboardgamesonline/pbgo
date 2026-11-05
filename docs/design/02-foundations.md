@@ -164,7 +164,7 @@ Spacing is Tailwind's own scale (`p-4`, `gap-6`). The platform adds only what a 
 token-table
 --gutter | px-gutter | Side padding of a page: 1rem on a phone, 1.5rem from the `sm` breakpoint and 4rem (64px) from `lg`, so a desktop keeps a small margin on each side.
 --section | py-section | Vertical space between the sections of a page (`pb-section` between two). Widens at the `sm` breakpoint.
---container-page | max-w-page | Width of a page that keeps a limit on a wide screen: the pages of the tabs, the centred header of a list. Nearly the whole window, up to this value. The hub's lists of games (the home's sections, `/games`) and a game's page have none: they take the whole window.
+--container-page | max-w-page | Width of a page that keeps a limit on a wide screen: the pages of the tabs, the centred header of a list. Nearly the whole window, up to this value. The hub's lists of games (the home's sections, `/games`) have none: they take the whole window. A game's page keeps the limit: its head's text and its body are centred in it, and only the head's art goes across the whole window.
 --container-reading | max-w-reading | Width of running text, so a line stays readable.
 ```
 
