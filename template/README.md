@@ -1,6 +1,6 @@
 # Template · La Plus Haute
 
-Shared base of the online board games, served by `apps/web` at `/template`: lobby with game options, realtime table, shareable game over, administration at `/gamemaster/template` (Setup, Tasks, Monitoring).
+Shared base of the online board games, served by `apps/web` at `/template`: tables opened on the platform's page of the game (`/game/template`, game options included), realtime table, shareable game over, administration at `/gamemaster/template` (Setup, Tasks, Monitoring).
 
 ## Start
 
