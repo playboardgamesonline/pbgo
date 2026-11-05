@@ -30,14 +30,14 @@ type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "s
   searching: boolean
   /** How long they have, in whole seconds. */
   seconds: number
-  /** What the button does while it is "Find a table": starts the search. */
+  /** What the button does while it is "Play ranked": starts the search. */
   onSearch: () => void
   /** What the cross does: stops it. */
   onCancel: () => void
 }
 
 /**
- * The main button of a game's page, "Find a table" (its children, with no icon). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
+ * The main button of a game's page, "Play ranked" (its children: a play icon and its name). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
  * a counter of the time waited with a cross that stops it, on the same fill; the cross takes the focus when it was the keyboard that pressed, and the button takes it back when the cross was pressed. A disabled button is
  * the one of a game that cannot be played yet, and has no counter.
  */

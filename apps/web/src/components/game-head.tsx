@@ -6,16 +6,16 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { categoryIcon } from "@/lib/category-icons"
 import type { GamePage } from "@/lib/game-page"
-import { FindTableButton } from "./find-table-button"
 import { GameCredits } from "./game-credits"
 import { GameLiveStats } from "./game-live-stats"
 import { CREATE_ANCHOR } from "./game-play"
+import { PlayRankedButton } from "./play-ranked-button"
 import { RulesButton } from "./rules-button"
 
 // The head of a game's page, the first thing a visitor sees: the game's own background across the whole width of the page, from the very top (the navbar is over it), the art fading into the page under the text, from the left, where the text is, and at the foot, where the page goes on
 // (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left as tall as the head, which is 92% of the screen, and 80% of it from `lg` (less the room that the cookie banner takes, `--consent-h`, so that the buttons at its foot are not under it, and taller when its text needs more), the way back to the games' list ("Back") at its top and everything else at its foot, the two kept 2rem apart at the least on a wide screen (4rem on a phone), so that the top of the next section shows under the head: the game's logo in place of its name (the name, written, for a game
 // that has no logo), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three main
-// buttons, all 48px high, "Find a table", which puts the visitor in a queue and becomes a counter with a cross while it lasts (`FindTableButton`); "Create a table", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
+// buttons, all 48px high, "Play ranked", with a play icon, which puts the visitor in a queue and becomes a counter with a cross while it lasts (`PlayRankedButton`); "Create a table", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
 // to the rulebook, or a menu of languages that a press opens). What the signed-in visitor has done in the game is not in the head: it is the cards under it, the first section of the page (`GamePlayerBar`).
 // Under the buttons come what is going on in the game right now, as figures with no box (`GameLiveStats`: the players online, the queue time, the friends of the visitor who are in it; none for a game that is not live) and then the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled and keeps the rules.
 // Nothing stands in for what is missing: a game with no background has a plain head. The gallery of the game's pictures and clips (`MediaGallery`) is not drawn for now: it will have a place again.
@@ -110,7 +110,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <FindTableButton slug={slug} name={name} disabled={!live} />
+            <PlayRankedButton slug={slug} name={name} disabled={!live} />
             {live ? (
               <Button variant="outline" size="xl" asChild>
                 <a href={`#${CREATE_ANCHOR}`}>
