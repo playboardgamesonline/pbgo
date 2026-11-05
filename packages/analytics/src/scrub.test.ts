@@ -46,6 +46,7 @@ describe("scrubText", () => {
       "Create a game",
       "Create a table",
       "Find a table",
+      "Play ranked",
       "Play Courtisans Online [PBGO]",
       "Table #4XV",
       "Table #4XV-XA",

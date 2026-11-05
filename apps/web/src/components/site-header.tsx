@@ -3,10 +3,12 @@
 import { Fragment } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { ArrowLeft02Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { useAccount } from "@pbgo/accounts/client"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
-import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
+import { Navbar, NavbarBack, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { SiteSocial } from "@/components/site-social"
 import { SITE_NAME } from "@/site"
 
@@ -47,7 +49,7 @@ function currentOf(pathname: string): SiteCurrent | null {
 /**
  * The navbar of the hub's own pages (the home, the pages of the tabs and a game's page), fixed to the top of the window in two rounded-square
  * containers kept apart, on the edges of the window: the logo and the tabs on the left, the account on the right, with nothing drawn between
- * them. A page leaves `pt-navbar` under it, and an anchor
+ * them. A game's page has a third, the way back to the games, an island of its own at the left of the first one (`NavbarBack`, from `sm`). A page leaves `pt-navbar` under it, and an anchor
  * that lands under it has `scroll-mt-navbar`.
  * The hub's layout mounts it once, and it reads the address to know what is current: the page does not say. That is what lets the fill behind
  * the current item glide from one to the next when the visitor goes from page to page, which a bar that every page drew again could not do.
@@ -62,26 +64,37 @@ export function SiteHeader() {
   const account = useAccount()
   if (current === null) return null
   const hidden = account.status === "loading" ? "invisible" : undefined
+  // A game's page has the way back to the games in an island of its own, at the left of the first one, from `sm`: on a phone the bar has no room for it next to the dock, and the head of the page has the way back itself
+  const back = pathname.startsWith("/game/")
 
   return (
     <Navbar className="fixed inset-x-0 top-0 z-40">
-      <NavbarStart>
-        <NavbarBrand asChild current={current === "home"}>
-          <Link href="/" aria-label={SITE_NAME}>
-            <Logo className="h-6" />
-          </Link>
-        </NavbarBrand>
-        <NavbarTabs aria-label="Main">
-          {SITE_TABS.map((tab, index) => (
-            <Fragment key={tab.id}>
-              {index > 0 && SITE_TABS[index - 1].group !== tab.group && <NavbarSeparator className="max-lg:hidden" />}
-              <NavbarTab asChild current={tab.id === current} className={tab.group === "about" ? "max-lg:hidden" : undefined}>
-                <Link href={tab.href}>{tab.label}</Link>
-              </NavbarTab>
-            </Fragment>
-          ))}
-        </NavbarTabs>
-      </NavbarStart>
+      <div className="flex min-w-0 items-center gap-2">
+        {back && (
+          <NavbarBack asChild className="max-sm:hidden">
+            <Link href="/games" aria-label="Back to all games" title="Back to all games">
+              <HugeiconsIcon icon={ArrowLeft02Icon} strokeWidth={2} className="size-5" aria-hidden="true" />
+            </Link>
+          </NavbarBack>
+        )}
+        <NavbarStart>
+          <NavbarBrand asChild current={current === "home"}>
+            <Link href="/" aria-label={SITE_NAME}>
+              <Logo className="h-6" />
+            </Link>
+          </NavbarBrand>
+          <NavbarTabs aria-label="Main">
+            {SITE_TABS.map((tab, index) => (
+              <Fragment key={tab.id}>
+                {index > 0 && SITE_TABS[index - 1].group !== tab.group && <NavbarSeparator className="max-lg:hidden" />}
+                <NavbarTab asChild current={tab.id === current} className={tab.group === "about" ? "max-lg:hidden" : undefined}>
+                  <Link href={tab.href}>{tab.label}</Link>
+                </NavbarTab>
+              </Fragment>
+            ))}
+          </NavbarTabs>
+        </NavbarStart>
+      </div>
       <div className="flex shrink-0 items-center gap-2">
         {account.status === "signed-in" ? (
           <SiteSocial account={account.account} />

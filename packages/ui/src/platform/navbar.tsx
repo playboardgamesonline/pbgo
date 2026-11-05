@@ -73,6 +73,25 @@ function NavbarIsland({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 /**
+ * The way back, in an island of its own at the left of the first one, on a page that belongs to a list (a game's page, to the games): an arrow in a square button as high as the tabs, as quiet as a tab and with the same fill under the pointer. Give the link an `aria-label`;
+ * `className` is the island's. The island takes its place in the row (the first one moves right by its width and the gap), so the page that has one puts both in a group (`flex items-center gap-2`) at the left of the bar, and leaves the island out where the bar is too narrow for it.
+ */
+function NavbarBack({ className, asChild = false, children, ...props }: React.ComponentProps<"a"> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : "a"
+  return (
+    <NavbarIsland className={className}>
+      <Comp
+        data-slot="navbar-back"
+        className="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/30"
+        {...props}
+      >
+        {children}
+      </Comp>
+    </NavbarIsland>
+  )
+}
+
+/**
  * The front page: a square button, usually around a `Logo` of `h-6`, the size of the tabs' text (give the link an `aria-label`). It is the home's
  * button, so `current` marks the front page itself, the way a tab marks its page: the fill of the bar is behind it (it was the tile turning white
  * once; the bar has one way to say where you are). On any other page it is as quiet as a tab.
@@ -165,4 +184,4 @@ function NavbarTab({
   )
 }
 
-export { Navbar, NavbarStart, NavbarEnd, NavbarIsland, NavbarBrand, NavbarTabs, NavbarSeparator, NavbarTab }
+export { Navbar, NavbarStart, NavbarEnd, NavbarIsland, NavbarBack, NavbarBrand, NavbarTabs, NavbarSeparator, NavbarTab }

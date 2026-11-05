@@ -6,8 +6,7 @@ import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
-import { resultOf, type Result } from "@pbgo/ui/results"
-import { ageOf, hostOf, nicknameOf, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
+import { ageOf, hostOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import { categoryIcon } from "./category-icons"
 import type { Expansion, GameTable, HistoryEntry, Standing, TurnTimer } from "./game-activity"
 import { durationLabel, playersLabel } from "./game-card-props"
@@ -188,21 +187,29 @@ const FULL_DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "shor
 /** "28 Oct 2026": the day of an ISO date with its year, in UTC like `dayOf`. */
 export const fullDayOf = (iso: string): string => FULL_DAY.format(new Date(iso))
 
-/** The latest game a visitor finished, as the bar under the head says it. */
+const TIME = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "UTC" })
+
+/** "18:20": the time of an ISO date on a 24-hour clock, in UTC like `fullDayOf`, so that the server and the browser write the same. */
+export const timeOf = (iso: string): string => TIME.format(new Date(iso))
+
+/** A game a visitor finished, as a row of the recent games under the head says it. */
 export type LastGame = {
   /** "28 Oct 2026": the day it ended, with its year. */
   day: string
-  /** How it ended for them: the bar words it and gives it its colour. */
-  result: Result
+  /** "18:20": the time it ended, on a 24-hour clock. */
+  time: string
   /** Where they came: "1st", "2nd", "3rd", with no count of the players; none where no ranking applies (a game played together). */
   place: string | null
+  /** The speed it was played at: the pace and its word ("Slow", "Normal", "Fast", "No timer", "Async": `PACES`), which a row says whatever the speed was. */
+  pace: { value: TurnTimer; label: string }
 }
 
-/** What the bar under the head says of the latest game a visitor finished (`HistoryEntry`: the one the history starts with). */
+/** What a row of the recent games under the head says of a game a visitor finished (`HistoryEntry`): the day, the time, the place and the speed; the rank points, the players, how long it lasted and the expansions are the entry's own. */
 export function lastGameOf(entry: HistoryEntry): LastGame {
   return {
     day: fullDayOf(entry.finishedAt),
-    result: resultOf(entry.outcome),
+    time: timeOf(entry.finishedAt),
     place: entry.place === null ? null : ordinal(entry.place),
+    pace: { value: entry.turnTimer, label: PACES.find((pace) => pace.value === entry.turnTimer)?.label ?? entry.turnTimer },
   }
 }
