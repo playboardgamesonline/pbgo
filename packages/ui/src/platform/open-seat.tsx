@@ -7,13 +7,13 @@ import { cn } from "../utils"
 import { Avatar, AvatarFallback } from "./avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu"
 
-// A seat that nobody has taken, as a dashed circle with a plus in it, and the plus does something. For a visitor who is not at the table it joins it (`join`: a link to the table's page, the table being in the game's own site, another root layout that a visitor
-// loads whole). For one who is at it it opens a small menu to bring someone (`invite`): "Invite a friend", which a page that has friends gives a way to do (`onInvite`: it is disabled without), and "Copy link", which copies the table's address and says so for a
+// A seat that nobody has taken, as a dashed circle with a plus in it, and the plus does something. For a visitor who is not at the table it joins it (`join`: a link to the table's page, or a button that sits the visitor down itself, for a page that opens, joins and
+// starts tables: `onJoin`). For one who is at it it opens a small menu to bring someone (`invite`): "Invite a friend", which a page that has friends gives a way to do (`onInvite`: it is disabled without), and "Copy link", which copies the table's address and says so for a
 // moment before the menu closes. With neither it is the dashed place alone, which only says that there is room. A table has several of these and they all do the same, so only one of them is a stop for the keyboard (`tabbable`).
 
 type OpenSeatProps = {
-  /** Joining: where the plus leads. */
-  join?: { href: string }
+  /** Joining: where the plus leads (`href`), or what it does (`onJoin`, which wins: a button that sits the visitor down without leaving the page). */
+  join?: { href?: string; onJoin?: () => void }
   /** Inviting, for a visitor who is at the table: the address that "Copy link" copies (a path of this site or a whole address), and what "Invite a friend" does. */
   invite?: { link: string; onInvite?: () => void }
   /** Whether this seat is a stop for the keyboard: one of the free seats of a table is, the others are not. */
@@ -49,7 +49,15 @@ function OpenSeat({ join, invite, tabbable = true, className }: OpenSeatProps) {
     return () => clearTimeout(timer)
   }, [copied])
 
-  if (join) {
+  if (join?.onJoin) {
+    return (
+      <button type="button" onClick={join.onJoin} aria-label="Join this table" tabIndex={tabbable ? undefined : -1} className={cn(FOCUS, "cursor-pointer")}>
+        <Place className={className} />
+      </button>
+    )
+  }
+
+  if (join?.href) {
     return (
       <a href={join.href} aria-label="Join this table" tabIndex={tabbable ? undefined : -1} className={FOCUS}>
         <Place className={className} />

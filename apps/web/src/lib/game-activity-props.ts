@@ -147,7 +147,8 @@ export function tableDetailProps(
   const { taken, total } = seatCount(seats)
   return {
     state,
-    createdBy: mine ? "you" : (hostOf(seats) ?? "a player who left"),
+    // "you" is for the one who opened the table: a visitor who sat down at somebody else's reads the host's name
+    createdBy: mine && "viewerIsHost" in table && table.viewerIsHost ? "you" : (hostOf(seats) ?? "a player who left"),
     title: mine ? (state === "waiting" ? "Your lobby" : "Your game") : nameOfTable(table),
     description: mine && state === "waiting" ? `Table ${table.code}. Share its link to fill the seats.` : `Table ${table.code}`,
     seats,

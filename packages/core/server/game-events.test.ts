@@ -24,7 +24,7 @@ type StoredRow = {
   code: string
   host_id: string
   status: "lobby" | "playing" | "over"
-  players: Array<{ id: string; nickname: string }>
+  players: Array<{ id: string; nickname: string; avatarUrl?: string }>
   options: Record<string, number | string | boolean>
   state: unknown
   replay: string[]
@@ -43,6 +43,8 @@ const h = vi.hoisted(() => ({
   track: vi.fn<(event: string, distinctId: string, properties: object) => Promise<void>>(async () => {}),
   playerId: null as string | null,
   settings: { options: { defaults: {}, hidden: [] as string[] }, maxPlayers: 3, minPlayers: 2, turnTimeout: 60 },
+  /** Who is signed in: the account the create and join routes sit down as, null for a guest */
+  account: null as { nickname: string; avatarUrl: string | null } | null,
 }))
 
 vi.mock("server-only", () => ({}))
@@ -51,6 +53,7 @@ vi.mock("@pbgo/analytics/server", () => ({ track: h.track }))
 vi.mock("../sanity/client", () => ({ sanityClient: () => null }))
 vi.mock("../lib/settings-server", () => ({ loadSettings: async () => h.settings }))
 vi.mock("../lib/locale-server", () => ({ getLocale: async () => "en" }))
+vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => h.account }))
 vi.mock("./player", () => ({ getPlayerId: async () => h.playerId, getOrCreatePlayerId: async () => h.playerId }))
 vi.mock("./rate-limit", () => ({ rateLimit: async () => {} }))
 vi.mock("./presence", () => ({ markSeen: async () => {} }))
@@ -236,6 +239,7 @@ beforeEach(() => {
   h.beforeUpdate = null
   h.track.mockReset()
   h.playerId = null
+  h.account = null
   h.settings.maxPlayers = 3
   h.settings.minPlayers = 2
   h.settings.turnTimeout = 60
@@ -295,6 +299,46 @@ describe("player_joined", () => {
     playing(["p1", "p2"], 0)
     expect((await call(join, { nickname: "Dee" })).status).toBe(409)
     expect(names()).toEqual([])
+  })
+})
+
+describe("who sits down", () => {
+  const seated = () => [...h.rows.values()][0]!.players
+
+  it("is the account of a visitor who is signed in: its name and its picture, taken on the server, whatever the request says", async () => {
+    h.playerId = "p1"
+    h.account = { nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" }
+    expect((await call(create, { nickname: "Someone else", avatarUrl: "https://evil.example/x.png" }, null)).status).toBe(200)
+    expect(seated()).toEqual([{ id: "p1", nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" }])
+  })
+
+  it("is the nickname that a guest typed, with no picture", async () => {
+    h.playerId = "p1"
+    expect((await call(create, { nickname: "  Ann  ", avatarUrl: "https://evil.example/x.png" }, null)).status).toBe(200)
+    expect(seated()).toEqual([{ id: "p1", nickname: "Ann" }])
+  })
+
+  it("is the account again at the table of somebody else, and an account needs no nickname", async () => {
+    seed()
+    h.playerId = "p2"
+    h.account = { nickname: "Bob B.", avatarUrl: null }
+    expect((await call(join, {})).status).toBe(200)
+    expect(stored().players).toEqual([ann, { id: "p2", nickname: "Bob B." }])
+  })
+
+  it("still refuses a guest with no nickname", async () => {
+    seed()
+    h.playerId = "p2"
+    expect((await call(join, {})).status).toBe(400)
+    expect(stored().players).toEqual([ann])
+  })
+
+  it("gives the engine the id and the nickname of each player and nothing else: the picture of an account is for the seat labels, not for the state", async () => {
+    seed({ players: [{ ...ann, avatarUrl: "https://cdn.example/ann.png" }, bob] })
+    h.playerId = "p1"
+    const setup = vi.fn(GAME.setup)
+    expect((await call(start, {}, CODE, gameOf({ ...GAME, setup }))).status).toBe(200)
+    expect(setup.mock.calls[0]![0].players).toEqual([ann, bob])
   })
 })
 

@@ -3,7 +3,6 @@
 // read this file as it is; apps/web hands it what the page loaded (see docs/catalog.md).
 
 import type { Metadata, MetadataRoute } from "next"
-import type { GameEntry } from "@pbgo/core/lib/binding"
 import { OG_LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { pickLocalized, sharePicture, type CatalogEntry, type Creator } from "./catalog"
 
@@ -178,15 +177,14 @@ function lastModified(entry: CatalogEntry): Date | undefined {
 }
 
 /**
- * The sitemap: the hub, its list of games (`/games`), the home of every indexable game of the registry, then the hub page of every
- * indexable game of the catalog (`isIndexable`, so the sitemap lists exactly the pages that do not say `noindex`). `site` is the origin,
- * without a trailing slash.
+ * The sitemap: the hub, its list of games (`/games`), then the hub page of every indexable game of the catalog (`isIndexable`, so the
+ * sitemap lists exactly the pages that do not say `noindex`). A game has no home of its own (`/<slug>` leads to its hub page), so its
+ * address is not listed. `site` is the origin, without a trailing slash.
  */
-export function sitemapItems(site: string, games: readonly Pick<GameEntry, "slug" | "indexable">[], entries: readonly CatalogEntry[]): SitemapItem[] {
+export function sitemapItems(site: string, entries: readonly CatalogEntry[]): SitemapItem[] {
   return [
     { url: site, changeFrequency: "weekly", priority: 1 },
     { url: `${site}/games`, changeFrequency: "weekly", priority: 0.9 },
-    ...games.filter((game) => game.indexable).map((game): SitemapItem => ({ url: `${site}/${game.slug}`, changeFrequency: "weekly", priority: 0.9 })),
     ...entries.filter(isIndexable).map((entry): SitemapItem => {
       const modified = lastModified(entry)
       return {

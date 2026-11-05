@@ -3,6 +3,9 @@ import { expansionsOf, pickLocalized, pictureRatio, pictureUrl } from "@pbgo/cat
 import { getCatalog } from "@pbgo/catalog/server"
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
+import { ApiError } from "@pbgo/core/server/api"
+import { findPlayerGame, readGame, type GameRow } from "@pbgo/core/server/games"
+import { getPlayerId } from "@pbgo/core/server/player"
 import type { Outcome } from "@pbgo/ui/results"
 import type { Rank } from "@pbgo/ui/ranks"
 import type { PlayerRecord } from "@pbgo/ui/tables"
@@ -12,6 +15,9 @@ import type { PlayerRecord } from "@pbgo/ui/tables"
 // (`platform.tables` and `table_players` for the tables, `ratings` and `profiles` for the standings, `game_participants`, `game_results` and `rating_changes` for what a visitor has done; the design is in the Linear documents
 // "PLT-13 final schema proposal" and "PLT-13 SQL"), written without Supabase, so that the day the schema is there only the bodies of these functions change and the page does not. The tournaments are PLT-31's and have no row in that
 // schema yet, and neither have achievements, whose shape here is the page's guess.
+// The tables are the exception since PLT-106 (the platform is the door of the games): a table is a row of `public.games`, which the game's routes create, fill and start, so `getViewerTable` and `getTable` read
+// it (`tableOfRow`) and the rest of the page does not know. The visitor is the per-game player cookie (`<slug>_player`) until the accounts of PLT-13 own a seat; what a row of `games` cannot hold (seats, who may
+// join, speed, a list of public tables) is what PLT-13's `tables` adds, and `getTables` stays empty until then.
 
 /** What a table of the page is doing: it waits for players (`lobby`) or it is being played (`playing`). A table that is over or given up is a result (`game_results`), not a table of the page. */
 export type TableStatus = "lobby" | "playing"
@@ -56,8 +62,12 @@ export type GameTable = {
   expansions: string[]
   /** `tables.created_at`, an ISO date. */
   createdAt: string
-  /** `tables.started_at`: when it began to be played, null while it waits. */
+  /** `tables.started_at`: when it began to be played, null while it waits. A row of `games` does not date its start, so a table read from it says null and its age counts from `createdAt`. */
   startedAt: string | null
+  /** The version of the row the page read (`games.version`): the page of a table that waits asks again when it moves on (`TableSync`). Only the tables read from `games` have one; PLT-13's tables have Realtime of their own. */
+  version?: number
+  /** The keys of the options the table holds (`games.options`, which are the options of the game's engine): the choices of a lobby's settings that the current backend can keep are those whose id is one of them (`engineOptionsOf`). */
+  optionKeys?: string[]
 }
 
 /** The table the visitor sits at: a table of the page, and whether they opened it, since only the one who did sets it. */
@@ -188,14 +198,55 @@ export async function getTables(slug: string): Promise<GameTable[]> {
   return []
 }
 
+/** A row of `games` as a table of the page, null when it is over (that is a result, not a table). Its people are in the order they sat down, which is their seat. Every table of the current backend is reached by its link alone, so it is `private`. */
+function tableOfRow(row: GameRow, seatsMax: number): GameTable | null {
+  if (row.status === "over") return null
+  const options = row.options ?? {}
+  return {
+    id: row.code,
+    code: row.code,
+    status: row.status === "lobby" ? "lobby" : "playing",
+    visibility: "private",
+    hostId: row.host_id,
+    // Never fewer seats than people: the game's own limit is enforced by its routes
+    seatsMax: Math.max(seatsMax, row.players.length),
+    players: row.players.map((player, seat) => ({ playerId: player.id, seat, name: player.nickname, avatarUrl: player.avatarUrl ?? null, record: null })),
+    turnTimer: "normal",
+    expansions: Object.entries(options).flatMap(([key, value]) => (value === true ? [key] : [])),
+    createdAt: row.created_at ?? row.updated_at ?? new Date().toISOString(),
+    startedAt: null,
+    version: row.version,
+    optionKeys: Object.keys(options),
+  }
+}
+
 /**
- * The table the signed-in visitor sits at in this game: the one that waits for players (their lobby) or the one being played (their game), public or private. `viewerId` is the id of their account, the one Supabase Auth gives
- * (`players.user_id`); null when nobody is signed in. Nobody sits at a table that the platform keeps yet.
+ * The table the visitor sits at in this game: the one that waits for players (their lobby) or the one being played (their game), the one they sat down at last, or `code` when they sit at that one (the link of a table they were invited to, which they
+ * may have joined already). The visitor is the game's player cookie: a table is a row of `games`, found by the player id it holds (`findPlayerGame`; a table idle for hours is not theirs any more). `seatsMax` is how many seats the game's
+ * tables have. Null for a visitor who has no cookie yet, who sits at no table, or when the table cannot be read: the page then offers to open one.
  */
-export async function getViewerTable(slug: string, viewerId: string | null): Promise<ViewerTable | null> {
-  void slug
-  void viewerId
-  return null
+export async function getViewerTable(slug: string, seatsMax: number, code: string | null = null): Promise<ViewerTable | null> {
+  const playerId = await getPlayerId(slug)
+  if (!playerId) return null
+  try {
+    const invited = code ? await readGame({ slug }, code).catch(() => null) : null
+    const row = invited?.players.some((player) => player.id === playerId) ? invited : await findPlayerGame({ slug }, playerId)
+    const table = row ? tableOfRow(row, seatsMax) : null
+    return row && table ? { ...table, viewerIsHost: row.host_id === playerId } : null
+  } catch (error) {
+    console.error(`The table of a visitor of ${slug} could not be read`, error)
+    return null
+  }
+}
+
+/** A table of this game by its code, the link that was shared: a table that waits or is being played, null for a code nobody has, a table that is over or one that cannot be read. */
+export async function getTable(slug: string, code: string, seatsMax: number): Promise<GameTable | null> {
+  try {
+    return tableOfRow(await readGame({ slug }, code), seatsMax)
+  } catch (error) {
+    if (!(error instanceof ApiError)) console.error(`The table ${code} of ${slug} could not be read`, error)
+    return null
+  }
 }
 
 /**

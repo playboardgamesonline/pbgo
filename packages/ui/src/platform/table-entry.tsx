@@ -25,6 +25,8 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   action?: TableAction | null
   /** The table's page: where a free seat leads, and the address that the invitation copies. */
   href?: string
+  /** What a free seat does instead of leading to the table's page, for a page that sits the visitor down itself: a button in place of the link. */
+  onJoin?: () => void
   /** Whether the visitor sits at this table: a free seat then opens the menu to invite someone, instead of joining it. */
   mine?: boolean
   /** Whether the visitor opened it: the row then says "Hosted by you". */
@@ -37,12 +39,12 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   controls?: string
 }
 
-function TableEntry({ className, state, seats, age, facts = [], action, href, mine = false, hostedByYou = false, selected = false, onSelect, controls, ...props }: TableEntryProps) {
+function TableEntry({ className, state, seats, age, facts = [], action, href, onJoin, mine = false, hostedByYou = false, selected = false, onSelect, controls, ...props }: TableEntryProps) {
   const { taken, total } = seatCount(seats)
   const host = hostedByYou ? "you" : (hostOf(seats) ?? "a player who left")
   const full = action === "full"
   const firstFree = seats.indexOf(null)
-  const join = !mine && href && action === "join" ? { href } : undefined
+  const join = !mine && (href || onJoin) && action === "join" ? { href, onJoin } : undefined
   const invite = mine && href ? { link: href } : undefined
   const word = mine ? "Invite" : join ? "Join" : "Open"
   return (
