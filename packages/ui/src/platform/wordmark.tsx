@@ -17,7 +17,7 @@ import { cn } from "../utils"
 // a face changes. The fill fades in a straight line from white (`--foreground`) at 16% at the top of the ink (y 20, in the units of the
 // viewBox: the gradient is not measured on the box of the text, which starts well above the capitals), a soft veil and not a grey, to nothing at
 // 92% of the height of the letters (the gradient runs from y 20 to the foot of the ink, y 322, so it is nothing from y 298 on). The box of the drawing ends at y 310,
-// where nothing is left to see (the letters go on below it, `overflow-visible`), so that the sentence under it is not far from the letters. It is decorative: the brand is named by the logo and the page's own text.
+// where nothing is left to see (the letters go on below it, `overflow-visible`), so that the sentence under it is not far from the letters. It is decorative: the brand is named by the logo and the page's own text, and it never takes the pointer (`pointer-events-none`): its text is taller than the box of the drawing and `overflow-visible` lets it lie over what is above it, in the footer the row of the legal links, which a click would otherwise miss.
 
 /** The letters PBGO across the width of the container, in the faces of the logo, fading out before the bottom (nothing from 92% of their height). Size it with the width of its parent. */
 function Wordmark({ className, ...props }: Omit<React.ComponentProps<"svg">, "children" | "viewBox" | "aria-hidden">) {
@@ -27,7 +27,7 @@ function Wordmark({ className, ...props }: Omit<React.ComponentProps<"svg">, "ch
       data-slot="wordmark"
       viewBox="0 0 1000 310"
       aria-hidden="true"
-      className={cn("block w-full overflow-visible select-none", className)}
+      className={cn("pointer-events-none block w-full overflow-visible select-none", className)}
       {...props}
     >
       <defs>
