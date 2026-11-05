@@ -28,6 +28,13 @@ export function resultWord(result: Result): string {
   return result.charAt(0).toUpperCase() + result.slice(1)
 }
 
+/** How long a game lasted, in the unit that fits: whole minutes, at least one ("34 min"), and the hours once there are some ("1 h 05", "2 h 10"). */
+export function lengthOf(seconds: number): string {
+  const minutes = Math.max(1, Math.round(seconds / 60))
+  if (minutes < 60) return `${minutes} min`
+  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`
+}
+
 /** What a game did to a player's rank points, in the colour of the badge that says it: a gain is `success`, a loss `destructive`, and nothing to say (no change, or no points at all) `secondary`. */
 export type PointsTone = "success" | "destructive" | "secondary"
 

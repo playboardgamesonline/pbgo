@@ -1,13 +1,11 @@
 import Link from "next/link"
 import { ArrowLeft01Icon, Brain02Icon, ChildIcon, HourglassIcon, PlusSignIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
-import type { Account } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { categoryIcon } from "@/lib/category-icons"
 import type { GamePage } from "@/lib/game-page"
 import { GameCredits } from "./game-credits"
-import { GameLiveStats } from "./game-live-stats"
 import { CREATE_ANCHOR } from "./game-play"
 import { PlayRankedButton } from "./play-ranked-button"
 import { RulesButton } from "./rules-button"
@@ -17,19 +15,12 @@ import { RulesButton } from "./rules-button"
 // that has no logo), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three main
 // buttons, all 48px high, "Play ranked", with a play icon, which puts the visitor in a queue and becomes a counter with a cross while it lasts (`PlayRankedButton`); "Create a table", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
 // to the rulebook, or a menu of languages that a press opens). What the signed-in visitor has done in the game is not in the head: it is the cards under it, the first section of the page (`GamePlayerBar`).
-// Under the buttons come what is going on in the game right now, as figures with no box (`GameLiveStats`: the players online, the queue time, the friends of the visitor who are in it; none for a game that is not live) and then the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled and keeps the rules.
+// Under the buttons come the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled and keeps the rules.
 // Nothing stands in for what is missing: a game with no background has a plain head. The gallery of the game's pictures and clips (`MediaGallery`) is not drawn for now: it will have a place again.
 
-export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop"> & {
-  /** The players the platform counts online now, null when it cannot count them. */
-  online: number | null
-  /** The estimated wait for a table of the game, in seconds, null when there is no estimate. */
-  queueSeconds: number | null
-  /** The signed-in visitor, whose friends are counted; null for a guest. */
-  account: Account | null
-}
+export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop">
 
-export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop, online, queueSeconds, account }: GameHeadProps) {
+export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop }: GameHeadProps) {
   const figures = [
     { icon: UserMultipleIcon, text: players },
     { icon: HourglassIcon, text: duration },
@@ -126,8 +117,6 @@ export function GameHead({ slug, name, live, description, players, duration, com
             )}
             <RulesButton rulebooks={rulebooks} />
           </div>
-
-          {live && <GameLiveStats slug={slug} online={online} queueSeconds={queueSeconds} account={account} />}
 
           <GameCredits facts={facts} bgg={bgg} shop={shop} className="mt-6" />
         </div>

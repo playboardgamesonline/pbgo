@@ -11,9 +11,8 @@ import { GamePlay } from "@/components/game-play"
 import { GamePlayerBar } from "@/components/game-player-bar"
 import { GameTournaments } from "@/components/game-tournaments"
 import { SiteFooter } from "@/components/site-footer"
-import { getExpansions, getHistory, getPlayerStats, getQueueEstimate, getStandings, getTables, getTournaments, getViewerTable } from "@/lib/game-activity"
+import { getExpansions, getHistory, getPlayerStats, getStandings, getTables, getTournaments, getViewerTable } from "@/lib/game-activity"
 import { getGamePage } from "@/lib/game-page"
-import { getHubFigures } from "@/lib/hub-stats"
 import { SITE_NAME, SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
@@ -37,9 +36,8 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
   const game = await getGamePage((await params).slug)
   if (!game) notFound()
   // Who is signed in is asked once per request (`getAccount` is cached): the lobby, the stats, the leaderboard's own row and the history are the visitor's
-  const account = await getAccount()
-  const viewerId = account?.id ?? null
-  const [tables, viewerTable, standings, stats, history, tournaments, expansions, hub, queueEstimate] = await Promise.all([
+  const viewerId = (await getAccount())?.id ?? null
+  const [tables, viewerTable, standings, stats, history, tournaments, expansions] = await Promise.all([
     getTables(game.slug),
     getViewerTable(game.slug, viewerId),
     getStandings(game.slug, viewerId),
@@ -47,8 +45,6 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
     getHistory(game.slug, viewerId),
     getTournaments(game.slug),
     getExpansions(game.slug),
-    getHubFigures(),
-    getQueueEstimate(game.slug),
   ])
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner). It starts at the very top: the head's background is under the fixed navbar, and the head keeps its own text below it (`pt-navbar`)
@@ -73,9 +69,6 @@ export default async function GameDescription({ params }: PageProps<"/game/[slug
         facts={game.facts}
         bgg={game.bgg}
         shop={game.shop}
-        online={hub.online}
-        queueSeconds={queueEstimate}
-        account={account}
       />
 
       <main className="w-full flex-1 px-gutter py-8 md:py-12">

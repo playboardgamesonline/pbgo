@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight01Icon, DicesIcon, MedalFirstPlaceIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, Clock01Icon, DicesIcon, MedalFirstPlaceIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AchievementsCard } from "@pbgo/ui/platform/achievements-card"
 import { Badge } from "@pbgo/ui/platform/badge"
@@ -9,14 +9,15 @@ import { Progress } from "@pbgo/ui/platform/progress"
 import { RankEmblem } from "@pbgo/ui/platform/rank-emblem"
 import { StatBar, StatBarItem, StatBarLabel, StatBarNote, StatBarValue } from "@pbgo/ui/platform/stat-bar"
 import { nextRank, rankLabel } from "@pbgo/ui/ranks"
-import { pointsLabel, pointsTone, winRate } from "@pbgo/ui/results"
+import { lengthOf, pointsLabel, pointsTone, winRate } from "@pbgo/ui/results"
+import { cn } from "@pbgo/ui/utils"
 import type { Expansion, HistoryEntry, PlayerStats } from "@/lib/game-activity"
 import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
 // What the signed-in visitor has done in a game, as the first section under the head of its page and above the tables: three cards a little apart (`StatBar`), in this order: the rank, the recent games and the achievements.
 // Rank: its emblem (2.5rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`) at the left of its name (1.5rem, on one line whatever the room: the longest, "Grandmaster III", needs 174px), so that the label, the emblem and the thin bar under them share one left edge,
-// then, under the bar, "Pts" in small capitals at its left and the points they have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). Under them, two smaller figures, each with a picto at its left (`Metric`, `sm`): the games they played and their win
-// rate (the games they won over the games they played, "58%", "—" before any game). Recent: their latest games, the latest first, `RECENT_MAX` of them, a row each: at its left the day with its year over the group icon and the number of players, then, to the right of that number, the expansions the game was played with ("+" and their names, cut when they are long), at its right, stuck to the edge, where they came ("1st") and the rank points it
+// then, under the bar, "Pts" in small capitals at its left and the points they have toward the next division over the ones it takes at its right ("36/100", muted, 0.875rem, 99 at the most since they move up at 100). Under them, two smaller figures, each with a picto at its left (`Metric`): the games they played and their win
+// rate (the games they won over the games they played, "58%", "—" before any game). Recent: their latest games, the latest first, `RECENT_MAX` of them, a row each: at its left the day with its year, the time it ended (UTC, like the day) and, at the right of the time, how long the game lasted, over the group icon and the number of players and the expansions it was played with ("+" and their names, cut when they are long; on a list narrower than 20rem the length does not fit at the right of the time and goes after the players), at its right, stuck to the edge, where they came ("1st") and the rank points it
 // gave or took as a badge in the same colours as a win and a loss were ("+32" in green, "−11" in red, "0" or "—" in grey), and, at the top right of the card, level with its label, a "View history" button to the visitor's own page, `/me/games`, at its History section, with the game to filter by in `?game=`. Achievements (`AchievementsCard`): the badges they have earned, the latest first, in at most two
 // rows of three, with a "View all" button at the top right of the card, how many are earned over how many there are in brackets after the label ("Achievements (9/12)"), and, when there are more than six, "+5" for the sixth place, at the bottom right, over the first five; the button, that number and each badge open the list of all of them. A figure that is
 // not known says so in words: "Unranked", "No game yet", "None yet" and "—" for a win rate. The page gives the cards to a visitor who is signed in, in a game that is live: the figures of a visitor who is not signed in, and of a game that cannot be played, are nobody's.
@@ -27,6 +28,16 @@ import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
 /** How many of the latest games the recent card says: four rows of 2.5rem with 0.5rem between them, 184px. */
 const RECENT_MAX = 4
+
+/** How long a game lasted, small and quiet, with a clock at its left: the clock is centred on the line and the figure stands on the baseline of the text around it. */
+function Duration({ seconds, className }: { seconds: number; className?: string }) {
+  return (
+    <span className={cn("flex items-baseline gap-1 text-xs text-muted-foreground tabular-nums", className)}>
+      <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} className="size-3.5 shrink-0 self-center" aria-hidden="true" />
+      <span>{lengthOf(seconds)}</span>
+    </span>
+  )
+}
 
 export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: string; stats: PlayerStats; recent: readonly HistoryEntry[]; expansions: readonly Expansion[] }) {
   const { rank, rankProgress, gamesPlayed, wins, achievements, achievementsTotal } = stats
@@ -66,8 +77,8 @@ export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: strin
           </>
         )}
         <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-3">
-          <Metric size="sm" icon={DicesIcon} label="Games played" value={gamesPlayed} />
-          <Metric size="sm" icon={MedalFirstPlaceIcon} label="Win rate" value={rate === null ? "—" : `${rate}%`} />
+          <Metric icon={DicesIcon} label="Games played" value={gamesPlayed} />
+          <Metric icon={MedalFirstPlaceIcon} label="Win rate" value={rate === null ? "—" : `${rate}%`} />
         </dl>
       </StatBarItem>
 
@@ -86,20 +97,27 @@ export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: strin
         }
       >
         {recent.length > 0 ? (
-          <ul aria-label="Your latest games" className="flex flex-col gap-2">
+          <ul aria-label="Your latest games" className="@container flex flex-col gap-2">
             {recent.slice(0, RECENT_MAX).map((entry) => {
               const game = lastGameOf(entry)
               const names = entry.expansions.flatMap((id) => expansions.find((expansion) => expansion.id === id)?.name ?? [])
               return (
                 <li key={entry.tableId} className="flex h-10 items-center justify-between gap-3 whitespace-nowrap">
                   <div className="flex min-w-0 flex-col">
-                    <span className="font-heading text-sm leading-5 tabular-nums">{game.day}</span>
+                    <div className="flex items-baseline gap-2 text-sm leading-5">
+                      <time dateTime={entry.finishedAt} className="flex items-baseline gap-2">
+                        <span className="font-heading tabular-nums">{game.day}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{game.time}</span>
+                      </time>
+                      {entry.durationSeconds !== null && <Duration seconds={entry.durationSeconds} className="hidden @xs:flex" />}
+                    </div>
                     <span className="flex min-w-0 items-center gap-1 text-xs leading-4 text-muted-foreground">
                       <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} className="size-3.5 shrink-0" aria-hidden="true" />
                       <span aria-hidden="true">{entry.playerCount}</span>
                       <span className="sr-only">{entry.playerCount === 1 ? "1 player" : `${entry.playerCount} players`}</span>
+                      {entry.durationSeconds !== null && <Duration seconds={entry.durationSeconds} className="ml-2 @xs:hidden" />}
                       {names.length > 0 && (
-                        <span className="ml-1 truncate" title={names.join(", ")}>
+                        <span className="ml-2 truncate" title={names.join(", ")}>
                           + {names.join(", ")}
                         </span>
                       )}

@@ -159,6 +159,8 @@ export type HistoryEntry = {
   playerCount: number
   /** The rank points the game gave them (+32) or took (-11), in the unit of the figure under their rank (100 to a division): derived on the server from the change of their hidden rating (`rating_changes`), which is never here. Null where no points apply (a game played together, a game with no ranking). */
   points: number | null
+  /** How long the game lasted, in seconds: `game_results.finished_at` less the `started_at` of its table. Null when it is not known. */
+  durationSeconds: number | null
   /** `game_participants.score` */
   score: number | null
   /** The expansions the game was played with, by `Expansion.id`: none for the base game. The page's guess, like `GameTable.expansions`. */
@@ -207,15 +209,6 @@ export async function getStandings(slug: string, viewerId: string | null): Promi
 export async function getPlayerStats(slug: string, viewerId: string | null): Promise<PlayerStats | null> {
   void slug
   return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, rankProgress: null, place: null, rankedPlayers: 0, achievements: [], achievementsTotal: 0 }
-}
-
-/**
- * How long a visitor who looks for a table of this game waits for one, in seconds, as the platform estimates it from the tables it made up lately: the figure that the head of the game's page calls the queue time. Nothing is estimated yet
- * (the matchmaking is PLT-13's, and the queue the head puts a visitor in is in their browser), so it is null and the head leaves the figure out, as it leaves out any figure that cannot be counted.
- */
-export async function getQueueEstimate(slug: string): Promise<number | null> {
-  void slug
-  return null
 }
 
 /** The games the signed-in visitor finished in this game, the latest first, at most `HISTORY_SIZE`. There are none yet. */

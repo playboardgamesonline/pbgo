@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { agoOf, pointsLabel, pointsTone, recordOf, resultOf, resultWord, timePlayed, winRate, type Outcome } from "./results"
+import { agoOf, lengthOf, pointsLabel, pointsTone, recordOf, resultOf, resultWord, timePlayed, winRate, type Outcome } from "./results"
 
 describe("resultOf", () => {
   it("calls a game won, lost or drawn whether it was played against the others or with them", () => {
@@ -107,5 +107,19 @@ describe("pointsLabel", () => {
 describe("pointsTone", () => {
   it("is green for a gain, red for a loss and grey for none", () => {
     expect([32, -11, 0, null].map(pointsTone)).toEqual(["success", "destructive", "secondary", "secondary"])
+  })
+})
+
+describe("lengthOf", () => {
+  it("says the minutes of a game of less than an hour", () => {
+    expect([34 * 60, 20 * 60 + 29, 59 * 60].map(lengthOf)).toEqual(["34 min", "20 min", "59 min"])
+  })
+
+  it("says the hours and the minutes of a longer one, and rounds up to the hour", () => {
+    expect([65 * 60, 130 * 60, 59 * 60 + 40].map(lengthOf)).toEqual(["1 h 05", "2 h 10", "1 h 00"])
+  })
+
+  it("says at least one minute", () => {
+    expect([0, 10].map(lengthOf)).toEqual(["1 min", "1 min"])
   })
 })
