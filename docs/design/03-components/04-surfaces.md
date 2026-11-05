@@ -1,6 +1,6 @@
 # Surfaces and data
 
-The containers and what they hold: cards, games, the blocks of a hub page, avatars, alerts, progress, separators, lists, empty states and tables.
+The containers and what they hold: cards, games, avatars, alerts, progress, separators, lists, empty states and tables.
 
 ## Card
 
@@ -49,32 +49,6 @@ game-card-a-game-to-come
 ```specimen
 game-card-the-picture-alone
 ```
-
-## Section
-
-Module: `@pbgo/ui/platform/section`
-
-A block of a hub page: what it shows, and the way to the page of its tab. It is as wide as the window between its [`px-gutter`](../02-foundations.md#spacing-and-layout) margins, with no `max-w-page`, and keeps `pb-section` below it, so a stack needs no spacing of its own. It has no visible title (a screen reader gets an `sr-only` heading); name it with `aria-labelledby` or `aria-label`.
-
-### A preview of a list
-
-`SectionPreview` is for a list that has more to show than the section has room for: what it holds fades out at the bottom (a mask, so it is opacity and no colour of the page) and its `action` sits over the fade. `SectionAction` is a link drawn as a button, bigger than a control of a page; it becomes the framework's link through `asChild`.
-
-```specimen
-section-a-preview-of-a-list
-```
-
-### Nothing to list yet
-
-A section whose list does not exist yet shows a compact [`Empty`](#empty) that says what is to come, and the same button under it.
-
-```specimen
-section-nothing-to-list-yet
-```
-
-### Overriding the spacing
-
-`cn` knows the platform's spacing names (`gutter`, `section`, `navbar`), so a `px-0` replaces a `px-gutter` the way it would a `px-4`; `utils.test.ts` keeps it so.
 
 ## Avatar
 

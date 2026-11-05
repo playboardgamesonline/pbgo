@@ -54,7 +54,7 @@ navbar-signed-in
 
 ### Moving between the items
 
-The fill behind the current item is one element for the whole bar (`layoutId` of `motion/react`): when the current item changes it glides to the next with `SPRING_TRAVEL` instead of jumping. It can only glide if the bar stays mounted from one page to the next, which is why [the hub's layout mounts it once](#on-the-hub). `Navbar` mounts a `MotionConfig reducedMotion=user` (less motion gets the jump) and a `LayoutGroup` of its own, so two bars on one page do not trade the fill.
+The fill behind the current item is one element for the whole bar (`layoutId` of `motion/react`): when the current item changes it glides to the next with `SPRING_TRAVEL` instead of jumping. It can only glide if the bar stays mounted from one page to the next, which is why the hub's layout mounts it once. `Navbar` mounts a `MotionConfig reducedMotion=user` (less motion gets the jump) and a `LayoutGroup` of its own, so two bars on one page do not trade the fill.
 
 ```specimen
 navbar-moving
@@ -76,12 +76,6 @@ The bar is `fixed` at the top so it stays in view. The page leaves `pt-navbar` u
 - `NavbarSeparator` splits the tabs for playing from the ones about the site, which leave the bar sooner, where there is no room for them next to the dock of a signed-in visitor.
 - A tab whose page does not exist yet can be `disabled`: text only, announced as a link that is off.
 - The links are plain `<a>` (`@pbgo/ui` is framework-free): a page passes its router's link with `asChild`.
-
-### On the hub
-
-- The hub's layout mounts the bar once (`SiteHeader` of `apps/web`), which reads the address to know what is current. The pages do not draw it.
-- What is current: the logo on the home, a tab on its own page, Games on a game's page on the hub (`/game/<slug>`), and nothing on the sign-in and the pages of an account.
-- On the right, Sign in and Let's play or, once the browser has read a session, the dock of the visitor's friends.
 
 ## Search bar
 
@@ -160,23 +154,3 @@ The icons are the ones the game's card and page use, and `GridViewIcon` is the c
 - Age: a `boxed` `SearchBarSegment` that opens a [`DropdownMenu`](03-overlays.md#dropdown-menu) as wide as the button. It always has one age picked.
 
 The filters are always at work, so nothing in the row is filled in or outlined to say what is picked: a filter shows what it is set to. A stepper's number is plain text and never empty; each press moves it one place along its options (`stepOption`), and the buttons stop at the first and the last.
-
-### In the hero
-
-On the home the bar stands in the hero under the title, on the page's flat black. It is the one thing on it that is a little lighter.
-
-```specimen
-search-bar-hero
-```
-
-### The head of a page that lists something
-
-Games, Tables and Tournaments share one head, `ListPageHeader` (in `apps/web/src/components`): the title in `page-title`, then the bar of what the page lists (`PageSearch`). The magnifier, or Enter in the field, takes the visitor down to the results (`#results`).
-
-```specimen
-search-bar-list-head
-```
-
-### Scroll lock and the scrollbar's place
-
-A modal overlay (a menu, a select, a dialog, a sheet) locks the page's scroll, and `react-remove-scroll` would add a margin to the body that makes whatever is fixed, the navbar, jump. The page keeps the place of its scrollbar instead: `html.platform` has `scrollbar-gutter: stable`, and the lock's margin is taken off the body (`html.platform body[data-scroll-locked]`, in `platform.css`). `platform.test.ts` keeps both rules.

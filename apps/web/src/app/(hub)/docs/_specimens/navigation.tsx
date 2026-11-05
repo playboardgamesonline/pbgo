@@ -6,7 +6,6 @@ import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { SearchBar, SearchBarClear, SearchBarField, SearchBarInput, SearchBarSubmit } from "@pbgo/ui/platform/search-bar"
-import { Perks, Stats } from "@pbgo/ui/platform/stats"
 import { FiltersSpecimen } from "./filters-specimen"
 import { NavbarPlayground } from "./navbar-playground"
 import { Frame } from "./text"
@@ -219,64 +218,6 @@ function SearchBarWithFilters() {
   )
 }
 
-function SearchBarHero() {
-  return (
-    <Frame className="overflow-hidden p-0" code={`<section className="pt-navbar">
-  <div className="mx-auto flex max-w-page flex-col items-center px-gutter pt-20 pb-12 text-center sm:pt-28">
-    <h1 className="display-title">
-      <span className="block text-display">Play your favorite</span> <span className="block text-display">board games online</span>
-    </h1>
-    <Stats className="mt-8" items={…} />
-    <Perks className="mt-6" items={…} />
-    <div className="mt-16 w-full max-w-3xl sm:max-w-hero-bar">
-      <SearchBar>…</SearchBar>
-      <SearchBarFilters>…</SearchBarFilters>
-    </div>
-  </div>
-</section>`}>
-      <div className="flex flex-col items-center px-6 pt-12 pb-10 text-center">
-        <p className="display-title">
-          <span className="block text-4xl">Play your favorite</span> <span className="block text-4xl">board games online</span>
-        </p>
-        <Stats className="mt-6" items={[{ value: "128", label: "players online", live: true }, { value: "12,480", label: "members" }, { value: "71", label: "games" }]} />
-        <Perks className="mt-4" items={["Free to play", "No sign-up needed"]} />
-        <div className="mt-8 w-full max-w-xl">
-          <SearchBar method="dialog" aria-label="Search games, tables and tournaments">
-            <SearchBarField>
-              <SearchBarSubmit aria-label="Search" />
-              <SearchBarInput aria-label="Search games, tables and tournaments" placeholder="Search games, tables & tournaments..." />
-            </SearchBarField>
-          </SearchBar>
-        </div>
-      </div>
-    </Frame>
-  )
-}
-
-function SearchBarListHead() {
-  return (
-    <Frame className="overflow-hidden p-0" code={`<ListPageHeader title="Tables">
-  <ListSearch label="Search tables" placeholder="Search tables..." />
-</ListPageHeader>
-
-<ListPageHeader title="Games">
-  <HeroSearch label="Search games" placeholder="Search games..." />
-</ListPageHeader>`}>
-      <div className="flex flex-col items-center gap-8 px-6 pt-12 pb-10 text-center">
-        <p className="page-title">Tables</p>
-        <div className="w-full max-w-xl">
-          <SearchBar method="dialog" aria-label="Search tables">
-            <SearchBarField>
-              <SearchBarSubmit aria-label="Search" />
-              <SearchBarInput aria-label="Search tables" placeholder="Search tables..." />
-            </SearchBarField>
-          </SearchBar>
-        </div>
-      </div>
-    </Frame>
-  )
-}
-
 export const navigationSpecimens: Specimens = {
   "logo-sizes": LogoSizes,
   "navbar-signed-out": NavbarSignedOut,
@@ -284,6 +225,4 @@ export const navigationSpecimens: Specimens = {
   "navbar-moving": NavbarMoving,
   "search-bar-states": SearchBarStates,
   "search-bar-filters": SearchBarWithFilters,
-  "search-bar-hero": SearchBarHero,
-  "search-bar-list-head": SearchBarListHead,
 }

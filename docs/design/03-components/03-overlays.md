@@ -63,6 +63,10 @@ popover-header-and-chips
 
 The panels of a [select](01-controls.md#select), a [dropdown menu](#dropdown-menu) and a popover are glass. Each wears the `glass` utility (see [Glass](../02-foundations.md#glass)) and carries its blur on the panel element itself, never on a `::before`: in Chromium a descendant with a blend mode, like the `Avatar` ring, makes the panel an isolated group, and a pseudo-element backdrop then blurs nothing.
 
+## Scroll lock
+
+A modal overlay (a menu, a select, a dialog, a sheet) locks the page's scroll, and `react-remove-scroll` would add a margin to the body that makes whatever is fixed, the navbar, jump. The page keeps the place of its scrollbar instead: `html.platform` has `scrollbar-gutter: stable`, and the lock's margin is taken off the body (`html.platform body[data-scroll-locked]`, in `platform.css`). `platform.test.ts` keeps both rules.
+
 ## Tooltip
 
 Module: `@pbgo/ui/platform/tooltip`

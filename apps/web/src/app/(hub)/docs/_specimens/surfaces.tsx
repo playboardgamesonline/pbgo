@@ -12,7 +12,6 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemSeparator, ItemTitle } from "@pbgo/ui/platform/item"
 import { Progress } from "@pbgo/ui/platform/progress"
-import { Section as PageSection, SectionAction, SectionPreview } from "@pbgo/ui/platform/section"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { Spinner } from "@pbgo/ui/platform/spinner"
@@ -157,72 +156,6 @@ async function GameCardThePictureAlone() {
       <GameCardVisual logo={logo} background={background} className="rounded-3xl ring-1 ring-foreground/10" />
       <GameCardVisual logo={logo} className="rounded-3xl ring-1 ring-foreground/10" />
       <GameCardVisual className="rounded-3xl ring-1 ring-foreground/10" />
-    </Frame>
-  )
-}
-
-async function SectionAPreviewOfAList() {
-  // The cards of the demo are the hub's: the live games of the catalog, then games to come that borrow its first pictures.
-  const { live, logo, background } = await readCatalog()
-  const soon = ["Cards of Kings", "Dice Harbor", "Last Lantern", "The Long Table", "Moss & Stone", "Salt Road"]
-  return (
-    <Frame code={`<Section aria-labelledby="popular-games">
-  <h2 id="popular-games" className="sr-only">Popular games</h2>
-  <SectionPreview
-    action={
-      <SectionAction asChild>
-        <Link href="/games">See all games</Link>
-      </SectionAction>
-    }
-  >
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {games.map((game) => <GameCard key={game.slug} {...game.props} />)}
-    </div>
-  </SectionPreview>
-</Section>`}>
-      <PageSection aria-label="Popular games" className="px-0 pb-0">
-        <SectionPreview
-          action={<SectionAction href="#section">See all games</SectionAction>}
-        >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {live.map((entry) => (
-              <GameCard key={entry.slug} {...catalogCardProps(entry)} />
-            ))}
-            {soon.map((name) => (
-              <GameCard key={name} variant="soon" href="#section" name={name} logo={logo} background={background} players="2–5 players" duration="30 min" />
-            ))}
-          </div>
-        </SectionPreview>
-      </PageSection>
-    </Frame>
-  )
-}
-
-function SectionNothingToListYet() {
-  return (
-    <Frame code={`<Section aria-labelledby="tables-in-progress" className="items-center gap-6">
-  <h2 id="tables-in-progress" className="sr-only">Tables in progress</h2>
-  <Empty className="border p-6">
-    <EmptyHeader>
-      <EmptyTitle>No table to join yet</EmptyTitle>
-      <EmptyDescription>Tables are private for now: …</EmptyDescription>
-    </EmptyHeader>
-  </Empty>
-  <SectionAction asChild>
-    <Link href="/tables">See all tables</Link>
-  </SectionAction>
-</Section>`}>
-      <PageSection aria-label="Tables in progress" className="items-center gap-6 px-0 pb-0">
-        <Empty className="border p-6">
-          <EmptyHeader>
-            <EmptyTitle>No table to join yet</EmptyTitle>
-            <EmptyDescription>
-              Tables are private for now: open one from a game and share its link. The tables open to everyone will be listed here.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-        <SectionAction href="#section">See all tables</SectionAction>
-      </PageSection>
     </Frame>
   )
 }
@@ -575,8 +508,6 @@ export const surfacesSpecimens: Specimens = {
   "game-card-the-live-games-and-without-art": GameCardTheLiveGamesAndWithoutArt,
   "game-card-a-game-to-come": GameCardAGameToCome,
   "game-card-the-picture-alone": GameCardThePictureAlone,
-  "section-a-preview-of-a-list": SectionAPreviewOfAList,
-  "section-nothing-to-list-yet": SectionNothingToListYet,
   "avatar-sizes-badge-and-group": AvatarSizesBadgeAndGroup,
   "alert-default-destructive-and-with-an-action": AlertDefaultDestructiveAndWithAnAction,
   "progress-bar": ProgressBar,
