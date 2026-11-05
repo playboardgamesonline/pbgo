@@ -161,7 +161,7 @@ describe("readAdminData", () => {
     setup([
       ...dataset("settings", "published", { title: "Published title" }),
       ...dataset("interface", "fresh draft", { playerColors: ["#aaaaaa"], desktopOnly: true }, { playerColors: ["#112233"], desktopOnly: false }),
-      ...dataset("texts", "published", { tagline: { _type: "localeString", fr: "Une accroche" } }),
+      ...dataset("texts", "published", { ui_game: { replay: { _type: "localeString", fr: "Rejouer" } } }),
     ])
 
     const data = await readAdminData(sampleGame())
@@ -170,7 +170,7 @@ describe("readAdminData", () => {
     expect(data.skin.playerColors).toEqual(["#112233"])
     expect(data.skin.desktopOnly).toBe(false)
     expect(data.visual.customColors).toBe(true)
-    expect(data.copy.entries.find((e) => e.key === "tagline")?.values.fr).toBe("Une accroche")
+    expect(data.copy.entries.find((e) => e.key === "ui.replay")?.values.fr).toBe("Rejouer")
   })
 
   // A text only the game can write has no copy in the code: it is required, and Launch lists it until Sanity holds it
@@ -180,9 +180,6 @@ describe("readAdminData", () => {
     const { entries } = (await readAdminData(sampleGame())).copy
     const entry = (key: string) => entries.find((e) => e.key === key)!
 
-    expect(entry("tagline")).toMatchObject({ required: true, fallbacks: { fr: "", en: "", es: "", de: "" } })
-    expect(entry("homeTitle")).toMatchObject({ required: false, fallbacks: { fr: "" } })
-    expect(entry("homeIntro")).toMatchObject({ required: false, fallbacks: { fr: "" } })
     expect(entry("ui.replay").required).toBe(false)
     expect(entry("ui.replay").fallbacks.en).not.toBe("")
     expect(entry("error.GAME_NOT_FOUND").required).toBe(false)
@@ -612,7 +609,6 @@ describe("saveSection › copy", () => {
   const replay = UI_TEXTS.find((t) => t.key === "replay")!
   const input = {
     values: {
-      tagline: { fr: "Une accroche", en: "A tagline" },
       "ui.replay": { fr: "Rejouer !", en: "" },
       "error.GAME_NOT_FOUND": { en: "Table not found" },
       "error.NOT_ENOUGH_MISSIONS": { fr: "Pas assez de missions" },
@@ -632,7 +628,6 @@ describe("saveSection › copy", () => {
     const doc = sanity.doc("texts")
     expect(doc).toMatchObject({
       _type: "texts",
-      tagline: { _type: "localeString", fr: "Une accroche", en: "A tagline" },
       [`ui_${replay.group}`]: { replay: { _type: "localeString", fr: "Rejouer !" } },
       victoryPhrases: { _type: "localeStringList", fr: ["Bravo", "Champion"] },
       errorMessages: [
@@ -660,13 +655,15 @@ describe("saveSection › copy", () => {
   })
 
   it("never touches a stale draft", async () => {
-    const sanity = setup(dataset("texts", "stale draft", { tagline: { _type: "localeString", fr: "Ancienne" } }, { tagline: { _type: "localeString", fr: "Périmée" } }))
+    const sanity = setup(
+      dataset("texts", "stale draft", { ui_game: { replay: { _type: "localeString", fr: "Ancienne" } } }, { ui_game: { replay: { _type: "localeString", fr: "Périmée" } } }),
+    )
     const draft = structuredClone(sanity.doc("drafts.texts"))
 
     await saveSection(sampleGame(), "copy", input)
 
     expect(sanity.touched()).toEqual([["texts", "texts"]])
-    expect(sanity.doc("texts")).toMatchObject({ tagline: { fr: "Une accroche" } })
+    expect(sanity.doc("texts")).toMatchObject({ ui_game: { replay: { fr: "Rejouer !" } } })
     expect(sanity.doc("drafts.texts")).toEqual(draft)
   })
 })

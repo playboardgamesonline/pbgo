@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { getAccount } from "@pbgo/accounts/server"
 import { gameJsonLd, serializeJsonLd } from "@pbgo/catalog/seo"
 import { normalizeCode } from "@pbgo/core/server/code"
+import { getPlayableGame } from "@pbgo/games"
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
 import { playerRange } from "@pbgo/ui/tables"
@@ -38,10 +39,12 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
   const account = await getAccount()
   const viewerId = account?.id ?? null
   const seatsMax = playerRange(game.minPlayers, game.maxPlayers).max
+  // A table can be opened where the game can be played: a live game, and, outside production, any game that has an engine (the template, a game under construction), as for its API
+  const live = game.live || (process.env.VERCEL_ENV !== "production" && (await getPlayableGame(game.slug)) !== null)
   const [tables, viewerTable, standings, stats, history, tournaments, expansions] = await Promise.all([
     getTables(game.slug),
-    // Only a game that is live has tables: the others have none, whoever asks
-    game.live ? getViewerTable(game.slug, seatsMax, table) : null,
+    // Only a game that can be played has tables: the others have none, whoever asks
+    live ? getViewerTable(game.slug, seatsMax, table) : null,
     getStandings(game.slug, viewerId),
     getPlayerStats(game.slug, viewerId),
     getHistory(game.slug, viewerId),
@@ -62,7 +65,7 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
       <GameHead
         slug={game.slug}
         name={game.name}
-        live={game.live}
+        live={live}
         description={game.description}
         players={game.players}
         duration={game.duration}
@@ -79,9 +82,9 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
         {/* Under the head, in this order: the visitor's cards, then the tables and the space to play (the head's "Create a table" leads to the space), then the tournaments and the leaderboard side by side. A game that is not live has the space and the tournaments: there is nothing to play, so no cards and no board. The credits are in the head */}
         <div className="flex flex-col gap-section">
-          {game.live && stats && <GamePlayerBar slug={game.slug} stats={stats} recent={history} expansions={expansions} />}
-          <GamePlay slug={game.slug} name={game.name} live={game.live} minPlayers={game.minPlayers} maxPlayers={game.maxPlayers} tables={tables} viewerTable={viewerTable} linked={linked} expansions={expansions} helpers={game.helpers} signedIn={account !== null} anchored />
-          {game.live ? (
+          {live && stats && <GamePlayerBar slug={game.slug} stats={stats} recent={history} expansions={expansions} />}
+          <GamePlay slug={game.slug} name={game.name} live={live} minPlayers={game.minPlayers} maxPlayers={game.maxPlayers} tables={tables} viewerTable={viewerTable} linked={linked} expansions={expansions} helpers={game.helpers} signedIn={account !== null} anchored />
+          {live ? (
             <div className="grid gap-x-4 gap-y-section lg:grid-cols-3 lg:items-start">
               <div className="lg:col-span-2">
                 <GameTournaments tournaments={tournaments} />

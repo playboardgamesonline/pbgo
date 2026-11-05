@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Shared base of every game: home, lobby, real-time games, game over, admin, API handlers. The app gives it the game shown (`@pbgo/games` registry); core never imports a game.",
+  "description": "Shared base of every game: real-time games, game over, admin, API handlers. The app gives it the game shown (`@pbgo/games` registry); core never imports a game.",
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

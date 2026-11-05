@@ -7,7 +7,7 @@ import { seatAvatar, type SeatAvatar } from "../../lib/seat-avatar"
 import { seatTheme, type SeatTheme } from "../../lib/ui-theme"
 
 /**
- * The seat label: a player's avatar and nickname, the same everywhere a player is named (strip of pending players, lobby,
+ * The seat label: a player's avatar and nickname, the same everywhere a player is named (strip of pending players,
  * announcements, game over; the tables draw the same avatar from `lib/seat-avatar-canvas.ts`). Pure presentation, no game
  * context: `player-seat.tsx` feeds it from the game, the design docs with samples. A game tunes it through `UI_THEME.seat` of its
  * binding (shape, ring, font, nickname colour), never by restyling the component.
@@ -35,7 +35,7 @@ export function useSeatTheme(): SeatTheme {
 
 /**
  * The avatar alone: the initial on the seat colour, or the account picture, in the shape the game picked. `children` sit on its
- * top-right corner, outside its clip (the lobby puts the host's crown there). Decorative: the nickname is always written next to it.
+ * top-right corner, outside its clip (the game over puts the host's crown there). Decorative: the nickname is always written next to it.
  */
 export function SeatAvatarMark({
   avatar,
@@ -56,7 +56,7 @@ export function SeatAvatarMark({
   return (
     <span className={cn("relative inline-flex shrink-0", SIZES[size], className)}>
       <span
-        // the lobby and the game over set letter-spacing, case and a text shadow on the line the label sits in: not on the initial
+        // the game over sets letter-spacing, case and a text shadow on the line the label sits in: not on the initial
         className={cn(
           "grid size-full place-items-center overflow-hidden leading-none font-black tracking-normal select-none [text-shadow:none]",
           shape === "square" ? "rounded-[24%]" : "rounded-full",

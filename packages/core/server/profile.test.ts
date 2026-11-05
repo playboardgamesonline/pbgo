@@ -41,6 +41,14 @@ describe("profileOf", () => {
     expect(profileOf({ nickname: "Bob", avatarUrl: null }, {})).toStrictEqual({ nickname: "Bob" })
   })
 
+  it("keeps the picture of an account only when it is an https address of a sensible length", () => {
+    const of = (avatarUrl: string | null) => profileOf({ nickname: "Bob", avatarUrl }, {})
+    expect(of("https://cdn.discordapp.com/avatars/1/a.png")).toEqual({ nickname: "Bob", avatarUrl: "https://cdn.discordapp.com/avatars/1/a.png" })
+    for (const url of ["http://cdn.example/a.png", "javascript:alert(1)", "data:image/png;base64,AAAA", "//cdn.example/a.png", `https://cdn.example/${"a".repeat(2100)}`]) {
+      expect(of(url), url.slice(0, 40)).toStrictEqual({ nickname: "Bob" })
+    }
+  })
+
   it("cuts a long name by characters, never through an emoji, and never leaves it empty", () => {
     expect(profileOf({ nickname: "🎲".repeat(25), avatarUrl: null }, {}).nickname).toBe("🎲".repeat(20))
     expect(profileOf({ nickname: "   ", avatarUrl: null }, {}).nickname).toBe("Player")

@@ -11,6 +11,14 @@ describe("scrubText", () => {
     expect(scrubText("from /a/game/AAAAAA to /b/game/BBBBBB")).toBe("from /a/game/:code to /b/game/:code")
   })
 
+  it("replaces it in the hub's page of a table, after the slug of the game", () => {
+    expect(scrubText("https://playboardgamesonline.app/game/courtisans/ABC234")).toBe("https://playboardgamesonline.app/game/courtisans/:code")
+    expect(scrubText("/game/6-nimmt/Z9Y8X7?x=1")).toBe("/game/6-nimmt/:code?x=1")
+    // a slug of six letters is not a code, and the code behind it goes all the same
+    expect(scrubText("/game/hanabi/ABC234")).not.toContain("ABC234")
+    expect(scrubText("/game/courtisans")).toBe("/game/courtisans")
+  })
+
   it("replaces it in the API address of a table too", () => {
     expect(scrubText("/api/hanabi/games/ABC123")).toBe("/api/hanabi/games/:code")
     expect(scrubText("https://x.app/api/hanabi/games/ABC123/chat?x=1")).toBe("https://x.app/api/hanabi/games/:code/chat?x=1")

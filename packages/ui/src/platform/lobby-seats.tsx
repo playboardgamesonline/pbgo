@@ -26,7 +26,7 @@ function LobbySeats({ seats, join, invite, className, ...props }: Omit<React.Com
             {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3.5 left-1/2 z-10 size-5 -translate-x-1/2" />}
             {seat ? <SeatAvatar seat={seat} className={SEAT_PICTURE} /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className={SEAT_PICTURE} />}
           </span>
-          <span className={cn("w-full truncate text-center text-xs @md:text-sm", !seat && "text-muted-foreground")}>
+          <span className={cn("w-full truncate text-center text-xs @md:text-sm", seat ? "ph-mask" : "text-muted-foreground")}>
             {seat?.host && <span className="sr-only">Host: </span>}
             {seat ? seat.name : word}
           </span>

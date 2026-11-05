@@ -75,12 +75,11 @@ describe("gamemaster URLs", () => {
 
   it("keeps the admin API and the previews below /gamemaster, where the session cookie is sent", () => {
     expect(adminApiBase("skyjo")).toBe("/gamemaster/api/skyjo")
-    expect(previewHref("skyjo", "home")).toBe("/gamemaster/skyjo/preview/home")
     expect(previewHref("skyjo", "game")).toBe("/gamemaster/skyjo/preview/game")
   })
 
   it("is read as a preview by the game, which the rewrite serves at the same URL", () => {
-    expect(PREVIEW_PATH.test(previewHref("skyjo", "home"))).toBe(true)
+    expect(PREVIEW_PATH.test(previewHref("skyjo", "game"))).toBe(true)
     expect(PREVIEW_PATH.test("/skyjo/preview/game")).toBe(true)
     expect(PREVIEW_PATH.test("/skyjo/game/ABCD")).toBe(false)
     expect(PREVIEW_PATH.test("/gamemaster/skyjo/identity")).toBe(false)

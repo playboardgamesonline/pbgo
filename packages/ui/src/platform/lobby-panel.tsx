@@ -116,8 +116,8 @@ function LobbyDetail({ state, createdBy, title, description, seats, settings, ac
   return (
     <LobbyPanel data-state={state} {...props}>
       {/* Its name and its code are for a screen reader (they name the panel): the line at the top says who opened the table and the seats who is at it */}
-      <CardTitle className="sr-only">{title}</CardTitle>
-      <CardDescription className="sr-only">{description}</CardDescription>
+      <CardTitle className="ph-mask sr-only">{title}</CardTitle>
+      <CardDescription className="ph-mask sr-only">{description}</CardDescription>
       <CardContent className="flex flex-col gap-6">
         <LobbyPlayers seats={seats} range={playerRange} createdBy={createdBy} actions={actions} join={join} invite={invite} />
         {settings && <LobbySettings {...settings} className="border-t pt-6" />}

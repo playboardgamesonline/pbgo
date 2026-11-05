@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import { trackClient } from "@pbgo/analytics/client"
 import { createApi } from "@pbgo/core/lib/api"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Badge } from "@pbgo/ui/platform/badge"
@@ -125,6 +126,7 @@ export function OpenTables({
                     key={id}
                     {...entry}
                     onJoin={joinable && code ? () => void sit(code) : undefined}
+                    onCopyInvite={() => trackClient("invite_link_copied", { game: slug })}
                     selected={id === selectedId}
                     controls={panelId}
                     onSelect={() => pick(id)}

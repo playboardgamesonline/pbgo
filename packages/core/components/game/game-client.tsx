@@ -2,60 +2,36 @@
 
 import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import { useEffect } from "react"
 import { useIdentifyPlayer } from "@pbgo/analytics/client"
-import { PrimaryButton, CodeField, NicknameField, Screen, Paragraph } from "../home/screen"
-import { useApi, useBinding } from "../../lib/binding-context"
-import { useProfile } from "../../lib/profile"
+import { PrimaryButton, CodeField, Screen, Paragraph } from "../home/screen"
+import { useBinding } from "../../lib/binding-context"
+import { gamePath, tablePath } from "../../lib/site-url"
 import { useLiveGame } from "../../lib/use-live-game"
-import { LobbyButton, PlayerList } from "../lobby/lobby"
-import { GameOptions } from "../lobby/game-options"
 import { useText } from "../skin-provider"
 
+/**
+ * A table of the game, `/<slug>/game/<code>`: its board once it is started. A table is opened, joined and started on the platform's page of the game (PLT-106), so this page has no lobby: the server sends the link of a table that waits to the
+ * platform (`GamePage`), and a table that is read as waiting here, a moment after it was not (the page was drawn from an older read), is sent there too. What is left is the board, a spinner while it loads, and the two screens of a
+ * table that has no board for the visitor: one that does not exist, and one that started without them.
+ */
 export function GameClient({ code, data }: { code: string; data?: unknown }) {
   const router = useRouter()
   const t = useText()
   const { SLUG, Game } = useBinding()
-  const api = useApi()
   const { game, error, apply } = useLiveGame(code)
-  const { profile, setProfile, ready, valid } = useProfile()
   useIdentifyPlayer(game?.meId ?? null)
-  const [autoJoin, setAutoJoin] = useState<"idle" | "pending" | "failed" | "manual">("idle")
-  const isGuest = !!game && ready && game.meId === null && game.status === "lobby"
-  if (isGuest && !valid && autoJoin === "idle") setAutoJoin("manual")
-  const shouldAutoJoin = isGuest && valid && (autoJoin === "idle" || autoJoin === "pending")
-
-  async function join() {
-    try {
-      apply(await api.join(code, profile))
-      return true
-    } catch (e) {
-      toast.error((e as Error).message)
-      return false
-    }
-  }
+  const waiting = game?.status === "lobby"
 
   useEffect(() => {
-    if (!shouldAutoJoin || autoJoin !== "idle") return
-    void Promise.resolve()
-      .then(() => setAutoJoin("pending"))
-      .then(join)
-      .then((ok) => !ok && setAutoJoin("failed"))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldAutoJoin, autoJoin])
-
-  async function leave() {
-    if (game?.status === "lobby" && game.meId) await api.leave(code).catch(() => null)
-    router.push(`/${SLUG}`)
-  }
+    if (waiting) router.replace(tablePath(SLUG, code))
+  }, [waiting, router, SLUG, code])
 
   if (Game && game && game.meId && game.status !== "lobby" && game.view) {
-    return <Game game={game} data={data} onUpdate={apply} onLeave={() => router.push(`/${SLUG}`)} />
+    return <Game game={game} data={data} onUpdate={apply} onLeave={() => router.push(gamePath(SLUG))} />
   }
 
-  const link = typeof window === "undefined" ? "" : api.link(code)
-  const backButton = <PrimaryButton onClick={leave}>{t("backHome")}</PrimaryButton>
+  const backButton = <PrimaryButton onClick={() => router.push(gamePath(SLUG))}>{t("backHome")}</PrimaryButton>
 
   if (error)
     return (
@@ -64,46 +40,17 @@ export function GameClient({ code, data }: { code: string; data?: unknown }) {
       </Screen>
     )
 
-  if (!game || !ready || shouldAutoJoin || (game.status !== "lobby" && game.meId))
+  // The table is being read, it is on its way to the platform's page, or the visitor sits at it and its board is about to be drawn
+  if (!game || waiting || game.meId)
     return (
       <Screen below={<CodeField value={code} />}>
         <Loader2Icon className="mt-[6vh] size-8 animate-spin text-accent-game" />
       </Screen>
     )
 
-  if (game.meId === null && game.status !== "lobby")
-    return (
-      <Screen cta={backButton}>
-        <Paragraph>{t("alreadyStarted")}</Paragraph>
-      </Screen>
-    )
-
-  if (game.meId === null)
-    return (
-      <Screen
-       
-        onSubmit={async (e) => {
-          e.preventDefault()
-          if (!valid) {
-            toast.error(t("chooseNickname"))
-            return
-          }
-          setAutoJoin("pending")
-          if (!(await join())) setAutoJoin("failed")
-        }}
-        cta={<PrimaryButton busy={autoJoin === "pending"}>{t("joinGameButton")}</PrimaryButton>}
-        below={<CodeField value={code} copyable={link} />}
-      >
-        <PlayerList game={game} />
-        <NicknameField value={profile.nickname} onChange={(nickname) => setProfile({ nickname })} />
-      </Screen>
-    )
-
   return (
-    <Screen cta={<LobbyButton game={game} onUpdate={apply} />} below={<CodeField value={code} copyable={link} />}>
-      <Paragraph>{t("shareInvite")}</Paragraph>
-      <PlayerList game={game} />
-      <GameOptions game={game} onUpdate={apply} />
+    <Screen cta={backButton}>
+      <Paragraph>{t("alreadyStarted")}</Paragraph>
     </Screen>
   )
 }

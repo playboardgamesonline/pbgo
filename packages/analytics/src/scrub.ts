@@ -1,6 +1,7 @@
 /**
- * Table codes stay out of the analytics. A table's address (`/<slug>/game/<CODE>`) is what lets someone sit down at it, so it
- * is not something to store in an event: the path is reported as `/<slug>/game/:code`, which also lets a funnel group the tables.
+ * Table codes stay out of the analytics. A table's address (`/<slug>/game/<CODE>`, and `/game/<slug>/<CODE>` on the hub, where the
+ * platform's page of a table that waits for players is) is what lets someone sit down at it, so it is not something to store in an
+ * event: the path is reported as `/<slug>/game/:code` or `/game/<slug>/:code`, which also lets a funnel group the tables.
  */
 
 /**
@@ -8,6 +9,9 @@
  * the server, upper case in the URLs we build), not part of a longer word.
  */
 const TABLE_CODE = /(\/games?\/)[A-Za-z0-9]{6}(?![A-Za-z0-9])/g
+
+/** The code after the slug in the hub's page of a table, `/game/<slug>/<CODE>`. Run first: a slug of six letters (`hanabi`) is read as a code by `TABLE_CODE`. */
+const HUB_TABLE_CODE = /(\/game\/[A-Za-z0-9-]+\/)[A-Za-z0-9]{6}(?![A-Za-z0-9])/g
 
 /**
  * The code as the tab title spells it (`tableTitle` of core: « Play Courtisans Online [PBGO] · Table #4XV-XA1 »): after a `#`, in
@@ -21,7 +25,7 @@ export const CODE_PLACEHOLDER = ":code"
 /** `value` with the table code removed from the address, the API address and the tab title it appears in. */
 export function scrubText(value: string): string {
   let scrubbed = value
-  if (scrubbed.includes("/game")) scrubbed = scrubbed.replace(TABLE_CODE, `$1${CODE_PLACEHOLDER}`)
+  if (scrubbed.includes("/game")) scrubbed = scrubbed.replace(HUB_TABLE_CODE, `$1${CODE_PLACEHOLDER}`).replace(TABLE_CODE, `$1${CODE_PLACEHOLDER}`)
   if (scrubbed.includes("#")) scrubbed = scrubbed.replace(TITLE_CODE, `$1#${CODE_PLACEHOLDER}`)
   return scrubbed
 }

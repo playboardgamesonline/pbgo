@@ -25,7 +25,6 @@ export type Skin = {
   hostIcon: string | null
   playerColors: string[]
   desktopOnly: boolean
-  home: { title: string | null; intro: string | null; tagline: string | null }
   victoryPhrases: string[]
   texts: UiTexts
   /** Error messages replaced in the admin (code → message) */
@@ -34,11 +33,10 @@ export type Skin = {
 
 export type UiTexts = Record<UiTextKey, string>
 
-export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "home" | "errors">> & {
+export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "errors">> & {
   errors?: Record<string, string>
   decor?: Partial<Skin["decor"]>
   texts?: Partial<UiTexts>
-  home?: Partial<Skin["home"]>
 }
 
 /**
@@ -55,7 +53,7 @@ export const DEFAULT_PLAYER_COLORS = ["#e8795a", "#9d8cf2", "#e56fa4", "#6fb4e5"
 
 /**
  * The skin of a game that Sanity holds nothing for, in the default language (English): the platform's chrome (`UI_TRANSLATIONS`) and the behaviour defaults.
- * A game's own texts are not in it: the tagline and the victory sentences read `[missing: <key>]` until Sanity has them.
+ * A game's own texts are not in it: the victory sentences read `[missing: <key>]` until Sanity has them.
  */
 export const DEFAULT_SKIN: Skin = {
   locale: DEFAULT_LOCALE,
@@ -63,7 +61,6 @@ export const DEFAULT_SKIN: Skin = {
   hostIcon: null,
   playerColors: DEFAULT_PLAYER_COLORS,
   desktopOnly: true,
-  home: { title: null, intro: null, tagline: missing("home.tagline") },
   victoryPhrases: [missing("victoryPhrases")],
   texts: DEFAULT_TEXTS,
   errors: {},
@@ -79,7 +76,7 @@ export function baseSkin(binding: GameBinding, locale: Locale): Skin {
   return mergeSkin(base, binding.DEFAULT_SKIN)
 }
 
-/** Labels of the credits line of the home footer (« Unofficial, free online adaptation of … »), shown by the admin's Identity preview. */
+/** Labels of the credits line of the footer of the game's screens (« Unofficial, free online adaptation of … »), shown by the admin's Identity preview. */
 export const CREDIT_KEYS = ["creditsAdaptation", "creditsBy", "creditsPublishedBy", "creditsRightsPublisher", "creditsRights", "developedBy"] as const satisfies readonly UiTextKey[]
 
 export type CreditTexts = Record<(typeof CREDIT_KEYS)[number], string>
@@ -103,9 +100,8 @@ export function mergeSkin(base: Skin, over: SkinDefaults | undefined): Skin {
   if (!over) return base
   return {
     ...base,
-    ...Object.fromEntries(Object.entries(over).filter(([k, v]) => v != null && !["decor", "texts", "home", "errors"].includes(k))),
+    ...Object.fromEntries(Object.entries(over).filter(([k, v]) => v != null && !["decor", "texts", "errors"].includes(k))),
     decor: { ...base.decor, ...Object.fromEntries(Object.entries(over.decor ?? {}).filter(([, v]) => v != null)) },
-    home: { ...base.home, ...Object.fromEntries(Object.entries(over.home ?? {}).filter(([, v]) => v != null)) },
     texts: { ...base.texts, ...Object.fromEntries(Object.entries(over.texts ?? {}).filter(([, v]) => typeof v === "string" && v.trim())) },
     errors: { ...base.errors, ...Object.fromEntries(Object.entries(over.errors ?? {}).filter(([, v]) => typeof v === "string" && v.trim())) },
   }

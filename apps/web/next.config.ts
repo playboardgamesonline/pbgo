@@ -71,10 +71,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       // The previews of Setup (iframes) are served below /gamemaster, where the session cookie is sent, but they are pages of the
-      // game and render in its layout and skin: /gamemaster/<slug>/preview/<kind> → app/[game]/preview/[kind]. Before the files,
+      // game and render in its layout and skin: /gamemaster/<slug>/preview/game → app/[game]/preview/[kind]. Before the files,
       // or the gamemaster's own /gamemaster/[game]/[[...section]] page would answer first.
       beforeFiles: [
-        { source: `/gamemaster/:game(${SLUGS})/preview/:kind(home|game)`, destination: "/:game/preview/:kind" },
+        { source: `/gamemaster/:game(${SLUGS})/preview/:kind(game)`, destination: "/:game/preview/:kind" },
         // Before the files too, or `/ingest/...` would be read as the `[game]` route of a game called "ingest".
         ...INGEST_REWRITES,
       ],

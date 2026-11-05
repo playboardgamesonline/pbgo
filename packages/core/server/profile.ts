@@ -11,6 +11,9 @@ export type Profile = { nickname: string; avatarUrl?: string }
 /** The longest nickname, in characters as a person counts them (an emoji is one). */
 const NICKNAME_MAX = 20
 
+/** The picture of an account is drawn by the others at the table, so it is an `https` address of a sensible length: the metadata of an account is edited by its owner, and the server keeps no other kind of address. */
+const picture = (url: string | null): string | null => (url && url.length <= 2048 && /^https:\/\//i.test(url) ? url : null)
+
 export function validateProfile(input: ProfileInput): { nickname: string } {
   const nickname = typeof input.nickname === "string" ? input.nickname.trim().slice(0, NICKNAME_MAX) : ""
   if (nickname.length < 1) throw new ApiError("INVALID_NICKNAME")
@@ -24,7 +27,8 @@ export function validateProfile(input: ProfileInput): { nickname: string } {
 export function profileOf(account: Pick<Account, "nickname" | "avatarUrl"> | null, input: ProfileInput): Profile {
   if (!account) return validateProfile(input)
   const nickname = Array.from(account.nickname.trim()).slice(0, NICKNAME_MAX).join("")
-  return { nickname: nickname || "Player", ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}) }
+  const avatarUrl = picture(account.avatarUrl)
+  return { nickname: nickname || "Player", ...(avatarUrl ? { avatarUrl } : {}) }
 }
 
 /** `profileOf` for the request being served: the signed-in visitor is asked of Supabase Auth (`getAccount`), a visitor with no session costs no call. */

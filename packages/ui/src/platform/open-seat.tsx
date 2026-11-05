@@ -14,8 +14,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 type OpenSeatProps = {
   /** Joining: where the plus leads (`href`), or what it does (`onJoin`, which wins: a button that sits the visitor down without leaving the page). */
   join?: { href?: string; onJoin?: () => void }
-  /** Inviting, for a visitor who is at the table: the address that "Copy link" copies (a path of this site or a whole address), and what "Invite a friend" does. */
-  invite?: { link: string; onInvite?: () => void }
+  /** Inviting, for a visitor who is at the table: the address that "Copy link" copies (a path of this site or a whole address), what "Invite a friend" does, and what is done once the link is copied (`onCopy`: a page counts it). */
+  invite?: { link: string; onInvite?: () => void; onCopy?: () => void }
   /** Whether this seat is a stop for the keyboard: one of the free seats of a table is, the others are not. */
   tabbable?: boolean
   /** The size of the circle (`size-10`): a person's picture is `size-8` unless it is given another. */
@@ -68,7 +68,10 @@ function OpenSeat({ join, invite, tabbable = true, className }: OpenSeatProps) {
   if (invite) {
     const copy = () => {
       navigator.clipboard?.writeText(new URL(invite.link, window.location.origin).href).then(
-        () => setCopied(true),
+        () => {
+          setCopied(true)
+          invite.onCopy?.()
+        },
         () => setOpen(false)
       )
     }

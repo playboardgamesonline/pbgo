@@ -1,5 +1,6 @@
 "use client"
 
+import { trackClient } from "@pbgo/analytics/client"
 import { createApi } from "@pbgo/core/lib/api"
 import { engineOptionsOf } from "@pbgo/core/lib/table-options"
 import { LobbyDetail, type LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
@@ -38,5 +39,7 @@ export function OwnLobby({
         },
       }
     : detail.settings
-  return <LobbyDetail key={code} {...detail} settings={settings} flat={flat} className={className} />
+  // The link is the invitation: counting its copies is what the game's own lobby did
+  const invite = detail.invite && { ...detail.invite, onCopy: () => trackClient("invite_link_copied", { game: slug }) }
+  return <LobbyDetail key={code} {...detail} settings={settings} invite={invite} flat={flat} className={className} />
 }
