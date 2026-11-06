@@ -51,3 +51,36 @@ export function LegalSection({ id, title, first = false, children }: { id?: stri
 export function LegalText({ children }: { children: ReactNode }) {
   return <p className="text-muted-foreground">{children}</p>
 }
+
+/** A bulleted list of a legal page, for the things a rule forbids or allows one after the other. */
+export function LegalList({ items }: { items: ReactNode[] }) {
+  return (
+    <ul className="flex list-disc flex-col gap-2 pl-5 text-muted-foreground">
+      {items.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * Named entries of a legal page, one under the other: a cookie or a storage key (`mono`, in the mono face), a kind of data, a recipient. The name is in the full text colour and what it is
+ * in the muted one, the way a paragraph of the page is.
+ */
+export function LegalEntries({ items, mono = false }: { items: { name: string; text: ReactNode }[]; mono?: boolean }) {
+  return (
+    <dl className="flex flex-col gap-4">
+      {items.map((item) => (
+        <div key={item.name} className="flex flex-col gap-1">
+          <dt className={mono ? "font-mono text-sm text-foreground" : "text-foreground"}>{item.name}</dt>
+          <dd className="text-muted-foreground">{item.text}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+/** The line that ends a legal page: the day its text last changed. */
+export function LegalUpdated({ on }: { on: string }) {
+  return <p className="text-sm text-muted-foreground">Last updated {on}.</p>
+}
