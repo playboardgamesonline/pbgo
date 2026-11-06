@@ -23,7 +23,7 @@ A `ZoneCard` is the props of a [Card](06-card.md) but `target` and `size`, which
 | A player's cards | The player's seat, from `seats` | A `row` of backs, a `fan`, a `grid` | `backFrame`, `backLayout` |
 | A shared zone, the middle of the table | None | The game's own, one pose per card | `trickPose`, `collectedPose` |
 
-The three zones of a table, each a `Zone` with its own frame and layout, named on the mat.
+The three zones of a table, each a `Zone` with its own frame and layout, named on the table.
 
 ```specimen
 scene-zones

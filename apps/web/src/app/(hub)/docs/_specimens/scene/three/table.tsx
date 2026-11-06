@@ -3,9 +3,9 @@
 import type { CameraSettings } from "@pbgo/table"
 import { useFrame } from "@react-three/fiber"
 import { useState } from "react"
-import { Mat, RestingCards, Stage } from "./parts"
+import { RestingCards, Stage } from "./parts"
 
-// `Table` with what the page lists: the floor, a mat (`Surface`) and a few cards lying on it. The camera's entrance plays when the table mounts. To play it again `playIntro` goes to false and back to true, and the rig has to see a
+// `Table` with what the page lists: its endless surface and a few cards lying on it. The camera's entrance plays when the table mounts. To play it again `playIntro` goes to false and back to true, and the rig has to see a
 // frame with it off in between (it starts the entrance on the first frame that finds it on): so the scene does not wait a while, which a slow page would make too short, it waits for a frame.
 
 const CAMERA: CameraSettings = { tilt: 42, yaw: 0, distance: 15, fov: 34, targetX: 0, targetZ: 0.4 }
@@ -25,7 +25,6 @@ export function TableScene({ replays }: { replays: number }) {
   return (
     <Stage id="scene-table" camera={CAMERA} playIntro={!waiting}>
       <OnFrame when={waiting} then={() => setPlayed(replays)} />
-      <Mat />
       <RestingCards />
     </Stage>
   )

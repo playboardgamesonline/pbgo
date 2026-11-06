@@ -1,13 +1,13 @@
 # Aura
 
-An aura is the light that glows on the table under a seat. Per game: the template's `board/aura.tsx` is the reference, a plane with a shader that a game copies. It lies flat over the mat and under the cards.
+An aura is the light that glows on the table under a seat. Per game: the template's `board/aura.tsx` is the reference, a plane with a shader that a game copies. It lies flat over the table and under the cards.
 
 ## Props
 
 | Prop | Role |
 | --- | --- |
 | `width`, `depth` | The size of the lit area, in world units; the plane is a little larger so the glow can fade out |
-| `position`, `yaw` | Where it lies, just above the mat, and its turn about the vertical axis |
+| `position`, `yaw` | Where it lies, just above the table, and its turn about the vertical axis |
 | `force` | The strength, a number or a function read on every frame; it eases in and out |
 | `color`, `light` | The colour of the edge, and the lighter colour of its glints |
 | `additive` | Additive blending, on by default, which brightens what lies under it |

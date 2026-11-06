@@ -15,5 +15,6 @@ What the tools do not do, and the ticket that tracks each. The other pages of th
 Also not in the package, with no ticket of its own:
 
 - A zone anchored to the camera, such as a hand that stays on the screen: a `Zone` lays cards on the table.
-- A mat with a behaviour of its own, such as a shader that unrolls it: a `Surface` is a flat shape with a picture.
+- A mat with a behaviour of its own, such as a shader that unrolls it: the table's surface is a colour and a repeating picture, nothing more, and a mat is a plane the game draws on it.
+- A table lit like a room, such as Courtisans' vignette: the surface is flat and unlit, so the game draws its own gradient, and that plane has an edge to hide.
 - A click on empty space: `Table` does not pass on the `onPointerMissed` of its canvas ([Clicks and hover](20-clicks-and-hover.md)).

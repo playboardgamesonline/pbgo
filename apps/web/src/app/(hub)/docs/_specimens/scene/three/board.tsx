@@ -3,16 +3,15 @@
 import { type CameraSettings, defineGlows, fan, Pile, type Pose, RESTING_HEIGHT, row, seats, shifted, type Spot, Zone, type ZoneCard } from "@pbgo/table"
 import { useState } from "react"
 import { back, CARD_SIZE, DECK, face } from "./art"
-import { Mat, Stage, TableLabel } from "./parts"
+import { Stage, TableLabel } from "./parts"
 
-// A whole small board on the shared tools, the way the template builds one (`template/src/components/board/`, whose numbers these are): the mat, the viewer's hand in a `Zone` over `fan`, the cards each other player holds in a `Zone` framed on
+// A whole small board on the shared tools, the way the template builds one (`template/src/components/board/`, whose numbers these are): the viewer's hand in a `Zone` over `fan`, the cards each other player holds in a `Zone` framed on
 // their seat from `seats`, a draw `Pile` and the middle of the table, which is a `Zone` too. The scene holds no rule: it is given what is where, and sends the card that was clicked.
 
 const CAMERA: CameraSettings = { tilt: 40, yaw: 0, distance: 21, fov: 34, targetX: 0, targetZ: 1.6 }
 
-/** The ring of seats, and how far the mat reaches past it. */
+/** The ring of seats. */
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
-const MAT = { margin: 1.35 }
 
 const GLOWS = defineGlows({ selection: { frame: {} } })
 
@@ -68,7 +67,6 @@ export function BoardScene({ players, hand, played, onPlay }: { players: number;
 
   return (
     <Stage id="scene-board" camera={CAMERA}>
-      <Mat width={2 * (RING.radiusX + MAT.margin)} depth={2 * (RING.radiusZ + MAT.margin)} />
       {ring.slice(1).map((seat, i) => (
         <group key={i}>
           {/* The name stands behind the cards, on the far side of them from the middle of the table */}

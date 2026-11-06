@@ -11,7 +11,7 @@ src/components/board/
 ├── scene.tsx                     Scene (the Table) and World (what lies on it)
 ├── layout.ts                     where things go: poses and seats
 ├── camera.ts                     CAMERA and PHOTO, with their knobs
-├── textures.ts                   CARD_SIZE, the faces, the back, the mat
+├── textures.ts                   CARD_SIZE, the faces, the back, the felt of the table
 ├── glows.ts                      the glows of the cards
 ├── settings.ts                   useSettings, the bridge to the debug panel
 └── aura.tsx, crown.tsx, seat-avatar-mesh.tsx, table-text.tsx
@@ -23,7 +23,7 @@ src/components/board/
 | What | Where in the template | Page |
 | --- | --- | --- |
 | The camera and the photo camera | `camera.ts`: `CAMERA`, `PHOTO` | [Camera](02-camera.md), [Share photo](05-share-photo.md) |
-| The mat | `Surface` in `scene.tsx`, its picture `matTexture` in `textures.ts` | [Surface](04-surface.md) |
+| The table's colour and picture | The `surface` prop of `Table` in `scene.tsx`, fed by `MAT_COLOR` and `matTexture` of `textures.ts` | [Surface](04-surface.md) |
 | The size of a card, its faces and its back | `textures.ts`: `CARD_SIZE`, `faceTexture`, `backTexture` | [Faces and textures](07-faces-and-textures.md) |
 | The glows | `glows.ts` | [Glows](08-glows.md) |
 | Where cards and seats go | `layout.ts` | [Layout helpers](12-layout-helpers.md), [Seats](15-seats.md) |
@@ -31,7 +31,7 @@ src/components/board/
 | The knobs | `settings.ts`, with `LAYOUT_SETTINGS` in `layout.ts` | [Tuning](24-tuning.md) |
 | The action a click sends | `game.tsx`: the handler passed down as `onPlay` | [Clicks and hover](20-clicks-and-hover.md) |
 
-The shared tools supply the rest: the canvas, the camera and its entrance, the floor and the lights, the card and all it does, the zones, the pose memory and the share photo. A game does not copy them.
+The shared tools supply the rest: the canvas, the camera and its entrance, the endless table and the lights, the card and all it does, the zones, the pose memory and the share photo. A game does not copy them.
 
 ## How the view feeds the scene
 

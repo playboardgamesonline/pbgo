@@ -1,12 +1,12 @@
 "use client"
 
-import { Card, type CameraIntro, type CameraSettings, onTable, type Pose, Surface, Table } from "@pbgo/table"
+import { Card, type CameraIntro, type CameraSettings, onTable, type Pose, Table } from "@pbgo/table"
 import { useFrame } from "@react-three/fiber"
 import { type ReactNode, useRef } from "react"
 import { useSceneReady } from "../frame"
 import { back, CARD_SIZE, face, felt, label, palette, type Palette } from "./art"
 
-// What the scenes have in common. A scene is always a `Stage` (one `Table`, with an id of its own because the default id is the same for all and ids are unique on a page) with a mat, some words and some cards on it.
+// What the scenes have in common. A scene is always a `Stage` (one `Table`, with an id of its own because the default id is the same for all and ids are unique on a page) with some words and some cards on it.
 
 /** Tells the frame, once, that the first frame is drawn. */
 function Ready() {
@@ -20,7 +20,7 @@ function Ready() {
   return null
 }
 
-/** The table of a specimen: the floor is the page's own grey, nothing else is on it but what the scene puts. */
+/** The table of a specimen: a felt that never ends, and nothing else on it but what the scene puts. */
 export function Stage({
   id,
   camera,
@@ -35,16 +35,11 @@ export function Stage({
   children: ReactNode
 }) {
   return (
-    <Table id={id} camera={camera} intro={intro} playIntro={playIntro} floor={{ color: palette().floor }}>
+    <Table id={id} camera={camera} intro={intro} playIntro={playIntro} surface={{ color: palette().felt, map: felt() }}>
       <Ready />
       {children}
     </Table>
   )
-}
-
-/** The mat: an ellipse of felt with a rim, `width` by `depth` in world units. */
-export function Mat({ width = 15, depth = 9.5 }: { width?: number; depth?: number }) {
-  return <Surface size={[width, depth]} rim={{ width: 0.25, color: palette().rim }} map={felt()} />
 }
 
 /** Words written flat on the table, upright for the viewer: a caption in the scene, where a page could not put one. */

@@ -2,7 +2,7 @@
 
 import { Card, type CameraSettings, defineGlows, onTable } from "@pbgo/table"
 import { back, CARD_SIZE, face } from "./art"
-import { Mat, Stage, TableLabel } from "./parts"
+import { Stage, TableLabel } from "./parts"
 
 // A glow is a set of parts, and a part a glow leaves out is not drawn at all. Four cards each wear one part and a fifth wears all four, all built with `defineGlows` and `{}`, which is every default of a part.
 
@@ -31,7 +31,6 @@ export function GlowsScene() {
   const cardBack = back()
   return (
     <Stage id="scene-glows" camera={CAMERA} playIntro={false}>
-      <Mat width={17} depth={9} />
       {ENTRIES.map(({ key, text, n }, i) => {
         const x = (i - (ENTRIES.length - 1) / 2) * SPACING
         return (

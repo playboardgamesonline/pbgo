@@ -2,7 +2,7 @@
 
 import type { Card, CardColor } from "@template/engine"
 import { type CardSize, paintFace } from "@pbgo/table"
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture } from "three"
+import { CanvasTexture, SRGBColorSpace, type Texture } from "three"
 
 /** Width and height of a card in world units: the same for every card of the game */
 export const CARD_SIZE: CardSize = { width: 1.3, height: 1.9 }
@@ -85,13 +85,16 @@ export function backTexture(accent = "#e8b43a", bg = "#1b2c4a"): Texture {
   })
 }
 
+/** The colour of the table: the average of its felt, which the table fades into with distance */
+export const MAT_COLOR = "#1f5a4a"
+
 let mat: Texture | null = null
 export function matTexture(): Texture {
   if (mat) return mat
   const c = document.createElement("canvas")
   c.width = c.height = 256
   const ctx = c.getContext("2d")!
-  ctx.fillStyle = "#1f5a4a"
+  ctx.fillStyle = MAT_COLOR
   ctx.fillRect(0, 0, 256, 256)
   const img = ctx.getImageData(0, 0, 256, 256)
   for (let i = 0; i < img.data.length; i += 4) {
@@ -102,7 +105,5 @@ export function matTexture(): Texture {
   }
   ctx.putImageData(img, 0, 0)
   mat = finalize(c)
-  mat.wrapS = mat.wrapT = RepeatWrapping
-  mat.repeat.set(6, 4)
   return mat
 }

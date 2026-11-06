@@ -1,6 +1,6 @@
 # The 3D scene
 
-The board of a game is a 3D scene drawn with react-three-fiber on one canvas, and none of it is DOM. `@pbgo/table` gives every game the same table: a canvas with its camera, a mat, cards that glide, fly and bend, the helpers that say where cards go and the zones that place them. What depends on a game's look (its pictures, the name plates, the aura, the crown) is written per game in the `board/` folder of its binding, and `template/src/components/board/` is the reference.
+The board of a game is a 3D scene drawn with react-three-fiber on one canvas, and none of it is DOM. `@pbgo/table` gives every game the same table: a canvas with its camera, an endless table, cards that glide, fly and bend, the helpers that say where cards go and the zones that place them. What depends on a game's look (its pictures, the name plates, the aura, the crown) is written per game in the `board/` folder of its binding, and `template/src/components/board/` is the reference.
 
 Each page of this group is one item of the scene: what it is and where it lives, what you give it and the rules it keeps. The tools are in `packages/table/src` and `pnpm --filter @pbgo/table test` runs their tests. The exports of `packages/table/src/index.ts` are the whole API of the package; a file can hold more than it exports, and a page says so when a piece is internal.
 
@@ -16,11 +16,11 @@ scene-board
 GameHud                          DOM, shared: ticker, announcements, game over
 └── Scene                        the board, loaded on demand
     └── Table                    the canvas, with the pose memory
+        ├── Surface              the endless table, always
         ├── CameraRig            puts the camera where the settings say, every frame
-        ├── Lights, Floor        when asked for
+        ├── Lights               when asked for
         ├── SharePhoto           when a photo camera is given
         └── World                what lies on the table, the game's own
-            ├── Surface          the mat and its rim
             ├── a group per seat
             │   ├── Aura         lit for the player whose turn it is
             │   ├── TableText    the nickname, with SeatAvatarMesh and TurnCrown
@@ -39,8 +39,9 @@ The code has no component for some of the words used for the parts of a table. T
 
 | Word | In the code | Shared or per game | Page |
 | --- | --- | --- | --- |
-| table | `Table`: the canvas, the camera, the room, the lights and the pose memory | Shared | [Table](01-table.md) |
-| mat | `Surface`, with an optional rim | Shared; a mat with a shader of its own is per game | [Surface](04-surface.md) |
+| table | `Table`: the canvas, the camera, the lights and the pose memory, with an endless `surface` | Shared | [Table](01-table.md) |
+| table surface | The `surface` prop of `Table`: a colour, and a picture that repeats | Shared | [Surface](04-surface.md) |
+| mat | No component: the table has no edge, so a mat is a plane the game draws on it | Per game | [Surface](04-surface.md) |
 | card | `Card` | Shared | [Card](06-card.md) |
 | deck, draw pile, discard pile | `Pile` for cards the game only counts; a `Zone` over `pile` for cards it names | Shared | [Pile](14-pile.md) |
 | hand | A `Zone` over a `fan` layout in front of the viewer | Tools shared, layout per game | [Zone](13-zone.md) |
@@ -54,10 +55,10 @@ The code has no component for some of the words used for the parts of a table. T
 
 ## Coordinates
 
-- The world is y up. Distances are world units: a card's `size`, a `Surface` and the camera's `distance` are in them.
+- The world is y up. Distances are world units: a card's `size`, the `tile` of the surface and the camera's `distance` are in them.
 - The viewer sits on the +z side and looks toward -z; +x runs to the right of the screen at a camera `yaw` of zero.
 - A card is a plane facing +z. `FACE_UP` lays it flat with its front to the sky and its top edge toward -z, away from the viewer; `FACE_DOWN` shows the back and points the top edge toward +z.
-- The `y` of a pose is the height of the card's centre above the table; `RESTING_HEIGHT` is a card lying on it. From the bottom up: the floor, the rim, the mat, the cards.
+- The `y` of a pose is the height of the card's centre above the table; `RESTING_HEIGHT` is a card lying on it. From the bottom up: the table, the cards.
 - `yaw` turns about the vertical axis, counterclockwise seen from above. Poses and layouts take radians; the camera's `tilt`, `yaw` and `fov` are degrees.
 - A `Spot` is `{ x, z, yaw }`: a place on the table and the way it faces. A layout is drawn in the frame of a spot and `inFrame` puts it on the table.
 
@@ -78,8 +79,8 @@ The shared tools of `@pbgo/table`:
 
 - [Table](01-table.md): the canvas and what it carries.
 - [Camera](02-camera.md): the settings, the entrance, the rig.
-- [Lights and floor](03-lights-and-floor.md): the room around the table.
-- [Surface](04-surface.md): the mat.
+- [Lights](03-lights.md): the ambient light and the sun.
+- [Surface](04-surface.md): the endless table.
 - [Share photo](05-share-photo.md): the picture of the finished table.
 - [Card](06-card.md): props, settings, layers.
 - [Faces and textures](07-faces-and-textures.md): painting a face, the stand-in.

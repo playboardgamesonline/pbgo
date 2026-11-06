@@ -13,7 +13,7 @@ export type Pose = { position: Vector3; quaternion: Quaternion; scale: number; d
 | `Pose` | A `position`, a `quaternion`, a uniform `scale` and an optional `delay`: the seconds a card waits before it flies there from its `from` pose |
 | `onTable(x, z, options)` | A card lying flat at x, z. `OnTable` lists the options |
 | `FACE_UP`, `FACE_DOWN` | The two flat orientations: the front or the back to the sky |
-| `RESTING_HEIGHT` | The height of a card lying on the table, just above the mat, so its edge and shadow never fight with it |
+| `RESTING_HEIGHT` | The height of a card lying on the table, just above the table, so its edge and shadow never fight with it |
 | `shifted(pose, offset)` | The same pose moved by an `Offset` (`x`, `y`, `z`): a card lifted under the pointer. The original is left alone |
 | `lean(key, amplitude)` | A quaternion that turns about the vertical axis by at most `amplitude`, always the same for the same key |
 | `hashRandom(key)` | A number between -1 and 1 that depends on the key alone (FNV-1a): the same on every render and for every player |

@@ -1,4 +1,4 @@
-// The colours of the 3D specimens come from the platform's own tokens, never from a hex written here: a scene is art, but its floor is the page's grey and its pieces wear the colours of the pieces of the table (`--piece-*`). A token is a CSS expression, so the
+// The colours of the 3D specimens come from the platform's own tokens, never from a hex written here: a scene is art, but its felt is mixed from the page's own tokens and its pieces wear the colours of the pieces of the table (`--piece-*`). A token is a CSS expression, so the
 // browser resolves it (a probe element), and one pixel of a canvas turns whatever it answers (`color(srgb ...)`, `oklab(...)`) into the sRGB bytes that a three.js material takes.
 
 const resolved = new Map<string, string>()

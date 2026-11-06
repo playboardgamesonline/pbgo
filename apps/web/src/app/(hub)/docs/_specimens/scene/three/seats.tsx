@@ -2,7 +2,7 @@
 
 import { type CameraSettings, seats, type Spot } from "@pbgo/table"
 import { label, palette } from "./art"
-import { Mat, Stage } from "./parts"
+import { Stage } from "./parts"
 
 // The ring `seats` gives, drawn as it is: one spot for each player on an ellipse, indexed like the players. Each seat is a disc with its number (upright for the viewer) and an arrow along the frame of the spot, the way a layout drawn in it
 // points: the top edge of a face-up card. The viewer's seat is the one in front with a yaw of zero; the others follow around the far half, the turn passing to the left. Without a viewer (a spectator) everyone sits on the far half.
@@ -10,7 +10,6 @@ import { Mat, Stage } from "./parts"
 const CAMERA: CameraSettings = { tilt: 44, yaw: 0, distance: 20, fov: 34, targetX: 0, targetZ: 0.9 }
 
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
-const MAT = { margin: 1.35 }
 
 /** The disc of a seat, and how far from its middle its arrow stands. */
 const DISC = 0.72
@@ -42,16 +41,9 @@ function Seat({ spot, index, you }: { spot: Required<Spot>; index: number; you: 
 }
 
 export function SeatsScene({ count, me }: { count: number; me: number | null }) {
-  const p = palette()
   const ring = seats(count, { ...RING, me })
   return (
     <Stage id="scene-seats" camera={CAMERA} playIntro={false}>
-      <Mat width={2 * (RING.radiusX + MAT.margin)} depth={2 * (RING.radiusZ + MAT.margin)} />
-      {/* The ellipse the seats stand on */}
-      <mesh position-y={0.012} rotation-x={-Math.PI / 2} scale={[RING.radiusX, RING.radiusZ, 1]} raycast={() => null}>
-        <ringGeometry args={[0.994, 1, 128]} />
-        <meshBasicMaterial color={p.muted} transparent opacity={0.45} depthWrite={false} toneMapped={false} />
-      </mesh>
       {ring.map((spot, i) => (
         <Seat key={i} spot={spot} index={i} you={i === me} />
       ))}

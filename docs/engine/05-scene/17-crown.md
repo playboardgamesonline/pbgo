@@ -13,7 +13,7 @@ The turn marker is a crown that stands beside the nickname of the player whose t
 
 ## Rules
 
-- Every seat has its own crown, and `show` says which one is up. The crown does not travel around the table, so it never crosses the mat or the cards.
+- Every seat has its own crown, and `show` says which one is up. The crown does not travel around the table, so it never crosses the cards.
 - The template places it as a child of the nickname's `TableText`, in a frame whose origin is the left edge of the first letter ([Text on the table](19-text-on-the-table.md)).
 - It is a plane that turns to face the camera about the vertical axis only, so it stays upright. While it is up it bobs and its gold pulses.
 - It takes no pointer events ([Clicks and hover](20-clicks-and-hover.md)).

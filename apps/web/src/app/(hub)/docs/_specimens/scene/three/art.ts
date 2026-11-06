@@ -1,19 +1,17 @@
-// The art of the 3D specimens: the faces and the back of a card, the felt of the mat and the words written on the table, all painted in code, nothing in a file. Every colour is a token of the platform resolved by the browser (`cssColor`):
-// the pieces of the table (`--piece-*`) for the cards, the page's own grey for the floor, so that a change of the tokens changes the scenes with them. The textures are made once and kept (`paintFace` keeps the cards' by key).
+// The art of the 3D specimens: the faces and the back of a card, the felt of the table and the words written on it, all painted in code, nothing in a file. Every colour is a token of the platform resolved by the browser (`cssColor`):
+// the pieces of the table (`--piece-*`) for the cards, the success and card tokens for the felt, so that a change of the tokens changes the scenes with them. The textures are made once and kept (`paintFace` keeps the cards' by key).
 // This is the heavy half of the specimens: only the files of this folder import three.js and `@pbgo/table`, and they are reached through `next/dynamic` only.
 
 import { type CardSize, onTable, paintFace } from "@pbgo/table"
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture } from "three"
+import { CanvasTexture, SRGBColorSpace, type Texture } from "three"
 import { cssColor, pageFont } from "../color"
 
 /** The size of a card of every specimen, the template's. */
 export const CARD_SIZE: CardSize = { width: 1.3, height: 1.9 }
 
 export type Palette = {
-  /** The floor of the table: the page's card grey, so the scene sits on the page the way a card does */
-  floor: string
+  /** The felt of the table, which is also the colour the table fades into: the average of its picture */
   felt: string
-  rim: string
   ivory: string
   ink: string
   navy: string
@@ -29,9 +27,7 @@ let palette_: Palette | undefined
 /** The colours of the scenes, resolved once the page has them. */
 export function palette(): Palette {
   palette_ ??= {
-    floor: cssColor("var(--card)"),
     felt: cssColor("color-mix(in oklab, var(--success) 20%, var(--card))"),
-    rim: cssColor("color-mix(in oklab, var(--piece-gold) 32%, var(--piece-ink))"),
     ivory: cssColor("var(--piece-ivory)"),
     ink: cssColor("var(--piece-ink)"),
     navy: cssColor("var(--piece-navy)"),
@@ -163,11 +159,11 @@ export function back(): Texture {
   })
 }
 
-let mat: Texture | undefined
+let cloth: Texture | undefined
 
-/** The felt of the mat: its colour with a grain, seamless so that it can repeat across the mat. */
+/** The felt of the table: its colour with a grain, seamless so that the table can repeat it. */
 export function felt(): Texture {
-  if (mat) return mat
+  if (cloth) return cloth
   const canvas = document.createElement("canvas")
   canvas.width = canvas.height = 256
   const g = canvas.getContext("2d")!
@@ -182,12 +178,10 @@ export function felt(): Texture {
     picture.data[i + 2] += grain
   }
   g.putImageData(picture, 0, 0)
-  mat = new CanvasTexture(canvas)
-  mat.colorSpace = SRGBColorSpace
-  mat.wrapS = mat.wrapT = RepeatWrapping
-  mat.repeat.set(9, 6)
-  mat.anisotropy = 8
-  return mat
+  cloth = new CanvasTexture(canvas)
+  cloth.colorSpace = SRGBColorSpace
+  cloth.anisotropy = 8
+  return cloth
 }
 
 export type Label = { texture: Texture; aspect: number }

@@ -1,49 +1,59 @@
 "use client"
 
-import type { Texture } from "three"
+import { useThree } from "@react-three/fiber"
+import { useEffect, useMemo } from "react"
+import { type PerspectiveCamera, RepeatWrapping, type Texture } from "three"
 
 export type SurfaceProps = {
-  /** Width and depth of the mat, in world units */
-  size: [width: number, depth: number]
-  /** The outline of the mat (default "ellipse") */
-  shape?: "ellipse" | "rectangle"
-  /** The picture of the mat. It is shown as it is: no light and no tone mapping touch it */
-  map?: Texture
-  /** The colour of the mat; it tints the picture when there is one (default white) */
-  color?: string
-  /** A band of this colour and width all around the mat, outside `size` */
-  rim?: { width: number; color: string }
-}
-
-// The rim and the mat lie flat, over the floor and under the cards, which rest higher (see `RESTING_HEIGHT`)
-const HEIGHT = { rim: 0, mat: 0.005 }
-
-type PlateProps = {
-  shape: NonNullable<SurfaceProps["shape"]>
-  width: number
-  depth: number
-  height: number
+  /** The colour of the table, and of everything beyond it: a picture fades into it with distance, so the table has no edge and no horizon. With a picture, give the picture's average colour */
   color: string
+  /** A seamless picture that repeats over the whole table: felt, linen, wood. It is shown as it is: no light and no tone mapping touch it */
   map?: Texture
+  /** How many world units one repeat of the picture covers (default `TILE`) */
+  tile?: number
 }
 
-/** A flat shape on the table: a unit circle or square stretched to the size asked for */
-function Plate({ shape, width, depth, height, color, map }: PlateProps) {
-  const [x, z] = shape === "rectangle" ? [width, depth] : [width / 2, depth / 2]
-  return (
-    <mesh rotation-x={-Math.PI / 2} position-y={height} scale={[x, z, 1]} raycast={() => null}>
-      {shape === "rectangle" ? <planeGeometry args={[1, 1]} /> : <circleGeometry args={[1, 96]} />}
-      <meshBasicMaterial color={color} map={map} toneMapped={false} />
-    </mesh>
-  )
-}
+/** World units one repeat of the picture covers unless told otherwise */
+const TILE = 2
 
-/** The mat the cards are played on, with an optional rim. It takes no clicks: the cards on it do */
-export function Surface({ size: [width, depth], shape = "ellipse", map, color = "#ffffff", rim }: SurfaceProps) {
+/** How many times the camera's `far` the table is wide, so that wherever the camera stands, the edge of the table lies past where the fog has hidden it */
+const REACH = 3
+
+/** Where the fog starts, as a share of the camera's `far`: the cards and the seats lie nearer, so only the picture of the table fades */
+const FOG_START = 0.5
+
+/** Keeps the picture sharp where the table runs off toward the horizon */
+const ANISOTROPY = 8
+
+/** The table the cards lie on, endless: its colour is the one the canvas is cleared to, so it reaches every way the camera can look, and a picture repeats over a plane far wider than the camera sees and fades into that colour. It takes no clicks */
+export function Surface({ color, map, tile = TILE }: SurfaceProps) {
+  const far = useThree((s) => (s.camera as PerspectiveCamera).far)
+  const width = far * REACH
+  const repeat = width / tile
+  // The table's own copy, so the game's texture keeps its wrapping and its repeat
+  const picture = useMemo(() => {
+    if (!map) return null
+    const copy = map.clone()
+    copy.wrapS = copy.wrapT = RepeatWrapping
+    copy.repeat.set(repeat, repeat)
+    copy.anisotropy = Math.max(copy.anisotropy, ANISOTROPY)
+    copy.needsUpdate = true
+    return copy
+  }, [map, repeat])
+  useEffect(() => () => picture?.dispose(), [picture])
+
   return (
     <>
-      {rim && <Plate shape={shape} width={width + 2 * rim.width} depth={depth + 2 * rim.width} height={HEIGHT.rim} color={rim.color} />}
-      <Plate shape={shape} width={width} depth={depth} height={HEIGHT.mat} color={color} map={map} />
+      <color attach="background" args={[color]} />
+      {picture && (
+        <>
+          <fog attach="fog" args={[color, far * FOG_START, far]} />
+          <mesh rotation-x={-Math.PI / 2} renderOrder={-1} raycast={() => null}>
+            <planeGeometry args={[width, width]} />
+            <meshBasicMaterial map={picture} toneMapped={false} />
+          </mesh>
+        </>
+      )}
     </>
   )
 }

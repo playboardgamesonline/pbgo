@@ -49,7 +49,7 @@ export function SceneTableSpecimen() {
   const reduced = usePrefersReducedMotion()
   return (
     <SceneFrame
-      label="A card table seen from above: a mat of felt in a dark room, and a few cards lying on it, some face up and some face down"
+      label="A card table seen from above: an endless table of felt with a few cards lying on it, some face up and some face down"
       controls={
         <>
           <Button variant="outline" size="sm" disabled={reduced} onClick={() => setReplays((count) => count + 1)}>
@@ -95,7 +95,7 @@ export function SceneCardSpecimen() {
   const flip = () => setSide((current) => (current === "up" ? "down" : "up"))
   return (
     <SceneFrame
-      label="A single playing card held above a mat, which turns over when it is pressed"
+      label="A single playing card held above a table, which turns over when it is pressed"
       controls={
         <>
           <Button variant="outline" size="sm" onClick={flip}>
@@ -190,7 +190,7 @@ export function SceneLayoutsSpecimen() {
 
 export function SceneZonesSpecimen() {
   return (
-    <SceneFrame label="The three zones of a board on one table: the viewer's hand in front, the cards another player holds on their seat across the table, and a shared zone in the middle; each is named on the mat">
+    <SceneFrame label="The three zones of a board on one table: the viewer's hand in front, the cards another player holds on their seat across the table, and a shared zone in the middle; each is named on the table">
       <ZonesScene />
     </SceneFrame>
   )

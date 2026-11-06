@@ -3,7 +3,7 @@
 import { type CameraSettings, inFrame, pile, Pile, type PileOptions, type Pose, type Spot, Zone } from "@pbgo/table"
 import type { Drawn } from "../defaults"
 import { back, CARD_SIZE, face } from "./art"
-import { Mat, Stage } from "./parts"
+import { Stage } from "./parts"
 
 // A `Pile` is a stack of cards the game only counts. Its top card can be turned up, and it is a card like any other: it takes an `onClick`. A card drawn from it is a card of the game's own now, so it goes to a `Zone` over `pile` (a discard
 // pile whose cards stay named) and starts from the pose the top of the draw pile had, which the scene works out with the same `pile` the `Pile` calls.
@@ -42,7 +42,6 @@ export function PileScene({
   const cardBack = back()
   return (
     <Stage id="scene-pile" camera={CAMERA} playIntro={false}>
-      <Mat width={13} depth={8} />
       <Pile
         frame={DRAW_PILE}
         count={count}

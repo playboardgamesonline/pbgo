@@ -3,7 +3,7 @@
 import { type CameraSettings, fan, row, Zone, type ZoneCard } from "@pbgo/table"
 import { MEMORY_CARDS } from "../defaults"
 import { back, CARD_SIZE, face } from "./art"
-import { Mat, Stage, TableLabel } from "./parts"
+import { Stage, TableLabel } from "./parts"
 
 // Two zones, a hand and a middle. A card that changes zone is not the same React element: it unmounts from one `Zone` and mounts in the other. It has the same `id` in both, so the table's pose memory hands the new one the pose the old one left
 // from and it flies from where it was instead of popping into place.
@@ -26,7 +26,6 @@ export function PoseMemoryScene({ middle, onMove }: { middle: readonly number[];
     }))
   return (
     <Stage id="scene-pose-memory" camera={CAMERA} playIntro={false}>
-      <Mat width={16} depth={10.5} />
       <TableLabel text="hand" x={0} z={6.4} />
       <TableLabel text="middle" x={0} z={-3.1} />
       <Zone layout={fan(hand.length, { gap: 1.25, y: 1, rise: 0.004, z: 4.2, curve: 0.05, tilt: 0.6, roll: 0.05, scale: 1.1 })} size={CARD_SIZE} cards={cards(hand)} />

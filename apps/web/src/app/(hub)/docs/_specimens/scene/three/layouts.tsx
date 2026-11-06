@@ -3,13 +3,13 @@
 import { type CameraSettings, fan, grid, onTable, pile, type Pose, row, Zone } from "@pbgo/table"
 import { LAYOUT_CARDS, type LayoutName } from "../defaults"
 import { back, CARD_SIZE, face } from "./art"
-import { Mat, Stage } from "./parts"
+import { Stage } from "./parts"
 
 // One `Zone`, four layout helpers. The cards keep their keys when the helper changes, so they glide from the slots of one to the slots of the next; the zone owns nothing, the helper only says where slot `i` is.
 
 const CAMERA: CameraSettings = { tilt: 42, yaw: 0, distance: 18, fov: 34, targetX: 0, targetZ: 0.8 }
 
-/** The room each helper is given, so that the most cards still fit the mat: the gap between two cards shrinks as they come. */
+/** The width each helper is given, so that the most cards still fit in the picture: the gap between two cards shrinks as they come. */
 const WIDTH = 10.5
 
 function slots(layout: LayoutName, n: number): Pose[] {
@@ -32,7 +32,6 @@ export function LayoutsScene({ layout, count }: { layout: LayoutName; count: num
   const cardBack = back()
   return (
     <Stage id="scene-layouts" camera={CAMERA} playIntro={false}>
-      <Mat width={15} depth={10} />
       <Zone
         layout={slots(layout, count)}
         size={CARD_SIZE}

@@ -3,7 +3,7 @@
 import type { CameraSettings } from "@pbgo/table"
 import { useEffect, useState } from "react"
 import type { CameraView } from "../defaults"
-import { Mat, RestingCards, Stage } from "./parts"
+import { RestingCards, Stage } from "./parts"
 
 // The same table with its camera in the visitor's hands. The table is given ONE settings object and the sliders change its fields: nothing re-renders the table, the rig reads the object on the next frame, which is how a game's debug panel moves its camera.
 
@@ -17,7 +17,6 @@ export function CameraScene({ tilt, yaw, distance, fov }: CameraView) {
   }, [camera, tilt, yaw, distance, fov])
   return (
     <Stage id="scene-camera" camera={camera} playIntro={false}>
-      <Mat />
       <RestingCards />
     </Stage>
   )
