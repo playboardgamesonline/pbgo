@@ -58,7 +58,7 @@ function currentOf(pathname: string): SiteCurrent | null {
  * that lands under it has `scroll-mt-navbar`.
  * The hub's layout mounts it once, and it reads the address to know what is current: the page does not say. That is what lets the fill behind
  * the current item glide from one to the next when the visitor goes from page to page, which a bar that every page drew again could not do.
- * The account is on the right: Sign in (to `/login`, which brings the visitor back to this page) and Let's play (a placeholder for now), or, once the
+ * The account is on the right: Sign in (to `/login`, which brings the visitor back to this page) and Let's play (to the games, `/games`, where the live ones come first), or, once the
  * browser has read a session, the dock of their friends (`SiteSocial`: one container that is a bar, with the games their friends are in, their picture and the button of the panel, and that grows into a side panel, with the friends, the messages and the requests).
  * The server renders every page as if nobody were signed in, so the static pages stay static; while the browser has not read its session the two buttons keep
  * their place but are not drawn, so a signed-in visitor never sees them flash.
@@ -108,8 +108,8 @@ export function SiteHeader() {
             <Button variant="ghost" size="lg" className={hidden} asChild>
               <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Sign in</Link>
             </Button>
-            <Button size="lg" type="button" className={hidden} aria-disabled="true" title="Coming soon">
-              {"Let's play"}
+            <Button size="lg" className={hidden} asChild>
+              <Link href="/games">{"Let's play"}</Link>
             </Button>
           </NavbarEnd>
         )}
