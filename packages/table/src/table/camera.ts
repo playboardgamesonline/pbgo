@@ -24,9 +24,11 @@ export const MIN_HEIGHT = 0.5
 /** A table framed for a 1.6 aspect ratio keeps its distance on wider screens and backs the camera off on narrower ones, so it always fits */
 export const aspectScale = (aspect: number) => (aspect > 0 ? Math.max(1, 1.6 / aspect) : 1)
 
-/** How much of the entrance is left `now` (milliseconds) when it began at `startedAt`: 1 at its start, 0 once settled, and 0 when it is off or has not begun */
-export function introRest(intro: CameraIntro, startedAt: number | null, now: number) {
-  if (!intro.enabled || startedAt === null || !(intro.duration > 0)) return 0
+/** How much of the entrance is left `now` (milliseconds) when it began at `startedAt`: 1 at its start, 0 once settled, and 0 when it is off or has not begun. A `held` entrance waits at its start: 1, until it begins */
+export function introRest(intro: CameraIntro, startedAt: number | null, now: number, held = false) {
+  if (!intro.enabled || !(intro.duration > 0)) return 0
+  if (held) return 1
+  if (startedAt === null) return 0
   const progress = Math.min(1, Math.max(0, (now - startedAt) / (intro.duration * 1000)))
   return (1 - progress) ** 3
 }
