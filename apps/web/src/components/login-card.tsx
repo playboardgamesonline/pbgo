@@ -121,13 +121,6 @@ export function LoginCard({
       )}
       {!enabled && <p className="mt-4 text-sm text-muted-foreground">Sign-in is not available on this site yet.</p>}
 
-      <p className="mt-6 text-sm text-muted-foreground">
-        No account needed to play: you can{" "}
-        <Link href="/games" className="text-foreground underline underline-offset-4">
-          pick a game
-        </Link>{" "}
-        as a guest.
-      </p>
       <p className="mt-6 text-xs text-muted-foreground">
         By continuing you accept the{" "}
         <Link href="/legal/terms" className="underline underline-offset-4">
