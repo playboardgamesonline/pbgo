@@ -4,7 +4,7 @@
  * When the game waits for players who don't play (`waitingPlayers` of the engine-kit), the others vote to play for them.
  * A vote is a pair `(voter, target)`, stored in `games.takeover_votes` as `<state fingerprint>:<voter>:<target>`: every move
  * changes the state, so its fingerprint, and the votes of the previous state are ignored without having to purge them.
- * Player ids must not contain `:` (they are UUIDs).
+ * Player ids must not contain `:` (they are hexadecimal, see `player-id.ts`).
  *
  * A target is played for once every voter required for it has voted for it. The voters required for a target are the PRESENT
  * players (seen by the server in the last 75 s) other than the target itself: an absent player never blocks the vote.

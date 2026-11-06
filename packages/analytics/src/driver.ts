@@ -152,7 +152,8 @@ export function createDriver(env: DriverEnv) {
 
     /**
      * Ties the events of a visitor who accepted to the player they are at this table. The id is the one the server already uses
-     * for its own events (the player cookie of the game), so the two sides line up. Held until the visitor accepts.
+     * for its own events (the player id of the game, which the table gives as `meId`), so the two sides line up. Held until the
+     * visitor accepts.
      */
     identify(id: string): void {
       pendingId = id

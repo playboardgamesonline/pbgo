@@ -79,7 +79,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - One Supabase project for every game: table `games` with a `game` column (the slug), primary key `(game, code)`; RLS on without policies, only the server (secret key) reads and writes it
 - `state` = the engine's full state (secret); clients only get `GAME.view(state, playerId)` through `GET /api/<slug>/games/<code>`
 - After each write, the server broadcasts `update` on `game:<slug>:<code>`; the client refetches
-- Player identity = httpOnly cookie `<slug>_player`
+- Player identity = httpOnly cookie `<slug>_player`, which holds a secret that only the server reads; the player id of the engine, the views and the table (`PlayerInfo.id`, `playerId`, `meId`) is a hash of it, public and safe to put in the state (`@pbgo/core/server/player-id`)
 - Presence: the server writes a per-player last-seen timestamp (`games.seen`, throttled) on reads and writes; the takeover only counts members seen in the last 75 s
 - Routes: `POST /api/<slug>/games`, `GET /api/<slug>/games/<code>`, `POST .../join|leave|options|start|action|replay|takeover|chat|debug`
 
