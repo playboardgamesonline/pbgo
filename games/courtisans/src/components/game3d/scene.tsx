@@ -133,8 +133,8 @@ const TARGET_TMP = new Vector3()
 
 const CAMERA_INTRO = { enabled: true, duration: 2.6, zoom: 1.45, rotate: 22, tilt: 12 }
 
-/** Progress 0 → 1 (ease out) of the camera intro, restarted at each opening (`run`). */
-function useCameraIntro(run: boolean) {
+/** Progress 0 → 1 (ease out) of the camera intro, restarted at each opening (`run`). While `held` (the start screen is up) it waits at 0, the first frame of the entrance. */
+function useCameraIntro(run: boolean, held: boolean) {
   const [intro] = useControls(
     "Camera intro",
     () => ({
@@ -152,15 +152,17 @@ function useCameraIntro(run: boolean) {
     start.current = run ? performance.now() : null
   }, [run])
   return { intro, progress: () => {
-    if (!intro.enabled || start.current === null) return 1
+    if (!intro.enabled) return 1
+    if (held) return 0
+    if (start.current === null) return 1
     const p = Math.min(1, (performance.now() - start.current) / (intro.duration * 1000))
     return 1 - Math.pow(1 - p, 3)
   } }
 }
 
-function CameraRig({ introRun }: { introRun: boolean }) {
+function CameraRig({ introRun, introHeld }: { introRun: boolean; introHeld: boolean }) {
   const { size } = useThree()
-  const { intro, progress } = useCameraIntro(introRun)
+  const { intro, progress } = useCameraIntro(introRun, introHeld)
   const [setting, adjust] = useControls(
     "Camera",
     () => ({
@@ -268,7 +270,8 @@ const MAT_FRAGMENT = /* glsl */ `
 
 export const BLEND_MODES = { multiply: 0, screen: 1, overlay: 2, "soft light": 3 } as const
 
-function Table({ tex, flow, matDuration }: { tex: Textures; flow: boolean; matDuration: number }) {
+/** `rolled`: the mat is still rolled up, waiting for the opening to begin (the start screen is up) */
+function Table({ tex, flow, rolled, matDuration }: { tex: Textures; flow: boolean; rolled: boolean; matDuration: number }) {
   const vignette = useFrameTexture(vignetteTexture)
   const texPattern = useMemo(() => patternTexture("diamonds"), [])
   const { opacity, desaturation, blend, strength, scaleFactor, thickness } = useControls(
@@ -330,7 +333,10 @@ function Table({ tex, flow, matDuration }: { tex: Textures; flow: boolean; matDu
     uniformValues.uStrength.value = strength
     uniformValues.uScale.value = scaleFactor
     let d = 1
-    if (flow) {
+    if (rolled) {
+      d = 0
+      start.current = null
+    } else if (flow) {
       if (start.current === null) start.current = clock.elapsedTime
       const t = Math.min(1, Math.max(0, (clock.elapsedTime - start.current - 0.15) / matDuration))
       d = 1 - (1 - t) ** 3
@@ -715,6 +721,9 @@ function World({
   missionFocus,
   onMission,
   onReady,
+  held,
+  onLoaded,
+  onProgress,
   ending,
   settings,
 }: {
@@ -722,6 +731,9 @@ function World({
   missionFocus: string | null
   onMission: (id: string) => void
   onReady: () => void
+  held: boolean
+  onLoaded: () => void
+  onProgress: (progress: number) => void
   ending: EndingState | null
   settings: OpeningSettings
 }) {
@@ -736,6 +748,13 @@ function World({
     [missions, view.players, view.me?.id],
   )
   const tex = useTextures(catalog, allMissions)
+  // Mounted is not loaded: the start screen waits for the pictures too (PLT-107). The scene being there is a tenth of the way, the pictures are the rest
+  const picturesLoaded = tex.loaded
+  const picturesDone = tex.progress
+  useEffect(() => {
+    if (picturesLoaded) onLoaded()
+  }, [picturesLoaded, onLoaded])
+  useEffect(() => onProgress(0.1 + 0.9 * picturesDone), [picturesDone, onProgress])
   const places = useMemo(() => seats(view), [view])
   const [unfolded, setUnfolded] = useState<string | null>(null)
   const closing = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1079,14 +1098,14 @@ function World({
 
   return (
     <>
-      <CameraRig introRun={openingStep === "unroll"} />
+      <CameraRig introRun={openingStep === "unroll" && !held} introHeld={openingStep === "unroll" && held} />
       <CardSettingsPanel />
       <EndingSettings />
       <ZoneSettings />
       <MatLines results={results ?? null} ending={ending} />
       <ambientLight intensity={0.8} />
       <directionalLight position={[4, 12, 6]} intensity={2.2} />
-      <Table tex={tex} flow={flow} matDuration={settings.matDuration} />
+      <Table tex={tex} flow={flow} rolled={flow && held} matDuration={settings.matDuration} />
 
       {[...board.values()].map(({ card, pose, playerId }) => {
         const candidate = candidates.has(card.id)
@@ -1332,6 +1351,12 @@ export default function Scene3D(props: {
   onMission: (id: string) => void
   onEmpty: () => void
   onReady: () => void
+  /** The start screen is up: the opening (camera entrance, mat, deal) waits for it to go */
+  held: boolean
+  /** Called once when the pictures are in */
+  onLoaded: () => void
+  /** How far the scene is loaded, 0 to 1 */
+  onProgress: (progress: number) => void
   ending: EndingState | null
   settings: OpeningSettings
 }) {
@@ -1349,6 +1374,9 @@ export default function Scene3D(props: {
           missionFocus={props.missionFocus}
           onMission={props.onMission}
           onReady={props.onReady}
+          held={props.held}
+          onLoaded={props.onLoaded}
+          onProgress={props.onProgress}
           ending={props.ending}
           settings={props.settings}
         />
