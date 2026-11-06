@@ -5,13 +5,13 @@ import { Button } from "./button"
 import { Spinner } from "./spinner"
 
 /**
- * How the tile of each brand is dressed, in tokens: its fill, and the colour of the text, which its mark and a spinner take. Facebook and Discord are their
- * brand's colour (`brand-*`), Google is white (`foreground`) with its own four colours, and Apple is black (`background`) with an outline, which the dark page needs.
+ * How the tile of each brand is dressed, in tokens: its fill, and the colour of the text, which its mark and a spinner take. Facebook, Twitch and Discord are
+ * their brand's colour (`brand-*`) and Google is white (`foreground`) with its own four colours.
  */
 const TILES: Record<BrandName, string> = {
   facebook: "border-transparent bg-brand-facebook text-foreground hover:bg-brand-facebook/90",
   google: "border-transparent bg-foreground text-background hover:bg-foreground/90 hover:text-background",
-  apple: "border-input bg-background text-foreground hover:bg-muted",
+  twitch: "border-transparent bg-brand-twitch text-foreground hover:bg-brand-twitch/90",
   discord: "border-transparent bg-brand-discord text-foreground hover:bg-brand-discord/90",
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
-import { PROVIDERS, PROVIDER_NAMES, safeNext, type Provider } from "@pbgo/accounts"
+import { PROVIDER_NAMES, safeNext, type Provider } from "@pbgo/accounts"
 import { signInWith, signInWithPassword } from "@pbgo/accounts/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
@@ -13,14 +13,29 @@ import { Separator } from "@pbgo/ui/platform/separator"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
 
+/** The columns of the row of providers, one cell each: a lone provider is a wide tile and four are the row the design draws. Written out in full so that Tailwind finds the classes. */
+const COLUMNS = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4"] as const
+
 /**
- * The sign-in, a card laid over the hub's backdrop: a username and a password, then, under "or continue with", one button per provider, side by side with
- * nothing on them but the provider's small mark. A press on a provider leaves for it, and it sends the visitor back to `/auth/callback` and on to `next`; the
+ * The sign-in, a card laid over the hub's backdrop: a username and a password, then, under "or continue with", one button per provider that the project has switched on
+ * (`providers`), side by side with nothing on them but the provider's small mark. A press on a provider leaves for it, and it sends the visitor back to `/auth/callback` and on to `next`; the
  * password signs in on the spot and a whole page load takes the visitor on to `next` (the cookies hold the session, so the proxy and the server see it). Without a
  * Supabase project (`enabled` is false) everything is off and says so, and `failed` is the page's way to tell a visitor that a sign-in just did not work, which is
  * all it ever says: why belongs to the logs, not to a stranger.
  */
-export function LoginCard({ next, enabled, failed, className }: { next: string; enabled: boolean; failed: boolean; className?: string }) {
+export function LoginCard({
+  next,
+  enabled,
+  providers,
+  failed,
+  className,
+}: {
+  next: string
+  enabled: boolean
+  providers: Provider[]
+  failed: boolean
+  className?: string
+}) {
   // What is on its way: the password, or a provider. While it is, nothing else can be pressed
   const [pending, setPending] = useState<Provider | "password" | null>(null)
   const [error, setError] = useState<string | null>(failed ? "Sign-in did not work. Try again." : null)
@@ -82,24 +97,28 @@ export function LoginCard({ next, enabled, failed, className }: { next: string; 
         </Button>
       </form>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-        <Separator className="flex-1" />
-        or continue with
-        <Separator className="flex-1" />
-      </div>
+      {providers.length > 0 && (
+        <>
+          <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+            <Separator className="flex-1" />
+            or continue with
+            <Separator className="flex-1" />
+          </div>
 
-      <div role="group" aria-label="Sign in with" className="grid grid-cols-4 gap-3">
-        {PROVIDERS.map((provider) => (
-          <ProviderButton
-            key={provider}
-            brand={provider}
-            name={PROVIDER_NAMES[provider]}
-            pending={pending === provider}
-            disabled={off}
-            onClick={() => start(provider)}
-          />
-        ))}
-      </div>
+          <div role="group" aria-label="Sign in with" className={cn("grid gap-3", COLUMNS[Math.min(providers.length, COLUMNS.length) - 1])}>
+            {providers.map((provider) => (
+              <ProviderButton
+                key={provider}
+                brand={provider}
+                name={PROVIDER_NAMES[provider]}
+                pending={pending === provider}
+                disabled={off}
+                onClick={() => start(provider)}
+              />
+            ))}
+          </div>
+        </>
+      )}
       {!enabled && <p className="mt-4 text-sm text-muted-foreground">Sign-in is not available on this site yet.</p>}
 
       <p className="mt-6 text-sm text-muted-foreground">
