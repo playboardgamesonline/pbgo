@@ -33,9 +33,10 @@ export function DocsHeader({ doc }: { doc: DocSection }) {
 
 /**
  * The side menu of a doc, under its name: a search of its pages, then its pages in the order of the disk, a group of pages being a section that folds like an accordion. It reads the address to know which page is current, the way the
- * site's navbar does, so that it stays mounted from one page of the doc to the next and keeps its scroll and what was folded or unfolded. The section that holds the current page is open until the visitor says otherwise, and a search opens
- * every section that has a page it found, and the menu scrolls to the current page when the address changes, as a doc of many pages is longer than the window. The menu stops at the pages: it never lists what is in one, and a group is a
- * label that folds, not a page: its landing page is reached from the doc's home and from the foot of the pages. What is in the menu is what `@pbgo/docs` found on the disk: a new file is a new entry with nothing to write here.
+ * site's navbar does, so that it stays mounted from one page of the doc to the next and keeps its scroll and what was folded or unfolded. The sections of the first level are open from the start and a deeper one is open when it holds the
+ * current page, until the visitor says otherwise, and a search opens every section that has a page it found, and the menu scrolls to the current page when the address changes, as a doc of many pages is longer than the window. The menu
+ * stops at the pages: it never lists what is in one, and a group is a label that folds, not a page: its landing page is reached from the doc's home and from the foot of the pages. What is in the menu is what `@pbgo/docs` found on the
+ * disk: a new file is a new entry with nothing to write here.
  */
 export function DocsSidebar({ doc }: { doc: DocSection }) {
   const pathname = usePathname()
@@ -50,7 +51,7 @@ export function DocsSidebar({ doc }: { doc: DocSection }) {
     menu.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" })
   }, [pathname])
 
-  const entry = (page: DocPage) => {
+  const entry = (page: DocPage, depth: number) => {
     if (page.pages.length === 0) {
       const current = pathname === page.href
       return (
@@ -62,7 +63,7 @@ export function DocsSidebar({ doc }: { doc: DocSection }) {
       )
     }
     const holdsCurrent = pathname === page.href || pathname.startsWith(`${page.href}/`)
-    const open = searching || (opened[page.href] ?? holdsCurrent)
+    const open = searching || (opened[page.href] ?? (depth === 0 || holdsCurrent))
     return (
       <li key={page.href}>
         <Collapsible open={open} onOpenChange={(next) => setOpened((state) => ({ ...state, [page.href]: next }))}>
@@ -76,7 +77,7 @@ export function DocsSidebar({ doc }: { doc: DocSection }) {
             />
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <ul className="my-1 ml-3 flex flex-col gap-0.5 border-l pl-2">{page.pages.map(entry)}</ul>
+            <ul className="my-1 ml-3 flex flex-col gap-0.5 border-l pl-2">{page.pages.map((child) => entry(child, depth + 1))}</ul>
           </CollapsibleContent>
         </Collapsible>
       </li>
@@ -101,7 +102,7 @@ export function DocsSidebar({ doc }: { doc: DocSection }) {
         />
       </InputGroup>
       {pages.length > 0 ? (
-        <ul className="flex flex-col gap-0.5">{pages.map(entry)}</ul>
+        <ul className="flex flex-col gap-0.5">{pages.map((page) => entry(page, 0))}</ul>
       ) : (
         <p className="px-3 text-muted-foreground">{searching ? "No page matches" : "No pages yet"}</p>
       )}
