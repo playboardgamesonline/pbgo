@@ -86,6 +86,11 @@ describe("the request", () => {
     expect(expansions).not.toMatch(/\border\b(?!\()/)
     expect(expansions).toContain('"baseGame": baseGame->slug.current')
   })
+
+  it("asks for the cover of a game too, a translated picture picked like its logo: the language of the read, else English, else the plain image of the model before the translations", () => {
+    const games = CATALOG_QUERY.slice(0, CATALOG_QUERY.indexOf('"expansions"'))
+    expect(games).toContain('"cover": coalesce(cover[language == $language][0].value.asset->url, cover[language == "en"][0].value.asset->url, cover.asset->url)')
+  })
 })
 
 describe("when Sanity cannot be read", () => {
@@ -166,6 +171,7 @@ describe("a published game", () => {
           logo: cdn("logo-1600x476.webp"),
           icon: null,
           background: cdn("background-2400x1200.svg"),
+          cover: cdn("cover-640x480.webp"),
         }),
         sanityGame("the-mind", { name: "The Mind" }),
       ]).fetch,
@@ -190,7 +196,7 @@ describe("a published game", () => {
       ],
       publishers: [{ name: "Cocktail Games", url: "https://www.cocktailgames.com" }],
       rules: { fr: "https://example.com/hanabi-fr.pdf", en: "https://example.com/hanabi-en.pdf" },
-      pictures: { logo: cdn("logo-1600x476.webp"), icon: null, background: cdn("background-2400x1200.svg") },
+      pictures: { logo: cdn("logo-1600x476.webp"), icon: null, background: cdn("background-2400x1200.svg"), cover: cdn("cover-640x480.webp") },
       gallery: [],
       helpers: [],
       related: ["the-mind"],
@@ -215,7 +221,7 @@ describe("a published game", () => {
       creators: [],
       publishers: [],
       rules: {},
-      pictures: { logo: null, icon: null, background: null },
+      pictures: { logo: null, icon: null, background: null, cover: null },
       gallery: [],
       helpers: [],
       related: [],
@@ -402,8 +408,13 @@ describe("a published game", () => {
 
   describe("its pictures", () => {
     it("are the files of the image CDN of the project that was read", async () => {
-      const game = await one({ logo: cdn("a-100x100.png"), icon: cdn("b-10x10.svg"), background: cdn("c-1x1.webp") })
-      expect(game.pictures).toEqual({ logo: cdn("a-100x100.png"), icon: cdn("b-10x10.svg"), background: cdn("c-1x1.webp") })
+      const game = await one({ logo: cdn("a-100x100.png"), icon: cdn("b-10x10.svg"), background: cdn("c-1x1.webp"), cover: cdn("d-640x480.webp") })
+      expect(game.pictures).toEqual({ logo: cdn("a-100x100.png"), icon: cdn("b-10x10.svg"), background: cdn("c-1x1.webp"), cover: cdn("d-640x480.webp") })
+    })
+
+    it("have a cover that is none when the game has none, whatever else it has", async () => {
+      const game = await one({ logo: cdn("a-100x100.png"), background: cdn("c-1x1.webp") })
+      expect(game.pictures.cover).toBeNull()
     })
 
     it.each([
@@ -414,7 +425,8 @@ describe("a published game", () => {
       ["a text that is not a link", "logo.png"],
       ["a value that is not a text", 12],
     ])("are none for %s", async (_label, value) => {
-      expect((await one({ logo: value })).pictures.logo).toBeNull()
+      const game = await one({ logo: value, cover: value })
+      expect([game.pictures.logo, game.pictures.cover]).toEqual([null, null])
     })
   })
 })

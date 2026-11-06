@@ -13,11 +13,11 @@ export type Publisher = { name: string; url: string | null }
 /** A person credited on a game, and what they did on it (a person is on one line of a game, with all their roles). */
 export type Creator = { name: string; roles: CreatorRole[] }
 
-/** The three pictures a game can have. */
-export const ART_SLOTS = ["logo", "icon", "background"] as const
+/** The four pictures a game can have: its logo and its icon, which mark it, its background, which is wide, and its cover, the picture of its card (PLT-114). */
+export const ART_SLOTS = ["logo", "icon", "background", "cover"] as const
 export type ArtSlot = (typeof ART_SLOTS)[number]
 
-/** The two pictures an expansion can have: its cover and the front of its box. It has none of the three of a game. */
+/** The two pictures an expansion can have: its cover and the front of its box. It has none of the other three of a game. */
 export type ExpansionSlot = "cover" | "boxFront"
 
 /**
@@ -113,9 +113,9 @@ export type CatalogExpansion = {
 }
 
 /**
- * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its background across the
- * frame, and the page draws the same ones larger; an expansion's cover is drawn wide, like a background, and the front of its box
- * smaller. Never more than the file holds.
+ * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its cover or its background
+ * across the frame, and the page draws the logo and the background larger; an expansion's cover is drawn wide, like a game's, and the front
+ * of its box smaller. Never more than the file holds.
  */
 const PICTURE_WIDTH: Record<ArtSlot | ExpansionSlot, number> = { logo: 800, icon: 512, background: 1200, cover: 1200, boxFront: 600 }
 
@@ -217,9 +217,27 @@ export function creditLines(game: Pick<CatalogGame, "slug" | "creators" | "publi
   return lines.filter((line) => line.values.length > 0)
 }
 
-/** The picture of a game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
+/**
+ * A game's mark, the small and often transparent picture of it: its logo, else its icon, else none. A card draws it, contained on its plain frame, for a game that has no cover or background to
+ * fill the frame with (`cardPicture`), and a page shares it for a game that has no background (`sharePicture`).
+ */
 export function cardPictureUrl(game: Pick<CatalogGame, "pictures">): string | null {
   return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")
+}
+
+/**
+ * What a game's card on the hub draws (PLT-114), the first of these the game has, and never two of them (no logo is laid over a picture):
+ * 1. its cover, which fills the frame (`fills`);
+ * 2. its background, which fills it too, alone;
+ * 3. its logo, else its icon (`cardPictureUrl`), which sit on the plain frame, contained, since they are small and often transparent;
+ * 4. nothing: the card is a plain frame.
+ * The address is sized for a card (`pictureUrl`). The card (`@pbgo/ui/platform/game-card`) draws what it is told and chooses nothing: `apps/web` hands it this.
+ */
+export function cardPicture(game: Pick<CatalogGame, "pictures">): { url: string; fills: boolean } | null {
+  const filling = pictureUrl(game, "cover") ?? pictureUrl(game, "background")
+  if (filling) return { url: filling, fills: true }
+  const mark = cardPictureUrl(game)
+  return mark ? { url: mark, fills: false } : null
 }
 
 /**
@@ -291,7 +309,7 @@ export function registryRow(game: GameEntry): CatalogGame {
     creators: [],
     publishers: [],
     rules: {},
-    pictures: { logo: null, icon: null, background: null },
+    pictures: { logo: null, icon: null, background: null, cover: null },
     gallery: [],
     helpers: [],
     related: [],

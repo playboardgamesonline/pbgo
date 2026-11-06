@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CREATOR_ROLES } from "@pbgo/studio-kit/constants"
-import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, bggIconUrl, bggUrl, buildCatalog, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureRatio, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
+import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, bggIconUrl, bggUrl, buildCatalog, cardPicture, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureRatio, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture } from "./catalog"
 import { catalogGame, cdn, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
@@ -23,9 +23,10 @@ describe("registryRow", () => {
 
   it("has no picture, so none is asked for: a plain frame, nothing else", () => {
     const row = registryRow(registryGame("courtisans"))
-    expect(row.pictures).toEqual({ logo: null, icon: null, background: null })
-    expect(ART_SLOTS.map((slot) => pictureUrl(row, slot))).toEqual([null, null, null])
+    expect(row.pictures).toEqual({ logo: null, icon: null, background: null, cover: null })
+    expect(ART_SLOTS.map((slot) => pictureUrl(row, slot))).toEqual([null, null, null, null])
     expect(cardPictureUrl(row)).toBeNull()
+    expect(cardPicture(row)).toBeNull()
     expect(sharePicture(row)).toBeNull()
   })
 
@@ -82,7 +83,7 @@ describe("buildCatalog", () => {
   })
 
   it("gives a live game its game of the Studio, and the Studio's name with it", () => {
-    const row = catalogGame("courtisans", { name: "Courtisans (Studio)", descriptions: { en: "A game of intrigue." }, pictures: { logo: cdn("a-1x1.png"), icon: null, background: cdn("b-1x1.png") } })
+    const row = catalogGame("courtisans", { name: "Courtisans (Studio)", descriptions: { en: "A game of intrigue." }, pictures: { logo: cdn("a-1x1.png"), icon: null, background: cdn("b-1x1.png"), cover: cdn("c-1x1.png") } })
     const entries = buildCatalog([registryGame("courtisans", { name: "Courtisans", live: true, indexable: true })], [row])
     expect(entries).toEqual([{ slug: "courtisans", live: true, indexable: true, game: row, related: [] }])
   })
@@ -326,27 +327,34 @@ describe("expansionsOf", () => {
 })
 
 describe("pictureUrl", () => {
-  const game = catalogGame("love-letter", { pictures: { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg") } })
+  const game = catalogGame("love-letter", {
+    pictures: { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg"), cover: cdn("cover-640x480.webp") },
+  })
 
   it("is the file in the image CDN, with the width the picture is drawn at and the format the browser takes", () => {
     expect(pictureUrl(game, "logo")).toBe(`${cdn("logo-1600x476.webp")}?w=800&fit=max&auto=format`)
     expect(pictureUrl(game, "icon")).toBe(`${cdn("icon-512x512.png")}?w=512&fit=max&auto=format`)
     expect(pictureUrl(game, "background")).toBe(`${cdn("background-2400x1350.jpg")}?w=1200&fit=max&auto=format`)
+    expect(pictureUrl(game, "cover")).toBe(`${cdn("cover-640x480.webp")}?w=1200&fit=max&auto=format`)
+  })
+
+  it("has four pictures for a game: the logo, the icon, the background and the cover", () => {
+    expect([...ART_SLOTS]).toEqual(["logo", "icon", "background", "cover"])
   })
 
   it("asks the CDN for the width it is given: a small tile asks for less than the page does", () => {
     expect(pictureUrl(game, "background", 480)).toBe(`${cdn("background-2400x1350.jpg")}?w=480&fit=max&auto=format`)
-    expect(pictureUrl(catalogGame("hanabi", { pictures: { logo: cdn("logo-100x30.svg"), icon: null, background: null } }), "logo", 320)).toBe(cdn("logo-100x30.svg"))
+    expect(pictureUrl(catalogGame("hanabi", { pictures: { logo: cdn("logo-100x30.svg"), icon: null, background: null, cover: null } }), "logo", 320)).toBe(cdn("logo-100x30.svg"))
   })
 
   it("is the file as it is for a vector picture: the CDN does not resize an SVG", () => {
-    const vector = catalogGame("hanabi", { pictures: { logo: cdn("logo-100x30.svg"), icon: null, background: null } })
+    const vector = catalogGame("hanabi", { pictures: { logo: cdn("logo-100x30.svg"), icon: null, background: null, cover: null } })
     expect(pictureUrl(vector, "logo")).toBe(cdn("logo-100x30.svg"))
   })
 
   it("is null for a picture the game does not have: no fallback, the page draws a plain frame", () => {
     expect(pictureUrl(catalogGame("omens"), "icon")).toBeNull()
-    expect(ART_SLOTS.map((slot) => pictureUrl(catalogGame("omens"), slot))).toEqual([null, null, null])
+    expect(ART_SLOTS.map((slot) => pictureUrl(catalogGame("omens"), slot))).toEqual([null, null, null, null])
   })
 
   it("sizes the cover and the box front of an expansion the same way: its cover across a frame, the box smaller, and null for the one it does not have", () => {
@@ -384,28 +392,64 @@ describe("pictureRatio", () => {
   })
 })
 
+/** A game with the pictures it is told, and no other. */
+const gameWith = (pictures: Partial<Record<(typeof ART_SLOTS)[number], string>>) =>
+  catalogGame("skyjo", { pictures: { logo: pictures.logo ?? null, icon: pictures.icon ?? null, background: pictures.background ?? null, cover: pictures.cover ?? null } })
+
 describe("cardPictureUrl", () => {
-  const game = (pictures: Partial<Record<(typeof ART_SLOTS)[number], string>>) =>
-    catalogGame("skyjo", { pictures: { logo: pictures.logo ?? null, icon: pictures.icon ?? null, background: pictures.background ?? null } })
-  const [logo, icon, background] = [cdn("logo-1x1.png"), cdn("icon-1x1.png"), cdn("background-1x1.png")]
+  const game = gameWith
+  const [logo, icon, background, cover] = [cdn("logo-1x1.png"), cdn("icon-1x1.png"), cdn("background-1x1.png"), cdn("cover-640x480.webp")]
 
   it("is the logo when the game has one, whatever else it has", () => {
-    expect(cardPictureUrl(game({ logo, icon, background }))).toBe(pictureUrl(game({ logo }), "logo"))
+    expect(cardPictureUrl(game({ logo, icon, background, cover }))).toBe(pictureUrl(game({ logo }), "logo"))
   })
 
   it("is the icon when the game has no logo", () => {
-    expect(cardPictureUrl(game({ icon, background }))).toBe(pictureUrl(game({ icon }), "icon"))
+    expect(cardPictureUrl(game({ icon, background, cover }))).toBe(pictureUrl(game({ icon }), "icon"))
   })
 
-  it("is null with neither: the background is the game page's, the card stays a plain frame", () => {
-    expect(cardPictureUrl(game({ background }))).toBeNull()
+  it("is null with neither: a background or a cover is no mark of the game", () => {
+    expect(cardPictureUrl(game({ background, cover }))).toBeNull()
     expect(cardPictureUrl(game({}))).toBeNull()
   })
 })
 
+describe("cardPicture", () => {
+  const game = gameWith
+  const [logo, icon, background, cover] = [cdn("logo-1x1.png"), cdn("icon-1x1.png"), cdn("background-1x1.png"), cdn("cover-640x480.webp")]
+
+  it("is the cover, which fills the frame, when the game has one, whatever else it has", () => {
+    expect(cardPicture(game({ logo, icon, background, cover }))).toEqual({ url: pictureUrl(game({ cover }), "cover"), fills: true })
+  })
+
+  it("is the background alone, which fills the frame too, when the game has no cover: its logo is not laid over it", () => {
+    expect(cardPicture(game({ logo, icon, background }))).toEqual({ url: pictureUrl(game({ background }), "background"), fills: true })
+  })
+
+  it("is the cover of a game that has nothing else", () => {
+    expect(cardPicture(game({ cover }))).toEqual({ url: pictureUrl(game({ cover }), "cover"), fills: true })
+  })
+
+  it("is the logo, which sits on the plain frame and does not fill it, when the game has neither a cover nor a background", () => {
+    expect(cardPicture(game({ logo, icon }))).toEqual({ url: pictureUrl(game({ logo }), "logo"), fills: false })
+  })
+
+  it("is the icon, on the plain frame, with no logo either", () => {
+    expect(cardPicture(game({ icon }))).toEqual({ url: pictureUrl(game({ icon }), "icon"), fills: false })
+  })
+
+  it("is null with no picture at all: the card is a plain frame, no placeholder", () => {
+    expect(cardPicture(game({}))).toBeNull()
+  })
+
+  it("is an address sized for the page, in the image CDN, as every picture of a game is", () => {
+    expect(cardPicture(game({ cover }))?.url).toBe(`${cover}?w=1200&fit=max&auto=format`)
+    expect(cardPicture(game({ logo }))?.url).toBe(`${logo}?w=800&fit=max&auto=format`)
+  })
+})
+
 describe("sharePicture", () => {
-  const game = (pictures: Partial<Record<(typeof ART_SLOTS)[number], string>>) =>
-    catalogGame("skyjo", { pictures: { logo: pictures.logo ?? null, icon: pictures.icon ?? null, background: pictures.background ?? null } })
+  const game = gameWith
   const [logo, icon, background] = [cdn("logo-1x1.png"), cdn("icon-1x1.png"), cdn("background-1x1.png")]
 
   it("is the background when the game has one, which is wide, whatever else it has", () => {

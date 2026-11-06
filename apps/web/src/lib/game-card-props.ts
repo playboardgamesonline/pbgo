@@ -1,4 +1,4 @@
-import { cardPictureUrl, pictureUrl, type CatalogEntry, type CatalogGame } from "@pbgo/catalog"
+import { cardPicture, pictureUrl, type CatalogEntry, type CatalogGame } from "@pbgo/catalog"
 import type { GameCardProps } from "@pbgo/ui/platform/game-card"
 
 /** "2–5 players", "2 players", "2+ players" (a game whose maximum is not known). The platform speaks English; a game's own pages are localized by the game. */
@@ -15,12 +15,15 @@ export function durationLabel(minutes: number | undefined | null): string | unde
 }
 
 /**
- * The picture of a game, as `GameCardVisual` (`@pbgo/ui/platform/game-card`) takes it: its logo (else its icon) and its background, from
- * the image CDN of the platform's Sanity project, sized for the page (`pictureUrl`). A picture the game does not have is left out and the
- * frame stays plain. The game's card and its page both draw this one picture, so both come from here.
+ * The picture of a game's card, as `GameCardVisual` (`@pbgo/ui/platform/game-card`) takes it, from the image CDN of the platform's Sanity project (PLT-114):
+ * the one that `cardPicture` of the catalog chooses. A cover, else a background, fills the frame (`picture`) with nothing over it; a game that has neither
+ * has its logo, else its icon, contained on the plain frame (`logo`); a game with none of them leaves the frame plain. Never two, so the card is told what to
+ * draw and chooses nothing. The head of a game's page draws other pictures (`heroPicture`).
  */
-export function gamePicture(game: CatalogGame) {
-  return { logo: cardPictureUrl(game) ?? undefined, background: pictureUrl(game, "background") ?? undefined }
+export function gamePicture(game: CatalogGame): { picture?: string; logo?: string } {
+  const drawn = cardPicture(game)
+  if (!drawn) return {}
+  return drawn.fills ? { picture: drawn.url } : { logo: drawn.url }
 }
 
 /** How wide the image CDN is asked for the pictures of a game's page head: its background across a wide screen, and its logo, drawn at 24rem at the most (twice that for a sharp one on a dense screen). The CDN never makes a picture bigger than its file. */

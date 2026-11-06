@@ -83,7 +83,7 @@ const logged = () => warn.mock.calls.map((call) => call.join(" ")).join("\n")
 const later = (ms: number) => vi.setSystemTime(Date.now() + ms)
 const bytesOf = async (response: Response) => new Uint8Array(await response.arrayBuffer())
 
-const pictures = { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg") }
+const pictures = { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg"), cover: cdn("cover-640x480.webp") }
 const withPictures = (slug: string) => sanityGame(slug, { name: slug, ...pictures })
 
 describe("a picture of a game", () => {
@@ -149,6 +149,14 @@ describe("a picture that is not there", () => {
   it.each(["banner", "Logo", "logo.png", "constructor", "__proto__", ""])("answers 404 for the slot %j, and asks nobody", async (slot) => {
     const w = await world({ games: [withPictures(PLANNED.slug)] })
     const response = await w.ask(PLANNED.slug, slot)
+    expect(response.status).toBe(404)
+    expect(response.headers.get("cache-control")).toBe(SHORT)
+    expect(w.web.requests).toEqual([])
+  })
+
+  it("has no address for the cover of a game, even when it has one: it came after the old addresses, and a page draws it from the image CDN itself", async () => {
+    const w = await world({ games: [withPictures(PLANNED.slug)] })
+    const response = await w.ask(PLANNED.slug, "cover")
     expect(response.status).toBe(404)
     expect(response.headers.get("cache-control")).toBe(SHORT)
     expect(w.web.requests).toEqual([])
