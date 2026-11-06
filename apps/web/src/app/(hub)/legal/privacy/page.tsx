@@ -245,7 +245,7 @@ export default function PrivacyPolicy() {
 
       <LegalSection id="children" title="Children">
         <LegalText>
-          The site is for people aged 13 and over. If you are under 15, a parent or guardian must agree to your using it and to your having an account. We do not knowingly collect data from children under 13: if you think one has given us some, write to{" "}
+          The site is for people aged 13 and over. We do not knowingly collect data from children under 13: if you think one has given us some, write to{" "}
           <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
             {CONTACT}
           </a>{" "}

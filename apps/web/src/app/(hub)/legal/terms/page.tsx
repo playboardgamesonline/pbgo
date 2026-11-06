@@ -11,7 +11,7 @@ const UPDATED = "6 November 2026"
 
 /**
  * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What waits for the owner's answer is not on the page: the paid
- * plans and the governing law and courts (`docs/legal.md`, "Decisions waiting for the owner"). The minimum age (13, and a parent's agreement under 15) is a proposal they have not confirmed, and the chat's
+ * plans and the governing law and courts (`docs/legal.md`, "Decisions waiting for the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2). The chat's
  * banned-word filter is a feature they plan and that does not exist yet: the sentence about it must not go live before the filter does. What the page says of the games follows the footer's line and the legal notice:
  * the games are unofficial adaptations, and their rights belong to their owners.
  */
@@ -49,7 +49,7 @@ export default function TermsOfUse() {
       </LegalSection>
 
       <LegalSection id="age" title="Who can use the site">
-        <LegalText>You must be at least 13 to use the site. If you are under 15, a parent or guardian must agree to your using it and to your having an account.</LegalText>
+        <LegalText>You must be at least 13 to use the site.</LegalText>
       </LegalSection>
 
       <LegalSection id="accounts" title="Accounts and nicknames">
