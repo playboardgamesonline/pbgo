@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
+import { FEEDBACK_RETENTION_MONTHS, TABLE_RETENTION_DAYS } from "@pbgo/core/lib/retention"
 import { LEGAL_LINK, LegalEntries, LegalPage, LegalSection, LegalText, LegalUpdated } from "@/components/legal-page"
 import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 
@@ -74,7 +75,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "The table",
-              text: "A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played and the last time each player was seen. That is how a game goes on after a reload and how the others can play for someone who has left. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. A table is deleted 30 days after its last move or join.",
+              text: `A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played and the last time each player was seen. That is how a game goes on after a reload and how the others can play for someone who has left. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. A clean-up runs every night and deletes a table ${TABLE_RETENTION_DAYS} days after the last thing that happened at it (a move, a join, a change of its options).`,
             },
             {
               name: "The chat",
@@ -135,7 +136,7 @@ export default function PrivacyPolicy() {
         <LegalText>
           With it we receive the page you were on, the code of your table if you were at one, your nickname and player identifier, your browser details, and a fingerprint of your IP address, which we only use to limit how many messages one person can send (the address
           itself is not stored). A screenshot is shrunk and re-encoded, which removes its hidden metadata, and it is kept in a private space. Only the people who run the site read feedback. We use it to fix bugs and improve the games, and to answer you if you left an
-          address. We delete feedback 12 months after we receive it, or when you ask.
+          address. A clean-up runs every night and deletes feedback, with its screenshot, {FEEDBACK_RETENTION_MONTHS} months after we receive it. You can ask us to delete it sooner.
         </LegalText>
       </LegalSection>
 
