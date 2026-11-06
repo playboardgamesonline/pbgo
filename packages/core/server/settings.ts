@@ -95,11 +95,7 @@ function copyEntries(binding: GameBinding, texts: TextsDoc | null | undefined): 
   const values = (v: unknown) => byLocale((l) => stored(v, l))
   // The platform writes its own labels and error messages (`fallbacks`); a text of the game has none: Sanity holds it, or players read `[missing: <key>]`
   const none = byLocale(() => "")
-  const entries: CopyEntry[] = [
-    { key: "tagline", group: "home", label: "Tagline", values: values(texts?.tagline), fallbacks: none, required: true, multiline: true },
-    { key: "homeTitle", group: "home", label: "Intro title", values: values(texts?.homeTitle), fallbacks: none, required: false },
-    { key: "homeIntro", group: "home", label: "Intro text (replaces the tagline)", values: values(texts?.homeIntro), fallbacks: none, required: false, multiline: true },
-  ]
+  const entries: CopyEntry[] = []
   for (const t of UI_TEXTS) {
     const raw = (texts?.[`ui_${t.group}`] as Record<string, unknown> | undefined)?.[t.key]
     entries.push({
@@ -400,10 +396,9 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
           if (!t) continue
           path = `ui_${t.group}.${t.key}`
           setIfMissing[`ui_${t.group}`] = {}
-        } else if (["tagline", "homeTitle", "homeIntro"].includes(key)) path = key
-        else continue
+        } else continue
         if (value) {
-          setIfMissing[path] = { _type: key === "homeIntro" ? "localeText" : "localeString" }
+          setIfMissing[path] = { _type: "localeString" }
           set[`${path}.${l}`] = value
         } else unset.push(`${path}.${l}`)
       }

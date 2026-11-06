@@ -17,7 +17,7 @@ type Draft = Pick<SiteSettings, "title" | "descriptions" | "creditsAuthors" | "c
 
 const pick = (d: AdminData): Draft => ({ title: d.settings.title, descriptions: d.settings.descriptions, creditsAuthors: d.settings.creditsAuthors, credits: d.settings.credits })
 
-/** `credits`: the labels of the home footer in every language (`creditTexts`), for the preview of the credits line. */
+/** `credits`: the labels of the footer of the game's screens in every language (`creditTexts`), for the preview of the credits line. */
 export function IdentityPage({ initial, domain, credits: creditLabels }: { initial: AdminData; domain: string; credits: Record<Locale, CreditTexts> }) {
   const slug = useAdminSlug()
   const s = useSection("identity", initial, pick)
@@ -33,7 +33,7 @@ export function IdentityPage({ initial, domain, credits: creditLabels }: { initi
 
   return (
     <SetupLayout
-      aside={<LinkPreviewAside draft={{ settings, skin: data.skin }} share={{ image: shareUrl, title: siteTitle(settings.title), description: settings.description, domain }} tab={{ title: settings.title, favicon: settings.favicon }} />}
+      aside={<LinkPreviewAside share={{ image: shareUrl, title: siteTitle(settings.title), description: settings.description, domain }} tab={{ title: settings.title, favicon: settings.favicon }} />}
     >
       <ReadOnlyAlert writable={data.writable} />
       <DraftAlert drafts={data.drafts} docs={["settings"]} />

@@ -17,10 +17,10 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
 ## Structure
 - `package.json` — `@pbgo-game/template`, the binding package that `@pbgo/games` loads on demand
   - `src/index.ts` — shared by the server and the client: engine `GAME`, site constants (`src/lib/site.ts`); optional `SOUNDS`, `DEFAULT_SKIN`, `UI_THEME`, `SETTINGS_DEFAULTS`, `ERROR_CODES`, `REACTIONS`, `STUDIO_URL`
-  - `src/ui.tsx` — client components: `Logo`, `Game` (the board, loaded with the first game so the home page does not pull in three.js)
+  - `src/ui.tsx` — client components: `Logo`, `Game` (the board, loaded with the first game so the screens around it do not pull in three.js)
   - `src/server.ts` — server only: everything of `index.ts` plus the optional `loadSetupData` (data given to `GAME.setup`), `loadGameData` (`data` prop of the board), `ROUTES` (the game's own API routes, `/api/<slug>/games/<code>/<route>`), `SEO`
   - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
-  - `src/lib/site.ts` — `SLUG`, name, keywords, genres, author, contact, `ERROR_CODES` (no tagline, no description: those are texts, they live in Sanity)
+  - `src/lib/site.ts` — `SLUG`, name, keywords, author, contact, `ERROR_CODES` (no tagline, no description: those are texts, they live in Sanity)
   - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
   - `src/components/board` — react-three-fiber scene on the shared tools of `@pbgo/table` (`layout.ts` builds the layouts of the hand, of the opponents' cards and of the middle of the table with the shared layout helpers, `scene.tsx` sets the `Table` and its mat and places the cards with `Zone`, `camera.ts` holds the settings of the camera and of the share photo with their debug knobs, `textures.ts` paints the faces and `glows.ts` names the glows the cards wear, both handed to the shared `Card`; aura, crown)
 - `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
@@ -31,7 +31,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
     - Lean state (every game): the state holds ids and numbers only, no display data, no derived values, no log
   - `src/demo/` is the demo game (with a simultaneous step: the secret bids of the `bids` option); `src/index.ts` exports `GAME` = the active game
 - `apps/studio` — `template-studio`, Sanity Studio built with `createStudioConfig` of `@pbgo/studio-kit` (shared singletons `settings`, `interface`, `audio`, `texts`, no rules document); only `schemaTypes/game.ts` is the game's own (the images of the table, in tabs: add a tab per family). The forms follow the rules of the skill `game-sanity-create` (`.claude/skills/`), kept for the whole Studio by `studio-forms.test.ts` (`pnpm --filter template-studio test`; `pnpm new-game` copies it into the new game)
-- Everything else (home, lobby, game page, chat, game over, sharing, admin, API routes) comes from `@pbgo/core` and is the same for every game
+- Everything else (the table page, chat, game over, sharing, admin, API routes) comes from `@pbgo/core` and is the same for every game. A table is opened, joined and started on the platform's page of the game, `/game/<slug>` (`/template` shows it; in development every game has one, live or not)
 
 ## Assets
 Pictures and sounds live in the game's Sanity project, never in the repo: `apps/web/public` holds the platform's own files only (`favicon.ico`), and `registry.test.ts` fails on any other file there, so a game has no folder in it and no `asset()`. Sources (PDF, PSD, HD visuals) go in `games/<slug>/assets/`, ignored by git.
@@ -39,7 +39,7 @@ Pictures and sounds live in the game's Sanity project, never in the repo: `apps/
 ## Admin UI
 - `/gamemaster` (every game's admin, `/gamemaster/<slug>/...`) uses the PBGO platform design system (black and white, dark only, Geist, shadcn preset `beEgoY8u` adapted), scoped by the `.platform` class. The reference of every token and component is the design docs, `/docs/design` (`docs/design/` at the repo root)
 - Components live in the shared package `@pbgo/ui/platform/*` (`packages/ui/src/platform`), the game's in `@pbgo/ui/game/*`. To add one: `pnpm dlx shadcn@latest add <comp>`, move it to `packages/ui/src/platform` (or `game`), replace the `@/lib/utils` imports with `../utils`, and keep it dark-only and token-only (no `dark:` variant, no colour, font or size of its own; see `docs/design/01-guidelines.md` at the repo root)
-- The home page, the lobby and the board keep the game's theme (colors and fonts set in Admin › Visual)
+- The board and the screens around it keep the game's theme (colors and fonts set in Admin › Visual)
 
 ## In-game UI
 Ticker, announcements, takeover pill, chat, players strip, seat label and game over are shared: same markup and logic for every game (`@pbgo/core/components/game`), drawn in the game's own look, never the platform's. The ticker, takeover pill, chat and toolbar take the game's skin; the announcements, the seat label and the game over are tuned by `UI_THEME`.
@@ -62,7 +62,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 1. `pnpm new-game <slug>` (or `pnpm add-game`, which asks the name and the rules PDFs and also creates the Sanity project and Studio; the skill `game-new` runs it for the owner): copies this folder, renames the packages and registers the game in `packages/games`
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own
-4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and list the codes of your own errors in `ERROR_CODES` of `src/lib/site.ts`: their messages, like every text of the game (tagline, description, home texts, victory phrases), are written in Sanity (Gamemaster › Copy), never in the code
+4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and list the codes of your own errors in `ERROR_CODES` of `src/lib/site.ts`: their messages, like every text of the game (description, victory phrases), are written in Sanity (Gamemaster › Copy), never in the code
 5. Set the defaults (`src/lib/site.ts`, `DEFAULT_SKIN`, `SETTINGS_DEFAULTS`: names, colours, player colours, never a text), then tune the rest in `/gamemaster/<slug>`; Launch › Content lists the texts Sanity does not hold yet; adapt `board/scene.tsx`, `camera.ts`, `layout.ts`, `textures.ts`, `glows.ts` and `game/game.tsx` (the canvas, the camera and its entrance, the floor, the share photo, the card itself and the placing of cards in a zone are `@pbgo/table`'s: a game gives the `Table` its camera settings, a `Zone` a layout (built with the shared helpers `fan`, `row`, `pile`, `grid`, `seats`, or by hand) and its cards two textures, a size and glows, and never copies them)
 6. Adapt `src/takeover.test.ts` to the new engine: it plays a whole game where players are absent and the others take over (`pnpm --filter @pbgo-game/<slug> test`)
 7. Extend the glossary above

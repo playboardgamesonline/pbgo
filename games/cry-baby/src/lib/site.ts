@@ -10,6 +10,3 @@ export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https:/
 export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://cry-baby.sanity.studio"
-
-/** Genres of the home page's structured data (`SEO` in server.ts). */
-export const GENRES = ["Jeu de cartes"]

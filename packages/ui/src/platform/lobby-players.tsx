@@ -68,7 +68,7 @@ function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, in
     </div>
   ) : createdBy && seats ? (
     <p className="min-w-0 truncate text-base text-muted-foreground">
-      Table created by <span className="text-foreground">{createdBy}</span> ({taken}/{total})
+      Table created by <span className="ph-mask text-foreground">{createdBy}</span> ({taken}/{total})
     </p>
   ) : null
   return (

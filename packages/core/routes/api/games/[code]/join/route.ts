@@ -4,12 +4,12 @@ import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { publicGame, updateGame } from "../../../../../server/games"
 import { getOrCreatePlayerId } from "../../../../../server/player"
-import { type ProfileInput, validateProfile } from "../../../../../server/profile"
+import { type ProfileInput, resolveProfile } from "../../../../../server/profile"
 import { rateLimit } from "../../../../../server/rate-limit"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await rateLimit(game.slug, request, "join")
-  const profile = validateProfile(await readJson<ProfileInput>(request))
+  const profile = await resolveProfile(await readJson<ProfileInput>(request))
   const id = await getOrCreatePlayerId(game.slug)
   const { maxPlayers } = await loadSettings(game)
 

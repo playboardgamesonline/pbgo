@@ -28,9 +28,6 @@ type SkinDoc = {
     desktopOnly?: boolean
   } | null
   texts?: ({
-    tagline?: Localized
-    homeTitle?: Localized
-    homeIntro?: Localized
     errorMessages?: { code?: string; message?: Localized }[]
     victoryPhrases?: Localized<string[]>
   } & Record<string, unknown>) | null
@@ -41,7 +38,7 @@ const IMG = "{asset, crop, hotspot, \"ratio\": asset->metadata.dimensions.aspect
 /** GROQ of the skin from the `interface` and `texts` documents: the published ones by default, the draft ids when the admin reads what the Studio shows. The ids are constants of the server, never user input. */
 export const skinQuery = (ids = { interface: "interface", texts: "texts" }) => `{
   "interface": *[_id == "${ids.interface}"][0]{ "background": background${IMG}, "pattern": pattern${IMG}, "decorTop": decorTop${IMG}, "decorBottom": decorBottom${IMG}, "hero": hero${IMG}, "hostIcon": hostIcon${IMG}, playerColors, desktopOnly },
-  "texts": *[_id == "${ids.texts}"][0]{ tagline, homeTitle, homeIntro, victoryPhrases, ui_home, ui_lobby, ui_game, errorMessages }
+  "texts": *[_id == "${ids.texts}"][0]{ victoryPhrases, ui_home, ui_lobby, ui_game, errorMessages }
 }`
 
 export const SKIN_QUERY = skinQuery()
@@ -64,7 +61,7 @@ const HEX = /^#[0-9a-fA-F]{6}$/
 export type { SkinDoc }
 
 /**
- * What Sanity says of the skin, in a language. The texts of the game (tagline, title and introduction, victory sentences, the messages of its own errors) follow the chain of every
+ * What Sanity says of the skin, in a language. The texts of the game (the victory sentences, the messages of its own errors) follow the chain of every
  * text: the language asked, else English, else nothing, and the skin then keeps its `[missing: <key>]` marker or draws nothing. What the platform already words in every language
  * (the labels of the interface, the messages of its own errors) is replaced only by what is written in that very language: a label typed in English must not take the place of
  * the Spanish one.
@@ -92,7 +89,6 @@ export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = DEFAULT_
     hostIcon: picto(game, ui?.hostIcon),
     ...(colors.length ? { playerColors: colors } : {}),
     ...(typeof ui?.desktopOnly === "boolean" ? { desktopOnly: ui.desktopOnly } : {}),
-    home: { title: translate(t?.homeTitle, locale)?.trim() || null, intro: translate(t?.homeIntro, locale)?.trim() || null, tagline: translate(t?.tagline, locale)?.trim() || null },
     errors: Object.fromEntries(errors),
     ...(phrases.length ? { victoryPhrases: phrases } : {}),
     texts: labels,
@@ -105,7 +101,6 @@ const reported = new Set<string>()
 /** Logs the required texts of the skin that Sanity does not hold (the page shows their `[missing: <key>]` marker), once per game, language and key. */
 function reportMissing(game: GameModule, locale: Locale, skin: Skin) {
   const keys = [
-    ...(isMissing(skin.home.tagline ?? "") ? ["home.tagline"] : []),
     ...(skin.victoryPhrases.some(isMissing) ? ["victoryPhrases"] : []),
     ...(game.binding.ERROR_CODES ?? []).filter((code) => !skin.errors[code]).map((code) => `errorMessages.${code}`),
   ]

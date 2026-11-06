@@ -19,12 +19,12 @@ const pick = (d: AdminData): Draft => ({ theme: d.settings.theme, bodyFont: d.se
 const DEFAULT_FONT = "__default__"
 
 const IMAGES: Record<VisualSlot, { label: string; hint: string; aspect: string }> = {
-  decorTop: { label: "Top", hint: "Full width, at the top of the home and lobby screens", aspect: "aspect-5/1" },
+  decorTop: { label: "Top", hint: "Full width, at the top of the screens around the board", aspect: "aspect-5/1" },
   decorBottom: { label: "Bottom", hint: "Full width, the main button sits on it", aspect: "aspect-5/1" },
   hero: { label: "Character", hint: "Standing on the bottom decoration", aspect: "aspect-5/2" },
   background: { label: "Background", hint: "Full-screen image behind everything", aspect: "aspect-16/10" },
   pattern: { label: "Texture", hint: "Tiled over the background (≈ 512 px)", aspect: "aspect-16/10" },
-  hostIcon: { label: "Host pictogram", hint: "Next to the host in the lobby (SVG or PNG, used as a mask)", aspect: "aspect-16/10" },
+  hostIcon: { label: "Host pictogram", hint: "Next to the host, at the end of a game and when it starts (SVG or PNG, used as a mask)", aspect: "aspect-16/10" },
 }
 
 /** `defaultTheme`: the colors the game ships with (`defaultTheme(binding)`), for the « Default » button. */
@@ -58,14 +58,14 @@ export function VisualPage({ initial, defaultTheme }: { initial: AdminData; defa
   }
 
   return (
-    <SetupLayout aside={<PreviewCard draft={{ settings, skin }} kinds={["home", "game"]} />}>
+    <SetupLayout aside={<PreviewCard draft={{ settings, skin }} />}>
       <ReadOnlyAlert writable={data.writable} />
       <DraftAlert drafts={data.drafts} docs={["settings", "interface"]} />
 
       <Card>
         <CardHeader>
           <CardTitle>Colors</CardTitle>
-          <CardDescription>Home, lobby and game interface.</CardDescription>
+          <CardDescription>Game interface and the screens around the board.</CardDescription>
           <CardAction>
             <Button variant="ghost" size="sm" disabled={disabled} onClick={() => set("theme", defaultTheme)}>
               <HugeiconsIcon icon={RotateLeft01Icon} strokeWidth={2} data-icon="inline-start" />
@@ -125,7 +125,7 @@ export function VisualPage({ initial, defaultTheme }: { initial: AdminData; defa
               [
                 { key: "displayFont", slot: "fontDisplay", label: "Titles", hint: "Titles and buttons", family: UPLOADED_TITLE_FONT, empty: "WOFF2, WOFF, TTF or OTF · replaces the Google font" },
                 { key: "bodyFont", slot: "fontBody", label: "Text", hint: "Paragraphs and interface", family: UPLOADED_BODY_FONT, empty: "WOFF2, WOFF, TTF or OTF · replaces the Google font" },
-                { key: null, slot: "fontAccent", label: "Accent", hint: "Announcements and home introduction. Without a file, the titles' font", family: UPLOADED_ACCENT_FONT, empty: "WOFF2, WOFF, TTF or OTF" },
+                { key: null, slot: "fontAccent", label: "Accent", hint: "Announcements. Without a file, the titles' font", family: UPLOADED_ACCENT_FONT, empty: "WOFF2, WOFF, TTF or OTF" },
               ] as const
             ).map((f) => {
               const file = data.settings.files[f.slot]
@@ -183,7 +183,7 @@ export function VisualPage({ initial, defaultTheme }: { initial: AdminData; defa
       <Card>
         <CardHeader>
           <CardTitle>Decorations</CardTitle>
-          <CardDescription>Around the home and lobby screens. {IMAGE_HINT}.</CardDescription>
+          <CardDescription>Around the screens that are not the board. {IMAGE_HINT}.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
           {image("decorTop")}

@@ -371,10 +371,6 @@ describe("serializeJsonLd", () => {
 })
 
 describe("sitemapItems", () => {
-  const registry = [
-    { slug: "courtisans", indexable: true },
-    { slug: "hanabi", indexable: false },
-  ]
   const entries = [
     catalogEntry("courtisans", { live: true, indexable: true, game: { updatedAt: "2026-10-26T09:00:00.000Z" } }),
     catalogEntry("flip-7", { live: true, indexable: false }),
@@ -383,31 +379,26 @@ describe("sitemapItems", () => {
   ]
   const urls = (items: ReturnType<typeof sitemapItems>) => items.map((item) => item.url)
 
-  it("lists the hub and its list of games, then the home of every indexable game, then the hub page of every indexable game of the catalog", () => {
-    expect(urls(sitemapItems(SITE, registry, entries))).toEqual([
-      SITE,
-      `${SITE}/games`,
-      `${SITE}/courtisans`,
-      `${SITE}/game/courtisans`,
-      `${SITE}/game/the-mind`,
-    ])
+  it("lists the hub and its list of games, then the hub page of every indexable game of the catalog", () => {
+    expect(urls(sitemapItems(SITE, entries))).toEqual([SITE, `${SITE}/games`, `${SITE}/game/courtisans`, `${SITE}/game/the-mind`])
   })
 
   it("lists exactly the hub pages that do not say `noindex`", () => {
-    const listed = urls(sitemapItems(SITE, registry, entries))
+    const listed = urls(sitemapItems(SITE, entries))
     for (const entry of entries) expect(listed.includes(`${SITE}/game/${entry.slug}`)).toBe(isIndexable(entry))
   })
 
-  it("lists no home for a game of the registry that is not indexable", () => {
-    expect(urls(sitemapItems(SITE, registry, entries))).not.toContain(`${SITE}/hanabi`)
+  it("lists no address of a game of its own: `/<slug>` shows the hub page, whose canonical is `/game/<slug>`", () => {
+    const listed = urls(sitemapItems(SITE, entries))
+    for (const entry of entries) expect(listed).not.toContain(`${SITE}/${entry.slug}`)
   })
 
-  it("is the hub, its list of games and the indexable homes alone when the catalog has nothing", () => {
-    expect(urls(sitemapItems(SITE, registry, []))).toEqual([SITE, `${SITE}/games`, `${SITE}/courtisans`])
+  it("is the hub and its list of games alone when the catalog has nothing", () => {
+    expect(urls(sitemapItems(SITE, []))).toEqual([SITE, `${SITE}/games`])
   })
 
   it("dates the page of a game with the last edit of its game in the Studio, a game to come's and a live game's", () => {
-    const items = sitemapItems(SITE, registry, entries)
+    const items = sitemapItems(SITE, entries)
     expect(items.find((candidate) => candidate.url === `${SITE}/game/the-mind`)).toStrictEqual({
       url: `${SITE}/game/the-mind`,
       lastModified: new Date("2026-10-22T10:30:00.000Z"),
@@ -424,10 +415,10 @@ describe("sitemapItems", () => {
 
   it("leaves the date out when the last edit does not read as one, and for a live game with no game in the Studio, which has none", () => {
     const registered = registryRow(registryGame("courtisans", { live: true, indexable: true }))
-    const undated = sitemapItems(SITE, registry, [
+    const undated = sitemapItems(SITE, [
       catalogEntry("the-mind", { game: { descriptions: { fr: "Un jeu." }, updatedAt: "not a date" } }),
       catalogEntry("courtisans", { live: true, indexable: true, game: registered }),
-    ]).slice(3) // the hub, its list of games and the home of Courtisans come first
+    ]).slice(2) // the hub and its list of games come first
     expect(undated).toStrictEqual([
       { url: `${SITE}/game/the-mind`, changeFrequency: "monthly", priority: 0.6 },
       { url: `${SITE}/game/courtisans`, changeFrequency: "weekly", priority: 0.8 },
