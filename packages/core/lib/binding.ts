@@ -141,8 +141,25 @@ export type GameBinding = {
 
 export type LogoProps = { src: string; alt?: string; className?: string }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type BoardProps = { game: PublicGame<any>; data?: unknown; onUpdate: (game: PublicGame<any>) => void; onLeave: () => void }
+export type BoardProps = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  game: PublicGame<any>
+  data?: unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdate: (game: PublicGame<any>) => void
+  onLeave: () => void
+  /**
+   * The start screen is up (PLT-107): draw the board and load what it needs, but hold everything that starts the game for the eyes and the ears (the camera's entrance, the opening, the first announcement, the sounds) until this turns false, and play it
+   * from then on. Absent: no screen, as in the admin's preview.
+   */
+  held?: boolean
+  /**
+   * Call it once, when the board is drawn and everything it needs is in (its pictures, its chunks): the player is then ready, and the game begins when every player is. A board that never calls it is waited for `READY_LOAD_GRACE_MS`, no longer.
+   */
+  onLoaded?: () => void
+  /** Call it as the board loads, with how far it is, 0 to 1 (never back): the collective bar of the start screen is made of the boards' progress. A board that never calls it shows no progress until it is loaded. */
+  onProgress?: (progress: number) => void
+}
 
 /** Client components of a game (`@pbgo-game/<slug>/ui`). Load the board lazily: the screens around it must not pull in three.js. */
 export type UiBinding = {
