@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Terms of Use", alternates: { canonic
 const UPDATED = "6 November 2026"
 
 /**
- * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What waits for the owner's answer is not on the page: the paid
- * plans and the governing law and courts (`docs/legal.md`, "Decisions waiting for the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2). The chat's
+ * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What waits for the owner's answer is not on the page: the
+ * governing law and courts (`docs/legal.md`, "Decisions waiting for the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2). The chat's
  * banned-word filter is a feature they plan and that does not exist yet: the sentence about it must not go live before the filter does. What the page says of the games follows the footer's line and the legal notice:
  * the games are unofficial adaptations, and their rights belong to their owners.
  */
@@ -94,6 +94,12 @@ export default function TermsOfUse() {
         </LegalText>
         <LegalText>
           What you write (a nickname, a chat message, feedback) stays yours. By sending it you allow us to show it to the people it is meant for, such as your table, and, for feedback, to read it and use it to improve the site, without paying you.
+        </LegalText>
+      </LegalSection>
+
+      <LegalSection id="plans" title="Paid plans">
+        <LegalText>
+          The site is free. The Pricing page shows plans that are not on sale: nothing can be bought and nothing is charged. Before a paid plan opens, its price, how it is billed and how to cancel it are published, and these terms are updated.
         </LegalText>
       </LegalSection>
 
