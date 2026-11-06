@@ -9,7 +9,8 @@ The Privacy Policy, the Terms of Use and the Cookie Policy (`/legal/privacy`, `/
 - `/legal` (the notice) stays as it is, unlinked
 - The frame and its pieces are `apps/web/src/components/legal-page.tsx` (`LegalPage`, `LegalSection`, `LegalText`, `LegalEntries`, `LegalList`, `LegalUpdated`); the footer's list is `apps/web/src/lib/legal-pages.ts`. A page ends with `Last updated <date>`: change the date with the text
 - Draft state: the two new pages keep the stub's "This page is being written" line and `noindex` until the owner (or a lawyer) has read them. Going final is a small change in each page: delete the line, drop `robots: { index: false }`, and add the page to the sitemap if the owner wants it there
-- Not on the pages, because each waits for the owner's answer (below): the minimum age, the chat's moderation, the paid plans, the governing law and the courts
+- Not on the pages, because each waits for the owner's answer (below): the paid plans, the governing law and the courts, the publisher's identity beyond "oré" and the contact address
+- On the pages as proposals the owner has not confirmed: the minimum age (13, and a parent's agreement under 15), the retention periods. On the Terms as a plan that does not exist yet: the chat's banned-word filter (below)
 
 ## The rule
 A change that adds, moves or removes personal data changes the legal pages **in the same pull request**, and this inventory with them:
@@ -17,7 +18,7 @@ A change that adds, moves or removes personal data changes the legal pages **in 
 - an analytics event, a property, a tool or a recording rule: `packages/analytics/src/events.ts`, the Cookie Policy's "Statistics", the Privacy Policy's "Statistics" and the rows below
 - a column, a table, a field or a log that holds personal data: the rows below, the Privacy Policy's section for the situation it belongs to, and its retention. A stored field needs a way to be deleted
 - a processor, or a request from the visitor's browser to a third party (a font, a picture, a script, a widget): the table of recipients below, the Privacy Policy's "Who receives your data" and "Outside the European Union"
-- a sign-in provider, or any account data (profile, friends, ranks, history, stored chat): the Privacy Policy first. PLT-13 (profiles, ratings, tables, results) and PLT-23 (friends and conversations) both add personal data, and the policy has to say so before they ship
+- a sign-in provider, or any account data (profile, friends, ranks, history, stored chat): the Privacy Policy first. PLT-13 (profiles, ratings, tables, results) and PLT-23 (friends and conversations) both add personal data, and the policy has to say so before they ship. PLT-23 also needs the French law on minors and social networks read again (Findings 11)
 - a paid plan opening, or a rule of play (what is forbidden, what gets a visitor removed): the Terms
 
 ## Inventory (read from the code, 2026-11-06)
@@ -111,13 +112,14 @@ What surprised, in the order of weight. None is fixed by PLT-110, which writes t
 8. **The Cookie Policy missed two keys**: `pbgo:queue` (session storage, "Play ranked") and `game:debug` (local storage, Shift+D). Added in PLT-110
 9. **The site's PostHog project is not the one the tools reach.** `docs/analytics.md` says the project is `pbgo`; the one reachable is `aurelienlouvel-space` (only `$pageview` events in 30 days). The IP discard and the retention that the pages state are therefore not verified
 10. Server-side counts run whatever the banner answer, keyed on the player cookie. The pages call it legitimate interest, which a lawyer should validate
+11. **Friends, profiles and conversations may make the site a "social network" in the French sense.** Parliament adopted a ban of social networks for under-15s on 21 July 2026 and the Conseil constitutionnel struck it down on 14 August 2026 (decision 2026-911 DC); the government plans a new text for spring 2027. A game is not in itself a social network and a chat between the players of a table is outside the definition, but profiles, friend lists and conversations (PLT-23) are the features that could bring the site in. Read the law again when they ship
 
 ## Decisions waiting for the owner
 Each has the default the pages already use, or the sentence the page leaves out until the answer.
 1. **The publisher**: an individual or a company, the name to print and the address (in France a non-professional may give only the host's, but the Privacy Policy still names who decides about the data). Today the pages say "published by oré" and give `hey@playboardgamesonline.app`, as the legal notice does
-2. **The minimum age**, for the Terms ("Accounts") and a "Children" section of the Privacy Policy. Proposal: 15 (the French age of digital consent), a parent's authorisation below
+2. **The minimum age**, in the Terms ("Who can use the site") and the Privacy Policy ("Children"). The owner found 15 too high. The GDPR's floor for consenting alone to an online service is 13; France set 15 (loi Informatique et Libertés): under 15, a processing that rests on consent needs the child and a parent together, while a contract (the account) may be concluded by the child or on their behalf (CNIL, recommendation 4). The pages say 13, and a parent's agreement under 15. Providers' own minimums (Facebook, Discord, Google: 13 and up) apply on top
 3. **The governing law and the courts**, for the Terms. Proposal: French law, the courts of the owner's seat, the consumer's own protections kept
-4. **The chat**: not stored, not read, no report button. The Terms say that, and that reports go to the contact address. Say if the owner moderates it
+4. **The chat** (answered 2026-11-06): no moderation by us; each player will be able to choose whether banned words are replaced by stars. The Terms say so, and that the chat is not stored or read and that reports go to the contact address. **The filter does not exist yet: the sentence must not go live before it does**, and its setting (on or off, on the device) is a new storage key for the Cookie Policy
 5. **The paid plans** (Plus, Club, on the Pricing page, disabled): a sentence in the Terms, or none. Proposal: "Nothing is on sale; before any plan opens, its price, billing and cancellation are published and these terms updated"
 6. **The contact for the games' rights holders** and for privacy requests: today `hey@playboardgamesonline.app` (`CONTACT`) for everything
 7. **Retention**: tables 30 days after the last activity, feedback 12 months, replays 30 days, counts 12 months, accounts until deleted on request. The first two need the clean-up of finding 1

@@ -10,9 +10,10 @@ export const metadata: Metadata = { title: "Terms of Use", alternates: { canonic
 const UPDATED = "6 November 2026"
 
 /**
- * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What waits for the owner's answer is not on the page: the
- * minimum age, the chat's moderation, the paid plans and the governing law and courts (`docs/legal.md`, "Decisions waiting for the owner"). What the page says of the games follows the footer's line
- * and the legal notice: the games are unofficial adaptations, and their rights belong to their owners.
+ * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What waits for the owner's answer is not on the page: the paid
+ * plans and the governing law and courts (`docs/legal.md`, "Decisions waiting for the owner"). The minimum age (13, and a parent's agreement under 15) is a proposal they have not confirmed, and the chat's
+ * banned-word filter is a feature they plan and that does not exist yet: the sentence about it must not go live before the filter does. What the page says of the games follows the footer's line and the legal notice:
+ * the games are unofficial adaptations, and their rights belong to their owners.
  */
 export default function TermsOfUse() {
   const mail = (
@@ -47,6 +48,10 @@ export default function TermsOfUse() {
         <LegalText>Some games and features are marked as coming soon and cannot be used yet. We may change them, add some or remove some, or stop the site, at any time.</LegalText>
       </LegalSection>
 
+      <LegalSection id="age" title="Who can use the site">
+        <LegalText>You must be at least 13 to use the site. If you are under 15, a parent or guardian must agree to your using it and to your having an account.</LegalText>
+      </LegalSection>
+
       <LegalSection id="accounts" title="Accounts and nicknames">
         <LegalText>
           You do not need an account to play: a guest picks a nickname. An account is made by signing in with Facebook, Google, Apple or Discord. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
@@ -69,8 +74,8 @@ export default function TermsOfUse() {
           ]}
         />
         <LegalText>
-          The chat is shared with the people at your table only, and we do not store it. If someone behaves badly, leave the table and tell us at {mail}. If you break these rules or the law, we may warn you, remove you from a table, block your access or delete your account (see
-          Ending).
+          The chat is shared with the people at your table only. We do not store it and we do not read it. You can choose whether banned words are replaced by stars in the chat; the filter does not catch everything. If someone behaves badly, leave the table and tell us at{" "}
+          {mail}. If you break these rules or the law, we may warn you, remove you from a table, block your access or delete your account (see Ending).
         </LegalText>
       </LegalSection>
 

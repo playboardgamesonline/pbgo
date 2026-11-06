@@ -243,6 +243,16 @@ export default function PrivacyPolicy() {
         </LegalText>
       </LegalSection>
 
+      <LegalSection id="children" title="Children">
+        <LegalText>
+          The site is for people aged 13 and over. If you are under 15, a parent or guardian must agree to your using it and to your having an account. We do not knowingly collect data from children under 13: if you think one has given us some, write to{" "}
+          <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
+            {CONTACT}
+          </a>{" "}
+          and we delete it.
+        </LegalText>
+      </LegalSection>
+
       <LegalSection id="changes" title="Changes">
         <LegalText>We change this page when the site changes what it does with your data. If a change matters to you, we say so on the site before it applies.</LegalText>
         <LegalUpdated on={UPDATED} />
