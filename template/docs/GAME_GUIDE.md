@@ -207,14 +207,14 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 - Server (Supabase, games with optimistic lock, player cookie, `handle` / `ApiError`, rate limiting), API routes `api/[game]/games/*`, `lib/api.ts`, `use-live-game.ts`, `realtime.ts`
 - Home, lobby and game options (rendered from `GAME.options`), chat, absent players (per-player takeover votes, `StalledTurn`), game over, sharing
 - The in-game UI (ticker, players strip, announcements, takeover pill, chat, game over): one look, tuned per game by `UI_THEME` only
-- The table and the cards of the board, `@pbgo/table`: the `Table` (canvas, camera with its entrance, floor, lights, share photo) with the `Surface` laid on it, and the `Card` (glide, flight, bend, hover frame, gloss, shadow), fed with a pose, two textures, a size and glows, the layout helpers (`fan`, `row`, `pile`, `grid`, `seats`) that compute where cards go, and the `Zone` and `Pile` that place them
+- The table and the cards of the board, `@pbgo/table`: the `Table` (canvas, camera with its entrance, the endless surface the cards lie on, lights, share photo), and the `Card` (glide, flight, bend, hover frame, gloss, shadow), fed with a pose, two textures, a size and glows, the layout helpers (`fan`, `row`, `pile`, `grid`, `seats`) that compute where cards go, and the `Zone` and `Pile` that place them
 - Debug: panel, tabs, `useSettings` (Copy values, FPS), START / NEXT TURN / END buttons
 - Rules: the toolbar's Rules button opens the PDF set per language in `settings` (Setup › Mechanics), the visitor's language, else English, else the first one set
 - SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/gamemaster/<slug>` (Setup, Tasks, Monitoring + Vercel Web Analytics)
 
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
-- `layout.ts` (where the cards go, built on the layout helpers), `scene.tsx` (the `Table` and its mat, the `Zone`s, interactions), `camera.ts` (the settings of the camera and of the share photo, with their debug knobs), `textures.ts` (the faces and the back the shared `Card` wears), `glows.ts` (what the cards light up with), `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
+- `layout.ts` (where the cards go, built on the layout helpers), `scene.tsx` (the `Table` with its surface, the `Zone`s, interactions), `camera.ts` (the settings of the camera and of the share photo, with their debug knobs), `textures.ts` (the faces and the back the shared `Card` wears), `glows.ts` (what the cards light up with), `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
 - `src/lib/site.ts` (with `ERROR_CODES`, the error codes the engine throws and core does not know: their messages are written in Sanity), `DEFAULT_SKIN` (player colours and behaviour, never a text), `UI_THEME` (optional), the game's own Sanity content types
 
 ---

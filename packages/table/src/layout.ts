@@ -138,7 +138,7 @@ export type SeatsOptions = {
 }
 
 /**
- * The seats of `count` players around an elliptical table, indexed like the players, the turn passing from the viewer to the left.
+ * The seats of `count` players on an ellipse around the table, indexed like the players, the turn passing from the viewer to the left.
  * The viewer's seat is at the front with yaw 0, so what lies there reads upright. Every other seat has the yaw that sends the top edge of a face-up card away from the middle of the table
  */
 export function seats(count: number, { radiusX, radiusZ, me = null, margin = 0.35 }: SeatsOptions): Required<Spot>[] {

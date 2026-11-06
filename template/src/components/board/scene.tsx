@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import { CAMERA, PHOTO, useCameraSettings } from "./camera"
 import { TurnCrown } from "./crown"
-import { CARD_SETTINGS, Surface, Table, Zone, type Pose, type ZoneCard } from "@pbgo/table"
+import { CARD_SETTINGS, Table, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { GLOWS } from "./glows"
 import { DECK_POSE, backFrame, backLayout, backPose, collectedPose, handLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
@@ -13,13 +13,10 @@ import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { useSettings } from "./settings"
 import { TableText } from "./table-text"
-import { CARD_SIZE, backTexture, faceTexture, matTexture } from "./textures"
+import { CARD_SIZE, MAT_COLOR, backTexture, faceTexture, matTexture } from "./textures"
 
 /** The seat avatar left of a nickname: its diameter and the gap to the first letter, in world units */
 const AVATAR = { size: 0.56, gap: 0.18 }
-
-/** The mat reaches this far past the ellipse of the seats, then comes its wooden rim */
-const MAT = { margin: 1.35, rim: 0.25 }
 
 function useCollect(view: PlayerView) {
   const key = view.lastTrick ? view.lastTrick.cards.map((c) => c.card.id).join("|") : null
@@ -35,8 +32,8 @@ function useCollect(view: PlayerView) {
 
 function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: SceneProps) {
   useSettings("Layout", LAYOUT_SETTINGS, {
-    radiusX: ["table radius x", 3, 14, 0.1],
-    radiusZ: ["table radius z", 2, 10, 0.1],
+    radiusX: ["seat ring radius x", 3, 14, 0.1],
+    radiusZ: ["seat ring radius z", 2, 10, 0.1],
     handZ: ["hand z", 0, 10, 0.05],
     handY: ["hand height", 0, 4, 0.05],
     handTilt: ["hand tilt", 0, 1.5, 0.01],
@@ -57,7 +54,6 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
   const [hovered, setHovered] = useState<string | null>(null)
   const collecting = useCollect(view)
   const back = useMemo(() => backTexture(), [])
-  const [mat] = useState(matTexture)
 
   const hand = view.me?.hand ?? []
   const raised = myTurn ? hand.findIndex((c) => c.id === hovered) : -1
@@ -95,11 +91,6 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
 
   return (
     <>
-      <Surface
-        size={[2 * (LAYOUT_SETTINGS.radiusX + MAT.margin), 2 * (LAYOUT_SETTINGS.radiusZ + MAT.margin)]}
-        rim={{ width: MAT.rim, color: "#6b4a2a" }}
-        map={mat}
-      />
       {view.players.map((j) => {
         const s = slots.get(j.id)!
         const active = view.activePlayerId === j.id
@@ -150,8 +141,6 @@ type SceneProps = {
   seat: SeatTheme
   /** Icon of the turn crown (the skin's `hostIcon`); without one, a drawn crown */
   crownIcon?: string | null
-  /** The floor around the table: the skin's dark surface, so the room matches the page behind the canvas */
-  floor: string
   myTurn: boolean
   onPlay: (cardId: string) => void
   /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`) */
@@ -162,8 +151,9 @@ type SceneProps = {
 
 export function Scene(props: SceneProps) {
   useCameraSettings()
+  const [mat] = useState(matTexture)
   return (
-    <Table camera={CAMERA} photo={PHOTO} floor={{ color: props.floor }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )
