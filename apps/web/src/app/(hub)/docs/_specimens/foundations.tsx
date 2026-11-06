@@ -1,14 +1,13 @@
-// The live specimens of the foundations page of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
+// The live specimens of the foundations pages of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
 
 import type { Specimens } from "@pbgo/docs/markdown"
 import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "@pbgo/ui/motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
-import { ChartColors, LineColors, NeutralRamp, SemanticColors } from "./colors"
+import { LineColors, NeutralRamp, SemanticColors } from "./colors"
 import { GlassLab } from "./glass-lab"
 import { MotionDemo } from "./motion-demo"
 import { RadiusScale } from "./radius-scale"
 import { Code, Frame } from "./text"
-import { TitleMotionLab } from "./title-motion-lab"
 import { TokenTable } from "./token-table"
 import { TypeScale, WeightProof } from "./type-scale"
 
@@ -200,7 +199,6 @@ export const foundationsSpecimens: Specimens = {
   "colors-semantic": SemanticColors,
   "colors-lines": LineColors,
   "colors-neutral-ramp": NeutralRamp,
-  "colors-chart": ChartColors,
   "type-scale": TypeScale,
   "type-weights": WeightProof,
   "type-geist": Geist,
@@ -216,5 +214,4 @@ export const foundationsSpecimens: Specimens = {
   "glass-lab": GlassSettings,
   "motion-durations": MotionDurations,
   "motion-javascript": MotionJavascript,
-  "title-motion-lab": TitleMotionLab,
 }

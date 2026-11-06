@@ -1,13 +1,12 @@
 "use client"
 
-import { CheckIcon, CopyIcon, Loader2Icon } from "lucide-react"
+import { Loader2Icon } from "lucide-react"
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp"
 import { motion } from "motion/react"
 import Link from "next/link"
-import { useState } from "react"
-import { toast } from "sonner"
-import { ConsentLink, trackClient, useReporting } from "@pbgo/analytics/client"
+import { ConsentLink, useReporting } from "@pbgo/analytics/client"
 import { useBinding } from "../../lib/binding-context"
+import { gamePath } from "../../lib/site-url"
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@pbgo/ui/game/input-otp"
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
@@ -15,7 +14,7 @@ import { Toolbar } from "../toolbar"
 import { cn } from "@pbgo/ui/utils"
 
 /**
- * Standard screen outside a game (home, invitation, lobby), taken from Courtisans:
+ * Standard screen outside a game (the screens of a table that has no board for the visitor, the 404 of a game, and the ready screen to come: PLT-107), taken from Courtisans:
  * background + pattern, top decor, animated logo, content, character standing on the bottom decor, main button and code laid on the decor,
  * sound and rules at the top right, footer. Every image comes from the skin (Sanity `interface`) and is optional.
  */
@@ -83,7 +82,7 @@ export function Screen({
           transition={{ type: "spring", stiffness: 120, damping: 14 }}
           className="mt-[7vh] w-[min(27rem,72vw,32vh)] shrink-0"
         >
-          <Link href={`/${SLUG}`} aria-label={t("homeLink")} className="block">
+          <Link href={gamePath(SLUG)} aria-label={t("homeLink")} className="block">
             {logo ? (
               <Logo src={logo} alt={title} />
             ) : (
@@ -187,109 +186,37 @@ export function PrimaryButton({
 
 const NO_AUTOFILL = { autoComplete: "off", "data-1p-ignore": true, "data-lpignore": "true", "data-bwignore": "true", "data-form-type": "other" } as const
 
-export function NicknameField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const t = useText()
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-[6vh] w-full max-w-md shrink-0 px-4">
-      <input
-        id="nickname"
-        name="nickname"
-        type="text"
-        value={value}
-        maxLength={20}
-        autoFocus
-        autoCorrect="off"
-        spellCheck={false}
-        {...NO_AUTOFILL}
-        placeholder={t("nicknamePlaceholder")}
-        aria-label={t("nicknamePlaceholder").replace(/…$/, "")}
-        onChange={(e) => onChange(e.target.value.toUpperCase())}
-        className="h-14 w-full border-b border-foreground/30 bg-transparent px-2 text-center font-display text-xl tracking-[0.12em] uppercase outline-none placeholder:text-foreground/35 focus:border-foreground md:text-2xl"
-      />
-    </motion.div>
-  )
-}
-
 const SLOT = "size-11 bg-surface-dark/80 font-display text-lg uppercase"
 
-export function CodeField({ value, onChange, copyable }: { value: string; onChange?: (v: string) => void; copyable?: string }) {
+/** The code of a table, in the boxes it is typed in elsewhere, here only read: a table is joined with its link, on the platform's page of the game. */
+export function CodeField({ value }: { value: string }) {
   const t = useText()
-  const { SLUG } = useBinding()
-  const [copied, setCopied] = useState(false)
-  async function copy() {
-    if (!copyable) return
-    try {
-      await navigator.clipboard.writeText(copyable)
-      trackClient("invite_link_copied", { game: SLUG })
-      setCopied(true)
-      toast.success(t("linkCopied"))
-      setTimeout(() => setCopied(false), 1600)
-    } catch {
-      toast.error(t("linkCopyFailed"))
-    }
-  }
   return (
     <div className="relative flex items-center">
       <InputOTP
-        // a table code is how someone joins: the recordings show stars where it is displayed or typed
+        // a table code is how someone joins: the recordings show stars where it is displayed
         containerClassName="ph-mask"
         maxLength={6}
         pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
         value={value}
-        onChange={(v) => onChange?.(v.toUpperCase())}
-        disabled={!onChange}
+        disabled
         aria-label={t("codeLabel")}
         name="game-code"
         {...NO_AUTOFILL}
       >
         <InputOTPGroup>
           {[0, 1, 2].map((i) => (
-            <InputOTPSlot key={i} index={i} className={cn(SLOT, !onChange && "opacity-100")} />
+            <InputOTPSlot key={i} index={i} className={cn(SLOT, "opacity-100")} />
           ))}
         </InputOTPGroup>
         <InputOTPSeparator className="text-foreground/60" />
         <InputOTPGroup>
           {[3, 4, 5].map((i) => (
-            <InputOTPSlot key={i} index={i} className={cn(SLOT, !onChange && "opacity-100")} />
+            <InputOTPSlot key={i} index={i} className={cn(SLOT, "opacity-100")} />
           ))}
         </InputOTPGroup>
       </InputOTP>
-      {copyable && (
-        <button
-          type="button"
-          onClick={copy}
-          aria-label={t("copyLink")}
-          title={t("copyLink")}
-          className="absolute -right-14 flex size-11 cursor-pointer items-center justify-center rounded-lg border border-foreground/50 bg-surface-dark/80 text-foreground transition-transform hover:scale-110"
-        >
-          {copied ? <CheckIcon className="size-5" /> : <CopyIcon className="size-5" strokeWidth={1.5} />}
-        </button>
-      )}
     </div>
-  )
-}
-
-// Mood font (announcements, intro): the game's --font-accent CSS variable, else the title font
-const ACCENT_FONT = "var(--font-accent, var(--font-title))"
-
-/** Title + intro text (home). */
-export function Intro({ title, children }: { title?: string | null; children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.2 }}
-      className="mt-[3vh] max-w-5xl shrink-0 space-y-2 px-4 text-center [text-shadow:0_1px_6px_rgb(0_0_0/60%)]"
-    >
-      {title && (
-        <h2 className="text-lg tracking-[0.1em] text-foreground uppercase md:text-xl" style={{ fontFamily: ACCENT_FONT }}>
-          {title}
-        </h2>
-      )}
-      <div className="mx-auto max-w-5xl space-y-1.5 text-[0.95rem] leading-relaxed whitespace-pre-line text-foreground/80 md:text-base" style={{ fontFamily: ACCENT_FONT }}>
-        {children}
-      </div>
-    </motion.div>
   )
 }
 
@@ -306,7 +233,7 @@ export function Paragraph({ children, className }: { children: React.ReactNode; 
   )
 }
 
-/** Short headline under the intro (game not playable yet, page not found). */
+/** Short headline under the logo (page not found). */
 export function Headline({ children }: { children: React.ReactNode }) {
   return (
     <motion.p

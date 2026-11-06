@@ -33,7 +33,7 @@ export type GameEntry = {
   duration?: { min: number; max: number }
   /** The game's own Sanity project: its content and its admin settings, read once one enters the game. The hub reads none: its card and its page are the game in the platform's Sanity project (`@pbgo/catalog`) */
   sanityProjectId: string
-  /** Playable in production. Off: home page "coming soon" only (every page stays playable outside production). */
+  /** Playable in production. Off: its page on the hub says "Coming soon" only, and its tables and API answer 404 (every game stays playable outside production). */
   live: boolean
   /** Listed in the sitemap and without `noindex` */
   indexable: boolean
@@ -81,7 +81,7 @@ export type UiTheme = {
     /** Confetti of the victory, lively motion only: its colour and shape, null for none (default: gold stars) */
     confetti?: { color: string; shape: "star" | "dot" } | null
   }
-  /** The seat label: the avatar and the nickname next to it, on the table, in the strip, the lobby, the announcements and the game over */
+  /** The seat label: the avatar and the nickname next to it, on the table, in the strip, the announcements and the game over */
   seat?: {
     /** "disc" (default) or "square" (rounded corners) */
     shape?: "disc" | "square"
@@ -89,7 +89,7 @@ export type UiTheme = {
     ring?: string
     /** Font of the initial in the avatar: a CSS font-family value (default: the skin's title font) */
     font?: string
-    /** Colour of the nickname where the UI writes it (lobby, game over): "seat" (default) is the seat colour, "ink" the text colour around it */
+    /** Colour of the nickname where the UI writes it (game over): "seat" (default) is the seat colour, "ink" the text colour around it */
     name?: "seat" | "ink"
   }
   /** The end-of-game panel (winner, ranking, share thumbnail): its surface, line, corners and colours */
@@ -123,7 +123,7 @@ export type GameBinding = {
   GOOGLE_SITE_VERIFICATION?: string
   /** Sanity Studio of the game (default: the project's page on sanity.io) */
   STUDIO_URL?: string
-  /** The engine. Absent: the game is not playable yet (home page "coming soon"). */
+  /** The engine. Absent: the game is not playable yet (its page on the hub says "Coming soon"). */
   GAME?: AnyGame
   SOUNDS?: SoundConfig
   DEFAULT_SKIN?: GameSkinDefaults
@@ -144,7 +144,7 @@ export type LogoProps = { src: string; alt?: string; className?: string }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type BoardProps = { game: PublicGame<any>; data?: unknown; onUpdate: (game: PublicGame<any>) => void; onLeave: () => void }
 
-/** Client components of a game (`@pbgo-game/<slug>/ui`). Load the board lazily: the home page must not pull in three.js. */
+/** Client components of a game (`@pbgo-game/<slug>/ui`). Load the board lazily: the screens around it must not pull in three.js. */
 export type UiBinding = {
   Logo: ComponentType<LogoProps>
   Game?: ComponentType<BoardProps>
@@ -162,9 +162,6 @@ export type GameRouteHandler = (request: Request, ctx: GameRouteContext) => Prom
 export type GamemasterRouteContext = { game: GameModule; params: Record<string, string> }
 export type GamemasterRouteHandler = (request: Request, ctx: GamemasterRouteContext) => Promise<Response>
 
-/** What a game tells search engines, read from its Sanity project: the genres and the platform of the structured data and the sentence of the hidden home heading. Left out when Sanity has none. */
-export type HomeSeo = { genres?: readonly string[]; platform?: string; heading?: string }
-
 /** Server part of a game (`@pbgo-game/<slug>/server`). */
 export type ServerBinding = GameBinding & {
   /** Data given to `GAME.setup` (e.g. missions from Sanity) */
@@ -173,8 +170,6 @@ export type ServerBinding = GameBinding & {
   loadGameData?: (ctx: LoaderContext) => Promise<unknown>
   /** Extra game routes, served at `/api/<slug>/games/<code>/<route>` */
   ROUTES?: Record<string, Partial<Record<"GET" | "POST", GameRouteHandler>>>
-  /** Search-engine texts of the home page, in the visitor's language */
-  SEO?: (ctx: LoaderContext) => HomeSeo | Promise<HomeSeo>
 }
 
 export type GameModule = GameEntry & { binding: ServerBinding }

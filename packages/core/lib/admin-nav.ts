@@ -91,10 +91,10 @@ export const adminHref = (slug: string, path?: AdminPath | "") => (path ? `${GAM
 export const adminApiBase = (slug: string) => `${GAMEMASTER_PATH}/api/${slug}`
 
 /**
- * Preview of a game (`home` or `game`) for the iframe of Setup pages. It sits below `/gamemaster` so the session cookie reaches it;
- * `next.config.ts` rewrites it to `/<slug>/preview/<kind>`, which renders in the game's own layout and skin.
+ * Preview of a game's board (`game`) for the iframe of Setup pages. It sits below `/gamemaster` so the session cookie reaches it;
+ * `next.config.ts` rewrites it to `/<slug>/preview/<kind>`, which renders in the game's own layout and skin. A game has no home to preview.
  */
-export const previewHref = (slug: string, kind: "home" | "game") => `${GAMEMASTER_PATH}/${slug}/preview/${kind}`
+export const previewHref = (slug: string, kind: "game") => `${GAMEMASTER_PATH}/${slug}/preview/${kind}`
 
 /** Page of the sidebar shown by an admin pathname (`/gamemaster/<slug>/<path>`), null on the overview and unknown pages. */
 export function sectionOf(pathname: string | null | undefined): AdminPath | null {

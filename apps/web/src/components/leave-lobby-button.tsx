@@ -4,9 +4,12 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Logout01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { createApi } from "@pbgo/core/lib/api"
 import { LobbySideButton } from "@pbgo/ui/platform/lobby-panel"
+import { toast } from "@pbgo/ui/platform/sonner"
+import { messageOf } from "@/lib/table-door"
 
-// The secondary button beside the main one at the bottom of the visitor's lobby, which leaves it, whoever opened it. The game's own route takes them out of the table (`POST /api/<slug>/games/<code>/leave`, which the in-game lobby uses too: another host
+// The secondary button beside the main one at the bottom of the visitor's lobby, which leaves it, whoever opened it. The game's own route takes them out of the table (`POST /api/<slug>/games/<code>/leave`: another host
 // is made of the first player left, and a table that is being played cannot be left that way, so a game in play has no such button), then the page asks again where the visitor sits. It is an icon alone: its name is for screen readers and for the
 // pointer (`title`).
 
@@ -22,7 +25,9 @@ export function LeaveLobbyButton({ slug, code }: { slug: string; code: string })
       onClick={async () => {
         setLeaving(true)
         try {
-          await fetch(`/api/${slug}/games/${code}/leave`, { method: "POST" })
+          await createApi(slug).leave(code)
+        } catch (error) {
+          toast.error(messageOf(error))
         } finally {
           setLeaving(false)
           router.refresh()

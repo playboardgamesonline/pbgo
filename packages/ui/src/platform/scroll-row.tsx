@@ -3,7 +3,6 @@
 import * as React from "react"
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { cn } from "../utils"
 import { Button } from "./button"
 
 // A single row of cards that scrolls sideways, under a title: the games related to a game, at the foot of its page. The cards keep one width (18rem, 16rem on a phone), so that the next one is always half in view and says that there is

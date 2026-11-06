@@ -16,12 +16,6 @@ function PopoverTrigger({
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
 }
 
-function PopoverAnchor({
-  ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Anchor>) {
-  return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />
-}
-
 /**
  * A panel that opens on its trigger and holds a few controls. The content is portaled outside the page's `.platform` wrapper, so it
  * carries the `platform` class itself, and it sits above the fixed navbar (`z-50`). Like the menus it is translucent, with its blur
@@ -72,11 +66,4 @@ function PopoverTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export {
-  Popover,
-  PopoverTrigger,
-  PopoverAnchor,
-  PopoverContent,
-  PopoverHeader,
-  PopoverTitle,
-}
+export { Popover, PopoverTrigger, PopoverContent, PopoverHeader, PopoverTitle }

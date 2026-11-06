@@ -2,6 +2,7 @@
 // landing page of a folder (`docs/design/index.md` is `/docs/design`, `docs/design/foo.md` is `/docs/design/foo`, `docs/design/bar/index.md` is `/docs/design/bar` and `docs/design/bar/baz.md` is `/docs/design/bar/baz`). The title of a page is
 // its first `# ` heading and the menu follows the disk: the landing page first, then what is in the folder in the order of the names, where a number in front of a name, `03-components`, puts it in its place and is not part of the address
 // (that page is `/docs/design/components`). A folder, a file or a link is read only if its name is one of the `isDocName` words, since the name is the address.
+// The landing page of a section can open with a front matter block (`---` lines of `key: value`, `DocMeta`): the icon and the description that its card says on the docs hub.
 // A page can show a live specimen of the site: a fenced block of the language `specimen` whose text is the name of a specimen of the app (`specimensOf` lists them; the renderer, `markdown.tsx`, draws them).
 // Pure, like `@pbgo/catalog`'s model: no I/O (the reader is `server.ts`) and no framework.
 
@@ -30,14 +31,17 @@ export function parseName(name: string): { order: number | null; slug: string } 
   return digits !== undefined && rest !== undefined && isDocName(rest) ? { order: Number(digits), slug: rest } : { order: null, slug: name }
 }
 
-/** A markdown file as the reader finds it: the folders it is in below `docs/` (the first is its section) and its name without `.md`, both as the disk has them, and its text. */
-export type DocFile = { dir: readonly string[]; file: string; markdown: string }
+/** What the landing page of a section says about itself in its front matter: the icon of its card on the docs hub (a name the app knows) and the description that card says, in plain words. */
+export type DocMeta = { icon?: string; description?: string }
+
+/** A markdown file as the reader finds it: the folders it is in below `docs/` (the first is its section) and its name without `.md`, both as the disk has them, its text without the front matter, and what the front matter said. */
+export type DocFile = { dir: readonly string[]; file: string; markdown: string; meta?: DocMeta }
 
 /** A page in the menu: where it is on the site (one word for each folder and one for the file, the numbers of the disk taken off), its title and its address, and, when it is the landing page of a folder, the pages of that folder after it, a group being a landing page with its own `pages`. */
 export type DocPage = { segments: readonly string[]; title: string; href: string; pages: readonly DocPage[] }
 
-/** A section: the landing page of a folder of `docs/` with the first lines of it as a summary, which is what its card says. */
-export type DocSection = DocPage & { slug: string; summary: string }
+/** A section: the landing page of a folder of `docs/`, with what its card on the docs hub says: its description (empty when the front matter has none) and the name of its icon (null for none). */
+export type DocSection = DocPage & { slug: string; description: string; icon: string | null }
 
 /** The words of the address of a file below `/docs`: its folders and its name with the numbers of the disk taken off, a landing page having its folder's. */
 export function addressOf(file: Pick<DocFile, "dir" | "file">): string[] {
@@ -77,28 +81,29 @@ export function titleOf(markdown: string, fallback: string): string {
   return fallback
 }
 
-/** The first paragraph of a markdown text, in plain words and cut to `max` characters at a word: what a card says of a section. A heading, a list, a table, a quote and a fenced block are not a paragraph. */
-export function summaryOf(markdown: string, max = 200): string {
-  let fenced = false
-  const paragraph: string[] = []
-  for (const line of markdown.split("\n")) {
-    if (FENCE.test(line)) {
-      fenced = !fenced
-      if (paragraph.length > 0) break
-      continue
-    }
-    if (fenced) continue
-    if (line.trim() === "" || /^(?:#|[-*+] |\d+\. |\||>)/.test(line)) {
-      if (paragraph.length > 0) break
-      continue
-    }
-    paragraph.push(line.trim())
+const FRONT_MATTER = /^---[ \t]*\r?\n((?:[^\r\n]*\r?\n)*?)---[ \t]*(?:\r?\n|$)/
+
+/** The keys a front matter may have. */
+const META_KEYS = ["icon", "description"] as const
+
+/**
+ * The front matter of a markdown text, the block between two `---` lines at its very top, and the text without it. A line of it is `key: value`, the value in plain words or between quotes. Only the keys of `DocMeta` are known and a value
+ * has to say something: anything else stops the build, `where` saying which file it is in.
+ */
+export function frontMatterOf(text: string, where = "a page"): { meta: DocMeta; markdown: string } {
+  const block = FRONT_MATTER.exec(text)
+  if (!block) return { meta: {}, markdown: text }
+  const meta: DocMeta = {}
+  for (const line of (block[1] ?? "").split(/\r?\n/)) {
+    if (line.trim() === "") continue
+    const pair = /^([a-z]+):[ \t]*(.*?)[ \t]*$/.exec(line)
+    const key = META_KEYS.find((candidate) => candidate === pair?.[1])
+    if (!pair || !key) throw new Error(`${where}: "${line}" is not a line of the front matter, which has the keys ${META_KEYS.join(" and ")} (\`key: value\`)`)
+    const value = (pair[2] ?? "").replace(/^(["'])(.*)\1$/, "$2").trim()
+    if (value === "") throw new Error(`${where}: the front matter says nothing for ${key}`)
+    meta[key] = value
   }
-  const text = plain(paragraph.join(" "))
-  if (text.length <= max) return text
-  const cut = text.slice(0, max)
-  const at = cut.lastIndexOf(" ")
-  return `${cut.slice(0, at > max / 4 ? at : max).replace(/[.,;:\s]+$/, "")}…`
+  return { meta, markdown: text.slice(block[0].length).replace(/^(?:[ \t]*\r?\n)+/, "") }
 }
 
 /** The language of a fenced block that shows a live specimen of the site instead of code. */
@@ -195,7 +200,7 @@ export function buildSections(files: readonly DocFile[]): DocSection[] {
     const page = pageOfFolder(folder, [name])
     return { ...parseName(name), page, landing: folder.files.find((file) => file.file === LANDING) }
   })
-  return entries.sort(byOrder).map(({ slug, page, landing }) => ({ ...page, slug, summary: summaryOf(landing?.markdown ?? "") }))
+  return entries.sort(byOrder).map(({ slug, page, landing }) => ({ ...page, slug, description: landing?.meta?.description ?? "", icon: landing?.meta?.icon ?? null }))
 }
 
 /** Every page of a list and of the pages under them, each one before its own pages: the pages of the site, and the order of the menu. */
@@ -203,9 +208,44 @@ export function flatten(pages: readonly DocPage[]): DocPage[] {
   return pages.flatMap((page) => [page, ...flatten(page.pages)])
 }
 
+const isAt = (page: DocPage, segments: readonly string[]): boolean => page.segments.length === segments.length && page.segments.every((word, index) => word === segments[index])
+
 /** The page at an address (one word for each folder and one for the file, `["design", "components", "controls"]`), or null. */
 export function findPage(sections: readonly DocSection[], segments: readonly string[]): DocPage | null {
-  return flatten(sections).find((page) => page.segments.length === segments.length && page.segments.every((word, index) => word === segments[index])) ?? null
+  return flatten(sections).find((page) => isAt(page, segments)) ?? null
+}
+
+/**
+ * The page before and the page after one, reading a section from its landing page to its last page, which is the order of its menu (each page, then its own pages): the way through a doc one page at a time, as a long page was read by scrolling.
+ * Null at either end of the section, and at both for an address that is not a page of it.
+ */
+export function neighboursOf(section: DocSection, segments: readonly string[]): { previous: DocPage | null; next: DocPage | null } {
+  const pages = flatten([section])
+  const index = pages.findIndex((page) => isAt(page, segments))
+  if (index === -1) return { previous: null, next: null }
+  return { previous: pages[index - 1] ?? null, next: pages[index + 1] ?? null }
+}
+
+/** A text as a search reads it: in lowercase and without accents. */
+const fold = (text: string): string => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase()
+
+/** Whether a text holds every word of a search, whatever the case and the accents. A search with no word holds in everything. */
+export function matchesQuery(text: string, query: string): boolean {
+  const haystack = fold(text)
+  return fold(query)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((word) => haystack.includes(word))
+}
+
+/** What a search of the pages keeps: a page whose title matches (with its own pages, if it is a group), and a group with a page that matches (with only those pages), in the order of the menu. */
+export function filterPages(pages: readonly DocPage[], query: string): DocPage[] {
+  if (fold(query).trim() === "") return [...pages]
+  return pages.flatMap((page) => {
+    if (matchesQuery(page.title, query)) return [page]
+    const inside = filterPages(page.pages, query)
+    return inside.length > 0 ? [{ ...page, pages: inside }] : []
+  })
 }
 
 /** What a link of a page leads to: somewhere on the same page, another site, another page of the docs, or a file of the repo that has no page (it is shown as a name, since there is nothing to open). Nothing for what is empty or unsafe. */
@@ -230,8 +270,8 @@ function resolveFrom(dir: readonly string[], relative: string): string[] | null 
 }
 
 /**
- * Where a link of a page leads: a relative `.md` link to another page of the docs is that page on the site, with its `#anchor`. It is read the way the disk has it, so that it works on GitHub too (`../02-foundations.md`, `01-controls.md`),
- * and gives the address of the page (`/docs/design/foundations`). `from.dir` is the folders the page is in below `docs/`.
+ * Where a link of a page leads: a relative `.md` link to another page of the docs is that page on the site, with its `#anchor`. It is read the way the disk has it, so that it works on GitHub too (`../02-foundations/03-radius.md`, `01-button.md`),
+ * and gives the address of the page (`/docs/design/foundations/radius`). `from.dir` is the folders the page is in below `docs/`.
  */
 export function resolveLink(href: string | undefined, from: { dir: readonly string[] }): ResolvedLink {
   if (!href) return { kind: "none" }

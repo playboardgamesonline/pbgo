@@ -40,7 +40,7 @@ export function LanguageRow({ language }: { language: PlatformLanguage }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Item variant="outline">
+      <Item>
         <ItemContent>
           <ItemTitle>
             <Label htmlFor="language-row">Language</Label>

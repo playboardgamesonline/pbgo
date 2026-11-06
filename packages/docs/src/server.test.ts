@@ -46,6 +46,21 @@ describe("readDocFiles", () => {
     expect(files.find((file) => file.file === "01-controls")).toEqual({ dir: ["design", "03-components"], file: "01-controls", markdown: "# Controls" })
   })
 
+  it("gives the front matter of a file apart from its text", async () => {
+    await write("design/index.md", "---\nicon: paint-board\ndescription: The look of the screens.\n---\n\n# Design")
+    await write("design/tokens.md", "# Tokens")
+    const files = await readDocFiles(root)
+    expect(files.find((file) => file.file === "index")).toEqual({ dir: ["design"], file: "index", markdown: "# Design", meta: { icon: "paint-board", description: "The look of the screens." } })
+    expect(files.find((file) => file.file === "tokens")).toEqual({ dir: ["design"], file: "tokens", markdown: "# Tokens" })
+    const [section] = buildSections(files)
+    expect(section).toMatchObject({ title: "Design", description: "The look of the screens.", icon: "paint-board" })
+  })
+
+  it("stops on a front matter it cannot read, naming the file", async () => {
+    await write("design/index.md", "---\ncolour: red\n---\n\n# Design")
+    await expect(readDocFiles(root)).rejects.toThrow("docs/design/index.md")
+  })
+
   it("does not follow a link to somewhere else", async () => {
     await write("design/index.md", "# Design")
     await write("outside/secret.md", "# Secret")
@@ -98,6 +113,10 @@ describe("the docs of this repo", () => {
       return page.href
     })
     expect(new Set(hrefs).size).toBe(hrefs.length)
+  })
+
+  it("say, for every section, what its card says on the docs hub: a description in the front matter of its landing page", async () => {
+    for (const section of await getSections()) expect(section.description, `docs/${section.slug}/index.md has no description in its front matter`).not.toBe("")
   })
 
   it("show only specimens that have a well-formed name", async () => {

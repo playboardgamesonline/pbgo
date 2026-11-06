@@ -1,3 +1,8 @@
+---
+icon: cpu
+description: How the rules of a board game become code, and how that code plugs into the site.
+---
+
 # Engine
 
 The engine of a game is its rules as pure TypeScript, with no UI and no I/O, in the package `@<slug>/engine`. What it agrees on with the web app is `GameDefinition` of `@pbgo/engine-kit`.

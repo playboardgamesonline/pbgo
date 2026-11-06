@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { ArrowLeft02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useAccount } from "@pbgo/accounts/client"
+import { findGame } from "@pbgo/games/registry"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBack, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
@@ -24,8 +25,8 @@ const SITE_TABS = [
   { id: "pricing", label: "Pricing", href: "/pricing", group: "about" },
 ] as const
 
-/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the sign-in and the pages of a signed-in visitor, which no tab leads to). */
-type SiteCurrent = (typeof SITE_TABS)[number]["id"] | "home" | "account"
+/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the sign-in and the pages of a signed-in visitor, `docs`: the way into the docs, which no tab leads to). */
+type SiteCurrent = (typeof SITE_TABS)[number]["id"] | "home" | "account" | "docs"
 
 /**
  * The address the bar reads. Once Vercel has regenerated the front page in the background, the server renders it at `/index` (the route in the page's flight data
@@ -34,15 +35,19 @@ type SiteCurrent = (typeof SITE_TABS)[number]["id"] | "home" | "account"
  */
 const addressOf = (pathname: string) => (pathname === "/index" ? "/" : pathname)
 
+/** Whether the address is a game's page on the hub: `/game/<slug>`, or `/<slug>`, the game's own address, which shows the same page (a rewrite, PLT-106). */
+const isGamePage = (pathname: string) => pathname.startsWith("/game/") || findGame(pathname.replace(/^\/|\/$/g, "")) !== null
+
 /**
  * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab, Games on a
- * game's page on the hub (`/game/<slug>`), and nothing on the sign-in and the pages of an account (`/me`), which have the bar and no tab. `null` on a
- * page that has no bar (the docs, the legal pages, the 404).
+ * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the sign-in, the pages of an account (`/me`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
+ * page that has no bar (the pages of a doc, which have a side menu of their own, the legal pages, the 404).
  */
 function currentOf(pathname: string): SiteCurrent | null {
   if (pathname === "/") return "home"
   if (pathname === "/login" || pathname === "/me" || pathname.startsWith("/me/")) return "account"
-  if (pathname.startsWith("/game/")) return "games"
+  if (pathname === "/docs") return "docs"
+  if (isGamePage(pathname)) return "games"
   return SITE_TABS.find((tab) => tab.href === pathname)?.id ?? null
 }
 
@@ -65,7 +70,7 @@ export function SiteHeader() {
   if (current === null) return null
   const hidden = account.status === "loading" ? "invisible" : undefined
   // A game's page has the way back to the games in an island of its own, at the left of the first one, from `sm`: on a phone the bar has no room for it next to the dock, and the head of the page has the way back itself
-  const back = pathname.startsWith("/game/")
+  const back = isGamePage(pathname)
 
   return (
     <Navbar className="fixed inset-x-0 top-0 z-40">

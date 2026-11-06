@@ -5,9 +5,7 @@
   "type": "module",
   "exports": {
     "./brands": "./src/brands.tsx",
-    "./faces": "./src/faces.ts",
     "./friends": "./src/friends.ts",
-    "./gallery": "./src/gallery.ts",
     "./game/*": "./src/game/*.tsx",
     "./leaderboard": "./src/leaderboard.ts",
     "./motion": "./src/motion.ts",
@@ -35,8 +33,7 @@
     "motion": "catalog:",
     "radix-ui": "catalog:",
     "sonner": "catalog:",
-    "tailwind-merge": "catalog:",
-    "vaul": "catalog:"
+    "tailwind-merge": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:",

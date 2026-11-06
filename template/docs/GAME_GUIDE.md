@@ -78,7 +78,7 @@ The ticker, the players strip, the seat label, the announcements (start, round, 
 - **Motion**: any `motion/react` animation reads `useMotion()` (`"reduced" | "calm" | "lively"`); `GameHud` already mounts `MotionConfig reducedMotion="user"`. Reduced motion always wins over the theme: fades of 150 ms at most, no confetti, emoji burst, spring or looping effect. CSS transitions use `duration-*`, `ease-standard` and `motion-reduce:transition-none`.
 - **Texts**: every label of the shared UI is a `UI_TEXTS` key (`@pbgo/studio-kit`), translated in fr / en / es / de (the strip uses `players`, `playersReady`, `seatDone`, `seatWaiting`, `seatAway`, the ticker `history`). No copy hard-coded in a shared component.
 - **Debug**: Shift+D, TRANSITION tab: the announcement presets (`start`, `round`, `turn`, `victory`: duration, sound, scrim, sizes, banner, confetti). Nothing else of the in-game UI is tunable there.
-- **Reference**: `/docs/design/in-game` (`docs/design/04-in-game.md` at the repo root) draws the seat label, the players strip, the four announcements (replay, hold, reduce motion) and the game over (one winner, a tie) in the look of two games side by side. The cards and the table are not part of it: they are the board's, drawn with `@pbgo/table`.
+- **Reference**: `/docs/design/in-game` (`docs/design/04-in-game/` at the repo root) draws the seat label, the players strip, the four announcements (replay, hold, reduce motion) and the game over (one winner, a tie) in the look of two games side by side. The cards and the table are not part of it: they are the board's, drawn with `@pbgo/table`.
 
 ---
 
@@ -88,7 +88,7 @@ The ticker, the players strip, the seat label, the announcements (start, round, 
 apps/web/                          # 🌐 the only Next.js app (hub + every game)
 └─ src/app/
    ├─ (hub)/                       # / (hub), /legal
-   ├─ [game]/                      # /<slug> (home), /<slug>/game/<code>, /<slug>/preview/<kind> (the admin lives at /gamemaster/<slug>)
+   ├─ [game]/                      # /<slug>/game/<code> (the board), /<slug>/preview/<kind> (the admin lives at /gamemaster/<slug>); /<slug> shows /game/<slug>, the hub's page where a table is opened
    └─ api/[game]/…                 # /api/<slug>/games/…, tasks, feedback, admin (handlers of @pbgo/core)
 packages/
 ├─ core/                           # everything shared: server, lib, components, pages, route handlers
@@ -100,7 +100,7 @@ games/<slug>/                      # one game
 ├─ src/
 │  ├─ index.ts                     # GAME, site constants, SOUNDS, DEFAULT_SKIN, UI_THEME… (server + client)
 │  ├─ ui.tsx                       # Logo, Game (board, loaded on demand)
-│  ├─ server.ts                    # loadSetupData, loadGameData, ROUTES, SEO (server only)
+│  ├─ server.ts                    # loadSetupData, loadGameData, ROUTES (server only)
 │  ├─ runtime.tsx                  # styles, fonts, BindingProvider (client)
 │  ├─ lib/site.ts                  # SLUG, name, keywords, ERROR_CODES… (no texts: they live in Sanity)
 │  └─ components/game, board/       # the game UI and the table scene
@@ -180,7 +180,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 | 4 | Sanity schemas + migration + seed (images extracted from the PDF if needed) | 🤖 | studio |
 | 5 | `schema:deploy`, migration, studio deploy, check the content | 👤 | content online |
 | 6 | Home + lobby (shared by `@pbgo/core`): adapt the skin (Admin › Visual, `DEFAULT_SKIN`) | 🤖 | screens |
-| ⭐ | **Art direction**: mood, fonts, colors, home decor | 👤 | visual feedback |
+| ⭐ | **Art direction**: mood, fonts, colors, decor | 👤 | visual feedback |
 | 7 | Board: layout, cards, hand, playable zones, targeting | 🤖 | playable game |
 | ⭐ | **Playability / readability**: card size, camera, feedback, what is hidden | 👤 | feedback + copied settings JSON |
 | 8 | Opening (animated setup), turn announcements | 🤖 | |

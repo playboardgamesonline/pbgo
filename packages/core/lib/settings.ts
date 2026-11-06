@@ -239,7 +239,7 @@ export function themeStyle(s: SiteSettings): Record<string, string> {
     // without a chosen font, keep the ones of the game CSS (:root --font-body / --font-title)
     ...(bodyFamily(s) ? { "--font-body": fontStack(bodyFamily(s), BODY_FALLBACK) } : {}),
     ...((titleFamily(s) ?? bodyFamily(s)) ? { "--font-title": fontStack(titleFamily(s) ?? bodyFamily(s), BODY_FALLBACK) } : {}),
-    // the accent font (announcements, home introduction) only comes from an uploaded file; without one, the screens read `var(--font-accent, var(--font-title))`
+    // the accent font (announcements) only comes from an uploaded file; without one, the screens read `var(--font-accent, var(--font-title))`
     ...(s.files.fontAccent ? { "--font-accent": fontStack(UPLOADED_ACCENT_FONT, "var(--font-title)") } : {}),
   }
 }

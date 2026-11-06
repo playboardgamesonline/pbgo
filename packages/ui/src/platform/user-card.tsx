@@ -21,7 +21,7 @@ function UserCard({ player, className, ...props }: Omit<React.ComponentProps<"di
           <AvatarFallback>{initials(name)}</AvatarFallback>
         </Avatar>
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="truncate text-lg leading-tight font-strong text-foreground">
+          <p className="ph-mask truncate text-lg leading-tight font-strong text-foreground">
             {name}
             {tag && <span className="text-muted-foreground">#{tag}</span>}
           </p>

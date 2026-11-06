@@ -28,7 +28,7 @@ function ResultBadge({ result }: { result: NonNullable<PlayedGame["result"]> }) 
 export function GameRecord({ game }: { game: PlayedGame }) {
   const names = game.opponents.map((opponent) => opponent.nickname)
   return (
-    <Item variant="outline" size="sm">
+    <Item size="sm">
       <ItemMedia>
         <GameThumb slug={game.slug} name={game.name} />
       </ItemMedia>

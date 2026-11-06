@@ -23,30 +23,19 @@ const texts = (fields: Record<string, unknown>): SkinDoc => ({ texts: fields }) 
 const skinOf = (doc: SkinDoc, locale: Locale) => mergeSkin(baseSkin({} as GameBinding, locale), toSkin(game, doc, locale))
 
 describe("the skin of a game", () => {
-  const tagline = { _type: "localeString", fr: "Une accroche", en: "A tagline" }
+  const victoryPhrases = { _type: "localeStringList", fr: ["Bravo"], en: ["Well played"] }
 
   it("reads the language asked, then English", () => {
-    expect(skinOf(texts({ tagline }), "fr").home.tagline).toBe("Une accroche")
-    expect(skinOf(texts({ tagline }), "en").home.tagline).toBe("A tagline")
-    expect(skinOf(texts({ tagline }), "es").home.tagline).toBe("A tagline")
-    expect(skinOf(texts({ tagline }), "de").home.tagline).toBe("A tagline")
+    expect(skinOf(texts({ victoryPhrases }), "fr").victoryPhrases).toEqual(["Bravo"])
+    expect(skinOf(texts({ victoryPhrases }), "en").victoryPhrases).toEqual(["Well played"])
+    expect(skinOf(texts({ victoryPhrases }), "es").victoryPhrases).toEqual(["Well played"])
+    expect(skinOf(texts({ victoryPhrases }), "de").victoryPhrases).toEqual(["Well played"])
   })
 
   it("reads [missing: <key>] when neither the language asked nor English has the text, French or not", () => {
-    const frenchOnly = texts({ tagline: { fr: "Une accroche" }, victoryPhrases: { fr: ["Bravo"] } })
-    for (const locale of ["en", "es", "de"] as const) {
-      const skin = skinOf(frenchOnly, locale)
-      expect(skin.home.tagline).toBe("[missing: home.tagline]")
-      expect(skin.victoryPhrases).toEqual(["[missing: victoryPhrases]"])
-    }
-    expect(skinOf(frenchOnly, "fr").home.tagline).toBe("Une accroche")
-  })
-
-  it("draws nothing for the optional texts that nobody wrote, and takes English for them in the other languages", () => {
-    const doc = texts({ homeTitle: { en: "Welcome" }, homeIntro: { fr: "Bienvenue" } })
-    expect(skinOf(doc, "en").home).toMatchObject({ title: "Welcome", intro: null })
-    expect(skinOf(doc, "es").home).toMatchObject({ title: "Welcome", intro: null })
-    expect(skinOf(doc, "fr").home).toMatchObject({ title: "Welcome", intro: "Bienvenue" })
+    const frenchOnly = texts({ victoryPhrases: { fr: ["Bravo"] } })
+    for (const locale of ["en", "es", "de"] as const) expect(skinOf(frenchOnly, locale).victoryPhrases).toEqual(["[missing: victoryPhrases]"])
+    expect(skinOf(frenchOnly, "fr").victoryPhrases).toEqual(["Bravo"])
   })
 
   it("takes the victory sentences of the language asked, else those of English", () => {
@@ -57,11 +46,11 @@ describe("the skin of a game", () => {
   })
 
   it("replaces a label of the interface only in the language it is written in: the platform has its own wording in the others", () => {
-    const doc = texts({ ui_home: { createButton: { en: "Start a table" } } })
-    expect(skinOf(doc, "en").texts.createButton).toBe("Start a table")
-    expect(skinOf(doc, "es").texts.createButton).toBe(UI_TRANSLATIONS.es.createButton)
-    expect(skinOf(doc, "fr").texts.createButton).toBe(UI_TRANSLATIONS.fr.createButton)
-    expect(skinOf(doc, "de").texts.createButton).toBe(UI_TRANSLATIONS.de.createButton)
+    const doc = texts({ ui_home: { menu: { en: "Open the menu" } } })
+    expect(skinOf(doc, "en").texts.menu).toBe("Open the menu")
+    expect(skinOf(doc, "es").texts.menu).toBe(UI_TRANSLATIONS.es.menu)
+    expect(skinOf(doc, "fr").texts.menu).toBe(UI_TRANSLATIONS.fr.menu)
+    expect(skinOf(doc, "de").texts.menu).toBe(UI_TRANSLATIONS.de.menu)
   })
 
   it("does the same for the messages of the platform's own errors, and the chain for those of the game", () => {
@@ -82,12 +71,12 @@ describe("the skin of a game", () => {
   })
 
   it("is in English when no language is asked", () => {
-    expect(toSkin(game, texts({ tagline }))).toMatchObject({ home: { tagline: "A tagline" } })
+    expect(toSkin(game, texts({ victoryPhrases }))).toMatchObject({ victoryPhrases: ["Well played"] })
   })
 
   it("keeps the platform's default skin, markers included, when Sanity holds nothing", () => {
     const skin = skinOf(null, "en")
-    expect(isMissing(skin.home.tagline ?? "")).toBe(true)
+    expect(skin.victoryPhrases.every(isMissing)).toBe(true)
     expect(skin.texts).toEqual(DEFAULT_TEXTS)
   })
 })

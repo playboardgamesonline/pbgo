@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation"
 import { useSkin, useText } from "./skin-provider"
 
 /**
- * Game pages (lobby, board) and their admin preview, `/<slug>/game/…` and `/<slug>/preview/game` (shown by the gamemaster as
+ * Game pages (the board) and their admin preview, `/<slug>/game/…` and `/<slug>/preview/game` (shown by the gamemaster as
  * `/gamemaster/<slug>/preview/game`): the only ones the wall covers.
  */
 const GAME_PAGES = /^(?:\/[^/]+\/(?:game|preview\/game)|\/gamemaster\/[^/]+\/preview\/game)(\/|$)/
 
 /**
  * Below 900 px, covers the game pages when the skin asks for it (`interface.desktopOnly`, true by default).
- * The home page, the rules and the rest of the site stay readable on mobile (search engines): see `DesktopNotice`.
+ * The hub, with the page of the game where a table is opened, the rules and the rest of the site are not covered: they stay readable on mobile (search engines).
  */
 export function DesktopOnly() {
   const { desktopOnly, decor } = useSkin()
@@ -27,18 +27,5 @@ export function DesktopOnly() {
       <MonitorIcon className="relative size-12 text-foreground/80" strokeWidth={1.4} />
       <p className="relative max-w-sm font-display text-lg leading-snug text-balance text-foreground/85">{t("desktopOnly")}</p>
     </div>
-  )
-}
-
-/** Non-blocking notice below 900 px (home page): the page can be read, but the game is played on a computer (the form is hidden). */
-export function DesktopNotice() {
-  const { desktopOnly } = useSkin()
-  const t = useText()
-  if (!desktopOnly) return null
-  return (
-    <p className="mx-4 mt-[2.5vh] flex max-w-sm shrink-0 items-center gap-3 rounded-xl border border-foreground/25 bg-surface-dark/70 px-4 py-3 text-left text-sm leading-snug text-foreground/85 min-[900px]:hidden">
-      <MonitorIcon aria-hidden className="size-6 shrink-0 text-foreground/80" strokeWidth={1.4} />
-      <span>{t("desktopOnly")}</span>
-    </p>
   )
 }

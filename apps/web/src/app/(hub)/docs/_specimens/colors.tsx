@@ -162,21 +162,3 @@ export function NeutralRamp() {
     </div>
   )
 }
-
-/** The five chart steps: a descending grey ramp, so a series reads by lightness and never by hue. */
-export function ChartColors() {
-  const { byName, stepOf } = useNeutralMap()
-  return (
-    <div className="grid grid-cols-5 gap-3">
-      {CHART.map(({ token, swatch }) => (
-        <div key={token} className="flex flex-col gap-2">
-          <div className={`h-16 rounded-2xl border ${swatch}`} />
-          <p className="flex flex-col gap-0.5">
-            <span className="text-sm">{token}</span>
-            <Value>{stepOf(token) ? `neutral-${stepOf(token)}` : byName.get(`--${token}`)}</Value>
-          </p>
-        </div>
-      ))}
-    </div>
-  )
-}

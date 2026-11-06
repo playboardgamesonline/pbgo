@@ -1,25 +1,22 @@
-// The live specimens of the surfaces page of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
+// The live specimens of the surfaces pages of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
 
 import type { Specimens } from "@pbgo/docs/markdown"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Alert02Icon, Calendar03Icon, FolderAddIcon, InformationCircleIcon, MoreHorizontalIcon, Settings01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { Alert02Icon, FolderAddIcon, InformationCircleIcon, MoreHorizontalIcon, Settings01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
 import { getCatalog } from "@pbgo/catalog/server"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
-import { Avatar, AvatarBadge, AvatarCount, AvatarFallback, AvatarGroup, AvatarGroupCount } from "@pbgo/ui/platform/avatar"
+import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
+import { Avatar, AvatarBadge, AvatarCount, AvatarFallback } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemSeparator, ItemTitle } from "@pbgo/ui/platform/item"
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
 import { Progress } from "@pbgo/ui/platform/progress"
-import { Section as PageSection, SectionAction, SectionPreview } from "@pbgo/ui/platform/section"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { Skeleton } from "@pbgo/ui/platform/skeleton"
 import { Spinner } from "@pbgo/ui/platform/spinner"
-import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { catalogCardProps, gamePicture } from "@/lib/game-card-props"
-import { PricingPlans } from "@/components/pricing-plans"
-import { CreditLink } from "@pbgo/ui/platform/credit-link"
 import { Frame } from "./text"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -86,28 +83,6 @@ function CardDefaultAndSmall() {
           </CardDescription>
         </CardHeader>
       </Card>
-    </Frame>
-  )
-}
-
-function PlanCardThreePlans() {
-  return (
-    <Frame code={`<PlanCard
-  name="Plus"
-  price="€0.99"
-  period="/ month"
-  note="Billed monthly"
-  description="For players who come back."
-  visual={<PlanVisual icon={SparklesIcon} />}
-  features={["Everything in Free", "Advanced statistics"]}
-  disabled
-  action={
-    <Button size="lg" variant="outline" className="w-full" disabled>
-      Coming soon
-    </Button>
-  }
-/>`}>
-      <PricingPlans />
     </Frame>
   )
 }
@@ -185,99 +160,7 @@ async function GameCardThePictureAlone() {
   )
 }
 
-function CreditLinkInTheCreditsOfAGame() {
-  return (
-    <Frame code={`<CreditLink href="https://www.cocktailgames.com" icon="/api/catalog/hanabi/publisher-0?v=…">
-  Cocktail Games
-</CreditLink>`}>
-      <dl className="grid max-w-md grid-cols-[auto_1fr] gap-x-8 gap-y-3">
-        <dt className="text-muted-foreground">Designer</dt>
-        <dd>Antoine Bauza</dd>
-        <dt className="text-muted-foreground">Artist</dt>
-        <dd>Laura Michaud</dd>
-        <dt className="text-muted-foreground">Publishers</dt>
-        <dd>
-          <CreditLink href="https://playboardgamesonline.app" icon="/favicon.ico">
-            Cocktail Games
-          </CreditLink>
-          {", "}
-          <CreditLink href="https://playboardgamesonline.app" icon="/docs/no-such-icon.png">
-            Oya
-          </CreditLink>
-          {", Spiral Éditions"}
-        </dd>
-      </dl>
-    </Frame>
-  )
-}
-
-async function SectionAPreviewOfAList() {
-  // The cards of the demo are the hub's: the live games of the catalog, then games to come that borrow its first pictures.
-  const { live, logo, background } = await readCatalog()
-  const soon = ["Cards of Kings", "Dice Harbor", "Last Lantern", "The Long Table", "Moss & Stone", "Salt Road"]
-  return (
-    <Frame code={`<Section aria-labelledby="popular-games">
-  <h2 id="popular-games" className="sr-only">Popular games</h2>
-  <SectionPreview
-    action={
-      <SectionAction asChild>
-        <Link href="/games">See all games</Link>
-      </SectionAction>
-    }
-  >
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {games.map((game) => <GameCard key={game.slug} {...game.props} />)}
-    </div>
-  </SectionPreview>
-</Section>`}>
-      <PageSection aria-label="Popular games" className="px-0 pb-0">
-        <SectionPreview
-          action={<SectionAction href="#section">See all games</SectionAction>}
-        >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {live.map((entry) => (
-              <GameCard key={entry.slug} {...catalogCardProps(entry)} />
-            ))}
-            {soon.map((name) => (
-              <GameCard key={name} variant="soon" href="#section" name={name} logo={logo} background={background} players="2–5 players" duration="30 min" />
-            ))}
-          </div>
-        </SectionPreview>
-      </PageSection>
-    </Frame>
-  )
-}
-
-function SectionNothingToListYet() {
-  return (
-    <Frame code={`<Section aria-labelledby="tables-in-progress" className="items-center gap-6">
-  <h2 id="tables-in-progress" className="sr-only">Tables in progress</h2>
-  <Empty className="border p-6">
-    <EmptyHeader>
-      <EmptyTitle>No table to join yet</EmptyTitle>
-      <EmptyDescription>Tables are private for now: …</EmptyDescription>
-    </EmptyHeader>
-  </Empty>
-  <SectionAction asChild>
-    <Link href="/tables">See all tables</Link>
-  </SectionAction>
-</Section>`}>
-      <PageSection aria-label="Tables in progress" className="items-center gap-6 px-0 pb-0">
-        <Empty className="border p-6">
-          <EmptyHeader>
-            <EmptyTitle>No table to join yet</EmptyTitle>
-            <EmptyDescription>
-              Tables are private for now: open one from a game and share its link. The tables open to everyone will be listed here.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-        <SectionAction href="#section">See all tables</SectionAction>
-      </PageSection>
-    </Frame>
-  )
-}
-
-function AvatarSizesBadgeAndGroup() {
+function AvatarSizesBadgeAndCount() {
   return (
     <Frame className={ROW} code={`<Avatar size="sm"><AvatarFallback>AL</AvatarFallback></Avatar>
 <Avatar><AvatarFallback>SM</AvatarFallback></Avatar>
@@ -293,14 +176,7 @@ function AvatarSizesBadgeAndGroup() {
   <AvatarFallback>RO</AvatarFallback>
   <AvatarCount count={3} />
   <AvatarBadge />
-</Avatar>
-
-<AvatarGroup>
-  <Avatar><AvatarFallback>A</AvatarFallback></Avatar>
-  <Avatar><AvatarFallback>S</AvatarFallback></Avatar>
-  <Avatar><AvatarFallback>R</AvatarFallback></Avatar>
-  <AvatarGroupCount>+3</AvatarGroupCount>
-</AvatarGroup>`}>
+</Avatar>`}>
       <Avatar size="sm">
         <AvatarFallback>AL</AvatarFallback>
       </Avatar>
@@ -322,23 +198,11 @@ function AvatarSizesBadgeAndGroup() {
         <AvatarCount count={3} />
         <AvatarBadge />
       </Avatar>
-      <AvatarGroup>
-        <Avatar>
-          <AvatarFallback>A</AvatarFallback>
-        </Avatar>
-        <Avatar>
-          <AvatarFallback>S</AvatarFallback>
-        </Avatar>
-        <Avatar>
-          <AvatarFallback>R</AvatarFallback>
-        </Avatar>
-        <AvatarGroupCount>+3</AvatarGroupCount>
-      </AvatarGroup>
     </Frame>
   )
 }
 
-function AlertDefaultDestructiveAndWithAnAction() {
+function AlertDefaultAndDestructive() {
   return (
     <Frame className="flex flex-col gap-4" code={`<Alert>
   <HugeiconsIcon icon={InformationCircleIcon} strokeWidth={2} />
@@ -350,7 +214,6 @@ function AlertDefaultDestructiveAndWithAnAction() {
   <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
   <AlertTitle>The table could not be saved</AlertTitle>
   <AlertDescription>Check your connection and try again.</AlertDescription>
-  <AlertAction><Button variant="outline" size="xs">Retry</Button></AlertAction>
 </Alert>`}>
       <Alert>
         <HugeiconsIcon icon={InformationCircleIcon} strokeWidth={2} />
@@ -361,11 +224,6 @@ function AlertDefaultDestructiveAndWithAnAction() {
         <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} />
         <AlertTitle>The table could not be saved</AlertTitle>
         <AlertDescription>Check your connection and try again.</AlertDescription>
-        <AlertAction>
-          <Button variant="outline" size="xs">
-            Retry
-          </Button>
-        </AlertAction>
       </Alert>
     </Frame>
   )
@@ -472,96 +330,41 @@ function EmptyIconMessageAndAction() {
   )
 }
 
-function ItemVariants() {
+function ItemSizes() {
   return (
-    <Frame className="flex flex-col gap-4" code={`<ItemGroup>
-  <Item variant="outline">
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Friday night</ItemTitle>
-      <ItemDescription>3 of 5 players · waiting to start</ItemDescription>
-    </ItemContent>
-    <ItemActions><Button variant="outline" size="sm">Join</Button></ItemActions>
-  </Item>
-</ItemGroup>`}>
-      <ItemGroup>
-        {(["default", "outline", "muted"] as const).map((variant) => (
-          <Item key={variant} variant={variant}>
-            <ItemMedia variant="icon">
-              <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle className="capitalize">{variant}</ItemTitle>
-              <ItemDescription>3 of 5 players · waiting to start</ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Button variant="outline" size="sm">
-                Join
-              </Button>
-            </ItemActions>
-          </Item>
-        ))}
-      </ItemGroup>
-    </Frame>
-  )
-}
+    <Frame className="flex flex-col gap-4" code={`<Item>
+  <ItemMedia><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" /></ItemMedia>
+  <ItemContent>
+    <ItemTitle>Default</ItemTitle>
+    <ItemDescription>The comfortable row.</ItemDescription>
+  </ItemContent>
+</Item>
 
-function ItemSizesAndSeparators() {
-  return (
-    <Frame code={`<ItemGroup>
-  <Item>
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Default</ItemTitle>
-      <ItemDescription>The comfortable row.</ItemDescription>
-    </ItemContent>
-  </Item>
-  <ItemSeparator />
-  <Item size="sm">
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Small</ItemTitle>
-      <ItemDescription>A denser row.</ItemDescription>
-    </ItemContent>
-  </Item>
-  <ItemSeparator />
-  <Item size="xs">
-    <ItemMedia variant="icon"><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} /></ItemMedia>
-    <ItemContent>
-      <ItemTitle>Extra small</ItemTitle>
-    </ItemContent>
-  </Item>
-</ItemGroup>`}>
-      <ItemGroup>
-        <Item>
-          <ItemMedia variant="icon">
-            <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Default</ItemTitle>
-            <ItemDescription>The comfortable row.</ItemDescription>
-          </ItemContent>
-        </Item>
-        <ItemSeparator />
-        <Item size="sm">
-          <ItemMedia variant="icon">
-            <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Small</ItemTitle>
-            <ItemDescription>A denser row.</ItemDescription>
-          </ItemContent>
-        </Item>
-        <ItemSeparator />
-        <Item size="xs">
-          <ItemMedia variant="icon">
-            <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Extra small</ItemTitle>
-          </ItemContent>
-        </Item>
-      </ItemGroup>
+<Item size="sm">
+  <ItemMedia><HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" /></ItemMedia>
+  <ItemContent>
+    <ItemTitle>Small</ItemTitle>
+    <ItemDescription>A denser row.</ItemDescription>
+  </ItemContent>
+</Item>`}>
+      <Item>
+        <ItemMedia>
+          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>Default</ItemTitle>
+          <ItemDescription>The comfortable row.</ItemDescription>
+        </ItemContent>
+      </Item>
+      <Item size="sm">
+        <ItemMedia>
+          <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} className="size-4" />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>Small</ItemTitle>
+          <ItemDescription>A denser row.</ItemDescription>
+        </ItemContent>
+      </Item>
     </Frame>
   )
 }
@@ -569,7 +372,6 @@ function ItemSizesAndSeparators() {
 function TableScoreboard() {
   return (
     <Frame className="p-2" code={`<Table>
-  <TableCaption>Final scores</TableCaption>
   <TableHeader>
     <TableRow>
       <TableHead>Player</TableHead>
@@ -582,15 +384,8 @@ function TableScoreboard() {
       <TableCell className="text-right">128</TableCell>
     </TableRow>
   </TableBody>
-  <TableFooter>
-    <TableRow>
-      <TableCell>Total</TableCell>
-      <TableCell className="text-right">128</TableCell>
-    </TableRow>
-  </TableFooter>
 </Table>`}>
       <Table>
-        <TableCaption>Final scores of the evening</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead className="w-16">Rank</TableHead>
@@ -609,12 +404,6 @@ function TableScoreboard() {
             </TableRow>
           ))}
         </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell colSpan={3}>Total</TableCell>
-            <TableCell className="text-right">{SCORES.reduce((sum, row) => sum + row.score, 0)}</TableCell>
-          </TableRow>
-        </TableFooter>
       </Table>
     </Frame>
   )
@@ -622,21 +411,16 @@ function TableScoreboard() {
 
 export const surfacesSpecimens: Specimens = {
   "card-default-and-small": CardDefaultAndSmall,
-  "plan-card-three-plans": PlanCardThreePlans,
   "game-card-the-live-games-and-without-art": GameCardTheLiveGamesAndWithoutArt,
   "game-card-a-game-to-come": GameCardAGameToCome,
   "game-card-the-picture-alone": GameCardThePictureAlone,
-  "credit-link-in-the-credits-of-a-game": CreditLinkInTheCreditsOfAGame,
-  "section-a-preview-of-a-list": SectionAPreviewOfAList,
-  "section-nothing-to-list-yet": SectionNothingToListYet,
-  "avatar-sizes-badge-and-group": AvatarSizesBadgeAndGroup,
-  "alert-default-destructive-and-with-an-action": AlertDefaultDestructiveAndWithAnAction,
+  "avatar-sizes-badge-and-count": AvatarSizesBadgeAndCount,
+  "alert-default-and-destructive": AlertDefaultAndDestructive,
   "progress-bar": ProgressBar,
   "progress-spinner": ProgressSpinner,
   "progress-skeleton": ProgressSkeleton,
   "separator-horizontal-and-vertical": SeparatorHorizontalAndVertical,
   "empty-icon-message-and-action": EmptyIconMessageAndAction,
-  "item-variants": ItemVariants,
-  "item-sizes-and-separators": ItemSizesAndSeparators,
+  "item-sizes": ItemSizes,
   "table-scoreboard": TableScoreboard,
 }

@@ -1,14 +1,14 @@
 import "server-only"
 import { cache } from "react"
-import { bggIconUrl, bggUrl, creditLines, pickLocalized, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
+import { bggIconUrl, bggUrl, creditLines, pickLocalized, registryRow, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
 import { gameSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
-import type { GalleryMedia } from "@pbgo/ui/gallery"
-import type { GameCardProps, GameCardVisualProps } from "@pbgo/ui/platform/game-card"
+import { findGame } from "@pbgo/games/registry"
+import type { GameCardProps } from "@pbgo/ui/platform/game-card"
 import type { HelperOption } from "@pbgo/ui/platform/lobby-settings"
-import { catalogCardProps, durationLabel, galleryMedia, gamePicture, heroPicture, playersLabel } from "./game-card-props"
+import { catalogCardProps, durationLabel, heroPicture, playersLabel } from "./game-card-props"
 
 /** One line of a game's credits: a label and its values, each one a link when it has an address, with an icon when the site it leads to has one (`creditLines`). */
 export type GameFact = CreditLine
@@ -50,10 +50,6 @@ export type GamePage = {
   shop: string | null
   /** The pictures of the head: the game's background, drawn across the whole width of the page behind it, and its logo, drawn in place of its name. A picture the game does not have is left out: the head writes the name, and has no art. */
   hero: { logo?: string; background?: string }
-  /** The cover, the first slide of the head's gallery, is the game's card's picture: its logo over its background (`GameCardVisual`). A picture the game does not have leaves the frame plain. The gallery is not drawn for now (see `gallery`). */
-  picture: Pick<GameCardVisualProps, "logo" | "background">
-  /** The pictures and the clips that follow the cover in the head's gallery, in the order the Studio lists them. Empty: the head has the cover alone. Read and kept, and not drawn for now: the head's background is the game's own, and the gallery will have a place again later. */
-  gallery: GalleryMedia[]
   /** The aids that a player may have while they play, in the order the Studio lists them: a row each in the settings of a lobby. Empty: the settings have no helpers. */
   helpers: HelperOption[]
   /** The games the catalog recommends with this one (docs/catalog.md), the most relevant first (its family, then the games that look like it), each as the props of its card. Empty: the page has no such section. */
@@ -109,8 +105,6 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
     bgg: bggLink(game),
     shop: game.buyUrl,
     hero: heroPicture(game),
-    picture: gamePicture(game),
-    gallery: galleryMedia(game),
     helpers: game.helpers.map(({ key, title }) => ({ id: key, label: title })),
     related: entry.related.flatMap((slug) => {
       const related = entries.find((candidate) => candidate.slug === slug)
@@ -121,13 +115,22 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
 }
 
 /**
+ * In development every game of the registry has a page, the demo template and a game under construction included: `pnpm dev` opens a game at `/<slug>` (which shows this page), and a game that was just made has no game in the Studio
+ * yet, and the template never has one. It is the registry's row, with nothing but a name and the figures it knows. A deployment lists only what the catalog announces.
+ */
+function developmentEntry(slug: string): CatalogEntry | null {
+  const game = process.env.NODE_ENV === "development" ? findGame(slug) : null
+  return game ? { slug, live: game.live, indexable: false, game: registryRow(game), related: [] } : null
+}
+
+/**
  * The page of a game of the catalog (`/game/<slug>`), null when the catalog does not list the slug: the page then answers 404.
  * Every game's page is its game in the Studio, so while the platform's Sanity project cannot be read only the live games have a page, from the registry.
  * Read once per request, however many times the page and its metadata ask. Reading the visitor's language makes the page dynamic.
  */
 export const getGamePage = cache(async (slug: string): Promise<GamePage | null> => {
   const { entries } = await getCatalog()
-  const entry = entries.find((candidate) => candidate.slug === slug)
+  const entry = entries.find((candidate) => candidate.slug === slug) ?? developmentEntry(slug)
   if (!entry) return null
   return gamePage(entry, entries, await getLocale())
 })
