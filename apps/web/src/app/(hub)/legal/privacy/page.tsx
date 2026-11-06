@@ -67,7 +67,7 @@ export default function PrivacyPolicy() {
           items={[
             {
               name: "Your player identifier",
-              text: "A random identifier, one per game, kept in a cookie for 30 days. It recognises you at your table so you can leave and come back, and it tells the players of a table apart. It does not name you.",
+              text: "The cookie holds a random secret, one per game, for 30 days. It stays between your browser and our servers. What the tables, the chat and the statistics use is a code made from it with a one-way hash, your player identifier: it recognises you at your table so you can leave and come back, tells the players of a table apart and does not name you.",
             },
             {
               name: "Your nickname",
@@ -232,7 +232,7 @@ export default function PrivacyPolicy() {
           <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
             {CONTACT}
           </a>
-          . We answer within one month. We may ask for proof that the data is yours. With an account, tell us the e-mail address of the account. As a guest you are only a random identifier in a cookie, so we can only find your data if you tell us the link of the table and the
+          . We answer within one month. We may ask for proof that the data is yours. With an account, tell us the e-mail address of the account. As a guest you are only a random secret in a cookie, so we can only find your data if you tell us the link of the table and the
           nickname you used.
         </LegalText>
         <LegalText>
