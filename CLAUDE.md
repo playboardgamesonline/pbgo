@@ -59,7 +59,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 - The rest (404 behaviour, segment configs, rate-limit rules): `docs/routing.md`.
 
 ## Games registry and shared packages (`packages/`)
-A change in `packages/` reaches every game on the next deployment. Detail: `docs/packages.md`, and `docs/design/04-in-game.md` for what core draws in a game.
+A change in `packages/` reaches every game on the next deployment. Detail: `docs/packages.md`, and `docs/design/04-in-game/` for what core draws in a game.
 - `@pbgo/games` — the registry: `GAMES` (pure data: `slug`, `name`, `live`, `indexable`, `sanityProjectId`…) in `src/registry.ts`, `LOADERS` (server) in `src/index.ts`, `RUNTIMES` (client) in `src/runtime.tsx`. Adding a game = one `@pbgo-game/<slug>` package + one entry in each of the three + the dependency in `packages/games/package.json` (`pnpm new-game` does all of it). Never import a game package statically from shared code: a page loads only its game's code.
 - `@pbgo-game/<slug>` — a game's binding package; the contract is in `@pbgo/core/lib/binding` (`.` isomorphic, `./ui`, `./server`, `./runtime`, `./styles.css`). Core never imports a game: it receives the `GameModule`, client components read it with `useBinding()`.
 - `@pbgo/core` — the shared base: server (Supabase games with a version lock, players, admin, tasks, rate limiting), pages, route handlers, and the in-game UI (screens, HUD, announcements, chat, game over), always drawn in the game's own look.
@@ -118,7 +118,7 @@ Gitmoji `<emoji>(<scope>): <description>` · scopes: `<slug>`, `template`, `core
 Open the file of the area you touch before changing it: it holds the full rules that this map only summarises.
 - `docs/routing.md` — a route, a layout, a 404, a reserved slug, the rate limits
 - `docs/packages.md` — `packages/`: the registry, a game's binding package, core's server, `engine-kit`, `ui`, the Sanity and content kits
-- `docs/design/04-in-game.md` — what a game shows around the board: screens, HUD, announcements, seat label, game over, skin, chat, `UI_THEME` (its rules, the room for the cookie banner, the compact layout and motion, are in `docs/design/01-guidelines/04-in-game-rules.md`)
+- `docs/design/04-in-game/` — what a game shows around the board: screens, HUD, announcements, seat label, game over, skin, chat, `UI_THEME` (its rules, the room for the cookie banner, the compact layout and motion, are in `docs/design/01-guidelines/04-in-game-rules.md`)
 - `docs/design/` — a platform screen (hub, account, legal, gamemaster, 404) or a `@pbgo/ui` component: the guidelines (`01-guidelines/`), the tokens (`02-foundations/`) and every component (`03-components/`), a page for each token and each component, with its live specimens
 - `docs/gamemaster.md` — the back office: session, sidebar, setup data, previews, tasks
 - `docs/analytics.md` — a PostHog event, the consent banner, recordings, masking, table-code scrubbing

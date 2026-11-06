@@ -49,7 +49,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - The board's own overlays use the variant `short` (`@media (max-height: 30rem)`, keyed on height) for a phone held sideways, and `useMotion()` (`@pbgo/core/lib/use-motion`) before any `motion/react` animation: reduced motion means fades only
 - New player-facing labels of the shared UI are `UI_TEXTS` keys of `@pbgo/studio-kit`, translated in the four languages, never text in a component
 - A player's name on the board is the shared seat label: `SeatLabel` in the DOM, `SeatAvatarMesh` (`src/components/board/seat-avatar-mesh.tsx`) on the table, with `imageUrl` for an account picture later (PLT-13)
-- The reference is `/docs/design/in-game` (`docs/design/04-in-game.md` at the repo root): the template and Courtisans side by side (seat label, players strip, the four announcements, game over)
+- The reference is `/docs/design/in-game` (`docs/design/04-in-game/` at the repo root): the template and Courtisans side by side (seat label, players strip, the four announcements, game over)
 
 ## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner

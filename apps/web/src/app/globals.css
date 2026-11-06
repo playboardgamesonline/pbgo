@@ -2,7 +2,7 @@
  * Styles of the platform pages (hub, legal, 404, /docs): the platform layer of the design system, nothing else.
  * Tokens, utilities and the boundary with the games' own themes: packages/ui/src/styles/platform.css.
  *
- * One exception, on /docs/design/in-game only: "In-game UI" draws four pure components of core with each game's own theme. Tailwind
+ * One exception, on the pages under /docs/design/in-game only: "In-game UI" draws four pure components of core with each game's own theme. Tailwind
  * only generates the classes of the files it is pointed at, and platform.css scans packages/ui, so the four are listed
  * here, one by one (not the folder: the connected components pull in the game runtime and have no business on a platform
  * page). Their utilities that only games have (font-display, bg-surface, bg-surface-dark, text-accent-game) are mapped

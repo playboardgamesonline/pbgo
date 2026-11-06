@@ -2,7 +2,7 @@
 
 The UI that `@pbgo/core` draws inside a game (screens, HUD, announcements, seat label, players strip, game over, chat) is not part of the platform layer. It is drawn in the game's own look, never the platform's.
 
-- Never `@pbgo/ui/platform`, Geist or the `.platform` class: it reads the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game.md#game-themes)).
+- Never `@pbgo/ui/platform`, Geist or the `.platform` class: it reads the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game/03-game-themes.md)).
 - A game never forks or restyles an in-game component: it asks for a field in `UiTheme`, which every game then gets.
 - No copy in shared components: every label is a `UI_TEXTS` key, in the four languages.
 

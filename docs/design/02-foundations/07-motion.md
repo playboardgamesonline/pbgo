@@ -31,4 +31,4 @@ motion-javascript
 - The platform moves in JavaScript only for what CSS cannot do: the fill behind the current item of the navbar, the social dock and its panels, a card that moves, the pieces of the home's title. Everything else is a CSS transition.
 - An animation answers an action or says that something changed. Use the tokens, never a duration or an easing written in a component (the guard test rejects `duration-200`).
 - Less motion is honoured everywhere. In CSS the durations become zero under `prefers-reduced-motion`, so no component checks. In JavaScript `Navbar` mounts `MotionConfig reducedMotion=user`, and an animation that starts by itself (the title's pieces) stays still.
-- The games' UI shares the curve (`EASE_STANDARD`), not the durations: it has its own timings, read with `useMotion()` and tuned by `UI_THEME` (see [In-game UI](../04-in-game.md)).
+- The games' UI shares the curve (`EASE_STANDARD`), not the durations: it has its own timings, read with `useMotion()` and tuned by `UI_THEME` (see [In-game UI](../04-in-game/index.md)).

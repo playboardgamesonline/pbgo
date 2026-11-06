@@ -14,7 +14,7 @@ The platform's pieces are `@pbgo/ui/platform/*`, its tokens `@pbgo/ui/styles/pla
 - [Guidelines](01-guidelines/index.md): the principles, the two layers, how to add a component, the rules of the in-game UI.
 - [Foundations](02-foundations/index.md): colour, type, radius, spacing, depth, glass and motion.
 - [Components](03-components/index.md): controls, navigation, overlays, surfaces and the social panel, a page for each piece.
-- [In-game UI](04-in-game.md): what every game shares around its board.
+- [In-game UI](04-in-game/index.md): what every game shares around its board.
 
 ## How these pages are made
 
