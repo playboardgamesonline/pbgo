@@ -200,6 +200,16 @@ describe("introRest", () => {
     expect(introRest(intro, null, 1000)).toBe(0)
   })
 
+  it("waits at its start while it is held, whatever the clock says", () => {
+    expect(introRest(intro, null, 1000, true)).toBe(1)
+    expect(introRest(intro, 1000, 9000, true)).toBe(1)
+  })
+
+  it("is nothing when it is off, held or not", () => {
+    expect(introRest({ ...intro, enabled: false }, null, 1000, true)).toBe(0)
+    expect(introRest({ ...intro, duration: 0 }, null, 1000, true)).toBe(0)
+  })
+
   it("is nothing for a duration that is not positive", () => {
     expect(introRest({ ...intro, duration: 0 }, 1000, 1000)).toBe(0)
     expect(introRest({ ...intro, duration: -1 }, 1000, 1000)).toBe(0)

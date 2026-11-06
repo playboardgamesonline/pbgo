@@ -197,6 +197,10 @@ async function loadFromSanity(key: string, url: string | null | undefined, repor
 }
 
 export type Textures = {
+  /** Every picture was asked for and answered, found or not (a missing one is drawn as a stand-in): the board is loaded, the player is ready. Never goes back to false */
+  loaded: boolean
+  /** How many of the pictures have answered, 0 to 1 (never back): the start screen's bar */
+  progress: number
   face: (card: VisibleCard) => Texture
   back: Texture
   mat: Texture
@@ -231,9 +235,12 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
   }, [catalog, missions])
 
   const [loaded, setLoaded] = useState<Record<string, Texture>>({})
+  const [settled, setSettled] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
     let active = true
+    let answered = 0
     const report: TextureReport[] = []
     const jobs: Promise<unknown>[] = []
     for (const { key, url, text } of sources) {
@@ -249,10 +256,16 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
         .then((t) => {
           if (active && t) setLoaded((c) => (c[key] === t ? c : { ...c, [key]: t }))
         })
+        .finally(() => {
+          answered += 1
+          if (active) setProgress((p) => Math.max(p, answered / sources.length))
+        })
       jobs.push(job)
     }
     Promise.allSettled(jobs).then(() => {
-      if (!active || !report.length) return
+      if (!active) return
+      setSettled(true)
+      if (!report.length) return
       console.groupCollapsed(`[textures] ${report.length} of ${sources.length} image(s) unavailable`)
       console.table(report)
       console.groupEnd()
@@ -271,6 +284,8 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
     }
     const back = loaded.back ?? fallback("back", () => textTexture("★", "#10363c", "#d9a93f", 890 / 472))
     return {
+      loaded: settled,
+      progress,
       mat: loaded.mat ?? fallback("mat", () => textTexture("", "#1b3f45", "#fff", 579 / 2362)),
       back,
       cloth: loaded.cloth ?? null,
@@ -288,5 +303,5 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
         (m.color === "blue" ? loaded.blueBack : loaded.whiteBack) ??
         fallback(`dm:${m.color}`, () => textTexture("★", m.color === "blue" ? "#0d3b43" : "#e8d7ae", "#c9a227", 452 / 688)),
     }
-  }, [loaded, catalog, fallbacks])
+  }, [loaded, settled, progress, catalog, fallbacks])
 }

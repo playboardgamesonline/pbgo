@@ -13,7 +13,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   const { options } = await readJson<{ options?: unknown }>(request)
   const row = await updateGame(game, params.code ?? "", (row) => {
     if (row.host_id !== id) throw new ApiError("HOST_ONLY", 403)
-    if (row.status === "playing") throw new ApiError("GAME_IN_PROGRESS", 409)
+    if (row.status === "starting" || row.status === "playing") throw new ApiError("GAME_IN_PROGRESS", 409)
     return { options: gameOptions(game.binding, settings.options, { ...row.options, ...(options as object) }, { playerCount: row.players.length }) }
   })
   return publicGame(game, row, id)
