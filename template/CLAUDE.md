@@ -46,6 +46,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - Through `UI_THEME` (optional, exported by `src/index.ts`, type `UiTheme` of `@pbgo/core/lib/binding`): `motion` (`"calm"` by default, `"lively"` adds confetti, springs and the emoji burst), `announcement` (`font`, `color`, `outline`, `shadow`, `veil`, `rule`, `confetti`), `seat` (`shape`, `ring`, `font`, `name`), `gameOver` (`surface`, `border`, `radius`, `ink`, `accent`, `frame`). CSS values, `var(--…)` works
 - The template's look is "paper & ink", a universe of its own next to Courtisans' banquet: `src/lib/ui-theme.ts` (the in-game UI), `THEME` of `src/lib/skin.ts` (cream on ink, vermilion accent: the skin tokens the rest of the UI reads) and `src/styles.css` (fonts). The table floor follows `surfaceDark`. Colours saved in the gamemaster (Sanity `settings`) override these code defaults; a new game replaces the three files with its own palette
 - Never fork or restyle one of these components, and never override their CSS from the game: ask for a field in `UiTheme` instead
+- The board is drawn behind the platform's start screen (PLT-107): `BoardProps` gives it `held` (hold the opening, the camera's entrance and the first announcement, until it turns false), `onLoaded` (call it once the board is drawn and its pictures are in: the player is then ready) and `onProgress` (how far it is, 0 to 1, for the collective bar). A board on the shared `Table` passes `held` and `onLoaded` to it, and one that loads pictures without suspending calls `onLoaded` and `onProgress` itself
 - The board's own overlays use the variant `short` (`@media (max-height: 30rem)`, keyed on height) for a phone held sideways, and `useMotion()` (`@pbgo/core/lib/use-motion`) before any `motion/react` animation: reduced motion means fades only
 - New player-facing labels of the shared UI are `UI_TEXTS` keys of `@pbgo/studio-kit`, translated in the four languages, never text in a component
 - A player's name on the board is the shared seat label: `SeatLabel` in the DOM, `SeatAvatarMesh` (`src/components/board/seat-avatar-mesh.tsx`) on the table, with `imageUrl` for an account picture later (PLT-13)
@@ -81,7 +82,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - After each write, the server broadcasts `update` on `game:<slug>:<code>`; the client refetches
 - Player identity = httpOnly cookie `<slug>_player`
 - Presence: the server writes a per-player last-seen timestamp (`games.seen`, throttled) on reads and writes; the takeover only counts members seen in the last 75 s
-- Routes: `POST /api/<slug>/games`, `GET /api/<slug>/games/<code>`, `POST .../join|leave|options|start|action|replay|takeover|chat|debug`
+- Routes: `POST /api/<slug>/games`, `GET /api/<slug>/games/<code>`, `POST .../join|leave|options|start|ready|action|replay|takeover|chat|debug`
 
 ## Sanity
 - The game's project id is in the `@pbgo/games` registry (`sanityProjectId`), the dataset is `production`
