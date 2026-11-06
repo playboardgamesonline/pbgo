@@ -124,7 +124,7 @@ Open the file of the area you touch before changing it: it holds the full rules 
 - `docs/gamemaster.md` — the back office: session, sidebar, setup data, previews, tasks
 - `docs/analytics.md` — a PostHog event, the consent banner, recordings, masking, table-code scrubbing
 - `docs/accounts.md` — sign-in with Facebook, Google, Apple and Discord, the pages of a signed-in visitor, the friends' panel, what is a placeholder, what to set up in Supabase
-- `docs/legal.md` — the Privacy Policy, the Terms of Use and the Cookie Policy: the inventory of personal data they are written from (what, why, where, how long, on what basis), who receives it, the settings outside the repo to check, the decisions waiting for the owner, and the rule that they change with the code
+- `docs/legal.md` — the Privacy Policy, the Terms of Use and the Cookie Policy: the inventory of personal data they are written from (what, why, where, how long, on what basis), who receives it, the settings outside the repo to check, the decisions of the owner, and the rule that they change with the code
 - `docs/platform-sanity.md` — the platform's own Sanity project: the model of the catalog, the editorial and the (empty) shop block, its Studio, the seed of the Notion rows and its picture step, the order to publish in
 - `docs/catalog.md` — the hub catalog: which games it lists, the platform's Sanity project it reads (the query, the order, the cache), the pictures and the publishers' icons, the SEO of the game pages, `pnpm catalog:list`
 - `docs/sanity-and-languages.md` — a game's Sanity project, Studio forms, seeding, the media proxy; texts and the four languages

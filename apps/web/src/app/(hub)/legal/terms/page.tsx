@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Terms of Use", alternates: { canonic
 const UPDATED = "6 November 2026"
 
 /**
- * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What waits for the owner's answer is not on the page: the
- * governing law and courts (`docs/legal.md`, "Decisions waiting for the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2). The chat's
+ * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What the owner chose to ship without is not on the page: the
+ * governing law and courts (`docs/legal.md`, "Decisions of the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2). The chat's
  * banned-word filter is a feature they plan and that does not exist yet: the sentence about it must not go live before the filter does. What the page says of the games follows the footer's line and the legal notice:
  * the games are unofficial adaptations, and their rights belong to their owners.
  */
