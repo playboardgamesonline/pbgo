@@ -11,6 +11,7 @@ import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from 
 import { safeNext } from "./redirect"
 import { syncLanguage } from "./language-sync"
 import { isChangingLanguage } from "./set-language"
+import { codeMessage, resendOutcome, signupData, signupOutcome, type ResendOutcome, type SignupEntry, type SignupOutcome } from "./signup"
 
 // The accounts in the browser: who is signed in (for the navbar, which is on static pages and so cannot ask the server), and the way to start a
 // sign-in. The session lives in cookies (`@supabase/ssr`), which the server reads too, so the two always agree.
@@ -96,7 +97,58 @@ export async function signInWithPassword(identifier: string, password: string): 
     if (language) document.cookie = languageCookie(language)
     return null
   }
-  return error.code === "invalid_credentials" ? "That e-mail and that password do not go together." : "Sign-in did not work. Try again."
+  if (error.code === "invalid_credentials") return "That e-mail and that password do not go together."
+  // Told only to someone who typed the right password, so it gives nothing away: an account that was made and never confirmed (`signUpWithPassword`)
+  if (error.code === "email_not_confirmed") return "Your e-mail address is not confirmed yet. Use the code we sent you, or create the account again to get a new one."
+  return "Sign-in did not work. Try again."
+}
+
+/**
+ * Creates an account with an e-mail address and a password (the email provider of Supabase Auth, with "Confirm email" on): nobody is signed in by it. An e-mail with a code and a link goes to the address, and the page asks for the
+ * code (`verifySignupCode`) or the visitor follows the link (`/auth/confirm`). `entry.name` is the display name, kept in the account's metadata under the key `accountOf` reads for the nickname. `next` is where the link leads (the
+ * template writes it with `{{ .RedirectTo }}`, an address of this site that the project's redirect URLs must allow), and `captchaToken` is the answer to a CAPTCHA, for the day the project asks for one (none is drawn yet). An
+ * address that already has an account answers like a new one and nothing is sent: `signupOutcome` tells a stranger nothing about the addresses that are taken.
+ */
+export async function signUpWithPassword(entry: SignupEntry & { next: string; captchaToken?: string }): Promise<SignupOutcome> {
+  const supabase = browserClient()
+  if (!supabase) return { sent: false, message: "Sign-up is not available here." }
+  try {
+    const { error } = await supabase.auth.signUp({
+      email: entry.email,
+      password: entry.password,
+      options: { data: signupData(entry.name), emailRedirectTo: `${window.location.origin}${safeNext(entry.next)}`, captchaToken: entry.captchaToken },
+    })
+    return signupOutcome(error)
+  } catch (error) {
+    return signupOutcome(error)
+  }
+}
+
+/**
+ * Spends the code of the confirmation e-mail: the address is confirmed and the visitor is signed in, the session lands in the cookies and the page can go on to `next`. Resolves with a sentence for the visitor when it fails (a
+ * wrong code and an expired one are one answer: Supabase Auth does not tell them apart) and with null when they are signed in.
+ */
+export async function verifySignupCode(email: string, code: string): Promise<string | null> {
+  const supabase = browserClient()
+  if (!supabase) return "Sign-up is not available here."
+  try {
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "signup" })
+    return error ? codeMessage(error) : null
+  } catch (error) {
+    return codeMessage(error)
+  }
+}
+
+/** Asks for another code (and another link) for an address that signed up and has not confirmed it: Supabase Auth sends one a minute. It answers the same for an address that has no account to confirm. */
+export async function resendSignupCode(email: string, next: string, captchaToken?: string): Promise<ResendOutcome> {
+  const supabase = browserClient()
+  if (!supabase) return { status: "failed", message: "Sign-up is not available here." }
+  try {
+    const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${window.location.origin}${safeNext(next)}`, captchaToken } })
+    return resendOutcome(error)
+  } catch (error) {
+    return resendOutcome(error)
+  }
 }
 
 /** What became of a language handed to the account: kept, not kept because nobody is signed in (a guest, the demo account), or not kept because the account could not be written. */
