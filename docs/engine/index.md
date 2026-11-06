@@ -25,6 +25,9 @@ These pages are what to read before writing or reviewing an engine.
 - [State and determinism](03-state-and-determinism.md): the lean state, the seed, orders, hidden information.
 - [Turns and absent players](04-turns-and-absent-players.md): `waitingFor`, `autoPlayFor`, simultaneous steps, the takeover, the limits.
 - [The 3D scene](05-scene/index.md): the table, the cards and everything else on a board, one page for each item.
+- [The engine kit](06-kit/index.md): the reference of `@pbgo/engine-kit`, one page for each module.
+- [A new game](07-new-game/index.md): from the rules to a playable game, the files of a game, writing the engine, wiring it in and testing it.
+- [Examples](08-examples/index.md): the engines of Flip 7 and Courtisans, file by file.
 
 ## Where things live
 
@@ -39,8 +42,8 @@ These pages are what to read before writing or reviewing an engine.
 
 ## What these pages do not cover
 
-- The reference of each module of the kit is `packages/engine-kit/README.md`; starting a new game is `template/docs/GAME_GUIDE.md`.
-- What the shared UI draws around the board (announcements, ticker, players strip, game over) is in [In-game UI](../design/04-in-game/index.md); worked examples are the engines in `games/flip-7/packages/engine` and `games/courtisans/packages/engine`.
+- What the shared UI draws around the board (announcements, ticker, players strip, game over) is in [In-game UI](../design/04-in-game/index.md).
+- A game's content in Sanity and its look are the game lane's: the skills `game-new` and `game-sanity-create` (`.claude/skills/README.md`) and `docs/content-pipeline.md`.
 
 ## How these pages are made
 

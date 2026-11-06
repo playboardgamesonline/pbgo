@@ -33,14 +33,7 @@ export function totalsOf(s: State): number[] {
 - So an engine never calls `Math.random` or `Date.now`. The one exception is `randomSeed()`, called from `setup` when no seed was given: `const seed = args.seed ?? randomSeed()` in Flip 7's `setup.ts`.
 - Test that a pinned seed gives the same game and that nothing calls `Math.random` once a seed is given (`vi.spyOn(Math, "random")` in `games/courtisans/packages/engine/src/determinism.test.ts`).
 
-| Function | What it does |
-| --- | --- |
-| `createSaveableRng(seed)` | A stream of numbers in [0, 1) with `save()`, which returns its position as one number; only the low bits of the seed count |
-| `restoreRng(saved)` | Carries on from a saved position; `RangeError` for one that `save()` could not have returned |
-| `createRng(seed)` | The same numbers, for a caller that never saves the position |
-| `shuffle(items, rng)` | A shuffled copy |
-| `sideSeed(seed, ...parts)` | A seed for an independent stream, from the high bits of the game seed and a few integers of your choice |
-| `randomSeed()` | A fresh seed; the only function of the kit that is not deterministic |
+The streams, `shuffle`, `sideSeed` and `randomSeed` are in [Random numbers](06-kit/04-random-numbers.md).
 
 ## Carrying a stream
 
@@ -90,9 +83,7 @@ expect(demo.view(e, null).me).toBeNull()
 
 ## Opaque ids and the per-viewer log
 
-- **Opaque ids** (`ids.ts`): a card that clients can see face down is shown under a number that says nothing about it, and a card that goes back into hiding gets a new id (`reissueId`).
-- **The per-viewer log** (`log.ts`): a `LogEntry` holds the event in full for the players it concerns (`to`) and a `masked` version for the others; `viewLog(entries, viewerId)` filters. The log is not in the state.
-- The reference of both is `packages/engine-kit/README.md`.
+Both are in the kit: [Opaque ids](06-kit/05-opaque-ids.md) for the numbers a face-down card is shown under, and [Per-viewer log](06-kit/07-per-viewer-log.md) for what happened, as each viewer may read it.
 
 ## Two kinds of errors
 

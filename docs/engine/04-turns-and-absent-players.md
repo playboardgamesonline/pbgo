@@ -32,28 +32,11 @@ function waiting(state: State): string[] {
 
 ## The kit's helpers
 
-Everything that needs to know whose turn it is goes through these helpers (`packages/engine-kit/src/turns.ts`), never through the hooks of the definition. They take any object with the turn hooks (`TurnHooks<State>`).
-
-| Helper | Behaviour | Errors |
-| --- | --- | --- |
-| `waitingPlayers(game, state)` | The players waited for: `waitingFor`, else the legacy `activePlayer` as a list of one; in seat order, no duplicates, empty once the game is over | |
-| `currentPlayer(game, state)` | Whose turn it is, or `null`: the legacy `activePlayer` when defined, else the first waiting player | |
-| `canPlayFor(game)` | Whether the server can play for an absent player: the game knows who waits and has a way to play. Reads the definition, not a state | |
-| `playFor(game, state, playerId)` | Plays one waiting player's current step with `autoPlayFor`; the legacy `autoPlay` or `debug.turn` when that player is the only one waiting | `NOT_WAITING`, `AUTOPLAY_UNSUPPORTED` |
-| `playOn(game, state, maxSteps)` | Plays for the first waiting player until the game is over, nobody is waiting or `maxSteps` plays were made; for tests and simulations | Those of `playFor` |
+Everything that needs to know whose turn it is goes through the kit's helpers, never through the hooks of the definition: `waitingPlayers`, `currentPlayer`, `canPlayFor`, `playFor` and `playOn` are in [Turns](06-kit/02-turns.md).
 
 ## Simultaneous steps
 
-Several players answer in any order and the last answer ends the step (secret bids, everybody reads their missions). Keep the answers in the state as `Submissions<T>`, a `Record<string, T | null>` keyed by player id, `null` until the player answers.
-
-| Helper | Use in an engine |
-| --- | --- |
-| `openSubmissions(playerIds)` | Opens the step: nobody has answered |
-| `submit(submissions, playerId, value)` | In `apply`, records the answer. Answering again replaces it; a game whose answers are final refuses the second one itself. `RangeError` for a player outside the step and for `null` or `undefined` |
-| `allSubmitted(submissions)` | In `apply`, once true, resolve the step in the same action: the state never sits between two phases |
-| `pendingSubmissions(submissions, seatIds)` | In `waitingFor`: who has not answered, in seat order |
-| `submittedFlags(submissions)` | In `view`: who answered, never what, until the step is resolved |
-| `revealSubmissions(submissions, seatIds)` | In the resolution: the answers in seat order; `RangeError` if one is missing |
+Several players answer in any order and the last answer ends the step (secret bids, everybody reads their missions). Keep the answers in the state as `Submissions<T>`; the helpers that open a step, record an answer, list who is pending and reveal the answers are in [Simultaneous steps](06-kit/03-simultaneous-steps.md).
 
 `autoPlayFor` answers for that one player, so several absent players are played for one after the other.
 
