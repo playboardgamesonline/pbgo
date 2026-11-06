@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Terms of Use", alternates: { canonic
 const UPDATED = "6 November 2026"
 
 /**
- * The rules of using the site, for a guest as much as for an account (the sign-in page says that continuing accepts them, `login-card.tsx`). What the owner chose to ship without is not on the page: the
+ * The rules of using the site, for a guest as much as for an account (the sign-in and the sign-up pages say that continuing, or creating an account, accepts them, `login-card.tsx`, `signup-card.tsx`). What the owner chose to ship without is not on the page: the
  * governing law and courts (`docs/legal.md`, "Decisions of the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2). The chat's
  * banned-word filter is a feature they plan and that does not exist yet: the sentence about it must not go live before the filter does. What the page says of the games follows the footer's line and the legal notice:
  * the games are unofficial adaptations, and their rights belong to their owners.
@@ -56,6 +56,9 @@ export default function TermsOfUse() {
         <LegalText>
           You do not need an account to play: a guest picks a nickname. An account is made by signing in with Facebook, Google, Apple or Discord. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
           else uses yours.
+        </LegalText>
+        <LegalText>
+          An account can also be made with an e-mail address and a password: you confirm the address with a code that we e-mail you, and you are responsible for keeping the password safe.
         </LegalText>
         <LegalText>
           Your nickname, or the name and picture of your account, are seen by the people at your table. Do not use the name of someone else, or a name or a picture that is offensive, hateful or illegal. We may change a nickname or refuse a picture that breaks this rule.

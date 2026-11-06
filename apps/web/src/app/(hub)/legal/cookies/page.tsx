@@ -46,7 +46,7 @@ export default function CookiePolicy() {
         This page lists what the site keeps on your device, why, and for how long. A cookie is a small file that your browser keeps for a site; local storage is a similar space that only the site that wrote to it can read.
       </LegalText>
       <LegalText>
-        Nothing is stored when you arrive. The site writes something only when you do what needs it (create or join a table, pick a language, sign in) or when you answer the cookie banner, and, once you are signed in, it keeps your language cookie in step with your account. No advertising cookies, no tracking across sites, and nothing is sold or shared for
+        Nothing is stored when you arrive. The site writes something only when you do what needs it (create or join a table, pick a language, sign in or create an account) or when you answer the cookie banner, and, once you are signed in, it keeps your language cookie in step with your account. No advertising cookies, no tracking across sites, and nothing is sold or shared for
         advertising. The site does not use cookies to personalise what you see or to market anything to you.
       </LegalText>
       <LegalText>
@@ -66,7 +66,7 @@ export default function CookiePolicy() {
             },
             {
               name: "sb-…",
-              text: "Keeps you signed in. Written by Supabase, our sign-in service, on this site's own domain, and only if you sign in. Kept while you stay signed in, 400 days at most.",
+              text: "Keeps you signed in; a few more of the same family hold a sign-in or a sign-up while it is under way. Written by Supabase, our sign-in service, on this site's own domain, and only if you sign in or create an account. Kept while you stay signed in, 400 days at most.",
             },
             {
               name: "gamemaster_session",
