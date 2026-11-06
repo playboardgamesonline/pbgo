@@ -20,7 +20,7 @@ const WHEN = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "sh
 function TournamentRow({ tournament }: { tournament: GameTournament }) {
   const { name, status, startsAt, places, registered } = tournament
   return (
-    <Item variant="outline">
+    <Item>
       <ItemContent>
         <ItemTitle>{name}</ItemTitle>
         <ItemDescription>

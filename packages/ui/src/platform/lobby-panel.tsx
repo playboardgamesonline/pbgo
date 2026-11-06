@@ -7,7 +7,6 @@ import { Button } from "./button"
 import { Card, CardContent, CardDescription, CardFooter, CardTitle } from "./card"
 import { LobbyAccess, type LobbyAccessProps } from "./lobby-access"
 import { LobbyPlayers } from "./lobby-players"
-import { LobbySeats } from "./lobby-seats"
 import { LobbySettings, type LobbySettingsProps } from "./lobby-settings"
 import type { OpenSeatProps } from "./open-seat"
 
@@ -27,29 +26,6 @@ function LobbyPanel({ className, flat = false, ...props }: React.ComponentProps<
       className={cn("@container h-full gap-6 [--card-spacing:--spacing(8)] *:data-[slot=card-content]:flex-1 lg:min-h-176", flat && "rounded-none bg-transparent shadow-none! ring-0", className)}
       {...props}
     />
-  )
-}
-
-type LobbySettingProps = Omit<React.ComponentProps<"div">, "title"> & {
-  /** What the setting is ("Expansion"). */
-  label: string
-  /** A line more, quiet, under the label. */
-  description?: string
-}
-
-/**
- * One setting of a lobby as a row: its name on the left, and on the right what it is set to (a word) or the control that sets it (a switch, a select, a group of chips). The rows of a panel are separated by a hairline. A control inside gives itself
- * a name (`aria-label`), since the label here is not a `<label>`. The settings of a game's lobby are not rows but groups (`LobbySettings`), since an expansion is a picture; the row stays for a setting that is one word and one control.
- */
-function LobbySetting({ label, description, className, children, ...props }: LobbySettingProps) {
-  return (
-    <div data-slot="lobby-setting" className={cn("flex items-center justify-between gap-4 border-t py-3 first:border-t-0 first:pt-0 last:pb-0", className)} {...props}>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-sm">{label}</span>
-        {description && <span className="text-xs text-muted-foreground">{description}</span>}
-      </div>
-      <div className="flex shrink-0 items-center gap-2 text-sm">{children}</div>
-    </div>
   )
 }
 
@@ -145,5 +121,5 @@ function LobbyDetail({ state, createdBy, title, description, seats, settings, ac
   )
 }
 
-export { LobbyDetail, LobbyMainButton, LobbyPanel, LobbySeats, LobbySetting, LobbySideButton }
-export type { LobbyDetailProps, LobbySettingProps }
+export { LobbyDetail, LobbyMainButton, LobbyPanel, LobbySideButton }
+export type { LobbyDetailProps }

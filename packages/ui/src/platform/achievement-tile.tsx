@@ -58,27 +58,4 @@ function AchievementBadge({ seed, className, ...props }: Omit<React.ComponentPro
   )
 }
 
-type AchievementTileProps = Omit<React.ComponentProps<"div">, "children" | "title"> & {
-  /** What the achievement is called. */
-  name: string
-  /** The day it was earned, already written ("26 Oct"). */
-  date: string
-  /** What it was for ("Play 20 games."). */
-  description?: string
-  /** The text the emblem is drawn from: the achievement's id, so that it keeps its badge. The name when there is none. */
-  badge?: string
-}
-
-function AchievementTile({ className, name, date, description, badge, ...props }: AchievementTileProps) {
-  return (
-    <div data-slot="achievement-tile" title={description ? `${name}: ${description}` : name} className={cn("flex min-w-0 flex-col items-center gap-1 text-center", className)} {...props}>
-      <AchievementBadge seed={badge ?? name} />
-      <span className="mt-2 w-full truncate text-sm">{name}</span>
-      <span className="text-xs text-muted-foreground">{date}</span>
-      {description && <span className="sr-only">{description}</span>}
-    </div>
-  )
-}
-
-export { AchievementBadge, AchievementTile }
-export type { AchievementTileProps }
+export { AchievementBadge }

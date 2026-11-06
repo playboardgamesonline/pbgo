@@ -2,7 +2,7 @@ import "server-only"
 import { access, readFile, readdir } from "node:fs/promises"
 import path from "node:path"
 import { cache } from "react"
-import { addressOf, buildSections, findPage, hrefOf, isDocName, pageNameOf, specimensOf, type DocFile, type DocPage, type DocSection } from "./docs"
+import { addressOf, buildSections, findPage, frontMatterOf, hrefOf, isDocName, pageNameOf, specimensOf, type DocFile, type DocPage, type DocSection } from "./docs"
 
 // The reader of the docs/ folder, for apps/web: it runs when the pages are built (they are static), reads each section folder of `docs/`, the folders in them and the markdown files, and gives the model of `docs.ts` the text.
 // A page is looked up among the files it found, by its address, and a path is never made from what the visitor wrote: a name that is not a file of the docs finds nothing, whatever it says.
@@ -20,7 +20,7 @@ export async function findDocsDir(from: string = process.cwd()): Promise<string>
 }
 
 /**
- * Every markdown file of every folder of `dir`, the folders of the folders too. A folder or a file whose name is not one of the `isDocName` words is left alone, and so is what is not a plain folder or a plain file (a link to somewhere else
+ * Every markdown file of every folder of `dir`, the folders of the folders too, each with its text apart from its front matter (`frontMatterOf`). A folder or a file whose name is not one of the `isDocName` words is left alone, and so is what is not a plain folder or a plain file (a link to somewhere else
  * is not followed), as are the files at the top of `dir` (the docs that are not in a section yet, and are not pages).
  */
 export async function readDocFiles(dir: string): Promise<DocFile[]> {
@@ -30,7 +30,12 @@ export async function readDocFiles(dir: string): Promise<DocFile[]> {
       const name = entry.isFile() ? pageNameOf(entry.name) : null
       return name === null ? [] : [name]
     })
-    const here = await Promise.all(names.map(async (file) => ({ dir: folders, file, markdown: await readFile(path.join(dir, ...folders, `${file}.md`), "utf8") })))
+    const here = await Promise.all(
+      names.map(async (file): Promise<DocFile> => {
+        const { meta, markdown } = frontMatterOf(await readFile(path.join(dir, ...folders, `${file}.md`), "utf8"), `docs/${[...folders, `${file}.md`].join("/")}`)
+        return { dir: folders, file, markdown, ...(Object.keys(meta).length > 0 && { meta }) }
+      }),
+    )
     const below = await Promise.all(entries.filter((entry) => entry.isDirectory() && isDocName(entry.name)).map((entry) => read([...folders, entry.name])))
     return [...here, ...below.flat()]
   }

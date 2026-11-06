@@ -1,3 +1,8 @@
+---
+icon: cpu
+description: How the rules of a board game become code, and how that code plugs into the site.
+---
+
 # Engine
 
 The guides of the game engines: how the rules of a game become a pure TypeScript engine (`@<slug>/engine`), the contract between an engine and the web app (`@pbgo/engine-kit`), and how a game is built from `template/`.

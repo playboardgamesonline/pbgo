@@ -5,7 +5,6 @@ import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
-import { NavbarIsland } from "@pbgo/ui/platform/navbar"
 import { SearchBar, SearchBarField, SearchBarInput, SearchBarSubmit } from "@pbgo/ui/platform/search-bar"
 import { Slider } from "@pbgo/ui/platform/slider"
 
@@ -45,12 +44,12 @@ export function GlassLab() {
           <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-7xl font-black tracking-tight text-foreground uppercase">Board games</p>
         </div>
 
-        <NavbarIsland className="self-start">
+        <div className="glass flex h-14 items-center gap-1 self-start rounded-2xl border p-2 shadow-surface">
           <Logo className="h-6 px-2" />
           <span className="px-3 text-sm text-muted-foreground">Games</span>
           <span className="px-3 text-sm text-muted-foreground">Tables</span>
           <span className="px-3 text-sm text-muted-foreground">Tournaments</span>
-        </NavbarIsland>
+        </div>
 
         <div className="w-full max-w-md">
           <SearchBar method="dialog" aria-label="Search games, tables and tournaments">

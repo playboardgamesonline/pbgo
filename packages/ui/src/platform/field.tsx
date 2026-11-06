@@ -1,36 +1,9 @@
 "use client"
 
 import { useMemo } from "react"
-import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../utils"
 
 import { Label } from "./label"
-import { Separator } from "./separator"
-
-function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
-  return (
-    <fieldset
-      data-slot="field-set"
-      className={cn("gap-6 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3 flex flex-col", className)}
-      {...props}
-    />
-  )
-}
-
-function FieldLegend({
-  className,
-  variant = "legend",
-  ...props
-}: React.ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
-  return (
-    <legend
-      data-slot="field-legend"
-      data-variant={variant}
-      className={cn("mb-3 data-[variant=label]:text-sm data-[variant=legend]:text-base", className)}
-      {...props}
-    />
-  )
-}
 
 function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -45,46 +18,12 @@ function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-const fieldVariants = cva("data-[invalid=true]:text-destructive gap-3 group/field flex w-full", {
-  variants: {
-    orientation: {
-      vertical:
-        " flex-col *:w-full [&>.sr-only]:w-auto",
-      horizontal:
-        " flex-row items-center has-[>[data-slot=field-content]]:items-start *:data-[slot=field-label]:flex-auto has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-      responsive:
-        " flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center @md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-    },
-  },
-  defaultVariants: {
-    orientation: "vertical",
-  },
-})
-
-function Field({
-  className,
-  orientation = "vertical",
-  ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+function Field({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       role="group"
       data-slot="field"
-      data-orientation={orientation}
-      className={cn(fieldVariants({ orientation }), className)}
-      {...props}
-    />
-  )
-}
-
-function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="field-content"
-      className={cn(
-        "gap-1 group/field-content flex flex-1 flex-col leading-snug",
-        className
-      )}
+      className={cn("data-[invalid=true]:text-destructive gap-3 group/field flex w-full flex-col *:w-full [&>.sr-only]:w-auto", className)}
       {...props}
     />
   )
@@ -107,16 +46,6 @@ function FieldLabel({
   )
 }
 
-function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="field-label"
-      className={cn("gap-2 leading-snug text-sm group-data-[disabled=true]/field:opacity-50 flex w-fit items-center", className)}
-      {...props}
-    />
-  )
-}
-
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
@@ -129,33 +58,6 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
       )}
       {...props}
     />
-  )
-}
-
-function FieldSeparator({
-  children,
-  className,
-  ...props
-}: React.ComponentProps<"div"> & {
-  children?: React.ReactNode
-}) {
-  return (
-    <div
-      data-slot="field-separator"
-      data-content={!!children}
-      className={cn("-my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2 relative", className)}
-      {...props}
-    >
-      <Separator className="absolute inset-0 top-1/2" />
-      {children && (
-        <span
-          className="text-muted-foreground px-2 relative mx-auto block w-fit bg-background"
-          data-slot="field-separator-content"
-        >
-          {children}
-        </span>
-      )}
-    </div>
   )
 }
 
@@ -210,15 +112,4 @@ function FieldError({
   )
 }
 
-export {
-  Field,
-  FieldLabel,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLegend,
-  FieldSeparator,
-  FieldSet,
-  FieldContent,
-  FieldTitle,
-}
+export { Field, FieldLabel, FieldDescription, FieldError, FieldGroup }

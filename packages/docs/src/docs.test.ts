@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { LANDING, addressOf, buildSections, findPage, flatten, hrefOf, isDocName, pageNameOf, parseName, resolveLink, specimensOf, splitSpecimen, summaryOf, titleOf, type DocFile } from "./docs"
+import { LANDING, addressOf, buildSections, filterPages, findPage, flatten, frontMatterOf, hrefOf, isDocName, matchesQuery, neighboursOf, pageNameOf, parseName, resolveLink, specimensOf, splitSpecimen, titleOf, type DocFile, type DocPage } from "./docs"
 
 describe("isDocName and pageNameOf", () => {
   it("accept words of lowercase letters and digits joined by dashes", () => {
@@ -45,27 +45,55 @@ describe("titleOf", () => {
   })
 })
 
-describe("summaryOf", () => {
-  it("is the first paragraph, in plain words, after the title", () => {
-    const text = "# Title\n\nThe `first` paragraph,\nover two lines.\n\nThe second."
-    expect(summaryOf(text)).toBe("The first paragraph, over two lines.")
+describe("frontMatterOf", () => {
+  it("takes the block at the top off the text and reads its keys", () => {
+    const text = '---\nicon: paint-board\ndescription: "How a screen is built: colour, type."\n---\n\n# Design\n\nText.'
+    expect(frontMatterOf(text)).toEqual({ meta: { icon: "paint-board", description: "How a screen is built: colour, type." }, markdown: "# Design\n\nText." })
   })
 
-  it("skips a heading, a list, a table, a quote and a fenced block", () => {
-    const text = "# Title\n## Sub\n- item\n| a | b |\n> quote\n\n```\ncode\n```\n\nThe paragraph."
-    expect(summaryOf(text)).toBe("The paragraph.")
+  it("reads a value in plain words or between either quotes, and Windows line ends", () => {
+    expect(frontMatterOf("---\r\ndescription: Plain words.\r\n---\r\n# T").meta).toEqual({ description: "Plain words." })
+    expect(frontMatterOf("---\ndescription: 'Single.'\nicon: \"double\"\n---\n# T").meta).toEqual({ description: "Single.", icon: "double" })
   })
 
-  it("is cut at a word", () => {
-    const text = `# T\n\n${"word ".repeat(100)}`
-    const summary = summaryOf(text, 50)
-    expect(summary.length).toBeLessThanOrEqual(51)
-    expect(summary.endsWith("…")).toBe(true)
-    expect(summary).not.toMatch(/wor…$/)
+  it("is no front matter for a text that has no block at its very top", () => {
+    for (const text of ["# Title\n\n---\nicon: x\n---\n", "\n---\nicon: x\n---\n# T", "---\nicon: x\nnever closed", "just text"]) expect(frontMatterOf(text), text).toEqual({ meta: {}, markdown: text })
   })
 
-  it("is empty when there is no paragraph", () => {
-    expect(summaryOf("# Only a title")).toBe("")
+  it("stops on a key it does not know, on a line that is not a pair and on a value that says nothing, naming the file", () => {
+    expect(() => frontMatterOf("---\ncolor: red\n---\n# T", "docs/a/index.md")).toThrow('docs/a/index.md: "color: red" is not a line of the front matter')
+    expect(() => frontMatterOf("---\nnot a pair\n---\n# T", "f.md")).toThrow("f.md: ")
+    expect(() => frontMatterOf("---\ndescription:\n---\n# T", "f.md")).toThrow("f.md: the front matter says nothing for description")
+  })
+})
+
+describe("matchesQuery and filterPages", () => {
+  const page = (title: string, pages: DocPage[] = []): DocPage => ({ segments: [title.toLowerCase()], title, href: `/docs/${title.toLowerCase()}`, pages })
+  const tree = [page("Guidelines"), page("Components", [page("Controls"), page("Overlays"), page("Social")]), page("In-game UI")]
+  const titles = (pages: readonly DocPage[]): string[] => pages.map((entry) => (entry.pages.length > 0 ? `${entry.title} > ${titles(entry.pages).join(", ")}` : entry.title))
+
+  it("read a text without its case and its accents, every word of the search having to be in it", () => {
+    expect(matchesQuery("Écran de Contrôle", "ecran controle")).toBe(true)
+    expect(matchesQuery("Guidelines", "GUIDE")).toBe(true)
+    expect(matchesQuery("Guidelines", "guide rules")).toBe(false)
+    expect(matchesQuery("anything", "   ")).toBe(true)
+  })
+
+  it("keep the whole menu for a search with no word", () => {
+    expect(titles(filterPages(tree, "  "))).toEqual(titles(tree))
+  })
+
+  it("keep a page whose title matches, and a group with the pages of it that match", () => {
+    expect(titles(filterPages(tree, "over"))).toEqual(["Components > Overlays"])
+    expect(titles(filterPages(tree, "in-game"))).toEqual(["In-game UI"])
+  })
+
+  it("keep a group whose own title matches with all of its pages", () => {
+    expect(titles(filterPages(tree, "component"))).toEqual(["Components > Controls, Overlays, Social"])
+  })
+
+  it("keep nothing when nothing matches", () => {
+    expect(filterPages(tree, "zebra")).toEqual([])
   })
 })
 
@@ -132,9 +160,15 @@ describe("buildSections", () => {
     expect(sections[0]?.pages.map((page) => page.href)).toEqual(["/docs/design/page-2", "/docs/design/page-10"])
   })
 
-  it("takes the title, the summary and the address of a section from its landing page", () => {
-    const [section] = buildSections([file("design/index", "# Design system\n\nThe tokens and the rules.")])
-    expect(section).toMatchObject({ slug: "design", title: "Design system", summary: "The tokens and the rules.", href: "/docs/design", segments: ["design"], pages: [] })
+  it("takes the title, the description, the icon and the address of a section from its landing page", () => {
+    const landing: DocFile = { ...file("design/index", "# Design system\n\nThe tokens."), meta: { icon: "paint-board", description: "The tokens and the rules." } }
+    const [section] = buildSections([landing])
+    expect(section).toMatchObject({ slug: "design", title: "Design system", description: "The tokens and the rules.", icon: "paint-board", href: "/docs/design", segments: ["design"], pages: [] })
+  })
+
+  it("leaves the description empty and the icon null when the landing page says none", () => {
+    const [section] = buildSections([file("design/index", "# Design system\n\nThe tokens.")])
+    expect(section).toMatchObject({ description: "", icon: null })
   })
 
   it("names a page after its file when it has no heading", () => {
@@ -204,6 +238,20 @@ describe("flatten and findPage", () => {
     expect(findPage(sections, ["design", "components", "controls"])?.title).toBe("Controls")
     expect(findPage(sections, ["design"])?.title).toBe("Design")
     for (const address of [[], ["design", "controls"], ["design", "components", "controls", "x"], ["nope"], ["design", "index"]]) expect(findPage(sections, address), address.join("/")).toBeNull()
+  })
+
+  it("reads a section page by page: the neighbours of a page are the ones before and after it in the order of the menu, inside its section", () => {
+    const [design] = sections
+    if (!design) throw new Error("no section")
+    const titles = (segments: string[]) => {
+      const { previous, next } = neighboursOf(design, segments)
+      return [previous?.title ?? null, next?.title ?? null]
+    }
+    expect(titles(["design"])).toEqual([null, "Components"])
+    expect(titles(["design", "components"])).toEqual(["Design", "Controls"])
+    expect(titles(["design", "components", "controls"])).toEqual(["Components", null])
+    expect(titles(["engine"])).toEqual([null, null])
+    expect(titles(["design", "nope"])).toEqual([null, null])
   })
 })
 

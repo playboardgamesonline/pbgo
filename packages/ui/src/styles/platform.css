@@ -134,7 +134,7 @@
 /*
  * A container that floats over the page (an island of the navbar, the dock, a panel, a bar, a menu, a chat): the grey of a card (`--card`), of which it keeps `--glass-opacity` (the rest
  * lets the page through), over a blur of `--glass-blur` that saturates what it blurs by `--glass-saturate`: the three settings of the glass, on `.platform`, the same for every container
- * (`/docs/design/foundations`, section Glass, moves them live). What is cut out of a picture inside it has to be that grey and not the page's, which `--cutout` says.
+ * (`/docs/design/foundations/glass` moves them live). What is cut out of a picture inside it has to be that grey and not the page's, which `--cutout` says.
  */
 @utility glass {
   background-color: color-mix(in oklab, var(--card) var(--glass-opacity), transparent);

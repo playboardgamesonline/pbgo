@@ -22,8 +22,8 @@ export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorSchem
  * Root layout of the hub pages (`/`, `/games`, `/game/<slug>`, `/tables`, `/tournaments`, `/pricing`, `/about`, `/legal`, `/docs`).
  * Each game has its own root layout, `app/[game]/layout.tsx`.
  * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports. So is the navbar
- * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the docs, the
- * legal pages, the 404). `LanguageSync` is mounted once too: it keeps the device of a signed-in visitor in the language of their account. So is the toaster, which says what went wrong when a table could not be opened, joined or started.
+ * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the pages of a doc,
+ * which have a side menu of their own, the legal pages, the 404). `LanguageSync` is mounted once too: it keeps the device of a signed-in visitor in the language of their account. So is the toaster, which says what went wrong when a table could not be opened, joined or started.
  */
 export default function HubLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

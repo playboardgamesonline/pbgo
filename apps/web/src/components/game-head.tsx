@@ -16,7 +16,7 @@ import { RulesButton } from "./rules-button"
 // buttons, all 48px high, "Play ranked", with a play icon, which puts the visitor in a queue and becomes a counter with a cross while it lasts (`PlayRankedButton`); "Create a table", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
 // to the rulebook, or a menu of languages that a press opens). What the signed-in visitor has done in the game is not in the head: it is the cards under it, the first section of the page (`GamePlayerBar`).
 // Under the buttons come the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled and keeps the rules.
-// Nothing stands in for what is missing: a game with no background has a plain head. The gallery of the game's pictures and clips (`MediaGallery`) is not drawn for now: it will have a place again.
+// Nothing stands in for what is missing: a game with no background has a plain head.
 
 export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop">
 

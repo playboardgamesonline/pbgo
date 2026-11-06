@@ -78,7 +78,7 @@ The ticker, the players strip, the seat label, the announcements (start, round, 
 - **Motion**: any `motion/react` animation reads `useMotion()` (`"reduced" | "calm" | "lively"`); `GameHud` already mounts `MotionConfig reducedMotion="user"`. Reduced motion always wins over the theme: fades of 150 ms at most, no confetti, emoji burst, spring or looping effect. CSS transitions use `duration-*`, `ease-standard` and `motion-reduce:transition-none`.
 - **Texts**: every label of the shared UI is a `UI_TEXTS` key (`@pbgo/studio-kit`), translated in fr / en / es / de (the strip uses `players`, `playersReady`, `seatDone`, `seatWaiting`, `seatAway`, the ticker `history`). No copy hard-coded in a shared component.
 - **Debug**: Shift+D, TRANSITION tab: the announcement presets (`start`, `round`, `turn`, `victory`: duration, sound, scrim, sizes, banner, confetti). Nothing else of the in-game UI is tunable there.
-- **Reference**: `/docs/design/in-game` (`docs/design/04-in-game.md` at the repo root) draws the seat label, the players strip, the four announcements (replay, hold, reduce motion) and the game over (one winner, a tie) in the look of two games side by side. The cards and the table are not part of it: they are the board's, drawn with `@pbgo/table`.
+- **Reference**: `/docs/design/in-game` (`docs/design/04-in-game/` at the repo root) draws the seat label, the players strip, the four announcements (replay, hold, reduce motion) and the game over (one winner, a tie) in the look of two games side by side. The cards and the table are not part of it: they are the board's, drawn with `@pbgo/table`.
 
 ---
 
