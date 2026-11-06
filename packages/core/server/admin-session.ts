@@ -45,7 +45,7 @@ export function adminAccess(env: AdminEnv): AdminAccess {
 }
 
 /** Equal-length digests make `timingSafeEqual` usable on strings of any length without leaking the length. */
-function same(a: string, b: string) {
+export function same(a: string, b: string) {
   const x = createHash("sha256").update(a).digest()
   const y = createHash("sha256").update(b).digest()
   return timingSafeEqual(x, y)
