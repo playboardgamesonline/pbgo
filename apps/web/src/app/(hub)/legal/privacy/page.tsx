@@ -75,7 +75,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "The table",
-              text: `A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played and the last time each player was seen. That is how a game goes on after a reload and how the others can play for someone who has left. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. A clean-up runs every night and deletes a table ${TABLE_RETENTION_DAYS} days after the last thing that happened at it (a move, a join, a change of its options).`,
+              text: `A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played and the last time each player was seen. While a game starts, it also keeps the time each player's board finished loading, for a minute at most. That is how a game goes on after a reload, how the others can play for someone who has left, and how the game begins for everybody together. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. A clean-up runs every night and deletes a table ${TABLE_RETENTION_DAYS} days after the last thing that happened at it (a move, a join, a change of its options).`,
             },
             {
               name: "The chat",
@@ -83,7 +83,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Live updates",
-              text: "While you are at a table, your browser stays connected to our database provider, Supabase, to receive the table's updates and the chat. Supabase receives your IP address for that.",
+              text: "While you are at a table, your browser stays connected to our database provider, Supabase, to receive the table's updates and the chat. While a game starts, it also tells the other players how far your board has loaded, which only draws the bar of the start screen and is not stored. Supabase receives your IP address for that.",
             },
           ]}
         />
