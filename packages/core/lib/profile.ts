@@ -34,9 +34,9 @@ function persist(key: string, value: string) {
   listeners.forEach((l) => l())
 }
 
-/** Profile of the visitor (nickname), remembered per game: `<slug>:profile`. */
-export function useProfile() {
-  const key = `${useGameSlug()}:profile`
+/** Profile of the visitor (nickname) for the game `slug`, remembered on the device: `<slug>:profile`. The hub's page of a game asks it too (a guest sits down under it), outside the game's runtime. */
+export function useProfileOf(slug: string) {
+  const key = `${slug}:profile`
   const getSnapshot = useCallback(() => read(key), [key])
   const raw = useSyncExternalStore<string | null | undefined>(subscribe, getSnapshot, () => undefined)
 
@@ -52,3 +52,6 @@ export function useProfile() {
 
   return { profile, setProfile, ready: raw !== undefined, valid: profile.nickname.trim().length > 0 }
 }
+
+/** Profile of the visitor in the game shown (`useProfileOf` of its slug). */
+export const useProfile = () => useProfileOf(useGameSlug())

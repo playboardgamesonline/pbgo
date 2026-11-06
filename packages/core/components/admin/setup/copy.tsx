@@ -22,8 +22,8 @@ const pick = (d: AdminData): Draft => ({
 })
 
 const GROUPS: { id: CopyGroup; title: string; description: string }[] = [
-  { id: "home", title: "Home", description: "Welcome screen, nickname, create and join, feedback." },
-  { id: "lobby", title: "Lobby", description: "Invitation, players and start." },
+  { id: "home", title: "Home", description: "Menu, sound, rules, feedback and footer." },
+  { id: "lobby", title: "Lobby", description: "A table that is not found or has started, the host and the setup menu." },
   { id: "game", title: "Game", description: "Turns, history and absent players." },
   { id: "end", title: "End", description: "Scoreboard, victory phrases and replay." },
   { id: "errors", title: "Errors", description: "Messages shown when an action is refused." },

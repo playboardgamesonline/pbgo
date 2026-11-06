@@ -25,6 +25,10 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   action?: TableAction | null
   /** The table's page: where a free seat leads, and the address that the invitation copies. */
   href?: string
+  /** What a free seat does instead of leading to the table's page, for a page that sits the visitor down itself: a button in place of the link. */
+  onJoin?: () => void
+  /** What is done once the visitor has copied the table's link from the menu of a free seat (`mine`): a page counts it. */
+  onCopyInvite?: () => void
   /** Whether the visitor sits at this table: a free seat then opens the menu to invite someone, instead of joining it. */
   mine?: boolean
   /** Whether the visitor opened it: the row then says "Hosted by you". */
@@ -37,13 +41,13 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   controls?: string
 }
 
-function TableEntry({ className, state, seats, age, facts = [], action, href, mine = false, hostedByYou = false, selected = false, onSelect, controls, ...props }: TableEntryProps) {
+function TableEntry({ className, state, seats, age, facts = [], action, href, onJoin, onCopyInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, ...props }: TableEntryProps) {
   const { taken, total } = seatCount(seats)
   const host = hostedByYou ? "you" : (hostOf(seats) ?? "a player who left")
   const full = action === "full"
   const firstFree = seats.indexOf(null)
-  const join = !mine && href && action === "join" ? { href } : undefined
-  const invite = mine && href ? { link: href } : undefined
+  const join = !mine && (href || onJoin) && action === "join" ? { href, onJoin } : undefined
+  const invite = mine && href ? { link: href, onCopy: onCopyInvite } : undefined
   const word = mine ? "Invite" : join ? "Join" : "Open"
   return (
     // A press on the row picks it, wherever it is but on a link or a button (a free seat is one, and what is portaled out of the row, a player's card or a menu, is not a press on it); the button of the first line is what the keyboard and screen readers reach
@@ -69,7 +73,7 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, mi
         className="flex w-full min-w-0 flex-col gap-1 rounded-t-[inherit] px-4 pt-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset"
       >
         {/* What the row says, once, for screen readers: the seats under it name everybody and are read as they are */}
-        <span className="sr-only">
+        <span className="ph-mask sr-only">
           {`Table hosted by ${host}, ${taken} of ${total} seats taken${facts.length > 0 ? `, ${facts.join(", ")}` : ""}. ${age}.`}
         </span>
         <span aria-hidden="true" className="flex w-full min-w-0 items-center gap-3">
@@ -79,7 +83,7 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, mi
           </span>
           <span className="min-w-0 truncate">
             <span className="text-muted-foreground">Hosted by </span>
-            {host}
+            <span className="ph-mask">{host}</span>
           </span>
           <span data-slot="table-entry-age" className="ml-auto shrink-0 text-sm text-muted-foreground">
             {full && "Full · "}
@@ -100,7 +104,7 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, mi
               {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3 left-1/2 z-10 size-4 -translate-x-1/2" />}
               {seat ? <SeatAvatar seat={seat} className="size-12" /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className="size-12" />}
             </span>
-            <span className={cn("w-13 truncate text-center text-xs", !seat && "text-muted-foreground")}>{seat ? seat.name : word}</span>
+            <span className={cn("w-13 truncate text-center text-xs", seat ? "ph-mask" : "text-muted-foreground")}>{seat ? seat.name : word}</span>
           </li>
         ))}
       </ul>

@@ -1,10 +1,11 @@
 import "server-only"
 import { cache } from "react"
-import { bggIconUrl, bggUrl, creditLines, pickLocalized, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
+import { bggIconUrl, bggUrl, creditLines, pickLocalized, registryRow, releaseYear, type CatalogEntry, type CreditLine } from "@pbgo/catalog"
 import { gameSeo, type GameSeo } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
 import { LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { getLocale } from "@pbgo/core/lib/locale-server"
+import { findGame } from "@pbgo/games/registry"
 import type { GameCardProps } from "@pbgo/ui/platform/game-card"
 import type { HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import { catalogCardProps, durationLabel, heroPicture, playersLabel } from "./game-card-props"
@@ -114,13 +115,22 @@ function gamePage(entry: CatalogEntry, entries: CatalogEntry[], locale: Locale):
 }
 
 /**
+ * In development every game of the registry has a page, the demo template and a game under construction included: `pnpm dev` opens a game at `/<slug>` (which shows this page), and a game that was just made has no game in the Studio
+ * yet, and the template never has one. It is the registry's row, with nothing but a name and the figures it knows. A deployment lists only what the catalog announces.
+ */
+function developmentEntry(slug: string): CatalogEntry | null {
+  const game = process.env.NODE_ENV === "development" ? findGame(slug) : null
+  return game ? { slug, live: game.live, indexable: false, game: registryRow(game), related: [] } : null
+}
+
+/**
  * The page of a game of the catalog (`/game/<slug>`), null when the catalog does not list the slug: the page then answers 404.
  * Every game's page is its game in the Studio, so while the platform's Sanity project cannot be read only the live games have a page, from the registry.
  * Read once per request, however many times the page and its metadata ask. Reading the visitor's language makes the page dynamic.
  */
 export const getGamePage = cache(async (slug: string): Promise<GamePage | null> => {
   const { entries } = await getCatalog()
-  const entry = entries.find((candidate) => candidate.slug === slug)
+  const entry = entries.find((candidate) => candidate.slug === slug) ?? developmentEntry(slug)
   if (!entry) return null
   return gamePage(entry, entries, await getLocale())
 })

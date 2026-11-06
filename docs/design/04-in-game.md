@@ -6,7 +6,7 @@ Everything about the UI that `@pbgo/core` draws inside a game, always in the gam
 
 The in-game part of the `@pbgo/core` entry of `docs/packages.md`:
 
-- Standard screens and game flow (from Courtisans): `Screen` (home, invitation, lobby), `GameHud` + `Ticker` + `groupTurns` + `useAnnouncements`, `GameOver` (`renderDetail` for the score detail), sound (`lib/sound.ts`, `SoundButton`, `SoundEngine`), `DesktopOnly`, leva debug panel, all mounted by `AppShell` in the `[game]` layout.
+- A game has no home page and no lobby screen: a table is opened, joined and started on the platform's page of the game (PLT-106, `docs/routing.md`), and the players then come to the board. Standard screens and game flow (from Courtisans): `Screen` (the screens around the board: a table that has no board for the visitor, a game's 404, and the ready screen to come), `GameHud` + `Ticker` + `groupTurns` + `useAnnouncements`, `GameOver` (`renderDetail` for the score detail), sound (`lib/sound.ts`, `SoundButton`, `SoundEngine`), `DesktopOnly`, leva debug panel, all mounted by `AppShell` in the `[game]` layout.
 - The in-game UI (ticker, announcements, takeover pill, chat, game over, `PlayersStrip`, seat label) is written once and drawn in the game's own look, never the platform's. The ticker, the takeover pill, the chat and the toolbar have no setting: they take the game's skin as they are.
 
 ### Settings menu
@@ -23,7 +23,7 @@ The crown stands left of the active player's nickname (template: `board/crown.ts
 
 ### Desktop only
 
-`DesktopOnly` is a full-screen wall under 900 px on game pages only (`/<slug>/game/…`, the gamemaster's game preview included). The home and public pages stay readable on mobile (SEO), with `DesktopNotice` and no table creation from a narrow screen. The wall (`z-[100]`) sits above the cookie banner (`z-50`) like it does above the rest of the game page, so nothing is asked on that screen: the banner shows on the game home and the hub.
+`DesktopOnly` is a full-screen wall under 900 px on game pages only (`/<slug>/game/…`, the gamemaster's game preview included). The hub, with the page of the game where a table is opened, stays readable on mobile (SEO) and offers its tables on a narrow screen too; it is the board that the wall covers. The wall (`z-[100]`) sits above the cookie banner (`z-50`) like it does above the rest of the game page, so nothing is asked on that screen: the banner shows on the hub.
 
 ### Debug
 
@@ -31,7 +31,7 @@ The leva panel opens with `Shift+D`, `?debug` or in development builds. The in-g
 
 ## Skin
 
-`lib/skin.ts` (`loadSkin`, `useSkin`, `useText`) reads the game's skin from Sanity: `interface` (top and bottom art, character, pattern, host icon, player colors, desktop only) and `texts` (home intro, victory lines, the `UI_TEXTS` labels of `@pbgo/studio-kit/constants`).
+`lib/skin.ts` (`loadSkin`, `useSkin`, `useText`) reads the game's skin from Sanity: `interface` (top and bottom art, character, pattern, host icon, player colors, desktop only) and `texts` (victory lines, the `UI_TEXTS` labels of `@pbgo/studio-kit/constants`).
 
 A game's `DEFAULT_SKIN` only says how the skin behaves (player colours, desktop only), never a text or an image: a picture that is not in Sanity is not drawn, and a required text that is not there reads `[missing: <key>]` (see `docs/sanity-and-languages.md`).
 
@@ -62,9 +62,9 @@ A game never forks or restyles an in-game component: it asks for a field in `UiT
 
 ## Seat label
 
-One component for a player on a table: an avatar, the nickname and the seat color, used by every board, the players strip, the announcements and the game over. It is `seat-label.tsx`, fed by `player-seat.tsx`, and the one way a player is named in the DOM (lobby, strip, announcements, game over). The tables paint the same avatar (`lib/seat-avatar-canvas.ts`, `SeatAvatarMesh` of each game).
+One component for a player on a table: an avatar, the nickname and the seat color, used by every board, the players strip, the announcements and the game over. It is `seat-label.tsx`, fed by `player-seat.tsx`, and the one way a player is named in the DOM (strip, announcements, game over). The tables paint the same avatar (`lib/seat-avatar-canvas.ts`, `SeatAvatarMesh` of each game).
 
-Until accounts exist (PLT-13) the avatar is generated from the nickname and the seat color (the initial on the seat colour); an account picture (`imageUrl`, PLT-13) replaces it and nothing else changes. `UI_THEME.seat` sets its shape, ring, font and whether the name takes the seat color or the ink around it: `shape`, `ring`, `font`, `name` (`"seat"` colour or `"ink"`).
+The avatar is generated from the nickname and the seat colour; a player who sat down as an account has its picture (`avatarUrl`, taken on the server, PLT-106) and nothing else changes. `UI_THEME.seat` sets its shape, ring, font and whether the name takes the seat color or the ink around it: `shape`, `ring`, `font`, `name` (`"seat"` colour or `"ink"`).
 
 The crown in the specimen is a stand-in for the table's crown icon.
 

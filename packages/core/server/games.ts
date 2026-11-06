@@ -1,7 +1,7 @@
 import "server-only"
-import { normalizeOptions, waitingPlayers, type OptionValues, type PlayerInfo } from "@pbgo/engine-kit"
+import { normalizeOptions, waitingPlayers, type OptionValues } from "@pbgo/engine-kit"
 import type { GameEntry, PlayableGame } from "../lib/binding"
-import { type PublicGame, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
+import { type PublicGame, type PublicPlayer, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
 import { sanityClient } from "../sanity/client"
 import { ApiError } from "./api"
@@ -14,7 +14,8 @@ export type GameRow = {
   code: string
   host_id: string
   status: GameStatus
-  players: PlayerInfo[]
+  /** The people at the table, in the order they sat down: the engine's `PlayerInfo`, plus the picture of their account when they have one */
+  players: PublicPlayer[]
   options: OptionValues
   /** Engine state (the game's own type), null in the lobby */
   state: unknown
@@ -45,7 +46,30 @@ export async function readGame(game: GameRef, rawCode: string): Promise<GameRow>
   return data as GameRow
 }
 
-export async function createGame(game: PlayableGame, host: PlayerInfo, options: OptionValues = normalizeOptions(game.binding.GAME.options, {})): Promise<GameRow> {
+/** A table nobody has written to for this long is no longer the one a player "sits at": a lobby walked away from, a game dropped. Presence does not count (`touch_game_player` leaves `updated_at` alone), a move or a join does. */
+export const TABLE_IDLE_MS = 6 * 60 * 60 * 1000
+
+/**
+ * The table a player sits at in a game: the one that waits for players or is being played and that was written last, null when there is none. The platform's page of the game asks it
+ * to show a visitor their lobby or their game (PLT-106). A table idle for `TABLE_IDLE_MS` is left out, so that a player is never held by a table they have forgotten. The people of a table are a column
+ * of `games` (jsonb), not rows of their own: this reads the game's recent tables with a containment filter, which asks for no index while there are few; PLT-13's `table_players` replaces it.
+ */
+export async function findPlayerGame(game: GameRef, playerId: string, now = Date.now()): Promise<GameRow | null> {
+  const { data, error } = await supabaseAdmin()
+    .from("games")
+    .select(COLUMNS)
+    .eq("game", game.slug)
+    .in("status", ["lobby", "playing"])
+    .gte("updated_at", new Date(now - TABLE_IDLE_MS).toISOString())
+    // The JSON as a string: for an array supabase-js writes a Postgres array literal (`{…}`), which a jsonb column does not read
+    .contains("players", JSON.stringify([{ id: playerId }]))
+    .order("updated_at", { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return (data?.[0] as GameRow | undefined) ?? null
+}
+
+export async function createGame(game: PlayableGame, host: PublicPlayer, options: OptionValues = normalizeOptions(game.binding.GAME.options, {})): Promise<GameRow> {
   const db = supabaseAdmin()
   for (let attempt = 0; attempt < 5; attempt++) {
     const row: GameRow = {
@@ -140,7 +164,9 @@ export function newSeed(): number {
 export function newGame(game: PlayableGame, row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay" | "takeover_votes"> {
   const { GAME } = game.binding
   const options = normalizeOptions(GAME.options, row.options, { playerCount: row.players.length })
-  return { status: "playing", state: GAME.setup({ players: row.players, options, seed: newSeed(), data }), replay: [], takeover_votes: [] }
+  // The engine is given `PlayerInfo` and nothing more: a picture of an account is for the seat labels, never for the state
+  const players = row.players.map(({ id, nickname }) => ({ id, nickname }))
+  return { status: "playing", state: GAME.setup({ players, options, seed: newSeed(), data }), replay: [], takeover_votes: [] }
 }
 
 /**

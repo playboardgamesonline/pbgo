@@ -1,5 +1,5 @@
 /*
- * Shared styles of every game page (home, lobby, table, admin, previews).
+ * Shared styles of every game page (table, admin, previews).
  * A game's own stylesheet imports this file, then adds `@source "."` and its tokens.
  *
  * Game layer of the design system: the tokens below are the game's theme, overridden at runtime by its Sanity skin

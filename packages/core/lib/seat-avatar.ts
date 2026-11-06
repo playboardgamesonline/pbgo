@@ -1,5 +1,5 @@
 /**
- * The seat avatar: what stands for a player next to their nickname, on the table, in the strip of pending players, the lobby,
+ * The seat avatar: what stands for a player next to their nickname, on the table, in the strip of pending players,
  * the announcements and the game over. Until accounts exist (PLT-13) it is generated from the player alone, the initial of the
  * nickname on the seat colour; a profile picture replaces it through `imageUrl`, and no caller changes. Pure (no DOM): the
  * component (`components/game/seat-label.tsx`) and the painter of the tables (`seat-avatar-canvas.ts`) both draw from this.

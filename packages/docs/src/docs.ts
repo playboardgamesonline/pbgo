@@ -270,8 +270,8 @@ function resolveFrom(dir: readonly string[], relative: string): string[] | null 
 }
 
 /**
- * Where a link of a page leads: a relative `.md` link to another page of the docs is that page on the site, with its `#anchor`. It is read the way the disk has it, so that it works on GitHub too (`../02-foundations.md`, `01-controls.md`),
- * and gives the address of the page (`/docs/design/foundations`). `from.dir` is the folders the page is in below `docs/`.
+ * Where a link of a page leads: a relative `.md` link to another page of the docs is that page on the site, with its `#anchor`. It is read the way the disk has it, so that it works on GitHub too (`../02-foundations/03-radius.md`, `01-button.md`),
+ * and gives the address of the page (`/docs/design/foundations/radius`). `from.dir` is the folders the page is in below `docs/`.
  */
 export function resolveLink(href: string | undefined, from: { dir: readonly string[] }): ResolvedLink {
   if (!href) return { kind: "none" }

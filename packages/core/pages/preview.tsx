@@ -1,7 +1,6 @@
 import { canPlayFor, playFor, waitingPlayers } from "@pbgo/engine-kit"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { Home } from "../components/home/home"
 import { PreviewGame } from "../components/preview-game"
 import type { PlayableGame } from "../lib/binding"
 import { getLocale } from "../lib/locale-server"
@@ -44,10 +43,9 @@ async function previewGame(game: PlayableGame) {
   return publicGame(game, { ...started, state, updated_at: new Date().toISOString() }, players[0]!.id)
 }
 
-/** Admin previews (`/<slug>/preview/home`, `/<slug>/preview/game`), shown in an iframe that receives the draft. */
+/** Admin preview of the board (`/<slug>/preview/game`), shown in an iframe that receives the draft. */
 export async function PreviewPage({ game, kind }: { game: PlayableGame; kind: string }) {
   if (!(await isAdmin())) notFound()
-  if (kind === "home") return <Home />
   if (kind === "game") {
     const [view, data] = await Promise.all([previewGame(game), loadGameData(game, await getLocale())])
     return <PreviewGame game={view} data={data} />

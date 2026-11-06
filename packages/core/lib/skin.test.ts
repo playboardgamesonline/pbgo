@@ -15,18 +15,6 @@ describe("baseSkin", () => {
     expect(baseSkin({} as GameBinding, locale).texts.scoreboard).toBe(expected)
   })
 
-  // the buttons of a number option in the lobby are named by these texts for screen readers
-  it.each<[Locale, string, string]>([
-    ["fr", "Moins", "Plus"],
-    ["en", "Less", "More"],
-    ["es", "Menos", "Más"],
-    ["de", "Weniger", "Mehr"],
-  ])("names the buttons of a number option in the visitor's language (%s)", (locale, less, more) => {
-    const { texts } = baseSkin({} as GameBinding, locale)
-    expect(texts.optionLess).toBe(less)
-    expect(texts.optionMore).toBe(more)
-  })
-
   // the shared result image draws these two texts, the scoreboard and the victory banner write the second one
   it.each<[Locale, string, string]>([
     ["fr", "12 points · Victoire", "7 pts"],
@@ -49,10 +37,7 @@ describe("baseSkin", () => {
   // A game's own texts come from Sanity only: until they are there, the skin says so instead of carrying a copy of them
   it.each<Locale>(["fr", "en", "es", "de"])("marks the game's own texts as missing until Sanity holds them (%s)", (locale) => {
     const skin = baseSkin({} as GameBinding, locale)
-    expect(skin.home.tagline).toBe("[missing: home.tagline]")
     expect(skin.victoryPhrases).toEqual(["[missing: victoryPhrases]"])
-    expect(skin.home.title).toBeNull()
-    expect(skin.home.intro).toBeNull()
   })
 
   it("carries the platform's error messages for the other languages and none for English, the default: the platform's own are English", () => {
@@ -64,7 +49,7 @@ describe("baseSkin", () => {
   it("draws the platform's chrome in English by default", () => {
     expect(DEFAULT_SKIN.locale).toBe("en")
     expect(DEFAULT_SKIN.texts.scoreboard).toBe("Scoreboard")
-    expect(DEFAULT_SKIN.texts.createButton).toBe("Create a game")
+    expect(DEFAULT_SKIN.texts.replay).toBe("Play again")
     expect(baseSkin({} as GameBinding, "en").texts).toEqual(DEFAULT_TEXTS)
   })
 
@@ -73,7 +58,7 @@ describe("baseSkin", () => {
     const skin = baseSkin(binding, "en")
     expect(skin.playerColors).toEqual(["#111111", "#222222"])
     expect(skin.desktopOnly).toBe(false)
-    expect(skin.home.tagline).toBe("[missing: home.tagline]")
+    expect(skin.victoryPhrases).toEqual(["[missing: victoryPhrases]"])
   })
 })
 
@@ -81,13 +66,11 @@ describe("mergeSkin", () => {
   const base = baseSkin({} as GameBinding, "en")
 
   it("lets the texts of Sanity replace the markers", () => {
-    const skin = mergeSkin(base, { home: { tagline: "Plot and bluff" }, victoryPhrases: ["{pseudo} wins"] })
-    expect(skin.home.tagline).toBe("Plot and bluff")
+    const skin = mergeSkin(base, { victoryPhrases: ["{pseudo} wins"] })
     expect(skin.victoryPhrases).toEqual(["{pseudo} wins"])
   })
 
-  it("leaves the marker when Sanity has no value", () => {
-    expect(mergeSkin(base, { home: { tagline: null, title: null } }).home.tagline).toBe("[missing: home.tagline]")
+  it("keeps the platform's label when the one of Sanity is blank", () => {
     expect(mergeSkin(base, { texts: { scoreboard: "  " } }).texts.scoreboard).toBe(base.texts.scoreboard)
   })
 

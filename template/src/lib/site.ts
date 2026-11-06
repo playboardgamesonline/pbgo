@@ -9,8 +9,5 @@ export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https:/
 
 export const CONTACT = "hey@playboardgamesonline.app"
 
-/** Genres of the home page's structured data (`SEO` in server.ts). */
-export const GENRES = ["Jeu de cartes", "Jeu de plis"]
-
 /** Codes the engine throws and core does not know (core has its own for the common ones: not your turn, unknown card…). Their messages are written in Sanity (Gamemaster › Copy › Errors). */
 export const ERROR_CODES = ["INVALID_PHASE", "INVALID_BID"]

@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next"
 import { sitemapItems } from "@pbgo/catalog/seo"
 import { getCatalog } from "@pbgo/catalog/server"
-import { GAMES } from "@pbgo/games/registry"
 import { SITE_URL } from "@/site"
 
 // The platform's Sanity project, which the catalog reads once every ten minutes (`getCatalog`), holds the games to come and the hub's values for every game:
@@ -9,10 +8,11 @@ import { SITE_URL } from "@/site"
 export const revalidate = 600
 
 /**
- * The hub, the home of every indexable game (registry flag `indexable`), then the hub page (`/game/<slug>`) of every game of the catalog
- * that search engines may index: a live game with the flag, a game to come once its game in the Studio has a description (`isIndexable`).
+ * The hub, its list of games, then the hub page (`/game/<slug>`) of every game of the catalog that search engines may index: a live game
+ * with the registry's flag, a game to come once its game in the Studio has a description (`isIndexable`). A game has no home of its own
+ * (`/<slug>` shows its hub page, whose canonical is `/game/<slug>`), so its address is not listed.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { entries } = await getCatalog()
-  return sitemapItems(SITE_URL, GAMES, entries)
+  return sitemapItems(SITE_URL, entries)
 }
