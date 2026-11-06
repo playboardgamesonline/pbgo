@@ -126,13 +126,14 @@ export async function signUpWithPassword(entry: SignupEntry & { next: string; ca
 
 /**
  * Spends the code of the confirmation e-mail: the address is confirmed and the visitor is signed in, the session lands in the cookies and the page can go on to `next`. Resolves with a sentence for the visitor when it fails (a
- * wrong code and an expired one are one answer: Supabase Auth does not tell them apart) and with null when they are signed in.
+ * wrong code and an expired one are one answer: Supabase Auth does not tell them apart) and with null when they are signed in. The type is `email`, which Supabase's documentation gives for "Verify Signup One-Time Password
+ * (OTP)" and for the link's `type=email` alike; `signup` is the older name of the same confirmation.
  */
 export async function verifySignupCode(email: string, code: string): Promise<string | null> {
   const supabase = browserClient()
   if (!supabase) return "Sign-up is not available here."
   try {
-    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "signup" })
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" })
     return error ? codeMessage(error) : null
   } catch (error) {
     return codeMessage(error)

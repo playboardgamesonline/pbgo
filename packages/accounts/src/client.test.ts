@@ -239,12 +239,12 @@ describe("signUpWithPassword", () => {
 })
 
 describe("verifySignupCode", () => {
-  it("spends the code of the e-mail as a sign-up's, with the address it was sent to, and signs the visitor in", async () => {
+  it("spends the code of the e-mail, with the address it was sent to and the type the documentation gives for a sign-up's code, and signs the visitor in", async () => {
     const auth = stubClient()
     const { verifySignupCode } = await client()
     expect(await verifySignupCode("ana@example.com", "123456")).toBeNull()
     expect(auth.verifyOtp).toHaveBeenCalledTimes(1)
-    expect(auth.verifyOtp).toHaveBeenCalledWith({ email: "ana@example.com", token: "123456", type: "signup" })
+    expect(auth.verifyOtp).toHaveBeenCalledWith({ email: "ana@example.com", token: "123456", type: "email" })
   })
 
   it("says a code is wrong or expired, which is all Supabase Auth knows of it", async () => {

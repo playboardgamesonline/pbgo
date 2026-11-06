@@ -2,16 +2,15 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
-import { PROVIDERS, PROVIDER_NAMES, safeNext, type Provider } from "@pbgo/accounts"
+import { AFTER_SIGN_IN, safeNext, type Provider } from "@pbgo/accounts"
 import { signInWith, signInWithPassword } from "@pbgo/accounts/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
 import { Input } from "@pbgo/ui/platform/input"
 import { Label } from "@pbgo/ui/platform/label"
-import { ProviderButton } from "@pbgo/ui/platform/provider-button"
-import { Separator } from "@pbgo/ui/platform/separator"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { cn } from "@pbgo/ui/utils"
+import { ProviderRow } from "@/components/provider-row"
 
 /**
  * The sign-in, a card laid over the hub's backdrop: a username and a password, then, under "or continue with", one button per provider, side by side with
@@ -82,27 +81,17 @@ export function LoginCard({ next, enabled, failed, className }: { next: string; 
         </Button>
       </form>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-        <Separator className="flex-1" />
-        or continue with
-        <Separator className="flex-1" />
-      </div>
-
-      <div role="group" aria-label="Sign in with" className="grid grid-cols-4 gap-3">
-        {PROVIDERS.map((provider) => (
-          <ProviderButton
-            key={provider}
-            brand={provider}
-            name={PROVIDER_NAMES[provider]}
-            pending={pending === provider}
-            disabled={off}
-            onClick={() => start(provider)}
-          />
-        ))}
-      </div>
+      <ProviderRow pending={pending} disabled={off} onSelect={start} />
       {!enabled && <p className="mt-4 text-sm text-muted-foreground">Sign-in is not available on this site yet.</p>}
 
       <p className="mt-6 text-sm text-muted-foreground">
+        New here?{" "}
+        <Link href={next === AFTER_SIGN_IN ? "/signup" : `/signup?next=${encodeURIComponent(next)}`} className="text-foreground underline underline-offset-4">
+          Create an account
+        </Link>
+        .
+      </p>
+      <p className="mt-2 text-sm text-muted-foreground">
         No account needed to play: you can{" "}
         <Link href="/games" className="text-foreground underline underline-offset-4">
           pick a game
