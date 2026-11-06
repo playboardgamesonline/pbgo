@@ -8,8 +8,9 @@ import type { GameRow } from "./games"
  * Sends a game event from the server once the response has left (`after`), so statistics never slow a request down. Call it
  * after the write the event describes, never from the modifier of `updateGame`, which runs again when it loses a race.
  *
- * - `distinctId` is the player's id of this game, the random value of their `<slug>_player` cookie. Nothing more is stored on
- *   their device for it, and the events carry no name, no chat text and no table code. Without a player, nothing is sent.
+ * - `distinctId` is the player's id of this game: a hash of the secret in their `<slug>_player` cookie (`player-id.ts`), never the
+ *   secret itself. Nothing more is stored on their device for it, and the events carry no name, no chat text and no table code.
+ *   Without a player, nothing is sent.
  * - Never throws: a callback that cannot be scheduled is logged and the game goes on. Without a PostHog configuration `track`
  *   does nothing.
  */

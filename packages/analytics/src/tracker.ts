@@ -35,8 +35,8 @@ function logFailure(message: string, error: unknown): void {
  * listens to that event, once, for as long as the client lives. Without it an empty log would prove nothing. The event does not
  * say which send failed, so the log line does not either.
  *
- * - `distinctId` is the random value of the game's own `<slug>_player` cookie (per game and per device, 30 days at most). No
- *   name, no chat text and no table code ever goes into `properties`.
+ * - `distinctId` is the player id of the game: a hash of the random secret in the game's own `<slug>_player` cookie (per game and
+ *   per device, 30 days at most), never the secret itself. No name, no chat text and no table code ever goes into `properties`.
  * - The events create no person profile and carry no geolocation; `identity_stable: false` tells an analyst that the same
  *   human gets a new id in another game or after the cookie expires.
  * - `env` says where the event comes from, so the project can keep previews and local runs out of its numbers.
