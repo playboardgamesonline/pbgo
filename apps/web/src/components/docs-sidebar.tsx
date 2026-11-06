@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowDown01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { filterPages, matchesQuery, type DocPage, type DocSection } from "@pbgo/docs"
+import { filterPages, type DocPage, type DocSection } from "@pbgo/docs"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@pbgo/ui/platform/input-group"
 import { Logo } from "@pbgo/ui/platform/logo"
@@ -14,56 +14,6 @@ import { cn } from "@pbgo/ui/utils"
 
 const ROW = "block rounded-lg px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 const CURRENT = "bg-muted text-foreground"
-
-/** A heading of the page the visitor is on: where it is and what it says. */
-type Heading = { id: string; text: string }
-
-/** What a heading says, without the link to itself that the markdown draws at its end. */
-function textOf(heading: HTMLElement): string {
-  return [...heading.childNodes]
-    .filter((node) => !(node instanceof HTMLAnchorElement && node.hash === `#${heading.id}`))
-    .map((node) => node.textContent ?? "")
-    .join("")
-    .trim()
-}
-
-// The sections of the page the visitor is on (its `h2`) are read from the page once it is drawn: the menu is a layout, so it is not given the page, and what the markdown made of its headings (their ids) is what there is to read. The page
-// takes the place of the one before it in `main` when the address changes, which is what the menu waits for.
-const NONE = "[]"
-
-function subscribe(onChange: () => void) {
-  const main = document.querySelector("main")
-  if (!main) return () => {}
-  const observer = new MutationObserver(onChange)
-  observer.observe(main, { childList: true })
-  return () => observer.disconnect()
-}
-
-function read(): string {
-  const found = [...document.querySelectorAll<HTMLElement>('[data-slot="docs-markdown"] > h2[id]')]
-  return JSON.stringify(found.map((heading): Heading => ({ id: heading.id, text: textOf(heading) })))
-}
-
-function useHeadings(): Heading[] {
-  const snapshot = useSyncExternalStore(subscribe, read, () => NONE)
-  return useMemo(() => JSON.parse(snapshot) as Heading[], [snapshot])
-}
-
-/** The sections of the page that is open, under its entry: the way to jump to one, as a page is long. */
-function PageSections({ headings, title }: { headings: readonly Heading[]; title: string }) {
-  if (headings.length === 0) return null
-  return (
-    <ul className="my-1 ml-3 flex flex-col border-l pl-2" aria-label={`On ${title}`}>
-      {headings.map((heading) => (
-        <li key={heading.id}>
-          <a href={`#${heading.id}`} className={cn(ROW, "py-1")}>
-            {heading.text}
-          </a>
-        </li>
-      ))}
-    </ul>
-  )
-}
 
 /** The top of a doc's side menu: the logo, the brand's button as the navbar has it, which leads back to all the docs, and the name of the doc, which leads to its landing page. */
 export function DocsHeader({ doc }: { doc: DocSection }) {
@@ -84,12 +34,11 @@ export function DocsHeader({ doc }: { doc: DocSection }) {
 /**
  * The side menu of a doc, under its name: a search of its pages, then its pages in the order of the disk, a group of pages being a section that folds like an accordion. It reads the address to know which page is current, the way the
  * site's navbar does, so that it stays mounted from one page of the doc to the next and keeps its scroll and what was folded or unfolded. The section that holds the current page is open until the visitor says otherwise, and a search opens
- * every section that has a page it found, and the menu scrolls to the current page when the address changes, as a doc of many pages is longer than the window. Under the page that is open, its own sections. What is in the menu is what
- * `@pbgo/docs` found on the disk: a new file is a new entry with nothing to write here.
+ * every section that has a page it found, and the menu scrolls to the current page when the address changes, as a doc of many pages is longer than the window. The menu stops at the pages: it never lists what is in one, and a group is a
+ * label that folds, not a page: its landing page is reached from the doc's home and from the foot of the pages. What is in the menu is what `@pbgo/docs` found on the disk: a new file is a new entry with nothing to write here.
  */
 export function DocsSidebar({ doc }: { doc: DocSection }) {
   const pathname = usePathname()
-  const headings = useHeadings()
   const menu = useRef<HTMLElement>(null)
   const [query, setQuery] = useState("")
   const [opened, setOpened] = useState<Record<string, boolean>>({})
@@ -101,20 +50,17 @@ export function DocsSidebar({ doc }: { doc: DocSection }) {
     menu.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" })
   }, [pathname])
 
-  const link = (page: DocPage, label: string) => {
-    const current = pathname === page.href
-    return (
-      <>
-        <Link href={page.href} aria-current={current ? "page" : undefined} className={cn(ROW, current && CURRENT)}>
-          {label}
-        </Link>
-        {current && <PageSections headings={headings} title={page.title} />}
-      </>
-    )
-  }
-
   const entry = (page: DocPage) => {
-    if (page.pages.length === 0) return <li key={page.href}>{link(page, page.title)}</li>
+    if (page.pages.length === 0) {
+      const current = pathname === page.href
+      return (
+        <li key={page.href}>
+          <Link href={page.href} aria-current={current ? "page" : undefined} className={cn(ROW, current && CURRENT)}>
+            {page.title}
+          </Link>
+        </li>
+      )
+    }
     const holdsCurrent = pathname === page.href || pathname.startsWith(`${page.href}/`)
     const open = searching || (opened[page.href] ?? holdsCurrent)
     return (
@@ -130,10 +76,7 @@ export function DocsSidebar({ doc }: { doc: DocSection }) {
             />
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <ul className="my-1 ml-3 flex flex-col gap-0.5 border-l pl-2">
-              {(!searching || matchesQuery(page.title, query)) && <li>{link(page, "Overview")}</li>}
-              {page.pages.map(entry)}
-            </ul>
+            <ul className="my-1 ml-3 flex flex-col gap-0.5 border-l pl-2">{page.pages.map(entry)}</ul>
           </CollapsibleContent>
         </Collapsible>
       </li>
