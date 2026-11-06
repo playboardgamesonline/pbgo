@@ -185,6 +185,8 @@ export type ResendOutcome = { status: "sent" } | { status: "wait"; message: stri
 export function resendOutcome(error: unknown): ResendOutcome {
   if (error === null || error === undefined) return { status: "sent" }
   switch (failureKind(error)) {
+    case "taken":
+      return { status: "sent" }
     case "rate-limit":
       return { status: "wait", message: "Wait a minute before asking for another code." }
     case "unavailable":

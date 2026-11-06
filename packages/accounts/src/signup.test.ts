@@ -256,6 +256,11 @@ describe("resendOutcome", () => {
     expect(resendOutcome(null)).toEqual({ status: "sent" })
   })
 
+  it("reveals nothing of an address that has an account either: it is sent too", () => {
+    expect(resendOutcome(new AuthApiError("User already registered", 422, "user_already_exists"))).toEqual({ status: "sent" })
+    expect(resendOutcome(new AuthApiError("Email address already exists", 422, "email_exists"))).toEqual({ status: "sent" })
+  })
+
   it("makes the visitor wait when an e-mail went out a minute ago, and tells them so", () => {
     expect(resendOutcome(new AuthApiError("For security purposes, you can only request this after 49 seconds", 429, "over_email_send_rate_limit"))).toEqual({
       status: "wait",

@@ -4,7 +4,7 @@ import * as React from "react"
 import { OTPInput, OTPInputContext } from "input-otp"
 import { cn } from "../utils"
 
-/** What a code may be made of, for `pattern`: digits alone, or digits and letters. The input under the slots refuses anything else, typed or pasted. */
+/** What a code may be made of, for `pattern`: digits alone, or digits and letters. The input under the slots refuses anything else, typed or pasted. Read them in a client component, as the form of a code is: from a server component they are references to this module, not the strings. */
 export { REGEXP_ONLY_DIGITS, REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp"
 
 /** Whether the code is marked invalid: `InputOTP` says it to its slots, which cannot read the attribute of the input under them. */
