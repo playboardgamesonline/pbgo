@@ -19,6 +19,7 @@ These pages are what to read before writing or reviewing an engine.
 - [The engine contract](02-contract.md): `GameDefinition` field by field, the types around it, errors.
 - [State and determinism](03-state-and-determinism.md): the lean state, the seed, orders, hidden information.
 - [Turns and absent players](04-turns-and-absent-players.md): `waitingFor`, `autoPlayFor`, simultaneous steps, the takeover, the limits.
+- [The 3D scene](05-scene/index.md): the table, the cards and everything else on a board, one page for each item.
 
 ## Where things live
 
@@ -34,7 +35,7 @@ These pages are what to read before writing or reviewing an engine.
 ## What these pages do not cover
 
 - The reference of each module of the kit is `packages/engine-kit/README.md`; starting a new game is `template/docs/GAME_GUIDE.md`.
-- The table tools of the boards (`@pbgo/table`) are in `docs/packages.md`; worked examples are the engines in `games/flip-7/packages/engine` and `games/courtisans/packages/engine`.
+- What the shared UI draws around the board (announcements, ticker, players strip, game over) is in [In-game UI](../design/04-in-game.md); worked examples are the engines in `games/flip-7/packages/engine` and `games/courtisans/packages/engine`.
 
 ## How these pages are made
 
