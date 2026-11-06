@@ -17,6 +17,7 @@ const NUM = new Intl.NumberFormat("en-GB")
 const DATE_TIME = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
 const STATUS: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   lobby: { label: "Lobby", variant: "outline" },
+  starting: { label: "Starting", variant: "outline" },
   playing: { label: "Playing", variant: "default" },
   over: { label: "Finished", variant: "secondary" },
 }

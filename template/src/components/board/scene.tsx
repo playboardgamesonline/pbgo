@@ -143,13 +143,17 @@ type SceneProps = {
   crownIcon?: string | null
   myTurn: boolean
   onPlay: (cardId: string) => void
+  /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`) */
+  held?: boolean
+  /** Called once when the table is drawn with everything it waited for (`onLoaded` of the shared `Table`) */
+  onLoaded?: () => void
 }
 
 export function Scene(props: SceneProps) {
   useCameraSettings()
   const [mat] = useState(matTexture)
   return (
-    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }}>
+    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )

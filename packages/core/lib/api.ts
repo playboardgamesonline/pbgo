@@ -72,6 +72,8 @@ function buildApi(slug: string) {
     leave: (code: string) => post(`${games}/${code}/leave`),
     options: (code: string, options: OptionValues) => post(`${games}/${code}/options`, { options }),
     start: (code: string) => post(`${games}/${code}/start`),
+    /** "I'm ready", while the table is `starting` (PLT-107), sent by a player's board once it is loaded: the last player to say it begins the game */
+    ready: (code: string) => post(`${games}/${code}/ready`),
     action: (code: string, action: { type: string } & Record<string, unknown>) => post(`${games}/${code}/action`, action),
     replay: (code: string) => post(`${games}/${code}/replay`),
     /** Votes to play for the players the game waits for (`playerIds`, by default all of them): they are played for once every present player has voted */

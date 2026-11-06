@@ -14,7 +14,7 @@ import { Toolbar } from "../toolbar"
 import { cn } from "@pbgo/ui/utils"
 
 /**
- * Standard screen outside a game (the screens of a table that has no board for the visitor, the 404 of a game, and the ready screen to come: PLT-107), taken from Courtisans:
+ * Standard screen outside a game (the screens of a table that has no board for the visitor, and the 404 of a game), taken from Courtisans:
  * background + pattern, top decor, animated logo, content, character standing on the bottom decor, main button and code laid on the decor,
  * sound and rules at the top right, footer. Every image comes from the skin (Sanity `interface`) and is optional.
  */

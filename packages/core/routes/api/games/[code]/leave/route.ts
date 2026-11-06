@@ -3,11 +3,14 @@ import { handle } from "../../../../../server/api"
 import { publicGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
+import { withdrawPatch } from "../../../../../server/ready"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await rateLimit(game.slug, request, "leave")
   const id = await getPlayerId(game.slug)
   const row = await updateGame(game, params.code ?? "", (row) => {
+    // Leaving a table that is in its ready check ends the check for everybody: the game was set up for the seats it had (PLT-107)
+    if (row.status === "starting") return withdrawPatch(row, id ?? "")
     if (row.status !== "lobby" || !row.players.some((j) => j.id === id)) return null
     const players = row.players.filter((j) => j.id !== id)
     const host_id = row.host_id === id ? (players[0]?.id ?? row.host_id) : row.host_id

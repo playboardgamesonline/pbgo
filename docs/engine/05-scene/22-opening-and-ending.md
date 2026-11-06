@@ -5,6 +5,7 @@ The shared tools give an opening one piece, the camera's entrance, and an ending
 ## What the tools give
 
 - The camera's entrance ([The entrance](02-camera.md#the-entrance)): it plays when the `Table` mounts, and again when `playIntro` turns true after being false.
+- The platform's start screen: the board is drawn behind it and says when it is loaded (`onLoaded` of `Table`), and the entrance waits for the screen to go (`held`). The template takes both in `game.tsx`, hands them to `Scene` and on to `Table`, and holds its own start announcement the same way.
 - Cards that come in one after the other: `enter` and `stagger` of a [Zone](13-zone.md), or a `from` pose with a `delay` on a card.
 - The `start` and `victory` announcements and the `GameOver` panel, which the shared UI draws over the board ([Announcements](../../design/04-in-game/06-announcements.md), [Game over](../../design/04-in-game/07-game-over.md)). The template announces the start when a game begins and the victory when `phase` is `over`, then shows `GameOver` once the announcement is done.
 - The photo of the finished table for the share image ([Share photo](05-share-photo.md)).
@@ -25,4 +26,5 @@ export type OpeningStep = "unroll" | "deal" | "missions" | null
 
 ## Rules
 
+- A board holds its own opening while `held` is true, and reports what it loads without suspending with `onLoaded`: the start screen waits for every board of the table before it goes.
 - Time belongs to the board. An engine has no clock ([Limits](../04-turns-and-absent-players.md#limits)), so a timer lives in a component, and the state it advances is presentation only.

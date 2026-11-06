@@ -30,6 +30,7 @@ src/components/board/
 | The pieces of a seat | `aura.tsx`, `crown.tsx`, `seat-avatar-mesh.tsx`, `table-text.tsx` | [Seats](15-seats.md) |
 | The knobs | `settings.ts`, with `LAYOUT_SETTINGS` in `layout.ts` | [Tuning](24-tuning.md) |
 | The action a click sends | `game.tsx`: the handler passed down as `onPlay` | [Clicks and hover](20-clicks-and-hover.md) |
+| The hold of the start screen | `game.tsx`: `held` and `onLoaded`, handed to `Scene` and on to `Table` | [Table](01-table.md), [Opening and ending](22-opening-and-ending.md) |
 
 The shared tools supply the rest: the canvas, the camera and its entrance, the endless table and the lights, the card and all it does, the zones, the pose memory and the share photo. A game does not copy them.
 

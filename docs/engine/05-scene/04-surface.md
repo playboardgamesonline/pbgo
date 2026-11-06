@@ -29,5 +29,5 @@ The template gives its table the colour and the felt of its skin. From `template
 ```tsx
 const [mat] = useState(matTexture)
 return (
-  <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }}>
+  <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }} held={props.held} onLoaded={props.onLoaded}>
 ```

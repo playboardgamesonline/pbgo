@@ -14,6 +14,8 @@ scene-table
 | --- | --- |
 | `camera` | The `CameraSettings` the camera follows. Required, and read on every frame ([Camera](02-camera.md)) |
 | `intro`, `playIntro` | The camera's entrance, and whether it plays ([The entrance](02-camera.md#the-entrance)) |
+| `held` | The entrance waits at its first frame until this turns false, then plays from there: for a table drawn behind the platform's start screen ([The entrance](02-camera.md#the-entrance)) |
+| `onLoaded` | Called once, when what the children suspend on (`useTexture`, `useLoader`) is in; what a game loads without suspending, it reports itself |
 | `surface` | The table the cards lie on, as `SurfaceProps`: a colour and a picture that repeats. Required: it has no end and the canvas is never transparent ([Surface](04-surface.md)) |
 | `lights` | `true` for `DEFAULT_LIGHTS`, or a `LightsProps`; without it, no light |
 | `photo` | The `CameraSettings` of the share photo; without it the share image is the pixels of the canvas ([Share photo](05-share-photo.md)) |
@@ -39,7 +41,7 @@ export function Scene(props: SceneProps) {
   useCameraSettings()
   const [mat] = useState(matTexture)
   return (
-    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }}>
+    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )

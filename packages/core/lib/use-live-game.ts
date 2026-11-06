@@ -10,6 +10,8 @@ export function useLiveGame(code: string) {
   const slug = useGameSlug()
   const api = useApi()
   const [game, setGame] = useState<PublicGame | null>(null)
+  // When `game` arrived (`performance.now()`): the ready check's time left is a duration measured from then (`PublicGame.readyInMs`)
+  const [receivedAt, setReceivedAt] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const version = useRef(-1)
 
@@ -17,6 +19,7 @@ export function useLiveGame(code: string) {
     if (p.version < version.current) return
     version.current = p.version
     setGame(p)
+    setReceivedAt(performance.now())
   }, [])
 
   const reload = useCallback(async () => {
@@ -43,5 +46,5 @@ export function useLiveGame(code: string) {
     }
   }, [slug, code, reload])
 
-  return { game, error, apply, reload }
+  return { game, receivedAt, error, apply, reload }
 }

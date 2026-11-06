@@ -46,6 +46,7 @@ scene-camera
 - The camera starts `zoom` times farther, `rotate` more turned and `tilt` more tilted, and settles on `CameraSettings` over `duration`, slowing as it arrives.
 - `CAMERA_INTRO` is the default. Copy it to give a game its own knobs: the rig reads whichever object it is given on every frame.
 - It plays when the table mounts. `playIntro` false holds the camera on its settings, and turning it true again plays it again.
+- `held` on the `Table` keeps the camera at the first frame of the entrance and plays it from there when it turns false: a board drawn behind the platform's start screen opens when the screen goes.
 - A visitor who asks for reduced motion never sees it, whatever the game passes.
 
 ## Rules

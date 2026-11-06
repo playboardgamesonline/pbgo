@@ -3,7 +3,7 @@
 import { TABLE_CANVAS_ID } from "@pbgo/core/lib/photo"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Canvas } from "@react-three/fiber"
-import { type ReactNode, Suspense, useMemo } from "react"
+import { type ReactNode, Suspense, useEffect, useMemo, useRef } from "react"
 import type { CameraIntro, CameraSettings } from "./camera"
 import { CameraRig } from "./camera-rig"
 import { Lights, type LightsProps } from "./lights"
@@ -31,12 +31,27 @@ export type TableProps = {
   near?: number
   /** How far the camera sees (default 300). Read once, when the canvas is created */
   far?: number
+  /** The entrance waits (default false): the camera stands at the first frame of it until this turns false, and plays it from there. For a table drawn behind the start screen of a game, whose opening begins when the screen goes. A visitor who asks for reduced motion has no entrance to wait for */
+  held?: boolean
+  /** Called once, when the table is drawn with everything its children waited for: the pictures and models they suspend on (`useTexture`, `useLoader`). What a game loads without suspending it reports itself */
+  onLoaded?: () => void
   /** What lies on the table: cards, seats */
   children: ReactNode
 }
 
+/** Mounts once everything beside it in the `Suspense` boundary is in, which is when the table is loaded */
+function Loaded({ onLoaded }: { onLoaded?: () => void }) {
+  const reported = useRef(false)
+  useEffect(() => {
+    if (reported.current) return
+    reported.current = true
+    onLoaded?.()
+  }, [onLoaded])
+  return null
+}
+
 /** The table every game plays on: a canvas with the camera, an endless surface, the lights and the share photo, and the memory that lets a card which changes place fly from where it was. Cards and everything else go inside */
-export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface, lights, photo, near = 0.1, far = 300, children }: TableProps) {
+export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface, lights, photo, near = 0.1, far = 300, held = false, onLoaded, children }: TableProps) {
   // Made out here: React context does not cross into the canvas, so the provider sits inside it
   const memory = useMemo(() => createPoseMemory(), [])
   // The entrance zooms and turns the whole view, so reduced motion always wins over the game
@@ -48,10 +63,11 @@ export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface,
       <Surface {...surface} />
       <PoseMemoryContext.Provider value={memory}>
         <Suspense fallback={null}>
-          <CameraRig settings={camera} intro={intro} playIntro={(playIntro ?? true) && !reduced} />
+          <CameraRig settings={camera} intro={intro} playIntro={(playIntro ?? true) && !reduced} held={held} />
           {lights && <Lights {...(lights === true ? {} : lights)} />}
           {photo && <SharePhoto settings={photo} />}
           {children}
+          <Loaded onLoaded={onLoaded} />
         </Suspense>
       </PoseMemoryContext.Provider>
     </Canvas>

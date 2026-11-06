@@ -20,8 +20,8 @@ const Stored = (props: { items: { name: string; text: ReactNode }[] }) => <Legal
 const STATISTICS: ReactNode[] = [
   "We use PostHog, on its European cloud, to see how the site is used and to fix what breaks. IP addresses are discarded. Two kinds of counts run whatever you choose, and neither stores anything on your device:",
   <>
-    <span className={LEGAL_LEAD}>Game statistics.</span> When a table is created, joined, started or finished, the server counts it with the game, the number of players, the options and how long it lasted. Each count carries the random value of that game&apos;s
-    player cookie, so we can tell that someone came back to a game, but never a nickname or anything typed in the chat (a chat message is counted, never read).
+    <span className={LEGAL_LEAD}>Game statistics.</span> When a table is created, joined, started or finished, the server counts it with the game, the number of players, the options and how long it lasted. Each count carries a code made from that game&apos;s
+    player cookie (a one-way hash: the cookie&apos;s own value is never stored or sent on), so we can tell that someone came back to a game, but never a nickname or anything typed in the chat (a chat message is counted, never read).
   </>,
   <>
     <span className={LEGAL_LEAD}>Visits.</span> The pages opened, clicks, loading times and errors are counted without any identifier kept in your browser: nothing links one page load to the next. Table codes are removed from the addresses.
@@ -62,7 +62,7 @@ export default function CookiePolicy() {
           items={[
             {
               name: "<game>_player",
-              text: "A random identifier, one per game (courtisans_player, for example), that recognises you at your table so you can leave and come back. It is sent to this site only and page scripts cannot read it. Kept 30 days; written when you create or join a table.",
+              text: "A random secret, one per game (courtisans_player, for example), that recognises you at your table so you can leave and come back. It is sent to this site only and page scripts cannot read it. The other people at your table see a code made from it, never the secret itself. Kept 30 days; written when you create or join a table.",
             },
             {
               name: "sb-…",

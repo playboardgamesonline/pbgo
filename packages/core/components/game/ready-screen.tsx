@@ -1,0 +1,157 @@
+"use client"
+
+import { AnimatePresence, MotionConfig, motion } from "motion/react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { DURATION, EASE_STANDARD } from "@pbgo/ui/motion"
+import { ApiClientError } from "../../lib/api"
+import type { BoardProps } from "../../lib/binding"
+import { useApi, useBinding } from "../../lib/binding-context"
+import type { PublicGame } from "../../lib/game-types"
+import { collectiveProgress, curtainState, loadingRows, READY_LOAD_GRACE_MS, secondsLeft } from "../../lib/ready-curtain"
+import { type LoadingProgress, openLoading } from "../../lib/realtime"
+import { StartScreen } from "./start-screen"
+
+/** Tries to say "I'm ready" this many times before leaving it to the next change of the table */
+const READY_ATTEMPTS = 3
+
+/**
+ * The board of a table that has started, behind the start screen (PLT-107). The board is drawn from the first moment, from the view the table gives the player, and loads its pictures behind the screen (`held`, `onLoaded` and `onProgress` of
+ * `BoardProps`); the screen is the platform's (`StartScreen`) and shows one collective bar, how far every board of the table is. A player is ready when their board is: it says so to the table by itself (`POST …/ready`), no click. While the table
+ * is `starting` the screen stays up for everybody, loaded or not, until the last board is there and the game begins; then it goes, for each player, and the board plays its opening from then on. A player who comes back to a game under way gets the
+ * same screen with their own bar only, no barrier: it goes as soon as their board is loaded.
+ */
+export function BoardEntry({
+  game,
+  receivedAt,
+  reload,
+  data,
+  onUpdate,
+  onLeave,
+}: {
+  game: PublicGame
+  /** When `game` arrived, in `performance.now()` terms: the time left of the check is measured from then */
+  receivedAt: number
+  reload: () => void
+  data?: unknown
+  onUpdate: BoardProps["onUpdate"]
+  onLeave: () => void
+}) {
+  const { Game, SLUG } = useBinding()
+  const api = useApi()
+  const starting = game.status === "starting"
+  const meId = game.meId
+
+  // How far this player's board is: it reports it, and it is loaded when it says so, or when a board that does not is no longer waited for
+  const [reported, setReported] = useState(0)
+  const [boardLoaded, setBoardLoaded] = useState(false)
+  const [graceOver, setGraceOver] = useState(false)
+  const onLoaded = useCallback(() => setBoardLoaded(true), [])
+  const onProgress = useCallback((share: number) => setReported((value) => Math.max(value, Math.min(1, share))), [])
+  useEffect(() => {
+    const timer = setTimeout(() => setGraceOver(true), READY_LOAD_GRACE_MS)
+    return () => clearTimeout(timer)
+  }, [])
+  const loaded = boardLoaded || graceOver
+  const own = loaded ? 1 : reported
+
+  // The table has them down as ready, or knew it when the page opened (back during the check): it stays so when the game begins and the table forgets the marks
+  const [sent, setSent] = useState(false)
+  const [knownReady, setKnownReady] = useState(false)
+  if (!knownReady && meId && game.ready.includes(meId)) setKnownReady(true)
+  const marked = knownReady || sent
+
+  // A player is ready when their board is. The table decides, once everybody is
+  useEffect(() => {
+    if (!starting || !loaded || marked) return
+    let stopped = false
+    void (async () => {
+      for (let attempt = 1; attempt <= READY_ATTEMPTS && !stopped; attempt++) {
+        try {
+          onUpdate(await api.ready(game.code))
+          if (!stopped) setSent(true)
+          return
+        } catch (error) {
+          // Unseated while the board loaded (the check ended): the table says so when it is asked, and the page leaves it
+          if (error instanceof ApiClientError && error.code === "UNKNOWN_PLAYER") return reload()
+          await new Promise((resolve) => setTimeout(resolve, 800 * attempt))
+        }
+      }
+    })()
+    return () => {
+      stopped = true
+    }
+  }, [starting, loaded, marked, api, game.code, onUpdate, reload])
+
+  // How far the others are: what the boards of the table tell each other, while the check lasts
+  const [others, setOthers] = useState<LoadingProgress>({})
+  const [channel, setChannel] = useState<ReturnType<typeof openLoading>>(null)
+  useEffect(() => {
+    if (!starting || !meId) return
+    const open = openLoading(SLUG, game.code, meId, setOthers)
+    setChannel(open)
+    return () => {
+      open?.close()
+      setChannel(null)
+    }
+  }, [starting, meId, SLUG, game.code])
+  useEffect(() => channel?.report(own), [channel, own])
+
+  // The time left, measured from the moment the table said it; when it is up the table is asked at once, and again until it answers: the first look at it ends the check
+  const [now, setNow] = useState(() => performance.now())
+  useEffect(() => {
+    if (!starting) return
+    const timer = setInterval(() => setNow(performance.now()), 250)
+    return () => clearInterval(timer)
+  }, [starting])
+  const left = secondsLeft(game.readyInMs, receivedAt, now)
+  const timeUp = starting && left === 0
+  useEffect(() => {
+    if (!timeUp) return
+    reload()
+    const timer = setInterval(reload, 1500)
+    return () => clearInterval(timer)
+  }, [timeUp, reload])
+
+  const state = curtainState({ status: game.status, marked, loaded })
+  const lifted = state === "lifted"
+  const rows = useMemo(() => loadingRows({ players: game.players, ready: game.ready, reported: others, meId, own }), [game.players, game.ready, others, meId, own])
+  if (!Game) return null
+  const ready = rows.filter((row) => row.ready).length
+
+  return (
+    <>
+      {/* Nothing under the screen can be reached by the keyboard either */}
+      <div className="contents" inert={!lifted}>
+        <Game game={game} data={data} onUpdate={onUpdate} onLeave={onLeave} held={!lifted} onLoaded={onLoaded} onProgress={onProgress} />
+      </div>
+      <MotionConfig reducedMotion="user">
+        <AnimatePresence>
+          {!lifted && (
+            <motion.div
+              key="start-screen"
+              // Over the board and its HUD, below the wall of the narrow screens and the cookie banner, which keeps its room (`--consent-h`)
+              className="fixed inset-x-0 top-0 z-[45] h-[calc(100dvh-var(--consent-h,0px))]"
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, pointerEvents: "none" }}
+              transition={{ duration: DURATION.slow, ease: EASE_STANDARD }}
+            >
+              {starting ? (
+                <StartScreen
+                  title={state === "waiting" ? "Waiting for the other players" : "Setting up the table"}
+                  subtitle={state === "waiting" ? "The game starts as soon as everyone is ready." : "The game starts when every board is loaded."}
+                  progress={collectiveProgress(rows)}
+                  caption={`${ready} of ${rows.length} players ready`}
+                  seconds={left}
+                  rows={rows}
+                />
+              ) : (
+                <StartScreen title="Loading the table" progress={own} caption={`${Math.round(own * 100)}%`} />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </MotionConfig>
+    </>
+  )
+}
