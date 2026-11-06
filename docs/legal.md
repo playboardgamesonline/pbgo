@@ -9,7 +9,7 @@ The Privacy Policy, the Terms of Use and the Cookie Policy (`/legal/privacy`, `/
 - `/legal` (the notice) stays as it is, unlinked
 - The frame and its pieces are `apps/web/src/components/legal-page.tsx` (`LegalPage`, `LegalSection`, `LegalText`, `LegalEntries`, `LegalList`, `LegalUpdated`); the footer's list is `apps/web/src/lib/legal-pages.ts`. A page ends with `Last updated <date>`: change the date with the text
 - Draft state: the two new pages keep the stub's "This page is being written" line and `noindex` until the owner (or a lawyer) has read them. Going final is a small change in each page: delete the line, drop `robots: { index: false }`, and add the page to the sitemap if the owner wants it there
-- Not on the pages, because each waits for the owner's answer (below): the governing law and the courts, the publisher's identity beyond "oré" and the contact address
+- Not on the pages, because each waits for the owner's answer (below): the governing law and the courts, the publisher's identity beyond "oré"
 - On the pages and decided by the owner: the minimum age, 13, with no parental agreement (Decisions 2). On the pages as proposals the owner has not confirmed: the retention periods. On the Terms as a plan that does not exist yet: the chat's banned-word filter (below)
 
 ## The rule
@@ -121,5 +121,5 @@ Each has the default the pages already use, or the sentence the page leaves out 
 3. **The governing law and the courts**, for the Terms. Proposal: French law, the courts of the owner's seat, the consumer's own protections kept
 4. **The chat** (answered 2026-11-06): no moderation by us; each player will be able to choose whether banned words are replaced by stars. The Terms say so, and that the chat is not stored or read and that reports go to the contact address. **The filter does not exist yet: the sentence must not go live before it does**, and its setting (on or off, on the device) is a new storage key for the Cookie Policy
 5. **The paid plans** (Plus, Club, on the Pricing page, disabled), decided 2026-11-06: one sentence in the Terms ("Paid plans"): nothing is on sale, nothing is charged, and before a plan opens its price, billing and cancellation are published and the terms updated. Rewrite the section the day a plan opens
-6. **The contact for the games' rights holders** and for privacy requests: today `hey@playboardgamesonline.app` (`CONTACT`) for everything
+6. **The contact** (decided 2026-11-06): `hey@playboardgamesonline.app` (`CONTACT`) for everything: privacy requests, the games' rights holders, reports
 7. **Retention**: tables 30 days after the last activity, feedback 12 months, replays 30 days, counts 12 months, accounts until deleted on request. The first two need the clean-up of finding 1
