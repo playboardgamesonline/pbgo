@@ -25,7 +25,8 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     if (row.status !== "lobby") throw new ApiError("GAME_IN_PROGRESS", 409)
     if (row.players.length >= maxPlayers) throw new ApiError("GAME_FULL", 409)
     seat.added = true
-    return { players: [...row.players, { id, ...profile }] }
+    // A lobby that a ready check emptied has no host: whoever sits down first is it
+    return { players: [...row.players, { id, ...profile }], ...(row.players.length === 0 ? { host_id: id } : {}) }
   })
   if (seat.added) trackAfter("player_joined", id, { game: game.slug, seat: row.players.findIndex((j) => j.id === id), players: row.players.length })
   return publicGame(game, row, id)

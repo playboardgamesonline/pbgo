@@ -6,6 +6,7 @@ import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
 import { sanityClient } from "../sanity/client"
 import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
+import { expirePatch, readyExpired, readyIds, readyLeft } from "./ready"
 import { supabaseAdmin } from "./supabase"
 import { publicTakeover } from "./takeover"
 
@@ -24,6 +25,10 @@ export type GameRow = {
   takeover_votes: string[]
   /** Last time the server saw each player (player id → ISO time), written by `markSeen` (`presence.ts`) without a new version */
   seen?: Record<string, string>
+  /** The ready check of a table that is `starting` (`ready.ts`): when each player said they were ready (player id → ISO time), empty otherwise */
+  ready_at?: Record<string, string>
+  /** When the ready check ends (ISO), null outside `starting` */
+  ready_deadline?: string | null
   version: number
   updated_at?: string
   created_at?: string
@@ -31,7 +36,7 @@ export type GameRow = {
 
 type GameRef = Pick<GameEntry, "slug">
 
-const COLUMNS = "code, host_id, status, players, options, state, replay, takeover_votes, seen, version, updated_at, created_at"
+const COLUMNS = "code, host_id, status, players, options, state, replay, takeover_votes, seen, ready_at, ready_deadline, version, updated_at, created_at"
 
 // Concurrent writes (e.g. every player confirming the opening at once): retry after a growing random pause
 const MAX_ATTEMPTS = 8
@@ -50,7 +55,7 @@ export async function readGame(game: GameRef, rawCode: string): Promise<GameRow>
 export const TABLE_IDLE_MS = 6 * 60 * 60 * 1000
 
 /**
- * The table a player sits at in a game: the one that waits for players or is being played and that was written last, null when there is none. The platform's page of the game asks it
+ * The table a player sits at in a game: the one that waits for players, is starting or is being played and that was written last, null when there is none. The platform's page of the game asks it
  * to show a visitor their lobby or their game (PLT-106). A table idle for `TABLE_IDLE_MS` is left out, so that a player is never held by a table they have forgotten. The people of a table are a column
  * of `games` (jsonb), not rows of their own: this reads the game's recent tables with a containment filter, which asks for no index while there are few; PLT-13's `table_players` replaces it.
  */
@@ -59,7 +64,7 @@ export async function findPlayerGame(game: GameRef, playerId: string, now = Date
     .from("games")
     .select(COLUMNS)
     .eq("game", game.slug)
-    .in("status", ["lobby", "playing"])
+    .in("status", ["lobby", "starting", "playing"])
     .gte("updated_at", new Date(now - TABLE_IDLE_MS).toISOString())
     // The JSON as a string: for an array supabase-js writes a Postgres array literal (`{…}`), which a jsonb column does not read
     .contains("players", JSON.stringify([{ id: playerId }]))
@@ -82,6 +87,8 @@ export async function createGame(game: PlayableGame, host: PublicPlayer, options
       replay: [],
       takeover_votes: [],
       seen: {},
+      ready_at: {},
+      ready_deadline: null,
       version: 0,
     }
     const { error } = await db.from("games").insert({ game: game.slug, ...row })
@@ -141,6 +148,15 @@ async function notify(slug: string, code: string, version: number) {
   }
 }
 
+/**
+ * A table whose ready check has run out of time goes back to the lobby without those who were not ready (`expirePatch`). Nothing runs on a timer, so the first request that looks at such a table ends the check: the read
+ * route that every board polls, the board's page, the ready route and the start route all pass the row they read through here. The row of any other table comes back as it is, with no write; the realtime ping of the write tells the others.
+ */
+export async function settleReadyCheck(game: GameRef, row: GameRow, now = Date.now()): Promise<GameRow> {
+  if (!readyExpired(row, now)) return row
+  return updateGame(game, row.code, (current) => (readyExpired(current, now) ? expirePatch(current) : null))
+}
+
 /** Data loaded on the server before `GAME.setup` (e.g. Courtisans' missions from Sanity): the game's optional `loadSetupData`. */
 export async function loadSetupData(game: PlayableGame, options: OptionValues = {}, locale: Locale = DEFAULT_LOCALE): Promise<unknown> {
   return game.binding.loadSetupData?.({ game, locale, sanity: sanityClient(game), options })
@@ -195,6 +211,8 @@ export function publicGame(game: PlayableGame, row: GameRow, playerId: string | 
     meId: member ? playerId : null,
     options: row.options ?? normalizeOptions(GAME.options, {}),
     replay: row.replay,
+    ready: row.status === "starting" ? readyIds(row) : [],
+    readyInMs: readyLeft(row, now),
     waitingFor,
     present,
     takeovers,

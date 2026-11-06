@@ -3,7 +3,9 @@ import type { PlayableGame } from "../lib/binding"
 import { GamePage } from "./game"
 
 const h = vi.hoisted(() => ({
-  row: null as { code: string; status: "lobby" | "playing" | "over" } | null,
+  row: null as { code: string; status: "lobby" | "starting" | "playing" | "over" } | null,
+  /** What the table is once its ready check has been looked at, when that check had run out of time */
+  settled: null as { code: string; status: "lobby" | "starting" | "playing" | "over" } | null,
   failure: null as Error | null,
   redirected: [] as string[],
 }))
@@ -25,12 +27,14 @@ vi.mock("../server/games", () => ({
     if (!h.row) throw new Error("GAME_NOT_FOUND")
     return h.row
   },
+  settleReadyCheck: async (_game: unknown, row: unknown) => h.settled ?? row,
 }))
 
 const game = { slug: "courtisans" } as PlayableGame
 
 beforeEach(() => {
   h.row = null
+  h.settled = null
   h.failure = null
   h.redirected = []
 })
@@ -42,13 +46,19 @@ describe("GamePage", () => {
     expect(h.redirected).toEqual(["/game/courtisans/ABC234"])
   })
 
-  it("shows the board of a table that was started or is over, with the game's data and its code in capitals", async () => {
-    for (const status of ["playing", "over"] as const) {
+  it("shows the board of a table that is starting, started or over, with the game's data and its code in capitals", async () => {
+    for (const status of ["starting", "playing", "over"] as const) {
       h.row = { code: "ABC234", status }
       const element = await GamePage({ game, code: "abc234" })
       expect(element.props).toEqual({ code: "ABC234", data: { cards: [] } })
     }
     expect(h.redirected).toEqual([])
+  })
+
+  it("sends a table whose ready check ran out of time, now back in the lobby, to its page on the hub", async () => {
+    h.row = { code: "ABC234", status: "starting" }
+    h.settled = { code: "ABC234", status: "lobby" }
+    await expect(GamePage({ game, code: "abc234" })).rejects.toThrow("NEXT_REDIRECT /game/courtisans/ABC234")
   })
 
   it("leaves a table that does not exist, or that cannot be read, to the client, which says so", async () => {

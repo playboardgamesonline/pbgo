@@ -1,7 +1,8 @@
 import type { OptionValues, PlayerInfo } from "@pbgo/engine-kit"
 import type { CoreView } from "./binding"
 
-export type GameStatus = "lobby" | "playing" | "over"
+/** `starting`: the host has started the table and the boards have not all loaded yet (PLT-107); the game is set up, and each board is drawn behind the start screen */
+export type GameStatus = "lobby" | "starting" | "playing" | "over"
 
 /** Where the takeover of one waiting player stands (see `server/takeover.ts`). Public: every viewer of the table gets it. */
 export type TakeoverStatus = {
@@ -34,6 +35,10 @@ export type PublicGame<View = CoreView> = {
   meId: string | null
   options: OptionValues
   replay: string[]
+  /** The players who have said they are ready, in seat order, while the table is `starting`; empty otherwise */
+  ready: string[]
+  /** What is left of the time to be ready when this was sent, in milliseconds (a duration, not a date: a clock that is off does not matter); null outside `starting` */
+  readyInMs: number | null
   /**
    * Players the game waits for now: one on a turn, several on a simultaneous step. Public information, the same for every
    * viewer (it tells who has not played yet, never what). Empty outside a game in progress.
@@ -54,3 +59,5 @@ export type PublicGame<View = CoreView> = {
 // The slug keeps two games with the same table code apart on the shared Supabase project.
 export const gameChannel = (slug: string, code: string) => `game:${slug}:${code}`
 export const UPDATE_EVENT = "update"
+/** The channel on which the boards of a table that is `starting` tell each other how far they are loaded (presence, nothing stored): the collective bar of the start screen */
+export const loadingChannel = (slug: string, code: string) => `loading:${slug}:${code}`

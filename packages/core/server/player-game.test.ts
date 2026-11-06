@@ -32,13 +32,13 @@ beforeEach(() => {
 })
 
 describe("findPlayerGame", () => {
-  it("asks for the tables of the game that wait or are played, written lately, that hold the player, the last written first", async () => {
+  it("asks for the tables of the game that wait, are starting or are played, written lately, that hold the player, the last written first", async () => {
     await findPlayerGame({ slug: "courtisans" }, "p1", NOW)
     expect(h.calls).toEqual([
       ["from", "games"],
       ["select", expect.stringContaining("players")],
       ["eq", "game", "courtisans"],
-      ["in", "status", ["lobby", "playing"]],
+      ["in", "status", ["lobby", "starting", "playing"]],
       ["gte", "updated_at", new Date(NOW - TABLE_IDLE_MS).toISOString()],
       // A string: for an array supabase-js writes a Postgres array literal (`{…}`), which a jsonb column does not read
       ["contains", "players", '[{"id":"p1"}]'],

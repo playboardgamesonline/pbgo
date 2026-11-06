@@ -37,12 +37,25 @@ const Scene3D = dynamic(() => import("../game3d/scene"), {
   ),
 })
 
+const noop = () => {}
+
 const mustRead = (view: PlayerView) => view.phase !== "over" && !!view.me && !view.players.find((j) => j.id === view.me?.id)?.missionsRead
 
-type GameProps = { game: PublicGame; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
+type GameProps = {
+  game: PublicGame
+  data?: unknown
+  onUpdate: (p: PublicGame) => void
+  onLeave: () => void
+  held?: boolean
+  onLoaded?: () => void
+  onProgress?: (progress: number) => void
+}
 
-/** Courtisans board plugged into @pbgo/core (`Game` of the game's UI binding). `data` = Sanity catalog loaded on the server. */
-export function Game({ game, data, onUpdate, onLeave }: GameProps) {
+/**
+ * Courtisans board plugged into @pbgo/core (`Game` of the game's UI binding). `data` = Sanity catalog loaded on the server. `held`, `onLoaded` and `onProgress` are the start screen's (PLT-107): behind it the board is drawn, loads its pictures, says how far it is
+ * and when it is done, and holds its opening (the camera's entrance, the mat, the deal) until the screen goes.
+ */
+export function Game({ game, data, onUpdate, onLeave, held = false, onLoaded, onProgress }: GameProps) {
   // Leva is loaded on demand (debug mode only): the board remounts once with the real controls.
   const debugTools = useDebugTools()
   if (!game.view) return null
@@ -53,6 +66,9 @@ export function Game({ game, data, onUpdate, onLeave }: GameProps) {
       catalog={(data as ClientCatalog | undefined) ?? MISSING_CATALOG}
       onUpdate={onUpdate}
       onLeave={onLeave}
+      held={held}
+      onLoaded={onLoaded}
+      onProgress={onProgress}
     />
   )
 }
@@ -62,11 +78,17 @@ function Board({
   catalog,
   onUpdate,
   onLeave,
+  held,
+  onLoaded,
+  onProgress,
 }: {
   game: PublicGame
   catalog: ClientCatalog
   onUpdate: (p: PublicGame) => void
   onLeave: () => void
+  held: boolean
+  onLoaded?: () => void
+  onProgress?: (progress: number) => void
 }) {
   const t = useText()
   const api = useApi()
@@ -88,7 +110,7 @@ function Board({
   const [confirming, setConfirming] = useState(false)
   const [marker, setMarker] = useState(`${view.phase}:${view.activePlayerId}:${mustRead(view) ? 1 : 0}`)
   const announcementSettings = useAnnouncementSettings()
-  const { announce, clear: clearAnnouncements, element: announcementElement } = useAnnouncements(announcementSettings, { paused: openingStep !== null })
+  const { announce, clear: clearAnnouncements, element: announcementElement } = useAnnouncements(announcementSettings, { paused: openingStep !== null || held })
   const currentMarker = `${view.phase}:${view.activePlayerId}:${mustRead(view) ? 1 : 0}`
   if (marker !== currentMarker) {
     const [prevPhase, prevActive, prevRead] = marker.split(":")
@@ -172,7 +194,8 @@ function Board({
   const [ready, setReady] = useState(false)
   const sceneReady = useCallback(() => setReady(true), [])
   useEffect(() => {
-    if (!ready) return
+    // The start screen holds the opening: it starts the moment the screen goes
+    if (!ready || held) return
     if (openingStep === "unroll") {
       const t = setTimeout(() => setOpeningStep("deal"), (openingSettings.matDuration + 0.3) * 1000)
       return () => clearTimeout(t)
@@ -185,7 +208,7 @@ function Board({
       const t = setTimeout(() => setShowMissionsButton(true), openingSettings.buttonDelay * 1000)
       return () => clearTimeout(t)
     }
-  }, [openingStep, playerCount, ready, openingSettings])
+  }, [openingStep, playerCount, ready, held, openingSettings])
 
   const meId = view.me?.id
   const myTurn = view.phase === "playing" && !!meId && view.activePlayerId === meId
@@ -370,6 +393,9 @@ function Board({
             <Scene3D
               openingStep={openingStep}
               onReady={sceneReady}
+              held={held}
+              onLoaded={onLoaded ?? noop}
+              onProgress={onProgress ?? noop}
               settings={openingSettings}
               missionFocus={missionFocus}
               ending={ending}

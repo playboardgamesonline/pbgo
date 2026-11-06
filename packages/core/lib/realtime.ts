@@ -1,7 +1,7 @@
 "use client"
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
-import { UPDATE_EVENT, gameChannel } from "./game-types"
+import { UPDATE_EVENT, gameChannel, loadingChannel } from "./game-types"
 import { CHAT_MAX_LENGTH, CHAT_SERVER_EVENT, REACTION_SERVER_EVENT, chatChannel, type ChatMessage, type ChatReaction } from "./chat"
 
 let client: SupabaseClient | null = null
@@ -48,4 +48,52 @@ export function openChat(slug: string, code: string, onMessage: (m: ChatMessage)
     })
     .subscribe()
   return { close: () => void sb.removeChannel(channel) }
+}
+
+/** How far each board of a table is loaded, by player id (0 to 1), as the boards report it to each other. */
+export type LoadingProgress = Record<string, number>
+
+/** Reports at most this often, in milliseconds: the bar of the start screen is smooth enough, and the channel is not flooded */
+const REPORT_EVERY_MS = 250
+
+/**
+ * The loading channel of a table: every board of the table that is `starting` tells the others how far it is (`report`, 0 to 1) and hears them (`onChange`, everybody's last word, the viewer's own included). It is presence, so nothing is stored
+ * and a board that closes leaves the channel: it only paints the collective bar of the start screen. What lets the game begin is not here, it is the table's own list of those who are ready (`POST …/ready`); a board that cannot reach the
+ * channel (no Realtime) just shows no progress for the others. Null without a Supabase configuration.
+ */
+export function openLoading(slug: string, code: string, playerId: string, onChange: (progress: LoadingProgress) => void) {
+  const sb = supabase()
+  if (!sb) return null
+  const channel = sb.channel(loadingChannel(slug, code), { config: { presence: { key: playerId } } })
+  channel.on("presence", { event: "sync" }, () => {
+    const state = channel.presenceState<{ progress?: number }>()
+    onChange(Object.fromEntries(Object.entries(state).map(([id, metas]) => [id, Number(metas.at(-1)?.progress) || 0])))
+  })
+
+  let subscribed = false
+  let latest: number | null = null
+  let sentAt = 0
+  let timer: ReturnType<typeof setTimeout> | null = null
+  const flush = () => {
+    timer = null
+    if (latest === null || !subscribed) return
+    sentAt = Date.now()
+    void channel.track({ progress: latest })
+  }
+  channel.subscribe((status) => {
+    if (status !== "SUBSCRIBED") return
+    subscribed = true
+    flush()
+  })
+
+  return {
+    report(progress: number) {
+      latest = progress
+      if (!timer) timer = setTimeout(flush, Math.max(0, REPORT_EVERY_MS - (Date.now() - sentAt)))
+    },
+    close() {
+      if (timer) clearTimeout(timer)
+      void sb.removeChannel(channel)
+    },
+  }
 }

@@ -2,7 +2,7 @@
 
 The in-game part of the `@pbgo/core` entry of `docs/packages.md`:
 
-- A game has no home page and no lobby screen: a table is opened, joined and started on the platform's page of the game (PLT-106, `docs/routing.md`), and the players then come to the board. Standard screens and game flow (from Courtisans): `Screen` (the screens around the board: a table that has no board for the visitor, a game's 404, and the ready screen to come), `GameHud` + `Ticker` + `groupTurns` + `useAnnouncements`, `GameOver` (`renderDetail` for the score detail), sound (`lib/sound.ts`, `SoundButton`, `SoundEngine`), `DesktopOnly`, leva debug panel, all mounted by `AppShell` in the `[game]` layout.
+- A game has no home page and no lobby screen: a table is opened, joined and started on the platform's page of the game (PLT-106, `docs/routing.md`), and the players then come to the board. Standard screens and game flow (from Courtisans): `Screen` (the screens around the board: a table that has no board for the visitor and a game's 404; the screen of a table that starts is the platform's, see [the rules](../01-guidelines/04-in-game-rules.md)), `GameHud` + `Ticker` + `groupTurns` + `useAnnouncements`, `GameOver` (`renderDetail` for the score detail), sound (`lib/sound.ts`, `SoundButton`, `SoundEngine`), `DesktopOnly`, leva debug panel, all mounted by `AppShell` in the `[game]` layout.
 - The in-game UI (ticker, announcements, takeover pill, chat, game over, `PlayersStrip`, seat label) is written once and drawn in the game's own look, never the platform's. The ticker, the takeover pill, the chat and the toolbar have no setting: they take the game's skin as they are.
 
 ## Settings menu

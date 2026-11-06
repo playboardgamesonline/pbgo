@@ -23,7 +23,8 @@ import { Button } from "@pbgo/ui/game/button"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 
-type Props = { game: PublicGame<PlayerView>; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void }
+/** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
+type Props = { game: PublicGame<PlayerView>; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void; held?: boolean; onLoaded?: () => void }
 
 export function Game(props: Props) {
   const view = props.game.view
@@ -91,7 +92,7 @@ function RoundStatus() {
   )
 }
 
-function Table({ onUpdate, onLeave }: Props) {
+function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
   const t = useText()
   const api = useApi()
   const { victoryPhrases, hostIcon, playerColors } = useSkin()
@@ -111,6 +112,8 @@ function Table({ onUpdate, onLeave }: Props) {
   const seatsFor = (ids: readonly string[]) => seatsOf(game.players, ids, playerColors)
 
   useEffect(() => {
+    // The start screen holds the start of the game: its announcement comes when the screen goes
+    if (held) return
     const before = previous.current
     previous.current = { round: view.round, active: view.activePlayerId, phase: view.phase }
     if (view.phase === "over") {
@@ -126,7 +129,7 @@ function Table({ onUpdate, onLeave }: Props) {
     if (myTurn && (before?.active !== view.activePlayerId || before?.round !== view.round))
       announce(t("yourTurn"), "turn", { sound: "turn", replace: ["turn"], seats: seatsFor(meId ? [meId] : []) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.phase, view.round, view.activePlayerId])
+  }, [view.phase, view.round, view.activePlayerId, held])
 
   function runDebugCommand(command: ClientDebugCommand) {
     api
@@ -206,7 +209,7 @@ function Table({ onUpdate, onLeave }: Props) {
         </>
       }
     >
-      <Scene view={view} color={color} avatarUrl={avatarUrl} seat={seat} floor={theme.surfaceDark} crownIcon={hostIcon} myTurn={myTurn && !sending} onPlay={play} />
+      <Scene view={view} color={color} avatarUrl={avatarUrl} seat={seat} floor={theme.surfaceDark} crownIcon={hostIcon} myTurn={myTurn && !sending} onPlay={play} held={held} onLoaded={onLoaded} />
     </GameHud>
   )
 }
