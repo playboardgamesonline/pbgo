@@ -31,6 +31,8 @@ export const RATE_LIMITS = {
   /** Host tweaking options in the lobby (each click is a request) */
   options: { limit: 30, windowMs: 10_000 },
   start: { limit: 10, windowMs: 60_000 },
+  /** "I'm ready" of the ready check (PLT-107): one request per player, a few more for one that lost a race */
+  ready: { limit: 20, windowMs: 10_000 },
   /** Game moves (including Courtisans `readMissions` and its retries): per player, never per table */
   action: { limit: 20, windowMs: 10_000 },
   replay: { limit: 10, windowMs: 60_000 },

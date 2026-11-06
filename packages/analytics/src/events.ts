@@ -15,6 +15,7 @@ export type ServerEvents = {
   game_created: { game: string; options: Record<string, unknown>; max_players: number; locale: Locale }
   /** `seat` is 0-based, `players` counts the table after the join. */
   player_joined: { game: string; seat: number; players: number }
+  /** The game begins: the last player has said they are ready (PLT-107; before it, the host's start). Sent for the host, whoever was the last. */
   game_started: { game: string; players: number; options: Record<string, unknown> }
   /**
    * `duration_s` and `moves_count` are approximations: a table has no start date and no move counter, so they come from the

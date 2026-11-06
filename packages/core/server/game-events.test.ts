@@ -5,7 +5,11 @@ import { DEFAULT_REACTION_IDS } from "../lib/chat"
 import { POST as chat } from "../routes/api/games/[code]/chat/route"
 import { POST as action } from "../routes/api/games/[code]/action/route"
 import { POST as join } from "../routes/api/games/[code]/join/route"
+import { POST as leave } from "../routes/api/games/[code]/leave/route"
+import { POST as options } from "../routes/api/games/[code]/options/route"
+import { POST as ready } from "../routes/api/games/[code]/ready/route"
 import { POST as replay } from "../routes/api/games/[code]/replay/route"
+import { GET as read } from "../routes/api/games/[code]/route"
 import { POST as start } from "../routes/api/games/[code]/start/route"
 import { POST as takeover } from "../routes/api/games/[code]/takeover/route"
 import { POST as create } from "../routes/api/games/route"
@@ -23,13 +27,15 @@ type StoredRow = {
   game: string
   code: string
   host_id: string
-  status: "lobby" | "playing" | "over"
+  status: "lobby" | "starting" | "playing" | "over"
   players: Array<{ id: string; nickname: string; avatarUrl?: string }>
   options: Record<string, number | string | boolean>
   state: unknown
   replay: string[]
   takeover_votes: string[]
   seen: Record<string, string>
+  ready_at: Record<string, string>
+  ready_deadline: string | null
   version: number
   updated_at: string
   created_at: string
@@ -182,6 +188,8 @@ function seed(partial: Partial<StoredRow> = {}): StoredRow {
     replay: [],
     takeover_votes: [],
     seen: {},
+    ready_at: {},
+    ready_deadline: null,
     version: 1,
     created_at: "2026-01-01T10:00:00.000Z",
     updated_at: "2026-01-01T10:00:00.000Z",
@@ -217,6 +225,20 @@ const stalled = (ids: string[], turn: number, length = 10) =>
     seen: Object.fromEntries(ids.map((id) => [id, new Date().toISOString()])),
     updated_at: new Date(Date.now() - 10 * 60_000).toISOString(),
   })
+
+/** A table in its ready check: the game set up for `ids`, `done` of them have said they are ready, and the time is up in `left` ms (negative: it was up that long ago). */
+function starting(ids: string[], done: string[], left = 30_000, partial: Partial<StoredRow> = {}) {
+  return seed({
+    status: "starting",
+    host_id: ids[0] ?? "",
+    players: ids.map((id) => ({ id, nickname: id.toUpperCase() })),
+    state: { players: ids, turn: 0, length: 3 } satisfies TestState,
+    ready_at: Object.fromEntries(done.map((id) => [id, new Date().toISOString()])),
+    ready_deadline: new Date(Date.now() + left).toISOString(),
+    version: 7,
+    ...partial,
+  })
+}
 
 type Handler = (request: Request, context: GameRouteContext) => Promise<Response>
 async function call(handler: Handler, body: unknown = {}, code: string | null = CODE, bound = game) {
@@ -343,15 +365,22 @@ describe("who sits down", () => {
 })
 
 describe("game_started", () => {
-  it("is sent when the host starts the game", async () => {
+  it("is sent for the host when the last player says they are ready, not when the host starts the table", async () => {
     seed({ players: [ann, bob] })
     h.playerId = "p1"
     expect((await call(start)).status).toBe(200)
+    expect(stored().status).toBe("starting")
+    expect(names()).toEqual([])
+
+    expect((await call(ready)).status).toBe(200)
+    expect(names()).toEqual([])
+    h.playerId = "p2"
+    expect((await call(ready)).status).toBe(200)
     expect(tracked()).toEqual([{ event: "game_started", distinctId: "p1", properties: { game: SLUG, players: 2, options: { rounds: 3 } } }])
     expect(stored().status).toBe("playing")
   })
 
-  it("is not sent when someone else starts, the table is too small or the game already started", async () => {
+  it("is not sent when someone else starts, the table is too small, the game already started or is being started", async () => {
     seed({ players: [ann, bob] })
     h.playerId = "p2"
     expect((await call(start)).status).toBe(403)
@@ -362,7 +391,174 @@ describe("game_started", () => {
 
     playing(["p1", "p2"], 0)
     expect((await call(start)).status).toBe(409)
+
+    starting(["p1", "p2"], [])
+    expect((await call(start)).status).toBe(409)
     expect(names()).toEqual([])
+  })
+
+  it("is sent once when the last two players say they are ready at the same time", async () => {
+    starting(["p1", "p2", "p3"], ["p1"])
+    h.playerId = "p2"
+    // p3's request wins the race for the next write, so p2's runs again on the table as it is then, and p2 is the last
+    race((row) => ({ ready_at: { ...row.ready_at, p3: new Date().toISOString() } }))
+    expect((await call(ready)).status).toBe(200)
+    expect(tracked()).toEqual([{ event: "game_started", distinctId: "p1", properties: { game: SLUG, players: 3, options: { rounds: 3 } } }])
+    expect(stored().status).toBe("playing")
+  })
+
+  it("is not sent by a request that lost the race to the one that began the game", async () => {
+    starting(["p1", "p2"], ["p1"])
+    h.playerId = "p2"
+    race(() => ({ status: "playing", ready_at: {}, ready_deadline: null }))
+    expect((await call(ready)).status).toBe(200)
+    expect(names()).toEqual([])
+    expect(stored().status).toBe("playing")
+  })
+})
+
+describe("the ready check", () => {
+  const body = async (response: Response) => (await response.json()) as { status: string; ready: string[]; readyInMs: number | null; meId: string | null; players: Array<{ id: string }>; view: unknown }
+
+  it("is opened by the host's start: the game is set up for the seats, the table is starting and the players have a minute", async () => {
+    seed({ players: [ann, bob] })
+    h.playerId = "p1"
+    const before = Date.now()
+    const table = await body(await call(start))
+    expect(table).toMatchObject({ status: "starting", ready: [], meId: "p1" })
+    // The board of a seated player is drawn from their view of the game, behind the curtain
+    expect(table.view).toEqual({ me: { id: "p1" }, turn: 0 })
+    expect(table.readyInMs).toBeGreaterThan(59_000)
+    expect(table.readyInMs).toBeLessThanOrEqual(60_000)
+    expect(stored()).toMatchObject({ status: "starting", state: { players: ["p1", "p2"], turn: 0, length: 3 }, ready_at: {} })
+    expect(Date.parse(stored().ready_deadline!)).toBeGreaterThanOrEqual(before + 60_000)
+  })
+
+  it("marks each player who says they are ready, in seat order, and begins the game with the last one", async () => {
+    starting(["p1", "p2", "p3"], [])
+    h.playerId = "p3"
+    expect(await body(await call(ready))).toMatchObject({ status: "starting", ready: ["p3"] })
+    h.playerId = "p1"
+    expect(await body(await call(ready))).toMatchObject({ status: "starting", ready: ["p1", "p3"] })
+    const version = stored().version
+
+    h.playerId = "p2"
+    const table = await body(await call(ready))
+    expect(table).toMatchObject({ status: "playing", ready: [], readyInMs: null })
+    expect(table.view).toEqual({ me: { id: "p2" }, turn: 0 })
+    expect(stored()).toMatchObject({ status: "playing", ready_at: {}, ready_deadline: null, state: { players: ["p1", "p2", "p3"], turn: 0, length: 3 } })
+    expect(stored().version).toBe(version + 1)
+  })
+
+  it("lets the game be played once it has begun, and not before", async () => {
+    starting(["p1", "p2"], ["p1"])
+    h.playerId = "p1"
+    expect((await call(action, { type: "move" })).status).toBe(409)
+    h.playerId = "p2"
+    await call(ready)
+    h.playerId = "p1"
+    expect((await call(action, { type: "move" })).status).toBe(200)
+  })
+
+  it("changes nothing when a player says it again, when it is not a ready check, or for a stranger who is refused", async () => {
+    starting(["p1", "p2"], ["p1"])
+    h.playerId = "p1"
+    const version = stored().version
+    expect((await call(ready)).status).toBe(200)
+    expect(stored().version).toBe(version)
+
+    h.playerId = "stranger"
+    expect((await call(ready)).status).toBe(403)
+    h.playerId = null
+    expect((await call(ready)).status).toBe(403)
+
+    for (const status of ["lobby", "playing", "over"] as const) {
+      seed({ status, players: [ann, bob], state: status === "lobby" ? null : { players: ["p1", "p2"], turn: 0, length: 3 } })
+      h.playerId = "p2"
+      expect(await body(await call(ready))).toMatchObject({ status })
+      expect(stored().version).toBe(1)
+    }
+  })
+
+  it("ends when the time is up, at the first look at the table: whoever was not ready is unseated and the others are back in the lobby", async () => {
+    starting(["p1", "p2", "p3"], ["p1", "p3"], -1000)
+    h.playerId = "p3"
+    const table = await body(await call(read))
+    expect(table).toMatchObject({ status: "lobby", ready: [], readyInMs: null, meId: "p3", view: null })
+    expect(table.players.map((player) => player.id)).toEqual(["p1", "p3"])
+    expect(stored()).toMatchObject({ status: "lobby", host_id: "p1", state: null, ready_at: {}, ready_deadline: null })
+    expect(names()).toEqual([])
+  })
+
+  it("gives the unseated player a table they are not at any more, and hands the table to the first seat left when the host was not ready", async () => {
+    starting(["p1", "p2", "p3"], ["p2", "p3"], -1000)
+    h.playerId = "p1"
+    const table = await body(await call(read))
+    expect(table).toMatchObject({ status: "lobby", meId: null })
+    expect(stored()).toMatchObject({ host_id: "p2" })
+    expect(stored().players.map((player) => player.id)).toEqual(["p2", "p3"])
+  })
+
+  it("is ended by a player who says they are ready too late, who is then unseated like the others who were not", async () => {
+    starting(["p1", "p2"], ["p1"], -1000)
+    h.playerId = "p2"
+    expect(await body(await call(ready))).toMatchObject({ status: "lobby", meId: null })
+    expect(stored().players.map((player) => player.id)).toEqual(["p1"])
+    expect(names()).toEqual([])
+  })
+
+  it("does not touch a ready check that still has time, whoever looks at it", async () => {
+    starting(["p1", "p2"], ["p1"], 30_000)
+    h.playerId = "p2"
+    const version = stored().version
+    expect(await body(await call(read))).toMatchObject({ status: "starting", ready: ["p1"], meId: "p2" })
+    expect(stored().version).toBe(version)
+  })
+
+  it("lets the host start again once it has ended, with the players who are left", async () => {
+    starting(["p1", "p2", "p3"], ["p1", "p2"], -1000)
+    h.playerId = "p1"
+    expect(await body(await call(start))).toMatchObject({ status: "starting", ready: [] })
+    expect(stored().players.map((player) => player.id)).toEqual(["p1", "p2"])
+    expect(stored().state).toMatchObject({ players: ["p1", "p2"] })
+  })
+
+  it("is ended for everybody by a player who leaves it, who is unseated, the game set up for the seats it had dropped", async () => {
+    starting(["p1", "p2", "p3"], ["p1", "p2"])
+    h.playerId = "p3"
+    expect(await body(await call(leave))).toMatchObject({ status: "lobby", meId: null })
+    expect(stored()).toMatchObject({ status: "lobby", host_id: "p1", state: null, ready_at: {}, ready_deadline: null })
+    expect(stored().players.map((player) => player.id)).toEqual(["p1", "p2"])
+
+    starting(["p1", "p2", "p3"], [])
+    h.playerId = "p1"
+    await call(leave)
+    expect(stored()).toMatchObject({ status: "lobby", host_id: "p2" })
+
+    starting(["p1", "p2"], [])
+    h.playerId = "stranger"
+    const version = stored().version
+    await call(leave)
+    expect(stored()).toMatchObject({ status: "starting", version })
+  })
+
+  it("turns away a new player and the host's changes to the options while the game is being set up", async () => {
+    starting(["p1", "p2"], [])
+    h.playerId = "p3"
+    expect((await call(join, { nickname: "Cy" })).status).toBe(409)
+    h.playerId = "p1"
+    expect((await call(options, { options: { rounds: 5 } })).status).toBe(409)
+    expect(stored()).toMatchObject({ status: "starting", options: { rounds: 3 } })
+  })
+
+  it("makes whoever sits down at a lobby that its ready check emptied the host", async () => {
+    starting(["p1", "p2"], [], -1000)
+    h.playerId = "p1"
+    await call(read)
+    expect(stored().players).toEqual([])
+    h.playerId = "p3"
+    expect((await call(join, { nickname: "Cy" })).status).toBe(200)
+    expect(stored()).toMatchObject({ host_id: "p3", players: [cy] })
   })
 })
 
