@@ -12,12 +12,12 @@ afterEach(() => vi.unstubAllEnvs())
 
 describe("providersOn", () => {
   it("lists the providers the settings switch on, in the order of the buttons", () => {
-    const settings = { external: { discord: true, email: true, google: true, facebook: false, twitch: true } }
+    const settings = { external: { discord: true, email: true, google: true, twitch: true } }
     expect(providersOn(settings)).toEqual(["google", "twitch", "discord"])
   })
 
   it("leaves out the providers that are not ours, and every value that is not true", () => {
-    expect(providersOn({ external: { apple: true, github: true, google: "true", facebook: 1, discord: true } })).toEqual(["discord"])
+    expect(providersOn({ external: { apple: true, facebook: true, github: true, google: "true", twitch: 1, discord: true } })).toEqual(["discord"])
   })
 
   it("gives none for anything that is not the settings of a project", () => {

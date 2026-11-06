@@ -90,7 +90,7 @@ export default function PrivacyPolicy() {
       </LegalSection>
 
       <LegalSection id="accounts" title="When you sign in">
-        <LegalText>An account is optional. You sign in with Facebook, Google, Twitch or Discord. Some accounts use an e-mail address and a password instead.</LegalText>
+        <LegalText>An account is optional. You sign in with Google, Twitch or Discord. Some accounts use an e-mail address and a password instead.</LegalText>
         <LegalEntries
           items={[
             {
@@ -200,7 +200,7 @@ export default function PrivacyPolicy() {
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]
               : []),
             { name: "Sanity", text: "Stores the texts, pictures and videos of the games. Your browser loads the pictures and videos from its servers." },
-            { name: "Facebook, Google, Twitch and Discord", text: "Only if you sign in with them. They learn that you sign in to this site and handle your data under their own policies." },
+            { name: "Google, Twitch and Discord", text: "Only if you sign in with them. They learn that you sign in to this site and handle your data under their own policies." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },
           ]}

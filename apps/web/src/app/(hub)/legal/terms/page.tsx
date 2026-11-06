@@ -54,7 +54,7 @@ export default function TermsOfUse() {
 
       <LegalSection id="accounts" title="Accounts and nicknames">
         <LegalText>
-          You do not need an account to play: a guest picks a nickname. An account is made by signing in with Facebook, Google, Twitch or Discord. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
+          You do not need an account to play: a guest picks a nickname. An account is made by signing in with Google, Twitch or Discord. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
           else uses yours.
         </LegalText>
         <LegalText>

@@ -5,19 +5,18 @@ import { Button } from "./button"
 import { Spinner } from "./spinner"
 
 /**
- * How the tile of each brand is dressed, in tokens: its fill, and the colour of the text, which its mark and a spinner take. Facebook, Twitch and Discord are
+ * How the tile of each brand is dressed, in tokens: its fill, and the colour of the text, which its mark and a spinner take. Twitch and Discord are
  * their brand's colour (`brand-*`) and Google is white (`foreground`) with its own four colours.
  */
 const TILES: Record<BrandName, string> = {
-  facebook: "border-transparent bg-brand-facebook text-foreground hover:bg-brand-facebook/90",
   google: "border-transparent bg-foreground text-background hover:bg-foreground/90 hover:text-background",
   twitch: "border-transparent bg-brand-twitch text-foreground hover:bg-brand-twitch/90",
   discord: "border-transparent bg-brand-discord text-foreground hover:bg-brand-discord/90",
 }
 
 /**
- * The button that signs a visitor in with a provider: a tile with nothing on it but the provider's small mark, wider than it is tall (`h-10`, and about twice that
- * in a row of four), so that several stand side by side in a row of equal cells. It says its name to a screen reader and in a tooltip, since the mark is all it draws.
+ * The button that signs a visitor in with a provider: a tile with nothing on it but the provider's small mark, wider than it is tall (`h-10`, and about three times that
+ * in a row of three), so that several stand side by side in a row of equal cells. It says its name to a screen reader and in a tooltip, since the mark is all it draws.
  */
 function ProviderButton({
   brand,

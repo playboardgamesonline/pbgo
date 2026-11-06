@@ -1,7 +1,7 @@
 /*
  * PBGO design system v1: the platform theme (hub, account, legal, gamemaster, 404).
  *
- * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Facebook's blue and Discord's
+ * Direction: black and white, dark theme only. No accent colour (but the presence of a friend: green online, blue in a game, orange-yellow inactive, red do not disturb, and the brand of a sign-in provider: Twitch's purple and Discord's
  * blurple on their buttons, Google's four colours in its mark), and no gradient: the first screen of a page is the page's black,
  * flat. Geist Sans in semibold, slightly tight line-height, small negative letter-spacing. Apart from those, game art is the only colour on the platform.
  * Corners are as round as the height of what they round allows (`rounded-4xl` for a container from 6rem high, `rounded-3xl` for a bar of 4rem) and never reach half of it: only the picture of a
@@ -58,7 +58,6 @@
   --color-presence-playing: var(--presence-playing);
   --color-presence-inactive: var(--presence-inactive);
   --color-presence-dnd: var(--presence-dnd);
-  --color-brand-facebook: var(--brand-facebook);
   --color-brand-twitch: var(--brand-twitch);
   --color-brand-discord: var(--brand-discord);
   --color-piece-red: var(--piece-red);
@@ -531,8 +530,7 @@
     --presence-playing: oklch(0.76 0.13 235);
     --presence-inactive: oklch(0.82 0.16 80);
     --presence-dnd: oklch(0.7 0.19 22);
-    /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Facebook's blue, Twitch's purple and Discord's blurple. Google's is `foreground`; the marks are in `brands.tsx` */
-    --brand-facebook: #1877f2;
+    /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Twitch's purple and Discord's blurple. Google's is `foreground`; the marks are in `brands.tsx` */
     --brand-twitch: #9146ff;
     --brand-discord: #5865f2;
     /* The colours of the pieces that stand for letters in the home's title (`TitlePiece`, `TitleCards`): red and gold, the dark blue of the backs of the cards, ivory and ink for a die. The black suits are not one of them: on the page's black they are drawn in the colour of the text */

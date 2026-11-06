@@ -9,18 +9,6 @@ const google: AuthUser = {
   user_metadata: { full_name: "Oré Louvel", name: "Oré Louvel", avatar_url: "https://lh3.googleusercontent.com/a/ore", picture: "https://lh3.googleusercontent.com/a/ore" },
 }
 
-const facebook: AuthUser = {
-  id: "u-10",
-  email: "ore@example.com",
-  app_metadata: { provider: "facebook" },
-  user_metadata: {
-    full_name: "Oré Louvel",
-    name: "Oré Louvel",
-    avatar_url: "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1",
-    picture: "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1",
-  },
-}
-
 // What Twitch's sign-in gives (`internal/api/provider/twitch.go` of supabase/auth): the login is `full_name` and `name`, the name shown on the channel is `nickname`, the picture is `avatar_url`
 const twitch: AuthUser = {
   id: "u-11",
@@ -48,8 +36,8 @@ const discord: AuthUser = {
 }
 
 describe("the providers", () => {
-  it("are Facebook, Google, Twitch and Discord, in the order of the buttons", () => {
-    expect([...PROVIDERS]).toEqual(["facebook", "google", "twitch", "discord"])
+  it("are Google, Twitch and Discord, in the order of the buttons", () => {
+    expect([...PROVIDERS]).toEqual(["google", "twitch", "discord"])
   })
 })
 
@@ -64,13 +52,6 @@ describe("accountOf", () => {
       createdAt: "2026-10-01T09:00:00.000Z",
       language: null,
     })
-  })
-
-  it("makes an account of a Facebook user the way it does of a Google one", () => {
-    const account = accountOf(facebook)
-    expect(account.nickname).toBe("Oré Louvel")
-    expect(account.avatarUrl).toBe("https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1")
-    expect(account.provider).toBe("facebook")
   })
 
   it("makes an account of a Twitch user: the login for the name, the picture the provider gives", () => {
