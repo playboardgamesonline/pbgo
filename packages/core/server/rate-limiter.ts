@@ -2,9 +2,9 @@
  * Rate limiting: pure logic (no Next, no cookies), shared by the API routes through `server/rate-limit.ts` and tested in `rate-limiter.test.ts`.
  *
  * Every rule lives in `RATE_LIMITS`. A request is counted against:
- * - its route rule in its game, keyed per player (cookie id) when the route allows it, else per IP — never per table, so a
+ * - its route rule in its game, keyed per player (the id of the player cookie) when the route allows it, else per IP — never per table, so a
  *   whole table acting at once (Courtisans opening: every player sends `readMissions`, with client retries) never shares a budget;
- * - a per-IP ceiling across all game routes of every game, so rotating the (unsigned) player cookie doesn't bypass the per-player rules.
+ * - a per-IP ceiling across all game routes of every game, so dropping the player cookie for a new one (it costs nothing) doesn't bypass the per-player rules.
  *
  * The admin login belongs to no game (one admin account for all of them): its rule, `adminLogin`, is keyed per IP without a game scope.
  *

@@ -1,29 +1,20 @@
 import type { ReactNode } from "react"
 import type { Metadata } from "next"
+import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
-import { LEGAL_LEAD, LEGAL_LINK, LegalPage, LegalSection, LegalText } from "@/components/legal-page"
+import { LEGAL_LEAD, LEGAL_LINK, LegalEntries, LegalPage, LegalSection, LegalText } from "@/components/legal-page"
 import { CONTACT } from "@/site"
 
 export const metadata: Metadata = { title: "Cookie Policy", alternates: { canonical: "/legal/cookies" } }
 
 /**
- * Everything the site writes on a device, one entry for a name: what it is, what it is for, how long it lasts and when it is written.
- * The entries are the code's (`player.ts`, `admin.ts`, `language-select.tsx`, `consent.ts`, `profile.ts`, `sound.ts`, `folded-games.ts`, the
- * cookies of `@pbgo/accounts`): a new cookie or storage key is added here at the same time, or the page says less than the site does.
+ * Everything the site writes on a device, one entry for a name (`LegalEntries`): what it is, what it is for, how long it lasts and when it is written.
+ * The entries are the code's (`player.ts`, `admin.ts`, `language-select.tsx`, `consent.ts`, `profile.ts`, `sound.ts`, `folded-games.ts`, `matchmaking.ts`,
+ * `debug-controls.ts`, the cookies of `@pbgo/accounts`): a new cookie or storage key is added here at the same time, or the page says less than the site
+ * does. Everything else the site does with personal data is the Privacy Policy's, and the inventory behind both is `docs/legal.md`.
  */
-function Stored({ items }: { items: { name: string; text: ReactNode }[] }) {
-  return (
-    <dl className="flex flex-col gap-4">
-      {items.map((item) => (
-        <div key={item.name} className="flex flex-col gap-1">
-          <dt className="font-mono text-sm text-foreground">{item.name}</dt>
-          <dd className="text-muted-foreground">{item.text}</dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
+const Stored = (props: { items: { name: string; text: ReactNode }[] }) => <LegalEntries mono {...props} />
 
 /** What the site measures, in full: the cookie banner is a small card that says the essentials in one sentence and links here. */
 const STATISTICS: ReactNode[] = [
@@ -57,6 +48,13 @@ export default function CookiePolicy() {
       <LegalText>
         Nothing is stored when you arrive. The site writes something only when you do what needs it (create or join a table, pick a language, sign in) or when you answer the cookie banner, and, once you are signed in, it keeps your language cookie in step with your account. No advertising cookies, no tracking across sites, and nothing is sold or shared for
         advertising. The site does not use cookies to personalise what you see or to market anything to you.
+      </LegalText>
+      <LegalText>
+        What else the site does with your personal data is in the{" "}
+        <Link href="/legal/privacy" className={LEGAL_LINK}>
+          Privacy Policy
+        </Link>
+        .
       </LegalText>
 
       <LegalSection id="essential" title="What the site needs" first>
@@ -96,6 +94,14 @@ export default function CookiePolicy() {
             {
               name: "pbgo:folded-games",
               text: "Local storage. The games you folded in your friends' list, when you are signed in. It stays until you clear your browser's data.",
+            },
+            {
+              name: "pbgo:queue",
+              text: "Session storage. The game you asked to play ranked and since when, so that reloading the page does not lose your place. It goes when you close the tab.",
+            },
+            {
+              name: "game:debug",
+              text: "Local storage. A switch for the debugging tools of a game, written only if you turn them on (Shift+D). It stays until you clear your browser's data.",
             },
           ]}
         />
