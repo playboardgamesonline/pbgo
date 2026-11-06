@@ -6,7 +6,7 @@ The shared tools give an opening one piece, the camera's entrance, and an ending
 
 - The camera's entrance ([The entrance](02-camera.md#the-entrance)): it plays when the `Table` mounts, and again when `playIntro` turns true after being false.
 - Cards that come in one after the other: `enter` and `stagger` of a [Zone](13-zone.md), or a `from` pose with a `delay` on a card.
-- The `start` and `victory` announcements and the `GameOver` panel, which the shared UI draws over the board ([Announcements](../../design/04-in-game.md#announcements), [Game over](../../design/04-in-game.md#game-over)). The template announces the start when a game begins and the victory when `phase` is `over`, then shows `GameOver` once the announcement is done.
+- The `start` and `victory` announcements and the `GameOver` panel, which the shared UI draws over the board ([Announcements](../../design/04-in-game/06-announcements.md), [Game over](../../design/04-in-game/07-game-over.md)). The template announces the start when a game begins and the victory when `phase` is `over`, then shows `GameOver` once the announcement is done.
 - The photo of the finished table for the share image ([Share photo](05-share-photo.md)).
 
 ## A sequence of the game's own

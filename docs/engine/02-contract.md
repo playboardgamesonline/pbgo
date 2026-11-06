@@ -9,8 +9,8 @@
 | `id` | yes | The game's identifier | Its slug by convention |
 | `name` | yes | The game's name | Shown in the game-over footer and on the gamemaster's monitoring page |
 | `minPlayers`, `maxPlayers` | yes | The bounds of a table | The gamemaster can narrow them, never widen them |
-| `options` | yes | The `OptionDefinitions` the lobby draws | `{}` for none; see [Options and presets](01-how-a-game-runs.md#options-and-presets) |
-| `presets` | no | Option combinations offered in one click | Applied over the defaults and normalized (`applyPreset`) |
+| `options` | yes | The `OptionDefinitions` of the game | `{}` for none; see [Options and presets](01-how-a-game-runs.md#options-and-presets) |
+| `presets` | no | Option combinations, `OptionPreset`s | Applied over the defaults and normalized by `applyPreset`; no screen of the app offers them |
 | `clientActions` | yes | The action types a client may send | See [What clientActions controls](#what-clientactions-controls) |
 | `setup` | yes | `({ players, options, seed?, data? }) => State`: a new game | See [Starting a game](01-how-a-game-runs.md#starting-a-game) |
 | `apply` | yes | `(state, action) => State`: plays one action | Validates everything, throws `EngineError` for an illegal move, never mutates `state` |

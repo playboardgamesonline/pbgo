@@ -48,7 +48,7 @@ The shared tools supply the rest: the canvas, the camera and its entrance, the f
 - The binding loads `Game` with `dynamic` and no server render, in `src/ui.tsx`; `game.tsx` loads `Scene` the same way. All the three.js code enters the page with `Scene`.
 - A game imports `@pbgo/table` from the files of `board/` only, never from `game.tsx`, so the chunk of the HUD stays free of it. The game's `package.json` lists it among its dependencies.
 - The app lists `@pbgo/table` in `transpilePackages` (`apps/web/next.config.ts`), since the package ships TypeScript sources.
-- The hub, a game's home and its lobby load none of it.
+- The pages of the hub, the page of a game included, load none of it.
 
 From `template/src/components/game/game.tsx`:
 

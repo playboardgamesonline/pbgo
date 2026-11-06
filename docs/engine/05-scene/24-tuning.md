@@ -4,7 +4,7 @@ A scene is tuned live. Every visual value is a field of a plain object that a fr
 
 ## The panel
 
-- It is core's `DebugPanel` (`packages/core/components/game/debug.tsx`). `?debug` in the address opens it, and Shift+D toggles it and remembers the choice ([Debug](../../design/04-in-game.md#debug)).
+- It is core's `DebugPanel` (`packages/core/components/game/debug.tsx`). `?debug` in the address opens it, and Shift+D toggles it and remembers the choice ([Debug](../../design/04-in-game/01-screens-and-game-flow.md#debug)).
 - It has three tabs (`DEBUG_TABS`): GAME, for the game's own commands (the template's "Phases" folder: START, NEXT TURN and END, which call the debug route, [Debug commands](../02-contract.md#debug-commands)); SCENE, for the board's folders; TRANSITION, for the announcement presets and their "Replay" buttons ([Turn change](21-turn-change.md)).
 - "Copy all settings" copies every value of every tab as JSON, and a frame-rate meter with the worst frame shows while the panel is open.
 - Every folder that `useSettings` makes has a "Copy values" button that copies the folder as JSON, to paste back as the defaults in code. The panel finds values; the defaults live in the code.

@@ -1,6 +1,6 @@
 # Crown and the turn marker
 
-The turn marker is a crown that stands beside the nickname of the player whose turn it is. Per game: the template's `board/crown.tsx`, `TurnCrown`, is the reference. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game.md#turn-crown)).
+The turn marker is a crown that stands beside the nickname of the player whose turn it is. Per game: the template's `board/crown.tsx`, `TurnCrown`, is the reference. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
 
 ## Props
 

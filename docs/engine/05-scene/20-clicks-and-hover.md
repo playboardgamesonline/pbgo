@@ -17,7 +17,7 @@ The scene takes the pointer through react-three-fiber events on meshes. `Card` i
 - Hover is reported, not shown. The game keeps the id of the hovered card, moves the pose (`shifted`) and sets `glow` or `gloss`. The template lifts the hovered card of the hand and gives it the selection glow, on the viewer's turn only.
 - A card the viewer may not click has no `onClick`, and its cursor stays an arrow: the template passes `onClick` only on the viewer's turn.
 - `Table` has no prop for a click on empty space; the `onPointerMissed` of its canvas is not passed on.
-- Hover has no touch equivalent: game pages are desktop only ([Desktop only](../../design/04-in-game.md#desktop-only)).
+- Hover has no touch equivalent: game pages are desktop only ([Desktop only](../../design/04-in-game/01-screens-and-game-flow.md#desktop-only)).
 
 From `template/src/components/board/scene.tsx`, the click that plays a card of the hand:
 

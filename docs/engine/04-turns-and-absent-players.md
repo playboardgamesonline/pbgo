@@ -7,7 +7,7 @@ The engine tells the server whose move it is and how to play it for a player who
 - `waitingFor(state)` returns the ids of the players the server waits for, in seat order and without duplicates ([Every order comes from an array](03-state-and-determinism.md#every-order-comes-from-an-array)).
 - It lists one player on a classic turn and several on a simultaneous step. It is empty when the game is over, or when the engine itself waits for something that is not a player, such as a deadline.
 - It is public: `publicGame` sends it to every viewer, so it never reveals anything hidden. When knowing who is still pending would tell something (who passed on an answer, say), keep the player listed until it is public anyway.
-- The shared UI draws from it: the ticker's main line, the players strip when several players are waited for ([In-game UI](../design/04-in-game.md#players-strip)) and the takeover pill.
+- The shared UI draws from it: the ticker's main line, the players strip when several players are waited for ([In-game UI](../design/04-in-game/05-players-strip.md)) and the takeover pill.
 - A player can leave the list without having acted, because somebody played for them: a board follows the view.
 
 From `template/packages/engine/src/demo/game.ts`, a game that waits for everyone who has not bid, then for the player of the turn:

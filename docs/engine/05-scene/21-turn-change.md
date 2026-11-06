@@ -12,7 +12,7 @@ There is no turn-transition component. A turn changes the way everything on a bo
 | The cards played | Fly from where they were to the middle | [Pose memory](10-pose-memory.md) |
 | The trick won | Rests in the middle, then flies to its winner's side (`useCollect` in `scene.tsx`, `collectedPose` in `layout.ts`) | [Zone](13-zone.md) |
 | The announcement | `turn`, with its sound, when the turn comes to the viewer | Below |
-| The ticker | Names the player the game waits for; a strip lists several | [Players strip](../../design/04-in-game.md#players-strip) |
+| The ticker | Names the player the game waits for; a strip lists several | [Players strip](../../design/04-in-game/05-players-strip.md) |
 
 ## The announcement
 
@@ -24,7 +24,7 @@ if (myTurn && (before?.active !== view.activePlayerId || before?.round !== view.
 ```
 
 - `replace: ["turn"]` drops a `turn` announcement that is still queued, so a quick succession shows the latest. `useAnnouncements` can also be `paused`, which holds the queue while something else, an opening for instance, has the screen ([Opening and ending](22-opening-and-ending.md)).
-- The kinds are `start`, `round`, `turn` and `victory`; their look is `UI_THEME.announcement` ([Announcements](../../design/04-in-game.md#announcements)).
+- The kinds are `start`, `round`, `turn` and `victory`; their look is `UI_THEME.announcement` ([Announcements](../../design/04-in-game/06-announcements.md)).
 - The TRANSITION tab of the debug panel holds the presets of the four kinds and a "Replay" folder with a button for each: the way to see a turn change without playing one ([Tuning](24-tuning.md)).
 
 ## Rules

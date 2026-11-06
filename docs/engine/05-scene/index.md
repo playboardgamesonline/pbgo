@@ -25,7 +25,7 @@ GameHud                          DOM, shared: ticker, announcements, game over
                 └── Card …       a front, a back, a glow, a shadow
 ```
 
-`GameHud` is core's ([In-game UI](../../design/04-in-game.md)). `Scene` and `World` are the names the template gives the two halves of its `board/scene.tsx` ([Composing a board](23-composing-a-board.md)).
+`GameHud` is core's ([In-game UI](../../design/04-in-game/index.md)). `Scene` and `World` are the names the template gives the two halves of its `board/scene.tsx` ([Composing a board](23-composing-a-board.md)).
 
 ## Words and names
 
@@ -58,7 +58,7 @@ The code has no component for some of the words used for the parts of a table. T
 ## Rules
 
 - A board is 3D, never 2D: no DOM or CSS board. A missing picture is a generated texture (`standIn`) or a plain material, and only the shared HUD is DOM.
-- A game imports `@pbgo/table` from its lazy board chunk only, so the hub and a game's home load no three.js ([Lazy loading](23-composing-a-board.md#lazy-loading)).
+- A game imports `@pbgo/table` from its lazy board chunk only, so the hub, a game's page on it included, loads no three.js ([Lazy loading](23-composing-a-board.md#lazy-loading)).
 - `@pbgo/table` imports no game. It depends on `@pbgo/core` (easing, share photo, motion preference), and core never imports it.
 - A game's pictures and words stay in its Sanity project: the tools take textures, sizes and labels as arguments.
 - Every material is unlit and not tone mapped, so a colour on the screen is the texture's own.

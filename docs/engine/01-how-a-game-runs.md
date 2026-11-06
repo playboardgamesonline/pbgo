@@ -40,41 +40,42 @@ const row = await updateGame(game, params.code ?? "", (row) => {
 ## What is public
 
 - The `State` is read by the server only (the `state` column of `games`, row level security, no policy): it never reaches a browser.
-- `PublicGame` (`packages/core/lib/game-types.ts`) is all a browser receives: the table's code, host, `status` and `players` (id and nickname), `options`, `replay` (who voted for a rematch), `view`, and `waitingFor`, `present` and `takeovers`.
+- `PublicGame` (`packages/core/lib/game-types.ts`) is all a browser receives: the table's code, host, `status` and `players` (id, nickname and the picture of their account, if any), `options`, `replay` (who voted for a rematch), `view`, and `waitingFor`, `present` and `takeovers`.
 - `waitingFor`, `present` and `takeovers` are the same for every viewer.
 - `view` gets the viewer's id when they sit at the table and `null` for everybody else. The read route needs no cookie, so a view must be safe to show to anybody.
 - Neither the seed nor a saved stream position is in a view.
 
 ## Starting a game
 
-- `GAME.setup` runs through `newGame` (`packages/core/server/games.ts`), from `start` (the host, on a table in the lobby), `replay` (once every player has voted for a rematch), the debug route's `start` and the admin preview.
+- A table is opened, joined and started on the platform's page of the game (`/game/<slug>/<code>` while it waits for players); once it is started, its address `/<slug>/game/<code>` shows the board.
+- `GAME.setup` runs through `newGame` (`packages/core/server/games.ts`), from `start` (the host, on a table that waits for players), `replay` (once every player has voted for a rematch), the debug route's `start` and the admin preview.
 - A rematch is a new game: a new seed, the same players and options.
 - A table the engine cannot play is the engine's to refuse: `setup` throws `EngineError("INVALID_PLAYERS")`.
 - Core holds a table to `minPlayers` and `maxPlayers` (the gamemaster can narrow them), but tests call `setup` directly.
 
 | Argument | Where it comes from |
 | --- | --- |
-| `players` | The seats in the order they joined, `{ id, nickname }`: `id` is the random value of the player's `<slug>_player` cookie, `nickname` what `validateProfile` kept |
-| `options` | The options of the lobby, normalized by core for this number of players |
+| `players` | The seats in the order they joined, `{ id, nickname }` and nothing more: `id` is the random value of the player's `<slug>_player` cookie, `nickname` the name of the signed-in account or what a guest typed (`resolveProfile`); the picture of an account never reaches `setup` |
+| `options` | The options the table holds, normalized by core for this number of players |
 | `seed` | `newSeed()`: a random integer below 2^52 drawn with `crypto`, new for every game and every rematch |
 | `data` | `SetupData`: what the binding's `loadSetupData` returns, loaded before the write and in the default language; `undefined` without a loader |
 
 ## Options and presets
 
-- An engine declares `options` as data and the lobby draws them (`packages/core/components/lobby/game-options.tsx`).
-- An option is a `number`, a `choice` or a `boolean`, with a `label` and an optional `help`.
-- It may add `group` (`parameter`, or `extension` for an optional module), `requires`, `conflictsWith` (the first declared wins) and `players` (the table sizes it exists for).
-- `label` and `help` are shown as written; the platform does not translate them.
-- `normalizeOptions` clamps numbers, drops unknown values and switches off an option whose constraints are not met. Core runs it in `gameOptions` (`packages/core/lib/settings.ts`), at `start` and at `replay`, and `setup` runs it again.
+- An engine declares `options` as data: each is a `number`, a `choice` or a `boolean`, with a `label` and an optional `help`.
+- An option may add `group` (`parameter`, or `extension` for an optional module), `requires`, `conflictsWith` (the first declared wins) and `players` (the table sizes it exists for).
+- The platform's page of the game does not draw them from the declaration. It offers the expansions of the game and its helpers, each with an id, and a choice reaches the engine only when that id is the key of one of its options (`engineOptionsOf`, `packages/core/lib/table-options.ts`, used by `table-creator.tsx` and `own-lobby.tsx` in `apps/web/src/components`). An option that no expansion or helper carries cannot be chosen at a table and keeps its default.
+- `label` and `help` are shown as written in the gamemaster's Setup › Mechanics; the platform does not translate them.
+- `normalizeOptions` clamps numbers, drops unknown values and switches off an option whose constraints are not met. Core runs it in `gameOptions` (`packages/core/lib/settings.ts`) and in `newGame`, at `start` and at `replay`, and `setup` runs it again.
 - The gamemaster sets the defaults and can hide an option, which then keeps its default.
-- `presets` are one-click combinations; `applyPreset` normalizes them, so a preset cannot bypass a constraint.
+- `presets` are combinations of options and `applyPreset` normalizes them, so a preset cannot bypass a constraint; no screen of the app offers them.
 
 ## How an engine is wired in
 
 - `@<slug>/engine` exports its definition as `GAME` and re-exports the kit (`export * from "@pbgo/engine-kit"`).
-- The binding's `src/index.ts` re-exports `GAME`; its `src/server.ts` re-exports `./index` and adds `loadSetupData`, `loadGameData`, `ROUTES` and `SEO`.
+- The binding's `src/index.ts` re-exports `GAME`; its `src/server.ts` re-exports `./index` and adds `loadSetupData`, `loadGameData` and `ROUTES`.
 - The registry (`@pbgo/games`) imports `@pbgo-game/<slug>/server` on the first request for the game and gives core a `GameModule` (`packages/core/lib/binding.ts`). Core never imports a game.
-- A binding without `GAME` is not playable: its home page says "coming soon" and its table pages and API answer not found. With one, `isPlayable` makes it playable outside production, and in production once it is `live` in the registry.
+- A binding without `GAME` is not playable: its page on the hub says "Coming soon" and its tables and API answer not found. With one, `isPlayable` makes it playable outside production, and in production once it is `live` in the registry.
 - `ERROR_CODES` lists the codes core cannot word ([Errors](02-contract.md#errors)); `ROUTES` adds routes outside the contract.
 
 From `template/src/index.ts`:

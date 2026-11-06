@@ -40,7 +40,7 @@ These pages are what to read before writing or reviewing an engine.
 ## What these pages do not cover
 
 - The reference of each module of the kit is `packages/engine-kit/README.md`; starting a new game is `template/docs/GAME_GUIDE.md`.
-- What the shared UI draws around the board (announcements, ticker, players strip, game over) is in [In-game UI](../design/04-in-game.md); worked examples are the engines in `games/flip-7/packages/engine` and `games/courtisans/packages/engine`.
+- What the shared UI draws around the board (announcements, ticker, players strip, game over) is in [In-game UI](../design/04-in-game/index.md); worked examples are the engines in `games/flip-7/packages/engine` and `games/courtisans/packages/engine`.
 
 ## How these pages are made
 

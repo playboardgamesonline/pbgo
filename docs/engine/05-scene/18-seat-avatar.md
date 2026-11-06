@@ -1,6 +1,6 @@
 # Seat avatar
 
-The seat avatar is the picture that stands for a player next to their nickname. The same picture is drawn in the DOM by `SeatLabel` and on the table by `SeatAvatarMesh` ([Seat label](../../design/04-in-game.md#seat-label)). Per game: the template's `board/seat-avatar-mesh.tsx` is the reference.
+The seat avatar is the picture that stands for a player next to their nickname. The same picture is drawn in the DOM by `SeatLabel` and on the table by `SeatAvatarMesh` ([Seat label](../../design/04-in-game/04-seat-label.md)). Per game: the template's `board/seat-avatar-mesh.tsx` is the reference.
 
 Core specifies the avatar (`seatAvatar`) and paints it on a 2D canvas (`useSeatAvatarCanvas`), and stays free of three.js. The game wraps that canvas in a texture and lays it on a plane.
 
