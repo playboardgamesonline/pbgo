@@ -8,7 +8,10 @@
 #   ADMIN_SESSION_SECRET            signs the gamemaster session cookie, 32 characters at least. When this file has none,
 #                                   the one of .env.local is kept, else a new one is generated, and it is appended here:
 #                                   a value already in this file is never overwritten (a new secret signs everyone out)
-#   SUPABASE_ACCESS_TOKEN           Supabase personal token: API keys read, migrations applied
+#   CRON_SECRET                     what Vercel Cron sends to /api/cron/purge (the nightly clean-up of old tables and feedback),
+#                                   32 characters at least. Like the session key: this file's, else the one of .env.local, else
+#                                   a new one, appended here and never overwritten. Pushed to every Vercel target
+#   SUPABASE_ACCESS_TOKEN          Supabase personal token: API keys read, migrations applied
 #   SUPABASE_PROJECT_REF            production project, shared by every game (rows carry a `game` column)
 #   SUPABASE_PREVIEW_PROJECT_REF    preview project (pbgo-preview), another project than the production one
 #   VERCEL_TOKEN, VERCEL_TEAM_ID    the Vercel API: the project lookup, its variables, gamemaster › Audience and Health
@@ -330,6 +333,21 @@ if safe "$SESSION_SECRET" && [ "${#SESSION_SECRET}" -ge 32 ]; then
     SESSION_NOTE="copy ADMIN_SESSION_SECRET from $ENV_FILE to $SECRETS to keep it (a new one signs everyone out)"
   fi
 else err "ADMIN_SESSION_SECRET needs 32 characters at least and no space, \$ or quotes (openssl rand -base64 48 makes one)"; fi
+# What Vercel Cron sends to /api/cron/purge, the nightly clean-up of old tables and feedback (PLT-113): the secrets file's, else the
+# one in .env.local, else generated, and kept in the secrets file like the session key. Locally it is the token that purges the
+# preview project from a dev server (docs/supabase-and-env.md). Vercel applies a new value from the next deployment
+CRON_SECRET="$(setting CRON_SECRET)"; CRON_SOURCE=""; CRON_NOTE=""
+if [ -z "$CRON_SECRET" ]; then CRON_SECRET="$(session_secret)"; CRON_SOURCE=" generated"
+elif [ -z "$(secret CRON_SECRET)" ]; then CRON_SOURCE=" taken from $ENV_FILE"; fi
+if safe "$CRON_SECRET" && [ "${#CRON_SECRET}" -ge 32 ]; then
+  envset "$ENV_FILE" CRON_SECRET "$CRON_SECRET"
+  if [ -z "$CRON_SOURCE" ]; then ok "CRON_SECRET"
+  elif envadd "$SECRETS" CRON_SECRET "$CRON_SECRET"; then ok "CRON_SECRET$CRON_SOURCE, appended to $SECRETS"
+  else
+    warn "CRON_SECRET$CRON_SOURCE, but $SECRETS can't be written"
+    CRON_NOTE="copy CRON_SECRET from $ENV_FILE to $SECRETS to keep it (every run would otherwise generate and push a new one)"
+  fi
+else err "CRON_SECRET needs 32 characters at least and no space, \$ or quotes (openssl rand -base64 48 makes one)"; fi
 
 # ---------- Vercel API of the gamemaster (optional) ----------
 title "Gamemaster › Audience and Health (optional)"
@@ -466,7 +484,7 @@ if [ "$PUSH" = 1 ] && [ -n "$VID" ]; then
   while read -r k; do
     [[ "$FROM_VERCEL" == *"|$k|"* ]] && continue
     v="$(envget "$ENV_FILE" "$k")"; [ -n "$v" ] && push "$k" "$v" "$ALL"
-  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
+  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
   [ -z "$(envget "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID)" ] && envset "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID "$VID"
   PUSHED=1
 fi
@@ -475,6 +493,7 @@ title "Done"
 echo "  Local:   $ENV_FILE (never committed) · pnpm dev → http://localhost:3100"
 [ "$GENERATED" = 1 ] && echo "  Account: password generated, ADMIN_PASSWORD in $ENV_FILE (copy it to $SECRETS to keep it)"
 [ -z "$SESSION_NOTE" ] || echo "  Session: $SESSION_NOTE"
+[ -z "$CRON_NOTE" ] || echo "  Cron:    $CRON_NOTE"
 if [ "$PUSHED" = 1 ]; then
   SKIPPED_NOTE=""; [ "$SKIPPED" -gt 0 ] && SKIPPED_NOTE=" ($SKIPPED left as they are: managed by the Supabase integration)"
   if [ "$VERCEL_FAILURES" = 0 ]; then echo "  Vercel:  variables set$SKIPPED_NOTE, they apply from the next deployment of \"${VNAME:-$VID}\""
