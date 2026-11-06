@@ -88,9 +88,9 @@ const withPictures = (slug: string) => sanityGame(slug, { name: slug, ...picture
 
 describe("a picture of a game", () => {
   it.each([
-    ["logo", `${pictures.logo}?w=800&fit=max&auto=format`],
-    ["icon", `${pictures.icon}?w=512&fit=max&auto=format`],
-    ["background", `${pictures.background}?w=1200&fit=max&auto=format`],
+    ["logo", `${pictures.logo}?w=800&fit=max&auto=format&q=85`],
+    ["icon", `${pictures.icon}?w=512&fit=max&auto=format&q=85`],
+    ["background", `${pictures.background}?w=1200&fit=max&auto=format&q=85`],
   ])("sends the address of its %s to the image CDN of the platform's project, and downloads nothing", async (slot, location) => {
     const w = await world({ games: [withPictures(PLANNED.slug)] })
     const response = await w.ask(PLANNED.slug, slot)
@@ -113,14 +113,22 @@ describe("a picture of a game", () => {
       icon: imageOf(icon),
     }
     const w = await world({ sanity: groqSanity([english, french, icon, game]) })
-    expect((await w.ask(PLANNED.slug, "logo")).headers.get("location")).toBe(`${english.url}?w=800&fit=max&auto=format`)
-    expect((await w.ask(PLANNED.slug, "icon")).headers.get("location")).toBe(`${icon.url}?w=512&fit=max&auto=format`)
+    expect((await w.ask(PLANNED.slug, "logo")).headers.get("location")).toBe(`${english.url}?w=800&fit=max&auto=format&q=85`)
+    expect((await w.ask(PLANNED.slug, "icon")).headers.get("location")).toBe(`${icon.url}?w=512&fit=max&auto=format&q=85`)
     expect((await w.ask(PLANNED.slug, "background")).status).toBe(404)
   })
 
   it("sends a vector picture to its file as it is", async () => {
     const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Vector", logo: cdn("logo-100x30.svg") })] })
     expect((await w.ask(PLANNED.slug, "logo")).headers.get("location")).toBe(cdn("logo-100x30.svg"))
+  })
+
+  it("sends a WebP or a JPEG that is not wider than the page draws it to its file as it is, with no query, and still asks for a PNG", async () => {
+    const small = { logo: cdn("logo-640x190.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-1200x675.jpg") }
+    const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Small", ...small })] })
+    expect((await w.ask(PLANNED.slug, "logo")).headers.get("location")).toBe(small.logo)
+    expect((await w.ask(PLANNED.slug, "background")).headers.get("location")).toBe(small.background)
+    expect((await w.ask(PLANNED.slug, "icon")).headers.get("location")).toBe(`${small.icon}?w=512&fit=max&auto=format&q=85`)
   })
 
   it("is the same for a live game: the hub shows the pictures of its game in the Studio", async () => {

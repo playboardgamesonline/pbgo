@@ -119,9 +119,18 @@ export type CatalogExpansion = {
  */
 const PICTURE_WIDTH: Record<ArtSlot | ExpansionSlot, number> = { logo: 800, icon: 512, background: 1200, cover: 1200, boxFront: 600 }
 
+/** The end of the name of a file of the image CDN: the size of the picture and its format (`<hash>-650x590.webp`), and a query when the address was sized. */
+const FILE_NAME = /-(\d+)x(\d+)\.([a-z0-9]+)(?:\?.*)?$/i
+
+/** The formats a file is already compressed for the web in. The CDN would only encode one of these a second time and lose a little more; a PNG or a GIF is not one, and a large one must still be shrunk. */
+const COMPRESSED_FORMATS = new Set(["webp", "jpg", "jpeg", "avif"])
+
+/** How well the CDN encodes a picture it resizes: above its own default (75), which shows on a picture that was a lossy file already. */
+const RESIZE_QUALITY = 85
+
 /**
- * The URL of a picture of a game or of an expansion, sized for the page: the address of the file in the image CDN, with a width and
- * `auto=format`, so that a browser that takes WebP or AVIF gets that. A vector picture (SVG) is served as it is. Null when it has none:
+ * The URL of a picture of a game or of an expansion, sized for the page (`sizedPictureUrl`): the address of the file in the image CDN, asked
+ * for at the width the page draws it and in the format the browser takes, or the file itself when it needs neither. Null when it has none:
  * a picture it does not have is a plain frame, nothing else. `width` is how wide the CDN is asked for it, the page's own by default: a
  * small tile asks for less.
  */
@@ -130,9 +139,20 @@ export function pictureUrl<Slot extends ArtSlot | ExpansionSlot>(owner: { pictur
   return url ? sizedPictureUrl(url, width) : null
 }
 
-/** The address of a file of the image CDN, asked for `width` pixels wide at most and in the best format the browser takes (an SVG is served as it is): how a picture of a gallery is sized. */
+/**
+ * The address of a file of the image CDN for a page that draws it `width` pixels wide at most (how a picture of a gallery is sized too):
+ * - A vector picture (SVG) is served as it is.
+ * - So is a file in a format that is already compressed (WebP, JPEG, AVIF) and whose name says it is not wider than that (`FILE_NAME`, the way
+ *   `pictureRatio` reads it): no query at all, since asking the CDN for it would encode it a second time, and lose a little more.
+ * - Any other is asked for `width` pixels wide at most (`fit=max`, never made bigger) in the best format the browser takes (`auto=format`),
+ *   at a quality of `RESIZE_QUALITY`. A PNG or a GIF is always asked for, so that a large one does not go out whole.
+ */
 export function sizedPictureUrl(url: string, width: number): string {
-  return url.endsWith(".svg") ? url : `${url}?w=${width}&fit=max&auto=format`
+  if (url.endsWith(".svg")) return url
+  const [, named, , format] = FILE_NAME.exec(url) ?? []
+  const fileWidth = Number(named)
+  if (format && COMPRESSED_FORMATS.has(format) && fileWidth > 0 && fileWidth <= width) return url
+  return `${url}?w=${width}&fit=max&auto=format&q=${RESIZE_QUALITY}`
 }
 
 /**
@@ -140,7 +160,7 @@ export function sizedPictureUrl(url: string, width: number): string {
  * the page still. Null for no picture and for an address that carries no size (or one that makes no shape).
  */
 export function pictureRatio(url: string | null): number | null {
-  const size = url === null ? null : /-(\d+)x(\d+)\.[a-z0-9]+(?:\?.*)?$/i.exec(url)
+  const size = url === null ? null : FILE_NAME.exec(url)
   const ratio = size ? Number(size[1]) / Number(size[2]) : NaN
   return Number.isFinite(ratio) && ratio > 0 ? ratio : null
 }
