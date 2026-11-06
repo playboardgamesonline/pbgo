@@ -15,6 +15,12 @@ A glow is what a card lights up with: a halo behind it, an outline, a ring aroun
 - `blend` of a halo is `"add"`, which brightens what is behind (a glow), or `"normal"`, which paints over it (a stain).
 - `defineGlows` takes a record of specs and returns the glows under the same names.
 
+Each of the first four cards wears one part, the last all four, all from `defineGlows`.
+
+```specimen
+scene-glows
+```
+
 ## Rules
 
 - A part a glow leaves out is not built at all. `{ frame: {} }` is a frame with every default.

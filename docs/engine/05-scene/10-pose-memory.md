@@ -2,6 +2,12 @@
 
 A card that changes zone is not the same React element: it unmounts from one `Zone` and mounts in another. The pose memory lets the new one start from where the old one was instead of popping into place. Shared, and internal to `Table` and `Card`: `packages/table/src/table/memory.ts`, carried to the cards by `memory-context.tsx`. A game only gives a card an `id`, a `CardId` (a string or a number). Each `Table` has one memory.
 
+Press a card to move it to the other zone: it is a new element there with the same `id`, and it flies from where it was.
+
+```specimen
+scene-pose-memory
+```
+
 ## How a card is remembered
 
 1. A card with an `id` that leaves the table writes down where it was, in the world.
@@ -22,4 +28,5 @@ const p = from ?? left ?? target
 - A sighting is handed back once, and only while it is fresh: the memory forgets after a time (`maxAge`) and keeps a bounded number of sightings (`capacity`), the oldest going first. `Table` uses the defaults of `createPoseMemory`.
 - A card that is already where it should be (same place, orientation and scale, within a hair) gets nothing back, so it does not fly.
 - A card with no `id` is not remembered, and a `Card` outside a `Table` has no memory to ask.
+- A card reads its `id` once, when it mounts. If the `id` of a card that stays changes, the memory still knows it by the first one, or not at all when it came with none.
 - The memory holds poses, not cards: it keeps nothing alive.

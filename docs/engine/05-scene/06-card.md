@@ -23,6 +23,12 @@
 
 `CardProps` is the type of the props.
 
+Press the card to change its `target` between `FACE_UP` and `FACE_DOWN`; the switches are its `gloss` and `shadow` props. The slider writes `shadow` of `CARD_SETTINGS` and starts at its top so that the shadow shows: the default is far fainter.
+
+```specimen
+scene-card
+```
+
 ## Settings
 
 `CARD_SETTINGS` is one object read on every frame by every card of the page, so a debug panel can tune it while the game runs. What a glow looks like belongs to the glow ([Glows](08-glows.md)).

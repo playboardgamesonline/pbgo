@@ -2,6 +2,12 @@
 
 A flight takes a card from one pose to another along a curve, and a fold bends the card while it flies. Shared, and internal to `Card`: `packages/table/src/card/flight.ts` and `fold.ts`. A game reaches them through `Card` and the fields of `CARD_SETTINGS` ([Settings](06-card.md#settings)).
 
+Send the card across; the sliders write into `CARD_SETTINGS`, and the next flight follows them.
+
+```specimen
+scene-flight
+```
+
 ## Flight
 
 - It starts from where the card is (position, orientation, scale) once the `delay` of the pose it flies from has passed; until then the card waits at that pose.

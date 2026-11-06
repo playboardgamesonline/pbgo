@@ -15,8 +15,14 @@ A seat is a place at the table where a player sits. `seats` gives the places; wh
 - The viewer sits in front, on the +z side, with a yaw of zero, so what lies there reads upright.
 - The others share the far half of the ring in turn order, starting with the player after the viewer, who sits at the viewer's left: the turn passes to the left. A single opponent sits straight across.
 - Without a viewer, as at a spectator's view, everyone sits on the far half in order.
-- Every other seat has the yaw that sends the top edge of a face-up card away from the middle of the table, so what lies there reads upright for its player.
+- Every other seat has the yaw that sends the top edge of a face-up card away from the middle of the table: the cards of a seat across from the viewer read upright for the viewer, and those of a seat at the side lie on their side.
 - The ring is symmetric: the opponents mirror each other.
+
+The ring for two to eight players, with the viewer's seat in front or with none; the arrow is the way a layout drawn in the seat's frame points.
+
+```specimen
+scene-seats
+```
 
 From `template/src/components/board/layout.ts`, the seats of a table, by player id:
 

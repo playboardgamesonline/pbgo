@@ -2,6 +2,12 @@
 
 `Table` is the canvas a board is drawn on. It owns the camera, the room around the table, the lights, the share photo and the memory that lets a card fly from where it was; the mat, the cards and the seats go inside it as children. Shared: `packages/table/src/table/table.tsx`. A game never writes a `Canvas` of its own.
 
+The camera's entrance plays when the table mounts, and the button plays it again.
+
+```specimen
+scene-table
+```
+
 ## Props
 
 | Prop | Role |

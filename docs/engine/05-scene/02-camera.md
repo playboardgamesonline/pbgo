@@ -27,6 +27,12 @@ export type CameraSettings = {
 
 A game keeps its settings in one object and hands it to `Table`; the template's is `CAMERA` in `board/camera.ts`, and its debug folder edits that object ([Tuning](24-tuning.md)).
 
+The sliders change the fields of one settings object, and the next frame follows.
+
+```specimen
+scene-camera
+```
+
 ## The entrance
 
 | Field of `CameraIntro` | Role |

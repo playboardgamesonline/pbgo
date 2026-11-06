@@ -5,14 +5,15 @@ import { guidelinesSpecimens } from "./guidelines"
 import { inGameSpecimens } from "./in-game"
 import { navigationSpecimens } from "./navigation"
 import { overlaysSpecimens } from "./overlays"
+import { sceneSpecimens } from "./scene"
 import { socialSpecimens } from "./social"
 import { surfacesSpecimens } from "./surfaces"
 
 /**
  * The live pieces of the site that the pages of `docs/` show, by name: a fenced block of the language `specimen` in a markdown file asks for one (`@pbgo/docs/markdown`), and the page draws it where the block stands. One module for each
- * page of the design docs, and a name belongs to one of them. A name that no page shows stops the build (`generateStaticParams` of the docs route), as does a page that shows a name that is not here.
+ * page of the design docs (and the 3D scenes of the engine docs, which load three.js on demand), and a name belongs to one of them. A name that no page shows stops the build (`generateStaticParams` of the docs route), as does a page that shows a name that is not here.
  */
-const FAMILIES: readonly Specimens[] = [guidelinesSpecimens, foundationsSpecimens, controlsSpecimens, navigationSpecimens, overlaysSpecimens, surfacesSpecimens, socialSpecimens, inGameSpecimens]
+const FAMILIES: readonly Specimens[] = [guidelinesSpecimens, foundationsSpecimens, controlsSpecimens, navigationSpecimens, overlaysSpecimens, surfacesSpecimens, socialSpecimens, inGameSpecimens, sceneSpecimens]
 
 function merge(families: readonly Specimens[]): Specimens {
   const all: Record<string, Specimens[string]> = {}

@@ -4,6 +4,12 @@ The board of a game is a 3D scene drawn with react-three-fiber on one canvas, an
 
 Each page of this group is one item of the scene: what it is and where it lives, what you give it and the rules it keeps. The tools are in `packages/table/src` and `pnpm --filter @pbgo/table test` runs their tests. The exports of `packages/table/src/index.ts` are the whole API of the package; a file can hold more than it exports, and a page says so when a piece is internal.
 
+Hover a card of the hand to lift it, press it to play it to the middle, and change the number of players under the table.
+
+```specimen
+scene-board
+```
+
 ## What sits in what
 
 ```text

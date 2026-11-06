@@ -18,11 +18,17 @@ A pile is a stack of cards the game only counts: a deck, a discard pile. Shared:
 
 `PileTop` is the props of a [Card](06-card.md) but `key` and `back`: its `front`, and whatever else a card takes, such as a `glow` or an `onClick`.
 
+Turn the top card up, draw one, and push the count past the limit: a taller pile looks no different.
+
+```specimen
+scene-pile
+```
+
 ## Rules
 
 - `count` is rounded down and held between zero and `limit`: a taller pile looks no different and costs a card each to draw.
 - The cards are keyed by their height in the pile. When the top card changes, the one below turns face down where it lies. That suits cards the game only counts; a discard pile whose cards must stay readable is a `Zone`.
-- Give the top card the `id` of the card it shows, and a card played onto a discard pile starts from where it was ([Pose memory](10-pose-memory.md)).
+- Give the top card the `id` of the card it shows, and a card played onto a discard pile starts from where it was ([Pose memory](10-pose-memory.md)). A card is known by the `id` it has when it mounts, and the card that becomes the top after a draw came without one: say where each drawn card starts with its `from` ([Zone](13-zone.md)), as the specimen does.
 - `lean` on a pile turns each card a hair by its own number, the same on every client ([Poses](11-poses.md)).
 - The template draws no pile: its `DECK_POSE` in `layout.ts` is only where its cards enter from.
 

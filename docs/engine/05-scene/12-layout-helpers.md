@@ -14,6 +14,12 @@ A layout helper returns the poses of a zone: one `Pose` per card, in the order o
 
 A `Spot` is `{ x, z, yaw? }`. The options are `FanOptions`, `RowOptions`, `PileOptions` and `GridOptions`.
 
+One `Zone` laid by each helper in turn: the cards keep their keys, so they glide from slot to slot.
+
+```specimen
+scene-layouts
+```
+
 ## Options
 
 | Option | Helpers | Role |

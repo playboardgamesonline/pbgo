@@ -393,9 +393,15 @@ importers:
       '@pbgo/games':
         specifier: workspace:*
         version: link:../../packages/games
+      '@pbgo/table':
+        specifier: workspace:*
+        version: link:../../packages/table
       '@pbgo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@react-three/fiber':
+        specifier: 'catalog:'
+        version: 9.8.2(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(three@0.187.0)
       '@vercel/analytics':
         specifier: 'catalog:'
         version: 2.0.1(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
@@ -417,6 +423,9 @@ importers:
       shadcn:
         specifier: 'catalog:'
         version: 4.23.0(supports-color@8.1.1)
+      three:
+        specifier: 'catalog:'
+        version: 0.187.0
       tw-animate-css:
         specifier: 'catalog:'
         version: 1.4.0
@@ -439,6 +448,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      '@types/three':
+        specifier: 'catalog:'
+        version: 0.186.0
       eslint:
         specifier: 'catalog:'
         version: 10.14.0(jiti@2.7.0)(supports-color@8.1.1)
