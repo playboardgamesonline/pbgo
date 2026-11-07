@@ -18,6 +18,24 @@ import { RulesButton } from "./rules-button"
 // Under the buttons come the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled and keeps the rules.
 // Nothing stands in for what is missing: a game with no background has a plain head.
 
+/**
+ * A fade from the page's colour (`--background`) to nothing along `direction`. It eases in and out: its stops follow a cosine, so it has no edge where it starts, where it
+ * ends or in between, which the eye finds in a gradient of two or three straight stops. `strength` is how opaque it is where it starts, and `reach` how far across the head
+ * it goes (both 0 to 1) before nothing is left.
+ */
+function easedFade(direction: "to right" | "to top", strength: number, reach: number, steps = 12): string {
+  const stops = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps
+    const opacity = strength * 0.5 * (1 + Math.cos(Math.PI * t))
+    return `color-mix(in oklab, var(--background) ${(opacity * 100).toFixed(1)}%, transparent) ${(t * reach * 100).toFixed(1)}%`
+  })
+  return `linear-gradient(${direction}, ${stops.join(", ")})`
+}
+
+// From the left, where the text is, and at the foot, where the head meets the next section and has to end in the page's own colour
+const FADE_FROM_LEFT = easedFade("to right", 0.35, 0.65)
+const FADE_FROM_FOOT = easedFade("to top", 1, 0.8)
+
 export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop">
 
 export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop }: GameHeadProps) {
@@ -35,9 +53,9 @@ export function GameHead({ slug, name, live, description, players, duration, com
         // eslint-disable-next-line @next/next/no-img-element
         <img src={hero.background} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 -z-20 size-full object-cover" />
       )}
-      {/* The art fades into the page, darker where the text is: from the left, and at the foot, where the head meets the next section */}
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-background/90 via-background/50 to-transparent" />
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-t from-background via-background/30 to-transparent" />
+      {/* The art fades into the page, darker where the text is: from the left, and at the foot, where the head meets the next section. Both fades ease in and out, so no edge shows */}
+      <div aria-hidden="true" className="absolute inset-0 -z-10" style={{ backgroundImage: FADE_FROM_LEFT }} />
+      <div aria-hidden="true" className="absolute inset-0 -z-10" style={{ backgroundImage: FADE_FROM_FOOT }} />
 
       <div className="mx-auto flex min-h-[calc((100svh-var(--consent-h,0px))*0.92)] lg:min-h-[calc((100svh-var(--consent-h,0px))*0.8)] w-full max-w-page flex-col justify-end gap-16 px-gutter pt-navbar pb-10 max-sm:justify-between md:gap-8 md:pb-14">
         <Link href="/games" aria-label="Back to all games" className="mt-2 inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground underline-offset-4 hover:underline sm:hidden">
@@ -63,7 +81,8 @@ export function GameHead({ slug, name, live, description, players, duration, com
           </h1>
 
           {(figures.length > 0 || !live) && (
-            <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground">
+            // The text sits straight on the art, which the fades leave bright: white at an opacity, not the grey of the page's secondary text
+            <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-foreground/90">
               {!live && (
                 <li>
                   <Badge variant="outline">Coming soon</Badge>
@@ -80,7 +99,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
 
           {/* The text is the game's own, in the language it was found in; line breaks of the source are kept */}
           {description && (
-            <p lang={description.language} className="max-w-xl text-pretty whitespace-pre-line text-muted-foreground">
+            <p lang={description.language} className="max-w-xl text-pretty whitespace-pre-line text-foreground/90">
               {description.text}
             </p>
           )}

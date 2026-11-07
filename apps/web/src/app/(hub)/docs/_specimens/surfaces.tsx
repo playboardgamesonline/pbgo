@@ -3,6 +3,7 @@
 import type { Specimens } from "@pbgo/docs/markdown"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Alert02Icon, FolderAddIcon, InformationCircleIcon, MoreHorizontalIcon, Settings01Icon, UserGroupIcon } from "@hugeicons/core-free-icons"
+import { cardPictureUrl } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Alert, AlertDescription, AlertTitle } from "@pbgo/ui/platform/alert"
 import { Avatar, AvatarBadge, AvatarCount, AvatarFallback } from "@pbgo/ui/platform/avatar"
@@ -89,21 +90,20 @@ function CardDefaultAndSmall() {
 
 /**
  * What the specimens that draw games take from the catalog. The live games are built as the hub builds every card: from the game in the Studio (`catalogCardProps`), the registry only making them play cards. While the
- * platform's Sanity project cannot be read they are plain cards from the registry, with no picture. The tiles that are made up for a specimen are not a game of the catalog, so the first logo of the catalog stands in for a
- * game's logo and the first background for its background (a game has to have one in the Studio first).
+ * platform's Sanity project cannot be read they are plain cards from the registry, with no picture. The tiles that are made up for a specimen are not a game of the catalog, so the first picture that fills the frame of a card of
+ * the catalog stands in for a game's picture (its cover, or its background) and the first logo (or icon) for its logo (a game has to have one in the Studio first).
  */
 async function readCatalog() {
   const { entries } = await getCatalog()
-  const pictures = entries.map((entry) => gamePicture(entry.game))
   return {
     live: entries.filter((entry) => entry.live),
-    logo: pictures.find((picture) => picture.logo)?.logo,
-    background: pictures.find((picture) => picture.background)?.background,
+    picture: entries.map((entry) => gamePicture(entry.game).picture).find(Boolean),
+    logo: entries.map((entry) => cardPictureUrl(entry.game)).find(Boolean) ?? undefined,
   }
 }
 
 async function GameCardTheLiveGamesAndWithoutArt() {
-  const { live, logo, background } = await readCatalog()
+  const { live, picture, logo } = await readCatalog()
   return (
     <Frame className="grid gap-4 sm:grid-cols-2" code={`import { getCatalog } from "@pbgo/catalog/server"
 import { catalogCardProps } from "@/lib/game-card-props"
@@ -114,21 +114,23 @@ const { entries } = await getCatalog()
   <GameCard key={entry.slug} {...catalogCardProps(entry)} />
 ))}
 
-<GameCard href="/a-game" name="A game" logo={logoUrl} background={backgroundUrl} players="3–6 players" duration="20–40 min" />
+<GameCard href="/a-game" name="A game with a picture" picture={pictureUrl} players="3–6 players" duration="20–40 min" />
+<GameCard href="/a-game" name="A game with a logo only" logo={logoUrl} players="3–6 players" duration="20–40 min" />
 <GameCard href="/a-game" name="A game without art" players="3–6 players" duration="20–40 min" />
-<GameCard href="/a-game" name="A game with a name too long to fit on one line" logo={logoUrl} background={backgroundUrl} players="3–6 players" duration="20–40 min" />`}>
+<GameCard href="/a-game" name="A game with a name too long to fit on one line" picture={pictureUrl} players="3–6 players" duration="20–40 min" />`}>
       {live.map((entry) => (
         <GameCard key={entry.slug} {...catalogCardProps(entry)} />
       ))}
-      <GameCard href="#game-card" name="A game with both pictures" logo={logo} background={background} players="3–6 players" duration="20–40 min" />
+      <GameCard href="#game-card" name="A game with a picture" picture={picture} players="3–6 players" duration="20–40 min" />
+      <GameCard href="#game-card" name="A game with a logo only" logo={logo} players="3–6 players" duration="20–40 min" />
       <GameCard href="#game-card" name="A game without art" players="3–6 players" duration="20–40 min" />
-      <GameCard href="#game-card" name="A game with a name too long to fit on one line" logo={logo} background={background} players="3–6 players" duration="20–40 min" />
+      <GameCard href="#game-card" name="A game with a name too long to fit on one line" picture={picture} players="3–6 players" duration="20–40 min" />
     </Frame>
   )
 }
 
 async function GameCardAGameToCome() {
-  const { logo, background } = await readCatalog()
+  const { picture } = await readCatalog()
   return (
     <Frame className="grid gap-4 sm:grid-cols-2" code={`import { catalogCardProps } from "@/lib/game-card-props"
 
@@ -136,24 +138,24 @@ async function GameCardAGameToCome() {
   <GameCard key={entry.slug} {...catalogCardProps(entry)} />
 ))}
 
-<GameCard variant="soon" href="/game/a-game" name="A game" logo="/api/catalog/a-game/logo?v=1" background="/api/catalog/a-game/background?v=1" players="2–5 players" duration="30 min" />
+<GameCard variant="soon" href="/game/a-game" name="A game" picture={pictureUrl} players="2–5 players" duration="30 min" />
 <GameCard variant="soon" href="/game/a-game" name="A game without a picture" players="2–4 players" duration="20 min" />`}>
-      <GameCard variant="soon" href="#game-card" name="A game to come" logo={logo} background={background} players="2–5 players" duration="30 min" />
+      <GameCard variant="soon" href="#game-card" name="A game to come" picture={picture} players="2–5 players" duration="30 min" />
       <GameCard variant="soon" href="#game-card" name="A game without a picture" players="2–4 players" duration="20 min" />
     </Frame>
   )
 }
 
 async function GameCardThePictureAlone() {
-  const { logo, background } = await readCatalog()
+  const { picture, logo } = await readCatalog()
   return (
-    <Frame className="grid gap-4 sm:grid-cols-3" code={`<GameCardVisual logo={logoUrl} background={backgroundUrl} />
+    <Frame className="grid gap-4 sm:grid-cols-3" code={`<GameCardVisual picture={pictureUrl} />
 <GameCardVisual logo={logoUrl} />
 <GameCardVisual />
 
-// On the page of a game: larger, rounded like a card, loaded at once
-<GameCardVisual logo={logoUrl} background={backgroundUrl} loading="eager" className="rounded-3xl ring-1 ring-foreground/10" />`}>
-      <GameCardVisual logo={logo} background={background} className="rounded-3xl ring-1 ring-foreground/10" />
+// Shaped by the class it is given, and loaded at once when it opens a page
+<GameCardVisual picture={pictureUrl} loading="eager" className="rounded-3xl ring-1 ring-foreground/10" />`}>
+      <GameCardVisual picture={picture} className="rounded-3xl ring-1 ring-foreground/10" />
       <GameCardVisual logo={logo} className="rounded-3xl ring-1 ring-foreground/10" />
       <GameCardVisual className="rounded-3xl ring-1 ring-foreground/10" />
     </Frame>

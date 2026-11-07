@@ -36,7 +36,7 @@ export const HUB_LANGUAGE = "en"
  * A text and a picture that a language can change are an array of rows `{ language, value }` (PLT-104): the row of `$language`, else the
  * one of English, else (a document that was not converted yet) the plain value the field used to hold, so that the same query reads a
  * dataset before and after the migration. `string(description)` is the old text and nothing for an array, and `logo.asset->url` the old
- * picture and nothing for an array; the `description`, the `cover` and the `boxFront` of an expansion are read the same way. The links to the rules are the
+ * picture and nothing for an array; the `cover` of a game (PLT-114) and the `description`, the `cover` and the `boxFront` of an expansion are read the same way. The links to the rules are the
  * rows of `rules` as they are, and the four fields they replaced. The gallery of a game (PLT-56) is read as its items are stored: a picture is an
  * object with an `asset`, a clip an object with a `video` file and, when it has one, a `poster`; each gives the address of its file. The helpers of a game (PLT-56) are read as they are stored: a key and a title.
  */
@@ -53,6 +53,7 @@ export const CATALOG_QUERY = `{
     "related": related[]->slug.current,
     "baseGame": baseGame->slug.current,
     "logo": coalesce(logo[language == $language][0].value.asset->url, logo[language == "en"][0].value.asset->url, logo.asset->url),
+    "cover": coalesce(cover[language == $language][0].value.asset->url, cover[language == "en"][0].value.asset->url, cover.asset->url),
     "icon": icon.asset->url, "background": background.asset->url,
     "gallery": gallery[]{ caption, "image": asset->url, "video": video.asset->url, "poster": poster.asset->url },
     "helpers": helpers[]{ key, title }
@@ -305,6 +306,7 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
       logo: pictureOf(raw.logo, projectId, dataset),
       icon: pictureOf(raw.icon, projectId, dataset),
       background: pictureOf(raw.background, projectId, dataset),
+      cover: pictureOf(raw.cover, projectId, dataset),
     }
     const family = [...(Array.isArray(raw.related) ? raw.related : []), raw.baseGame]
     kept.push({

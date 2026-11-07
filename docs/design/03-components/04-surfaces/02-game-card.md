@@ -2,11 +2,12 @@
 
 Module: `@pbgo/ui/platform/game-card`
 
-The hub's tile for a game: `GameCard`, built on `GameCardVisual`, its picture. The picture is the game's `logo` over its `background` on a grey frame (`bg-muted`); under it come the name, on one line, and the practical facts (`players`, `duration`). Two variants: `play` (the default) and `soon`, for a game to come.
+The hub's tile for a game: `GameCard`, built on `GameCardVisual`, its picture. The picture fills a grey frame (`bg-muted`) with nothing over it: no logo, scrim or tint. Under it come the name, on one line, and the practical facts (`players`, `duration`). Two variants: `play` (the default) and `soon`, for a game to come.
 
 - Every tile is a link, to the page of the game (`/game/<slug>`).
-- A game with a logo and no background shows the logo on the plain grey frame. With neither picture, the frame stays plain grey, no placeholder.
-- Hover lifts the card ([`shadow-float`](../../02-foundations/05-shadows-and-rings.md)), changes its fill to `secondary` and zooms the pictures.
+- The card draws what it is given and chooses nothing: a `picture` fills the frame, a `logo` sits contained on the plain frame, and with neither the frame stays plain grey, no placeholder. A `picture` wins over a `logo`.
+- The hub chooses (`gamePicture()`, `apps/web/src/lib/game-card-props.ts`): the game's cover, else its background, as the `picture`; a game with neither has its logo, else its icon.
+- Hover lifts the card ([`shadow-float`](../../02-foundations/05-shadows-and-rings.md)), changes its fill to `secondary` and zooms the picture.
 
 ## The live games, and without art
 
@@ -26,7 +27,7 @@ game-card-a-game-to-come
 
 ## The picture alone
 
-`GameCardVisual` is the picture of a card on its own; a game's page draws it larger, so the two cannot drift apart.
+`GameCardVisual` is the picture of a card on its own: a picture that fills the frame, a logo on the plain frame, or nothing.
 
 ```specimen
 game-card-the-picture-alone

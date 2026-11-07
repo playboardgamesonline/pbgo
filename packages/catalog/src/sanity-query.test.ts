@@ -11,7 +11,10 @@ const LOGO_EN = imageAsset("bbb", 800, 300, "png")
 const LOGO_FR = imageAsset("ccc", 800, 300, "png")
 const ICON = imageAsset("ddd", 512, 512, "png")
 const BACKGROUND = imageAsset("eee", 2400, 1350, "jpg")
-const ASSETS = [LOGO, LOGO_EN, LOGO_FR, ICON, BACKGROUND]
+const COVER = imageAsset("fff", 640, 480, "webp")
+const COVER_EN = imageAsset("ggg", 640, 480, "webp")
+const COVER_FR = imageAsset("hhh", 640, 480, "webp")
+const ASSETS = [LOGO, LOGO_EN, LOGO_FR, ICON, BACKGROUND, COVER, COVER_EN, COVER_FR]
 
 const link = (name: string, language: string) => `https://example.com/${name}-${language}.pdf`
 const shared = (slug: string) => ({ _type: "game", name: slug, slug: { _type: "slug", current: slug }, kind: "game", playersMin: 2, playersMax: 4, icon: imageOf(ICON), background: imageOf(BACKGROUND) })
@@ -56,7 +59,7 @@ describe("a game as the dataset holds it today", () => {
     const game = await only(before("hanabi"))
     expect(game.descriptions).toEqual({ en: "The text of the game." })
     expect(game.rules).toEqual({ fr: link("hanabi", "fr"), en: link("hanabi", "en") })
-    expect(game.pictures).toEqual({ logo: LOGO.url, icon: ICON.url, background: BACKGROUND.url })
+    expect(game.pictures).toEqual({ logo: LOGO.url, icon: ICON.url, background: BACKGROUND.url, cover: null })
   })
 
   it("is read the same in any language: it has only what it has", async () => {
@@ -121,7 +124,7 @@ describe("a game that was converted", () => {
     const game = await only({ _id: "game-bare", ...shared("bare") })
     expect(game.descriptions).toEqual({})
     expect(game.rules).toEqual({})
-    expect(game.pictures).toEqual({ logo: null, icon: ICON.url, background: BACKGROUND.url })
+    expect(game.pictures).toEqual({ logo: null, icon: ICON.url, background: BACKGROUND.url, cover: null })
   })
 
   it("has no text in a language that has a row when English has none: the hub reads English, and English is missing", async () => {
@@ -143,5 +146,42 @@ describe("a dataset in which some games are converted and some are not", () => {
   it("takes the row over the old field when a game has both, for the links to the rules, language by language", async () => {
     const both = before("mixed", { rules: [row("Url", "fr", "https://example.com/new-fr.pdf")], rulesFr: "https://example.com/old-fr.pdf", rulesEn: "https://example.com/old-en.pdf" })
     expect((await only(both)).rules).toEqual({ fr: "https://example.com/new-fr.pdf", en: "https://example.com/old-en.pdf" })
+  })
+})
+
+describe("the cover of a game (PLT-114)", () => {
+  it("is read from a game as the dataset holds it today, a plain image", async () => {
+    expect((await only(before("catan", { cover: imageOf(COVER) }))).pictures.cover).toBe(COVER.url)
+  })
+
+  it("is read from the row of English, whatever other languages the game has one in, by default", async () => {
+    const game = after("catan", { cover: [row("Image", "en", imageOf(COVER_EN)), row("Image", "fr", imageOf(COVER_FR))] })
+    expect((await only(game)).pictures.cover).toBe(COVER_EN.url)
+  })
+
+  it("is read from the row of the language asked for, else from English", async () => {
+    const game = after("catan", { cover: [row("Image", "en", imageOf(COVER_EN)), row("Image", "fr", imageOf(COVER_FR))] })
+    expect((await only(game, "fr")).pictures.cover).toBe(COVER_FR.url)
+    expect((await only(game, "ja")).pictures.cover).toBe(COVER_EN.url)
+  })
+
+  it("resolves to its file even when the Studio keeps a hotspot and a crop beside it: the CDN is asked for the whole picture", async () => {
+    const hotspot = { _type: "sanity.imageHotspot", x: 0.4, y: 0.6, width: 0.5, height: 0.5 }
+    const crop = { _type: "sanity.imageCrop", top: 0.1, bottom: 0.1, left: 0, right: 0 }
+    const game = after("catan", { cover: [row("Image", "en", imageOf(COVER_EN, { hotspot, crop }))] })
+    expect((await only(game)).pictures.cover).toBe(COVER_EN.url)
+  })
+
+  it("is none for the empty row of English that every game of the Studio has, and for a game that has no such field", async () => {
+    expect((await only(after("bare", { cover: [row("Image", "en")] }))).pictures.cover).toBeNull()
+    expect((await only({ _id: "game-bare", ...shared("bare") })).pictures.cover).toBeNull()
+  })
+
+  it("is the cover of its own game and not another's: a game without one reads none, beside a game with one", async () => {
+    const { games } = await read([after("catan", { cover: [row("Image", "en", imageOf(COVER_EN))] }), after("bare", { cover: [row("Image", "en")] })])
+    expect(games.map((game) => [game.slug, game.pictures.cover])).toEqual([
+      ["catan", COVER_EN.url],
+      ["bare", null],
+    ])
   })
 })

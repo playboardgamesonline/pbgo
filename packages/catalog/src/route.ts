@@ -1,13 +1,14 @@
 // The pictures of the games and the icons of their publishers: `GET /api/catalog/<slug>/<slot>`, the handler `apps/web` mounts (docs/catalog.md).
 // A game's pictures are files of its game in the platform's Sanity project, and the hub draws them straight from Sanity's image CDN
 // (`pictureUrl`). The address on this site (`logo`, `icon` or `background` for the slot) is only kept for the links that were shared
-// when the pictures were served from here, and sends them to the CDN. No picture is not an error page: the answer is a 404 and the
-// page that asked draws a plain frame.
+// when the pictures were served from here, and sends them to the CDN. A game's cover (PLT-114) came after those links and has no address
+// here: a page draws it from `pictureUrl(game, "cover")`. No picture is not an error page: the answer is a 404 and the page that asked
+// draws a plain frame.
 // The same address, `publisher-<n>` for a slot, is the icon of the n-th publisher of the game (from 0): its page has no picture of its
 // own, so the server looks for the icon of its website (`favicon.ts`) and serves that, from this site, whose visitors then never meet
 // the publisher's. And `bgg` is the icon of BoardGameGeek, which the game's page draws on its link there, found on BoardGameGeek's website the same way.
 
-import { ART_SLOTS, BGG_SITE, BGG_SLOT, iconVersion, pictureUrl, type ArtSlot, type CatalogGame } from "./catalog"
+import { BGG_SITE, BGG_SLOT, iconVersion, pictureUrl, type ArtSlot, type CatalogGame } from "./catalog"
 import { fetchFavicon } from "./favicon"
 import { PictureError } from "./picture"
 import { getCatalog, reportOnce } from "./server"
@@ -33,13 +34,17 @@ const SECURITY_HEADERS = {
   "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
 }
 
-const isSlot = (value: string): value is ArtSlot => (ART_SLOTS as readonly string[]).includes(value)
+/** The pictures that have an address here: the three that were served from this site before the hub drew them from Sanity's image CDN. The cover of a game came after, and has none. */
+const ADDRESSED_SLOTS = ["logo", "icon", "background"] as const satisfies readonly ArtSlot[]
+type AddressedSlot = (typeof ADDRESSED_SLOTS)[number]
+
+const isSlot = (value: string): value is AddressedSlot => (ADDRESSED_SLOTS as readonly string[]).includes(value)
 
 /** `publisher-<n>`, n from 0, with no leading zero: one icon has one address, so the CDN keeps it once. */
 const PUBLISHER_SLOT = /^publisher-(0|[1-9]\d?)$/
 
-/** What an address asks for: one of the three pictures of the game, the icon of one of its publishers, or BoardGameGeek's. Null for anything else. */
-function wantedOf(slot: string): { picture: ArtSlot } | { publisher: number } | { bgg: true } | null {
+/** What an address asks for: one of the three pictures of the game that have an address, the icon of one of its publishers, or BoardGameGeek's. Null for anything else, the game's cover included. */
+function wantedOf(slot: string): { picture: AddressedSlot } | { publisher: number } | { bgg: true } | null {
   if (isSlot(slot)) return { picture: slot }
   if (slot === BGG_SLOT) return { bgg: true }
   const place = PUBLISHER_SLOT.exec(slot)?.[1]
