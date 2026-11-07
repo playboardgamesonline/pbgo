@@ -37,8 +37,8 @@ What the framework does not provide, and what holds instead. The first table is 
 
 | What | Ticket | What holds instead |
 | --- | --- | --- |
-| A `Seat` component: the name plate with its avatar, the aura and the turn marker as one piece | PLT-67 | Each game writes the pieces of a seat ([Seats](02-components/03-seats.md)) |
-| A debug panel of the table: knobs for `CARD_SETTINGS`, the camera and the glows | PLT-68 | A game binds the objects to folders of its own ([Tuning](04-build-a-game/07-tuning.md)) |
+| A seat that shows who the game expects, who is away or out, or that can be clicked to choose a player | | `Seat` shows the turn and the winners; a game draws the rest beside it, and `TableText` takes `onClick` and `onHover` for a name that can be picked ([Seats](02-components/03-seats.md#the-plate)) |
+| A debug panel of the table: knobs for `CARD_SETTINGS`, `SEAT_SETTINGS`, the camera and the glows | PLT-68 | A game binds the objects to folders of its own ([Tuning](04-build-a-game/07-tuning.md)) |
 | Dragging a card onto a zone | PLT-69 | `draggable`, `onDrop` and `CardDrop` are reserved and do nothing ([Card](02-components/04-cards.md#card)) |
 | An existing board on the shared tools | GAM-25 | The board of Courtisans keeps its own copies of the tools; only the template imports `@pbgo/table` |
 | A board for an engine that has none | GAM-24, GAM-8 | Flip 7 and Exploding Kittens have an engine and no board; GAM-8 covers the wiring and the messages of Exploding Kittens too |

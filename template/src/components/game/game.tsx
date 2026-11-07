@@ -11,7 +11,6 @@ import { DebugPanel } from "@pbgo/core/components/game/debug"
 import { debugTab } from "@pbgo/core/components/game/debug-tabs"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
 import { GameHud, groupTurns, PlayerName, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
-import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
@@ -94,9 +93,8 @@ function RoundStatus() {
 function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
   const t = useText()
   const api = useApi()
-  const { victoryPhrases, hostIcon, playerColors } = useSkin()
-  const { game, view, color, avatarUrl } = useGame<PlayerView>()
-  const seat = useSeatTheme()
+  const { victoryPhrases, playerColors } = useSkin()
+  const { game, view } = useGame<PlayerView>()
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings)
   const [scoresOpen, setScoresOpen] = useState(true)
@@ -207,7 +205,7 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
         </>
       }
     >
-      <Scene view={view} color={color} avatarUrl={avatarUrl} seat={seat} crownIcon={hostIcon} myTurn={myTurn && !sending} onPlay={play} held={held} onLoaded={onLoaded} />
+      <Scene view={view} pointsText={(points) => t("pointsShort", { points })} myTurn={myTurn && !sending} onPlay={play} held={held} onLoaded={onLoaded} />
     </GameHud>
   )
 }

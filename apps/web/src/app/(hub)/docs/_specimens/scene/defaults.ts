@@ -29,6 +29,10 @@ export const PILE_CARDS = { max: 30, start: 14 }
 /** The players the seats specimen rings, from two to eight. */
 export const SEAT_PLAYERS = { min: 2, max: 8, start: 4 }
 
+/** The seat specimen: the seats it draws, and whose turn it can be (nobody, or one of them). */
+export const SEAT_TURNS = ["none", "you", "left", "right"] as const
+export type SeatTurn = (typeof SEAT_TURNS)[number]
+
 /** A card drawn from the pile: its number, and how many cards the draw pile held when it was taken (that is where it left from). */
 export type Drawn = { id: number; from: number }
 

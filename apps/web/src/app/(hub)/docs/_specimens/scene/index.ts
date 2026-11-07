@@ -8,6 +8,7 @@ import {
   SceneLayoutsSpecimen,
   ScenePileSpecimen,
   ScenePoseMemorySpecimen,
+  SceneSeatSpecimen,
   SceneSeatsSpecimen,
   SceneTableSpecimen,
   SceneZonesSpecimen,
@@ -29,4 +30,5 @@ export const sceneSpecimens: Specimens = {
   "scene-zones": SceneZonesSpecimen,
   "scene-pile": ScenePileSpecimen,
   "scene-seats": SceneSeatsSpecimen,
+  "scene-seat": SceneSeatSpecimen,
 }

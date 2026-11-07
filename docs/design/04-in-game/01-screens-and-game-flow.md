@@ -15,7 +15,7 @@ A button next to the logo (`components/toolbar.tsx`) opens rules, sound, feedbac
 
 ## Turn crown
 
-The crown stands left of the active player's nickname (template: `board/crown.tsx`; Courtisans: `CrownMark`).
+The crown stands left of the active player's nickname (`TurnCrown` of `@pbgo/table`; Courtisans: `CrownMark`).
 
 ## Desktop only
 
