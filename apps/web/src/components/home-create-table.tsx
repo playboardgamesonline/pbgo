@@ -12,7 +12,7 @@ import { toast } from "@pbgo/ui/platform/sonner"
 import { messageOf } from "@/lib/table-door"
 
 /**
- * Create a table, on the signed-in home: the game to play, then one button that opens the lobby with the game's own route (`POST /api/<slug>/games`, which sits the member down as their account) and takes them to it,
+ * Create a table, on the signed-in home, on the right of Find a game: the game to play, then one button that opens the lobby with the game's own route (`POST /api/<slug>/games`, which sits the member down as their account) and takes them to it,
  * on the platform's page of the table (`/game/<slug>/<code>`), where they set the table up and share its link. The games are the ones that can be played. With none, the button says it is coming.
  */
 export function HomeCreateTable({ games }: { games: readonly { slug: string; name: string }[] }) {
@@ -33,7 +33,7 @@ export function HomeCreateTable({ games }: { games: readonly { slug: string; nam
   }
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="text-3xl md:text-4xl">Create a table</CardTitle>
         <CardDescription className="text-base">Open a table, share its link and play with your friends.</CardDescription>
@@ -54,7 +54,7 @@ export function HomeCreateTable({ games }: { games: readonly { slug: string; nam
           </Select>
         </CardContent>
       )}
-      <CardFooter>
+      <CardFooter className="mt-auto">
         {games.length > 0 ? (
           <Button size="xl" className="w-full" disabled={opening || !slug} onClick={open}>
             Open a table

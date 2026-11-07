@@ -8,6 +8,8 @@ import { Section } from "@pbgo/ui/platform/section"
 import { HomeAnnouncements } from "@/components/home-announcements"
 import { HomeBanners } from "@/components/home-banners"
 import { HomeCreateTable } from "@/components/home-create-table"
+import { HomeOpenTables, HomeTournaments, HomeYourGames } from "@/components/home-empty-zones"
+import { HomeFindGame } from "@/components/home-find-game"
 import { HomeNews } from "@/components/home-news"
 import { SiteFooter } from "@/components/site-footer"
 import { demoEditorial } from "@/lib/demo-editorial"
@@ -21,9 +23,10 @@ export const dynamic = "force-dynamic"
 const ANNOUNCEMENTS_MAX = 2
 
 /**
- * What a member opens the hub on: what is new and what to do now. From the top: the announcements (a message bar each), the banners (a new game, a new feature, each leading to its game or to what's new), Create a table (a game
- * and a button), and the news, like the public home's. A zone without data is not drawn: the platform's Sanity project holds no announcement and no entry yet, so a member sees Create a table alone until it does. What comes next is
- * Find a game, the tables open on the games chosen, the history, the stats and the ranks, and the tournaments (docs/accounts.md, PLT-21). It has no title and no search bar: the title and the figures are the public home's.
+ * What a member opens the hub on: what is new and what to do now. From the top: the announcements (a message bar each), the banners (a new game, a new feature, each leading to its game or to what's new), Find a game and Create a table
+ * side by side, the tables open on the member's games, their history, stats and ranks, their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn
+ * only when it holds something, and it holds nothing yet. The others are drawn whole: Create a table works, and Find a game and the lists have their empty state, so the shape of the home is there to see (docs/accounts.md, PLT-21).
+ * It has no title and no search bar: the title and the figures are the public home's.
  */
 export default async function MemberHome() {
   const account = await getAccount()
@@ -62,14 +65,18 @@ export default async function MemberHome() {
         <div className="pt-10">
           <HomeAnnouncements items={announcements} />
           <HomeBanners banners={banners} />
-          <Section aria-labelledby="home-create-table">
-            <h2 id="home-create-table" className="sr-only">
-              Create a table
+          <Section aria-labelledby="home-play">
+            <h2 id="home-play" className="sr-only">
+              Play
             </h2>
-            <div className="mx-auto w-full max-w-3xl">
+            <div className="grid gap-4 md:grid-cols-2">
+              <HomeFindGame />
               <HomeCreateTable games={playable} />
             </div>
           </Section>
+          <HomeOpenTables />
+          <HomeYourGames />
+          <HomeTournaments />
           <HomeNews lines={news} />
         </div>
       </main>
