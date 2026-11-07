@@ -104,12 +104,12 @@ describe("gameSeo", () => {
           { name: "Oliver Freudenreich", roles: ["artist"] },
         ],
         publishers: [{ name: "Pandasaurus Games", url: "https://pandasaurus.example" }],
-        pictures: { logo: cdn("logo-1x1.png"), icon: null, background: cdn("background-1x1.png") },
+        pictures: { logo: cdn("logo-1x1.png"), icon: null, background: cdn("background-1x1.png"), cover: cdn("cover-640x480.webp") },
         updatedAt: "2026-10-22T10:30:00.000Z",
       },
     })
 
-    it("carries the facts and the credits of the game, and the picture of its background", () => {
+    it("carries the facts and the credits of the game, and the picture of its background (its cover is its card's: it is not the one that is shared)", () => {
       expect(gameSeo(entry, description)).toEqual({
         slug: "the-mind",
         name: "The Mind",
@@ -136,7 +136,7 @@ describe("gameSeo", () => {
     })
 
     it("shares the logo when the game has no background, and says it is not wide", () => {
-      const withLogo = catalogEntry("the-mind", { game: { pictures: { logo: cdn("logo-1x1.png"), icon: null, background: null } } })
+      const withLogo = catalogEntry("the-mind", { game: { pictures: { logo: cdn("logo-1x1.png"), icon: null, background: null, cover: null } } })
       expect(gameSeo(withLogo, null).image).toEqual({ url: pictureUrl(withLogo.game, "logo"), wide: false })
     })
   })
@@ -156,7 +156,7 @@ describe("gameSeo", () => {
           { name: "An Illustrator", roles: ["artist"] },
         ],
         publishers: [{ name: "Cour Éditions", url: "https://cour.example" }],
-        pictures: { logo: cdn("logo-1x1.png"), icon: cdn("icon-1x1.png"), background: cdn("background-1x1.png") },
+        pictures: { logo: cdn("logo-1x1.png"), icon: cdn("icon-1x1.png"), background: cdn("background-1x1.png"), cover: null },
         updatedAt: "2026-10-26T09:00:00.000Z",
       },
     })

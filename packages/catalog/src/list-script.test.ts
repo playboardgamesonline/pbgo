@@ -29,7 +29,7 @@ describe("pnpm catalog:list", () => {
     const game = (slug: string, name: string, extra: Record<string, unknown> = {}) => sanityGame(slug, { name, ...extra })
     const run = list({
       result: sanityResult([
-        game("alpha", "Alpha", { order: 30, related: ["charlie"], playersMin: 2, playersMax: 5, duration: 30, minAge: 8, complexity: 1.5, description: "Text", categories: ["Cards"], logo: cdn("a-1x1.png") }),
+        game("alpha", "Alpha", { order: 30, related: ["charlie"], playersMin: 2, playersMax: 5, duration: 30, minAge: 8, complexity: 1.5, description: "Text", categories: ["Cards"], logo: cdn("a-1x1.png"), cover: cdn("a-640x480.webp") }),
         game("bravo", "Bravo", { order: 10, creators: [{ name: "Ada", roles: ["designer", "artist"] }], publishers: [{ name: "Pub", url: null }] }),
         game("charlie", "Charlie"),
         game("delta", "Delta", { order: 20 }),
@@ -48,10 +48,10 @@ describe("pnpm catalog:list", () => {
     // a live game shows its game of the Studio, its name and its order included, not what the registry knows of it
     expect(run.stdout).toMatch(/^courtisans\s+Courtisans in the Studio\s+live\s+900\s/m)
     expect(run.stdout).not.toContain("live (registry)")
-    expect(run.stdout).toMatch(/^bravo\s+Bravo\s+planned\s+10\s+- - -\s+-- -- -- --\s.*Ada \(designer\/artist\)\s+Pub\s*$/m)
-    expect(run.stdout).toMatch(/^alpha\s+Alpha\s+planned\s+30\s+L - -\s+-- en -- --\s+2-5\s+30min\s+1\.50\s+8\+\s+Cards\s/m)
+    expect(run.stdout).toMatch(/^bravo\s+Bravo\s+planned\s+10\s+- - - -\s+-- -- -- --\s.*Ada \(designer\/artist\)\s+Pub\s*$/m)
+    expect(run.stdout).toMatch(/^alpha\s+Alpha\s+planned\s+30\s+L - - C\s+-- en -- --\s+2-5\s+30min\s+1\.50\s+8\+\s+Cards\s/m)
     // no order: nothing in the column, the games with none come last
-    expect(run.stdout).toMatch(/^charlie\s+Charlie\s+planned\s+- - -/m)
+    expect(run.stdout).toMatch(/^charlie\s+Charlie\s+planned\s+- - - -/m)
 
     // the last column: a link written on one game shows on both, in the order of the list, the live game's included
     expect(run.stdout).toMatch(/^alpha\s.*\scourtisans, charlie$/m)
@@ -62,7 +62,7 @@ describe("pnpm catalog:list", () => {
   it("lists a live game of the registry that the Studio has no game for, with what the registry knows of it", () => {
     const run = list({ result: sanityResult([sanityGame("alpha", { name: "Alpha" })]) })
     expect(run.status, run.stderr).toBe(0)
-    expect(run.stdout).toMatch(/^courtisans\s+\S.*\blive \(registry\)\s+\s*- - -\s/m)
+    expect(run.stdout).toMatch(/^courtisans\s+\S.*\blive \(registry\)\s+\s*- - - -\s/m)
     expect(run.stdout).toContain("live (registry) is a live game that the Studio has no game for")
     expect(run.stdout).not.toMatch(/^template\s/m)
   }, 30_000)

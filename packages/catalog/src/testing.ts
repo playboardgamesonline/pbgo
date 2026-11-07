@@ -17,7 +17,7 @@ export const cdn = (file: string, project = PLATFORM_PROJECT_ID, dataset = PLATF
 /** The address of a clip's file in the file CDN of the platform's project, as the query returns it. */
 export const cdnFile = (file: string, project = PLATFORM_PROJECT_ID, dataset = PLATFORM_DATASET) => `https://cdn.sanity.io/files/${project}/${dataset}/${file}`
 
-/** A published game as the query returns it: nothing but what it needs to be a game (a name and a slug), unless the test says more. */
+/** A published game as the query returns it: nothing but what it needs to be a game (a name and a slug), unless the test says more (its pictures, `logo`, `icon`, `background` and `cover`, as the address of a file of the image CDN). */
 export const sanityGame = (slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   _id: `game-${slug}`,
   _updatedAt: "2026-10-30T10:00:00Z",
@@ -175,7 +175,7 @@ export const catalogGame = (slug: string, overrides: Partial<CatalogGame> = {}):
   creators: [],
   publishers: [],
   rules: {},
-  pictures: { logo: null, icon: null, background: null },
+  pictures: { logo: null, icon: null, background: null, cover: null },
   gallery: [],
   helpers: [],
   related: [],
