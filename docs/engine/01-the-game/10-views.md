@@ -11,12 +11,12 @@ A view is what one viewer sees of a game: `GAME.view(state, playerId)`. The `Sta
 
 ## What core reads from a view
 
-Core reads four optional fields of a view (`CoreView` in `packages/core/lib/binding.ts`); the server reads none.
+Core reads two optional fields of a view (`CoreView` in `packages/core/lib/binding.ts`); the server reads none.
 
-- `phase`: a string; the shared UI takes `"over"` for the end of the game.
 - `results`: see [Results](06-victory.md#victory-and-results).
-- `me`: `{ id: string }` for the viewer, `null` for a spectator; the ticker's "your turn" and the takeover pill need `me.id`.
 - `log`: a list; only its length is read, to pick the victory phrase.
+
+What else core needs it takes from the table, not from the game's view. `PublicGame.meId` is the viewer, `null` for a spectator, and `PublicGame.status` becomes `over` when `isOver` says so. The ticker's "your turn", the takeover pill and the game-over panel read those two, so a view names its own phase and its own `me` as the board needs, and a game may give none to a player who is out.
 
 ## Hidden information
 

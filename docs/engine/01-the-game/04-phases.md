@@ -39,7 +39,7 @@ export function waitingFor(s: State): string[] {
 
 ## The phase in the view
 
-- Core reads `view.phase` as a string (`CoreView.phase`) and takes `"over"` for the end of the game ([What core reads from a view](10-views.md#what-core-reads-from-a-view)). Courtisans and the template send the phase string of their state.
+- Core does not read the phase of a view: the end of the game is `PublicGame.status`, which it sets from `isOver`, so a view names its phase as the board needs ([What core reads from a view](10-views.md#what-core-reads-from-a-view)). Courtisans and the template send the phase string of their state.
 - Exploding Kittens and Flip 7 send a `PublicPhase` instead, an object with a `kind` that holds what a viewer may see of the phase. Flip 7's `PublicPhase` has `turn`, `target`, `between` and `over`, and none of the frames the round plays by itself.
 - The board draws from the phase of the view: the template shows its `BidPanel` while `phase` is `bidding`, and Courtisans re-words the takeover pill (`labels` of `StalledTurn`) while it is `missions`. What a board shows at the opening and at the end is in [Opening and ending](06-victory.md#opening-and-ending).
 

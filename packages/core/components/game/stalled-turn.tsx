@@ -8,6 +8,7 @@ import { useApi } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
 import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
 import { fill } from "../../lib/skin"
+import { viewerTakeover } from "../../lib/stalled-turn"
 import { useMotion } from "../../lib/use-motion"
 import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
@@ -37,7 +38,7 @@ export function StalledTurn({
   const t = useText()
   const api = useApi()
   const motionMode = useMotion()
-  const { game, view, nickname } = useGame()
+  const { game, nickname } = useGame()
   const { turnTimeout } = useSiteSettings()
   const [since, setSince] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
@@ -45,14 +46,8 @@ export function StalledTurn({
   const retried = useRef(false)
   const promptId = useId()
 
-  const me = view.me?.id
-  // the players the game waits for and that I take part in playing for: I am one of the voters required for them (never myself)
-  const targets = me && game.status === "playing" ? (game.takeovers ?? []).filter((target) => target.voters.includes(me)) : []
+  const { targets, ids, voted, complete } = viewerTakeover(game)
   const first = targets[0]
-  const ids = targets.map((target) => target.playerId)
-  const voted = !!me && targets.length > 0 && targets.every((target) => target.votes.includes(me))
-  // everyone required has voted and the game still did not move: a voter has left since (the server only plays when a vote comes in)
-  const complete = voted && targets.every((target) => target.votes.length >= target.voters.length)
 
   // every move restarts the countdown (votes do not change `updatedAt`)
   useEffect(() => setSince(Date.now()), [game.updatedAt])

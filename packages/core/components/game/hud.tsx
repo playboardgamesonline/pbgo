@@ -56,8 +56,8 @@ export function PlayerName({ id }: { id: string }) {
 
 function TurnLabel({ playerId, short }: { playerId: string; short?: boolean }) {
   const t = useText()
-  const { view } = useGame()
-  if (playerId === view.me?.id) return <>{t(short ? "yourTurnShort" : "yourTurn")}</>
+  const { game } = useGame()
+  if (playerId === game.meId) return <>{t(short ? "yourTurnShort" : "yourTurn")}</>
   const [before, after] = t(short ? "turnOfShort" : "turnOf").split("{name}")
   return (
     <>
@@ -113,11 +113,11 @@ export function Ticker({
 }) {
   const t = useText()
   const motionMode = useMotion()
-  const { view } = useGame()
+  const { game } = useGame()
   const [historyOpen, setHistoryOpen] = useState(false)
   const historyId = useId()
-  const waiting = idle ?? (view.phase === "over" ? t("gameOver") : t("waiting"))
-  const me = view.me?.id
+  const waiting = idle ?? (game.status === "over" ? t("gameOver") : t("waiting"))
+  const me = game.meId
   const mine = me && waitingFor?.includes(me) ? me : null
   const several = waitingFor && !mine && waitingFor.length > 1 ? waitingFor : null
   const turn = waitingFor ? (mine ?? (waitingFor.length === 1 ? waitingFor[0]! : null)) : activePlayerId

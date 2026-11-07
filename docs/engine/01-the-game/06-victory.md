@@ -4,10 +4,10 @@ A game ends when its `isOver` is true, and core then stores the status `over`. H
 
 ## Results
 
-- The definition has no member for results: the view holds `results: Results | null`, set once the game is over, next to `phase: "over"`.
+- The definition has no member for results: the view holds `results: Results | null`, set once the game is over (`isOver`).
 - `Results` is `{ players: PlayerResult[]; winners: string[] }`; `winners` are player ids, several on a tie.
 - A `PlayerResult` is `{ playerId, total, rank, detail }`: `total` is the score shown, `rank` starts at 1 and a tie shares a rank (`ranks()` of the kit), `detail` is a list of `{ key, label, points }` drawn as chips. A game can extend it with fields for its own board.
-- Core reads `view.results` when `view.phase === "over"`, for the game-over panel and the victory announcement; no server code reads it.
+- Core reads `view.results` when `PublicGame.status` is `over`, for the game-over panel and the victory announcement; no server code reads it.
 
 ## Rounds
 
