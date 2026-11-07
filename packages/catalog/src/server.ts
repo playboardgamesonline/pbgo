@@ -2,6 +2,7 @@ import "server-only"
 import { cache } from "react"
 import { GAMES } from "@pbgo/games/registry"
 import { buildCatalog, type Catalog } from "./catalog"
+import { readEditorial, type Editorial } from "./editorial"
 import { readSanityGames } from "./sanity"
 
 /** Tag of the cached Sanity read: `revalidateTag(CATALOG_TAG, { expire: 0 })` makes the next read ask Sanity again (a webhook of the project can do that). */
@@ -37,5 +38,21 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
   } catch (error) {
     reportOnce(`The platform's Sanity project is unavailable, only the live games are listed, from the registry: ${error instanceof Error ? error.message : "unknown error"}`)
     return { entries: buildCatalog(GAMES, [], { registryGames }), expansions: [], source: "unavailable" }
+  }
+})
+
+/** Tag of the cached read of the editorial: `revalidateTag(EDITORIAL_TAG, { expire: 0 })` makes the next read ask Sanity again. */
+export const EDITORIAL_TAG = "editorial"
+
+/**
+ * The announcements and the changelog entries of the platform's Sanity project, for the signed-in home (`editorial.ts`). Cached for as long as the catalog is. The editorial is never needed to serve a page: when the project does not
+ * answer there is none of it (and one line in the logs), and the home draws no banner and no news.
+ */
+export const getEditorial = cache(async (): Promise<Editorial> => {
+  try {
+    return await readEditorial({ init: { next: { revalidate: CATALOG_REVALIDATE_SECONDS, tags: [EDITORIAL_TAG] } } })
+  } catch (error) {
+    reportOnce(`The platform's editorial could not be read, the signed-in home shows none of it: ${error instanceof Error ? error.message : "unknown error"}`)
+    return { announcements: [], entries: [] }
   }
 })

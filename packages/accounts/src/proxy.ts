@@ -29,3 +29,12 @@ export async function updateSession(request: NextRequest): Promise<SessionUpdate
   const { data } = await supabase.auth.getClaims()
   return { response, signedIn: Boolean(data?.claims) }
 }
+
+/**
+ * Whether the cookies of a request hold a Supabase session: `sb-<project>-auth-token`, or its pieces `sb-<project>-auth-token.0`, `.1`… (a long session is cut). `sb-<project>-auth-token-code-verifier`, the secret that a sign-in
+ * leaves in the browser, is not one. A visitor with none is not signed in, and the front page is served to them without asking Supabase anything.
+ */
+export function hasSessionCookie(names: Iterable<string>): boolean {
+  for (const name of names) if (/^sb-.+-auth-token(?:\.\d+)?$/.test(name)) return true
+  return false
+}
