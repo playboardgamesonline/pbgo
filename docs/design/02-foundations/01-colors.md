@@ -7,7 +7,7 @@ The palette has these colours and no other:
 - the neutral ramp, Tailwind's `neutral` scale with no tint, of which every grey is a step;
 - `--destructive` and `--success`, the signal colours: a loss or an error, and a win, worn as a dark tint with the colour itself for the text;
 - `--presence-online|playing|inactive|dnd`, worn by a friend's presence dot only;
-- `--brand-facebook` and `--brand-discord`, worn by their sign-in button only;
+- `--brand-twitch` and `--brand-discord`, worn by their sign-in button only;
 - `--piece-red|gold|navy|ivory|ink`, worn by the pieces of the home's title only;
 - `--crest-*`, worn by the rank crests only.
 

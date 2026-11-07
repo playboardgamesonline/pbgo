@@ -13,6 +13,9 @@ import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed } from "./demo"
 // signed in. A page that shows an account is rendered per request, so it is not static: the hub's pages that stay static ask the browser instead
 // (`./client`).
 
+/** Which providers the project has switched on, for the sign-in page (`./providers`). */
+export { enabledProviders } from "./providers"
+
 /** The Supabase client of this request, or null when the project is not set. */
 export async function createAuthClient(): Promise<SupabaseClient | null> {
   const config = supabaseAuthConfig()

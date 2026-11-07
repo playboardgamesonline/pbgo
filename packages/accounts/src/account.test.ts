@@ -9,24 +9,18 @@ const google: AuthUser = {
   user_metadata: { full_name: "Oré Louvel", name: "Oré Louvel", avatar_url: "https://lh3.googleusercontent.com/a/ore", picture: "https://lh3.googleusercontent.com/a/ore" },
 }
 
-const facebook: AuthUser = {
-  id: "u-10",
-  email: "ore@example.com",
-  app_metadata: { provider: "facebook" },
-  user_metadata: {
-    full_name: "Oré Louvel",
-    name: "Oré Louvel",
-    avatar_url: "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1",
-    picture: "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1",
-  },
-}
-
-// What Apple's web sign-in gives: an address (a relay one when the visitor hides theirs) and no name or picture
-const apple: AuthUser = {
+// What Twitch's sign-in gives (`internal/api/provider/twitch.go` of supabase/auth): the login is `full_name` and `name`, the name shown on the channel is `nickname`, the picture is `avatar_url`
+const twitch: AuthUser = {
   id: "u-11",
-  email: "k3x9q2@privaterelay.appleid.com",
-  app_metadata: { provider: "apple" },
-  user_metadata: { email: "k3x9q2@privaterelay.appleid.com", email_verified: true, iss: "https://appleid.apple.com", sub: "000123.abc" },
+  email: "marly@example.com",
+  app_metadata: { provider: "twitch" },
+  user_metadata: {
+    full_name: "marly_74",
+    name: "marly_74",
+    nickname: "Marly_74",
+    avatar_url: "https://static-cdn.jtvnw.net/jtv_user_pictures/0a1b2c3d-profile_image-300x300.png",
+    picture: "https://static-cdn.jtvnw.net/jtv_user_pictures/0a1b2c3d-profile_image-300x300.png",
+  },
 }
 
 const discord: AuthUser = {
@@ -42,8 +36,8 @@ const discord: AuthUser = {
 }
 
 describe("the providers", () => {
-  it("are Facebook, Google, Apple and Discord, in the order of the buttons", () => {
-    expect([...PROVIDERS]).toEqual(["facebook", "google", "apple", "discord"])
+  it("are Google, Twitch and Discord, in the order of the buttons", () => {
+    expect([...PROVIDERS]).toEqual(["google", "twitch", "discord"])
   })
 })
 
@@ -60,23 +54,21 @@ describe("accountOf", () => {
     })
   })
 
-  it("makes an account of a Facebook user the way it does of a Google one", () => {
-    const account = accountOf(facebook)
-    expect(account.nickname).toBe("Oré Louvel")
-    expect(account.avatarUrl).toBe("https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=1")
-    expect(account.provider).toBe("facebook")
+  it("makes an account of a Twitch user: the login for the name, the picture the provider gives", () => {
+    const account = accountOf(twitch)
+    expect(account.nickname).toBe("marly_74")
+    expect(account.avatarUrl).toBe("https://static-cdn.jtvnw.net/jtv_user_pictures/0a1b2c3d-profile_image-300x300.png")
+    expect(account.provider).toBe("twitch")
   })
 
-  it("does not take the start of a relay address of Apple for a name", () => {
-    const account = accountOf(apple)
-    expect(account.nickname).toBe("Player")
-    expect(account.email).toBe("k3x9q2@privaterelay.appleid.com")
+  it("takes the start of the e-mail address for a name when the provider gives none", () => {
+    const account = accountOf({ id: "u-12", email: "marly@example.com", app_metadata: { provider: "google" }, user_metadata: {} })
+    expect(account.nickname).toBe("marly")
     expect(account.avatarUrl).toBeNull()
-    expect(account.provider).toBe("apple")
   })
 
-  it("takes the start of a real address of Apple for a name, as it does for any provider", () => {
-    expect(accountOf({ ...apple, email: "marly@example.com" }).nickname).toBe("marly")
+  it("is called Player when nothing says otherwise", () => {
+    expect(accountOf({ id: "u-13", app_metadata: {}, user_metadata: {} }).nickname).toBe("Player")
   })
 
   it("prefers the name a Discord user chose to their login", () => {
