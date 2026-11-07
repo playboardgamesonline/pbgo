@@ -85,7 +85,7 @@ export function GameOver({
   const [image, setImage] = useState<File | null>(null)
   const [preview, setPreview] = useState(false)
   const [seenKey, setSeenKey] = useState<string | null>(null)
-  const results = view.phase === "over" ? view.results : null
+  const results = game.status === "over" ? view.results : null
 
   const resultsKey = results ? `${game.code}|${results.winners.join()}|${results.players.map((j) => `${j.playerId}:${j.total}`).join()}` : null
   useEffect(() => {

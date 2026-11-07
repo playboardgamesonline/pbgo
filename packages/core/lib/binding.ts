@@ -192,12 +192,14 @@ export type ServerBinding = GameBinding & {
 export type GameModule = GameEntry & { binding: ServerBinding }
 export type PlayableGame = GameModule & { binding: ServerBinding & { GAME: AnyGame } }
 
-/** What core reads from a player's view; each game's view has at least these fields. */
+/**
+ * What core reads from a player's view: the results once the game is over, and the length of the log. A view is the game's to shape for its
+ * own board. What core needs besides, it takes from the table: who is looking is `PublicGame.meId` and whether the game is over is
+ * `PublicGame.status`, so a game names its phase and its `me` as it likes, and gives none to a player who is out.
+ */
 export type CoreView = {
-  phase?: string
-  log?: readonly unknown[]
   results?: Results | null
-  me?: { id: string } | null
+  log?: readonly unknown[]
 }
 
 /** Whether the game has an engine, live or not: enough to show its table to the gamemaster in an admin preview. */

@@ -29,7 +29,7 @@ export const playerIdOf = (slug: string, secret: string): string =>
 ## The viewer
 
 - `view` gets the id of a player who sits at the table and `null` for everybody else, a signed-in account included; `PublicGame.meId` is the same id ([What is public](10-views.md#what-is-public)).
-- The view tells the board who it is for in `me`, `null` for a spectator; core reads `view.me?.id` for the ticker's "your turn" and the takeover pill ([What core reads from a view](10-views.md#what-core-reads-from-a-view)).
+- The view tells the board who it is for in `me`, `null` for a spectator, as the game shapes it. Core does not read it: the ticker's "your turn" and the takeover pill take the viewer from `PublicGame.meId`, the id the view is built for ([What core reads from a view](10-views.md#what-core-reads-from-a-view)).
 - Who is present at a table, and the vote to play for a player who left, are core's ([Absent players](03-turns.md#absent-players-in-core)).
 
 ## Leaving a table
@@ -40,7 +40,7 @@ export const playerIdOf = (slug: string, secret: string): string =>
 
 ## Players who are out
 
-A player can be out while the table goes on, of the game or of a round. The state keeps it, the rules read it and the view shows it. The kit has nothing for it and core does not know of it: a player who is out stays in `PublicGame.players`, counts as present while their board reads the table and stays among the voters a takeover requires (`requiredVoters` in `packages/core/server/takeover.ts`).
+A player can be out while the table goes on, of the game or of a round. The state keeps it, the rules read it and the view shows it. The kit has nothing for it and core does not know of it: a player who is out stays in `PublicGame.players`, counts as present while their board reads the table and stays among the voters a takeover requires (`requiredVoters` in `packages/core/server/takeover.ts`). The takeover pill reads `PublicGame.meId`, so such a player sees it and can vote even when their view has no `me`.
 
 - Out of the game: Exploding Kittens lists the eliminated in `out`, in the order they left, and keeps their seats so that the lists by seat (`hands`, `stats`) keep their indexes. The last player in wins, and `results` ranks the others from the last one out.
 - Out of a round: Flip 7 holds a `Status` per seat (`active`, `stayed`, `frozen`, `busted`), which `startRound` sets back to `active`; `nextActive` passes over the seats that are not active, and the round ends when it finds none.
