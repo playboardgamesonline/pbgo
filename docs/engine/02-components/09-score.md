@@ -20,13 +20,13 @@ The score is the points a board shows while a game goes on. Nothing shared draws
 ## Showing the score
 
 - Core shows points only at the end, from `view.results`: in the game-over panel, where `detail` of each `PlayerResult` makes the chips, and in the victory announcement ([Game over](../../design/04-in-game/07-game-over.md)). Its HUD and its players strip show none.
-- On the table the points are a `TableText` placed from the spot of the seat; the template writes them in a second one under the nickname ([Seats](03-seats.md)).
+- On the table the points are the `line` of a `Seat`, a `TableText` under the nickname: the game writes it in the visitor's language, and the template uses `pointsShort` of the skin ([Seats](03-seats.md#the-plate)).
 - At the end a board may draw `results` on the table: the ending of Courtisans writes the points of each pile with `PilePoints` and each player's total with `Counters`, which grows as the piles resolve (`games/courtisans/src/components/game3d/ending3d.tsx`).
 - Flip 7's `score` and `total` are drawn by no board, since the game has none, and no tool draws a score sheet or a track ([what is not built](../03-not-built-yet.md)).
 
 ## Text on the table
 
-Text lies flat on the table as a texture painted on a canvas: nicknames, points, a counter. The reference is `TableText` in `template/src/components/board/table-text.tsx`.
+Text lies flat on the table as a texture painted on a canvas: nicknames, points, a counter. Shared: `TableText` in `packages/table/src/seat/table-text.tsx`.
 
 ### Props
 
@@ -36,12 +36,13 @@ Text lies flat on the table as a texture painted on a canvas: nicknames, points,
 | `style` | A `TextStyle`, below |
 | `height` | The size of the letters, in world units |
 | `position`, `yaw` | Where it lies and its turn about the vertical axis |
+| `font` | The CSS font of the letters; `TABLE_FONT` by default |
 | `onClick`, `onHover` | Make the text a click target: it takes pointer events only with one of them, and shows a pointer cursor only with `onClick` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `layer` | The render order |
 | `children` | What sits before the text, in a frame whose origin is the text's left edge and whose x grows to the right, so a negative x is just left of the first letter |
 | `trailing` | What sits after the text, in a frame whose origin is its right edge |
 
-- The template does not turn its plates toward each player: they read upright from the viewer's side. A game that wants them to follow its seats passes `yaw`.
+- A `Seat` does not turn its plate toward each player: it reads upright from the viewer's side. A game that wants a text to follow its seat passes `yaw` to `TableText`.
 - A label painted on the table is still the game's text: it comes from the view, the skin or Sanity, never a literal in the scene.
 
 ### Style

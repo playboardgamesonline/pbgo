@@ -90,7 +90,7 @@ When the others vote to play for a player who left, the server calls the engine'
 
 ## Crown and the turn marker
 
-The turn marker is a crown that stands beside the nickname of the player whose turn it is. Per game: the template's `board/crown.tsx`, `TurnCrown`, is the reference. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
+The turn marker is a crown that stands beside the nickname of the player whose turn it is. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
 
 | Prop | Role |
 | --- | --- |
@@ -100,12 +100,12 @@ The turn marker is a crown that stands beside the nickname of the player whose t
 | `size` | How big it grows |
 
 - Every seat has its own crown, and `show`, set from the view, says which one is up. The crown does not travel around the table, so it never crosses the cards.
-- The template places it as a child of the nickname's `TableText`, in a frame whose origin is the left edge of the first letter ([Text on the table](../02-components/09-score.md#text-on-the-table)).
+- A `Seat` places it as a child of the nickname's `TableText`, in a frame whose origin is the left edge of the first letter ([Text on the table](../02-components/09-score.md#text-on-the-table)).
 - It is a plane that turns to face the camera about the vertical axis only, so it stays upright. While it is up it bobs and its gold pulses. It takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
 
 ## Aura
 
-An aura is the light that glows on the table under a seat. Per game: the template's `board/aura.tsx` is the reference, a plane with a shader that a game copies. It lies flat over the table and under the cards.
+An aura is the light that glows on the table under a seat. Shared: `Aura` in `packages/table/src/seat/aura.tsx`, a plane with a shader. It lies flat over the table and under the cards.
 
 | Prop | Role |
 | --- | --- |
@@ -120,7 +120,7 @@ An aura is the light that glows on the table under a seat. Per game: the templat
 
 - `force` follows the state, whatever it is: set it, and the component eases there. Near zero the mesh is not drawn at all, so an unlit aura costs nothing.
 - It has no texture. It is transparent, writes no depth and takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
-- The template draws one aura under each seat's plate, in the seat's colour, with a force for the player whose turn it is and for the winners. The colour of a seat comes from the skin's `playerColors`, through the `color` function the scene is given.
+- A `Seat` draws one under its plate, in the seat's colour, with a force for the player whose turn it is and for a winner (`auraForce`), and `WINNER_AURA_SETTINGS` unless it is given another object. The colour of a seat comes from the skin's `playerColors`, through `PlayerSeat`.
 
 ## Turn change
 

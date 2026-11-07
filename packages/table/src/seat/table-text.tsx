@@ -5,9 +5,11 @@ import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, type MeshBasicMaterial, SRGBColorSpace } from "three"
 
-const FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
+/** The font of the lettering on the table unless a game gives its own */
+export const TABLE_FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
 const SIZE = 140
 
+/** How a lettering is dressed: its colour, then the effects painted around it. `shadow` is `colour|blur|offset`. */
 export type TextStyle = {
   color: string
   outline?: string
@@ -21,9 +23,9 @@ export type TextStyle = {
   shadow?: string
 }
 
-function draw(text: string, style: TextStyle) {
+function draw(text: string, style: TextStyle, font: string) {
   const measure = document.createElement("canvas").getContext("2d")!
-  measure.font = `${style.weight ?? 900} ${SIZE}px ${FONT}`
+  measure.font = `${style.weight ?? 900} ${SIZE}px ${font}`
   measure.letterSpacing = style.spacing ?? "0px"
   const margin = style.bloom || style.aura ? 110 : 60
   const textWidth = measure.measureText(text).width
@@ -115,26 +117,31 @@ function draw(text: string, style: TextStyle) {
   return { texture, ratio: canvas.width / canvas.height, scale: canvas.height / 155, textWidth }
 }
 
-function useFontReady() {
+function useFontReady(font: string) {
   const [fontReady, setFontReady] = useState(false)
   useEffect(() => {
     let active = true
-    Promise.resolve(document.fonts?.load(`900 ${SIZE}px ${FONT}`))
+    Promise.resolve(document.fonts?.load(`900 ${SIZE}px ${font}`))
       .catch(() => null)
       .then(() => active && setFontReady(true))
     return () => {
       active = false
     }
-  }, [])
+  }, [font])
   return fontReady
 }
 
+/**
+ * Lettering lying on the table: the text is painted on a canvas and laid on a plane, then drawn again when the text, the style or the font changes.
+ * `height` is the lettering's size in world units; the plane is a little larger so the effects fit.
+ */
 export function TableText({
   text,
   style,
   height,
   position,
   yaw = 0,
+  font = TABLE_FONT,
   onClick,
   onHover,
   layer = 0,
@@ -146,6 +153,8 @@ export function TableText({
   height: number
   position: [number, number, number]
   yaw?: number
+  /** The CSS font of the lettering; default `TABLE_FONT` */
+  font?: string
   onClick?: () => void
   onHover?: (hovered: boolean) => void
   layer?: number
@@ -154,12 +163,12 @@ export function TableText({
   /** What sits after the text, in a frame whose origin is the text's right edge (`0.2` is just right of the last letter) */
   trailing?: ReactNode
 }) {
-  const fontReady = useFontReady()
+  const fontReady = useFontReady(font)
   const { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow } = style
   const { texture, ratio, scale, textWidth } = useMemo(
-    () => draw(text, { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow }),
+    () => draw(text, { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow }, font),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [text, color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, fontReady],
+    [text, color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, font, fontReady],
   )
   useEffect(() => () => texture.dispose(), [texture])
   const [hovered, setHovered] = useState(false)

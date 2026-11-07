@@ -4,9 +4,9 @@ import { useState } from "react"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Button } from "@pbgo/ui/platform/button"
 import { Choice, Knob, Option } from "./controls"
-import { BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, type Drawn, type FlightKnobs, LAYOUT_CARDS, LAYOUTS, type LayoutName, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SHADOW_START } from "./defaults"
+import { BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, type Drawn, type FlightKnobs, LAYOUT_CARDS, LAYOUTS, type LayoutName, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START } from "./defaults"
 import { SceneFrame } from "./frame"
-import { BoardScene, CameraScene, CardScene, FlightScene, GlowsScene, LayoutsScene, PileScene, PoseMemoryScene, SeatsScene, TableScene, ZonesScene } from "./lazy"
+import { BoardScene, CameraScene, CardScene, FlightScene, GlowsScene, LayoutsScene, PileScene, PoseMemoryScene, SeatScene, SeatsScene, TableScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -248,6 +248,33 @@ export function SceneSeatsSpecimen() {
       }
     >
       <SeatsScene count={count} me={viewer} />
+    </SceneFrame>
+  )
+}
+
+const TURN_LABELS: Record<SeatTurn, string> = { none: "Nobody", you: "You", left: "Left", right: "Right" }
+
+export function SceneSeatSpecimen() {
+  const [turn, setTurn] = useState<SeatTurn>("left")
+  const [winner, setWinner] = useState(false)
+  const [points, setPoints] = useState(12)
+  return (
+    <SceneFrame
+      label="Three seats of a table for five players, the viewer's in front and one on each side: each plate has its name in the seat colour, its avatar, its score line, a crown when it is the player's turn and an aura under it"
+      controls={
+        <>
+          <Choice
+            label="Whose turn"
+            value={turn}
+            options={SEAT_TURNS.map((value) => ({ value, label: TURN_LABELS[value], description: value === "none" ? "Nobody's turn" : `${TURN_LABELS[value]} seat's turn` }))}
+            onChange={setTurn}
+          />
+          <Option label="Winners" checked={winner} onChange={setWinner} />
+          <Knob label="Score" value={points} min={0} max={30} step={1} onChange={setPoints} />
+        </>
+      }
+    >
+      <SeatScene turn={turn} winner={winner} points={points} />
     </SceneFrame>
   )
 }

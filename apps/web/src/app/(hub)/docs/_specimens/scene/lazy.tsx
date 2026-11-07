@@ -16,3 +16,4 @@ export const LayoutsScene = dynamic(() => import("./three/layouts").then((m) => 
 export const ZonesScene = dynamic(() => import("./three/zones").then((m) => m.ZonesScene), { ssr: false })
 export const PileScene = dynamic(() => import("./three/pile").then((m) => m.PileScene), { ssr: false })
 export const SeatsScene = dynamic(() => import("./three/seats").then((m) => m.SeatsScene), { ssr: false })
+export const SeatScene = dynamic(() => import("./three/seat").then((m) => m.SeatScene), { ssr: false })

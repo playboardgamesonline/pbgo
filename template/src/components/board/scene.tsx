@@ -2,21 +2,13 @@
 
 import type { PlayedCard, PlayerView } from "@template/engine"
 import { useEffect, useMemo, useState } from "react"
-import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import { CAMERA, PHOTO, useCameraSettings } from "./camera"
-import { TurnCrown } from "./crown"
-import { CARD_SETTINGS, Table, Zone, type Pose, type ZoneCard } from "@pbgo/table"
+import { CARD_SETTINGS, PlayerSeat, SEAT_FIELDS, SEAT_SETTINGS, Table, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { GLOWS } from "./glows"
 import { DECK_POSE, backFrame, backLayout, backPose, collectedPose, handLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
-import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
-import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { useSettings } from "./settings"
-import { TableText } from "./table-text"
 import { CARD_SIZE, MAT_COLOR, backTexture, faceTexture, matTexture } from "./textures"
-
-/** The seat avatar left of a nickname: its diameter and the gap to the first letter, in world units */
-const AVATAR = { size: 0.56, gap: 0.18 }
 
 function useCollect(view: PlayerView) {
   const key = view.lastTrick ? view.lastTrick.cards.map((c) => c.card.id).join("|") : null
@@ -30,7 +22,7 @@ function useCollect(view: PlayerView) {
   return state.phase
 }
 
-function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: SceneProps) {
+function World({ view, pointsText, onPlay, myTurn }: SceneProps) {
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["seat ring radius x", 3, 14, 0.1],
     radiusZ: ["seat ring radius z", 2, 10, 0.1],
@@ -49,6 +41,7 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
     foldable: ["bendability", 0, 1, 0.01],
     shadow: ["shadow", 0, 1, 0.01],
   } as never, { order: 2 })
+  useSettings("Seat", SEAT_SETTINGS, SEAT_FIELDS, { order: 3 })
   const meId = view.me?.id ?? null
   const slots = useMemo(() => seats(view.players.map((j) => j.id), meId), [view.players, meId])
   const [hovered, setHovered] = useState<string | null>(null)
@@ -93,22 +86,8 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
     <>
       {view.players.map((j) => {
         const s = slots.get(j.id)!
-        const active = view.activePlayerId === j.id
-        const pos: [number, number, number] = [s.x * (j.id === meId ? 1 : 1.32), 0.02, s.z * (j.id === meId ? 1.18 : 1.32)]
-        // The cards of a right-hand seat fan out to the left of its name: its avatar goes after the name, away from them
-        const after = s.x > 1
-        const avatar = (
-          <SeatAvatarMesh nickname={j.nickname} color={color(j.id)} imageUrl={avatarUrl(j.id)} theme={seat} size={AVATAR.size} position={[(after ? 1 : -1) * (AVATAR.gap + AVATAR.size / 2), 0, 0]} />
-        )
         return (
-          <group key={j.id}>
-            <Aura width={3.2} depth={1.6} position={[pos[0], 0.015, pos[2]]} yaw={0} force={active ? 0.9 : winners.includes(j.id) ? 1 : 0} color={color(j.id)} settings={WINNER_AURA_SETTINGS} />
-            <TableText text={j.nickname.toUpperCase()} style={{ color: color(j.id), shadow: "rgba(0,0,0,0.6)|12|4" }} height={0.62} position={[pos[0], 0.03, pos[2] - 0.25]} trailing={after ? avatar : undefined}>
-              {/* left of the first letter: the avatar (but for a right-hand seat), then the turn crown */}
-              {!after && avatar}
-              <TurnCrown show={active} icon={crownIcon} position={[-((after ? 0 : AVATAR.gap + AVATAR.size) + 0.6), 0, 0]} />
-            </TableText>
-            <TableText text={`${j.points} pt${j.points > 1 ? "s" : ""}`} style={{ color: "#f5f2ea", weight: 700 }} height={0.42} position={[pos[0], 0.03, pos[2] + 0.35]} />
+          <PlayerSeat key={j.id} id={j.id} spot={s} viewer={j.id === meId} active={view.activePlayerId === j.id} winner={winners.includes(j.id)} line={pointsText(j.points)}>
             {j.id !== meId && (
               <Zone
                 frame={backFrame(s)}
@@ -118,7 +97,7 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
                 cards={Array.from({ length: j.cardCount }, (_, i) => ({ key: `back-${j.id}-${i}`, front: back, back }))}
               />
             )}
-          </group>
+          </PlayerSeat>
         )
       })}
       <Zone layout={handLayout(hand.length, raised)} size={CARD_SIZE} enter={DECK_POSE} cards={handCards} />
@@ -134,13 +113,8 @@ function World({ view, color, avatarUrl, seat, onPlay, myTurn, crownIcon }: Scen
 
 type SceneProps = {
   view: PlayerView
-  color: (id: string) => string
-  /** The account's picture of a player (PLT-13), null: the avatar is generated */
-  avatarUrl: (id: string) => string | null
-  /** How the game dresses its seat avatars (`UI_THEME.seat`, see `useSeatTheme()`) */
-  seat: SeatTheme
-  /** Icon of the turn crown (the skin's `hostIcon`); without one, a drawn crown */
-  crownIcon?: string | null
+  /** A player's score as the line under their name, in the visitor's language (`pointsShort` of the skin) */
+  pointsText: (points: number) => string
   myTurn: boolean
   onPlay: (cardId: string) => void
   /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`) */

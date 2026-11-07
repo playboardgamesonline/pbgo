@@ -1,7 +1,6 @@
 "use client"
 
 import { useFrame } from "@react-three/fiber"
-import type { Field } from "./settings"
 import { easing } from "maath"
 import { useRef, useState } from "react"
 import { AdditiveBlending, Color, type Mesh, NormalBlending, type ShaderMaterial, Vector2 } from "three"
@@ -14,10 +13,17 @@ void main() {
 }`
 
 const AURA_DEFAULTS = { intensity: 1, edge: 1, halo: 1, stars: 0.5, density: 2.2, size: 1, speed: 0.4 }
+
+/** How an aura looks: `intensity` multiplies its force; the others are its ring along the edge, the halo outside it, its glints and how fast the light moves. */
 export type AuraSettings = typeof AURA_DEFAULTS
+/** One object for each use of the aura, so that a debug panel can tune the uses apart */
 export const ZONE_AURA_SETTINGS: AuraSettings = { ...AURA_DEFAULTS }
 export const WINNER_AURA_SETTINGS: AuraSettings = { ...AURA_DEFAULTS }
 
+/** A knob of a debug panel: its label, its least, its greatest and its step */
+type Knob = [label: string, min: number, max: number, step: number]
+
+/** The knobs a debug panel can offer for an `AuraSettings` (not `intensity`) */
 export const AURA_FIELDS = {
   edge: ["aura edge", 0, 2, 0.05],
   halo: ["aura halo", 0, 2, 0.05],
@@ -25,7 +31,7 @@ export const AURA_FIELDS = {
   density: ["aura star density", 0.5, 6, 0.1],
   size: ["aura star size", 0.3, 3, 0.05],
   speed: ["aura speed", 0, 3, 0.05],
-} satisfies Partial<Record<keyof AuraSettings, Field>>
+} satisfies Partial<Record<keyof AuraSettings, Knob>>
 
 const fragment = /* glsl */ `
 uniform float uTime;
@@ -85,6 +91,10 @@ void main() {
   gl_FragColor = vec4(couleur, a);
 }`
 
+/**
+ * A light that glows on the table: a plane with a shader, flat over the table and under the cards. `force` is its strength, a number or a function read
+ * on every frame, and it eases in and out; near zero the mesh is not drawn at all.
+ */
 export function Aura({
   width,
   depth,
