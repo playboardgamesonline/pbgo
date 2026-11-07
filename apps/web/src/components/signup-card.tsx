@@ -20,11 +20,11 @@ const FIELDS = ["email", "password", "name"] as const
 
 /**
  * The sign-up, a card laid over the hub's backdrop like the sign-in's: an e-mail address, a password and a display name that may be left empty, a line about the Terms and the minimum age, then, under "or continue with", the
- * providers (a provider's sign-in makes an account too). It has two steps. The form checks what it can before anything leaves (`checkSignup`), then asks Supabase Auth to create the account; nobody is signed in yet, an e-mail with a code and a link
+ * providers that the project has switched on (`providers`: a provider's sign-in makes an account too). It has two steps. The form checks what it can before anything leaves (`checkSignup`), then asks Supabase Auth to create the account; nobody is signed in yet, an e-mail with a code and a link
  * goes to the address, and the card turns to the code (`SignupCode`), which confirms the address and signs the visitor in on `next`. An address that already has an account goes through the same steps, and nothing is sent: the page never says which
  * addresses are taken. Without a Supabase project (`enabled` is false) everything is off and says so, and `linkFailed` is the page's way to tell a visitor that the link of the e-mail did not work (`/auth/confirm`).
  */
-export function SignupCard({ next, enabled, linkFailed, className }: { next: string; enabled: boolean; linkFailed: boolean; className?: string }) {
+export function SignupCard({ next, enabled, providers, linkFailed, className }: { next: string; enabled: boolean; providers: Provider[]; linkFailed: boolean; className?: string }) {
   const [step, setStep] = useState<"form" | "code">("form")
   const [fields, setFields] = useState<SignupFields>({ email: "", password: "", name: "" })
   const [problems, setProblems] = useState<SignupProblems>({})
@@ -191,7 +191,7 @@ export function SignupCard({ next, enabled, linkFailed, className }: { next: str
             </p>
           </form>
 
-          <ProviderRow pending={pending} disabled={off} onSelect={start} />
+          <ProviderRow providers={providers} pending={pending} disabled={off} onSelect={start} />
           {!enabled && <p className="mt-4 text-sm text-muted-foreground">Creating an account is not available on this site yet.</p>}
 
           <p className="mt-6 text-sm text-muted-foreground">

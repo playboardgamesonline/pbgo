@@ -13,13 +13,25 @@ import { cn } from "@pbgo/ui/utils"
 import { ProviderRow } from "@/components/provider-row"
 
 /**
- * The sign-in, a card laid over the hub's backdrop: a username and a password, then, under "or continue with", one button per provider, side by side with
- * nothing on them but the provider's small mark. A press on a provider leaves for it, and it sends the visitor back to `/auth/callback` and on to `next`; the
+ * The sign-in, a card laid over the hub's backdrop: a username and a password, then, under "or continue with", one button per provider that the project has switched on
+ * (`providers`), side by side with nothing on them but the provider's small mark. A press on a provider leaves for it, and it sends the visitor back to `/auth/callback` and on to `next`; the
  * password signs in on the spot and a whole page load takes the visitor on to `next` (the cookies hold the session, so the proxy and the server see it). Without a
  * Supabase project (`enabled` is false) everything is off and says so, and `failed` is the page's way to tell a visitor that a sign-in just did not work, which is
  * all it ever says: why belongs to the logs, not to a stranger.
  */
-export function LoginCard({ next, enabled, failed, className }: { next: string; enabled: boolean; failed: boolean; className?: string }) {
+export function LoginCard({
+  next,
+  enabled,
+  providers,
+  failed,
+  className,
+}: {
+  next: string
+  enabled: boolean
+  providers: Provider[]
+  failed: boolean
+  className?: string
+}) {
   // What is on its way: the password, or a provider. While it is, nothing else can be pressed
   const [pending, setPending] = useState<Provider | "password" | null>(null)
   const [error, setError] = useState<string | null>(failed ? "Sign-in did not work. Try again." : null)
@@ -81,7 +93,7 @@ export function LoginCard({ next, enabled, failed, className }: { next: string; 
         </Button>
       </form>
 
-      <ProviderRow pending={pending} disabled={off} onSelect={start} />
+      <ProviderRow providers={providers} pending={pending} disabled={off} onSelect={start} />
       {!enabled && <p className="mt-4 text-sm text-muted-foreground">Sign-in is not available on this site yet.</p>}
 
       <p className="mt-6 text-sm text-muted-foreground">
@@ -91,13 +103,7 @@ export function LoginCard({ next, enabled, failed, className }: { next: string; 
         </Link>
         .
       </p>
-      <p className="mt-2 text-sm text-muted-foreground">
-        No account needed to play: you can{" "}
-        <Link href="/games" className="text-foreground underline underline-offset-4">
-          pick a game
-        </Link>{" "}
-        as a guest.
-      </p>
+
       <p className="mt-6 text-xs text-muted-foreground">
         By continuing you accept the{" "}
         <Link href="/legal/terms" className="underline underline-offset-4">

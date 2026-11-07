@@ -12,7 +12,7 @@ export const PASSWORD_MAX_BYTES = 72
 /** The longest display name, in characters as a person counts them (an emoji is one): what a table copies of an account is 20 at most (`NICKNAME_MAX` of core), and it is what the others see. */
 export const DISPLAY_NAME_MAX = 20
 
-/** The key of `user_metadata`, the free object of the account, where the display name given at sign-up is kept: `full_name`, the one Google and Facebook fill and `accountOf` reads for the nickname, so no reader needs to know the account was made here. */
+/** The key of `user_metadata`, the free object of the account, where the display name given at sign-up is kept: `full_name`, the one Google and Twitch fill and `accountOf` reads for the nickname, so no reader needs to know the account was made here. */
 export const DISPLAY_NAME_KEY = "full_name"
 
 /** The digits of the code in the confirmation e-mail (`{{ .Token }}`: Supabase Auth's e-mail codes are six digits). */
