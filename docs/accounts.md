@@ -1,6 +1,6 @@
 # Accounts
 
-Sign-in with a password, or with Google, Twitch and Discord, through Supabase Auth, the pages of a signed-in visitor and the friends' panel (PLT-16, PLT-17, PLT-23). What exists, what is still a placeholder, and what has to be set up in Supabase before a visitor can sign in.
+Sign-in with a password, or with Google, Discord and Twitch, through Supabase Auth, the pages of a signed-in visitor and the friends' panel (PLT-16, PLT-17, PLT-23). What exists, what is still a placeholder, and what has to be set up in Supabase before a visitor can sign in.
 
 ## What exists
 - `@pbgo/accounts` (`packages/accounts`): `.` the pure part (`Account`, `accountOf`, `safeNext`, `PROVIDERS`, the figures of a profile: `statsOf`, `perGame`, `ordinal`, and the visitor's language: `PlatformLanguage`, `matchPlatformLanguage`, `resolveLanguage`, `planLanguage`), `./config` (the project: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, the two variables the games already read; without them the hub has no sign-in and says so), `./client` (`useAccount`, `signInWith`, `saveLanguage`, `useLanguageSync`), `./server` (`createAuthClient`, `getAccount`, `requireAccount`, `enabledProviders`), `./proxy` (`updateSession`), `./language` (the pure language part, alone) and `./set-language` (the setter, with no Supabase code in it), which the games' pages load too through core, and `./demo`. The app and core import it; it never imports core or a game

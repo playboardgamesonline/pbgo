@@ -36,8 +36,8 @@ const discord: AuthUser = {
 }
 
 describe("the providers", () => {
-  it("are Google, Twitch and Discord, in the order of the buttons", () => {
-    expect([...PROVIDERS]).toEqual(["google", "twitch", "discord"])
+  it("are Google, Discord and Twitch, in the order of the buttons", () => {
+    expect([...PROVIDERS]).toEqual(["google", "discord", "twitch"])
   })
 })
 
