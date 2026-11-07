@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from "react"
-import { parseQueue, queueSeconds, type Queue } from "@pbgo/ui/queue"
+import { parseQueue, queueSeconds, type Queue, type QueueGame, type QueueMode } from "@pbgo/ui/queue"
 
-// The queue of the visitor who looks for a game: the one place that knows it, read by the button of a game's page and by the social panel, which show the same wait. It is kept in this module for as long as the page lives, which the
-// hub's pages share (a visitor who goes from one to another keeps it), and in the browser's session storage, so that a reload does not forget it (`parseQueue` reads it back, and drops what is too old). A visitor looks for one game at a time:
-// asking for another replaces the first. There is nothing behind it yet: no table is found for them, so the counter runs until they stop it. The day the platform matches players (PLT-13's tables), `joinQueue` and `leaveQueue` are what
-// ask it, and the rest does not change. Client side only: the server renders nobody in a queue.
+// The queue of the visitor who looks for a game: the one place that knows it, read by the buttons that start a search (a game's page, the signed-in home) and by the social panel, which show the same wait. It is kept in this module for as long as the page lives, which the
+// hub's pages share (a visitor who goes from one to another keeps it), and in the browser's session storage, so that a reload does not forget it (`parseQueue` reads it back, and drops what is too old). A visitor looks for tables through one
+// search at a time, of one game or of several, ranked or normal: starting another replaces the first. There is nothing behind it yet: no table is found for them, so the counter runs until they stop it. The day the platform matches players (PLT-13's tables),
+// `joinQueue` and `leaveQueue` are what ask it, and the rest does not change. Client side only: the server renders nobody in a queue.
 
 const KEY = "pbgo:queue"
 
@@ -40,9 +40,10 @@ const subscribe = (listener: () => void) => {
 const snapshot = (): Queue | null => (queue === undefined ? (queue = read()) : queue)
 const server = (): Queue | null => null
 
-/** The visitor starts looking for a table: from now, and for this game's only. */
-export function joinQueue(game: Pick<Queue, "slug" | "name">) {
-  keep({ slug: game.slug, name: game.name, since: Date.now() })
+/** The visitor starts looking for a table of these games (one at least), ranked or normal: from now, and in place of the search they had. */
+export function joinQueue(games: readonly QueueGame[], mode: QueueMode) {
+  if (games.length === 0) return
+  keep({ games: games.map(({ slug, name }) => ({ slug, name })), mode, since: Date.now() })
 }
 
 /** The visitor stops looking. */

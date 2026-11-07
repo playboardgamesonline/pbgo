@@ -18,6 +18,8 @@ type LobbyPlayersProps = Omit<React.ComponentProps<"div">, "children"> & {
   seats?: readonly TableSeat[]
   /** How many players the lobby may be set for. None: the visitor does not set the number, and the seats are drawn as they are. */
   range?: { min: number; max: number }
+  /** The number of players is the visitor's to set, but the game it depends on is not chosen yet, so there is no `range`: the select is drawn all the same, empty and disabled, and takes its numbers once a range comes. */
+  pending?: boolean
   /** The number it starts at: the table's own seats, or the game's most for a lobby that is about to be opened. */
   defaultCount?: number
   /** Who opened the table, as the line says it ("you", "Marly"). Drawn when the visitor does not set the number of players. */
@@ -31,7 +33,7 @@ type LobbyPlayersProps = Omit<React.ComponentProps<"div">, "children"> & {
   onCountChange?: (count: number) => void
 }
 
-function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, invite, onCountChange, className, ...props }: LobbyPlayersProps) {
+function LobbyPlayers({ seats, range, pending = false, defaultCount, createdBy, actions, join, invite, onCountChange, className, ...props }: LobbyPlayersProps) {
   const selectId = React.useId()
   const { taken, total } = seatCount(seats ?? [])
   const [count, setCount] = React.useState(defaultCount ?? seats?.length ?? range?.max ?? 0)
@@ -39,13 +41,15 @@ function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, in
   const least = Math.max(range?.min ?? 1, taken)
   const shown = Math.min(range?.max ?? Infinity, Math.max(count, least))
   const numbers = range ? Array.from({ length: Math.max(0, range.max - least + 1) }, (_, index) => least + index) : []
-  const left = range ? (
+  const left = range || pending ? (
     <div className="flex items-center gap-3">
       <Label htmlFor={selectId} className="text-base text-muted-foreground">
         Number of players
       </Label>
       <Select
-        value={String(shown)}
+        // Without a range the number is not known yet: the select is there, empty, and cannot be opened
+        value={range ? String(shown) : ""}
+        disabled={!range}
         onValueChange={(next) => {
           setCount(Number(next))
           onCountChange?.(Number(next))
@@ -53,7 +57,7 @@ function LobbyPlayers({ seats, range, defaultCount, createdBy, actions, join, in
       >
         {/* A trigger 36px high with 12px corners, as the button beside it has, a list of 16px corners round items of 10px that stand 6px in from its edge (`SelectGroup`): each corner is the one inside it plus the room between. A small list is no capsule */}
         <SelectTrigger id={selectId} className="rounded-lg">
-          <SelectValue />
+          <SelectValue placeholder="–" />
         </SelectTrigger>
         <SelectContent align="end" className="min-w-0 rounded-xl">
           <SelectGroup>
