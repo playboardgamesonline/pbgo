@@ -17,7 +17,7 @@ To the engine a player is an id and a nickname, `PlayerInfo` in `packages/engine
 - Only the server makes a secret (`newPlayerSecret`), and only the create and join routes write the cookie (`getOrCreatePlayerId`); every other route reads the id with `getPlayerId`, which is `null` for a browser with no secret.
 - The id is public and proves nothing: the server takes only a secret for a cookie (`isPlayerSecret`), so an id sent back as the cookie identifies nobody.
 - A request cannot name its player: the action route sets the `playerId` of the action to the caller's id ([What reaches apply](05-actions.md#what-reaches-apply)).
-- A signed-in visitor sits down as their account: the name and the picture their provider gives, read on the server from the session and never from the request, the picture only as an `https` address (`resolveProfile`). A guest sits down under the nickname they typed and has no picture, so the avatar is generated. An account never gives the id.
+- A signed-in visitor sits down as their account: the name and the picture their provider gives, read on the server from the session and never from the request, the picture only as an `https` address (`resolveSeat`). A guest sits down under the nickname they typed and has no picture, so the avatar is generated. An account never gives the id.
 
 From `packages/core/server/player-id.ts`, the id of a secret:
 

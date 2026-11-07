@@ -9,11 +9,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 type Row = Record<string, unknown>
 
 const h = vi.hoisted(() => ({
-  tables: { games: [] as Row[], feedback: [] as Row[] } as Record<string, Row[]>,
+  tables: { games: [] as Row[], feedback: [] as Row[], member_presence: [] as Row[] } as Record<string, Row[]>,
   /** The paths of the objects in the `feedback` bucket */
   objects: new Set<string>(),
   log: [] as string[],
-  fail: { games: null as string | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false },
+  fail: { games: null as string | null, presence: null as string | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false },
   removals: 0,
   /** Runs once, right before the next delete looks for its rows: another run of the job that gets there first */
   beforeDelete: null as (() => void) | null,
@@ -69,8 +69,8 @@ vi.mock("./supabase", () => {
       }
       const found = (h.tables[this.table] ?? []).filter((row) => this.matches.every((match) => match(row)))
       if (this.action === "delete") {
-        h.log.push(`delete ${this.table} ${found.map((row) => String(row.id ?? row.code)).join(",")}`)
-        const failure = this.table === "games" ? h.fail.games : h.fail.feedbackDelete
+        h.log.push(`delete ${this.table} ${found.map((row) => String(row.id ?? row.code ?? row.user_id)).join(",")}`)
+        const failure = this.table === "games" ? h.fail.games : this.table === "member_presence" ? h.fail.presence : h.fail.feedbackDelete
         if (failure) return { data: null, error: { message: failure }, count: null }
         if (h.fail.silentDelete && this.table === "feedback") return { data: null, error: null, count: 0 }
         h.tables[this.table] = (h.tables[this.table] ?? []).filter((row) => !found.includes(row))
@@ -116,8 +116,11 @@ const feedback = (id: string, createdAt: string, screenshot: string | null = `co
   if (screenshot) h.objects.add(screenshot)
   return { id, game: "courtisans", created_at: createdAt, screenshot, status: "new", ...extra }
 }
+/** A member last seen `seenDaysAgo` days ago (a fraction of a day is fine) */
+const member = (userId: string, seenDaysAgo: number): Row => ({ user_id: userId, seen_at: daysAgo(seenDaysAgo) })
 const codes = () => h.tables.games!.map((row) => row.code)
 const ids = () => h.tables.feedback!.map((row) => row.id)
+const users = () => h.tables.member_presence!.map((row) => row.user_id)
 
 // 12 months before NOW, to the millisecond
 const YEAR_AGO = "2025-11-06T12:00:00.000Z"
@@ -125,9 +128,11 @@ const YEAR_AGO = "2025-11-06T12:00:00.000Z"
 beforeEach(() => {
   h.tables.games = []
   h.tables.feedback = []
+  h.tables.member_presence = []
   h.objects.clear()
   h.log.length = 0
   h.fail.games = null
+  h.fail.presence = null
   h.fail.removal = null
   h.fail.removalCall = 1
   h.fail.feedbackDelete = null
@@ -180,7 +185,42 @@ describe("tables", () => {
 
   it("tells the moments it measured against", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO })
+    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1) })
+  })
+})
+
+describe("presence", () => {
+  it("deletes the members last seen more than a day ago and keeps the others", async () => {
+    h.tables.member_presence = [member("a", 2), member("b", 0.5), member("c", 30), member("d", 0)]
+    const report = await purgeExpired({ now: NOW })
+    expect(users()).toEqual(["b", "d"])
+    expect(report).toMatchObject({ presence: 2, errors: [] })
+  })
+
+  it("keeps a member seen exactly a day ago and deletes one seen a millisecond earlier", async () => {
+    const older = { user_id: "older", seen_at: new Date(NOW.getTime() - DAY - 1).toISOString() }
+    h.tables.member_presence = [member("edge", 1), older]
+    await purgeExpired({ now: NOW })
+    expect(users()).toEqual(["edge"])
+  })
+
+  it("does nothing the second time", async () => {
+    h.tables.member_presence = [member("a", 3), member("b", 0)]
+    await purgeExpired({ now: NOW })
+    expect((await purgeExpired({ now: NOW })).presence).toBe(0)
+    expect(users()).toEqual(["b"])
+  })
+
+  it("runs on its own: a failure here does not hold the tables or the feedback back, and says so", async () => {
+    h.tables.games = [table("courtisans", "AAAA", 31)]
+    h.tables.feedback = [feedback("f1", "2025-01-01T00:00:00.000Z")]
+    h.tables.member_presence = [member("a", 3)]
+    h.fail.presence = "relation public.member_presence does not exist"
+    const report = await purgeExpired({ now: NOW })
+    expect(report.errors).toEqual(["presence: relation public.member_presence does not exist"])
+    expect(codes()).toEqual([])
+    expect(ids()).toEqual([])
+    expect(users()).toEqual(["a"])
   })
 })
 
@@ -328,13 +368,15 @@ describe("a dry run", () => {
   it("deletes nothing and counts what a real run would delete", async () => {
     h.tables.games = [table("courtisans", "AAAA", 31), table("courtisans", "BBBB", 5)]
     h.tables.feedback = [feedback("f1", "2025-01-01T00:00:00.000Z"), feedback("f2", "2025-01-02T00:00:00.000Z", null), feedback("f3", "2026-10-25T00:00:00.000Z")]
+    h.tables.member_presence = [member("a", 3), member("b", 0)]
     const report = await purgeExpired({ now: NOW, dryRun: true })
-    expect(report).toMatchObject({ dryRun: true, tables: 1, feedback: 2, screenshots: 1, errors: [] })
+    expect(report).toMatchObject({ dryRun: true, tables: 1, feedback: 2, screenshots: 1, presence: 1, errors: [] })
+    expect(users()).toEqual(["a", "b"])
     expect(codes()).toEqual(["AAAA", "BBBB"])
     expect(ids()).toEqual(["f1", "f2", "f3"])
     expect(h.objects.size).toBe(2)
     expect(h.log.some((line) => line.startsWith("delete") || line.startsWith("remove"))).toBe(false)
     const real = await purgeExpired({ now: NOW })
-    expect(real).toMatchObject({ dryRun: false, tables: 1, feedback: 2, screenshots: 1 })
+    expect(real).toMatchObject({ dryRun: false, tables: 1, feedback: 2, screenshots: 1, presence: 1 })
   })
 })

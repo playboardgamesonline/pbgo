@@ -1,5 +1,5 @@
 import "server-only"
-import { feedbackCutoff, tableCutoff } from "../lib/retention"
+import { feedbackCutoff, presenceCutoff, tableCutoff } from "../lib/retention"
 import { supabaseAdmin } from "./supabase"
 import { FEEDBACK_BUCKET } from "./tasks"
 
@@ -11,10 +11,12 @@ export const PURGE_MAX_BATCHES = 50
 export type PurgeReport = {
   /** Nothing was deleted: the counts are what a real run would delete now */
   dryRun: boolean
-  /** A table last written before the first, a feedback received before the second, is old enough (`lib/retention.ts`) */
-  cutoffs: { tables: string; feedback: string }
+  /** A table last written before the first, a feedback received before the second, a member last seen before the third, is old enough (`lib/retention.ts`) */
+  cutoffs: { tables: string; feedback: string; presence: string }
   tables: number
   feedback: number
+  /** The members' rows of `member_presence` (the last time each was seen on the site) */
+  presence: number
   /** The screenshots of those feedback, removed from the bucket before their rows */
   screenshots: number
   /** One line per job that failed (the other one still ran); empty when all went well */
@@ -24,18 +26,23 @@ export type PurgeReport = {
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : typeof error === "object" && error && "message" in error ? String(error.message) : String(error))
 
 /**
- * The nightly clean-up of what the Privacy Policy promises (PLT-113): the tables written more than `TABLE_RETENTION_DAYS` ago and the
- * feedback received more than `FEEDBACK_RETENTION_MONTHS` ago, each feedback with its screenshot. Called by `GET /api/cron/purge`, which
- * Vercel Cron runs every night. Idempotent: a run that stops half way (an error, the batch limit) is finished by the next one.
- * The two jobs are independent, one that fails is reported in `errors` and does not hold the other back.
+ * The nightly clean-up of what the Privacy Policy promises (PLT-113): the tables written more than `TABLE_RETENTION_DAYS` ago, the
+ * feedback received more than `FEEDBACK_RETENTION_MONTHS` ago, each feedback with its screenshot, and the members' last sight on the site
+ * more than `PRESENCE_RETENTION_DAYS` ago. Called by `GET /api/cron/purge`, which Vercel Cron runs every night. Idempotent: a run that stops half way
+ * (an error, the batch limit) is finished by the next one. The jobs are independent, one that fails is reported in `errors` and does not hold the others back.
  */
 export async function purgeExpired({ now = new Date(), dryRun = false }: { now?: Date; dryRun?: boolean } = {}): Promise<PurgeReport> {
-  const cutoffs = { tables: tableCutoff(now).toISOString(), feedback: feedbackCutoff(now).toISOString() }
-  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, screenshots: 0, errors: [] }
+  const cutoffs = { tables: tableCutoff(now).toISOString(), feedback: feedbackCutoff(now).toISOString(), presence: presenceCutoff(now).toISOString() }
+  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, screenshots: 0, errors: [] }
   try {
     report.tables = await purgeTables(cutoffs.tables, dryRun)
   } catch (error) {
     report.errors.push(`tables: ${messageOf(error)}`)
+  }
+  try {
+    report.presence = await purgePresence(cutoffs.presence, dryRun)
+  } catch (error) {
+    report.errors.push(`presence: ${messageOf(error)}`)
   }
   try {
     await purgeFeedback(cutoffs.feedback, dryRun, report)
@@ -51,6 +58,16 @@ async function purgeTables(cutoff: string, dryRun: boolean): Promise<number> {
   const { count, error } = dryRun
     ? await games.select("code", { count: "exact", head: true }).lt("updated_at", cutoff)
     : await games.delete({ count: "exact" }).lt("updated_at", cutoff)
+  if (error) throw error
+  return count ?? 0
+}
+
+/** The members' rows go in one statement: there is one row per member, and `seen_at` has an index. */
+async function purgePresence(cutoff: string, dryRun: boolean): Promise<number> {
+  const presence = supabaseAdmin().from("member_presence")
+  const { count, error } = dryRun
+    ? await presence.select("user_id", { count: "exact", head: true }).lt("seen_at", cutoff)
+    : await presence.delete({ count: "exact" }).lt("seen_at", cutoff)
   if (error) throw error
   return count ?? 0
 }
