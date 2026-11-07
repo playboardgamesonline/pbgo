@@ -13,11 +13,11 @@ export type Publisher = { name: string; url: string | null }
 /** A person credited on a game, and what they did on it (a person is on one line of a game, with all their roles). */
 export type Creator = { name: string; roles: CreatorRole[] }
 
-/** The three pictures a game can have. */
-export const ART_SLOTS = ["logo", "icon", "background"] as const
+/** The four pictures a game can have: its logo and its icon, which mark it, its background, which is wide, and its cover, the picture of its card (PLT-114). */
+export const ART_SLOTS = ["logo", "icon", "background", "cover"] as const
 export type ArtSlot = (typeof ART_SLOTS)[number]
 
-/** The two pictures an expansion can have: its cover and the front of its box. It has none of the three of a game. */
+/** The two pictures an expansion can have: its cover and the front of its box. It has none of the other three of a game. */
 export type ExpansionSlot = "cover" | "boxFront"
 
 /**
@@ -113,15 +113,24 @@ export type CatalogExpansion = {
 }
 
 /**
- * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its background across the
- * frame, and the page draws the same ones larger; an expansion's cover is drawn wide, like a background, and the front of its box
- * smaller. Never more than the file holds.
+ * How wide the image CDN is asked for a picture, in pixels: a card shows a game's logo and icon small and its cover or its background
+ * across the frame, and the page draws the logo and the background larger; an expansion's cover is drawn wide, like a game's, and the front
+ * of its box smaller. Never more than the file holds.
  */
 const PICTURE_WIDTH: Record<ArtSlot | ExpansionSlot, number> = { logo: 800, icon: 512, background: 1200, cover: 1200, boxFront: 600 }
 
+/** The end of the name of a file of the image CDN: the size of the picture and its format (`<hash>-650x590.webp`), and a query when the address was sized. */
+const FILE_NAME = /-(\d+)x(\d+)\.([a-z0-9]+)(?:\?.*)?$/i
+
+/** The formats a file is already compressed for the web in. The CDN would only encode one of these a second time and lose a little more; a PNG or a GIF is not one, and a large one must still be shrunk. */
+const COMPRESSED_FORMATS = new Set(["webp", "jpg", "jpeg", "avif"])
+
+/** How well the CDN encodes a picture it resizes: above its own default (75), which shows on a picture that was a lossy file already. */
+const RESIZE_QUALITY = 85
+
 /**
- * The URL of a picture of a game or of an expansion, sized for the page: the address of the file in the image CDN, with a width and
- * `auto=format`, so that a browser that takes WebP or AVIF gets that. A vector picture (SVG) is served as it is. Null when it has none:
+ * The URL of a picture of a game or of an expansion, sized for the page (`sizedPictureUrl`): the address of the file in the image CDN, asked
+ * for at the width the page draws it and in the format the browser takes, or the file itself when it needs neither. Null when it has none:
  * a picture it does not have is a plain frame, nothing else. `width` is how wide the CDN is asked for it, the page's own by default: a
  * small tile asks for less.
  */
@@ -130,9 +139,20 @@ export function pictureUrl<Slot extends ArtSlot | ExpansionSlot>(owner: { pictur
   return url ? sizedPictureUrl(url, width) : null
 }
 
-/** The address of a file of the image CDN, asked for `width` pixels wide at most and in the best format the browser takes (an SVG is served as it is): how a picture of a gallery is sized. */
+/**
+ * The address of a file of the image CDN for a page that draws it `width` pixels wide at most (how a picture of a gallery is sized too):
+ * - A vector picture (SVG) is served as it is.
+ * - So is a file in a format that is already compressed (WebP, JPEG, AVIF) and whose name says it is not wider than that (`FILE_NAME`, the way
+ *   `pictureRatio` reads it): no query at all, since asking the CDN for it would encode it a second time, and lose a little more.
+ * - Any other is asked for `width` pixels wide at most (`fit=max`, never made bigger) in the best format the browser takes (`auto=format`),
+ *   at a quality of `RESIZE_QUALITY`. A PNG or a GIF is always asked for, so that a large one does not go out whole.
+ */
 export function sizedPictureUrl(url: string, width: number): string {
-  return url.endsWith(".svg") ? url : `${url}?w=${width}&fit=max&auto=format`
+  if (url.endsWith(".svg")) return url
+  const [, named, , format] = FILE_NAME.exec(url) ?? []
+  const fileWidth = Number(named)
+  if (format && COMPRESSED_FORMATS.has(format) && fileWidth > 0 && fileWidth <= width) return url
+  return `${url}?w=${width}&fit=max&auto=format&q=${RESIZE_QUALITY}`
 }
 
 /**
@@ -140,7 +160,7 @@ export function sizedPictureUrl(url: string, width: number): string {
  * the page still. Null for no picture and for an address that carries no size (or one that makes no shape).
  */
 export function pictureRatio(url: string | null): number | null {
-  const size = url === null ? null : /-(\d+)x(\d+)\.[a-z0-9]+(?:\?.*)?$/i.exec(url)
+  const size = url === null ? null : FILE_NAME.exec(url)
   const ratio = size ? Number(size[1]) / Number(size[2]) : NaN
   return Number.isFinite(ratio) && ratio > 0 ? ratio : null
 }
@@ -217,9 +237,27 @@ export function creditLines(game: Pick<CatalogGame, "slug" | "creators" | "publi
   return lines.filter((line) => line.values.length > 0)
 }
 
-/** The picture of a game's card on the hub: its logo, else its icon, else none (the card is then a plain frame, nothing else). The background is the game page's. */
+/**
+ * A game's mark, the small and often transparent picture of it: its logo, else its icon, else none. A card draws it, contained on its plain frame, for a game that has no cover or background to
+ * fill the frame with (`cardPicture`), and a page shares it for a game that has no background (`sharePicture`).
+ */
 export function cardPictureUrl(game: Pick<CatalogGame, "pictures">): string | null {
   return pictureUrl(game, "logo") ?? pictureUrl(game, "icon")
+}
+
+/**
+ * What a game's card on the hub draws (PLT-114), the first of these the game has, and never two of them (no logo is laid over a picture):
+ * 1. its cover, which fills the frame (`fills`);
+ * 2. its background, which fills it too, alone;
+ * 3. its logo, else its icon (`cardPictureUrl`), which sit on the plain frame, contained, since they are small and often transparent;
+ * 4. nothing: the card is a plain frame.
+ * The address is sized for a card (`pictureUrl`). The card (`@pbgo/ui/platform/game-card`) draws what it is told and chooses nothing: `apps/web` hands it this.
+ */
+export function cardPicture(game: Pick<CatalogGame, "pictures">): { url: string; fills: boolean } | null {
+  const filling = pictureUrl(game, "cover") ?? pictureUrl(game, "background")
+  if (filling) return { url: filling, fills: true }
+  const mark = cardPictureUrl(game)
+  return mark ? { url: mark, fills: false } : null
 }
 
 /**
@@ -291,7 +329,7 @@ export function registryRow(game: GameEntry): CatalogGame {
     creators: [],
     publishers: [],
     rules: {},
-    pictures: { logo: null, icon: null, background: null },
+    pictures: { logo: null, icon: null, background: null, cover: null },
     gallery: [],
     helpers: [],
     related: [],
