@@ -69,7 +69,7 @@ vi.mock("../sanity/client", () => ({ sanityClient: () => null }))
 vi.mock("../lib/settings-server", () => ({ loadSettings: async () => h.settings }))
 vi.mock("../lib/locale-server", () => ({ getLocale: async () => "en" }))
 vi.mock("./rate-limit", () => ({ rateLimit: async () => {} }))
-vi.mock("./presence", () => ({ markSeen: async () => {} }))
+vi.mock("./presence", () => ({ markSeen: async () => {}, seatMember: async () => {} }))
 vi.mock("./supabase", () => {
   class Filters {
     filters: Record<string, unknown> = {}

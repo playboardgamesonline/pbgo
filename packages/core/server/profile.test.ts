@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { ApiError } from "./api"
-import { profileOf, validateProfile } from "./profile"
+import { profileOf, resolveSeat, validateProfile } from "./profile"
+
+const mocks = vi.hoisted(() => ({ account: null as { id: string; nickname: string; avatarUrl: string | null } | null }))
 
 vi.mock("server-only", () => ({}))
-vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => null }))
+vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => mocks.account }))
 
 const codeOf = (fn: () => unknown) => {
   try {
@@ -52,5 +54,28 @@ describe("profileOf", () => {
   it("cuts a long name by characters, never through an emoji, and never leaves it empty", () => {
     expect(profileOf({ nickname: "🎲".repeat(25), avatarUrl: null }, {}).nickname).toBe("🎲".repeat(20))
     expect(profileOf({ nickname: "   ", avatarUrl: null }, {}).nickname).toBe("Player")
+  })
+})
+
+describe("resolveSeat", () => {
+  afterEach(() => {
+    mocks.account = null
+  })
+
+  it("sits a guest down under the nickname they typed, with no account", async () => {
+    expect(await resolveSeat({ nickname: " Ann " })).toEqual({ profile: { nickname: "Ann" }, memberId: null })
+  })
+
+  it("sits a member down as their account and says which account it is", async () => {
+    mocks.account = { id: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11", nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" }
+    expect(await resolveSeat({ nickname: "Someone else" })).toEqual({
+      profile: { nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" },
+      memberId: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11",
+    })
+  })
+
+  it("gives the demo account of development no member id: it is in no database", async () => {
+    mocks.account = { id: "demo", nickname: "Oré", avatarUrl: null }
+    expect(await resolveSeat({})).toEqual({ profile: { nickname: "Oré" }, memberId: null })
   })
 })

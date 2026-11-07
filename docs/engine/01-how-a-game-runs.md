@@ -55,7 +55,7 @@ const row = await updateGame(game, params.code ?? "", (row) => {
 
 | Argument | Where it comes from |
 | --- | --- |
-| `players` | The seats in the order they joined, `{ id, nickname }` and nothing more: `id` is the random value of the player's `<slug>_player` cookie, `nickname` the name of the signed-in account or what a guest typed (`resolveProfile`); the picture of an account never reaches `setup` |
+| `players` | The seats in the order they joined, `{ id, nickname }` and nothing more: `id` is the random value of the player's `<slug>_player` cookie, `nickname` the name of the signed-in account or what a guest typed (`resolveSeat`); the picture of an account never reaches `setup` |
 | `options` | The options the table holds, normalized by core for this number of players |
 | `seed` | `newSeed()`: a random integer below 2^52 drawn with `crypto`, new for every game and every rematch |
 | `data` | `SetupData`: what the binding's `loadSetupData` returns, loaded before the write and in the default language; `undefined` without a loader |

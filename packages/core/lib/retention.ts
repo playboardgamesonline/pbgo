@@ -10,11 +10,19 @@ export const TABLE_RETENTION_DAYS = 30
 /** A feedback (`feedback`) goes this many calendar months after it was received, with its screenshot. */
 export const FEEDBACK_RETENTION_MONTHS = 12
 
+/** The last time a signed-in member was seen on the site (`member_presence`) goes this many days after the last beat. It counts the players online for two minutes, so a day is more than it needs. */
+export const PRESENCE_RETENTION_DAYS = 1
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /** A table whose `updated_at` is strictly before this instant is old enough to delete. */
 export function tableCutoff(now: Date = new Date()): Date {
   return new Date(now.getTime() - TABLE_RETENTION_DAYS * DAY_MS)
+}
+
+/** A member whose `seen_at` is strictly before this instant has not been seen for longer than `PRESENCE_RETENTION_DAYS`: their row is old enough to delete. */
+export function presenceCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - PRESENCE_RETENTION_DAYS * DAY_MS)
 }
 
 /**

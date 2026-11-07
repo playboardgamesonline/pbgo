@@ -79,7 +79,10 @@ async function loadCount(name: "online_player_count" | "member_count"): Promise<
   return count
 }
 
-/** How many players are connected now, every game together: those a table saw in the last two minutes (`online_player_count()`). */
+/**
+ * How many players are online now, every game together (`online_player_count()`, migration 0005): the members seen on the site or at a table in the last two minutes, each once, and the guests a table saw in the
+ * last two minutes. A guest who only looks at the site is not counted.
+ */
 export const loadOnlinePlayerCount = () => loadCount("online_player_count")
 
 /** How many accounts are registered: the users of Supabase Auth (`member_count()`). */

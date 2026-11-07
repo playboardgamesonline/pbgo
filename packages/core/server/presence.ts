@@ -30,3 +30,26 @@ export async function markSeen(
     console.error("Presence write failed", error)
   }
 }
+
+/**
+ * Records that the signed-in member `userId` has the site open just now (`member_presence`, migration 0005): the players online count them for two minutes. Unlike `markSeen` it throws when the database
+ * cannot write it (the migration is not applied yet, the account is gone): its route says so, and the browser waits longer before its next beat.
+ */
+export async function touchMember(userId: string): Promise<void> {
+  const { error } = await supabaseAdmin().rpc("touch_member", { p_user: userId })
+  if (error) throw error
+}
+
+/**
+ * Records that the account `userId` holds the seat `playerId` of the table `code` (`games.member_ids`, migration 0005), so that the players online count a member once, at a table or not, and a guest only at a table.
+ * Like `markSeen` it never throws: it is a convenience, a failure is logged and the request goes on. Nothing for a guest (`userId` is null). Call it from `after()`, once the table has the seat.
+ */
+export async function seatMember(game: Pick<GameEntry, "slug">, code: string, playerId: string, userId: string | null): Promise<void> {
+  if (!userId) return
+  try {
+    const { error } = await supabaseAdmin().rpc("seat_member", { p_game: game.slug, p_code: code, p_seat: playerId, p_user: userId })
+    if (error) console.error("Seat write failed", error)
+  } catch (error) {
+    console.error("Seat write failed", error)
+  }
+}

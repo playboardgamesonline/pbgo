@@ -1,15 +1,17 @@
+import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { publicGame, updateGame } from "../../../../../server/games"
 import { getOrCreatePlayerId } from "../../../../../server/player"
-import { type ProfileInput, resolveProfile } from "../../../../../server/profile"
+import { seatMember } from "../../../../../server/presence"
+import { type ProfileInput, resolveSeat } from "../../../../../server/profile"
 import { rateLimit } from "../../../../../server/rate-limit"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await rateLimit(game.slug, request, "join")
-  const profile = await resolveProfile(await readJson<ProfileInput>(request))
+  const { profile, memberId } = await resolveSeat(await readJson<ProfileInput>(request))
   const id = await getOrCreatePlayerId(game.slug)
   const { maxPlayers } = await loadSettings(game)
 
@@ -28,6 +30,8 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     // A lobby that a ready check emptied has no host: whoever sits down first is it
     return { players: [...row.players, { id, ...profile }], ...(row.players.length === 0 ? { host_id: id } : {}) }
   })
+  // A member's seat says whose it is, for the players online: apart from the table the others see, and after the response
+  after(() => seatMember(game, row.code, id, memberId))
   if (seat.added) trackAfter("player_joined", id, { game: game.slug, seat: row.players.findIndex((j) => j.id === id), players: row.players.length })
   return publicGame(game, row, id)
 })

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
-import { FEEDBACK_RETENTION_MONTHS, TABLE_RETENTION_DAYS } from "@pbgo/core/lib/retention"
+import { FEEDBACK_RETENTION_MONTHS, PRESENCE_RETENTION_DAYS, TABLE_RETENTION_DAYS } from "@pbgo/core/lib/retention"
 import { LEGAL_LINK, LegalEntries, LegalPage, LegalSection, LegalText, LegalUpdated } from "@/components/legal-page"
 import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 
@@ -10,7 +10,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/legal/privacy" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "6 November 2026"
+const UPDATED = "7 November 2026"
 
 /**
  * Everything the site does with personal data, in the order a person meets it. Every line is the code's, and the table of `docs/legal.md` lists where: a new field that holds
@@ -106,12 +106,16 @@ export default function PrivacyPolicy() {
               text: "The language you choose is kept with your account, so that it follows you from one device to the next, and in a cookie on each device.",
             },
             {
+              name: "Being online",
+              text: `While you are signed in and the site is open in a tab you are looking at, your browser tells our server, about every 45 seconds, that you are there. We keep only the time of the last time, one entry per account. The home page counts the members seen in the last two minutes, with the people sitting at a table, and shows the total as the players online: nobody is shown whether you are online. A clean-up runs every night and deletes that time ${PRESENCE_RETENTION_DAYS} ${PRESENCE_RETENTION_DAYS === 1 ? "day" : "days"} after your last visit, and it goes with your account. A guest who only looks around is not counted.`,
+            },
+            {
               name: "Your session",
               text: "While you are signed in, your browser keeps cookies that prove it. Our sign-in service records, for each session, when it started, your IP address and your browser, and logs sign-ups, sign-ins, sign-outs and renewals with your IP address, to keep accounts safe. The record of a session is deleted when you sign out, and the log of events after a short time.",
             },
             {
               name: "At a table",
-              text: "When you sit down at a table, we copy your account's name (20 characters at most) and the address of your picture onto the table, so that the others see them. The picture itself stays with your provider and each person's browser loads it from there; its address can contain an identifier of your account at that provider. The table does not record which account you are, and the copy goes with the table.",
+              text: "When you sit down at a table, we copy your account's name (20 characters at most) and the address of your picture onto the table, so that the others see them. The picture itself stays with your provider and each person's browser loads it from there; its address can contain an identifier of your account at that provider. The table also records which account holds your seat, apart from what the others see, so that you are counted once among the players online. Both go with the table.",
             },
             {
               name: "Keeping and deleting",

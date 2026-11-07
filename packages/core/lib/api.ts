@@ -65,7 +65,7 @@ export type ClientDebugCommand = "start" | "turn" | "over" | (string & {})
 function buildApi(slug: string) {
   const games = `/api/${slug}/games`
   return {
-    /** `profile` is the nickname of a guest; a signed-in visitor sends none, the server sits them down as their account (`resolveProfile`). */
+    /** `profile` is the nickname of a guest; a signed-in visitor sends none, the server sits them down as their account (`resolveSeat`). */
     create: (profile: Partial<Profile>) => post(games, profile),
     read: (code: string) => apiRequest(`${games}/${code}`),
     join: (code: string, profile: Partial<Profile>) => post(`${games}/${code}/join`, profile),

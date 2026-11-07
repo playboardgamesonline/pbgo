@@ -1,4 +1,5 @@
 import "server-only"
+import { isDemoAccount } from "@pbgo/accounts/demo"
 import { getAccount } from "@pbgo/accounts/server"
 import type { Account } from "@pbgo/accounts"
 import { ApiError } from "./api"
@@ -31,7 +32,14 @@ export function profileOf(account: Pick<Account, "nickname" | "avatarUrl"> | nul
   return { nickname: nickname || "Player", ...(avatarUrl ? { avatarUrl } : {}) }
 }
 
-/** `profileOf` for the request being served: the signed-in visitor is asked of Supabase Auth (`getAccount`), a visitor with no session costs no call. */
-export async function resolveProfile(input: ProfileInput): Promise<Profile> {
-  return profileOf(await getAccount(), input)
+/** Who sits down, and the account they sit down as: `memberId` is the id of a signed-in member's account, null for a guest and for the demo account of development, which is in no database. */
+export type Seat = { profile: Profile; memberId: string | null }
+
+/**
+ * `profileOf` for the request being served, and who the visitor is: the signed-in visitor is asked of Supabase Auth (`getAccount`), a visitor with no session costs no call. The `memberId` is not part of
+ * the seat that the others see: the table records it apart (`seatMember`), for the count of the players online.
+ */
+export async function resolveSeat(input: ProfileInput): Promise<Seat> {
+  const account = await getAccount()
+  return { profile: profileOf(account, input), memberId: account && !isDemoAccount(account) ? account.id : null }
 }

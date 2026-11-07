@@ -50,7 +50,9 @@ const h = vi.hoisted(() => ({
   playerId: null as string | null,
   settings: { options: { defaults: {}, hidden: [] as string[] }, maxPlayers: 3, minPlayers: 2, turnTimeout: 60 },
   /** Who is signed in: the account the create and join routes sit down as, null for a guest */
-  account: null as { nickname: string; avatarUrl: string | null } | null,
+  account: null as { id: string; nickname: string; avatarUrl: string | null } | null,
+  /** What the create and join routes tell `seatMember` once the response has left */
+  seatMember: vi.fn<(game: { slug: string }, code: string, playerId: string, userId: string | null) => Promise<void>>(async () => {}),
 }))
 
 vi.mock("server-only", () => ({}))
@@ -62,7 +64,7 @@ vi.mock("../lib/locale-server", () => ({ getLocale: async () => "en" }))
 vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => h.account }))
 vi.mock("./player", () => ({ getPlayerId: async () => h.playerId, getOrCreatePlayerId: async () => h.playerId }))
 vi.mock("./rate-limit", () => ({ rateLimit: async () => {} }))
-vi.mock("./presence", () => ({ markSeen: async () => {} }))
+vi.mock("./presence", () => ({ markSeen: async () => {}, seatMember: h.seatMember }))
 vi.mock("./supabase", () => {
   class Filters {
     filters: Record<string, unknown> = {}
@@ -260,6 +262,7 @@ beforeEach(() => {
   h.scheduled.length = 0
   h.beforeUpdate = null
   h.track.mockReset()
+  h.seatMember.mockClear()
   h.playerId = null
   h.account = null
   h.settings.maxPlayers = 3
@@ -329,7 +332,7 @@ describe("who sits down", () => {
 
   it("is the account of a visitor who is signed in: its name and its picture, taken on the server, whatever the request says", async () => {
     h.playerId = "p1"
-    h.account = { nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" }
+    h.account = { id: "acct-anne", nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" }
     expect((await call(create, { nickname: "Someone else", avatarUrl: "https://evil.example/x.png" }, null)).status).toBe(200)
     expect(seated()).toEqual([{ id: "p1", nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" }])
   })
@@ -343,7 +346,7 @@ describe("who sits down", () => {
   it("is the account again at the table of somebody else, and an account needs no nickname", async () => {
     seed()
     h.playerId = "p2"
-    h.account = { nickname: "Bob B.", avatarUrl: null }
+    h.account = { id: "acct-bob", nickname: "Bob B.", avatarUrl: null }
     expect((await call(join, {})).status).toBe(200)
     expect(stored().players).toEqual([ann, { id: "p2", nickname: "Bob B." }])
   })
@@ -361,6 +364,48 @@ describe("who sits down", () => {
     const setup = vi.fn(GAME.setup)
     expect((await call(start, {}, CODE, gameOf({ ...GAME, setup }))).status).toBe(200)
     expect(setup.mock.calls[0]![0].players).toEqual([ann, bob])
+  })
+})
+
+describe("whose seat it is", () => {
+  const settle = () => h.scheduled.splice(0).forEach((callback) => callback())
+
+  it("is told to the database for a member who opens a table, once the response has left, and never to the browser", async () => {
+    h.playerId = "p1"
+    h.account = { id: "acct-anne", nickname: "Anne Martin", avatarUrl: null }
+    const response = await call(create, {}, null)
+    expect(response.status).toBe(200)
+    expect(h.seatMember).not.toHaveBeenCalled()
+    settle()
+    const code = [...h.rows.values()][0]!.code
+    expect(h.seatMember).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), code, "p1", "acct-anne")
+    expect(JSON.stringify(await response.json())).not.toContain("acct-anne")
+  })
+
+  it("is told for a member who joins a table", async () => {
+    seed()
+    h.playerId = "p2"
+    h.account = { id: "acct-bob", nickname: "Bob B.", avatarUrl: null }
+    expect((await call(join, {})).status).toBe(200)
+    settle()
+    expect(h.seatMember).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, "p2", "acct-bob")
+  })
+
+  it("is told with no account for a guest, so that nothing is written", async () => {
+    seed()
+    h.playerId = "p2"
+    expect((await call(join, { nickname: "Bob" })).status).toBe(200)
+    settle()
+    expect(h.seatMember).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, "p2", null)
+  })
+
+  it("is not told for the demo account of development: it is in no database", async () => {
+    seed()
+    h.playerId = "p2"
+    h.account = { id: "demo", nickname: "Oré", avatarUrl: null }
+    expect((await call(join, {})).status).toBe(200)
+    settle()
+    expect(h.seatMember).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, "p2", null)
   })
 })
 

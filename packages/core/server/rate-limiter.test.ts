@@ -71,6 +71,17 @@ describe("rateLimitKeys", () => {
     expect(rateLimitKeys("adminLogin", { playerId: "p1", ip: "1.1.1.1" }).map(([k]) => k)).toEqual(["ip:1.1.1.1", "adminLogin:ip:1.1.1.1"])
     expect(rateLimitKeys("adminLogin", { playerId: "p1" })).toEqual([])
   })
+
+  it("keys the beat of a signed-in member per IP, without any game, and gives a few members behind one address room for their beats", async () => {
+    expect(rateLimitKeys("presence", { playerId: "p1", ip: "1.1.1.1" }).map(([k]) => k)).toEqual(["ip:1.1.1.1", "presence:ip:1.1.1.1"])
+    // One beat every 45 s is under 2 a minute: a limit of 30 a minute covers an office of 20 members and stops a script
+    expect(RATE_LIMITS.presence).toEqual({ limit: 30, windowMs: 60_000, by: "ip" })
+    const store = new MemoryRateLimitStore()
+    const beat = (now: number) => checkRateLimit(store, rateLimitKeys("presence", { ip: "9.9.9.9" }), now)
+    for (let i = 0; i < 30; i++) expect((await beat(i * 1000)).ok).toBe(true)
+    expect((await beat(30_000)).ok).toBe(false)
+    expect((await beat(61_000)).ok).toBe(true)
+  })
 })
 
 describe("checkRateLimit", () => {
