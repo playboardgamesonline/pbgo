@@ -195,7 +195,8 @@ export default function PrivacyPolicy() {
         <LegalEntries
           items={[
             { name: "Vercel", text: "Hosts the site and runs its servers, in Paris. Receives your IP address and browser details with every request." },
-            { name: "Supabase", text: "Our database, our sign-in service and the live updates of tables, in Paris. Holds the tables, the accounts and the feedback, relays the chat, and sends the e-mail that confirms an address." },
+            { name: "Supabase", text: "Our database, our sign-in service and the live updates of tables, in Paris. Holds the tables, the accounts and the feedback, relays the chat, and writes the e-mail that confirms an address." },
+            { name: "Resend", text: "Sends the e-mail that confirms an address, for our sign-in service. Receives your e-mail address and the content of that e-mail (the code and the link), and keeps a record of what it sent for 30 days." },
             ...(ANALYTICS_ENABLED
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]
               : []),
@@ -210,8 +211,8 @@ export default function PrivacyPolicy() {
 
       <LegalSection id="transfers" title="Outside the European Union">
         <LegalText>
-          The site&apos;s servers and its database are in France, and PostHog&apos;s European cloud is in the EU. But some of the companies above are based in the United States, or have a parent company there (Vercel, Supabase, PostHog, Sanity and the sign-in providers), so their
-          staff can reach data from outside the EU. And the pictures and videos from Sanity, and the pictures of signed-in players, come from servers around the world, which receive your IP address when your browser asks for them. These transfers are covered by the standard
+          The site&apos;s servers and its database are in France, and PostHog&apos;s European cloud is in the EU. But some of the companies above are based in the United States, or have a parent company there (Vercel, Supabase, PostHog, Sanity, Resend and the sign-in providers), so their
+          staff can reach data from outside the EU. Resend, which sends the confirmation e-mails, keeps its records in the United States. And the pictures and videos from Sanity, and the pictures of signed-in players, come from servers around the world, which receive your IP address when your browser asks for them. These transfers are covered by the standard
           contractual clauses of the European Commission in the companies&apos; data processing agreements, or by their certification under the EU–US Data Privacy Framework.
         </LegalText>
       </LegalSection>
