@@ -14,7 +14,7 @@ import { HomeNews } from "@/components/home-news"
 import { SiteFooter } from "@/components/site-footer"
 import { demoEditorial } from "@/lib/demo-editorial"
 
-// The home of a signed-in member. It is not a page of its own: the proxy shows it at `/` instead of the public home when the visitor has a session (`apps/web/src/proxy.ts`, a rewrite, so the address stays `/`), and a visitor
+// The home of a signed-in member. The proxy sends a visitor who has a session from `/` to it, instead of leaving them on the public home (`apps/web/src/proxy.ts`), and a visitor
 // who is not signed in who asks for `/home` is sent to `/`. It is read per request, since the session decides who sees it, and it is never indexed.
 export const metadata: Metadata = { title: "Home", robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"

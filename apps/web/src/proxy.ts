@@ -21,16 +21,19 @@ export async function proxy(request: NextRequest) {
 }
 
 /**
- * The front page: a member sees their home (`/home`, shown at `/` by a rewrite, so the address does not change), anybody else the public home, which stays the static page. A visitor with no session cookie, the crawlers
- * included, goes straight through without a call to anything. One with a session cookie has it renewed (the rewrite carries the new cookies) and, if it holds, the member home takes the place of the public one.
+ * The front page: a member is sent to their home (`/home`), anybody else gets the public home, which stays the static page. A visitor with no session cookie, the crawlers included, goes straight through without
+ * a call to anything. One with a session cookie has it renewed (the redirect carries the new cookies) and, if it holds, goes to the member home. It is a redirect and not a rewrite that would show the member home at `/`: in
+ * development the page of `/` is tracked by the hot reload as the public home, so a different page served at that address made the browser reload for ever.
  */
 async function frontPage(request: NextRequest, demo: boolean) {
   if (!demo && !hasSessionCookie(request.cookies.getAll().map((cookie) => cookie.name))) return NextResponse.next()
   const { response, signedIn } = await updateSession(request)
   if (!signedIn && !demo) return response
-  const rewrite = NextResponse.rewrite(new URL("/home", request.url), { request })
-  for (const cookie of response.cookies.getAll()) rewrite.cookies.set(cookie)
-  return rewrite
+  const toHome = NextResponse.redirect(new URL("/home", request.url))
+  for (const cookie of response.cookies.getAll()) toHome.cookies.set(cookie)
+  // The answer depends on who asks: nothing may keep it for somebody else
+  toHome.headers.set("Cache-Control", "private, no-store")
+  return toHome
 }
 
 export const config = { matcher: ["/", "/me/:path*", "/login", "/signup"] }
