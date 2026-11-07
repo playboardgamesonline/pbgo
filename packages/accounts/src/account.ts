@@ -4,12 +4,12 @@
 import { languageOf, type PlatformLanguage } from "./language"
 
 /** The providers a visitor can sign in with, in the order of the buttons. They are enabled in the Supabase project (Authentication › Providers). */
-export const PROVIDERS = ["google", "twitch", "discord"] as const
+export const PROVIDERS = ["google", "discord", "twitch"] as const
 
 export type Provider = (typeof PROVIDERS)[number]
 
 /** The name of each provider, as a button says it. */
-export const PROVIDER_NAMES: Record<Provider, string> = { google: "Google", twitch: "Twitch", discord: "Discord" }
+export const PROVIDER_NAMES: Record<Provider, string> = { google: "Google", discord: "Discord", twitch: "Twitch" }
 
 /** A signed-in visitor, as far as the hub draws them: a name, a picture, the way they came in. */
 export type Account = {
