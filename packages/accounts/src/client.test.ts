@@ -1,3 +1,4 @@
+import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from "@supabase/supabase-js"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 // The browser's Supabase client is a stub: what is under test is what this module asks of it, and what it does with the answer
@@ -17,16 +18,39 @@ type Stub = {
   /** What the Auth server answers when it is asked for the user. */
   fresh?: unknown
   refreshError?: unknown
+  /** The error the Auth server answers a sign-up, a code or a new code with. */
+  signUpError?: unknown
+  verifyError?: unknown
+  resendError?: unknown
+  /** What the sign-up calls throw instead of answering. */
+  throws?: unknown
 }
 
 /** A client that answers like Supabase Auth would; `auth` records the calls. */
-function stubClient({ session: current = session, updateError = null, signIn = { data: { user: null }, error: null }, fresh = null, refreshError = null }: Stub = {}) {
+function stubClient({
+  session: current = session,
+  updateError = null,
+  signIn = { data: { user: null }, error: null },
+  fresh = null,
+  refreshError = null,
+  signUpError = null,
+  verifyError = null,
+  resendError = null,
+  throws,
+}: Stub = {}) {
+  const answer = async <T>(value: T): Promise<T> => {
+    if (throws !== undefined) throw throws
+    return value
+  }
   const auth = {
     getSession: vi.fn(async () => ({ data: { session: current } })),
     getUser: vi.fn(async () => ({ data: { user: fresh } })),
     refreshSession: vi.fn(async () => ({ data: {}, error: refreshError })),
     updateUser: vi.fn(async () => ({ data: {}, error: updateError })),
     signInWithPassword: vi.fn(async () => signIn),
+    signUp: vi.fn((_credentials: unknown) => answer({ data: { user: { id: "u-new" }, session: null }, error: signUpError })),
+    verifyOtp: vi.fn((_params: unknown) => answer({ data: { user: { id: "u-new" }, session: { access_token: "token" } }, error: verifyError })),
+    resend: vi.fn((_params: unknown) => answer({ data: {}, error: resendError })),
     onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
   }
   createBrowserClient.mockReturnValue({ auth })
@@ -122,6 +146,161 @@ describe("signInWithPassword", () => {
     const { signInWithPassword } = await client()
     expect(await signInWithPassword("ore", "secret")).toBe("Use your e-mail address for now: usernames are coming.")
     expect(auth.signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it("tells an account that was made and never confirmed to use its code, which only someone who knows its password hears", async () => {
+    stubClient({ signIn: { data: { user: null }, error: { code: "email_not_confirmed" } } })
+    const { signInWithPassword } = await client()
+    expect(await signInWithPassword("ore@example.com", "right password")).toBe("Your e-mail address is not confirmed yet. Use the code we sent you, or create the account again to get a new one.")
+    expect(cookieWrites).toEqual([])
+  })
+})
+
+describe("signUpWithPassword", () => {
+  const entry = { email: "ana@example.com", password: "correct horse", name: "Ana", next: "/game/courtisans" }
+
+  beforeEach(() => {
+    // The address the e-mail's link leads back to is this site's
+    vi.stubGlobal("window", { location: { origin: "https://pbgo.test" } })
+  })
+
+  it("asks Supabase Auth to create the account, with the display name under the key the nickname is read from and the page to come back to", async () => {
+    const auth = stubClient()
+    const { signUpWithPassword } = await client()
+    expect(await signUpWithPassword(entry)).toEqual({ sent: true })
+    expect(auth.signUp).toHaveBeenCalledTimes(1)
+    expect(auth.signUp).toHaveBeenCalledWith({
+      email: "ana@example.com",
+      password: "correct horse",
+      options: { data: { full_name: "Ana" }, emailRedirectTo: "https://pbgo.test/game/courtisans", captchaToken: undefined },
+    })
+  })
+
+  it("sends no metadata when no display name was given", async () => {
+    const auth = stubClient()
+    const { signUpWithPassword } = await client()
+    await signUpWithPassword({ ...entry, name: null })
+    expect(auth.signUp.mock.calls[0]?.[0]).toMatchObject({ options: { data: undefined } })
+  })
+
+  it("passes on the answer to a CAPTCHA when there is one, which is how a project that asks for one is served", async () => {
+    const auth = stubClient()
+    const { signUpWithPassword } = await client()
+    await signUpWithPassword({ ...entry, captchaToken: "captcha-answer" })
+    expect(auth.signUp.mock.calls[0]?.[0]).toMatchObject({ options: { captchaToken: "captcha-answer" } })
+  })
+
+  it("only gives Supabase Auth a page of this site to lead back to", async () => {
+    const auth = stubClient()
+    const { signUpWithPassword } = await client()
+    await signUpWithPassword({ ...entry, next: "https://evil.example/phish" })
+    expect(auth.signUp.mock.calls[0]?.[0]).toMatchObject({ options: { emailRedirectTo: "https://pbgo.test/me" } })
+    await signUpWithPassword({ ...entry, next: "/signup" })
+    expect(auth.signUp.mock.calls[1]?.[0]).toMatchObject({ options: { emailRedirectTo: "https://pbgo.test/me" } })
+  })
+
+  it("signs nobody in and writes no cookie: the account waits for its code", async () => {
+    stubClient()
+    const { signUpWithPassword } = await client()
+    await signUpWithPassword(entry)
+    expect(cookieWrites).toEqual([])
+  })
+
+  it("answers an address that already has an account like a new one, so that nothing tells which addresses are taken", async () => {
+    // Supabase Auth answers a repeated sign-up with an obfuscated user and no error (and sends nothing); a project that auto-confirms answers this error
+    stubClient({ signUpError: null })
+    expect(await (await client()).signUpWithPassword(entry)).toEqual({ sent: true })
+    stubClient({ signUpError: new AuthApiError("User already registered", 422, "user_already_exists") })
+    expect(await (await client()).signUpWithPassword(entry)).toEqual({ sent: true })
+  })
+
+  it("says calmly, and not what Supabase says, when the e-mail cannot go out", async () => {
+    stubClient({ signUpError: new AuthApiError("Email sending is not allowed for this address as your project is using the default SMTP service", 400, "email_address_not_authorized") })
+    expect(await (await client()).signUpWithPassword(entry)).toEqual({ sent: false, message: "We could not send the e-mail. Try again in a few minutes." })
+    stubClient({ signUpError: new AuthApiError("email rate limit exceeded", 429, "over_email_send_rate_limit") })
+    expect(await (await client()).signUpWithPassword(entry)).toEqual({ sent: false, message: "Too many attempts. Wait a few minutes and try again." })
+  })
+
+  it("puts a password the project refuses on the password", async () => {
+    stubClient({ signUpError: new AuthWeakPasswordError("Password is known to be weak", 422, ["pwned"]) })
+    expect(await (await client()).signUpWithPassword(entry)).toEqual({ sent: false, message: "That password is known from data breaches. Choose another one.", field: "password" })
+  })
+
+  it("does not throw when the call does", async () => {
+    stubClient({ throws: new TypeError("Failed to fetch") })
+    expect(await (await client()).signUpWithPassword(entry)).toEqual({ sent: false, message: "Sign-up did not work. Try again." })
+  })
+
+  it("does nothing without a Supabase project", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
+    expect(await (await client()).signUpWithPassword(entry)).toEqual({ sent: false, message: "Sign-up is not available here." })
+    expect(createBrowserClient).not.toHaveBeenCalled()
+  })
+})
+
+describe("verifySignupCode", () => {
+  it("spends the code of the e-mail, with the address it was sent to and the type the documentation gives for a sign-up's code, and signs the visitor in", async () => {
+    const auth = stubClient()
+    const { verifySignupCode } = await client()
+    expect(await verifySignupCode("ana@example.com", "123456")).toBeNull()
+    expect(auth.verifyOtp).toHaveBeenCalledTimes(1)
+    expect(auth.verifyOtp).toHaveBeenCalledWith({ email: "ana@example.com", token: "123456", type: "email" })
+  })
+
+  it("says a code is wrong or expired, which is all Supabase Auth knows of it", async () => {
+    stubClient({ verifyError: new AuthApiError("Token has expired or is invalid", 403, "otp_expired") })
+    expect(await (await client()).verifySignupCode("ana@example.com", "000000")).toBe("That code is wrong or has expired. Check it, or ask for a new one.")
+  })
+
+  it("says when there were too many tries, and does not throw when the call does", async () => {
+    stubClient({ verifyError: new AuthApiError("rate limit", 429, "over_request_rate_limit") })
+    expect(await (await client()).verifySignupCode("ana@example.com", "000000")).toBe("Too many attempts. Wait a few minutes and try again.")
+    stubClient({ throws: new TypeError("Failed to fetch") })
+    expect(await (await client()).verifySignupCode("ana@example.com", "000000")).toBe("That code did not work. Try again.")
+  })
+
+  it("does nothing without a Supabase project", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
+    expect(await (await client()).verifySignupCode("ana@example.com", "123456")).toBe("Sign-up is not available here.")
+    expect(createBrowserClient).not.toHaveBeenCalled()
+  })
+})
+
+describe("resendSignupCode", () => {
+  beforeEach(() => {
+    vi.stubGlobal("window", { location: { origin: "https://pbgo.test" } })
+  })
+
+  it("asks for another confirmation e-mail for the address, with the same way back", async () => {
+    const auth = stubClient()
+    const { resendSignupCode } = await client()
+    expect(await resendSignupCode("ana@example.com", "/games")).toEqual({ status: "sent" })
+    expect(auth.resend).toHaveBeenCalledTimes(1)
+    expect(auth.resend).toHaveBeenCalledWith({ type: "signup", email: "ana@example.com", options: { emailRedirectTo: "https://pbgo.test/games", captchaToken: undefined } })
+  })
+
+  it("passes on the answer to a CAPTCHA when there is one", async () => {
+    const auth = stubClient()
+    await (await client()).resendSignupCode("ana@example.com", "/games", "captcha-answer")
+    expect(auth.resend.mock.calls[0]?.[0]).toMatchObject({ options: { captchaToken: "captcha-answer" } })
+  })
+
+  it("makes the visitor wait when an e-mail went out a minute ago", async () => {
+    stubClient({ resendError: new AuthApiError("For security purposes, you can only request this after 30 seconds.", 429, "over_email_send_rate_limit") })
+    expect(await (await client()).resendSignupCode("ana@example.com", "/games")).toEqual({ status: "wait", message: "Wait a minute before asking for another code." })
+  })
+
+  it("lets the visitor try again at once when it failed for another reason, even if the call threw", async () => {
+    stubClient({ resendError: new AuthRetryableFetchError("Failed to fetch", 0) })
+    expect(await (await client()).resendSignupCode("ana@example.com", "/games")).toEqual({ status: "failed", message: "We could not reach the server. Check your connection and try again." })
+    stubClient({ throws: new Error("boom") })
+    expect(await (await client()).resendSignupCode("ana@example.com", "/games")).toEqual({ status: "failed", message: "We could not send a new code. Try again." })
+  })
+
+  it("does nothing without a Supabase project", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
+    expect(await (await client()).resendSignupCode("ana@example.com", "/games")).toEqual({ status: "failed", message: "Sign-up is not available here." })
+    expect(createBrowserClient).not.toHaveBeenCalled()
   })
 })
 

@@ -23,6 +23,9 @@ export {
   resolveLanguage,
 } from "./language"
 export type { LanguagePlan, LanguageSources, PlatformLanguage } from "./language"
+export { CODE_LENGTH, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, secondsLeft } from "./signup"
+export type { ResendOutcome, SignupEntry, SignupFields, SignupOutcome, SignupProblems } from "./signup"
+export { confirmEmail, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"
 export { ordinal, perGame, statsOf } from "./games"
 export type { PlayedGame } from "./games"
 export { supabaseAuthConfig } from "./config"

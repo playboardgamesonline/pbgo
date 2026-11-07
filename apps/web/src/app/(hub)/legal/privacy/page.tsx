@@ -99,7 +99,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "E-mail accounts",
-              text: "If your account uses an e-mail address and a password, we keep the address and a scrambled form of the password, never the password itself.",
+              text: "If you create an account with an e-mail address and a password, we keep the address, a scrambled form of the password (never the password itself) and, if you give one, your display name. To check that the address is yours, our sign-in service e-mails it a code and a link, and the account can only be used once one of them has been used. We use the address to sign you in and to send you those e-mails.",
             },
             {
               name: "Your language",
@@ -107,7 +107,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Your session",
-              text: "While you are signed in, your browser keeps cookies that prove it. Our sign-in service records, for each session, when it started, your IP address and your browser, and logs sign-ins, sign-outs and renewals with your IP address, to keep accounts safe. The record of a session is deleted when you sign out, and the log of events after a short time.",
+              text: "While you are signed in, your browser keeps cookies that prove it. Our sign-in service records, for each session, when it started, your IP address and your browser, and logs sign-ups, sign-ins, sign-outs and renewals with your IP address, to keep accounts safe. The record of a session is deleted when you sign out, and the log of events after a short time.",
             },
             {
               name: "At a table",
@@ -195,7 +195,8 @@ export default function PrivacyPolicy() {
         <LegalEntries
           items={[
             { name: "Vercel", text: "Hosts the site and runs its servers, in Paris. Receives your IP address and browser details with every request." },
-            { name: "Supabase", text: "Our database, our sign-in service and the live updates of tables, in Paris. Holds the tables, the accounts and the feedback, and relays the chat." },
+            { name: "Supabase", text: "Our database, our sign-in service and the live updates of tables, in Paris. Holds the tables, the accounts and the feedback, relays the chat, and writes the e-mail that confirms an address." },
+            { name: "Resend", text: "Sends the e-mail that confirms an address, for our sign-in service. Receives your e-mail address and the content of that e-mail (the code and the link), and keeps a record of what it sent for 30 days." },
             ...(ANALYTICS_ENABLED
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]
               : []),
@@ -210,8 +211,8 @@ export default function PrivacyPolicy() {
 
       <LegalSection id="transfers" title="Outside the European Union">
         <LegalText>
-          The site&apos;s servers and its database are in France, and PostHog&apos;s European cloud is in the EU. But some of the companies above are based in the United States, or have a parent company there (Vercel, Supabase, PostHog, Sanity and the sign-in providers), so their
-          staff can reach data from outside the EU. And the pictures and videos from Sanity, and the pictures of signed-in players, come from servers around the world, which receive your IP address when your browser asks for them. These transfers are covered by the standard
+          The site&apos;s servers and its database are in France, and PostHog&apos;s European cloud is in the EU. But some of the companies above are based in the United States, or have a parent company there (Vercel, Supabase, PostHog, Sanity, Resend and the sign-in providers), so their
+          staff can reach data from outside the EU. Resend, which sends the confirmation e-mails, keeps its records in the United States. And the pictures and videos from Sanity, and the pictures of signed-in players, come from servers around the world, which receive your IP address when your browser asks for them. These transfers are covered by the standard
           contractual clauses of the European Commission in the companies&apos; data processing agreements, or by their certification under the EU–US Data Privacy Framework.
         </LegalText>
       </LegalSection>

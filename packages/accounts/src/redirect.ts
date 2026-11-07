@@ -6,7 +6,7 @@
 export const AFTER_SIGN_IN = "/me"
 
 /** The paths that are the way in and out themselves: going back to one of them would loop. */
-const SIGN_IN_PATHS = ["/login", "/logout", "/auth"]
+const SIGN_IN_PATHS = ["/login", "/signup", "/logout", "/auth"]
 
 /**
  * The path to go back to: `value` when it is a path of this site (it starts with a single slash, holds no backslash and no control character, and is

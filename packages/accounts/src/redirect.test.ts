@@ -29,12 +29,16 @@ describe("safeNext", () => {
     expect(safeNext("/me\u007f")).toBe(AFTER_SIGN_IN)
   })
 
-  it.each(["/login", "/login?next=/me", "/login/", "/logout", "/auth/callback", "/auth/demo?next=/me", "/auth"])("does not go back to the sign-in's own way (%j)", (value) => {
-    expect(safeNext(value)).toBe(AFTER_SIGN_IN)
-  })
+  it.each(["/login", "/login?next=/me", "/login/", "/signup", "/signup?next=/me", "/signup/", "/logout", "/auth/callback", "/auth/confirm?token_hash=x&type=email", "/auth/demo?next=/me", "/auth"])(
+    "does not go back to the sign-in's own way, or the sign-up's (%j)",
+    (value) => {
+      expect(safeNext(value)).toBe(AFTER_SIGN_IN)
+    },
+  )
 
   it("only takes the own ways of the sign-in, not a page whose name starts like one", () => {
     expect(safeNext("/loginfo")).toBe("/loginfo")
+    expect(safeNext("/signups")).toBe("/signups")
     expect(safeNext("/authors")).toBe("/authors")
   })
 

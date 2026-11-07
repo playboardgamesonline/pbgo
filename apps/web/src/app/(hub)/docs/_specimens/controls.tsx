@@ -11,12 +11,14 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@pb
 import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@pbgo/ui/platform/input-group"
 import { Label } from "@pbgo/ui/platform/label"
+import { PasswordInput } from "@pbgo/ui/platform/password-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { Switch } from "@pbgo/ui/platform/switch"
 import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
 import { Textarea } from "@pbgo/ui/platform/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
+import { CodeSpecimen } from "./code-specimen"
 import { ComboboxSpecimen } from "./combobox-specimen"
 import { MeterSpecimen } from "./meter-specimen"
 import { SingleSliderSpecimen } from "./slider-specimen"
@@ -252,6 +254,34 @@ function InputGroupAddons() {
         </InputGroupAddon>
         <InputGroupInput type="email" placeholder="ana@example.com" aria-label="Email" />
       </InputGroup>
+    </Frame>
+  )
+}
+
+function PasswordInputStates() {
+  return (
+    <Frame code={`<PasswordInput aria-label="Password" autoComplete="new-password" />
+<PasswordInput aria-label="Password" defaultShown defaultValue="correct horse" />
+<PasswordInput aria-label="Password" aria-invalid defaultValue="short" />`}>
+      <div className="flex max-w-sm flex-col gap-4">
+        <PasswordInput aria-label="Password" autoComplete="new-password" />
+        <PasswordInput aria-label="Password" defaultShown defaultValue="correct horse" />
+        <PasswordInput aria-label="Password" aria-invalid defaultValue="short" />
+      </div>
+    </Frame>
+  )
+}
+
+function InputOtpCode() {
+  return (
+    <Frame code={`<InputOTP maxLength={6} pattern={REGEXP_ONLY_DIGITS} aria-label="Confirmation code">
+  <InputOTPGroup>
+    {Array.from({ length: 6 }, (_, index) => (
+      <InputOTPSlot key={index} index={index} />
+    ))}
+  </InputOTPGroup>
+</InputOTP>`}>
+      <CodeSpecimen />
     </Frame>
   )
 }
@@ -536,6 +566,8 @@ export const controlsSpecimens: Specimens = {
   "input-and-textarea": InputAndTextarea,
   "input-field": InputField,
   "input-group-addons": InputGroupAddons,
+  "password-input": PasswordInputStates,
+  "input-otp": InputOtpCode,
   "checkbox-states": CheckboxStates,
   "switch-states": SwitchStates,
   "select-default-and-small": SelectDefaultAndSmall,
