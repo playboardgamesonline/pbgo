@@ -105,16 +105,16 @@ export type SanityRead = {
   warnings: string[]
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
+export const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
 
 /** What a document says about itself goes to a terminal and to the logs: no control character, an escape included. */
-const printable = (text: string): string => text.replace(/\p{Cc}/gu, "")
+export const printable = (text: string): string => text.replace(/\p{Cc}/gu, "")
 
 /** A name: one line of printable text, white space made one space. */
-const nameOf = (raw: unknown): string => (typeof raw === "string" ? cleanName(printable(cleanName(raw))) : "")
+export const nameOf = (raw: unknown): string => (typeof raw === "string" ? cleanName(printable(cleanName(raw))) : "")
 
 /** A text of several lines (a description): trimmed, its line breaks and tabs kept, any other control character removed. */
-const textOf = (raw: unknown): string => (typeof raw === "string" ? raw.replace(/[^\P{Cc}\n\t]/gu, "").trim() : "")
+export const textOf = (raw: unknown): string => (typeof raw === "string" ? raw.replace(/[^\P{Cc}\n\t]/gu, "").trim() : "")
 
 /** A whole number from `min` up, or null. */
 const wholeOf = (raw: unknown, min: number): number | null => (typeof raw === "number" && Number.isInteger(raw) && raw >= min ? raw : null)
@@ -123,7 +123,7 @@ const wholeOf = (raw: unknown, min: number): number | null => (typeof raw === "n
 const weightOf = (raw: unknown): number | null => (typeof raw === "number" && Number.isFinite(raw) && raw >= 1 && raw <= 5 ? raw : null)
 
 /** A day, `YYYY-MM-DD`, that exists, or null. */
-function dayOf(raw: unknown): string | null {
+export function dayOf(raw: unknown): string | null {
   const match = typeof raw === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw) : null
   if (!match) return null
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
@@ -132,7 +132,7 @@ function dayOf(raw: unknown): string | null {
 }
 
 /** A web link, or null: a rulebook or a website is only ever opened if it is http(s). */
-function linkOf(raw: unknown): string | null {
+export function linkOf(raw: unknown): string | null {
   if (typeof raw !== "string") return null
   const link = raw.trim()
   try {
@@ -144,7 +144,7 @@ function linkOf(raw: unknown): string | null {
 }
 
 /** The address of a picture's file, only when it is in the image CDN of the project that was read: the hub never points a visitor anywhere else. */
-const pictureOf = (raw: unknown, projectId: string, dataset: string): string | null =>
+export const pictureOf = (raw: unknown, projectId: string, dataset: string): string | null =>
   typeof raw === "string" && raw.startsWith(`https://cdn.sanity.io/images/${projectId}/${dataset}/`) ? raw : null
 
 /** The address of a clip's file, only when it is in the file CDN of the project that was read and is a format that a page plays: MP4 or WebM. Like a picture's, the hub never points a visitor anywhere else. */

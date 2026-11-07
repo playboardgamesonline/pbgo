@@ -66,6 +66,8 @@ type LobbySettingsProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   chosenHelpers?: readonly string[]
   /** Whether the visitor sets them (the lobby is theirs) or reads them (a table of the list). */
   editable?: boolean
+  /** What the page puts between the speed and the expansions, as a block of the settings: the signed-in home's Create a table has the number of players there (`LobbyPlayers`), since it sets them before the lobby has seats. */
+  afterSpeed?: React.ReactNode
   onChange?: (value: LobbySettingsValue) => void
 }
 
@@ -252,7 +254,7 @@ function SwitchRow({ option, on, onChange }: { option: SettingOption; on: boolea
  * The settings of a lobby: the speed, then the expansions of the game as cards (a visitor who sets the lobby ticks one to choose it; one who reads a table sees only the ones it is played with), then, for a visitor who sets the lobby, the helpers that the game
  * offers, a small row and a switch each. Each group has its small title. The container decides the width of the picture of an expansion and whether the names of the speeds fit (`@container`).
  */
-function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, onChange, className, ...props }: LobbySettingsProps) {
+function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, afterSpeed, onChange, className, ...props }: LobbySettingsProps) {
   const [set, setSet] = React.useState<LobbySettingsValue>({ expansions: [...chosen], pace, helpers: chosenHelpers ? [...chosenHelpers] : helpers.map((helper) => helper.id), expansionSettings: {} })
   // What is read comes from the table that is given, so that the panel follows the row that is picked; what is set is the visitor's own
   const value = editable ? set : { expansions: [...chosen], pace, helpers: [], expansionSettings: {} }
@@ -293,6 +295,7 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
           <p>{PACES.find((option) => option.value === value.pace)?.label}</p>
         )}
       </Group>
+      {afterSpeed}
       {shown.length > 0 && (
         <Group title={editable ? "Expansions" : "Played with"}>
           <ul className="flex flex-col gap-2">

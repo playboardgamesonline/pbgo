@@ -7,7 +7,7 @@ import { queueTime } from "../queue"
 import { cn } from "../utils"
 import { Button } from "./button"
 
-// What a visitor sees while they look for a table, the same wait in three places: the button of a game's page, which becomes a counter with a cross that stops the search (`QueueButton`), the card at the top of the social panel
+// What a visitor sees while they look for a table, the same wait in three places: the button that starts the search (the main one of a game's page, the smaller one of the signed-in home), which becomes a counter with a cross that stops the search (`QueueButton`), the card at the top of the social panel
 // (`QueueCard`) and, while the panel is closed, a small pill in the bar of the dock (`QueuePill`). Each is drawn from what it is given, the time waited in whole seconds, and decides nothing: where the queue is kept and what
 // stopping it does are the page's (`apps/web/src/lib/matchmaking.ts`). The counter is a `timer`, which a screen reader reads when asked and never announces each second; what is announced is that a search began or stopped.
 
@@ -20,13 +20,26 @@ function QueueTimer({ seconds, className }: { seconds: number; className?: strin
   )
 }
 
+/** What a screen reader hears of a search: "Searching for a table of Courtisans and Flip 7 (ranked)". */
+function searchingFor(game: string, mode?: string): string {
+  return `Searching for a table of ${game}${mode ? ` (${mode.toLowerCase()})` : ""}`
+}
+
 /** The turning ring that says a search is on. It says nothing to a screen reader: the group around it does. */
 function Searching({ className }: { className?: string }) {
   return <HugeiconsIcon icon={Loading03Icon} strokeWidth={2} aria-hidden="true" className={cn("size-4 shrink-0 animate-spin", className)} />
 }
 
+/** What the two sizes of the button change while it counts: the box (the width is the idle button's least, so that nothing moves) and the cross inside it. */
+const SEARCH_SIZES = {
+  xl: { idle: "min-w-40", box: "h-12 w-40 text-base", stop: "mr-1.5 size-9" },
+  lg: { idle: "min-w-36", box: "h-10 w-36 text-sm", stop: "mr-1 size-8" },
+}
+
 type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "size" | "asChild" | "onClick"> & {
-  /** Whether the visitor looks for a table of this button's game. */
+  /** `xl` (the default) is the main button of a game's page; `lg` is the smaller one of the signed-in home. */
+  size?: keyof typeof SEARCH_SIZES
+  /** Whether the visitor looks for a table through this button's search. */
   searching: boolean
   /** How long they have, in whole seconds. */
   seconds: number
@@ -37,11 +50,11 @@ type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "s
 }
 
 /**
- * The main button of a game's page, "Play ranked" (its children: a play icon and its name). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
+ * The button that starts a search, "Play ranked" or "Play normal" (its children: a play icon and its name). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
  * a counter of the time waited with a cross that stops it, on the same fill; the cross takes the focus when it was the keyboard that pressed, and the button takes it back when the cross was pressed. A disabled button is
- * the one of a game that cannot be played yet, and has no counter.
+ * the one of a game that cannot be played yet, or of a search with no game picked, and has no counter.
  */
-function QueueButton({ searching, seconds, onSearch, onCancel, className, children, disabled, ...props }: QueueButtonProps) {
+function QueueButton({ size = "xl", searching, seconds, onSearch, onCancel, className, children, disabled, ...props }: QueueButtonProps) {
   const find = React.useRef<HTMLButtonElement>(null)
   const stop = React.useRef<HTMLButtonElement>(null)
   // Which way the focus goes when the button changes: only when it is this button that was pressed, not when the search was stopped from elsewhere (the social panel)
@@ -55,7 +68,7 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
 
   if (searching) {
     return (
-      <div data-slot="queue-button" role="group" aria-label="Searching for a table" className={cn("inline-flex h-12 w-40 items-center rounded-xl bg-primary text-base text-primary-foreground", className)}>
+      <div data-slot="queue-button" role="group" aria-label="Searching for a table" className={cn("inline-flex items-center rounded-xl bg-primary text-primary-foreground", SEARCH_SIZES[size].box, className)}>
         <span className="flex flex-1 items-center justify-center gap-2.5 pl-3">
           <Searching />
           <QueueTimer seconds={seconds} />
@@ -69,7 +82,7 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
             pressed.current = true
             onCancel()
           }}
-          className="mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-lg outline-none hover:bg-primary-foreground/10 focus-visible:ring-3 focus-visible:ring-primary-foreground/40"
+          className={cn("flex shrink-0 items-center justify-center rounded-lg outline-none hover:bg-primary-foreground/10 focus-visible:ring-3 focus-visible:ring-primary-foreground/40", SEARCH_SIZES[size].stop)}
         >
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" className="size-4" />
         </button>
@@ -81,9 +94,9 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
     <Button
       ref={find}
       type="button"
-      size="xl"
+      size={size}
       disabled={disabled}
-      className={cn("min-w-40 justify-center", className)}
+      className={cn("justify-center", SEARCH_SIZES[size].idle, className)}
       onClick={() => {
         pressed.current = true
         onSearch()
@@ -96,20 +109,22 @@ function QueueButton({ searching, seconds, onSearch, onCancel, className, childr
 }
 
 type QueueCardProps = Omit<React.ComponentProps<"div">, "children"> & {
-  /** The name of the game they look for. */
+  /** The games they look for, in a few words ("Courtisans", "Courtisans and Flip 7"). */
   game: string
+  /** What kind of table they look for, as the screens call it ("Ranked", "Normal"): said before the games. None: the search has no kind to tell. */
+  mode?: string
   seconds: number
   onCancel: () => void
 }
 
-/** The search as the social panel has it, at the top, over the tabs: what it is, which game, the time waited, and the cross that stops it. */
-function QueueCard({ game, seconds, onCancel, className, ...props }: QueueCardProps) {
+/** The search as the social panel has it, at the top, over the tabs: what it is, which games and what kind of table, the time waited, and the cross that stops it. */
+function QueueCard({ game, mode, seconds, onCancel, className, ...props }: QueueCardProps) {
   return (
-    <div data-slot="queue-card" role="group" aria-label={`Searching for a table of ${game}`} className={cn("flex items-center gap-3 rounded-2xl bg-input/50 py-2 pr-2 pl-4", className)} {...props}>
+    <div data-slot="queue-card" role="group" aria-label={searchingFor(game, mode)} className={cn("flex items-center gap-3 rounded-2xl bg-input/50 py-2 pr-2 pl-4", className)} {...props}>
       <Searching className="size-5 text-muted-foreground" />
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="text-sm text-foreground">Looking for a table</p>
-        <p className="truncate text-xs text-muted-foreground">{game}</p>
+        <p className="truncate text-xs text-muted-foreground">{mode ? `${mode} · ${game}` : game}</p>
       </div>
       <QueueTimer seconds={seconds} className="text-sm text-muted-foreground" />
       <Button type="button" variant="ghost" size="icon-sm" aria-label="Stop searching" title="Stop searching" onClick={onCancel}>
@@ -121,18 +136,19 @@ function QueueCard({ game, seconds, onCancel, className, ...props }: QueueCardPr
 
 type QueuePillProps = Omit<React.ComponentProps<"div">, "children"> & {
   game: string
+  mode?: string
   seconds: number
   onCancel: () => void
 }
 
-/** The search as the bar of the dock has it while the panel is closed: a small pill with the ring, the time and the cross, which says which game on hover. */
-function QueuePill({ game, seconds, onCancel, className, ...props }: QueuePillProps) {
+/** The search as the bar of the dock has it while the panel is closed: a small pill with the ring, the time and the cross, which says which games and what kind of table on hover. */
+function QueuePill({ game, mode, seconds, onCancel, className, ...props }: QueuePillProps) {
   return (
     <div
       data-slot="queue-pill"
       role="group"
-      aria-label={`Searching for a table of ${game}`}
-      title={`Looking for a table of ${game}`}
+      aria-label={searchingFor(game, mode)}
+      title={`Looking for a table of ${game}${mode ? ` (${mode.toLowerCase()})` : ""}`}
       className={cn("flex h-10 items-center gap-2 rounded-xl bg-input/50 pr-1 pl-3 text-sm", className)}
       {...props}
     >

@@ -37,7 +37,7 @@ export default async function Home() {
     <GameSearch games={games}>
       <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
         <main className="flex-1">
-          {/* The hero, the page of a visitor who is not signed in (signed in, there is no title: the home is built from what they play): the title in two lines of the same size, in sentence case, in Geist
+          {/* The hero, the page of a visitor who is not signed in (a signed-in member is sent to their own home, `/home`, by the proxy): the title in two lines of the same size, in sentence case, in Geist
               at a weight of 720 and a tracking of -0.048em (`display-title`), in which some letters are pieces of a game table that move now and then (`TitlePiece`: a coin that spins, the suits of a deck in turn and a die that turns, for three "o", and two
               dark blue cards after "games", `TitleCards`), then what the platform is: its figures in pills (`LiveStats`, which keeps `Stats` alive: the players online now, with a green dot, members who are connected or guests who sit at a table, and the members, both counted in Supabase and
               refreshed in the browser every half minute, and the games of the catalog) and what costs nothing (`Perks`), and the search bar under them (the field with the category, then the filters, bare, in a row; glass), on the page's black,

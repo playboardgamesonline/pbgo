@@ -44,7 +44,7 @@ const isGamePage = (pathname: string) => pathname.startsWith("/game/") || findGa
  * page that has no bar (the pages of a doc, which have a side menu of their own, the legal pages, the 404).
  */
 function currentOf(pathname: string): SiteCurrent | null {
-  if (pathname === "/") return "home"
+  if (pathname === "/" || pathname === "/home") return "home"
   if (pathname === "/login" || pathname === "/signup" || pathname === "/me" || pathname.startsWith("/me/")) return "account"
   if (pathname === "/docs") return "docs"
   if (isGamePage(pathname)) return "games"
