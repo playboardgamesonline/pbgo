@@ -2,7 +2,7 @@ import type * as React from "react"
 import { cn } from "./utils"
 
 /** The brands whose mark the platform draws: the providers a visitor can sign in with. */
-export const BRANDS = ["google", "twitch", "discord"] as const
+export const BRANDS = ["google", "discord", "twitch"] as const
 
 export type BrandName = (typeof BRANDS)[number]
 

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 }
 
 /**
- * The sign-in page: a username and a password, or the providers that the project has switched on (Google, Twitch or Discord: `enabledProviders`), on the hub's backdrop. `?next=` is the page the visitor asked for (they come back to it, `safeNext`), `?error=`
+ * The sign-in page: a username and a password, or the providers that the project has switched on (Google, Discord or Twitch: `enabledProviders`), on the hub's backdrop. `?next=` is the page the visitor asked for (they come back to it, `safeNext`), `?error=`
  * is a sign-in that did not work. A visitor who is signed in already has nothing to do here and goes to where they were going. The page reads the
  * session, so it is rendered per request; the proxy renews that session first (`proxy.ts`).
  */
