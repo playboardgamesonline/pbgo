@@ -17,11 +17,12 @@ An engine is tested in layers, from one rule to a whole game with absent players
 | Absent players | `playFor` plays each player the game waits for and refuses anybody else with `NOT_WAITING`; a table of absent players ends | Flip 7: `autoplay.test.ts`, `simulation.test.ts`; Courtisans: `game.test.ts` |
 | The commands | Each debug command, and that a command that rigs the draw pile changes nothing outside its moment | Flip 7: `debug.test.ts` |
 | The takeover in the binding | A whole game in which players never come back, with the real voting rules of core | The template: `src/takeover.test.ts` |
+| The whole contract in the binding | The contract of an engine, played the way the server plays it, with the checks of every step | The template: `src/conformance.test.ts` |
 | The error vocabulary in the binding | Every code the engine throws is a shared one or one that `ERROR_CODES` lists, and the list holds the game's own only | The template: `src/error-codes.test.ts` |
 
 ## Rules
 
-- Check the invariants after every move, not only at the end: `problems(state)` of Flip 7's `test-utils.ts` gives one sentence for each thing that does not hold, and `[]` for a sound state.
+- Check the invariants of the rules of the game after every move, not only at the end: `problems(state)` of Flip 7's `test-utils.ts` gives one sentence for each thing that does not hold, and `[]` for a sound state. The ones every game shares are in the [conformance test](#the-conformance-test).
 - Rig a state by naming the cards, never their ids: a test does not know which id a card holds. `layout()` of `test-utils.ts` builds a table from card names.
 - Vary both halves of a seed in a test over seeds: the deal and the card ids use different bits of it (`seedOf` of `test-utils.ts`; [Random numbers](../01-the-game/09-state.md#random-numbers)).
 - Write the expected score again in the test, from the names of the faces, and compare it with the engine's, as `simulation.test.ts` does for the booklet's scoring.
@@ -42,6 +43,33 @@ export function refusal(run: () => unknown): string {
   throw new Error("The action was accepted")
 }
 ```
+
+## The conformance test
+
+`conformanceProblems(GAME, options)` of `@pbgo/engine-kit/testing` plays an engine the way the server does and returns, as sentences, the rules of [the contract](../01-the-game/11-the-contract.md) that it breaks; an engine that keeps them gets `[]`. It is a test of the binding, run by `src/conformance.test.ts`, which `pnpm new-game` copies into every game:
+
+```ts
+it("keeps the contract of an engine", () => {
+  const problems = conformanceProblems(GAME, { errorCodes: ERROR_CODES, secretsFor })
+  expect(problems).toEqual([])
+}, 120_000)
+```
+
+| What it plays | What it checks |
+| --- | --- |
+| The definition | The bounds of a table, the action types, the options (defaults inside their range, constraints naming options that exist), the presets, that the server can play for an absent player, and that no option, preset or line of score carries words |
+| `setup` | A table it cannot play (nobody, too few, too many, the same id twice, an empty id) is refused with `INVALID_PLAYERS`; a seed gives the same game |
+| Whole games, played with `autoPlayFor` | The smallest and the largest table and a few sizes between, eight seeds each, then each option at the extremes of what it takes at the smallest and the largest table, with ids of different lengths so that the order of the keys of an object is not the seat order |
+| Every step of them | The state is plain JSON and holds no nickname; `isOver` and `waitingFor` are sound (seated players, once each, in seat order, nobody once the game is over); every view works for each seat, a spectator and a stranger, is plain JSON, holds no nickname, shows no result before the end and the results at the end; the step does not write to the state it was given (every state is frozen), gives the same state twice, plays the same once `jsonb` has reordered the keys, moves the game on, ends, and never calls `Math.random` or `Date.now` |
+| The results | Each player once, a finite total, ranks that follow `ranks()` (1, 2, 2, 4), winners who sit at the table and have rank 1, lines of score with a key, finite points and a place in `scoreLines` |
+| Junk actions, at the start and a few steps in | An unknown type, a missing type, a missing or foreign `playerId`, and each action type with nothing or with nonsense in its fields are refused with an `EngineError` whose code is shared or in `ERROR_CODES`, or else are a move; never a plain error, never a write to the state |
+
+- `errorCodes` is the binding's `ERROR_CODES`: a refusal with any other code than these and the shared ones is a problem. `data` is the `SetupData` of a game that takes one. `playerCounts`, `seeds`, `variantSeeds` and `maxSteps` size the run.
+- `secretsFor(state, viewer)` lists what a viewer must never see (`null` is anybody outside the table): the ids of the cards in the other hands, for instance. A view whose JSON holds one of them as a string is a leak. Leave out what is already public, such as a card played in an earlier round whose id is dealt again (the template does). Without it, hidden information is not checked: the suite cannot know what is hidden.
+- `allowTexts` lets a game that has not yet moved the words of its options and score lines to its Sanity ([The words of options and scores](../01-the-game/07-parameters.md#the-words-of-options-and-scores)) pass in the meantime.
+- Each sentence comes once with its count and two places (`3 players, default options, seed 31, step 12`), and the run replays from them: the same seed gives the same game.
+- `deepFreeze`, `reorderKeys`, `deepEqual` and `jsonProblems` of the same entry are the helpers it uses, for the tests of a rule.
+- The suite does not know the rules of the game, so it does not replace the tests of a rule or the simulation that recomputes a score from the booklet.
 
 ## Testing turns
 

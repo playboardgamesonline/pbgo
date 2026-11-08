@@ -59,6 +59,7 @@ The demo's secret bids at the start of each round are the reference (`packages/e
 - **View**: `submittedFlags(submissions)` tells WHO has answered, never WHAT before the step is resolved. A player sees their own answer (`me.bid`).
 - **`autoPlayFor`**: the answer for that player only, so that when several players are absent they are played one after the other, each by its own vote.
 - ⚠️ **Key order**: `games.state` is `jsonb`, and Postgres does not keep the order of the keys of an object. A list that depends on the order (who is pending, who plays next) is built from an array of the state (`state.players`), never from `Object.keys(submissions)`.
+- `src/conformance.test.ts` plays the engine the way the server does (every table size, each option, junk actions) and fails with the rule of the contract it breaks: keep it green, with the `secretsFor` of your game.
 - Test it: `src/takeover.test.ts` plays a 3-player game where two players are absent at the simultaneous step and the third finishes the game alone (engine `playFor` + the pure voting rules of `@pbgo/core/server/takeover`). When the demo engine is replaced, adapt it to the new game's simultaneous step (or its turns); a game with no simultaneous step still keeps the turn-by-turn version.
 
 ### In-game UI: shared logic, per-game look

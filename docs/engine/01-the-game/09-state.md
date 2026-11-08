@@ -22,7 +22,7 @@ The server stores a game as a state and rebuilds from it what every player sees,
 - `jsonb` returns the keys of an object in its own order, shortest first and then alphabetical, not the order they were written in.
 - Every order (seats, turns, who is pending, who plays next) comes from an array of the state, never from `Object.keys` of a record keyed by player. A record can still serve as a lookup.
 - The kit's per-player helpers take the list of seats, or return arrays aligned with it.
-- Test it with ids of different lengths, seated as `long-id`, `x1`, `x0`, or with `reorderKeys` (`test-utils.ts` of Flip 7). From `template/packages/engine/src/demo/game.test.ts`:
+- Test it with ids of different lengths, seated as `long-id`, `x1`, `x0`, or with `reorderKeys` of `@pbgo/engine-kit/testing`, which the [conformance test](../04-build-a-game/06-testing.md#the-conformance-test) applies to every step. From `template/packages/engine/src/demo/game.test.ts`:
 
 ```ts
 const e = demo.setup({ players: seated, options: {}, seed: 7 })
@@ -35,7 +35,7 @@ expect(demo.waitingFor!(stored)).toEqual(["long-id", "x1", "x0"])
 
 - `apply` returns a new state and leaves its argument alone: it can run again on a fresh row ([The life of an action](01-how-a-game-runs.md#the-life-of-an-action)), and the kit's helpers take `readonly` arguments and return new arrays and objects.
 - Two ways to write a step: build the next state with spreads, or clone it once and mutate the private copy, as Flip 7's `open` does.
-- Catch a mutation in tests by freezing every state a step returns (`deepFreeze` in `test-utils.ts` of Flip 7): the next step throws if it writes to its input.
+- Catch a mutation in tests by freezing every state a step returns (`deepFreeze` of `@pbgo/engine-kit/testing`, which the conformance test does): the next step throws if it writes to its input.
 
 ## Determinism
 

@@ -3,6 +3,8 @@ import { join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import { isSharedErrorCode } from "./errors"
 
+export * from "./conformance"
+
 // For the tests of a game, never for its engine: this file reads the disk, and the app never imports it (`@pbgo/engine-kit/testing`).
 
 /** The sources of an engine that can throw: its `.ts` and `.tsx` files, its tests and `node_modules` left out. */
