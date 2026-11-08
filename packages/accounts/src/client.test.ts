@@ -24,6 +24,12 @@ type Stub = {
   resendError?: unknown
   /** What the sign-up calls throw instead of answering. */
   throws?: unknown
+  /** The identities the Auth server lists for the user, and the errors it answers the linking, the unlinking and the sign-out of other devices with. */
+  identities?: { provider: string; id: string }[]
+  identitiesError?: unknown
+  linkError?: unknown
+  unlinkError?: unknown
+  signOutError?: unknown
 }
 
 /** A client that answers like Supabase Auth would; `auth` records the calls. */
@@ -37,6 +43,11 @@ function stubClient({
   verifyError = null,
   resendError = null,
   throws,
+  identities = [],
+  identitiesError = null,
+  linkError = null,
+  unlinkError = null,
+  signOutError = null,
 }: Stub = {}) {
   const answer = async <T>(value: T): Promise<T> => {
     if (throws !== undefined) throw throws
@@ -51,6 +62,10 @@ function stubClient({
     signUp: vi.fn((_credentials: unknown) => answer({ data: { user: { id: "u-new" }, session: null }, error: signUpError })),
     verifyOtp: vi.fn((_params: unknown) => answer({ data: { user: { id: "u-new" }, session: { access_token: "token" } }, error: verifyError })),
     resend: vi.fn((_params: unknown) => answer({ data: {}, error: resendError })),
+    getUserIdentities: vi.fn(async () => ({ data: identitiesError ? null : { identities }, error: identitiesError })),
+    linkIdentity: vi.fn((_credentials: unknown) => answer({ data: {}, error: linkError })),
+    unlinkIdentity: vi.fn((_identity: unknown) => answer({ data: {}, error: unlinkError })),
+    signOut: vi.fn((_options: unknown) => answer({ error: signOutError })),
     onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
   }
   createBrowserClient.mockReturnValue({ auth })
@@ -359,5 +374,126 @@ describe("renewIfLanguageChanged", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
     expect(await (await client()).renewIfLanguageChanged()).toBe(false)
     expect(createBrowserClient).not.toHaveBeenCalled()
+  })
+})
+
+describe("the changes of an account (PLT-111)", () => {
+  it("keeps the nickname under the key that is ours, and takes it away with null", async () => {
+    const auth = stubClient()
+    const { saveNickname } = await client()
+    expect(await saveNickname("Marly")).toEqual({ status: "done" })
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_nickname: "Marly" } })
+    expect(await saveNickname(null)).toEqual({ status: "done" })
+    // `null` is how Supabase Auth deletes a key of `user_metadata`
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_nickname: null } })
+  })
+
+  it("keeps one preference under its own key and leaves the others to the merge", async () => {
+    const auth = stubClient()
+    const { savePreference } = await client()
+    expect(await savePreference("hideHistory", true)).toEqual({ status: "done" })
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_hide_history: true } })
+    await savePreference("notifyTurn", false)
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_notify_turn: false } })
+  })
+
+  it("asks for a new address with a link that comes back through the callback, which sends the member on to the settings", async () => {
+    const auth = stubClient()
+    vi.stubGlobal("window", { location: { origin: "https://playboardgamesonline.app" } })
+    const { changeEmail } = await client()
+    expect(await changeEmail("new@example.com")).toEqual({ status: "done" })
+    // The link carries a one-time code (the call is a PKCE one), which only `/auth/callback` exchanges for the session
+    expect(auth.updateUser).toHaveBeenCalledWith({ email: "new@example.com" }, { emailRedirectTo: "https://playboardgamesonline.app/auth/callback?next=%2Fme%2Fsettings%2Faccount" })
+  })
+
+  it("sets the password", async () => {
+    const auth = stubClient()
+    const { changePassword } = await client()
+    expect(await changePassword("a long enough password")).toEqual({ status: "done" })
+    expect(auth.updateUser).toHaveBeenCalledWith({ password: "a long enough password" })
+  })
+
+  it("asks nothing of the account when nobody is signed in, whatever the change", async () => {
+    const auth = stubClient({ session: null })
+    const { saveNickname, savePreference, changeEmail, changePassword, linkProvider, unlinkProvider, signOutOtherDevices } = await client()
+    vi.stubGlobal("window", { location: { origin: "https://playboardgamesonline.app" } })
+    const outcomes = await Promise.all([saveNickname("Marly"), savePreference("hideHistory", true), changeEmail("a@example.com"), changePassword("long enough password"), linkProvider("google"), unlinkProvider("google"), signOutOtherDevices()])
+    for (const outcome of outcomes) expect(outcome).toEqual({ status: "no-session" })
+    expect(auth.updateUser).not.toHaveBeenCalled()
+    expect(auth.linkIdentity).not.toHaveBeenCalled()
+    expect(auth.unlinkIdentity).not.toHaveBeenCalled()
+    expect(auth.signOut).not.toHaveBeenCalled()
+  })
+
+  it("says it is not available when the hub has no Supabase project", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
+    const { saveNickname } = await client()
+    expect(await saveNickname("Marly")).toEqual({ status: "failed", message: "This is not available here." })
+    expect(createBrowserClient).not.toHaveBeenCalled()
+  })
+
+  it("tells a refusal in plain words, never in Supabase's", async () => {
+    stubClient({ updateError: new AuthApiError("New password should be different from the old password.", 422, "same_password") })
+    const { changePassword } = await client()
+    expect(await changePassword("a long enough password")).toEqual({ status: "failed", message: "Choose a password that is different from the one you have." })
+  })
+
+  it("tells a network that is down, and a call that throws, as outcomes and not as exceptions", async () => {
+    stubClient({ updateError: new AuthRetryableFetchError("Failed to fetch", 0) })
+    expect(await (await client()).saveNickname("Marly")).toEqual({ status: "failed", message: "We could not reach the server. Check your connection and try again." })
+    stubClient({ throws: new AuthRetryableFetchError("Failed to fetch", 0) })
+    vi.stubGlobal("window", { location: { origin: "https://playboardgamesonline.app" } })
+    expect(await (await client()).linkProvider("discord")).toEqual({ status: "failed", message: "We could not reach the server. Check your connection and try again." })
+  })
+
+  it("links a provider with a way back through the callback to the settings", async () => {
+    const auth = stubClient()
+    vi.stubGlobal("window", { location: { origin: "https://playboardgamesonline.app" } })
+    const { linkProvider } = await client()
+    expect(await linkProvider("discord")).toEqual({ status: "done" })
+    expect(auth.linkIdentity).toHaveBeenCalledWith({ provider: "discord", options: { redirectTo: "https://playboardgamesonline.app/auth/callback?next=%2Fme%2Fsettings%2Faccount" } })
+  })
+
+  it("tells that linking is off in the project, in its own words", async () => {
+    stubClient({ linkError: new AuthApiError("Manual linking is disabled", 400, "manual_linking_disabled") })
+    vi.stubGlobal("window", { location: { origin: "https://playboardgamesonline.app" } })
+    expect(await (await client()).linkProvider("google")).toEqual({ status: "failed", message: "Linking another service is not available right now." })
+  })
+
+  it("unlinks the identity of the provider that the account holds, and that one alone", async () => {
+    const auth = stubClient({
+      identities: [
+        { provider: "email", id: "i-1" },
+        { provider: "google", id: "i-2" },
+      ],
+    })
+    const { unlinkProvider } = await client()
+    expect(await unlinkProvider("google")).toEqual({ status: "done" })
+    expect(auth.unlinkIdentity).toHaveBeenCalledWith({ provider: "google", id: "i-2" })
+  })
+
+  it("does not unlink a provider that is not linked", async () => {
+    const auth = stubClient({ identities: [{ provider: "email", id: "i-1" }] })
+    const { unlinkProvider } = await client()
+    const outcome = await unlinkProvider("twitch")
+    expect(outcome.status).toBe("failed")
+    expect(auth.unlinkIdentity).not.toHaveBeenCalled()
+  })
+
+  it("tells that the last way in cannot be taken away", async () => {
+    stubClient({ identities: [{ provider: "google", id: "i-2" }], unlinkError: new AuthApiError("Single identity cannot be deleted", 400, "single_identity_not_deletable") })
+    expect(await (await client()).unlinkProvider("google")).toEqual({ status: "failed", message: "You need at least one way to sign in. Add another one first." })
+  })
+
+  it("signs the other devices out, and keeps this one", async () => {
+    const auth = stubClient()
+    const { signOutOtherDevices } = await client()
+    expect(await signOutOtherDevices()).toEqual({ status: "done" })
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "others" })
+  })
+
+  it("keeps the strings of a weak password to the words of the settings", async () => {
+    stubClient({ updateError: new AuthWeakPasswordError("Password is too weak", 422, ["length"]) })
+    expect(await (await client()).changePassword("short")).toEqual({ status: "failed", message: "That password is too weak. Choose a longer one." })
   })
 })

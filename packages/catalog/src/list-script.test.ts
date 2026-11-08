@@ -33,7 +33,7 @@ describe("pnpm catalog:list", () => {
         game("bravo", "Bravo", { order: 10, creators: [{ name: "Ada", roles: ["designer", "artist"] }], publishers: [{ name: "Pub", url: null }] }),
         game("charlie", "Charlie"),
         game("delta", "Delta", { order: 20 }),
-        // the worst order there is: a live game is not placed by it, the registry keeps it first
+        // the worst order there is: a live game comes before every game to come all the same, whatever its order is
         game("courtisans", "Courtisans in the Studio", { order: 900, related: ["alpha"] }),
       ]),
     })

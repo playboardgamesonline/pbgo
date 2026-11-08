@@ -8,9 +8,11 @@ import { accountOf, emailOf, type Account, type Provider } from "./account"
 import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed, isDemoAccount } from "./demo"
 import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
+import { NICKNAME_KEY, PREFERENCE_KEYS, type PreferenceName } from "./preferences"
 import { safeNext } from "./redirect"
 import { syncLanguage } from "./language-sync"
 import { isChangingLanguage } from "./set-language"
+import { ACCOUNT_SETTINGS_PATH, settingsMessage } from "./settings"
 import { codeMessage, resendOutcome, signupData, signupOutcome, type ResendOutcome, type SignupEntry, type SignupOutcome } from "./signup"
 
 // The accounts in the browser: who is signed in (for the navbar, which is on static pages and so cannot ask the server), and the way to start a
@@ -150,6 +152,78 @@ export async function resendSignupCode(email: string, next: string, captchaToken
   } catch (error) {
     return resendOutcome(error)
   }
+}
+
+/** What became of a change a member asked for on their account: done, not done because nobody is signed in (a guest, the demo account), or not done, with the sentence to tell them (`settingsMessage`). */
+export type ChangeOutcome = { status: "done" } | { status: "no-session" } | { status: "failed"; message: string }
+
+/**
+ * Asks Supabase Auth for one change of the signed-in member's account. Nothing is taken for granted: the project may not be set, nobody may be signed in (the demo account holds no session), and the call may be refused or may throw
+ * (the network): each is an outcome, never an exception, and a refusal is told in the words of `settingsMessage`, not in Supabase's.
+ */
+async function change(run: (supabase: SupabaseClient) => Promise<{ error: unknown }>): Promise<ChangeOutcome> {
+  const supabase = browserClient()
+  if (!supabase) return { status: "failed", message: "This is not available here." }
+  try {
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) return { status: "no-session" }
+    const { error } = await run(supabase)
+    return error ? { status: "failed", message: settingsMessage(error) } : { status: "done" }
+  } catch (error) {
+    return { status: "failed", message: settingsMessage(error) }
+  }
+}
+
+/**
+ * Keeps the nickname the member chose for themselves in their account, under the one key of ours (`NICKNAME_KEY`: a provider writes `full_name` again at every sign-in, so a nickname kept there would not last), or takes it away (`null`):
+ * the account is then called what its provider says. It is the only writer of the nickname, as `saveLanguage` is of the language.
+ */
+export function saveNickname(nickname: string | null): Promise<ChangeOutcome> {
+  return change((supabase) => supabase.auth.updateUser({ data: { [NICKNAME_KEY]: nickname } }))
+}
+
+/** Keeps one preference of the member on their account, under its own key (`PREFERENCE_KEYS`): the others are left as they are, since `updateUser` merges `data` key by key. */
+export function savePreference(name: PreferenceName, value: boolean): Promise<ChangeOutcome> {
+  return change((supabase) => supabase.auth.updateUser({ data: { [PREFERENCE_KEYS[name]]: value } }))
+}
+
+/**
+ * Asks to change the account's e-mail address: Supabase Auth sends a link to the new address (and to the current one, when the project asks both to confirm) and the address changes once they are opened. The link comes back through
+ * `/auth/callback`, which exchanges its one-time code for the session (the call is made with a PKCE challenge, so the link brings a code and not a token) and sends the member on to the settings (`ACCOUNT_SETTINGS_PATH`; both are
+ * allowed by the project's redirect URLs). Nothing changes in the account until then.
+ */
+export function changeEmail(email: string): Promise<ChangeOutcome> {
+  return change((supabase) => supabase.auth.updateUser({ email }, { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(ACCOUNT_SETTINGS_PATH)}` }))
+}
+
+/** Sets the account's password, or a first one for an account that came in with a provider. The project may ask for a recent sign-in first (`reauthenticate`). */
+export function changePassword(password: string): Promise<ChangeOutcome> {
+  return change((supabase) => supabase.auth.updateUser({ password }))
+}
+
+/**
+ * Links a provider to the account: the browser leaves for the provider, which sends the member back to `/auth/callback`, which sends them on to the settings. It only works when the project has "Allow manual linking" on (Authentication ›
+ * Settings); when it has not, the member is told so. Done means the browser is on its way.
+ */
+export function linkProvider(provider: Provider): Promise<ChangeOutcome> {
+  return change((supabase) =>
+    supabase.auth.linkIdentity({ provider, options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(ACCOUNT_SETTINGS_PATH)}` } }),
+  )
+}
+
+/** Unlinks a provider from the account. The last way in cannot be unlinked (`last-service`), and the project must allow manual linking, which covers unlinking as well. */
+export function unlinkProvider(provider: Provider): Promise<ChangeOutcome> {
+  return change(async (supabase) => {
+    const { data, error } = await supabase.auth.getUserIdentities()
+    if (error) return { error }
+    const identity = data.identities.find((candidate) => candidate.provider === provider)
+    return identity ? supabase.auth.unlinkIdentity(identity) : { error: { code: "identity_not_found" } }
+  })
+}
+
+/** Signs the member out of every device but this one: Supabase Auth ends their other sessions, which stop at their next renewal (the access token they hold lasts up to an hour). */
+export function signOutOtherDevices(): Promise<ChangeOutcome> {
+  return change((supabase) => supabase.auth.signOut({ scope: "others" }))
 }
 
 /** What became of a language handed to the account: kept, not kept because nobody is signed in (a guest, the demo account), or not kept because the account could not be written. */

@@ -39,10 +39,11 @@ export const HUB_LANGUAGE = "en"
  * picture and nothing for an array; the `cover` of a game (PLT-114) and the `description`, the `cover` and the `boxFront` of an expansion are read the same way. The links to the rules are the
  * rows of `rules` as they are, and the four fields they replaced. The gallery of a game (PLT-56) is read as its items are stored: a picture is an
  * object with an `asset`, a clip an object with a `video` file and, when it has one, a `poster`; each gives the address of its file. The helpers of a game (PLT-56) are read as they are stored: a key and a title.
+ * The day a game was created in the Studio, `_createdAt`, is the day it was added: the list sorted by "Newest" reads it.
  */
 export const CATALOG_QUERY = `{
   "games": *[_type == "game" && defined(slug.current)] | order(_createdAt asc) {
-    _id, _updatedAt, name, "slug": slug.current, kind, order, bggId, buyUrl, releaseDate,
+    _id, _createdAt, _updatedAt, name, "slug": slug.current, kind, order, bggId, buyUrl, releaseDate,
     playersMin, playersMax, duration, minAge, complexity,
     "description": coalesce(description[language == $language][0].value, description[language == "en"][0].value, string(description)),
     "rules": rules[]{ language, "link": value },
@@ -129,6 +130,11 @@ export function dayOf(raw: unknown): string | null {
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
   const date = new Date(Date.UTC(year, month - 1, day))
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? (raw as string) : null
+}
+
+/** A date and time as Sanity writes them (`2026-10-30T14:02:41Z`), or null: anything that does not read as one is no date. */
+export function instantOf(raw: unknown): string | null {
+  return typeof raw === "string" && /^\d{4}-\d{2}-\d{2}T/.test(raw) && !Number.isNaN(Date.parse(raw)) ? raw : null
 }
 
 /** A web link, or null: a rulebook or a website is only ever opened if it is http(s). */
@@ -333,6 +339,7 @@ export async function readSanityGames(options: SanityReadOptions = {}): Promise<
         related: [],
         order: wholeOf(raw.order, 0),
         updatedAt: typeof raw._updatedAt === "string" ? raw._updatedAt : "",
+        addedAt: instantOf(raw._createdAt),
       },
     })
   }

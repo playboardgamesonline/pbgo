@@ -11,3 +11,7 @@ The trigger comes in `default` and `sm`.
 ```specimen
 select-default-and-small
 ```
+
+## The list
+
+The items stand in from the edge of the list, grouped or not (`SelectGroup` only groups), so a highlight never touches the edge and each corner is the one inside it plus the room between.

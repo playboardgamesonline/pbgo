@@ -2,6 +2,7 @@
 // and the language they chose. Pure, so that the browser, the server, the proxy and the tests read it the same way (docs/accounts.md).
 
 import { languageOf, type PlatformLanguage } from "./language"
+import { nicknameOf, preferencesOf, type Preferences } from "./preferences"
 
 /** The providers a visitor can sign in with, in the order of the buttons. They are enabled in the Supabase project (Authentication › Providers). */
 export const PROVIDERS = ["google", "discord", "twitch"] as const
@@ -11,10 +12,13 @@ export type Provider = (typeof PROVIDERS)[number]
 /** The name of each provider, as a button says it. */
 export const PROVIDER_NAMES: Record<Provider, string> = { google: "Google", discord: "Discord", twitch: "Twitch" }
 
+/** A way into the account: one of the providers, or the e-mail address and the password (`email`), with what that identity says of itself (its address, else its name) to tell it from another, when it says anything. */
+export type LinkedService = { provider: Provider | "email"; detail: string | null }
+
 /** A signed-in visitor, as far as the hub draws them: a name, a picture, the way they came in. */
 export type Account = {
   id: string
-  /** What they are called: the name their provider gives, else the start of their e-mail, else "Player". */
+  /** What they are called: the name they chose for themselves (`nicknameOf`), else the name their provider gives, else the start of their e-mail, else "Player". */
   nickname: string
   email: string | null
   /** The picture their provider gives, if it gives one. */
@@ -25,6 +29,10 @@ export type Account = {
   createdAt: string | null
   /** The language they chose, which their account keeps (`languageOf`); null until they choose one, and for the demo account of development, which keeps nothing. */
   language: PlatformLanguage | null
+  /** Their preferences (`preferencesOf`): what they set, else the default of each. */
+  preferences: Preferences
+  /** The ways into their account that they hold now, in the order Supabase Auth lists them: what the page of their settings shows as linked, and what it can still be asked to link. */
+  linked: LinkedService[]
 }
 
 /** The part of Supabase Auth's user that an account is made of: what the browser and the server both hold of a session. */
@@ -34,15 +42,26 @@ export type AuthUser = {
   created_at?: string | null
   app_metadata?: { provider?: string } & Record<string, unknown>
   user_metadata?: Record<string, unknown>
+  /** The identities of the user, one for each way they can sign in (`provider`: `email`, `google`…), with what each says of itself (`identity_data`). Present on a user the server asks for, not on every session. */
+  identities?: readonly { provider?: string; identity_data?: Record<string, unknown> | null }[] | null
 }
 
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() !== "" ? value.trim() : null)
 
+/** The ways into an account that the user holds: an identity of a provider of ours, or of the e-mail address, with its address else its name. An identity of any other provider is not one we draw. */
+function linkedOf(user: AuthUser): LinkedService[] {
+  return (user.identities ?? []).flatMap((identity) => {
+    const provider = identity.provider === "email" ? "email" : PROVIDERS.find((candidate) => candidate === identity.provider)
+    if (!provider) return []
+    const data = identity.identity_data ?? {}
+    return [{ provider, detail: text(data.email) ?? text(data.full_name) ?? text(data.name) ?? text(data.user_name) ?? null }]
+  })
+}
+
 /**
- * The account of a user. Google puts the name in `full_name` (and `name`) and the picture in `avatar_url` (and `picture`); Twitch puts the login in
- * `full_name` (and `name`), the name shown on its channel in `nickname`, which is not read, and the picture in `avatar_url`; Discord puts the name the user chose,
- * which is not their login, in `custom_claims.global_name`, then their login in `user_name`. The first of those that is a text wins, then the start of the e-mail
- * address, then "Player".
+ * The account of a user. The name is the one the member chose for themselves, if they did (`nicknameOf`: a key of ours, which a provider never rewrites), else what their provider says. Google puts the name in `full_name` (and
+ * `name`) and the picture in `avatar_url` (and `picture`); Twitch puts the login in `full_name` (and `name`), the name shown on its channel in `nickname`, which is not read, and the picture in `avatar_url`; Discord puts the name
+ * the user chose, which is not their login, in `custom_claims.global_name`, then their login in `user_name`. The first of those that is a text wins, then the start of the e-mail address, then "Player".
  */
 export function accountOf(user: AuthUser): Account {
   const claims = user.user_metadata ?? {}
@@ -52,12 +71,14 @@ export function accountOf(user: AuthUser): Account {
   const handle = email ? text(email.split("@")[0]) : null
   return {
     id: user.id,
-    nickname: globalName ?? text(claims.full_name) ?? text(claims.name) ?? text(claims.user_name) ?? handle ?? "Player",
+    nickname: nicknameOf(user) ?? globalName ?? text(claims.full_name) ?? text(claims.name) ?? text(claims.user_name) ?? handle ?? "Player",
     email,
     avatarUrl: text(claims.avatar_url) ?? text(claims.picture),
     provider: PROVIDERS.find((provider) => provider === user.app_metadata?.provider) ?? null,
     createdAt: text(user.created_at),
     language: languageOf(user),
+    preferences: preferencesOf(user),
+    linked: linkedOf(user),
   }
 }
 

@@ -11,7 +11,7 @@ import { Button } from "./button"
 // a place of its own with no background, no outline and no shadow (`SearchBarGroup`, with its `SearchBarIcon` and, where a filter has a value to
 // read, a `SearchBarValue`): a stepper for a number (`SearchBarStepper`: less, the number and its icon, more), a slider (`Slider`) or a bar that fills
 // (`Meter`) in a group of your own, or a button that opens a menu (a `SearchBarSegment` that is `boxed`). It only draws the bar and the row. The
-// page owns the text, the picks and what they find. The filters are always at work, so what they are set to is read from the control itself, and
+// page owns the text, the picks and what they find. A filter shows what it is set to, so what is picked is read from the control itself, and
 // nothing is filled in to say it.
 
 function SearchBar({ className, ...props }: React.ComponentProps<"form">) {
@@ -243,7 +243,7 @@ function SearchBarValue({ className, ...props }: React.ComponentProps<"span">) {
 /**
  * A filter that is a number, which needs no panel, in a place of its own under the bar: a minus button, the number with the icon that says what it is
  * just after it, and a plus button. No label is drawn and no background is painted, under the pointer or anywhere; the buttons are outlined so they
- * read as buttons. The number is plain text and is never empty: it has a value from the start, so the filter is always at work, and the buttons move it.
+ * read as buttons. The value is plain text and is never empty: it says the number, or that there is none ("Any"), and the buttons move it.
  * The page owns the options and what a press does. A group, so a screen reader names it.
  */
 function SearchBarStepper({

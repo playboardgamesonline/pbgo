@@ -70,7 +70,7 @@ describe("the request", () => {
   })
 
   it("asks for what the reader maps: the query names each field", () => {
-    for (const field of ["kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "gallery", "video", "poster", "helpers", "cover", "boxFront"]) {
+    for (const field of ["_createdAt", "kind", "playersMin", "playersMax", "duration", "minAge", "complexity", "releaseDate", "bggId", "buyUrl", "order", "description", "rules", "rulesFr", "rulesEn", "rulesEs", "rulesDe", "categories", "creators", "publishers", "related", "baseGame", "logo", "icon", "background", "gallery", "video", "poster", "helpers", "cover", "boxFront"]) {
       expect(CATALOG_QUERY, field).toContain(field)
     }
   })
@@ -146,6 +146,7 @@ describe("a published game", () => {
     const read = await readSanityGames({
       fetch: fakeSanity([
         sanityGame("hanabi", {
+          _createdAt: "2026-10-29T08:15:00Z",
           _updatedAt: "2026-10-30T12:00:00Z",
           name: "Hanabi",
           order: 30,
@@ -202,6 +203,7 @@ describe("a published game", () => {
       related: ["the-mind"],
       order: 30,
       updatedAt: "2026-10-30T12:00:00Z",
+      addedAt: "2026-10-29T08:15:00Z",
     })
   })
 
@@ -227,6 +229,7 @@ describe("a published game", () => {
       related: [],
       order: null,
       updatedAt: "2026-10-30T10:00:00Z",
+      addedAt: "2026-10-30T09:00:00Z",
     })
   })
 
@@ -318,6 +321,26 @@ describe("a published game", () => {
     [null, null],
   ])("reads the release date %j as %j", async (day, releaseDate) => {
     expect((await one({ releaseDate: day })).releaseDate).toBe(releaseDate)
+  })
+
+  it.each([
+    ["2026-10-30T14:02:41Z", "2026-10-30T14:02:41Z"],
+    ["2026-11-02T09:30:00.123Z", "2026-11-02T09:30:00.123Z"],
+    ["2026-11-02T11:30:00+02:00", "2026-11-02T11:30:00+02:00"],
+    ["2026-11-02", null],
+    ["2026-13-45T10:00:00Z", null],
+    ["yesterday", null],
+    ["", null],
+    [20261102, null],
+    [null, null],
+  ])("reads the day it was added, the _createdAt %j, as %j", async (value, addedAt) => {
+    expect((await one({ _createdAt: value })).addedAt).toBe(addedAt)
+  })
+
+  it("reads no day for a game that comes without _createdAt", async () => {
+    const document = sanityGame("sample", { name: "Sample" })
+    delete document._createdAt
+    expect((await read([document])).games[0]?.addedAt).toBeNull()
   })
 
   it.each([
