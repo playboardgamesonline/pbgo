@@ -73,3 +73,5 @@ export const GAME: GameDefinition<State, Action, PlayerView> = {
 - **Display data in the state** ([Lean state](09-state.md#lean-state)).
 - **Mutation** ([Nothing is mutated](09-state.md#nothing-is-mutated)).
 - **UI.** No React, no board, no import of `@pbgo/core`.
+
+The [conformance test](../04-build-a-game/06-testing.md#the-conformance-test) plays an engine and checks most of this, step by step.

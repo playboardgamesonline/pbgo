@@ -10,7 +10,6 @@ export type PlayedCard = { playerId: string; card: Card }
 
 export type PlayerState = {
   id: string
-  nickname: string
   hand: Card[]
   pointsPerRound: number[]
 }
@@ -47,7 +46,6 @@ export type PlayerView = {
   me: { id: string; hand: Card[]; bid: number | null } | null
   players: {
     id: string
-    nickname: string
     cardCount: number
     points: number
     pointsPerRound: number[]

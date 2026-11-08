@@ -4,6 +4,7 @@ import {
   type Results,
   EngineError,
   allSubmitted,
+  assertPlayers,
   createRng,
   normalizeOptions,
   openSubmissions,
@@ -167,12 +168,12 @@ export const demo: GameDefinition<State, Action, PlayerView> = {
   waitingFor: waiting,
   autoPlayFor,
   setup: ({ players, options, seed = Math.floor(Math.random() * 2 ** 31) }) => {
-    if (players.length < 2 || players.length > 6) throw new EngineError("INVALID_PLAYERS")
+    assertPlayers(players, { min: 2, max: 6 })
     const opts = normalizeOptions(DEMO_OPTIONS, options) as DemoOptions
     return deal({
       seed,
       options: opts,
-      players: players.map((j) => ({ id: j.id, nickname: j.nickname, hand: [], pointsPerRound: [] })),
+      players: players.map((j) => ({ id: j.id, hand: [], pointsPerRound: [] })),
       round: 1,
       roundLeader: Math.floor(createRng(seed)() * players.length),
       activePlayer: 0,
@@ -199,7 +200,6 @@ export const demo: GameDefinition<State, Action, PlayerView> = {
       me: me ? { id: me.id, hand: me.hand, bid: state.bids[me.id] ?? null } : null,
       players: state.players.map((j) => ({
         id: j.id,
-        nickname: j.nickname,
         cardCount: j.hand.length,
         points: j.pointsPerRound.reduce((a, b) => a + b, 0),
         pointsPerRound: j.pointsPerRound,

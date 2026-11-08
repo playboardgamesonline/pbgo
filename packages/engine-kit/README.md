@@ -194,6 +194,10 @@ const { ids, fresh } = reissueId(state.ids, id, idsRng) // `id` is gone from the
 return { ...state, ids, idsRng: idsRng.save(), deck: insertAt(state.deck, fresh, position) }
 ```
 
+## Tests of a game
+
+`@pbgo/engine-kit/testing` is for the tests of a binding, never for an engine (it reads the disk). `conformanceProblems(GAME, options)` plays an engine the way the server does and returns the rules of the contract it breaks as sentences (see `docs/engine/04-build-a-game/06-testing.md`); `errorVocabularyProblems` checks its error codes against its sources; `deepFreeze`, `reorderKeys` (the way `jsonb` gives a value back), `deepEqual` and `jsonProblems` are the helpers they use.
+
 ## Tests
 
 ```sh

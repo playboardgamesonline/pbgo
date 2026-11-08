@@ -28,6 +28,7 @@ One line per rule, each linking to the page that owns it. A line that is not tru
 
 - Every layer has its file, and `pnpm --filter @<slug>/engine test` and `typecheck` pass ([Testing the engine](06-testing.md)).
 - `src/takeover.test.ts` is adapted to the new engine ([Testing turns](06-testing.md#testing-turns)).
+- `src/conformance.test.ts` passes, with the `secretsFor` of the game ([The conformance test](06-testing.md#the-conformance-test)).
 
 ## The binding
 

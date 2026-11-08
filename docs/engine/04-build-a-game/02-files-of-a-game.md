@@ -19,6 +19,8 @@ games/<slug>/
 │   ├── runtime.tsx            client: styles and BindingProvider
 │   ├── styles.css
 │   ├── takeover.test.ts       a whole game in which players never come back
+│   ├── conformance.test.ts    the contract of an engine, played the way the server plays it
+│   ├── error-codes.test.ts    the engine throws shared codes and the ones it lists
 │   ├── lib/                   site.ts, skin.ts, ui-theme.ts
 │   └── components/
 │       ├── logo.tsx
