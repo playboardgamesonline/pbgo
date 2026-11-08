@@ -44,7 +44,7 @@ An engine refuses a move by throwing, and what the request does next depends on 
 
 ### The shared codes
 
-An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit, whenever the refusal means the same in every game. The platform words each of them in the four languages of the games, so an engine writes no message for them and its binding lists none.
+An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit, whenever the refusal means the same in every game. The platform words each of them (`CORE_ERROR_MESSAGES` of core, English in the code), so an engine writes no message for them and its binding lists none.
 
 | Code | The engine refuses because |
 | --- | --- |
@@ -66,7 +66,7 @@ An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit
 ### What the player reads
 
 - The client shows, in order: the message written in Sanity for the code (Setup › Copy › Errors), the platform's own message in the visitor's language, then `[missing: errorMessages.<CODE>]`. For a code the platform words, only a message written in the visitor's own language replaces it; for a code of the game, the language asked falls back on English.
-- The platform words the shared codes and the codes of its own routes: the list is `CORE_ERROR_MESSAGES` (`packages/core/lib/api.ts`), translated in `ERROR_TRANSLATIONS` of studio-kit. A test keeps every shared code and every code that the routes of a game throw in it.
+- The platform words the shared codes and the codes of its own routes: the list is `CORE_ERROR_MESSAGES` (`packages/core/lib/api.ts`), English in the code. The other languages are `ERROR_TRANSLATIONS` of studio-kit; a message with no translation yet reads in English, and `ENGLISH_ONLY` in `language-chain.test.ts` lists those. A test keeps every shared code and every code that the routes of a game throw in the list.
 - A game words its own codes through `ERROR_CODES` of its binding, which fills Setup › Copy › Errors. A listed code without a message is logged and reads `[missing: …]`; a code thrown and not listed has no message.
 
 ### Keeping the vocabulary honest

@@ -1,5 +1,5 @@
 /**
- * The codes an engine refuses with when the refusal means the same in every game. The platform words them in the four languages of the games (`CORE_ERROR_MESSAGES` of core), so an
+ * The codes an engine refuses with when the refusal means the same in every game. The platform words them (`CORE_ERROR_MESSAGES` of core: English in the code, translated apart), so an
  * engine throws one with no message to write, and its binding does not list it in `ERROR_CODES`. A refusal that only its game can explain is a code of its own: listed there, worded in Sanity.
  */
 export const SHARED_ERROR_CODES = [

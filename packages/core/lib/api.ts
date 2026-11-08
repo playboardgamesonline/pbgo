@@ -7,7 +7,7 @@ import type { Profile } from "./profile"
 
 /**
  * Error messages of the codes the platform words: the shared codes of the engines (`SHARED_ERROR_CODES` of engine-kit) and the codes of its own routes (English, the default
- * language; the others are `ERROR_TRANSLATIONS` of studio-kit), replaceable in the admin (Copy page). A game's own codes have no message here: they come from Sanity.
+ * language; the others, where there are, are `ERROR_TRANSLATIONS` of studio-kit), replaceable in the admin (Copy page). A game's own codes have no message here: they come from Sanity.
  */
 export const CORE_ERROR_MESSAGES: Record<string, string> = {
   // What an engine refuses with, in every game

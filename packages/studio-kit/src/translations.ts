@@ -338,7 +338,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
   },
 }
 
-/** Shared error messages (code → message) per language; the English ones are also `CORE_ERROR_MESSAGES` of core, which a test keeps equal. */
+/** Shared error messages (code → message) per language; the English ones are also `CORE_ERROR_MESSAGES` of core, which a test keeps equal. A message may have no translation yet and then reads in English (`ENGLISH_ONLY` in the language-chain test of core lists them). */
 export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>> = {
   fr: {
     INVALID_NICKNAME: "Choisissez un pseudo.",
@@ -364,16 +364,6 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     FORBIDDEN: "Action refusée.",
     TAKEOVER_UNSUPPORTED: "Ce jeu ne permet pas de jouer à la place d'un joueur absent.",
     AUTOPLAY_UNSUPPORTED: "Ce jeu ne sait pas jouer à la place de ce joueur.",
-    INVALID_PLAYERS: "Ce jeu ne se joue pas avec ce nombre de joueurs.",
-    INVALID_ACTION: "Cette action n'est pas possible.",
-    INVALID_PHASE: "Ce n'est pas possible à ce moment de la partie.",
-    GAME_OVER: "La partie est terminée.",
-    UNKNOWN_PLAYER: "Vous ne faites pas partie des joueurs de cette partie.",
-    INVALID_TARGET: "Vous ne pouvez pas choisir ce joueur.",
-    GAME_NOT_STARTED: "La partie n'a pas encore commencé.",
-    GAME_NOT_OVER: "Cette partie n'est pas encore terminée.",
-    CODE_UNAVAILABLE: "Impossible d'ouvrir la table, réessayez.",
-    INVALID_REQUEST: "Cette requête n'est pas valide.",
   },
   en: {
     INVALID_NICKNAME: "Pick a nickname.",
@@ -434,16 +424,6 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     FORBIDDEN: "Acción rechazada.",
     TAKEOVER_UNSUPPORTED: "Este juego no permite jugar en lugar de un jugador ausente.",
     AUTOPLAY_UNSUPPORTED: "Este juego no sabe jugar en lugar de este jugador.",
-    INVALID_PLAYERS: "Este juego no se puede jugar con este número de jugadores.",
-    INVALID_ACTION: "Esta acción no es posible.",
-    INVALID_PHASE: "Eso no es posible en esta fase de la partida.",
-    GAME_OVER: "La partida ha terminado.",
-    UNKNOWN_PLAYER: "No eres jugador de esta partida.",
-    INVALID_TARGET: "No puedes elegir a este jugador.",
-    GAME_NOT_STARTED: "La partida aún no ha empezado.",
-    GAME_NOT_OVER: "Esta partida aún no ha terminado.",
-    CODE_UNAVAILABLE: "No se ha podido abrir la mesa, inténtalo de nuevo.",
-    INVALID_REQUEST: "Esta solicitud no es válida.",
   },
   de: {
     INVALID_NICKNAME: "Wähle einen Spitznamen.",
@@ -469,15 +449,5 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     FORBIDDEN: "Aktion abgelehnt.",
     TAKEOVER_UNSUPPORTED: "In diesem Spiel kann man nicht für einen abwesenden Spieler spielen.",
     AUTOPLAY_UNSUPPORTED: "In diesem Spiel kann man für diesen Spieler nicht spielen.",
-    INVALID_PLAYERS: "Dieses Spiel lässt sich mit dieser Spielerzahl nicht spielen.",
-    INVALID_ACTION: "Diese Aktion ist nicht möglich.",
-    INVALID_PHASE: "Das ist in dieser Phase der Partie nicht möglich.",
-    GAME_OVER: "Die Partie ist beendet.",
-    UNKNOWN_PLAYER: "Du bist kein Spieler dieser Partie.",
-    INVALID_TARGET: "Diesen Spieler kannst du nicht wählen.",
-    GAME_NOT_STARTED: "Die Partie hat noch nicht begonnen.",
-    GAME_NOT_OVER: "Diese Partie ist noch nicht beendet.",
-    CODE_UNAVAILABLE: "Der Tisch konnte nicht geöffnet werden, versuch es noch einmal.",
-    INVALID_REQUEST: "Diese Anfrage ist ungültig.",
   },
 }
