@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { pictureUrl, registryRow } from "./catalog"
-import { gameJsonLd, gameMetadata, gameSeo, isIndexable, metaDescription, serializeJsonLd, sitemapItems, type GameSeo } from "./seo"
+import { gameJsonLd, gameMetadata, gameSeo, isIndexable, metaDescription, playLead, playLine, playTitle, serializeJsonLd, sitemapItems, type GameSeo } from "./seo"
 import { catalogEntry, cdn, registryGame } from "./testing"
 
 const SITE = "https://playboardgamesonline.app"
@@ -11,6 +11,7 @@ const seo = (overrides: Partial<GameSeo> = {}): GameSeo => ({
   slug: "the-mind",
   name: "The Mind",
   indexable: true,
+  live: true,
   description: { text: "A cooperative game of silence.", language: "en" },
   image: { url: "/api/catalog/the-mind/background?v=abc", wide: true },
   players: { min: 2, max: 4 },
@@ -114,6 +115,7 @@ describe("gameSeo", () => {
         slug: "the-mind",
         name: "The Mind",
         indexable: true,
+        live: false,
         description,
         image: { url: pictureUrl(entry.game, "background"), wide: true },
         players: { min: 2, max: 4 },
@@ -167,6 +169,7 @@ describe("gameSeo", () => {
         slug: "courtisans",
         name: "Courtisans",
         indexable: true,
+        live: true,
         description: french,
         image: { url: pictureUrl(entry.game, "background"), wide: true },
         players: { min: 2, max: 5 },
@@ -192,6 +195,7 @@ describe("gameSeo", () => {
         slug: "courtisans",
         name: "Courtisans",
         indexable: true,
+        live: true,
         description: null,
         image: null,
         players: { min: 2, max: 5 },
@@ -209,35 +213,95 @@ describe("gameSeo", () => {
   })
 })
 
+describe("playTitle, playLead and playLine", () => {
+  const lead = "Play The Mind online with friends or rivals."
+
+  it("name the page by the phrase \"Play <name> Online\"", () => {
+    expect(playTitle("The Mind")).toBe("Play The Mind Online")
+    expect(playTitle("6 nimmt!")).toBe("Play 6 nimmt! Online")
+  })
+
+  it("open the description with a sentence that starts with the phrase, for a game that can be played", () => {
+    expect(playLead({ name: "The Mind", live: true })).toBe(lead)
+  })
+
+  it("say in the description that a game that cannot be played yet is coming soon, rather than promise a table", () => {
+    expect(playLead({ name: "The Mind", live: false })).toBe("Play The Mind online, coming soon.")
+  })
+
+  it("end every page with one line that starts with the phrase and says with whom, for how many players and where", () => {
+    expect(playLine({ name: "The Mind", players: { min: 2, max: 4 } })).toBe("Play The Mind online with friends or rivals, for 2 to 4 players, in your browser.")
+  })
+
+  it("says how many play the way a sentence does: a range, a minimum, one number", () => {
+    const line = (players: GameSeo["players"]) => playLine({ name: "The Mind", players })
+    expect(line({ min: 3, max: null })).toBe("Play The Mind online with friends or rivals, for 3 or more players, in your browser.")
+    expect(line({ min: 2, max: 2 })).toBe("Play The Mind online with friends or rivals, for 2 players, in your browser.")
+    expect(line({ min: 1, max: 1 })).toBe("Play The Mind online with friends or rivals, for 1 player, in your browser.")
+  })
+
+  it("is shorter, never wrong, when the game's players are not known", () => {
+    expect(playLine({ name: "The Mind", players: null })).toBe("Play The Mind online with friends or rivals, in your browser.")
+  })
+
+  it.each(["Courtisans", "Flip 7", "Welcome to ...", "It's a Wonderful World", "6 nimmt! 30 Jahre-Edition"])("start with the phrase, whatever the name: %s", (name) => {
+    expect(playTitle(name)).toBe(`Play ${name} Online`)
+    expect(playLine({ name, players: { min: 2, max: 5 } }).startsWith(`Play ${name} online`)).toBe(true)
+    for (const live of [true, false]) expect(playLead({ name, live }).startsWith(`Play ${name} online`)).toBe(true)
+  })
+})
+
 describe("gameMetadata", () => {
   it("is the page's title, description, canonical, robots, Open Graph and Twitter card", () => {
     expect(gameMetadata(seo(), site)).toEqual({
-      title: "The Mind",
-      description: "A cooperative game of silence.",
+      title: "Play The Mind Online",
+      description: "Play The Mind online with friends or rivals. A cooperative game of silence.",
       alternates: { canonical: `${SITE}/game/the-mind` },
       robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
       openGraph: {
         type: "website",
         siteName: "Play Board Games Online",
         url: `${SITE}/game/the-mind`,
-        title: "The Mind · Play Board Games Online",
-        description: "A cooperative game of silence.",
+        title: "Play The Mind Online · Play Board Games Online",
+        description: "Play The Mind online with friends or rivals. A cooperative game of silence.",
         locale: "en_US",
         images: [{ url: `${SITE}/api/catalog/the-mind/background?v=abc` }],
       },
       twitter: {
         card: "summary_large_image",
-        title: "The Mind · Play Board Games Online",
-        description: "A cooperative game of silence.",
+        title: "Play The Mind Online · Play Board Games Online",
+        description: "Play The Mind online with friends or rivals. A cooperative game of silence.",
         images: [`${SITE}/api/catalog/the-mind/background?v=abc`],
       },
     })
   })
 
-  it("puts the description on one line and cuts it where a search result would", () => {
-    expect(gameMetadata(seo({ description: { text: "One.\n\nTwo.", language: "en" } }), site).description).toBe("One. Two.")
+  it("is found by the phrase: the title is \"Play <name> Online\" and the description starts with the lead", () => {
+    const metadata = gameMetadata(seo(), site)
+    expect(metadata.title).toBe("Play The Mind Online")
+    expect(String(metadata.description).startsWith("Play The Mind online with friends or rivals. ")).toBe(true)
+  })
+
+  it("says that a game that is not live is coming soon, and promises no table", () => {
+    const metadata = gameMetadata(seo({ live: false }), site)
+    expect(metadata.title).toBe("Play The Mind Online")
+    expect(metadata.description).toBe("Play The Mind online, coming soon. A cooperative game of silence.")
+    expect(metadata.openGraph?.description).toBe(metadata.description)
+  })
+
+  it("describes a game with no text of its own by the lead alone, so that every page has a description", () => {
+    const metadata = gameMetadata(bare(), site)
+    expect(metadata.description).toBe("Play The Mind online with friends or rivals.")
+    expect(metadata.openGraph?.description).toBe(metadata.description)
+    expect(metadata.twitter?.description).toBe(metadata.description)
+    expect(gameMetadata(bare({ live: false }), site).description).toBe("Play The Mind online, coming soon.")
+  })
+
+  it("puts the description on one line and cuts it where a search result would, the lead staying at its start", () => {
+    expect(gameMetadata(seo({ description: { text: "One.\n\nTwo.", language: "en" } }), site).description).toBe("Play The Mind online with friends or rivals. One. Two.")
     const long = gameMetadata(seo({ description: { text: "word ".repeat(100), language: "en" } }), site)
     expect([...String(long.description)].length).toBeLessThanOrEqual(160)
+    expect(String(long.description).startsWith("Play The Mind online with friends or rivals. word")).toBe(true)
     expect(long.openGraph?.description).toBe(long.description)
   })
 
@@ -264,13 +328,10 @@ describe("gameMetadata", () => {
     expect(gameMetadata(seo({ image: null }), site).twitter).toMatchObject({ card: "summary" })
   })
 
-  it("has no description, locale or picture key when the game has none: they would wipe the layout's ones", () => {
+  it("has no locale or picture key when the game has none: they would wipe the layout's ones", () => {
     const metadata = gameMetadata(bare(), site)
-    expect(metadata).not.toHaveProperty("description")
-    expect(metadata.openGraph).not.toHaveProperty("description")
     expect(metadata.openGraph).not.toHaveProperty("locale")
     expect(metadata.openGraph).not.toHaveProperty("images")
-    expect(metadata.twitter).not.toHaveProperty("description")
     expect(metadata.twitter).not.toHaveProperty("images")
   })
 
