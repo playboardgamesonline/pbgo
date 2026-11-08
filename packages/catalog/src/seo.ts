@@ -42,6 +42,8 @@ export type GameSeo = {
   name: string
   /** `isIndexable` of the game's catalog entry. */
   indexable: boolean
+  /** The `live` flag of the game's catalog entry: a game that is not live is coming soon, and its page does not promise a table (`playLead`). */
+  live: boolean
   /** In the visitor's language, else English, else French, else any: `language` is the one taken. Null: no language has a text. */
   description: { text: string; language: Locale } | null
   /** The picture the page shares. `wide`: a social card only goes large with a wide picture. Null: the game has none and the page shares text alone. */
@@ -66,6 +68,7 @@ export function gameSeo(entry: CatalogEntry, description: GameSeo["description"]
     slug: entry.slug,
     name: game.name,
     indexable: isIndexable(entry),
+    live: entry.live,
     description,
     image: sharePicture(game),
     players: game.players,
@@ -74,6 +77,34 @@ export function gameSeo(entry: CatalogEntry, description: GameSeo["description"]
     creators: game.creators,
     publishers: game.publishers,
   }
+}
+
+/** The phrase that a game's page is found by, "Play Courtisans Online": its title in search results and its heading. */
+export const playTitle = (name: string) => `Play ${name} Online`
+
+/**
+ * The sentence that opens the description of a game's page in search results and on social cards: it starts with the phrase, "Play Courtisans
+ * online". A game that is not live cannot be played yet, and its description says it is coming soon, so that a search result never promises a
+ * table that is not there (the line of the page itself, `playLine`, is the same for every game: the page says the rest).
+ */
+export const playLead = ({ name, live }: Pick<GameSeo, "name" | "live">) => (live ? `Play ${name} online with friends or rivals.` : `Play ${name} online, coming soon.`)
+
+/** How many play, as a sentence says it: "for 2 to 5 players", "for 3 or more players", "for 2 players". Null when the game's players are not known. */
+function playersPhrase(players: GameSeo["players"]): string | null {
+  if (!players) return null
+  if (players.max === null) return `for ${players.min} or more players`
+  if (players.min === players.max) return `for ${players.min} ${players.min === 1 ? "player" : "players"}`
+  return `for ${players.min} to ${players.max} players`
+}
+
+/**
+ * The line at the foot of every game's page, the same for all of them, live or to come (the head already says a game is coming soon): it starts
+ * with the phrase, "Play Courtisans online", then with whom, for how many players when the game says, and where. Without the players the line
+ * is shorter, never wrong.
+ */
+export function playLine({ name, players }: Pick<GameSeo, "name" | "players">): string {
+  const howMany = playersPhrase(players)
+  return `Play ${name} online with friends or rivals, ${howMany ? `${howMany}, ` : ""}in your browser.`
 }
 
 /** The URL of a game's page on the hub. */
@@ -88,17 +119,22 @@ const absoluteUrl = (site: string, url: string) => new URL(url, site).href
  * whole: `openGraph` and `twitter` are written out in full, with the type, the site name and the URL again. A key with nothing to say is
  * left out, never set to `undefined`: Next reads a key that is present as an override.
  *
+ * The page is found by the phrase "Play <name> Online" (`playTitle`): it is the title, and the description opens with the sentence that
+ * starts with it (`playLead`) before the game's own text, the lead alone for a game that has none. So a page always has a description.
+ *
  * A page that is not indexable still carries its title, description and picture, for the link previews of chats and social networks.
  * The titles of `openGraph` and `twitter` are not run through the layout's template, so they carry the site name themselves.
  */
 export function gameMetadata(game: GameSeo, site: { url: string; name: string }): Metadata {
   const url = pageUrl(site.url, game.slug)
-  const title = `${game.name} · ${site.name}`
-  const description = game.description ? metaDescription(game.description.text) : null
+  const phrase = playTitle(game.name)
+  const title = `${phrase} · ${site.name}`
+  const lead = playLead(game)
+  const description = metaDescription(game.description ? `${lead} ${game.description.text}` : lead)
   const image = game.image ? absoluteUrl(site.url, game.image.url) : null
   return {
-    title: game.name,
-    ...(description ? { description } : {}),
+    title: phrase,
+    description,
     alternates: { canonical: url },
     robots: game.indexable
       ? { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } }
@@ -108,14 +144,14 @@ export function gameMetadata(game: GameSeo, site: { url: string; name: string })
       siteName: site.name,
       url,
       title,
-      ...(description ? { description } : {}),
+      description,
       ...(game.description ? { locale: OG_LOCALES[game.description.language] } : {}),
       ...(image ? { images: [{ url: image }] } : {}),
     },
     twitter: {
       card: game.image?.wide ? "summary_large_image" : "summary",
       title,
-      ...(description ? { description } : {}),
+      description,
       ...(image ? { images: [image] } : {}),
     },
   }

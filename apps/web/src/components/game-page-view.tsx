@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { getAccount } from "@pbgo/accounts/server"
-import { gameJsonLd, serializeJsonLd } from "@pbgo/catalog/seo"
+import { gameJsonLd, playLine, serializeJsonLd } from "@pbgo/catalog/seo"
 import { normalizeCode } from "@pbgo/core/server/code"
 import { getPlayableGame } from "@pbgo/games"
 import { GameCard } from "@pbgo/ui/platform/game-card"
@@ -26,6 +26,7 @@ import { SITE_URL } from "@/site"
 // Search engines: robots.txt does not cover `/game/<slug>` (it keeps crawlers out of `/*/game/`, the tables), so the page says itself
 // whether it may be indexed, in its `robots` meta (`game.seo.indexable`: a live game follows the registry's flag, a game to come needs a
 // description in its game in the Studio), and carries its JSON-LD only when it may. The rule and the metadata are `@pbgo/catalog/seo`.
+// The page is found by the phrase "Play <name> Online": it is its title, its heading (`GameHead`) and the start of its description, and a last line under the similar games, the same for every game, starts with it (`playLine`).
 
 // The same page is the page of a table (`/game/<slug>/<code>`, `code` given): the link of a table that waits for players, which the game's table page sends to (`GamePage` of core). It is the page of the game with that table picked in its list, so that the
 // visitor sees who sits at it and sits down (`GamePlay`, `linked`); it is not indexed and has no JSON-LD (`GameTablePage`).
@@ -105,9 +106,13 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
             ))}
           </ScrollRow>
         )}
+
+        {/* The last line of the page, for search engines and for whoever reads it: it starts with the phrase the page is found by (`playLine`), is the same for every game, live or not, is centred and quiet: the size of the footer's text and a little dimmer than the credits. Nothing above it moves for it */}
+        <p className="mx-auto mt-section max-w-2xl text-balance text-center text-sm text-foreground/60">{playLine({ name: game.name, players: game.seo.players })}</p>
       </main>
 
-      <SiteFooter />
+      {/* 3rem more above the footer than the other pages give it, so that its text is not close to the page's last line */}
+      <SiteFooter className="mt-12" />
     </div>
   )
 }
