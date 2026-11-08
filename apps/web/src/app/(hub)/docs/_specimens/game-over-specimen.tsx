@@ -28,6 +28,8 @@ const SCORES = {
   winner: [detail(9, 5), detail(8, 3), detail(9, 0), detail(6, -2)],
   /** Two players share the first place */
   tie: [detail(8, 4), detail(9, 3), detail(9, 0), detail(6, -2)],
+  /** The table lost together: one score for everybody, nobody to crown */
+  lost: [detail(7, 5), detail(7, 5), detail(7, 5), detail(7, 5)],
 } as const
 
 type Case = keyof typeof SCORES
@@ -47,7 +49,7 @@ function thumbnail({ colors }: GameLook) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
-/** The end screen of every game, two games side by side. The panel is the component of a table, drawn here at its real width and scaled to the column. */
+/** The end screen of every game, two games side by side: one winner, a tie, a table that lost together. The panel is the component of a table, drawn here at its real width and scaled to the column. */
 export function GameOverSpecimen({ looks }: { looks: readonly GameLook[] }) {
   const [which, setWhich] = useState<Case>("winner")
   const [reduce, setReduce] = useState(false)
@@ -61,6 +63,7 @@ export function GameOverSpecimen({ looks }: { looks: readonly GameLook[] }) {
           <TabsList>
             <TabsTrigger value="winner">One winner</TabsTrigger>
             <TabsTrigger value="tie">Tie</TabsTrigger>
+            <TabsTrigger value="lost">Lost together</TabsTrigger>
           </TabsList>
         </Tabs>
         <Button variant="outline" size="sm" onClick={() => setRun((n) => n + 1)}>
@@ -74,7 +77,9 @@ export function GameOverSpecimen({ looks }: { looks: readonly GameLook[] }) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {looks.map((look) => {
           const all = entries(look, which)
-          const winners = all.filter((entry) => entry.result.rank === 1)
+          // A table that lost together ranks first as a whole and has no winner
+          const lost = which === "lost"
+          const winners = lost ? [] : all.filter((entry) => entry.result.rank === 1)
           return (
             <div key={look.slug} className="flex flex-col gap-2">
               <p className="text-sm text-muted-foreground">
@@ -91,10 +96,12 @@ export function GameOverSpecimen({ looks }: { looks: readonly GameLook[] }) {
                           seat={seatTheme(look.ui?.seat)}
                           motion={resolveMotion(prefersReduced || reduce, look.ui?.motion)}
                           winners={winners}
-                          others={all.filter((entry) => entry.result.rank !== 1)}
+                          others={lost ? all : all.filter((entry) => entry.result.rank !== 1)}
+                          lost={lost}
                           labels={{
                             scoreboard: look.labels.scoreboard,
                             winnerTitle: look.labels.winnerTitle,
+                            defeatTitle: look.labels.defeatTitle,
                             shareResult: look.labels.shareResult,
                             points: (n) => pointsLine(n, (points) => fill(look.labels.pointsShort, { points })),
                           }}

@@ -4,7 +4,7 @@ import { fade, type Motion } from "./motion-preference"
 import { announcementTheme } from "./ui-theme"
 
 /**
- * Everything the full-screen announcements (start, round, your turn, victory) are made of, as plain data: the settings of a
+ * Everything the full-screen announcements (start, round, your turn, victory, defeat) are made of, as plain data: the settings of a
  * preset, how a game's `UI_THEME.announcement` seeds them, and the timeline they play. Pure (no React, no leva), so the
  * component (`components/game/announcement-view.tsx`), the leva panel (`announcement.tsx`), the specimens of the design docs and the tests
  * all read the same numbers.
@@ -154,12 +154,14 @@ export const ANNOUNCEMENT_PRESETS = {
   },
   /** Someone wins: the winner's medallion, a spring and the confetti */
   victory: { duration: 4.5, sound: false, size: 3.4, confetti: true, spring: true, seat: "hero" },
+  /** A table loses together: nobody to show and nothing to throw, the title alone on a darker veil, longer than a round */
+  defeat: { duration: 3.4, size: 3.4, subtitleSize: 1.6, overlay: 0.72, lineGap: 56, offsetY: -6 },
 } satisfies Record<string, Partial<AnnouncementSettings>>
 
 export type BaseAnnouncementType = keyof typeof ANNOUNCEMENT_PRESETS
 
 /** Names of the presets in the debug panel (a game's own preset without a name there shows its key) */
-export const ANNOUNCEMENT_LABELS: Record<string, string> = { start: "Start", round: "Round", turn: "Your Turn", victory: "Victory" }
+export const ANNOUNCEMENT_LABELS: Record<string, string> = { start: "Start", round: "Round", turn: "Your Turn", victory: "Victory", defeat: "Defeat" }
 
 /**
  * The settings of one announcement: the defaults, seeded by the game's `UI_THEME.announcement` (colours, font, veil), then the

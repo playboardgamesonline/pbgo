@@ -27,7 +27,7 @@
 | --- | --- |
 | `PlayerInfo` | `{ id, nickname }`: a seat as `setup` receives it |
 | `PlayerAction` | `{ type, playerId }`: what every `Action` extends; the server sets `playerId` |
-| `Results`, `PlayerResult` | The end of a game, in the view ([Results](06-victory.md#victory-and-results)) |
+| `Results`, `PlayerResult` | The end of a game, in the view ([Results](06-victory.md#results)), and `outcomesOf`, which reads them as a win, a loss, a draw or a win or loss of the whole table for each player ([Outcomes](06-victory.md#outcomes)) |
 | `AnyGameDefinition` | `GameDefinition<any, any, any, any>`: what core, the registry and the kit's helpers hold |
 | `OptionDefinitions`, `OptionValues`, `OptionPreset` | The options, their values and the presets (`packages/engine-kit/src/options.ts`) |
 

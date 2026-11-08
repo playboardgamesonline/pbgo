@@ -114,8 +114,9 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
     previous.current = { round: view.round, active: view.activePlayerId, phase: view.phase }
     if (view.phase === "over") {
       if (before?.phase !== "over") {
-        const { phrase, detail, winners } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }))
-        announce(phrase, "victory", { subtitle: detail, sound: "victory", seats: seatsFor(winners) })
+        // `kind` is "defeat" for a table that lost together (a game whose players play on one side); this demo always ends in a victory
+        const { phrase, detail, winners, kind } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }), t("defeatTitle"))
+        announce(phrase, kind, { subtitle: detail, sound: kind === "victory" ? "victory" : undefined, seats: seatsFor(winners) })
         setScoresOpen(true)
       }
       return
@@ -150,6 +151,7 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
       "Round announcement": button(() => announce("Manche 2", "round")),
       "Your turn announcement": button(() => announce(t("yourTurn"), "turn", { seats: seatsFor(meId ? [meId] : []) })),
       "Victory announcement": button(() => announce("Victoire de", "victory", { subtitle: "Oré · 9 pts", seats: seatsFor(game.players.slice(0, 1).map((p) => p.id)) })),
+      "Defeat announcement": button(() => announce(t("defeatTitle"), "defeat", { subtitle: t("pointsShort", { points: 12 }) })),
     },
     { order: 1 },
     debugTab("TRANSITION"),

@@ -47,6 +47,17 @@ export const FONT_CHOICES = [
 ] as const
 
 /**
+ * The labels that exist in English only: the code holds English, and the other languages come with the language pass (twelve languages, PLT-32), not typed one by one here.
+ * Their entries of `UI_TEXTS` carry this English text where `fr` goes and `translations.ts` gives it to every language, so a visitor reads English until the pass.
+ * To translate one: write it in each language of `UI_TRANSLATIONS`, give its entry a French `fr` and take it out of this list.
+ */
+export const ENGLISH_ONLY_TEXTS = {
+  defeatTitle: "Defeat",
+  shareHeadlineDefeat: "{points} points · Defeat",
+  lostWith: "{names} lost the game with {points} points.",
+} as const
+
+/**
  * Interface labels shared by every game, editable in Sanity (document "Texts", tab "Interface") and in Admin › Copy.
  * `fr` is the French text; the defaults of the other languages, English (the default language) first, are in `translations.ts`. Variables in braces: {code}, {name}, {count}, {max}.
  */
@@ -154,6 +165,9 @@ export const UI_TEXTS = [
   { key: "missionsSkipButton", group: "game", title: "Opening: start without waiting (button)", fr: "Commencer sans attendre" },
   { key: "winsWith", group: "game", title: "Share: text", fr: "{names} remporte la partie avec {points} points !" },
   { key: "shareHeadline", group: "game", title: "Share: image headline under the winner's name ({points} = their score)", fr: "{points} points · Victoire" },
+  { key: "defeatTitle", group: "game", title: "Scoreboard and announcement: a table that lost together", fr: ENGLISH_ONLY_TEXTS.defeatTitle },
+  { key: "shareHeadlineDefeat", group: "game", title: "Share: image headline of a table that lost together ({points} = the table's score)", fr: ENGLISH_ONLY_TEXTS.shareHeadlineDefeat },
+  { key: "lostWith", group: "game", title: "Share: text of a table that lost together ({names} = the players, {points} = the table's score)", fr: ENGLISH_ONLY_TEXTS.lostWith },
   { key: "pointsShort", group: "game", title: "Scoreboard and share image: points of a player, abbreviated ({points} = their score)", fr: "{points} pts" },
   { key: "players", group: "game", title: "Players strip: name (screen readers)", fr: "Joueurs" },
   { key: "playersReady", group: "game", title: "Players strip: seats that are done, when there are too many to list ({ready} of {total})", fr: "{ready}/{total} prêts" },

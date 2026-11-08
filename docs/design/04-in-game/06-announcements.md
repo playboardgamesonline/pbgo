@@ -1,6 +1,8 @@
 # Announcements
 
-Start, round, your turn and victory, full screen over the table, in four kinds (`start`, `round`, `turn`, `victory`). Same timeline for every game (the veil, the hairlines drawn from the centre, the title rising into focus, the subtitle). The presets and the timeline are in `lib/announcement-settings.ts`, pure and tested; `announcementSettings(preset, UI_THEME.announcement)` seeds them.
+Start, round, your turn, victory and defeat, full screen over the table, in five kinds (`start`, `round`, `turn`, `victory`, `defeat`). Same timeline for every game (the veil, the hairlines drawn from the centre, the title rising into focus, the subtitle). The presets and the timeline are in `lib/announcement-settings.ts`, pure and tested; `announcementSettings(preset, UI_THEME.announcement)` seeds them.
+
+A defeat is for a table that lost together: the title alone, with no medallion, no confetti and no spring.
 
 `UI_THEME.announcement` sets the font, the letters, the veil, the hairlines and the confetti (`font`, `color`, `outline`, `shadow`, `veil`, `rule`, `confetti`), and `UI_THEME.motion` the flourish: `calm` fades and short slides, `lively` adds springs and confetti. Reduced motion always wins: everything fades at once, 150 ms at most.
 

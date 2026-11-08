@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@pbgo/ui/platform/tabs"
 import { Crown, GameScope, TABLE_BACKDROP, type GameLook } from "./game-scope"
 import { Stage } from "./scaled"
 
-const KINDS = ["start", "round", "turn", "victory"] as const
+const KINDS = ["start", "round", "turn", "victory", "defeat"] as const
 type Kind = (typeof KINDS)[number]
 
 /** The same neutral copy on every game, so only the look differs from one side to the other */
@@ -22,6 +22,7 @@ const COPY: Record<Kind, { text: string; subtitle?: string }> = {
   round: { text: "Round 2", subtitle: "Second of five" },
   turn: { text: "Your turn" },
   victory: { text: "Winner", subtitle: "Ana" },
+  defeat: { text: "Defeat", subtitle: "12 pts" },
 }
 
 /** The seat an announcement shows: the winner of a victory, the player of a turn (the other kinds show none) */
@@ -51,7 +52,7 @@ function Player({ look, kind, reduce, hold }: { look: GameLook; kind: Kind; redu
   )
 }
 
-/** The four announcements of every game, two games side by side: pick one, replay it, hold it on screen, or ask for reduced motion */
+/** The five announcements of every game, two games side by side: pick one, replay it, hold it on screen, or ask for reduced motion */
 export function AnnouncementSpecimen({ looks }: { looks: readonly GameLook[] }) {
   const [kind, setKind] = useState<Kind>("start")
   const [reduce, setReduce] = useState(false)

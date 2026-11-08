@@ -12,8 +12,8 @@ export type ShareRow = {
   winner: boolean
 }
 
-/** The texts drawn on the image, in the visitor's language: the page's `useText()`, narrowed to the two keys the image uses. */
-export type ShareText = (key: "shareHeadline" | "pointsShort", params: { points: number }) => string
+/** The texts drawn on the image, in the visitor's language: the page's `useText()`, narrowed to the three keys the image uses. */
+export type ShareText = (key: "shareHeadline" | "shareHeadlineDefeat" | "pointsShort", params: { points: number }) => string
 
 const FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
 
@@ -43,7 +43,11 @@ function setSpacing(ctx: CanvasRenderingContext2D, px: number) {
   if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${px}px`
 }
 
-export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | null, title: string, locale: Locale, t: ShareText): Promise<Blob> {
+/**
+ * The picture of a finished game: the winners under a crown, the points of the first one, the others at the foot. `lost`: the table lost together and has no winner, so no
+ * crown is drawn, the whole table is named and the headline says defeat.
+ */
+export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | null, title: string, locale: Locale, t: ShareText, lost = false): Promise<Blob> {
   await Promise.all([document.fonts?.load(`800 72px ${FONT}`).catch(() => null), document.fonts?.load(`500 28px ${FONT}`).catch(() => null)])
   const W = 1600
   const H = 1200
@@ -85,32 +89,43 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
   ctx.fillRect(0, H - 220, W, 220)
 
   const winners = lines.filter((j) => j.winner)
-  const others = lines.filter((j) => !j.winner)
+  // A table that lost together has nobody to crown: it is named whole, and nobody is left for the foot of the image
+  const named = lost ? lines : winners
+  const others = lost ? [] : lines.filter((j) => !j.winner)
   ctx.textAlign = "center"
   ctx.textBaseline = "alphabetic"
 
-  ctx.save()
-  ctx.shadowColor = "rgba(255,200,80,0.8)"
-  ctx.shadowBlur = 24
-  ctx.fillStyle = "#f2c14e"
-  drawCrown(ctx, W / 2, 30, 64)
-  ctx.restore()
+  if (!lost) {
+    ctx.save()
+    ctx.shadowColor = "rgba(255,200,80,0.8)"
+    ctx.shadowBlur = 24
+    ctx.fillStyle = "#f2c14e"
+    drawCrown(ctx, W / 2, 30, 64)
+    ctx.restore()
+  }
 
-  const names = winners.map((g) => g.nickname.toUpperCase()).join(" & ")
+  const names = named.map((g) => g.nickname.toUpperCase()).join(" & ")
   ctx.save()
   ctx.font = `800 76px ${FONT}`
   setSpacing(ctx, 10)
+  // The names of a whole table are long: the line shrinks, letters and spacing together, until it fits the image
+  const fit = Math.min(1, (W - 160) / Math.max(ctx.measureText(names).width, 1))
+  if (fit < 1) {
+    ctx.font = `800 ${Math.floor(76 * fit)}px ${FONT}`
+    setSpacing(ctx, 10 * fit)
+  }
   ctx.shadowColor = "rgba(0,0,0,0.7)"
   ctx.shadowBlur = 18
   ctx.shadowOffsetY = 4
-  ctx.fillStyle = lighten(winners[0]?.color ?? "#ffd35c", 0.25)
+  // The colour of a winner's seat; a table that lost together has no one colour to wear, so it wears the cream of the texts around
+  ctx.fillStyle = lost ? "#f3ecd6" : lighten(winners[0]?.color ?? "#ffd35c", 0.25)
   ctx.fillText(names, W / 2, 150)
   ctx.restore()
 
   ctx.fillStyle = "rgba(243,236,214,0.85)"
   ctx.font = `500 30px ${FONT}`
   setSpacing(ctx, 2)
-  ctx.fillText(t("shareHeadline", { points: winners[0]?.total ?? 0 }), W / 2, 194)
+  ctx.fillText(t(lost ? "shareHeadlineDefeat" : "shareHeadline", { points: named[0]?.total ?? 0 }), W / 2, 194)
 
   if (others.length) {
     const stride = Math.min(360, (W - 160) / others.length)
@@ -144,8 +159,8 @@ export async function shareImage(lines: ShareRow[], photo: HTMLCanvasElement | n
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("capture"))), "image/png"))
 }
 
-export async function generateShareImage(lines: ShareRow[], slug: string, code: string, title: string, locale: Locale, t: ShareText) {
-  const blob = await shareImage(lines, captureGamePhoto(1600, 1200), title, locale, t)
+export async function generateShareImage(lines: ShareRow[], slug: string, code: string, title: string, locale: Locale, t: ShareText, lost = false) {
+  const blob = await shareImage(lines, captureGamePhoto(1600, 1200), title, locale, t, lost)
   return new File([blob], `${slug}-${code}.png`, { type: "image/png" })
 }
 

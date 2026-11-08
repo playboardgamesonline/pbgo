@@ -1,4 +1,4 @@
-import { UI_TEXTS } from "@pbgo/studio-kit/constants"
+import { ENGLISH_ONLY_TEXTS, UI_TEXTS, type UiTextKey } from "@pbgo/studio-kit/constants"
 import { ERROR_TRANSLATIONS, UI_TRANSLATIONS } from "@pbgo/studio-kit/translations"
 import { describe, expect, it, vi } from "vitest"
 
@@ -146,6 +146,14 @@ describe("the platform's own wording", () => {
     for (const { key, fr } of UI_TEXTS) expect(UI_TRANSLATIONS.fr[key], key).toBe(fr)
     expect(UI_TRANSLATIONS.fr.scoreboard).toBe("Tableau des scores")
     expect(UI_TRANSLATIONS.en.scoreboard).toBe("Scoreboard")
+  })
+
+  it("gives the labels that exist in English only to every language, in English, until the language pass translates them", () => {
+    expect(Object.keys(ENGLISH_ONLY_TEXTS).filter((key) => !UI_TEXTS.some((t) => t.key === key)), "a label of ENGLISH_ONLY_TEXTS that UI_TEXTS does not list").toEqual([])
+    for (const [key, text] of Object.entries(ENGLISH_ONLY_TEXTS)) {
+      for (const locale of LOCALES) expect(UI_TRANSLATIONS[locale][key as UiTextKey], `${locale}.${key}`).toBe(text)
+    }
+    expect(baseSkin({} as GameBinding, "de").texts.defeatTitle).toBe("Defeat")
   })
 
   it("has every error of the platform in English, the one core carries, and in each other language every one but the ones that exist in English only", () => {

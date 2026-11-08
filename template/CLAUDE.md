@@ -48,9 +48,9 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - Never fork or restyle one of these components, and never override their CSS from the game: ask for a field in `UiTheme` instead
 - The board is drawn behind the platform's start screen (PLT-107): `BoardProps` gives it `held` (hold the opening, the camera's entrance and the first announcement, until it turns false), `onLoaded` (call it once the board is drawn and its pictures are in: the player is then ready) and `onProgress` (how far it is, 0 to 1, for the collective bar). A board on the shared `Table` passes `held` and `onLoaded` to it, and one that loads pictures without suspending calls `onLoaded` and `onProgress` itself
 - The board's own overlays use the variant `short` (`@media (max-height: 30rem)`, keyed on height) for a phone held sideways, and `useMotion()` (`@pbgo/core/lib/use-motion`) before any `motion/react` animation: reduced motion means fades only
-- New player-facing labels of the shared UI are `UI_TEXTS` keys of `@pbgo/studio-kit`, translated in the four languages, never text in a component
+- New player-facing labels of the shared UI are `UI_TEXTS` keys of `@pbgo/studio-kit`, written in English (`ENGLISH_ONLY_TEXTS`) until the language pass translates them, never text in a component
 - A player's name on the board is the shared seat label: `SeatLabel` in the DOM, `PlayerSeat` of `@pbgo/table` on the table (it paints the same avatar with `SeatAvatarMesh`), with `imageUrl` for an account picture later (PLT-13)
-- The reference is `/docs/design/in-game` (`docs/design/04-in-game/` at the repo root): the template and Courtisans side by side (seat label, players strip, the four announcements, game over)
+- The reference is `/docs/design/in-game` (`docs/design/04-in-game/` at the repo root): the template and Courtisans side by side (seat label, players strip, the five announcements, game over)
 
 ## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner

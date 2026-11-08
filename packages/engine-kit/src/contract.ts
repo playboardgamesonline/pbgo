@@ -15,7 +15,16 @@ export type PlayerResult = {
   detail: { key: string; /** @deprecated The words of a line are a text of the game, in its Sanity. */ label?: string; values?: Record<string, string | number>; points: number }[]
 }
 
-export type Results = { players: PlayerResult[]; winners: string[] }
+export type Results = {
+  players: PlayerResult[]
+  /** The ids of the players who won: several on a tie, every player when the table won together and nobody when it lost together (`coop`). */
+  winners: string[]
+  /**
+   * Set by a game the whole table plays on one side, against the game itself (Hanabi, Sky Team, The Mind): `"won"` or `"lost"`, for every player at once. Every player then has rank 1 and the
+   * table's score as `total`, and `winners` lists every player when the table won and nobody when it lost. A game where the players play against each other leaves it out.
+   */
+  coop?: "won" | "lost"
+}
 
 /**
  * `SetupData`: data loaded on the server before the game starts (e.g. missions from Sanity).

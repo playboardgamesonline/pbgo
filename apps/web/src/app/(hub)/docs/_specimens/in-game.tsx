@@ -52,6 +52,7 @@ async function lookOf(slug: string): Promise<GameLook | null> {
     labels: {
       scoreboard: texts.scoreboard,
       winnerTitle: texts.winnerTitle,
+      defeatTitle: texts.defeatTitle,
       shareResult: texts.shareResult,
       pointsShort: texts.pointsShort,
       players: texts.players,
