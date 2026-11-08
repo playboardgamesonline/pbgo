@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { FEEDBACK_RETENTION_MONTHS, TABLE_RETENTION_DAYS, feedbackCutoff, tableCutoff } from "./retention"
+import { FEEDBACK_RETENTION_MONTHS, FINISHED_STATE_RETENTION_HOURS, TABLE_RETENTION_DAYS, UNRANKED_SEAT_RETENTION_MONTHS, feedbackCutoff, finishedStateCutoff, tableCutoff, unrankedSeatCutoff } from "./retention"
 
 const at = (iso: string) => new Date(iso)
 
@@ -7,6 +7,11 @@ describe("the periods", () => {
   it("are the ones the owner confirmed on 6 November 2026 and the Privacy Policy states", () => {
     expect(TABLE_RETENTION_DAYS).toBe(30)
     expect(FEEDBACK_RETENTION_MONTHS).toBe(12)
+  })
+
+  it("are the ones the owner decided on 11 October 2026 for the games that are written down: their state a day after the table was last written, the seats of an unranked game a year after it ended", () => {
+    expect(FINISHED_STATE_RETENTION_HOURS).toBe(24)
+    expect(UNRANKED_SEAT_RETENTION_MONTHS).toBe(12)
   })
 })
 
@@ -45,6 +50,22 @@ describe("feedbackCutoff", () => {
     const now = at("2026-11-06T03:17:00.000Z")
     feedbackCutoff(now)
     tableCutoff(now)
+    finishedStateCutoff(now)
+    unrankedSeatCutoff(now)
     expect(now.toISOString()).toBe("2026-11-06T03:17:00.000Z")
+  })
+})
+
+describe("finishedStateCutoff", () => {
+  it("is 24 hours before now, to the millisecond, across a day and a month", () => {
+    expect(finishedStateCutoff(at("2026-11-06T12:00:00.123Z")).toISOString()).toBe("2026-11-05T12:00:00.123Z")
+    expect(finishedStateCutoff(at("2026-12-01T00:30:00.000Z")).toISOString()).toBe("2026-11-30T00:30:00.000Z")
+  })
+})
+
+describe("unrankedSeatCutoff", () => {
+  it("is the same moment 12 months earlier, as the feedback's is", () => {
+    expect(unrankedSeatCutoff(at("2026-11-06T03:17:45.678Z")).toISOString()).toBe("2025-11-06T03:17:45.678Z")
+    expect(unrankedSeatCutoff(at("2028-02-29T10:00:00.000Z")).toISOString()).toBe("2027-02-28T10:00:00.000Z")
   })
 })
