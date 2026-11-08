@@ -29,7 +29,7 @@ Options are the settings of a game, declared as data in its `options`. The kit m
 | `OptionValue`, `OptionValues` | A value (`number`, `string` or `boolean`) and the values of a table by key |
 | `OptionContext` | `{ playerCount? }`: what the constraints need to know about the table |
 | `OptionStatus` | `{ available, reason?, with? }`: `reason` is `"players"`, `"requires"` or `"conflicts"`, and `with` names the options involved |
-| `OptionPreset` | A named combination of values, `{ id, label, help?, values }`, for the `presets` of a definition |
+| `OptionPreset` | A named combination of values, `{ id, values }`, for the `presets` of a definition; its words are the game's ([The words of options and scores](#the-words-of-options-and-scores)) |
 | `defaultOptions(definitions)` | Every option at its `defaultValue`, with no constraint applied |
 | `normalizeOptions(definitions, entry, ctx?)` | The values of every declared option, made valid from anything |
 | `optionStatus(definitions, values, key, ctx?)` | Whether an option is available with these values and this number of players, and why not |
@@ -42,10 +42,10 @@ An option has these fields:
 | Field | Role |
 | --- | --- |
 | `type` | `"number"`, `"choice"` or `"boolean"`; it decides the fields that follow |
-| `label`, `help` | The words shown for the option; `help` is optional |
+| `label`, `help` | Deprecated: the words of an option are the game's, written in its Sanity ([The words of options and scores](#the-words-of-options-and-scores)). What an engine still carries here is shown as written, for a game that has not moved it |
 | `defaultValue` | The value used when none valid is given |
 | `min`, `max`, `step` | `number` only: the range, and the gap between two values counted from `min` (`step` is optional) |
-| `choices` | `choice` only: the `{ value, label }` that can be picked |
+| `choices` | `choice` only: the `{ value }` that can be picked (a `label` is deprecated like the option's) |
 | `group` | `"parameter"` or `"extension"`: the read-only settings dialog of a game's toolbar (`GameSettingsDialog`) lists parameters as rows and extensions as cards |
 | `icon` | A short text, an emoji for instance, drawn beside an extension in that dialog |
 | `requires` | Keys of options that must be active for this one to be |
@@ -93,7 +93,35 @@ export function engineOptionsOf(
 - The value is a boolean, so it switches a `boolean` option only: for a `number` or a `choice` option, `normalizeOptions` puts `defaultValue` back.
 - An expansion's slug and a helper's key are lowercase letters and digits joined by single dashes, and the hub leaves out any other (`SLUG_PATTERN` in `packages/games/src/slug.ts`, `HELPER_KEY` in `packages/catalog/src/sanity.ts`): an option key with a capital letter, such as `fiveDifferent`, is never carried.
 - The gamemaster sets the default of each option in Setup › Mechanics and can switch "In lobby" off for it: a hidden option keeps its default whatever is sent.
-- `label` and `help` are shown as written, in Setup › Mechanics and in the toolbar's `GameSettingsDialog`; nothing translates them.
+- The words of an option in the toolbar's `GameSettingsDialog` are the game's own. Setup › Mechanics, which only the gamemaster reads, shows the option's key when the engine carries no label.
+
+## The words of options and scores
+
+An engine declares no text. The words of an option (its label, its help, the label of each choice), of a preset and of a line of the score are texts of the game, written in its Sanity like its victory phrases: `texts.engineTexts`, a list of `key` and `text` in every language of the game. The engine and the platform meet on the key.
+
+| Key | The words of |
+| --- | --- |
+| `option.<key>.label` | An option; required |
+| `option.<key>.help` | An option, on a line under its label; optional |
+| `option.<key>.choice.<value>` | One choice of a `choice` option; required |
+| `preset.<id>.label`, `preset.<id>.help` | A preset; the label is required |
+| `score.<key>` | A line of the score, the `key` of a `detail` row; required when the definition lists it in `scoreLines` |
+
+- `optionLabelKey`, `optionHelpKey`, `choiceLabelKey`, `presetLabelKey`, `presetHelpKey` and `scoreLabelKey` of the kit build the keys, and `engineTextKeys(definition)` lists the ones a definition needs, `required` and `optional`.
+- A text is read in the language asked, else in English, else it reads `[missing: <key>]` on the table: the code covers for nothing (`docs/sanity-and-languages.md`). While an engine still carries a `label` or a `help`, it stands in for a text Sanity does not hold, so a game can move its words one at a time.
+- The gamemaster writes them in Setup › Copy › Options, where the required ones are listed (Launch lists those still missing); the Studio's Copy document, tab "Options and scores", holds the same list.
+- A line of score whose words depend on a number gives the number in `values` and the text has the variable: the template's `detail` row is `{ key: "round", values: { n: 2 }, points }` and its text `Round {n}`. A game whose lines come from its data, such as the families of Courtisans, leaves `scoreLines` out and keeps naming its lines itself.
+
+From `template/packages/engine/src/demo/game.ts`, options that name no text:
+
+```ts
+export const DEMO_OPTIONS: OptionDefinitions = {
+  rounds: { type: "number", defaultValue: 3, min: 1, max: 5 },
+  handSize: { type: "number", defaultValue: 5, min: 3, max: 8 },
+  inverse: { type: "boolean", defaultValue: false },
+  bids: { type: "boolean", defaultValue: true },
+}
+```
 
 ## Speed
 

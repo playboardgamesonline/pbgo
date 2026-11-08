@@ -13,6 +13,7 @@ One line per rule, each linking to the page that owns it. A line that is not tru
 - `clientActions` is typed against the `Action` union ([What clientActions controls](../01-the-game/05-actions.md#what-clientactions-controls)).
 - The error codes are the shared ones and the game's own, in one list ([Errors](../01-the-game/05-actions.md#errors)).
 - `setup` refuses a table it cannot play ([Starting a game](../01-the-game/01-how-a-game-runs.md#starting-a-game)).
+- The engine holds no text: its options and the lines of its score name keys, and their words are written in the game's Sanity ([The words of options and scores](../01-the-game/07-parameters.md#the-words-of-options-and-scores)).
 
 ## What players see and who the game waits for
 

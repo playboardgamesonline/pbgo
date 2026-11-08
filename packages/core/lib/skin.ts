@@ -29,12 +29,15 @@ export type Skin = {
   texts: UiTexts
   /** Error messages replaced in the admin (code → message) */
   errors: Record<string, string>
+  /** The words of the engine's options, presets and score lines, written in Sanity (key → text; the keys are those of `engineTextKeys` in engine-kit) */
+  engineTexts: Record<string, string>
 }
 
 export type UiTexts = Record<UiTextKey, string>
 
-export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "errors">> & {
+export type SkinDefaults = Partial<Omit<Skin, "decor" | "texts" | "errors" | "engineTexts">> & {
   errors?: Record<string, string>
+  engineTexts?: Record<string, string>
   decor?: Partial<Skin["decor"]>
   texts?: Partial<UiTexts>
 }
@@ -64,6 +67,7 @@ export const DEFAULT_SKIN: Skin = {
   victoryPhrases: [missing("victoryPhrases")],
   texts: DEFAULT_TEXTS,
   errors: {},
+  engineTexts: {},
 }
 
 /**
@@ -96,13 +100,29 @@ export function fill(text: string, params: Record<string, string | number> = {})
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m))
 }
 
+/**
+ * The words of one of the engine's options, presets or score lines: the game's Sanity, else the words its engine still carries (`legacy`, for a game that has not moved them), else the marker
+ * of a missing text. `params` fills the variables (`Round {n}`).
+ */
+export function engineText(skin: Pick<Skin, "engineTexts">, key: string, legacy?: string | null, params?: Record<string, string | number>): string {
+  const text = skin.engineTexts[key] ?? legacy
+  return text ? fill(text, params) : missing(key)
+}
+
+/** As `engineText` for words that are optional, such as the help of an option: nothing when there are none. */
+export function optionalEngineText(skin: Pick<Skin, "engineTexts">, key: string, legacy?: string | null, params?: Record<string, string | number>): string | null {
+  const text = skin.engineTexts[key] ?? legacy
+  return text ? fill(text, params) : null
+}
+
 export function mergeSkin(base: Skin, over: SkinDefaults | undefined): Skin {
   if (!over) return base
   return {
     ...base,
-    ...Object.fromEntries(Object.entries(over).filter(([k, v]) => v != null && !["decor", "texts", "errors"].includes(k))),
+    ...Object.fromEntries(Object.entries(over).filter(([k, v]) => v != null && !["decor", "texts", "errors", "engineTexts"].includes(k))),
     decor: { ...base.decor, ...Object.fromEntries(Object.entries(over.decor ?? {}).filter(([, v]) => v != null)) },
     texts: { ...base.texts, ...Object.fromEntries(Object.entries(over.texts ?? {}).filter(([, v]) => typeof v === "string" && v.trim())) },
     errors: { ...base.errors, ...Object.fromEntries(Object.entries(over.errors ?? {}).filter(([, v]) => typeof v === "string" && v.trim())) },
+    engineTexts: { ...base.engineTexts, ...Object.fromEntries(Object.entries(over.engineTexts ?? {}).filter(([, v]) => typeof v === "string" && v.trim())) },
   }
 }

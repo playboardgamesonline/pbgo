@@ -13,6 +13,7 @@ export const createTexts = (extraFields: FieldDefinition[] = [], extraGroups: Fi
     { name: "content", title: "Content", default: true },
     ...UI_TEXT_GROUPS.map((g) => ({ name: g.name, title: `UI · ${g.title}` })),
     { name: "errors", title: "Errors" },
+    { name: "engine", title: "Options and scores" },
     ...extraGroups,
   ],
   fields: [
@@ -44,6 +45,23 @@ export const createTexts = (extraFields: FieldDefinition[] = [], extraGroups: Fi
             defineField({ name: "message", title: "Message", type: "localeString" }),
           ],
           preview: { select: { title: "code", subtitle: "message.en" } },
+        },
+      ],
+    }),
+    defineField({
+      name: "engineTexts",
+      title: "Options and scores",
+      type: "array",
+      group: "engine",
+      of: [
+        {
+          type: "object",
+          name: "engineText",
+          fields: [
+            defineField({ name: "key", title: "Key", type: "string" }),
+            defineField({ name: "text", title: "Text", type: "localeText" }),
+          ],
+          preview: { select: { title: "key", subtitle: "text.en" } },
         },
       ],
     }),

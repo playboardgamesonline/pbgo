@@ -27,6 +27,7 @@ const GROUPS: { id: CopyGroup; title: string; description: string }[] = [
   { id: "game", title: "Game", description: "Turns, history and absent players." },
   { id: "end", title: "End", description: "Scoreboard, victory phrases and replay." },
   { id: "errors", title: "Errors", description: "Messages shown when an action is refused." },
+  { id: "engine", title: "Options", description: "The words of the table's options and of the lines of the score." },
 ]
 
 const variables = (text: string) => [...new Set(text.match(/\{\w+\}/g) ?? [])]

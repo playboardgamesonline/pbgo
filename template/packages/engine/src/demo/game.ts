@@ -17,11 +17,12 @@ import { type Action, type Card, CARD_COLORS, type State, type DemoOptions, MAX_
 type PlayCard = Extract<Action, { type: "playCard" }>
 type Bid = Extract<Action, { type: "bid" }>
 
+// The options name no text: their words (`option.rounds.label`, `option.handSize.help`…) are written in the game's Sanity, in every language of the game
 export const DEMO_OPTIONS: OptionDefinitions = {
-  rounds: { type: "number", label: "Nombre de manches", defaultValue: 3, min: 1, max: 5 },
-  handSize: { type: "number", label: "Cartes par joueur", help: "Réduit automatiquement si le paquet ne suffit pas", defaultValue: 5, min: 3, max: 8 },
-  inverse: { type: "boolean", label: "La plus basse l'emporte", defaultValue: false },
-  bids: { type: "boolean", label: "Annonces secrètes", help: "Chacun annonce ses plis en secret ; +1 point si l'annonce est exacte", defaultValue: true },
+  rounds: { type: "number", defaultValue: 3, min: 1, max: 5 },
+  handSize: { type: "number", defaultValue: 5, min: 3, max: 8 },
+  inverse: { type: "boolean", defaultValue: false },
+  bids: { type: "boolean", defaultValue: true },
 }
 
 const DECK: Card[] = CARD_COLORS.flatMap((color) => Array.from({ length: MAX_VALUE }, (_, i) => ({ id: `${color}-${i + 1}`, color, value: i + 1 })))
@@ -120,7 +121,8 @@ export function results(state: State): Results {
         playerId: t.playerId,
         total: t.total,
         rank: 1 + totals.filter((o) => o.total > t.total).length,
-        detail: t.j.pointsPerRound.map((points, m) => ({ key: `round-${m + 1}`, label: `Manche ${m + 1}`, points })),
+        // One line per round: its words (`score.round`, "Round {n}") are written in the game's Sanity, the engine gives the key and the number
+        detail: t.j.pointsPerRound.map((points, m) => ({ key: "round", values: { n: m + 1 }, points })),
       }))
       .sort((a, b) => a.rank - b.rank),
     winners: totals.filter((t) => t.total === best).map((t) => t.playerId),
@@ -160,6 +162,7 @@ export const demo: GameDefinition<State, Action, PlayerView> = {
   minPlayers: 2,
   maxPlayers: 6,
   options: DEMO_OPTIONS,
+  scoreLines: ["round"],
   clientActions: ["bid", "playCard"],
   waitingFor: waiting,
   autoPlayFor,

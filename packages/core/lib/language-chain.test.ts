@@ -31,6 +31,17 @@ const skinOf = (doc: SkinDoc, locale: Locale) => mergeSkin(baseSkin({} as GameBi
 describe("the skin of a game", () => {
   const victoryPhrases = { _type: "localeStringList", fr: ["Bravo"], en: ["Well played"] }
 
+  it("reads the words of the engine's options and score lines in the language asked, then in English", () => {
+    const engineTexts = [
+      { key: "option.rounds.label", text: { _type: "localeText", en: "Rounds", fr: "Manches" } },
+      { key: "option.fast.label", text: { _type: "localeText", en: "Fast game" } },
+      { key: "score.round", text: { _type: "localeText", fr: "Manche {n}" } },
+    ]
+    expect(skinOf(texts({ engineTexts }), "fr").engineTexts).toEqual({ "option.rounds.label": "Manches", "option.fast.label": "Fast game", "score.round": "Manche {n}" })
+    expect(skinOf(texts({ engineTexts }), "de").engineTexts).toEqual({ "option.rounds.label": "Rounds", "option.fast.label": "Fast game" })
+    expect(skinOf(texts({}), "fr").engineTexts).toEqual({})
+  })
+
   it("reads the language asked, then English", () => {
     expect(skinOf(texts({ victoryPhrases }), "fr").victoryPhrases).toEqual(["Bravo"])
     expect(skinOf(texts({ victoryPhrases }), "en").victoryPhrases).toEqual(["Well played"])

@@ -8,7 +8,11 @@ export type PlayerResult = {
   playerId: string
   total: number
   rank: number
-  detail: { key: string; label: string; points: number }[]
+  /**
+   * The lines of the score: `key` says which (`scoreLabelKey` gives the text of the game's Sanity), `values` fills the variables of that text (`Round {n}`), `points` is the line's value.
+   * `label` is the words the engine still carries, shown as written while a game has not moved them to Sanity.
+   */
+  detail: { key: string; /** @deprecated The words of a line are a text of the game, in its Sanity. */ label?: string; values?: Record<string, string | number>; points: number }[]
 }
 
 export type Results = { players: PlayerResult[]; winners: string[] }
@@ -25,6 +29,11 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
   options: OptionDefinitions
   /** Option combinations offered in one click in the lobby (optional). */
   presets?: OptionPreset[]
+  /**
+   * The keys of the lines of score the engine can put in `Results` (`detail[].key`), when they are known in advance: the texts they need are then listed in the gamemaster's
+   * Copy page and checked by Launch. A game whose lines come from its data (the families of Courtisans) leaves it out.
+   */
+  scoreLines?: readonly string[]
   clientActions: readonly Action["type"][]
   /**
    * `seed`: an integer below 2^52 drawn by the server for each game; the same seed and the same actions

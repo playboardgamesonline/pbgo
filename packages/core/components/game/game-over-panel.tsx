@@ -1,6 +1,6 @@
 "use client"
 
-import type { PlayerResult } from "@pbgo/engine-kit"
+import { scoreLabelKey, type PlayerResult } from "@pbgo/engine-kit"
 import { LinkForwardIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { animate, motion } from "motion/react"
@@ -10,6 +10,7 @@ import { GAME_OVER_TIMING, rowDelay, signed, type GameOverEntry } from "../../li
 import { EASE_STANDARD, type Motion } from "../../lib/motion-preference"
 import { seatAvatar } from "../../lib/seat-avatar"
 import { gameOverStyle, type GameOverTheme, type SeatTheme } from "../../lib/ui-theme"
+import { useEngineTexts } from "../skin-provider"
 import { SeatAvatarMark, SeatLabel } from "./seat-label"
 
 // The panel of the end screen, apart from `game-over.tsx` (which reads the game, shares the result and replays): nothing here needs
@@ -17,22 +18,27 @@ import { SeatAvatarMark, SeatLabel } from "./seat-label"
 
 /** The score chips of a result, in the panel's ink: one `label +n` per line of the detail */
 function Details({ result, large, centered }: { result: PlayerResult; large?: boolean; centered?: boolean }) {
+  const { text } = useEngineTexts()
   return (
     <div className={cn("flex flex-wrap items-center", centered ? "justify-center" : "justify-start", large ? "gap-2" : "gap-1.5")}>
-      {result.detail.map((d) => (
-        <span
-          key={d.key}
-          title={`${d.label} : ${signed(d.points)}`}
-          className={cn(
-            "flex shrink-0 items-center gap-1.5 rounded-md border border-current/15 bg-current/10 font-display font-bold tabular-nums",
-            large ? "h-8 px-3 text-sm short:h-7 short:px-2.5 short:text-xs" : "h-7 px-2.5 text-xs short:h-6 short:px-2 short:text-[11px]",
-          )}
-          style={{ opacity: d.points === 0 ? 0.45 : 1 }}
-        >
-          <span className="font-sans font-medium opacity-60">{d.label}</span>
-          {signed(d.points)}
-        </span>
-      ))}
+      {result.detail.map((d, i) => {
+        // The words of a line are the game's, in its Sanity; the engine gives the line's key (and the values of its variables)
+        const label = text(scoreLabelKey(d.key), d.label, d.values)
+        return (
+          <span
+            key={`${d.key}:${i}`}
+            title={`${label} : ${signed(d.points)}`}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-md border border-current/15 bg-current/10 font-display font-bold tabular-nums",
+              large ? "h-8 px-3 text-sm short:h-7 short:px-2.5 short:text-xs" : "h-7 px-2.5 text-xs short:h-6 short:px-2 short:text-[11px]",
+            )}
+            style={{ opacity: d.points === 0 ? 0.45 : 1 }}
+          >
+            <span className="font-sans font-medium opacity-60">{label}</span>
+            {signed(d.points)}
+          </span>
+        )
+      })}
     </div>
   )
 }

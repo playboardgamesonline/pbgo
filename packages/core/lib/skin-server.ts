@@ -1,4 +1,5 @@
 import "server-only"
+import { engineTextKeys } from "@pbgo/engine-kit"
 import { cache } from "react"
 import { sanityClient } from "../sanity/client"
 import { type SanityImageSource, urlFor } from "../sanity/image"
@@ -29,6 +30,7 @@ type SkinDoc = {
   } | null
   texts?: ({
     errorMessages?: { code?: string; message?: Localized }[]
+    engineTexts?: { key?: string; text?: Localized }[]
     victoryPhrases?: Localized<string[]>
   } & Record<string, unknown>) | null
 } | null
@@ -38,7 +40,7 @@ const IMG = "{asset, crop, hotspot, \"ratio\": asset->metadata.dimensions.aspect
 /** GROQ of the skin from the `interface` and `texts` documents: the published ones by default, the draft ids when the admin reads what the Studio shows. The ids are constants of the server, never user input. */
 export const skinQuery = (ids = { interface: "interface", texts: "texts" }) => `{
   "interface": *[_id == "${ids.interface}"][0]{ "background": background${IMG}, "pattern": pattern${IMG}, "decorTop": decorTop${IMG}, "decorBottom": decorBottom${IMG}, "hero": hero${IMG}, "hostIcon": hostIcon${IMG}, playerColors, desktopOnly },
-  "texts": *[_id == "${ids.texts}"][0]{ victoryPhrases, ui_home, ui_lobby, ui_game, errorMessages }
+  "texts": *[_id == "${ids.texts}"][0]{ victoryPhrases, ui_home, ui_lobby, ui_game, errorMessages, engineTexts }
 }`
 
 export const SKIN_QUERY = skinQuery()
@@ -78,6 +80,11 @@ export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = DEFAULT_
     const message = (e.code && e.code in CORE_ERROR_MESSAGES ? written(e.message, locale) : translate(e.message, locale))?.trim()
     return e.code && message ? [[e.code, message]] : []
   })
+  // The words of the engine's options and score lines are the game's own: the language asked, else English, else nothing
+  const engineTexts = (t?.engineTexts ?? []).flatMap((e) => {
+    const text = translate(e.text, locale)?.trim()
+    return e.key && text ? [[e.key, text]] : []
+  })
   return {
     decor: {
       background: image(game, ui?.background, 2400),
@@ -90,6 +97,7 @@ export function toSkin(game: SanityGame, doc: SkinDoc, locale: Locale = DEFAULT_
     ...(colors.length ? { playerColors: colors } : {}),
     ...(typeof ui?.desktopOnly === "boolean" ? { desktopOnly: ui.desktopOnly } : {}),
     errors: Object.fromEntries(errors),
+    engineTexts: Object.fromEntries(engineTexts),
     ...(phrases.length ? { victoryPhrases: phrases } : {}),
     texts: labels,
   }
@@ -103,6 +111,7 @@ function reportMissing(game: GameModule, locale: Locale, skin: Skin) {
   const keys = [
     ...(skin.victoryPhrases.some(isMissing) ? ["victoryPhrases"] : []),
     ...(game.binding.ERROR_CODES ?? []).filter((code) => !skin.errors[code]).map((code) => `errorMessages.${code}`),
+    ...(game.binding.GAME ? engineTextKeys(game.binding.GAME).required.filter((key) => !skin.engineTexts[key]).map((key) => `engineTexts.${key}`) : []),
   ]
   for (const key of keys) {
     const id = `${game.slug}:${locale}:${key}`

@@ -125,10 +125,10 @@ export function MechanicsPage({
                 return (
                   <li key={key} className="grid items-center gap-4 py-3 sm:grid-cols-[minmax(0,1fr)_14rem_9rem]">
                     <div className="min-w-0">
-                      <p className="text-sm">{def.label}</p>
+                      <p className="text-sm">{def.label ?? key}</p>
                       {def.help && <p className="text-xs text-muted-foreground">{def.help}</p>}
                     </div>
-                    <OptionControl def={def} value={draft.options.defaults[key] ?? def.defaultValue} onChange={(v) => setOption(key, v)} disabled={disabled} />
+                    <OptionControl name={key} def={def} value={draft.options.defaults[key] ?? def.defaultValue} onChange={(v) => setOption(key, v)} disabled={disabled} />
                     <div className="flex items-center justify-end gap-2">
                       <Switch id={`visible-${key}`} checked={visible} onCheckedChange={(v) => toggleHidden(key, v)} disabled={disabled} />
                       <Label htmlFor={`visible-${key}`} className="text-xs text-muted-foreground">
@@ -243,24 +243,24 @@ export function MechanicsPage({
   )
 }
 
-function OptionControl({ def, value, onChange, disabled }: { def: OptionDefinition; value: OptionValue; onChange: (v: OptionValue) => void; disabled: boolean }) {
-  if (def.type === "boolean") return <Switch checked={value === true} onCheckedChange={onChange} disabled={disabled} aria-label={def.label} />
+function OptionControl({ name, def, value, onChange, disabled }: { name: string; def: OptionDefinition; value: OptionValue; onChange: (v: OptionValue) => void; disabled: boolean }) {
+  if (def.type === "boolean") return <Switch checked={value === true} onCheckedChange={onChange} disabled={disabled} aria-label={def.label ?? name} />
   if (def.type === "choice")
     return (
       <Select value={String(value)} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="w-full" aria-label={def.label}>
+        <SelectTrigger className="w-full" aria-label={def.label ?? name}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {def.choices.map((c) => (
             <SelectItem key={c.value} value={c.value}>
-              {c.label}
+              {c.label ?? c.value}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
     )
   return (
-    <Input type="number" aria-label={def.label} min={def.min} max={def.max} step={def.step ?? 1} value={Number(value)} onChange={(e) => onChange(Number(e.target.value))} disabled={disabled} />
+    <Input type="number" aria-label={def.label ?? name} min={def.min} max={def.max} step={def.step ?? 1} value={Number(value)} onChange={(e) => onChange(Number(e.target.value))} disabled={disabled} />
   )
 }

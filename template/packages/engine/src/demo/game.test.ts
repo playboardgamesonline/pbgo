@@ -49,6 +49,21 @@ describe("La Plus Haute", () => {
     }
   })
 
+  it("carries no text: the words of its options and of its score lines are the game's, in its Sanity", () => {
+    for (const [key, def] of Object.entries(demo.options)) {
+      expect(def, key).not.toHaveProperty("label")
+      expect(def, key).not.toHaveProperty("help")
+    }
+    const ended = playOn(demo, demo.setup({ players: players(3), options: { rounds: 3, handSize: 4, bids: false }, seed: 5 }))
+    const lines = demo.view(ended, "j0").results!.players.flatMap((j) => j.detail)
+    expect(lines).toHaveLength(9)
+    for (const line of lines) {
+      expect(line).not.toHaveProperty("label")
+      expect(demo.scoreLines).toContain(line.key)
+    }
+    expect(lines.slice(0, 3).map((l) => l.values)).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }])
+  })
+
   it("shows only the player's own hand", () => {
     const e = demo.setup({ players: players(3), options: {}, seed: 4 })
     const view = demo.view(e, "j1")

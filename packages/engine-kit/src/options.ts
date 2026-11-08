@@ -10,7 +10,9 @@
  * - `players`      : number of players for which the option is available.
  */
 type OptionBase = {
-  label: string
+  /** @deprecated The words of an option are texts of the game: they live in its Sanity (`texts.engineTexts`, `optionLabelKey`), not in the engine. Shown as written only while a game has not moved them. */
+  label?: string
+  /** @deprecated As `label`: `optionHelpKey`. */
   help?: string
   group?: "parameter" | "extension"
   icon?: string
@@ -21,7 +23,7 @@ type OptionBase = {
 
 export type OptionDefinition =
   | (OptionBase & { type: "number"; defaultValue: number; min: number; max: number; step?: number })
-  | (OptionBase & { type: "choice"; defaultValue: string; choices: { value: string; label: string }[] })
+  | (OptionBase & { type: "choice"; defaultValue: string; choices: { value: string; /** @deprecated As the `label` of an option: `choiceLabelKey`. */ label?: string }[] })
   | (OptionBase & { type: "boolean"; defaultValue: boolean })
 
 export type OptionDefinitions = Record<string, OptionDefinition>
@@ -29,8 +31,8 @@ export type OptionDefinitions = Record<string, OptionDefinition>
 export type OptionValue = number | string | boolean
 export type OptionValues = Record<string, OptionValue>
 
-/** Named combination of options, offered in one click in the lobby (e.g. "Quick game", "Expert"). */
-export type OptionPreset = { id: string; label: string; help?: string; values: OptionValues }
+/** Named combination of options, offered in one click in the lobby (e.g. "Quick game", "Expert"). Its words are texts of the game too: `presetLabelKey`, `presetHelpKey`. */
+export type OptionPreset = { id: string; /** @deprecated As the `label` of an option. */ label?: string; /** @deprecated As the `label` of an option. */ help?: string; values: OptionValues }
 
 export type OptionContext = { playerCount?: number }
 
