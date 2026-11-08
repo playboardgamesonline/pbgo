@@ -13,7 +13,9 @@ const h = vi.hoisted(() => ({
   /** The paths of the objects in the `feedback` bucket */
   objects: new Set<string>(),
   log: [] as string[],
-  fail: { games: null as string | null, presence: null as string | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false },
+  fail: { games: null as string | null, presence: null as string | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false, rpc: {} as Record<string, string> },
+  /** What each clean-up function of the database answers, one answer for each call: how many rows it deleted */
+  rpcAnswers: {} as Record<string, number[]>,
   removals: 0,
   /** Runs once, right before the next delete looks for its rows: another run of the job that gets there first */
   beforeDelete: null as (() => void) | null,
@@ -83,6 +85,12 @@ vi.mock("./supabase", () => {
   }
   const db = {
     from: (table: string) => new Query(table),
+    rpc: async (name: string, args: { p_before: string; p_limit: number; p_dry: boolean }) => {
+      h.log.push(`rpc ${name} ${args.p_before} ${args.p_limit} ${args.p_dry}`)
+      const failure = h.fail.rpc[name]
+      if (failure) return { data: null, error: { message: failure } }
+      return { data: h.rpcAnswers[name]?.shift() ?? 0, error: null }
+    },
     storage: {
       from: (bucket: string) => ({
         remove: async (paths: string[]) => {
@@ -97,7 +105,7 @@ vi.mock("./supabase", () => {
   return { supabaseAdmin: () => db }
 })
 
-import { PURGE_BATCH_SIZE, PURGE_MAX_BATCHES, purgeExpired } from "./retention"
+import { FOLD_BATCH_SIZE, PURGE_BATCH_SIZE, PURGE_MAX_BATCHES, STATE_BATCH_SIZE, SWEEP_MAX_BATCHES, purgeExpired } from "./retention"
 
 const NOW = new Date("2026-11-06T12:00:00.000Z")
 const DAY = 24 * 60 * 60 * 1000
@@ -137,6 +145,8 @@ beforeEach(() => {
   h.fail.removalCall = 1
   h.fail.feedbackDelete = null
   h.fail.silentDelete = false
+  h.fail.rpc = {}
+  h.rpcAnswers = {}
   h.removals = 0
   h.beforeDelete = null
 })
@@ -185,7 +195,7 @@ describe("tables", () => {
 
   it("tells the moments it measured against", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1) })
+    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO })
   })
 })
 
@@ -322,6 +332,67 @@ describe("feedback", () => {
   })
 })
 
+describe("the states of the tables that are over", () => {
+  it("asks the database to delete those that were last written a day ago, with the cutoff of the run", async () => {
+    h.rpcAnswers.drop_finished_states = [3]
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ states: 3, errors: [] })
+    expect(h.log).toContain(`rpc drop_finished_states ${daysAgo(1)} ${STATE_BATCH_SIZE} false`)
+  })
+
+  it("goes on while a batch is full and stops at the first that is not", async () => {
+    h.rpcAnswers.drop_finished_states = [STATE_BATCH_SIZE, STATE_BATCH_SIZE, 20, 999]
+    const report = await purgeExpired({ now: NOW })
+    expect(report.states).toBe(STATE_BATCH_SIZE * 2 + 20)
+    expect(h.log.filter((line) => line.startsWith("rpc drop_finished_states"))).toHaveLength(3)
+  })
+
+  it("stops after a bounded number of batches, and the next run finishes", async () => {
+    h.rpcAnswers.drop_finished_states = Array.from({ length: SWEEP_MAX_BATCHES + 5 }, () => STATE_BATCH_SIZE)
+    const report = await purgeExpired({ now: NOW })
+    expect(report.states).toBe(STATE_BATCH_SIZE * SWEEP_MAX_BATCHES)
+    expect(h.log.filter((line) => line.startsWith("rpc drop_finished_states"))).toHaveLength(SWEEP_MAX_BATCHES)
+  })
+
+  it("runs on its own: a failure here is reported and holds nothing else back", async () => {
+    h.tables.games = [table("courtisans", "AAAA", 31)]
+    h.tables.feedback = [feedback("f1", "2025-01-01T00:00:00.000Z")]
+    h.fail.rpc.drop_finished_states = "function public.drop_finished_states does not exist"
+    h.rpcAnswers.fold_old_results = [4]
+    const report = await purgeExpired({ now: NOW })
+    expect(report.errors).toEqual(["states: function public.drop_finished_states does not exist"])
+    expect(report).toMatchObject({ states: 0, seats: 4, tables: 1, feedback: 1 })
+    expect(codes()).toEqual([])
+    expect(ids()).toEqual([])
+  })
+})
+
+describe("the seats of the old unranked games", () => {
+  it("asks the database to fold those of the games that ended a year ago, with the cutoff of the run", async () => {
+    h.rpcAnswers.fold_old_results = [12]
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ seats: 12, errors: [] })
+    expect(h.log).toContain(`rpc fold_old_results ${YEAR_AGO} ${FOLD_BATCH_SIZE} false`)
+  })
+
+  it("goes through a backlog in batches, a bounded number of them a night", async () => {
+    h.rpcAnswers.fold_old_results = [FOLD_BATCH_SIZE, 7]
+    expect((await purgeExpired({ now: NOW })).seats).toBe(FOLD_BATCH_SIZE + 7)
+    h.log.length = 0
+    h.rpcAnswers.fold_old_results = Array.from({ length: SWEEP_MAX_BATCHES + 5 }, () => FOLD_BATCH_SIZE)
+    expect((await purgeExpired({ now: NOW })).seats).toBe(FOLD_BATCH_SIZE * SWEEP_MAX_BATCHES)
+    expect(h.log.filter((line) => line.startsWith("rpc fold_old_results"))).toHaveLength(SWEEP_MAX_BATCHES)
+  })
+
+  it("reports a refusal of the database, and the states are still dropped", async () => {
+    h.fail.rpc.fold_old_results = "permission denied for function fold_old_results"
+    h.rpcAnswers.drop_finished_states = [2]
+    const report = await purgeExpired({ now: NOW })
+    expect(report.errors).toEqual(["seats: permission denied for function fold_old_results"])
+    expect(report.states).toBe(2)
+  })
+})
+
 describe("two runs at once (Vercel can call a job twice)", () => {
   it("is not an error when the other run deleted the rows first", async () => {
     h.tables.feedback = [feedback("f1", "2025-01-01T00:00:00.000Z"), feedback("f2", "2025-01-02T00:00:00.000Z", null)]
@@ -378,5 +449,13 @@ describe("a dry run", () => {
     expect(h.log.some((line) => line.startsWith("delete") || line.startsWith("remove"))).toBe(false)
     const real = await purgeExpired({ now: NOW })
     expect(real).toMatchObject({ dryRun: false, tables: 1, feedback: 2, screenshots: 1, presence: 1 })
+  })
+
+  it("asks the database to count the states and the seats once each, without deleting them", async () => {
+    h.rpcAnswers.drop_finished_states = [STATE_BATCH_SIZE * 3]
+    h.rpcAnswers.fold_old_results = [FOLD_BATCH_SIZE * 2]
+    const report = await purgeExpired({ now: NOW, dryRun: true })
+    expect(report).toMatchObject({ dryRun: true, states: STATE_BATCH_SIZE * 3, seats: FOLD_BATCH_SIZE * 2, errors: [] })
+    expect(h.log.filter((line) => line.startsWith("rpc"))).toEqual([`rpc drop_finished_states ${daysAgo(1)} ${STATE_BATCH_SIZE} true`, `rpc fold_old_results ${YEAR_AGO} ${FOLD_BATCH_SIZE} true`])
   })
 })

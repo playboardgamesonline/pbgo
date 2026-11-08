@@ -63,6 +63,14 @@ export function GameClient({ code, data }: { code: string; data?: unknown }) {
       </StartScreen>
     )
 
+  // A game that ended a while ago has no board: the table lets go of its state a day after its last write (`FINISHED_STATE_RETENTION_HOURS`), and what the game was stays as a result
+  if (game?.status === "over" && !game.view)
+    return (
+      <StartScreen title="This game is over" subtitle="The table is closed.">
+        <Button onClick={() => router.replace(gamePath(SLUG))}>Back to the game</Button>
+      </StartScreen>
+    )
+
   // The table is being read, it is on its way to the platform's page, or the visitor sits at it and its board is about to be drawn: the platform's screen, which the start screen goes on with
   if (!game || waiting || game.meId) return <StartScreen title="Loading the table" busy />
 

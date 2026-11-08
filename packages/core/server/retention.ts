@@ -1,5 +1,5 @@
 import "server-only"
-import { feedbackCutoff, presenceCutoff, tableCutoff } from "../lib/retention"
+import { feedbackCutoff, finishedStateCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
 import { supabaseAdmin } from "./supabase"
 import { FEEDBACK_BUCKET } from "./tasks"
 
@@ -7,16 +7,24 @@ import { FEEDBACK_BUCKET } from "./tasks"
 export const PURGE_BATCH_SIZE = 100
 /** A run deletes this many batches at most (5,000 feedback): a backlog is finished by the next nights and a run stays short. */
 export const PURGE_MAX_BATCHES = 50
+/** The seats of the old unranked games go in batches of this size, and the states of the tables that are over in batches of the second (`fold_old_results` and `drop_finished_states`, migration 0008); a run does 20 batches at most of each. */
+export const FOLD_BATCH_SIZE = 1000
+export const STATE_BATCH_SIZE = 500
+export const SWEEP_MAX_BATCHES = 20
 
 export type PurgeReport = {
   /** Nothing was deleted: the counts are what a real run would delete now */
   dryRun: boolean
-  /** A table last written before the first, a feedback received before the second, a member last seen before the third, is old enough (`lib/retention.ts`) */
-  cutoffs: { tables: string; feedback: string; presence: string }
+  /** A table last written before the first, a feedback received before the second, a member last seen before the third, the state of a table that is over before the fourth, the seats of an unranked game that ended before the fifth, is old enough (`lib/retention.ts`) */
+  cutoffs: { tables: string; feedback: string; presence: string; states: string; seats: string }
   tables: number
   feedback: number
   /** The members' rows of `member_presence` (the last time each was seen on the site) */
   presence: number
+  /** The states of tables that are over, whose game is written down (`games.state`) */
+  states: number
+  /** The seats of unranked games, folded into the totals of their players (`game_participants`) */
+  seats: number
   /** The screenshots of those feedback, removed from the bucket before their rows */
   screenshots: number
   /** One line per job that failed (the other one still ran); empty when all went well */
@@ -27,13 +35,20 @@ const messageOf = (error: unknown) => (error instanceof Error ? error.message : 
 
 /**
  * The nightly clean-up of what the Privacy Policy promises (PLT-113): the tables written more than `TABLE_RETENTION_DAYS` ago, the
- * feedback received more than `FEEDBACK_RETENTION_MONTHS` ago, each feedback with its screenshot, and the members' last sight on the site
- * more than `PRESENCE_RETENTION_DAYS` ago. Called by `GET /api/cron/purge`, which Vercel Cron runs every night. Idempotent: a run that stops half way
- * (an error, the batch limit) is finished by the next one. The jobs are independent, one that fails is reported in `errors` and does not hold the others back.
+ * feedback received more than `FEEDBACK_RETENTION_MONTHS` ago, each feedback with its screenshot, the members' last sight on the site
+ * more than `PRESENCE_RETENTION_DAYS` ago, and, for the games that are written down (PLT-13), the state of a table that is over a day after its last write and the seats of an unranked game a year after it ended. Called by
+ * `GET /api/cron/purge`, which Vercel Cron runs every night. Idempotent: a run that stops half way (an error, the batch limit) is finished by the next one. The jobs are independent, one that fails is reported in
+ * `errors` and does not hold the others back.
  */
 export async function purgeExpired({ now = new Date(), dryRun = false }: { now?: Date; dryRun?: boolean } = {}): Promise<PurgeReport> {
-  const cutoffs = { tables: tableCutoff(now).toISOString(), feedback: feedbackCutoff(now).toISOString(), presence: presenceCutoff(now).toISOString() }
-  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, screenshots: 0, errors: [] }
+  const cutoffs = {
+    tables: tableCutoff(now).toISOString(),
+    feedback: feedbackCutoff(now).toISOString(),
+    presence: presenceCutoff(now).toISOString(),
+    states: finishedStateCutoff(now).toISOString(),
+    seats: unrankedSeatCutoff(now).toISOString(),
+  }
+  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, states: 0, seats: 0, screenshots: 0, errors: [] }
   try {
     report.tables = await purgeTables(cutoffs.tables, dryRun)
   } catch (error) {
@@ -45,11 +60,38 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     report.errors.push(`presence: ${messageOf(error)}`)
   }
   try {
+    report.states = await sweep("drop_finished_states", cutoffs.states, dryRun, STATE_BATCH_SIZE)
+  } catch (error) {
+    report.errors.push(`states: ${messageOf(error)}`)
+  }
+  try {
+    report.seats = await sweep("fold_old_results", cutoffs.seats, dryRun, FOLD_BATCH_SIZE)
+  } catch (error) {
+    report.errors.push(`seats: ${messageOf(error)}`)
+  }
+  try {
     await purgeFeedback(cutoffs.feedback, dryRun, report)
   } catch (error) {
     report.errors.push(`feedback: ${messageOf(error)}`)
   }
   return report
+}
+
+/**
+ * Asks a clean-up function of the database (migration 0008) for one batch after another until a batch is not full, or `SWEEP_MAX_BATCHES` have gone: it deletes the old rows it finds, at most `size`, and answers how many.
+ * With `dryRun` it is asked once and counts all of them without deleting. The count is what was done, the batches that went before a failure are lost to the report but not undone, and the next night finds the rest.
+ */
+async function sweep(name: "drop_finished_states" | "fold_old_results", cutoff: string, dryRun: boolean, size: number): Promise<number> {
+  const db = supabaseAdmin()
+  let total = 0
+  for (let batch = 0; batch < SWEEP_MAX_BATCHES; batch++) {
+    const { data, error } = await db.rpc(name, { p_before: cutoff, p_limit: size, p_dry: dryRun })
+    if (error) throw error
+    const count = typeof data === "number" ? data : 0
+    total += count
+    if (dryRun || count < size) break
+  }
+  return total
 }
 
 /** Every game's tables in one statement: they are few, and `updated_at` has an index. */
