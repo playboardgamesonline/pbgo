@@ -28,7 +28,8 @@ async function previewGame(game: PlayableGame) {
     state: null,
     replay: [],
     takeover_votes: [],
-    seen: {},
+    // The made-up players are at the table: seen just now, so that no seat fades as an absent player's
+    seen: Object.fromEntries(players.map((j) => [j.id, new Date().toISOString()])),
     version: 1,
   }
   const started = { ...row, ...newGame(game, row, await loadSetupData(game, row.options)) }
