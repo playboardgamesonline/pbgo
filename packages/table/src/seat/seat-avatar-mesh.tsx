@@ -19,6 +19,7 @@ export function SeatAvatarMesh({
   position,
   size,
   layer = 0,
+  opacity = 1,
 }: {
   nickname: string
   color: string
@@ -28,6 +29,8 @@ export function SeatAvatarMesh({
   position: [number, number, number]
   size: number
   layer?: number
+  /** How opaque the avatar is, 0 to 1 */
+  opacity?: number
 }) {
   const avatar = useMemo(() => seatAvatar({ nickname, color, imageUrl }), [nickname, color, imageUrl])
   const canvas = useSeatAvatarCanvas(avatar, theme)
@@ -44,7 +47,7 @@ export function SeatAvatarMesh({
   return (
     <mesh position={position} rotation-x={-Math.PI / 2} renderOrder={layer} raycast={() => null}>
       <planeGeometry args={[side, side]} />
-      <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+      <meshBasicMaterial map={texture} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
     </mesh>
   )
 }

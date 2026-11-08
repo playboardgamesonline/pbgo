@@ -21,6 +21,8 @@ export type TextStyle = {
   relief?: string
   aura?: string
   shadow?: string
+  /** A line through the lettering, in its colour: a name that is struck out */
+  strike?: boolean
 }
 
 function draw(text: string, style: TextStyle, font: string) {
@@ -96,6 +98,7 @@ function draw(text: string, style: TextStyle, font: string) {
   ctx.shadowColor = "transparent"
   ctx.shadowBlur = 0
   ctx.shadowOffsetY = 0
+  if (style.strike) ctx.fillRect(x - textWidth / 2, y + SIZE * 0.03, textWidth, SIZE * 0.07)
   if (style.relief) {
     const gloss = ctx.createLinearGradient(0, y - SIZE * 0.5, 0, y + SIZE * 0.2)
     gloss.addColorStop(0, "rgba(255,255,255,0.35)")
@@ -142,6 +145,7 @@ export function TableText({
   position,
   yaw = 0,
   font = TABLE_FONT,
+  opacity = 1,
   onClick,
   onHover,
   layer = 0,
@@ -155,6 +159,8 @@ export function TableText({
   yaw?: number
   /** The CSS font of the lettering; default `TABLE_FONT` */
   font?: string
+  /** How opaque the lettering is, 0 to 1 */
+  opacity?: number
   onClick?: () => void
   onHover?: (hovered: boolean) => void
   layer?: number
@@ -164,11 +170,11 @@ export function TableText({
   trailing?: ReactNode
 }) {
   const fontReady = useFontReady(font)
-  const { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow } = style
+  const { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike } = style
   const { texture, ratio, scale, textWidth } = useMemo(
-    () => draw(text, { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow }, font),
+    () => draw(text, { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike }, font),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [text, color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, font, fontReady],
+    [text, color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike, font, fontReady],
   )
   useEffect(() => () => texture.dispose(), [texture])
   const [hovered, setHovered] = useState(false)
@@ -178,7 +184,7 @@ export function TableText({
   useFrame(({ clock }) => {
     if (!material.current) return
     const t = clock.elapsedTime
-    material.current.opacity = holo ? 0.9 + Math.sin(t * 1.6) * 0.05 : 1
+    material.current.opacity = (holo ? 0.9 + Math.sin(t * 1.6) * 0.05 : 1) * opacity
     if (relief) material.current.color.setScalar(0.92 + 0.08 * Math.pow(0.5 + 0.5 * Math.sin(t * 3.1 + text.length), 8))
   })
 

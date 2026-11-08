@@ -40,8 +40,9 @@ export { GAME } from "./game"
 ## Errors
 
 - A player's mistake is `throw new EngineError("<CODE>", "<message>")`: the answer carries the code only, and the message is for tests and debugging.
+- The code is a shared one when the refusal means the same in every game (`INVALID_ACTION`, `INVALID_PHASE`, `NOT_YOUR_TURN`…: [The shared codes](../01-the-game/05-actions.md#the-shared-codes)), and a code of the game's own otherwise, always written as a string literal.
 - The codes are one list in `types.ts` (`FLIP7_ERROR_CODES`), the meaning of each in a comment. `game.test.ts` keeps it free of duplicates, and `simulation.test.ts` fails on a refusal whose code is not in it.
-- The binding's `ERROR_CODES` lists the codes the engine throws and core does not word; their messages are written in Sanity, never in the code ([Error codes](05-wiring-it-in.md#error-codes)).
+- The binding's `ERROR_CODES` lists the game's own codes only; their messages are written in Sanity, never in the code ([Error codes](05-wiring-it-in.md#error-codes)).
 - A bug of the game is not an `EngineError`; the kit's helpers throw `RangeError` for it.
 
 From `games/flip-7/packages/engine/src/actions.ts`:

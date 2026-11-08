@@ -9,5 +9,8 @@ export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https:/
 
 export const CONTACT = "hey@playboardgamesonline.app"
 
-/** Codes the engine throws and core does not know (core has its own for the common ones: not your turn, unknown card…). Their messages are written in Sanity (Gamemaster › Copy › Errors). */
-export const ERROR_CODES = ["INVALID_PHASE", "INVALID_BID"]
+/**
+ * The codes of the game's own refusals: the ones the engine throws that are not shared by every game (`SHARED_ERROR_CODES` of `@pbgo/engine-kit`, which the platform words: not your turn,
+ * unknown card, wrong phase…). Their messages are written in Sanity (Gamemaster › Copy › Errors). `error-codes.test.ts` keeps this list and the engine in step.
+ */
+export const ERROR_CODES = ["INVALID_BID"]

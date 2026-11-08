@@ -12,6 +12,9 @@ export class ApiError extends Error {
   }
 }
 
+/** The refusal of an action on a table that is not in play: the game has ended, or has not started. */
+export const notPlaying = (row: { status: string }) => new ApiError(row.status === "over" ? "GAME_OVER" : "GAME_NOT_STARTED", 409)
+
 export function handle<A extends unknown[]>(fn: (...args: A) => Promise<unknown>) {
   return async (...args: A) => {
     try {

@@ -5,9 +5,9 @@ import { describe, expect, it, vi } from "vitest"
 vi.mock("server-only", () => ({}))
 vi.mock("./locale-server", () => ({ getLocale: async () => "en" }))
 
-import { CORE_ERROR_MESSAGES } from "./api"
+import { ApiClientError, CORE_ERROR_MESSAGES, setErrorOverrides } from "./api"
 import type { GameBinding, GameModule } from "./binding"
-import { LOCALES, type Locale } from "./i18n"
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n"
 import { isMissing } from "./missing"
 import { toSettings } from "./settings-server"
 import { baseSkin, DEFAULT_TEXTS, mergeSkin } from "./skin"
@@ -15,6 +15,12 @@ import { toSkin, type SkinDoc } from "./skin-server"
 
 // The chain of every text: the language asked, then English, then nothing, which a page shows as `[missing: <key>]` when it requires the text and leaves out when it does not.
 // Never French (the default before English) and never the first language that has a value.
+
+/**
+ * The messages of the platform that exist in English only: the code holds English, and the other languages are added by the language pass (twelve languages, PLT-32), not written
+ * one by one in the code. A visitor reads them in English until then. Translate one in every language of `ERROR_TRANSLATIONS`, then take it out of this list.
+ */
+const ENGLISH_ONLY = ["INVALID_PLAYERS", "INVALID_ACTION", "INVALID_PHASE", "GAME_OVER", "UNKNOWN_PLAYER", "INVALID_TARGET", "GAME_NOT_STARTED", "GAME_NOT_OVER", "CODE_UNAVAILABLE", "INVALID_REQUEST"]
 
 const game = { sanityProjectId: "abc123xy" }
 const texts = (fields: Record<string, unknown>): SkinDoc => ({ texts: fields }) as SkinDoc
@@ -131,19 +137,31 @@ describe("the platform's own wording", () => {
     expect(UI_TRANSLATIONS.en.scoreboard).toBe("Scoreboard")
   })
 
-  it("has every error of the platform in every language, English being the one core carries", () => {
+  it("has every error of the platform in English, the one core carries, and in each other language every one but the ones that exist in English only", () => {
     const codes = Object.keys(CORE_ERROR_MESSAGES).sort()
-    for (const locale of LOCALES) expect(Object.keys(ERROR_TRANSLATIONS[locale]).sort(), locale).toEqual(codes)
     expect(CORE_ERROR_MESSAGES).toEqual(ERROR_TRANSLATIONS.en)
+    for (const locale of LOCALES) {
+      const expected = locale === DEFAULT_LOCALE ? codes : codes.filter((code) => !ENGLISH_ONLY.includes(code))
+      expect(Object.keys(ERROR_TRANSLATIONS[locale]).sort(), locale).toEqual(expected)
+    }
+    expect(ENGLISH_ONLY.filter((code) => !(code in CORE_ERROR_MESSAGES)), "a code of ENGLISH_ONLY that core no longer words").toEqual([])
     expect(ERROR_TRANSLATIONS.fr.GAME_FULL).toBe("Cette partie est complète.")
     expect(CORE_ERROR_MESSAGES.GAME_FULL).toBe("This game is full.")
+  })
+
+  it("lets a visitor read an error that has no translation in their language in English", () => {
+    setErrorOverrides(baseSkin({} as GameBinding, "fr").errors)
+    expect(ERROR_TRANSLATIONS.fr.GAME_OVER).toBeUndefined()
+    expect(new ApiClientError("GAME_OVER").message).toBe(CORE_ERROR_MESSAGES.GAME_OVER)
+    expect(new ApiClientError("GAME_FULL").message).toBe(ERROR_TRANSLATIONS.fr.GAME_FULL)
+    setErrorOverrides({})
   })
 
   it("keeps the variables of each label and each message in every language", () => {
     const variables = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort().join(" ")
     for (const locale of LOCALES) {
       for (const key of Object.keys(UI_TRANSLATIONS.en) as (keyof (typeof UI_TRANSLATIONS)["en"])[]) expect(variables(UI_TRANSLATIONS[locale][key]), `${locale}.${key}`).toBe(variables(UI_TRANSLATIONS.en[key]))
-      for (const code of Object.keys(CORE_ERROR_MESSAGES)) expect(variables(ERROR_TRANSLATIONS[locale][code]!), `${locale}.${code}`).toBe(variables(CORE_ERROR_MESSAGES[code]!))
+      for (const code of Object.keys(ERROR_TRANSLATIONS[locale])) expect(variables(ERROR_TRANSLATIONS[locale][code]!), `${locale}.${code}`).toBe(variables(CORE_ERROR_MESSAGES[code]!))
     }
   })
 })
