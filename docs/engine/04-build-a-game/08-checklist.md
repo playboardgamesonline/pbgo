@@ -11,7 +11,7 @@ One line per rule, each linking to the page that owns it. A line that is not tru
 - `apply` never mutates its argument ([Nothing is mutated](../01-the-game/09-state.md#nothing-is-mutated)).
 - A player's mistake is an `EngineError`, a bug a plain error ([Two kinds of errors](../01-the-game/05-actions.md#two-kinds-of-errors)).
 - `clientActions` is typed against the `Action` union ([What clientActions controls](../01-the-game/05-actions.md#what-clientactions-controls)).
-- The error codes are one list ([Errors](../01-the-game/05-actions.md#errors)).
+- The error codes are the shared ones and the game's own, in one list ([Errors](../01-the-game/05-actions.md#errors)).
 - `setup` refuses a table it cannot play ([Starting a game](../01-the-game/01-how-a-game-runs.md#starting-a-game)).
 
 ## What players see and who the game waits for
@@ -31,6 +31,6 @@ One line per rule, each linking to the page that owns it. A line that is not tru
 ## The binding
 
 - `GAME` is exported and the engine is a dependency of the binding ([Exporting `GAME`](05-wiring-it-in.md#exporting-game)).
-- The codes core does not word are in `ERROR_CODES` ([Error codes](05-wiring-it-in.md#error-codes)).
+- The game's own codes, and only those, are in `ERROR_CODES`, and `src/error-codes.test.ts` passes ([Error codes](05-wiring-it-in.md#error-codes)).
 - The game is registered and still not live ([`live` and `indexable`](05-wiring-it-in.md#live-and-indexable)).
 - `pnpm test` and `pnpm typecheck` pass for the whole repo.

@@ -2751,6 +2751,9 @@ importers:
         specifier: 'catalog:'
         version: 0.187.0
     devDependencies:
+      '@pbgo/engine-kit':
+        specifier: workspace:*
+        version: link:../packages/engine-kit
       '@pbgo/tsconfig':
         specifier: workspace:*
         version: link:../packages/tsconfig

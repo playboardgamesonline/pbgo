@@ -1,3 +1,4 @@
+import { SHARED_ERROR_CODES } from "@pbgo/engine-kit"
 import { afterEach, describe, expect, it } from "vitest"
 import { ApiClientError, CORE_ERROR_MESSAGES, setErrorOverrides } from "./api"
 
@@ -25,5 +26,16 @@ describe("ApiClientError", () => {
 
   it("keeps the code it was built with", () => {
     expect(new ApiClientError("CONFLICT").code).toBe("CONFLICT")
+  })
+})
+
+describe("CORE_ERROR_MESSAGES", () => {
+  it("words every code the engines share, so no game has to", () => {
+    for (const code of SHARED_ERROR_CODES) expect(CORE_ERROR_MESSAGES[code], code).toBeTruthy()
+  })
+
+  it("shows a player the platform's message for a code an engine threw", () => {
+    expect(new ApiClientError("INVALID_PHASE").message).toBe(CORE_ERROR_MESSAGES.INVALID_PHASE)
+    expect(new ApiClientError("GAME_OVER").message).toBe("The game is over.")
   })
 })

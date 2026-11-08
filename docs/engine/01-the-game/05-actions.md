@@ -8,7 +8,7 @@ The modifier of step 3 of [The life of an action](01-how-a-game-runs.md#the-life
 
 ```ts
 const row = await updateGame(game, params.code ?? "", (row) => {
-  if (!row.state || row.status !== "playing") throw new ApiError("GAME_NOT_STARTED", 409)
+  if (!row.state || row.status !== "playing") throw notPlaying(row)
   const state = GAME.apply(row.state, { ...action, playerId: id })
   return { state, status: GAME.isOver(state) ? "over" : "playing" }
 })
@@ -16,6 +16,7 @@ const row = await updateGame(game, params.code ?? "", (row) => {
 
 - Core sets `playerId` to the caller's id, made from the secret of their cookie, whatever the body says, so a client cannot act for another player ([Where an id comes from](02-players.md#where-an-id-comes-from)).
 - An `EngineError` ends the request before the write; any other error is logged and answers `SERVER_ERROR`.
+- A table that is not in play is refused by `notPlaying` before `apply` runs: `GAME_OVER` when the game has ended, `GAME_NOT_STARTED` when it has not begun.
 
 ## What clientActions controls
 
@@ -41,13 +42,42 @@ An engine refuses a move by throwing, and what the request does next depends on 
 - A player's mistake (an illegal move, a move out of turn, a card they do not hold) is an `EngineError(code, message?)`. The answer carries the `code` only, so `message` is for tests and debugging. `isEngineError(error)` also accepts an engine's own class of the same shape (`name === "EngineError"` and a string `code`): `instanceof` alone misses it, since one app serves every game.
 - A bug of the game (an id that does not exist, a pile too short, a position out of range) is a plain error: the kit's helpers throw `RangeError`. Validate the player's input first, so a `RangeError` never comes from a move.
 
+### The shared codes
+
+An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit, whenever the refusal means the same in every game. The platform words each of them in the four languages of the games, so an engine writes no message for them and its binding lists none.
+
+| Code | The engine refuses because |
+| --- | --- |
+| `INVALID_PLAYERS` | The table cannot be played: a number of players outside the bounds, an empty id, the same id twice |
+| `INVALID_ACTION` | The action is malformed, or is not one of the game's |
+| `INVALID_PHASE` | The action is one of the game's, but the game is not at a stage that takes it |
+| `GAME_OVER` | The game has ended: nothing more can be played |
+| `NOT_YOUR_TURN` | The action belongs to another player, or to nobody |
+| `NOT_WAITING` | The game does not wait for this player; the kit throws it too |
+| `UNKNOWN_PLAYER` | The player is not at the table |
+| `UNKNOWN_CARD` | The card is not in the player's hand |
+| `INVALID_TARGET` | The player the action aims at cannot be chosen |
+| `AUTOPLAY_UNSUPPORTED` | The engine cannot play for this player; the kit throws it |
+
+- Take the code whose meaning is yours: `INVALID_ACTION` for an action that is wrong anywhere (an unknown type, a missing field), `INVALID_PHASE` for the right action at the wrong moment, `GAME_OVER` for any action once the game has ended.
+- A refusal that only the game can explain, such as `CANNOT_STAY` in Flip 7, is a code of its own: throw it as a string literal and list it in the `ERROR_CODES` of the binding ([Error codes](../04-build-a-game/05-wiring-it-in.md#error-codes)).
+- A game that keeps a list of everything its engine refuses with (`FLIP7_ERROR_CODES`, a comment per code) puts the shared codes in it too, and gives its binding the codes of its own: `FLIP7_ERROR_CODES.filter((code) => !isSharedErrorCode(code))`.
+
 ### What the player reads
 
-- The client shows, in order: the message written in Sanity for the code (Setup › Copy › Errors; a code of the game falls back on English), the platform's own message, then `[missing: errorMessages.<CODE>]`.
-- Core words the codes of its own routes, `NOT_YOUR_TURN`, `UNKNOWN_CARD` and the two the kit throws, `NOT_WAITING` and `AUTOPLAY_UNSUPPORTED`: the list is `CORE_ERROR_MESSAGES` (`packages/core/lib/api.ts`).
-- A game words its other codes through `ERROR_CODES` of its binding, which fills Setup › Copy › Errors. A listed code without a message is logged and reads `[missing: …]`; a code thrown and not listed has no message.
-- Core's own routes also throw `INVALID_ACTION`, `UNKNOWN_PLAYER`, `GAME_NOT_STARTED` and `INVALID_REQUEST`, which it does not word: list one to word it.
-- Keep a game's codes in one `as const` list, a comment per code (`FLIP7_ERROR_CODES`).
+- The client shows, in order: the message written in Sanity for the code (Setup › Copy › Errors), the platform's own message in the visitor's language, then `[missing: errorMessages.<CODE>]`. For a code the platform words, only a message written in the visitor's own language replaces it; for a code of the game, the language asked falls back on English.
+- The platform words the shared codes and the codes of its own routes: the list is `CORE_ERROR_MESSAGES` (`packages/core/lib/api.ts`), translated in `ERROR_TRANSLATIONS` of studio-kit. A test keeps every shared code and every code that the routes of a game throw in it.
+- A game words its own codes through `ERROR_CODES` of its binding, which fills Setup › Copy › Errors. A listed code without a message is logged and reads `[missing: …]`; a code thrown and not listed has no message.
+
+### Keeping the vocabulary honest
+
+`errorVocabularyProblems` of `@pbgo/engine-kit/testing` reads the sources of an engine and says, in sentences, what is wrong with its codes: one that is neither shared nor listed, one whose `EngineError` takes a code that is not a string literal (nothing can read it), a shared code in `ERROR_CODES`, a code listed twice. It is a test of the binding, not of the engine. From `template/src/error-codes.test.ts`, which `pnpm new-game` copies into every game:
+
+```ts
+it("throws only the shared codes and the codes it lists, and lists only its own", () => {
+  expect(errorVocabularyProblems({ engineDir: new URL("../packages/engine/src", import.meta.url), own: ERROR_CODES })).toEqual([])
+})
+```
 
 ## Clicks and hover
 
