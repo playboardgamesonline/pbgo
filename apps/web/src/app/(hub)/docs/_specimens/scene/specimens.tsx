@@ -256,11 +256,15 @@ const TURN_LABELS: Record<SeatTurn, string> = { none: "Nobody", you: "You", left
 
 export function SceneSeatSpecimen() {
   const [turn, setTurn] = useState<SeatTurn>("left")
+  const [expected, setExpected] = useState(false)
   const [winner, setWinner] = useState(false)
+  const [away, setAway] = useState(false)
+  const [out, setOut] = useState(false)
+  const [pick, setPick] = useState(false)
   const [points, setPoints] = useState(12)
   return (
     <SceneFrame
-      label="Three seats of a table for five players, the viewer's in front and one on each side: each plate has its name in the seat colour, its avatar, its score line, a crown when it is the player's turn and an aura under it"
+      label="Three seats of a table for five players, the viewer's in front and one on each side: each plate has its name in the seat colour, its avatar, its score line, a crown on the avatar when it is the player's turn and an aura under it for the winners and the players expected together; a plate fades when its player is away or out, and lights up under the pointer when it can be picked"
       controls={
         <>
           <Choice
@@ -269,12 +273,16 @@ export function SceneSeatSpecimen() {
             options={SEAT_TURNS.map((value) => ({ value, label: TURN_LABELS[value], description: value === "none" ? "Nobody's turn" : `${TURN_LABELS[value]} seat's turn` }))}
             onChange={setTurn}
           />
+          <Option label="Everybody expected" checked={expected} onChange={setExpected} />
           <Option label="Winners" checked={winner} onChange={setWinner} />
+          <Option label="Left is away" checked={away} onChange={setAway} />
+          <Option label="Right is out" checked={out} onChange={setOut} />
+          <Option label="Names can be picked" checked={pick} onChange={setPick} />
           <Knob label="Score" value={points} min={0} max={30} step={1} onChange={setPoints} />
         </>
       }
     >
-      <SeatScene turn={turn} winner={winner} points={points} />
+      <SeatScene turn={turn} expected={expected} winner={winner} away={away} out={out} pick={pick} points={points} onPick={setTurn} />
     </SceneFrame>
   )
 }

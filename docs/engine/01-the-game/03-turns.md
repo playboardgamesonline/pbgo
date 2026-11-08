@@ -90,7 +90,7 @@ When the others vote to play for a player who left, the server calls the engine'
 
 ## Crown and the turn marker
 
-The turn marker is a crown that stands beside the nickname of the player whose turn it is. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
+The turn marker is a crown that stands on the upper-right corner of the avatar of the player whose turn it is. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
 
 | Prop | Role |
 | --- | --- |
@@ -100,7 +100,7 @@ The turn marker is a crown that stands beside the nickname of the player whose t
 | `size` | How big it grows |
 
 - Every seat has its own crown, and `show`, set from the view, says which one is up. The crown does not travel around the table, so it never crosses the cards.
-- A `Seat` places it as a child of the nickname's `TableText`, in a frame whose origin is the left edge of the first letter ([Text on the table](../02-components/09-score.md#text-on-the-table)).
+- A `Seat` places it with the avatar, in the avatar's own frame (a child of the nickname's `TableText`, or its `trailing` for a right-hand seat), at the corner that `crownRight` and `crownBack` give it ([Where the plate stands](../02-components/03-seats.md#where-the-plate-stands)).
 - It is a plane that turns to face the camera about the vertical axis only, so it stays upright. While it is up it bobs and its gold pulses. It takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
 
 ## Aura
@@ -120,14 +120,14 @@ An aura is the light that glows on the table under a seat. Shared: `Aura` in `pa
 
 - `force` follows the state, whatever it is: set it, and the component eases there. Near zero the mesh is not drawn at all, so an unlit aura costs nothing.
 - It has no texture. It is transparent, writes no depth and takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
-- A `Seat` draws one under its plate, in the seat's colour, with a force for the player whose turn it is and for a winner (`auraForce`), and `WINNER_AURA_SETTINGS` unless it is given another object. The colour of a seat comes from the skin's `playerColors`, through `PlayerSeat`.
+- A `Seat` draws one under its plate, in the seat's colour, lit by the brightest of the forces that apply (`auraForce`): none for the player of the turn by default, since the crown says it, a soft one for a player the game expects with others, one under the pointer of a plate that can be picked and the full one for a winner. It uses `WINNER_AURA_SETTINGS` unless it is given another object. The colour of a seat comes from the skin's `playerColors`, through `PlayerSeat`.
 
 ## Turn change
 
 There is no turn-transition component. A turn changes the way everything on a board does: the view changes, and each piece that depends on whose turn it is follows. Per game: the template's `board/scene.tsx` and `game/game.tsx` are the reference. The announcement and the ticker are the shared UI's.
 
 - The scene learns that the turn changed from the view (`activePlayerId` in the template's view), never from a timer or from its own click. A player can leave `waitingFor` without having acted, because somebody played for them: follow the view.
-- The aura lights the seat of the player whose turn it is and fades from the one before; the crown grows beside their nickname and shrinks away from the one before. A step the game waits several players for has no single active player: the ticker's strip lists who is pending, and a crown or an aura per waiting seat is the game's choice.
+- The crown grows on the avatar of the player whose turn it is and shrinks away from the one before. A step the game waits several players for has no single player of the turn: `PlayerSeat` shows no crown and lights a soft aura under each player expected, and the ticker's strip lists who is pending ([Seats](../02-components/03-seats.md#the-plate)).
 - The hand takes clicks and the hover glow only on the viewer's turn ([Clicks and hover](05-actions.md#clicks-and-hover)).
 - The cards played fly from where they were to the middle ([Pose memory](../02-components/05-poses-and-motion.md#pose-memory)); the trick won rests in the middle, then flies to its winner's side (`useCollect` in `scene.tsx`, `collectedPose` in `layout.ts`; [Zone](../02-components/07-zones.md#zone)).
 - When the viewer's turn begins, an effect of `game/game.tsx` calls `announce` with the kind `turn`, its sound and `replace: ["turn"]`, which drops a `turn` announcement that is still queued, so a quick succession shows the latest. `useAnnouncements` can also be `paused`, which holds the queue while something else, an opening for instance, has the screen ([Opening and ending](06-victory.md#opening-and-ending)).

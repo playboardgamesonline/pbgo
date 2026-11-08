@@ -20,7 +20,7 @@ The score is the points a board shows while a game goes on. Nothing shared draws
 ## Showing the score
 
 - Core shows points only at the end, from `view.results`: in the game-over panel, where `detail` of each `PlayerResult` makes the chips, and in the victory announcement ([Game over](../../design/04-in-game/07-game-over.md)). Its HUD and its players strip show none.
-- On the table the points are the `line` of a `Seat`, a `TableText` under the nickname: the game writes it in the visitor's language, and the template uses `pointsShort` of the skin ([Seats](03-seats.md#the-plate)).
+- On the table the points are the `line` of a `Seat`, a `TableText` under the nickname: the game writes it in the visitor's language, and the template uses `pointsShort` of the skin. A word about the player's state in the round, such as Frozen or Stayed, goes under it as the `status`, written the same way ([Seats](03-seats.md#the-plate)).
 - At the end a board may draw `results` on the table: the ending of Courtisans writes the points of each pile with `PilePoints` and each player's total with `Counters`, which grows as the piles resolve (`games/courtisans/src/components/game3d/ending3d.tsx`).
 - Flip 7's `score` and `total` are drawn by no board, since the game has none, and no tool draws a score sheet or a track ([what is not built](../03-not-built-yet.md)).
 
@@ -37,6 +37,7 @@ Text lies flat on the table as a texture painted on a canvas: nicknames, points,
 | `height` | The size of the letters, in world units |
 | `position`, `yaw` | Where it lies and its turn about the vertical axis |
 | `font` | The CSS font of the letters; `TABLE_FONT` by default |
+| `opacity` | How opaque the letters are, 0 to 1: a `Seat` fades the name, the line and the status of a player who is away or out |
 | `onClick`, `onHover` | Make the text a click target: it takes pointer events only with one of them, and shows a pointer cursor only with `onClick` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `layer` | The render order |
 | `children` | What sits before the text, in a frame whose origin is the text's left edge and whose x grows to the right, so a negative x is just left of the first letter |
@@ -58,7 +59,8 @@ Text lies flat on the table as a texture painted on a canvas: nicknames, points,
 | `bloom`, `aura` | A soft light of that colour around the letters |
 | `relief` | A stack of copies for depth, with a gloss and a shimmer |
 | `holo` | Scan lines cut out of the letters, and a slow flicker |
+| `strike` | A line through the letters: a `Seat` strikes the name of a player who is out |
 
 - The texture is painted again only when the text, the style or the readiness of the font changes, and the old one is disposed. The component waits for the font (`document.fonts`), or a fallback font would be frozen into the texture.
-- The font is the `FONT` constant of the file; a game with its own font changes it there.
+- The font is the `font` prop, `TABLE_FONT` by default. A `Seat` of `PlayerSeat` is given the font of the game's seat label (`UI_THEME.seat.font`), so the names of the table and those of the DOM are lettered alike.
 - The plane is larger than the letters, to leave room for the effects.

@@ -14,9 +14,9 @@ GameHud                          DOM, shared: ticker, announcements, game over
         ├── SharePhoto           when a photo camera is given
         └── World                what lies on the table, the game's own
             ├── PlayerSeat       a Seat for each player, with its pieces
-            │   ├── Aura         lit for the player whose turn it is
+            │   ├── Aura         lit softly for the players expected, fully for a winner
             │   ├── TableText    the nickname, with SeatAvatarMesh and TurnCrown
-            │   ├── TableText    the points
+            │   ├── TableText    the points, and a status under them
             │   └── Zone         the cards held there, face down, a child of the Seat
             ├── Zone             the viewer's hand
             └── Zone             the middle of the table
@@ -46,5 +46,6 @@ The code has no component for some of the words used for the parts of a table. T
 | name plate | The name and the avatar of a `Seat`: `TableText` with `SeatAvatarMesh` | Shared | [Text on the table](09-score.md#text-on-the-table), [Seats](03-seats.md#the-avatar) |
 | aura | `Aura` | Shared | [Aura](../01-the-game/03-turns.md#aura) |
 | crown, turn marker | `TurnCrown` | Shared | [Crown and the turn marker](../01-the-game/03-turns.md#crown-and-the-turn-marker) |
-| turn transition | No component: the crown and the aura move, the hand becomes playable, the `turn` announcement plays | The scene is per game, the announcement is shared | [Turn change](../01-the-game/03-turns.md#turn-change) |
+| away, out, expected, winner | The states of a `Seat` (`away`, `out`, `waiting`, `winner`, and `active` for the turn): `PlayerSeat` reads them from the table with `seatStateOf`, except `out`, which the game says | Shared | [The plate](03-seats.md#the-plate) |
+| turn transition | No component: the crown moves, the hand becomes playable, the `turn` announcement plays | The scene is per game, the announcement is shared | [Turn change](../01-the-game/03-turns.md#turn-change) |
 | opening, ending | No component: only the camera's entrance is shared | Per game | [Opening and ending](../01-the-game/06-victory.md#opening-and-ending) |

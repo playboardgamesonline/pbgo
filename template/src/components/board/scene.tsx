@@ -80,14 +80,13 @@ function World({ view, pointsText, onPlay, myTurn }: SceneProps) {
         }))
       : []
   const middle = [...collectedCards, ...trickCards]
-  const winners = view.results?.winners ?? []
 
   return (
     <>
       {view.players.map((j) => {
         const s = slots.get(j.id)!
         return (
-          <PlayerSeat key={j.id} id={j.id} spot={s} viewer={j.id === meId} active={view.activePlayerId === j.id} winner={winners.includes(j.id)} line={pointsText(j.points)}>
+          <PlayerSeat key={j.id} id={j.id} spot={s} viewer={j.id === meId} line={pointsText(j.points)}>
             {j.id !== meId && (
               <Zone
                 frame={backFrame(s)}

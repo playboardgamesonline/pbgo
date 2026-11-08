@@ -49,10 +49,10 @@ scene-layouts
 - When no helper fits, write the layout by hand with `onTable`: the template's `trickPose` and `collectedPose` do.
 - The ring of players is `seats`, which returns spots rather than poses ([Seats](03-seats.md)).
 
-From `template/src/components/board/layout.ts`, where an opponent's card flies from:
+From `template/src/components/board/layout.ts`, where an opponent's card flies from (`SeatSpot` is the template's name for `Required<Spot>`):
 
 ```ts
-export function backPose(seat: Seat, i: number, n: number): Pose {
+export function backPose(seat: SeatSpot, i: number, n: number): Pose {
   return inFrame(backFrame(seat), backLayout(seat, n)[i])
 }
 ```
