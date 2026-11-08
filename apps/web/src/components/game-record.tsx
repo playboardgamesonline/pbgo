@@ -7,7 +7,7 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle }
 import { gameDate } from "@/lib/account-data"
 
 /** The picture of a game, from the catalog's route (the game's icon): the first letters of its name when the game has none. Rounded like the rest, never a circle: only the picture of a person is round. */
-function GameThumb({ slug, name }: { slug: string; name: string }) {
+export function GameThumb({ slug, name }: { slug: string; name: string }) {
   return (
     <Avatar className="size-10 rounded-xl after:rounded-xl">
       <AvatarImage src={`/api/catalog/${slug}/icon`} alt="" className="rounded-xl" />
@@ -22,8 +22,8 @@ function ResultBadge({ result }: { result: NonNullable<PlayedGame["result"]> }) 
 }
 
 /**
- * One game of a visitor, as a row: the game and its table, when it started and with whom, then, for a game in progress, a button to go back to its
- * table, and for a game that is over, how it ended and the rank.
+ * One game of a visitor, as a row: the game (and its table, while it is in progress: a game that is over keeps its result and no table), when it started or ended and with whom (nobody, for a game played alone), then, for a game in progress, a
+ * button to go back to its table, and for a game that is over, how it ended and the rank.
  */
 export function GameRecord({ game }: { game: PlayedGame }) {
   const names = game.opponents.map((opponent) => opponent.nickname)
@@ -37,19 +37,22 @@ export function GameRecord({ game }: { game: PlayedGame }) {
           <Link href={`/game/${game.slug}`} className="hover:underline">
             {game.name}
           </Link>
-          <span className="text-muted-foreground">· table {game.table}</span>
+          {game.table && <span className="text-muted-foreground">· table {game.table}</span>}
         </ItemTitle>
         <ItemDescription>
-          {gameDate(game.playedAt)} · with {names.join(", ")}
+          {gameDate(game.playedAt)}
+          {names.length > 0 && ` · with ${names.join(", ")}`}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
         {game.state === "in-progress" ? (
           <>
             <Badge variant="secondary">In progress</Badge>
-            <Button size="sm" asChild>
-              <Link href={`/${game.slug}/game/${game.table}`}>Rejoin</Link>
-            </Button>
+            {game.table && (
+              <Button size="sm" asChild>
+                <Link href={`/${game.slug}/game/${game.table}`}>Rejoin</Link>
+              </Button>
+            )}
           </>
         ) : (
           <>

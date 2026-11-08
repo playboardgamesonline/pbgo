@@ -4,17 +4,20 @@ import { requireAccount } from "@pbgo/accounts/server"
 import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameRecord } from "@/components/game-record"
-import { accountData } from "@/lib/account-data"
+import { memberGames } from "@/lib/member-games"
 
 export const metadata: Metadata = { title: "Your games" }
 
+/** How many finished games the history lists: the latest. */
+const HISTORY_GAMES = 50
+
 /**
- * My games: the tables a visitor is at and can go back to, then the games they have finished, the latest first. Both are empty for a real account until the
- * tables and the results are recorded (PLT-13, PLT-16): each says so and leads to the games.
+ * My games: the tables a visitor is at and can go back to, then the games they have finished, the latest first. The finished games are the ones that were recorded (PLT-13: `memberGames`); the tables a member is at are not
+ * listed yet, since a table is still the browser's player cookie and not the account's (PLT-120), so a real account has none in progress. Each section says so when it is empty and leads to the games.
  */
 export default async function MyGamesPage() {
   const account = await requireAccount("/me/games")
-  const { games } = accountData(account)
+  const { games } = await memberGames(account, HISTORY_GAMES)
   const inProgress = games.filter((game) => game.state === "in-progress")
   const finished = games.filter((game) => game.state === "finished")
 

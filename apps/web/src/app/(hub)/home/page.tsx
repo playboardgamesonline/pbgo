@@ -9,9 +9,10 @@ import { playerRange } from "@pbgo/ui/tables"
 import { HomeAnnouncements } from "@/components/home-announcements"
 import { HomeBanners } from "@/components/home-banners"
 import { HomeCreateTable } from "@/components/home-create-table"
-import { HomeOpenTables, HomeTournaments, HomeYourGames } from "@/components/home-empty-zones"
+import { HomeOpenTables, HomeTournaments } from "@/components/home-empty-zones"
 import { HomeFindGame } from "@/components/home-find-game"
 import { HomeNews } from "@/components/home-news"
+import { HomeYourGames } from "@/components/home-your-games"
 import { SiteFooter } from "@/components/site-footer"
 import { demoEditorial } from "@/lib/demo-editorial"
 import { getExpansions } from "@/lib/game-activity"
@@ -29,7 +30,7 @@ const ANNOUNCEMENTS_MAX = 2
 /**
  * What a member opens the hub on: what is new and what to do now. From the top: the announcements (a message bar each), the banners (a new game, a new feature, each leading to its game or to what's new), the play zone, Find a game on two thirds of the row
  * and Create a table on the third beside it (from `xl`: two fifths for it from `lg`, the whole row for each below) (the games that can be played, each with the picture of its tile and, for a table, how many may play, its expansions and its helpers, which the game's page offers the same way), the tables open on the member's
- * games, their history, stats and ranks, their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something, and it holds nothing yet.
+ * games, their history, stats and ranks (the games that were recorded, PLT-13), their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something, and it holds nothing yet.
  * The others are drawn whole: the play zone works as far as the platform does, and the lists have their empty state, so the shape of the home is there to see (docs/accounts.md, PLT-21). It has no title and no search bar: the title and the figures are the public home's.
  */
 export default async function MemberHome() {
@@ -91,7 +92,7 @@ export default async function MemberHome() {
             </div>
           </Section>
           <HomeOpenTables />
-          <HomeYourGames />
+          <HomeYourGames account={account} />
           <HomeTournaments />
           <HomeNews lines={news} />
         </div>
