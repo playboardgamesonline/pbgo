@@ -6,13 +6,15 @@ import { getLocale } from "@pbgo/core/lib/locale-server"
 import { ApiError } from "@pbgo/core/server/api"
 import { findPlayerGame, readGame, type GameRow } from "@pbgo/core/server/games"
 import { getPlayerId } from "@pbgo/core/server/player"
+import { readBoard, readHistory, readPlayerStanding } from "@pbgo/core/server/standings"
 import type { Outcome } from "@pbgo/ui/results"
 import type { Rank } from "@pbgo/ui/ranks"
 import type { PlayerRecord } from "@pbgo/ui/tables"
 
 // What is going on around a game, for its page on the hub: its tables (the ones that wait for players and the ones being played), the table the visitor sits at, its best players, what the visitor has done in it, its tournaments and the expansions that a table may be played with. Every table counts for the leaderboard and none can be looked on at, so the tables have neither as a setting. The page
-// reads them here and nowhere else. None of them exists yet, so each comes back empty and the page draws an empty state for it, but the expansions of a game: they are `expansion` documents of the platform's Sanity project, which the catalog reads (`getExpansions`). The types are already the shape the data will have: they are the rows of the platform schema of PLT-13
-// (`platform.tables` and `table_players` for the tables, `ratings` and `profiles` for the standings, `game_participants`, `game_results` and `rating_changes` for what a visitor has done; the design is in the Linear documents
+// reads them here and nowhere else. The best players, what the visitor has done and their games are read from the games that were recorded (PLT-13, `game_results`, `game_participants`, `ratings`, `player_stats`: `@pbgo/core/server/standings`), and
+// come back empty, with the page's empty state, where nothing is recorded or the database cannot be read. The tables, the tournaments and the achievements do not exist yet, so each comes back empty too, but the expansions of a game: they are `expansion`
+// documents of the platform's Sanity project, which the catalog reads (`getExpansions`). The types are the shape of the rows of the platform schema of PLT-13 (`platform.tables` and `table_players` for the tables; the design is in the Linear documents
 // "PLT-13 final schema proposal" and "PLT-13 SQL"), written without Supabase, so that the day the schema is there only the bodies of these functions change and the page does not. The tournaments are PLT-31's and have no row in that
 // schema yet, and neither have achievements, whose shape here is the page's guess.
 // The tables are the exception since PLT-106 (the platform is the door of the games): a table is a row of `public.games`, which the game's routes create, fill and start, so `getViewerTable` and `getTable` read
@@ -250,25 +252,79 @@ export async function getTable(slug: string, code: string, seatsMax: number): Pr
 }
 
 /**
- * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, in the order of a rating that stays on the server (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). Nobody is ranked yet: ranks come with the accounts of PLT-13's second phase.
+ * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, in the order of a rating that stays on the server (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). A player is on the board from their fifth
+ * ranked game (`LEADERBOARD_MIN_GAMES`); nobody is while no game was ranked, which nothing opens yet (PLT-21). The tag of a player is 0 until the nicknames have one (PLT-39).
  */
 export async function getStandings(slug: string, viewerId: string | null): Promise<GameStandings> {
-  void slug
-  void viewerId
-  return { top: [], viewer: null }
+  try {
+    const [board, viewer] = await Promise.all([readBoard(slug, LEADERBOARD_SIZE), viewerId === null ? null : readPlayerStanding(viewerId, slug)])
+    const top: Standing[] = board.map((row) => ({
+      playerId: row.userId,
+      nickname: row.name ?? "Player",
+      tag: 0,
+      avatarUrl: row.avatarUrl,
+      rank: row.rank,
+      wins: row.wins,
+      gamesPlayed: row.gamesPlayed,
+      place: row.place,
+    }))
+    // Their own standing, wherever it is: a player who has rated a game has a rank, and a place from the fifth
+    const own: Standing | null =
+      viewerId !== null && viewer?.rank
+        ? { playerId: viewerId, nickname: viewer.name ?? "You", tag: 0, avatarUrl: viewer.avatarUrl, rank: viewer.rank, wins: viewer.ratedWins, gamesPlayed: viewer.ratedGames, place: viewer.place }
+        : null
+    return { top, viewer: own }
+  } catch (error) {
+    console.error(`The standings of ${slug} could not be read`, error)
+    return { top: [], viewer: null }
+  }
 }
 
-/** What the signed-in visitor has done in this game, or null when nobody is signed in. Nothing is recorded yet, so a visitor who is signed in has done nothing. */
+/** What the signed-in visitor has done in this game, or null when nobody is signed in. A visitor who is signed in and has played nothing, or whose games cannot be read, has done nothing. */
 export async function getPlayerStats(slug: string, viewerId: string | null): Promise<PlayerStats | null> {
-  void slug
-  return viewerId === null ? null : { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, rankProgress: null, place: null, rankedPlayers: 0, achievements: [], achievementsTotal: 0 }
+  if (viewerId === null) return null
+  const nothing: PlayerStats = { gamesPlayed: 0, secondsPlayed: 0, wins: 0, rank: null, rankProgress: null, place: null, rankedPlayers: 0, achievements: [], achievementsTotal: 0 }
+  try {
+    const standing = await readPlayerStanding(viewerId, slug)
+    return {
+      ...nothing,
+      gamesPlayed: standing.gamesPlayed,
+      secondsPlayed: standing.secondsPlayed,
+      wins: standing.wins,
+      rank: standing.rank,
+      rankProgress: standing.rankProgress,
+      place: standing.place,
+      rankedPlayers: standing.poolSize,
+    }
+  } catch (error) {
+    console.error(`The stats of a visitor of ${slug} could not be read`, error)
+    return nothing
+  }
 }
 
-/** The games the signed-in visitor finished in this game, the latest first, at most `HISTORY_SIZE`. There are none yet. */
+/** The games the signed-in visitor finished in this game, the latest first, at most `HISTORY_SIZE`. A game played together has no place; the speed is the usual one until a table keeps its own (PLT-13). */
 export async function getHistory(slug: string, viewerId: string | null): Promise<HistoryEntry[]> {
-  void slug
-  void viewerId
-  return []
+  if (viewerId === null) return []
+  try {
+    const rows = await readHistory(viewerId, slug, HISTORY_SIZE)
+    return rows.map((row) => ({
+      tableId: row.id,
+      finishedAt: row.finishedAt,
+      outcome: row.outcome,
+      place: row.outcome === "coop_win" || row.outcome === "coop_loss" ? null : row.place,
+      playerCount: row.playerCount,
+      points: row.points,
+      durationSeconds: row.durationSeconds,
+      turnTimer: "normal",
+      score: row.score,
+      expansions: Object.entries(row.options).flatMap(([key, value]) => (value === true ? [key] : [])),
+      xp: null,
+      opponents: row.opponents,
+    }))
+  } catch (error) {
+    console.error(`The games of a visitor of ${slug} could not be read`, error)
+    return []
+  }
 }
 
 /**

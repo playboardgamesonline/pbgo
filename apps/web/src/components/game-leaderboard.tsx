@@ -4,7 +4,7 @@ import { LEADERBOARD_MIN_GAMES, LEADERBOARD_SIZE, type GameStandings } from "@/l
 import { leaderboardRow } from "@/lib/game-activity-props"
 
 // The best players of a game, on its page, on the right of its tournaments: its leaderboard, which scrolls through the first hundred (`LEADERBOARD_SIZE`) in a card of 44rem at the most, the signed-in visitor's own row marked on it or after it and always in view, and an empty
-// state while nobody is ranked (`getStandings`: no game is ranked yet, ranks come with the accounts).
+// state while nobody is on the board (`getStandings`: a player is on it from their fifth ranked game, and nothing opens a ranked table yet).
 
 export function GameLeaderboard({ standings, className }: { standings: GameStandings; className?: string }) {
   const headingId = useId()
