@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ordinal, perGame, statsOf, type PlayedGame } from "./games"
+import { ordinal, perGame, playedGameOf, statsFrom, statsOf, type FinishedGame, type PlayedGame } from "./games"
 
 const game = (id: string, slug: string, name: string, state: PlayedGame["state"], result?: PlayedGame["result"]): PlayedGame => ({
   id,
@@ -42,6 +42,92 @@ describe("statsOf", () => {
   it("takes the first by name when two games are played as much", () => {
     const games = [game("1", "skyjo", "Skyjo", "finished", "won"), game("2", "hanabi", "Hanabi", "finished", "won")]
     expect(statsOf(games).favourite).toBe("Hanabi")
+  })
+})
+
+describe("statsFrom", () => {
+  it("has nothing to say of no totals, or of totals with no game played", () => {
+    expect(statsFrom([])).toEqual({ played: 0, wins: 0, winRate: null, favourite: null })
+    expect(statsFrom([{ slug: "skyjo", name: "Skyjo", played: 0, wins: 0 }])).toEqual({ played: 0, wins: 0, winRate: null, favourite: null })
+  })
+
+  it("adds up what was played in each game: the games, the wins, the share of wins and the game played the most", () => {
+    expect(
+      statsFrom([
+        { slug: "hanabi", name: "Hanabi", played: 3, wins: 0 },
+        { slug: "courtisans", name: "Courtisans", played: 12, wins: 6 },
+        { slug: "skyjo", name: "Skyjo", played: 0, wins: 0 },
+      ]),
+    ).toEqual({ played: 15, wins: 6, winRate: 40, favourite: "Courtisans" })
+  })
+
+  it("names the first game by name when two are played as much", () => {
+    expect(
+      statsFrom([
+        { slug: "skyjo", name: "Skyjo", played: 2, wins: 1 },
+        { slug: "hanabi", name: "Hanabi", played: 2, wins: 0 },
+      ]).favourite,
+    ).toBe("Hanabi")
+  })
+
+  it("says the same as statsOf of the games it was made from", () => {
+    const games = [game("1", "courtisans", "Courtisans", "finished", "won"), game("2", "courtisans", "Courtisans", "finished", "lost"), game("3", "hanabi", "Hanabi", "finished", "won")]
+    expect(statsFrom(perGame(games))).toEqual(statsOf(games))
+  })
+})
+
+describe("playedGameOf", () => {
+  const finished = (overrides: Partial<FinishedGame> = {}): FinishedGame => ({
+    id: "r1",
+    game: "courtisans",
+    finishedAt: "2026-11-08T10:00:00+00:00",
+    outcome: "win",
+    place: 1,
+    opponents: [
+      { name: "Ola", avatarUrl: "https://example.com/o.png" },
+      { name: null, avatarUrl: null },
+    ],
+    ...overrides,
+  })
+
+  it("is a game that is over, told by its end, with the others at the table, the former player of a deleted account named as a player, and the place they came", () => {
+    expect(playedGameOf(finished(), "Courtisans")).toEqual({
+      id: "r1",
+      slug: "courtisans",
+      name: "Courtisans",
+      playedAt: "2026-11-08T10:00:00+00:00",
+      opponents: [
+        { nickname: "Ola", avatarUrl: "https://example.com/o.png" },
+        { nickname: "Player", avatarUrl: null },
+      ],
+      state: "finished",
+      result: "won",
+      rank: 1,
+    })
+  })
+
+  it("has no table to go back to: the result outlives the table", () => {
+    expect(playedGameOf(finished(), "Courtisans").table).toBeUndefined()
+  })
+
+  it.each([
+    ["win", "won"],
+    ["coop_win", "won"],
+    ["draw", "draw"],
+    ["loss", "lost"],
+    ["coop_loss", "lost"],
+    ["abandoned", "lost"],
+  ] as const)("reads %s as %s", (outcome, result) => {
+    expect(playedGameOf(finished({ outcome }), "Courtisans").result).toBe(result)
+  })
+
+  it("has no place for a game played together, nor where the engine ranked nobody", () => {
+    expect("rank" in playedGameOf(finished({ outcome: "coop_win", place: 1 }), "Hanabi")).toBe(false)
+    expect("rank" in playedGameOf(finished({ place: null }), "Courtisans")).toBe(false)
+  })
+
+  it("is a game with no one else at the table when the member played alone", () => {
+    expect(playedGameOf(finished({ opponents: [] }), "Courtisans").opponents).toEqual([])
   })
 })
 
