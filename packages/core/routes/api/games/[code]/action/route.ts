@@ -6,6 +6,7 @@ import { publicGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
+import { recordGameResult } from "../../../../../server/results"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await rateLimit(game.slug, request, "action")
@@ -21,7 +22,11 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     return { state, status: GAME.isOver(state) ? "over" : "playing" }
   })
   after(() => markSeen(game, row, id))
-  // The modifier only runs on a table in play, so an `over` table is the one this move has just ended
-  if (row.status === "over") trackGameFinished(game.slug, row, id)
+  // The modifier only runs on a table in play, so an `over` table is the one this move has just ended. Two moves that end the game together cannot both get here: the version check lets one write through, and the other
+  // finds the table over and is refused (`GAME_OVER`), so the game is written down once
+  if (row.status === "over") {
+    trackGameFinished(game.slug, row, id)
+    after(() => recordGameResult(game, row))
+  }
   return publicGame(game, row, id)
 })

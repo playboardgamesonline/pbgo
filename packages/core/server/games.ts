@@ -74,7 +74,16 @@ export async function findPlayerGame(game: GameRef, playerId: string, now = Date
   return (data?.[0] as GameRow | undefined) ?? null
 }
 
-export async function createGame(game: PlayableGame, host: PublicPlayer, options: OptionValues = normalizeOptions(game.binding.GAME.options, {})): Promise<GameRow> {
+/**
+ * Opens a table. `ranked` opens it to count for the ratings (`games.ranked`, migration 0006): the games it plays are written down as ranked when every seat is a different account, and counted for the ratings of those who played
+ * their own moves. Nothing opens one yet; the matchmaking of PLT-21 will. The column is only written for a ranked table, so that a normal one is created as it always was, and a project where the migration is not applied yet keeps opening tables.
+ */
+export async function createGame(
+  game: PlayableGame,
+  host: PublicPlayer,
+  options: OptionValues = normalizeOptions(game.binding.GAME.options, {}),
+  { ranked = false }: { ranked?: boolean } = {},
+): Promise<GameRow> {
   const db = supabaseAdmin()
   for (let attempt = 0; attempt < 5; attempt++) {
     const row: GameRow = {
@@ -91,7 +100,7 @@ export async function createGame(game: PlayableGame, host: PublicPlayer, options
       ready_deadline: null,
       version: 0,
     }
-    const { error } = await db.from("games").insert({ game: game.slug, ...row })
+    const { error } = await db.from("games").insert({ game: game.slug, ...row, ...(ranked ? { ranked: true } : {}) })
     if (!error) return row
     if (error.code !== "23505") throw error
   }

@@ -4,6 +4,7 @@ import type { GameRouteContext } from "../lib/binding"
 import { DEFAULT_REACTION_IDS } from "../lib/chat"
 import { POST as chat } from "../routes/api/games/[code]/chat/route"
 import { POST as action } from "../routes/api/games/[code]/action/route"
+import { POST as debug } from "../routes/api/games/[code]/debug/route"
 import { POST as join } from "../routes/api/games/[code]/join/route"
 import { POST as leave } from "../routes/api/games/[code]/leave/route"
 import { POST as options } from "../routes/api/games/[code]/options/route"
@@ -13,7 +14,7 @@ import { GET as read } from "../routes/api/games/[code]/route"
 import { POST as start } from "../routes/api/games/[code]/start/route"
 import { POST as takeover } from "../routes/api/games/[code]/takeover/route"
 import { POST as create } from "../routes/api/games/route"
-import { stateFingerprint } from "./games"
+import { createGame, stateFingerprint } from "./games"
 import { voteEntry } from "./takeover"
 
 /**
@@ -53,6 +54,10 @@ const h = vi.hoisted(() => ({
   account: null as { id: string; nickname: string; avatarUrl: string | null } | null,
   /** What the create and join routes tell `seatMember` once the response has left */
   seatMember: vi.fn<(game: { slug: string }, code: string, playerId: string, userId: string | null) => Promise<void>>(async () => {}),
+  /** What the routes tell the recorder of the games (`results.ts`) once the response has left: a game that ended, one that began, the players the others played for */
+  record: vi.fn<(game: { slug: string }, row: { code: string; status: string; version: number }, context?: object) => Promise<void>>(async () => {}),
+  started: vi.fn<(game: { slug: string }, row: { code: string; status: string }) => Promise<void>>(async () => {}),
+  takenOver: vi.fn<(game: { slug: string }, code: string, players: readonly string[]) => Promise<void>>(async () => {}),
 }))
 
 vi.mock("server-only", () => ({}))
@@ -65,6 +70,7 @@ vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => h.account }))
 vi.mock("./player", () => ({ getPlayerId: async () => h.playerId, getOrCreatePlayerId: async () => h.playerId }))
 vi.mock("./rate-limit", () => ({ rateLimit: async () => {} }))
 vi.mock("./presence", () => ({ markSeen: async () => {}, seatMember: h.seatMember }))
+vi.mock("./results", () => ({ recordGameResult: h.record, markGameStarted: h.started, markTakenOver: h.takenOver }))
 vi.mock("./supabase", () => {
   class Filters {
     filters: Record<string, unknown> = {}
@@ -257,12 +263,20 @@ function tracked() {
 }
 const names = () => tracked().map((entry) => entry.event)
 
+/** Runs what the routes left for after the response (`after`), and waits for it: the writes that tell the database how a game began and ended. */
+async function afterResponse() {
+  await Promise.all(h.scheduled.splice(0).map((callback) => callback()))
+}
+
 beforeEach(() => {
   h.rows.clear()
   h.scheduled.length = 0
   h.beforeUpdate = null
   h.track.mockReset()
   h.seatMember.mockClear()
+  h.record.mockClear()
+  h.started.mockClear()
+  h.takenOver.mockClear()
   h.playerId = null
   h.account = null
   h.settings.maxPlayers = 3
@@ -736,6 +750,139 @@ describe("takeover events", () => {
     h.playerId = "p1"
     expect((await call(takeover)).status).toBe(409)
     expect(names()).toEqual([])
+  })
+})
+
+describe("the result of a game", () => {
+  it("is written down once the response has left, for the move that ends the game and for that one only", async () => {
+    playing(["p1", "p2"], 1, 3)
+    h.playerId = "p2"
+    expect((await call(action, { type: "move" })).status).toBe(200)
+    await afterResponse()
+    expect(h.record).not.toHaveBeenCalled()
+
+    h.playerId = "p1"
+    expect((await call(action, { type: "move" })).status).toBe(200)
+    expect(h.record).not.toHaveBeenCalled()
+    await afterResponse()
+    expect(h.record).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), expect.objectContaining({ code: CODE, status: "over", version: 9 }))
+  })
+
+  it("is written once when two requests end the game together: the other is refused, as it always was", async () => {
+    playing(["p1", "p2"], 2, 3)
+    h.playerId = "p1"
+    const answers = await Promise.all([call(action, { type: "move" }), call(action, { type: "move" })])
+    expect(answers.map((answer) => answer.status).sort()).toEqual([200, 409])
+    await afterResponse()
+    expect(h.record).toHaveBeenCalledTimes(1)
+    expect(stored().status).toBe("over")
+  })
+
+  it("is not written by a move the engine refuses, nor by one that lost the race to the move that ended the game", async () => {
+    playing(["p1", "p2"], 2, 3)
+    h.playerId = "p2"
+    expect((await call(action, { type: "move" })).status).toBe(400)
+
+    h.playerId = "p1"
+    race(() => ({ status: "over", state: { players: ["p1", "p2"], turn: 3, length: 3 } satisfies TestState }))
+    expect((await call(action, { type: "move" })).status).toBe(409)
+    await afterResponse()
+    expect(h.record).not.toHaveBeenCalled()
+  })
+
+  it("is written, with the players the others played for named, when a takeover ends the game; they are told to the table first", async () => {
+    stalled(["p1", "p2"], 1, 2)
+    h.playerId = "p1"
+    expect((await call(takeover)).status).toBe(200)
+    await afterResponse()
+    expect(h.takenOver).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, ["p2"])
+    expect(h.record).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), expect.objectContaining({ status: "over" }), { takenOver: ["p2"] })
+    expect(h.takenOver.mock.invocationCallOrder[0]).toBeLessThan(h.record.mock.invocationCallOrder[0]!)
+  })
+
+  it("tells the table who was played for by a takeover that does not end the game, and writes no result; a vote alone tells nothing", async () => {
+    stalled(["p1", "p2", "p3"], 1)
+    h.playerId = "p1"
+    expect((await call(takeover)).status).toBe(200)
+    await afterResponse()
+    expect(h.takenOver).not.toHaveBeenCalled()
+
+    h.playerId = "p3"
+    expect((await call(takeover)).status).toBe(200)
+    await afterResponse()
+    expect(h.takenOver).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, ["p2"])
+    expect(h.record).not.toHaveBeenCalled()
+  })
+
+  it("is written for a debug command that ends the game, marked as one, and not again by a command that finds the game over", async () => {
+    const debuggable = gameOf({ ...GAME, debug: { over: (state: TestState) => ({ ...state, turn: state.length }) } })
+    playing(["p1", "p2"], 1, 5)
+    h.playerId = "p1"
+    expect((await call(debug, { command: "over" }, CODE, debuggable)).status).toBe(200)
+    await afterResponse()
+    expect(h.record).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), expect.objectContaining({ status: "over" }), { debug: true })
+
+    h.record.mockClear()
+    expect((await call(debug, { command: "over" }, CODE, debuggable)).status).toBe(200)
+    await afterResponse()
+    expect(h.record).not.toHaveBeenCalled()
+  })
+
+  it("is not written by a debug command that leaves the game going, and a debug start begins a game", async () => {
+    const debuggable = gameOf({ ...GAME, debug: { turn: (state: TestState) => ({ ...state, turn: state.turn + 1 }) } })
+    playing(["p1", "p2"], 1, 5)
+    h.playerId = "p1"
+    expect((await call(debug, { command: "turn" }, CODE, debuggable)).status).toBe(200)
+    await afterResponse()
+    expect(h.record).not.toHaveBeenCalled()
+    expect(h.started).not.toHaveBeenCalled()
+
+    expect((await call(debug, { command: "start" }, CODE, debuggable)).status).toBe(200)
+    await afterResponse()
+    expect(h.started).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), expect.objectContaining({ code: CODE, status: "playing" }))
+    expect(h.record).not.toHaveBeenCalled()
+  })
+})
+
+describe("the start of a game", () => {
+  it("is told to the table when the last player says they are ready, once the response has left, and not before", async () => {
+    starting(["p1", "p2"], [])
+    h.playerId = "p1"
+    expect((await call(ready)).status).toBe(200)
+    await afterResponse()
+    expect(h.started).not.toHaveBeenCalled()
+
+    h.playerId = "p2"
+    expect((await call(ready)).status).toBe(200)
+    expect(h.started).not.toHaveBeenCalled()
+    await afterResponse()
+    expect(h.started).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), expect.objectContaining({ code: CODE, status: "playing" }))
+  })
+
+  it("is told again when the last vote of a rematch starts the next game, and not for the votes before it", async () => {
+    seed({ status: "over", players: [ann, bob], state: { players: ["p1", "p2"], turn: 3, length: 3 } })
+    h.playerId = "p1"
+    expect((await call(replay)).status).toBe(200)
+    await afterResponse()
+    expect(h.started).not.toHaveBeenCalled()
+
+    h.playerId = "p2"
+    expect((await call(replay)).status).toBe(200)
+    await afterResponse()
+    expect(h.started).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), expect.objectContaining({ status: "playing" }))
+  })
+})
+
+describe("a ranked table", () => {
+  it("is opened with its flag; a normal table is opened without the column at all, as it always was", async () => {
+    const host = { id: "p1", nickname: "Ann" }
+    await createGame(game, host)
+    expect([...h.rows.values()]).toHaveLength(1)
+    expect([...h.rows.values()][0]).not.toHaveProperty("ranked")
+
+    h.rows.clear()
+    await createGame(game, host, undefined, { ranked: true })
+    expect([...h.rows.values()][0]).toMatchObject({ ranked: true, status: "lobby" })
   })
 })
 

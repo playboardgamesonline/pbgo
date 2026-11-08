@@ -1,3 +1,4 @@
+import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle } from "../../../../../server/api"
@@ -5,6 +6,7 @@ import { publicGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { readyExpired, readyPatch, expirePatch } from "../../../../../server/ready"
+import { markGameStarted } from "../../../../../server/results"
 
 /**
  * "I'm ready" (PLT-107): sent by a player's board by itself once it is loaded, no click. The last of them to say it begins the game, and the answer says so (`status` is `playing`). Saying it again, or saying it for a table that is
@@ -27,6 +29,9 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     return patch
   })
   // The host is the one who started it, whoever was the last to be ready
-  if (outcome.began) trackAfter("game_started", row.host_id, { game: game.slug, players: row.players.length, options: row.options })
+  if (outcome.began) {
+    trackAfter("game_started", row.host_id, { game: game.slug, players: row.players.length, options: row.options })
+    after(() => markGameStarted(game, row))
+  }
   return publicGame(game, row, id)
 })

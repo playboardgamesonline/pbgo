@@ -8,6 +8,7 @@ import { publicGame, stateFingerprint, updateGame } from "../../../../../server/
 import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
+import { markTakenOver, recordGameResult } from "../../../../../server/results"
 import { TakeoverError, castVotes, isStalled, parseVotes, presentPlayers, sameVotes } from "../../../../../server/takeover"
 
 /**
@@ -29,7 +30,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   const { turnTimeout } = await loadSettings(game)
 
   // What the write of the modifier's last run did: it runs again when it loses a race, so it starts from nothing each time
-  const outcome = { started: false, completed: false, played: 0 }
+  const outcome = { started: false, completed: false, played: 0, targets: [] as string[] }
   const row = await updateGame(
     game,
     params.code ?? "",
@@ -37,6 +38,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       outcome.started = false
       outcome.completed = false
       outcome.played = 0
+      outcome.targets = []
       if (!id || !row.players.some((p) => p.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
       if (row.status !== "playing" || !row.state) throw notPlaying(row)
       const now = Date.now()
@@ -64,6 +66,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
           if (waitingPlayers(GAME, state).includes(target)) {
             state = playFor(GAME, state, target)
             outcome.played += 1
+            outcome.targets.push(target)
           }
         }
         // The first vote on this state, and the last one: on a table of two they are the same request
@@ -87,5 +90,13 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   }
   // The modifier only runs on a table in play, so an `over` table is the one this takeover has just ended
   if (row.status === "over") trackGameFinished(game.slug, row, id)
+  // The players the others played for count for no rating. They are told to the table first, then the game this takeover may have ended is written, with them named, since the table is over by then and takes no note any more
+  const targets = outcome.targets
+  if (targets.length || row.status === "over") {
+    after(async () => {
+      await markTakenOver(game, row.code, targets)
+      if (row.status === "over") await recordGameResult(game, row, { takenOver: targets })
+    })
+  }
   return publicGame(game, row, id)
 })
