@@ -654,6 +654,55 @@ describe("saveSection › copy", () => {
     expect(codes("drafts.texts")).toEqual(["GAME_FULL", "GAME_NOT_FOUND"])
   })
 
+  it("lists the words of the engine's options as texts to write: the labels required, the helps optional and on several lines", async () => {
+    setup()
+
+    const { copy } = await readAdminData(sampleGame())
+
+    const engine = copy.entries.filter((e) => e.group === "engine")
+    expect(engine.map((e) => [e.key, e.label, e.required])).toEqual([
+      ["engine.option.rounds.label", 'Option "rounds"', true],
+      ["engine.option.fast.label", 'Option "fast"', true],
+      ["engine.option.rounds.help", 'Option "rounds": help', false],
+      ["engine.option.fast.help", 'Option "fast": help', false],
+    ])
+    expect(engine.map((e) => e.multiline)).toEqual([false, false, true, true])
+    expect(engine.every((e) => Object.values(e.fallbacks).every((f) => f === ""))).toBe(true)
+  })
+
+  it("shows the words the game's Sanity holds, and a game with no engine none", async () => {
+    setup(dataset("texts", "published", { engineTexts: [{ _key: "a", _type: "engineText", key: "option.rounds.label", text: { _type: "localeText", en: "Rounds", fr: "Manches" } }] }))
+
+    const entry = (await readAdminData(sampleGame())).copy.entries.find((e) => e.key === "engine.option.rounds.label")!
+    const bare = await readAdminData(sampleGame({ binding: { ...sampleGame().binding, GAME: undefined } }))
+
+    expect(entry.values).toMatchObject({ en: "Rounds", fr: "Manches", es: null, de: null })
+    expect(bare.copy.entries.some((e) => e.group === "engine")).toBe(false)
+  })
+
+  it("writes the words of the engine into one list, keeps the words it was not asked about and refuses a key the engine does not name", async () => {
+    const kept = { _key: "score_round", _type: "engineText", key: "score.round", text: { _type: "localeText", en: "Round {n}" } }
+    const sanity = setup(dataset("texts", "published", { engineTexts: [kept] }))
+
+    await saveSection(sampleGame(), "copy", { values: { "engine.option.rounds.label": { fr: "Manches", en: "Rounds" }, "engine.option.nope.label": { fr: "x" } } })
+
+    expect(sanity.doc("texts")?.engineTexts).toEqual([
+      kept,
+      { _key: "option_rounds_label", _type: "engineText", key: "option.rounds.label", text: { _type: "localeText", fr: "Manches", en: "Rounds" } },
+    ])
+  })
+
+  it("takes a language out of the words of the engine, and the whole entry once no language is left", async () => {
+    const entry = { _key: "option_rounds_label", _type: "engineText", key: "option.rounds.label", text: { _type: "localeText", fr: "Manches", en: "Rounds" } }
+    const sanity = setup(dataset("texts", "published", { engineTexts: [entry] }))
+
+    await saveSection(sampleGame(), "copy", { values: { "engine.option.rounds.label": { fr: "" } } })
+    expect(sanity.doc("texts")?.engineTexts).toEqual([{ ...entry, text: { _type: "localeText", en: "Rounds" } }])
+
+    await saveSection(sampleGame(), "copy", { values: { "engine.option.rounds.label": { en: "" } } })
+    expect(sanity.doc("texts")?.engineTexts).toEqual([])
+  })
+
   it("never touches a stale draft", async () => {
     const sanity = setup(
       dataset("texts", "stale draft", { ui_game: { replay: { _type: "localeString", fr: "Ancienne" } } }, { ui_game: { replay: { _type: "localeString", fr: "Périmée" } } }),

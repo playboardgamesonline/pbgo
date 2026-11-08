@@ -2,7 +2,7 @@ import { ERROR_TRANSLATIONS } from "@pbgo/studio-kit/translations"
 import { describe, expect, it } from "vitest"
 import type { GameBinding } from "./binding"
 import type { Locale } from "./i18n"
-import { baseSkin, DEFAULT_SKIN, DEFAULT_TEXTS, fill, mergeSkin } from "./skin"
+import { baseSkin, DEFAULT_SKIN, DEFAULT_TEXTS, engineText, fill, mergeSkin, optionalEngineText } from "./skin"
 
 describe("baseSkin", () => {
   // the scoreboard dialog is named by this text for screen readers
@@ -76,5 +76,34 @@ describe("mergeSkin", () => {
 
   it("is the base itself without anything to merge", () => {
     expect(mergeSkin(base, undefined)).toBe(base)
+  })
+})
+
+describe("the words of the engine", () => {
+  const skin = { engineTexts: { "option.rounds.label": "Rounds", "score.round": "Round {n}" } }
+
+  it("reads the game's Sanity, and fills the variables of a line of score", () => {
+    expect(engineText(skin, "option.rounds.label")).toBe("Rounds")
+    expect(engineText(skin, "score.round", undefined, { n: 2 })).toBe("Round 2")
+  })
+
+  it("lets Sanity win over the words an engine still carries, which stand in while a game has not moved them", () => {
+    expect(engineText(skin, "option.rounds.label", "Manches")).toBe("Rounds")
+    expect(engineText(skin, "option.bids.label", "Annonces")).toBe("Annonces")
+  })
+
+  it("says the text is missing when neither holds it, instead of covering for it", () => {
+    expect(engineText(skin, "option.bids.label")).toBe("[missing: option.bids.label]")
+  })
+
+  it("leaves out the words that are optional when there are none", () => {
+    expect(optionalEngineText(skin, "option.rounds.help")).toBeNull()
+    expect(optionalEngineText(skin, "option.rounds.help", "Réduit")).toBe("Réduit")
+    expect(optionalEngineText(skin, "option.rounds.label")).toBe("Rounds")
+  })
+
+  it("is merged like the error messages: the game's words over the base, a blank one ignored", () => {
+    const base = { ...DEFAULT_SKIN, engineTexts: { a: "A", b: "B" } }
+    expect(mergeSkin(base, { engineTexts: { b: "Bee", c: "  " } }).engineTexts).toEqual({ a: "A", b: "Bee" })
   })
 })

@@ -328,7 +328,7 @@ describe("the ranking", () => {
   it("lists the same details, in the same order, for every player", () => {
     for (const { detail } of results(final)?.players ?? []) {
       expect(detail.map(({ key }) => key)).toEqual(["outlasted", "turnsSurvived", "kittensDefused", "nopesPlayed"])
-      expect(detail.every(({ label }) => label.length > 0)).toBe(true)
+      expect(detail.every(({ label }) => (label ?? "").length > 0)).toBe(true)
     }
   })
 

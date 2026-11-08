@@ -73,7 +73,7 @@ type State = {
 
 ### Options
 
-`options.ts`. Declarative game options (`number` / `choice` / `boolean`, optional `group`, `requires`, `conflictsWith`, `players`): `defaultOptions`, `normalizeOptions`, `optionStatus`, `optionGroup`, `applyPreset`, `presetMatches`.
+`options.ts`. Declarative game options (`number` / `choice` / `boolean`, optional `group`, `requires`, `conflictsWith`, `players`): `defaultOptions`, `normalizeOptions`, `optionStatus`, `optionGroup`, `applyPreset`, `presetMatches`. An option names no text: its words, and those of a preset and of a line of score, are written in the game's Sanity under the keys of `texts.ts` (`optionLabelKey`, `choiceLabelKey`, `scoreLabelKey`…), and `engineTextKeys(definition)` lists the ones a definition needs.
 
 ### Random numbers (`rng.ts`)
 

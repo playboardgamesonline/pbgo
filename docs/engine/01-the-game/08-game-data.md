@@ -19,7 +19,7 @@ Game data is what an engine or a board needs that is not a rule: the missions an
 - Courtisans keeps the default-language text of each mission in its state as a fallback only; its board draws the text of the player's language from its own data.
 - The state keeps what the rules read and the ids of what the board draws ([Lean state](09-state.md#lean-state)): a card's face comes from `CATALOGUE`, its name and picture from Sanity under the same key, and Flip 7's keys are append only, never renamed.
 - A game's texts, translations, images and sounds are in its Sanity project and never in code (`docs/sanity-and-languages.md`); a text it lacks reads `[missing: <key>]`. The messages of the codes in `ERROR_CODES` are written in Setup › Copy › Errors.
-- The `label` and `help` of an option are written in the engine and shown as written ([Expansions and helpers](07-parameters.md#expansions-and-helpers)).
+- The words of an option, of a preset and of a line of score are the game's own texts too: the engine names them by key and the game's Sanity writes them ([The words of options and scores](07-parameters.md#the-words-of-options-and-scores)).
 
 From `packages/core/server/games.ts`, the two calls core makes, each optional:
 

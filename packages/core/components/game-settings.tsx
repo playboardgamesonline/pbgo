@@ -1,21 +1,25 @@
 "use client"
 
-import { optionGroup, type OptionDefinition, type OptionValues } from "@pbgo/engine-kit"
+import { choiceLabelKey, optionGroup, optionHelpKey, optionLabelKey, type OptionDefinition, type OptionValues } from "@pbgo/engine-kit"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@pbgo/ui/game/dialog"
 import { cn } from "@pbgo/ui/utils"
 import { useBinding } from "../lib/binding-context"
 import { useSiteSettings } from "./settings-provider"
-import { useText } from "./skin-provider"
+import { useEngineTexts, useText } from "./skin-provider"
 
-function display(def: OptionDefinition, value: unknown, t: ReturnType<typeof useText>) {
+function display(key: string, def: OptionDefinition, value: unknown, t: ReturnType<typeof useText>, words: ReturnType<typeof useEngineTexts>["text"]) {
   if (def.type === "boolean") return value ? t("gameSettingsOn") : t("gameSettingsOff")
-  if (def.type === "choice") return def.choices.find((c) => c.value === value)?.label ?? String(value)
+  if (def.type === "choice") {
+    const choice = def.choices.find((c) => c.value === value)
+    return choice ? words(choiceLabelKey(key, choice.value), choice.label) : String(value)
+  }
   return String(value)
 }
 
 /** Read-only dialog: parameters and extensions of the current game (options hidden by the admin are not listed). */
 export function GameSettingsDialog({ open, onOpenChange, options }: { open: boolean; onOpenChange: (o: boolean) => void; options: OptionValues }) {
   const t = useText()
+  const { text: words, optional } = useEngineTexts()
   const { GAME } = useBinding()
   const { options: settings } = useSiteSettings()
   const entries = Object.entries(GAME?.options ?? {}).filter(([key]) => !settings.hidden.includes(key))
@@ -35,8 +39,8 @@ export function GameSettingsDialog({ open, onOpenChange, options }: { open: bool
             <ul className="divide-y divide-foreground/10">
               {parameters.map(([key, def]) => (
                 <li key={key} className="flex items-center justify-between gap-4 py-2 text-sm">
-                  <span>{def.label}</span>
-                  <span className="font-semibold tabular-nums">{display(def, options[key] ?? def.defaultValue, t)}</span>
+                  <span>{words(optionLabelKey(key), def.label)}</span>
+                  <span className="font-semibold tabular-nums">{display(key, def, options[key] ?? def.defaultValue, t, words)}</span>
                 </li>
               ))}
             </ul>
@@ -48,12 +52,13 @@ export function GameSettingsDialog({ open, onOpenChange, options }: { open: bool
             <ul className="space-y-2">
               {extensions.map(([key, def]) => {
                 const active = options[key] === true
+                const help = optional(optionHelpKey(key), def.help)
                 return (
                   <li key={key} className={cn("flex items-center gap-3 rounded-xl border p-3 text-sm", active ? "border-accent-game/60 bg-accent-game/10" : "border-foreground/10 opacity-50")}>
                     {def.icon && <span className="text-xl" aria-hidden>{def.icon}</span>}
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold">{def.label}</p>
-                      {def.help && <p className="text-xs text-foreground/60">{def.help}</p>}
+                      <p className="font-semibold">{words(optionLabelKey(key), def.label)}</p>
+                      {help && <p className="text-xs text-foreground/60">{help}</p>}
                     </div>
                     <span className="shrink-0 text-xs font-semibold">{active ? t("gameSettingsOn") : t("gameSettingsOff")}</span>
                   </li>

@@ -1,4 +1,5 @@
 import "server-only"
+import { describeTextKey, engineTextKeys } from "@pbgo/engine-kit"
 import { UI_TEXTS } from "@pbgo/studio-kit/constants"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { CORE_ERROR_MESSAGES } from "../lib/api"
@@ -35,7 +36,7 @@ import { DOCS, type DocName, draftState, type DraftState, eachVersion, fetchDoc,
 
 export type ImageInfo = { url: string | null; custom: boolean }
 
-export type CopyGroup = "home" | "lobby" | "game" | "end" | "errors"
+export type CopyGroup = "home" | "lobby" | "game" | "end" | "errors" | "engine"
 /**
  * An editable text, for each language: the value entered in Sanity (or null) and, for the platform's own labels and error messages,
  * the text the platform shows until one is entered (`fallbacks`; "" for a text only the game can write). A `required` text with no
@@ -119,8 +120,22 @@ function copyEntries(binding: GameBinding, texts: TextsDoc | null | undefined): 
       required: !core,
     })
   }
+  // The words of the engine's options, presets and score lines: the engine names the keys, the game's Sanity holds the texts (none in the platform's code, so none is covered for)
+  const words = new Map((texts?.engineTexts ?? []).map((e) => [e.key, e.text]))
+  const wanted = engineTexts(binding)
+  for (const [keys, required] of [[wanted.required, true], [wanted.optional, false]] as const) {
+    for (const key of keys) {
+      entries.push({ key: `engine.${key}`, group: "engine", label: describeTextKey(key), values: values(words.get(key)), fallbacks: none, required, multiline: key.endsWith(".help") })
+    }
+  }
   return entries
 }
+
+/** The languages of a stored text, without the `_type` Sanity keeps in the object: an entry with no language left is empty. */
+const languagesOf = (stored: Record<string, string> | undefined): Record<string, string> => Object.fromEntries(Object.entries(stored ?? {}).filter(([k]) => !k.startsWith("_")))
+
+/** The keys of the texts the game's engine needs (`engineTextKeys`), none for a game with no engine yet. */
+const engineTexts = (binding: GameBinding) => (binding.GAME ? engineTextKeys(binding.GAME) : { required: [], optional: [] })
 
 function audioAdmin(game: GameModule, doc: AudioDoc): AudioAdmin {
   const url = (f: { url?: string | null } | null | undefined) => (f?.url ? mediaUrl(f.url) : null)
@@ -377,10 +392,13 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
     const s = input as { values?: Record<string, Partial<Record<Locale, unknown>>>; victoryPhrases?: Partial<Record<Locale, unknown>> }
     const c = writer(game)
     const codes = errorCodes(game.binding)
+    const wanted = engineTexts(game.binding)
+    const engineKeys = [...wanted.required, ...wanted.optional]
     const set: Record<string, unknown> = {}
     const unset: string[] = []
     const setIfMissing: Record<string, unknown> = {}
     const errorEdits: { code: string; locale: Locale; value: string | null }[] = []
+    const engineEdits: { key: string; locale: Locale; value: string | null }[] = []
     for (const [key, byLang] of Object.entries(s.values ?? {})) {
       for (const l of LOCALES) {
         if (!(byLang && l in byLang)) continue
@@ -388,6 +406,11 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
         if (key.startsWith("error.")) {
           const code = key.slice(6)
           if (codes.includes(code)) errorEdits.push({ code, locale: l, value })
+          continue
+        }
+        if (key.startsWith("engine.")) {
+          const engineKey = key.slice(7)
+          if (engineKeys.includes(engineKey)) engineEdits.push({ key: engineKey, locale: l, value })
           continue
         }
         let path: string
@@ -416,9 +439,19 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
     const parents = Object.fromEntries(Object.entries(setIfMissing).filter(([k]) => !k.includes(".")))
     const children = Object.fromEntries(Object.entries(setIfMissing).filter(([k]) => k.includes(".")))
     await eachVersion(c, "texts", async (target, tx) => {
-      // the error messages are one list, written whole: from what this version holds now
-      const current = await fetchDoc<{ errorMessages?: { code?: string; message?: Record<string, string> }[] }>(c, target, "{ errorMessages }")
-      const errors = new Map((current?.errorMessages ?? []).map((e) => [e.code, e.message ?? {}]))
+      // the error messages and the words of the engine are two lists, each written whole: from what this version holds now
+      const current = await fetchDoc<{ errorMessages?: { code?: string; message?: Record<string, string> }[]; engineTexts?: { key?: string; text?: Record<string, string> }[] }>(c, target, "{ errorMessages, engineTexts }")
+      const errors = new Map((current?.errorMessages ?? []).map((e) => [e.code, languagesOf(e.message)]))
+      const engine = new Map((current?.engineTexts ?? []).map((e) => [e.key, languagesOf(e.text)]))
+      for (const { key, locale, value } of engineEdits) {
+        const text: Record<string, string> = { ...(engine.get(key) ?? {}) }
+        if (value) text[locale] = value
+        else delete text[locale]
+        engine.set(key, text)
+      }
+      const engineList = [...engine.entries()]
+        .filter(([key, t]) => key && Object.values(t).some(Boolean))
+        .map(([key, text]) => ({ _key: key!.replace(/[^A-Za-z0-9_-]/g, "_"), _type: "engineText", key, text: { _type: "localeText", ...text } }))
       for (const { code, locale, value } of errorEdits) {
         const message: Record<string, string> = { ...(errors.get(code) ?? {}) }
         if (value) message[locale] = value
@@ -432,7 +465,7 @@ const SAVERS: Record<SectionName, (game: GameModule, input: Input) => Promise<vo
       if (!isEmpty(parents)) tx.patch(target, (p) => p.setIfMissing(parents))
       tx.patch(target, (p) => {
         const q = isEmpty(children) ? p : p.setIfMissing(children)
-        const r = q.set({ ...set, errorMessages: messages })
+        const r = q.set({ ...set, errorMessages: messages, engineTexts: engineList })
         return unset.length ? r.unset(unset) : r
       })
     })
