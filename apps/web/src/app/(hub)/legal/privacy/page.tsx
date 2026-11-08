@@ -106,6 +106,10 @@ export default function PrivacyPolicy() {
               text: "The language you choose is kept with your account, so that it follows you from one device to the next, and in a cookie on each device.",
             },
             {
+              name: "Your settings",
+              text: "The nickname you choose and your choices (the notifications you want, hiding your game history) are kept with your account, so that they follow you from one device to the next. They stay until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
+            },
+            {
               name: "Being online",
               text: `While you are signed in and the site is open in a tab you are looking at, your browser tells our server, about every 45 seconds, that you are there. We keep only the time of the last time, one entry per account. The home page counts the members seen in the last two minutes, with the people sitting at a table, and shows the total as the players online: nobody is shown whether you are online. A clean-up runs every night and deletes that time ${PRESENCE_RETENTION_DAYS} ${PRESENCE_RETENTION_DAYS === 1 ? "day" : "days"} after your last visit, and it goes with your account. A guest who only looks around is not counted.`,
             },

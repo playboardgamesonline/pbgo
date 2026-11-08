@@ -4,7 +4,11 @@
 
 export { AFTER_SIGN_IN, safeNext } from "./redirect"
 export { PROVIDERS, PROVIDER_NAMES, accountOf, emailOf, initialsOf } from "./account"
-export type { Account, AuthUser, Provider } from "./account"
+export type { Account, AuthUser, LinkedService, Provider } from "./account"
+export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, nicknameOf, preferencesOf } from "./preferences"
+export type { PreferenceName, Preferences } from "./preferences"
+export { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, settingsMessage, settingsProblem } from "./settings"
+export type { Device, PasswordProblems, SettingsProblem } from "./settings"
 export {
   DEFAULT_LANGUAGE,
   LANGUAGE_COOKIE,

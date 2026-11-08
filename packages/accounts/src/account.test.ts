@@ -51,6 +51,8 @@ describe("accountOf", () => {
       provider: "google",
       createdAt: "2026-10-01T09:00:00.000Z",
       language: null,
+      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false },
+      linked: [],
     })
   })
 
@@ -98,7 +100,17 @@ describe("accountOf", () => {
 
   it("reads a blank or a non-text claim as missing", () => {
     const account = accountOf({ id: "u-7", email: "  ", user_metadata: { full_name: "   ", name: 42, avatar_url: "" } })
-    expect(account).toEqual({ id: "u-7", nickname: "Player", email: null, avatarUrl: null, provider: null, createdAt: null, language: null })
+    expect(account).toEqual({
+      id: "u-7",
+      nickname: "Player",
+      email: null,
+      avatarUrl: null,
+      provider: null,
+      createdAt: null,
+      language: null,
+      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false },
+      linked: [],
+    })
   })
 
   it("knows no provider that is not one of ours", () => {
@@ -120,6 +132,54 @@ describe("accountOf", () => {
     expect(accountOf(google).language).toBeNull()
     expect(accountOf({ ...google, user_metadata: { ...google.user_metadata, locale: "fr" } }).language).toBeNull()
     expect(accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_locale: "klingon" } }).language).toBeNull()
+  })
+})
+
+describe("the nickname a member chose (PLT-111)", () => {
+  it("wins over the name of every provider, which a sign-in writes again each time", () => {
+    for (const user of [google, twitch, discord]) expect(accountOf({ ...user, user_metadata: { ...user.user_metadata, pbgo_nickname: "Marly" } }).nickname).toBe("Marly")
+  })
+
+  it("wins over the start of the address too, and leaves the picture to the provider", () => {
+    const account = accountOf({ ...google, user_metadata: { avatar_url: "https://example.com/a.png", pbgo_nickname: "Marly" } })
+    expect(account.nickname).toBe("Marly")
+    expect(account.avatarUrl).toBe("https://example.com/a.png")
+  })
+
+  it("is not read from the key a provider fills: `full_name` is the provider's", () => {
+    expect(accountOf({ ...google, user_metadata: { full_name: "Marly" } }).nickname).toBe("Marly")
+    expect(accountOf({ ...google, user_metadata: { full_name: "Provider", pbgo_nickname: "   " } }).nickname).toBe("Provider")
+  })
+})
+
+describe("the preferences and the linked services of an account (PLT-111)", () => {
+  it("keeps the preferences the member set", () => {
+    const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_hide_history: true, pbgo_notify_turn: false } })
+    expect(account.preferences).toEqual({ notifyTurn: false, notifyInvites: true, hideHistory: true })
+  })
+
+  it("lists the ways into the account in the order Supabase Auth gives them, each with what it says of itself", () => {
+    const account = accountOf({
+      ...google,
+      identities: [
+        { provider: "email", identity_data: { email: "ore@example.com" } },
+        { provider: "google", identity_data: { email: "ore@gmail.com", full_name: "Oré Louvel" } },
+        { provider: "discord", identity_data: { full_name: "ore_louvel" } },
+        { provider: "twitch", identity_data: null },
+      ],
+    })
+    expect(account.linked).toEqual([
+      { provider: "email", detail: "ore@example.com" },
+      { provider: "google", detail: "ore@gmail.com" },
+      { provider: "discord", detail: "ore_louvel" },
+      { provider: "twitch", detail: null },
+    ])
+  })
+
+  it("leaves out an identity of a provider that is not ours, and holds none for a user whose identities are not known", () => {
+    expect(accountOf({ ...google, identities: [{ provider: "github", identity_data: { email: "ore@example.com" } }, { identity_data: {} }] }).linked).toEqual([])
+    expect(accountOf(google).linked).toEqual([])
+    expect(accountOf({ ...google, identities: null }).linked).toEqual([])
   })
 })
 
