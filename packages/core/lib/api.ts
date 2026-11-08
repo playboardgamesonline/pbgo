@@ -5,21 +5,38 @@ import { missing } from "./missing"
 import { isPreviewWindow } from "./preview"
 import type { Profile } from "./profile"
 
-/** Error messages of the platform's own error codes (English, the default language; the others are `ERROR_TRANSLATIONS` of studio-kit), replaceable in the admin (Copy page). A game's codes have no message here: they come from Sanity. */
+/**
+ * Error messages of the codes the platform words: the shared codes of the engines (`SHARED_ERROR_CODES` of engine-kit) and the codes of its own routes (English, the default
+ * language; the others, where there are, are `ERROR_TRANSLATIONS` of studio-kit), replaceable in the admin (Copy page). A game's own codes have no message here: they come from Sanity.
+ */
 export const CORE_ERROR_MESSAGES: Record<string, string> = {
+  // What an engine refuses with, in every game
+  INVALID_PLAYERS: "This game can't be played with this many players.",
+  INVALID_ACTION: "This action isn't possible.",
+  INVALID_PHASE: "This isn't possible at this stage of the game.",
+  GAME_OVER: "The game is over.",
+  NOT_YOUR_TURN: "It's not your turn.",
+  NOT_WAITING: "The game is no longer waiting for this player: they played in the meantime.",
+  UNKNOWN_PLAYER: "You are not a player of this game.",
+  UNKNOWN_CARD: "This card is not in your hand.",
+  INVALID_TARGET: "You can't choose this player.",
+  AUTOPLAY_UNSUPPORTED: "This game can't play for this player.",
+  // What the routes of a game refuse with
   INVALID_NICKNAME: "Pick a nickname.",
   INVALID_CODE: "This game code is not valid.",
   GAME_NOT_FOUND: "No game matches this code.",
   GAME_IN_PROGRESS: "This game has already started.",
+  GAME_NOT_STARTED: "The game hasn't started yet.",
+  GAME_NOT_OVER: "This game isn't over yet.",
   GAME_FULL: "This game is full.",
   HOST_ONLY: "Only the host can do that.",
   NOT_ENOUGH_PLAYERS: "More players are needed to start the game.",
-  NOT_YOUR_TURN: "It's not your turn.",
-  UNKNOWN_CARD: "This card is not in your hand.",
+  CODE_UNAVAILABLE: "Couldn't open the table, try again.",
   CONFLICT: "Someone played at the same time, try again.",
   DEBUG_DISABLED: "Debug is disabled on this server (DEBUG_GAMES=1).",
   NOT_STALLED: "The game is still moving: wait a little before playing for them.",
-  NOT_WAITING: "The game is no longer waiting for this player: they played in the meantime.",
+  TAKEOVER_UNSUPPORTED: "This game doesn't allow playing for an absent player.",
+  INVALID_REQUEST: "This request isn't valid.",
   SERVER_ERROR: "Something went wrong.",
   EMPTY_TEXT: "Write your message first.",
   INVALID_EMAIL: "This email address is not valid.",
@@ -28,8 +45,6 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   TOO_MANY_REQUESTS: "Too many submissions: try again in a moment.",
   RATE_LIMITED: "Too many requests: wait a few seconds before trying again.",
   FORBIDDEN: "Action refused.",
-  TAKEOVER_UNSUPPORTED: "This game doesn't allow playing for an absent player.",
-  AUTOPLAY_UNSUPPORTED: "This game can't play for this player.",
 }
 
 // The page shows one game at a time: `SkinProvider` sets the messages of its skin (Sanity, else the platform's translations of the core codes).

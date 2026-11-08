@@ -3,7 +3,7 @@ import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { trackAfter, trackGameFinished } from "../../../../../server/analytics"
-import { ApiError, handle, readJson } from "../../../../../server/api"
+import { ApiError, handle, notPlaying, readJson } from "../../../../../server/api"
 import { publicGame, stateFingerprint, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
@@ -38,7 +38,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       outcome.completed = false
       outcome.played = 0
       if (!id || !row.players.some((p) => p.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
-      if (row.status !== "playing" || !row.state) throw new ApiError("GAME_NOT_STARTED", 409)
+      if (row.status !== "playing" || !row.state) throw notPlaying(row)
       const now = Date.now()
       if (!isStalled(row.updated_at, now, turnTimeout)) throw new ApiError("NOT_STALLED", 409)
       const waiting = waitingPlayers(GAME, row.state)

@@ -36,6 +36,7 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@pbgo/engine-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

@@ -17,6 +17,7 @@ An engine is tested in layers, from one rule to a whole game with absent players
 | Absent players | `playFor` plays each player the game waits for and refuses anybody else with `NOT_WAITING`; a table of absent players ends | Flip 7: `autoplay.test.ts`, `simulation.test.ts`; Courtisans: `game.test.ts` |
 | The commands | Each debug command, and that a command that rigs the draw pile changes nothing outside its moment | Flip 7: `debug.test.ts` |
 | The takeover in the binding | A whole game in which players never come back, with the real voting rules of core | The template: `src/takeover.test.ts` |
+| The error vocabulary in the binding | Every code the engine throws is a shared one or one that `ERROR_CODES` lists, and the list holds the game's own only | The template: `src/error-codes.test.ts` |
 
 ## Rules
 

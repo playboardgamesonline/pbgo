@@ -131,8 +131,9 @@ export type GameBinding = {
   UI_THEME?: UiTheme
   SETTINGS_DEFAULTS?: SettingsDefaults
   /**
-   * The error codes the game's engine can throw, besides the platform's own. Their messages are written in every language in
-   * Sanity (Gamemaster › Copy), never in the code: a code with no message there shows as `[missing: errorMessages.<CODE>]`.
+   * The codes of the game's own refusals: what its engine throws besides the shared codes (`SHARED_ERROR_CODES` of engine-kit) and the platform's own,
+   * which the platform words. Their messages are written in every language in Sanity (Gamemaster › Copy), never in the code:
+   * a code with no message there shows as `[missing: errorMessages.<CODE>]`.
    */
   ERROR_CODES?: readonly string[]
   /** Chat reactions added to (or replacing) the built-in ones, same `id` = replaced */
