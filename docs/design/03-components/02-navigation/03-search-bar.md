@@ -67,11 +67,11 @@ The other filters stand under the bar in `SearchBarFilters`, centred on a line o
 | Complexity | `Meter` | `Brain02Icon` |
 | Age | `SearchBarSegment` that is `boxed` | `ChildIcon` |
 
-The icons are the ones the game's card and page use, and `GridViewIcon` is the category's. The starting values are those of `@pbgo/catalog/filter`.
+The icons are the ones the game's card and page use, and `GridViewIcon` is the category's. Each filter starts on its own end of no limit (`@pbgo/catalog/filter`), so nothing is cut until a visitor picks.
 
-- Players: a minus button, the number with its icon, a plus button. No label.
+- Players: a minus button, the number with its icon, a plus button. No label. It says "Any" until a first press picks a number.
 - Duration: the hourglass (`SearchBarIcon`), the limit written after it (`SearchBarValue`, with no unit word since the hourglass says it), then a one-thumb [`Slider`](../01-controls/07-slider.md) with no dots, only the fill.
-- Complexity: the icon and a [`Meter`](../01-controls/08-meter.md) with nothing written beside it. It is not `clearable`: there is always a level.
-- Age: a `boxed` `SearchBarSegment` that opens a [`DropdownMenu`](../03-overlays/02-dropdown-menu.md) as wide as the button. It always has one age picked.
+- Complexity: the icon and a [`Meter`](../01-controls/08-meter.md) with nothing written beside it. It is not `clearable`: there is always a level, all of them filled where it starts.
+- Age: a `boxed` `SearchBarSegment` that opens a [`DropdownMenu`](../03-overlays/02-dropdown-menu.md) as wide as the button. It always has one age picked, "All ages" where it starts.
 
-The filters are always at work, so nothing in the row is filled in or outlined to say what is picked: a filter shows what it is set to. A stepper's number is plain text and never empty; each press moves it one place along its options (`stepOption`), and the buttons stop at the first and the last.
+Nothing in the row is filled in or outlined to say what is picked: a filter shows what it is set to. A stepper's value is plain text and never empty ("Any" while nothing is picked); the first press picks a table of four, each press then moves it one place along its options (`stepOption`), the plus button stops at the last, and the minus button goes back to "Any" from the first.

@@ -5,14 +5,16 @@ import { useId, type ComponentProps } from "react"
 import { Brain02Icon, ChildIcon, GridViewIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import {
   AGE_LIMITS,
+  ANY_AGE,
+  ANY_COMPLEXITY,
   COMPLEXITY_LEVELS,
-  DEFAULT_AGE,
-  DEFAULT_COMPLEXITY,
-  DEFAULT_PLAYERS,
   DURATION_LIMITS,
+  FIRST_PLAYERS,
   MANY_PLAYERS,
   PLAYER_COUNTS,
+  agePick,
   canStep,
+  complexityPick,
   optionOf,
   stepOption,
   type GameFilter,
@@ -37,8 +39,8 @@ import { categoryIcon } from "@/lib/category-icons"
 
 /** What a screen reader hears of a pick, and what a pointer shows over it. */
 const playersText = (count: number): string => (count >= MANY_PLAYERS ? `${count}+ players` : count === 1 ? "1 player" : `${count} players`)
-/** "8+": from 8 years old, which is how the box of a game says it. */
-const ageText = (age: number): string => `${age}+`
+/** "8+": from 8 years old, which is how the box of a game says it; the last age, a player of which can play every game, is "All ages". */
+const ageText = (age: number): string => (age >= ANY_AGE ? "All ages" : `${age}+`)
 
 // The duration slider has a step for each limit and one more, "1h+", which is no limit: the games of an hour or more stay only there
 const limits: readonly number[] = DURATION_LIMITS
@@ -61,8 +63,8 @@ const complexitySays = (level: number): string => `Complexity up to ${level} of 
 
 /**
  * A number of the bar, as a stepper: a minus button, the number with its icon just after it, and a plus button, with no panel (`SearchBarStepper`).
- * The number always has a value, `start` until the visitor moves it, and the buttons move it along `options` one place at a time (`stepOption`), down
- * to the first or up to the last, which they stop at.
+ * It starts on no number (`current` is null) and says so (`any`, "Any"); the first press, either way, picks `start`, then the buttons move the number along
+ * `options` one place at a time (`stepOption`), up to the last, which they stop at, and down from the first to no number again.
  */
 export function NumberStepper({
   icon,
@@ -73,38 +75,43 @@ export function NumberStepper({
   onPick,
   text,
   says,
+  any,
+  anySays,
   decrease,
   increase,
 }: {
   icon: ComponentProps<typeof SearchBarStepper>["icon"]
   label: string
   options: readonly number[]
-  /** Where the number starts, one of the options. */
+  /** What the first press picks, one of the options. */
   start: number
-  /** The pick, null for none: the number then shows `start`. */
+  /** The pick, null for none: the stepper then says `any`. */
   current: number | null
-  onPick: (next: number) => void
+  onPick: (next: number | null) => void
   /** The number as it is written: "4", "8+". */
   text: (value: number) => string
   /** The number as a screen reader hears it: "4 players". */
   says: (value: number) => string
+  /** What it says while nothing is picked: "Any". */
+  any: string
+  /** What a screen reader hears while nothing is picked: "Any number of players". */
+  anySays: string
   /** What the two buttons do: "Fewer players", "More players". */
   decrease: string
   increase: string
 }) {
-  const shown = current ?? start
   return (
     <SearchBarStepper
       icon={icon}
       label={label}
-      value={text(shown)}
-      valueLabel={says(shown)}
+      value={current === null ? any : text(current)}
+      valueLabel={current === null ? anySays : says(current)}
       decreaseLabel={decrease}
       increaseLabel={increase}
-      canDecrease={canStep(options, shown, -1)}
-      canIncrease={canStep(options, shown, 1)}
-      onDecrease={() => onPick(stepOption(options, shown, -1, start))}
-      onIncrease={() => onPick(stepOption(options, shown, 1, start))}
+      canDecrease={canStep(options, current, -1)}
+      canIncrease={canStep(options, current, 1)}
+      onDecrease={() => onPick(stepOption(options, current, -1, start))}
+      onIncrease={() => onPick(stepOption(options, current, 1, start))}
     />
   )
 }
@@ -163,8 +170,8 @@ export function CategoryFilter({
 /**
  * The duration filter: the hourglass, the limit written next to it (its minutes and the minute mark, "30′", or "1h+" for no limit), then a slider
  * with one thumb on twelve steps, from 5′ to 55′ five minutes at a time and "1h+". A game stays when it takes at most that long, and the last step
- * is no limit. The slider starts on 20′ (`DEFAULT_DURATION`, which the filter holds) and the fill runs from the first step to the thumb, so the limit can
- * be seen. The text has a width of its own, so the slider stays where it is while the text changes.
+ * is no limit, where the slider starts (the filter holds no pick) and the fill runs from the first step to the thumb, so the limit can be seen. The text
+ * has a width of its own, so the slider stays where it is while the text changes.
  */
 function DurationFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
   const step = stepOfLimit(current)
@@ -194,18 +201,18 @@ function DurationFilter({ current, onPick }: { current: number | null; onPick: (
 /**
  * The complexity filter: its icon, then five bars of the same height that fill up to the level pressed, on the scale of the weight that BoardGameGeek
  * gives a game (1, light, to 5, heavy), with nothing written beside them. A game stays when its level, its weight rounded, is at most the one picked.
- * There is always a level, `DEFAULT_COMPLEXITY` until the visitor presses another bar, and the bars never go below the first: the meter is not
- * `clearable`, so pressing the picked level keeps it.
+ * They start all filled: the last level is no limit, so pressing it is no pick (`complexityPick`), and the bars never go below the first: the meter is
+ * not `clearable`, so pressing the picked level keeps it.
  */
-function ComplexityFilter({ current, onPick }: { current: number | null; onPick: (next: number) => void }) {
+function ComplexityFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
   return (
     <SearchBarGroup label="Complexity">
       <SearchBarIcon icon={Brain02Icon} />
       <Meter
         levels={COMPLEXITY_LEVELS.length}
-        value={current ?? DEFAULT_COMPLEXITY}
+        value={current ?? ANY_COMPLEXITY}
         clearable={false}
-        onValueChange={(next) => next !== null && onPick(next)}
+        onValueChange={(next) => next !== null && onPick(complexityPick(next))}
         levelLabel={complexitySays}
       />
     </SearchBarGroup>
@@ -214,11 +221,11 @@ function ComplexityFilter({ current, onPick }: { current: number | null; onPick:
 
 /**
  * The age filter: a segment, like the category's, that opens a menu with one age to pick ("8+": the youngest player is 8, so a game stays when its
- * minimum age is at most that), since the ages are a short list to read and not a number to step through. One of them is always picked, `DEFAULT_AGE`
- * until the visitor picks another, so there is no "any".
+ * minimum age is at most that), since the ages are a short list to read and not a number to step through. One of them is always picked: the last,
+ * "All ages", where it starts, is no limit, so it is no pick (`agePick`).
  */
-function AgeFilter({ current, onPick }: { current: number | null; onPick: (next: number) => void }) {
-  const age = current ?? DEFAULT_AGE
+function AgeFilter({ current, onPick }: { current: number | null; onPick: (next: number | null) => void }) {
+  const age = current ?? ANY_AGE
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -229,7 +236,7 @@ function AgeFilter({ current, onPick }: { current: number | null; onPick: (next:
           value={String(age)}
           onValueChange={(next) => {
             const picked = optionOf(AGE_LIMITS, next)
-            if (picked !== null) onPick(picked)
+            if (picked !== null) onPick(agePick(picked))
           }}
         >
           {AGE_LIMITS.map((limit) => (
@@ -245,9 +252,9 @@ function AgeFilter({ current, onPick }: { current: number | null; onPick: (next:
 
 /**
  * The four filters that stand under the bar, from the picks they are given and the way to change them (so the docs of the design system can draw them with picks of their
- * own), each in a place of its own with no background: the number of players, as a stepper that starts on 4; the duration, as a slider with one
- * thumb that starts on 20′; the complexity, as bars that fill and start on 3; and the age of the youngest player, from a menu that starts on 8+. A pick filters the list at once and
- * goes into the address. The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
+ * own), each in a place of its own with no background: the number of players, as a stepper that starts on "Any" and whose first press picks 4; the duration, as a slider with one
+ * thumb that starts on 1h+; the complexity, as bars that fill and start all filled; and the age of the youngest player, from a menu that starts on "All ages". None asks for
+ * anything where it starts, so every game is listed; a pick filters the list at once and goes into the address. The rules are `@pbgo/catalog/filter`'s. See docs/catalog.md.
  */
 export function MoreFilters({ filter, onFilterChange }: { filter: GameFilter; onFilterChange: (next: GameFilter) => void }) {
   return (
@@ -256,11 +263,13 @@ export function MoreFilters({ filter, onFilterChange }: { filter: GameFilter; on
         icon={UserMultipleIcon}
         label="Players"
         options={PLAYER_COUNTS}
-        start={DEFAULT_PLAYERS}
+        start={FIRST_PLAYERS}
         current={filter.players}
         onPick={(players) => onFilterChange({ ...filter, players })}
         text={(count) => (count >= MANY_PLAYERS ? `${count}+` : String(count))}
         says={playersText}
+        any="Any"
+        anySays="Any number of players"
         decrease="Fewer players"
         increase="More players"
       />
