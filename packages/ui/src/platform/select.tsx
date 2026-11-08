@@ -20,7 +20,7 @@ function SelectGroup({
   return (
     <SelectPrimitive.Group
       data-slot="select-group"
-      className={cn("scroll-my-1.5 p-1.5", className)}
+      className={cn("scroll-my-1.5", className)}
       {...props}
     />
   )
@@ -85,7 +85,8 @@ function SelectContent({
         <SelectPrimitive.Viewport
           data-position={position}
           className={cn(
-            " data-[position=popper]:h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)",
+            // The items stand one step in from the edge of the list, grouped or not: each corner is the one inside it plus that room
+            "p-1.5 data-[position=popper]:h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)",
             position === "popper" && ""
           )}
         >
