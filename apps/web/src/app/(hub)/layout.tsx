@@ -9,11 +9,15 @@ import { PresenceBeat } from "@/components/presence-beat"
 import { SiteHeader } from "@/components/site-header"
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/site"
 
+// The hub's icon, `public/favicon.ico`, named in the head of every hub page: a search engine looks for it there. Google keeps an icon under its address and reads a changed file again only after days or weeks, so a replaced file gets a new `v`, which is a new address (and only then: Google asks for an address that stays).
+const SITE_ICON = "/favicon.ico?v=2"
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: `${SITE_NAME} · Board games online with friends or rivals`, template: `%s · ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
+  icons: { icon: SITE_ICON },
   openGraph: { type: "website", siteName: SITE_NAME, url: SITE_URL },
 }
 
