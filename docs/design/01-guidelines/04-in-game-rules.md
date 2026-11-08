@@ -4,7 +4,7 @@ The UI that `@pbgo/core` draws inside a game (screens, HUD, announcements, seat 
 
 - Never `@pbgo/ui/platform`, Geist or the `.platform` class: it reads the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game/03-game-themes.md)).
 - A game never forks or restyles an in-game component: it asks for a field in `UiTheme`, which every game then gets.
-- No copy in shared components: every label is a `UI_TEXTS` key, in the four languages.
+- No copy in shared components: every label is a `UI_TEXTS` key, in the four languages, or in English only until the language pass for a new one (`ENGLISH_ONLY_TEXTS`).
 - One screen is the platform's, on a game's page: the start screen, between a table that starts and its board (`StartScreen`, PLT-107). It carries the `.platform` class itself, as the cookie banner does, and is built from `@pbgo/ui/platform` and its tokens, in English until the language pass.
 
 ## Room for the cookie banner

@@ -212,6 +212,8 @@ function TiedWinner({ entry, seat, crown, lively, delay, points, renderDetail }:
 export type GameOverLabels = {
   scoreboard: string
   winnerTitle: string
+  /** The heading of a table that lost together */
+  defeatTitle: string
   shareResult: string
   /** A player's points as the panel writes them ("+12 pts") */
   points: (n: number) => string
@@ -224,6 +226,8 @@ export type GameOverPanelProps = {
   motion: Motion
   winners: GameOverEntry[]
   others: GameOverEntry[]
+  /** The table lost together (`endingOf`): no hero, and the heading says so instead of "Scoreboard" */
+  lost?: boolean
   labels: GameOverLabels
   /** The skin's pattern, faint on the panel */
   pattern?: string | null
@@ -242,7 +246,7 @@ export type GameOverPanelProps = {
 
 /**
  * The end-of-game panel: the winners as the hero (avatar, crown, name, points, score breakdown), the others as a ranking, the
- * share thumbnail on its corner. Pure presentation, no game context: the connected `GameOver` feeds it from the game, the design docs
+ * share thumbnail on its corner. A table that lost together (`lost`) has no hero: the heading says "Defeat" over the ranking of the whole table. Pure presentation, no game context: the connected `GameOver` feeds it from the game, the design docs
  * with samples. The look comes from `theme` (`UI_THEME.gameOver`) and `seat`; the box takes the room of its parent, a flex column.
  * On a short screen (`short`) the hero stands at the left and the ranking scrolls at the right.
  */
@@ -252,6 +256,7 @@ export function GameOverPanel({
   motion: mode,
   winners,
   others,
+  lost = false,
   labels,
   pattern,
   crown,
@@ -279,7 +284,7 @@ export function GameOverPanel({
       <div className={cn("relative shrink-0 px-8 pt-6 pb-5 short:flex short:flex-col short:overflow-y-auto short:px-5 short:py-4", others.length > 0 && "short:w-[56%]")}>
         <div className="flex flex-col items-center gap-2 text-center short:my-auto">
           <p className="font-display text-sm tracking-[0.18em] whitespace-nowrap uppercase opacity-55 short:text-xs">
-            {winners.length > 0 ? labels.winnerTitle : labels.scoreboard}
+            {winners.length > 0 ? labels.winnerTitle : lost ? labels.defeatTitle : labels.scoreboard}
           </p>
           <div className="flex max-w-full min-w-0 flex-col items-center gap-5 short:gap-3">
             {winners.map((entry, i) => (

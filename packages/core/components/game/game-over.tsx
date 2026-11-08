@@ -9,10 +9,9 @@ import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { PrimaryButton } from "../home/screen"
-import type { CoreView } from "../../lib/binding"
 import { useApi, useBinding } from "../../lib/binding-context"
 import { formatDateTime } from "../../lib/format-date"
-import { pointsLine, sectionMotion, splitResults, type GameOverEntry } from "../../lib/game-over"
+import { endingOf, pointsLine, sectionMotion, splitResults, type GameOverEntry } from "../../lib/game-over"
 import type { PublicGame } from "../../lib/game-types"
 import { fade } from "../../lib/motion-preference"
 import { gameOverTheme } from "../../lib/ui-theme"
@@ -23,41 +22,12 @@ import { useSkin, useText } from "../skin-provider"
 import { HostIcon } from "./host-icon"
 import { useGame } from "./context"
 import { useSeatTheme } from "./seat-label"
-import { DEFAULT_SKIN, fill } from "../../lib/skin"
 
 export type { GameOverLabels, GameOverPanelProps, ResultDetailRenderer } from "./game-over-panel"
-
-function hash(text: string) {
-  let h = 0
-  for (const c of text) h = (h * 31 + c.charCodeAt(0)) | 0
-  return Math.abs(h)
-}
-
-const defaultPointsText = (points: number) => fill(DEFAULT_SKIN.texts.pointsShort, { points })
+export { winnerAnnouncement } from "../../lib/game-over"
 
 /**
- * Victory sentence picked from the skin's phrases with a deterministic hash (everyone sees the same one).
- * Template `{pseudo}` / `{points}`: the announcement keeps what comes before `{pseudo}`, the names and points go in the subtitle.
- * `pointsText` writes the winner's points in that subtitle: pass `(points) => t("pointsShort", { points })` for the visitor's language (default: English).
- * `winners`: their player ids, in ranking order (for the medallions of the victory announcement, `seatsOf`).
- */
-export function winnerAnnouncement(
-  game: PublicGame,
-  view: CoreView,
-  phrases: string[] = DEFAULT_SKIN.victoryPhrases,
-  pointsText = defaultPointsText,
-): { phrase: string; detail: string; winners: string[] } {
-  const results = view.results
-  if (!results) return { phrase: "", detail: "", winners: [] }
-  const winners = results.players.filter((j) => results.winners.includes(j.playerId))
-  const template = phrases[hash(game.code + (view.log?.length ?? 0)) % phrases.length] ?? ""
-  const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).replace(/[\s:,–-]+$/, "").trim()
-  const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
-  return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}`, winners: winners.map((v) => v.playerId) }
-}
-
-/**
- * End-of-game board: winner(s), ranking, "Replay (x/n)", show / hide, share thumbnail.
+ * End-of-game board: winner(s), ranking, "Replay (x/n)", show / hide, share thumbnail. A table that lost together has no winner: the panel says "Defeat" over the ranking.
  * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips).
  * The look is the game's `UI_THEME.gameOver` and `UI_THEME.seat`, how much it moves its `UI_THEME.motion`.
  */
@@ -86,8 +56,9 @@ export function GameOver({
   const [preview, setPreview] = useState(false)
   const [seenKey, setSeenKey] = useState<string | null>(null)
   const results = game.status === "over" ? view.results : null
+  const lost = !!results && endingOf(results) === "defeat"
 
-  const resultsKey = results ? `${game.code}|${results.winners.join()}|${results.players.map((j) => `${j.playerId}:${j.total}`).join()}` : null
+  const resultsKey = results ? `${game.code}|${results.coop ?? ""}|${results.winners.join()}|${results.players.map((j) => `${j.playerId}:${j.total}`).join()}` : null
   useEffect(() => {
     if (!results) return
     let cancelled = false
@@ -101,7 +72,7 @@ export function GameOver({
         winner: results.winners.includes(j.playerId),
       }))
     const timer = setTimeout(() => {
-      generateShareImage(lines, SLUG, game.code, title, locale, t)
+      generateShareImage(lines, SLUG, game.code, title, locale, t, lost)
         .then((f) => !cancelled && setImage(f))
         .catch(() => !cancelled && toast.error(t("imageError")))
     }, 1200)
@@ -162,8 +133,9 @@ export function GameOver({
   ]
     .filter(Boolean)
     .join("  ·  ")
-  const names = winners.map((v) => nickname(v.playerId)).join(" & ")
-  const shareText = t("winsWith", { names, points: winners[0]?.total ?? 0 })
+  // A table that lost together has no winner to name: the text names the whole table
+  const names = (lost ? results.players : winners).map((v) => nickname(v.playerId)).join(" & ")
+  const shareText = lost ? t("lostWith", { names, points: results.players[0]?.total ?? 0 }) : t("winsWith", { names, points: winners[0]?.total ?? 0 })
 
   return (
     <>
@@ -197,9 +169,11 @@ export function GameOver({
                 motion={mode}
                 winners={winners.map(entry)}
                 others={others.map(entry)}
+                lost={lost}
                 labels={{
                   scoreboard: t("scoreboard"),
                   winnerTitle: t("winnerTitle"),
+                  defeatTitle: t("defeatTitle"),
                   shareResult: t("shareResult"),
                   points: (n) => pointsLine(n, (points) => t("pointsShort", { points })),
                 }}

@@ -8,7 +8,7 @@ A game ends when its `isOver` is true, and core then stores the status `over`. H
 - `Results` is `{ players: PlayerResult[]; winners: string[]; coop?: "won" | "lost" }`; `winners` are player ids, several on a tie.
 - A `PlayerResult` is `{ playerId, total, rank, detail }`: `total` is the score shown, `rank` starts at 1 and a tie shares a rank (`ranks()` of the kit), `detail` is a list of `{ key, values?, points }` drawn as chips: the words of a line are the game's, written in its Sanity under `score.<key>`, and `values` fills their variables ([The words of options and scores](07-parameters.md#the-words-of-options-and-scores)); a `label` is deprecated and shown as written while a game has not moved it. A game can extend it with fields for its own board.
 - `coop` is for a game the whole table plays on one side, against the game itself (Hanabi, Sky Team, The Mind): `"won"` or `"lost"`, for every player at once. Every player then has rank 1 and the table's score as `total`, and `winners` lists every player when the table won and nobody when it lost. A game where the players play against each other leaves it out and names at least one winner.
-- Core reads `view.results` when `PublicGame.status` is `over`, for the game-over panel and the victory announcement. No server code reads it: nothing records a finished game (PLT-13), and what does will read the results from the public view.
+- Core reads `view.results` when `PublicGame.status` is `over`, for the game-over panel, the announcement of the end and the share image and text. No server code reads it: nothing records a finished game (PLT-13), and what does will read the results from the public view.
 
 ## Outcomes
 
@@ -24,6 +24,13 @@ The history keeps how a game ended for each player: `win`, `loss`, `draw`, `coop
 - A tie for the first place among some of the players is a win for them: they beat the rest, whatever they did to each other. A team that wins puts all its members in `winners` and is read the same way; the results say nothing of the team itself ([Not built yet](../03-not-built-yet.md#what-the-contract-leaves-out)).
 - A player alone at a table has no one to draw with: a win.
 - `abandoned` is not the engine's to say, since only the platform knows that a player gave up ([Leaving a table](02-players.md#leaving-a-table)). `PlayerOutcome` leaves it out, and a test of core keeps it inside `Outcome`.
+
+The end screen tells the same distinction. A table that lost together (`coop` is `"lost"`, `endingOf(results)` of core is `"defeat"`) has nobody to crown, so it is told as a defeat and not as a victory with no winner:
+
+- The board announces it with the `defeat` kind of [announcement](../../design/04-in-game/06-announcements.md): `winnerAnnouncement` gives the `kind` along with the sentence, the template announces with it, and nobody is shown with it.
+- The panel of the [game over](../../design/04-in-game/07-game-over.md) puts `defeatTitle` where it puts `winnerTitle` for a victory, over the ranking of the whole table.
+- The share image names the whole table under no crown, with `shareHeadlineDefeat`, and the share text is `lostWith`.
+- Those three words are labels of the platform in `UI_TEXTS`, in English until the language pass (`ENGLISH_ONLY_TEXTS` of `@pbgo/studio-kit`), that a game's Copy overwrites like the others. A game that wants the words of its own universe writes them there.
 
 From `packages/engine-kit/src/outcomes.ts`, the rules above in code:
 

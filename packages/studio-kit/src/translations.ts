@@ -1,8 +1,9 @@
-import { UI_TEXTS, type UiTextKey } from "./constants"
+import { ENGLISH_ONLY_TEXTS, UI_TEXTS, type UiTextKey } from "./constants"
 
 /**
  * Default translations of the shared labels, in each language of the games. English is the default language: it is what a page shows when it is asked for no other, and the
  * language every text falls back on. French is the text each `UI_TEXTS` entry carries, so it is not typed twice. A label typed in the admin (Copy) always takes precedence.
+ * The labels of `ENGLISH_ONLY_TEXTS` read in English in every language until the language pass.
  * Variables in braces: {code}, {name}, {count}, {max}… to be kept as is.
  */
 export type TranslatedLocale = "fr" | "en" | "es" | "de"
@@ -117,6 +118,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     seatAway: "Away",
     history: "History",
     desktopOnly: "This game is played on a computer: enlarge the window or come back from a wider screen.",
+    ...ENGLISH_ONLY_TEXTS,
   },
   es: {
     codeLabel: "Código de la partida",
@@ -226,6 +228,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     seatAway: "Ausente",
     history: "Historial",
     desktopOnly: "Este juego se juega en ordenador: amplía la ventana o vuelve desde una pantalla más grande.",
+    ...ENGLISH_ONLY_TEXTS,
   },
   de: {
     codeLabel: "Partiecode",
@@ -335,6 +338,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
     seatAway: "Abwesend",
     history: "Verlauf",
     desktopOnly: "Dieses Spiel wird am Computer gespielt: Vergrößere das Fenster oder komm von einem größeren Bildschirm zurück.",
+    ...ENGLISH_ONLY_TEXTS,
   },
 }
 

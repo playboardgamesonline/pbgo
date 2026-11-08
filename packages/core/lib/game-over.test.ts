@@ -1,9 +1,65 @@
 import type { PlayerResult, Results } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
-import { GAME_OVER_TIMING, pointsLine, rowDelay, sectionMotion, signed, splitResults } from "./game-over"
+import type { CoreView } from "./binding"
+import { endingOf, GAME_OVER_TIMING, pointsLine, rowDelay, sectionMotion, signed, splitResults, winnerAnnouncement } from "./game-over"
+import type { PublicGame } from "./game-types"
 import { REDUCED_FADE } from "./motion-preference"
+import { DEFAULT_SKIN } from "./skin"
 
 const result = (playerId: string, total: number, rank: number): PlayerResult => ({ playerId, total, rank, detail: [] })
+
+describe("endingOf", () => {
+  it("is a victory when somebody won", () => {
+    expect(endingOf({ winners: ["b"], players: [result("a", 4, 2), result("b", 9, 1)] })).toBe("victory")
+  })
+
+  it("is a victory for a tie and for a table that won together", () => {
+    expect(endingOf({ winners: ["a", "b"], players: [result("a", 7, 1), result("b", 7, 1)] })).toBe("victory")
+    expect(endingOf({ winners: ["a", "b"], players: [result("a", 12, 1), result("b", 12, 1)], coop: "won" })).toBe("victory")
+  })
+
+  it("is a defeat for a table that lost together, which has nobody to crown", () => {
+    expect(endingOf({ winners: [], players: [result("a", 7, 1), result("b", 7, 1)], coop: "lost" })).toBe("defeat")
+  })
+
+  it("is not a defeat when nobody is named without the table having lost together", () => {
+    expect(endingOf({ winners: [], players: [result("a", 7, 1), result("b", 3, 2)] })).toBe("victory")
+  })
+})
+
+describe("winnerAnnouncement", () => {
+  const game = { code: "ABCD", players: [{ id: "a", nickname: "Ada" }, { id: "b", nickname: "Bob" }] } as PublicGame
+  const phrases = ["Bravo {pseudo}"]
+  const pts = (points: number) => `${points} pts`
+  const viewOf = (results: Results): CoreView => ({ results })
+
+  it("announces the winner with a phrase of the skin, then the names and the points", () => {
+    const view = viewOf({ winners: ["b"], players: [result("a", 4, 2), result("b", 9, 1)] })
+    expect(winnerAnnouncement(game, view, phrases, pts)).toEqual({ kind: "victory", phrase: "Bravo", detail: "Bob · 9 pts", winners: ["b"] })
+  })
+
+  it("announces every winner of a tie, and a table that won together as a victory of the whole table", () => {
+    const together = viewOf({ winners: ["a", "b"], players: [result("a", 12, 1), result("b", 12, 1)], coop: "won" })
+    expect(winnerAnnouncement(game, together, phrases, pts)).toEqual({ kind: "victory", phrase: "Bravo", detail: "Ada & Bob · 12 pts", winners: ["a", "b"] })
+  })
+
+  it("announces a table that lost together as a defeat in the words it is given, with nobody to show and no phrase of victory", () => {
+    const view = viewOf({ winners: [], players: [result("a", 7, 1), result("b", 7, 1)], coop: "lost" })
+    expect(winnerAnnouncement(game, view, phrases, pts, "Defeat")).toEqual({ kind: "defeat", phrase: "Defeat", detail: "7 pts", winners: [] })
+    expect(winnerAnnouncement(game, view, phrases, pts, "Défaite").phrase).toBe("Défaite")
+  })
+
+  it("words a defeat with the platform's own label when the board gives none", () => {
+    const view = viewOf({ winners: [], players: [result("a", 7, 1)], coop: "lost" })
+    expect(winnerAnnouncement(game, view).phrase).toBe(DEFAULT_SKIN.texts.defeatTitle)
+    expect(winnerAnnouncement(game, view).detail).toBe("7 pts")
+  })
+
+  it("announces nothing before the game has results", () => {
+    expect(winnerAnnouncement(game, { results: null })).toEqual({ kind: "victory", phrase: "", detail: "", winners: [] })
+    expect(winnerAnnouncement(game, {})).toEqual({ kind: "victory", phrase: "", detail: "", winners: [] })
+  })
+})
 
 describe("splitResults", () => {
   it("makes the winner the hero and the others the ranking", () => {

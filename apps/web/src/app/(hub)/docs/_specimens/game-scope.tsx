@@ -22,7 +22,7 @@ export type GameLook = {
   /** `UI_THEME` of the binding */
   ui: UiTheme | undefined
   playerColors: readonly string[]
-  labels: Pick<UiTexts, "scoreboard" | "winnerTitle" | "shareResult" | "pointsShort" | "players" | "playersReady" | "seatDone" | "seatWaiting" | "seatAway" | "you">
+  labels: Pick<UiTexts, "scoreboard" | "winnerTitle" | "defeatTitle" | "shareResult" | "pointsShort" | "players" | "playersReady" | "seatDone" | "seatWaiting" | "seatAway" | "you">
 }
 
 /** The values of `game.css` and Tailwind's own scale that `.platform` replaces on <html>, set back for the subtree */

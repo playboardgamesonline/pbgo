@@ -120,6 +120,15 @@ describe("the shared presets", () => {
     expect(announcementSettings(ANNOUNCEMENT_PRESETS.victory).seat).toBe("hero")
     expect(announcementSettings(ANNOUNCEMENT_PRESETS.start).seat).toBe("none")
     expect(announcementSettings(ANNOUNCEMENT_PRESETS.round).seat).toBe("none")
+    expect(announcementSettings(ANNOUNCEMENT_PRESETS.defeat).seat).toBe("none")
+  })
+
+  it("defeat tells a table that lost together: the title alone on a darker veil, longer than a round and shorter than a victory", () => {
+    const defeat = announcementSettings(ANNOUNCEMENT_PRESETS.defeat)
+    expect(defeat).toMatchObject({ seat: "none", spring: false, confetti: false })
+    expect(defeat.overlay).toBeGreaterThan(announcementSettings(ANNOUNCEMENT_PRESETS.start).overlay)
+    expect(defeat.duration).toBeGreaterThan(announcementSettings(ANNOUNCEMENT_PRESETS.round).duration)
+    expect(defeat.duration).toBeLessThan(announcementSettings(ANNOUNCEMENT_PRESETS.victory).duration)
   })
 
   it("lets only the victory spring and throw confetti", () => {
