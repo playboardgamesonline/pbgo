@@ -9,6 +9,7 @@ const PAGES = [
   { href: "/me", label: "Profile" },
   { href: "/me/games", label: "Games" },
   { href: "/me/friends", label: "Friends" },
+  { href: "/me/settings", label: "Settings" },
 ] as const
 
 /**

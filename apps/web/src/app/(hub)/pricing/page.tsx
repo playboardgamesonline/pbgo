@@ -3,6 +3,7 @@ import { Button } from "@pbgo/ui/platform/button"
 import { ListPageHeader } from "@/components/list-page-header"
 import { PricingPlans } from "@/components/pricing-plans"
 import { SiteFooter } from "@/components/site-footer"
+import { PAID_PLANS_NOTICE } from "@/lib/plans"
 import { CONTACT } from "@/site"
 
 // The plans are a first draft and nothing is on sale: the page stays out of the search engines until it is true
@@ -22,7 +23,7 @@ export default function PricingPage() {
             Every game is free to play. A plan adds what goes around the games: expansions, tournaments, a voice room and your statistics.
           </p>
           <PricingPlans />
-          <p className="text-center text-sm text-muted-foreground">Since the games are not licensed, no paid subscription is offered for now.</p>
+          <p className="text-center text-sm text-muted-foreground">{PAID_PLANS_NOTICE}</p>
           <aside aria-label="Publishers" className="mx-auto flex max-w-xl flex-col items-center gap-4 text-center">
             <p className="text-lg text-muted-foreground">Are you a publisher? I would love to hear from you.</p>
             <Button asChild size="lg" variant="outline">

@@ -67,6 +67,9 @@ export function AccountMenu({ account, beside, children }: { account: Account; b
         <DropdownMenuItem asChild>
           <Link href="/me/friends">Friends</Link>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/me/settings">Settings</Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action="/logout" method="post">
           <DropdownMenuItem asChild>
