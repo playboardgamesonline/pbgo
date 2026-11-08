@@ -38,14 +38,15 @@ export * from "./lib/site"
 
 ## Error codes
 
-- `ERROR_CODES` in `src/lib/site.ts` lists the codes the engine throws and core does not word. From `template/src/lib/site.ts`:
+- `ERROR_CODES` in `src/lib/site.ts` lists the codes of the game's own refusals: what the engine throws that every game does not share. The shared codes ([The shared codes](../01-the-game/05-actions.md#the-shared-codes)) are worded by the platform and stay out of it. From `template/src/lib/site.ts`:
 
   ```ts
-  export const ERROR_CODES = ["INVALID_PHASE", "INVALID_BID"]
+  export const ERROR_CODES = ["INVALID_BID"]
   ```
 
 - Their messages are written in Sanity (Gamemaster › Copy › Errors), never in the code; a listed code with no message there reads `[missing: errorMessages.<CODE>]` ([Errors](../01-the-game/05-actions.md#errors)).
-- The codes core words itself are `CORE_ERROR_MESSAGES` (`packages/core/lib/api.ts`).
+- The codes the platform words are `CORE_ERROR_MESSAGES` (`packages/core/lib/api.ts`). The Copy page lists them too, with the platform's wording as the fallback, so a game can word one its own way.
+- `src/error-codes.test.ts` keeps the list and the engine in step ([Keeping the vocabulary honest](../01-the-game/05-actions.md#keeping-the-vocabulary-honest)).
 
 ## Data for the engine and the board
 

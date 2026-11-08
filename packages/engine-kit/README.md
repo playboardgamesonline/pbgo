@@ -51,13 +51,13 @@ type State = {
 - **Side streams.** Numbers that reach the clients (opaque ids above all) must not come from the stream that shuffles, or anyone who rebuilt it would know the deck. `sideSeed(seed, ...parts)` derives an independent stream from the high bits of the seed (the shuffle only uses the low 32 bits). Each game numbers its own streams: `sideSeed(seed, IDS_STREAM)`, `sideSeed(seed, AUTO_MOVE_STREAM)`. The kit reserves none.
 - **`jsonb` forgets the order of keys.** The state is stored as `jsonb`, which returns the keys of an object in its own order. An order (seats, turns, who is pending) always comes from an array of the state, never from `Object.keys`. That is why every helper that works per player takes the list of seats, or returns arrays aligned with it.
 - **Nothing is modified.** Every helper reads its arguments as `readonly` and returns new arrays and objects, so `{ ...state, ...result }` is the next state.
-- **Two kinds of errors.** `EngineError(code)` is for what a player can get wrong (an illegal move, not their turn): its code is shown to them through the game's error messages. The helpers of the kit throw a plain `RangeError` for what only a bug of the game can cause (an id that does not exist, a pile too short, a position out of range). The game validates the player's input first, so a `RangeError` never reaches a player.
+- **Two kinds of errors.** `EngineError(code)` is for what a player can get wrong (an illegal move, not their turn): its code is shown to them through the error messages, the platform's for the shared codes (`SHARED_ERROR_CODES`) and the game's, written in Sanity, for the codes of its own. The helpers of the kit throw a plain `RangeError` for what only a bug of the game can cause (an id that does not exist, a pile too short, a position out of range). The game validates the player's input first, so a `RangeError` never reaches a player.
 
 ## Reference
 
 ### Contract
 
-`contract.ts`, `errors.ts`. `GameDefinition<State, Action, View, SetupData>` with `setup`, `apply`, `view`, `isOver`, `options`, `presets`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug` (and `activePlayer` / `autoPlay`, `@deprecated`). Also `PlayerInfo`, `PlayerAction`, `PlayerResult`, `Results`, `AnyGameDefinition`, `DebugCommand`, `EngineError` and `isEngineError`. The principles and the demo game are explained in `template/docs/GAME_GUIDE.md`.
+`contract.ts`, `errors.ts`. `GameDefinition<State, Action, View, SetupData>` with `setup`, `apply`, `view`, `isOver`, `options`, `presets`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug` (and `activePlayer` / `autoPlay`, `@deprecated`). Also `PlayerInfo`, `PlayerAction`, `PlayerResult`, `Results`, `AnyGameDefinition`, `DebugCommand`, `EngineError` and `isEngineError`, and the vocabulary of the refusals every game shares: `SHARED_ERROR_CODES`, `SharedErrorCode` and `isSharedErrorCode`. For the tests of a game, `@pbgo/engine-kit/testing` has `errorVocabularyProblems`, which reads the sources of an engine and says what is wrong with its codes. The principles and the demo game are explained in `template/docs/GAME_GUIDE.md`.
 
 ### Turns
 

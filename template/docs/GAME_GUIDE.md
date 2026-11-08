@@ -215,7 +215,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
 - `layout.ts` (where the cards go, built on the layout helpers), `scene.tsx` (the `Table` with its surface, the `Zone`s, interactions), `camera.ts` (the settings of the camera and of the share photo, with their debug knobs), `textures.ts` (the faces and the back the shared `Card` wears), `glows.ts` (what the cards light up with), `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
-- `src/lib/site.ts` (with `ERROR_CODES`, the error codes the engine throws and core does not know: their messages are written in Sanity), `DEFAULT_SKIN` (player colours and behaviour, never a text), `UI_THEME` (optional), the game's own Sanity content types
+- `src/lib/site.ts` (with `ERROR_CODES`, the codes of the game's own refusals, the ones the engine throws that every game does not share: their messages are written in Sanity, and `src/error-codes.test.ts` keeps the list and the engine in step), `DEFAULT_SKIN` (player colours and behaviour, never a text), `UI_THEME` (optional), the game's own Sanity content types
 
 ---
 

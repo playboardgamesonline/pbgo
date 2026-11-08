@@ -338,7 +338,7 @@ export const UI_TRANSLATIONS: Record<TranslatedLocale, Record<UiTextKey, string>
   },
 }
 
-/** Shared error messages (code → message) per language; the English ones are also `CORE_ERROR_MESSAGES` of core, which a test keeps equal. */
+/** Shared error messages (code → message) per language; the English ones are also `CORE_ERROR_MESSAGES` of core, which a test keeps equal. A message may have no translation yet and then reads in English (`ENGLISH_ONLY` in the language-chain test of core lists them). */
 export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>> = {
   fr: {
     INVALID_NICKNAME: "Choisissez un pseudo.",
@@ -389,6 +389,16 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     FORBIDDEN: "Action refused.",
     TAKEOVER_UNSUPPORTED: "This game doesn't allow playing for an absent player.",
     AUTOPLAY_UNSUPPORTED: "This game can't play for this player.",
+    INVALID_PLAYERS: "This game can't be played with this many players.",
+    INVALID_ACTION: "This action isn't possible.",
+    INVALID_PHASE: "This isn't possible at this stage of the game.",
+    GAME_OVER: "The game is over.",
+    UNKNOWN_PLAYER: "You are not a player of this game.",
+    INVALID_TARGET: "You can't choose this player.",
+    GAME_NOT_STARTED: "The game hasn't started yet.",
+    GAME_NOT_OVER: "This game isn't over yet.",
+    CODE_UNAVAILABLE: "Couldn't open the table, try again.",
+    INVALID_REQUEST: "This request isn't valid.",
   },
   es: {
     INVALID_NICKNAME: "Elige un apodo.",
