@@ -268,6 +268,7 @@ describe("indexEntry", () => {
       name: "Courtisans",
       live: true,
       addedAt: null,
+      order: null,
       text: "courtisans",
       players: { min: 2, max: 5 },
       duration: 30,
@@ -283,6 +284,7 @@ describe("indexEntry", () => {
       name: "Skyjo",
       live: true,
       addedAt: null,
+      order: null,
       text: "skyjo nadia okafor",
       players: { min: 2, max: 8 },
       duration: 45,
@@ -298,6 +300,7 @@ describe("indexEntry", () => {
       name: "Tichu",
       live: true,
       addedAt: null,
+      order: null,
       text: "tichu",
       players: null,
       duration: null,
@@ -310,6 +313,7 @@ describe("indexEntry", () => {
       name: "Zen",
       live: false,
       addedAt: null,
+      order: null,
       text: "zen",
       players: null,
       duration: null,
@@ -331,6 +335,7 @@ describe("indexEntry", () => {
       name: "Mystery Night",
       live: false,
       addedAt: null,
+      order: null,
       text: "mystery night herve marly regis torres spiral editions",
       players: { min: 4, max: 7 },
       duration: 30,
@@ -358,8 +363,13 @@ describe("indexEntry", () => {
     expect(indexEntry(added)).toMatchObject({ name: "Amen", addedAt: "2026-11-02T09:30:00Z" })
   })
 
+  it("indexes the order of the game in the Studio, a live game's too, for the sort by hotness", () => {
+    const built = buildCatalog([registryGame("trio", { name: "Trio", live: true })], [catalogGame("trio", { name: "Trio", order: 7 }), catalogGame("amen", { name: "Amen", order: 0 }), catalogGame("zoo", { name: "Zoo" })])
+    expect(built.map((candidate) => [candidate.slug, indexEntry(candidate).order])).toEqual([["trio", 7], ["amen", 0], ["zoo", null]])
+  })
+
   it("is lean: nothing but what the filter and the sort read, so that the page can send it to the browser", () => {
-    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["addedAt", "age", "categories", "complexity", "duration", "live", "name", "players", "slug", "text"])
+    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["addedAt", "age", "categories", "complexity", "duration", "live", "name", "order", "players", "slug", "text"])
   })
 })
 
@@ -632,7 +642,9 @@ describe("filterGames", () => {
 
 describe("sortGames", () => {
   // What the sort reads of a game; the order the games come in is the catalog's
-  const named = (name: string, addedAt: string | null = null) => ({ name, addedAt })
+  const named = (name: string, addedAt: string | null = null) => ({ name, addedAt, live: false, order: null })
+  // What Trending reads: whether the game is live and its order
+  const ranked = (name: string, order: number | null, live = false) => ({ name, addedAt: null, live, order })
   const names = (list: readonly { name: string }[]) => list.map((game) => game.name)
 
   it("offers Trending, A-Z and Newest, in this order, and starts on Trending", () => {
@@ -640,19 +652,40 @@ describe("sortGames", () => {
     expect(DEFAULT_SORT).toBe("trending")
   })
 
-  it("keeps the order of the catalog for Trending: the live games first, then the games to come, each group by hotness, as the catalog builds it", () => {
-    const built = buildCatalog(
-      [registryGame("trio", { name: "Trio", live: true }), registryGame("courtisans", { name: "Courtisans", live: true })],
-      [
-        catalogGame("zen", { name: "Zen", order: 2 }),
-        catalogGame("amen", { name: "Amen", order: 9 }),
-        catalogGame("trio", { name: "Trio", order: 7 }),
-        catalogGame("bang", { name: "Bang", order: 1 }),
-        catalogGame("courtisans", { name: "Courtisans", order: 5 }),
-      ],
-    ).map(indexEntry)
-    expect(slugs(built)).toEqual(["courtisans", "trio", "bang", "zen", "amen"])
-    expect(slugs(sortGames(built, "trending"))).toEqual(slugs(built))
+  describe("Trending", () => {
+    it("is the hotness: the live games first, then the games to come, each group by its order, lowest first, whatever order the games come in", () => {
+      const list = [ranked("c", 30), ranked("live-b", 20, true), ranked("a", 10), ranked("live-a", 5, true), ranked("b", 20)]
+      expect(names(sortGames(list, "trending"))).toEqual(["live-a", "live-b", "a", "b", "c"])
+      expect(names(sortGames([...list].reverse(), "trending"))).toEqual(["live-a", "live-b", "a", "b", "c"])
+    })
+
+    it("puts a game with no order after the games that have one, in its group, and the order 0 first: it is an order like any other", () => {
+      const list = [ranked("none", null), ranked("late", 900), ranked("zero", 0), ranked("live-none", null, true), ranked("live", 3, true)]
+      expect(names(sortGames(list, "trending"))).toEqual(["live", "live-none", "zero", "late", "none"])
+    })
+
+    it("keeps the order the games came in for games with the same order", () => {
+      const list = [ranked("b", 20), ranked("a", 20), ranked("c", 20), ranked("live-b", 1, true), ranked("live-a", 1, true)]
+      expect(names(sortGames(list, "trending"))).toEqual(["live-b", "live-a", "b", "a", "c"])
+    })
+
+    it("is the order the catalog gives, which has the same rule: the catalog's entries come back as they came whatever order they are handed in", () => {
+      const built = buildCatalog(
+        [registryGame("trio", { name: "Trio", live: true }), registryGame("courtisans", { name: "Courtisans", live: true }), registryGame("alone", { name: "Alone", live: true })],
+        [
+          catalogGame("zen", { name: "Zen", order: 2 }),
+          catalogGame("amen", { name: "Amen", order: 9 }),
+          catalogGame("trio", { name: "Trio", order: 7 }),
+          catalogGame("bang", { name: "Bang", order: 1 }),
+          catalogGame("courtisans", { name: "Courtisans", order: 5 }),
+          catalogGame("none", { name: "None" }),
+          catalogGame("zero", { name: "Zero", order: 0 }),
+        ],
+      ).map(indexEntry)
+      expect(slugs(built)).toEqual(["courtisans", "trio", "alone", "zero", "bang", "zen", "amen", "none"])
+      expect(slugs(sortGames([...built].reverse(), "trending"))).toEqual(slugs(built))
+      expect(slugs(sortGames(built, "trending"))).toEqual(slugs(built))
+    })
   })
 
   it("returns a new list, and does not change the one it is given", () => {
@@ -686,7 +719,7 @@ describe("sortGames", () => {
 
     it("keeps the order the games came in for names it cannot tell apart", () => {
       const list = [{ id: 1, name: "Skyjo" }, { id: 2, name: "skyjo" }, { id: 3, name: "Skÿjo" }, { id: 4, name: "Amen" }]
-      expect(sortGames(list.map((game) => ({ ...game, addedAt: null })), "name").map((game) => game.id)).toEqual([4, 1, 2, 3])
+      expect(sortGames(list.map((game) => ({ ...game, addedAt: null, live: false, order: null })), "name").map((game) => game.id)).toEqual([4, 1, 2, 3])
     })
 
     it("sorts what a filter left, and a filter leaves them in the order they came in", () => {

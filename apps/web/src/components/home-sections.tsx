@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { DEFAULT_SORT, sortGames } from "@pbgo/catalog/filter"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { Section, SectionAction, SectionPreview } from "@pbgo/ui/platform/section"
@@ -23,9 +24,9 @@ const POPULAR_GRID =
 
 /**
  * The popular games: the cards of the first games of the catalog in a grid of three rows whose bottom fades out, and "See all games" over the fade,
- * centred (`SectionPreview`), to `/games`. There is no count of plays to rank them by yet, so they come in Trending, the order of the catalog: the live
- * games first, then the games to come, each group by the `order` of the Studio, the games' hotness. The day there is a count, this is the place that
- * ranks them. A live game is a "play" card, the others say "Coming soon".
+ * centred (`SectionPreview`), to `/games`. There is no count of plays to rank them by yet, so they come in Trending (`sortGames`, the order of `/games`
+ * too): the live games first, then the games to come, each group by the `order` of the Studio, the games' hotness. The day there is a count, this is the
+ * place that ranks them. A live game is a "play" card, the others say "Coming soon".
  */
 export function PopularGames({ games }: { games: readonly SearchedGame[] }) {
   return (
@@ -42,7 +43,7 @@ export function PopularGames({ games }: { games: readonly SearchedGame[] }) {
       >
         {/* `data-game` only on the live games: analytics counts the games opened from the hub, and a game to come is not one */}
         <div className={POPULAR_GRID}>
-          {games.slice(0, POPULAR_COUNT).map(({ slug, live, props }) => (
+          {sortGames(games, DEFAULT_SORT).slice(0, POPULAR_COUNT).map(({ slug, live, props }) => (
             <GameCard key={slug} {...props} data-game={live ? slug : undefined} />
           ))}
         </div>

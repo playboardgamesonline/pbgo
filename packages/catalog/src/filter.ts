@@ -95,6 +95,8 @@ export type GameIndex = {
   live: boolean
   /** ISO date and time the game was added (created in the Studio): what the Newest sort reads. Null when the game does not say. */
   addedAt: string | null
+  /** The `order` of the game in the Studio, lowest first: the games' hotness, which Trending sorts by (the live games' too). Null when the game has none: it goes last. */
+  order: number | null
   /** What the search looks into, already normalised (`normalize`). */
   text: string
   /** `max: null` is "N or more". Null when the game does not say. */
@@ -136,15 +138,16 @@ export function words(query: string): string[] {
  * The part of a catalog entry the filter reads, the same for every game, a live one included: its name, the people credited on it, whatever
  * they did, and its publishers (never its descriptions: a word of a sentence is not what a visitor looks a game up by), then the
  * players, the duration, the complexity, the minimum age and the categories, which are the ones of its game in the Studio (of the
- * registry for the players and the duration of a live game with none). Beside them, what the sort reads: its name and the day it was added.
+ * registry for the players and the duration of a live game with none). Beside them, what the sort reads: its name, the day it was added and its `order`.
  */
 export function indexEntry(entry: CatalogEntry): GameIndex {
-  const { name, creators, publishers, players, duration, complexity, age, categories, addedAt } = entry.game
+  const { name, creators, publishers, players, duration, complexity, age, categories, addedAt, order } = entry.game
   return {
     slug: entry.slug,
     name,
     live: entry.live,
     addedAt,
+    order,
     text: normalize([name, ...creators.map((creator) => creator.name), ...publishers.map((publisher) => publisher.name)].join(" ")),
     players,
     duration,
@@ -207,6 +210,14 @@ export type GameSort = (typeof SORTS)[number]
 /** Where the list starts, and what a link leaves out: Trending, the order of the catalog. */
 export const DEFAULT_SORT: GameSort = "trending"
 
+/** The order of two `order`s of the Studio, the games' hotness: lowest first, a game with none after the games that have one, 0 where it leaves them tied. */
+function compareHotness(a: number | null, b: number | null): number {
+  if (a === b) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+  return a - b
+}
+
 /** When a game was added, in milliseconds, or null when it does not say (or says something that is no date). */
 function addedTime(game: Pick<GameIndex, "addedAt">): number | null {
   const time = game.addedAt === null ? NaN : Date.parse(game.addedAt)
@@ -214,27 +225,31 @@ function addedTime(game: Pick<GameIndex, "addedAt">): number | null {
 }
 
 /**
- * The games in the order a visitor asked for, as a new list: the games come in the order of the catalog (`buildCatalog`: the live games first, then the games
- * to come, each group by the `order` of the Studio, lowest first, the owner's "hotness" of the games) and every sort keeps it for the games it leaves tied.
- * - `trending` is that order, the games as they came: the live games first, then the others, each group by hotness.
+ * The games in the order a visitor asked for, as a new list. The games come in the order of the catalog (`buildCatalog`) and every sort keeps it for the games it
+ * leaves tied.
+ * - `trending` is the hotness: the live games first, then the games to come, each group by its `order` of the Studio, lowest first, a game with none last. It is
+ *   the order of the catalog itself, whatever order the games come in (`buildCatalog` has the same rule, which the tests keep together).
  * - `name` is alphabetical, case and accents aside, numbers in their order ("6 nimmt!", "7 Wonders", "10 Minutes", "Azul").
  * - `newest` puts the game added last first, a game that says no date after those that do. The games of the first seed were all added at one moment, so they
  *   come in the order of the catalog until a game is added after them.
- * The sort is stable, so two games it cannot tell apart (the same name, the same moment) stay in the order they came in.
+ * The sort is stable, so two games it cannot tell apart (the same order, the same name, the same moment) stay in the order they came in.
  */
-export function sortGames<T extends Pick<GameIndex, "name" | "addedAt">>(games: readonly T[], sort: GameSort): T[] {
+export function sortGames<T extends Pick<GameIndex, "name" | "addedAt" | "live" | "order">>(games: readonly T[], sort: GameSort): T[] {
   const sorted = [...games]
-  if (sort === "name") return sorted.sort((a, b) => NAMES.compare(a.name, b.name))
-  if (sort === "newest") {
-    return sorted.sort((a, b) => {
-      const [first, second] = [addedTime(a), addedTime(b)]
-      if (first === second) return 0
-      if (first === null) return 1
-      if (second === null) return -1
-      return second - first
-    })
+  switch (sort) {
+    case "trending":
+      return sorted.sort((a, b) => Number(b.live) - Number(a.live) || compareHotness(a.order, b.order))
+    case "name":
+      return sorted.sort((a, b) => NAMES.compare(a.name, b.name))
+    case "newest":
+      return sorted.sort((a, b) => {
+        const [first, second] = [addedTime(a), addedTime(b)]
+        if (first === second) return 0
+        if (first === null) return 1
+        if (second === null) return -1
+        return second - first
+      })
   }
-  return sorted
 }
 
 /** Whether the visitor has typed or picked anything beyond where the filter starts (`DEFAULT_FILTER`, nothing): whether there is something to reset. A query of blanks is nothing. */
