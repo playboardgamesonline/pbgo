@@ -185,3 +185,18 @@ describe("the cover of a game (PLT-114)", () => {
     ])
   })
 })
+
+describe("the day a game was added", () => {
+  it("is the day its document was created in the Studio, in either shape of the dataset", async () => {
+    expect((await only({ ...before("hanabi"), _createdAt: "2026-10-30T14:02:41Z" })).addedAt).toBe("2026-10-30T14:02:41Z")
+    expect((await only({ ...after("hanabi"), _createdAt: "2026-11-02T09:30:00Z" })).addedAt).toBe("2026-11-02T09:30:00Z")
+  })
+
+  it("is its own game's and not another's, and none for a document that has no creation date", async () => {
+    const { games } = await read([{ ...after("catan"), _createdAt: "2026-11-02T09:30:00Z" }, { ...after("bare") }])
+    expect(games.map((game) => [game.slug, game.addedAt])).toEqual([
+      ["catan", "2026-11-02T09:30:00Z"],
+      ["bare", null],
+    ])
+  })
+})

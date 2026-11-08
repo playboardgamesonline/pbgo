@@ -30,8 +30,8 @@ describe("registryRow", () => {
     expect(sharePicture(row)).toBeNull()
   })
 
-  it("has no game of the Studio to point to: no date of edit, no order, no link, nobody credited", () => {
-    expect(registryRow(registryGame("courtisans"))).toMatchObject({ updatedAt: "", order: null, related: [], creators: [], publishers: [] })
+  it("has no game of the Studio to point to: no date of edit, no date added, no order, no link, nobody credited", () => {
+    expect(registryRow(registryGame("courtisans"))).toMatchObject({ updatedAt: "", addedAt: null, order: null, related: [], creators: [], publishers: [] })
   })
 })
 
@@ -133,7 +133,7 @@ describe("buildCatalog", () => {
     expect(slugs(buildCatalog([], planned))).toEqual(["bang", "hanabi", "skyjo"])
   })
 
-  it("keeps the live games in registry order, not by name", () => {
+  it("keeps the live games that have no order in registry order, not by name", () => {
     const registry = [registryGame("trio", { live: true }), registryGame("courtisans", { live: true })]
     expect(slugs(buildCatalog(registry, [catalogGame("bang"), catalogGame("amen")]))).toEqual(["trio", "courtisans", "amen", "bang"])
   })
@@ -149,14 +149,26 @@ describe("buildCatalog", () => {
     expect(slugs(buildCatalog([], planned))).toEqual(["hanabi", "skyjo", "zoo", "amen", "bang"])
   })
 
-  it("keeps a live game where the registry puts it, however high its order would send it: a live game needs none", () => {
+  it("sorts the live games by their order in the Studio too, lowest first, before every game to come however low that one's order is", () => {
     const registry = [registryGame("trio", { live: true }), registryGame("courtisans", { live: true })]
-    const rows = [catalogGame("bang", { order: 20 }), catalogGame("trio", { order: 900 }), catalogGame("courtisans", { order: 1 })]
+    const rows = [catalogGame("bang", { order: 1 }), catalogGame("trio", { order: 900 }), catalogGame("courtisans", { order: 2 })]
     const entries = buildCatalog(registry, rows)
-    expect(slugs(entries)).toEqual(["trio", "courtisans", "bang"])
+    expect(slugs(entries)).toEqual(["courtisans", "trio", "bang"])
     expect(entries.map((entry) => entry.live)).toEqual([true, true, false])
-    // The order still travels with the game, a live game's too
-    expect(entries[1]?.game.order).toBe(1)
+    // The order travels with the game, a live game's too
+    expect(entries[0]?.game.order).toBe(2)
+  })
+
+  it("keeps the registry's order for the live games the Studio's order leaves tied, and puts the ones with none (a game the Studio does not have) after the ones with an order", () => {
+    const registry = [registryGame("alone", { live: true }), registryGame("trio", { live: true }), registryGame("courtisans", { live: true }), registryGame("hanabi", { live: true })]
+    const rows = [catalogGame("trio", { order: 5 }), catalogGame("courtisans", { order: 5 }), catalogGame("hanabi", { order: 3 })]
+    expect(slugs(buildCatalog(registry, rows))).toEqual(["hanabi", "trio", "courtisans", "alone"])
+  })
+
+  it("sorts the live games in the same order as the games to come, the name excepted: the registry decides where the order does not", () => {
+    const registry = [registryGame("zen", { live: true, name: "Zen" }), registryGame("amen", { live: true, name: "Amen" })]
+    expect(slugs(buildCatalog(registry, [catalogGame("zen", { name: "Zen" }), catalogGame("amen", { name: "Amen" })]))).toEqual(["zen", "amen"])
+    expect(slugs(buildCatalog([], [catalogGame("zen", { name: "Zen" }), catalogGame("amen", { name: "Amen" })]))).toEqual(["amen", "zen"])
   })
 
   it("does not reorder or change the lists it is given", () => {

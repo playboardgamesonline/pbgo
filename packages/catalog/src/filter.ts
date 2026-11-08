@@ -1,5 +1,6 @@
-// The search and the filters of the hub's list of games as a pure model: what a visitor typed and picked (`GameFilter`), what of a game
-// is searched (`GameIndex`), which games stay (`filterGames`) and how the picks travel in the URL (`filterFromParams`, `filterToParams`).
+// The search, the filters and the order of the hub's list of games as a pure model: what a visitor typed and picked (`GameFilter`), what of a game
+// is searched and sorted (`GameIndex`), which games stay (`filterGames`), in which order they are listed (`sortGames`) and how the picks and the
+// order travel in the URL (`filterFromParams`, `filterToParams`, `sortFromParams`, `sortToParams`).
 // No I/O and no framework in this file, so that the browser (the list on the hub), the tests and Node read it as it is (docs/catalog.md).
 
 import type { CatalogEntry } from "./catalog"
@@ -77,13 +78,17 @@ export const DEFAULT_FILTER: GameFilter = {
 }
 
 /**
- * What the filter reads of a catalog entry, and all a client component needs of it to filter the list: the page sends this to the
+ * What the filter and the sort read of a catalog entry, and all a client component needs of it to filter and order the list: the page sends this to the
  * browser, not the entry (no descriptions, no pictures).
  */
 export type GameIndex = {
   slug: string
+  /** The name of the game as the Studio has it: what the A–Z sort compares (`sortGames`). */
+  name: string
   /** A game to play now or a game to come: no filter asks for it, but the list marks the games to play (`data-game`). */
   live: boolean
+  /** ISO date and time the game was added (created in the Studio): what the Newest sort reads. Null when the game does not say. */
+  addedAt: string | null
   /** What the search looks into, already normalised (`normalize`). */
   text: string
   /** `max: null` is "N or more". Null when the game does not say. */
@@ -125,13 +130,15 @@ export function words(query: string): string[] {
  * The part of a catalog entry the filter reads, the same for every game, a live one included: its name, the people credited on it, whatever
  * they did, and its publishers (never its descriptions: a word of a sentence is not what a visitor looks a game up by), then the
  * players, the duration, the complexity, the minimum age and the categories, which are the ones of its game in the Studio (of the
- * registry for the players and the duration of a live game with none).
+ * registry for the players and the duration of a live game with none). Beside them, what the sort reads: its name and the day it was added.
  */
 export function indexEntry(entry: CatalogEntry): GameIndex {
-  const { name, creators, publishers, players, duration, complexity, age, categories } = entry.game
+  const { name, creators, publishers, players, duration, complexity, age, categories, addedAt } = entry.game
   return {
     slug: entry.slug,
+    name,
     live: entry.live,
+    addedAt,
     text: normalize([name, ...creators.map((creator) => creator.name), ...publishers.map((publisher) => publisher.name)].join(" ")),
     players,
     duration,
@@ -188,6 +195,45 @@ export function filterGames<T extends GameIndex>(games: readonly T[], filter: Ga
   )
 }
 
+// ---------- The order ----------
+
+/** The orders the list can be in, as a visitor is offered them: the catalog's own, by name, by the day a game was added. */
+export const SORTS = ["trending", "name", "newest"] as const
+export type GameSort = (typeof SORTS)[number]
+
+/** Where the list starts, and what a link leaves out: Trending, the order of the catalog. */
+export const DEFAULT_SORT: GameSort = "trending"
+
+/** When a game was added, in milliseconds, or null when it does not say (or says something that is no date). */
+function addedTime(game: Pick<GameIndex, "addedAt">): number | null {
+  const time = game.addedAt === null ? NaN : Date.parse(game.addedAt)
+  return Number.isNaN(time) ? null : time
+}
+
+/**
+ * The games in the order a visitor asked for, as a new list: the games come in the order of the catalog (`buildCatalog`: the live games first, then the games
+ * to come, each group by the `order` of the Studio, lowest first, the owner's "hotness" of the games) and every sort keeps it for the games it leaves tied.
+ * - `trending` is that order, the games as they came: the live games first, then the others, each group by hotness.
+ * - `name` is alphabetical, case and accents aside, numbers in their order ("6 nimmt!", "7 Wonders", "10 Minutes", "Azul").
+ * - `newest` puts the game added last first, a game that says no date after those that do. The games of the first seed were all added at one moment, so they
+ *   come in the order of the catalog until a game is added after them.
+ * The sort is stable, so two games it cannot tell apart (the same name, the same moment) stay in the order they came in.
+ */
+export function sortGames<T extends Pick<GameIndex, "name" | "addedAt">>(games: readonly T[], sort: GameSort): T[] {
+  const sorted = [...games]
+  if (sort === "name") return sorted.sort((a, b) => NAMES.compare(a.name, b.name))
+  if (sort === "newest") {
+    return sorted.sort((a, b) => {
+      const [first, second] = [addedTime(a), addedTime(b)]
+      if (first === second) return 0
+      if (first === null) return 1
+      if (second === null) return -1
+      return second - first
+    })
+  }
+  return sorted
+}
+
 /** Whether the visitor has typed or picked anything beyond where the filter starts (`DEFAULT_FILTER`): whether there is something to reset. A query of blanks is nothing. */
 export function isFiltered(filter: GameFilter): boolean {
   return (
@@ -228,7 +274,8 @@ export function canStep(options: readonly number[], current: number | null, dire
 // The picks, `category` (once for each category), `players`, `duration`, `complexity` and `age`, each left out when it is where the filter starts
 // (`DEFAULT_PLAYERS`, `DEFAULT_DURATION`, `DEFAULT_COMPLEXITY` and `DEFAULT_AGE`; no limit on the duration, "1h+", is `duration=any`), so that the link
 // to the list as it opens is the hub's. The typed text is not in it: the address of the page goes to analytics with every event, and what
-// a visitor types in a field is theirs, so it is neither written to the URL nor read from it.
+// a visitor types in a field is theirs, so it is neither written to the URL nor read from it. The order is in it, `sort`, apart from the picks since it is
+// no filter (the filters can be put back where they start and keep the order), left out when it is where the list starts (`DEFAULT_SORT`).
 
 /** The limit a link holds: a number of minutes the slider offers, `any` for no limit ("1h+"), and anything else is where the duration starts. */
 function durationOfParam(value: string | null): number | null {
@@ -264,4 +311,16 @@ export function filterToParams(filter: GameFilter): URLSearchParams {
   if (filter.complexity !== null && filter.complexity !== DEFAULT_COMPLEXITY) params.set("complexity", String(filter.complexity))
   if (filter.age !== null && filter.age !== DEFAULT_AGE) params.set("age", String(filter.age))
   return params
+}
+
+/** The order a link holds: one of `SORTS`, spelled exactly; anything else, or none, is where the list starts (`DEFAULT_SORT`), since a link is anything someone typed or kept for a long time. */
+export function sortFromParams(params: { get(name: string): string | null }): GameSort {
+  return optionOf(SORTS, params.get("sort")) ?? DEFAULT_SORT
+}
+
+/** The parameters of the link to a list in an order: the picks' (`filterToParams`), if any are given, then `sort`, which is left out for `DEFAULT_SORT`. The parameters it is given are not changed. */
+export function sortToParams(sort: GameSort, params: URLSearchParams = new URLSearchParams()): URLSearchParams {
+  const next = new URLSearchParams(params)
+  if (sort !== DEFAULT_SORT) next.set("sort", sort)
+  return next
 }

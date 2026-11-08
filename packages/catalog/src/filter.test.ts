@@ -9,10 +9,12 @@ import {
   DEFAULT_DURATION,
   DEFAULT_FILTER,
   DEFAULT_PLAYERS,
+  DEFAULT_SORT,
   DURATION_LIMITS,
   MANY_PLAYERS,
   NO_FILTER,
   PLAYER_COUNTS,
+  SORTS,
   canStep,
   categoriesOf,
   complexityLevel,
@@ -23,6 +25,9 @@ import {
   isFiltered,
   normalize,
   optionOf,
+  sortFromParams,
+  sortGames,
+  sortToParams,
   stepOption,
   words,
   type GameFilter,
@@ -244,7 +249,9 @@ describe("indexEntry", () => {
   it("indexes a live game with no game in the Studio by its name, with the players and the duration of the registry", () => {
     expect(indexEntry(entry("courtisans"))).toEqual({
       slug: "courtisans",
+      name: "Courtisans",
       live: true,
+      addedAt: null,
       text: "courtisans",
       players: { min: 2, max: 5 },
       duration: 30,
@@ -257,7 +264,9 @@ describe("indexEntry", () => {
   it("indexes a live game with a game in the Studio like any other game: by what the game says", () => {
     expect(indexEntry(entry("skyjo"))).toEqual({
       slug: "skyjo",
+      name: "Skyjo",
       live: true,
+      addedAt: null,
       text: "skyjo nadia okafor",
       players: { min: 2, max: 8 },
       duration: 45,
@@ -270,7 +279,9 @@ describe("indexEntry", () => {
   it("leaves unknown what a game does not say", () => {
     expect(indexEntry(entry("tichu"))).toEqual({
       slug: "tichu",
+      name: "Tichu",
       live: true,
+      addedAt: null,
       text: "tichu",
       players: null,
       duration: null,
@@ -280,7 +291,9 @@ describe("indexEntry", () => {
     })
     expect(indexEntry(entry("zen"))).toEqual({
       slug: "zen",
+      name: "Zen",
       live: false,
+      addedAt: null,
       text: "zen",
       players: null,
       duration: null,
@@ -299,7 +312,9 @@ describe("indexEntry", () => {
   it("indexes a game to come by its name, the people credited on it and its publishers, normalised", () => {
     expect(indexEntry(entry("mystery-night"))).toEqual({
       slug: "mystery-night",
+      name: "Mystery Night",
       live: false,
+      addedAt: null,
       text: "mystery night herve marly regis torres spiral editions",
       players: { min: 4, max: 7 },
       duration: 30,
@@ -321,8 +336,14 @@ describe("indexEntry", () => {
     expect(indexEntry(entry("hanabi")).categories).toEqual(["Co-op", "Cards"])
   })
 
-  it("is lean: nothing but what the filter reads, so that the page can send it to the browser", () => {
-    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["age", "categories", "complexity", "duration", "live", "players", "slug", "text"])
+  it("indexes the day a game was added, as the Studio gives it, for the sort by date", () => {
+    const [added] = buildCatalog([], [catalogGame("amen", { name: "Amen", addedAt: "2026-11-02T09:30:00Z" })])
+    if (!added) throw new Error("no amen in the catalog")
+    expect(indexEntry(added)).toMatchObject({ name: "Amen", addedAt: "2026-11-02T09:30:00Z" })
+  })
+
+  it("is lean: nothing but what the filter and the sort read, so that the page can send it to the browser", () => {
+    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["addedAt", "age", "categories", "complexity", "duration", "live", "name", "players", "slug", "text"])
   })
 })
 
@@ -604,6 +625,102 @@ describe("filterGames", () => {
   })
 })
 
+describe("sortGames", () => {
+  // What the sort reads of a game; the order the games come in is the catalog's
+  const named = (name: string, addedAt: string | null = null) => ({ name, addedAt })
+  const names = (list: readonly { name: string }[]) => list.map((game) => game.name)
+
+  it("offers Trending, A-Z and Newest, in this order, and starts on Trending", () => {
+    expect(SORTS).toEqual(["trending", "name", "newest"])
+    expect(DEFAULT_SORT).toBe("trending")
+  })
+
+  it("keeps the order of the catalog for Trending: the live games first, then the games to come, each group by hotness, as the catalog builds it", () => {
+    const built = buildCatalog(
+      [registryGame("trio", { name: "Trio", live: true }), registryGame("courtisans", { name: "Courtisans", live: true })],
+      [
+        catalogGame("zen", { name: "Zen", order: 2 }),
+        catalogGame("amen", { name: "Amen", order: 9 }),
+        catalogGame("trio", { name: "Trio", order: 7 }),
+        catalogGame("bang", { name: "Bang", order: 1 }),
+        catalogGame("courtisans", { name: "Courtisans", order: 5 }),
+      ],
+    ).map(indexEntry)
+    expect(slugs(built)).toEqual(["courtisans", "trio", "bang", "zen", "amen"])
+    expect(slugs(sortGames(built, "trending"))).toEqual(slugs(built))
+  })
+
+  it("returns a new list, and does not change the one it is given", () => {
+    const list = [named("b"), named("a")]
+    for (const sort of SORTS) {
+      const sorted = sortGames(list, sort)
+      expect(sorted).not.toBe(list)
+      expect(names(list)).toEqual(["b", "a"])
+    }
+  })
+
+  it("returns the games it was given, each as it came in, with whatever else it carries", () => {
+    const cards = games.map((game) => ({ ...game, props: { href: `/game/${game.slug}` } }))
+    for (const sort of SORTS) {
+      const sorted = sortGames(cards, sort)
+      expect(sorted).toHaveLength(cards.length)
+      expect(sorted.every((card) => cards.includes(card))).toBe(true)
+      expect(sorted[0]?.props.href).toBe(`/game/${sorted[0]?.slug}`)
+    }
+  })
+
+  describe("by name", () => {
+    it("is alphabetical, case and accents aside, and reads numbers in their order", () => {
+      const list = ["zen", "Élan", "bang", "10 Minutes", "7 Wonders", "6 nimmt!", "Azul", "élan blanc"].map((name) => named(name))
+      expect(names(sortGames(list, "name"))).toEqual(["6 nimmt!", "7 Wonders", "10 Minutes", "Azul", "bang", "Élan", "élan blanc", "zen"])
+    })
+
+    it("does not put the live games first: A-Z is A-Z", () => {
+      expect(slugs(sortGames(games, "name"))).toEqual(["6-nimmt", "courtisans", "flip-7", "hanabi", "mystery-night", "skyjo", "solo-quest", "tichu", "time-bomb", "millers-hollow", "zen"])
+    })
+
+    it("keeps the order the games came in for names it cannot tell apart", () => {
+      const list = [{ id: 1, name: "Skyjo" }, { id: 2, name: "skyjo" }, { id: 3, name: "Skÿjo" }, { id: 4, name: "Amen" }]
+      expect(sortGames(list.map((game) => ({ ...game, addedAt: null })), "name").map((game) => game.id)).toEqual([4, 1, 2, 3])
+    })
+
+    it("sorts what a filter left, and a filter leaves them in the order they came in", () => {
+      const party = filterGames(games, { ...NO_FILTER, categories: ["Party"] })
+      expect(slugs(sortGames(party, "name"))).toEqual(["6-nimmt", "mystery-night", "millers-hollow"])
+    })
+  })
+
+  describe("by the day a game was added", () => {
+    it("puts the game added last first, and a game that says no day after those that do", () => {
+      const list = [
+        named("old", "2026-10-30T14:02:41Z"),
+        named("none", null),
+        named("new", "2026-11-05T08:00:00Z"),
+        named("mid", "2026-11-01T00:00:00Z"),
+        named("odd", "not a date"),
+      ]
+      expect(names(sortGames(list, "newest"))).toEqual(["new", "mid", "old", "none", "odd"])
+    })
+
+    it("compares the moments, not the way they are written: an offset and a fraction of a second count", () => {
+      const list = [named("a", "2026-11-01T10:00:00Z"), named("b", "2026-11-01T11:00:00+02:00"), named("c", "2026-11-01T10:00:00.5Z")]
+      expect(names(sortGames(list, "newest"))).toEqual(["c", "a", "b"])
+    })
+
+    it("keeps the order of the catalog for the games added at one moment, as those of the first seed were", () => {
+      const seed = "2026-10-30T14:02:41Z"
+      expect(names(sortGames(["c", "a", "b"].map((name) => named(name, seed)), "newest"))).toEqual(["c", "a", "b"])
+      // A game added after them comes first, and the others stay as they were
+      const list = [named("c", seed), named("a", seed), named("fresh", "2026-11-08T09:00:00Z"), named("b", seed)]
+      expect(names(sortGames(list, "newest"))).toEqual(["fresh", "c", "a", "b"])
+    })
+
+    it("keeps the order of the catalog for games that say no day at all, a live game with no game in the Studio among them", () => {
+      expect(slugs(sortGames(games, "newest"))).toEqual(slugs(games))
+    })
+  })
+})
+
 describe("isFiltered", () => {
   it("is false where the filter starts: nothing typed, nothing picked but the starting picks", () => {
     expect(isFiltered(DEFAULT_FILTER)).toBe(false)
@@ -737,6 +854,62 @@ describe("filterToParams", () => {
     expect(
       filterToParams({ query: "flip", categories: [], players: 3, duration: 30, complexity: null, age: null }).toString(),
     ).toBe("players=3&duration=30")
+  })
+})
+
+describe("sortFromParams", () => {
+  const read = (search: string) => sortFromParams(new URLSearchParams(search))
+
+  it("starts on Trending for a link with no sort", () => {
+    expect(read("")).toBe(DEFAULT_SORT)
+    expect(read("players=6&category=Cards")).toBe(DEFAULT_SORT)
+  })
+
+  it("reads each sort, whatever else the link holds", () => {
+    for (const sort of SORTS) expect(read(`sort=${sort}`)).toBe(sort)
+    expect(read("players=6&sort=newest&category=Cards")).toBe("newest")
+  })
+
+  it("ignores a sort the list does not offer, spelled any other way", () => {
+    for (const bad of ["sort=", "sort=Name", "sort=NEWEST", "sort=name+", "sort=alphabetical", "sort=date", "sort=hot", "sort=0", "sort=trending,name"]) expect(read(bad)).toBe(DEFAULT_SORT)
+  })
+
+  it("takes the first of a sort that comes twice", () => {
+    expect(read("sort=name&sort=newest")).toBe("name")
+  })
+
+  it("is no pick: the filters read the same link as they did without it", () => {
+    expect(filterFromParams(new URLSearchParams("sort=name&players=5&category=Cards"), OFFERED)).toEqual({ ...DEFAULT_FILTER, categories: ["Cards"], players: 5 })
+    expect(filterFromParams(new URLSearchParams("sort=newest"), OFFERED)).toEqual(DEFAULT_FILTER)
+  })
+})
+
+describe("sortToParams", () => {
+  it("is empty for Trending, where the list starts: the link to the list as it opens is the hub's", () => {
+    expect(sortToParams("trending").toString()).toBe("")
+    expect(sortToParams(DEFAULT_SORT, filterToParams(DEFAULT_FILTER)).toString()).toBe("")
+  })
+
+  it("writes any other sort as `sort`", () => {
+    expect(sortToParams("name").toString()).toBe("sort=name")
+    expect(sortToParams("newest").toString()).toBe("sort=newest")
+  })
+
+  it("adds it after the picks of the link, which it does not change", () => {
+    const picks = filterToParams({ ...DEFAULT_FILTER, categories: ["Cards"], players: 5 })
+    expect(sortToParams("name", picks).toString()).toBe("category=Cards&players=5&sort=name")
+    expect(picks.toString()).toBe("category=Cards&players=5")
+    expect(sortToParams("trending", filterToParams({ ...DEFAULT_FILTER, players: 5 })).toString()).toBe("players=5")
+  })
+
+  it("comes back as it left, through the text of the link", () => {
+    for (const sort of SORTS) {
+      for (const filter of [DEFAULT_FILTER, { ...DEFAULT_FILTER, categories: ["Cards"], players: 5, duration: null }]) {
+        const link = sortToParams(sort, filterToParams(filter)).toString()
+        expect(sortFromParams(new URLSearchParams(link))).toBe(sort)
+        expect(filterFromParams(new URLSearchParams(link), OFFERED)).toEqual(filter)
+      }
+    }
   })
 })
 

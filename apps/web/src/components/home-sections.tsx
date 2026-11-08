@@ -23,9 +23,9 @@ const POPULAR_GRID =
 
 /**
  * The popular games: the cards of the first games of the catalog in a grid of three rows whose bottom fades out, and "See all games" over the fade,
- * centred (`SectionPreview`), to `/games`. There is no count of plays to rank them by yet, one game being live and the rest to come, so they
- * come in the order of the catalog (the live games first, then the games to come by how soon they are): the day there is a count, this is the one
- * place that ranks. A live game is a "play" card, the others say "Coming soon".
+ * centred (`SectionPreview`), to `/games`. There is no count of plays to rank them by yet, so they come in Trending, the order of the catalog: the live
+ * games first, then the games to come, each group by the `order` of the Studio, the games' hotness. The day there is a count, this is the place that
+ * ranks them. A live game is a "play" card, the others say "Coming soon".
  */
 export function PopularGames({ games }: { games: readonly SearchedGame[] }) {
   return (
