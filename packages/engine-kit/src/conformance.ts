@@ -410,7 +410,9 @@ class Suite {
           if (!allowTexts && line.label !== undefined) found.flag("a line of the score carries words: they are the game's, in its Sanity (scoreLabelKey)", `${at}, ${line.key}`)
         }
     }
-    if (!Array.isArray(results.winners) || results.winners.length === 0) found.flag("a finished game names no winner", where)
+    if (!Array.isArray(results.winners)) found.flag("the winners are not a list of player ids", where)
+    else if (results.coop !== undefined) this.checkTogether(results, ids, where)
+    else if (results.winners.length === 0) found.flag("a finished game names no winner", where)
     else {
       if (new Set(results.winners).size !== results.winners.length) found.flag("a winner is named twice", where)
       for (const id of results.winners) {
@@ -419,6 +421,20 @@ class Suite {
         else if (row.rank !== 1) found.flag("a winner does not have rank 1", `${where}, ${id}`)
       }
       for (const row of rows) if (row.rank === 1 && !results.winners.includes(row.playerId)) found.flag("a player of rank 1 is not among the winners", `${where}, ${row.playerId}`)
+    }
+  }
+
+  /** A game the whole table plays on one side: it wins or loses together, with one score, and `winners` is everybody or nobody. */
+  private checkTogether(results: Results, ids: string[], where: string) {
+    const { found } = this
+    if (results.coop !== "won" && results.coop !== "lost") return found.flag('coop is neither "won" nor "lost"', where)
+    for (const row of results.players) {
+      if (row.rank !== 1) found.flag("in a game the table plays together every player has rank 1: it wins or loses as one", `${where}, ${row.playerId}`)
+      if (row.total !== results.players[0]!.total) found.flag("in a game the table plays together every player has the table's score as total", `${where}, ${row.playerId}`)
+    }
+    const expected = results.coop === "won" ? ids : []
+    if (results.winners.length !== expected.length || !expected.every((id) => results.winners.includes(id))) {
+      found.flag(results.coop === "won" ? "a table that won together must name every player among the winners" : "a table that lost together must name no winner", where)
     }
   }
 }
@@ -431,7 +447,8 @@ class Suite {
  * - Whole games, for several table sizes, seeds and variants of each option, played with `autoPlayFor` until they end: at every step the state is plain JSON, `isOver` and `waitingFor`
  *   are sound (a list of the seated players, in seat order, nobody once the game is over), every view works for each seat, a spectator and a stranger, shows no result before the end and
  *   all of them at the end, and leaks none of the `secretsFor`; the step does not write to the state it was given, gives the same state twice, plays the same once `jsonb` has reordered the keys,
- *   moves the game on, and never asks `Math.random` or `Date.now`; the results hold each player once, with ranks, winners and lines of score in order.
+ *   moves the game on, and never asks `Math.random` or `Date.now`; the results hold each player once, with ranks, winners and lines of score in order (a table that plays together, `coop`,
+ *   wins or loses as one: every player at rank 1 with the table's score, and everybody among the winners or nobody).
  * - Junk actions: whatever a client could send is refused with an `EngineError` whose code is in the vocabulary, or else is a move; it never throws a plain error and never writes to the state.
  */
 export function conformanceProblems(game: AnyGameDefinition, options: ConformanceOptions = {}): string[] {

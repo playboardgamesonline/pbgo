@@ -35,7 +35,7 @@ export const playerIdOf = (slug: string, secret: string): string =>
 ## Leaving a table
 
 - A player can leave a table that waits for players or is starting: `POST /api/<slug>/games/<code>/leave` (`packages/core/routes/api/games/[code]/leave/route.ts`) takes them off `players` and hands the host's place to the first seat left when the host goes. Leaving a table in its ready check ends the check for everybody, since the game was set up for the seats it had.
-- Once the game runs the route changes nothing. A player who walks away is an absent player, and the others vote to play for them when the game waits for them ([Absent players](03-turns.md#absent-players-in-core)). Giving up a game that runs is not built ([Not built yet](../03-not-built-yet.md)).
+- Once the game runs the route changes nothing. A player who walks away is an absent player, and the others vote to play for them when the game waits for them ([Absent players](03-turns.md#absent-players-in-core)). Giving up a game that runs is not built ([Not built yet](../03-not-built-yet.md)); when it is, the engine has nothing to add, since the seat can be played with `autoPlayFor` and `abandoned` is the platform's outcome, not the engine's ([Outcomes](06-victory.md#outcomes)).
 - The engine never sees a leave: `setup` is given the seats the table has when it starts.
 
 ## Players who are out

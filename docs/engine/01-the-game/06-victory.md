@@ -4,10 +4,37 @@ A game ends when its `isOver` is true, and core then stores the status `over`. H
 
 ## Results
 
-- The definition has no member for results: the view holds `results: Results | null`, set once the game is over (`isOver`).
-- `Results` is `{ players: PlayerResult[]; winners: string[] }`; `winners` are player ids, several on a tie.
+- The definition has no member for results: the view holds `results: Results | null`, set once the game is over (`isOver`), the same for every viewer, the public view (`view(state, null)`) included.
+- `Results` is `{ players: PlayerResult[]; winners: string[]; coop?: "won" | "lost" }`; `winners` are player ids, several on a tie.
 - A `PlayerResult` is `{ playerId, total, rank, detail }`: `total` is the score shown, `rank` starts at 1 and a tie shares a rank (`ranks()` of the kit), `detail` is a list of `{ key, values?, points }` drawn as chips: the words of a line are the game's, written in its Sanity under `score.<key>`, and `values` fills their variables ([The words of options and scores](07-parameters.md#the-words-of-options-and-scores)); a `label` is deprecated and shown as written while a game has not moved it. A game can extend it with fields for its own board.
-- Core reads `view.results` when `PublicGame.status` is `over`, for the game-over panel and the victory announcement; no server code reads it.
+- `coop` is for a game the whole table plays on one side, against the game itself (Hanabi, Sky Team, The Mind): `"won"` or `"lost"`, for every player at once. Every player then has rank 1 and the table's score as `total`, and `winners` lists every player when the table won and nobody when it lost. A game where the players play against each other leaves it out and names at least one winner.
+- Core reads `view.results` when `PublicGame.status` is `over`, for the game-over panel and the victory announcement. No server code reads it: nothing records a finished game (PLT-13), and what does will read the results from the public view.
+
+## Outcomes
+
+The history keeps how a game ended for each player: `win`, `loss`, `draw`, `coop_win`, `coop_loss` or `abandoned` (`Outcome` in `packages/ui/src/results.ts`, `game_participants.outcome` in PLT-13). The engine does not write it: it states the results, and `outcomesOf(results)` of the kit reads them into an outcome for each player, in the order of `results.players`.
+
+| Outcome | When |
+| --- | --- |
+| `coop_win`, `coop_loss` | `coop` is set: the table won or lost together, for every player |
+| `win` | The player is among the `winners`, and not every player of the table is |
+| `draw` | Every player of a table of two or more is among the `winners` |
+| `loss` | The player is not among the `winners` |
+
+- A tie for the first place among some of the players is a win for them: they beat the rest, whatever they did to each other. A team that wins puts all its members in `winners` and is read the same way; the results say nothing of the team itself ([Not built yet](../03-not-built-yet.md#what-the-contract-leaves-out)).
+- A player alone at a table has no one to draw with: a win.
+- `abandoned` is not the engine's to say, since only the platform knows that a player gave up ([Leaving a table](02-players.md#leaving-a-table)). `PlayerOutcome` leaves it out, and a test of core keeps it inside `Outcome`.
+
+From `packages/engine-kit/src/outcomes.ts`, the rules above in code:
+
+```ts
+function outcomeOf(results: Results, playerId: string): PlayerOutcome {
+  if (results.coop !== undefined) return results.coop === "won" ? "coop_win" : "coop_loss"
+  if (!results.winners.includes(playerId)) return "loss"
+  // Everybody at the top of a table of two or more is a draw; some of them at the top beat the rest and win. A player alone at a table has no one to draw with
+  return results.players.length > 1 && results.winners.length === results.players.length ? "draw" : "win"
+}
+```
 
 ## Rounds
 

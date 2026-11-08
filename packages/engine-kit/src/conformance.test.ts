@@ -69,6 +69,17 @@ function resultsOf(state: State): Results {
   }
 }
 
+/** The same race played on one side: the table wins together when its score is even, and loses together otherwise. */
+function coopResultsOf(state: State): Results {
+  const score = state.seats.reduce((sum, id) => sum + state.scores[id]!, 0)
+  const won = score % 2 === 0
+  return {
+    players: state.seats.map((id) => ({ playerId: id, total: score, rank: 1, detail: [{ key: "rolls", points: state.rolls[id]! }] })),
+    winners: won ? [...state.seats] : [],
+    coop: won ? "won" : "lost",
+  }
+}
+
 const waiting = (state: State): string[] => (state.over ? [] : [state.seats[state.turn]!])
 
 const dash: GameDefinition<State, Roll, View> = {
@@ -271,6 +282,7 @@ describe("results", () => {
 
   it("name winners who sit at the table, have rank 1, and are all the players of rank 1", () => {
     expect(said(withResults((r) => ({ ...r, winners: [] })))).toContain("a finished game names no winner")
+    expect(said(withResults((r) => ({ ...r, winners: "a" as unknown as string[] })))).toContain("the winners are not a list of player ids")
     expect(said(withResults((r) => ({ ...r, winners: ["stranger-1"] })))).toContain("a winner is not at the table")
     expect(said(withResults((r) => ({ ...r, winners: [...r.winners, ...r.players.filter((p) => p.rank > 1).map((p) => p.playerId)] })))).toContain("a winner does not have rank 1")
     expect(said(withResults((r) => ({ ...r, winners: r.winners.slice(0, 1), players: r.players.map((p) => ({ ...p, rank: 1 })) })), { playerCounts: [3] })).toContain("a player of rank 1 is not among the winners")
@@ -282,6 +294,42 @@ describe("results", () => {
     const worded = withResults((r) => ({ ...r, players: r.players.map((p) => ({ ...p, detail: [{ key: "rolls", label: "Rolls", points: 1 }] })) }))
     expect(said(worded)).toContain("a line of the score carries words")
     expect(said(worded, { allowTexts: true })).toBe("")
+  })
+})
+
+describe("results of a game the table plays together", () => {
+  const together = (change: (results: Results) => Results = (r) => r) =>
+    broken({ view: (s, v) => ({ ...dash.view(s, v), results: s.over ? change(coopResultsOf(s)) : null }) })
+
+  it("have nothing said about them, whether the table wins or loses", () => {
+    expect(said(together())).toBe("")
+    // Both ends are played by the seeds of the run, or the line above would prove half of the rule
+    const ends = new Set<string>()
+    said(together((r) => (ends.add(r.coop!), r)))
+    expect([...ends].sort()).toEqual(["lost", "won"])
+  })
+
+  it("say whether the table won or lost, and nothing else", () => {
+    expect(said(together((r) => ({ ...r, coop: "tied" as "won" })))).toContain('coop is neither "won" nor "lost"')
+  })
+
+  it("give every player rank 1 and the table's score", () => {
+    expect(said(together((r) => ({ ...r, players: r.players.map((p, i) => ({ ...p, rank: i + 1 })) })))).toContain("every player has rank 1")
+    expect(said(together((r) => ({ ...r, players: r.players.map((p, i) => ({ ...p, total: p.total + i })) })))).toContain("every player has the table's score as total")
+  })
+
+  it("name everybody among the winners when the table won, and nobody when it lost", () => {
+    expect(said(together((r) => (r.coop === "won" ? { ...r, winners: r.winners.slice(1) } : r)))).toContain("a table that won together must name every player among the winners")
+    expect(said(together((r) => (r.coop === "lost" ? { ...r, winners: r.players.map((p) => p.playerId).slice(0, 1) } : r)))).toContain("a table that lost together must name no winner")
+  })
+
+  it("do not excuse a game that does not say it is played together from naming a winner", () => {
+    const silent = together((r) => {
+      const plain = { ...r }
+      delete plain.coop
+      return plain
+    })
+    expect(said(silent)).toContain("a finished game names no winner")
   })
 })
 
