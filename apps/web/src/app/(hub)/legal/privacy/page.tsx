@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
-import { FEEDBACK_RETENTION_MONTHS, PRESENCE_RETENTION_DAYS, TABLE_RETENTION_DAYS } from "@pbgo/core/lib/retention"
+import { FEEDBACK_RETENTION_MONTHS, FINISHED_STATE_RETENTION_HOURS, PRESENCE_RETENTION_DAYS, TABLE_RETENTION_DAYS, UNRANKED_SEAT_RETENTION_MONTHS } from "@pbgo/core/lib/retention"
 import { LEGAL_LINK, LegalEntries, LegalPage, LegalSection, LegalText, LegalUpdated } from "@/components/legal-page"
 import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 
@@ -10,7 +10,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/legal/privacy" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "7 November 2026"
+const UPDATED = "8 November 2026"
 
 /**
  * Everything the site does with personal data, in the order a person meets it. Every line is the code's, and the table of `docs/legal.md` lists where: a new field that holds
@@ -75,7 +75,11 @@ export default function PrivacyPolicy() {
             },
             {
               name: "The table",
-              text: `A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played and the last time each player was seen. While a game starts, it also keeps the time each player's board finished loading, for a minute at most. That is how a game goes on after a reload, how the others can play for someone who has left, and how the game begins for everybody together. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. A clean-up runs every night and deletes a table ${TABLE_RETENTION_DAYS} days after the last thing that happened at it (a move, a join, a change of its options).`,
+              text: `A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played and the last time each player was seen. While a game starts, it also keeps the time each player's board finished loading, for a minute at most. That is how a game goes on after a reload, how the others can play for someone who has left, and how the game begins for everybody together. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. A clean-up runs every night and deletes a table ${TABLE_RETENTION_DAYS} days after the last thing that happened at it (a move, a join, a change of its options). Once a game is over and its result is written down (below), the hidden part of its state, such as the cards in hand, is deleted ${FINISHED_STATE_RETENTION_HOURS} hours after the table was last written to, without waiting for the rest of the table.`,
+            },
+            {
+              name: "The result of a game",
+              text: `When a game ends, we write down how it ended, apart from the table: the game, when it ended, how long it lasted, the options it was played with (the expansions included) and, for each seat, the place at the table, the place reached, the score and how it ended for the player (a win, a loss, a draw, or a table that won or lost together), with the nickname or the account name, and the picture address, that the seat showed. A seat held by a signed-in account is linked to that account. A seat held by a guest is linked to no one: a guest has no history, and nothing in the result tells who they are but the nickname they typed. This is what the history, the statistics and the ranks of the players are made of. The seats of a game that did not count for the ranks are deleted ${UNRANKED_SEAT_RETENTION_MONTHS} months after the game ended, by the same nightly clean-up, and the totals of the players keep what they counted. The game itself, which names no one, is kept. The seats of a game that counted for the ranks are kept as long as the account is. When an account is deleted, the link to it goes, and the name and the picture of its seats are erased: its games stay as those of a deleted player.`,
             },
             {
               name: "The chat",
@@ -119,7 +123,11 @@ export default function PrivacyPolicy() {
             },
             {
               name: "At a table",
-              text: "When you sit down at a table, we copy your account's name (20 characters at most) and the address of your picture onto the table, so that the others see them. The picture itself stays with your provider and each person's browser loads it from there; its address can contain an identifier of your account at that provider. The table also records which account holds your seat, apart from what the others see, so that you are counted once among the players online. Both go with the table.",
+              text: "When you sit down at a table, we copy your account's name (20 characters at most) and the address of your picture onto the table, so that the others see them. The picture itself stays with your provider and each person's browser loads it from there; its address can contain an identifier of your account at that provider. The table also records which account holds your seat, apart from what the others see, so that you are counted once among the players online. Both go with the table. When the game ends, the account that held your seat is written in the result of the game, which stays (see \"The result of a game\").",
+            },
+            {
+              name: "Your games, your totals and your rank",
+              text: "For each game you play, we count your games, how many you won and how long you played. When a game counts for the ranks (a ranked game, where every seat is a different account and nobody played for another), we also keep a rating for you in that game and what each game did to it, and we use it to work out your place and your rank among the players of the game. The rating is hidden: it is never shown and never sent to your browser, the site shows your rank and, from your fifth ranked game, your place. The best players of a game are listed on its page, for every visitor, with the name and the picture of their account, their rank and their place. Your totals, your rating and the link between you and your games are deleted with your account. Hiding your game history in your settings hides your games from your profile for the other players. It does not stop us from writing your games down, since your totals and your rank are made of them, and it does not take you off the list of the best players of a game.",
             },
             {
               name: "Keeping and deleting",
@@ -129,7 +137,7 @@ export default function PrivacyPolicy() {
                   <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
                     {CONTACT}
                   </a>
-                  . We then delete it with what it holds.
+                  . We then delete it with what it holds: your totals and your rating go with it, and your games stay as those of a deleted player, without your name or your picture.
                 </>
               ),
             },
@@ -185,7 +193,7 @@ export default function PrivacyPolicy() {
         <LegalText>The law asks for a reason for each use of personal data. Ours are:</LegalText>
         <LegalEntries
           items={[
-            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language: we could not do it without your data." },
+            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language, keeping your games, your totals and your rank: we could not do it without your data." },
             {
               name: "Our legitimate interest",
               text: "In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, and counting what happens at tables to fix and improve the games. You can object to this (see Your rights).",
@@ -211,6 +219,7 @@ export default function PrivacyPolicy() {
             { name: "Sanity", text: "Stores the texts, pictures and videos of the games. Your browser loads the pictures and videos from its servers." },
             { name: "Google, Twitch and Discord", text: "Only if you sign in with them. They learn that you sign in to this site and handle your data under their own policies." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
+            { name: "Every visitor of a game's page", text: "See the best players of the game: the name and the picture of their account, their rank and their place. Never a rating, and never the games behind it." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },
           ]}
         />
