@@ -16,7 +16,8 @@ function countText(shown: number, total: number): string {
 
 /**
  * The hub's list of games: the cards of the games that match the search bar of the home (`HeroSearch`: its text and its filters, held by
- * `GameSearch`), in the order of the catalog, or "No game matches" with a button that clears the search when none does. The count is for
+ * `GameSearch`), in the order asked for (`SortGames` on `/games`: Trending, the order of the catalog, until a visitor picks another), or "No game
+ * matches" with a button that clears the search when none does. The count is for
  * screen readers (`role="status"`, so a change is announced): the cards are the answer for everyone else. The rules are
  * `@pbgo/catalog/filter`'s and this draws them. See docs/catalog.md.
  */

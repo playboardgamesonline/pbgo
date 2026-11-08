@@ -7,6 +7,7 @@ import { GameSearch } from "@/components/game-search"
 import { HeroSearch } from "@/components/hero-search"
 import { ListPageHeader } from "@/components/list-page-header"
 import { SiteFooter } from "@/components/site-footer"
+import { SortGames } from "@/components/sort-games"
 import { catalogCardProps } from "@/lib/game-card-props"
 
 export const metadata: Metadata = {
@@ -16,10 +17,11 @@ export const metadata: Metadata = {
 }
 
 /**
- * Every game of the catalog in one list, the ones to play now first, then the ones to come (docs/catalog.md): the list the home used to be.
- * The search bar above it (`HeroSearch`, with its filters) filters it as the visitor types and picks, in the browser, on the
- * index that the page sends with the cards (`GameSearch`), so the page stays static and its HTML lists every game. The picks are in the address,
- * so a link opens the list as it was left; the text of the search is not. The home links here from its "Popular games" ("See all").
+ * Every game of the catalog in one list, the ones to play now first, then the ones to come, each group in the order of the Studio, its hotness (docs/catalog.md): the list
+ * the home used to be. The search bar above it (`HeroSearch`, with its filters) filters it as the visitor types and picks, and the menu over the cards (`SortGames`)
+ * orders it (Trending, the catalog's own order, A–Z or Newest), in the browser, on the index that the page sends with the cards (`GameSearch`), so the page stays
+ * static and its HTML lists every game. The picks and the order are in the address, so a link opens the list as it was left; the text of the search is not.
+ * The home links here from its "Popular games" ("See all").
  */
 export default async function GamesPage() {
   const { entries } = await getCatalog()
@@ -35,6 +37,9 @@ export default async function GamesPage() {
           </ListPageHeader>
 
           <section id="results" aria-label="Games" className="w-full scroll-mt-navbar px-gutter pt-10 pb-section">
+            <div className="mb-4 flex justify-end">
+              <SortGames />
+            </div>
             <GameList />
           </section>
         </main>

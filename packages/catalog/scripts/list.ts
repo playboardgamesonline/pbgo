@@ -62,7 +62,7 @@ for (const row of rows) console.log(line(row))
 if (catalog.some((entry) => entry.live && fromRegistry(entry.slug))) {
   console.log("\nkind: live (registry) is a live game that the Studio has no game for, listed with what the registry knows of it")
 }
-console.log("\norder: the `order` of the game in the Studio, lowest first: the order of the games to come (a live game keeps its place in the registry)")
+console.log("\norder: the `order` of the game in the Studio, lowest first, the live games first and then the games to come, each group by it: the order of the hub's list, Trending")
 console.log("pictures: Logo, Icon, Background, Cover (a card draws the cover, else the background, else the logo or the icon) · text: the languages that have a description · weight: the complexity, BoardGameGeek's weight from 1 to 5")
 console.log("creators: each person with what they did on the game · related: the games the page of a game recommends, the most relevant first: its family (both ways: the game of either one says so, its related games or its base game), then the games that look like it by their categories")
 if (notes.length > 0) console.log(`\n${notes.join("\n")}`)

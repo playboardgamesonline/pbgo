@@ -2,20 +2,22 @@ import { describe, expect, it } from "vitest"
 import { buildCatalog } from "./catalog"
 import {
   AGE_LIMITS,
-  ANY_DURATION,
+  ANY_AGE,
+  ANY_COMPLEXITY,
   COMPLEXITY_LEVELS,
-  DEFAULT_AGE,
-  DEFAULT_COMPLEXITY,
-  DEFAULT_DURATION,
   DEFAULT_FILTER,
-  DEFAULT_PLAYERS,
+  DEFAULT_SORT,
   DURATION_LIMITS,
+  FIRST_PLAYERS,
   MANY_PLAYERS,
   NO_FILTER,
   PLAYER_COUNTS,
+  SORTS,
+  agePick,
   canStep,
   categoriesOf,
   complexityLevel,
+  complexityPick,
   filterFromParams,
   filterGames,
   filterToParams,
@@ -23,6 +25,9 @@ import {
   isFiltered,
   normalize,
   optionOf,
+  sortFromParams,
+  sortGames,
+  sortToParams,
   stepOption,
   words,
   type GameFilter,
@@ -150,12 +155,26 @@ describe("the options", () => {
     expect(AGE_LIMITS).toEqual([6, 8, 10, 12, 14, 18])
   })
 
-  it("starts on a table of four, games of 20 minutes at most, up to level 3 and a youngest player of 8, each one of its own options", () => {
-    expect(PLAYER_COUNTS).toContain(DEFAULT_PLAYERS)
-    expect(DURATION_LIMITS).toContain(DEFAULT_DURATION)
-    expect(COMPLEXITY_LEVELS).toContain(DEFAULT_COMPLEXITY)
-    expect(AGE_LIMITS).toContain(DEFAULT_AGE)
-    expect(DEFAULT_FILTER).toEqual({ ...NO_FILTER, players: 4, duration: 20, complexity: 3, age: 8 })
+  it("starts on nothing, so that every game is listed: no number of players, no limit on the duration, no limit on the complexity or the age", () => {
+    expect(DEFAULT_FILTER).toEqual({ query: "", categories: [], players: null, duration: null, complexity: null, age: null })
+    expect(DEFAULT_FILTER).toEqual(NO_FILTER)
+  })
+
+  it("picks a table of four on the first press of the stepper, one of the counts it offers", () => {
+    expect(FIRST_PLAYERS).toBe(4)
+    expect(PLAYER_COUNTS).toContain(FIRST_PLAYERS)
+  })
+
+  it("ends the scale of the complexity and the ages on the step that is no limit", () => {
+    expect(ANY_COMPLEXITY).toBe(5)
+    expect(COMPLEXITY_LEVELS.at(-1)).toBe(ANY_COMPLEXITY)
+    expect(ANY_AGE).toBe(18)
+    expect(AGE_LIMITS.at(-1)).toBe(ANY_AGE)
+  })
+
+  it("takes the last bar and the last age for no pick, and the others for what they are", () => {
+    expect(COMPLEXITY_LEVELS.map(complexityPick)).toEqual([1, 2, 3, 4, null])
+    expect(AGE_LIMITS.map(agePick)).toEqual([6, 8, 10, 12, 14, null])
   })
 
   it("finds the option that a text spells exactly, else none", () => {
@@ -168,18 +187,19 @@ describe("the options", () => {
 })
 
 describe("stepping along the options", () => {
-  it("picks what the stepper shows on the first press, whichever way it goes", () => {
-    expect(stepOption(PLAYER_COUNTS, null, 1, DEFAULT_PLAYERS)).toBe(4)
-    expect(stepOption(PLAYER_COUNTS, null, -1, DEFAULT_PLAYERS)).toBe(4)
+  it("picks what the stepper offers on the first press, whichever way it goes", () => {
+    expect(stepOption(PLAYER_COUNTS, null, 1, FIRST_PLAYERS)).toBe(4)
+    expect(stepOption(PLAYER_COUNTS, null, -1, FIRST_PLAYERS)).toBe(4)
   })
 
-  it("then moves one place at a time and stays at the ends", () => {
+  it("then moves one place at a time, stays on the last option, and goes back to nothing down from the first", () => {
     expect(stepOption(PLAYER_COUNTS, 3, 1, 3)).toBe(4)
     expect(stepOption(PLAYER_COUNTS, 3, -1, 3)).toBe(2)
-    expect(stepOption(PLAYER_COUNTS, 1, -1, 3)).toBe(1)
+    expect(stepOption(PLAYER_COUNTS, 1, -1, 3)).toBeNull()
     expect(stepOption(PLAYER_COUNTS, MANY_PLAYERS, 1, 3)).toBe(MANY_PLAYERS)
     expect(stepOption(AGE_LIMITS, 10, 1, 8)).toBe(12)
     expect(stepOption(AGE_LIMITS, 8, -1, 8)).toBe(6)
+    expect(stepOption(AGE_LIMITS, 6, -1, 8)).toBeNull()
   })
 
   it("reads a pick that is not an option as no pick", () => {
@@ -187,18 +207,19 @@ describe("stepping along the options", () => {
     expect(canStep(PLAYER_COUNTS, 99, -1)).toBe(true)
   })
 
-  it("can step while nothing is picked, then until either end", () => {
+  it("can step while nothing is picked, down from any option, and up until the last", () => {
     expect(canStep(PLAYER_COUNTS, null, -1)).toBe(true)
     expect(canStep(PLAYER_COUNTS, null, 1)).toBe(true)
-    expect(canStep(PLAYER_COUNTS, 1, -1)).toBe(false)
+    expect(canStep(PLAYER_COUNTS, 1, -1)).toBe(true)
     expect(canStep(PLAYER_COUNTS, 1, 1)).toBe(true)
     expect(canStep(PLAYER_COUNTS, MANY_PLAYERS, 1)).toBe(false)
     expect(canStep(PLAYER_COUNTS, MANY_PLAYERS, -1)).toBe(true)
   })
 
-  it("walks every option up and down, and never off either end", () => {
+  it("walks every option up and down, never off the last, and back to nothing at the first", () => {
     for (const options of [PLAYER_COUNTS, AGE_LIMITS]) {
-      let current: number = options[0]
+      let current: number | null = stepOption(options, null, 1, options[0])
+      expect(current).toBe(options[0])
       for (const expected of options.slice(1)) {
         expect(canStep(options, current, 1)).toBe(true)
         current = stepOption(options, current, 1, options[0])
@@ -211,8 +232,8 @@ describe("stepping along the options", () => {
         current = stepOption(options, current, -1, options[0])
         expect(current).toBe(expected)
       }
-      expect(canStep(options, current, -1)).toBe(false)
-      expect(stepOption(options, current, -1, options[0])).toBe(current)
+      expect(canStep(options, current, -1)).toBe(true)
+      expect(stepOption(options, current, -1, options[0])).toBeNull()
     }
   })
 })
@@ -244,7 +265,10 @@ describe("indexEntry", () => {
   it("indexes a live game with no game in the Studio by its name, with the players and the duration of the registry", () => {
     expect(indexEntry(entry("courtisans"))).toEqual({
       slug: "courtisans",
+      name: "Courtisans",
       live: true,
+      addedAt: null,
+      order: null,
       text: "courtisans",
       players: { min: 2, max: 5 },
       duration: 30,
@@ -257,7 +281,10 @@ describe("indexEntry", () => {
   it("indexes a live game with a game in the Studio like any other game: by what the game says", () => {
     expect(indexEntry(entry("skyjo"))).toEqual({
       slug: "skyjo",
+      name: "Skyjo",
       live: true,
+      addedAt: null,
+      order: null,
       text: "skyjo nadia okafor",
       players: { min: 2, max: 8 },
       duration: 45,
@@ -270,7 +297,10 @@ describe("indexEntry", () => {
   it("leaves unknown what a game does not say", () => {
     expect(indexEntry(entry("tichu"))).toEqual({
       slug: "tichu",
+      name: "Tichu",
       live: true,
+      addedAt: null,
+      order: null,
       text: "tichu",
       players: null,
       duration: null,
@@ -280,7 +310,10 @@ describe("indexEntry", () => {
     })
     expect(indexEntry(entry("zen"))).toEqual({
       slug: "zen",
+      name: "Zen",
       live: false,
+      addedAt: null,
+      order: null,
       text: "zen",
       players: null,
       duration: null,
@@ -299,7 +332,10 @@ describe("indexEntry", () => {
   it("indexes a game to come by its name, the people credited on it and its publishers, normalised", () => {
     expect(indexEntry(entry("mystery-night"))).toEqual({
       slug: "mystery-night",
+      name: "Mystery Night",
       live: false,
+      addedAt: null,
+      order: null,
       text: "mystery night herve marly regis torres spiral editions",
       players: { min: 4, max: 7 },
       duration: 30,
@@ -321,8 +357,19 @@ describe("indexEntry", () => {
     expect(indexEntry(entry("hanabi")).categories).toEqual(["Co-op", "Cards"])
   })
 
-  it("is lean: nothing but what the filter reads, so that the page can send it to the browser", () => {
-    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["age", "categories", "complexity", "duration", "live", "players", "slug", "text"])
+  it("indexes the day a game was added, as the Studio gives it, for the sort by date", () => {
+    const [added] = buildCatalog([], [catalogGame("amen", { name: "Amen", addedAt: "2026-11-02T09:30:00Z" })])
+    if (!added) throw new Error("no amen in the catalog")
+    expect(indexEntry(added)).toMatchObject({ name: "Amen", addedAt: "2026-11-02T09:30:00Z" })
+  })
+
+  it("indexes the order of the game in the Studio, a live game's too, for the sort by hotness", () => {
+    const built = buildCatalog([registryGame("trio", { name: "Trio", live: true })], [catalogGame("trio", { name: "Trio", order: 7 }), catalogGame("amen", { name: "Amen", order: 0 }), catalogGame("zoo", { name: "Zoo" })])
+    expect(built.map((candidate) => [candidate.slug, indexEntry(candidate).order])).toEqual([["trio", 7], ["amen", 0], ["zoo", null]])
+  })
+
+  it("is lean: nothing but what the filter and the sort read, so that the page can send it to the browser", () => {
+    expect(Object.keys(indexEntry(entry("flip-7"))).sort()).toEqual(["addedAt", "age", "categories", "complexity", "duration", "live", "name", "order", "players", "slug", "text"])
   })
 })
 
@@ -468,16 +515,12 @@ describe("filterGames", () => {
       [1, ["solo-quest"]],
       [2, ["courtisans", "skyjo", "6-nimmt", "hanabi"]],
       [3, ["courtisans", "skyjo", "6-nimmt", "flip-7", "hanabi"]],
+      [4, fourOrFive],
       [5, fourOrFive],
       [6, sixOrSeven],
       [7, sixOrSeven],
     ])("keeps the games that seat %i players", (players, expected) => {
       expect(kept({ players })).toEqual(expected)
-    })
-
-    it("keeps the games that seat four, and those that do not say, since four is where the filter starts", () => {
-      // Tichu and Zen say nothing of their players; Solo Quest (1) and Werewolves (8 or more) say they do not seat four
-      expect(kept({ players: DEFAULT_PLAYERS })).toEqual(["courtisans", "skyjo", "tichu", "6-nimmt", "flip-7", "hanabi", "mystery-night", "time-bomb", "zen"])
     })
 
     it("reads the last count as that many or more, whatever the lower limit of the game", () => {
@@ -490,9 +533,13 @@ describe("filterGames", () => {
       expect(kept({ players: 7 })).toContain("flip-7")
     })
 
-    it("leaves out a game that does not say its players, for any other number than the one the filter starts on", () => {
-      expect(kept({ players: 5 })).not.toContain("tichu")
-      expect(kept({ players: 5 })).not.toContain("zen")
+    it("leaves out a game that does not say its players, whatever the number: it cannot be said to seat them, and none is asked for until one is picked", () => {
+      // Tichu and Zen say nothing of their players
+      for (const players of PLAYER_COUNTS) {
+        expect(kept({ players })).not.toContain("tichu")
+        expect(kept({ players })).not.toContain("zen")
+      }
+      expect(kept({ players: null })).toEqual(expect.arrayContaining(["tichu", "zen"]))
     })
   })
 
@@ -501,7 +548,7 @@ describe("filterGames", () => {
       [5, []],
       [10, []],
       [15, ["solo-quest"]],
-      [20, ["tichu", "flip-7", "solo-quest", "time-bomb", "zen"]],
+      [20, ["flip-7", "solo-quest"]],
       [25, ["flip-7", "hanabi", "solo-quest"]],
       [30, ["courtisans", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
       [45, ["courtisans", "skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
@@ -520,17 +567,12 @@ describe("filterGames", () => {
       expect(kept({ duration: 15 })).not.toContain("courtisans")
     })
 
-    it("leaves out a game that does not say its duration, for any other limit than the one the filter starts on", () => {
-      const fits = kept({ duration: 45 })
-      for (const slug of ["tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
-    })
-
-    it("keeps the games that do not say their duration at 20 minutes, since 20 is where the filter starts, and at no other limit", () => {
-      for (const slug of ["tichu", "time-bomb", "zen"]) {
-        expect(kept({ duration: DEFAULT_DURATION })).toContain(slug)
-        expect(kept({ duration: 15 })).not.toContain(slug)
-        expect(kept({ duration: 25 })).not.toContain(slug)
+    it("leaves out a game that does not say its duration, whatever the limit: it cannot be said to fit, and none is asked for until one is picked", () => {
+      for (const duration of DURATION_LIMITS) {
+        const fits = kept({ duration })
+        for (const slug of ["tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
       }
+      expect(kept({ duration: null })).toEqual(expect.arrayContaining(["tichu", "time-bomb", "zen"]))
     })
   })
 
@@ -538,7 +580,7 @@ describe("filterGames", () => {
     it.each<[number, string[]]>([
       [1, ["skyjo", "6-nimmt", "flip-7"]],
       [2, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night"]],
-      [3, ["courtisans", "skyjo", "tichu", "6-nimmt", "flip-7", "hanabi", "mystery-night", "time-bomb", "millers-hollow", "zen"]],
+      [3, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "millers-hollow"]],
       [4, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "millers-hollow"]],
       [5, ["skyjo", "6-nimmt", "flip-7", "hanabi", "mystery-night", "solo-quest", "millers-hollow"]],
     ])("keeps the games of level %i or lighter: those whose weight rounds to that or less", (complexity, expected) => {
@@ -551,17 +593,12 @@ describe("filterGames", () => {
       expect(kept({ complexity: 2 })).not.toContain("millers-hollow")
     })
 
-    it("leaves out a game that does not say its weight, for any other level than the one the filter starts on", () => {
-      const fits = kept({ complexity: 5 })
-      for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
-    })
-
-    it("keeps the games that do not say their weight at level 3, since 3 is where the filter starts, and at no other level", () => {
-      for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) {
-        expect(kept({ complexity: DEFAULT_COMPLEXITY })).toContain(slug)
-        expect(kept({ complexity: 2 })).not.toContain(slug)
-        expect(kept({ complexity: 4 })).not.toContain(slug)
+    it("leaves out a game that does not say its weight, whatever the level: it cannot be said to fit, and none is asked for until a bar is pressed", () => {
+      for (const complexity of COMPLEXITY_LEVELS) {
+        const fits = kept({ complexity })
+        for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
       }
+      expect(kept({ complexity: null })).toEqual(expect.arrayContaining(["courtisans", "tichu", "time-bomb", "zen"]))
     })
   })
 
@@ -570,6 +607,7 @@ describe("filterGames", () => {
 
     it.each<[number, string[]]>([
       [6, ["solo-quest"]],
+      [8, ["skyjo", "flip-7", "hanabi", "solo-quest"]],
       [10, ["skyjo", "6-nimmt", "flip-7", "hanabi", "solo-quest", "millers-hollow"]],
       [12, upToTwelve],
       [14, upToTwelve],
@@ -578,14 +616,12 @@ describe("filterGames", () => {
       expect(kept({ age })).toEqual(expected)
     })
 
-    it("keeps the games a player of 8 can play, and those that do not say, since 8 is where the filter starts", () => {
-      // Courtisans, Tichu, Time Bomb and Zen say nothing of their minimum age; 6 nimmt!, Mystery Night and Werewolves say they are for older players
-      expect(kept({ age: DEFAULT_AGE })).toEqual(["courtisans", "skyjo", "tichu", "flip-7", "hanabi", "solo-quest", "time-bomb", "zen"])
-    })
-
-    it("leaves out a game that does not say its minimum age, for any other age than the one the filter starts on", () => {
-      const fits = kept({ age: 14 })
-      for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
+    it("leaves out a game that does not say its minimum age, whatever the age: it cannot be said to fit, and none is asked for until one is picked", () => {
+      for (const age of AGE_LIMITS) {
+        const fits = kept({ age })
+        for (const slug of ["courtisans", "tichu", "time-bomb", "zen"]) expect(fits).not.toContain(slug)
+      }
+      expect(kept({ age: null })).toEqual(expect.arrayContaining(["courtisans", "tichu", "time-bomb", "zen"]))
     })
   })
 
@@ -604,17 +640,136 @@ describe("filterGames", () => {
   })
 })
 
-describe("isFiltered", () => {
-  it("is false where the filter starts: nothing typed, nothing picked but the starting picks", () => {
-    expect(isFiltered(DEFAULT_FILTER)).toBe(false)
+describe("sortGames", () => {
+  // What the sort reads of a game; the order the games come in is the catalog's
+  const named = (name: string, addedAt: string | null = null) => ({ name, addedAt, live: false, order: null })
+  // What Trending reads: whether the game is live and its order
+  const ranked = (name: string, order: number | null, live = false) => ({ name, addedAt: null, live, order })
+  const names = (list: readonly { name: string }[]) => list.map((game) => game.name)
+
+  it("offers Trending, A-Z and Newest, in this order, and starts on Trending", () => {
+    expect(SORTS).toEqual(["trending", "name", "newest"])
+    expect(DEFAULT_SORT).toBe("trending")
   })
 
-  it("is true as soon as one thing is typed or picked beyond that", () => {
+  describe("Trending", () => {
+    it("is the hotness: the live games first, then the games to come, each group by its order, lowest first, whatever order the games come in", () => {
+      const list = [ranked("c", 30), ranked("live-b", 20, true), ranked("a", 10), ranked("live-a", 5, true), ranked("b", 20)]
+      expect(names(sortGames(list, "trending"))).toEqual(["live-a", "live-b", "a", "b", "c"])
+      expect(names(sortGames([...list].reverse(), "trending"))).toEqual(["live-a", "live-b", "a", "b", "c"])
+    })
+
+    it("puts a game with no order after the games that have one, in its group, and the order 0 first: it is an order like any other", () => {
+      const list = [ranked("none", null), ranked("late", 900), ranked("zero", 0), ranked("live-none", null, true), ranked("live", 3, true)]
+      expect(names(sortGames(list, "trending"))).toEqual(["live", "live-none", "zero", "late", "none"])
+    })
+
+    it("keeps the order the games came in for games with the same order", () => {
+      const list = [ranked("b", 20), ranked("a", 20), ranked("c", 20), ranked("live-b", 1, true), ranked("live-a", 1, true)]
+      expect(names(sortGames(list, "trending"))).toEqual(["live-b", "live-a", "b", "a", "c"])
+    })
+
+    it("is the order the catalog gives, which has the same rule: the catalog's entries come back as they came whatever order they are handed in", () => {
+      const built = buildCatalog(
+        [registryGame("trio", { name: "Trio", live: true }), registryGame("courtisans", { name: "Courtisans", live: true }), registryGame("alone", { name: "Alone", live: true })],
+        [
+          catalogGame("zen", { name: "Zen", order: 2 }),
+          catalogGame("amen", { name: "Amen", order: 9 }),
+          catalogGame("trio", { name: "Trio", order: 7 }),
+          catalogGame("bang", { name: "Bang", order: 1 }),
+          catalogGame("courtisans", { name: "Courtisans", order: 5 }),
+          catalogGame("none", { name: "None" }),
+          catalogGame("zero", { name: "Zero", order: 0 }),
+        ],
+      ).map(indexEntry)
+      expect(slugs(built)).toEqual(["courtisans", "trio", "alone", "zero", "bang", "zen", "amen", "none"])
+      expect(slugs(sortGames([...built].reverse(), "trending"))).toEqual(slugs(built))
+      expect(slugs(sortGames(built, "trending"))).toEqual(slugs(built))
+    })
+  })
+
+  it("returns a new list, and does not change the one it is given", () => {
+    const list = [named("b"), named("a")]
+    for (const sort of SORTS) {
+      const sorted = sortGames(list, sort)
+      expect(sorted).not.toBe(list)
+      expect(names(list)).toEqual(["b", "a"])
+    }
+  })
+
+  it("returns the games it was given, each as it came in, with whatever else it carries", () => {
+    const cards = games.map((game) => ({ ...game, props: { href: `/game/${game.slug}` } }))
+    for (const sort of SORTS) {
+      const sorted = sortGames(cards, sort)
+      expect(sorted).toHaveLength(cards.length)
+      expect(sorted.every((card) => cards.includes(card))).toBe(true)
+      expect(sorted[0]?.props.href).toBe(`/game/${sorted[0]?.slug}`)
+    }
+  })
+
+  describe("by name", () => {
+    it("is alphabetical, case and accents aside, and reads numbers in their order", () => {
+      const list = ["zen", "Élan", "bang", "10 Minutes", "7 Wonders", "6 nimmt!", "Azul", "élan blanc"].map((name) => named(name))
+      expect(names(sortGames(list, "name"))).toEqual(["6 nimmt!", "7 Wonders", "10 Minutes", "Azul", "bang", "Élan", "élan blanc", "zen"])
+    })
+
+    it("does not put the live games first: A-Z is A-Z", () => {
+      expect(slugs(sortGames(games, "name"))).toEqual(["6-nimmt", "courtisans", "flip-7", "hanabi", "mystery-night", "skyjo", "solo-quest", "tichu", "time-bomb", "millers-hollow", "zen"])
+    })
+
+    it("keeps the order the games came in for names it cannot tell apart", () => {
+      const list = [{ id: 1, name: "Skyjo" }, { id: 2, name: "skyjo" }, { id: 3, name: "Skÿjo" }, { id: 4, name: "Amen" }]
+      expect(sortGames(list.map((game) => ({ ...game, addedAt: null, live: false, order: null })), "name").map((game) => game.id)).toEqual([4, 1, 2, 3])
+    })
+
+    it("sorts what a filter left, and a filter leaves them in the order they came in", () => {
+      const party = filterGames(games, { ...NO_FILTER, categories: ["Party"] })
+      expect(slugs(sortGames(party, "name"))).toEqual(["6-nimmt", "mystery-night", "millers-hollow"])
+    })
+  })
+
+  describe("by the day a game was added", () => {
+    it("puts the game added last first, and a game that says no day after those that do", () => {
+      const list = [
+        named("old", "2026-10-30T14:02:41Z"),
+        named("none", null),
+        named("new", "2026-11-05T08:00:00Z"),
+        named("mid", "2026-11-01T00:00:00Z"),
+        named("odd", "not a date"),
+      ]
+      expect(names(sortGames(list, "newest"))).toEqual(["new", "mid", "old", "none", "odd"])
+    })
+
+    it("compares the moments, not the way they are written: an offset and a fraction of a second count", () => {
+      const list = [named("a", "2026-11-01T10:00:00Z"), named("b", "2026-11-01T11:00:00+02:00"), named("c", "2026-11-01T10:00:00.5Z")]
+      expect(names(sortGames(list, "newest"))).toEqual(["c", "a", "b"])
+    })
+
+    it("keeps the order of the catalog for the games added at one moment, as those of the first seed were", () => {
+      const seed = "2026-10-30T14:02:41Z"
+      expect(names(sortGames(["c", "a", "b"].map((name) => named(name, seed)), "newest"))).toEqual(["c", "a", "b"])
+      // A game added after them comes first, and the others stay as they were
+      const list = [named("c", seed), named("a", seed), named("fresh", "2026-11-08T09:00:00Z"), named("b", seed)]
+      expect(names(sortGames(list, "newest"))).toEqual(["fresh", "c", "a", "b"])
+    })
+
+    it("keeps the order of the catalog for games that say no day at all, a live game with no game in the Studio among them", () => {
+      expect(slugs(sortGames(games, "newest"))).toEqual(slugs(games))
+    })
+  })
+})
+
+describe("isFiltered", () => {
+  it("is false where the filter starts: nothing typed, nothing picked", () => {
+    expect(isFiltered(DEFAULT_FILTER)).toBe(false)
+    expect(isFiltered(NO_FILTER)).toBe(false)
+  })
+
+  it("is true as soon as one thing is typed or picked", () => {
     expect(isFiltered({ ...DEFAULT_FILTER, query: "flip" })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, categories: ["Cards"] })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, players: 3 })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, duration: 15 })).toBe(true)
-    expect(isFiltered({ ...DEFAULT_FILTER, duration: null })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, complexity: 1 })).toBe(true)
     expect(isFiltered({ ...DEFAULT_FILTER, age: 6 })).toBe(true)
   })
@@ -622,18 +777,17 @@ describe("isFiltered", () => {
   it("takes a query of blanks for nothing", () => {
     expect(isFiltered({ ...DEFAULT_FILTER, query: "   " })).toBe(false)
   })
-
-  it("takes a filter with no pick at all for one that is not where the filter starts", () => {
-    expect(isFiltered(NO_FILTER)).toBe(true)
-  })
 })
 
 describe("filterFromParams", () => {
   const read = (search: string, offered: readonly string[] = OFFERED) => filterFromParams(new URLSearchParams(search), offered)
 
-  it("starts where the filter starts for a link with no parameter", () => {
+  it("starts where the filter starts, on nothing, for a link with no parameter", () => {
     expect(read("")).toEqual(DEFAULT_FILTER)
-    expect(read("players=4&duration=20&complexity=3&age=8")).toEqual(DEFAULT_FILTER)
+  })
+
+  it("reads the picks that were the starting picks before the filter started on nothing as picks like any other", () => {
+    expect(read("players=4&duration=20&complexity=3&age=8")).toEqual({ ...DEFAULT_FILTER, players: 4, duration: 20, complexity: 3, age: 8 })
   })
 
   it("reads each pick", () => {
@@ -646,8 +800,13 @@ describe("filterFromParams", () => {
       age: 10,
     })
     expect(read(`players=${MANY_PLAYERS}`).players).toBe(MANY_PLAYERS)
-    expect(read(`duration=${ANY_DURATION}`).duration).toBeNull()
-    expect(ANY_DURATION).toBe("any")
+  })
+
+  it("reads the last bar, the last age and the old no limit of the duration as no pick: they are where the filter starts", () => {
+    expect(read(`complexity=${ANY_COMPLEXITY}`).complexity).toBeNull()
+    expect(read(`age=${ANY_AGE}`).age).toBeNull()
+    expect(read("duration=any").duration).toBeNull()
+    expect(read("complexity=4&age=14")).toMatchObject({ complexity: 4, age: 14 })
   })
 
   it("reads a category for each time the link names it, in the order of the link, each once", () => {
@@ -667,15 +826,15 @@ describe("filterFromParams", () => {
   it("ignores a value the filters do not offer", () => {
     for (const bad of ["category=Dice", "category=cards", "category=Cards+", "category="]) expect(read(bad).categories).toEqual([])
     for (const bad of ["players=0", "players=9", "players=04", "players=4.0", "players=-1", "players=1e1", "players=four", "players="]) {
-      expect(read(bad).players).toBe(DEFAULT_PLAYERS)
+      expect(read(bad).players).toBeNull()
     }
     for (const bad of ["duration=0", "duration=7", "duration=60", "duration=030", "duration=30min", "duration=-30", "duration=30-60", "duration=Any", "duration="]) {
-      expect(read(bad).duration).toBe(DEFAULT_DURATION)
+      expect(read(bad).duration).toBeNull()
     }
     for (const bad of ["complexity=0", "complexity=6", "complexity=03", "complexity=2.5", "complexity=heavy", "complexity="]) {
-      expect(read(bad).complexity).toBe(DEFAULT_COMPLEXITY)
+      expect(read(bad).complexity).toBeNull()
     }
-    for (const bad of ["age=0", "age=7", "age=08", "age=8.0", "age=eight", "age="]) expect(read(bad).age).toBe(DEFAULT_AGE)
+    for (const bad of ["age=0", "age=7", "age=08", "age=8.0", "age=eight", "age="]) expect(read(bad).age).toBeNull()
   })
 
   it("ignores every category when the games have none to offer", () => {
@@ -697,25 +856,23 @@ describe("filterFromParams", () => {
 })
 
 describe("filterToParams", () => {
-  it("is empty where the filter starts: the link to the list as it opens is the hub's", () => {
+  it("is empty where the filter starts, on nothing: the link to the list as it opens is the hub's", () => {
     expect(filterToParams(DEFAULT_FILTER).toString()).toBe("")
-    // No limit on the duration is not where the filter starts
-    expect(filterToParams(NO_FILTER).toString()).toBe("duration=any")
+    expect(filterToParams(NO_FILTER).toString()).toBe("")
   })
 
-  it("leaves out the starting picks, 4 players, 20′, level 3 and 8+, and writes the others", () => {
-    expect(filterToParams({ ...DEFAULT_FILTER, categories: ["Cards"] }).toString()).toBe("category=Cards")
-    expect(filterToParams({ ...DEFAULT_FILTER, players: 5, age: 10 }).toString()).toBe("players=5&age=10")
-    expect(filterToParams({ ...DEFAULT_FILTER, duration: 45, complexity: 2 }).toString()).toBe("duration=45&complexity=2")
-    expect(filterToParams({ ...DEFAULT_FILTER, duration: null }).toString()).toBe("duration=any")
-  })
-
-  it("writes only what is not where the filter starts", () => {
+  it("writes the picks that are set, and only those", () => {
     expect(filterToParams({ ...DEFAULT_FILTER, categories: ["Cards"] }).toString()).toBe("category=Cards")
     expect(filterToParams({ ...DEFAULT_FILTER, players: 5 }).toString()).toBe("players=5")
     expect(filterToParams({ ...DEFAULT_FILTER, duration: 45 }).toString()).toBe("duration=45")
     expect(filterToParams({ ...DEFAULT_FILTER, complexity: 4 }).toString()).toBe("complexity=4")
     expect(filterToParams({ ...DEFAULT_FILTER, age: 10 }).toString()).toBe("age=10")
+    expect(filterToParams({ ...DEFAULT_FILTER, players: 5, age: 10 }).toString()).toBe("players=5&age=10")
+    expect(filterToParams({ ...DEFAULT_FILTER, duration: 45, complexity: 2 }).toString()).toBe("duration=45&complexity=2")
+  })
+
+  it("writes a table of four, 20 minutes, level 3 and 8+ as it writes any other pick: they are no longer where the filter starts", () => {
+    expect(filterToParams({ ...DEFAULT_FILTER, players: 4, duration: 20, complexity: 3, age: 8 }).toString()).toBe("players=4&duration=20&complexity=3&age=8")
   })
 
   it("writes a category for each one that is picked, in the order they were picked", () => {
@@ -740,22 +897,78 @@ describe("filterToParams", () => {
   })
 })
 
+describe("sortFromParams", () => {
+  const read = (search: string) => sortFromParams(new URLSearchParams(search))
+
+  it("starts on Trending for a link with no sort", () => {
+    expect(read("")).toBe(DEFAULT_SORT)
+    expect(read("players=6&category=Cards")).toBe(DEFAULT_SORT)
+  })
+
+  it("reads each sort, whatever else the link holds", () => {
+    for (const sort of SORTS) expect(read(`sort=${sort}`)).toBe(sort)
+    expect(read("players=6&sort=newest&category=Cards")).toBe("newest")
+  })
+
+  it("ignores a sort the list does not offer, spelled any other way", () => {
+    for (const bad of ["sort=", "sort=Name", "sort=NEWEST", "sort=name+", "sort=alphabetical", "sort=date", "sort=hot", "sort=0", "sort=trending,name"]) expect(read(bad)).toBe(DEFAULT_SORT)
+  })
+
+  it("takes the first of a sort that comes twice", () => {
+    expect(read("sort=name&sort=newest")).toBe("name")
+  })
+
+  it("is no pick: the filters read the same link as they did without it", () => {
+    expect(filterFromParams(new URLSearchParams("sort=name&players=5&category=Cards"), OFFERED)).toEqual({ ...DEFAULT_FILTER, categories: ["Cards"], players: 5 })
+    expect(filterFromParams(new URLSearchParams("sort=newest"), OFFERED)).toEqual(DEFAULT_FILTER)
+  })
+})
+
+describe("sortToParams", () => {
+  it("is empty for Trending, where the list starts: the link to the list as it opens is the hub's", () => {
+    expect(sortToParams("trending").toString()).toBe("")
+    expect(sortToParams(DEFAULT_SORT, filterToParams(DEFAULT_FILTER)).toString()).toBe("")
+  })
+
+  it("writes any other sort as `sort`", () => {
+    expect(sortToParams("name").toString()).toBe("sort=name")
+    expect(sortToParams("newest").toString()).toBe("sort=newest")
+  })
+
+  it("adds it after the picks of the link, which it does not change", () => {
+    const picks = filterToParams({ ...DEFAULT_FILTER, categories: ["Cards"], players: 5 })
+    expect(sortToParams("name", picks).toString()).toBe("category=Cards&players=5&sort=name")
+    expect(picks.toString()).toBe("category=Cards&players=5")
+    expect(sortToParams("trending", filterToParams({ ...DEFAULT_FILTER, players: 5 })).toString()).toBe("players=5")
+  })
+
+  it("comes back as it left, through the text of the link", () => {
+    for (const sort of SORTS) {
+      for (const filter of [DEFAULT_FILTER, { ...DEFAULT_FILTER, categories: ["Cards"], players: 5, duration: null }]) {
+        const link = sortToParams(sort, filterToParams(filter)).toString()
+        expect(sortFromParams(new URLSearchParams(link))).toBe(sort)
+        expect(filterFromParams(new URLSearchParams(link), OFFERED)).toEqual(filter)
+      }
+    }
+  })
+})
+
 describe("a filter in a link", () => {
   const offered = [...OFFERED, "Party & Co"]
-  // The number of players, the complexity and the age are always picked in the search bar, so a link never holds them empty; the duration is a limit, or none ("1h+")
+  // What the controls of the search bar can hold: no pick, or one of the options but the last bar and the last age, which are no pick; the duration is a limit, or none ("1h+")
+  const COMPLEXITY_PICKS = [null, ...COMPLEXITY_LEVELS.slice(0, -1)]
+  const AGE_PICKS = [null, ...AGE_LIMITS.slice(0, -1)]
   const every = (): GameFilter[] =>
     [[], ["Cards"], ["Party", "Cards"], ["Party & Co"]].flatMap((categories) =>
-      PLAYER_COUNTS.flatMap((players) =>
+      [null, ...PLAYER_COUNTS].flatMap((players) =>
         [null, ...DURATION_LIMITS].flatMap((duration) =>
-          COMPLEXITY_LEVELS.flatMap((complexity) =>
-            AGE_LIMITS.map((age) => ({ ...DEFAULT_FILTER, categories, players, duration, complexity, age })),
-          ),
+          COMPLEXITY_PICKS.flatMap((complexity) => AGE_PICKS.map((age) => ({ ...DEFAULT_FILTER, categories, players, duration, complexity, age }))),
         ),
       ),
     )
 
   it("goes through every combination of options", () => {
-    expect(every()).toHaveLength(4 * PLAYER_COUNTS.length * (DURATION_LIMITS.length + 1) * COMPLEXITY_LEVELS.length * AGE_LIMITS.length)
+    expect(every()).toHaveLength(4 * (PLAYER_COUNTS.length + 1) * (DURATION_LIMITS.length + 1) * COMPLEXITY_PICKS.length * AGE_PICKS.length)
   })
 
   it("comes back as it left, through the text of the link", () => {

@@ -79,10 +79,12 @@ export type CatalogGame = {
    * (`CatalogEntry.related`).
    */
   related: string[]
-  /** What orders the games to come, lowest first (`compareGames`); null for a game with none. */
+  /** What orders the games, lowest first, the live ones and the ones to come each among themselves (`buildCatalog`): the owner's "hotness" of the games. Null for a game with none. */
   order: number | null
   /** ISO date of the last edit of the game in the Studio. */
   updatedAt: string
+  /** ISO date and time the game was created in the Studio, the day it was added: what the list sorted by "Newest" reads (`sortGames`). Null for a game with no document (`registryRow`) and when the Studio's date does not read. */
+  addedAt: string | null
 }
 
 /**
@@ -335,23 +337,27 @@ export function registryRow(game: GameEntry): CatalogGame {
     related: [],
     order: null,
     updatedAt: "",
+    addedAt: null,
   }
 }
 
 // "6 nimmt!" before "7 Wonders", "Skyjo" and "Skull King" in the order a reader expects
 const NAMES = new Intl.Collator("en", { sensitivity: "base", numeric: true })
 
+/** The order of two games by their `order` of the Studio alone: lowest first, a game with none after the games that have one, 0 where it leaves them tied. */
+function compareOrder(a: Pick<CatalogGame, "order">, b: Pick<CatalogGame, "order">): number {
+  if (a.order === b.order) return 0
+  if (a.order === null) return 1
+  if (b.order === null) return -1
+  return a.order - b.order
+}
+
 /**
  * The order of the games to come: the `order` of the Studio, lowest first, a game with none after the games that have one, then the name,
  * case and accents aside, numbers in their order.
  */
 export function compareGames(a: Pick<CatalogGame, "order" | "name">, b: Pick<CatalogGame, "order" | "name">): number {
-  if (a.order !== b.order) {
-    if (a.order === null) return 1
-    if (b.order === null) return -1
-    return a.order - b.order
-  }
-  return NAMES.compare(a.name, b.name)
+  return compareOrder(a, b) || NAMES.compare(a.name, b.name)
 }
 
 /** The expansions of a game, the ones whose base game it is, by name, case and accents aside, numbers in their order: an expansion has no `order` in the Studio (`docs/platform-sanity.md`). */
@@ -423,12 +429,14 @@ function relatedLinks(rows: readonly CatalogGame[]): Map<string, Set<string>> {
 }
 
 /**
- * The catalog: the live games of the registry (in registry order), then the other games of the platform's Sanity project (sorted by
- * `compareGames`). Every game shows the values of its game in the Studio.
+ * The catalog: the live games of the registry, then the other games of the platform's Sanity project, each group in the order of the Studio
+ * (`order`, lowest first): the order the hub lists the games in, the "hotness" of the games, whose sort "Trending" is (`sortGames`). Every game
+ * shows the values of its game in the Studio.
  * - A live game takes its game of the Studio, and its name with it. With none (the project cannot be read, or has none for it) it takes
- *   `registryRow`, so a game the site can play is always listed. Its `order` does not move it: the registry's order holds.
- * - The other rows are the registry's games that are not live and the games the registry does not know. A game of the registry that
- *   is not live and has no row is not listed.
+ *   `registryRow`, so a game the site can play is always listed. The live games are in their `order` too, before all the others, the registry's
+ *   order breaking a tie: a row of the registry has no `order`, so it comes after the live games that have one.
+ * - The other rows are the registry's games that are not live and the games the registry does not know, sorted by `compareGames` (their `order`, then
+ *   their name). A game of the registry that is not live and has no row is not listed.
  * - `live` and `indexable` are the registry's, whatever a row says. They are the only things the registry still decides.
  * - `UNLISTED_SLUGS` are never listed.
  * - With `options.registryGames` the registry's games that are not live and have no row are listed too (development with no project to read).
@@ -439,6 +447,8 @@ export function buildCatalog(games: readonly GameEntry[], rows: readonly Catalog
   const live: CatalogEntry[] = games
     .filter((game) => game.live && !UNLISTED_SLUGS.has(game.slug))
     .map((game) => ({ slug: game.slug, live: true, indexable: game.indexable, game: rows.find((row) => row.slug === game.slug) ?? registryRow(game), related: [] }))
+    // The sort is stable: the live games that the order leaves tied, and the ones with none, stay in registry order
+    .sort((a, b) => compareOrder(a.game, b.game))
   const taken = new Set(live.map((entry) => entry.slug))
   const comingSoon: CatalogEntry[] = rows
     .filter((row) => !UNLISTED_SLUGS.has(row.slug) && !taken.has(row.slug))

@@ -20,6 +20,7 @@ export const cdnFile = (file: string, project = PLATFORM_PROJECT_ID, dataset = P
 /** A published game as the query returns it: nothing but what it needs to be a game (a name and a slug), unless the test says more (its pictures, `logo`, `icon`, `background` and `cover`, as the address of a file of the image CDN). */
 export const sanityGame = (slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   _id: `game-${slug}`,
+  _createdAt: "2026-10-30T09:00:00Z",
   _updatedAt: "2026-10-30T10:00:00Z",
   name: slug,
   slug,
@@ -181,6 +182,7 @@ export const catalogGame = (slug: string, overrides: Partial<CatalogGame> = {}):
   related: [],
   order: null,
   updatedAt: "",
+  addedAt: null,
   ...overrides,
 })
 

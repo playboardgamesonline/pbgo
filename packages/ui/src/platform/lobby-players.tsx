@@ -55,7 +55,7 @@ function LobbyPlayers({ seats, range, pending = false, defaultCount, createdBy, 
           onCountChange?.(Number(next))
         }}
       >
-        {/* A trigger 36px high with 12px corners, as the button beside it has, a list of 16px corners round items of 10px that stand 6px in from its edge (`SelectGroup`): each corner is the one inside it plus the room between. A small list is no capsule */}
+        {/* A trigger 36px high with 12px corners, as the button beside it has, a list of 16px corners round items of 10px that stand 6px in from its edge (the list's own padding): each corner is the one inside it plus the room between. A small list is no capsule */}
         <SelectTrigger id={selectId} className="rounded-lg">
           <SelectValue placeholder="–" />
         </SelectTrigger>
