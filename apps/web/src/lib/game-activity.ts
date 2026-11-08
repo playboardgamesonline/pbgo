@@ -40,7 +40,7 @@ export type TablePlayer = {
   name: string | null
   /** `profiles.avatar_url`, the picture their provider gives. Null for a guest and for an account whose provider gives none. */
   avatarUrl: string | null
-  /** Their rank in this game and the games they played and won, which their card says. The rank is derived on the server from their hidden rating (`platform.ratings`) and arrives as a tier and a division: the rating is never here. Null for a guest, and for an account that has not played the game ranked. */
+  /** Their rank in this game and the games they played and won, which their card says. The rank is read on the server from their rank points (`ratings.points`) and arrives as a tier and a division: the hidden rating the points come from is never here. Null for a guest, and for an account that has not played the game ranked. */
   record: PlayerRecord | null
 }
 
@@ -104,12 +104,12 @@ export type Standing = {
   nickname: string
   tag: number
   avatarUrl: string | null
-  /** Their rank: derived on the server from the hidden rating (`ratings.rating`, an Elo) and from their position among the game's players. The rating orders the board and is never sent. */
+  /** Their rank: read from their rank points, which they earn by playing (`ratings.points`). The hidden rating the points come from is never sent. */
   rank: Rank
   /** `ratings.wins` and `ratings.games_played`. */
   wins: number
   gamesPlayed: number
-  /** Their place on the board, 1 for the best, in the order of the hidden rating. Null while they have played fewer than `LEADERBOARD_MIN_GAMES` ranked games: the board leaves a player out until then (`ratings_board_idx`). */
+  /** Their place on the board, 1 for the best, in the order of their rank points. Null while they have played fewer than `LEADERBOARD_MIN_GAMES` ranked games: the board leaves a player out until then (`ratings_board_idx`). */
   place: number | null
 }
 
@@ -169,7 +169,7 @@ export type HistoryEntry = {
   place: number | null
   /** `game_results.player_count` */
   playerCount: number
-  /** The rank points the game gave them (+32) or took (-11), in the unit of the figure under their rank (100 to a division): derived on the server from the change of their hidden rating (`rating_changes`), which is never here. Null where no points apply (a game played together, a game with no ranking). */
+  /** The rank points the game gave them (+32) or took (-11), in the unit of the figure under their rank (100 to a division): what the game added to their points (`rating_changes`, whole numbers: a win over a stronger player gives more, a loss to a weaker one takes more); the hidden rating is never here. Null where no points apply (a game played together, a game with no ranking). */
   points: number | null
   /** How long the game lasted, in seconds: `game_results.finished_at` less the `started_at` of its table. Null when it is not known. */
   durationSeconds: number | null
@@ -252,7 +252,7 @@ export async function getTable(slug: string, code: string, seatsMax: number): Pr
 }
 
 /**
- * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, in the order of a rating that stays on the server (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). A player is on the board from their fifth
+ * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, most rank points first (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). A player is on the board from their fifth
  * ranked game (`LEADERBOARD_MIN_GAMES`); nobody is while no game was ranked, which nothing opens yet (PLT-21). The tag of a player is 0 until the nicknames have one (PLT-39).
  */
 export async function getStandings(slug: string, viewerId: string | null): Promise<GameStandings> {

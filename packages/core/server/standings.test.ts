@@ -15,11 +15,11 @@ beforeEach(() => {
 })
 
 describe("readBoard", () => {
-  it("asks for the best players of the game and reads each score on the ladder as a rank, never a rating", async () => {
+  it("asks for the best players of the game and reads each one's rank points as a rank, never a rating", async () => {
     mocks.rpc.mockResolvedValue({
       data: [
-        { user_id: "a", display_name: "Ann", avatar_url: "https://example.com/a.png", place: 1, score: 2400, wins: 30, games_played: 40 },
-        { user_id: "b", display_name: null, avatar_url: null, place: 2, score: 1450, wins: 9, games_played: 14 },
+        { user_id: "a", display_name: "Ann", avatar_url: "https://example.com/a.png", place: 1, points: 2450, wins: 30, games_played: 40 },
+        { user_id: "b", display_name: null, avatar_url: null, place: 2, points: 1450, wins: 9, games_played: 14 },
       ],
       error: null,
     })
@@ -47,7 +47,7 @@ describe("readBoard", () => {
 })
 
 describe("readPlayerStanding", () => {
-  const row = { games_played: 12, wins: 5, seconds_played: 7200, rated_games: 8, rated_wins: 3, display_name: "Uma", avatar_url: null, place: 4, score: 1450, pool_size: 31 }
+  const row = { games_played: 12, wins: 5, seconds_played: 7200, rated_games: 8, rated_wins: 3, display_name: "Uma", avatar_url: null, place: 4, points: 1450, pool_size: 31 }
 
   it("is the totals of the player, their place and their rank with how far they are through its division", async () => {
     mocks.rpc.mockResolvedValue({ data: [row], error: null })
@@ -57,20 +57,20 @@ describe("readPlayerStanding", () => {
     expect(rankLabel(standing.rank!)).toBe("Platinum III")
   })
 
-  it("is Apprentice I with no points and no place until the player has rated enough games to be on the board", async () => {
-    mocks.rpc.mockResolvedValue({ data: [{ ...row, rated_games: 3, rated_wins: 1, place: null, score: 0 }], error: null })
+  it("has a rank from the first rated game, and no place until the player has rated enough games to be on the board", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ ...row, rated_games: 3, rated_wins: 1, place: null, points: 140 }], error: null })
     const standing = await readPlayerStanding(USER, "courtisans")
-    expect(rankLabel(standing.rank!)).toBe("Apprentice I")
-    expect(standing).toMatchObject({ place: null, rankProgress: null, ratedGames: 3 })
+    expect(rankLabel(standing.rank!)).toBe("Apprentice II")
+    expect(standing).toMatchObject({ place: null, rankProgress: { points: 40, needed: 100 }, ratedGames: 3 })
   })
 
   it("has no rank for a player who has rated no game, whatever else they played", async () => {
-    mocks.rpc.mockResolvedValue({ data: [{ ...row, rated_games: 0, rated_wins: 0, display_name: null, place: null, score: null }], error: null })
+    mocks.rpc.mockResolvedValue({ data: [{ ...row, rated_games: 0, rated_wins: 0, display_name: null, place: null, points: null }], error: null })
     expect(await readPlayerStanding(USER, "courtisans")).toMatchObject({ gamesPlayed: 12, rank: null, rankProgress: null, place: null })
   })
 
   it("has no points at the top, where a rank is a place", async () => {
-    mocks.rpc.mockResolvedValue({ data: [{ ...row, place: 2, score: 2400 }], error: null })
+    mocks.rpc.mockResolvedValue({ data: [{ ...row, place: 2, points: 2400 }], error: null })
     const standing = await readPlayerStanding(USER, "courtisans")
     expect(standing.rank).toEqual({ tier: "Legend" })
     expect(standing.rankProgress).toBeNull()
@@ -91,6 +91,11 @@ describe("readPlayerStanding", () => {
       rankProgress: null,
       poolSize: 0,
     })
+  })
+
+  it("asks the database nothing for an account that is no user of it, the demo account of development, whose id is not a uuid", async () => {
+    expect(await readPlayerStanding("demo", "courtisans")).toMatchObject({ gamesPlayed: 0, rank: null, place: null, poolSize: 0 })
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
   it("reads the figures the database sends as text, since a big integer may arrive so", async () => {
@@ -148,6 +153,11 @@ describe("readHistory", () => {
       },
       { id: "g2", finishedAt: "2026-11-07T10:00:00+00:00", outcome: "coop_win", place: 1, score: 5, playerCount: 2, durationSeconds: null, options: {}, points: null, opponents: [] },
     ])
+  })
+
+  it("is empty, without asking the database, for an account that is no user of it", async () => {
+    expect(await readHistory("demo", "courtisans", 10)).toEqual([])
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
   it("is empty for a player who finished nothing, and throws what the database says", async () => {

@@ -66,6 +66,8 @@ begin
   r := r || pg_temp.check_that('the game is ranked and both seats count', (select ranked from public.game_results where id = id1) and (select bool_and(counted_ranked) from public.game_participants where game_result_id = id1), null);
   r := r || pg_temp.check_that('the winner gains 16 and the other loses 16', (select round(rating::numeric, 3) from public.ratings where user_id = ua and game = 'zz-test') = 1516 and (select round(rating::numeric, 3) from public.ratings where user_id = ub and game = 'zz-test') = 1484, (select string_agg(round(rating::numeric, 3)::text, ',') from public.ratings where game = 'zz-test'));
   r := r || pg_temp.check_that('what each game did is kept', (select count(*) from public.rating_changes where game_result_id = id1) = 2, null);
+  r := r || pg_temp.check_that('the rank points follow: 16 for the winner, and the loser, who had none, stays at 0', (select points from public.ratings where user_id = ua and game = 'zz-test') = 16 and (select points from public.ratings where user_id = ub and game = 'zz-test') = 0, (select string_agg(points::text, ',') from public.ratings where game = 'zz-test'));
+  r := r || pg_temp.check_that('what a game gave is kept with it', (select points_before = 0 and points_after = 16 from public.rating_changes where game_result_id = id1 and user_id = ua) and (select points_before = 0 and points_after = 0 from public.rating_changes where game_result_id = id1 and user_id = ub), null);
   r := r || pg_temp.check_that('the rated games and the wins are counted', (select games_played = 1 and wins = 1 and display_name = 'Ann' from public.ratings where user_id = ua and game = 'zz-test'), null);
   r := r || pg_temp.check_that('the totals count every game of the account, the time of the one whose start was told', (select games_played = 3 and wins = 3 and seconds_played = 600 from public.player_stats where user_id = ua and game = 'zz-test'), (select format('g%s w%s s%s', games_played, wins, seconds_played) from public.player_stats where user_id = ua and game = 'zz-test'));
 
@@ -75,6 +77,7 @@ begin
   id1 := public.record_game_result('zz-test', 'T3AAAA', t0, '2026-11-08 11:00:00+00', trio);
   r := r || pg_temp.check_that('the seat that was played for does not count', (select counted_ranked from public.game_participants where game_result_id = id1 and seat = 0) and not (select counted_ranked from public.game_participants where game_result_id = id1 and seat = 2), null);
   r := r || pg_temp.check_that('the one who was played for has no rating', not exists (select 1 from public.ratings where user_id = uc and game = 'zz-test'), null);
+  r := r || pg_temp.check_that('the winner of the second game, a favourite now, gains fifteen points more, and the loser, still at 0, stays', (select points from public.ratings where user_id = ua and game = 'zz-test') = 31 and (select points from public.ratings where user_id = ub and game = 'zz-test') = 0, (select string_agg(points::text, ',') from public.ratings where game = 'zz-test'));
   r := r || pg_temp.check_that('the two others are rated between them again', (select round(rating::numeric, 3) from public.ratings where user_id = ua and game = 'zz-test') > 1516, (select round(rating::numeric, 3)::text from public.ratings where user_id = ua and game = 'zz-test'));
 
   -- 4. A table that plays together, ranked: it counts, with no Elo

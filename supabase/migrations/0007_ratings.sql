@@ -1,7 +1,10 @@
--- The ratings of the players, from the games that counted for them (PLT-13, PLT-105).
+-- The ratings and the rank points of the players, from the games that counted for them (PLT-13, PLT-105).
 --
--- A rating is an Elo, per player and game, and it is HIDDEN: it never leaves the server. No type that a browser gets carries it, and what reads ratings for the pages (migration 0009) answers places and ranks, never the rating:
--- the platform shows a rank instead. Only the server reads these tables (service role): row level security is on without policy, like the tables of the games.
+-- A rating is an Elo, per player and game, and it is HIDDEN: it never leaves the server. It measures how strong a player is, to tell what a game against them is worth. No type that a browser gets carries it, and what reads
+-- ratings for the pages (migration 0009) answers places, ranks and rank points, never the rating. Only the server reads these tables (service role): row level security is on without policy, like the tables of the games.
+--
+-- The rank points are what a player has earned by playing, and they set the rank: a player reaches a rank by reaching a number of points (100 a division, `core/lib/ladder.ts`). A rated game gives or takes the whole number nearest to
+-- what it did to the rating, so a win over a stronger player gives more and a loss to a weaker one takes more; they never go below 0. They are the "+16" and "-11" of a player's history (`rating_changes`).
 --
 -- A game counts when it is ranked and rated by Elo (`game_results.ranked`, `rating_kind`) and for the seats that count (`game_participants.counted_ranked`: an account, and a player who played their own moves). The rules are the ones of
 -- the final schema of PLT-13: a player starts at 1500; the factor is 32 for a player's first 20 rated games and 16 after; against several opponents a player is compared with each of them in turn and the result is the mean of the
@@ -13,6 +16,7 @@ create table if not exists public.ratings (
   user_id uuid not null references auth.users (id) on delete cascade,
   game text not null check (game ~ '^[a-z0-9-]+$'),
   rating double precision not null default 1500,
+  points integer not null default 0 check (points >= 0),
   -- The rated games: the ones that count, so a player is on the board of a game after their fifth
   games_played integer not null default 0,
   wins integer not null default 0,
@@ -24,15 +28,17 @@ create table if not exists public.ratings (
   primary key (user_id, game)
 );
 
-create index if not exists ratings_board_idx on public.ratings (game, rating desc) where games_played >= 5;
+create index if not exists ratings_board_idx on public.ratings (game, points desc, rating desc) where games_played >= 5;
 
--- What each rated game did to a rating: the audit of the rating
+-- What each rated game did to a player: the audit of the rating, and the rank points it gave or took
 create table if not exists public.rating_changes (
   game_result_id uuid not null references public.game_results (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
   game text not null check (game ~ '^[a-z0-9-]+$'),
   rating_before double precision not null,
   rating_after double precision not null,
+  points_before integer not null,
+  points_after integer not null,
   primary key (game_result_id, user_id)
 );
 
@@ -53,6 +59,8 @@ security definer
 set search_path = ''
 as $$
 declare
+  -- A point of rating is a rank point: a win over an equal gives 16 at the start, 32 at most, and a division is 100 (`core/lib/ladder.ts`)
+  c_points_per_rating constant double precision := 1;
   v_game text;
   v_finished_at timestamptz;
 begin
@@ -77,7 +85,7 @@ begin
   for update;
 
   with seats as (
-    select gp.user_id, gp.rank, gp.outcome, gp.display_name, gp.avatar_url, rt.rating, rt.games_played
+    select gp.user_id, gp.rank, gp.outcome, gp.display_name, gp.avatar_url, rt.rating, rt.points, rt.games_played
     from public.game_participants gp
     join public.ratings rt on rt.user_id = gp.user_id and rt.game = v_game
     where gp.game_result_id = p_id and gp.counted_ranked and gp.user_id is not null
@@ -92,27 +100,33 @@ begin
     group by a.user_id
   ),
   moved as (
-    select s.user_id, s.rating as rating_before, s.rating + (case when s.games_played < 20 then 32 else 16 end) * (v.actual - v.expected) as rating_after
+    select s.user_id, s.rating as rating_before, s.points as points_before, (case when s.games_played < 20 then 32 else 16 end) * (v.actual - v.expected) as change
     from seats s
     join versus v on v.user_id = s.user_id
   ),
-  logged as (
-    insert into public.rating_changes (game_result_id, user_id, game, rating_before, rating_after)
-    select p_id, m.user_id, v_game, m.rating_before, m.rating_after
+  changed as (
+    select m.user_id, m.rating_before, m.rating_before + m.change as rating_after, m.points_before,
+           greatest(0, m.points_before + round((m.change * c_points_per_rating)::numeric)::integer) as points_after
     from moved m
+  ),
+  logged as (
+    insert into public.rating_changes (game_result_id, user_id, game, rating_before, rating_after, points_before, points_after)
+    select p_id, c.user_id, v_game, c.rating_before, c.rating_after, c.points_before, c.points_after
+    from changed c
     returning user_id
   )
   update public.ratings rt
-  set rating = m.rating_after,
+  set rating = c.rating_after,
+      points = c.points_after,
       games_played = rt.games_played + 1,
       wins = rt.wins + (case when s.outcome = 'win' then 1 else 0 end),
-      peak = greatest(rt.peak, m.rating_after),
+      peak = greatest(rt.peak, c.rating_after),
       last_played_at = v_finished_at,
       display_name = coalesce(s.display_name, rt.display_name),
       avatar_url = s.avatar_url
-  from moved m
-  join seats s on s.user_id = m.user_id
-  where rt.game = v_game and rt.user_id = m.user_id;
+  from changed c
+  join seats s on s.user_id = c.user_id
+  where rt.game = v_game and rt.user_id = c.user_id;
 end;
 $$;
 

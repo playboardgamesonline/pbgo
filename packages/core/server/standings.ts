@@ -1,16 +1,19 @@
 import "server-only"
 import type { Rank } from "@pbgo/ui/ranks"
 import type { Outcome } from "@pbgo/ui/results"
-import { progressOfScore, rankOfScore } from "../lib/ladder"
+import { progressOfPoints, rankOfPoints } from "../lib/ladder"
 import { supabaseAdmin } from "./supabase"
 
 /**
- * What the pages read of the games that were recorded (PLT-13, migrations 0007 to 0009): the board of a game, where a player stands in it and the games they finished. The database answers places and scores on the ladder, never a
- * rating (a rating is hidden: it is not in any of these answers), and this file turns the scores into ranks (`lib/ladder.ts`). Every function throws what the database says, so that its caller decides what a page shows then: the pages
+ * What the pages read of the games that were recorded (PLT-13, migrations 0007 to 0009): the board of a game, where a player stands in it and the games they finished. The database answers places and rank points, never a
+ * rating (a rating is hidden: it is not in any of these answers), and this file reads the points into ranks (`lib/ladder.ts`). Every function throws what the database says, so that its caller decides what a page shows then: the pages
  * of `apps/web/src/lib/game-activity.ts` draw their empty state and log it.
  */
 
 type Row = Record<string, unknown>
+
+/** A user of the database is a uuid. The development demo account (`id: "demo"`, in no database) is not one: it has played nothing, and asking the database for it would only be refused. */
+const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const text = (value: unknown): string | null => (typeof value === "string" ? value : null)
 const count = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : Number(value) || 0)
 const maybe = (value: unknown): number | null => (value === null || value === undefined ? null : count(value))
@@ -32,7 +35,7 @@ export async function readBoard(game: string, limit: number): Promise<BoardRow[]
     name: text(row.display_name),
     avatarUrl: text(row.avatar_url),
     place: count(row.place),
-    rank: rankOfScore(count(row.score)),
+    rank: rankOfPoints(count(row.points)),
     wins: count(row.wins),
     gamesPlayed: count(row.games_played),
   }))
@@ -51,17 +54,20 @@ export type PlayerStanding = {
   avatarUrl: string | null
   /** Their place on the board, null while they have rated fewer than 5 games. */
   place: number | null
-  /** Their rank: null before their first rated game, Apprentice I until they are on the board. */
+  /** Their rank, read from their rank points: null before their first rated game. */
   rank: Rank | null
-  /** How far they are through their division, null where no points apply: with no rank, before the board, and at the top. */
+  /** How far they are through their division, null where no points apply: with no rank, and at the top. */
   rankProgress: { points: number; needed: number } | null
   /** How many players the board has. */
   poolSize: number
 }
 
+const NOBODY: PlayerStanding = { gamesPlayed: 0, wins: 0, secondsPlayed: 0, ratedGames: 0, ratedWins: 0, name: null, avatarUrl: null, place: null, rank: null, rankProgress: null, poolSize: 0 }
+
 export async function readPlayerStanding(userId: string, game: string): Promise<PlayerStanding> {
+  if (!USER_ID.test(userId)) return { ...NOBODY }
   const [row] = await call("player_standing", { p_user: userId, p_game: game })
-  const score = maybe(row?.score)
+  const points = maybe(row?.points)
   const place = maybe(row?.place)
   return {
     gamesPlayed: count(row?.games_played),
@@ -72,8 +78,8 @@ export async function readPlayerStanding(userId: string, game: string): Promise<
     name: text(row?.display_name),
     avatarUrl: text(row?.avatar_url),
     place,
-    rank: score === null ? null : rankOfScore(score),
-    rankProgress: score === null || place === null ? null : progressOfScore(score),
+    rank: points === null ? null : rankOfPoints(points),
+    rankProgress: points === null ? null : progressOfPoints(points),
     poolSize: count(row?.pool_size),
   }
 }
@@ -98,6 +104,7 @@ export type HistoryRow = {
 }
 
 export async function readHistory(userId: string, game: string, limit: number): Promise<HistoryRow[]> {
+  if (!USER_ID.test(userId)) return []
   const rows = await call("player_history", { p_user: userId, p_game: game, p_limit: limit })
   return rows.map((row) => ({
     id: String(row.id),
