@@ -42,7 +42,7 @@ Pictures and sounds live in the game's Sanity project, never in the repo: `apps/
 - The board and the screens around it keep the game's theme (colors and fonts set in Admin › Visual)
 
 ## In-game UI
-Ticker, announcements, takeover pill, chat, players strip, seat label and game over are shared: same markup and logic for every game (`@pbgo/core/components/game`), drawn in the game's own look, never the platform's. The ticker, takeover pill, chat and toolbar take the game's skin; the announcements, the seat label and the game over are tuned by `UI_THEME`.
+Ticker, announcements, takeover pill, chat, players list, menu of the game, seat label and game over are shared: same markup and logic for every game (`@pbgo/core/components/game`). The announcements, the takeover pill, the seat label and the game over are the table's: drawn in the game's own look and tuned by `UI_THEME`. The ticker, the list of the players with their scores, the chat and the menu of the game are around the table: drawn in the platform's look, with nothing to tune; they read the view (`standings` for the scores).
 - Through `UI_THEME` (optional, exported by `src/index.ts`, type `UiTheme` of `@pbgo/core/lib/binding`): `motion` (`"calm"` by default, `"lively"` adds confetti, springs and the emoji burst), `announcement` (`font`, `color`, `outline`, `shadow`, `veil`, `rule`, `confetti`), `seat` (`shape`, `ring`, `font`, `name`), `gameOver` (`surface`, `border`, `radius`, `ink`, `accent`, `frame`). CSS values, `var(--…)` works
 - The template's look is "paper & ink", a universe of its own next to Courtisans' banquet: `src/lib/ui-theme.ts` (the in-game UI), `THEME` of `src/lib/skin.ts` (cream on ink, vermilion accent: the skin tokens the rest of the UI reads) and `src/styles.css` (fonts). The table is the felt of `board/textures.ts` (`MAT_COLOR`, `matTexture`). Colours saved in the gamemaster (Sanity `settings`) override these code defaults; a new game replaces the three files with its own palette
 - Never fork or restyle one of these components, and never override their CSS from the game: ask for a field in `UiTheme` instead
@@ -50,7 +50,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - The board's own overlays use the variant `short` (`@media (max-height: 30rem)`, keyed on height) for a phone held sideways, and `useMotion()` (`@pbgo/core/lib/use-motion`) before any `motion/react` animation: reduced motion means fades only
 - New player-facing labels of the shared UI are `UI_TEXTS` keys of `@pbgo/studio-kit`, written in English (`ENGLISH_ONLY_TEXTS`) until the language pass translates them, never text in a component
 - A player's name on the board is the shared seat label: `SeatLabel` in the DOM, `PlayerSeat` of `@pbgo/table` on the table (it paints the same avatar with `SeatAvatarMesh`), with `imageUrl` for an account picture later (PLT-13)
-- The reference is `/docs/design/in-game` (`docs/design/04-in-game/` at the repo root): the template and Courtisans side by side (seat label, players strip, the five announcements, game over)
+- The reference is `/docs/design/in-game` (`docs/design/04-in-game/` at the repo root): the template and Courtisans side by side (seat label, the five announcements, game over)
 
 ## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner
@@ -73,7 +73,7 @@ Ticker, announcements, takeover pill, chat, players strip, seat label and game o
 - `autoPlayFor(state, playerId)`: completes the current step of that one player. Legal, deterministic (seeded streams only, no `Math.random` or `Date.now`), `EngineError("NOT_WAITING")` if they are not waiting. The server uses it for an absent player
 - Absent player (core): after `settings.turnTimeout` without a move, the present players vote per absent player (`POST /api/<slug>/games/<code>/takeover`, `StalledTurn`); a player is played for once every other member seen in the last 75 s voted for them. The game has nothing else to write
 - Simultaneous step (see the secret bids of `src/demo/game.ts`): `Submissions<T>` in the state, resolved inside the `apply` of the last answer, `waitingFor` = `pendingSubmissions(submissions, seatIds)`, the view only says who answered (`submittedFlags`). The state is `jsonb`: never take an order from the keys of an object, take it from an array (`state.players`)
-- Board: `<Ticker waitingFor={game.waitingFor} …/>` and `<StalledTurn onUpdate={onUpdate} />`; a player can leave `waitingFor` without acting (someone played for them), so the board follows the view. On a simultaneous step the ticker lists every seat on its own (`PlayersStrip`: done, waiting, away), so the board does not draw a "who has played" list
+- Board: `<Ticker waitingFor={game.waitingFor} …/>` and `<StalledTurn onUpdate={onUpdate} />`; a player can leave `waitingFor` without acting (someone played for them), so the board follows the view. On a simultaneous step the list of the players at the top right lights the rows of those the game waits for and dims those who are away, so the board does not draw a "who has played" list
 - Details and rationale: `template/docs/GAME_GUIDE.md` (section 2)
 
 ## Supabase (realtime)

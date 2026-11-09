@@ -35,7 +35,7 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
  * chat with them (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open. While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. The demo account of development has friends, messages and requests whose
  * buttons do nothing; a real account has none until PLT-23, so its bar is the button that invites a friend, which copies the address of the sign-in, where a friend can come and sign in.
  */
-export function SiteSocial({ account }: { account: Account }) {
+export function SiteSocial({ account, game }: { account: Account; /** The rows of a game's screen for the menu of the picture, above the pages of the account: its sound, its language, its setup, the way out (`HudMenu` of core) */ game?: React.ReactNode }) {
   const social = useSocial(account)
   const [copied, copy] = useCopied()
   const [open, setOpen] = useState(false)
@@ -78,7 +78,7 @@ export function SiteSocial({ account }: { account: Account }) {
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || document.querySelector('[data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="moving-card"]')) return
+      if (event.key !== "Escape" || document.querySelector('[data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="dialog-content"], [data-slot="moving-card"]')) return
       setOpen(false)
       toggle.current?.focus()
     }
@@ -121,7 +121,7 @@ export function SiteSocial({ account }: { account: Account }) {
           </>
         }
         profile={
-          <AccountMenu account={account} beside={open ? '[data-slot="social-dock"]' : undefined}>
+          <AccountMenu account={account} beside={open ? '[data-slot="social-dock"]' : undefined} game={game}>
             <button
               type="button"
               aria-label={`Account of ${account.nickname}${waiting > 0 ? `, ${waiting} waiting` : ""}`}

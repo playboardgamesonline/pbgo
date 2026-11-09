@@ -35,7 +35,8 @@ function burst(emoji: string): Particle[] {
 }
 
 /**
- * Chat of the game, bottom right: messages show up then fade out; hovering or typing brings the recent history back.
+ * Chat of the game, bottom right, against the bottom edge of the screen like the table: the cookie banner floats over it (its `z-50`) until the visitor answers, and does not lift it. Messages show up then fade out; hovering or
+ * typing brings the recent history back. It steps aside to the left of the social dock when that opens (`GameHud` is the `group/hud` that sees it).
  * Nicknames in the player's color. Realtime broadcast without storage (nothing is kept once the game is left).
  * Sending goes through the chat API route (author = player cookie); the channel is only listened to.
  *
@@ -161,8 +162,10 @@ export function Chat({ className }: { className?: string }) {
     <div
       // what players write is theirs: the recordings and the autocapture leave the whole chat out (`ph-no-capture`)
       className={cn(
-        "ph-no-capture pointer-events-none fixed right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(max(1.25rem,env(safe-area-inset-bottom))+var(--consent-h,0px))] z-30 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col gap-2",
-        "short:right-[max(1rem,env(safe-area-inset-right))] short:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+var(--consent-h,0px))] short:w-72",
+        "platform ph-no-capture pointer-events-none fixed font-sans text-foreground right-[max(1.25rem,env(safe-area-inset-right))] bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-30 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col gap-2 transition-[right] duration-slow ease-standard motion-reduce:transition-none",
+        "short:right-[max(1rem,env(safe-area-inset-right))] short:bottom-[max(0.75rem,env(safe-area-inset-bottom))] short:w-72",
+        // The dock of the social panel opens over this corner (20rem wide, 1.5rem from the edge): the chat steps aside to its left
+        "group-has-[[data-slot=social-dock][data-state=open]]/hud:right-[22.5rem]",
         className,
       )}
       onPointerEnter={() => setActive(true)}
@@ -199,11 +202,12 @@ export function Chat({ className }: { className?: string }) {
             <li
               key={m.id}
               className={cn(
-                "w-fit max-w-full rounded-lg bg-black/45 px-3 py-1.5 text-sm leading-snug text-foreground backdrop-blur-[2px] transition-opacity duration-700 [text-shadow:0_1px_4px_rgb(0_0_0/70%)]",
+                "w-fit max-w-full rounded-2xl border glass px-3 py-1.5 text-sm leading-snug text-foreground transition-opacity duration-700",
                 shown ? "opacity-100" : "hidden opacity-0",
               )}
             >
-              <span className="mr-1.5 font-black tracking-wide uppercase brightness-150" style={{ color: color(m.playerId) }}>
+              <span className="mr-1.5 inline-flex items-center gap-1.5 font-semibold">
+                <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color(m.playerId) }} />
                 {nickname(m.playerId)}
               </span>
               <span className="break-words">{m.text}</span>
@@ -218,7 +222,7 @@ export function Chat({ className }: { className?: string }) {
           onSubmit={send}
           onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
           className={cn(
-            "pointer-events-auto flex min-w-0 flex-1 items-center gap-1 rounded-full border border-foreground/20 bg-black/40 py-1 pr-1 pl-4 opacity-60 backdrop-blur-sm transition-opacity duration-200 focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none",
+            "pointer-events-auto flex min-w-0 flex-1 items-center gap-1 rounded-full border glass py-1 pr-1 pl-4 opacity-60 transition-opacity duration-200 focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none",
             !open && "short:hidden",
           )}
         >
@@ -232,7 +236,7 @@ export function Chat({ className }: { className?: string }) {
             placeholder={t("chatPlaceholder")}
             aria-label={t("chatPlaceholder")}
             autoComplete="off"
-            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground/50"
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
           <div ref={boardRef} className="relative">
             <AnimatePresence>
@@ -242,17 +246,17 @@ export function Chat({ className }: { className?: string }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 bottom-full grid w-44 grid-cols-4 gap-1 rounded-2xl border border-foreground/20 bg-black/70 p-2 pb-2 backdrop-blur-md [margin-bottom:0.35rem] before:absolute before:inset-x-0 before:-bottom-2 before:h-2 before:content-['']"
+                  className="absolute right-0 bottom-full grid w-44 grid-cols-4 gap-1 rounded-3xl border glass p-2 pb-2 shadow-float [margin-bottom:0.35rem] before:absolute before:inset-x-0 before:-bottom-2 before:h-2 before:content-['']"
                 >
                   {reactions.map((r) => (
-                    <button key={r.id} type="button" title={reactionLabel(r, t)} aria-label={reactionLabel(r, t)} onClick={() => react(r)} className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-xl transition-transform hover:scale-125 hover:bg-foreground/10 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100">
+                    <button key={r.id} type="button" title={reactionLabel(r, t)} aria-label={reactionLabel(r, t)} onClick={() => react(r)} className="flex size-9 cursor-pointer items-center justify-center rounded-xl text-xl transition-transform hover:scale-125 hover:bg-muted active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100">
                       {r.emoji}
                     </button>
                   ))}
                 </motion.div>
               )}
             </AnimatePresence>
-            <button type="button" aria-label={t("chatReactions")} aria-expanded={board} title={t("chatReactions")} onClick={() => { prepareSoundboard(); setBoard((b) => !b) }} className={cn("flex size-8 cursor-pointer items-center justify-center rounded-full text-foreground transition-colors hover:bg-foreground/10", board && "bg-foreground/15")}>
+            <button type="button" aria-label={t("chatReactions")} aria-expanded={board} title={t("chatReactions")} onClick={() => { prepareSoundboard(); setBoard((b) => !b) }} className={cn("flex size-8 cursor-pointer items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted", board && "bg-muted")}>
               <SmilePlusIcon className="size-4.5" strokeWidth={1.8} />
             </button>
           </div>
@@ -268,7 +272,7 @@ export function Chat({ className }: { className?: string }) {
           aria-controls={formId}
           title={t("chat")}
           onClick={() => setOpen((o) => !o)}
-          className="pointer-events-auto hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-foreground/20 bg-black/40 text-foreground backdrop-blur-sm transition-colors hover:bg-black/60 motion-reduce:transition-none short:flex"
+          className="pointer-events-auto hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border glass text-foreground transition-colors hover:bg-muted motion-reduce:transition-none short:flex"
         >
           {open ? <XIcon className="size-4.5" strokeWidth={1.8} /> : <MessageCircleIcon className="size-4.5" strokeWidth={1.8} />}
         </button>

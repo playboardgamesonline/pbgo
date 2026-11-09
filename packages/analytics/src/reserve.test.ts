@@ -26,7 +26,7 @@ class FakeResizeObserver {
   }
 }
 
-function reserve(height: number, padding?: string) {
+function reserve(height: number, padding?: string, options?: { pad?: boolean }) {
   const banner = {
     height,
     getBoundingClientRect() {
@@ -34,7 +34,7 @@ function reserve(height: number, padding?: string) {
     },
   }
   const style = fakeStyle(padding ? { "padding-bottom": padding } : {})
-  const release = reserveSpace(banner as unknown as HTMLElement, { style } as unknown as HTMLElement)
+  const release = reserveSpace(banner as unknown as HTMLElement, { style } as unknown as HTMLElement, options)
   return { banner, style, release, observer: FakeResizeObserver.all[0]! }
 }
 
@@ -75,6 +75,15 @@ describe("reserveSpace", () => {
     const { style, release } = reserve(56, "2rem")
     expect(style.getPropertyValue("padding-bottom")).toBe("var(--consent-h)")
     release()
+    expect(style.getPropertyValue("padding-bottom")).toBe("2rem")
+  })
+
+  it("floats over a page that must keep its whole height: the height is published, the page is not padded", () => {
+    const { style, release } = reserve(56, "2rem", { pad: false })
+    expect(style.getPropertyValue("--consent-h")).toBe("56px")
+    expect(style.getPropertyValue("padding-bottom")).toBe("2rem")
+    release()
+    expect(style.getPropertyValue("--consent-h")).toBe("")
     expect(style.getPropertyValue("padding-bottom")).toBe("2rem")
   })
 })

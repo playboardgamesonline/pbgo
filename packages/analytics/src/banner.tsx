@@ -20,6 +20,8 @@ type ConsentBannerProps = {
   reopened: boolean
   /** What they answered, for the switches of the choices to open on it (none yet: all off). */
   current?: Answer
+  /** The banner floats over the page without padding it (`reserveSpace`, `pad: false`): the screens of a game, whose canvas keeps its whole height. */
+  floating?: boolean
   onChoose(answer: Answer): void
   onClose(): void
 }
@@ -35,9 +37,9 @@ type ConsentBannerProps = {
  * `ph-no-capture`: the answer is reported by the `cookie_consent` event, once it holds. Autocapture of the click itself would add
  * a second event, and for a refusal after an acceptance it would go out under the identity that is being given up.
  */
-export function ConsentBanner({ reopened, current = REJECT_OPTIONAL, onChoose, onClose }: ConsentBannerProps) {
+export function ConsentBanner({ reopened, current = REJECT_OPTIONAL, floating = false, onChoose, onClose }: ConsentBannerProps) {
   const root = React.useRef<HTMLDivElement>(null)
-  React.useLayoutEffect(() => (root.current ? reserveSpace(root.current, document.body) : undefined), [])
+  React.useLayoutEffect(() => (root.current ? reserveSpace(root.current, document.body, { pad: !floating }) : undefined), [floating])
   return (
     <CookieBanner
       ref={root}

@@ -10,7 +10,8 @@ function supabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !key) return null
-  client ??= createClient(url, key, { auth: { persistSession: false } })
+  // Its own storage key: a page that also holds the visitor's account client (the dock of a game's screen) would otherwise have two clients on one key, which the library warns about
+  client ??= createClient(url, key, { auth: { persistSession: false, storageKey: "pbgo-realtime" } })
   return client
 }
 

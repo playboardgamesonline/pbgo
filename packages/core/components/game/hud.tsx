@@ -3,18 +3,19 @@
 import { ChevronDownIcon } from "lucide-react"
 import { AnimatePresence, MotionConfig, motion } from "motion/react"
 import { Fragment, useCallback, useEffect, useId, useState } from "react"
+import type { OptionValues } from "@pbgo/engine-kit"
+import { Separator } from "@pbgo/ui/platform/separator"
 import { cn } from "@pbgo/ui/utils"
-import { useBinding } from "../../lib/binding-context"
 import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
 import type { SeatAvatarInput } from "../../lib/seat-avatar"
 import { useMotion } from "../../lib/use-motion"
-import { useSiteSettings } from "../settings-provider"
 import { useText } from "../skin-provider"
-import { Toolbar } from "../toolbar"
 import { Chat } from "./chat"
 import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
-import { PlayersStrip } from "./players-strip"
+import { GuestDock, useGameMenu } from "./game-menu"
+import { useHudDock } from "./hud-dock"
+import { TablePlayers } from "./table-players"
 
 /** One turn of the history: its author and the actions shown (each action is rendered by the game). */
 export type HistoryTurn = { key: string | number; playerId: string; entries: { key: string | number; node: React.ReactNode }[] }
@@ -48,7 +49,7 @@ export function PlayerName({ id }: { id: string }) {
   const { nickname, color } = useGame()
   return (
     // a nickname is typed by its player: session recordings show it masked (`ph-mask`)
-    <span className="ph-mask font-black brightness-150" style={{ color: color(id) }}>
+    <span className="ph-mask font-semibold brightness-150" style={{ color: color(id) }}>
       {nickname(id)}
     </span>
   )
@@ -87,12 +88,12 @@ function WaitingLabel({ playerIds }: { playerIds: readonly string[] }) {
 }
 
 /**
- * Top-right banner: whose turn it is, then the history (newest first).
+ * Top-left panel, in the platform's look: the state of the game. Whose turn it is, what the game says besides (`status`: the round, the tokens), then the history (newest first).
  *
  * `waitingFor` (`game.waitingFor`, what the game waits for) decides the main line when it is given: "Your turn" when I am one of
  * the players, "Waiting for A, B" when several others are, that player's turn when it is one. A board that holds the
  * announcement back (Courtisans during its opening animation) leaves it out. Without it, `activePlayerId` is whose turn it is.
- * When the game waits for two players or more, the banner also lists every seat (`PlayersStrip`): done, still waiting, away.
+ * Who has played and who is still to is the list of the players' (`TablePlayers`): the panel does not list the seats.
  *
  * On a short viewport (a phone held sideways) the history sits behind a toggle.
  */
@@ -124,27 +125,26 @@ export function Ticker({
   const key = several ? several.join(",") : (turn ?? waiting)
   const enter = { duration: fade(motionMode, 0.25), ease: EASE_STANDARD }
   return (
-    <div className="flex max-w-lg flex-col items-end text-right text-foreground [text-shadow:0_1px_4px_rgb(0_0_0/60%)] short:max-w-80">
+    <div className="platform pointer-events-auto flex w-80 max-w-full flex-col gap-3 rounded-3xl border glass p-4 font-sans text-foreground shadow-surface short:w-64 short:gap-2 short:p-3">
       <motion.p
         key={key}
         initial={{ opacity: 0, y: -travel(motionMode, 6) }}
         animate={{ opacity: 1, y: 0 }}
         transition={enter}
-        className="inline-flex items-center gap-1.5 font-display text-lg tracking-[0.14em] uppercase md:text-xl short:text-base"
+        className="text-xl leading-tight font-strong short:text-lg"
       >
         {several ? <WaitingLabel playerIds={several} /> : turn ? <TurnLabel playerId={turn} /> : waiting}
       </motion.p>
-      {status && <div className="mt-1 font-display text-sm tracking-[0.18em] text-foreground/60 uppercase tabular-nums short:text-xs">{status}</div>}
-      {waitingFor && <PlayersStrip waitingFor={waitingFor} className="mt-2" />}
-      <div className="my-3 h-px w-full min-w-64 bg-white/25 short:my-2 short:min-w-0" />
+      {status && <div className="-mt-1.5 text-sm text-muted-foreground tabular-nums short:text-xs">{status}</div>}
       {history.length > 0 && (
         <>
+          <Separator />
           <button
             type="button"
             aria-expanded={historyOpen}
             aria-controls={historyId}
             onClick={() => setHistoryOpen((open) => !open)}
-            className="pointer-events-auto hidden cursor-pointer items-center gap-1 font-display text-xs tracking-[0.18em] text-foreground/60 uppercase transition-colors hover:text-foreground motion-reduce:transition-none short:inline-flex"
+            className="hidden cursor-pointer items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground motion-reduce:transition-none short:inline-flex"
           >
             {t("history")}
             <ChevronDownIcon aria-hidden className={cn("size-3.5 transition-transform motion-reduce:transition-none", historyOpen && "rotate-180")} />
@@ -152,8 +152,8 @@ export function Ticker({
           <div
             id={historyId}
             className={cn(
-              "pointer-events-auto max-h-[12.5rem] w-full overflow-y-auto pr-1 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-              "short:mt-2 short:max-h-32 short:pb-4",
+              "max-h-[12.5rem] w-full overflow-y-auto pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              "short:max-h-32 short:pb-3",
               !historyOpen && "short:hidden",
             )}
             style={{
@@ -161,7 +161,7 @@ export function Ticker({
               WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 55%, transparent 100%)",
             }}
           >
-            <ol className="flex flex-col items-end gap-5 text-lg md:text-xl short:gap-3 short:text-base">
+            <ol className="flex flex-col items-start gap-4 text-base short:gap-3">
               {history.map((turn) => (
                 <motion.li
                   key={turn.key}
@@ -169,9 +169,9 @@ export function Ticker({
                   initial={{ opacity: 0, y: -travel(motionMode, 8) }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={enter}
-                  className="flex flex-col items-end gap-2.5 short:gap-1.5"
+                  className="flex flex-col items-start gap-2 short:gap-1.5"
                 >
-                  <span className="inline-flex items-center gap-1 font-display text-xs tracking-[0.18em] text-foreground/55 uppercase md:text-sm">
+                  <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                     <TurnLabel playerId={turn.playerId} short />
                   </span>
                   {turn.entries.map((entry) => (
@@ -190,8 +190,25 @@ export function Ticker({
 }
 
 /**
- * Standard game screen: the table (children) full screen; top left the logo (which leaves the game) with sound and rules below it;
- * top right the banner (`ticker`) on a dark veil; `overlay` for the game's own buttons and panels.
+ * The top right of the screen, in the platform's look: the dock of the visitor's social panel (the app's, `useHudDock`), whose picture opens the menu of the game (its sound, its language, its setup, its rules, the way out…) with the
+ * pages of their account, or, when there is no dock to show, the picture alone in a bar with the same menu (`GuestDock`); then the players of the table under it, with what each has so far. The dock opens over the players, hence the stacking.
+ */
+function TableCorner({ gameCode, options, onLeave, className }: { gameCode: string; options: OptionValues; onLeave: () => void; className?: string }) {
+  const Dock = useHudDock()
+  const menu = useGameMenu({ gameCode, options, onLeave })
+  const guest = <GuestDock menu={menu} />
+  return (
+    <div className={cn("flex flex-col items-end gap-2", className)}>
+      <div className="platform relative z-20 font-sans text-foreground">{Dock ? <Dock menu={menu} fallback={guest} /> : guest}</div>
+      <TablePlayers className="relative z-10" />
+    </div>
+  )
+}
+
+/**
+ * Standard game screen: the table (children) full screen. Everything the platform says around it is in the platform's look and in the corners, so that the cards keep the middle and the bottom: top left the state of the game (`ticker`:
+ * whose turn it is, the round, the history), top right the social dock with the settings and the way out, and the players of the table with their scores under it, bottom right the chat of the table, which only shows when it has something to say.
+ * `overlay` is for the game's own buttons and panels. The table is as tall as the window and the cookie banner floats over it; the HUD and the overlay stand above the banner's room, so a bottom-anchored button keeps its distance from the card.
  *
  * `MotionConfig` makes every `motion` component below it follow the visitor's `prefers-reduced-motion`.
  *
@@ -210,40 +227,20 @@ export function GameHud({
   overlay?: React.ReactNode
   children: React.ReactNode
 }) {
-  const t = useText()
-  const { Logo } = useBinding()
   const { game } = useGame()
-  const { logo, title } = useSiteSettings()
-  // The screen is what is left above the consent banner (`--consent-h`, set on <body>; 0px without a banner)
+  // The table fills the whole screen, under the consent banner, which floats over it (`AnalyticsProvider floating`): a canvas that shrank with the banner would reflow the scene. The HUD and the game's overlays are in a layer that
+  // ends above the banner (`--consent-h`, set on <body>; 0px without a banner), so what is anchored to the bottom is never under the card. The layer lets the pointer through to the table, and `contents` keeps the overlay's own pointer events
   return (
     <MotionConfig reducedMotion="user">
-      <main className="relative h-[calc(100dvh-var(--consent-h,0px))] w-full overflow-clip bg-background text-foreground">
+      <main className="group/hud relative h-dvh w-full overflow-clip bg-background text-foreground">
         <div className="absolute inset-0">{children}</div>
-        {ticker && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute top-0 right-0 z-10 h-[30rem] w-[52rem] max-w-full"
-            style={{
-              background:
-                "radial-gradient(ellipse 100% 100% at 100% 0%, rgb(0 0 0 / 62%) 0%, rgb(0 0 0 / 40%) 35%, rgb(0 0 0 / 14%) 65%, transparent 100%)",
-            }}
-          />
-        )}
-        <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 pt-[max(1.25rem,env(safe-area-inset-top))] pr-[max(1.5rem,env(safe-area-inset-right))] pb-8 pl-[max(1.5rem,env(safe-area-inset-left))] short:gap-2 short:pt-[max(0.75rem,env(safe-area-inset-top))] short:pr-[max(1rem,env(safe-area-inset-right))] short:pl-[max(1rem,env(safe-area-inset-left))]">
-          <div className="pointer-events-auto flex flex-col items-center gap-1.5">
-            <button
-              type="button"
-              className="w-40 cursor-pointer transition-transform hover:scale-105 motion-reduce:transition-none motion-reduce:hover:scale-100 sm:w-48 short:w-28"
-              title={t("leave")}
-              onClick={onLeave}
-            >
-              {logo ? <Logo src={logo} alt={title} /> : <span className="font-display text-2xl font-black tracking-[0.12em] uppercase">{title}</span>}
-            </button>
-            <Toolbar gameCode={game.code} options={game.options} />
-          </div>
-          {ticker}
-        </header>
-        {overlay}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[calc(100dvh-var(--consent-h,0px))]">
+          <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 pt-[max(1.25rem,env(safe-area-inset-top))] pr-[max(1.5rem,env(safe-area-inset-right))] pb-8 pl-[max(1.5rem,env(safe-area-inset-left))] short:gap-2 short:pt-[max(0.75rem,env(safe-area-inset-top))] short:pr-[max(1rem,env(safe-area-inset-right))] short:pl-[max(1rem,env(safe-area-inset-left))]">
+            {ticker}
+            <TableCorner className="ml-auto" gameCode={game.code} options={game.options} onLeave={onLeave} />
+          </header>
+          <div className="pointer-events-auto contents">{overlay}</div>
+        </div>
         <Chat />
       </main>
     </MotionConfig>

@@ -129,8 +129,8 @@ export function BoardEntry({
           {!lifted && (
             <motion.div
               key="start-screen"
-              // Over the board and its HUD, below the wall of the narrow screens and the cookie banner, which keeps its room (`--consent-h`)
-              className="fixed inset-x-0 top-0 z-[45] h-[calc(100dvh-var(--consent-h,0px))]"
+              // Over the board and its HUD, below the wall of the narrow screens and the cookie banner. It covers the whole window, as the board does, so that none of the board shows under the banner; the screen inside keeps the banner's room (`--consent-h`)
+              className="fixed inset-x-0 top-0 z-[45] h-dvh bg-background"
               initial={{ opacity: 1 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, pointerEvents: "none" }}

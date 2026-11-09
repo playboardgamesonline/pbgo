@@ -14,6 +14,9 @@ const listeners = new Set<() => void>()
 const SoundsContext = createContext<SoundConfig>(NO_SOUNDS)
 export const SoundsProvider = SoundsContext.Provider
 
+/** The sounds of the game shown, for the controls that set them. */
+export const useSounds = () => useContext(SoundsContext)
+
 export function setSoundEnabled(on: boolean) {
   persistSoundEnabled(on)
   setSoundOn(on)

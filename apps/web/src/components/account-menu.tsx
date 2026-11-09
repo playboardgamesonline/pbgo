@@ -1,5 +1,7 @@
 "use client"
 
+import { SquareArrowUpRight02Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { initialsOf, PROVIDER_NAMES, type Account } from "@pbgo/accounts"
@@ -24,8 +26,11 @@ const UNDER: Place = { side: "bottom", align: "end", sideOffset: 4, alignOffset:
  * word that says it, then the pages of their account and Sign out. Sign out is a form that posts to `/logout`, never a link: nothing but a click may end a session. It opens under the picture, to its
  * end, in the bar of the navbar; and, where the picture is the head of a side panel that is open (`beside`: what the panel is, a selector the trigger is inside of), it opens beside the panel instead, to
  * its left, overlapping it by 16px (the edge of what the panel holds) and 12px under its top, as the Riot Client's does. Where it goes is read as it opens: the panel is where it is then.
+ *
+ * On the screen of a game (`game`: the rows of the game, which core draws, see `HudMenu`) they come first, under the head and above the pages of the account, which then open in a new tab: a click on one must not take the
+ * visitor away from the table they are playing at.
  */
-export function AccountMenu({ account, beside, children }: { account: Account; beside?: string; children: ReactNode }) {
+export function AccountMenu({ account, beside, game, children }: { account: Account; beside?: string; game?: ReactNode; children: ReactNode }) {
   const trigger = useRef<HTMLButtonElement>(null)
   const [place, setPlace] = useState<Place>(UNDER)
 
@@ -38,6 +43,10 @@ export function AccountMenu({ account, beside, children }: { account: Account; b
     const box = panel.getBoundingClientRect()
     setPlace({ side: "left", align: "start", sideOffset: at.left - box.left - 16, alignOffset: box.top - at.top + 12 })
   }
+
+  // On the screen of a game the pages of the account open in a new tab, and say so
+  const away = game ? ({ target: "_blank", rel: "noopener noreferrer" } as const) : {}
+  const arrow = game ? <HugeiconsIcon icon={SquareArrowUpRight02Icon} strokeWidth={2} aria-hidden="true" className="ml-auto size-3.5 text-muted-foreground" /> : null
 
   return (
     <DropdownMenu onOpenChange={onOpenChange}>
@@ -58,17 +67,35 @@ export function AccountMenu({ account, beside, children }: { account: Account; b
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {game && (
+          <>
+            {game}
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem asChild>
-          <Link href="/me">Profile</Link>
+          <Link href="/me" {...away}>
+            Profile
+            {arrow}
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/me/games">My games</Link>
+          <Link href="/me/games" {...away}>
+            My games
+            {arrow}
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/me/friends">Friends</Link>
+          <Link href="/me/friends" {...away}>
+            Friends
+            {arrow}
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/me/settings">Settings</Link>
+          <Link href="/me/settings" {...away}>
+            Settings
+            {arrow}
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action="/logout" method="post">
