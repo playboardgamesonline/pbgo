@@ -18,6 +18,8 @@ export type PlayedGame = {
   result?: "won" | "lost" | "draw"
   /** Their rank at the end, among `opponents.length + 1` players. */
   rank?: number
+  /** The rank points the game gave them (+) or took (−): absent where none applied, a game that was not rated or that was played together. */
+  points?: number
 }
 
 /** The games that are over. */
@@ -68,6 +70,8 @@ export type FinishedGame = {
   outcome: "win" | "loss" | "draw" | "coop_win" | "coop_loss" | "abandoned"
   /** Where they came, null where the engine ranked nobody. */
   place: number | null
+  /** The rank points the game gave them (+) or took (−), null where none applied. */
+  points: number | null
   /** The others at the table, by seat: a seat whose account is gone has no name. */
   opponents: readonly { name: string | null; avatarUrl: string | null }[]
 }
@@ -90,6 +94,7 @@ export function playedGameOf(game: FinishedGame, name: string): PlayedGame {
     state: "finished",
     result: game.outcome === "win" || game.outcome === "coop_win" ? "won" : game.outcome === "draw" ? "draw" : "lost",
     ...(together || game.place === null ? {} : { rank: game.place }),
+    ...(game.points === null ? {} : { points: game.points }),
   }
 }
 

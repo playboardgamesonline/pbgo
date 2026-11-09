@@ -49,6 +49,11 @@ describe("memberGamesOf", () => {
     ])
   })
 
+  it("carries the rank points a game gave, and none for a game that was not rated", () => {
+    const { games } = memberGamesOf([row({ points: 16 }), row({ id: "r2", points: -11 }), row({ id: "r3", points: null })], [], nameOf)
+    expect(games.map((game) => game.points)).toEqual([16, -11, undefined])
+  })
+
   it("gives the figures and the games from the totals of every game finished, not from the few that are listed", () => {
     const { games, stats, perGame } = memberGamesOf(
       [row()],

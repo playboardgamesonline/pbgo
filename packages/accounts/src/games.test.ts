@@ -83,6 +83,7 @@ describe("playedGameOf", () => {
     finishedAt: "2026-11-08T10:00:00+00:00",
     outcome: "win",
     place: 1,
+    points: 16,
     opponents: [
       { name: "Ola", avatarUrl: "https://example.com/o.png" },
       { name: null, avatarUrl: null },
@@ -103,7 +104,14 @@ describe("playedGameOf", () => {
       state: "finished",
       result: "won",
       rank: 1,
+      points: 16,
     })
+  })
+
+  it("has the rank points a game gave or took, a loss too, and none where no points applied", () => {
+    expect(playedGameOf(finished({ outcome: "loss", points: -11 }), "Courtisans").points).toBe(-11)
+    expect(playedGameOf(finished({ points: 0 }), "Courtisans").points).toBe(0)
+    expect("points" in playedGameOf(finished({ points: null }), "Courtisans")).toBe(false)
   })
 
   it("has no table to go back to: the result outlives the table", () => {
