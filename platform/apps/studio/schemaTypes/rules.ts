@@ -1,5 +1,5 @@
 import { nameProblem, slugProblem } from "@pbgo/games/slug"
-import { DEFAULT_PLATFORM_LANGUAGE, PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
+import { DEFAULT_PLATFORM_LANGUAGE, DESCRIPTION_MAX, PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
 import type { Path, ValidationContext } from "sanity"
 
 // The validations the types share. A custom rule answers `true` for what it accepts, or the sentence the editor reads.
@@ -57,8 +57,8 @@ export const checkEndsAfterStart = (endsAt: string | undefined, context: Validat
   return endsAt !== undefined && typeof startsAt === "string" && Date.parse(endsAt) <= Date.parse(startsAt) ? "It ends before it starts" : true
 }
 
-// The translated fields (PLT-104) are arrays of rows `{ _key, language, value }`, one row per language. Nothing is required of them: about
-// forty games have no description yet. What the Studio asks is that English, the language every other one falls back on, is never missing
+// The translated fields (PLT-104) are arrays of rows `{ _key, language, value }`, one row per language. Nothing is required of them: a game
+// may have no description yet. What the Studio asks is that English, the language every other one falls back on, is never missing
 // where another language is there.
 //
 // A field's own `validation` replaces the one of its type, and the type of a translated field is made by the plugin, which checks the
@@ -101,6 +101,18 @@ export const checkTranslations = (value: unknown): true | Refusal => {
   if (filled.length === 0 || filled.some((row) => row.language === DEFAULT_PLATFORM_LANGUAGE)) return true
   const english = rows.find((row) => row.language === DEFAULT_PLATFORM_LANGUAGE)
   return { message: "Fill English first: it is what every other language falls back on", paths: [valueAt(english ?? filled[0] ?? {})] }
+}
+
+/**
+ * The descriptions of a document: the translations are right, and no language has a description over `DESCRIPTION_MAX` characters. The
+ * refusal is about the value of the row that is too long. The rule is the field's, not a `max()` on the type of the value: the plugin hands
+ * the rules of that type to the row too, an object, and a length would measure the object.
+ */
+export const checkDescriptions = (value: unknown): true | Refusal => {
+  const wrong = checkTranslations(value)
+  if (wrong !== true) return wrong
+  const long = rowsOf(value).find((row) => typeof row.value === "string" && row.value.length > DESCRIPTION_MAX)
+  return long ? { message: `A description is ${DESCRIPTION_MAX} characters at most (this one has ${String(long.value).length})`, paths: [valueAt(long)] } : true
 }
 
 /** The names of a document: the rows are right, and the name in English is the `name` of the document, so its row stays empty: there would be two English names to disagree. */

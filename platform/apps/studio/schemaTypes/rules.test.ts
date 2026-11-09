@@ -1,6 +1,6 @@
 import type { ValidationContext } from "sanity"
 import { describe, expect, it } from "vitest"
-import { checkCreatorsOnce, checkEndsAfterStart, checkExpansionSlug, checkHelperKey, checkHelpersOnce, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkRows, checkSlug, checkTranslations, isFilled } from "./rules"
+import { checkCreatorsOnce, checkDescriptions, checkEndsAfterStart, checkExpansionSlug, checkHelperKey, checkHelpersOnce, checkName, checkNameTranslations, checkNotItself, checkPlayersMax, checkRows, checkSlug, checkTranslations, isFilled } from "./rules"
 
 /** What the Studio hands a rule: the document being edited, which is not there when a seed checks the rule. */
 const within = (document?: Record<string, unknown>) => ({ document }) as unknown as ValidationContext
@@ -219,6 +219,26 @@ describe("checkTranslations", () => {
   it("is not fooled by what is not a list of rows", () => {
     expect(checkTranslations("a text")).toBe(true)
     expect(checkTranslations([null, "x", 3])).toBe(true)
+  })
+})
+
+describe("checkDescriptions", () => {
+  it("accepts no description, an empty English row, and a description of 240 characters at most in each language", () => {
+    expect(checkDescriptions(undefined)).toBe(true)
+    expect(checkDescriptions([row("en")])).toBe(true)
+    expect(checkDescriptions([row("en", "a".repeat(240)), row("fr", "b".repeat(240))])).toBe(true)
+  })
+
+  it("refuses a language over 240 characters, says how long it is, and points at the value of that row", () => {
+    expect(checkDescriptions([row("en", "a".repeat(240)), row("fr", "b".repeat(241))])).toEqual({
+      message: "A description is 240 characters at most (this one has 241)",
+      paths: [[{ _key: "fr" }, "value"]],
+    })
+  })
+
+  it("keeps the rules of the translations: English first, one row per language", () => {
+    expect(checkDescriptions([row("en"), row("fr", "Un jeu")])).toMatchObject({ message: expect.stringContaining("Fill English first") })
+    expect(checkDescriptions([row("en", "A"), { ...row("en", "B"), _key: "again" }])).toMatchObject({ message: "There can only be one row per language" })
   })
 })
 

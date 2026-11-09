@@ -3,7 +3,7 @@ import { DEFAULT_PLATFORM_LANGUAGE, PLATFORM_LANGUAGES, translatedRowType, trans
 import { createSchema, validateDocument } from "sanity"
 import { describe, expect, it } from "vitest"
 import studio from "../sanity.config"
-import { TRANSLATED_FIELDS, TRANSLATED_KINDS } from "./constants"
+import { DESCRIPTION_MAX, TRANSLATED_FIELDS, TRANSLATED_KINDS } from "./constants"
 import { TRANSLATED_FIELD_TYPES, englishRow } from "./translations"
 
 // The translated fields as the Studio builds them: the schema compiled with the plugin's own types, and a document run through the Studio's
@@ -43,6 +43,23 @@ describe("the schema, compiled with the plugin", () => {
       description: ["value: text", "language: string"],
       localizedName: ["value: string", "language: string"],
     })
+  })
+
+  it("keeps a description to 240 characters in each language, on the field of a game and of an expansion: the rule is the array's own, since one on the type of the value would be handed to the row and measure an object", () => {
+    const refusals = (type: string, length: number) => {
+      // the compiled schema holds the validation of a field as Rules that were handed their calls: `_rules` is what they state
+      const rules = (fieldOf(type, "description").type.validation as { _rules: { flag: string; constraint: unknown }[] }[]).flatMap((rule) => rule._rules)
+      const rows = [{ _key: "en", _type: translatedRowType("description"), language: "en", value: "a".repeat(length) }]
+      return rules.filter((rule) => rule.flag === "custom").map((rule) => (rule.constraint as (value: unknown) => unknown)(rows))
+    }
+    for (const type of ["game", "expansion"]) {
+      expect(refusals(type, DESCRIPTION_MAX), type).toEqual([true])
+      expect(refusals(type, DESCRIPTION_MAX + 1), type).toEqual([expect.objectContaining({ message: expect.stringContaining("240 characters at most"), paths: [[{ _key: "en" }, "value"]] })])
+    }
+    expect(DESCRIPTION_MAX).toBe(240)
+    // and the type of the value, which the plugin hands to the row too, states no length
+    const value = (schema.get(translatedRowType("description")) as { fields: { name: string; type: { validation?: { _rules: { flag: string }[] }[] } }[] }).fields.find((field) => field.name === "value")
+    expect((value?.type.validation ?? []).flatMap((rule) => rule._rules).map((rule) => rule.flag)).not.toContain("max")
   })
 
   it("makes every translated field of the catalog an array of the rows of its kind", () => {

@@ -220,6 +220,13 @@ export const GALLERY_MAX = 5
 export const HELPERS_MAX = 8
 
 /**
+ * The longest description of a game or of an expansion of the platform's catalog, in characters and in each language: what the page of a
+ * game says under its figures, and its start is what a search result says of it. The limit of the `description` field in the Studio
+ * (`checkDescriptions` of the platform's rules).
+ */
+export const DESCRIPTION_MAX = 240
+
+/**
  * The name of the type that a translated field of this kind has (`sanity-plugin-internationalized-array` makes it; `field-translations.ts` sets the
  * plugin up): `translatedType("string")` is `internationalizedArrayString`, the one of a custom kind named `description` is
  * `internationalizedArrayDescription`. The plugin writes the first letter in capitals, so a kind is one word, or camelCase. A row of the
