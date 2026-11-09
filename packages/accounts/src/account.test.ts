@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { EXTERNAL_PROVIDERS, PROVIDERS, SIGN_IN_PROVIDERS, accountOf, emailOf, initialsOf, type AuthUser } from "./account"
+import { CONNECTION_PROVIDERS, EXTERNAL_PROVIDERS, PROVIDERS, SIGN_IN_PROVIDERS, accountOf, canUnlink, emailOf, initialsOf, isConnection, waysIn, type AuthUser, type LinkedService } from "./account"
 
 const google: AuthUser = {
   id: "u-1",
@@ -275,5 +275,43 @@ describe("accountOf, an account the hub made for an external provider", () => {
     expect(accountOf({ ...steamMember, app_metadata: { provider: "steam", providers: ["steam"] } }).provider).toBeNull()
     expect(accountOf({ ...steamMember, app_metadata: { ...steamMember.app_metadata, pbgo_origin: "myspace" } }).provider).toBeNull()
     expect(accountOf({ id: "u-2", email: "marly@example.com", app_metadata: { provider: "email", providers: ["email"] } }).provider).toBeNull()
+  })
+})
+
+describe("the connections", () => {
+  it("are Twitch alone: linked to an account for the profile, and never a way to sign in", () => {
+    expect([...CONNECTION_PROVIDERS]).toEqual(["twitch"])
+    expect(isConnection("twitch")).toBe(true)
+    for (const provider of ["google", "discord", "steam", "email", ""]) expect(isConnection(provider), provider).toBe(false)
+    for (const provider of CONNECTION_PROVIDERS) expect(SIGN_IN_PROVIDERS).not.toContain(provider)
+  })
+})
+
+describe("the ways into an account", () => {
+  const service = (provider: LinkedService["provider"]): LinkedService => ({ provider, detail: null })
+
+  it("are the services it holds but the connections", () => {
+    expect(waysIn([service("email"), service("google"), service("twitch"), service("steam")]).map((way) => way.provider)).toEqual(["email", "google", "steam"])
+  })
+
+  it("keep a connection as the way in of an account that holds nothing else (it came with Twitch, before Twitch stopped signing anyone in)", () => {
+    expect(waysIn([service("twitch")]).map((way) => way.provider)).toEqual(["twitch"])
+    expect(waysIn([])).toEqual([])
+  })
+
+  it("let a service go only while another way in is left, the connections not counting", () => {
+    const linked = [service("email"), service("google"), service("twitch")]
+    expect(canUnlink(linked, "google")).toBe(true)
+    expect(canUnlink(linked, "email")).toBe(true)
+    expect(canUnlink(linked, "twitch")).toBe(true)
+    // Google and Twitch: Twitch signs nobody in, so Google is the last way
+    expect(canUnlink([service("google"), service("twitch")], "google")).toBe(false)
+    expect(canUnlink([service("google"), service("twitch")], "twitch")).toBe(true)
+    // An account that came with Steam, which is all it has
+    expect(canUnlink([service("steam")], "steam")).toBe(false)
+    expect(canUnlink([service("steam"), service("google")], "steam")).toBe(true)
+    expect(canUnlink([service("steam"), service("twitch")], "steam")).toBe(false)
+    // The only connection of an account that has no other way: it stays
+    expect(canUnlink([service("twitch")], "twitch")).toBe(false)
   })
 })

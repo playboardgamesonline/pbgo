@@ -44,7 +44,7 @@ function ProviderButton({
       className={cn("h-10 w-full rounded-xl", TILES[brand], className)}
       {...props}
     >
-      {pending ? <Spinner className="size-5" /> : <BrandMark brand={brand} className="size-5" />}
+      {pending ? <Spinner className="size-5" /> : <BrandMark brand={brand} tone="current" className="size-5" />}
     </Button>
   )
 }

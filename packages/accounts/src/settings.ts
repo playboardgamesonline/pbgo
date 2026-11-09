@@ -60,6 +60,8 @@ export type SettingsProblem =
   | "last-service"
   /** The service's account is already another member's. */
   | "service-taken"
+  /** The member already has an account of that service linked: one at most, they unlink it first. */
+  | "has-another"
   | "network"
   | "other"
 
@@ -110,6 +112,7 @@ export const SETTINGS_MESSAGES: Record<SettingsProblem, string> = {
   "manual-linking": "Linking another service is not available right now.",
   "last-service": "You need at least one way to sign in. Add another one first.",
   "service-taken": "That account is already linked to another member.",
+  "has-another": "You already have an account of that service linked. Unlink it first.",
   network: "We could not reach the server. Check your connection and try again.",
   other: "That did not work. Try again.",
 }
@@ -117,6 +120,43 @@ export const SETTINGS_MESSAGES: Record<SettingsProblem, string> = {
 /** The sentence for a change that failed, from the error Supabase Auth answered with (or the network layer threw). */
 export function settingsMessage(error: unknown): string {
   return SETTINGS_MESSAGES[settingsProblem(error)]
+}
+
+/** What the way back of a link made through the hub's own routes (Steam) says of how it went, in the `?steam=` of the settings: done, or the sentence of why it was not. */
+export type LinkNotice = { done: true } | { done: false; message: string }
+
+/**
+ * Reads the `?steam=` that `/auth/steam/callback` adds to the settings after a link: `linked`, `taken` (another member holds the account), `has-another` (the member has a Steam account linked already) or `failed`. Anything else, or
+ * nothing, is nothing to say: a made-up value shows no sentence of its own, only the ones above, which are ours.
+ */
+export function linkNoticeOf(value: string | null | undefined): LinkNotice | null {
+  switch (value) {
+    case "linked":
+      return { done: true }
+    case "taken":
+      return { done: false, message: SETTINGS_MESSAGES["service-taken"] }
+    case "has-another":
+      return { done: false, message: SETTINGS_MESSAGES["has-another"] }
+    case "failed":
+      return { done: false, message: SETTINGS_MESSAGES.other }
+    default:
+      return null
+  }
+}
+
+/** What the answer of `POST /api/hub/unlink-external` (`{ error: <code> }`) comes to: nobody is signed in, or which way the change failed (`SETTINGS_MESSAGES`). */
+export function unlinkProblem(code: unknown): SettingsProblem | "no-session" {
+  switch (code) {
+    case "NOT_SIGNED_IN":
+      return "no-session"
+    case "LAST_WAY_IN":
+      return "last-service"
+    case "RATE_LIMITED":
+    case "TOO_MANY_REQUESTS":
+      return "rate-limit"
+    default:
+      return "other"
+  }
 }
 
 /** A browser and the system it runs on, as far as its user agent says. */

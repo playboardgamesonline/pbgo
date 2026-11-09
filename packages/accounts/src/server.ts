@@ -107,7 +107,7 @@ export function createAdminClient(): SupabaseClient | null {
   return config && secret ? createClient(config.url, secret, { auth: { persistSession: false, autoRefreshToken: false } }) : null
 }
 
-/** What `externalSignIn` is given, made of a client of the secret key: Supabase's admin API and the table `external_identities` (migration 0010). */
+/** What `externalSignIn`, `externalLink` and `externalUnlink` are given, made of a client of the secret key: Supabase's admin API and the table `external_identities` (migration 0010). */
 export function externalDeps(admin: SupabaseClient): ExternalDeps {
   const api = admin.auth.admin
   return {
@@ -133,6 +133,10 @@ export function externalDeps(admin: SupabaseClient): ExternalDeps {
         // 23505: the identity is held already, by a sign-in that came a moment before
         if (error.code === "23505") return "taken"
         throw new Error(error.message)
+      },
+      async remove(provider, userId) {
+        const { error } = await admin.from("external_identities").delete().eq("provider", provider).eq("user_id", userId)
+        if (error) throw new Error(error.message)
       },
     },
   }
