@@ -14,7 +14,7 @@ import {
   steamConfirms,
   steamReturnTo,
 } from "@pbgo/accounts"
-import { createAdminClient, createAuthClient, externalDeps, externalProvidersOn } from "@pbgo/accounts/server"
+import { createAdminClient, createAuthClient, externalDeps, externalProvidersOn, secondStepPendingAfterSignIn } from "@pbgo/accounts/server"
 import { rateLimit } from "@pbgo/core/server/rate-limit"
 
 /**
@@ -71,7 +71,9 @@ export async function GET(request: NextRequest) {
   const session = supabase ? await supabase.auth.verifyOtp({ token_hash: result.tokenHash, type: "email" }) : null
   if (!session || session.error || !session.data.user || !session.data.session) return failed("session")
 
-  const response = finish(NextResponse.redirect(new URL(next, origin)))
+  // A member whose account asks for a second step (PLT-129) goes to the sign-in, which asks for the code and brings them on to `next`: it can be a page that anybody sees, where they would be left as a guest
+  const second = supabase !== null && (await secondStepPendingAfterSignIn(supabase, session.data.session.access_token))
+  const response = finish(NextResponse.redirect(new URL(second ? `/login?next=${encodeURIComponent(next)}` : next, origin)))
   // As for every sign-in, the language the account keeps goes out with the session (`/auth/callback`)
   const language = languageOf(session.data.user)
   if (language) response.cookies.set(LANGUAGE_COOKIE, language, LANGUAGE_COOKIE_OPTIONS)

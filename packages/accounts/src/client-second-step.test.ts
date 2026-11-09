@@ -1,4 +1,4 @@
-import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js"
+import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from "@supabase/supabase-js"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 // The browser's Supabase client is a stub: what is under test is what this module asks of it, and what it does with the answer. The second step is the code of an authenticator app (PLT-129, `./mfa`).
@@ -110,46 +110,56 @@ describe("secondStepNeeded", () => {
 describe("verifySecondStep", () => {
   it("gives the code to the authenticator app of the member and is through when it is accepted", async () => {
     const auth = stubClient({ factors: [verified("f-1")] })
-    expect(await (await client()).verifySecondStep("123456")).toBeNull()
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "done" })
     expect(auth.mfa.challengeAndVerify).toHaveBeenCalledTimes(1)
     expect(auth.mfa.challengeAndVerify).toHaveBeenCalledWith({ factorId: "f-1", code: "123456" })
   })
 
   it("tells a wrong code in plain words, never in Supabase's", async () => {
     stubClient({ factors: [verified("f-1")], rejects: { "f-1": wrong } })
-    expect(await (await client()).verifySecondStep("123456")).toBe("That code is wrong or has expired. Check your app for the one it shows now.")
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "failed", message: "That code is wrong or has expired. Check your app for the one it shows now." })
+  })
+
+  it("tells a sign-in that has ended, which is not a wrong code: the card offers to sign in again instead of asking for another try", async () => {
+    // The session was ended elsewhere (the member signed out their other devices, or another device passed its second step): the Auth server knows none, or the browser holds none
+    stubClient({ factors: [verified("f-1")], listError: new AuthSessionMissingError() })
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "session-ended", message: "Your sign-in has ended. Sign in again." })
+    stubClient({ factors: [verified("f-1")], rejects: { "f-1": new AuthApiError("Session from session_id claim in JWT does not exist", 403, "session_not_found") } })
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "session-ended", message: "Your sign-in has ended. Sign in again." })
   })
 
   it("tries the next app while the code is wrong, since the member does not say which one it comes from", async () => {
     const auth = stubClient({ factors: [verified("f-1"), verified("f-2")], rejects: { "f-1": wrong } })
-    expect(await (await client()).verifySecondStep("123456")).toBeNull()
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "done" })
     expect(auth.mfa.challengeAndVerify.mock.calls.map(([params]) => params.factorId)).toEqual(["f-1", "f-2"])
   })
 
   it("stops at an answer that is not a wrong code: a limit would be the same for the next app, and each try counts against it", async () => {
     const auth = stubClient({ factors: [verified("f-1"), verified("f-2")], rejects: { "f-1": limited } })
-    expect(await (await client()).verifySecondStep("123456")).toBe("Too many attempts. Wait a minute and try again.")
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "failed", message: "Too many attempts. Wait a minute and try again." })
     expect(auth.mfa.challengeAndVerify).toHaveBeenCalledTimes(1)
   })
 
   it("does not ask the Auth server about a text that is not six digits", async () => {
     const auth = stubClient({ factors: [verified("f-1")] })
     const { verifySecondStep } = await client()
-    for (const code of ["", "12345", "1234567", "12345a", "123 456", " 123456"]) expect(await verifySecondStep(code)).toBe("That code is wrong or has expired. Check your app for the one it shows now.")
+    for (const code of ["", "12345", "1234567", "12345a", "123 456", " 123456"]) {
+      expect(await verifySecondStep(code)).toEqual({ status: "failed", message: "That code is wrong or has expired. Check your app for the one it shows now." })
+    }
     expect(auth.mfa.challengeAndVerify).not.toHaveBeenCalled()
     expect(auth.mfa.listFactors).not.toHaveBeenCalled()
   })
 
   it("tells what went wrong when the factors cannot be listed, or the network is down", async () => {
     stubClient({ listError: limited })
-    expect(await (await client()).verifySecondStep("123456")).toBe("Too many attempts. Wait a minute and try again.")
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "failed", message: "Too many attempts. Wait a minute and try again." })
     stubClient({ throws: new AuthRetryableFetchError("Failed to fetch", 0) })
-    expect(await (await client()).verifySecondStep("123456")).toBe("We could not reach the server. Check your connection and try again.")
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "failed", message: "We could not reach the server. Check your connection and try again." })
   })
 
   it("says it is not available when the hub has no Supabase project", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
-    expect(await (await client()).verifySecondStep("123456")).toBe("Sign-in is not available here.")
+    expect(await (await client()).verifySecondStep("123456")).toEqual({ status: "failed", message: "Sign-in is not available here." })
     expect(createBrowserClient).not.toHaveBeenCalled()
   })
 })

@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({
 }))
 
 import { DEMO_ACCOUNT } from "./demo"
-import { getAccount, getSessionState, requireAccount } from "./server"
+import { getAccount, getSessionState, requireAccount, secondStepPendingAfterSignIn } from "./server"
 
 /** An access token the way Supabase Auth shapes one: the middle part holds the claims, the rest is nothing here. */
 const token = (aal: "aal1" | "aal2") => `eyJhbGciOiJFUzI1NiJ9.${btoa(JSON.stringify({ sub: "u-1", aal })).replace(/=+$/, "")}.c2ln`
@@ -106,5 +106,38 @@ describe("getAccount and requireAccount", () => {
   it("send a session that has not passed the second step to the sign-in, which asks for the code and brings it back", async () => {
     stubClient({ user: { id: "u-1", factors: [totp] }, aal: "aal1" })
     await expect(requireAccount("/me/settings/account")).rejects.toThrow("redirect /login?next=%2Fme%2Fsettings%2Faccount")
+  })
+})
+
+describe("secondStepPendingAfterSignIn", () => {
+  /** A client that answers `getUser(token)` like the Auth server: the user of that token, with the factors it lists. */
+  const clientOf = (user: Record<string, unknown> | null, fails = false) => {
+    const getUser = vi.fn(async (_token: string) => {
+      if (fails) throw new Error("fetch failed")
+      return { data: { user } }
+    })
+    return { client: { auth: { getUser } } as never, getUser }
+  }
+
+  it("is true for a session that was just made with the first factor alone, of a member who has set up the second one", async () => {
+    const { client, getUser } = clientOf({ id: "u-1", factors: [totp] })
+    expect(await secondStepPendingAfterSignIn(client, token("aal1"))).toBe(true)
+    // The user is asked for with the token of the session that was just made: nothing is read back from cookies that are being written
+    expect(getUser).toHaveBeenCalledWith(token("aal1"))
+  })
+
+  it("is false once the session has passed it, and for a member who has none or whose set-up was never finished", async () => {
+    expect(await secondStepPendingAfterSignIn(clientOf({ id: "u-1", factors: [totp] }).client, token("aal2"))).toBe(false)
+    expect(await secondStepPendingAfterSignIn(clientOf({ id: "u-1", factors: [] }).client, token("aal1"))).toBe(false)
+    expect(await secondStepPendingAfterSignIn(clientOf({ id: "u-1", factors: [{ ...totp, status: "unverified" }] }).client, token("aal1"))).toBe(false)
+  })
+
+  it("is false, and asks nothing, when there is no token; and false when the Auth server cannot say: the page that comes next decides", async () => {
+    const { client, getUser } = clientOf({ id: "u-1", factors: [totp] })
+    expect(await secondStepPendingAfterSignIn(client, undefined)).toBe(false)
+    expect(await secondStepPendingAfterSignIn(client, null)).toBe(false)
+    expect(getUser).not.toHaveBeenCalled()
+    expect(await secondStepPendingAfterSignIn(clientOf(null).client, token("aal1"))).toBe(false)
+    expect(await secondStepPendingAfterSignIn(clientOf({ id: "u-1", factors: [totp] }, true).client, token("aal1"))).toBe(false)
   })
 })

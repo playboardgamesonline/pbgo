@@ -11,7 +11,7 @@ import { COUNTRY_KEY } from "./details"
 import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
 import { applyDisplay, syncDisplay } from "./display"
 import { NICKNAME_KEY, PREFERENCE_KEYS, type PreferenceName, type Preferences } from "./preferences"
-import { MFA_MESSAGES, TOTP_FACTOR_NAME, isTotpCode, mfaMessage, qrImageOf, secondStepPendingOf } from "./mfa"
+import { MFA_MESSAGES, TOTP_FACTOR_NAME, isTotpCode, mfaMessage, mfaProblem, qrImageOf, secondStepPendingOf } from "./mfa"
 import { safeNext } from "./redirect"
 import { syncLanguage } from "./language-sync"
 import { isChangingLanguage } from "./set-language"
@@ -275,19 +275,23 @@ async function proveSecondStep(supabase: SupabaseClient, code: string): Promise<
   return { error: failed }
 }
 
+/** What giving a code at sign-in came to: they are through, the code did not work (with the sentence to tell them, and a wrong code and an expired one are one answer), or their sign-in has ended (a session that was ended elsewhere: signing in again is the way, the card says so). */
+export type VerifyOutcome = { status: "done" } | { status: "failed"; message: string } | { status: "session-ended"; message: string }
+
 /**
- * Gives the Auth server the code of an authenticator app to finish a sign-in: the session that holds the first factor becomes one that holds both (`aal2`), the browser's cookies carry it, and the page can go on to `next` with a whole page load. Resolves
- * with a sentence for the visitor when it fails (a wrong code and an expired one are one answer) and with null when they are through. A text that is not six digits is told wrong without asking: every try counts against the Auth server's limit.
+ * Gives the Auth server the code of an authenticator app to finish a sign-in: the session that holds the first factor becomes one that holds both (`aal2`), the browser's cookies carry it, and the page can go on to `next` with a whole page load.
+ * A text that is not six digits is told wrong without asking: every try counts against the Auth server's limit.
  */
-export async function verifySecondStep(code: string): Promise<string | null> {
+export async function verifySecondStep(code: string): Promise<VerifyOutcome> {
   const supabase = browserClient()
-  if (!supabase) return "Sign-in is not available here."
-  if (!isTotpCode(code)) return MFA_MESSAGES["wrong-code"]
+  if (!supabase) return { status: "failed", message: "Sign-in is not available here." }
+  if (!isTotpCode(code)) return { status: "failed", message: MFA_MESSAGES["wrong-code"] }
+  const told = (error: unknown): VerifyOutcome => ({ status: mfaProblem(error) === "session-ended" ? "session-ended" : "failed", message: mfaMessage(error) })
   try {
     const failed = await proveSecondStep(supabase, code)
-    return failed ? mfaMessage(failed.error) : null
+    return failed ? told(failed.error) : { status: "done" }
   } catch (error) {
-    return mfaMessage(error)
+    return told(error)
   }
 }
 

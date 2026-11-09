@@ -75,6 +75,21 @@ export async function getAccount(): Promise<Account | null> {
   return (await getSessionState()).account
 }
 
+/**
+ * Whether the session that a sign-in has just made still has the second step to pass (PLT-129). A way in that ends in a redirect (a provider's way back, the link of an e-mail, Steam) goes on to `next`, which can be a page that anybody
+ * sees: it would draw a guest, and nothing would ask for the code. Those routes ask here and send such a session to the sign-in (`/login?next=`), which does. The user is asked of the Auth server with the token of the session that was
+ * just made, so that nothing is read back from cookies that are being written, and its factors are fresh. False when it could not be told: the page that comes next asks the server again, which is the one that decides.
+ */
+export async function secondStepPendingAfterSignIn(supabase: SupabaseClient, accessToken: string | null | undefined): Promise<boolean> {
+  if (!accessToken) return false
+  try {
+    const { data } = await supabase.auth.getUser(accessToken)
+    return secondStepPendingOf(data.user, accessToken)
+  } catch {
+    return false
+  }
+}
+
 /** The account of a page that is for a signed-in visitor alone: a visitor who is not signed in is sent to `/login` and brought back to `path`. */
 export async function requireAccount(path: string): Promise<Account> {
   const account = await getAccount()

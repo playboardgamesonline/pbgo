@@ -1,4 +1,4 @@
-import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js"
+import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError } from "@supabase/supabase-js"
 import { describe, expect, it } from "vitest"
 import { accountOf } from "./account"
 import { MFA_MESSAGES, TOTP_LENGTH, aalOf, formatSetupKey, isTotpCode, mfaMessage, mfaProblem, qrImageOf, secondStepDevicesOf, secondStepPending, secondStepPendingOf, sinceLabel } from "./mfa"
@@ -149,6 +149,12 @@ describe("mfaProblem and mfaMessage", () => {
   it("tells too many apps, and a session that has not passed the second step", () => {
     expect(mfaProblem(api("too_many_enrolled_mfa_factors"))).toBe("too-many-devices")
     expect(mfaProblem(api("insufficient_aal", 401))).toBe("reauthenticate")
+  })
+
+  it("tells a session that is gone, which signing in again puts right: the Auth server says it knows none, the browser holds none, or its token is no good any more", () => {
+    expect(mfaProblem(new AuthSessionMissingError())).toBe("session-ended")
+    for (const code of ["session_not_found", "session_expired", "bad_jwt", "refresh_token_not_found", "refresh_token_already_used"]) expect(mfaProblem(api(code, 403))).toBe("session-ended")
+    expect(mfaMessage(new AuthSessionMissingError())).toBe("Your sign-in has ended. Sign in again.")
   })
 
   it("tells the limits: the one of Supabase Auth, and the one a hook of the project sets", () => {

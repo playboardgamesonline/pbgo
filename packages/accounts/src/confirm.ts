@@ -58,10 +58,17 @@ export type TokenVerifier = {
  * expired, was spent already, was altered, or an Auth server that did not answer): the visitor is told that the link did not work, and not more, and nothing is logged, since the request holds a secret.
  */
 export async function confirmEmail(supabase: TokenVerifier, request: ConfirmRequest): Promise<boolean> {
+  return (await confirmEmailSession(supabase, request)) !== null
+}
+
+/** Like `confirmEmail`, with the access token of the session it made (what the route needs to tell whether the second step of the account is still to pass), or null when it did not work. */
+export async function confirmEmailSession(supabase: TokenVerifier, request: ConfirmRequest): Promise<{ accessToken: string | null } | null> {
   try {
     const { data, error } = await supabase.auth.verifyOtp({ token_hash: request.tokenHash, type: request.type })
-    return !error && Boolean(data.user) && Boolean(data.session)
+    if (error || !data.user || !data.session) return null
+    const token = (data.session as { access_token?: unknown }).access_token
+    return { accessToken: typeof token === "string" ? token : null }
   } catch {
-    return false
+    return null
   }
 }

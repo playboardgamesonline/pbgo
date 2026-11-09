@@ -79,6 +79,8 @@ export type MfaProblem =
   | "too-many-devices"
   /** The session has not passed the second step, which this asks for: signing in again leads there. */
   | "reauthenticate"
+  /** The session the call was made with is gone: it was ended elsewhere (the member signed out their other devices, or another device passed the second step, which ends the sessions that have not). Signing in again is the way. */
+  | "session-ended"
   | "rate-limit"
   | "network"
   | "server"
@@ -93,13 +95,21 @@ const BY_CODE: Record<string, MfaProblem> = {
   mfa_totp_verify_not_enabled: "unavailable",
   too_many_enrolled_mfa_factors: "too-many-devices",
   insufficient_aal: "reauthenticate",
+  // The session this was asked with is gone, or its token is no good any more
+  session_not_found: "session-ended",
+  session_expired: "session-ended",
+  bad_jwt: "session-ended",
+  refresh_token_not_found: "session-ended",
+  refresh_token_already_used: "session-ended",
   // Only a hook of the project can say this, and it says it to stop somebody who is guessing
   mfa_verification_rejected: "rate-limit",
 }
 
 /** Which way a failed call went: its code decides when it is one of the above, else the network, a limit or a server that failed. */
 export function mfaProblem(error: unknown): MfaProblem {
-  const { code } = failureOf(error)
+  const { code, name } = failureOf(error)
+  // The client library makes an `AuthSessionMissingError` (status 400, no code) of an Auth server that says it knows no such session, or of a browser that holds none
+  if (name === "AuthSessionMissingError") return "session-ended"
   const known = code === undefined ? undefined : BY_CODE[code]
   if (known) return known
   switch (failureKind(error)) {
@@ -122,6 +132,7 @@ export const MFA_MESSAGES: Record<MfaProblem, string> = {
   unavailable: "Multi-factor authentication is not available right now.",
   "too-many-devices": "You cannot add another authenticator app. Remove one first.",
   reauthenticate: "For your security, sign in again and enter your code, then try once more.",
+  "session-ended": "Your sign-in has ended. Sign in again.",
   "rate-limit": "Too many attempts. Wait a minute and try again.",
   network: "We could not reach the server. Check your connection and try again.",
   server: "Something went wrong on our side. Try again in a few minutes.",
