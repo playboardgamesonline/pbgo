@@ -34,6 +34,17 @@ export function isExternalProvider(provider: string): provider is ExternalProvid
 }
 
 /**
+ * The providers whose account is linked for the member's profile and is no way to sign in: Twitch, which signs nobody in (`SIGN_IN_PROVIDERS` has no button for it). The settings draw them apart, as Connections, and they are not
+ * among the ways into an account (`waysIn`).
+ */
+export const CONNECTION_PROVIDERS: readonly AnyProvider[] = ["twitch"]
+
+/** Whether a service is a connection (`CONNECTION_PROVIDERS`): linked to the account, not a way into it. */
+export function isConnection(provider: string): boolean {
+  return CONNECTION_PROVIDERS.some((candidate) => candidate === provider)
+}
+
+/**
  * The domain of the e-mail address that Supabase Auth is given for an account that comes from an external provider, which has none and whom Supabase would not know without one. `.invalid` is reserved for names that can never
  * exist: no mail can reach such an address, nobody can sign up with it, and `accountOf` never shows it.
  */
@@ -60,6 +71,20 @@ export const fallbackNameOf = (provider: AnyProvider): string => `${PROVIDER_NAM
 
 /** A way into the account: one of the providers, or the e-mail address and the password (`email`), with what that identity says of itself (its address, else its name) to tell it from another, when it says anything. */
 export type LinkedService = { provider: AnyProvider | "email"; detail: string | null }
+
+/**
+ * The ways into an account among the services it holds: all but the connections (`isConnection`). An account that holds nothing else (a member who came with Twitch, before it stopped signing anyone in) keeps its connection as the
+ * way it has, so that its last way in is never taken for none.
+ */
+export function waysIn(linked: readonly LinkedService[]): LinkedService[] {
+  const ways = linked.filter((service) => !isConnection(service.provider))
+  return ways.length > 0 ? ways : [...linked]
+}
+
+/** Whether a service of the account may be taken off: only while another way in is left. A connection can go whenever the account has a way in without it, and the last way in never goes. */
+export function canUnlink(linked: readonly LinkedService[], provider: LinkedService["provider"]): boolean {
+  return waysIn(linked).some((way) => way.provider !== provider)
+}
 
 /** A signed-in visitor, as far as the hub draws them: a name, a picture, the way they came in. */
 export type Account = {
@@ -106,9 +131,10 @@ const text = (value: unknown): string | null => (typeof value === "string" && va
 
 /**
  * The ways into an account that the user holds: an identity of a provider of ours, or of the e-mail address, with its address else its name, then the external providers linked to it (`app_metadata.external`), with the name
- * they gave. An identity of any other provider is not one we draw, and neither is the e-mail address that stands in for none (`isExternalEmail`).
+ * they gave. An identity of any other provider is not one we draw, and neither is the e-mail address that stands in for none (`isExternalEmail`). Exported for the server, which reads the same list of an account before it
+ * takes one of its services off (`externalUnlink`).
  */
-function linkedOf(user: AuthUser): LinkedService[] {
+export function linkedServicesOf(user: AuthUser): LinkedService[] {
   const identities = (user.identities ?? []).flatMap((identity): LinkedService[] => {
     const provider = identity.provider === "email" ? "email" : PROVIDERS.find((candidate) => candidate === identity.provider)
     if (!provider) return []
@@ -150,7 +176,7 @@ export function accountOf(user: AuthUser): Account {
     language: languageOf(user),
     preferences: preferencesOf(user),
     country: countryOf(user),
-    linked: linkedOf(user),
+    linked: linkedServicesOf(user),
     secondStep: secondStepDevicesOf(user.factors),
   }
 }

@@ -5,12 +5,28 @@
 export { AFTER_SIGN_IN, safeNext } from "./redirect"
 export { OLDEST_AGE, RESTRICTED_FROM, SITE_MINIMUM_AGE, ageInYears, ageOn, ageRefusal, birthdateProblem, isRealDay, restrictedAge, utcDayOf } from "./age"
 export type { AgeRefusal, AgeSubject, BirthdateProblem, CalendarDate } from "./age"
-export { EXTERNAL_EMAIL_DOMAIN, EXTERNAL_PROVIDERS, PROVIDERS, PROVIDER_NAMES, SIGN_IN_PROVIDERS, accountOf, emailOf, initialsOf, isExternalEmail, isExternalProvider } from "./account"
+export {
+  CONNECTION_PROVIDERS,
+  EXTERNAL_EMAIL_DOMAIN,
+  EXTERNAL_PROVIDERS,
+  PROVIDERS,
+  PROVIDER_NAMES,
+  SIGN_IN_PROVIDERS,
+  accountOf,
+  canUnlink,
+  emailOf,
+  initialsOf,
+  isConnection,
+  isExternalEmail,
+  isExternalProvider,
+  linkedServicesOf,
+  waysIn,
+} from "./account"
 export type { Account, AnyProvider, AuthUser, ExternalProvider, LinkedService, Provider } from "./account"
 export { NONCE_MAX_AGE_MS, STATE_PATTERN, STEAM_FALLBACK_NAME, STEAM_LOGIN_URL, STEAM_STATE_COOKIE, STEAM_STATE_MAX_AGE, assertionOf, checkAssertion, fetchSteamProfile, newState, sameSecret, steamConfirms, steamLoginUrl, steamProfileOf, steamReturnTo } from "./steam"
 export type { AssertionCheck, AssertionProblem, SteamProfile } from "./steam"
-export { externalEmail, externalSignIn } from "./external"
-export type { ExternalAdmin, ExternalDeps, ExternalIdentity, ExternalProfile, ExternalSignIn, ExternalStep, ExternalStore } from "./external"
+export { externalEmail, externalLink, externalSignIn, externalUnlink } from "./external"
+export type { ExternalAdmin, ExternalDeps, ExternalIdentity, ExternalLink, ExternalProfile, ExternalSignIn, ExternalStep, ExternalStore, ExternalUnlink } from "./external"
 export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_CHOICES, TIME_FORMATS, hourCycleOf, isReduceChoice, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
 export type { PreferenceName, Preferences, ReduceChoice, SwitchPreferenceName, TimeFormat } from "./preferences"
 export {
@@ -28,8 +44,21 @@ export {
   isCountryCode,
 } from "./details"
 export type { BirthdateField, BirthdateFields } from "./details"
-export { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, nicknameCharactersLeft, settingsMessage, settingsProblem } from "./settings"
-export type { Device, PasswordProblems, SettingsProblem } from "./settings"
+export {
+  ACCOUNT_SETTINGS_PATH,
+  SETTINGS_MESSAGES,
+  checkEmailChange,
+  checkNickname,
+  checkPasswordChange,
+  describeDevice,
+  deviceLabel,
+  linkNoticeOf,
+  nicknameCharactersLeft,
+  settingsMessage,
+  settingsProblem,
+  unlinkProblem,
+} from "./settings"
+export type { Device, LinkNotice, PasswordProblems, SettingsProblem } from "./settings"
 export {
   DEFAULT_LANGUAGE,
   LANGUAGE_COOKIE,

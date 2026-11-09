@@ -94,7 +94,7 @@ export default function PrivacyPolicy() {
       </LegalSection>
 
       <LegalSection id="accounts" title="When you sign in">
-        <LegalText>An account is optional. You sign in with Google, Discord or Steam, and you can link a Twitch account to yours. Some accounts use an e-mail address and a password instead.</LegalText>
+        <LegalText>An account is optional. You sign in with Google, Discord or Steam, and you can link a Twitch account to yours, which does not sign you in. From your settings you can also link a Steam account to an account you made another way. Some accounts use an e-mail address and a password instead.</LegalText>
         <LegalEntries
           items={[
             {
@@ -103,7 +103,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Signing in with Steam",
-              text: "Steam gives us no e-mail address. When you sign in with it, Steam tells us the number of your Steam account (the one in the address of your Steam profile), and our server then asks Steam for the name and the picture of your profile. We keep the number, the name and the picture with your account, to sign you in and to show your name and picture to you and to the others at your table. Our sign-in service needs an address for every account, so we make one up for yours: it ends in external.pbgo.invalid, it cannot receive any e-mail and it is never shown. We never see your Steam password. Steam learns that you signed in to this site, and its own privacy policy applies to that.",
+              text: "Steam gives us no e-mail address. When you sign in with it, Steam tells us the number of your Steam account (the one in the address of your Steam profile), and our server then asks Steam for the name and the picture of your profile. We keep the number, the name and the picture with your account, to sign you in and to show your name and picture to you and to the others at your table. Our sign-in service needs an address for every account, so we make one up for yours: it ends in external.pbgo.invalid, it cannot receive any e-mail and it is never shown. We never see your Steam password. Steam learns that you signed in to this site, and its own privacy policy applies to that. You can also link a Steam account to an account you made another way, from your settings: the same number, name and picture are kept with it, nothing else about your account changes, and unlinking it deletes them.",
             },
             {
               name: "E-mail accounts",
@@ -236,7 +236,7 @@ export default function PrivacyPolicy() {
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]
               : []),
             { name: "Sanity", text: "Stores the texts, pictures and videos of the games. Your browser loads the pictures and videos from its servers." },
-            { name: "Google, Discord, Steam and Twitch", text: "Only if you sign in with them (Twitch: if you link it to your account). They learn that you sign in to this site and handle your data under their own policies. For Steam, our server also asks its operator, Valve, to confirm the sign-in and for the name and the picture of your profile." },
+            { name: "Google, Discord, Steam and Twitch", text: "Only if you sign in with them or link them to your account (Twitch can only be linked). They learn that you sign in to this site and handle your data under their own policies. For Steam, our server also asks its operator, Valve, to confirm the sign-in and for the name and the picture of your profile." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
             { name: "Every visitor of a game's page", text: "See the best players of the game: the name and the picture of their account, their rank and their place. Never a rating, and never the games behind it." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },

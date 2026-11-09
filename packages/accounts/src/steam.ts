@@ -41,9 +41,12 @@ export function sameSecret(a: string, b: string): boolean {
   return difference === 0
 }
 
-/** Where Steam sends the visitor back: this site's callback, with the page to go on to and the state, both inside what Steam signs. */
-export function steamReturnTo(origin: string, { next, state }: { next: string; state: string }): string {
-  return `${origin}/auth/steam/callback?next=${encodeURIComponent(next)}&state=${state}`
+/**
+ * Where Steam sends the visitor back: this site's callback, with the page to go on to and the state, both inside what Steam signs. `link` says that the member who is signed in is linking this Steam account to theirs, and not
+ * signing in with it: it is inside what Steam signs too, so a way back cannot be turned from one into the other on the way (the callback builds this address again and Steam's `return_to` has to be the same).
+ */
+export function steamReturnTo(origin: string, { next, state, link = false }: { next: string; state: string; link?: boolean }): string {
+  return `${origin}/auth/steam/callback?next=${encodeURIComponent(next)}&state=${state}${link ? "&link=1" : ""}`
 }
 
 /** The address to send the visitor to: Steam's login, which asks for no particular account (`identifier_select`) and answers at `returnTo`, for the site at `realm`. */

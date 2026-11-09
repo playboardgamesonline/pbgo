@@ -25,10 +25,25 @@ const GOOGLE = [
 ] as const
 
 /**
- * The mark of a brand, in the colour of the text (`currentColor`, so the button that holds it decides) except Google's, which keeps its four. It is decoration: the
- * button says the name.
+ * The colour of each single-colour mark where it stands by itself, on a card: its brand's own, as a token of the platform (`brand-*`, `platform.css`). Steam's is the one exception: its own colour is a near-black that cannot be
+ * seen on the dark cards, and Steam draws its mark white on a dark ground, so it takes the colour of the text.
  */
-export function BrandMark({ brand, className, ...props }: { brand: BrandName } & Omit<React.ComponentProps<"svg">, "viewBox" | "fill" | "children">) {
+const MARK_COLOUR: Record<Exclude<BrandName, "google">, string> = {
+  twitch: "text-brand-twitch",
+  discord: "text-brand-discord",
+  steam: "text-foreground",
+}
+
+/**
+ * The mark of a brand, in the brand's colours: Google's four, and the one colour of the others (`MARK_COLOUR`). `tone="current"` draws a single-colour mark in the colour of the text (`currentColor`) instead, for a mark that
+ * stands on a tile of its brand's colour, where the button that holds it decides (`ProviderButton`); Google's keeps its four either way. It is decoration: the name is said beside it, or by the button.
+ */
+export function BrandMark({
+  brand,
+  tone = "brand",
+  className,
+  ...props
+}: { brand: BrandName; tone?: "brand" | "current" } & Omit<React.ComponentProps<"svg">, "viewBox" | "fill" | "children">) {
   if (brand === "google") {
     return (
       <svg data-slot="brand-mark" data-brand={brand} viewBox="0 0 48 48" aria-hidden="true" className={cn("size-5 shrink-0", className)} {...props}>
@@ -39,7 +54,15 @@ export function BrandMark({ brand, className, ...props }: { brand: BrandName } &
     )
   }
   return (
-    <svg data-slot="brand-mark" data-brand={brand} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={cn("size-5 shrink-0", className)} {...props}>
+    <svg
+      data-slot="brand-mark"
+      data-brand={brand}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className={cn("size-5 shrink-0", tone === "brand" && MARK_COLOUR[brand], className)}
+      {...props}
+    >
       <path d={SINGLE[brand]} />
     </svg>
   )

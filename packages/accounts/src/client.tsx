@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { accountOf, emailOf, isExternalProvider, type Account, type AnyProvider, type Provider } from "./account"
+import { accountOf, emailOf, isExternalProvider, type Account, type AnyProvider, type ExternalProvider, type Provider } from "./account"
 import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed, isDemoAccount } from "./demo"
 import { COUNTRY_KEY } from "./details"
@@ -15,7 +15,7 @@ import { MFA_MESSAGES, TOTP_FACTOR_NAME, isTotpCode, mfaMessage, mfaProblem, qrI
 import { safeNext } from "./redirect"
 import { syncLanguage } from "./language-sync"
 import { isChangingLanguage } from "./set-language"
-import { ACCOUNT_SETTINGS_PATH, settingsMessage } from "./settings"
+import { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, settingsMessage, unlinkProblem } from "./settings"
 import { codeMessage, failureOf, resendOutcome, signupData, signupOutcome, type ResendOutcome, type SignupEntry, type SignupOutcome } from "./signup"
 
 // The accounts in the browser: who is signed in (for the navbar, which is on static pages and so cannot ask the server), and the way to start a
@@ -233,6 +233,31 @@ export function unlinkProvider(provider: Provider): Promise<ChangeOutcome> {
     const identity = data.identities.find((candidate) => candidate.provider === provider)
     return identity ? supabase.auth.unlinkIdentity(identity) : { error: { code: "identity_not_found" } }
   })
+}
+
+/**
+ * Links the account at an external provider (Steam, which the hub signs in to with its own routes, `/auth/<provider>`) to the account: the browser leaves for the provider, which sends the member back to their settings
+ * (`ACCOUNT_SETTINGS_PATH`) with `?steam=` to say how it went (`linkNoticeOf`). It needs no setting of the Supabase project. Done means the browser is on its way.
+ */
+export function linkExternal(provider: ExternalProvider): Promise<ChangeOutcome> {
+  window.location.assign(`/auth/${provider}?link=1`)
+  return Promise.resolve({ status: "done" })
+}
+
+/**
+ * Takes the account at an external provider off the account (`POST /api/hub/unlink-external`). The server checks that the member keeps another way in and answers `LAST_WAY_IN` when they would not; nothing throws, and every answer
+ * is an outcome in the words of `SETTINGS_MESSAGES`.
+ */
+export async function unlinkExternal(provider: ExternalProvider): Promise<ChangeOutcome> {
+  try {
+    const response = await fetch("/api/hub/unlink-external", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider }) })
+    if (response.ok) return { status: "done" }
+    const body: unknown = await response.json().catch(() => null)
+    const problem = unlinkProblem(typeof body === "object" && body !== null ? (body as { error?: unknown }).error : undefined)
+    return problem === "no-session" ? { status: "no-session" } : { status: "failed", message: SETTINGS_MESSAGES[problem] }
+  } catch {
+    return { status: "failed", message: SETTINGS_MESSAGES.network }
+  }
 }
 
 /** Signs the member out of every device but this one: Supabase Auth ends their other sessions, which stop at their next renewal (the access token they hold lasts up to an hour). */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from "@supabase/supabase-js"
 import { PASSWORD_MAX_BYTES } from "./signup"
-import { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, nicknameCharactersLeft, settingsMessage, settingsProblem } from "./settings"
+import { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, linkNoticeOf, nicknameCharactersLeft, settingsMessage, settingsProblem, unlinkProblem } from "./settings"
 import { safeNext } from "./redirect"
 
 describe("ACCOUNT_SETTINGS_PATH", () => {
@@ -125,8 +125,31 @@ describe("settingsProblem and settingsMessage", () => {
   })
 
   it("has a sentence for every problem, none of them Supabase's own", () => {
-    expect(Object.keys(SETTINGS_MESSAGES).length).toBe(11)
+    expect(Object.keys(SETTINGS_MESSAGES).length).toBe(12)
     for (const message of Object.values(SETTINGS_MESSAGES)) expect(message).not.toMatch(/supabase|auth|identity|session|token|jwt/i)
+  })
+})
+
+describe("what the way back of a Steam link says", () => {
+  it("reads the `?steam=` of the settings: done, or the sentence of why not, in the words the settings already use", () => {
+    expect(linkNoticeOf("linked")).toEqual({ done: true })
+    expect(linkNoticeOf("taken")).toEqual({ done: false, message: SETTINGS_MESSAGES["service-taken"] })
+    expect(linkNoticeOf("has-another")).toEqual({ done: false, message: SETTINGS_MESSAGES["has-another"] })
+    expect(linkNoticeOf("failed")).toEqual({ done: false, message: SETTINGS_MESSAGES.other })
+  })
+
+  it("has nothing to say about anything else, so that a made-up address shows no sentence of its own", () => {
+    for (const value of [undefined, null, "", "LINKED", "linked ", "<b>hi</b>", "Your account was deleted", "constructor", "__proto__"]) expect(linkNoticeOf(value), String(value)).toBeNull()
+  })
+})
+
+describe("what the answer of an unlink comes to", () => {
+  it("is that nobody is signed in, that the last way in stays, that there were too many requests, or that it did not work", () => {
+    expect(unlinkProblem("NOT_SIGNED_IN")).toBe("no-session")
+    expect(unlinkProblem("LAST_WAY_IN")).toBe("last-service")
+    expect(unlinkProblem("RATE_LIMITED")).toBe("rate-limit")
+    expect(unlinkProblem("TOO_MANY_REQUESTS")).toBe("rate-limit")
+    for (const code of ["UNLINK_FAILED", "SERVER_ERROR", "FORBIDDEN", "INVALID_REQUEST", "", undefined, null, 42, {}]) expect(unlinkProblem(code), String(code)).toBe("other")
   })
 })
 

@@ -13,7 +13,7 @@ What keeps bots, scripts and floods off the platform, door by door; the Vercel F
 | --- | --- | --- | --- | --- |
 | The pages, `/api/<slug>/**` (tables, moves, chat, feedback), `/api/hub/**`, `/auth/*`, `/gamemaster/api/login` | Vercel, then our function | `rateLimit` per player and per IP, in the memory of each function instance (`docs/routing.md`); the honeypot of the feedback form | DDoS mitigation (always on), Bot Protection, a rate-limit rule, Attack Mode | a bot that drives a real browser |
 | Sign-up, password sign-in, a new code | the browser to Supabase Auth, straight, with the public key: Vercel never sees it | the e-mail code ("Confirm email"); `signUpWithPassword` and `resendSignupCode` take a `captchaToken` | nothing | Supabase's own limits and the e-mail code |
-| Google, Discord, Steam (Twitch only links) | the provider's sign-in, then our `/auth/callback`, or `/auth/steam` and `/auth/steam/callback` for Steam: Vercel routes, like the first row | the provider's own checks | as the first row, for those routes | the provider's side |
+| Google, Discord, Steam (Twitch is a connection and signs nobody in; a member links Steam from the settings, `/auth/steam?link=1`, and unlinks it at `POST /api/hub/unlink-external`) | the provider's sign-in, then our `/auth/callback`, or `/auth/steam` and `/auth/steam/callback` for Steam: Vercel routes, like the first row | the provider's own checks | as the first row, for those routes | the provider's side |
 
 ## What Vercel gives for free (read 2026-11-09)
 Hobby or Pro unless a line says otherwise; the plan is the Vercel team's.

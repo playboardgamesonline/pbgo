@@ -60,6 +60,18 @@ describe("the way there", () => {
     )
   })
 
+  it("says that it is a link when the member who is signed in links the account, and inside what Steam signs, so that a way back cannot pass for the other kind", () => {
+    const next = "/me/settings/account"
+    expect(steamReturnTo(ORIGIN, { next, state: STATE, link: true })).toBe(`${ORIGIN}/auth/steam/callback?next=%2Fme%2Fsettings%2Faccount&state=${STATE}&link=1`)
+    expect(steamReturnTo(ORIGIN, { next, state: STATE, link: false })).not.toContain("link")
+    const forSignIn = steamReturnTo(ORIGIN, { next, state: STATE })
+    const forLink = steamReturnTo(ORIGIN, { next, state: STATE, link: true })
+    // The callback builds the address again from what it is given and Steam's signed `return_to` has to be the same: turning `link` on or off on the way makes the two differ
+    expect(checkAssertion({ ...assertion(), "openid.return_to": forSignIn }, { returnTo: forLink, now: NOW })).toEqual({ ok: false, problem: "return-to" })
+    expect(checkAssertion({ ...assertion(), "openid.return_to": forLink }, { returnTo: forSignIn, now: NOW })).toEqual({ ok: false, problem: "return-to" })
+    expect(checkAssertion({ ...assertion(), "openid.return_to": forLink }, { returnTo: forLink, now: NOW })).toEqual({ ok: true, steamId: "76561198000000000" })
+  })
+
   it("asks Steam's login for no account in particular, and says where to answer and for which site", () => {
     const url = new URL(steamLoginUrl({ returnTo: RETURN_TO, realm: ORIGIN }))
     expect(`${url.origin}${url.pathname}`).toBe(STEAM_LOGIN_URL)
