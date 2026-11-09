@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { enabledProviders, providersOn } from "./providers"
+import { enabledProviders, externalProvidersOn, providersOn, signInProviders } from "./providers"
 
 const config = { url: "https://abc.supabase.co", key: "sb_publishable_key" }
 
@@ -69,5 +69,45 @@ describe("enabledProviders", () => {
       ),
     ).resolves.toEqual([])
     await expect(enabledProviders(config, vi.fn(async () => new Response("<html>", { status: 200 })))).resolves.toEqual([])
+  })
+})
+
+const steamEnv = { NEXT_PUBLIC_SUPABASE_URL: "https://abc.supabase.co", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_key", SUPABASE_SECRET_KEY: "sb_secret_key", STEAM_WEB_API_KEY: "KEY" }
+
+describe("externalProvidersOn", () => {
+  it("offers Steam when the project, its two keys and Steam's own key are all set", () => {
+    expect(externalProvidersOn(steamEnv)).toEqual(["steam"])
+    expect(externalProvidersOn({ ...steamEnv, SUPABASE_SECRET_KEY: undefined, SUPABASE_SERVICE_ROLE_KEY: "legacy" })).toEqual(["steam"])
+  })
+
+  it("offers nothing as soon as one is missing or blank: a button that cannot sign anyone in is worse than none", () => {
+    for (const missing of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "STEAM_WEB_API_KEY"] as const) {
+      expect(externalProvidersOn({ ...steamEnv, [missing]: undefined }), missing).toEqual([])
+      expect(externalProvidersOn({ ...steamEnv, [missing]: "  " }), missing).toEqual([])
+    }
+    expect(externalProvidersOn({})).toEqual([])
+  })
+})
+
+describe("signInProviders", () => {
+  const settings = { external: { google: true, discord: true, twitch: true, email: true } }
+
+  it("is the providers of the sign-in that are on, in the order of the buttons, with Twitch left out and Steam after them", async () => {
+    await expect(signInProviders(config, steamEnv, answering(settings))).resolves.toEqual(["google", "discord", "steam"])
+  })
+
+  it("leaves Steam out until the server is set up for it, and a provider out until the project has it on", async () => {
+    await expect(signInProviders(config, {}, answering(settings))).resolves.toEqual(["google", "discord"])
+    await expect(signInProviders(config, steamEnv, answering({ external: { discord: true, twitch: true } }))).resolves.toEqual(["discord", "steam"])
+  })
+
+  it("is empty when Twitch is the only one on, since it is only linked", async () => {
+    await expect(signInProviders(config, {}, answering({ external: { twitch: true } }))).resolves.toEqual([])
+  })
+
+  it("is empty when the project is not set, Steam included, since nobody could be made a member", async () => {
+    const fetcher = answering(settings)
+    await expect(signInProviders(null, steamEnv, fetcher)).resolves.toEqual([])
+    expect(fetcher).not.toHaveBeenCalled()
   })
 })

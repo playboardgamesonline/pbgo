@@ -6,12 +6,13 @@ import { Spinner } from "./spinner"
 
 /**
  * How the tile of each brand is dressed, in tokens: its fill, and the colour of the text, which its mark and a spinner take. Twitch and Discord are
- * their brand's colour (`brand-*`) and Google is white (`foreground`) with its own four colours.
+ * their brand's colour (`brand-*`), Steam is its near-black with a hairline so that it stands out of the card, and Google is white (`foreground`) with its own four colours.
  */
 const TILES: Record<BrandName, string> = {
   google: "border-transparent bg-foreground text-background hover:bg-foreground/90 hover:text-background",
   twitch: "border-transparent bg-brand-twitch text-foreground hover:bg-brand-twitch/90",
   discord: "border-transparent bg-brand-discord text-foreground hover:bg-brand-discord/90",
+  steam: "border-border bg-brand-steam text-foreground hover:bg-brand-steam/90",
 }
 
 /**
