@@ -25,7 +25,7 @@ const SITE_TABS = [
   { id: "pricing", label: "Pricing", href: "/pricing", group: "about" },
 ] as const
 
-/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the sign-in and the pages of a signed-in visitor, `docs`: the way into the docs, which no tab leads to). */
+/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the pages of a signed-in visitor, `docs`: the way into the docs, which no tab leads to). */
 type SiteCurrent = (typeof SITE_TABS)[number]["id"] | "home" | "account" | "docs"
 
 /**
@@ -40,12 +40,12 @@ const isGamePage = (pathname: string) => pathname.startsWith("/game/") || findGa
 
 /**
  * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab, Games on a
- * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the sign-in and the sign-up, the pages of an account (`/me`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
- * page that has no bar (the pages of a doc, which have a side menu of their own, the legal pages, the 404).
+ * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the pages of an account (`/me`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
+ * page that has no bar (the sign-in and the sign-up, which are a page of their own with the logo alone (`AuthShell`), the pages of a doc, which have a side menu of their own, the legal pages, the 404).
  */
 function currentOf(pathname: string): SiteCurrent | null {
   if (pathname === "/" || pathname === "/home") return "home"
-  if (pathname === "/login" || pathname === "/signup" || pathname === "/me" || pathname.startsWith("/me/")) return "account"
+  if (pathname === "/me" || pathname.startsWith("/me/")) return "account"
   if (pathname === "/docs") return "docs"
   if (isGamePage(pathname)) return "games"
   return SITE_TABS.find((tab) => tab.href === pathname)?.id ?? null

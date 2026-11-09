@@ -19,7 +19,7 @@ import { useCountdown } from "@/lib/use-countdown"
 const FIELDS = ["email", "password", "name"] as const
 
 /**
- * The sign-up, a card laid over the hub's backdrop like the sign-in's: an e-mail address, a password and a display name that may be left empty, a line about the Terms and the minimum age, then, under "or continue with", the
+ * The sign-up, the card in the middle of the same page as the sign-in's (`AuthShell`), dressed like it: an e-mail address, a password and a display name that may be left empty, a line about the Terms and the minimum age, then, under "or continue with", the
  * providers that the project has switched on (`providers`: a provider's sign-in makes an account too). It has two steps. The form checks what it can before anything leaves (`checkSignup`), then asks Supabase Auth to create the account; nobody is signed in yet, an e-mail with a code and a link
  * goes to the address, and the card turns to the code (`SignupCode`), which confirms the address and signs the visitor in on `next`. An address that already has an account goes through the same steps, and nothing is sent: the page never says which
  * addresses are taken. Without a Supabase project (`enabled` is false) everything is off and says so, and `linkFailed` is the page's way to tell a visitor that the link of the e-mail did not work (`/auth/confirm`).
@@ -102,15 +102,17 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
   }
 
   return (
-    <section aria-labelledby="signup-title" className={cn("w-full max-w-md rounded-4xl border glass p-8 shadow-float", className)}>
+    <section aria-labelledby="signup-title" className={cn("w-full max-w-md rounded-4xl border glass p-8 shadow-float sm:p-10", className)}>
       {step === "code" ? (
         <SignupCode email={sentTo} next={next} waiting={waiting} onSent={() => startWaiting(RESEND_SECONDS)} onBack={() => setStep("form")} />
       ) : (
         <>
-          <h1 id="signup-title" className="font-heading text-3xl">
-            Create an account
-          </h1>
-          <p className="mt-2 text-muted-foreground">Keep your games, your friends and your stats on every device.</p>
+          <div className="flex flex-col gap-2 text-center">
+            <h1 id="signup-title" className="font-heading text-3xl sm:text-4xl">
+              Create an account
+            </h1>
+            <p className="text-balance text-muted-foreground">Keep your games, your friends and your stats on every device.</p>
+          </div>
 
           {error && (
             <Alert variant="destructive" className="mt-6">
@@ -118,7 +120,7 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
             </Alert>
           )}
 
-          <form ref={form} onSubmit={submit} noValidate className="mt-6 flex flex-col gap-4">
+          <form ref={form} onSubmit={submit} noValidate className="mt-8 flex flex-col gap-5">
             <Field data-invalid={problems.email ? true : undefined}>
               <FieldLabel htmlFor="signup-email">E-mail</FieldLabel>
               <Input
@@ -133,6 +135,7 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
                 value={fields.email}
                 onChange={edit("email")}
                 disabled={off}
+                className="h-12"
                 aria-invalid={problems.email ? true : undefined}
                 aria-describedby={problems.email ? "signup-email-error" : undefined}
               />
@@ -148,6 +151,7 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
                 value={fields.password}
                 onChange={edit("password")}
                 disabled={off}
+                className="h-12"
                 aria-invalid={problems.password ? true : undefined}
                 aria-describedby={problems.password ? "signup-password-error signup-password-help" : "signup-password-help"}
               />
@@ -166,6 +170,7 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
                 value={fields.name}
                 onChange={edit("name")}
                 disabled={off}
+                className="h-12"
                 aria-invalid={problems.name ? true : undefined}
                 aria-describedby={problems.name ? "signup-name-error signup-name-help" : "signup-name-help"}
               />
@@ -174,11 +179,11 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
               </FieldDescription>
               <FieldError id="signup-name-error">{problems.name}</FieldError>
             </Field>
-            <Button type="submit" size="lg" className="w-full" disabled={off}>
+            <Button type="submit" size="xl" className="w-full" disabled={off}>
               {pending === "signup" && <Spinner data-icon="inline-start" />}
               Create account
             </Button>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               By creating an account you accept the{" "}
               <Link href="/legal/terms" className="underline underline-offset-4">
                 Terms of Use
@@ -192,9 +197,9 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
           </form>
 
           <ProviderRow providers={providers} pending={pending} disabled={off} onSelect={start} />
-          {!enabled && <p className="mt-4 text-sm text-muted-foreground">Creating an account is not available on this site yet.</p>}
+          {!enabled && <p className="mt-4 text-center text-sm text-muted-foreground">Creating an account is not available on this site yet.</p>}
 
-          <p className="mt-6 text-sm text-muted-foreground">
+          <p className="mt-8 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href={loginHref} className="text-foreground underline underline-offset-4">
               Sign in

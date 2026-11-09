@@ -28,8 +28,8 @@ export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorSchem
  * Root layout of the hub pages (`/`, `/games`, `/game/<slug>`, `/tables`, `/tournaments`, `/pricing`, `/about`, `/legal`, `/docs`).
  * Each game has its own root layout, `app/[game]/layout.tsx`.
  * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports. So is the navbar
- * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the pages of a doc,
- * which have a side menu of their own, the legal pages, the 404). `LanguageSync` and `DisplaySync` are mounted once too: they keep the device of a signed-in visitor in the language, the motion and the transparency of their account. So is `PresenceBeat`, which tells the server that a signed-in member has the site open (the players online). So is the toaster, which says what went wrong when a table could not be opened, joined or started.
+ * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the sign-in and the sign-up,
+ * which are a page of their own, the pages of a doc, which have a side menu of their own, the legal pages, the 404). `LanguageSync` and `DisplaySync` are mounted once too: they keep the device of a signed-in visitor in the language, the motion and the transparency of their account. So is `PresenceBeat`, which tells the server that a signed-in member has the site open (the players online). So is the toaster, which says what went wrong when a table could not be opened, joined or started.
  * `modal` is the window that a link of the site opens over the page the visitor is on (the settings: `@modal`).
  */
 export default function HubLayout({ children, modal }: Readonly<{ children: React.ReactNode; modal: React.ReactNode }>) {
