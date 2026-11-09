@@ -42,6 +42,8 @@ export const RATE_LIMITS = {
   feedback: { limit: 3, windowMs: 10_000 },
   /** The beat of a signed-in member who has the site open, about every 45 s (`PresenceBeat`): per IP, since the route belongs to no game; room for a few members behind one address */
   presence: { limit: 30, windowMs: 60_000, by: "ip" },
+  /** A member declaring their date of birth (PLT-125): it is kept once, so a human sends it a few times at most (typos, a refusal); per IP, since the route belongs to no game, with room for a few members behind one address */
+  birthdate: { limit: 20, windowMs: 10 * 60_000, by: "ip" },
   /** Admin login (shared by every game): per IP, whatever the cookies, so a password can't be guessed by a script. A human mistypes it a few times at most */
   adminLogin: { limit: 5, windowMs: 10 * 60_000, by: "ip" },
   /** Ceiling per IP across every limited route (several players behind one NAT stay well below it) */

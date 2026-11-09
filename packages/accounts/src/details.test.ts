@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest"
+import { OLDEST_AGE, SITE_MINIMUM_AGE, ageInYears, ageOn } from "./age"
 import {
-  BIRTHDATE_KEY,
   COUNTRY_CODES,
   COUNTRY_KEY,
-  MAXIMUM_AGE,
-  MINIMUM_AGE,
-  ageOn,
   birthYearOf,
   birthdateFields,
-  birthdateOf,
   birthdateOfParts,
   calendarDateOf,
   checkBirthdate,
@@ -22,11 +18,9 @@ import {
 // The day the form is judged on: the tests never read the clock
 const TODAY = { year: 2026, month: 11, day: 9 }
 
-describe("the keys that are ours", () => {
-  it("carry the namespace of the platform, which a provider never writes", () => {
+describe("the key that is ours", () => {
+  it("carries the namespace of the platform, which a provider never writes", () => {
     expect(COUNTRY_KEY).toMatch(/^pbgo_/)
-    expect(BIRTHDATE_KEY).toMatch(/^pbgo_/)
-    expect(COUNTRY_KEY).not.toBe(BIRTHDATE_KEY)
   })
 })
 
@@ -79,29 +73,6 @@ describe("countryOf", () => {
   })
 })
 
-describe("birthdateOf", () => {
-  it("is the date the account keeps, in the shape it is kept in", () => {
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "1994-06-18" } })).toBe("1994-06-18")
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "2000-02-29" } })).toBe("2000-02-29")
-  })
-
-  it("is null when there is none, when it is not a day that exists, or when it is not in the shape", () => {
-    expect(birthdateOf({})).toBeNull()
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "1994-02-30" } })).toBeNull()
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "1900-02-29" } })).toBeNull()
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "1994-13-01" } })).toBeNull()
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "18/06/1994" } })).toBeNull()
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "1994-6-18" } })).toBeNull()
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: " 1994-06-18" } })).toBeNull()
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: 19940618 } })).toBeNull()
-    expect(birthdateOf({ user_metadata: { birthdate: "1994-06-18", birthday: "1994-06-18" } })).toBeNull()
-  })
-
-  it("does not judge the limits of the form, which know what day it is: those are `checkBirthdate`'s", () => {
-    expect(birthdateOf({ user_metadata: { pbgo_birthdate: "2050-01-01" } })).toBe("2050-01-01")
-  })
-})
-
 describe("the parts of a date", () => {
   it("make the date as it is kept, and take it apart again for the form", () => {
     expect(birthdateOfParts({ year: 1994, month: 6, day: 8 })).toBe("1994-06-08")
@@ -110,9 +81,11 @@ describe("the parts of a date", () => {
     expect(birthYearOf("1994-06-08")).toBe(1994)
   })
 
-  it("read the day on the calendar of the device that made the `Date`", () => {
-    expect(calendarDateOf(new Date(2026, 10, 9, 23, 59))).toEqual({ year: 2026, month: 11, day: 9 })
-    expect(calendarDateOf(new Date(2026, 0, 1, 0, 0))).toEqual({ year: 2026, month: 1, day: 1 })
+  it("read the day on the UTC calendar, which is the one the server counts ages on, whatever the clock of the device says", () => {
+    expect(calendarDateOf(new Date(Date.UTC(2026, 10, 9, 23, 59)))).toEqual({ year: 2026, month: 11, day: 9 })
+    expect(calendarDateOf(new Date(Date.UTC(2026, 0, 1, 0, 0)))).toEqual({ year: 2026, month: 1, day: 1 })
+    // 01:30 on the 10th at UTC+2 is still the 9th in UTC
+    expect(calendarDateOf(new Date("2026-11-10T01:30:00+02:00"))).toEqual({ year: 2026, month: 11, day: 9 })
   })
 
   it("count whole years, a birthday counting on its day and not before", () => {
@@ -134,7 +107,7 @@ describe("checkBirthdate", () => {
     expect(check("29", "2", "2000")).toEqual({ ok: true, birthdate: "2000-02-29" })
   })
 
-  it("takes the date away when the three fields are empty: it is optional", () => {
+  it("has nothing to declare when the three fields are empty: the date is optional until a game asks for it", () => {
     expect(check("", "", "")).toEqual({ ok: true, birthdate: null })
     expect(check("  ", " ", "")).toEqual({ ok: true, birthdate: null })
   })
@@ -169,7 +142,7 @@ describe("checkBirthdate", () => {
   })
 
   it("refuses a date further back than 120 years, and keeps the one that is exactly that old", () => {
-    expect(MAXIMUM_AGE).toBe(120)
+    expect(OLDEST_AGE).toBe(120)
     expect(check("9", "11", "1906")).toEqual({ ok: true, birthdate: "1906-11-09" })
     expect(check("8", "11", "1905")).toEqual({ ok: false, problem: "That is more than 120 years ago. Check the year.", field: "year" })
     expect(check("8", "11", "1905").ok).toBe(false)
@@ -177,7 +150,7 @@ describe("checkBirthdate", () => {
   })
 
   it("refuses a member who is younger than 13 in plain words, as the Terms ask, and keeps the one who turns 13 today", () => {
-    expect(MINIMUM_AGE).toBe(13)
+    expect(SITE_MINIMUM_AGE).toBe(13)
     expect(check("10", "11", "2013")).toEqual({ ok: false, problem: "You must be at least 13 to use the site.", field: null })
     expect(check("9", "11", "2013")).toEqual({ ok: true, birthdate: "2013-11-09" })
     expect(check("9", "11", "2026")).toMatchObject({ ok: false, problem: "You must be at least 13 to use the site." })
@@ -189,11 +162,12 @@ describe("checkBirthdate", () => {
     expect(check("29", "2", "2012", { year: 2025, month: 3, day: 1 })).toEqual({ ok: true, birthdate: "2012-02-29" })
   })
 
-  it("never keeps a date that the reader would not read back", () => {
+  it("hands over a date that the server reads back the same way, as it is kept", () => {
     for (const [day, month, year] of [["18", "6", "1994"], ["1", "1", "2000"], ["29", "2", "2000"], ["31", "12", "1999"]] as const) {
       const checked = check(day, month, year)
       if (!checked.ok) throw new Error("unexpected")
-      expect(birthdateOf({ user_metadata: { pbgo_birthdate: checked.birthdate } })).toBe(checked.birthdate)
+      expect(checked.birthdate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(ageInYears(checked.birthdate, new Date("2026-11-09T12:00:00Z"))).toBe(ageOn({ year: Number(year), month: Number(month), day: Number(day) }, TODAY))
     }
   })
 })

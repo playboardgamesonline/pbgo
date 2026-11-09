@@ -3,20 +3,17 @@
 // its own small entries, which the games' pages import too: `./language` (the same pure part, alone) and `./set-language` (the setter, with no Supabase in it).
 
 export { AFTER_SIGN_IN, safeNext } from "./redirect"
+export { OLDEST_AGE, RESTRICTED_FROM, SITE_MINIMUM_AGE, ageInYears, ageOn, ageRefusal, birthdateProblem, isRealDay, restrictedAge, utcDayOf } from "./age"
+export type { AgeRefusal, AgeSubject, BirthdateProblem, CalendarDate } from "./age"
 export { PROVIDERS, PROVIDER_NAMES, accountOf, emailOf, initialsOf } from "./account"
 export type { Account, AuthUser, LinkedService, Provider } from "./account"
 export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_MOTION_CHOICES, TIME_FORMATS, hourCycleOf, isReduceMotion, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
 export type { PreferenceName, Preferences, ReduceMotion, SwitchPreferenceName, TimeFormat } from "./preferences"
 export {
-  BIRTHDATE_KEY,
   COUNTRY_CODES,
   COUNTRY_KEY,
-  MAXIMUM_AGE,
-  MINIMUM_AGE,
-  ageOn,
   birthYearOf,
   birthdateFields,
-  birthdateOf,
   birthdateOfParts,
   calendarDateOf,
   checkBirthdate,
@@ -26,7 +23,7 @@ export {
   countryOptions,
   isCountryCode,
 } from "./details"
-export type { BirthdateField, BirthdateFields, CalendarDate } from "./details"
+export type { BirthdateField, BirthdateFields } from "./details"
 export { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, nicknameCharactersLeft, settingsMessage, settingsProblem } from "./settings"
 export type { Device, PasswordProblems, SettingsProblem } from "./settings"
 export {

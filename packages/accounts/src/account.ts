@@ -1,7 +1,7 @@
 // What the hub knows of a signed-in visitor, made of what their provider says of them: the user of Supabase Auth, as Google, Twitch or Discord fill it in,
 // and the language they chose. Pure, so that the browser, the server, the proxy and the tests read it the same way (docs/accounts.md).
 
-import { birthdateOf, countryOf } from "./details"
+import { countryOf } from "./details"
 import { languageOf, type PlatformLanguage } from "./language"
 import { nicknameOf, preferencesOf, type Preferences } from "./preferences"
 
@@ -34,8 +34,6 @@ export type Account = {
   preferences: Preferences
   /** The country or region they recorded, an ISO 3166-1 alpha-2 code (`countryOf`); null until they record one. Never a permission: the member can write their own metadata. */
   country: string | null
-  /** The date of birth they recorded, as `YYYY-MM-DD` (`birthdateOf`); null until they record one. Never a permission, and never shown to anyone but them. */
-  birthdate: string | null
   /** The ways into their account that they hold now, in the order Supabase Auth lists them: what the page of their settings shows as linked, and what it can still be asked to link. */
   linked: LinkedService[]
 }
@@ -84,7 +82,6 @@ export function accountOf(user: AuthUser): Account {
     language: languageOf(user),
     preferences: preferencesOf(user),
     country: countryOf(user),
-    birthdate: birthdateOf(user),
     linked: linkedOf(user),
   }
 }

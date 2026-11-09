@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation"
 import { useState, type ChangeEvent } from "react"
 import { birthYearOf, birthdateFields, calendarDateOf, checkBirthdate, type BirthdateField, type BirthdateFields } from "@pbgo/accounts"
-import { saveBirthdate } from "@pbgo/accounts/client"
+import { gameRequest } from "@pbgo/core/lib/api"
 import { InlineEdit, InlineField, InlineFieldInput } from "@pbgo/ui/platform/inline-edit"
+import { Item, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
 import { toast } from "@pbgo/ui/platform/sonner"
-import { changing, failureOf } from "@/lib/settings-change"
+import { messageOf } from "@/lib/table-door"
+import { CONTACT } from "@/site"
 
 /** What a field of the date holds at most, in digits. */
 const DIGITS: Record<BirthdateField, number> = { day: 2, month: 2, year: 4 }
@@ -22,15 +24,16 @@ function MaskedBirthdate({ birthdate }: { birthdate: string }) {
 }
 
 /**
- * The Date of birth row of the settings: an optional detail kept on the member's account (`saveBirthdate`) and edited where it stands (`InlineEdit`), in three fields, the day, the month and the year. Closed, it shows the year and hides the rest.
- * What is typed is judged by `checkBirthdate` as it is typed once the three fields are full: it has to be a day that exists, not in the future, not 120 years back, and the member has to be 13 or older, which is what the Terms ask: a date that makes
- * them younger is refused in words and is not kept. All three fields empty takes the date away. Nothing reads the date as a permission.
+ * The Date of birth row of the settings: the member declares their date of birth once, to the server (`POST /api/hub/birthdate`), which keeps it where only the server reads it, for the games and expansions that ask for an age (PLT-125, `docs/accounts.md`,
+ * "The age check"). It is edited where it stands (`InlineEdit`), in three fields, the day, the month and the year, judged as the server judges them (`checkBirthdate`, on the UTC calendar): it has to be a day that exists, not in the future, not 120 years
+ * back, and the member has to be 13 or older, which is what the Terms ask. The editor says that the date can be given once. When one is kept the row shows the year and hides the rest, has no button, and says that it cannot be changed and who to write to if it is wrong:
+ * the server never replaces a date, so a refusal for a member's age cannot be got round by declaring another.
  */
-export function BirthdateRow({ birthdate, demo }: { birthdate: string | null; demo: boolean }) {
+export function BirthdateRow({ birthdate }: { birthdate: string | null }) {
   const router = useRouter()
   const [saved, setSaved] = useState(birthdate)
   const [open, setOpen] = useState(false)
-  const [fields, setFields] = useState<BirthdateFields>(() => birthdateFields(birthdate))
+  const [fields, setFields] = useState<BirthdateFields>(() => birthdateFields(null))
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -42,7 +45,7 @@ export function BirthdateRow({ birthdate, demo }: { birthdate: string | null; de
   function toggle(next: boolean) {
     setOpen(next)
     if (next) {
-      setFields(birthdateFields(saved))
+      setFields(birthdateFields(null))
       setError(null)
     }
   }
@@ -63,21 +66,35 @@ export function BirthdateRow({ birthdate, demo }: { birthdate: string | null; de
   }
 
   async function submit() {
-    if (!checked.ok) return
+    if (!checked.ok || checked.birthdate === null) return
     const date = checked.birthdate
     setError(null)
     setPending(true)
-    const outcome = await changing(demo, () => saveBirthdate(date))
-    setPending(false)
-    const failure = failureOf(outcome)
-    if (failure) {
-      setError(failure)
-      return
+    try {
+      await gameRequest("/api/hub/birthdate", { method: "POST", body: JSON.stringify({ birthdate: date }) })
+      setSaved(date)
+      setOpen(false)
+      toast.success("Date of birth saved")
+      router.refresh()
+    } catch (failure) {
+      setError(messageOf(failure))
+    } finally {
+      setPending(false)
     }
-    setSaved(date)
-    setOpen(false)
-    toast.success(date === null ? "Date of birth removed" : "Date of birth saved")
-    router.refresh()
+  }
+
+  if (saved !== null) {
+    return (
+      <Item>
+        <ItemContent>
+          <ItemTitle>Date of birth</ItemTitle>
+          <ItemDescription>
+            <MaskedBirthdate birthdate={saved} />
+          </ItemDescription>
+          <ItemDescription>It can&apos;t be changed. Write to {CONTACT} if it is wrong.</ItemDescription>
+        </ItemContent>
+      </Item>
+    )
   }
 
   const invalid = (field: BirthdateField) => (problem !== null && (problem.field === field || problem.field === null) ? true : undefined)
@@ -87,9 +104,10 @@ export function BirthdateRow({ birthdate, demo }: { birthdate: string | null; de
       open={open}
       onOpenChange={toggle}
       title="Date of birth"
-      value={saved === null ? "Not set" : <MaskedBirthdate birthdate={saved} />}
-      editLabel="Edit date of birth"
-      canSave={checked.ok && checked.birthdate !== saved}
+      value="Not set"
+      editLabel="Add date of birth"
+      saveLabel="Save date of birth"
+      canSave={checked.ok && checked.birthdate !== null}
       pending={pending}
       error={error}
       onSave={submit}
@@ -145,6 +163,7 @@ export function BirthdateRow({ birthdate, demo }: { birthdate: string | null; de
           />
         </div>
       </InlineField>
+      <p className="text-sm text-muted-foreground">You can give it once. It can&apos;t be changed afterwards, and other players never see it.</p>
     </InlineEdit>
   )
 }

@@ -1,19 +1,14 @@
-// The personal details a member may record on their account (PLT-111): the country or region they are in and their date of birth. Both are optional and are only the member's own word, kept for a check of the age of the games for adults. They
-// are kept like the nickname and the preferences, in `user_metadata` under keys of ours, one writer each in `./client` and one reader here (`accountOf`), so that they move to a `profiles` table the day it exists (PLT-13). THE MEMBER CAN WRITE
-// THEIR OWN `user_metadata`, so neither value is ever a permission, and a date of birth kept here cannot gate anything by itself: a check of the age will have to keep the date where the member cannot write it (docs/legal.md). Pure, with no
-// import, so that the browser, the server and the tests read it the same way (docs/accounts.md, "Settings").
+// The personal details a member may record on their account (PLT-111): the country or region they are in, and the form of their date of birth. The country is optional and only the member's own word, kept in `user_metadata` under a key of ours (one
+// writer in `./client` and one reader here, `accountOf`), so that it moves to a `profiles` table the day it exists (PLT-13). The date of birth is NOT kept there (PLT-125): the member can write their own `user_metadata`, and a check of the age has to
+// trust a place they cannot, so the date is declared once to the server and kept in a table that only the server reads (`member_birthdates`, `docs/accounts.md`, "The age check"). What is here for it is the form's side: the three fields, how they are
+// judged (on the UTC calendar, as the server counts ages) and how the date is shown. Pure, with no Supabase in it, so that the browser, the server and the tests read it the same way (docs/accounts.md, "Settings").
+
+import { OLDEST_AGE, SITE_MINIMUM_AGE, ageOn, isRealDay, utcDayOf, type CalendarDate } from "./age"
+
+export type { CalendarDate } from "./age"
 
 /** The country or region the member recorded: an ISO 3166-1 alpha-2 code (`FR`), which the name is made from when it is shown. */
 export const COUNTRY_KEY = "pbgo_country"
-
-/** The date of birth the member recorded, as `YYYY-MM-DD`. */
-export const BIRTHDATE_KEY = "pbgo_birthdate"
-
-/** The youngest a member can be: the Terms of Use say 13 (`/legal/terms`, "Who can use the site"). A date that makes the member younger is refused and not kept. */
-export const MINIMUM_AGE = 13
-
-/** The oldest a date of birth can be: further back is a mistake in the year. */
-export const MAXIMUM_AGE = 120
 
 /**
  * The countries and regions of ISO 3166-1, by their alpha-2 code, and XK, which is not in the standard but is what the European Commission and the Unicode CLDR call Kosovo. A code that is not in this list is no country: the key holds
@@ -58,47 +53,21 @@ export function countryOf(user: WithMetadata): string | null {
   return isCountryCode(value) ? value : null
 }
 
-/** A day of the calendar, as a person says it: the year, the month from 1 to 12 and the day from 1. */
-export type CalendarDate = { year: number; month: number; day: number }
-
-/** The calendar day a `Date` falls on, in the clock of the device that made it (a person's birthday is a day of their own calendar). */
-export const calendarDateOf = (date: Date): CalendarDate => ({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() })
-
-/** Whether the three numbers are a day that exists (`31 February` is not). Any year is allowed, the four digits of the form included. */
-function isRealDate({ year, month, day }: CalendarDate): boolean {
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false
-  const date = new Date(0)
-  date.setUTCFullYear(year, month - 1, day)
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-}
-
-/** The whole years between a birth and a day: a birthday counts on its day, and not before. */
-export function ageOn(birth: CalendarDate, today: CalendarDate): number {
-  const birthday = today.month > birth.month || (today.month === birth.month && today.day >= birth.day)
-  return today.year - birth.year - (birthday ? 0 : 1)
-}
+/** The calendar day an instant falls on in UTC (`utcDayOf`): the day a form judges a date of birth on, since the server counts ages on the UTC calendar, so that the two never disagree about a birthday that is today. */
+export const calendarDateOf = utcDayOf
 
 const pad = (value: number, length: number): string => String(value).padStart(length, "0")
 
 /** A date as it is kept: `YYYY-MM-DD`. */
 export const birthdateOfParts = ({ year, month, day }: CalendarDate): string => `${pad(year, 4)}-${pad(month, 2)}-${pad(day, 2)}`
 
-/** The date of birth the account keeps, or null when it keeps none or something that is not a day that exists in the shape `YYYY-MM-DD`. The limits of the form (not in the future, not further back than 120 years, 13 or older) are not read here: they are the form's (`checkBirthdate`), which knows what day it is. */
-export function birthdateOf(user: WithMetadata): string | null {
-  const value = user.user_metadata?.[BIRTHDATE_KEY]
-  if (typeof value !== "string") return null
-  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!parts) return null
-  return isRealDate({ year: Number(parts[1]), month: Number(parts[2]), day: Number(parts[3]) }) ? value : null
-}
-
-/** The year of a date of birth that is kept: the one part a page shows of it until the member edits it. */
+/** The year of a date of birth: the one part a page shows of it. */
 export const birthYearOf = (birthdate: string): number => Number(birthdate.slice(0, 4))
 
-/** What the three fields of a date of birth hold, as they were typed (or are prefilled from a date that is kept). */
+/** What the three fields of a date of birth hold, as they were typed. */
 export type BirthdateFields = { day: string; month: string; year: string }
 
-/** The fields of the form for a date that is kept (`YYYY-MM-DD`), or empty ones when there is none. */
+/** The fields of the form for a date (`YYYY-MM-DD`), or empty ones when there is none. */
 export function birthdateFields(birthdate: string | null): BirthdateFields {
   if (birthdate === null) return { day: "", month: "", year: "" }
   const [year = "", month = "", day = ""] = birthdate.split("-")
@@ -109,8 +78,8 @@ export function birthdateFields(birthdate: string | null): BirthdateFields {
 export type BirthdateField = keyof BirthdateFields
 
 /**
- * The three fields of a date of birth judged: the date to keep as `YYYY-MM-DD`, or null when all three are empty (the member takes it away), or what is wrong, in plain words. The date has to exist, not be in the future, not be further
- * back than 120 years and not make the member younger than 13, which is what the Terms of Use ask. `today` is the day on the member's own calendar (`calendarDateOf(new Date())`).
+ * The three fields of a date of birth judged: the date to declare as `YYYY-MM-DD`, or null when all three are empty (nothing to declare yet), or what is wrong, in plain words. The date has to exist, not be in the future, not be further
+ * back than 120 years and not make the member younger than 13, which is what the Terms of Use ask: the server judges it the same way (`birthdateProblem`). `today` is the day on the UTC calendar (`calendarDateOf(new Date())`).
  */
 export function checkBirthdate(fields: BirthdateFields, today: CalendarDate): { ok: true; birthdate: string | null } | { ok: false; problem: string; field: BirthdateField | null } {
   const day = fields.day.trim()
@@ -123,11 +92,11 @@ export function checkBirthdate(fields: BirthdateFields, today: CalendarDate): { 
   if (!/^\d{1,2}$/.test(month)) return { ok: false, problem: "Use numbers only for the month.", field: "month" }
   if (!/^\d{4}$/.test(year)) return { ok: false, problem: "Write the year with four digits.", field: "year" }
   const date: CalendarDate = { year: Number(year), month: Number(month), day: Number(day) }
-  if (!isRealDate(date)) return { ok: false, problem: "That date does not exist.", field: null }
+  if (!isRealDay(date)) return { ok: false, problem: "That date does not exist.", field: null }
   const age = ageOn(date, today)
   if (age < 0) return { ok: false, problem: "That date is in the future.", field: "year" }
-  if (age > MAXIMUM_AGE) return { ok: false, problem: `That is more than ${MAXIMUM_AGE} years ago. Check the year.`, field: "year" }
-  if (age < MINIMUM_AGE) return { ok: false, problem: `You must be at least ${MINIMUM_AGE} to use the site.`, field: null }
+  if (age > OLDEST_AGE) return { ok: false, problem: `That is more than ${OLDEST_AGE} years ago. Check the year.`, field: "year" }
+  if (age < SITE_MINIMUM_AGE) return { ok: false, problem: `You must be at least ${SITE_MINIMUM_AGE} to use the site.`, field: null }
   return { ok: true, birthdate: birthdateOfParts(date) }
 }
 

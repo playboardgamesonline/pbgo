@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft01Icon, Brain02Icon, ChildIcon, HourglassIcon, PlusSignIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import type { AgeRefusal } from "@pbgo/accounts"
 import { playTitle } from "@pbgo/catalog/seo"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
@@ -37,9 +38,12 @@ function easedFade(direction: "to right" | "to top", strength: number, reach: nu
 const FADE_FROM_LEFT = easedFade("to right", 0.35, 0.65)
 const FADE_FROM_FOOT = easedFade("to top", 1, 0.8)
 
-export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop">
+export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop"> & {
+  /** What the visitor has to do before they may play this game, when it asks for an age (PLT-125): the queue of "Play ranked" has no server to refuse them, so its button asks first. None: they may. */
+  ageRefusal?: AgeRefusal | null
+}
 
-export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop }: GameHeadProps) {
+export function GameHead({ slug, name, live, description, players, duration, complexity, age, categories, rulebooks, hero, facts, bgg, shop, ageRefusal = null }: GameHeadProps) {
   const figures = [
     { icon: UserMultipleIcon, text: players },
     { icon: HourglassIcon, text: duration },
@@ -126,7 +130,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <PlayRankedButton slug={slug} name={name} disabled={!live} />
+            <PlayRankedButton slug={slug} name={name} disabled={!live} refusal={ageRefusal} />
             {live ? (
               <Button variant="outline" size="xl" asChild>
                 <a href={`#${CREATE_ANCHOR}`}>
