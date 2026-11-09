@@ -11,8 +11,8 @@ export { NONCE_MAX_AGE_MS, STATE_PATTERN, STEAM_FALLBACK_NAME, STEAM_LOGIN_URL, 
 export type { AssertionCheck, AssertionProblem, SteamProfile } from "./steam"
 export { externalEmail, externalSignIn } from "./external"
 export type { ExternalAdmin, ExternalDeps, ExternalIdentity, ExternalProfile, ExternalSignIn, ExternalStep, ExternalStore } from "./external"
-export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_MOTION_CHOICES, TIME_FORMATS, hourCycleOf, isReduceMotion, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
-export type { PreferenceName, Preferences, ReduceMotion, SwitchPreferenceName, TimeFormat } from "./preferences"
+export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_CHOICES, TIME_FORMATS, hourCycleOf, isReduceChoice, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
+export type { PreferenceName, Preferences, ReduceChoice, SwitchPreferenceName, TimeFormat } from "./preferences"
 export {
   COUNTRY_CODES,
   COUNTRY_KEY,
@@ -38,6 +38,7 @@ export {
   LANGUAGE_KEY,
   PLATFORM_LANGUAGES,
   PLATFORM_LANGUAGE_NAMES,
+  PLATFORM_LANGUAGE_REGIONS,
   hasSessionCookie,
   isPlatformLanguage,
   languageCookie,
@@ -47,7 +48,7 @@ export {
   planLanguage,
   resolveLanguage,
 } from "./language"
-export type { LanguagePlan, LanguageSources, PlatformLanguage } from "./language"
+export type { LanguagePlan, LanguageRegion, LanguageSources, PlatformLanguage } from "./language"
 export { CODE_LENGTH, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, secondsLeft } from "./signup"
 export type { ResendOutcome, SignupEntry, SignupFields, SignupOutcome, SignupProblems } from "./signup"
 export { confirmEmail, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"

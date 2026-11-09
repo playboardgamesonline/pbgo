@@ -115,7 +115,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Your settings",
-              text: "The username you choose and your choices (the notifications you want, hiding your game history, how times are written, whether the site's animations are reduced) are kept with your account, so that they follow you from one device to the next. The choice for the animations is also kept in a cookie on each device, so that a page can honour it as it opens (see the Cookie Policy). All of it stays until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
+              text: "The username you choose and your choices (the notifications you want, hiding your game history, how times are written, whether the site's animations or its see-through surfaces are reduced) are kept with your account, so that they follow you from one device to the next. The choices for the animations and the see-through surfaces are also kept in a cookie each on each device, so that a page can honour them as it opens (see the Cookie Policy). All of it stays until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
             },
             {
               name: "Your country or region",

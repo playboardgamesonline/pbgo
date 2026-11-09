@@ -1,10 +1,9 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useId, useState } from "react"
-import type { PreferenceName, Preferences, ReduceMotion, TimeFormat } from "@pbgo/accounts"
+import type { PreferenceName, Preferences, ReduceChoice } from "@pbgo/accounts"
 import { savePreference } from "@pbgo/accounts/client"
-import { applyMotion } from "@pbgo/accounts/motion"
+import { applyDisplay } from "@pbgo/accounts/display"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Item, ItemActions, ItemContent, ItemTitle } from "@pbgo/ui/platform/item"
 import { Label } from "@pbgo/ui/platform/label"
@@ -17,7 +16,8 @@ type Choice<Name extends PreferenceName> = { value: Preferences[Name]; label: st
 
 /**
  * A preference that holds one word of a few, as a row: what it is and a picker, the way the Language row has it. The choice shows at once and goes back to the old one, with a sentence, when the account could not be written (`savePreference`: one key
- * of the account's metadata for each preference, the others untouched). `onSaved` is what the choice changes in the site once it is kept.
+ * of the account's metadata for each preference, the others untouched). `onSaved` is what the choice changes in the site once it is kept. The picker is not disabled while the choice is kept, since a control that is disabled drops the focus
+ * of a keyboard: a choice made meanwhile is left for the next one.
  */
 function ChoiceRow<Name extends PreferenceName>({
   name,
@@ -41,7 +41,7 @@ function ChoiceRow<Name extends PreferenceName>({
 
   async function choose(word: string) {
     const next = choices.find((choice) => choice.value === word)?.value
-    if (next === undefined || next === current) return
+    if (pending || next === undefined || next === current) return
     const previous = current
     setCurrent(next)
     setPending(true)
@@ -67,8 +67,8 @@ function ChoiceRow<Name extends PreferenceName>({
         </ItemContent>
         <ItemActions>
           {pending && <Spinner />}
-          <Select value={String(current)} onValueChange={choose} disabled={pending}>
-            <SelectTrigger id={id} className="w-48">
+          <Select value={String(current)} onValueChange={choose}>
+            <SelectTrigger id={id} aria-busy={pending} className="w-48">
               <SelectValue>{choices.find((choice) => choice.value === current)?.label}</SelectValue>
             </SelectTrigger>
             <SelectContent position="popper" align="end">
@@ -90,22 +90,8 @@ function ChoiceRow<Name extends PreferenceName>({
   )
 }
 
-const TIME_FORMAT_CHOICES: readonly Choice<"timeFormat">[] = [
-  { value: "auto", label: "Automatic" },
-  { value: "12h", label: "12-hour" },
-  { value: "24h", label: "24-hour" },
-]
-
-/**
- * The Time format row of the settings: how the times on the member's pages are written, in the hours of 12 or of 24, or as the language of the page does (Automatic). The pages that print a time read it from the account when they are drawn, so the page
- * is drawn again once it is kept.
- */
-export function TimeFormatRow({ format, demo }: { format: TimeFormat; demo: boolean }) {
-  const router = useRouter()
-  return <ChoiceRow name="timeFormat" title="Time format" choices={TIME_FORMAT_CHOICES} initial={format} demo={demo} onSaved={() => router.refresh()} />
-}
-
-const REDUCE_MOTION_CHOICES: readonly Choice<"reduceMotion">[] = [
+/** The three words of a way the site can be reduced, in the words of the pickers: the device decides, always, never. */
+const REDUCE_CHOICES: readonly { value: ReduceChoice; label: string }[] = [
   { value: "auto", label: "Match my device" },
   { value: "always", label: "Always" },
   { value: "never", label: "Never" },
@@ -113,8 +99,16 @@ const REDUCE_MOTION_CHOICES: readonly Choice<"reduceMotion">[] = [
 
 /**
  * The Reduce motion row of the settings: whether the site's animations are reduced (Always), kept whatever the device says (Never), or follow the device's own setting (Match my device). A choice that is kept is put into effect on this page at once
- * and on this device for the next ones (`applyMotion`: the attribute of `<html>` and the cookie that the head of every page reads before it paints); the other devices of the member take it from their account (`useMotionSync`).
+ * and on this device for the next ones (`applyDisplay`: the attribute of `<html>` and the cookie that the head of every page reads before it paints); the other devices of the member take it from their account (`useDisplaySync`).
  */
-export function ReduceMotionRow({ choice, demo }: { choice: ReduceMotion; demo: boolean }) {
-  return <ChoiceRow name="reduceMotion" title="Reduce motion" choices={REDUCE_MOTION_CHOICES} initial={choice} demo={demo} onSaved={(value) => applyMotion(value)} />
+export function ReduceMotionRow({ choice, demo }: { choice: ReduceChoice; demo: boolean }) {
+  return <ChoiceRow name="reduceMotion" title="Reduce motion" choices={REDUCE_CHOICES} initial={choice} demo={demo} onSaved={(value) => applyDisplay("reduceMotion", value)} />
+}
+
+/**
+ * The Reduce transparency row of the settings: whether the glass of the site, its blurred see-through surfaces, is made solid (Always), kept whatever the device says (Never), or follows the device's own setting (Match my device). Kept and
+ * put into effect the way the motion's choice is (`applyDisplay`, `useDisplaySync`): the stylesheet turns the settings of the glass into a solid grey.
+ */
+export function ReduceTransparencyRow({ choice, demo }: { choice: ReduceChoice; demo: boolean }) {
+  return <ChoiceRow name="reduceTransparency" title="Reduce transparency" choices={REDUCE_CHOICES} initial={choice} demo={demo} onSaved={(value) => applyDisplay("reduceTransparency", value)} />
 }

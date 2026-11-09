@@ -11,10 +11,10 @@ import { PreferenceRow } from "@/components/preference-row"
 import { SettingsGroup, SettingsPage } from "@/components/settings-page"
 import { CONTACT } from "@/site"
 
-export const metadata: Metadata = { title: "Privacy settings" }
+export const metadata: Metadata = { title: "Data & Privacy settings" }
 
 /**
- * The Privacy section of the settings: what the other players see (the profile is public by default, and the member can hide their game history: PLT-16), the players they blocked (none can be yet: the list has its place and its empty state), and
+ * The Data & Privacy section of the settings: what the other players see (the profile is public by default, and the member can hide their game history: PLT-16), the players they blocked (none can be yet: the list has its place and its empty state), and
  * their data: the Privacy Policy, and a copy of what is held on them, which is asked for by e-mail as the policy says. The choice to hide the history is kept in the account; what shows it to the other players is the profile pages (PLT-111).
  */
 export default async function PrivacySettingsPage() {
@@ -22,7 +22,7 @@ export default async function PrivacySettingsPage() {
   const demo = isDemoAccount(account)
 
   return (
-    <SettingsPage title="Privacy" description="What the other players see of you, and what we keep.">
+    <SettingsPage title="Data & Privacy" description="What the other players see of you, and what we keep.">
       <SettingsGroup title="Your profile">
         <PreferenceRow
           name="hideHistory"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_MOTION_CHOICES, TIME_FORMATS, hourCycleOf, isReduceMotion, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
+import { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_CHOICES, TIME_FORMATS, hourCycleOf, isReduceChoice, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
 
 describe("the keys that are ours", () => {
   it("carry the namespace of the platform, which a provider never writes", () => {
@@ -26,10 +26,11 @@ describe("preferencesOf", () => {
   it("reads a choice of words as the member set it: how the time is written, and whether the motion is reduced", () => {
     expect(preferencesOf({ user_metadata: { pbgo_time_format: "12h", pbgo_reduce_motion: "never" } })).toEqual({ ...DEFAULT_PREFERENCES, timeFormat: "12h", reduceMotion: "never" })
     expect(preferencesOf({ user_metadata: { pbgo_time_format: "24h", pbgo_reduce_motion: "always" } })).toMatchObject({ timeFormat: "24h", reduceMotion: "always" })
+    expect(preferencesOf({ user_metadata: { pbgo_reduce_transparency: "always" } })).toEqual({ ...DEFAULT_PREFERENCES, reduceTransparency: "always" })
   })
 
   it("reads a word that is not one of the choices as no choice: the default, never what was written", () => {
-    expect(preferencesOf({ user_metadata: { pbgo_time_format: "13h", pbgo_reduce_motion: "sometimes" } })).toEqual(DEFAULT_PREFERENCES)
+    expect(preferencesOf({ user_metadata: { pbgo_time_format: "13h", pbgo_reduce_motion: "sometimes", pbgo_reduce_transparency: "yes" } })).toEqual(DEFAULT_PREFERENCES)
     expect(preferencesOf({ user_metadata: { pbgo_time_format: true, pbgo_reduce_motion: 1 } })).toEqual(DEFAULT_PREFERENCES)
     expect(preferencesOf({ user_metadata: { pbgo_time_format: "AUTO", pbgo_reduce_motion: " always" } })).toEqual(DEFAULT_PREFERENCES)
   })
@@ -46,16 +47,18 @@ describe("preferencesOf", () => {
 describe("the choices of words", () => {
   it("each have a default among their words, which is `auto`: the device or the page's language decides", () => {
     expect(TIME_FORMATS).toContain(DEFAULT_PREFERENCES.timeFormat)
-    expect(REDUCE_MOTION_CHOICES).toContain(DEFAULT_PREFERENCES.reduceMotion)
+    expect(REDUCE_CHOICES).toContain(DEFAULT_PREFERENCES.reduceMotion)
+    expect(REDUCE_CHOICES).toContain(DEFAULT_PREFERENCES.reduceTransparency)
     expect(DEFAULT_PREFERENCES.timeFormat).toBe("auto")
     expect(DEFAULT_PREFERENCES.reduceMotion).toBe("auto")
+    expect(DEFAULT_PREFERENCES.reduceTransparency).toBe("auto")
   })
 
   it("are recognised by their words alone", () => {
     for (const word of TIME_FORMATS) expect(isTimeFormat(word)).toBe(true)
-    for (const word of REDUCE_MOTION_CHOICES) expect(isReduceMotion(word)).toBe(true)
+    for (const word of REDUCE_CHOICES) expect(isReduceChoice(word)).toBe(true)
     for (const value of ["", "12", "12H", null, undefined, 12, {}]) expect(isTimeFormat(value)).toBe(false)
-    for (const value of ["", "on", "system", null, undefined, true, {}]) expect(isReduceMotion(value)).toBe(false)
+    for (const value of ["", "on", "system", null, undefined, true, {}]) expect(isReduceChoice(value)).toBe(false)
   })
 })
 

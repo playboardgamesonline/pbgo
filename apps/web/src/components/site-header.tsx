@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment } from "react"
+import { Fragment, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowLeft02Icon } from "@hugeicons/core-free-icons"
@@ -64,7 +64,12 @@ function currentOf(pathname: string): SiteCurrent | null {
  * their place but are not drawn, so a signed-in visitor never sees them flash.
  */
 export function SiteHeader() {
-  const pathname = addressOf(usePathname())
+  const address = addressOf(usePathname())
+  // The settings are a window over the page the visitor was on, and the address is then the settings': while it is open the bar keeps what that page marks (the state is adjusted while rendering, not in an effect)
+  const [under, setUnder] = useState(address)
+  const settings = address.startsWith("/me/settings")
+  if (!settings && under !== address) setUnder(address)
+  const pathname = settings ? under : address
   const current = currentOf(pathname)
   const account = useAccount()
   if (current === null) return null

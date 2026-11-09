@@ -17,6 +17,28 @@ export { PLATFORM_LANGUAGES }
 /** English: the default of the platform and the fallback of every text. */
 export const DEFAULT_LANGUAGE: PlatformLanguage = DEFAULT_PLATFORM_LANGUAGE
 
+/**
+ * The country whose flag stands for each language in the pickers (ISO 3166-1 alpha-2): the one the language is known by, since several languages are spoken in many countries and none of them is the language's alone. A flag is how a picker
+ * finds a language at a glance, not a claim about it. A language added to the list without a country does not compile.
+ */
+export const PLATFORM_LANGUAGE_REGIONS = {
+  en: "US",
+  fr: "FR",
+  es: "ES",
+  de: "DE",
+  zh: "CN",
+  ja: "JP",
+  ru: "RU",
+  ar: "SA",
+  bn: "BD",
+  hi: "IN",
+  pt: "PT",
+  ko: "KR",
+} as const satisfies Record<PlatformLanguage, string>
+
+/** A country of those flags. */
+export type LanguageRegion = (typeof PLATFORM_LANGUAGE_REGIONS)[PlatformLanguage]
+
 /** The name of each language in that language, as a picker shows it. */
 export const PLATFORM_LANGUAGE_NAMES = Object.fromEntries(PLATFORM_LANGUAGES.map((language) => [language.id, language.title])) as Record<PlatformLanguage, string>
 

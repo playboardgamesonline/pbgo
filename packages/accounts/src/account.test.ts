@@ -56,7 +56,7 @@ describe("accountOf", () => {
       provider: "google",
       createdAt: "2026-10-01T09:00:00.000Z",
       language: null,
-      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto" },
+      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto", reduceTransparency: "auto" },
       country: null,
       linked: [],
     })
@@ -114,7 +114,7 @@ describe("accountOf", () => {
       provider: null,
       createdAt: null,
       language: null,
-      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto" },
+      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto", reduceTransparency: "auto" },
       country: null,
       linked: [],
     })
@@ -162,7 +162,7 @@ describe("the nickname a member chose (PLT-111)", () => {
 describe("the preferences and the linked services of an account (PLT-111)", () => {
   it("keeps the preferences the member set", () => {
     const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_hide_history: true, pbgo_notify_turn: false } })
-    expect(account.preferences).toEqual({ notifyTurn: false, notifyInvites: true, hideHistory: true, timeFormat: "auto", reduceMotion: "auto" })
+    expect(account.preferences).toEqual({ notifyTurn: false, notifyInvites: true, hideHistory: true, timeFormat: "auto", reduceMotion: "auto", reduceTransparency: "auto" })
   })
 
   it("keeps the choices of words as they set them: how the time is written and whether the motion is reduced", () => {
