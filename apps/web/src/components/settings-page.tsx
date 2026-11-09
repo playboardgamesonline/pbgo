@@ -2,8 +2,8 @@ import type { ReactNode } from "react"
 import { cn } from "@pbgo/ui/utils"
 
 /**
- * One page of the settings: its title, a line that says what is in it, and its groups, one under the other. The title is the page's own heading (the account's header above has the `h1`), so that a screen reader finds the
- * section under the member's name.
+ * One page of the settings: its title, a line that says what is in it, and its groups, one under the other. The title is the page's own heading, under the window's (`Settings`, which only a screen reader reads: `SettingsModal`), so that a
+ * screen reader finds the section in the window.
  */
 export function SettingsPage({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (

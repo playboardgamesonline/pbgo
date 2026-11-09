@@ -32,6 +32,7 @@
     "@pbgo/ui": "workspace:*",
     "@react-three/fiber": "catalog:",
     "@vercel/analytics": "catalog:",
+    "country-flag-icons": "catalog:",
     "motion": "catalog:",
     "next": "catalog:",
     "react": "catalog:",

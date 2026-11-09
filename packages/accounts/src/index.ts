@@ -34,6 +34,7 @@ export {
   LANGUAGE_KEY,
   PLATFORM_LANGUAGES,
   PLATFORM_LANGUAGE_NAMES,
+  PLATFORM_LANGUAGE_REGIONS,
   hasSessionCookie,
   isPlatformLanguage,
   languageCookie,
@@ -43,7 +44,7 @@ export {
   planLanguage,
   resolveLanguage,
 } from "./language"
-export type { LanguagePlan, LanguageSources, PlatformLanguage } from "./language"
+export type { LanguagePlan, LanguageRegion, LanguageSources, PlatformLanguage } from "./language"
 export { CODE_LENGTH, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, secondsLeft } from "./signup"
 export type { ResendOutcome, SignupEntry, SignupFields, SignupOutcome, SignupProblems } from "./signup"
 export { confirmEmail, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"

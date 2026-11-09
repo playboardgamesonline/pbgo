@@ -180,10 +180,10 @@ describe("nameProblem", () => {
 describe("RESERVED_SLUGS", () => {
   const app = fileURLToPath(new URL("../../../apps/web/src/app", import.meta.url))
 
-  // A folder that is a URL segment: not a route group `(x)`, a dynamic segment `[x]`, a private folder `_x`
+  // A folder that is a URL segment: not a route group `(x)`, a dynamic segment `[x]`, a private folder `_x`, a parallel route slot `@x` (the window over a page: `(hub)/@modal`)
   const segments = (dir: string) =>
     readdirSync(dir, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && !/^[([_]/.test(entry.name))
+      .filter((entry) => entry.isDirectory() && !/^[([_@]/.test(entry.name))
       .map((entry) => entry.name)
 
   it("holds every top-level route of apps/web, groups included", () => {
