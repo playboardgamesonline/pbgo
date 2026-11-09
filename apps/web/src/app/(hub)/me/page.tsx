@@ -98,7 +98,7 @@ export default async function ProfilePage() {
           </div>
           <div className="flex flex-col gap-2">
             {recent.map((game) => (
-              <GameRecord key={game.id} game={game} />
+              <GameRecord key={game.id} game={game} timeFormat={account.preferences.timeFormat} />
             ))}
           </div>
         </section>

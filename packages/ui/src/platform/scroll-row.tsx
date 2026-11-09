@@ -3,6 +3,7 @@
 import * as React from "react"
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { prefersReducedMotion } from "../reduced-motion"
 import { Button } from "./button"
 
 // A single row of cards that scrolls sideways, under a title: the games related to a game, at the foot of its page. The cards keep one width (18rem, 16rem on a phone), so that the next one is always half in view and says that there is
@@ -38,7 +39,7 @@ function ScrollRow({ title, className, children, ...props }: ScrollRowProps) {
   const scroll = (direction: -1 | 1) => {
     const element = track.current
     if (!element) return
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const calm = prefersReducedMotion()
     element.scrollBy({ left: direction * element.clientWidth * 0.8, behavior: calm ? "auto" : "smooth" })
   }
 

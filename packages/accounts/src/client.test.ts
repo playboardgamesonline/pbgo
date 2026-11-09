@@ -397,6 +397,28 @@ describe("the changes of an account (PLT-111)", () => {
     expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_notify_turn: false } })
   })
 
+  it("keeps a choice of words under its own key as well: how the time is written and whether the motion is reduced", async () => {
+    const auth = stubClient()
+    const { savePreference } = await client()
+    await savePreference("timeFormat", "24h")
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_time_format: "24h" } })
+    await savePreference("reduceMotion", "always")
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_reduce_motion: "always" } })
+  })
+
+  it("keeps the country and the date of birth under the keys that are ours, and takes each away with null", async () => {
+    const auth = stubClient()
+    const { saveCountry, saveBirthdate } = await client()
+    expect(await saveCountry("FR")).toEqual({ status: "done" })
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_country: "FR" } })
+    expect(await saveBirthdate("1994-06-18")).toEqual({ status: "done" })
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_birthdate: "1994-06-18" } })
+    await saveCountry(null)
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_country: null } })
+    await saveBirthdate(null)
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_birthdate: null } })
+  })
+
   it("asks for a new address with a link that comes back through the callback, which sends the member on to the settings", async () => {
     const auth = stubClient()
     vi.stubGlobal("window", { location: { origin: "https://playboardgamesonline.app" } })
@@ -415,9 +437,9 @@ describe("the changes of an account (PLT-111)", () => {
 
   it("asks nothing of the account when nobody is signed in, whatever the change", async () => {
     const auth = stubClient({ session: null })
-    const { saveNickname, savePreference, changeEmail, changePassword, linkProvider, unlinkProvider, signOutOtherDevices } = await client()
+    const { saveNickname, savePreference, saveCountry, saveBirthdate, changeEmail, changePassword, linkProvider, unlinkProvider, signOutOtherDevices } = await client()
     vi.stubGlobal("window", { location: { origin: "https://playboardgamesonline.app" } })
-    const outcomes = await Promise.all([saveNickname("Marly"), savePreference("hideHistory", true), changeEmail("a@example.com"), changePassword("long enough password"), linkProvider("google"), unlinkProvider("google"), signOutOtherDevices()])
+    const outcomes = await Promise.all([saveNickname("Marly"), savePreference("hideHistory", true), savePreference("reduceMotion", "never"), saveCountry("FR"), saveBirthdate("1994-06-18"), changeEmail("a@example.com"), changePassword("long enough password"), linkProvider("google"), unlinkProvider("google"), signOutOtherDevices()])
     for (const outcome of outcomes) expect(outcome).toEqual({ status: "no-session" })
     expect(auth.updateUser).not.toHaveBeenCalled()
     expect(auth.linkIdentity).not.toHaveBeenCalled()

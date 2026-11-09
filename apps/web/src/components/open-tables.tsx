@@ -10,6 +10,7 @@ import { Button } from "@pbgo/ui/platform/button"
 import { LobbyDetail, LobbyMainButton, type LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { TableEntries, TableEntry, type TableEntryProps } from "@pbgo/ui/platform/table-entry"
+import { prefersReducedMotion } from "@pbgo/ui/reduced-motion"
 import { messageOf } from "@/lib/table-door"
 import { ArrowRight01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -105,7 +106,7 @@ export function OpenTables({
     const next = id === ownId || pickedId === id ? null : id
     setPickedId(next)
     // Under `lg` the panel is above the list: bring it into view
-    if (next !== null && !window.matchMedia("(min-width: 1024px)").matches) panel.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })
+    if (next !== null && !window.matchMedia("(min-width: 1024px)").matches) panel.current?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" })
   }
 
   return (

@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { animate, motion, useMotionValue, useReducedMotion, useTransform, useVelocity, type AnimationPlaybackControls } from "motion/react"
+import { animate, motion, useMotionValue, useTransform, useVelocity, type AnimationPlaybackControls } from "motion/react"
+import { useReducedMotion } from "../reduced-motion"
 import { PLAYFUL } from "../motion"
 import { Suit, type SuitName } from "./suits"
 import { rhythm, usePlayOnEnter } from "./title-play"

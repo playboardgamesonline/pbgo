@@ -1,10 +1,12 @@
 import { Calendar03Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import type { TimeFormat } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
 import { Progress } from "@pbgo/ui/platform/progress"
 import type { GameTournament } from "@/lib/game-activity"
+import { perTimeFormat } from "@/lib/time-format"
 
 // The tournaments of a game, on its page: the ones to come with how many places there are and how many have signed up, the ones in progress and the ones that are over, each group under its own heading and only the groups that
 // have a tournament. With none at all, one empty state says what will be listed. The dates are written in UTC, the same on the server and in the browser, since the page does not know where the visitor is.
@@ -15,16 +17,16 @@ const GROUPS = [
   { status: "finished", title: "Finished" },
 ] as const
 
-const WHEN = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })
+const WHEN = perTimeFormat(({ hourCycle }) => new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", hourCycle, timeZone: "UTC" }))
 
-function TournamentRow({ tournament }: { tournament: GameTournament }) {
+function TournamentRow({ tournament, timeFormat }: { tournament: GameTournament; timeFormat: TimeFormat }) {
   const { name, status, startsAt, places, registered } = tournament
   return (
     <Item>
       <ItemContent>
         <ItemTitle>{name}</ItemTitle>
         <ItemDescription>
-          <time dateTime={startsAt}>{WHEN.format(new Date(startsAt))} UTC</time>
+          <time dateTime={startsAt}>{WHEN[timeFormat].format(new Date(startsAt))} UTC</time>
         </ItemDescription>
         {status === "upcoming" && (
           <div className="mt-2 flex items-center gap-3">
@@ -46,7 +48,7 @@ function TournamentRow({ tournament }: { tournament: GameTournament }) {
   )
 }
 
-export function GameTournaments({ tournaments }: { tournaments: readonly GameTournament[] }) {
+export function GameTournaments({ tournaments, timeFormat = "auto" }: { tournaments: readonly GameTournament[]; timeFormat?: TimeFormat }) {
   return (
     <section aria-labelledby="tournaments" className="@container">
       <h2 id="tournaments" className="mb-6 font-heading text-2xl">
@@ -73,7 +75,7 @@ export function GameTournaments({ tournaments }: { tournaments: readonly GameTou
                   <ul className="flex flex-col gap-3">
                     {list.map((tournament) => (
                       <li key={tournament.id}>
-                        <TournamentRow tournament={tournament} />
+                        <TournamentRow tournament={tournament} timeFormat={timeFormat} />
                       </li>
                     ))}
                   </ul>

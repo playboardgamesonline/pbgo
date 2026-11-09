@@ -4,6 +4,7 @@ import { Toaster } from "@pbgo/ui/platform/sonner"
 import { PLATFORM_THEME_COLOR } from "@pbgo/ui/theme"
 import "../globals.css"
 import { LanguageSync } from "@/components/language-sync"
+import { MotionSync } from "@/components/motion-sync"
 import { PlatformDocument } from "@/components/platform-document"
 import { PresenceBeat } from "@/components/presence-beat"
 import { SiteHeader } from "@/components/site-header"
@@ -28,13 +29,14 @@ export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorSchem
  * Each game has its own root layout, `app/[game]/layout.tsx`.
  * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports. So is the navbar
  * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the pages of a doc,
- * which have a side menu of their own, the legal pages, the 404). `LanguageSync` is mounted once too: it keeps the device of a signed-in visitor in the language of their account. So is `PresenceBeat`, which tells the server that a signed-in member has the site open (the players online). So is the toaster, which says what went wrong when a table could not be opened, joined or started.
+ * which have a side menu of their own, the legal pages, the 404). `LanguageSync` and `MotionSync` are mounted once too: they keep the device of a signed-in visitor in the language and the motion of their account. So is `PresenceBeat`, which tells the server that a signed-in member has the site open (the players online). So is the toaster, which says what went wrong when a table could not be opened, joined or started.
  */
 export default function HubLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <PlatformDocument>
       <SiteHeader />
       <LanguageSync />
+      <MotionSync />
       <PresenceBeat />
       {children}
       <Toaster />
