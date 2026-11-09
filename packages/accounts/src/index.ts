@@ -49,9 +49,11 @@ export {
   resolveLanguage,
 } from "./language"
 export type { LanguagePlan, LanguageRegion, LanguageSources, PlatformLanguage } from "./language"
+export { MFA_MESSAGES, TOTP_FACTOR_NAME, TOTP_LENGTH, aalOf, formatSetupKey, isTotpCode, mfaMessage, mfaProblem, qrImageOf, secondStepDevicesOf, secondStepPending, secondStepPendingOf, sinceLabel } from "./mfa"
+export type { Assurance, AuthFactor, MfaProblem, SecondStepDevice } from "./mfa"
 export { CODE_LENGTH, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, secondsLeft } from "./signup"
 export type { ResendOutcome, SignupEntry, SignupFields, SignupOutcome, SignupProblems } from "./signup"
-export { confirmEmail, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"
+export { confirmEmail, confirmEmailSession, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"
 export { mostPlayed, ordinal, perGame, playedGameOf, statsFrom, statsOf } from "./games"
 export type { FinishedGame, GameStats, GameTotals, PlayedGame } from "./games"
 export { supabaseAuthConfig } from "./config"

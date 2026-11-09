@@ -3,6 +3,7 @@
 
 import { countryOf } from "./details"
 import { languageOf, type PlatformLanguage } from "./language"
+import { secondStepDevicesOf, type AuthFactor, type SecondStepDevice } from "./mfa"
 import { nicknameOf, preferencesOf, type Preferences } from "./preferences"
 
 /** The providers that Supabase Auth signs a visitor in with (OAuth), in the order of the buttons. They are enabled in the Supabase project (Authentication › Providers). */
@@ -80,6 +81,8 @@ export type Account = {
   country: string | null
   /** The ways into their account that they hold now, in the order Supabase Auth lists them: what the page of their settings shows as linked, and what it can still be asked to link. */
   linked: LinkedService[]
+  /** The authenticator apps that give them the second step at sign-in (`secondStepDevicesOf`: the verified TOTP factors of Supabase Auth, PLT-129): none until they set one up, and for the demo account of development, which holds none. */
+  secondStep: SecondStepDevice[]
 }
 
 /** The part of Supabase Auth's user that an account is made of: what the browser and the server both hold of a session. */
@@ -95,6 +98,8 @@ export type AuthUser = {
   user_metadata?: Record<string, unknown>
   /** The identities of the user, one for each way they can sign in (`provider`: `email`, `google`…), with what each says of itself (`identity_data`). Present on a user the server asks for, not on every session. */
   identities?: readonly { provider?: string; identity_data?: Record<string, unknown> | null }[] | null
+  /** The factors of the second step that the user has set up (`mfa.enroll`), verified or not. Present on a user the server asks for, and on a session the Auth server issued. */
+  factors?: readonly AuthFactor[] | null
 }
 
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() !== "" ? value.trim() : null)
@@ -146,6 +151,7 @@ export function accountOf(user: AuthUser): Account {
     preferences: preferencesOf(user),
     country: countryOf(user),
     linked: linkedOf(user),
+    secondStep: secondStepDevicesOf(user.factors),
   }
 }
 

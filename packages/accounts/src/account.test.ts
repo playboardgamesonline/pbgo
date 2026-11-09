@@ -59,6 +59,7 @@ describe("accountOf", () => {
       preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto", reduceTransparency: "auto" },
       country: null,
       linked: [],
+      secondStep: [],
     })
   })
 
@@ -117,6 +118,7 @@ describe("accountOf", () => {
       preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto", reduceTransparency: "auto" },
       country: null,
       linked: [],
+      secondStep: [],
     })
   })
 

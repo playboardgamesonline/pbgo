@@ -69,6 +69,8 @@ const BY_CODE: Record<string, SettingsProblem> = {
   same_password: "same-password",
   reauthentication_needed: "reauthenticate",
   reauthentication_not_valid: "reauthenticate",
+  // A member with a second step who changes their password or address from a session that has not passed it (PLT-129): signing in again leads to the code
+  insufficient_aal: "reauthenticate",
   email_exists: "invalid-email",
   email_address_invalid: "invalid-email",
   manual_linking_disabled: "manual-linking",

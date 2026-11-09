@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { CONFIRM_TYPES, confirmEmail, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"
+import { CONFIRM_TYPES, confirmEmail, confirmEmailSession, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"
 
 const ORIGIN = "https://playboardgamesonline.app"
 const HASH = "5d0f2c8e1a7b49e3a6c4f1b2d9e8a7c6b5a4f3e2d1c0b9a8f7e6d5c4"
@@ -136,5 +136,32 @@ describe("confirmEmail", () => {
 
   it("never throws, whatever the Auth server does: a link that did not work is all the visitor hears", async () => {
     expect(await confirmEmail(verifier(new Error("fetch failed")).client, request)).toBe(false)
+  })
+})
+
+describe("confirmEmailSession", () => {
+  const request = { tokenHash: HASH, type: "email" as const }
+  const verifier = (answer: { data: { user: unknown; session: unknown }; error: unknown } | Error) => ({
+    auth: {
+      verifyOtp: vi.fn(async () => {
+        if (answer instanceof Error) throw answer
+        return answer
+      }),
+    },
+  })
+
+  it("gives the access token of the session the link made, which the route needs to tell whether the second step is still to pass", async () => {
+    expect(await confirmEmailSession(verifier({ data: { user: { id: "u-1" }, session: { access_token: "the-token" } }, error: null }), request)).toEqual({ accessToken: "the-token" })
+  })
+
+  it("gives no token when the session holds none that is text, and still says the link worked", async () => {
+    expect(await confirmEmailSession(verifier({ data: { user: { id: "u-1" }, session: {} }, error: null }), request)).toEqual({ accessToken: null })
+    expect(await confirmEmailSession(verifier({ data: { user: { id: "u-1" }, session: { access_token: 42 } }, error: null }), request)).toEqual({ accessToken: null })
+  })
+
+  it("is null when the link did not work, for whatever reason, and never throws", async () => {
+    expect(await confirmEmailSession(verifier({ data: { user: null, session: null }, error: { code: "otp_expired" } }), request)).toBeNull()
+    expect(await confirmEmailSession(verifier({ data: { user: { id: "u-1" }, session: null }, error: null }), request)).toBeNull()
+    expect(await confirmEmailSession(verifier(new Error("fetch failed")), request)).toBeNull()
   })
 })

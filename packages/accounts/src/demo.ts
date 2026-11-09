@@ -29,6 +29,7 @@ export const DEMO_ACCOUNT: Account = {
     { provider: "email", detail: "ore@example.com" },
     { provider: "google", detail: "ore@example.com" },
   ],
+  secondStep: [],
 }
 
 /** Whether an account is the demo account of development: its id is not a UUID, which is what every id of Supabase Auth is, so no real account can have it. */

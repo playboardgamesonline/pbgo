@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { isDemoAccount } from "@pbgo/accounts/demo"
-import { getAccount } from "@pbgo/accounts/server"
+import { getSessionState } from "@pbgo/accounts/server"
 import { KIND_LABELS, activeAnnouncements, bannersOf, entryHref, newsOf } from "@pbgo/catalog/editorial"
 import { getCatalog, getEditorial } from "@pbgo/catalog/server"
 import { NO_AGE_STATES } from "@pbgo/core/lib/age-rules"
@@ -22,7 +22,8 @@ import { expansionOption, LANGUAGE_OPTIONS } from "@/lib/game-activity-props"
 import { gamePicture } from "@/lib/game-card-props"
 
 // The home of a signed-in member. The proxy sends a visitor who has a session from `/` to it, instead of leaving them on the public home (`apps/web/src/proxy.ts`), and a visitor
-// who is not signed in who asks for `/home` is sent to `/`. It is read per request, since the session decides who sees it, and it is never indexed.
+// who is not signed in who asks for `/home` is sent to `/`, and one who has signed in but not passed the second step of their account (PLT-129) to the sign-in, which asks for the code and brings them back here: the proxy
+// sees a session at `/` and would send that visitor straight back. It is read per request, since the session decides who sees it, and it is never indexed.
 export const metadata: Metadata = { title: "Home", robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"
 
@@ -36,8 +37,8 @@ const ANNOUNCEMENTS_MAX = 2
  * The others are drawn whole: the play zone works as far as the platform does, and the lists have their empty state, so the shape of the home is there to see (docs/accounts.md, PLT-21). It has no title and no search bar: the title and the figures are the public home's.
  */
 export default async function MemberHome() {
-  const account = await getAccount()
-  if (!account) redirect("/")
+  const { account, secondStep } = await getSessionState()
+  if (!account) redirect(secondStep ? `/login?next=${encodeURIComponent("/home")}` : "/")
   const catalog = await getCatalog()
   const editorial = isDemoAccount(account) ? demoEditorial(catalog.entries) : await getEditorial()
 

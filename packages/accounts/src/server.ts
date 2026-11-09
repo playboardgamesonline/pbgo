@@ -9,6 +9,7 @@ import { accountOf, type Account } from "./account"
 import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed } from "./demo"
 import type { ExternalDeps } from "./external"
+import { secondStepPendingOf } from "./mfa"
 
 // The accounts on the server: the Supabase client of a request (it reads the session from the cookies and writes a refreshed one back), and who is
 // signed in. A page that shows an account is rendered per request, so it is not static: the hub's pages that stay static ask the browser instead
@@ -41,18 +42,53 @@ async function demoAsked(): Promise<boolean> {
   return demoAllowed() && (await cookies()).get(DEMO_COOKIE)?.value === "1"
 }
 
+/** Who is signed in, and whether a session that is not has only the second step left to pass (`getSessionState`). */
+export type SessionState = {
+  /** The account of the visitor, or null: nobody is signed in, or a member has not passed their second step yet. */
+  account: Account | null
+  /** True when the visitor has signed in with a first factor (a password, a provider, a link) and their account asks for a second one: the sign-in page asks for the code, and no page of a member is theirs until it is given. */
+  secondStep: boolean
+}
+
 /**
- * Who is signed in. The user is asked of the Auth server rather than read from the cookie, which anyone can write: only what the server confirms is an
- * account. Null for a visitor who is not signed in. Asked once per request, however many components ask (`cache`).
+ * Who is signed in. The user is asked of the Auth server rather than read from the cookie, which anyone can write: only what the server confirms is an account. **A member who set up the second step (multi-factor
+ * authentication, PLT-129) is signed in only once their session has passed it**: a session that holds the first factor alone (`aal1`) is no account here, whichever way it came in (a password, Google, Discord, Steam or a link), and says
+ * `secondStep`, so that the sign-in page asks for the code. Every decision about who is signed in is made here: the pages, the API, the seat at a table and the presence all read `getAccount`. Asked once per request, however many
+ * components ask (`cache`).
  */
-export const getAccount = cache(async (): Promise<Account | null> => {
+export const getSessionState = cache(async (): Promise<SessionState> => {
   const supabase = await createAuthClient()
   if (supabase) {
     const { data } = await supabase.auth.getUser()
-    if (data.user) return accountOf(data.user)
+    if (data.user) {
+      // The Auth server has just accepted the access token that this session holds, so the level it says it has (and the factors it listed for the user, which are fresh, not the cookie's) can be believed
+      const { data: held } = await supabase.auth.getSession()
+      if (secondStepPendingOf(data.user, held.session?.access_token)) return { account: null, secondStep: true }
+      return { account: accountOf(data.user), secondStep: false }
+    }
   }
-  return (await demoAsked()) ? DEMO_ACCOUNT : null
+  return { account: (await demoAsked()) ? DEMO_ACCOUNT : null, secondStep: false }
 })
+
+/** The account of the visitor, or null for a visitor who is not signed in, or has not passed the second step of their account (`getSessionState`). */
+export async function getAccount(): Promise<Account | null> {
+  return (await getSessionState()).account
+}
+
+/**
+ * Whether the session that a sign-in has just made still has the second step to pass (PLT-129). A way in that ends in a redirect (a provider's way back, the link of an e-mail, Steam) goes on to `next`, which can be a page that anybody
+ * sees: it would draw a guest, and nothing would ask for the code. Those routes ask here and send such a session to the sign-in (`/login?next=`), which does. The user is asked of the Auth server with the token of the session that was
+ * just made, so that nothing is read back from cookies that are being written, and its factors are fresh. False when it could not be told: the page that comes next asks the server again, which is the one that decides.
+ */
+export async function secondStepPendingAfterSignIn(supabase: SupabaseClient, accessToken: string | null | undefined): Promise<boolean> {
+  if (!accessToken) return false
+  try {
+    const { data } = await supabase.auth.getUser(accessToken)
+    return secondStepPendingOf(data.user, accessToken)
+  } catch {
+    return false
+  }
+}
 
 /** The account of a page that is for a signed-in visitor alone: a visitor who is not signed in is sent to `/login` and brought back to `path`. */
 export async function requireAccount(path: string): Promise<Account> {
