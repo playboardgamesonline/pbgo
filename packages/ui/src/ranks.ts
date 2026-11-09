@@ -1,5 +1,5 @@
-// The rank of a player in a game, which is what the platform shows where it would show a rating. The rating (an Elo) stays on the server and is never sent to the browser, never drawn and never typed for a page: the server derives
-// the rank from it and from the player's position among the game's players, and sends the tier and the division alone. Nothing here computes a rank: the file says what a rank is, how it is written and which one comes after it, and the hub draws what it is given.
+// The rank of a player in a game, which is what the platform shows where it would show a rating. The rating (an Elo) stays on the server and is never sent to the browser, never drawn and never typed for a page: the server reads
+// the rank from the player's rank points, which they earn by playing the game (`@pbgo/core/lib/ladder`; a rank by position among the game's players is the target, PLT-105), and sends the tier and the division alone. Nothing here computes a rank: the file says what a rank is, how it is written and which one comes after it, and the hub draws what it is given.
 
 /** The nine tiers, from the lowest to the highest. */
 export const TIERS = ["Apprentice", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Grandmaster", "Legend"] as const
