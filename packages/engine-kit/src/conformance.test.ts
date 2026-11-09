@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { conformanceProblems, type ConformanceOptions, deepEqual, deepFreeze, jsonProblems, reorderKeys } from "./conformance"
-import type { GameDefinition, Results } from "./contract"
+import type { GameDefinition, Results, Standing } from "./contract"
 import { EngineError } from "./errors"
 import { normalizeOptions, type OptionDefinitions } from "./options"
 import { assertPlayers } from "./players"
@@ -22,7 +22,7 @@ type State = {
   over: boolean
 }
 type Roll = { type: "roll"; playerId: string }
-type View = { scores: { id: string; points: number }[]; turn: string | null; me: { secret: string } | null; results: Results | null }
+type View = { scores: { id: string; points: number }[]; turn: string | null; me: { secret: string } | null; results: Results | null; standings?: Standing[] }
 
 const OPTIONS: OptionDefinitions = {
   target: { type: "number", defaultValue: 12, min: 6, max: 30 },
@@ -294,6 +294,34 @@ describe("results", () => {
     const worded = withResults((r) => ({ ...r, players: r.players.map((p) => ({ ...p, detail: [{ key: "rolls", label: "Rolls", points: 1 }] })) }))
     expect(said(worded)).toContain("a line of the score carries words")
     expect(said(worded, { allowTexts: true })).toBe("")
+  })
+})
+
+describe("standings", () => {
+  const standingsOf = (state: State): Standing[] => state.seats.map((id) => ({ playerId: id, score: state.scores[id]! }))
+  const withStandings = (change: (standings: Standing[], viewer: string | null) => Standing[] | undefined) =>
+    broken({ view: (s, v) => ({ ...dash.view(s, v), standings: change(standingsOf(s), v) }) })
+
+  it("have nothing said about them when a game has none, or when each player is there once, in seat order, with a finite score", () => {
+    expect(said(dash)).toBe("")
+    expect(said(withStandings((standings) => standings))).toBe("")
+  })
+
+  it("hold each player of the table once, in seat order", () => {
+    const problem = "the standings do not hold each player of the table once, in seat order"
+    expect(said(withStandings((standings) => standings.slice(1)))).toContain(problem)
+    expect(said(withStandings((standings) => [...standings, standings[0]!]))).toContain(problem)
+    expect(said(withStandings((standings) => [...standings].reverse()))).toContain(problem)
+    expect(said(withStandings((standings) => standings.map((standing) => ({ ...standing, playerId: `${standing.playerId}-x` }))))).toContain(problem)
+  })
+
+  it("have a finite score for each player", () => {
+    expect(said(withStandings((standings) => standings.map((standing) => ({ ...standing, score: "3" as unknown as number }))))).toContain("a standing has a score that is not a finite number")
+  })
+
+  it("are there for every viewer, and the same for each", () => {
+    expect(said(withStandings((standings, viewer) => (viewer === null ? undefined : standings)))).toContain("the view carries standings for some viewers and not for others")
+    expect(said(withStandings((standings, viewer) => standings.map((standing) => ({ ...standing, score: standing.score + (viewer === standing.playerId ? 1 : 0) }))))).toContain("the standings are not the same for every viewer")
   })
 })
 

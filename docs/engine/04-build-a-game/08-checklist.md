@@ -19,6 +19,7 @@ One line per rule, each linking to the page that owns it. A line that is not tru
 
 - A view shows nothing hidden to any viewer, `null` included ([Hidden information](../01-the-game/10-views.md#hidden-information)).
 - The view carries `results` once the game is over ([What core reads from a view](../01-the-game/10-views.md#what-core-reads-from-a-view), [Results](../01-the-game/06-victory.md#victory-and-results)).
+- A game that counts points while it goes puts them in the view as `standings`, for the list of the players ([Keeping the score](../02-components/09-score.md#keeping-the-score)); one whose score is hidden leaves it out.
 - `waitingFor` lists the players the game waits for, in seat order, and nothing hidden ([`waitingFor`](../01-the-game/03-turns.md#waitingfor)).
 - `autoPlayFor` completes one waiting player's step, legal and deterministic, and throws `NOT_WAITING` for anybody else ([Playing for an absent player](../01-the-game/03-turns.md#playing-for-an-absent-player)).
 - A simultaneous step is resolved in the action of the last answer ([Simultaneous steps](../01-the-game/03-turns.md#simultaneous-steps)).

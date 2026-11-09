@@ -1,4 +1,4 @@
-import type { Results, Submissions } from "@pbgo/engine-kit"
+import type { Results, Standing, Submissions } from "@pbgo/engine-kit"
 
 export const CARD_COLORS = ["sun", "moon", "star", "comet"] as const
 export type CardColor = (typeof CARD_COLORS)[number]
@@ -58,5 +58,7 @@ export type PlayerView = {
   trick: PlayedCard[]
   lastTrick: State["lastTrick"]
   log: GameEvent[]
+  /** What each player has so far, for the list of the players of the HUD */
+  standings: Standing[]
   results: Results | null
 }
