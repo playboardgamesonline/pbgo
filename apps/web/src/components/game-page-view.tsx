@@ -39,6 +39,8 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
   // Who is signed in is asked once per request (`getAccount` is cached): the lobby, the stats, the leaderboard's own row and the history are the visitor's
   const account = await getAccount()
   const viewerId = account?.id ?? null
+  // The times on the page (the visitor's recent games, the tournaments) are written as the member chose; a visitor who is not signed in has no choice, and Automatic leaves each as the page writes it
+  const timeFormat = account?.preferences.timeFormat ?? "auto"
   const seatsMax = playerRange(game.minPlayers, game.maxPlayers).max
   // A table can be opened where the game can be played: a live game, and, outside production, any game that has an engine (the template, a game under construction), as for its API
   const live = game.live || (process.env.VERCEL_ENV !== "production" && (await getPlayableGame(game.slug)) !== null)
@@ -83,17 +85,17 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
       <main className="mx-auto w-full max-w-page flex-1 px-gutter py-8 md:py-12">
         {/* Under the head, in this order: the visitor's cards, then the tables and the space to play (the head's "Create a table" leads to the space), then the tournaments and the leaderboard side by side. A game that is not live has the space and the tournaments: there is nothing to play, so no cards and no board. The credits are in the head */}
         <div className="flex flex-col gap-section">
-          {live && stats && <GamePlayerBar slug={game.slug} stats={stats} recent={history} expansions={expansions} />}
+          {live && stats && <GamePlayerBar slug={game.slug} stats={stats} recent={history} expansions={expansions} timeFormat={timeFormat} />}
           <GamePlay slug={game.slug} name={game.name} live={live} minPlayers={game.minPlayers} maxPlayers={game.maxPlayers} tables={tables} viewerTable={viewerTable} linked={linked} expansions={expansions} helpers={game.helpers} signedIn={account !== null} anchored />
           {live ? (
             <div className="grid gap-x-4 gap-y-section lg:grid-cols-3 lg:items-start">
               <div className="lg:col-span-2">
-                <GameTournaments tournaments={tournaments} />
+                <GameTournaments tournaments={tournaments} timeFormat={timeFormat} />
               </div>
               <GameLeaderboard standings={standings} />
             </div>
           ) : (
-            <GameTournaments tournaments={tournaments} />
+            <GameTournaments tournaments={tournaments} timeFormat={timeFormat} />
           )}
         </div>
 

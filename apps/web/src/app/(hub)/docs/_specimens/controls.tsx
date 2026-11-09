@@ -20,6 +20,7 @@ import { Textarea } from "@pbgo/ui/platform/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { CodeSpecimen } from "./code-specimen"
 import { ComboboxSpecimen } from "./combobox-specimen"
+import { InlineEditSpecimen, InlineFieldsSpecimen } from "./inline-edit-specimen"
 import { MeterSpecimen } from "./meter-specimen"
 import { SingleSliderSpecimen } from "./slider-specimen"
 import { Frame } from "./text"
@@ -386,6 +387,43 @@ function SelectDefaultAndSmall() {
   )
 }
 
+function InlineEditRow() {
+  return (
+    <Frame className="max-w-xl" code={`<InlineEdit
+  open={open}
+  onOpenChange={setOpen}
+  title="Username"
+  value={saved}
+  editLabel="Edit username"
+  canSave={valid && changed}
+  pending={pending}
+  error={failure}
+  onSave={save}
+>
+  <InlineField label="Username" htmlFor="username" aside={left} error={problem}>
+    <InlineFieldInput id="username" value={value} onChange={...} />
+  </InlineField>
+</InlineEdit>`}>
+      <InlineEditSpecimen />
+    </Frame>
+  )
+}
+
+function InlineEditFields() {
+  return (
+    <Frame code={`<InlineField label="Country / region" htmlFor="country">
+  <Select value={code} onValueChange={setCode}>
+    <InlineFieldSelectTrigger id="country">
+      <SelectValue />
+    </InlineFieldSelectTrigger>
+    <SelectContent>...</SelectContent>
+  </Select>
+</InlineField>`}>
+      <InlineFieldsSpecimen />
+    </Frame>
+  )
+}
+
 function ComboboxInAPopover() {
   return (
     <Frame className={ROW} code={`<Popover>
@@ -572,6 +610,8 @@ export const controlsSpecimens: Specimens = {
   "switch-states": SwitchStates,
   "select-default-and-small": SelectDefaultAndSmall,
   "combobox-in-a-popover": ComboboxInAPopover,
+  "inline-edit-row": InlineEditRow,
+  "inline-edit-fields": InlineEditFields,
   "slider-one-thumb": SliderOneThumb,
   "meter-levels": MeterLevels,
   "meter-never-empty": MeterNeverEmpty,

@@ -10,7 +10,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/legal/privacy" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "8 November 2026"
+const UPDATED = "9 November 2026"
 
 /**
  * Everything the site does with personal data, in the order a person meets it. Every line is the code's, and the table of `docs/legal.md` lists where: a new field that holds
@@ -111,7 +111,11 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Your settings",
-              text: "The nickname you choose and your choices (the notifications you want, hiding your game history) are kept with your account, so that they follow you from one device to the next. They stay until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
+              text: "The username you choose and your choices (the notifications you want, hiding your game history, how times are written, whether the site's animations are reduced) are kept with your account, so that they follow you from one device to the next. The choice for the animations is also kept in a cookie on each device, so that a page can honour it as it opens (see the Cookie Policy). All of it stays until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
+            },
+            {
+              name: "Your country and your date of birth",
+              text: "In your account settings you can record the country or region you are in and your date of birth. Both are optional and nobody else sees them. We keep them with your account, so that games for adults can be limited to adults, until the account is deleted, and you can change or remove them at any time. A date that would make you younger than 13 is refused and not kept.",
             },
             {
               name: "Being online",
@@ -193,14 +197,17 @@ export default function PrivacyPolicy() {
         <LegalText>The law asks for a reason for each use of personal data. Ours are:</LegalText>
         <LegalEntries
           items={[
-            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language, keeping your games, your totals and your rank: we could not do it without your data." },
+            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language and your settings, keeping your games, your totals and your rank: we could not do it without your data." },
             {
               name: "Our legitimate interest",
               text: "In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, and counting what happens at tables to fix and improve the games. You can object to this (see Your rights).",
             },
-            ...(ANALYTICS_ENABLED
-              ? [{ name: "Your consent", text: "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. You can say no, and change your mind at any time." }]
-              : []),
+            {
+              name: "Your consent",
+              text: ANALYTICS_ENABLED
+                ? "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. And for the details you choose to record in your account, your country and your date of birth. You can say no, and change your mind at any time."
+                : "For the details you choose to record in your account, your country and your date of birth. You can say no, and change your mind at any time.",
+            },
           ]}
         />
         <LegalText>We make no automated decision that has legal or similar effects on you.</LegalText>

@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { AnimatePresence, motion } from "motion/react"
+import { useReducedMotion } from "../reduced-motion"
 import { Slot } from "radix-ui"
 import { DURATION, EASE_STANDARD } from "../motion"
 import { cn } from "../utils"

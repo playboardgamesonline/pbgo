@@ -8,7 +8,7 @@ import { SettingsNav } from "@/components/settings-nav"
 export default function SettingsLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div className="flex flex-col gap-8 md:flex-row md:gap-12">
-      <SettingsNav className="md:w-52 md:shrink-0" />
+      <SettingsNav className="md:w-64 md:shrink-0" />
       <div className="min-w-0 flex-1 md:max-w-2xl">{children}</div>
     </div>
   )

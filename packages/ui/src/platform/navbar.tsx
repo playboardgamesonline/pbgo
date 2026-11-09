@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { LayoutGroup, MotionConfig, motion } from "motion/react"
+import { LayoutGroup, motion } from "motion/react"
+import { MotionPreference } from "../reduced-motion"
 import { Slot } from "radix-ui"
 import { SPRING_TRAVEL } from "../motion"
 import { cn } from "../utils"
@@ -23,13 +24,13 @@ function Navbar({ className, children, ...props }: React.ComponentProps<"header"
   // Each bar scopes its own fill, so that two bars on one page (the specimens of the design docs) do not trade it
   const group = React.useId()
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionPreference>
       <LayoutGroup id={group}>
         <header data-slot="navbar" className={cn("pointer-events-none h-navbar", className)} {...props}>
           <div className="flex w-full items-center justify-between gap-4 p-6">{children}</div>
         </header>
       </LayoutGroup>
-    </MotionConfig>
+    </MotionPreference>
   )
 }
 

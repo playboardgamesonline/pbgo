@@ -30,7 +30,7 @@ export default async function MyGamesPage() {
         {inProgress.length > 0 ? (
           <div className="flex flex-col gap-2">
             {inProgress.map((game) => (
-              <GameRecord key={game.id} game={game} />
+              <GameRecord key={game.id} game={game} timeFormat={account.preferences.timeFormat} />
             ))}
           </div>
         ) : (
@@ -55,7 +55,7 @@ export default async function MyGamesPage() {
         {finished.length > 0 ? (
           <div className="flex flex-col gap-2">
             {finished.map((game) => (
-              <GameRecord key={game.id} game={game} />
+              <GameRecord key={game.id} game={game} timeFormat={account.preferences.timeFormat} />
             ))}
           </div>
         ) : (
