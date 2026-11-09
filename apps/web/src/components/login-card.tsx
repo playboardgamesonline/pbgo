@@ -2,8 +2,8 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
-import { AFTER_SIGN_IN, safeNext, type Provider } from "@pbgo/accounts"
-import { signInWith, signInWithPassword } from "@pbgo/accounts/client"
+import { AFTER_SIGN_IN, safeNext, type AnyProvider } from "@pbgo/accounts"
+import { secondStepNeeded, signInWith, signInWithPassword } from "@pbgo/accounts/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
 import { Input } from "@pbgo/ui/platform/input"
@@ -15,7 +15,7 @@ import { ProviderRow } from "@/components/provider-row"
 /**
  * The sign-in, a card laid over the hub's backdrop: a username and a password, then, under "or continue with", one button per provider that the project has switched on
  * (`providers`), side by side with nothing on them but the provider's small mark. A press on a provider leaves for it, and it sends the visitor back to `/auth/callback` and on to `next`; the
- * password signs in on the spot and a whole page load takes the visitor on to `next` (the cookies hold the session, so the proxy and the server see it). Without a
+ * password signs in on the spot and a whole page load takes the visitor on to `next` (the cookies hold the session, so the proxy and the server see it), or, for a member whose account asks for a second step, to this page again, which asks for the code. Without a
  * Supabase project (`enabled` is false) everything is off and says so, and `failed` is the page's way to tell a visitor that a sign-in just did not work, which is
  * all it ever says: why belongs to the logs, not to a stranger.
  */
@@ -28,16 +28,16 @@ export function LoginCard({
 }: {
   next: string
   enabled: boolean
-  providers: Provider[]
+  providers: AnyProvider[]
   failed: boolean
   className?: string
 }) {
   // What is on its way: the password, or a provider. While it is, nothing else can be pressed
-  const [pending, setPending] = useState<Provider | "password" | null>(null)
+  const [pending, setPending] = useState<AnyProvider | "password" | null>(null)
   const [error, setError] = useState<string | null>(failed ? "Sign-in did not work. Try again." : null)
   const off = !enabled || pending !== null
 
-  async function start(provider: Provider) {
+  async function start(provider: AnyProvider) {
     setPending(provider)
     setError(null)
     const problem = await signInWith(provider, next)
@@ -59,7 +59,9 @@ export function LoginCard({
       setError(problem)
       return
     }
-    window.location.assign(safeNext(next))
+    // A member who set up the second step (PLT-129) has it left to pass: the sign-in page, drawn again, knows the session now and asks for the code, then takes them on to `next`
+    const target = safeNext(next)
+    window.location.assign((await secondStepNeeded()) ? `/login?next=${encodeURIComponent(target)}` : target)
   }
 
   return (

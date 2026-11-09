@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from "@supabase/supabase-js"
 import { PASSWORD_MAX_BYTES } from "./signup"
-import { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, settingsMessage, settingsProblem } from "./settings"
+import { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, nicknameCharactersLeft, settingsMessage, settingsProblem } from "./settings"
 import { safeNext } from "./redirect"
 
 describe("ACCOUNT_SETTINGS_PATH", () => {
@@ -11,19 +11,38 @@ describe("ACCOUNT_SETTINGS_PATH", () => {
 })
 
 describe("checkNickname", () => {
-  it("keeps a nickname cleaned like a display name", () => {
+  it("keeps a username cleaned like a display name", () => {
     expect(checkNickname("  Marly   74 ")).toEqual({ ok: true, nickname: "Marly 74" })
   })
 
   it("asks for one", () => {
-    expect(checkNickname("")).toEqual({ ok: false, problem: "Enter a nickname." })
-    expect(checkNickname("   \u0000 ")).toEqual({ ok: false, problem: "Enter a nickname." })
+    expect(checkNickname("")).toEqual({ ok: false, problem: "Enter a username." })
+    expect(checkNickname("   \u0000 ")).toEqual({ ok: false, problem: "Enter a username." })
   })
 
   it("keeps it to 20 characters as a person counts them", () => {
     expect(checkNickname("a".repeat(20)).ok).toBe(true)
     expect(checkNickname("🎲".repeat(20)).ok).toBe(true)
     expect(checkNickname("a".repeat(21))).toEqual({ ok: false, problem: "Use 20 characters at most." })
+  })
+})
+
+describe("nicknameCharactersLeft", () => {
+  it("counts down from 20 as a person counts, an emoji being one character", () => {
+    expect(nicknameCharactersLeft("")).toBe(20)
+    expect(nicknameCharactersLeft("Marly")).toBe(15)
+    expect(nicknameCharactersLeft("🎲".repeat(20))).toBe(0)
+  })
+
+  it("counts the name as it will be kept, so the blanks that are cleaned away are not counted", () => {
+    expect(nicknameCharactersLeft("  Marly   74 ")).toBe(12)
+    expect(nicknameCharactersLeft("a".repeat(20) + "   ")).toBe(0)
+  })
+
+  it("goes below zero exactly when the name is refused for its length", () => {
+    for (const text of ["a".repeat(20), "a".repeat(21), "a".repeat(35), "🎲".repeat(21)]) {
+      expect(nicknameCharactersLeft(text) < 0).toBe(!checkNickname(text).ok)
+    }
   })
 })
 
@@ -72,6 +91,8 @@ describe("settingsProblem and settingsMessage", () => {
     ["same_password", "same-password"],
     ["reauthentication_needed", "reauthenticate"],
     ["reauthentication_not_valid", "reauthenticate"],
+    // A member with a second step who changes their password or address from a session that has not passed it (PLT-129)
+    ["insufficient_aal", "reauthenticate"],
     ["manual_linking_disabled", "manual-linking"],
     ["single_identity_not_deletable", "last-service"],
     ["identity_already_exists", "service-taken"],

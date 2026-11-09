@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Mail01Icon } from "@hugeicons/core-free-icons"
+import { CheckmarkBadge01Icon, Mail01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { PROVIDERS, PROVIDER_NAMES, type LinkedService, type Provider } from "@pbgo/accounts"
+import { PROVIDERS, PROVIDER_NAMES, isExternalProvider, type LinkedService, type Provider } from "@pbgo/accounts"
 import { linkProvider, unlinkProvider } from "@pbgo/accounts/client"
 import { BrandMark } from "@pbgo/ui/brands"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
@@ -14,8 +14,18 @@ import { Spinner } from "@pbgo/ui/platform/spinner"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { changing, failureOf } from "@/lib/settings-change"
 
+/** The name of a way in and, when the account holds it, the blue check right beside it: the one place that says a service is linked, for every row of the list. */
+export function ServiceName({ name, linked }: { name: string; linked: boolean }) {
+  return (
+    <span className="flex items-center gap-1">
+      {name}
+      {linked && <HugeiconsIcon icon={CheckmarkBadge01Icon} strokeWidth={2} role="img" aria-label="Linked" className="size-4 shrink-0 text-verified" />}
+    </span>
+  )
+}
+
 /**
- * The ways into the account, one row each: the e-mail address and password when the account has them, then every provider the project has switched on (`available`) or that the account holds already, each with its mark, what it says of itself
+ * The ways into the account, one row each: the e-mail address and password when the account has them, the external providers it holds (Steam: a row with nothing to press, like the e-mail's), then every provider the project has switched on (`available`) or that the account holds already, each with its mark, what it says of itself
  * (its address or its name) and one button, Link or Unlink. Linking sends the member to the provider and back to this page (`linkProvider`), unlinking takes the identity off at once; the last way in cannot be unlinked, so its button is off. Both need
  * "Allow manual linking" in the Supabase project (`docs/accounts.md`): when it is off the member is told it is not available.
  */
@@ -24,6 +34,7 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
   const [pending, setPending] = useState<Provider | null>(null)
   const [error, setError] = useState<string | null>(null)
   const email = linked.find((service) => service.provider === "email")
+  const external = linked.filter((service) => isExternalProvider(service.provider))
   // A way in can only be taken off while another is left
   const canUnlink = linked.length > 1
   const providers = PROVIDERS.filter((provider) => available.includes(provider) || linked.some((service) => service.provider === provider))
@@ -59,11 +70,26 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
             <HugeiconsIcon icon={Mail01Icon} strokeWidth={2} className="size-5" aria-hidden="true" />
           </ItemMedia>
           <ItemContent>
-            <ItemTitle>E-mail and password</ItemTitle>
+            <ItemTitle>
+              <ServiceName name="E-mail and password" linked />
+            </ItemTitle>
             {email.detail && <ItemDescription className="ph-mask">{email.detail}</ItemDescription>}
           </ItemContent>
         </Item>
       )}
+      {external.map((service) => (
+        <Item key={service.provider}>
+          <ItemMedia>
+            <BrandMark brand={service.provider as Exclude<typeof service.provider, "email">} className="size-5" />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle>
+              <ServiceName name={PROVIDER_NAMES[service.provider as Exclude<typeof service.provider, "email">]} linked />
+            </ItemTitle>
+            {service.detail && <ItemDescription className="ph-mask">{service.detail}</ItemDescription>}
+          </ItemContent>
+        </Item>
+      ))}
       {providers.map((provider) => {
         const service = linked.find((candidate) => candidate.provider === provider)
         const isLinked = service !== undefined
@@ -73,7 +99,9 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
               <BrandMark brand={provider} className="size-5" />
             </ItemMedia>
             <ItemContent>
-              <ItemTitle>{PROVIDER_NAMES[provider]}</ItemTitle>
+              <ItemTitle>
+                <ServiceName name={PROVIDER_NAMES[provider]} linked={isLinked} />
+              </ItemTitle>
               <ItemDescription className="ph-mask">{isLinked ? (service.detail ?? "Linked") : "Not linked"}</ItemDescription>
             </ItemContent>
             <ItemActions>

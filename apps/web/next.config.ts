@@ -63,6 +63,9 @@ const nextConfig: NextConfig = {
       // The privacy policy and the terms of use moved under /legal, next to the legal notice and the cookie policy
       { source: "/privacy", destination: "/legal/privacy", permanent: true },
       { source: "/terms", destination: "/legal/terms", permanent: true },
+      // The settings open on their first section, and the Profile section was folded into Account. These are redirects of the server and not of a page: the settings are a window, which a page that redirects while it is drawn would leave open under the next one
+      { source: "/me/settings", destination: "/me/settings/account", permanent: false },
+      { source: "/me/settings/profile", destination: "/me/settings/account", permanent: true },
     ]
   },
   async rewrites() {

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowDown01Icon, InfinityIcon } from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, InfinityIcon, LockIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { cn } from "../utils"
 import { initials } from "../friends"
@@ -48,7 +48,12 @@ type ExpansionOption = {
   coverRatio?: number | null
   boxUrl?: string | null
   boxRatio?: number | null
+  /** The visitor cannot choose it, and why: the card says the reason in a few words (`reason`) in place of letting its box be ticked, and a press on it is handed to the page (`onLockedPick`, with `kind`, the page's own word for the reason). Leaving it off, once it is chosen, is never locked. */
+  locked?: ExpansionLock
 }
+
+/** Why an expansion cannot be chosen: what the card says (`reason`) and the page's own word for it (`kind`), which `onLockedPick` hands back. */
+type ExpansionLock = { reason: string; kind?: string }
 
 /** What the settings of a lobby say: the ids of the expansions it is played with, its pace, the ids of the helpers it has on, and for each expansion the ids of its settings that are on. */
 type LobbySettingsValue = { expansions: string[]; pace: Pace; helpers: string[]; expansionSettings: Record<string, string[]> }
@@ -69,6 +74,8 @@ type LobbySettingsProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   /** What the page puts between the speed and the expansions, as a block of the settings: the signed-in home's Create a table has the number of players there (`LobbyPlayers`), since it sets them before the lobby has seats. */
   afterSpeed?: React.ReactNode
   onChange?: (value: LobbySettingsValue) => void
+  /** A press on the box of an expansion the visitor cannot choose (`ExpansionOption.locked`): the expansion is not chosen, and the page decides what to do (tell why, ask for what is missing). */
+  onLockedPick?: (id: string, locked: ExpansionLock) => void
 }
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
@@ -121,7 +128,8 @@ const READ = "data-[state=on]:disabled:opacity-100"
  * The card of an expansion: a small checkbox at its left, then its picture and, at the right of the picture, its name, under it its description (two lines at most, the whole text being its tooltip), then what it changes about the game, the figures that differ from its game's, each
  * with its icon as the head of the page has them (`facts`), and the categories that it brings, as tags with their icons (`tags`). The box says whether the table is played with it, and so does the picture, which is in its colours when the expansion is chosen and dimmed and grey when it is not, and the card, which has a fill a step lighter than the panel's when it is chosen and a half of it under the pointer. The card's corners are `rounded-xl`, one step over the picture's (`rounded-lg`): a tile, not a pill; it has 12px of room round its content (`p-3`) and reaches 12px out of the column (`-mx-3`) so that what is in it stands where the titles of the groups do. A visitor who sets the lobby ticks the box, or presses anywhere on the card (it is the box's label), to choose the expansion or to leave it (`onChosenChange`); an expansion that has settings of its own (`settings`) has a button at the right
  * that unrolls them under the card, as rows with a switch, once it is chosen. One who reads a table sees only the cards of the ones it is played with, with no box and no button. The box is named by the title and described by the rest. The name wraps and is never cut (an expansion's name
- * often starts with its game's, and says nothing before its end).
+ * often starts with its game's, and says nothing before its end). An expansion that the visitor cannot choose (`locked`, for its age) keeps its box unticked and says why under what it changes, with a lock; a press on it is handed to the page (`onLockedPick`),
+ * and one that is chosen already can always be left.
  */
 const CARD = "-mx-3 flex flex-col rounded-xl p-3 transition-colors duration-fast"
 
@@ -135,20 +143,25 @@ function ExpansionCard({
   expansion,
   chosen,
   onChosenChange,
+  onLockedPick,
   settingsOn = [],
   onSettingChange,
 }: {
   expansion: ExpansionOption
   chosen: boolean
   onChosenChange?: (chosen: boolean) => void
+  /** A press on the box of an expansion that is locked and not chosen. */
+  onLockedPick?: () => void
   settingsOn?: readonly string[]
   onSettingChange?: (setting: string, on: boolean) => void
 }) {
   const id = React.useId()
   const [open, setOpen] = React.useState(false)
-  const { name, description, facts = [], tags = [], settings = [] } = expansion
+  const { name, description, facts = [], tags = [], settings = [], locked } = expansion
   const editable = onChosenChange !== undefined
-  const described = [description ? `${id}-description` : null, facts.length > 0 ? `${id}-facts` : null, tags.length > 0 ? `${id}-tags` : null].filter((part) => part !== null).join(" ")
+  // A lock is about choosing: an expansion that is chosen already can always be left
+  const shut = editable && locked !== undefined && !chosen
+  const described = [description ? `${id}-description` : null, facts.length > 0 ? `${id}-facts` : null, tags.length > 0 ? `${id}-tags` : null, shut ? `${id}-locked` : null].filter((part) => part !== null).join(" ")
   const body = (
     <>
       <ExpansionPicture expansion={expansion} className={cn("transition-[opacity,filter] duration-fast", !chosen && "opacity-50 grayscale")} />
@@ -186,6 +199,13 @@ function ExpansionCard({
             )}
           </span>
         )}
+        {shut && (
+          // Why the box cannot be ticked, in the muted text of the figures: a press on the card hands it to the page
+          <span id={`${id}-locked`} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+            <HugeiconsIcon icon={LockIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
+            <span className={TRIM}>{locked.reason}</span>
+          </span>
+        )}
       </span>
     </>
   )
@@ -204,7 +224,7 @@ function ExpansionCard({
             <Checkbox
               id={`${id}-choice`}
               checked={chosen}
-              onCheckedChange={(next) => onChosenChange(next === true)}
+              onCheckedChange={(next) => (shut && next === true ? onLockedPick?.() : onChosenChange(next === true))}
               aria-labelledby={`${id}-name`}
               aria-describedby={described || undefined}
               className="mt-1 shrink-0"
@@ -254,7 +274,7 @@ function SwitchRow({ option, on, onChange }: { option: SettingOption; on: boolea
  * The settings of a lobby: the speed, then the expansions of the game as cards (a visitor who sets the lobby ticks one to choose it; one who reads a table sees only the ones it is played with), then, for a visitor who sets the lobby, the helpers that the game
  * offers, a small row and a switch each. Each group has its small title. The container decides the width of the picture of an expansion and whether the names of the speeds fit (`@container`).
  */
-function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, afterSpeed, onChange, className, ...props }: LobbySettingsProps) {
+function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, afterSpeed, onChange, onLockedPick, className, ...props }: LobbySettingsProps) {
   const [set, setSet] = React.useState<LobbySettingsValue>({ expansions: [...chosen], pace, helpers: chosenHelpers ? [...chosenHelpers] : helpers.map((helper) => helper.id), expansionSettings: {} })
   // What is read comes from the table that is given, so that the panel follows the row that is picked; what is set is the visitor's own
   const value = editable ? set : { expansions: [...chosen], pace, helpers: [], expansionSettings: {} }
@@ -307,6 +327,7 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
                     expansion={expansion}
                     chosen={on}
                     onChosenChange={editable ? (next) => change({ ...set, expansions: next ? [...set.expansions, expansion.id] : set.expansions.filter((id) => id !== expansion.id) }) : undefined}
+                    onLockedPick={expansion.locked && onLockedPick ? () => onLockedPick(expansion.id, expansion.locked!) : undefined}
                     settingsOn={set.expansionSettings[expansion.id]}
                     onSettingChange={(setting, enabled) => {
                       const current = set.expansionSettings[expansion.id] ?? []
@@ -338,4 +359,4 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
 }
 
 export { LobbySettings }
-export type { ExpansionFact, ExpansionOption, ExpansionTag, HelperOption, LobbySettingsProps, LobbySettingsValue, SettingOption }
+export type { ExpansionFact, ExpansionLock, ExpansionOption, ExpansionTag, HelperOption, LobbySettingsProps, LobbySettingsValue, SettingOption }

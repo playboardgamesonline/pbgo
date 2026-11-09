@@ -1,9 +1,6 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { requireAccount } from "@pbgo/accounts/server"
-import { AccountNav } from "@/components/account-nav"
-import { AccountShell } from "@/components/account-shell"
-import { ProfileHeader } from "@/components/profile-header"
 
 export const metadata: Metadata = {
   title: "Your account",
@@ -11,17 +8,11 @@ export const metadata: Metadata = {
 }
 
 /**
- * The pages of a signed-in visitor, `/me`: their profile, their games, their friends. The frame is the same on each: the header with their name and the links
- * from one page to the next (the games their friends are in, on every page of the hub, are the bar of the navbar). A visitor who is not signed in is sent to the sign-in (the
- * proxy does it first, with the page they asked for; this is the second check), and the pages are rendered per request, since they hold someone's account.
+ * Everything under `/me`: the profile of a signed-in visitor, the games they played, their friends, and their settings, which open as a window over the page they are on (`@modal`, `docs/routing.md`). A visitor who is not signed in is sent to
+ * the sign-in (the proxy does it first, with the page they asked for; this is the second check), and the pages are rendered per request, since they hold someone's account. The frame of the profile is its own layout (`(profile)`), so
+ * that the settings, which have a frame of their own, are not drawn under the profile's header.
  */
 export default async function AccountLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const account = await requireAccount("/me")
-  return (
-    <AccountShell>
-      <ProfileHeader account={account} />
-      <AccountNav className="mt-8" />
-      <div className="pt-8">{children}</div>
-    </AccountShell>
-  )
+  await requireAccount("/me")
+  return children
 }

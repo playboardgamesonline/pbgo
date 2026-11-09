@@ -3,6 +3,7 @@
 // (`pnpm catalog:list`), the tests and Next read it as it is. The reader is `sanity.ts`, the cached one for apps/web is `server.ts` (see
 // docs/catalog.md).
 
+import type { AgeRules } from "@pbgo/core/lib/age-rules"
 import type { GameEntry } from "@pbgo/core/lib/binding"
 import type { Locale } from "@pbgo/core/lib/i18n"
 import { CREATOR_ROLES, LANGUAGES, type CreatorRole } from "@pbgo/studio-kit/constants"
@@ -363,6 +364,16 @@ export function compareGames(a: Pick<CatalogGame, "order" | "name">, b: Pick<Cat
 /** The expansions of a game, the ones whose base game it is, by name, case and accents aside, numbers in their order: an expansion has no `order` in the Studio (`docs/platform-sanity.md`). */
 export function expansionsOf(expansions: readonly CatalogExpansion[], slug: string): CatalogExpansion[] {
   return expansions.filter((expansion) => expansion.base === slug).sort((a, b) => NAMES.compare(a.name, b.name))
+}
+
+/**
+ * The ages that the Studio says a game and its expansions ask, for the age check of the tables (PLT-125, `AgeRules` of `@pbgo/core/lib/age-rules`): the "Minimum age" of the game (null when it says none, and for a game the catalog does not list) and, for
+ * each of its expansions that has an age of its own, that age under the expansion's slug, the id a table calls it by. An expansion with none is played at its game's age, which the game's covers. Which of these ages the platform enforces is `restrictedAge`.
+ */
+export function ageRulesFor(entries: readonly CatalogEntry[], expansions: readonly CatalogExpansion[], slug: string): AgeRules {
+  const own: Record<string, number> = {}
+  for (const expansion of expansionsOf(expansions, slug)) if (expansion.age !== null) own[expansion.slug] = expansion.age
+  return { game: entries.find((entry) => entry.slug === slug)?.game.age ?? null, expansions: own }
 }
 
 // The games a game's page recommends: its family first, then the games that look like it. They are in this file and not in a file of their own because `pnpm catalog:list` runs this one under plain Node, which strips the types

@@ -38,7 +38,7 @@ password-input
 
 ## Code
 
-`InputOTP` is a code typed one character at a time, a slot for each. One real input sits under the slots, so a code that is pasted or filled in from a message lands in all of them, and `onComplete` fires on the last character. Name the input with `aria-label`, restrict it with `pattern` (`REGEXP_ONLY_DIGITS`), and `aria-invalid` turns the slots red.
+`InputOTP` is a code typed one character at a time, a slot for each. One real input sits under the slots, so a code that is pasted or filled in from a message lands in all of them, and `onComplete` fires on the last character. Name the input with `aria-label`, restrict it with `pattern` (`REGEXP_ONLY_DIGITS`), and `aria-invalid` turns the slots red. The digits are masked in session recordings.
 
 ```specimen
 input-otp

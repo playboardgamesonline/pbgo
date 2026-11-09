@@ -92,7 +92,7 @@ export function AccountMenu({ account, beside, game, children }: { account: Acco
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/me/settings" {...away}>
+          <Link href="/me/settings/account" {...away}>
             Settings
             {arrow}
           </Link>

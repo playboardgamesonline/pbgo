@@ -29,7 +29,7 @@ describe("safeNext", () => {
     expect(safeNext("/me\u007f")).toBe(AFTER_SIGN_IN)
   })
 
-  it.each(["/login", "/login?next=/me", "/login/", "/signup", "/signup?next=/me", "/signup/", "/logout", "/auth/callback", "/auth/confirm?token_hash=x&type=email", "/auth/demo?next=/me", "/auth"])(
+  it.each(["/login", "/login?next=/me", "/login/", "/signup", "/signup?next=/me", "/signup/", "/logout", "/auth/callback", "/auth/confirm?token_hash=x&type=email", "/auth/demo?next=/me", "/auth/steam?next=/me", "/auth/steam/callback?next=/me&state=x", "/auth"])(
     "does not go back to the sign-in's own way, or the sign-up's (%j)",
     (value) => {
       expect(safeNext(value)).toBe(AFTER_SIGN_IN)

@@ -26,7 +26,8 @@ function InputOTP({
     <InvalidContext.Provider value={invalid}>
       <OTPInput
         data-slot="input-otp"
-        containerClassName={cn("flex items-center gap-2 has-disabled:opacity-50", containerClassName)}
+        // The digits are text in the slots, which the masking of inputs in recordings does not reach (`ph-mask` does: a one-time code is a secret for as long as it is good)
+        containerClassName={cn("ph-mask flex items-center gap-2 has-disabled:opacity-50", containerClassName)}
         className={cn("disabled:cursor-not-allowed", className)}
         {...props}
       />

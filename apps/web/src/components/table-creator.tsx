@@ -12,8 +12,8 @@ import { LobbyAccess, type LanguageOption } from "@pbgo/ui/platform/lobby-access
 import { LobbyPanel } from "@pbgo/ui/platform/lobby-panel"
 import { LobbyPlayers } from "@pbgo/ui/platform/lobby-players"
 import { LobbySettings, type ExpansionOption, type HelperOption, type LobbySettingsValue } from "@pbgo/ui/platform/lobby-settings"
-import { toast } from "@pbgo/ui/platform/sonner"
-import { messageOf } from "@/lib/table-door"
+import type { AgeRefusal } from "@pbgo/accounts"
+import { useAgeGate } from "./age-gate"
 import { useSitDown } from "./sit-down"
 
 // The space to open a table, in the panel beside the open tables, for a visitor who sits at none (PLT-106). The number of players, who may join and the settings of the game are drawn as the lobby that follows has them (`LobbyPlayers`, `LobbyAccess`, `LobbySettings`), and
@@ -48,6 +48,7 @@ export function TableCreator({
 }) {
   const router = useRouter()
   const { sitDown, dialog } = useSitDown(slug, signedIn)
+  const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
   const [settings, setSettings] = useState<LobbySettingsValue | null>(null)
   const [opening, setOpening] = useState(false)
 
@@ -57,13 +58,14 @@ export function TableCreator({
     setOpening(true)
     try {
       const api = createApi(slug)
-      const table = await api.create(who)
+      // A game for adults asks for the date of birth when it is missing (PLT-125): the visitor gives it, and the call goes on
+      const table = await guard(() => api.create(who))
       // What the lobby was set to before it existed: the engine keeps its own options, the rest of the settings stay in the page
       const options = settings ? engineOptionsOf(settings, { expansions: expansions.map(({ id }) => id), helpers: helpers.map(({ id }) => id) }, Object.keys(table.options)) : {}
-      if (Object.keys(options).length > 0) await api.options(table.code, options).catch((error) => toast.error(messageOf(error)))
+      if (Object.keys(options).length > 0) await guard(() => api.options(table.code, options)).catch(fail)
       router.refresh()
     } catch (error) {
-      toast.error(messageOf(error))
+      fail(error)
       setOpening(false)
     }
   }
@@ -86,7 +88,7 @@ export function TableCreator({
       <CardContent className="flex flex-col">
         <div className="flex flex-col gap-6 border-t pt-6">
           <LobbyPlayers range={range} defaultCount={range.max} />
-          <LobbySettings expansions={expansions} helpers={helpers} pace="normal" editable onChange={setSettings} />
+          <LobbySettings expansions={expansions} helpers={helpers} pace="normal" editable onChange={setSettings} onLockedPick={(_id, locked) => void demand(locked.kind as AgeRefusal)} />
         </div>
       </CardContent>
       <CardFooter>
@@ -103,6 +105,7 @@ export function TableCreator({
         )}
       </CardFooter>
       {dialog}
+      {ageDialog}
     </LobbyPanel>
   )
 }

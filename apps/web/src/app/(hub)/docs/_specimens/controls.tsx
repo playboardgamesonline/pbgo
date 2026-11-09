@@ -12,6 +12,7 @@ import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@pbgo/ui/platform/input-group"
 import { Label } from "@pbgo/ui/platform/label"
 import { PasswordInput } from "@pbgo/ui/platform/password-input"
+import { RadioGroup, RadioGroupItem } from "@pbgo/ui/platform/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { Switch } from "@pbgo/ui/platform/switch"
@@ -20,6 +21,7 @@ import { Textarea } from "@pbgo/ui/platform/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { CodeSpecimen } from "./code-specimen"
 import { ComboboxSpecimen } from "./combobox-specimen"
+import { InlineEditSpecimen, InlineFieldsSpecimen } from "./inline-edit-specimen"
 import { MeterSpecimen } from "./meter-specimen"
 import { SingleSliderSpecimen } from "./slider-specimen"
 import { Frame } from "./text"
@@ -386,6 +388,77 @@ function SelectDefaultAndSmall() {
   )
 }
 
+function RadioGroupStates() {
+  return (
+    <Frame className="max-w-xs" code={`<RadioGroup defaultValue="auto">
+  <div className="flex items-center gap-3">
+    <RadioGroupItem id="time-auto" value="auto" />
+    <Label htmlFor="time-auto">Automatic</Label>
+  </div>
+  <div className="flex items-center gap-3">
+    <RadioGroupItem id="time-12h" value="12h" />
+    <Label htmlFor="time-12h">12-hour</Label>
+  </div>
+  <div className="flex items-center gap-3">
+    <RadioGroupItem id="time-24h" value="24h" disabled />
+    <Label htmlFor="time-24h">24-hour</Label>
+  </div>
+</RadioGroup>`}>
+      <RadioGroup defaultValue="auto">
+        <div className="flex items-center gap-3">
+          <RadioGroupItem id="specimen-time-auto" value="auto" />
+          <Label htmlFor="specimen-time-auto">Automatic</Label>
+        </div>
+        <div className="flex items-center gap-3">
+          <RadioGroupItem id="specimen-time-12h" value="12h" />
+          <Label htmlFor="specimen-time-12h">12-hour</Label>
+        </div>
+        <div className="flex items-center gap-3">
+          <RadioGroupItem id="specimen-time-24h" value="24h" disabled />
+          <Label htmlFor="specimen-time-24h">24-hour</Label>
+        </div>
+      </RadioGroup>
+    </Frame>
+  )
+}
+
+function InlineEditRow() {
+  return (
+    <Frame className="max-w-xl" code={`<InlineEdit
+  open={open}
+  onOpenChange={setOpen}
+  title="Username"
+  value={saved}
+  editLabel="Edit username"
+  canSave={valid && changed}
+  pending={pending}
+  error={failure}
+  onSave={save}
+>
+  <InlineField label="Username" htmlFor="username" aside={left} error={problem}>
+    <InlineFieldInput id="username" value={value} onChange={...} />
+  </InlineField>
+</InlineEdit>`}>
+      <InlineEditSpecimen />
+    </Frame>
+  )
+}
+
+function InlineEditFields() {
+  return (
+    <Frame code={`<InlineField label="Country / region" htmlFor="country">
+  <Select value={code} onValueChange={setCode}>
+    <InlineFieldSelectTrigger id="country">
+      <SelectValue />
+    </InlineFieldSelectTrigger>
+    <SelectContent>...</SelectContent>
+  </Select>
+</InlineField>`}>
+      <InlineFieldsSpecimen />
+    </Frame>
+  )
+}
+
 function ComboboxInAPopover() {
   return (
     <Frame className={ROW} code={`<Popover>
@@ -572,6 +645,9 @@ export const controlsSpecimens: Specimens = {
   "switch-states": SwitchStates,
   "select-default-and-small": SelectDefaultAndSmall,
   "combobox-in-a-popover": ComboboxInAPopover,
+  "inline-edit-row": InlineEditRow,
+  "radio-group-states": RadioGroupStates,
+  "inline-edit-fields": InlineEditFields,
   "slider-one-thumb": SliderOneThumb,
   "meter-levels": MeterLevels,
   "meter-never-empty": MeterNeverEmpty,

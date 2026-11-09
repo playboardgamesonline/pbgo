@@ -69,7 +69,7 @@ export const game = defineType({
       validation: (rule) => rule.integer().min(1).custom(checkPlayersMax),
     }),
     defineField({ name: "duration", title: "Duration (minutes)", type: "number", group: "facts", validation: (rule) => rule.integer().min(1) }),
-    defineField({ name: "minAge", title: "Minimum age", type: "number", group: "facts", validation: (rule) => rule.integer().min(0) }),
+    defineField({ name: "minAge", title: "Minimum age (from 16, only signed-in members old enough can play it)", type: "number", group: "facts", validation: (rule) => rule.integer().min(0) }),
     defineField({ name: "complexity", title: "Complexity (1 to 5, as BoardGameGeek weighs it)", type: "number", group: "facts", validation: (rule) => rule.min(1).max(5) }),
     defineField({ name: "releaseDate", title: "Release date", type: "date", group: "facts" }),
     defineField({

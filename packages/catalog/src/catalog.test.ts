@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { CREATOR_ROLES } from "@pbgo/studio-kit/constants"
-import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, bggIconUrl, bggUrl, buildCatalog, cardPicture, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureRatio, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture, sizedPictureUrl } from "./catalog"
-import { catalogGame, cdn, registryGame } from "./testing"
+import { ART_SLOTS, BGG_SITE, RELATED_MAX, UNLISTED_SLUGS, ageRulesFor, bggIconUrl, bggUrl, buildCatalog, cardPicture, cardPictureUrl, compareGames, creditLines, expansionsOf, iconVersion, pickLocalized, pictureRatio, pictureUrl, publisherIconUrl, registryRow, releaseYear, sharePicture, sizedPictureUrl } from "./catalog"
+import { catalogEntry, catalogGame, cdn, registryGame } from "./testing"
 
 const slugs = (entries: { slug: string }[]) => entries.map((entry) => entry.slug)
 
@@ -335,6 +335,35 @@ describe("expansionsOf", () => {
     const all = [expansion("flip-more", "flip-7", "More")]
     expect(expansionsOf(all, "courtisans")).toEqual([])
     expect(all.map((one) => one.slug)).toEqual(["flip-more"])
+  })
+})
+
+describe("ageRulesFor", () => {
+  const expansion = (slug: string, base: string, age: number | null) => ({ slug, name: slug, base, descriptions: {}, playersMin: null, playersMax: null, duration: null, age, complexity: null, categories: [], pictures: { cover: null, boxFront: null } })
+  const entries = [catalogEntry("smile-life", { live: true, game: { age: 8 } }), catalogEntry("top-ten", { live: true, game: { age: null } }), catalogEntry("adults-only", { game: { age: 18 } })]
+
+  it("is the minimum age of the game and, for each of its expansions that has an age of its own, that age under the expansion's slug", () => {
+    const expansions = [expansion("smile-life-18", "smile-life", 18), expansion("smile-life-kids", "smile-life", 6), expansion("top-ten-18", "top-ten", 18)]
+    expect(ageRulesFor(entries, expansions, "smile-life")).toEqual({ game: 8, expansions: { "smile-life-18": 18, "smile-life-kids": 6 } })
+    expect(ageRulesFor(entries, expansions, "top-ten")).toEqual({ game: null, expansions: { "top-ten-18": 18 } })
+  })
+
+  it("leaves out an expansion that says no age: it is played at its game's, which the game's covers", () => {
+    const expansions = [expansion("smile-life-more", "smile-life", null)]
+    expect(ageRulesFor(entries, expansions, "smile-life")).toEqual({ game: 8, expansions: {} })
+  })
+
+  it("is the age of a game for adults, with no expansion", () => {
+    expect(ageRulesFor(entries, [], "adults-only")).toEqual({ game: 18, expansions: {} })
+  })
+
+  it("asks nothing of a game the catalog does not list: no age, no expansion", () => {
+    expect(ageRulesFor(entries, [expansion("elsewhere-18", "elsewhere", 18)], "unknown")).toEqual({ game: null, expansions: {} })
+    expect(ageRulesFor([], [], "smile-life")).toEqual({ game: null, expansions: {} })
+  })
+
+  it("does not take the expansions of another game", () => {
+    expect(ageRulesFor(entries, [expansion("top-ten-18", "top-ten", 18)], "smile-life")).toEqual({ game: 8, expansions: {} })
   })
 })
 

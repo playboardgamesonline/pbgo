@@ -70,6 +70,10 @@ describe("InputOTP", () => {
     expect(html).toContain("has-disabled:opacity-50")
   })
 
+  it("is masked in session recordings: the digits are text in the slots, which the masking of inputs does not reach", () => {
+    expect(render({ value: "123456" })).toMatch(/data-input-otp-container="true"[^>]*class="[^"]*\bph-mask\b/)
+  })
+
   it("keeps the classes it is given for the row and for the slots", () => {
     const html = renderToStaticMarkup(
       React.createElement(

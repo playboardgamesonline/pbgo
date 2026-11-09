@@ -94,6 +94,8 @@ export type Expansion = {
   coverRatio: number | null
   boxUrl: string | null
   boxRatio: number | null
+  /** The visitor cannot choose it, for its age, and why (`lockedExpansions`): the card says it and does not let its box be ticked. Not part of the expansion: the page adds it for the visitor it draws. */
+  locked?: { reason: string; kind: string }
 }
 
 /** One player's standing in a game: their row of `platform.ratings` as the browser may have it, a rank, with the nickname and the picture of their `profiles` row. Only an account has one: a guest is never ranked. */

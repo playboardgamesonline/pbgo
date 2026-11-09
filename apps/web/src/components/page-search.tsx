@@ -4,6 +4,7 @@ import { useRef, useState, type ReactNode } from "react"
 
 import { MAX_QUERY_LENGTH } from "@pbgo/catalog/filter"
 import { SearchBar, SearchBarClear, SearchBarField, SearchBarInput, SearchBarSubmit } from "@pbgo/ui/platform/search-bar"
+import { prefersReducedMotion } from "@pbgo/ui/reduced-motion"
 
 /**
  * The search bar of a page of the navbar that lists something: one glass bar with the magnifier, the field and, once there is a text, the button that clears it, then what the page puts at its end
@@ -39,8 +40,7 @@ export function PageSearch({
         onSubmit={(event) => {
           event.preventDefault()
           if (window.matchMedia("(pointer: coarse)").matches) field.current?.blur()
-          const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          document.getElementById("results")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth" })
+          document.getElementById("results")?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" })
         }}
       >
         <SearchBarField>
