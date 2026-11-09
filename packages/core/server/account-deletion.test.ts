@@ -32,12 +32,13 @@ vi.mock("./feedback-removal", () => ({
   },
 }))
 
-import { DELETION_KEY } from "@pbgo/accounts"
 import { DELETED_PLAYER } from "@pbgo/ui/tables"
-import { confirmDeletion, dueAccounts, eraseAccount, hashDeletionToken, keepAccount, newDeletionToken, peekDeletionLink, purgeDeletionLinks, requestDeletionLink } from "./account-deletion"
+import { closeAccount, dueAccounts, eraseAccount, hashReopenToken, newReopenToken, peekReopenLink, reopenAccount } from "./account-deletion"
 
 const NOW = new Date("2026-11-09T12:00:00.000Z")
+const UNTIL = new Date("2026-11-16T23:59:59.999Z")
 const USER = "3f2b8c1e-5a47-4d0e-9b6a-1c2d3e4f5a6b"
+const TOKEN = "T".repeat(43)
 const names = () => h.calls.map((call) => call.name)
 
 beforeEach(() => {
@@ -49,73 +50,57 @@ beforeEach(() => {
 
 describe("the token of a link", () => {
   it("is 43 characters of base64url, different every time, and the database keeps its SHA-256 and never the token", () => {
-    const tokens = new Set(Array.from({ length: 50 }, newDeletionToken))
+    const tokens = new Set(Array.from({ length: 50 }, newReopenToken))
     expect(tokens.size).toBe(50)
     for (const token of tokens) expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/)
-    expect(hashDeletionToken("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
-    expect(hashDeletionToken("abc")).toBe(createHash("sha256").update("abc").digest("hex"))
+    expect(hashReopenToken("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    expect(hashReopenToken("abc")).toBe(createHash("sha256").update("abc").digest("hex"))
   })
 })
 
-describe("asking for a link", () => {
-  it("sends the hash of the token and the moment it stops working, an hour on, and hands the token back for the e-mail", async () => {
-    h.answers.request_account_deletion = "sent"
-    const result = await requestDeletionLink(USER, NOW, "T".repeat(43))
-    expect(result).toEqual({ status: "sent", token: "T".repeat(43), expiresAt: new Date("2026-11-09T13:00:00.000Z") })
-    expect(h.calls).toEqual([{ name: "request_account_deletion", args: { p_user: USER, p_token_hash: hashDeletionToken("T".repeat(43)), p_expires: "2026-11-09T13:00:00.000Z" } }])
-    expect(JSON.stringify(h.calls)).not.toContain("T".repeat(43))
+describe("closing an account", () => {
+  it("sends the hash of the token and the day the link stops working, and answers that day as a date", async () => {
+    h.answers.close_account = "2026-11-16T23:59:59.999Z"
+    expect(await closeAccount(USER, TOKEN, UNTIL)).toEqual(UNTIL)
+    expect(h.calls).toEqual([{ name: "close_account", args: { p_user: USER, p_token_hash: hashReopenToken(TOKEN), p_scheduled: "2026-11-16T23:59:59.999Z" } }])
+    expect(JSON.stringify(h.calls)).not.toContain(TOKEN)
   })
 
-  it("makes a token of its own when it is not given one", async () => {
-    h.answers.request_account_deletion = "sent"
-    const result = await requestDeletionLink(USER, NOW)
-    expect(result.status === "sent" && result.token).toMatch(/^[A-Za-z0-9_-]{43}$/)
-  })
-
-  it("tells a link that came too soon, an account already on hold, and an account that does not exist, without a token", async () => {
-    for (const status of ["wait", "on_hold", "unknown"] as const) {
-      h.answers.request_account_deletion = status
-      expect(await requestDeletionLink(USER, NOW)).toEqual({ status })
-    }
-    h.answers.request_account_deletion = "something new"
-    expect(await requestDeletionLink(USER, NOW)).toEqual({ status: "unknown" })
+  it("answers null for an account that does not exist or is closed already", async () => {
+    h.answers.close_account = null
+    expect(await closeAccount(USER, TOKEN, UNTIL)).toBeNull()
   })
 
   it("fails with the name of the function and what the database said when it cannot be asked", async () => {
-    h.failures.request_account_deletion = "function public.request_account_deletion does not exist"
-    await expect(requestDeletionLink(USER, NOW)).rejects.toThrow("request_account_deletion: function public.request_account_deletion does not exist")
+    h.failures.close_account = "a closed account needs a token and a day in the future"
+    await expect(closeAccount(USER, TOKEN, UNTIL)).rejects.toThrow("close_account: a closed account needs a token and a day in the future")
   })
 })
 
-describe("looking at a link and confirming it", () => {
-  it("shows the address when the link is good and nothing otherwise, and asks with the hash", async () => {
-    h.answers.peek_account_deletion = "ann@example.com"
-    expect(await peekDeletionLink(USER, "T".repeat(43))).toBe("ann@example.com")
-    expect(h.calls[0]).toEqual({ name: "peek_account_deletion", args: { p_user: USER, p_token_hash: hashDeletionToken("T".repeat(43)) } })
-    h.answers.peek_account_deletion = null
-    expect(await peekDeletionLink(USER, "T".repeat(43))).toBeNull()
+describe("looking at a link and following it", () => {
+  it("shows the address and the day when the link is good, asking with the hash, and nothing otherwise", async () => {
+    h.answers.peek_reopen_link = [{ email: "ann@example.com", scheduled_for: "2026-11-16T23:59:59.999+00:00" }]
+    expect(await peekReopenLink(USER, TOKEN)).toEqual({ email: "ann@example.com", reopensUntil: UNTIL })
+    expect(h.calls[0]).toEqual({ name: "peek_reopen_link", args: { p_user: USER, p_token_hash: hashReopenToken(TOKEN) } })
+    h.answers.peek_reopen_link = []
+    expect(await peekReopenLink(USER, TOKEN)).toBeNull()
+    h.answers.peek_reopen_link = null
+    expect(await peekReopenLink(USER, TOKEN)).toBeNull()
   })
 
-  it("puts the day of the deletion 30 days after now and answers it as a date", async () => {
-    h.answers.confirm_account_deletion = "2026-12-09T12:00:00Z"
-    const day = await confirmDeletion(USER, "T".repeat(43), NOW)
-    expect(day).toEqual(new Date("2026-12-09T12:00:00.000Z"))
-    expect(h.calls).toEqual([{ name: "confirm_account_deletion", args: { p_user: USER, p_token_hash: hashDeletionToken("T".repeat(43)), p_scheduled: "2026-12-09T12:00:00.000Z" } }])
+  it("reads an account with no address as one, not as a bad link", async () => {
+    h.answers.peek_reopen_link = [{ email: null, scheduled_for: "2026-11-16T23:59:59.999Z" }]
+    expect(await peekReopenLink(USER, TOKEN)).toEqual({ email: null, reopensUntil: UNTIL })
   })
 
-  it("answers null for a link that is not the one awaited, has expired or was used", async () => {
-    h.answers.confirm_account_deletion = null
-    expect(await confirmDeletion(USER, "T".repeat(43), NOW)).toBeNull()
-  })
-})
-
-describe("keeping an account", () => {
-  it("asks the database to take the row and the mark away, and says whether there was something to take", async () => {
-    h.answers.cancel_account_deletion = true
-    expect(await keepAccount(USER)).toBe(true)
-    h.answers.cancel_account_deletion = false
-    expect(await keepAccount(USER)).toBe(false)
-    expect(h.calls[0]).toEqual({ name: "cancel_account_deletion", args: { p_user: USER } })
+  it("reopens the account on the hash of the token, and says whether the link was good", async () => {
+    h.answers.reopen_account = true
+    expect(await reopenAccount(USER, TOKEN)).toBe(true)
+    expect(h.calls[0]).toEqual({ name: "reopen_account", args: { p_user: USER, p_token_hash: hashReopenToken(TOKEN) } })
+    h.answers.reopen_account = false
+    expect(await reopenAccount(USER, TOKEN)).toBe(false)
+    h.answers.reopen_account = null
+    expect(await reopenAccount(USER, TOKEN)).toBe(false)
   })
 })
 
@@ -128,7 +113,7 @@ describe("deleting an account", () => {
     expect(h.calls[1]).toEqual({ name: "erase_account", args: { p_user: USER } })
   })
 
-  it("waits for the day when it is told to: the database deletes only an account on hold whose day has passed by then", async () => {
+  it("waits for the day when it is told to: the database deletes only a closed account whose day has passed by then", async () => {
     h.answers.erase_account = true
     await eraseAccount(USER, null, { dueBefore: NOW })
     expect(h.calls).toEqual([{ name: "erase_account", args: { p_user: USER, p_due_before: "2026-11-09T12:00:00.000Z" } }])
@@ -158,7 +143,7 @@ describe("deleting an account", () => {
   })
 })
 
-describe("the accounts that are due, and the links that are dead", () => {
+describe("the accounts that are due", () => {
   it("lists the accounts whose day has passed with their address", async () => {
     h.answers.due_account_deletions = [
       { user_id: "u1", email: "ann@example.com" },
@@ -172,14 +157,6 @@ describe("the accounts that are due, and the links that are dead", () => {
     h.answers.due_account_deletions = null
     expect(await dueAccounts(NOW, 20)).toEqual([])
   })
-
-  it("counts or deletes the links that stopped working, and counts none when the database answers nothing", async () => {
-    h.answers.purge_deletion_links = 4
-    expect(await purgeDeletionLinks(NOW, true)).toBe(4)
-    expect(h.calls[0]).toEqual({ name: "purge_deletion_links", args: { p_before: "2026-11-09T12:00:00.000Z", p_dry: true } })
-    h.answers.purge_deletion_links = null
-    expect(await purgeDeletionLinks(NOW, false)).toBe(0)
-  })
 })
 
 describe("the functions of migration 0011", () => {
@@ -189,13 +166,11 @@ describe("the functions of migration 0011", () => {
 
   it("hold every function this module calls, with the parameters it passes", () => {
     const expected: Record<string, string[]> = {
-      request_account_deletion: ["p_user", "p_token_hash", "p_expires"],
-      peek_account_deletion: ["p_user", "p_token_hash"],
-      confirm_account_deletion: ["p_user", "p_token_hash", "p_scheduled"],
-      cancel_account_deletion: ["p_user"],
+      close_account: ["p_user", "p_token_hash", "p_scheduled"],
+      peek_reopen_link: ["p_user", "p_token_hash"],
+      reopen_account: ["p_user", "p_token_hash"],
       erase_account: ["p_user", "p_due_before"],
       due_account_deletions: ["p_before", "p_limit"],
-      purge_deletion_links: ["p_before", "p_dry"],
     }
     const called = [...source.matchAll(/call<[^(]*>\(\s*"([a-z_]+)"/g)].map((match) => match[1]!)
     expect([...new Set(called)].sort()).toEqual(Object.keys(expected).sort())
@@ -206,15 +181,18 @@ describe("the functions of migration 0011", () => {
     }
   })
 
-  it("write the mark under the key the accounts read, and the words that the pages of a table read", () => {
-    expect(sql).toContain(`'${DELETION_KEY}'`)
+  it("write the words that the pages of a table read for a player who is gone", () => {
     expect(sql).toContain(`'${DELETED_PLAYER}'`)
-    expect(sql).toContain(`'YYYY-MM-DD"T"HH24:MI:SS"Z"'`)
+  })
+
+  it("ban the account through Supabase Auth's own column, a hundred years ahead, and keep the ban it had", () => {
+    expect(sql).toContain("banned_until = greatest(v_previous, p_scheduled + interval '100 years')")
+    expect(sql).toContain("banned_until = v_previous")
   })
 
   it("are all closed to the public roles and open to the service role, the trigger apart", () => {
     const functions = [...sql.matchAll(/create or replace function public\.([a-z_]+)\(/g)].map((match) => match[1]!)
-    expect(functions.length).toBe(9)
+    expect(functions.length).toBe(7)
     for (const name of functions) expect(sql, name).toMatch(new RegExp(`revoke all on function public\\.${name}\\([^)]*\\) from public, anon, authenticated`))
     for (const name of functions.filter((name) => name !== "erase_member_from_tables")) expect(sql, name).toMatch(new RegExp(`grant execute on function public\\.${name}\\([^)]*\\) to service_role`))
   })

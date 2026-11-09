@@ -16,25 +16,27 @@ import { ProviderRow } from "@/components/provider-row"
  * The sign-in, a card laid over the hub's backdrop: a username and a password, then, under "or continue with", one button per provider that the project has switched on
  * (`providers`), side by side with nothing on them but the provider's small mark. A press on a provider leaves for it, and it sends the visitor back to `/auth/callback` and on to `next`; the
  * password signs in on the spot and a whole page load takes the visitor on to `next` (the cookies hold the session, so the proxy and the server see it). Without a
- * Supabase project (`enabled` is false) everything is off and says so, and `failed` is the page's way to tell a visitor that a sign-in just did not work, which is
- * all it ever says: why belongs to the logs, not to a stranger.
+ * Supabase project (`enabled` is false) everything is off and says so, and `problem` is the page's way to tell a visitor that a sign-in just did not work (`signin`), which is
+ * all it ever says: why belongs to the logs, not to a stranger. The one exception is `closed`: the visitor signed in with a provider to an account that they deleted (PLT-36), and they are told where the link that reopens it is.
  */
 export function LoginCard({
   next,
   enabled,
   providers,
-  failed,
+  problem,
   className,
 }: {
   next: string
   enabled: boolean
   providers: Provider[]
-  failed: boolean
+  problem: "signin" | "closed" | null
   className?: string
 }) {
   // What is on its way: the password, or a provider. While it is, nothing else can be pressed
   const [pending, setPending] = useState<Provider | "password" | null>(null)
-  const [error, setError] = useState<string | null>(failed ? "Sign-in did not work. Try again." : null)
+  const [error, setError] = useState<string | null>(
+    problem === "closed" ? "This account is closed. Use the link we e-mailed you to reopen it." : problem === "signin" ? "Sign-in did not work. Try again." : null,
+  )
   const off = !enabled || pending !== null
 
   async function start(provider: Provider) {

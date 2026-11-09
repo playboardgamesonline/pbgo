@@ -4,8 +4,6 @@ import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
 import {
   ACCOUNT_DELETION_GRACE_DAYS,
-  ACCOUNT_DELETION_LINK_MINUTES,
-  ACCOUNT_DELETION_LINK_RETENTION_DAYS,
   FEEDBACK_RETENTION_MONTHS,
   FINISHED_STATE_RETENTION_HOURS,
   PRESENCE_RETENTION_DAYS,
@@ -28,7 +26,6 @@ const UPDATED = "9 November 2026"
  */
 export default function PrivacyPolicy() {
   const consent = <ConsentLink className={`cursor-pointer ${LEGAL_LINK}`}>this link</ConsentLink>
-  const linkTime = ACCOUNT_DELETION_LINK_MINUTES % 60 === 0 ? `${ACCOUNT_DELETION_LINK_MINUTES / 60} ${ACCOUNT_DELETION_LINK_MINUTES === 60 ? "hour" : "hours"}` : `${ACCOUNT_DELETION_LINK_MINUTES} minutes`
   return (
     <LegalPage title="Privacy Policy" href="/legal/privacy">
       {/* The line of the stub that this page replaces: it goes when the owner says the text is final (PLT-110) */}
@@ -141,21 +138,21 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Deleting your account",
-              text: `You delete your account yourself, in your settings. We e-mail a confirmation link to the address of your account, through our e-mail provider, with your name in the greeting. The link works once, for ${linkTime}, and the page it opens asks you once more. To keep a trace that you asked, we write down a scrambled form of the link's token (never the token), when it stops working and when you asked; that trace goes ${ACCOUNT_DELETION_LINK_RETENTION_DAYS} ${ACCOUNT_DELETION_LINK_RETENTION_DAYS === 1 ? "day" : "days"} after the link stops working, or with the account. Once you confirm, we write the day your account will be deleted on the account itself and you are signed out everywhere.`,
+              text: `You delete your account yourself, in your settings. It is closed at once: you are signed out everywhere and nobody can sign in to it. We e-mail you a link to reopen it, through our e-mail provider, to the address of your account and with your name in the greeting. The link works for ${ACCOUNT_DELETION_GRACE_DAYS} days. For the link to work, we write down a scrambled form of its token (never the token), when you closed your account and the day the link stops working. That record goes when you reopen your account, or with the account.`,
             },
             {
               name: "Keeping and deleting",
               text: (
                 <>
-                  After you confirm, your account is kept for {ACCOUNT_DELETION_GRACE_DAYS} days, so that you can change your mind: it is on hold, which means you are signed out everywhere and the site takes it for a visitor, so it sits at no new table and is not counted among the players online. If you sign in again during
-                  that time, you can keep your account or delete it right away. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name,
-                  picture address, password and the services linked to it), your language and your settings, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name and the picture
-                  that a table or a game had copied from your account are erased, and your games stay as those of a deleted player, without your name or your picture. Your e-mail address can then be used for a new account. An account without an
-                  e-mail address cannot ask from the site: write to{" "}
+                  Your account stays until you delete it. When you do, it is closed at once and kept for {ACCOUNT_DELETION_GRACE_DAYS} days, in case you change your mind: you can reopen it with the link we e-mail you, or delete it right away from the page that
+                  link opens. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name, picture address, password and the services linked to it), your
+                  language and your settings, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name and the picture that a table or a game had copied from your account are erased, and
+                  your games stay as those of a deleted player, without your name or your picture. Your e-mail address can then be used for a new account. An account without an e-mail address cannot be deleted from the site, since it would have no link to be
+                  reopened with: write to{" "}
                   <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
                     {CONTACT}
                   </a>{" "}
-                  and we delete it; write to us as well if you cannot sign in. Some things stay: the counts of the statistics, which carry a player identifier and never your account, so deleting your account cannot find them (they go by themselves, see
+                  and we delete it; write to us as well if you cannot reopen your account. Some things stay: the counts of the statistics, which carry a player identifier and never your account, so deleting your account cannot find them (they go by themselves, see
                   Statistics), the record that our e-mail provider keeps of the e-mails it sent, and the technical logs of our host, for the time each of them keeps them.
                 </>
               ),
@@ -219,7 +216,7 @@ export default function PrivacyPolicy() {
             { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language, keeping your games, your totals and your rank: we could not do it without your data." },
             {
               name: "Our legitimate interest",
-              text: `In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, counting what happens at tables to fix and improve the games, and keeping an account for ${ACCOUNT_DELETION_GRACE_DAYS} days after its deletion was confirmed, so that nobody loses it by mistake or by someone else's hand. You can object to this (see Your rights).`,
+              text: `In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, counting what happens at tables to fix and improve the games, and keeping a deleted account for ${ACCOUNT_DELETION_GRACE_DAYS} days, so that nobody loses it by mistake or by someone else's hand. You can object to this (see Your rights).`,
             },
             ...(ANALYTICS_ENABLED
               ? [{ name: "Your consent", text: "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. You can say no, and change your mind at any time." }]
@@ -237,7 +234,7 @@ export default function PrivacyPolicy() {
             { name: "Supabase", text: "Our database, our sign-in service and the live updates of tables, in Paris. Holds the tables, the accounts and the feedback, relays the chat, and writes the e-mail that confirms an address." },
             {
               name: "Resend",
-              text: "Sends the e-mails of the site: the one that confirms an address, for our sign-in service, and the one that asks you to confirm the deletion of your account, which our servers send. Receives your e-mail address, your name (in the greeting) and the content of the e-mail (the code or the link), and keeps a record of what it sent for 30 days.",
+              text: "Sends the e-mails of the site: the one that confirms an address, for our sign-in service, and the one that tells you your account is closed and holds the link to reopen it, which our servers send. Receives your e-mail address, your name (in the greeting) and the content of the e-mail (the code or the link), and keeps a record of what it sent for 30 days.",
             },
             ...(ANALYTICS_ENABLED
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]

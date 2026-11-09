@@ -117,8 +117,8 @@ export default function TermsOfUse() {
 
       <LegalSection id="ending" title="Ending">
         <LegalText>
-          You can stop using the site at any time, and delete your account yourself in your settings: we e-mail you a link to confirm it, and keep the account for {ACCOUNT_DELETION_GRACE_DAYS} days in case you change your mind. If you cannot, or if your account has no
-          e-mail address, write to {mail}. We can suspend or end your access, or delete your account, if you break these terms or the law, or if we stop the service. When we can, we tell you why.
+          You can stop using the site at any time, and delete your account yourself in your settings. It is closed at once, and you have {ACCOUNT_DELETION_GRACE_DAYS} days to reopen it with the link we e-mail you; after that it is deleted for good. If you cannot, or if
+          your account has no e-mail address, write to {mail}. We can suspend or end your access, or delete your account, if you break these terms or the law, or if we stop the service. When we can, we tell you why.
         </LegalText>
       </LegalSection>
 

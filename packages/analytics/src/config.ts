@@ -85,11 +85,11 @@ export const ANALYTICS_ENABLED = CONFIG !== null
 /**
  * The pages that never report: the gamemaster, and the previews it shows in iframes (served below `/gamemaster/<slug>/preview`
  * or, opened directly, `/<slug>/preview`), then `/docs`, the team's own reference, whose demo of the banner would meet the real one,
- * and `/auth/delete-account`, the page the link of an e-mail opens: its address holds a token that is worth an account for an hour, and a
+ * and `/auth/reopen-account`, the page the link of an e-mail opens: its address holds a token that reopens, or deletes, an account for as long as the link works (days), and a
  * page view would carry that address to PostHog (`scrub.ts` only knows the table codes).
  * The preview pattern is the one of `PREVIEW_PATH` in `@pbgo/core/lib/preview`, which this package cannot import.
  */
-const EXCLUDED_PATH = /^(?:\/(?:gamemaster|docs)(?:\/|$)|\/auth\/delete-account(?:\/|$)|\/[^/]+\/preview(?:\/|$))/
+const EXCLUDED_PATH = /^(?:\/(?:gamemaster|docs)(?:\/|$)|\/auth\/reopen-account(?:\/|$)|\/[^/]+\/preview(?:\/|$))/
 
 export function isExcludedPath(pathname: string): boolean {
   return EXCLUDED_PATH.test(pathname)

@@ -30,21 +30,7 @@ export type { LanguagePlan, LanguageSources, PlatformLanguage } from "./language
 export { CODE_LENGTH, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, secondsLeft } from "./signup"
 export type { ResendOutcome, SignupEntry, SignupFields, SignupOutcome, SignupProblems } from "./signup"
 export { confirmEmail, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"
-export {
-  DELETION_KEY,
-  DELETION_MESSAGES,
-  DELETION_PATH,
-  deletionAtOf,
-  deletionDate,
-  deletionLink,
-  deletionLinkOf,
-  deletionMessage,
-  hasMailbox,
-  isDeletionToken,
-  isOnHold,
-  isUserId,
-  maskEmail,
-} from "./deletion"
+export { DELETION_MESSAGES, REOPEN_PATH, deletionDate, deletionMessage, hasMailbox, isReopenToken, isUserId, maskEmail, reopenLink, reopenLinkOf } from "./deletion"
 export type { DeletionAnswer, DeletionRequest } from "./deletion"
 export { mostPlayed, ordinal, perGame, playedGameOf, statsFrom, statsOf } from "./games"
 export type { FinishedGame, GameStats, GameTotals, PlayedGame } from "./games"

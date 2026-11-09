@@ -7,7 +7,8 @@ import { redirect } from "next/navigation"
 import { cache } from "react"
 import { accountOf, type Account } from "./account"
 import { supabaseAuthConfig } from "./config"
-import { DEMO_ACCOUNT, DEMO_COOKIE, DEMO_HELD, demoAllowed, heldDemoAccount } from "./demo"
+import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed } from "./demo"
+import { hasSessionCookie } from "./proxy"
 
 // The accounts on the server: the Supabase client of a request (it reads the session from the cookies and writes a refreshed one back), and who is
 // signed in. A page that shows an account is rendered per request, so it is not static: the hub's pages that stay static ask the browser instead
@@ -35,38 +36,33 @@ export async function createAuthClient(): Promise<SupabaseClient | null> {
   })
 }
 
-/** Which demo account of development is asked for (a development server alone honours it): the one in use, the one on hold (`/auth/demo?held=1`), or none. */
-async function demoAsked(): Promise<Account | null> {
-  if (!demoAllowed()) return null
-  const value = (await cookies()).get(DEMO_COOKIE)?.value
-  return value === "1" ? DEMO_ACCOUNT : value === DEMO_HELD ? heldDemoAccount() : null
+/** Whether the demo account of development is asked for (a development server alone honours it). */
+async function demoAsked(): Promise<boolean> {
+  return demoAllowed() && (await cookies()).get(DEMO_COOKIE)?.value === "1"
 }
 
-/** The account of the session, on hold or not (`deletionAt`): the user is asked of the Auth server rather than read from the cookie, which anyone can write. Once per request (`cache`). */
-const sessionAccount = cache(async (): Promise<Account | null> => {
+/**
+ * Who is signed in. The user is asked of the Auth server rather than read from the cookie, which anyone can write: only what the server confirms is an
+ * account. Null for a visitor who is not signed in. Asked once per request, however many components ask (`cache`).
+ */
+export const getAccount = cache(async (): Promise<Account | null> => {
   const supabase = await createAuthClient()
   if (supabase) {
     const { data } = await supabase.auth.getUser()
     if (data.user) return accountOf(data.user)
   }
-  return demoAsked()
+  return (await demoAsked()) ? DEMO_ACCOUNT : null
 })
 
 /**
- * Who is signed in. The user is asked of the Auth server rather than read from the cookie, which anyone can write: only what the server confirms is an
- * account. Null for a visitor who is not signed in, **and for an account that is ON HOLD, waiting to be deleted** (PLT-36): everything that asks who is signed in
- * treats it as a visitor, so that it takes part in nothing new (no new seat, no presence, no new preference), and the code that comes later cannot forget to. Asked once per request, however many components ask (`cache`).
+ * Takes the session off this device: the cookies of the Supabase session go, whatever the Auth server would say about them. For an account that was just closed or deleted (PLT-36), the session ended in the database and the Auth server
+ * refuses every call that carries it, so `signOut` could not be trusted to clear them; and a cookie that outlives its session would send the visitor to the member home (the proxy reads the cookie) and from there back to the sign-in.
+ * Only a route handler can write cookies.
  */
-export const getAccount = cache(async (): Promise<Account | null> => {
-  const account = await sessionAccount()
-  return account && !account.deletionAt ? account : null
-})
-
-/** The account of the session when it is ON HOLD, else null: what the sign-in page and the deletion route need, to offer to keep it or to delete it now. */
-export const getHeldAccount = cache(async (): Promise<Account | null> => {
-  const account = await sessionAccount()
-  return account?.deletionAt ? account : null
-})
+export async function clearSessionCookies(): Promise<void> {
+  const store = await cookies()
+  for (const { name } of store.getAll()) if (hasSessionCookie([name])) store.delete(name)
+}
 
 /** The account of a page that is for a signed-in visitor alone: a visitor who is not signed in is sent to `/login` and brought back to `path`. */
 export async function requireAccount(path: string): Promise<Account> {

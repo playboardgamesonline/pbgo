@@ -1,7 +1,7 @@
 import { deletionMessage, type DeletionAnswer, type DeletionRequest } from "@pbgo/accounts"
 
-// What the browser says to `POST /api/hub/account/deletion` (PLT-36) and what it makes of the answer: the pieces of the deletion that talk to it (the Delete account row of the settings, the page of the link, the sign-in's notice
-// for an account on hold) all go through here, so that the words of a refusal are told in one way.
+// What the browser says to `POST /api/hub/account/deletion` (PLT-36) and what it makes of the answer: the pieces of the deletion that talk to it (the Delete account row of the settings and the page of the link) all go through here,
+// so that the words of a refusal are told in one way.
 
 /** The answer of the route, ready for the screen: the route's own answer when it worked, else the sentence for the member and the code behind it (`NETWORK` when the site could not be reached). */
 export type DeletionResult = { ok: true; answer: DeletionAnswer } | { ok: false; code: string; message: string }

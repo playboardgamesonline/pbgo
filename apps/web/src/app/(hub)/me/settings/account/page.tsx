@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Account settings" }
 
 /**
  * The Account section of the settings: how the member gets in (their e-mail address and password, and the services linked to the account: the providers the project has switched on, the ones the account holds shown as linked), the devices that
- * are signed in, and the deletion of the account (an e-mail with a link confirms it: `DeleteAccountRow`). The demo account of development is shown all three providers, since no project is behind it to say which are on. This page is where the link of the e-mail that confirms a new address, and the
+ * are signed in, and the deletion of the account (it closes at once, and an e-mail holds the link that reopens it: `DeleteAccountRow`). The demo account of development is shown all three providers, since no project is behind it to say which are on. This page is where the link of the e-mail that confirms a new address, and the
  * way back from a provider that was just linked, lead (`ACCOUNT_SETTINGS_PATH`): it is drawn per request, so it already holds the change.
  */
 export default async function AccountSettingsPage() {

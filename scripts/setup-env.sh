@@ -12,7 +12,7 @@
 #                                   32 characters at least. Like the session key: this file's, else the one of .env.local, else
 #                                   a new one, appended here and never overwritten. Pushed to every Vercel target
 #   RESEND_API_KEY                  optional: the key of Resend (re_…) that the site's own code sends e-mails with (the link that
-#   RESEND_PREVIEW_API_KEY          confirms the deletion of an account), made in Resend's dashboard with sending access only,
+#   RESEND_PREVIEW_API_KEY          reopens an account its member deleted), made in Resend's dashboard with sending access only,
 #                                   limited to the domain mail.playboardgamesonline.app. Not the key of Supabase's SMTP settings.
 #                                   Two keys go the way the Supabase keys do: RESEND_API_KEY is the production one (the Vercel
 #                                   production target only), RESEND_PREVIEW_API_KEY the one of previews and local development

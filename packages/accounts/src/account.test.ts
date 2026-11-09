@@ -53,7 +53,6 @@ describe("accountOf", () => {
       language: null,
       preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false },
       linked: [],
-      deletionAt: null,
     })
   })
 
@@ -111,7 +110,6 @@ describe("accountOf", () => {
       language: null,
       preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false },
       linked: [],
-      deletionAt: null,
     })
   })
 

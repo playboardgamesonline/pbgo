@@ -119,11 +119,6 @@ vi.mock("./supabase", () => {
         h.erased.push(user)
         return { data: true, error: null }
       }
-      if (name === "purge_deletion_links") {
-        h.log.push(`account links ${args.p_before} ${args.p_dry}`)
-        const failure = h.fail.rpc[name]
-        return failure ? { data: null, error: { message: failure } } : { data: h.rpcAnswers[name]?.shift() ?? 0, error: null }
-      }
       h.log.push(`rpc ${name} ${args.p_before} ${args.p_limit} ${args.p_dry}`)
       const failure = h.fail.rpc[name]
       if (failure) return { data: null, error: { message: failure } }
@@ -237,7 +232,7 @@ describe("tables", () => {
 
   it("tells the moments it measured against", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO, links: daysAgo(1) })
+    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO })
   })
 })
 
@@ -502,31 +497,7 @@ describe("a dry run", () => {
   })
 })
 
-describe("the links of the e-mail of a deletion that nobody confirmed", () => {
-  it("asks the database to delete those that stopped working more than a day ago, and counts them", async () => {
-    h.rpcAnswers.purge_deletion_links = [3]
-    const report = await purgeExpired({ now: NOW })
-    expect(report).toMatchObject({ links: 3, errors: [] })
-    expect(h.log).toContain(`account links ${daysAgo(1)} false`)
-  })
-
-  it("only counts them in a dry run", async () => {
-    h.rpcAnswers.purge_deletion_links = [2]
-    const report = await purgeExpired({ now: NOW, dryRun: true })
-    expect(report).toMatchObject({ dryRun: true, links: 2 })
-    expect(h.log).toContain(`account links ${daysAgo(1)} true`)
-  })
-
-  it("is reported when it fails, and the other jobs go on", async () => {
-    h.fail.rpc.purge_deletion_links = "function public.purge_deletion_links does not exist"
-    h.tables.games = [table("courtisans", "AAAA", 31)]
-    const report = await purgeExpired({ now: NOW })
-    expect(report.errors).toEqual(["links: purge_deletion_links: function public.purge_deletion_links does not exist"])
-    expect(codes()).toEqual([])
-  })
-})
-
-describe("the accounts on hold whose day has passed (PLT-36)", () => {
+describe("the closed accounts whose day has passed (PLT-36)", () => {
   const due = (userId: string, email: string | null) => ({ user_id: userId, email })
   const steps = () => h.log.filter((line) => /^(remove|delete feedback|account erase)/.test(line))
 
@@ -546,7 +517,7 @@ describe("the accounts on hold whose day has passed (PLT-36)", () => {
     expect(steps()).toEqual(["remove feedback courtisans/f1.webp", "delete feedback f1,f2", `account erase u1 ${NOW.toISOString()}`])
   })
 
-  it("asks for the accounts whose day is before now, 20 at most in a run, and passes the same moment to each deletion so that an account kept in the meantime is not deleted", async () => {
+  it("asks for the accounts whose day is before now, 20 at most in a run, and passes the same moment to each deletion so that an account reopened in the meantime is not deleted", async () => {
     h.due = Array.from({ length: 25 }, (_, i) => due(`u${String(i).padStart(2, "0")}`, null))
     const report = await purgeExpired({ now: NOW })
     expect(report).toMatchObject({ accounts: 20, errors: [] })
@@ -596,7 +567,7 @@ describe("the accounts on hold whose day has passed (PLT-36)", () => {
     expect(JSON.stringify(report)).not.toContain("u2")
   })
 
-  it("counts only the accounts that were found: one kept in the meantime is answered as not deleted", async () => {
+  it("counts only the accounts that were found: one reopened in the meantime is answered as not deleted", async () => {
     h.due = [due("u1", null), due("u2", null)]
     h.fail.eraseGone = ["u2"]
     const report = await purgeExpired({ now: NOW })
@@ -623,7 +594,7 @@ describe("the accounts on hold whose day has passed (PLT-36)", () => {
 
   it("does nothing when no account is due", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report).toMatchObject({ accounts: 0, accountFeedback: 0, links: 0, errors: [] })
+    expect(report).toMatchObject({ accounts: 0, accountFeedback: 0, errors: [] })
     expect(h.erased).toEqual([])
   })
 })

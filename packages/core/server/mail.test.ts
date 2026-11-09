@@ -8,8 +8,8 @@ import { mailAvailable, sendMail } from "./mail"
 const message: MailMessage = {
   from: "Play Board Games Online <no-reply@mail.playboardgamesonline.app>",
   to: "marly@example.com",
-  subject: "Confirm the deletion of your account",
-  text: "Open https://playboardgamesonline.app/auth/delete-account?u=1&t=2",
+  subject: "Your account is closed",
+  text: "Open https://playboardgamesonline.app/auth/reopen-account?u=1&t=2",
   html: "<p>Open</p>",
   replyTo: "hey@playboardgamesonline.app",
 }

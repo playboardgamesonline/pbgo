@@ -1,134 +1,100 @@
--- Deleting an account (PLT-36). A member asks from their settings; an e-mail goes to the address of the account with a link (valid for an hour, usable once); the page it opens asks for a last confirmation; the account is then
--- ON HOLD for 30 days (`ACCOUNT_DELETION_GRACE_DAYS` of `core/lib/retention.ts`): signed out everywhere and treated as a visitor, its data untouched, and a member who signs in again is asked whether to keep it or to delete it now.
--- When the date has passed, the nightly clean-up (`core/server/retention.ts`) deletes it with what it holds. Everything that changes state is a function here, so that one transaction decides and the tests can run it end to end;
--- the server only hashes the token, sends the e-mail and calls them. All of them are server only (service role): row level security is on without policy, and no function is callable by the public roles.
+-- Deleting an account (PLT-36), the way Spotify does it. The member deletes their account from their settings and it is CLOSED at once: every session of it ends and nobody can sign in to it. The site e-mails the address of the account a link
+-- that REOPENS it, for `ACCOUNT_DELETION_GRACE_DAYS` days (`core/lib/retention.ts`). When the day has passed the link is dead and the nightly clean-up (`core/server/retention.ts`) deletes the account with what it holds. A member who follows the link
+-- can also delete it right away. Every change of state is a function here, so that one transaction decides and the tests can run it end to end; the server only hashes the token, sends the e-mail and calls them. All of them are server only
+-- (service role): row level security is on without policy, and no function is callable by the public roles.
 --
--- `account_deletions` has a row for each account that asked: first AWAITING (the hash of the link's token and when it stops working: the token itself is only in the e-mail), then, once the link is confirmed, ON HOLD (the day the
--- account goes). The row goes with the account (`on delete cascade`) or when the member keeps it. The date is mirrored in the account's `app_metadata` (`pbgo_deletion_at`, which only the server can write) by the same function that
--- sets it, in the same transaction, so that every place that already holds the Auth user (the server, the browser's session, the proxy) knows the account is on hold without asking the database.
+-- A closed account is one with a row in `account_deletions`: the SHA-256 of the token of the link (never the token), when it was closed, the day it is deleted, and the ban it already had. "Nobody can sign in" is Supabase Auth's own ban
+-- (`auth.users.banned_until`): the Auth server refuses a password, a provider, a code and a refresh token for a banned user, and any token already issued, at once (`user_banned`), so no other part of the site has to know about it. The ban is
+-- set a hundred years ahead so that it holds even if the clean-up is late; the row's day is what the link and the clean-up go by.
 
 create table if not exists public.account_deletions (
   user_id uuid primary key references auth.users (id) on delete cascade,
-  -- AWAITING: the SHA-256 of the link's token (never the token) and when the link stops working
-  token_hash text,
-  token_expires_at timestamptz,
-  -- When the link was last asked for, so that an address is not mailed more than once a minute
-  requested_at timestamptz not null default now(),
-  -- ON HOLD: the day the account is deleted, fixed when the link is confirmed (a later change of the 30 days does not move a promise already made)
-  scheduled_for timestamptz,
-  check ((token_hash is null) = (token_expires_at is null)),
-  check ((token_hash is not null) <> (scheduled_for is not null))
+  -- The SHA-256 of the token of the link that reopens the account: only the e-mail holds the token
+  token_hash text not null,
+  closed_at timestamptz not null default now(),
+  -- The day the account is deleted for good: the link works until then
+  scheduled_for timestamptz not null,
+  -- The ban the account had before it was closed (none, unless it was banned for another reason), which reopening puts back
+  previous_ban timestamptz,
+  check (scheduled_for > closed_at)
 );
 
-create index if not exists account_deletions_scheduled_idx on public.account_deletions (scheduled_for) where scheduled_for is not null;
-create index if not exists account_deletions_links_idx on public.account_deletions (token_expires_at) where token_hash is not null;
+create index if not exists account_deletions_scheduled_idx on public.account_deletions (scheduled_for);
 
 alter table public.account_deletions enable row level security;
 
 revoke all on table public.account_deletions from anon, authenticated;
 grant select, insert, update, delete on table public.account_deletions to service_role;
 
--- A link is asked for: the account awaits the confirmation of the token whose hash is given. Answers `sent` (the row is written: the server mails the link), `wait` (a link went less than `p_wait` ago), `on_hold` (the account
--- is on hold already) or `unknown` (no such account). A new link replaces the old one, which stops working.
-create or replace function public.request_account_deletion(p_user uuid, p_token_hash text, p_expires timestamptz, p_wait interval default interval '1 minute')
-returns text
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_row public.account_deletions;
-  v_rows integer;
-begin
-  if p_token_hash is null or p_expires is null or p_expires <= now() then
-    raise exception 'a link needs a token and an expiry in the future';
-  end if;
-  if not exists (select 1 from auth.users u where u.id = p_user) then
-    return 'unknown';
-  end if;
-
-  select * into v_row from public.account_deletions d where d.user_id = p_user for update;
-  if found then
-    if v_row.scheduled_for is not null then
-      return 'on_hold';
-    end if;
-    if v_row.requested_at > now() - p_wait then
-      return 'wait';
-    end if;
-  end if;
-
-  insert into public.account_deletions as d (user_id, token_hash, token_expires_at, requested_at)
-  values (p_user, p_token_hash, p_expires, now())
-  on conflict (user_id) do update
-    set token_hash = excluded.token_hash, token_expires_at = excluded.token_expires_at, requested_at = excluded.requested_at, scheduled_for = null
-    where d.scheduled_for is null;
-  get diagnostics v_rows = row_count;
-  return case when v_rows > 0 then 'sent' else 'on_hold' end;
-end;
-$$;
-
--- What the page of a link may show before anything is confirmed: the address of the account when the link is good (the token is the proof, so showing it hides nothing), else null. It changes nothing: a mail scanner that opens the
--- link spends nothing.
-create or replace function public.peek_account_deletion(p_user uuid, p_token_hash text)
-returns text
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select u.email::text
-  from public.account_deletions d
-  join auth.users u on u.id = d.user_id
-  where d.user_id = p_user and d.token_hash = p_token_hash and d.token_expires_at > now() and d.scheduled_for is null
-$$;
-
--- The link is confirmed: the account goes ON HOLD until `p_scheduled`, the token is spent, every session of the account ends (the refresh tokens go with them: a token already issued works until it expires, but the Auth server
--- no longer knows its session) and the date is mirrored in the account's `app_metadata`. Answers the date, or null when the token is not the one awaited, has expired or was spent already.
-create or replace function public.confirm_account_deletion(p_user uuid, p_token_hash text, p_scheduled timestamptz)
+-- The account is closed: the row, the ban, and every session of it ends (the refresh tokens go with them). `p_scheduled` is the day it is deleted, which the server computes and writes in the e-mail it sent first. Answers that day, or null when
+-- there is no such account or it is closed already.
+create or replace function public.close_account(p_user uuid, p_token_hash text, p_scheduled timestamptz)
 returns timestamptz
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  v_when timestamptz;
+  v_previous timestamptz;
+  v_rows integer;
 begin
-  if p_scheduled is null or p_scheduled <= now() then
-    raise exception 'a deletion is scheduled in the future';
+  if p_token_hash is null or p_scheduled is null or p_scheduled <= now() then
+    raise exception 'a closed account needs a token and a day in the future';
   end if;
 
-  update public.account_deletions d
-  set token_hash = null, token_expires_at = null, scheduled_for = p_scheduled
-  where d.user_id = p_user and d.scheduled_for is null and d.token_hash = p_token_hash and d.token_expires_at > now()
-  returning d.scheduled_for into v_when;
-  if v_when is null then
+  select u.banned_until into v_previous from auth.users u where u.id = p_user for update;
+  if not found then
     return null;
   end if;
 
-  update auth.users u
-  set raw_app_meta_data = coalesce(u.raw_app_meta_data, '{}'::jsonb) || jsonb_build_object('pbgo_deletion_at', to_char(v_when at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')), updated_at = now()
-  where u.id = p_user;
+  insert into public.account_deletions (user_id, token_hash, closed_at, scheduled_for, previous_ban)
+  values (p_user, p_token_hash, now(), p_scheduled, v_previous)
+  on conflict (user_id) do nothing;
+  get diagnostics v_rows = row_count;
+  if v_rows = 0 then
+    return null;
+  end if;
+
+  update auth.users u set banned_until = greatest(v_previous, p_scheduled + interval '100 years'), updated_at = now() where u.id = p_user;
   delete from auth.sessions s where s.user_id = p_user;
-  return v_when;
+  return p_scheduled;
 end;
 $$;
 
--- The member keeps their account (or the link is abandoned): the row and the mark go. Answers whether there was something to cancel.
-create or replace function public.cancel_account_deletion(p_user uuid)
+-- What the page of the link may show before anything is done: the address of the account and the day it is deleted, when the link is the one of a closed account whose day has not come, else nothing. It changes nothing: a mail scanner that
+-- opens the link spends nothing.
+create or replace function public.peek_reopen_link(p_user uuid, p_token_hash text)
+returns table (email text, scheduled_for timestamptz)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select u.email::text, d.scheduled_for
+  from public.account_deletions d
+  join auth.users u on u.id = d.user_id
+  where d.user_id = p_user and d.token_hash = p_token_hash and d.scheduled_for > now()
+$$;
+
+-- The member follows the link: the account is open again, with the ban it had before (none, as a rule). Only the token of the link, and only before the day: after it the account cannot be reopened, even if the clean-up has not come yet.
+-- Answers whether it was reopened.
+create or replace function public.reopen_account(p_user uuid, p_token_hash text)
 returns boolean
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  v_rows integer;
+  v_previous timestamptz;
 begin
-  delete from public.account_deletions d where d.user_id = p_user;
-  get diagnostics v_rows = row_count;
-  update auth.users u
-  set raw_app_meta_data = u.raw_app_meta_data - 'pbgo_deletion_at', updated_at = now()
-  where u.id = p_user and u.raw_app_meta_data ->> 'pbgo_deletion_at' is not null;
-  return v_rows > 0;
+  delete from public.account_deletions d
+  where d.user_id = p_user and d.token_hash = p_token_hash and d.scheduled_for > now()
+  returning d.previous_ban into v_previous;
+  if not found then
+    return false;
+  end if;
+  update auth.users u set banned_until = v_previous, updated_at = now() where u.id = p_user;
+  return true;
 end;
 $$;
 
@@ -199,9 +165,9 @@ drop trigger if exists erase_member_from_tables on auth.users;
 create trigger erase_member_from_tables before delete on auth.users for each row execute function public.erase_member_from_tables();
 
 -- Deletes an account with what it holds, in one transaction: the lines of Supabase Auth's audit log about it (its id, or its address: they hold the address and the IP of its sign-ins when the project writes them to the database, which
--- the dashboard can switch off), then the account itself, whose deletion cascades to its identities, sessions, presence, totals, rank points and ratings, scrubs the tables it sat at and erases the name and picture of its seats in the
--- games played (the triggers). With `p_due_before`, only an account that is ON HOLD with a day that has passed, and the row is locked first: a member who keeps their account in that very moment either did it first (nothing is
--- found, nothing is deleted) or waits for this to finish. Without it, the account is deleted whatever its state ("Delete it now"). Answers whether an account was deleted.
+-- the dashboard can switch off), then the account itself, whose deletion cascades to its identities, sessions, presence, totals, rank points, ratings and its row here, scrubs the tables it sat at and erases the name and picture of its seats in
+-- the games played (the triggers). With `p_due_before`, only an account that is closed with a day that has passed by then, and the row is locked first: a member who reopens their account in that very moment either did it first (nothing is
+-- found, nothing is deleted) or waits for this to finish. Without it, the account is deleted whatever its state (the member followed the link and chose "Delete it now"). Answers whether an account was deleted.
 create or replace function public.erase_account(p_user uuid, p_due_before timestamptz default null)
 returns boolean
 language plpgsql
@@ -230,41 +196,17 @@ begin
 end;
 $$;
 
--- The links that were never confirmed: the rows whose token stopped working before `p_before` go (an account that is ON HOLD is never touched). With `p_dry` nothing is deleted: it answers how many would be.
-create or replace function public.purge_deletion_links(p_before timestamptz, p_dry boolean default false)
-returns integer
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_count integer;
-begin
-  if p_dry then
-    select count(*) into v_count from public.account_deletions d where d.token_hash is not null and d.token_expires_at < p_before;
-    return v_count;
-  end if;
-  delete from public.account_deletions d where d.token_hash is not null and d.token_expires_at < p_before;
-  get diagnostics v_count = row_count;
-  return v_count;
-end;
-$$;
-
 -- Server only (service role), like the tables: none of these is callable by the public roles
-revoke all on function public.request_account_deletion(uuid, text, timestamptz, interval) from public, anon, authenticated;
-revoke all on function public.peek_account_deletion(uuid, text) from public, anon, authenticated;
-revoke all on function public.confirm_account_deletion(uuid, text, timestamptz) from public, anon, authenticated;
-revoke all on function public.cancel_account_deletion(uuid) from public, anon, authenticated;
+revoke all on function public.close_account(uuid, text, timestamptz) from public, anon, authenticated;
+revoke all on function public.peek_reopen_link(uuid, text) from public, anon, authenticated;
+revoke all on function public.reopen_account(uuid, text) from public, anon, authenticated;
 revoke all on function public.due_account_deletions(timestamptz, integer) from public, anon, authenticated;
 revoke all on function public.scrub_member_from_tables(uuid) from public, anon, authenticated;
 revoke all on function public.erase_member_from_tables() from public, anon, authenticated;
 revoke all on function public.erase_account(uuid, timestamptz) from public, anon, authenticated;
-revoke all on function public.purge_deletion_links(timestamptz, boolean) from public, anon, authenticated;
-grant execute on function public.request_account_deletion(uuid, text, timestamptz, interval) to service_role;
-grant execute on function public.peek_account_deletion(uuid, text) to service_role;
-grant execute on function public.confirm_account_deletion(uuid, text, timestamptz) to service_role;
-grant execute on function public.cancel_account_deletion(uuid) to service_role;
+grant execute on function public.close_account(uuid, text, timestamptz) to service_role;
+grant execute on function public.peek_reopen_link(uuid, text) to service_role;
+grant execute on function public.reopen_account(uuid, text) to service_role;
 grant execute on function public.due_account_deletions(timestamptz, integer) to service_role;
 grant execute on function public.scrub_member_from_tables(uuid) to service_role;
 grant execute on function public.erase_account(uuid, timestamptz) to service_role;
-grant execute on function public.purge_deletion_links(timestamptz, boolean) to service_role;

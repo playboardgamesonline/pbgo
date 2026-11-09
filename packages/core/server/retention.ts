@@ -1,6 +1,6 @@
 import "server-only"
-import { deletionLinkCutoff, feedbackCutoff, finishedStateCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
-import { dueAccounts, eraseAccount, purgeDeletionLinks } from "./account-deletion"
+import { feedbackCutoff, finishedStateCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
+import { dueAccounts, eraseAccount } from "./account-deletion"
 import { FEEDBACK_BATCH_SIZE, removeFeedbackRows, type FeedbackRow } from "./feedback-removal"
 import { supabaseAdmin } from "./supabase"
 
@@ -12,7 +12,7 @@ export const PURGE_MAX_BATCHES = 50
 export const FOLD_BATCH_SIZE = 1000
 export const STATE_BATCH_SIZE = 500
 export const SWEEP_MAX_BATCHES = 20
-/** A run deletes this many accounts whose day has passed (PLT-36) and no more: each takes the feedback sent with its address with it, and the rest are for the next nights. */
+/** A run deletes this many closed accounts whose day has passed (PLT-36) and no more: each takes the feedback sent with its address with it, and the rest are for the next nights. */
 export const ERASE_MAX_ACCOUNTS = 20
 /** A dry run counts the accounts that are due up to this many. */
 const ERASE_DRY_LIMIT = 1000
@@ -20,8 +20,8 @@ const ERASE_DRY_LIMIT = 1000
 export type PurgeReport = {
   /** Nothing was deleted: the counts are what a real run would delete now */
   dryRun: boolean
-  /** A table last written before the first, a feedback received before the second, a member last seen before the third, the state of a table that is over before the fourth, the seats of an unranked game that ended before the fifth, a link of the e-mail of a deletion that stopped working before the sixth, is old enough (`lib/retention.ts`) */
-  cutoffs: { tables: string; feedback: string; presence: string; states: string; seats: string; links: string }
+  /** A table last written before the first, a feedback received before the second, a member last seen before the third, the state of a table that is over before the fourth, the seats of an unranked game that ended before the fifth, is old enough (`lib/retention.ts`) */
+  cutoffs: { tables: string; feedback: string; presence: string; states: string; seats: string }
   tables: number
   feedback: number
   /** The members' rows of `member_presence` (the last time each was seen on the site) */
@@ -32,9 +32,7 @@ export type PurgeReport = {
   seats: number
   /** The screenshots of those feedback, and of the feedback that went with an account, removed from the bucket before their rows */
   screenshots: number
-  /** The links of the e-mail of a deletion that nobody confirmed (`account_deletions`: the hash of a token and when it stopped working) */
-  links: number
-  /** The accounts on hold whose day has passed, deleted with what they hold (PLT-36) */
+  /** The closed accounts whose day has passed, deleted with what they hold (PLT-36) */
   accounts: number
   /** The feedback sent with the address of one of those accounts, deleted before it (screenshots in `screenshots`) */
   accountFeedback: number
@@ -58,9 +56,8 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     presence: presenceCutoff(now).toISOString(),
     states: finishedStateCutoff(now).toISOString(),
     seats: unrankedSeatCutoff(now).toISOString(),
-    links: deletionLinkCutoff(now).toISOString(),
   }
-  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, states: 0, seats: 0, screenshots: 0, links: 0, accounts: 0, accountFeedback: 0, errors: [] }
+  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, states: 0, seats: 0, screenshots: 0, accounts: 0, accountFeedback: 0, errors: [] }
   try {
     report.tables = await purgeTables(cutoffs.tables, dryRun)
   } catch (error) {
@@ -82,11 +79,6 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     report.errors.push(`seats: ${messageOf(error)}`)
   }
   try {
-    report.links = await purgeDeletionLinks(new Date(cutoffs.links), dryRun)
-  } catch (error) {
-    report.errors.push(`links: ${messageOf(error)}`)
-  }
-  try {
     await eraseDueAccounts(now, dryRun, report)
   } catch (error) {
     report.errors.push(`accounts: ${messageOf(error)}`)
@@ -100,7 +92,7 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
 }
 
 /**
- * Deletes the accounts whose member asked for it and confirmed it, once their day has passed (PLT-36): `ERASE_MAX_ACCOUNTS` at most in a run, the oldest first. Each takes the feedback sent with its address with it, then goes with what it holds
+ * Deletes the accounts that their members closed, once the day their link works until has passed (PLT-36): `ERASE_MAX_ACCOUNTS` at most in a run, the oldest first. Each takes the feedback sent with its address with it, then goes with what it holds
  * (`erase_account`, migration 0011). An account that fails is reported and the others still go; the next night finds it again. The error says what failed, never whose account it was. With `dryRun` it only counts.
  */
 async function eraseDueAccounts(now: Date, dryRun: boolean, report: PurgeReport) {

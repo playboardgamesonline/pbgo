@@ -84,8 +84,8 @@ describe("isExcludedPath", () => {
       "/hanabi/preview/home",
       "/hanabi/preview/game",
       "/hanabi/preview",
-      "/auth/delete-account",
-      "/auth/delete-account/",
+      "/auth/reopen-account",
+      "/auth/reopen-account/",
     ]) {
       expect(isExcludedPath(path), path).toBe(true)
     }
@@ -104,7 +104,7 @@ describe("isExcludedPath", () => {
       "/preview/game/ABC123",
       "/hanabi/previews",
       "/auth/callback",
-      "/auth/delete-accounts",
+      "/auth/reopen-accounts",
       "/login",
     ]) {
       expect(isExcludedPath(path), path).toBe(false)

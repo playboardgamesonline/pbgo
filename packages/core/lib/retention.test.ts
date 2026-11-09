@@ -1,15 +1,11 @@
 import { describe, expect, it } from "vitest"
 import {
   ACCOUNT_DELETION_GRACE_DAYS,
-  ACCOUNT_DELETION_LINK_MINUTES,
-  ACCOUNT_DELETION_LINK_RETENTION_DAYS,
   FEEDBACK_RETENTION_MONTHS,
   FINISHED_STATE_RETENTION_HOURS,
   TABLE_RETENTION_DAYS,
   UNRANKED_SEAT_RETENTION_MONTHS,
   accountDeletionDate,
-  deletionLinkCutoff,
-  deletionLinkExpiry,
   feedbackCutoff,
   finishedStateCutoff,
   tableCutoff,
@@ -86,30 +82,33 @@ describe("unrankedSeatCutoff", () => {
 })
 
 describe("the deletion of an account (PLT-36)", () => {
-  it("keeps an account on hold for 30 days, a link for an hour, and the trace of a dead link for a day: the numbers the e-mail and the Privacy Policy state", () => {
-    expect(ACCOUNT_DELETION_GRACE_DAYS).toBe(30)
-    expect(ACCOUNT_DELETION_LINK_MINUTES).toBe(60)
-    expect(ACCOUNT_DELETION_LINK_RETENTION_DAYS).toBe(1)
+  it("lets a member reopen a closed account for 7 days: the number the settings, the e-mail and the Privacy Policy state", () => {
+    expect(ACCOUNT_DELETION_GRACE_DAYS).toBe(7)
   })
 
-  it("puts the day of the deletion 30 days after the confirmation, to the millisecond, across a month and a year", () => {
-    expect(accountDeletionDate(at("2026-11-09T12:00:00.123Z")).toISOString()).toBe("2026-12-09T12:00:00.123Z")
-    expect(accountDeletionDate(at("2026-12-20T03:17:00.000Z")).toISOString()).toBe("2027-01-19T03:17:00.000Z")
+  it("ends the time to reopen it with the UTC day that is 7 days away, to its last millisecond, so that the day the e-mail names is a whole one", () => {
+    expect(accountDeletionDate(at("2026-11-09T12:00:00.123Z")).toISOString()).toBe("2026-11-16T23:59:59.999Z")
+    expect(accountDeletionDate(at("2026-11-09T00:00:00.000Z")).toISOString()).toBe("2026-11-16T23:59:59.999Z")
+    expect(accountDeletionDate(at("2026-11-09T23:59:59.999Z")).toISOString()).toBe("2026-11-16T23:59:59.999Z")
   })
 
-  it("stops a link an hour after it was asked for", () => {
-    expect(deletionLinkExpiry(at("2026-11-09T23:30:00.000Z")).toISOString()).toBe("2026-11-10T00:30:00.000Z")
+  it("crosses a month, a year and a leap day", () => {
+    expect(accountDeletionDate(at("2026-11-28T10:00:00.000Z")).toISOString()).toBe("2026-12-05T23:59:59.999Z")
+    expect(accountDeletionDate(at("2026-12-28T10:00:00.000Z")).toISOString()).toBe("2027-01-04T23:59:59.999Z")
+    expect(accountDeletionDate(at("2028-02-25T10:00:00.000Z")).toISOString()).toBe("2028-03-03T23:59:59.999Z")
   })
 
-  it("deletes the trace of a link a day after it stopped working", () => {
-    expect(deletionLinkCutoff(at("2026-11-09T03:17:00.000Z")).toISOString()).toBe("2026-11-08T03:17:00.000Z")
+  it("never gives less than 7 days, and less than 8 whole days", () => {
+    for (const now of ["2026-11-09T00:00:00.000Z", "2026-11-09T12:34:56.789Z", "2026-11-09T23:59:59.999Z"]) {
+      const days = (accountDeletionDate(at(now)).getTime() - at(now).getTime()) / (24 * 60 * 60 * 1000)
+      expect(days, now).toBeGreaterThanOrEqual(7)
+      expect(days, now).toBeLessThan(8)
+    }
   })
 
   it("does not change the date it is given", () => {
     const now = at("2026-11-09T03:17:00.000Z")
     accountDeletionDate(now)
-    deletionLinkExpiry(now)
-    deletionLinkCutoff(now)
     expect(now.toISOString()).toBe("2026-11-09T03:17:00.000Z")
   })
 })

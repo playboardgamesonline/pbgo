@@ -1,7 +1,6 @@
 // What the hub knows of a signed-in visitor, made of what their provider says of them: the user of Supabase Auth, as Google, Twitch or Discord fill it in,
 // and the language they chose. Pure, so that the browser, the server, the proxy and the tests read it the same way (docs/accounts.md).
 
-import { deletionAtOf } from "./deletion"
 import { languageOf, type PlatformLanguage } from "./language"
 import { nicknameOf, preferencesOf, type Preferences } from "./preferences"
 
@@ -34,8 +33,6 @@ export type Account = {
   preferences: Preferences
   /** The ways into their account that they hold now, in the order Supabase Auth lists them: what the page of their settings shows as linked, and what it can still be asked to link. */
   linked: LinkedService[]
-  /** The day the account is deleted if its member does not keep it (an ISO date), or null. An account with a day is ON HOLD (`./deletion`): `getAccount` and `useAccount` take it for nobody. */
-  deletionAt: string | null
 }
 
 /** The part of Supabase Auth's user that an account is made of: what the browser and the server both hold of a session. */
@@ -82,7 +79,6 @@ export function accountOf(user: AuthUser): Account {
     language: languageOf(user),
     preferences: preferencesOf(user),
     linked: linkedOf(user),
-    deletionAt: deletionAtOf(user),
   }
 }
 

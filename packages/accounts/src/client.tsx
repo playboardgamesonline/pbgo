@@ -55,11 +55,8 @@ export function useAccount(): AccountState {
       return
     }
     let active = true
-    // An account ON HOLD (waiting to be deleted, PLT-36) is nobody here either: the navbar offers to sign in, and the sign-in page offers to keep it
-    const read = (user: Parameters<typeof accountOf>[0] | null | undefined): AccountState => {
-      const account = user ? accountOf(user) : null
-      return account && !account.deletionAt ? { status: "signed-in", account } : (demo ?? signedOut)
-    }
+    const read = (user: Parameters<typeof accountOf>[0] | null | undefined): AccountState =>
+      user ? { status: "signed-in", account: accountOf(user) } : (demo ?? signedOut)
     supabase.auth.getSession().then(({ data }) => {
       if (active) setState(read(data.session?.user))
     })
@@ -102,7 +99,9 @@ export async function signInWithPassword(identifier: string, password: string): 
     if (language) document.cookie = languageCookie(language)
     return null
   }
-  if (error.code === "invalid_credentials") return "That e-mail and that password do not go together."
+  // A closed account (the member deleted it, PLT-36) is banned: the Auth server says so before it looks at the password, to anyone who knows the address, so it is told like a wrong password, which gives nothing away.
+  // The member who closed it knows, and has the e-mail with the link that reopens it
+  if (error.code === "invalid_credentials" || error.code === "user_banned") return "That e-mail and that password do not go together."
   // Told only to someone who typed the right password, so it gives nothing away: an account that was made and never confirmed (`signUpWithPassword`)
   if (error.code === "email_not_confirmed") return "Your e-mail address is not confirmed yet. Use the code we sent you, or create the account again to get a new one."
   return "Sign-in did not work. Try again."
@@ -242,8 +241,7 @@ export async function saveLanguage(language: PlatformLanguage): Promise<SavedLan
   const supabase = browserClient()
   if (!supabase) return "no-session"
   const { data } = await supabase.auth.getSession()
-  // An account on hold (waiting to be deleted, PLT-36) is nobody here: nothing is written about it, not even a choice of language
-  if (!data.session || accountOf(data.session.user).deletionAt) return "no-session"
+  if (!data.session) return "no-session"
   const { error } = await supabase.auth.updateUser({ data: { [LANGUAGE_KEY]: language } })
   return error ? "failed" : "saved"
 }

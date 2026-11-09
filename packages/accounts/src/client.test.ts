@@ -118,13 +118,6 @@ describe("saveLanguage", () => {
     expect(auth.updateUser).not.toHaveBeenCalled()
   })
 
-  it("keeps nothing for an account on hold, waiting to be deleted (PLT-36): nothing is written about it, not even a language", async () => {
-    const auth = stubClient({ session: { access_token: "token", user: { id: "u-1", app_metadata: { pbgo_deletion_at: "2026-12-09T03:17:00Z" } } } })
-    const { saveLanguage } = await client()
-    expect(await saveLanguage("fr")).toBe("no-session")
-    expect(auth.updateUser).not.toHaveBeenCalled()
-  })
-
   it("keeps nothing when the hub has no Supabase project", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
     const { saveLanguage } = await client()
@@ -160,6 +153,13 @@ describe("signInWithPassword", () => {
     stubClient({ signIn: { data: { user: null }, error: { code: "invalid_credentials" } } })
     const { signInWithPassword } = await client()
     expect(await signInWithPassword("ore@example.com", "wrong")).toBe("That e-mail and that password do not go together.")
+    expect(cookieWrites).toEqual([])
+  })
+
+  it("tells a closed account (the member deleted it, PLT-36: it is banned) like a wrong password, since the Auth server says it before it looks at the password, to anyone who knows the address", async () => {
+    stubClient({ signIn: { data: { user: null }, error: { code: "user_banned" } } })
+    const { signInWithPassword } = await client()
+    expect(await signInWithPassword("ore@example.com", "secret")).toBe("That e-mail and that password do not go together.")
     expect(cookieWrites).toEqual([])
   })
 

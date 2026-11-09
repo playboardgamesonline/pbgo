@@ -2,9 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { safeNext } from "@pbgo/accounts"
 import { supabaseAuthConfig } from "@pbgo/accounts/config"
-import { isDemoAccount } from "@pbgo/accounts/demo"
-import { enabledProviders, getAccount, getHeldAccount } from "@pbgo/accounts/server"
-import { DeletionNotice } from "@/components/deletion-notice"
+import { enabledProviders, getAccount } from "@pbgo/accounts/server"
 import { LoginCard } from "@/components/login-card"
 import { SiteFooter } from "@/components/site-footer"
 
@@ -16,24 +14,19 @@ export const metadata: Metadata = {
 
 /**
  * The sign-in page: a username and a password, or the providers that the project has switched on (Google, Discord or Twitch: `enabledProviders`), on the hub's backdrop. `?next=` is the page the visitor asked for (they come back to it, `safeNext`), `?error=`
- * is a sign-in that did not work. A visitor who is signed in already has nothing to do here and goes to where they were going. One who is signed in to an account that is ON HOLD, waiting to be deleted
- * (PLT-36; the rest of the site takes such an account for a visitor), finds no form here: the page offers to keep the account or to delete it now (`DeletionNotice`). The page reads the
+ * is a sign-in that did not work (`signin`) or an account that its member closed (`closed`, PLT-36). A visitor who is signed in already has nothing to do here and goes to where they were going. The page reads the
  * session, so it is rendered per request; the proxy renews that session first (`proxy.ts`).
  */
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const { next, error } = await searchParams
   const target = safeNext(next)
-  const [account, held, providers] = await Promise.all([getAccount(), getHeldAccount(), enabledProviders()])
+  const [account, providers] = await Promise.all([getAccount(), enabledProviders()])
   if (account) redirect(target)
 
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
       <main className="flex flex-1 items-center justify-center px-gutter pt-navbar pb-section">
-        {held?.deletionAt ? (
-          <DeletionNotice deletionAt={held.deletionAt} next={target} demo={isDemoAccount(held)} />
-        ) : (
-          <LoginCard next={target} enabled={supabaseAuthConfig() !== null} providers={providers} failed={error === "signin"} />
-        )}
+        <LoginCard next={target} enabled={supabaseAuthConfig() !== null} providers={providers} problem={error === "closed" ? "closed" : error === "signin" ? "signin" : null} />
       </main>
       <SiteFooter />
     </div>

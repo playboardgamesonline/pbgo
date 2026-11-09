@@ -1,7 +1,7 @@
 import "server-only"
 import type { MailMessage } from "../lib/deletion-mail"
 
-// Sending an e-mail from our own servers, through Resend's API (PLT-36: the link that confirms the deletion of an account). Resend is already the SMTP provider of Supabase Auth, for the e-mails it writes itself (the sign-up code, the change
+// Sending an e-mail from our own servers, through Resend's API (PLT-36: the link that reopens an account its member deleted). Resend is already the SMTP provider of Supabase Auth, for the e-mails it writes itself (the sign-up code, the change
 // of address); this is the other way in, for the e-mails that our code composes. The key is `RESEND_API_KEY` (one for the app, made in Resend's dashboard, sending access, limited to the domain; `pnpm setup-env` pushes it).
 // docs/accounts.md, "Deleting an account", and docs/legal.md, "Recipients".
 
