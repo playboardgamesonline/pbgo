@@ -30,7 +30,7 @@ const DEMO_SUBJECT: AgeSubject = { kind: "member", birthdate: "1990-01-01" }
 const GUEST: AgeSubject = { kind: "guest" }
 
 /** The person who acts, for the check: a guest, the demo account, or a member with the date they declared (null when they declared none). */
-async function subjectOf(actor: Actor): Promise<AgeSubject> {
+export async function ageSubjectOf(actor: Actor): Promise<AgeSubject> {
   if (!actor.signedIn) return GUEST
   if (actor.memberId === null) return DEMO_SUBJECT
   return { kind: "member", birthdate: (await readBirthdates([actor.memberId])).get(actor.memberId) ?? null }
@@ -86,7 +86,7 @@ export type AgeGate = {
 export async function ageGateFor(source: AgeRulesSource, game: Pick<GameEntry, "slug">, actor: Actor, now: Date = new Date()): Promise<AgeGate> {
   const rules = await source(game.slug)
   const restricted = hasAgeRules(rules)
-  const subject = restricted ? await subjectOf(actor) : GUEST
+  const subject = restricted ? await ageSubjectOf(actor) : GUEST
   return {
     restricted,
     tableAge: (options) => tableAge(rules, options),

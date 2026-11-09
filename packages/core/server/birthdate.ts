@@ -1,7 +1,7 @@
 import "server-only"
 import { supabaseAdmin } from "./supabase"
 
-// The date of birth a member declared, kept where only the server reads and writes it (`member_birthdates`, migration 0010; PLT-125). It is not in the member's `user_metadata`, which they can rewrite from their browser: a check of the age
+// The date of birth a member declared, kept where only the server reads and writes it (`member_birthdates`, migration 0012; PLT-125). It is not in the member's `user_metadata`, which they can rewrite from their browser: a check of the age
 // has to trust a place they cannot. It is a declaration, never a proof, and it is declared once: the database refuses to replace a date that is there (`set_member_birthdate`), so a refusal cannot be got round by declaring another date.
 
 /** The date of birth (`YYYY-MM-DD`) that each of these accounts declared; an account that declared none is not in the map. Throws what the database says: a check of the age that cannot read the dates must not let anybody through. */

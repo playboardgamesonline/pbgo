@@ -38,7 +38,8 @@ export function profileOf(account: Pick<Account, "nickname" | "avatarUrl"> | nul
  */
 export type Actor = { memberId: string | null; signedIn: boolean }
 
-const actorOf = (account: Pick<Account, "id"> | null): Actor => ({ memberId: account && !isDemoAccount(account) ? account.id : null, signedIn: account !== null })
+/** The actor an account stands for (null: a guest). */
+export const actorOf = (account: Pick<Account, "id"> | null): Actor => ({ memberId: account && !isDemoAccount(account) ? account.id : null, signedIn: account !== null })
 
 /** Who sits down, and the account they sit down as (`Actor`). */
 export type Seat = { profile: Profile } & Actor

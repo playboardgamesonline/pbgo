@@ -46,7 +46,7 @@ function actionOf(table: GameTable, seats: readonly TableSeat[]) {
  * players, the duration, the complexity, the age), nothing for a figure that does not differ from its game's (`getExpansions` leaves it out); and the categories that it brings, as tags with the icon of each category.
  */
 export function expansionOption(expansion: Expansion): ExpansionOption {
-  const { id, name, description, coverUrl, coverRatio, boxUrl, boxRatio } = expansion
+  const { id, name, description, coverUrl, coverRatio, boxUrl, boxRatio, locked } = expansion
   const facts: (ExpansionFact | null)[] = [
     expansion.players ? { icon: UserMultipleIcon, text: playersLabel(expansion.players) ?? "" } : null,
     expansion.duration === null ? null : { icon: HourglassIcon, text: durationLabel(expansion.duration) ?? "" },
@@ -63,6 +63,7 @@ export function expansionOption(expansion: Expansion): ExpansionOption {
     coverRatio,
     boxUrl,
     boxRatio,
+    ...(locked ? { locked } : {}),
   }
 }
 

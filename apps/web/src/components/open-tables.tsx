@@ -8,12 +8,11 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { LobbyDetail, LobbyMainButton, type LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
-import { toast } from "@pbgo/ui/platform/sonner"
 import { TableEntries, TableEntry, type TableEntryProps } from "@pbgo/ui/platform/table-entry"
 import { prefersReducedMotion } from "@pbgo/ui/reduced-motion"
-import { messageOf } from "@/lib/table-door"
 import { ArrowRight01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { useAgeGate } from "./age-gate"
 import { useSitDown } from "./sit-down"
 
 // The open tables of a game and the panel that goes with them, in one container: a card with two sides, on the left the tables as rows, on the right the panel, which shows the details of the row that is selected. The visitor's own table is the first row, whatever it
@@ -70,6 +69,7 @@ export function OpenTables({
   const panel = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const { sitDown, dialog } = useSitDown(slug, signedIn)
+  const { guard, fail, dialog: ageDialog } = useAgeGate()
   const [joining, setJoining] = useState(false)
   const [pickedId, setPickedId] = useState<string | null>(defaultPickedId ?? null)
   const ownId = rows.find((row) => row.own)?.id ?? null
@@ -93,9 +93,10 @@ export function OpenTables({
     if (!who) return
     setJoining(true)
     try {
-      await createApi(slug).join(code, who)
+      // A table with an expansion for adults asks for the date of birth when it is missing (PLT-125): the visitor gives it, and the join goes on
+      await guard(() => createApi(slug).join(code, who))
     } catch (error) {
-      toast.error(messageOf(error))
+      fail(error)
     } finally {
       setJoining(false)
       router.refresh()
@@ -180,6 +181,7 @@ export function OpenTables({
         </div>
       </div>
       {dialog}
+      {ageDialog}
     </section>
   )
 }

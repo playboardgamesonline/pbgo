@@ -1,4 +1,4 @@
--- The date of birth a member declared (migration 0010, PLT-125): declared once and never replaced, refused under 13, readable by the server only, and deleted with the account.
+-- The date of birth a member declared (migration 0012, PLT-125): declared once and never replaced, refused under 13, readable by the server only, and deleted with the account.
 --
 -- Run it on `pbgo-preview` once the migration is applied (the Supabase MCP's `execute_sql`, or the SQL editor). It is one `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled back, and the
 -- message is the answer. Every check prints `ok` or `FAIL` with what it saw; read the whole line. Never on production.
