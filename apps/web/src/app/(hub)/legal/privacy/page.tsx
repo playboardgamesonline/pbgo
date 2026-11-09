@@ -114,8 +114,12 @@ export default function PrivacyPolicy() {
               text: "The username you choose and your choices (the notifications you want, hiding your game history, how times are written, whether the site's animations are reduced) are kept with your account, so that they follow you from one device to the next. The choice for the animations is also kept in a cookie on each device, so that a page can honour it as it opens (see the Cookie Policy). All of it stays until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
             },
             {
-              name: "Your country and your date of birth",
-              text: "In your account settings you can record the country or region you are in and your date of birth. Both are optional and nobody else sees them. We keep them with your account, so that games for adults can be limited to adults, until the account is deleted, and you can change or remove them at any time. A date that would make you younger than 13 is refused and not kept.",
+              name: "Your country or region",
+              text: "In your account settings you can record the country or region you are in. It is optional and nobody else sees it. We keep it with your account until the account is deleted, and you can change or remove it at any time.",
+            },
+            {
+              name: "Your date of birth",
+              text: "Some games, and some expansions of a game, are for adults only, or for an older age than 13. To play one you give your date of birth, in your account settings or when the site asks for it. It is optional until you want to play one of those. You give it once, and it cannot be changed afterwards: write to us if it is wrong. We take your word for it and do not check it. We keep it apart from the rest of your account, in a table that only our server reads, and the server works out your age from it each time you sit at a table that asks for one. Other players never see it; you see it yourself with its day and month hidden. It stays until your account is deleted. A date that would make you younger than 13 is refused and not kept.",
             },
             {
               name: "Being online",
@@ -197,7 +201,7 @@ export default function PrivacyPolicy() {
         <LegalText>The law asks for a reason for each use of personal data. Ours are:</LegalText>
         <LegalEntries
           items={[
-            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language and your settings, keeping your games, your totals and your rank: we could not do it without your data." },
+            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language and your settings, keeping your games, your totals and your rank, checking your age for the games and expansions that ask for one: we could not do it without your data." },
             {
               name: "Our legitimate interest",
               text: "In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, and counting what happens at tables to fix and improve the games. You can object to this (see Your rights).",
@@ -205,8 +209,8 @@ export default function PrivacyPolicy() {
             {
               name: "Your consent",
               text: ANALYTICS_ENABLED
-                ? "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. And for the details you choose to record in your account, your country and your date of birth. You can say no, and change your mind at any time."
-                : "For the details you choose to record in your account, your country and your date of birth. You can say no, and change your mind at any time.",
+                ? "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. And for the country or region you choose to record in your account. You can say no, and change your mind at any time."
+                : "For the country or region you choose to record in your account. You can say no, and change your mind at any time.",
             },
           ]}
         />

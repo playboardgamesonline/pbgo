@@ -20,23 +20,35 @@ export function restrictedAge(minAge: number | null | undefined): number | null 
   return typeof minAge === "number" && Number.isFinite(minAge) && minAge >= RESTRICTED_FROM ? Math.ceil(minAge) : null
 }
 
-/** A day of the calendar: the year, the month from 1 to 12 and the day from 1. */
-type Day = { year: number; month: number; day: number }
+/** A day of the calendar, as a person says it: the year, the month from 1 to 12 and the day from 1. */
+export type CalendarDate = { year: number; month: number; day: number }
+
+/** Whether the three numbers are a day that exists (`31 February` is not). Any year is allowed, the four digits of a form included. */
+export function isRealDay({ year, month, day }: CalendarDate): boolean {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false
+  const date = new Date(0)
+  // setUTCFullYear and not Date.UTC: a year below 100 is a year of the 1900s for Date.UTC
+  date.setUTCFullYear(year, month - 1, day)
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
 
 /** The day of a date of birth as it is kept (`YYYY-MM-DD`, a day that exists), or null for anything else: a month 13, a 30 February, a date with a time, a number. */
-function dayOf(value: unknown): Day | null {
+function dayOf(value: unknown): CalendarDate | null {
   if (typeof value !== "string") return null
   const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!parts) return null
-  const day: Day = { year: Number(parts[1]), month: Number(parts[2]), day: Number(parts[3]) }
-  const date = new Date(0)
-  // setUTCFullYear and not Date.UTC: a year below 100 is a year of the 1900s for Date.UTC
-  date.setUTCFullYear(day.year, day.month - 1, day.day)
-  return date.getUTCFullYear() === day.year && date.getUTCMonth() === day.month - 1 && date.getUTCDate() === day.day ? day : null
+  const day: CalendarDate = { year: Number(parts[1]), month: Number(parts[2]), day: Number(parts[3]) }
+  return isRealDay(day) ? day : null
 }
 
-/** The calendar day an instant falls on in UTC. */
-const utcDay = (now: Date): Day => ({ year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, day: now.getUTCDate() })
+/** The calendar day an instant falls on in UTC: the calendar the server counts ages on, and so the one a form judges a date of birth on. */
+export const utcDayOf = (now: Date): CalendarDate => ({ year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, day: now.getUTCDate() })
+
+/** The whole years between a birth and a day: a birthday counts on its day, and not before; a 29 February counts on the 1st of March in a year that has none. A birth after the day gives a negative age. */
+export function ageOn(birth: CalendarDate, today: CalendarDate): number {
+  const birthdayPassed = today.month > birth.month || (today.month === birth.month && today.day >= birth.day)
+  return today.year - birth.year - (birthdayPassed ? 0 : 1)
+}
 
 /**
  * The whole years between a date of birth and the day `now` falls on in UTC, or null when the value is not a date of birth (`YYYY-MM-DD`, a day that exists). A birthday counts on its day, and not before; a 29 February counts on the 1st of March in a
@@ -44,10 +56,7 @@ const utcDay = (now: Date): Day => ({ year: now.getUTCFullYear(), month: now.get
  */
 export function ageInYears(birthdate: unknown, now: Date): number | null {
   const birth = dayOf(birthdate)
-  if (!birth) return null
-  const today = utcDay(now)
-  const birthdayPassed = today.month > birth.month || (today.month === birth.month && today.day >= birth.day)
-  return today.year - birth.year - (birthdayPassed ? 0 : 1)
+  return birth ? ageOn(birth, utcDayOf(now)) : null
 }
 
 /** What is wrong with a date of birth that a member declares: it is not a date of birth, or it makes them younger than the site allows. */

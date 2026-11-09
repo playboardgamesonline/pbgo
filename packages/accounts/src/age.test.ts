@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { OLDEST_AGE, RESTRICTED_FROM, SITE_MINIMUM_AGE, ageInYears, ageRefusal, birthdateProblem, restrictedAge, type AgeSubject } from "./age"
+import { OLDEST_AGE, RESTRICTED_FROM, SITE_MINIMUM_AGE, ageInYears, ageOn, ageRefusal, birthdateProblem, isRealDay, restrictedAge, utcDayOf, type AgeSubject } from "./age"
 
 const at = (iso: string) => new Date(iso)
 
@@ -136,5 +136,33 @@ describe("ageRefusal", () => {
   it("asks the age of the table, not 18: a table for 21 refuses a member of 20", () => {
     expect(ageRefusal(21, member("2006-01-01"), now)).toBe("too-young")
     expect(ageRefusal(21, member("2005-11-09"), now)).toBeNull()
+  })
+})
+
+describe("the calendar the form and the server share", () => {
+  it("knows which days exist, leap years included, and rejects what is not a whole day", () => {
+    expect(isRealDay({ year: 2000, month: 2, day: 29 })).toBe(true)
+    expect(isRealDay({ year: 1900, month: 2, day: 29 })).toBe(false)
+    expect(isRealDay({ year: 2001, month: 2, day: 29 })).toBe(false)
+    expect(isRealDay({ year: 2026, month: 4, day: 31 })).toBe(false)
+    expect(isRealDay({ year: 2026, month: 13, day: 1 })).toBe(false)
+    expect(isRealDay({ year: 2026, month: 0, day: 1 })).toBe(false)
+    expect(isRealDay({ year: 2026, month: 1.5, day: 1 })).toBe(false)
+    expect(isRealDay({ year: 50, month: 1, day: 1 })).toBe(true)
+  })
+
+  it("takes the day of an instant on the UTC calendar, whatever the offset it was written with", () => {
+    expect(utcDayOf(new Date("2026-11-09T23:59:59Z"))).toEqual({ year: 2026, month: 11, day: 9 })
+    expect(utcDayOf(new Date("2026-11-10T01:30:00+02:00"))).toEqual({ year: 2026, month: 11, day: 9 })
+    expect(utcDayOf(new Date("2026-11-08T23:30:00-01:00"))).toEqual({ year: 2026, month: 11, day: 9 })
+  })
+
+  it("counts whole years between two days, a birthday on its day and a 29 February on the 1st of March", () => {
+    const today = { year: 2026, month: 11, day: 9 }
+    expect(ageOn({ year: 2013, month: 11, day: 9 }, today)).toBe(13)
+    expect(ageOn({ year: 2013, month: 11, day: 10 }, today)).toBe(12)
+    expect(ageOn({ year: 2026, month: 11, day: 10 }, today)).toBe(-1)
+    expect(ageOn({ year: 2000, month: 2, day: 29 }, { year: 2025, month: 2, day: 28 })).toBe(24)
+    expect(ageOn({ year: 2000, month: 2, day: 29 }, { year: 2025, month: 3, day: 1 })).toBe(25)
   })
 })

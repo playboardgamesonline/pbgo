@@ -53,7 +53,6 @@ describe("accountOf", () => {
       language: null,
       preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto" },
       country: null,
-      birthdate: null,
       linked: [],
     })
   })
@@ -112,7 +111,6 @@ describe("accountOf", () => {
       language: null,
       preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto" },
       country: null,
-      birthdate: null,
       linked: [],
     })
   })
@@ -192,20 +190,24 @@ describe("the preferences and the linked services of an account (PLT-111)", () =
   })
 })
 
-describe("the country and the date of birth an account records (PLT-111)", () => {
-  it("keeps what the member recorded, each under its own key", () => {
-    const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_country: "FR", pbgo_birthdate: "1994-06-18" } })
-    expect(account.country).toBe("FR")
-    expect(account.birthdate).toBe("1994-06-18")
+describe("the country an account records (PLT-111)", () => {
+  it("keeps what the member recorded, under its own key", () => {
+    expect(accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_country: "FR" } }).country).toBe("FR")
   })
 
-  it("records none until the member does, and reads what is not a country or a day that exists as none", () => {
-    expect(accountOf(google)).toMatchObject({ country: null, birthdate: null })
-    expect(accountOf({ ...google, user_metadata: { pbgo_country: "ZZ", pbgo_birthdate: "1994-02-30" } })).toMatchObject({ country: null, birthdate: null })
+  it("records none until the member does, and reads what is not a country as none", () => {
+    expect(accountOf(google).country).toBeNull()
+    expect(accountOf({ ...google, user_metadata: { pbgo_country: "ZZ" } }).country).toBeNull()
   })
 
-  it("does not take the keys of a provider for them", () => {
-    expect(accountOf({ ...google, user_metadata: { country: "FR", birthdate: "1994-06-18", birthday: "1994-06-18" } })).toMatchObject({ country: null, birthdate: null })
+  it("does not take the keys of a provider for it", () => {
+    expect(accountOf({ ...google, user_metadata: { country: "FR", locale: "fr-FR" } }).country).toBeNull()
+  })
+
+  it("holds no date of birth, whatever the metadata says: the member can write their own metadata, and the date is kept where only the server reads it (PLT-125)", () => {
+    const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_birthdate: "1990-01-01", birthdate: "1990-01-01" } })
+    expect(account).not.toHaveProperty("birthdate")
+    expect(JSON.stringify(account)).not.toContain("1990-01-01")
   })
 })
 

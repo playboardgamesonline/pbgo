@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { accountOf, emailOf, type Account, type Provider } from "./account"
 import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed, isDemoAccount } from "./demo"
-import { BIRTHDATE_KEY, COUNTRY_KEY } from "./details"
+import { COUNTRY_KEY } from "./details"
 import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
 import { applyMotion, syncMotion } from "./motion"
 import { NICKNAME_KEY, PREFERENCE_KEYS, type PreferenceName, type Preferences } from "./preferences"
@@ -192,11 +192,6 @@ export function savePreference<Name extends PreferenceName>(name: Name, value: P
 /** Keeps the country or region the member recorded, an ISO 3166-1 alpha-2 code, under the one key of ours (`COUNTRY_KEY`), or takes it away (`null`). It is the only writer of it, as `saveNickname` is of the nickname. */
 export function saveCountry(country: string | null): Promise<ChangeOutcome> {
   return change((supabase) => supabase.auth.updateUser({ data: { [COUNTRY_KEY]: country } }))
-}
-
-/** Keeps the date of birth the member recorded, as `YYYY-MM-DD`, under the one key of ours (`BIRTHDATE_KEY`), or takes it away (`null`). It is the only writer of it, and `checkBirthdate` is what judges the date before it gets here. */
-export function saveBirthdate(birthdate: string | null): Promise<ChangeOutcome> {
-  return change((supabase) => supabase.auth.updateUser({ data: { [BIRTHDATE_KEY]: birthdate } }))
 }
 
 /**

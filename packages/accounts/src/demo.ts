@@ -25,7 +25,6 @@ export const DEMO_ACCOUNT: Account = {
   language: null,
   preferences: DEFAULT_PREFERENCES,
   country: "FR",
-  birthdate: "1994-06-18",
   linked: [
     { provider: "email", detail: "ore@example.com" },
     { provider: "google", detail: "ore@example.com" },
