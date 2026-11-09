@@ -132,7 +132,7 @@ describe("piece colours", () => {
 describe("brand colours", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
-  for (const name of ["twitch", "discord"]) {
+  for (const name of ["twitch", "discord", "steam"]) {
     it(`brand-${name} is a token with its utilities`, () => {
       expect(css).toMatch(new RegExp(`--brand-${name}:\\s*#[0-9a-f]{6};`, "i"))
       expect(css).toContain(`--color-brand-${name}: var(--brand-${name})`)
@@ -142,7 +142,7 @@ describe("brand colours", () => {
   it("every brand has a mark and a tile", () => {
     const marks = readFileSync(new URL("./brands.tsx", import.meta.url), "utf8")
     const button = readFileSync(new URL("./platform/provider-button.tsx", import.meta.url), "utf8")
-    for (const name of ["google", "twitch", "discord"]) {
+    for (const name of ["google", "twitch", "discord", "steam"]) {
       expect(marks, `the mark of ${name}`).toMatch(new RegExp(`\\b${name}\\b`))
       expect(button, `the tile of ${name}`).toMatch(new RegExp(`^  ${name}:`, "m"))
     }

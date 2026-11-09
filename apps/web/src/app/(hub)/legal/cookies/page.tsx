@@ -69,6 +69,10 @@ export default function CookiePolicy() {
               text: "Keeps you signed in; a few more of the same family hold a sign-in or a sign-up while it is under way. Written by Supabase, our sign-in service, on this site's own domain, and only if you sign in or create an account. Kept while you stay signed in, 400 days at most.",
             },
             {
+              name: "pbgo-steam-state",
+              text: "A random value that ties the way back from Steam to the browser that started the sign-in, so that a link someone else started cannot sign you in as them. It is sent to this site only and page scripts cannot read it. Kept ten minutes at most; written when you choose Steam to sign in, and deleted when you come back from Steam.",
+            },
+            {
               name: "gamemaster_session",
               text: "For the people who run the site only: it opens the back office. Kept 7 days. Visitors never get it.",
             },

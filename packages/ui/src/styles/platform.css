@@ -84,6 +84,7 @@
   --color-presence-dnd: var(--presence-dnd);
   --color-brand-twitch: var(--brand-twitch);
   --color-brand-discord: var(--brand-discord);
+  --color-brand-steam: var(--brand-steam);
   --color-piece-red: var(--piece-red);
   --color-piece-navy: var(--piece-navy);
   --color-piece-gold: var(--piece-gold);
@@ -556,9 +557,10 @@
     --presence-playing: oklch(0.76 0.13 235);
     --presence-inactive: oklch(0.82 0.16 80);
     --presence-dnd: oklch(0.7 0.19 22);
-    /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Twitch's purple and Discord's blurple. Google's is `foreground`; the marks are in `brands.tsx` */
+    /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Twitch's purple, Discord's blurple and Steam's near-black. Google's is `foreground`; the marks are in `brands.tsx` */
     --brand-twitch: #9146ff;
     --brand-discord: #5865f2;
+    --brand-steam: #171a21;
     /* The colours of the pieces that stand for letters in the home's title (`TitlePiece`, `TitleCards`): red and gold, the dark blue of the backs of the cards, ivory and ink for a die. The black suits are not one of them: on the page's black they are drawn in the colour of the text */
     --piece-red: oklch(0.64 0.2 27);
     --piece-navy: oklch(0.34 0.1 258);

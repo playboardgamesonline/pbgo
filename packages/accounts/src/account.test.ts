@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { PROVIDERS, accountOf, emailOf, initialsOf, type AuthUser } from "./account"
+import { EXTERNAL_PROVIDERS, PROVIDERS, SIGN_IN_PROVIDERS, accountOf, emailOf, initialsOf, type AuthUser } from "./account"
 
 const google: AuthUser = {
   id: "u-1",
@@ -36,8 +36,13 @@ const discord: AuthUser = {
 }
 
 describe("the providers", () => {
-  it("are Google, Discord and Twitch, in the order of the buttons", () => {
+  it("are Google, Discord and Twitch, the ones of Supabase Auth that an account can have", () => {
     expect([...PROVIDERS]).toEqual(["google", "discord", "twitch"])
+  })
+
+  it("sign in with Google, Discord and Steam, in the order of the buttons: Twitch is only linked", () => {
+    expect([...SIGN_IN_PROVIDERS]).toEqual(["google", "discord", "steam"])
+    expect([...EXTERNAL_PROVIDERS]).toEqual(["steam"])
   })
 })
 
@@ -245,5 +250,28 @@ describe("initialsOf", () => {
   it("draws a question mark for a name that has no letter", () => {
     expect(initialsOf("   ")).toBe("?")
     expect(initialsOf("")).toBe("?")
+  })
+})
+
+describe("accountOf, an account the hub made for an external provider", () => {
+  const standIn = "steam-0f8fad5b-d9cb-469f-a165-70867728950e@external.pbgo.invalid"
+  /** As Supabase Auth keeps it after the first sign-in: it has rewritten `provider` and `providers` from the identities of the user, the stand-in address only. */
+  const steamMember: AuthUser = {
+    id: "u-9",
+    email: standIn,
+    app_metadata: { provider: "email", providers: ["email"], pbgo_origin: "steam", external: { steam: { subject: "76561198000000000", name: "Marly" } } },
+    user_metadata: { full_name: "Marly", avatar_url: "https://avatars.steamstatic.com/abc_full.jpg" },
+    identities: [{ provider: "email", identity_data: { email: standIn } }],
+  }
+
+  it("is Steam's, with no address, though Supabase Auth says it is an e-mail account", () => {
+    expect(accountOf(steamMember)).toMatchObject({ nickname: "Marly", email: null, provider: "steam", avatarUrl: "https://avatars.steamstatic.com/abc_full.jpg" })
+    expect(accountOf(steamMember).linked).toEqual([{ provider: "steam", detail: "Marly" }])
+  })
+
+  it("takes the way in from a key of ours and from nothing else: Supabase Auth's `provider` never makes an account an external one", () => {
+    expect(accountOf({ ...steamMember, app_metadata: { provider: "steam", providers: ["steam"] } }).provider).toBeNull()
+    expect(accountOf({ ...steamMember, app_metadata: { ...steamMember.app_metadata, pbgo_origin: "myspace" } }).provider).toBeNull()
+    expect(accountOf({ id: "u-2", email: "marly@example.com", app_metadata: { provider: "email", providers: ["email"] } }).provider).toBeNull()
   })
 })

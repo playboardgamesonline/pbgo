@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { PROVIDERS, countryOptions } from "@pbgo/accounts"
+import { PROVIDERS, PROVIDER_NAMES, countryOptions } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
 import { enabledProviders, requireAccount } from "@pbgo/accounts/server"
 import { readBirthdate } from "@pbgo/core/server/birthdate"
@@ -44,7 +44,8 @@ export default async function AccountSettingsPage() {
         <EmailRow email={account.email} demo={demo} />
       </SettingsGroup>
       <SettingsGroup title="Password & security">
-        <PasswordRow hasPassword={hasPassword} demo={demo} />
+        {/* An account that comes from Steam has no address to sign in with a password: the row appears when it has added one */}
+        {account.email !== null && <PasswordRow hasPassword={hasPassword} demo={demo} />}
         <MultiFactorRow />
         <DevicesRow demo={demo} />
       </SettingsGroup>
@@ -59,7 +60,7 @@ export default async function AccountSettingsPage() {
         <LinkedServices linked={account.linked} available={available} demo={demo} />
       </SettingsGroup>
       <SettingsGroup title="Delete account">
-        <DeleteAccountRow />
+        <DeleteAccountRow provider={account.email === null && account.provider ? PROVIDER_NAMES[account.provider] : null} />
       </SettingsGroup>
     </SettingsPage>
   )

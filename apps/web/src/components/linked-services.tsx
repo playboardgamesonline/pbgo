@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { CheckmarkBadge01Icon, Mail01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { PROVIDERS, PROVIDER_NAMES, type LinkedService, type Provider } from "@pbgo/accounts"
+import { PROVIDERS, PROVIDER_NAMES, isExternalProvider, type LinkedService, type Provider } from "@pbgo/accounts"
 import { linkProvider, unlinkProvider } from "@pbgo/accounts/client"
 import { BrandMark } from "@pbgo/ui/brands"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
@@ -25,7 +25,7 @@ export function ServiceName({ name, linked }: { name: string; linked: boolean })
 }
 
 /**
- * The ways into the account, one row each: the e-mail address and password when the account has them, then every provider the project has switched on (`available`) or that the account holds already, each with its mark, what it says of itself
+ * The ways into the account, one row each: the e-mail address and password when the account has them, the external providers it holds (Steam: a row with nothing to press, like the e-mail's), then every provider the project has switched on (`available`) or that the account holds already, each with its mark, what it says of itself
  * (its address or its name) and one button, Link or Unlink. Linking sends the member to the provider and back to this page (`linkProvider`), unlinking takes the identity off at once; the last way in cannot be unlinked, so its button is off. Both need
  * "Allow manual linking" in the Supabase project (`docs/accounts.md`): when it is off the member is told it is not available.
  */
@@ -34,6 +34,7 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
   const [pending, setPending] = useState<Provider | null>(null)
   const [error, setError] = useState<string | null>(null)
   const email = linked.find((service) => service.provider === "email")
+  const external = linked.filter((service) => isExternalProvider(service.provider))
   // A way in can only be taken off while another is left
   const canUnlink = linked.length > 1
   const providers = PROVIDERS.filter((provider) => available.includes(provider) || linked.some((service) => service.provider === provider))
@@ -76,6 +77,19 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
           </ItemContent>
         </Item>
       )}
+      {external.map((service) => (
+        <Item key={service.provider}>
+          <ItemMedia>
+            <BrandMark brand={service.provider as Exclude<typeof service.provider, "email">} className="size-5" />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle>
+              <ServiceName name={PROVIDER_NAMES[service.provider as Exclude<typeof service.provider, "email">]} linked />
+            </ItemTitle>
+            {service.detail && <ItemDescription className="ph-mask">{service.detail}</ItemDescription>}
+          </ItemContent>
+        </Item>
+      ))}
       {providers.map((provider) => {
         const service = linked.find((candidate) => candidate.provider === provider)
         const isLinked = service !== undefined
