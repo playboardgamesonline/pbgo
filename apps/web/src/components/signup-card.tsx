@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
-import { AFTER_SIGN_IN, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, type Provider, type SignupFields, type SignupProblems } from "@pbgo/accounts"
+import { AFTER_SIGN_IN, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, type AnyProvider, type SignupFields, type SignupProblems } from "@pbgo/accounts"
 import { signInWith, signUpWithPassword } from "@pbgo/accounts/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
@@ -24,12 +24,12 @@ const FIELDS = ["email", "password", "name"] as const
  * goes to the address, and the card turns to the code (`SignupCode`), which confirms the address and signs the visitor in on `next`. An address that already has an account goes through the same steps, and nothing is sent: the page never says which
  * addresses are taken. Without a Supabase project (`enabled` is false) everything is off and says so, and `linkFailed` is the page's way to tell a visitor that the link of the e-mail did not work (`/auth/confirm`).
  */
-export function SignupCard({ next, enabled, providers, linkFailed, className }: { next: string; enabled: boolean; providers: Provider[]; linkFailed: boolean; className?: string }) {
+export function SignupCard({ next, enabled, providers, linkFailed, className }: { next: string; enabled: boolean; providers: AnyProvider[]; linkFailed: boolean; className?: string }) {
   const [step, setStep] = useState<"form" | "code">("form")
   const [fields, setFields] = useState<SignupFields>({ email: "", password: "", name: "" })
   const [problems, setProblems] = useState<SignupProblems>({})
   // What is on its way: the form, or a provider. While it is, nothing else can be pressed
-  const [pending, setPending] = useState<Provider | "signup" | null>(null)
+  const [pending, setPending] = useState<AnyProvider | "signup" | null>(null)
   const loginHref = next === AFTER_SIGN_IN ? "/login" : `/login?next=${encodeURIComponent(next)}`
   const [error, setError] = useState<ReactNode>(
     linkFailed ? (
@@ -63,7 +63,7 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
     }
   }
 
-  async function start(provider: Provider) {
+  async function start(provider: AnyProvider) {
     setPending(provider)
     setError(null)
     const problem = await signInWith(provider, next)

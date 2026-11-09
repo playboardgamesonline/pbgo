@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { accountOf, emailOf, type Account, type Provider } from "./account"
+import { accountOf, emailOf, isExternalProvider, type Account, type AnyProvider, type Provider } from "./account"
 import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed, isDemoAccount } from "./demo"
 import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
@@ -72,9 +72,14 @@ export function useAccount(): AccountState {
 
 /**
  * Starts a sign-in with a provider: the browser leaves for the provider, which sends the visitor back to `/auth/callback`, which sends them on to
- * `next`. Resolves with a sentence for the visitor when it cannot start (and with null when the browser is on its way).
+ * `next`. An external provider (Steam) is no OAuth provider of Supabase Auth: the hub's own route does the dance (`/auth/steam`) and the browser just goes there. Resolves with a sentence for the visitor when it cannot start
+ * (and with null when the browser is on its way).
  */
-export async function signInWith(provider: Provider, next: string): Promise<string | null> {
+export async function signInWith(provider: AnyProvider, next: string): Promise<string | null> {
+  if (isExternalProvider(provider)) {
+    window.location.assign(`/auth/${provider}?next=${encodeURIComponent(safeNext(next))}`)
+    return null
+  }
   const supabase = browserClient()
   if (!supabase) return "Sign-in is not available here."
   const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext(next))}`

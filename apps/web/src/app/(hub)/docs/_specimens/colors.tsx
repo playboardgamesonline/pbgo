@@ -53,6 +53,7 @@ const SEMANTIC: readonly Semantic[] = [
   { token: "piece-ink", swatch: "bg-piece-ink", on: "text-foreground", role: "The ink of the pips of a die, of the engraving of the coin and of the edge of the cards." },
   { token: "brand-twitch", swatch: "bg-brand-twitch", on: "text-foreground", role: "The tile of the sign-in button of Twitch, in the brand's own purple. Nothing else wears it." },
   { token: "brand-discord", swatch: "bg-brand-discord", on: "text-foreground", role: "The tile of the sign-in button of Discord, in the brand's own blurple. Nothing else wears it." },
+  { token: "brand-steam", swatch: "bg-brand-steam", on: "text-foreground", role: "The tile of the sign-in button of Steam, in the brand's own near-black. Nothing else wears it." },
 ]
 
 const SECONDARY_TOKENS = [

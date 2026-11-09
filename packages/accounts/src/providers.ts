@@ -1,7 +1,7 @@
 // Which providers a Supabase project has switched on, so that the sign-in draws a button only for those: a button for a provider the project has not enabled would
 // answer "Unsupported provider" to whoever pressed it. The project says it itself, in the settings of its Auth, which anyone may read with its publishable key.
 
-import { PROVIDERS, type Provider } from "./account"
+import { EXTERNAL_PROVIDERS, PROVIDERS, SIGN_IN_PROVIDERS, type AnyProvider, type ExternalProvider, type Provider } from "./account"
 import { supabaseAuthConfig, type SupabaseAuthConfig } from "./config"
 
 /** How long the settings of a project are kept in production, in seconds: a provider switched on in the dashboard shows its button within that time. */
@@ -34,4 +34,31 @@ export async function enabledProviders(config: SupabaseAuthConfig | null = supab
   } catch {
     return []
   }
+}
+
+/** The environment variables an external provider needs besides the means of making a member: Steam's Web API key, which gives the name and the picture of a player. */
+const EXTERNAL_KEYS: Record<ExternalProvider, string> = { steam: "STEAM_WEB_API_KEY" }
+
+/** What the server's environment gives: variable names to values. */
+export type ServerEnv = Readonly<Record<string, string | undefined>>
+
+const set = (value: string | undefined) => (value?.trim() ?? "") !== ""
+
+/**
+ * The external providers the server is set up for, in the order of `EXTERNAL_PROVIDERS`: the project and its publishable key (to spend the token that signs the member in), its secret key (to make the member) and the provider's own key. A provider with any of them missing is not offered: a
+ * button that cannot sign anyone in is worse than none. The switch is the key, so that a provider is switched on in Vercel and off by removing it.
+ */
+export function externalProvidersOn(env: ServerEnv = process.env): ExternalProvider[] {
+  const canMakeMembers = set(env.NEXT_PUBLIC_SUPABASE_URL) && set(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) && (set(env.SUPABASE_SECRET_KEY) || set(env.SUPABASE_SERVICE_ROLE_KEY))
+  return canMakeMembers ? EXTERNAL_PROVIDERS.filter((provider) => set(env[EXTERNAL_KEYS[provider]])) : []
+}
+
+/**
+ * What the sign-in and the sign-up offer, in the order of the buttons: the providers of `SIGN_IN_PROVIDERS` that the project has switched on (Twitch may be, and is only linked: it is not among them) and the external ones the
+ * server is set up for. None when the project is not set, as for `enabledProviders`.
+ */
+export async function signInProviders(config: SupabaseAuthConfig | null = supabaseAuthConfig(), env: ServerEnv = process.env, doFetch: typeof fetch = fetch): Promise<AnyProvider[]> {
+  if (!config) return []
+  const on: readonly AnyProvider[] = [...(await enabledProviders(config, doFetch)), ...externalProvidersOn(env)]
+  return SIGN_IN_PROVIDERS.filter((provider) => on.includes(provider))
 }

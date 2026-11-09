@@ -10,7 +10,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/legal/privacy" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "8 November 2026"
+const UPDATED = "9 November 2026"
 
 /**
  * Everything the site does with personal data, in the order a person meets it. Every line is the code's, and the table of `docs/legal.md` lists where: a new field that holds
@@ -94,12 +94,16 @@ export default function PrivacyPolicy() {
       </LegalSection>
 
       <LegalSection id="accounts" title="When you sign in">
-        <LegalText>An account is optional. You sign in with Google, Twitch or Discord. Some accounts use an e-mail address and a password instead.</LegalText>
+        <LegalText>An account is optional. You sign in with Google, Discord or Steam, and you can link a Twitch account to yours. Some accounts use an e-mail address and a password instead.</LegalText>
         <LegalEntries
           items={[
             {
               name: "What your provider gives us",
               text: "When you choose a provider, it tells our sign-in service, Supabase, who you are: an identifier, your e-mail address, your name and your picture, as far as that provider gives them. We keep them with your account, to sign you in and to show your name and picture to you and to the others at your table. We never see your password for that provider. The provider learns that you signed in to this site, and its own privacy policy applies to that.",
+            },
+            {
+              name: "Signing in with Steam",
+              text: "Steam gives us no e-mail address. When you sign in with it, Steam tells us the number of your Steam account (the one in the address of your Steam profile), and our server then asks Steam for the name and the picture of your profile. We keep the number, the name and the picture with your account, to sign you in and to show your name and picture to you and to the others at your table. Our sign-in service needs an address for every account, so we make one up for yours: it ends in external.pbgo.invalid, it cannot receive any e-mail and it is never shown. We never see your Steam password. Steam learns that you signed in to this site, and its own privacy policy applies to that.",
             },
             {
               name: "E-mail accounts",
@@ -217,7 +221,7 @@ export default function PrivacyPolicy() {
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]
               : []),
             { name: "Sanity", text: "Stores the texts, pictures and videos of the games. Your browser loads the pictures and videos from its servers." },
-            { name: "Google, Twitch and Discord", text: "Only if you sign in with them. They learn that you sign in to this site and handle your data under their own policies." },
+            { name: "Google, Discord, Steam and Twitch", text: "Only if you sign in with them (Twitch: if you link it to your account). They learn that you sign in to this site and handle your data under their own policies. For Steam, our server also asks its operator, Valve, to confirm the sign-in and for the name and the picture of your profile." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
             { name: "Every visitor of a game's page", text: "See the best players of the game: the name and the picture of their account, their rank and their place. Never a rating, and never the games behind it." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },
@@ -250,7 +254,7 @@ export default function PrivacyPolicy() {
           <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
             {CONTACT}
           </a>
-          . We answer within one month. We may ask for proof that the data is yours. With an account, tell us the e-mail address of the account. As a guest you are only a random secret in a cookie, so we can only find your data if you tell us the link of the table and the
+          . We answer within one month. We may ask for proof that the data is yours. With an account, tell us the e-mail address of the account (if you signed in with Steam, which gives none, the link of your Steam profile). As a guest you are only a random secret in a cookie, so we can only find your data if you tell us the link of the table and the
           nickname you used.
         </LegalText>
         <LegalText>

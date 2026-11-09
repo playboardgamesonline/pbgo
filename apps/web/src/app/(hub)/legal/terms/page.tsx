@@ -7,7 +7,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Terms of Use", alternates: { canonical: "/legal/terms" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "6 November 2026"
+const UPDATED = "9 November 2026"
 
 /**
  * The rules of using the site, for a guest as much as for an account (the sign-in and the sign-up pages say that continuing, or creating an account, accepts them, `login-card.tsx`, `signup-card.tsx`). What the owner chose to ship without is not on the page: the
@@ -54,7 +54,7 @@ export default function TermsOfUse() {
 
       <LegalSection id="accounts" title="Accounts and nicknames">
         <LegalText>
-          You do not need an account to play: a guest picks a nickname. An account is made by signing in with Google, Twitch or Discord. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
+          You do not need an account to play: a guest picks a nickname. An account is made by signing in with Google, Discord or Steam. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
           else uses yours.
         </LegalText>
         <LegalText>

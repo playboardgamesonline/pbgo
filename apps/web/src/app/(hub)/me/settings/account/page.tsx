@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { PROVIDERS } from "@pbgo/accounts"
+import { PROVIDERS, PROVIDER_NAMES } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
 import { enabledProviders, requireAccount } from "@pbgo/accounts/server"
 import { DeleteAccountRow } from "@/components/delete-account-row"
@@ -26,7 +26,8 @@ export default async function AccountSettingsPage() {
     <SettingsPage title="Account" description="How you sign in, and where you are signed in.">
       <SettingsGroup title="Sign-in">
         <EmailRow email={account.email} demo={demo} />
-        <PasswordRow hasPassword={hasPassword} demo={demo} />
+        {/* An account that comes from Steam has no address to sign in with a password: the row appears when it has added one */}
+        {account.email !== null && <PasswordRow hasPassword={hasPassword} demo={demo} />}
       </SettingsGroup>
       <SettingsGroup title="Linked services" description="The services you can sign in with. Keep at least one.">
         <LinkedServices linked={account.linked} available={available} demo={demo} />
@@ -35,7 +36,7 @@ export default async function AccountSettingsPage() {
         <DevicesRow demo={demo} />
       </SettingsGroup>
       <SettingsGroup title="Delete account">
-        <DeleteAccountRow />
+        <DeleteAccountRow provider={account.email === null && account.provider ? PROVIDER_NAMES[account.provider] : null} />
       </SettingsGroup>
     </SettingsPage>
   )

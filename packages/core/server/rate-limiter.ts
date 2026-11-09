@@ -42,6 +42,8 @@ export const RATE_LIMITS = {
   feedback: { limit: 3, windowMs: 10_000 },
   /** The beat of a signed-in member who has the site open, about every 45 s (`PresenceBeat`): per IP, since the route belongs to no game; room for a few members behind one address */
   presence: { limit: 30, windowMs: 60_000, by: "ip" },
+  /** The way back from an external provider's sign-in (Steam: `/auth/steam/callback`): it asks the provider, reads and writes the database and makes a member, so per IP, whatever the cookies; a human signs in once, a script is stopped */
+  externalSignIn: { limit: 20, windowMs: 60_000, by: "ip" },
   /** Admin login (shared by every game): per IP, whatever the cookies, so a password can't be guessed by a script. A human mistypes it a few times at most */
   adminLogin: { limit: 5, windowMs: 10 * 60_000, by: "ip" },
   /** Ceiling per IP across every limited route (several players behind one NAT stay well below it) */

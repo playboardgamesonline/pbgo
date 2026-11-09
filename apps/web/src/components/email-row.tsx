@@ -13,7 +13,8 @@ import { changing, failureOf } from "@/lib/settings-change"
 
 /**
  * The E-mail row of the settings: the address of the account and a button that opens the window to change it. The new address does not replace the old one until the link that Supabase Auth sends there is opened (and, when the project asks both
- * addresses to confirm, the one it sends to the current address too), so the window ends with "check your e-mail" and the row keeps the address it has. The link leads back to the account's settings.
+ * addresses to confirm, the one it sends to the current address too), so the window ends with "check your e-mail" and the row keeps the address it has. The link leads back to the account's settings. A member who signed in with
+ * Steam has no address (the stand-in one is never shown), and the button is off: the project would ask the stand-in address to confirm the change too, which nobody can read (docs/accounts.md, "Sign-in with Steam").
  */
 export function EmailRow({ email, demo }: { email: string | null; demo: boolean }) {
   const [open, setOpen] = useState(false)
@@ -59,7 +60,7 @@ export function EmailRow({ email, demo }: { email: string | null; demo: boolean 
           <ItemDescription className="ph-mask">{email ?? "No e-mail address"}</ItemDescription>
         </ItemContent>
         <ItemActions>
-          <Button variant="outline" onClick={() => toggle(true)}>
+          <Button variant="outline" onClick={() => toggle(true)} disabled={email === null}>
             Change
           </Button>
         </ItemActions>

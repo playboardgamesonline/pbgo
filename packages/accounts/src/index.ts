@@ -3,8 +3,12 @@
 // its own small entries, which the games' pages import too: `./language` (the same pure part, alone) and `./set-language` (the setter, with no Supabase in it).
 
 export { AFTER_SIGN_IN, safeNext } from "./redirect"
-export { PROVIDERS, PROVIDER_NAMES, accountOf, emailOf, initialsOf } from "./account"
-export type { Account, AuthUser, LinkedService, Provider } from "./account"
+export { EXTERNAL_EMAIL_DOMAIN, EXTERNAL_PROVIDERS, PROVIDERS, PROVIDER_NAMES, SIGN_IN_PROVIDERS, accountOf, emailOf, initialsOf, isExternalEmail, isExternalProvider } from "./account"
+export type { Account, AnyProvider, AuthUser, ExternalProvider, LinkedService, Provider } from "./account"
+export { NONCE_MAX_AGE_MS, STATE_PATTERN, STEAM_FALLBACK_NAME, STEAM_LOGIN_URL, STEAM_STATE_COOKIE, STEAM_STATE_MAX_AGE, assertionOf, checkAssertion, fetchSteamProfile, newState, sameSecret, steamConfirms, steamLoginUrl, steamProfileOf, steamReturnTo } from "./steam"
+export type { AssertionCheck, AssertionProblem, SteamProfile } from "./steam"
+export { externalEmail, externalSignIn } from "./external"
+export type { ExternalAdmin, ExternalDeps, ExternalIdentity, ExternalProfile, ExternalSignIn, ExternalStep, ExternalStore } from "./external"
 export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, nicknameOf, preferencesOf } from "./preferences"
 export type { PreferenceName, Preferences } from "./preferences"
 export { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, settingsMessage, settingsProblem } from "./settings"
