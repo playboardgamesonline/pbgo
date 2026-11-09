@@ -11,13 +11,14 @@ import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBack, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { SiteSocial } from "@/components/site-social"
-import { SITE_NAME } from "@/site"
+import { PRICING_OPEN, SITE_NAME } from "@/site"
 
 /**
  * The tabs of the navbar, in order, each with the page it leads to and its `group`: the ones for playing, then the ones about the site, with a hairline between the two groups (`NavbarSeparator`).
  * The home is the logo's, not a tab's. The tabs about the site leave the bar under `lg` (they would not fit between the logo and the account on a tablet): the ones for playing stay.
+ * The Pricing tab is drawn only while the page is open (`PRICING_OPEN`, which it is not for now).
  */
-const SITE_TABS = [
+const TABS = [
   { id: "games", label: "Games", href: "/games", group: "play" },
   { id: "tables", label: "Tables", href: "/tables", group: "play" },
   { id: "tournaments", label: "Tournaments", href: "/tournaments", group: "play" },
@@ -25,8 +26,10 @@ const SITE_TABS = [
   { id: "pricing", label: "Pricing", href: "/pricing", group: "about" },
 ] as const
 
+const SITE_TABS = TABS.filter((tab) => tab.id !== "pricing" || PRICING_OPEN)
+
 /** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the pages of a signed-in visitor, `docs`: the way into the docs, which no tab leads to). */
-type SiteCurrent = (typeof SITE_TABS)[number]["id"] | "home" | "account" | "docs"
+type SiteCurrent = (typeof TABS)[number]["id"] | "home" | "account" | "docs"
 
 /**
  * The address the bar reads. Once Vercel has regenerated the front page in the background, the server renders it at `/index` (the route in the page's flight data

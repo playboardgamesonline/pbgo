@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { ListPageHeader } from "@/components/list-page-header"
+import { PublisherCall } from "@/components/publisher-call"
 import { SiteFooter } from "@/components/site-footer"
 import { COMING_SOON } from "@/lib/coming-soon"
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = { title: "About", alternates: { canonical: "/a
 /**
  * About: what the site is and who makes it, then, in a section of the page (`#whats-new`), what is new: the new games and the notes of each release. What's New was a page of its own, `/whats-new`, which now
  * leads here (`next.config.ts`), and the home's section of the same name leads here too. Neither part has anything to say yet, so each is an empty state that says what is to come; the page that fills one in
- * replaces it.
+ * replaces it. At the foot, the invitation to the publishers to write (`PublisherCall`): it was the Pricing page's, which is hidden for now (`PRICING_OPEN`).
  */
 export default function AboutPage() {
   return (
@@ -43,6 +44,9 @@ export default function AboutPage() {
             </EmptyHeader>
           </Empty>
         </section>
+        <div className="mx-auto w-full max-w-page px-gutter pb-section">
+          <PublisherCall />
+        </div>
       </main>
       <SiteFooter />
     </div>
