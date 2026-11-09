@@ -1,7 +1,7 @@
 import { DEFAULT_PLATFORM_LANGUAGE, translatedRowType, translatedType } from "@pbgo/studio-kit/constants"
 import { defineField } from "sanity"
 import type { TranslatedKind } from "./constants"
-import { checkNameTranslations, checkTranslations } from "./rules"
+import { checkDescriptions, checkNameTranslations, checkTranslations } from "./rules"
 
 // The translated fields of the catalog (PLT-104): the kinds of value that get an array of rows `{ language, value }`, given to the plugin
 // by `sanity.config.ts` (`fieldTranslations` of the studio kit). `TRANSLATED_FIELDS` of `constants.ts` says which field of which type is
@@ -12,7 +12,8 @@ const languageOf = (row: unknown): unknown => (typeof row === "object" && row !=
 
 /**
  * The kinds, as the plugin's `fieldTypes`, in the order of `TRANSLATED_KINDS`:
- * - `description` is a long text (8 rows);
+ * - `description` is a long text (8 rows), and `checkDescriptions` keeps each language to `DESCRIPTION_MAX` characters (a rule of the field, not
+ *   of the type: the plugin hands the rules of a type to the row, an object, which a length would measure as a whole);
  * - `localizedName` is the name of a game in a language. English is the `name` of the game, so the row of English is read-only and `rules.ts`
  *   refuses a value in it: a second English name would be one more way to disagree.
  */
@@ -49,5 +50,5 @@ export const translatedField = ({ name, title, kind, group, options }: Translate
     ...(group ? { group } : {}),
     ...(options ? { options } : {}),
     initialValue: [englishRow(kind)],
-    validation: (rule) => rule.custom(kind === "localizedName" ? checkNameTranslations : checkTranslations),
+    validation: (rule) => rule.custom(kind === "localizedName" ? checkNameTranslations : kind === "description" ? checkDescriptions : checkTranslations),
   })

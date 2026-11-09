@@ -20,7 +20,7 @@ export const COURTISANS_DRAFT: Doc = {
     { _key: "creator-noemie-chevalier", _type: "gameCreator", creator: weak("creator-noemie-chevalier", "creator"), roles: ["artist"] },
   ],
   description:
-    "New characters take a seat at the Queen's table. Diplomats and Confidents upset the balance, but also let you form new alliances. This expansion adds two new roles, the Diplomat and the Confident, each with new effects, and lets you play Courtisans with up to 6 players. It also adds a team mode for 4 or 6 players.",
+    "New characters take a seat at the Queen's table. Diplomats and Confidents upset the balance, but also let you form new alliances. This expansion adds two new roles, the Diplomat and the Confident, each with new effects.",
   kind: "expansion",
   minAge: 8,
   name: "Courtisans: Diplomates & Confidents",
