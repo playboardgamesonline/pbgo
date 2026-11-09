@@ -7,7 +7,8 @@ import { useBinding } from "../lib/binding-context"
 import { useSiteSettings } from "./settings-provider"
 import { useEngineTexts, useText } from "./skin-provider"
 
-function display(key: string, def: OptionDefinition, value: unknown, t: ReturnType<typeof useText>, words: ReturnType<typeof useEngineTexts>["text"]) {
+/** What an option is set to, in words: on or off, the label of the choice, the number. */
+export function displayOption(key: string, def: OptionDefinition, value: unknown, t: ReturnType<typeof useText>, words: ReturnType<typeof useEngineTexts>["text"]) {
   if (def.type === "boolean") return value ? t("gameSettingsOn") : t("gameSettingsOff")
   if (def.type === "choice") {
     const choice = def.choices.find((c) => c.value === value)
@@ -40,7 +41,7 @@ export function GameSettingsDialog({ open, onOpenChange, options }: { open: bool
               {parameters.map(([key, def]) => (
                 <li key={key} className="flex items-center justify-between gap-4 py-2 text-sm">
                   <span>{words(optionLabelKey(key), def.label)}</span>
-                  <span className="font-semibold tabular-nums">{display(key, def, options[key] ?? def.defaultValue, t, words)}</span>
+                  <span className="font-semibold tabular-nums">{displayOption(key, def, options[key] ?? def.defaultValue, t, words)}</span>
                 </li>
               ))}
             </ul>

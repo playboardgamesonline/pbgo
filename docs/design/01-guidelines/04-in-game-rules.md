@@ -1,15 +1,17 @@
 # In-game rules
 
-The UI that `@pbgo/core` draws inside a game (screens, HUD, announcements, seat label, players strip, game over, chat) is not part of the platform layer. It is drawn in the game's own look, never the platform's.
+A game's screen is drawn in two looks. The table is the game's: its cards, tokens, seat plates, announcements and confetti read the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game/03-game-themes.md)). Everything around the table is the platform's: the corners of the HUD (the state of the game, the social dock with the menu of the game, the players with their scores, the chat) and the windows of that menu take the platform's tokens, Geist and the `.platform` class, from `@pbgo/ui/platform`.
 
-- Never `@pbgo/ui/platform`, Geist or the `.platform` class: it reads the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game/03-game-themes.md)).
-- A game never forks or restyles an in-game component: it asks for a field in `UiTheme`, which every game then gets.
+- Around the table, nothing of the game's look: no `@pbgo/ui/game`, no `surface`, `accent-game` or `font-display`. The pieces carry the `.platform` class themselves, since a game's page is not `.platform`; `platform-look.test.ts` keeps the rule.
+- On the table, nothing of the platform's: no `@pbgo/ui/platform`, no Geist, no `.platform` class. It reads the game's skin tokens.
+- A game never forks or restyles a shared component: for what is on the table it asks for a field in `UiTheme`, and for what is around it gives its view what the corners read (`standings`, the score of each player).
 - No copy in shared components: every label is a `UI_TEXTS` key, in the four languages, or in English only until the language pass for a new one (`ENGLISH_ONLY_TEXTS`).
-- One screen is the platform's, on a game's page: the start screen, between a table that starts and its board (`StartScreen`, PLT-107). It carries the `.platform` class itself, as the cookie banner does, and is built from `@pbgo/ui/platform` and its tokens, in English until the language pass.
+- The start screen, between a table that starts and its board (`StartScreen`, PLT-107), was the first piece around the table in the platform's look, in English until the language pass.
+- The game over panel is still in the game's look.
 
 ## Room for the cookie banner
 
-A screen as tall as the viewport subtracts the banner (`h-[calc(100dvh-var(--consent-h,0px))]`) and an element fixed to the bottom offsets by it (`bottom-[var(--consent-h,0px)]`), or the banner covers its buttons. `--consent-h` is the height of the banner's outer box, its margin included. `consent-room.test.ts` fails on a violation.
+The table is as tall as the window and the banner floats over it, since a canvas that shrank with the banner would reflow the scene: `GameHud` keeps the HUD and the game's overlays in a layer above the banner's room. The chat of the table is the exception: it stays against the bottom edge like the table, and the banner passes over it until the visitor answers (a chat lifted by the banner would float in the middle of the screen). Any other screen as tall as the viewport subtracts the banner (`h-[calc(100dvh-var(--consent-h,0px))]`) and an element fixed to the bottom offsets by it (`bottom-[var(--consent-h,0px)]`), or the banner covers its buttons. `--consent-h` is the height of the banner's outer box, its margin included. `consent-room.test.ts` fails on a violation.
 
 ## Compact layout
 

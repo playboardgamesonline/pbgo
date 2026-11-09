@@ -9,6 +9,8 @@ import { describe, expect, it } from "vitest"
  * A screen as tall as the viewport would run under the card, and an element fixed against the bottom of the screen would sit under
  * it: that is how a button of a game ends up hidden.
  * Subtract the variable (`h-[calc(100dvh-var(--consent-h,0px))]`) or offset by it (`bottom-[var(--consent-h,0px)]`).
+ * The exception is the table of a game: its canvas is as tall as the window, under a banner that floats over it (`AnalyticsProvider floating`), because a canvas that shrank
+ * with the banner would reflow the 3D scene. The HUD and the overlays of the game stand in a layer that ends above the banner, which is where the rule applies (`ALLOWED`).
  *
  * The check reads the classes of the screens a visitor opens with the banner up: the hub, the games and their template, one line at a
  * time (a class string split over two lines is not seen). The gamemaster, `/docs` and the previews never show the banner, so they
@@ -70,6 +72,21 @@ const ALLOWED: ReadonlyArray<{ file: string; line: string; why: string }> = [
     file: "packages/core/components/game/game-over.tsx",
     line: "fixed inset-0 z-40 bg-black/80",
     why: "the backdrop holds nothing and the banner (z-50) stays above it",
+  },
+  {
+    file: "packages/core/components/game/hud.tsx",
+    line: "relative h-dvh w-full overflow-clip",
+    why: "the table fills the window under the banner, which floats over it: its canvas never resizes with the banner; the layer of the HUD and of the overlays inside keeps the room",
+  },
+  {
+    file: "packages/core/components/game/chat.tsx",
+    line: "bottom-[max(1.25rem,env(safe-area-inset-bottom))]",
+    why: "the chat of the table stays against the bottom edge, like the table, and the banner floats over it until the visitor answers: a chat lifted by the banner would float in the middle of the screen",
+  },
+  {
+    file: "packages/core/components/game/ready-screen.tsx",
+    line: "fixed inset-x-0 top-0 z-[45] h-dvh bg-background",
+    why: "the curtain over the board covers the window as the board does, so that none of it shows under the banner; the screen inside keeps the room",
   },
 ]
 

@@ -28,6 +28,7 @@
 | `PlayerInfo` | `{ id, nickname }`: a seat as `setup` receives it |
 | `PlayerAction` | `{ type, playerId }`: what every `Action` extends; the server sets `playerId` |
 | `Results`, `PlayerResult` | The end of a game, in the view ([Results](06-victory.md#results)), and `outcomesOf`, which reads them as a win, a loss, a draw or a win or loss of the whole table for each player ([Outcomes](06-victory.md#outcomes)) |
+| `Standing` | `{ playerId, score }`: what a player has so far, in the view as `standings`, for the list of the players in the HUD ([Keeping the score](../02-components/09-score.md#keeping-the-score)) |
 | `AnyGameDefinition` | `GameDefinition<any, any, any, any>`: what core, the registry and the kit's helpers hold |
 | `OptionDefinitions`, `OptionValues`, `OptionPreset` | The options, their values and the presets (`packages/engine-kit/src/options.ts`) |
 

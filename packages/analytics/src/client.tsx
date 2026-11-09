@@ -41,7 +41,7 @@ export function reopenConsent(): void {
  *
  * A game's preview pages share the game's layout: they are told apart by their address, and neither show the banner nor report.
  */
-export function AnalyticsProvider() {
+export function AnalyticsProvider({ floating = false }: { /** The banner floats over the page without padding it: the games, whose canvas keeps its whole height (`ConsentBanner`) */ floating?: boolean } = {}) {
   const { ready, consent, open } = React.useSyncExternalStore(
     consentStore.subscribe,
     consentStore.getSnapshot,
@@ -70,7 +70,7 @@ export function AnalyticsProvider() {
   }, [reporting, onGameList])
 
   if (!reporting || !ready || !open) return null
-  return <ConsentBanner reopened={consent !== null} current={answerOf(consent)} onChoose={choose} onClose={consentStore.dismiss} />
+  return <ConsentBanner reopened={consent !== null} current={answerOf(consent)} floating={floating} onChoose={choose} onClose={consentStore.dismiss} />
 }
 
 /**

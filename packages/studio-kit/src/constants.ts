@@ -55,6 +55,9 @@ export const ENGLISH_ONLY_TEXTS = {
   defeatTitle: "Defeat",
   shareHeadlineDefeat: "{points} points · Defeat",
   lostWith: "{names} lost the game with {points} points.",
+  addFriend: "Add friend",
+  reportPlayer: "Report",
+  guest: "Guest",
 } as const
 
 /**
@@ -175,6 +178,9 @@ export const UI_TEXTS = [
   { key: "seatWaiting", group: "game", title: "Players strip: the game waits for this player", fr: "En attente" },
   { key: "seatAway", group: "game", title: "Players strip: this player has left the table for now", fr: "Absent" },
   { key: "history", group: "game", title: "Ticker: history toggle (small screens)", fr: "Historique" },
+  { key: "addFriend", group: "game", title: "Players list: the card of a player, the button that asks them to be a friend", fr: ENGLISH_ONLY_TEXTS.addFriend },
+  { key: "reportPlayer", group: "game", title: "Players list: the card of a player, the button that reports them", fr: ENGLISH_ONLY_TEXTS.reportPlayer },
+  { key: "guest", group: "game", title: "Menu of the picture: what a visitor who is not signed in is called", fr: ENGLISH_ONLY_TEXTS.guest },
 ] as const
 
 export type UiTextKey = (typeof UI_TEXTS)[number]["key"]

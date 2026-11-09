@@ -1,6 +1,6 @@
 # In-game UI
 
-Everything about the UI that `@pbgo/core` draws inside a game, always in the game's own look and never the platform's: first what core provides (screens, HUD, announcements, seat label, game over, skin), then how a game tunes it. What every game shares around its board is drawn in these pages in the look of two games side by side, Courtisans and the template: each game owns its universe, and the platform's look stops at the table's edge. The rules of the in-game UI (the room for the cookie banner, the compact layout, motion, copy) are in [the guidelines](../01-guidelines/04-in-game-rules.md), the platform's look in [Foundations](../02-foundations/index.md).
+Everything about the UI that `@pbgo/core` draws in a game: first what core provides (screens, HUD, announcements, seat label, game over, skin), then how a game tunes it. The table's pieces (announcements, seat label, game over) are drawn in the game's own look and shown in these pages in the look of two games side by side, Courtisans and the template: each game owns its universe on the table. The screen around the table (the state of the game, the social dock with the menu of the game, the players with their scores, the chat) is drawn in the platform's look, with nothing to tune. The rules of the in-game UI (the room for the cookie banner, the compact layout, motion, copy) are in [the guidelines](../01-guidelines/04-in-game-rules.md), the platform's look in [Foundations](../02-foundations/index.md).
 
 - [Screens and game flow](01-screens-and-game-flow.md)
 - [Skin](02-skin.md)

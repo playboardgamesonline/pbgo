@@ -74,7 +74,7 @@ function RoundStatus() {
     <>
       {`Manche ${view.round}/${view.options.rounds}${view.options.inverse ? " · la plus basse gagne" : ""}`}
       {revealed && (
-        <div className="mt-1.5 flex flex-wrap items-baseline justify-end gap-x-4 gap-y-1 text-xs tracking-[0.12em]">
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs tracking-[0.12em]">
           <span className="text-foreground/50">Plis / annonces</span>
           {view.players.map((p) => (
             <span key={p.id} className="inline-flex items-baseline gap-1.5">

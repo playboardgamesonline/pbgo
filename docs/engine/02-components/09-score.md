@@ -1,13 +1,13 @@
 # Score
 
-The score is the points a board shows while a game goes on. Nothing shared draws it during the game: the engine derives each number from its state and puts it in the view, and the board writes it on the table as [text on the table](#text-on-the-table). The references are `games/flip-7/packages/engine/src/view.ts` and `template/src/components/board/scene.tsx`; at the end the numbers become the `Results` of [Victory and results](../01-the-game/06-victory.md#victory-and-results).
+The score is the points a board shows while a game goes on. The engine derives each number from its state and puts it in the view; the list of the players at the top right shows it (`standings`) and the board writes it on the table as [text on the table](#text-on-the-table). The references are `games/flip-7/packages/engine/src/view.ts` and `template/src/components/board/scene.tsx`; at the end the numbers become the `Results` of [Victory and results](../01-the-game/06-victory.md#victory-and-results).
 
 ## In each game
 
 | Example | Stored | Derived | In the view while the game goes on |
 | --- | --- | --- | --- |
 | Flip 7 | `rounds[round][seat]`, the points of each finished round | `totalsOf` with `sumRounds`; `roundScore` from `lineScore` | For each seat `score`, what the cards in front of it are worth now, and `total`, what it has banked; `rounds` and `target` |
-| The template | `pointsPerRound` on each player | `points`, their sum, built in `view` | `points` and `pointsPerRound` for each player |
+| The template | `pointsPerRound` on each player | `points`, their sum, built in `view` | `points` and `pointsPerRound` for each player, and `standings` |
 | Courtisans | No points | `computeResults`, from `computeStatuses`, `domainPoints` and the missions | None: `results` is `null` until `phase` is `"over"` |
 | Exploding Kittens | `out`, the order the players left | `results`, whose `total` counts the opponents a player outlasted | No points: `out`, and `alive` for each player |
 
@@ -15,11 +15,12 @@ The score is the points a board shows while a game goes on. Nothing shared draws
 
 - Store the points of each round and derive the totals, with `sumRounds` of the kit ([Rounds](../01-the-game/06-victory.md#rounds)): neither Flip 7 nor the template stores a total.
 - The view carries every number the board shows. The template's scene writes `j.points` as it comes and adds nothing up.
+- The view carries `standings` when the HUD should list the points: one `{ playerId, score }` for each seat, in seat order, the number the game counts (points, tokens of affection, lives…), the same for every viewer. The template builds it from `pointsPerRound`; the conformance test checks it ([Testing](../04-build-a-game/06-testing.md)).
 - A score that depends on something hidden stays out of the view until the end: the missions of Courtisans are secret, so `results` is `null` before `phase` is `"over"`.
 
 ## Showing the score
 
-- Core shows points only at the end, from `view.results`: in the game-over panel, where `detail` of each `PlayerResult` makes the chips, and in the victory announcement ([Game over](../../design/04-in-game/07-game-over.md)). Its HUD and its players strip show none.
+- Core lists the points while the game goes, from `view.standings`, in the list of the players at the top right (`TablePlayers`): a game whose view has none shows no number there. At the end it shows them from `view.results`: in the game-over panel, where `detail` of each `PlayerResult` makes the chips, and in the victory announcement ([Game over](../../design/04-in-game/07-game-over.md)).
 - On the table the points are the `line` of a `Seat`, a `TableText` under the nickname: the game writes it in the visitor's language, and the template uses `pointsShort` of the skin. A word about the player's state in the round, such as Frozen or Stayed, goes under it as the `status`, written the same way ([Seats](03-seats.md#the-plate)).
 - At the end a board may draw `results` on the table: the ending of Courtisans writes the points of each pile with `PilePoints` and each player's total with `Counters`, which grows as the piles resolve (`games/courtisans/src/components/game3d/ending3d.tsx`).
 - Flip 7's `score` and `total` are drawn by no board, since the game has none, and no tool draws a score sheet or a track ([what is not built](../03-not-built-yet.md)).

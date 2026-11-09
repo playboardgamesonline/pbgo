@@ -15,6 +15,7 @@ import { gameUrl, SITE_URL } from "@pbgo/core/lib/site-url"
 import { loadSkin } from "@pbgo/core/lib/skin-server"
 import { GameRuntime } from "@pbgo/games/runtime"
 import { TooltipProvider } from "@pbgo/ui/game/tooltip"
+import { GameDockProvider } from "@/components/game-dock"
 import { siteNotFoundMetadata } from "@/components/site-not-found"
 import { findGameOf } from "@/lib/game"
 
@@ -94,13 +95,15 @@ export default async function GameLayout({ children, params }: LayoutProps<"/[ga
       <body className="flex min-h-full flex-col bg-background">
         <GameRuntime slug={game.slug}>
           <AppShell settings={settings} skin={skin} sounds={sounds}>
-            <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+            <GameDockProvider>
+              <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+            </GameDockProvider>
           </AppShell>
           <AppToaster />
         </GameRuntime>
         <Analytics />
         {/* PostHog and the cookie banner (off without a configuration, and on a game's preview pages, which are the gamemaster's) */}
-        <AnalyticsProvider />
+        <AnalyticsProvider floating />
       </body>
     </html>
   )
