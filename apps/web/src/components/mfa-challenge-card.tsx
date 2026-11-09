@@ -51,15 +51,17 @@ export function MfaChallengeCard({ next }: { next: string }) {
   }
 
   return (
-    <section aria-labelledby="mfa-title" className="w-full max-w-md rounded-4xl border glass p-8 shadow-float">
-      <h1 id="mfa-title" className="font-heading text-3xl">
-        Enter your code
-      </h1>
-      {!ended && (
-        <p id="mfa-help" className="mt-2 text-muted-foreground">
-          Open your authenticator app and enter the {TOTP_LENGTH}-digit code it shows for {SITE_NAME}.
-        </p>
-      )}
+    <section aria-labelledby="mfa-title" className="w-full max-w-md rounded-4xl border glass p-8 shadow-float sm:p-10">
+      <div className="flex flex-col gap-2 text-center">
+        <h1 id="mfa-title" className="font-heading text-3xl sm:text-4xl">
+          Enter your code
+        </h1>
+        {!ended && (
+          <p id="mfa-help" className="text-balance text-muted-foreground">
+            Open your authenticator app and enter the {TOTP_LENGTH}-digit code it shows for {SITE_NAME}.
+          </p>
+        )}
+      </div>
 
       {error && (
         <Alert variant="destructive" className="mt-6">
@@ -68,7 +70,7 @@ export function MfaChallengeCard({ next }: { next: string }) {
       )}
 
       {ended ? (
-        <Button asChild size="lg" className="mt-6 w-full">
+        <Button asChild size="xl" className="mt-8 w-full">
           <a href={`/login?next=${encodeURIComponent(safeNext(next))}`}>Sign in</a>
         </Button>
       ) : (
@@ -78,7 +80,7 @@ export function MfaChallengeCard({ next }: { next: string }) {
               event.preventDefault()
               verify(code)
             }}
-            className="mt-6 flex flex-col gap-4"
+            className="mt-8 flex flex-col gap-5"
           >
             <InputOTP
               ref={input}
@@ -103,7 +105,7 @@ export function MfaChallengeCard({ next }: { next: string }) {
                 ))}
               </InputOTPGroup>
             </InputOTP>
-            <Button type="submit" size="lg" className="w-full" disabled={!isTotpCode(code) || pending}>
+            <Button type="submit" size="xl" className="w-full" disabled={!isTotpCode(code) || pending}>
               {pending && <Spinner data-icon="inline-start" />}
               Confirm
             </Button>
@@ -120,7 +122,7 @@ export function MfaChallengeCard({ next }: { next: string }) {
             </form>
           </div>
           {lost && (
-            <p id="mfa-lost" className="mt-4 text-sm text-muted-foreground">
+            <p id="mfa-lost" className="mt-4 text-center text-sm text-muted-foreground">
               Write to{" "}
               <a className="text-foreground underline underline-offset-4" href={`mailto:${CONTACT}?subject=${encodeURIComponent("I lost my authenticator app")}`}>
                 {CONTACT}

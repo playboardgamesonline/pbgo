@@ -36,7 +36,7 @@ export function ProviderRow({
 
       <div role="group" aria-label="Continue with" className={cn("grid gap-3", COLUMNS[Math.min(providers.length, COLUMNS.length) - 1])}>
         {providers.map((provider) => (
-          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} pending={pending === provider} disabled={disabled} onClick={() => onSelect(provider)} />
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} pending={pending === provider} disabled={disabled} onClick={() => onSelect(provider)} className="h-12" />
         ))}
       </div>
     </>

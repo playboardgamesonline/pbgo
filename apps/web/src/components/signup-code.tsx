@@ -62,12 +62,14 @@ export function SignupCode({ email, next, waiting, onSent, onBack }: { email: st
 
   return (
     <>
-      <h1 id="signup-title" className="font-heading text-3xl">
-        Check your e-mail
-      </h1>
-      <p id="signup-code-help" className="mt-2 text-muted-foreground">
-        We sent a {CODE_LENGTH}-digit code to <span className="ph-mask text-foreground">{email}</span>. Enter it below, or follow the link in the e-mail.
-      </p>
+      <div className="flex flex-col gap-2 text-center">
+        <h1 id="signup-title" className="font-heading text-3xl sm:text-4xl">
+          Check your e-mail
+        </h1>
+        <p id="signup-code-help" className="text-balance text-muted-foreground">
+          We sent a {CODE_LENGTH}-digit code to <span className="ph-mask text-foreground">{email}</span>. Enter it below, or follow the link in the e-mail.
+        </p>
+      </div>
 
       {error && (
         <Alert variant="destructive" className="mt-6">
@@ -85,7 +87,7 @@ export function SignupCode({ email, next, waiting, onSent, onBack }: { email: st
           event.preventDefault()
           verify(code)
         }}
-        className="mt-6 flex flex-col gap-4"
+        className="mt-8 flex flex-col gap-5"
       >
         <InputOTP
           ref={input}
@@ -110,7 +112,7 @@ export function SignupCode({ email, next, waiting, onSent, onBack }: { email: st
             ))}
           </InputOTPGroup>
         </InputOTP>
-        <Button type="submit" size="lg" className="w-full" disabled={code.length < CODE_LENGTH || pending !== null}>
+        <Button type="submit" size="xl" className="w-full" disabled={code.length < CODE_LENGTH || pending !== null}>
           {pending === "code" && <Spinner data-icon="inline-start" />}
           Confirm
         </Button>
@@ -126,7 +128,7 @@ export function SignupCode({ email, next, waiting, onSent, onBack }: { email: st
         </Button>
       </div>
 
-      <p className="mt-6 text-sm text-muted-foreground">
+      <p className="mt-8 text-center text-sm text-muted-foreground">
         Nothing yet? Look in your spam folder. If you already have an account,{" "}
         <Link href={next === AFTER_SIGN_IN ? "/login" : `/login?next=${encodeURIComponent(next)}`} className="text-foreground underline underline-offset-4">
           sign in
