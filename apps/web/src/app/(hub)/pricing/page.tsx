@@ -1,19 +1,23 @@
 import type { Metadata } from "next"
-import { Button } from "@pbgo/ui/platform/button"
+import { notFound } from "next/navigation"
 import { ListPageHeader } from "@/components/list-page-header"
 import { PricingPlans } from "@/components/pricing-plans"
+import { PublisherCall } from "@/components/publisher-call"
 import { SiteFooter } from "@/components/site-footer"
 import { PAID_PLANS_NOTICE } from "@/lib/plans"
-import { CONTACT } from "@/site"
+import { PRICING_OPEN } from "@/site"
 
 // The plans are a first draft and nothing is on sale: the page stays out of the search engines until it is true
 export const metadata: Metadata = { title: "Pricing", alternates: { canonical: "/pricing" }, robots: { index: false } }
 
 /**
  * Pricing: the title of the tabs' pages, a line that says what a plan is for, the plans (`PricingPlans`: a selector between paying month by month and a year at once, then Free, Plus at 0.99 euros a month and Club at 3.99, the paid
- * ones faded and disabled), a line that says why no paid subscription is offered for now, a call to the publishers, then the footer. The contracts with the publishers are not said here (a fuller footer may one day).
+ * ones faded and disabled), a line that says why no paid subscription is offered for now, a call to the publishers (`PublisherCall`), then the footer. The contracts with the publishers are not said here (a fuller footer may one day).
+ * There is no pricing to show for now, so the page is hidden: it answers 404 while `PRICING_OPEN` is false (`apps/web/src/site.ts`), and nothing else links to it.
  */
 export default function PricingPage() {
+  if (!PRICING_OPEN) notFound()
+
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
       <main className="flex-1">
@@ -24,12 +28,7 @@ export default function PricingPage() {
           </p>
           <PricingPlans />
           <p className="text-center text-sm text-muted-foreground">{PAID_PLANS_NOTICE}</p>
-          <aside aria-label="Publishers" className="mx-auto flex max-w-xl flex-col items-center gap-4 text-center">
-            <p className="text-lg text-muted-foreground">Are you a publisher? I would love to hear from you.</p>
-            <Button asChild size="lg" variant="outline">
-              <a href={`mailto:${CONTACT}?subject=Publisher%20enquiry`}>Get in touch</a>
-            </Button>
-          </aside>
+          <PublisherCall />
         </section>
       </main>
       <SiteFooter />

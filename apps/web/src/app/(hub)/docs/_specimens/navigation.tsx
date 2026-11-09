@@ -31,9 +31,6 @@ function Start({ home = false }: { home?: boolean }) {
         <NavbarTab href="#navbar">
           About
         </NavbarTab>
-        <NavbarTab href="#navbar">
-          Pricing
-        </NavbarTab>
       </NavbarTabs>
     </NavbarStart>
   )
@@ -66,7 +63,6 @@ function NavbarSignedOut() {
       <NavbarTab href="/tournaments">Tournaments</NavbarTab>
       <NavbarSeparator />
       <NavbarTab href="/about">About</NavbarTab>
-      <NavbarTab href="/pricing">Pricing</NavbarTab>
     </NavbarTabs>
   </NavbarStart>
   <NavbarEnd>
