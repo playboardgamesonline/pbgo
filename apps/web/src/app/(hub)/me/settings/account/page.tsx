@@ -57,15 +57,15 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
       <SettingsGroup title="Account status">
         <AccountStatusRow />
       </SettingsGroup>
-      <SettingsGroup title="Personal details" description="Optional. Kept so that games for adults can be limited to adults.">
+      <SettingsGroup title="Personal details">
         <CountryRow country={account.country} options={countryOptions()} demo={demo} />
         <BirthdateRow birthdate={birthdate} />
       </SettingsGroup>
-      <SettingsGroup title="Sign-in methods" description="How you sign in. Keep at least one.">
+      <SettingsGroup title="Sign-in methods">
         <SignInMethods linked={account.linked} available={available} externalAvailable={externalAvailable} demo={demo} notice={typeof steam === "string" ? steam : null} />
       </SettingsGroup>
       {showConnections && (
-        <SettingsGroup title="Connections" description="Accounts linked to your profile. They do not sign you in.">
+        <SettingsGroup title="Connections">
           <Connections linked={account.linked} available={available} demo={demo} />
         </SettingsGroup>
       )}

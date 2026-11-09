@@ -15,3 +15,15 @@ export const SITE_DESCRIPTION = "Play board and card games online, with friends 
 export const PUBLISHER = { name: "oré", url: "https://ore.today" }
 
 export const CONTACT = "hey@playboardgamesonline.app"
+
+/**
+ * Whether the Billing section of the settings exists. There is nothing to bill (no paid plan is on sale), so for now it has no entry in the settings and its address shows the 404 page. The section is kept, with its empty states: set this
+ * to true the day a plan is on sale, and say so in `CLAUDE.md` and `docs/accounts.md`.
+ */
+export const BILLING_OPEN = false
+
+/**
+ * Whether the Notifications section of the settings exists. Nothing shows a notification yet (PLT-24), so its choices would change nothing: for now it has no entry in the settings and its address shows the 404 page. The section and its two
+ * choices are kept: set this to true when the notifications are shown, and say so in `CLAUDE.md` and `docs/accounts.md`.
+ */
+export const NOTIFICATIONS_OPEN = false

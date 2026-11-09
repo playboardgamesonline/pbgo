@@ -6,30 +6,35 @@ import { useEffect, useRef } from "react"
 import { CreditCardIcon, Logout01Icon, LockIcon, Notification01Icon, PaletteIcon, TranslationIcon, UniversalAccessCircleIcon, UserIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "@pbgo/ui/utils"
+import { BILLING_OPEN, NOTIFICATIONS_OPEN } from "@/site"
+
+/** A section of the settings: where it is, what it is called, its icon, and whether it exists for now (`open`, which a section that is hidden says is false: no entry here, and its address shows the 404 page). */
+type Section = { href: string; label: string; icon: typeof UserIcon; open?: boolean }
 
 /**
- * The sections of the settings, in two groups. The first is the member and their account: who they are and how they get in, what they pay, what reaches them and who sees what and what is kept. The second, under a quiet label of its own,
- * is how the site is for them, whoever they are: its language and its clock, what makes it easier to use and how it looks. Sign out ends the list, the way the sidebar of the apps the owner pointed to ends.
+ * The sections of the settings, in two groups, in the owner's order. The first is the member and their account: who they are and how they get in, and who sees what and what is kept; what they pay (`BILLING_OPEN`) and what reaches them
+ * (`NOTIFICATIONS_OPEN`) have their place between the two and are hidden for now. The second, under a quiet label of its own, is how the site is for them, whoever they are: how it looks, what makes it easier to use, its language and its
+ * clock. Sign out ends the list, the way the sidebar of the apps the owner pointed to ends.
  */
-const GROUPS = [
+const GROUPS: readonly { label: string | null; sections: readonly Section[] }[] = [
   {
     label: null,
     sections: [
       { href: "/me/settings/account", label: "Account", icon: UserIcon },
-      { href: "/me/settings/billing", label: "Billing", icon: CreditCardIcon },
-      { href: "/me/settings/notifications", label: "Notifications", icon: Notification01Icon },
+      { href: "/me/settings/billing", label: "Billing", icon: CreditCardIcon, open: BILLING_OPEN },
+      { href: "/me/settings/notifications", label: "Notifications", icon: Notification01Icon, open: NOTIFICATIONS_OPEN },
       { href: "/me/settings/privacy", label: "Data & Privacy", icon: LockIcon },
     ],
   },
   {
     label: "Experience",
     sections: [
-      { href: "/me/settings/language", label: "Language & Time", icon: TranslationIcon },
-      { href: "/me/settings/accessibility", label: "Accessibility", icon: UniversalAccessCircleIcon },
       { href: "/me/settings/appearance", label: "Appearance", icon: PaletteIcon },
+      { href: "/me/settings/accessibility", label: "Accessibility", icon: UniversalAccessCircleIcon },
+      { href: "/me/settings/language", label: "Language & Time", icon: TranslationIcon },
     ],
   },
-] as const
+]
 
 /**
  * The way from one section of the settings to the next, the sidebar of the settings window: a column at the left from `md`, a row that scrolls sideways above the section on a phone (with no scrollbar, and never up or down), the current one lit
@@ -53,7 +58,7 @@ export function SettingsNav({ className }: { className?: string }) {
         <div key={group.label ?? index} className="contents">
           {index > 0 && <span aria-hidden="true" className="mx-2 my-2 w-px shrink-0 bg-border md:hidden" />}
           {group.label && <p className="hidden px-3 pt-6 pb-1 text-sm text-muted-foreground md:block">{group.label}</p>}
-          {group.sections.map((section) => {
+          {group.sections.filter((section) => section.open !== false).map((section) => {
             const current = pathname.startsWith(section.href)
             return (
               <Link
