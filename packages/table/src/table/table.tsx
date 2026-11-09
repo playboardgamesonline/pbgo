@@ -1,9 +1,10 @@
 "use client"
 
+import { useDebugRequested, useDebugTools } from "@pbgo/core/components/game/debug-controls"
 import { TABLE_CANVAS_ID } from "@pbgo/core/lib/photo"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Canvas } from "@react-three/fiber"
-import { type ReactNode, Suspense, useEffect, useMemo, useRef } from "react"
+import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef } from "react"
 import type { CameraIntro, CameraSettings } from "./camera"
 import { CameraRig } from "./camera-rig"
 import { Lights, type LightsProps } from "./lights"
@@ -11,6 +12,9 @@ import { createPoseMemory } from "./memory"
 import { PoseMemoryContext } from "./memory-context"
 import { SharePhoto } from "./share-photo"
 import { Surface, type SurfaceProps } from "./surface"
+
+/** The debug tools of the table, a chunk of their own: fetched only while the debug panel is open, which it never is on the production deployment */
+const TableDebug = lazy(() => import("../debug/table-debug"))
 
 export type TableProps = {
   /** DOM id of the canvas's wrapper; when no `photo` is set, the share image falls back to the pixels of the canvas inside it (default `TABLE_CANVAS_ID`) */
@@ -50,12 +54,18 @@ function Loaded({ onLoaded }: { onLoaded?: () => void }) {
   return null
 }
 
-/** The table every game plays on: a canvas with the camera, an endless surface, the lights and the share photo, and the memory that lets a card which changes place fly from where it was. Cards and everything else go inside */
+/**
+ * The table every game plays on: a canvas with the camera, an endless surface, the lights and the share photo, and the memory that lets a card which changes place fly from where it was. Cards and everything else go inside.
+ * While the debug panel is open it also holds the tools of the table (`debug/table-debug.tsx`): the folders for what it owns, helpers drawn over it, an inspector and a slow motion.
+ */
 export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface, lights, photo, near = 0.1, far = 300, held = false, onLoaded, children }: TableProps) {
   // Made out here: React context does not cross into the canvas, so the provider sits inside it
   const memory = useMemo(() => createPoseMemory(), [])
   // The entrance zooms and turns the whole view, so reduced motion always wins over the game
   const reduced = usePrefersReducedMotion()
+  // Loads the panel's tools when they are asked for (and listens to Shift+D); the panel itself is the board's `DebugSlot`. Both do nothing on the production deployment
+  useDebugTools()
+  const debugging = useDebugRequested()
 
   return (
     <Canvas id={id} gl={{ preserveDrawingBuffer: true }} dpr={[1, 2]} camera={{ fov: camera.fov, near, far }}>
@@ -67,6 +77,11 @@ export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface,
           {lights && <Lights {...(lights === true ? {} : lights)} />}
           {photo && <SharePhoto settings={photo} />}
           {children}
+          {debugging && (
+            <Suspense fallback={null}>
+              <TableDebug camera={camera} intro={intro} photo={photo} lights={lights} surface={surface} />
+            </Suspense>
+          )}
           <Loaded onLoaded={onLoaded} />
         </Suspense>
       </PoseMemoryContext.Provider>

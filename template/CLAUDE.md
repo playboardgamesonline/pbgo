@@ -22,7 +22,7 @@ The template is itself a game of the single app `apps/web`: `@pbgo-game/template
   - `src/runtime.tsx` — the game's client runtime (`styles.css`, fonts, `BindingProvider`), mounted by the `[game]` layout of apps/web for this game only
   - `src/lib/site.ts` — `SLUG`, name, keywords, author, contact, `ERROR_CODES` (no tagline, no description: those are texts, they live in Sanity)
   - `src/components/game` — the board (`game.tsx`: table, announcements, debug)
-  - `src/components/board` — react-three-fiber scene on the shared tools of `@pbgo/table` (`layout.ts` builds the layouts of the hand, of the opponents' cards and of the middle of the table with the shared layout helpers, `scene.tsx` sets the `Table` with its surface (a colour and a felt) and places the cards with `Zone`, `camera.ts` holds the settings of the camera and of the share photo with their debug knobs, `textures.ts` paints the faces and `glows.ts` names the glows the cards wear, both handed to the shared `Card`; the seats are the shared `PlayerSeat`)
+  - `src/components/board` — react-three-fiber scene on the shared tools of `@pbgo/table` (`layout.ts` builds the layouts of the hand, of the opponents' cards and of the middle of the table with the shared layout helpers, `scene.tsx` sets the `Table` with its surface (a colour and a felt) and places the cards with `Zone`, `camera.ts` holds the settings of the camera and of the share photo (the `Table` makes their debug knobs), `textures.ts` paints the faces and `glows.ts` names the glows the cards wear, both handed to the shared `Card`; the seats are the shared `PlayerSeat`)
 - `packages/engine` — `@template/engine`, pure TypeScript engine (no UI), tested with Vitest; re-exports `@pbgo/engine-kit`
   - `@pbgo/engine-kit` (every helper is documented in `packages/engine-kit/README.md`): `GameDefinition<State, Action, View>` (`setup`, `apply`, `view`, `isOver`, `options`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug`), declarative game options (`number` / `choice` / `boolean`, `defaultOptions`, `normalizeOptions`), `EngineError`
     - Turns (engine contract v2): `waitingFor(state)` = the players the game waits for (several on a simultaneous step), `autoPlayFor(state, playerId)` = plays for one of them; `activePlayer` and `autoPlay` are `@deprecated`. Read them through `waitingPlayers`, `currentPlayer`, `canPlayFor`, `playFor`, `playOn`, never call the hooks directly
@@ -54,7 +54,7 @@ Ticker, announcements, takeover pill, chat, players list, menu of the game, seat
 
 ## Tech stack
 - Next.js 16 (App Router, React 19), Tailwind 4, shadcn/ui, motion, sonner
-- Table: three + @react-three/fiber + drei, the table and the cards are the shared `Table` and `Card` of `@pbgo/table`, leva settings (debug panel `Shift+D`)
+- Table: three + @react-three/fiber + drei, the table and the cards are the shared `Table` and `Card` of `@pbgo/table`, leva settings (debug panel `Shift+D` or `?debug`, never on the production deployment)
 - Realtime: Supabase (Postgres + Realtime broadcast), authoritative logic on the server (Next.js API routes of apps/web)
 - Sanity (standalone studio `apps/studio`) for texts and media; the rules are a link to the publisher's PDF, per language, in `settings` (Gamemaster › Mechanics)
 - Vitest for the engine · pnpm workspaces · Vercel

@@ -81,7 +81,11 @@ At the game over, the share dialog makes an image of the finished table; the pan
 - The photo has a camera of its own, placed by `placeCamera` with no entrance and no backing off: it does not depend on where the live camera stands or on the shape of the screen. It sees as near and as far as the live camera.
 - An object with `userData.hiddenInPhoto` set is left out of the picture: use it for what is not part of the table itself, such as a veil laid over the screen. Only objects visible at that moment are hidden, and they come back right after.
 - The render goes through the live renderer, sized for the photo and not for the screen. The renderer's size, pixel ratio and live view are restored afterwards, even if the render throws.
-- The template's "Share Photo" folder of the debug panel has a "Download test photo" button that calls `captureGamePhoto` ([Tuning](../04-build-a-game/07-tuning.md)).
+- The Share Photo folder of the table's debug panel edits the camera of the photo, and has a "Download test photo" button that calls `captureGamePhoto` ([Tuning](../04-build-a-game/07-tuning.md)).
+
+## Debug tools
+
+While the debug panel is open (`?debug` or Shift+D, never on the production deployment), the `Table` mounts its tools in the canvas: the folders for the camera and its entrance, the cards, the seats, the lights, the floor and the glows; the helpers drawn over the table (axes, the frame and slots of every `Zone`, the spot and plate of every `Seat`); an inspector for the card under the pointer; and a slow motion that freezes or slows the canvas's clock. The page [Tuning](../04-build-a-game/07-tuning.md) lists the folders. The `Table` also loads the panel's tools when they are asked for, but the panel itself is the board's `<DebugSlot />`.
 
 ## Coordinates
 

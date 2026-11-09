@@ -1,5 +1,6 @@
 import { createElement, useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react"
 import type * as Leva from "leva"
+import { DEBUG_STORAGE_KEY, debugAllowed, debugAsked, debugKeyToggles, debugLoadsAlone } from "./debug-rule"
 
 /**
  * Leva-free entry point for the debug tools.
@@ -8,9 +9,10 @@ import type * as Leva from "leva"
  * `./debug-tools`) when debugging: `?debug` in the URL, `localStorage["game:debug"] === "1"`, Shift+D, or
  * a development build. Until then `useControls` returns the schema defaults without touching leva, so
  * production bundles that only import this module ship neither leva nor the debug panels.
+ * None of it runs on the production deployment (`debugAllowed`, `./debug-rule`): the address, the storage and the keyboard are not even read there.
  *
  * Hooks cannot switch implementation in place: a component tree using these controls must remount
- * once the tools are loaded (key it on `useDebugTools()`).
+ * once the tools are loaded (key it on `useDebugTools()`). A folder made with `useDebugFolder` (`./debug-folders`) needs no remount: it waits for the panel.
  * Importing `./debug-tabs` (which imports leva statically) registers the tools immediately.
  */
 
@@ -45,9 +47,9 @@ export function registerDebugTools(leva: LevaModule, stores: Record<DebugTab, St
 
 let loading: Promise<void> | null = null
 
-/** Loads leva and the debug panel (separate chunk). Idempotent. */
+/** Loads leva and the debug panel (separate chunk). Idempotent. Never loads on the production deployment */
 export function loadDebugTools() {
-  if (tools?.Panel) return Promise.resolve()
+  if (!debugAllowed() || tools?.Panel) return Promise.resolve()
   loading ??= import("./debug-tools")
     .then((m) => {
       tools = { ...(tools ?? { leva: m.leva, stores: m.DEBUG_STORES }), Panel: m.DebugPanel }
@@ -60,20 +62,22 @@ export function loadDebugTools() {
   return loading
 }
 
-// Debug flag: ?debug in the URL or localStorage, toggled with Shift+D.
-const STORAGE_KEY = "game:debug"
+// Debug flag: ?debug in the URL or localStorage, toggled with Shift+D. Neither is read nor written on the production deployment.
 
 export function isDebugRequested() {
+  const allowed = debugAllowed()
+  if (!allowed) return false
   try {
-    return new URLSearchParams(window.location.search).has("debug") || localStorage.getItem(STORAGE_KEY) === "1"
+    return debugAsked({ allowed, search: window.location.search, stored: localStorage.getItem(DEBUG_STORAGE_KEY) })
   } catch {
     return false
   }
 }
 
 export function toggleDebug() {
+  if (!debugAllowed()) return
   try {
-    localStorage.setItem(STORAGE_KEY, isDebugRequested() ? "0" : "1")
+    localStorage.setItem(DEBUG_STORAGE_KEY, isDebugRequested() ? "0" : "1")
     const url = new URL(window.location.href)
     if (url.searchParams.has("debug")) {
       url.searchParams.delete("debug")
@@ -88,14 +92,19 @@ export function useDebugRequested() {
   return useSyncExternalStore(subscribe, isDebugRequested, () => false)
 }
 
+/** The visitor is typing: a field, a text area, a menu or something editable */
+const typingIn = (target: EventTarget | null) =>
+  target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable)
+
 let shortcutUsers = 0
 const onKey = (e: KeyboardEvent) => {
-  if (e.shiftKey && e.key.toLowerCase() === "d" && !(e.target instanceof HTMLInputElement)) toggleDebug()
+  if (debugKeyToggles({ allowed: debugAllowed(), shiftKey: e.shiftKey, key: e.key, inField: typingIn(e.target) })) toggleDebug()
 }
 
-/** Shift+D toggles debug mode. One window listener, however many components use it. */
+/** Shift+D toggles debug mode. One window listener, however many components use it. None on the production deployment */
 export function useDebugShortcut() {
   useEffect(() => {
+    if (!debugAllowed()) return
     if (shortcutUsers++ === 0) window.addEventListener("keydown", onKey)
     return () => {
       if (--shortcutUsers === 0) window.removeEventListener("keydown", onKey)
@@ -106,21 +115,22 @@ export function useDebugShortcut() {
 /**
  * true once leva is available. Loads it when debug mode is requested (or in development) and listens to Shift+D.
  * Use the result as a `key` on the tree that calls `useControls`, so it remounts with the real controls.
+ * Never true on the production deployment.
  */
 export function useDebugTools() {
   useDebugShortcut()
   const ready = useSyncExternalStore(subscribe, () => !!tools, () => false)
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production" || isDebugRequested()) loadDebugTools()
+    if (debugLoadsAlone({ allowed: debugAllowed(), nodeEnv: process.env.NODE_ENV, asked: isDebugRequested() })) loadDebugTools()
   }, [])
-  return ready
+  return ready && debugAllowed()
 }
 
-/** The debug panel (tabs + leva), rendered only once the tools are loaded. */
+/** The debug panel (tabs + leva), rendered only once the tools are loaded. Nothing on the production deployment */
 export function DebugSlot() {
   const Panel = useSyncExternalStore(subscribe, () => tools?.Panel ?? null, () => null)
   useDebugShortcut()
-  return Panel ? createElement(Panel) : null
+  return Panel && debugAllowed() ? createElement(Panel) : null
 }
 
 // leva-compatible API

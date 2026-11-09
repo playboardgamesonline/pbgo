@@ -2741,9 +2741,6 @@ importers:
       '@template/engine':
         specifier: workspace:*
         version: link:packages/engine
-      leva:
-        specifier: 'catalog:'
-        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       maath:
         specifier: 'catalog:'
         version: 0.10.8(@types/three@0.186.0)(three@0.187.0)

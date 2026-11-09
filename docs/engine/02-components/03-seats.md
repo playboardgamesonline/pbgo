@@ -110,11 +110,7 @@ From `template/src/components/board/scene.tsx`, a seat of the template; the back
 | `turnForce`, `waitingForce`, `hoverForce`, `winnerForce` | How bright the aura is for the player of the turn, for a player expected with others, under the pointer and for a winner |
 | `awayOpacity` | How opaque the plate of a player who is away or out stays |
 
-`SEAT_SETTINGS` is a plain object that a debug panel edits, `SEAT_FIELDS` lists its knobs, and the next render of a `Seat` follows it. `plateOf`, `auraForce` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks the places against those the template used before the plate moved into the package, and `state.test.ts` checks the states. From `template/src/components/board/scene.tsx`, the folder of the panel:
-
-```tsx
-useSettings("Seat", SEAT_SETTINGS, SEAT_FIELDS, { order: 3 })
-```
+`SEAT_SETTINGS` is a plain object that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks its spot on the ring and the middle of its plate. `plateOf`, `auraForce` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks the places against those the template used before the plate moved into the package, and `state.test.ts` checks the states. From `template/src/components/board/scene.tsx`, the folder of the panel:
 
 ## What stands on a plate
 

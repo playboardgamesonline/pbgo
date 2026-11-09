@@ -2,12 +2,10 @@
 
 import type { PlayedCard, PlayerView } from "@template/engine"
 import { useEffect, useMemo, useState } from "react"
-import { CAMERA, PHOTO, useCameraSettings } from "./camera"
-import { CARD_SETTINGS, PlayerSeat, SEAT_FIELDS, SEAT_SETTINGS, Table, Zone, type Pose, type ZoneCard } from "@pbgo/table"
+import { CAMERA, PHOTO } from "./camera"
+import { PlayerSeat, Table, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { GLOWS } from "./glows"
 import { DECK_POSE, backFrame, backLayout, backPose, collectedPose, handLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
-import { EASING_NAMES } from "@pbgo/core/components/game/easing"
-import { useSettings } from "./settings"
 import { CARD_SIZE, MAT_COLOR, backTexture, faceTexture, matTexture } from "./textures"
 
 function useCollect(view: PlayerView) {
@@ -23,6 +21,7 @@ function useCollect(view: PlayerView) {
 }
 
 function World({ view, pointsText, onPlay, myTurn }: SceneProps) {
+  // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["seat ring radius x", 3, 14, 0.1],
     radiusZ: ["seat ring radius z", 2, 10, 0.1],
@@ -34,14 +33,6 @@ function World({ view, pointsText, onPlay, myTurn }: SceneProps) {
     hoverLift: ["hover lift", 0, 1.5, 0.01],
     trickGap: ["trick spread", 0, 1, 0.01],
   }, { order: 1 })
-  useSettings("Card", CARD_SETTINGS, {
-    flightDuration: ["flight duration (×)", 0.2, 3, 0.01],
-    flightHeight: ["flight height (×)", 0, 3, 0.01],
-    easing: ["flight easing", EASING_NAMES as string[]],
-    foldable: ["bendability", 0, 1, 0.01],
-    shadow: ["shadow", 0, 1, 0.01],
-  } as never, { order: 2 })
-  useSettings("Seat", SEAT_SETTINGS, SEAT_FIELDS, { order: 3 })
   const meId = view.me?.id ?? null
   const slots = useMemo(() => seats(view.players.map((j) => j.id), meId), [view.players, meId])
   const [hovered, setHovered] = useState<string | null>(null)
@@ -123,7 +114,6 @@ type SceneProps = {
 }
 
 export function Scene(props: SceneProps) {
-  useCameraSettings()
   const [mat] = useState(matTexture)
   return (
     <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }} held={props.held} onLoaded={props.onLoaded}>

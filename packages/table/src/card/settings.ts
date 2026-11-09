@@ -1,4 +1,5 @@
-import { DEFAULT_EASING } from "@pbgo/core/components/game/easing"
+import { DEFAULT_EASING, EASING_NAMES } from "@pbgo/core/components/game/easing"
+import type { Field } from "../debug/settings"
 
 /**
  * The settings every `Card` reads, live, on every frame: one object for all the cards of the page, so a debug panel can tune them while the game runs.
@@ -22,3 +23,14 @@ export const CARD_SETTINGS = {
   /** How much the card arches in flight, as a fraction of its half height */
   foldable: 0.04,
 }
+
+/** The knobs a debug panel offers for `CARD_SETTINGS`: the ones a frame reads (`thickness` is read when a card is drawn, so it has none) */
+export const CARD_FIELDS = {
+  gloss: ["gloss", 0, 1, 0.01],
+  glossMotion: ["gloss motion", 0, 1.5, 0.01],
+  shadow: ["shadow", 0, 1, 0.01],
+  flightDuration: ["flight duration (×)", 0.2, 3, 0.01],
+  flightHeight: ["flight height (×)", 0, 3, 0.01],
+  easing: ["flight easing", EASING_NAMES],
+  foldable: ["bendability", 0, 1, 0.01],
+} satisfies Partial<Record<keyof typeof CARD_SETTINGS, Field>>
