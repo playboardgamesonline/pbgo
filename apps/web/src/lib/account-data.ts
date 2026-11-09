@@ -1,21 +1,20 @@
-import type { Account, PlayedGame } from "@pbgo/accounts"
+import type { Account } from "@pbgo/accounts"
 import { DEMO_ACCOUNT } from "@pbgo/accounts/demo"
 import type { Friend } from "@pbgo/ui/friends"
 import type { FriendRequest } from "@pbgo/ui/social"
-import { DEMO_FRIENDS, DEMO_GAMES, DEMO_REQUESTS } from "./demo-data"
+import { DEMO_FRIENDS, DEMO_REQUESTS } from "./demo-data"
 
-// What the pages of an account list: the games a visitor played and their friends. Neither exists yet: both are in the platform schema that comes with PLT-13
-// (the tables, the results, the players) and PLT-23 (the friends), so a real account has none, and its pages say so. The demo account of development
+// What the pages of an account list: the friends and the requests of a visitor. They do not exist yet: they are PLT-23's (the friends), so a real account has none, and its pages say so. The demo account of development
 // (`@pbgo/accounts/demo`) has made-up ones (`demo-data.ts`), to see the pages as they will be; nothing here ever reaches a deployment, where that account does
-// not exist. The friends, conversations and requests of the social panel on every page are `use-social.ts`'s, which reads the same ones.
+// not exist. The friends, conversations and requests of the social panel on every page are `use-social.ts`'s, which reads the same ones. The games a visitor played are `member-games.ts`'s: they are recorded (PLT-13).
 
 export type { FriendRequest }
 
-export type AccountData = { friends: readonly Friend[]; requests: readonly FriendRequest[]; games: readonly PlayedGame[] }
+export type AccountData = { friends: readonly Friend[]; requests: readonly FriendRequest[] }
 
-const NOBODY: AccountData = { friends: [], requests: [], games: [] }
+const NOBODY: AccountData = { friends: [], requests: [] }
 
-const DEMO: AccountData = { friends: DEMO_FRIENDS, requests: DEMO_REQUESTS, games: DEMO_GAMES }
+const DEMO: AccountData = { friends: DEMO_FRIENDS, requests: DEMO_REQUESTS }
 
 /** What the pages of an account list for this visitor. */
 export function accountData(account: Account): AccountData {

@@ -1,12 +1,14 @@
 import Link from "next/link"
-import { perGame, statsOf } from "@pbgo/accounts"
 import { requireAccount } from "@pbgo/accounts/server"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { GameRecord } from "@/components/game-record"
-import { accountData } from "@/lib/account-data"
+import { memberGames } from "@/lib/member-games"
+
+/** How many of the latest games the profile lists. */
+const RECENT_GAMES = 3
 
 /** One figure of the profile, with what it counts. */
 function Stat({ label, value }: { label: string; value: string }) {
@@ -21,15 +23,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * The profile: the figures of the games a visitor has played, the games one by one, and the last of them. The games are empty for a real account until they are recorded (PLT-13 and
- * PLT-16): the page says so and leads to the games. What the member edits about themselves, their language included, is in the settings (`/me/settings`).
+ * The profile: the figures of the games a visitor has played, the games one by one, and the last of them. They are the games that were recorded (PLT-13: `memberGames`); a member who has finished none sees the page say so and lead to the games.
+ * The figures are the totals of every game they finished, the last ones are the three latest. What the member edits about themselves, their language included, is in the settings (`/me/settings`).
  */
 export default async function ProfilePage() {
   const account = await requireAccount("/me")
-  const { games } = accountData(account)
-  const stats = statsOf(games)
-  const rows = perGame(games)
-  const recent = games.filter((game) => game.state === "finished").slice(0, 3)
+  const { games, stats, perGame: rows } = await memberGames(account, RECENT_GAMES)
+  const recent = games.filter((game) => game.state === "finished").slice(0, RECENT_GAMES)
 
   return (
     <div className="flex flex-col gap-10">

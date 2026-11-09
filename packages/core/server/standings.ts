@@ -119,3 +119,110 @@ export async function readHistory(userId: string, game: string, limit: number): 
     opponents: Array.isArray(row.opponents) ? (row.opponents as Row[]).map((opponent) => ({ name: text(opponent.name), avatarUrl: text(opponent.avatarUrl) })) : [],
   }))
 }
+
+// What the pages of a member read across every game they played (`/me`, `/me/games`, the home): the games they finished, whichever the game, and the totals and the rank they have in each. A member's list is one query by their account and
+// nothing is computed over the other players, so these read the tables with the server's key where the functions above call the database's own: no migration stands behind them.
+
+/** A game a member finished, whichever the game it was: a game of their history, with its game and whether it counted for a rank. */
+export type MemberGameRow = HistoryRow & { game: string; ranked: boolean }
+
+/** The most games a read of a member's history asks for: the database answers a request with 1,000 rows at most and a game has at most 10 seats, which the read asks for as well. */
+export const MEMBER_GAMES_MAX = 100
+
+/** What the database embeds of a row it is joined to: one row, or a list of one. */
+const joined = (value: unknown): Row => (Array.isArray(value) ? ((value[0] ?? {}) as Row) : value && typeof value === "object" ? (value as Row) : {})
+
+/** The games a member finished, the latest first, at most `limit` (`MEMBER_GAMES_MAX`): how each ended for them, the rank points it gave and the others at the table, by seat. */
+export async function readMemberGames(userId: string, limit: number): Promise<MemberGameRow[]> {
+  if (!USER_ID.test(userId)) return []
+  const db = supabaseAdmin()
+  const mine = await db
+    .from("game_participants")
+    .select("game_result_id, seat, outcome, rank, score, finished_at, game_results!inner(game, ranked, player_count, duration_s, options)")
+    .eq("user_id", userId)
+    .order("finished_at", { ascending: false })
+    .limit(Math.min(limit, MEMBER_GAMES_MAX))
+  if (mine.error) throw mine.error
+  const own = (mine.data ?? []) as Row[]
+  if (own.length === 0) return []
+  const ids = own.map((row) => String(row.game_result_id))
+  const [seated, changes] = await Promise.all([
+    db.from("game_participants").select("game_result_id, seat, display_name, avatar_url").in("game_result_id", ids),
+    db.from("rating_changes").select("game_result_id, points_before, points_after").eq("user_id", userId).in("game_result_id", ids),
+  ])
+  if (seated.error) throw seated.error
+  if (changes.error) throw changes.error
+
+  const points = new Map<string, number>()
+  for (const row of (changes.data ?? []) as Row[]) points.set(String(row.game_result_id), count(row.points_after) - count(row.points_before))
+  const seats = new Map<string, { seat: number; name: string | null; avatarUrl: string | null }[]>()
+  for (const row of (seated.data ?? []) as Row[]) {
+    const id = String(row.game_result_id)
+    seats.set(id, [...(seats.get(id) ?? []), { seat: count(row.seat), name: text(row.display_name), avatarUrl: text(row.avatar_url) }])
+  }
+
+  return own.map((row) => {
+    const id = String(row.game_result_id)
+    const result = joined(row.game_results)
+    return {
+      id,
+      game: String(result.game),
+      ranked: result.ranked === true,
+      finishedAt: String(row.finished_at),
+      outcome: String(row.outcome) as Outcome,
+      place: maybe(row.rank),
+      score: maybe(row.score),
+      playerCount: count(result.player_count),
+      durationSeconds: maybe(result.duration_s),
+      options: result.options && typeof result.options === "object" ? (result.options as Record<string, unknown>) : {},
+      points: points.get(id) ?? null,
+      opponents: (seats.get(id) ?? [])
+        .filter((seat) => seat.seat !== count(row.seat))
+        .sort((a, b) => a.seat - b.seat)
+        .map(({ name, avatarUrl }) => ({ name, avatarUrl })),
+    }
+  })
+}
+
+/** What a member has done in a game: their totals (`player_stats`) and, once they have rated a game, the rank their points read as. */
+export type MemberGameTotals = {
+  game: string
+  /** The games they finished, ranked or not, and how many they won (a game won together counts). */
+  gamesPlayed: number
+  wins: number
+  secondsPlayed: number
+  /** Their rank points (`ratings.points`) and the games they rated: null and 0 before their first rated game. */
+  points: number | null
+  ratedGames: number
+  /** Their rank, read from their points, and how far they are through its division: null with no points, and no progress at the top. */
+  rank: Rank | null
+  rankProgress: { points: number; needed: number } | null
+}
+
+/** A member's totals in each game they have played, in no particular order. */
+export async function readMemberTotals(userId: string): Promise<MemberGameTotals[]> {
+  if (!USER_ID.test(userId)) return []
+  const db = supabaseAdmin()
+  const [stats, ratings] = await Promise.all([
+    db.from("player_stats").select("game, games_played, wins, coop_wins, seconds_played").eq("user_id", userId),
+    db.from("ratings").select("game, points, games_played").eq("user_id", userId),
+  ])
+  if (stats.error) throw stats.error
+  if (ratings.error) throw ratings.error
+  const played = new Map(((stats.data ?? []) as Row[]).map((row) => [String(row.game), row]))
+  const rated = new Map(((ratings.data ?? []) as Row[]).map((row) => [String(row.game), row]))
+  return [...new Set([...played.keys(), ...rated.keys()])].map((game) => {
+    const totals = played.get(game)
+    const points = maybe(rated.get(game)?.points)
+    return {
+      game,
+      gamesPlayed: count(totals?.games_played),
+      wins: count(totals?.wins) + count(totals?.coop_wins),
+      secondsPlayed: count(totals?.seconds_played),
+      points,
+      ratedGames: count(rated.get(game)?.games_played),
+      rank: points === null ? null : rankOfPoints(points),
+      rankProgress: points === null ? null : progressOfPoints(points),
+    }
+  })
+}

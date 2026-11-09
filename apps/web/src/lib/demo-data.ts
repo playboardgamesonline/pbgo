@@ -55,9 +55,9 @@ export function demoConversations(now: number): readonly Conversation[] {
 export const DEMO_GAMES: readonly PlayedGame[] = [
   { id: "g1", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-29T20:41:00Z", table: "K7P", opponents: [{ nickname: "Marly" }, { nickname: "Hervé" }], state: "in-progress" },
   { id: "g2", slug: "skull-king", name: "Skull King", playedAt: "2026-10-29T18:05:00Z", table: "9QD", opponents: [{ nickname: "Zoé" }, { nickname: "Tom" }, { nickname: "Lina" }], state: "in-progress" },
-  { id: "g3", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-28T21:12:00Z", table: "M3T", opponents: [{ nickname: "Marly" }, { nickname: "Max" }], state: "finished", result: "won", rank: 1 },
+  { id: "g3", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-28T21:12:00Z", table: "M3T", opponents: [{ nickname: "Marly" }, { nickname: "Max" }], state: "finished", result: "won", rank: 1, points: 18 },
   { id: "g4", slug: "love-letter", name: "Love Letter", playedAt: "2026-10-27T19:30:00Z", table: "B8C", opponents: [{ nickname: "Inès" }, { nickname: "Sam" }, { nickname: "Tom" }], state: "finished", result: "lost", rank: 3 },
   { id: "g5", slug: "hanabi", name: "Hanabi", playedAt: "2026-10-24T20:00:00Z", table: "H2X", opponents: [{ nickname: "Zoé" }], state: "finished", result: "won", rank: 1 },
-  { id: "g6", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-22T22:48:00Z", table: "P5R", opponents: [{ nickname: "Hervé" }, { nickname: "Lina" }, { nickname: "Max" }], state: "finished", result: "lost", rank: 2 },
-  { id: "g7", slug: "skyjo", name: "Skyjo", playedAt: "2026-10-19T17:15:00Z", table: "W9N", opponents: [{ nickname: "Sam" }, { nickname: "Inès" }], state: "finished", result: "draw", rank: 1 },
+  { id: "g6", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-22T22:48:00Z", table: "P5R", opponents: [{ nickname: "Hervé" }, { nickname: "Lina" }, { nickname: "Max" }], state: "finished", result: "lost", rank: 2, points: -12 },
+  { id: "g7", slug: "skyjo", name: "Skyjo", playedAt: "2026-10-19T17:15:00Z", table: "W9N", opponents: [{ nickname: "Sam" }, { nickname: "Inès" }], state: "finished", result: "draw", rank: 1, points: 0 },
 ]
