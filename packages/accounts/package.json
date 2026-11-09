@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The accounts of the hub: sign-in with Google, Discord and Twitch through Supabase Auth (browser, server and proxy helpers), the account a user makes of what the provider gives, the safe way back after a sign-in, the visitor's language (kept on the account, on the device by a cookie) and the demo account of development. The app and core import it; it never imports core or a game.",
+  "description": "The accounts of the hub: sign-in with Google and Discord through Supabase Auth and with Steam through the hub's own routes (browser, server and proxy helpers), the account a user makes of what the provider gives, the safe way back after a sign-in, the visitor's language (kept on the account, on the device by a cookie) and the demo account of development. The app and core import it; it never imports core or a game.",
   "exports": {
     ".": "./src/index.ts",
     "./config": "./src/config.ts",

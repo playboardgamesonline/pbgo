@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
-import { AFTER_SIGN_IN, safeNext, type Provider } from "@pbgo/accounts"
+import { AFTER_SIGN_IN, safeNext, type AnyProvider } from "@pbgo/accounts"
 import { signInWith, signInWithPassword } from "@pbgo/accounts/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
@@ -28,16 +28,16 @@ export function LoginCard({
 }: {
   next: string
   enabled: boolean
-  providers: Provider[]
+  providers: AnyProvider[]
   failed: boolean
   className?: string
 }) {
   // What is on its way: the password, or a provider. While it is, nothing else can be pressed
-  const [pending, setPending] = useState<Provider | "password" | null>(null)
+  const [pending, setPending] = useState<AnyProvider | "password" | null>(null)
   const [error, setError] = useState<string | null>(failed ? "Sign-in did not work. Try again." : null)
   const off = !enabled || pending !== null
 
-  async function start(provider: Provider) {
+  async function start(provider: AnyProvider) {
     setPending(provider)
     setError(null)
     const problem = await signInWith(provider, next)

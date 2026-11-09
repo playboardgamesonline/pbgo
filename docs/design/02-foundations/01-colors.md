@@ -8,7 +8,7 @@ The palette has these colours and no other:
 - `--destructive` and `--success`, the signal colours: a loss or an error, and a win, worn as a dark tint with the colour itself for the text;
 - `--verified`, the blue check of what is confirmed: a service linked to the account;
 - `--presence-online|playing|inactive|dnd`, worn by a friend's presence dot only;
-- `--brand-twitch` and `--brand-discord`, worn by their sign-in button only;
+- `--brand-twitch`, `--brand-discord` and `--brand-steam`, worn by their sign-in button only;
 - `--piece-red|gold|navy|ivory|ink`, worn by the pieces of the home's title only;
 - `--crest-*`, worn by the rank crests only.
 

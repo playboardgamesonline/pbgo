@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { safeNext } from "@pbgo/accounts"
 import { supabaseAuthConfig } from "@pbgo/accounts/config"
-import { enabledProviders, getAccount } from "@pbgo/accounts/server"
+import { getAccount, signInProviders } from "@pbgo/accounts/server"
 import { LoginCard } from "@/components/login-card"
 import { SiteFooter } from "@/components/site-footer"
 
@@ -13,14 +13,14 @@ export const metadata: Metadata = {
 }
 
 /**
- * The sign-in page: a username and a password, or the providers that the project has switched on (Google, Discord or Twitch: `enabledProviders`), on the hub's backdrop. `?next=` is the page the visitor asked for (they come back to it, `safeNext`), `?error=`
+ * The sign-in page: a username and a password, or the providers it offers (Google and Discord when the project has switched them on, Steam when the server is set up for it: `signInProviders`; Twitch is only linked), on the hub's backdrop. `?next=` is the page the visitor asked for (they come back to it, `safeNext`), `?error=`
  * is a sign-in that did not work. A visitor who is signed in already has nothing to do here and goes to where they were going. The page reads the
  * session, so it is rendered per request; the proxy renews that session first (`proxy.ts`).
  */
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const { next, error } = await searchParams
   const target = safeNext(next)
-  const [account, providers] = await Promise.all([getAccount(), enabledProviders()])
+  const [account, providers] = await Promise.all([getAccount(), signInProviders()])
   if (account) redirect(target)
 
   return (
