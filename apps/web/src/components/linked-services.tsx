@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Mail01Icon } from "@hugeicons/core-free-icons"
+import { CheckmarkBadge01Icon, Mail01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PROVIDERS, PROVIDER_NAMES, isExternalProvider, type LinkedService, type Provider } from "@pbgo/accounts"
 import { linkProvider, unlinkProvider } from "@pbgo/accounts/client"
@@ -13,6 +13,16 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle }
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { changing, failureOf } from "@/lib/settings-change"
+
+/** The name of a way in and, when the account holds it, the blue check at its right: the one place that says a service is linked, for every row of the list. */
+export function ServiceName({ name, linked }: { name: string; linked: boolean }) {
+  return (
+    <>
+      {name}
+      {linked && <HugeiconsIcon icon={CheckmarkBadge01Icon} strokeWidth={2} role="img" aria-label="Linked" className="size-4 shrink-0 text-verified" />}
+    </>
+  )
+}
 
 /**
  * The ways into the account, one row each: the e-mail address and password when the account has them, the external providers it holds (Steam: a row with nothing to press, like the e-mail's), then every provider the project has switched on (`available`) or that the account holds already, each with its mark, what it says of itself
@@ -60,7 +70,9 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
             <HugeiconsIcon icon={Mail01Icon} strokeWidth={2} className="size-5" aria-hidden="true" />
           </ItemMedia>
           <ItemContent>
-            <ItemTitle>E-mail and password</ItemTitle>
+            <ItemTitle>
+              <ServiceName name="E-mail and password" linked />
+            </ItemTitle>
             {email.detail && <ItemDescription className="ph-mask">{email.detail}</ItemDescription>}
           </ItemContent>
         </Item>
@@ -71,7 +83,9 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
             <BrandMark brand={service.provider as Exclude<typeof service.provider, "email">} className="size-5" />
           </ItemMedia>
           <ItemContent>
-            <ItemTitle>{PROVIDER_NAMES[service.provider as Exclude<typeof service.provider, "email">]}</ItemTitle>
+            <ItemTitle>
+              <ServiceName name={PROVIDER_NAMES[service.provider as Exclude<typeof service.provider, "email">]} linked />
+            </ItemTitle>
             {service.detail && <ItemDescription className="ph-mask">{service.detail}</ItemDescription>}
           </ItemContent>
         </Item>
@@ -85,7 +99,9 @@ export function LinkedServices({ linked, available, demo }: { linked: readonly L
               <BrandMark brand={provider} className="size-5" />
             </ItemMedia>
             <ItemContent>
-              <ItemTitle>{PROVIDER_NAMES[provider]}</ItemTitle>
+              <ItemTitle>
+                <ServiceName name={PROVIDER_NAMES[provider]} linked={isLinked} />
+              </ItemTitle>
               <ItemDescription className="ph-mask">{isLinked ? (service.detail ?? "Linked") : "Not linked"}</ItemDescription>
             </ItemContent>
             <ItemActions>

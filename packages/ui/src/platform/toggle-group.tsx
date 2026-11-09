@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { LayoutGroup, MotionConfig, motion } from "motion/react"
+import { LayoutGroup, motion } from "motion/react"
+import { MotionPreference } from "../reduced-motion"
 import { SPRING_TRAVEL } from "../motion"
 import { cn } from "../utils"
 import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
@@ -29,7 +30,7 @@ function ToggleGroup({
   const picked = props.value ?? own
   const thumb = variant === "segmented" && props.type === "single" && typeof picked === "string" && picked !== "" ? picked : null
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionPreference>
       <LayoutGroup id={group}>
         <ToggleGroupContext.Provider value={thumb}>
           <ToggleGroupPrimitive.Root
@@ -44,7 +45,7 @@ function ToggleGroup({
           />
         </ToggleGroupContext.Provider>
       </LayoutGroup>
-    </MotionConfig>
+    </MotionPreference>
   )
 }
 

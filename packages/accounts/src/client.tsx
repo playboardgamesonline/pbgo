@@ -7,8 +7,10 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { accountOf, emailOf, isExternalProvider, type Account, type AnyProvider, type Provider } from "./account"
 import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed, isDemoAccount } from "./demo"
+import { COUNTRY_KEY } from "./details"
 import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
-import { NICKNAME_KEY, PREFERENCE_KEYS, type PreferenceName } from "./preferences"
+import { applyMotion, syncMotion } from "./motion"
+import { NICKNAME_KEY, PREFERENCE_KEYS, type PreferenceName, type Preferences } from "./preferences"
 import { safeNext } from "./redirect"
 import { syncLanguage } from "./language-sync"
 import { isChangingLanguage } from "./set-language"
@@ -188,8 +190,13 @@ export function saveNickname(nickname: string | null): Promise<ChangeOutcome> {
 }
 
 /** Keeps one preference of the member on their account, under its own key (`PREFERENCE_KEYS`): the others are left as they are, since `updateUser` merges `data` key by key. */
-export function savePreference(name: PreferenceName, value: boolean): Promise<ChangeOutcome> {
+export function savePreference<Name extends PreferenceName>(name: Name, value: Preferences[Name]): Promise<ChangeOutcome> {
   return change((supabase) => supabase.auth.updateUser({ data: { [PREFERENCE_KEYS[name]]: value } }))
+}
+
+/** Keeps the country or region the member recorded, an ISO 3166-1 alpha-2 code, under the one key of ours (`COUNTRY_KEY`), or takes it away (`null`). It is the only writer of it, as `saveNickname` is of the nickname. */
+export function saveCountry(country: string | null): Promise<ChangeOutcome> {
+  return change((supabase) => supabase.auth.updateUser({ data: { [COUNTRY_KEY]: country } }))
 }
 
 /**
@@ -264,6 +271,17 @@ export async function renewIfLanguageChanged(): Promise<boolean> {
   if (!user || !session || isChangingLanguage() || languageOf(user) === languageOf(session.user)) return false
   const { error } = await supabase.auth.refreshSession()
   return !error
+}
+
+/**
+ * Keeps the device of a signed-in member in step with their account's choice for the site's motion (`syncMotion`), each time the browser reads their session: the cookie and the attribute of `<html>` are written when they hold another
+ * choice. A choice made on another device arrives with the next renewal of the session, within the hour. Nothing for a guest and for the demo account. Mount it once, where `useAccount` already is (`MotionSync` of the app).
+ */
+export function useMotionSync(): void {
+  const state = useAccount()
+  useEffect(() => {
+    syncMotion(state, document.cookie, (choice) => applyMotion(choice))
+  }, [state])
 }
 
 /**

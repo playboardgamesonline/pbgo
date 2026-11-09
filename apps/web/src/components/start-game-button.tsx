@@ -4,8 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createApi } from "@pbgo/core/lib/api"
 import { LobbyMainButton } from "@pbgo/ui/platform/lobby-panel"
-import { toast } from "@pbgo/ui/platform/sonner"
-import { enterBoard, messageOf } from "@/lib/table-door"
+import { enterBoard } from "@/lib/table-door"
+import { useAgeGate } from "./age-gate"
 
 // The main button at the bottom of the lobby that the visitor opened: it starts the game. The game's own route does it (`POST /api/<slug>/games/<code>/start`: only the host may, once the game has its minimum of players, and only a table
 // that waits), then the visitor is taken to the table's board (`enterBoard`), where the game is played; the other seats are taken there by the watcher of the table (`TableSync`). If the route refuses, because somebody left meanwhile or the
@@ -13,6 +13,7 @@ import { enterBoard, messageOf } from "@/lib/table-door"
 
 export function StartGameButton({ slug, code, joined, needed }: { slug: string; code: string; joined: number; needed: number | null }) {
   const router = useRouter()
+  const { fail } = useAgeGate()
   const [starting, setStarting] = useState(false)
   const short = needed !== null && joined < needed
   return (
@@ -26,7 +27,7 @@ export function StartGameButton({ slug, code, joined, needed }: { slug: string; 
           await createApi(slug).start(code)
           enterBoard(router, slug, code)
         } catch (error) {
-          toast.error(messageOf(error))
+          fail(error)
           setStarting(false)
           router.refresh()
         }

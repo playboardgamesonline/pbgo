@@ -1,5 +1,5 @@
 import { Brain02Icon, ChildIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
-import { ordinal } from "@pbgo/accounts"
+import { ordinal, type TimeFormat } from "@pbgo/accounts"
 import { PLATFORM_LANGUAGES } from "@pbgo/accounts/language"
 import type { LeaderboardRow } from "@pbgo/ui/leaderboard"
 import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
@@ -8,6 +8,7 @@ import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
 import { ageOf, hostOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import { categoryIcon } from "./category-icons"
+import { perTimeFormat } from "./time-format"
 import type { Expansion, GameTable, HistoryEntry, Standing, TurnTimer } from "./game-activity"
 import { durationLabel, playersLabel } from "./game-card-props"
 
@@ -45,7 +46,7 @@ function actionOf(table: GameTable, seats: readonly TableSeat[]) {
  * players, the duration, the complexity, the age), nothing for a figure that does not differ from its game's (`getExpansions` leaves it out); and the categories that it brings, as tags with the icon of each category.
  */
 export function expansionOption(expansion: Expansion): ExpansionOption {
-  const { id, name, description, coverUrl, coverRatio, boxUrl, boxRatio } = expansion
+  const { id, name, description, coverUrl, coverRatio, boxUrl, boxRatio, locked } = expansion
   const facts: (ExpansionFact | null)[] = [
     expansion.players ? { icon: UserMultipleIcon, text: playersLabel(expansion.players) ?? "" } : null,
     expansion.duration === null ? null : { icon: HourglassIcon, text: durationLabel(expansion.duration) ?? "" },
@@ -62,6 +63,7 @@ export function expansionOption(expansion: Expansion): ExpansionOption {
     coverRatio,
     boxUrl,
     boxRatio,
+    ...(locked ? { locked } : {}),
   }
 }
 
@@ -188,10 +190,11 @@ const FULL_DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "shor
 /** "28 Oct 2026": the day of an ISO date with its year, in UTC like `dayOf`. */
 export const fullDayOf = (iso: string): string => FULL_DAY.format(new Date(iso))
 
-const TIME = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "UTC" })
+// Automatic is the clock of 24 hours here, as it always was: the member's own choice replaces it
+const TIME = perTimeFormat(({ hourCycle, hour }) => new Intl.DateTimeFormat("en-GB", { hour, minute: "2-digit", hourCycle: hourCycle ?? "h23", timeZone: "UTC" }))
 
-/** "18:20": the time of an ISO date on a 24-hour clock, in UTC like `fullDayOf`, so that the server and the browser write the same. */
-export const timeOf = (iso: string): string => TIME.format(new Date(iso))
+/** "18:20": the time of an ISO date on a 24-hour clock, or "6:20 pm" when the member chose the clock of 12 hours, in UTC like `fullDayOf`, so that the server and the browser write the same. */
+export const timeOf = (iso: string, format: TimeFormat = "auto"): string => TIME[format].format(new Date(iso))
 
 /** A game a visitor finished, as a row of the recent games under the head says it. */
 export type LastGame = {
@@ -205,11 +208,11 @@ export type LastGame = {
   pace: { value: TurnTimer; label: string }
 }
 
-/** What a row of the recent games under the head says of a game a visitor finished (`HistoryEntry`): the day, the time, the place and the speed; the rank points, the players, how long it lasted and the expansions are the entry's own. */
-export function lastGameOf(entry: HistoryEntry): LastGame {
+/** What a row of the recent games under the head says of a game a visitor finished (`HistoryEntry`): the day, the time (written as the member chose), the place and the speed; the rank points, the players, how long it lasted and the expansions are the entry's own. */
+export function lastGameOf(entry: HistoryEntry, format: TimeFormat = "auto"): LastGame {
   return {
     day: fullDayOf(entry.finishedAt),
-    time: timeOf(entry.finishedAt),
+    time: timeOf(entry.finishedAt, format),
     place: entry.place === null ? null : ordinal(entry.place),
     pace: { value: entry.turnTimer, label: PACES.find((pace) => pace.value === entry.turnTimer)?.label ?? entry.turnTimer },
   }

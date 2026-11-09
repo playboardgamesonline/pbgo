@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { CORE_ERROR_MESSAGES } from "./api"
 
 // What a player can read after a call to a game: the routes of a game, and the files they share. The gamemaster has its own messages (`admin-api.ts`).
-const READ_BY_PLAYERS = ["../routes/api/games", "../routes/api/feedback", "../server/games.ts", "../server/api.ts"]
+const READ_BY_PLAYERS = ["../routes/api/games", "../routes/api/feedback", "../routes/api/hub/birthdate", "../server/games.ts", "../server/api.ts", "../server/age-gate.ts"]
 
 function sourcesOf(path: string): string[] {
   if (!statSync(path).isDirectory()) return [path]

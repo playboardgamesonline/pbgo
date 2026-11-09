@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { DiceIcon, PlayIcon, TrophyIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import type { AgeRefusal } from "@pbgo/accounts"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { GamePick } from "@pbgo/ui/platform/game-pick"
 import { QueueButton } from "@pbgo/ui/platform/queue"
@@ -10,9 +11,10 @@ import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { QUEUE_MODE_LABELS, QUEUE_MODES, type QueueMode } from "@pbgo/ui/queue"
 import { cn } from "@pbgo/ui/utils"
 import { joinQueue, leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
+import { useAgeGate } from "./age-gate"
 
-/** A game that a search can look for, one that can be played now, with the picture its tile draws (`gamePicture`). */
-export type FindableGame = { slug: string; name: string; picture?: string; logo?: string }
+/** A game that a search can look for, one that can be played now, with the picture its tile draws (`gamePicture`). `refusal` is what the member has to do before they may play it when it asks for an age (PLT-125): the queue lives in the browser with no server to refuse them, so the search asks first. */
+export type FindableGame = { slug: string; name: string; picture?: string; logo?: string; refusal?: AgeRefusal | null }
 
 /** What each kind of table is, in a line: ranked is the one that counts for the rank and has no helpers (PLT-21), the other is for playing. */
 const MODES: Record<QueueMode, { icon: IconSvgElement; hint: string }> = {
@@ -47,6 +49,7 @@ export function HomeFindGame({ games, className }: { games: readonly FindableGam
   const [picked, setPicked] = useState<readonly string[]>(() => games.map((game) => game.slug))
   const [mode, setMode] = useState<QueueMode>("ranked")
   const queue = useQueue()
+  const { demand, dialog: ageDialog } = useAgeGate()
   const seconds = useQueueSeconds(queue)
   const searching = queue !== null
   // What the card shows is the search when there is one, else what the visitor has set up so far
@@ -101,11 +104,23 @@ export function HomeFindGame({ games, className }: { games: readonly FindableGam
         </Group>
       </CardContent>
       <CardFooter className="mt-auto justify-end">
-        <QueueButton size="lg" searching={searching} seconds={seconds} disabled={asked.length === 0} onSearch={() => joinQueue(asked, mode)} onCancel={leaveQueue}>
+        <QueueButton
+          size="lg"
+          searching={searching}
+          seconds={seconds}
+          disabled={asked.length === 0}
+          onSearch={async () => {
+            // A game for adults needs the member's date of birth before the search begins
+            if (asked.some((game) => game.refusal === "date") && !(await demand("date"))) return
+            joinQueue(asked, mode)
+          }}
+          onCancel={leaveQueue}
+        >
           <HugeiconsIcon icon={PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
           Play {QUEUE_MODE_LABELS[shownMode].toLowerCase()}
         </QueueButton>
       </CardFooter>
+      {ageDialog}
     </Card>
   )
 }

@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { AnimatePresence, motion } from "motion/react"
+import { useReducedMotion } from "../reduced-motion"
 import { cardPosition, type Placement } from "../card-position"
 import { DURATION, EASE_STANDARD } from "../motion"
 

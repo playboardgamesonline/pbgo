@@ -35,7 +35,7 @@ navbar-signed-in
 
 ## Moving between the items
 
-The fill behind the current item is one element for the whole bar (`layoutId` of `motion/react`): when the current item changes it glides to the next with `SPRING_TRAVEL` instead of jumping. It can only glide if the bar stays mounted from one page to the next, which is why the hub's layout mounts it once. `Navbar` mounts a `MotionConfig reducedMotion=user` (less motion gets the jump) and a `LayoutGroup` of its own, so two bars on one page do not trade the fill.
+The fill behind the current item is one element for the whole bar (`layoutId` of `motion/react`): when the current item changes it glides to the next with `SPRING_TRAVEL` instead of jumping. It can only glide if the bar stays mounted from one page to the next, which is why the hub's layout mounts it once. `Navbar` mounts a `MotionPreference` (less motion, the member's choice or the device's, gets the jump) and a `LayoutGroup` of its own, so two bars on one page do not trade the fill.
 
 ```specimen
 navbar-moving

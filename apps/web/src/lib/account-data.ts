@@ -1,8 +1,9 @@
-import type { Account } from "@pbgo/accounts"
+import type { Account, TimeFormat } from "@pbgo/accounts"
 import { DEMO_ACCOUNT } from "@pbgo/accounts/demo"
 import type { Friend } from "@pbgo/ui/friends"
 import type { FriendRequest } from "@pbgo/ui/social"
 import { DEMO_FRIENDS, DEMO_REQUESTS } from "./demo-data"
+import { perTimeFormat } from "./time-format"
 
 // What the pages of an account list: the friends and the requests of a visitor. They do not exist yet: they are PLT-23's (the friends), so a real account has none, and its pages say so. The demo account of development
 // (`@pbgo/accounts/demo`) has made-up ones (`demo-data.ts`), to see the pages as they will be; nothing here ever reaches a deployment, where that account does
@@ -21,11 +22,11 @@ export function accountData(account: Account): AccountData {
   return account.id === DEMO_ACCOUNT.id ? DEMO : NOBODY
 }
 
-const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })
+const DATE = perTimeFormat(({ hourCycle, hour }) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour, minute: "2-digit", hourCycle, timeZone: "UTC" }))
 const MONTH = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })
 
-/** "28 Oct, 21:12": when a game started, in UTC so that the server and the browser write the same thing. */
-export const gameDate = (iso: string): string => DATE.format(new Date(iso))
+/** "28 Oct, 21:12", or "28 Oct, 9:12 pm" when the member chose the clock of 12 hours: when a game started, in UTC so that the server and the browser write the same thing. */
+export const gameDate = (iso: string, format: TimeFormat = "auto"): string => DATE[format].format(new Date(iso))
 
 /** "October 2026": since when an account exists. */
 export const monthOf = (iso: string): string => MONTH.format(new Date(iso))

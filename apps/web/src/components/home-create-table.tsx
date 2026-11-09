@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import type { AgeRefusal } from "@pbgo/accounts"
 import { createApi } from "@pbgo/core/lib/api"
 import { engineOptionsOf } from "@pbgo/core/lib/table-options"
 import { Button } from "@pbgo/ui/platform/button"
@@ -12,10 +13,9 @@ import { LobbyAccess, type LanguageOption } from "@pbgo/ui/platform/lobby-access
 import { LobbyPlayers } from "@pbgo/ui/platform/lobby-players"
 import { LobbySettings, type ExpansionOption, type HelperOption, type LobbySettingsValue } from "@pbgo/ui/platform/lobby-settings"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
-import { toast } from "@pbgo/ui/platform/sonner"
 import type { Pace } from "@pbgo/ui/tables"
 import { cn } from "@pbgo/ui/utils"
-import { messageOf } from "@/lib/table-door"
+import { useAgeGate } from "./age-gate"
 
 /** A game a table can be opened for, with what its settings offer: how many may play, its expansions and its helpers (the game page's own, `GamePage`). */
 export type CreatableGame = {
@@ -36,6 +36,7 @@ export type CreatableGame = {
  */
 export function HomeCreateTable({ games, languages, className }: { games: readonly CreatableGame[]; languages: readonly LanguageOption[]; className?: string }) {
   const router = useRouter()
+  const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
   const [slug, setSlug] = useState("")
   // The speed is the visitor's whichever game they pick, so it is kept here; the rest of the settings start again with the game
   const [pace, setPace] = useState<Pace>("normal")
@@ -48,13 +49,14 @@ export function HomeCreateTable({ games, languages, className }: { games: readon
     setOpening(true)
     try {
       const api = createApi(game.slug)
-      const table = await api.create({})
+      // A game for adults asks for the member's date of birth when it is missing (PLT-125): they give it, and the call goes on
+      const table = await guard(() => api.create({}))
       // What the table was set to before it existed: the engine keeps its own options, the rest of the settings stay in the page
       const options = settings ? engineOptionsOf(settings, { expansions: game.expansions.map(({ id }) => id), helpers: game.helpers.map(({ id }) => id) }, Object.keys(table.options)) : {}
-      if (Object.keys(options).length > 0) await api.options(table.code, options).catch((error) => toast.error(messageOf(error)))
+      if (Object.keys(options).length > 0) await guard(() => api.options(table.code, options)).catch(fail)
       router.push(`/game/${game.slug}/${table.code}`)
     } catch (error) {
-      toast.error(messageOf(error))
+      fail(error)
       setOpening(false)
     }
   }
@@ -104,6 +106,7 @@ export function HomeCreateTable({ games, languages, className }: { games: readon
               setSettings(value)
               setPace(value.pace)
             }}
+            onLockedPick={(_id, locked) => void demand(locked.kind as AgeRefusal)}
           />
         </CardContent>
       )}
@@ -120,6 +123,7 @@ export function HomeCreateTable({ games, languages, className }: { games: readon
           </Button>
         )}
       </CardFooter>
+      {ageDialog}
     </Card>
   )
 }

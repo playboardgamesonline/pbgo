@@ -9,12 +9,17 @@ export const ACCOUNT_SETTINGS_PATH = "/me/settings/account"
 
 const byteLength = (text: string): number => new TextEncoder().encode(text).length
 
-/** A nickname as the member typed it, judged: the name kept (cleaned like a display name), or what is wrong with it. The same 20 characters as at sign-up, since that is what a table copies and what the others see. */
+/** A username as the member typed it (what the code calls the nickname: the name they chose for themselves), judged: the name kept (cleaned like a display name), or what is wrong with it. The same 20 characters as at sign-up, since that is what a table copies and what the others see. */
 export function checkNickname(text: string): { ok: true; nickname: string } | { ok: false; problem: string } {
   const nickname = cleanDisplayName(text)
-  if (nickname === "") return { ok: false, problem: "Enter a nickname." }
+  if (nickname === "") return { ok: false, problem: "Enter a username." }
   if (Array.from(nickname).length > DISPLAY_NAME_MAX) return { ok: false, problem: `Use ${DISPLAY_NAME_MAX} characters at most.` }
   return { ok: true, nickname }
+}
+
+/** How many characters a username has left, which is the counter of its field: counted as `checkNickname` counts, on the name as it will be kept and in characters as a person counts them (an emoji is one), so it is negative exactly when the name is refused for its length. */
+export function nicknameCharactersLeft(text: string): number {
+  return DISPLAY_NAME_MAX - Array.from(cleanDisplayName(text)).length
 }
 
 /** A new e-mail address as the member typed it, judged against the one they have: the address to send the link to, or what is wrong with it. */

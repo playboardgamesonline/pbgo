@@ -11,6 +11,7 @@ import { StatBar, StatBarItem, StatBarLabel, StatBarNote, StatBarValue } from "@
 import { rankLabel } from "@pbgo/ui/ranks"
 import { lengthOf, pointsLabel, pointsTone, winRate } from "@pbgo/ui/results"
 import { cn } from "@pbgo/ui/utils"
+import type { TimeFormat } from "@pbgo/accounts"
 import type { Expansion, HistoryEntry, PlayerStats } from "@/lib/game-activity"
 import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
@@ -39,7 +40,7 @@ function Duration({ seconds, className }: { seconds: number; className?: string 
   )
 }
 
-export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: string; stats: PlayerStats; recent: readonly HistoryEntry[]; expansions: readonly Expansion[] }) {
+export function GamePlayerBar({ slug, stats, recent, expansions, timeFormat = "auto" }: { slug: string; stats: PlayerStats; recent: readonly HistoryEntry[]; expansions: readonly Expansion[]; timeFormat?: TimeFormat }) {
   const { rank, rankProgress, gamesPlayed, wins, achievements, achievementsTotal } = stats
   // The bar is always drawn: where the progress is known it is the points over the 100 of a division; where it is not (an unranked visitor, a rank with no points) it is empty, and at Legend, which has nothing above it, it is full
   const progress = rankProgress && rankProgress.needed > 0 ? rankProgress : null
@@ -89,7 +90,7 @@ export function GamePlayerBar({ slug, stats, recent, expansions }: { slug: strin
         {recent.length > 0 ? (
           <ul aria-label="Your latest games" className="@container -mb-3 flex flex-col gap-1">
             {latest.map((entry, index) => {
-              const game = lastGameOf(entry)
+              const game = lastGameOf(entry, timeFormat)
               const names = entry.expansions.flatMap((id) => expansions.find((expansion) => expansion.id === id)?.name ?? [])
               return (
                 <li

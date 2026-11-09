@@ -56,7 +56,8 @@ describe("accountOf", () => {
       provider: "google",
       createdAt: "2026-10-01T09:00:00.000Z",
       language: null,
-      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false },
+      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto" },
+      country: null,
       linked: [],
     })
   })
@@ -113,7 +114,8 @@ describe("accountOf", () => {
       provider: null,
       createdAt: null,
       language: null,
-      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false },
+      preferences: { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto" },
+      country: null,
       linked: [],
     })
   })
@@ -160,7 +162,12 @@ describe("the nickname a member chose (PLT-111)", () => {
 describe("the preferences and the linked services of an account (PLT-111)", () => {
   it("keeps the preferences the member set", () => {
     const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_hide_history: true, pbgo_notify_turn: false } })
-    expect(account.preferences).toEqual({ notifyTurn: false, notifyInvites: true, hideHistory: true })
+    expect(account.preferences).toEqual({ notifyTurn: false, notifyInvites: true, hideHistory: true, timeFormat: "auto", reduceMotion: "auto" })
+  })
+
+  it("keeps the choices of words as they set them: how the time is written and whether the motion is reduced", () => {
+    const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_time_format: "12h", pbgo_reduce_motion: "always" } })
+    expect(account.preferences).toMatchObject({ timeFormat: "12h", reduceMotion: "always" })
   })
 
   it("lists the ways into the account in the order Supabase Auth gives them, each with what it says of itself", () => {
@@ -185,6 +192,27 @@ describe("the preferences and the linked services of an account (PLT-111)", () =
     expect(accountOf({ ...google, identities: [{ provider: "github", identity_data: { email: "ore@example.com" } }, { identity_data: {} }] }).linked).toEqual([])
     expect(accountOf(google).linked).toEqual([])
     expect(accountOf({ ...google, identities: null }).linked).toEqual([])
+  })
+})
+
+describe("the country an account records (PLT-111)", () => {
+  it("keeps what the member recorded, under its own key", () => {
+    expect(accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_country: "FR" } }).country).toBe("FR")
+  })
+
+  it("records none until the member does, and reads what is not a country as none", () => {
+    expect(accountOf(google).country).toBeNull()
+    expect(accountOf({ ...google, user_metadata: { pbgo_country: "ZZ" } }).country).toBeNull()
+  })
+
+  it("does not take the keys of a provider for it", () => {
+    expect(accountOf({ ...google, user_metadata: { country: "FR", locale: "fr-FR" } }).country).toBeNull()
+  })
+
+  it("holds no date of birth, whatever the metadata says: the member can write their own metadata, and the date is kept where only the server reads it (PLT-125)", () => {
+    const account = accountOf({ ...google, user_metadata: { ...google.user_metadata, pbgo_birthdate: "1990-01-01", birthdate: "1990-01-01" } })
+    expect(account).not.toHaveProperty("birthdate")
+    expect(JSON.stringify(account)).not.toContain("1990-01-01")
   })
 })
 
