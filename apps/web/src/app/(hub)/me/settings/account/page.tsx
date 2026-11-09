@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "Account settings" }
 
 /**
  * The Account section of the settings, the first one, in groups: the account's info (the username the other players see, which the member can change: it is kept in the account under a key of ours, so a provider never writes it back; and the
- * e-mail address), the password and the security (the password, the second step that is to come, and the devices that are signed in), the status of the account (where its warnings are told), the personal details they may record (their
+ * e-mail address), the password and the security (the password, multi-factor authentication, an authenticator app whose code is asked at each sign-in (PLT-129), and the devices that are signed in), the status of the account (where its warnings are told), the personal details they may record (their
  * country or region, kept on the account, and their date of birth, declared once to the server: PLT-125; both optional), the services linked to the account (the providers the project has switched on, the ones the account holds shown as linked)
  * and the deletion of the account. The picture is the provider's and is not edited: nothing about it is on this page. The demo account of development is shown all three providers, since no project is behind it to say which are on. This page is
  * where the link of the e-mail that confirms a new address, and the way back from a provider that was just linked, lead (`ACCOUNT_SETTINGS_PATH`): it is drawn per request, so it already holds the change.
@@ -46,7 +46,8 @@ export default async function AccountSettingsPage() {
       <SettingsGroup title="Password & security">
         {/* An account that comes from Steam has no address to sign in with a password: the row appears when it has added one */}
         {account.email !== null && <PasswordRow hasPassword={hasPassword} demo={demo} />}
-        <MultiFactorRow />
+        {/* The second step is asked of an account that can be checked by an address if its owner loses the device: an account that comes from Steam has none, and the row is not drawn */}
+        {account.email !== null && <MultiFactorRow devices={account.secondStep} demo={demo} />}
         <DevicesRow demo={demo} />
       </SettingsGroup>
       <SettingsGroup title="Account status">

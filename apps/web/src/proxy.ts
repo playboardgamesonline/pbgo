@@ -22,12 +22,14 @@ export async function proxy(request: NextRequest) {
 
 /**
  * The front page: a member is sent to their home (`/home`), anybody else gets the public home, which stays the static page. A visitor with no session cookie, the crawlers included, goes straight through without
- * a call to anything. One with a session cookie has it renewed (the redirect carries the new cookies) and, if it holds, goes to the member home. It is a redirect and not a rewrite that would show the member home at `/`: in
+ * a call to anything. One with a session cookie has it renewed (the redirect carries the new cookies) and, if it holds, goes to the member home: "holds" means that the Auth server still knows the session (`confirm`), since the member home sends a visitor it
+ * does not know back here, and a session that was ended elsewhere (the second step was turned on, the other devices were signed out) would otherwise bounce between the two for as long as its token lives; a session it does not know has its cookies
+ * taken off and sees the public home. It is a redirect and not a rewrite that would show the member home at `/`: in
  * development the page of `/` is tracked by the hot reload as the public home, so a different page served at that address made the browser reload for ever.
  */
 async function frontPage(request: NextRequest, demo: boolean) {
   if (!demo && !hasSessionCookie(request.cookies.getAll().map((cookie) => cookie.name))) return NextResponse.next()
-  const { response, signedIn } = await updateSession(request)
+  const { response, signedIn } = await updateSession(request, { confirm: true })
   if (!signedIn && !demo) return response
   const toHome = NextResponse.redirect(new URL("/home", request.url))
   for (const cookie of response.cookies.getAll()) toHome.cookies.set(cookie)

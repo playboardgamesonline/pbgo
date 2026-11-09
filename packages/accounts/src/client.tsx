@@ -11,11 +11,12 @@ import { COUNTRY_KEY } from "./details"
 import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
 import { applyDisplay, syncDisplay } from "./display"
 import { NICKNAME_KEY, PREFERENCE_KEYS, type PreferenceName, type Preferences } from "./preferences"
+import { MFA_MESSAGES, TOTP_FACTOR_NAME, isTotpCode, mfaMessage, qrImageOf, secondStepPendingOf } from "./mfa"
 import { safeNext } from "./redirect"
 import { syncLanguage } from "./language-sync"
 import { isChangingLanguage } from "./set-language"
 import { ACCOUNT_SETTINGS_PATH, settingsMessage } from "./settings"
-import { codeMessage, resendOutcome, signupData, signupOutcome, type ResendOutcome, type SignupEntry, type SignupOutcome } from "./signup"
+import { codeMessage, failureOf, resendOutcome, signupData, signupOutcome, type ResendOutcome, type SignupEntry, type SignupOutcome } from "./signup"
 
 // The accounts in the browser: who is signed in (for the navbar, which is on static pages and so cannot ask the server), and the way to start a
 // sign-in. The session lives in cookies (`@supabase/ssr`), which the server reads too, so the two always agree.
@@ -57,12 +58,13 @@ export function useAccount(): AccountState {
       return
     }
     let active = true
-    const read = (user: Parameters<typeof accountOf>[0] | null | undefined): AccountState =>
-      user ? { status: "signed-in", account: accountOf(user) } : (demo ?? signedOut)
+    // A session that holds the first factor alone, of a member whose account asks for a second (multi-factor authentication, PLT-129), is not a signed-in visitor yet: the navbar does not draw their dock before they give the code
+    const read = (session: { user: Parameters<typeof accountOf>[0]; access_token: string } | null | undefined): AccountState =>
+      session && !secondStepPendingOf(session.user, session.access_token) ? { status: "signed-in", account: accountOf(session.user) } : (demo ?? signedOut)
     supabase.auth.getSession().then(({ data }) => {
-      if (active) setState(read(data.session?.user))
+      if (active) setState(read(data.session))
     })
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setState(read(session?.user)))
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => setState(read(session)))
     return () => {
       active = false
       data.subscription.unsubscribe()
@@ -166,18 +168,18 @@ export type ChangeOutcome = { status: "done" } | { status: "no-session" } | { st
 
 /**
  * Asks Supabase Auth for one change of the signed-in member's account. Nothing is taken for granted: the project may not be set, nobody may be signed in (the demo account holds no session), and the call may be refused or may throw
- * (the network): each is an outcome, never an exception, and a refusal is told in the words of `settingsMessage`, not in Supabase's.
+ * (the network): each is an outcome, never an exception, and a refusal is told in the words of `settingsMessage` (or of `words`, for the calls that have words of their own: the second step's, `mfaMessage`), not in Supabase's.
  */
-async function change(run: (supabase: SupabaseClient) => Promise<{ error: unknown }>): Promise<ChangeOutcome> {
+async function change(run: (supabase: SupabaseClient) => Promise<{ error: unknown }>, words: (error: unknown) => string = settingsMessage): Promise<ChangeOutcome> {
   const supabase = browserClient()
   if (!supabase) return { status: "failed", message: "This is not available here." }
   try {
     const { data } = await supabase.auth.getSession()
     if (!data.session) return { status: "no-session" }
     const { error } = await run(supabase)
-    return error ? { status: "failed", message: settingsMessage(error) } : { status: "done" }
+    return error ? { status: "failed", message: words(error) } : { status: "done" }
   } catch (error) {
-    return { status: "failed", message: settingsMessage(error) }
+    return { status: "failed", message: words(error) }
   }
 }
 
@@ -236,6 +238,131 @@ export function unlinkProvider(provider: Provider): Promise<ChangeOutcome> {
 /** Signs the member out of every device but this one: Supabase Auth ends their other sessions, which stop at their next renewal (the access token they hold lasts up to an hour). */
 export function signOutOtherDevices(): Promise<ChangeOutcome> {
   return change((supabase) => supabase.auth.signOut({ scope: "others" }))
+}
+
+// Multi-factor authentication (PLT-129): the second step of a sign-in, the code of an authenticator app, which is a TOTP factor of Supabase Auth. The browser makes every call: the limit on the codes is the Auth server's, per address, and
+// it must see the visitor's own, not the server's. What the hub decides around them is pure and in `./mfa`; the server's side is `getSessionState` (`./server`).
+
+/**
+ * Whether a member who just signed in has the second step left to pass: their account has an authenticator app set up and the session, which holds the first factor alone (a password, a provider, a link), has not proved it. The Auth
+ * server is asked for the user, whose factors are fresh, and the level is read from the session's own token. False when nobody is signed in, when the project is not set and when the question could not be asked: the page that
+ * comes next asks the server again, which is the one that decides.
+ */
+export async function secondStepNeeded(): Promise<boolean> {
+  const supabase = browserClient()
+  if (!supabase) return false
+  try {
+    const [{ data: fresh }, { data: held }] = await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
+    return secondStepPendingOf(fresh.user, held.session?.access_token)
+  } catch {
+    return false
+  }
+}
+
+/** Asks the Auth server whether a code comes from one of the signed-in member's authenticator apps: a challenge and then the code, for each app in turn while the answer is "wrong code" (the member does not say which app it comes from). Resolves with the error that stopped it, or null when an app accepted the code. */
+async function proveSecondStep(supabase: SupabaseClient, code: string): Promise<{ error: unknown } | null> {
+  const { data, error } = await supabase.auth.mfa.listFactors()
+  if (error) return { error }
+  if (data.totp.length === 0) return { error: { code: "mfa_factor_not_found" } }
+  let failed: unknown = null
+  for (const factor of data.totp) {
+    const result = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code })
+    if (!result.error) return null
+    failed = result.error
+    // Only a wrong code is worth trying against the next app: a limit, or the network, would fail the same
+    if (failureOf(result.error).code !== "mfa_verification_failed") break
+  }
+  return { error: failed }
+}
+
+/**
+ * Gives the Auth server the code of an authenticator app to finish a sign-in: the session that holds the first factor becomes one that holds both (`aal2`), the browser's cookies carry it, and the page can go on to `next` with a whole page load. Resolves
+ * with a sentence for the visitor when it fails (a wrong code and an expired one are one answer) and with null when they are through. A text that is not six digits is told wrong without asking: every try counts against the Auth server's limit.
+ */
+export async function verifySecondStep(code: string): Promise<string | null> {
+  const supabase = browserClient()
+  if (!supabase) return "Sign-in is not available here."
+  if (!isTotpCode(code)) return MFA_MESSAGES["wrong-code"]
+  try {
+    const failed = await proveSecondStep(supabase, code)
+    return failed ? mfaMessage(failed.error) : null
+  } catch (error) {
+    return mfaMessage(error)
+  }
+}
+
+/** What the window that sets the second step up is given: the factor to prove, the picture of its QR code (null when Supabase Auth gave none that can be drawn) and the setup key, to type into an app that cannot scan it. */
+export type SecondStepSetup = { factorId: string; qr: string | null; secret: string }
+
+/** What starting the set-up came to: the factor is made and waits for a code, nobody is signed in (a guest, the demo account), or it could not be made, with the sentence to tell the member. */
+export type SetupOutcome = { status: "ready"; setup: SecondStepSetup } | { status: "no-session" } | { status: "failed"; message: string }
+
+/**
+ * Starts setting the second step up: Supabase Auth makes a TOTP factor, which is not one yet (`unverified`) until a code from the app has been given (`finishSecondStepSetup`), and answers with its QR code and its key. `issuer` is the name
+ * that the app lists the account under (the site's). A set-up that was abandoned left a factor that nobody proved, which the Auth server keeps for a few minutes and which holds the name this one needs: those are taken away first.
+ */
+export async function beginSecondStepSetup(issuer: string): Promise<SetupOutcome> {
+  const supabase = browserClient()
+  if (!supabase) return { status: "failed", message: "This is not available here." }
+  try {
+    const { data: held } = await supabase.auth.getSession()
+    if (!held.session) return { status: "no-session" }
+    const listed = await supabase.auth.mfa.listFactors()
+    if (listed.error) return { status: "failed", message: mfaMessage(listed.error) }
+    if (listed.data.totp.length > 0) return { status: "failed", message: "Multi-factor authentication is already on." }
+    for (const factor of listed.data.all) {
+      if (factor.factor_type === "totp") await supabase.auth.mfa.unenroll({ factorId: factor.id })
+    }
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", issuer, friendlyName: TOTP_FACTOR_NAME })
+    if (error) return { status: "failed", message: mfaMessage(error) }
+    return { status: "ready", setup: { factorId: data.id, qr: qrImageOf(data.totp.qr_code), secret: data.totp.secret } }
+  } catch (error) {
+    return { status: "failed", message: mfaMessage(error) }
+  }
+}
+
+/**
+ * Finishes the set-up with the first code of the app: the factor becomes the member's second step, and the session they are in becomes one that has passed it (`aal2`), so that nothing asks them for a code on this device now. Supabase Auth
+ * ends every other session of the member that has not passed the second step: their other devices sign in again, with the code. A text that is not six digits is told wrong without asking.
+ */
+export function finishSecondStepSetup(factorId: string, code: string): Promise<ChangeOutcome> {
+  if (!isTotpCode(code)) return Promise.resolve({ status: "failed", message: MFA_MESSAGES["wrong-code"] })
+  return change(async (supabase) => {
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code })
+    return { error }
+  }, mfaMessage)
+}
+
+/** Gives up a set-up that was started: the factor that was made is taken away. The Auth server would drop it by itself, so a failure here is not worth telling. */
+export async function cancelSecondStepSetup(factorId: string): Promise<void> {
+  const supabase = browserClient()
+  if (!supabase) return
+  try {
+    await supabase.auth.mfa.unenroll({ factorId })
+  } catch {
+    // The factor was never proved: it expires on its own
+  }
+}
+
+/**
+ * Turns the second step off, on a code of the app (the session has passed it already, so the Auth server would not ask: the hub does, since a window left open must not be enough): the code is checked first, then every authenticator app of the
+ * member is removed. A session renews its access token once it is done, which is what brings the one of a member with no second step.
+ */
+export function removeSecondStep(code: string): Promise<ChangeOutcome> {
+  if (!isTotpCode(code)) return Promise.resolve({ status: "failed", message: MFA_MESSAGES["wrong-code"] })
+  return change(async (supabase) => {
+    const failed = await proveSecondStep(supabase, code)
+    if (failed) return failed
+    const { data, error } = await supabase.auth.mfa.listFactors()
+    if (error) return { error }
+    for (const factor of data.totp) {
+      const { error: removed } = await supabase.auth.mfa.unenroll({ factorId: factor.id })
+      if (removed) return { error: removed }
+    }
+    // A failed renewal changes nothing that matters: the session is still good, and the token is renewed within the hour
+    await supabase.auth.refreshSession().catch(() => {})
+    return { error: null }
+  }, mfaMessage)
 }
 
 /** What became of a language handed to the account: kept, not kept because nobody is signed in (a guest, the demo account), or not kept because the account could not be written. */

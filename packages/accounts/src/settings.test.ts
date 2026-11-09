@@ -91,6 +91,8 @@ describe("settingsProblem and settingsMessage", () => {
     ["same_password", "same-password"],
     ["reauthentication_needed", "reauthenticate"],
     ["reauthentication_not_valid", "reauthenticate"],
+    // A member with a second step who changes their password or address from a session that has not passed it (PLT-129)
+    ["insufficient_aal", "reauthenticate"],
     ["manual_linking_disabled", "manual-linking"],
     ["single_identity_not_deletable", "last-service"],
     ["identity_already_exists", "service-taken"],
