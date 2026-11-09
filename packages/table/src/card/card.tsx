@@ -5,13 +5,15 @@ import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { AdditiveBlending, type Color, type Group, type Mesh, type MeshBasicMaterial, NormalBlending, type Texture, Vector3 } from "three"
+import { type CardReading, inspector } from "../debug/inspector"
+import { DEBUG_VIEW } from "../debug/view"
 import type { Pose } from "../pose"
 import type { CardId } from "../table/memory"
 import { usePoseMemory } from "../table/memory-context"
 import { type Flight, startFlight, stepFlight } from "./flight"
 import { applyFold, foldable } from "./fold"
 import { type CardSize, cardGeometry, cornerRadius, edgeGeometry, frameGeometry } from "./geometry"
-import type { Glow } from "./glows"
+import { type Glow, glowNameOf } from "./glows"
 import { CARD_SETTINGS } from "./settings"
 import { glossTexture, haloTexture, shadowTexture, sparkleTexture } from "./textures"
 
@@ -139,6 +141,28 @@ export function Card({
   useCursor(hovered && !!onClick)
   const memory = usePoseMemory()
 
+  // The debug panel's inspector reads the card under the pointer: what it reads is the card as it is then, not as it was when the pointer came
+  const [inspectKey] = useState(() => Symbol("card"))
+  const latest = useRef({ id, target, glow })
+  useEffect(() => {
+    latest.current = { id, target, glow }
+  })
+  useEffect(() => () => inspector.leave(inspectKey), [inspectKey])
+  const reading = (): CardReading => {
+    const { id: named, target: to, glow: lit } = latest.current
+    const g = ref.current
+    const f = flight.current
+    return {
+      id: named === undefined ? "(no id)" : String(named),
+      position: g ? [g.position.x, g.position.y, g.position.z] : [0, 0, 0],
+      target: [to.position.x, to.position.y, to.position.z],
+      scale: g ? g.scale.x : 1,
+      targetScale: to.scale,
+      flight: f ? { time: f.t, duration: f.duration } : null,
+      glow: glowNameOf(lit),
+    }
+  }
+
   const start = (g: Group, delay = 0) => {
     flight.current = startFlight(g, target, delay, CARD_SETTINGS)
   }
@@ -230,10 +254,12 @@ export function Card({
         e.stopPropagation()
         setHovered(true)
         onHover?.(true)
+        if (DEBUG_VIEW.inspector) inspector.enter(inspectKey, reading)
       }}
       onPointerOut={() => {
         setHovered(false)
         onHover?.(false)
+        inspector.leave(inspectKey)
       }}
     >
       <mesh ref={shadowRef} position={[0.04, -0.07, -0.03]} raycast={() => null} visible={shadow}>

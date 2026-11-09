@@ -33,6 +33,10 @@ const OUTLINE: Outline = { color: "#ffffff", visible: true }
 const FRAME: Frame = { color: "#ffffff", opacity: 0.75, pulse: 0.2, breath: 0.012, speed: 3 }
 const SPARKLE: Sparkle = { opacity: 0.55, speed: 0.35 }
 
+/** Every glow `defineGlows` made, by name, and the name of each: what the debug panel lists, and what the card inspector says */
+const defined = new Map<string, Glow>()
+const names = new WeakMap<Glow, string>()
+
 /**
  * The glows a game gives its cards, by name: `defineGlows({ selection: { frame: {} }, gold: { halo: { color: "#f2c14e", spread: 0.14 }, sparkle: {} } })`.
  * Every glow gets its own parts, filled in with the defaults.
@@ -47,6 +51,14 @@ export function defineGlows<Name extends string>(specs: Record<Name, GlowSpec>) 
     if (spec.frame) glow.frame = { ...FRAME, ...spec.frame }
     if (spec.sparkle) glow.sparkle = { ...SPARKLE, ...spec.sparkle }
     glows[name as Name] = glow
+    defined.set(name, glow)
+    names.set(glow, name)
   }
   return glows
 }
+
+/** The glows made so far, with their names, in the order they were defined: a name defined twice keeps the last. For the debug panel */
+export const definedGlows = (): [name: string, glow: Glow][] => [...defined]
+
+/** The name a glow was defined under, or null for none (or for a glow made by hand) */
+export const glowNameOf = (glow: Glow | null | undefined) => (glow ? (names.get(glow) ?? null) : null)

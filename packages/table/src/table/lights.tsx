@@ -1,5 +1,8 @@
 "use client"
 
+import { LIGHTS_OVERRIDE } from "../debug/overrides"
+import { useSettingsVersion } from "../debug/settings"
+
 export type LightsProps = {
   /** Strength of the light that falls everywhere alike (default 0.8) */
   ambient?: number
@@ -12,8 +15,10 @@ export type LightsProps = {
 /** The lights of a table: the ones Courtisans plays under */
 export const DEFAULT_LIGHTS = { ambient: 0.8, sun: 2.2, sunPosition: [4, 12, 6] } satisfies Required<LightsProps>
 
-/** An ambient light and a sun. Only a lit material shows them: the flat ones of the template do not need any */
-export function Lights({ ambient = DEFAULT_LIGHTS.ambient, sun = DEFAULT_LIGHTS.sun, sunPosition = DEFAULT_LIGHTS.sunPosition }: LightsProps) {
+/** An ambient light and a sun. Only a lit material shows them: the flat ones of the template do not need any. What the Lights folder of the debug panel changed lies over the props */
+export function Lights(props: LightsProps) {
+  useSettingsVersion()
+  const { ambient = DEFAULT_LIGHTS.ambient, sun = DEFAULT_LIGHTS.sun, sunPosition = DEFAULT_LIGHTS.sunPosition } = { ...props, ...LIGHTS_OVERRIDE }
   return (
     <>
       <ambientLight intensity={ambient} />

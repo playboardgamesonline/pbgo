@@ -1,4 +1,5 @@
 import type { PerspectiveCamera } from "three"
+import type { Field } from "../debug/settings"
 
 const RAD = Math.PI / 180
 
@@ -17,6 +18,25 @@ export type CameraIntro = { enabled: boolean; duration: number; zoom: number; ro
 
 /** The defaults of the entrance. Copy it for a game's own knobs: the camera reads the object it is given on every frame */
 export const CAMERA_INTRO: CameraIntro = { enabled: true, duration: 2.6, zoom: 1.45, rotate: 22, tilt: 12 }
+
+/** The knobs a debug panel offers for a `CameraSettings`: the table's camera, and the camera of the share photo */
+export const CAMERA_FIELDS = {
+  tilt: ["tilt °", 0, 85, 0.5],
+  yaw: ["yaw °", -180, 180, 1],
+  distance: ["distance", 4, 90, 0.1],
+  fov: ["fov °", 10, 100, 0.5],
+  targetX: ["target x", -12, 12, 0.05],
+  targetZ: ["target z", -12, 12, 0.05],
+} satisfies Record<keyof CameraSettings, Field>
+
+/** The knobs a debug panel offers for a `CameraIntro` */
+export const INTRO_FIELDS = {
+  enabled: "enabled",
+  duration: ["duration (s)", 0, 8, 0.1],
+  zoom: ["zoom (×)", 1, 4, 0.01],
+  rotate: ["rotate °", -180, 180, 1],
+  tilt: ["tilt °", -45, 45, 0.5],
+} satisfies Record<keyof CameraIntro, Field>
 
 /** The camera never sinks below this height, so a flat view still clears the table */
 export const MIN_HEIGHT = 0.5

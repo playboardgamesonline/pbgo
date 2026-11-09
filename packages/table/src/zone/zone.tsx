@@ -3,6 +3,9 @@
 import type { Key } from "react"
 import { Card, type CardProps } from "../card/card"
 import type { CardSize } from "../card/geometry"
+import { ZoneGizmo } from "../debug/gizmos"
+import { useSettingsVersion } from "../debug/settings"
+import { DEBUG_VIEW } from "../debug/view"
 import type { Spot } from "../layout"
 import type { Pose } from "../pose"
 import { place } from "./place"
@@ -27,9 +30,12 @@ export type ZoneProps = {
 
 /**
  * Some cards on the table in a layout: the first takes the first slot, the second the second, and so on, all drawn in the frame of the zone.
- * A zone only places cards, it owns no state: the game decides which cards are in it and in what order, and a card that changes zone is the same `key` (and `id`) in another one
+ * A zone only places cards, it owns no state: the game decides which cards are in it and in what order, and a card that changes zone is the same `key` (and `id`) in another one.
+ * The debug panel can outline it (`DEBUG_VIEW.zones`): its frame and every slot of its layout.
  */
 export function Zone({ frame, layout, size, enter, stagger, cards }: ZoneProps) {
+  // Re-renders when the panel switches the outline on or off
+  useSettingsVersion()
   const placed = place(
     cards.map((card) => card.from),
     { frame, layout, enter, stagger },
@@ -40,6 +46,7 @@ export function Zone({ frame, layout, size, enter, stagger, cards }: ZoneProps) 
         const { key, ...card } = cards[i]
         return <Card key={key} {...card} target={target} from={from} size={size} />
       })}
+      {DEBUG_VIEW.zones && <ZoneGizmo frame={frame} layout={layout} size={size} />}
     </>
   )
 }

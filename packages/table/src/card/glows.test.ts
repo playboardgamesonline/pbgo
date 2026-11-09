@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { defineGlows } from "./glows"
+import { defineGlows, definedGlows, glowNameOf } from "./glows"
 
 describe("defineGlows", () => {
   it("builds only the parts a glow names, filled in with the defaults", () => {
@@ -32,5 +32,31 @@ describe("defineGlows", () => {
     expect(glows.a.frame).not.toBe(glows.b.frame)
     glows.a.frame!.opacity = 0.1
     expect(glows.b.frame!.opacity).toBe(0.75)
+  })
+})
+
+describe("the glows that were defined", () => {
+  it("tell the name each was defined under", () => {
+    const { named } = defineGlows({ named: { frame: {} } })
+    expect(glowNameOf(named)).toBe("named")
+  })
+
+  it("have no name for a glow made by hand, for none at all, or for a spec that was only a copy", () => {
+    expect(glowNameOf({ frame: { color: "#fff", opacity: 1, pulse: 0, breath: 0, speed: 1 } })).toBeNull()
+    expect(glowNameOf(null)).toBeNull()
+    expect(glowNameOf(undefined)).toBeNull()
+    const { original } = defineGlows({ original: { frame: {} } })
+    expect(glowNameOf({ ...original })).toBeNull()
+  })
+
+  it("are listed with their names, the very objects the cards read", () => {
+    const { listed } = defineGlows({ listed: { halo: {} } })
+    expect(definedGlows().find(([name]) => name === "listed")?.[1]).toBe(listed)
+  })
+
+  it("keep the last of two glows defined under one name", () => {
+    defineGlows({ twice: { frame: {} } })
+    const { twice } = defineGlows({ twice: { sparkle: {} } })
+    expect(definedGlows().filter(([name]) => name === "twice")).toEqual([["twice", twice]])
   })
 })
