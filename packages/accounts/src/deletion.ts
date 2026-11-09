@@ -48,8 +48,8 @@ export function reopenLinkOf(query: { u?: string | string[]; t?: string | string
  */
 export type DeletionRequest = { intent: "close" } | { intent: "reopen"; user: string; token: string } | { intent: "now"; user: string; token: string }
 
-/** What the route answers when it worked: for `close`, `to` (the address the link went to, masked) and `scheduledFor` (an ISO date: the day the link stops working and the account is deleted). */
-export type DeletionAnswer = { ok: true; to?: string; scheduledFor?: string }
+/** What the route answers when it worked. Nothing more: the window that asks for the closing already says the e-mail and the days, and the page it leaves is gone. */
+export type DeletionAnswer = { ok: true }
 
 /** The sentence a member is told for each code the route refuses with: never the server's own words. */
 export const DELETION_MESSAGES: Record<string, string> = {

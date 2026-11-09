@@ -75,10 +75,10 @@ afterEach(() => {
 })
 
 describe("a member deletes their account (intent close)", () => {
-  it("mails the link first, then closes the account, then takes the cookies of the browser, and answers with the address masked and the day", async () => {
+  it("mails the link first, then closes the account, then takes the cookies of the browser, and answers that it worked and nothing more", async () => {
     const response = await call({ intent: "close" }, { origin: "http://localhost:3140" })
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ ok: true, to: "o•••@example.com", scheduledFor: "2026-11-16T23:59:59.999Z" })
+    expect(await response.json()).toEqual({ ok: true })
     expect(mocks.order).toEqual(["mail", "close", "cookies"])
     expect(compose).toHaveBeenCalledWith({ to: "ore@example.com", name: "Oré", link: `http://localhost:3140/auth/reopen-account?u=${USER}&t=${TOKEN}`, until: "16 November 2026" })
     expect(mocks.closeAccount).toHaveBeenCalledWith(USER, TOKEN, new Date("2026-11-16T23:59:59.999Z"))

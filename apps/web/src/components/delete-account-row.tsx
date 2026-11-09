@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { REOPEN_PATH, deletionDate, hasMailbox, maskEmail } from "@pbgo/accounts"
-import { ACCOUNT_DELETION_GRACE_DAYS, accountDeletionDate } from "@pbgo/core/lib/retention"
+import { REOPEN_PATH, hasMailbox, maskEmail } from "@pbgo/accounts"
+import { ACCOUNT_DELETION_GRACE_DAYS } from "@pbgo/core/lib/retention"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@pbgo/ui/platform/dialog"
@@ -14,25 +14,19 @@ import { CONTACT } from "@/site"
 
 /**
  * The Delete account row of the settings (PLT-36). A red button opens a window that says what deleting means, and its button deletes the account (`POST /api/hub/account/deletion`, intent `close`): the account is closed at once, the member is signed
- * out everywhere, and an e-mail holds the link that reopens it for `ACCOUNT_DELETION_GRACE_DAYS` days, then it is deleted for good (`docs/accounts.md`, "Deleting an account"). The window then says to look in the mailbox, and whatever closes it takes the
- * member to the home: they are signed out, and the page they were on is not theirs any more.
+ * out everywhere, and an e-mail holds the link that reopens it for `ACCOUNT_DELETION_GRACE_DAYS` days, then it is deleted for good (`docs/accounts.md`, "Deleting an account"). The window already says all of that before the button is pressed, so once it
+ * worked nothing more is said: the page is left for the home at once (a whole page load: the member is signed out, and the page they were on is not theirs any more).
  * An account without an address that mail can reach (`hasMailbox`) cannot be closed from here, since it would have no way back: the window says so and offers to write to us instead, as the Privacy Policy keeps saying. So does a site where no
- * e-mail can leave (`available` is false: production with no key for the mail provider). The demo account of development is in no database: it is shown the same windows, nothing is closed, and the link it would receive is a page it can open.
+ * e-mail can leave (`available` is false: production with no key for the mail provider). The demo account of development is in no database: nothing is closed and no e-mail leaves, and its button goes to the page its link would open.
  */
 export function DeleteAccountRow({ email, demo, available }: { email: string | null; demo: boolean; available: boolean }) {
   const [open, setOpen] = useState(false)
-  const [closed, setClosed] = useState<{ to: string; until: string } | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reachable = hasMailbox(email)
 
   function toggle(next: boolean) {
     if (pending) return
-    // Once the account is closed the member is signed out: whatever closes the window leaves the page
-    if (!next && closed) {
-      leaveTo("/")
-      return
-    }
     setOpen(next)
     if (next) setError(null)
   }
@@ -42,17 +36,17 @@ export function DeleteAccountRow({ email, demo, available }: { email: string | n
     setPending(true)
     setError(null)
     if (demo) {
-      setClosed({ to: maskEmail(email), until: deletionDate(accountDeletionDate().toISOString()) })
-      setPending(false)
+      leaveTo(`${REOPEN_PATH}?u=demo&t=demo`)
       return
     }
     const result = await postDeletion({ intent: "close" })
-    setPending(false)
     if (!result.ok) {
+      setPending(false)
       setError(result.message)
       return
     }
-    setClosed({ to: result.answer.to ?? maskEmail(email), until: deletionDate(result.answer.scheduledFor ?? accountDeletionDate().toISOString()) })
+    // The account is closed and the route took the cookies of this browser off: the window stays as it is, busy, until the page is gone
+    leaveTo("/")
   }
 
   const writeToUs = (
@@ -93,7 +87,7 @@ export function DeleteAccountRow({ email, demo, available }: { email: string | n
                 {writeToUs}
               </DialogFooter>
             </>
-          ) : closed === null ? (
+          ) : (
             <>
               <DialogHeader>
                 <DialogTitle>Delete your account</DialogTitle>
@@ -125,30 +119,6 @@ export function DeleteAccountRow({ email, demo, available }: { email: string | n
                 <Button type="button" variant="destructive" disabled={pending} onClick={close}>
                   {pending && <Spinner data-icon="inline-start" />}
                   Delete my account
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Your account is closed</DialogTitle>
-                <DialogDescription>
-                  We sent a link to <span className="text-foreground">{closed.to}</span>. Use it before {closed.until} to reopen your account. After that it is deleted for good.
-                </DialogDescription>
-              </DialogHeader>
-              <p className="text-sm text-muted-foreground">Nothing yet? Look in your spam folder.</p>
-              {demo && (
-                <p className="text-sm text-muted-foreground">
-                  Development only: the demo account is in no database, so nothing was closed and no e-mail was sent.{" "}
-                  <Link href={`${REOPEN_PATH}?u=demo&t=demo`} className="text-foreground underline underline-offset-4">
-                    Open the page its link would open
-                  </Link>
-                  .
-                </p>
-              )}
-              <DialogFooter>
-                <Button type="button" onClick={() => toggle(false)}>
-                  Close
                 </Button>
               </DialogFooter>
             </>

@@ -1,4 +1,4 @@
-import { deletionDate, hasMailbox, isReopenToken, isUserId, maskEmail, reopenLink, type DeletionAnswer } from "@pbgo/accounts"
+import { deletionDate, hasMailbox, isReopenToken, isUserId, reopenLink, type DeletionAnswer } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
 import { clearSessionCookies, getAccount } from "@pbgo/accounts/server"
 import { accountDeletionDate } from "../../../../../lib/retention"
@@ -20,7 +20,8 @@ function assertSameOrigin(request: Request) {
 /**
  * `POST /api/hub/account/deletion`: the deletion of an account (PLT-36, `docs/accounts.md`, "Deleting an account"). It is not a game's route. The body says what is asked (`intent`):
  * - `close`: the signed-in member deletes their account. The e-mail that holds the link goes first, to the address of the account, which is taken from the session and never from the request (a member without an address cannot ask), and the account
- *   is closed only once it has left: nobody can sign in to it, every session of it ends and the cookies of this device go. The link reopens it until the day answered (`ACCOUNT_DELETION_GRACE_DAYS` days at least), then the nightly clean-up deletes it.
+ *   is closed only once it has left: nobody can sign in to it, every session of it ends and the cookies of this device go. The link reopens it until the end of the UTC day `ACCOUNT_DELETION_GRACE_DAYS` days away (the e-mail says the day), then the nightly clean-up deletes it.
+ *   The answer holds nothing but `ok`: the window that asks for it already said the e-mail and the days, and the page is left for the home.
  * - `reopen`: the link of the e-mail, with the account and the token it carries. No session is needed (the link opens on any device, and a closed account has none): the token is the proof. The account is open again.
  * - `now`: the same link, and the member does not wait for the clean-up: the account is deleted right away, with the feedback sent with its address.
  * `close` acts on the strength of the session's cookies, so it refuses a request that comes from another site. The demo account of development is in no database: it can do none of this.
@@ -63,11 +64,10 @@ async function close(request: Request, compose: ComposeDeletionMail): Promise<De
   )
   if (sent === "unavailable" || sent === "failed") throw new ApiError(sent === "failed" ? "MAIL_FAILED" : "MAIL_UNAVAILABLE", sent === "failed" ? 502 : 503)
 
-  const day = await closeAccount(account.id, token, reopensUntil)
-  if (!day) throw new ApiError("NOT_SIGNED_IN", 401)
+  if (!(await closeAccount(account.id, token, reopensUntil))) throw new ApiError("NOT_SIGNED_IN", 401)
   // The sessions ended with the account; this takes the cookies of this browser with them
   await clearSessionCookies()
-  return { ok: true, to: maskEmail(account.email), scheduledFor: day.toISOString() }
+  return { ok: true }
 }
 
 /** The account and the token of a link, or the refusal for anything that is not what a link carries (before the database is asked anything). */

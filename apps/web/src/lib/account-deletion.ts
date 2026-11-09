@@ -3,14 +3,14 @@ import { deletionMessage, type DeletionAnswer, type DeletionRequest } from "@pbg
 // What the browser says to `POST /api/hub/account/deletion` (PLT-36) and what it makes of the answer: the pieces of the deletion that talk to it (the Delete account row of the settings and the page of the link) all go through here,
 // so that the words of a refusal are told in one way.
 
-/** The answer of the route, ready for the screen: the route's own answer when it worked, else the sentence for the member and the code behind it (`NETWORK` when the site could not be reached). */
-export type DeletionResult = { ok: true; answer: DeletionAnswer } | { ok: false; code: string; message: string }
+/** The answer of the route, ready for the screen: it worked, or the sentence for the member and the code behind it (`NETWORK` when the site could not be reached). */
+export type DeletionResult = DeletionAnswer | { ok: false; code: string; message: string }
 
 export async function postDeletion(body: DeletionRequest): Promise<DeletionResult> {
   try {
     const response = await fetch("/api/hub/account/deletion", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-    const data = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string } & Partial<DeletionAnswer>
-    if (response.ok && data.ok) return { ok: true, answer: { ok: true, to: data.to, scheduledFor: data.scheduledFor } }
+    const data = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+    if (response.ok && data.ok) return { ok: true }
     const code = data.error ?? "SERVER_ERROR"
     return { ok: false, code, message: deletionMessage(code) }
   } catch {
