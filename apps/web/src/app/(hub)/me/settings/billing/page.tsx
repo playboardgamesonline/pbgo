@@ -9,14 +9,14 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
 import { SettingsGroup, SettingsPage } from "@/components/settings-page"
 import { PAID_PLANS_NOTICE, PLANS, priceOf } from "@/lib/plans"
-import { BILLING_OPEN } from "@/site"
+import { BILLING_OPEN, PRICING_OPEN } from "@/site"
 
 export const metadata: Metadata = { title: "Billing settings" }
 
 /**
  * The Billing section of the settings: the member's plan, how they pay for it, their invoices and the way to cancel it. Every member is on the free plan, since no paid one is offered (`PAID_PLANS_NOTICE`, the line the pricing page
- * says), so the plan is the free one with the way to the pricing page, and the payment method, the invoices and the cancellation have their place and their empty state, ready for the day a paid plan is taken. Nothing is kept here: there
- * is no payment provider behind it. There is nothing to bill for now, so the section is hidden: it has no entry in the settings and shows the 404 page while `BILLING_OPEN` (`apps/web/src/site.ts`) is false.
+ * says), so the plan is the free one, with the way to the pricing page only while that page is open (`PRICING_OPEN`: it is hidden for now), and the payment method, the invoices and the cancellation have their place and their
+ * empty state, ready for the day a paid plan is taken. Nothing is kept here: there is no payment provider behind it. There is nothing to bill for now, so the section is hidden: it has no entry in the settings and shows the 404 page while `BILLING_OPEN` (`apps/web/src/site.ts`) is false.
  */
 export default async function BillingSettingsPage() {
   if (!BILLING_OPEN) notFound()
@@ -36,11 +36,13 @@ export default async function BillingSettingsPage() {
               </ItemDescription>
             )}
           </ItemContent>
-          <ItemActions>
-            <Button asChild variant="outline">
-              <Link href="/pricing">Adjust plan</Link>
-            </Button>
-          </ItemActions>
+          {PRICING_OPEN && (
+            <ItemActions>
+              <Button asChild variant="outline">
+                <Link href="/pricing">Adjust plan</Link>
+              </Button>
+            </ItemActions>
+          )}
         </Item>
       </SettingsGroup>
       <SettingsGroup title="Payment method">

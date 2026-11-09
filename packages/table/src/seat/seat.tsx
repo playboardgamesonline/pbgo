@@ -7,6 +7,9 @@ import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { useSkin } from "@pbgo/core/components/skin-provider"
 import { seatFontFamily } from "@pbgo/core/lib/seat-avatar-canvas"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
+import { SeatGizmo } from "../debug/gizmos"
+import { useSettingsVersion } from "../debug/settings"
+import { DEBUG_VIEW } from "../debug/view"
 import type { Spot } from "../layout"
 import { Aura, type AuraSettings, WINNER_AURA_SETTINGS } from "./aura"
 import { TurnCrown } from "./crown"
@@ -92,6 +95,8 @@ export function Seat({
   onSelect,
   children,
 }: SeatProps) {
+  // The plate follows `SEAT_SETTINGS` as the knobs of the debug panel move them, and the panel can mark where the seat is
+  useSettingsVersion()
   const S = SEAT_SETTINGS
   const plate = plateOf(spot, viewer, S)
   const [pointed, setPointed] = useState(false)
@@ -148,6 +153,7 @@ export function Seat({
       {status !== undefined && (
         <TableText text={status} style={{ color: "#f5f2ea", weight: 700, ...statusStyle }} height={S.statusHeight} position={[plate.x, TEXT_Y, plate.statusZ]} font={font} opacity={opacity} />
       )}
+      {DEBUG_VIEW.seats && <SeatGizmo spot={spot} plate={plate} />}
       {children}
     </group>
   )

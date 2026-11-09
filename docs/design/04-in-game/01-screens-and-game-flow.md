@@ -27,4 +27,4 @@ The crown stands on the corner of the active player's avatar (`TurnCrown` of `@p
 
 ## Debug
 
-The leva panel opens with `Shift+D`, `?debug` or in development builds. The in-game UI only has the announcement presets in it (TRANSITION tab: duration, sound, scrim, fade, sizes, banner, confetti); a game adds its own scene knobs.
+The leva panel opens with `Shift+D` or `?debug`; a development build fetches it at once. It never opens on the production deployment (`NEXT_PUBLIC_APP_ENV`): there the address, the storage and the keyboard are not even read, and nothing is fetched. The in-game UI only has the announcement presets in it (TRANSITION tab: duration, sound, scrim, fade, sizes, banner, confetti); the shared `Table` adds the folders of the table (camera, cards, seats, lights, floor, glows, helpers, inspector, slow motion), and a game adds its own with `useSettings` or `useDebugFolder` (`docs/engine/04-build-a-game/07-tuning.md`).

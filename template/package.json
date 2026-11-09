@@ -24,7 +24,6 @@
     "@pbgo/ui": "workspace:*",
     "@react-three/drei": "catalog:",
     "@react-three/fiber": "catalog:",
-    "leva": "catalog:",
     "maath": "catalog:",
     "server-only": "catalog:",
     "sonner": "catalog:",

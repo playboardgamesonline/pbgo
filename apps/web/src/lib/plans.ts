@@ -56,7 +56,7 @@ export const PLANS: readonly Plan[] = [
   },
 ]
 
-/** Why no paid plan can be taken, in the words of the pricing page and of the member's billing settings, which both say it. */
+/** Why no paid plan can be taken, in the words of the pricing page (hidden for now, `PRICING_OPEN`) and of the member's billing settings, which both say it. */
 export const PAID_PLANS_NOTICE = "Since the games are not licensed, no paid subscription is offered for now."
 
 /** What a year costs less than twelve months: a quarter (Oré: "genre 25%"). */

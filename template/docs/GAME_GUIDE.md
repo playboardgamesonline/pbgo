@@ -138,8 +138,8 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 - Frequent commits, one per significant feature.
 
 ### Debug
-- Panel **Shift+D** (or `?debug`). Tabs `GAME / SCENE / AUDIO / TRANSITION` + FPS counter.
-- **Every visual parameter is tunable** (`useSettings(folder, mutableObject, fields)`) with a **Copy values** button: Oré tunes live, then pastes the JSON to the AI, which turns it into the defaults.
+- Panel **Shift+D** (or `?debug`), mounted by the board's `<DebugSlot />`. Tabs `GAME / SCENE / TRANSITION` + FPS counter. It never runs on the production deployment (`NEXT_PUBLIC_APP_ENV`): use a preview or your machine.
+- **Every visual parameter is tunable** with a **Copy values** button: Oré tunes live, then pastes the JSON to the AI, which turns it into the defaults. The shared `Table` makes the folders for what it owns (camera and entrance, cards, seats, lights, floor, glows, share photo) and draws helpers over the table (axes, zone frames, seat spots), an inspector for the card under the pointer and a slow motion. The game binds its own objects with `useSettings(folder, mutableObject, fields)` of `@pbgo/table`, and its own buttons with `useDebugFolder` of `@pbgo/core` (`docs/engine/04-build-a-game/07-tuning.md` at the repo root).
 - Phase buttons (START / NEXT TURN / END) call `POST /api/<slug>/games/<code>/debug` (off in production unless `DEBUG_GAMES=1`).
 
 ---
@@ -163,7 +163,7 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 - Sanity schemas, GROQ queries, `typegen`, idempotent content migration scripts.
 - The game's binding: board, game data loaders, the game's own API routes when it needs some.
 - Table scene, animations, DOM UI, game over, sharing.
-- Expose **every visual setting in the debug panel** with "Copy values".
+- Expose **every visual setting of the game in the debug panel** with "Copy values" (`useSettings`; the table's own are already there).
 - Check each change: `pnpm typecheck`, `pnpm lint`, `pnpm --filter web build`, screenshots (headless rendering of the table is slow: screenshots check the layout, not the FPS).
 - Commit (gitmoji); never commit `.env.local` or unrelated local changes.
 - Never send Oré's email to a third-party service; never work around network blocks.
@@ -210,13 +210,13 @@ The owner fills the cards, colors and tiles one by one in the Studio, so every g
 - Home, lobby and game options (rendered from `GAME.options`), chat, absent players (per-player takeover votes, `StalledTurn`), game over, sharing
 - The in-game UI: the announcements, seat label, takeover pill and game over, tuned per game by `UI_THEME` only; the corners of the screen (ticker, players with their scores, chat, menu) in the platform's look, with nothing to tune
 - The table and the cards of the board, `@pbgo/table`: the `Table` (canvas, camera with its entrance, the endless surface the cards lie on, lights, share photo), and the `Card` (glide, flight, bend, hover frame, gloss, shadow), fed with a pose, two textures, a size and glows, the layout helpers (`fan`, `row`, `pile`, `grid`, `seats`) that compute where cards go, and the `Zone` and `Pile` that place them
-- Debug: panel, tabs, `useSettings` (Copy values, FPS), START / NEXT TURN / END buttons
+- Debug: panel, tabs, `useSettings` and the folders of the `Table` (Copy values, FPS, helpers, inspector, slow motion), START / NEXT TURN / END buttons
 - Rules: the "Game rules" row of the menu of the picture (top right) opens the PDF set per language in `settings` (Setup › Mechanics), the visitor's language, else English, else the first one set
 - SEO (metadata, robots, sitemap, share image), `api/media` proxy, admin `/gamemaster/<slug>` (Setup, Tasks, Monitoring + Vercel Web Analytics)
 
 **Specific (written per game, in `games/<slug>`)**
 - `packages/engine/src/<game>/` (rules, view, options, `waitingFor` / `autoPlayFor`, debug) and the `GAME` export
-- `layout.ts` (where the cards go, built on the layout helpers), `scene.tsx` (the `Table` with its surface, the `Zone`s, interactions), `camera.ts` (the settings of the camera and of the share photo, with their debug knobs), `textures.ts` (the faces and the back the shared `Card` wears), `glows.ts` (what the cards light up with), `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
+- `layout.ts` (where the cards go, built on the layout helpers), `scene.tsx` (the `Table` with its surface, the `Zone`s, interactions), `camera.ts` (the settings of the camera and of the share photo; the `Table` makes their debug knobs), `textures.ts` (the faces and the back the shared `Card` wears), `glows.ts` (what the cards light up with), `game.tsx` (header, the game's announcements, the panel of a simultaneous step)
 - `src/lib/site.ts` (with `ERROR_CODES`, the codes of the game's own refusals, the ones the engine throws that every game does not share: their messages are written in Sanity, and `src/error-codes.test.ts` keeps the list and the engine in step), `DEFAULT_SKIN` (player colours and behaviour, never a text), `UI_THEME` (optional), the game's own Sanity content types
 
 ---

@@ -107,7 +107,7 @@ export default function TermsOfUse() {
 
       <LegalSection id="plans" title="Paid plans">
         <LegalText>
-          The site is free. The Pricing page shows plans that are not on sale: nothing can be bought and nothing is charged. Before a paid plan opens, its price, how it is billed and how to cancel it are published, and these terms are updated.
+          The site is free. No paid plan is on sale: nothing can be bought and nothing is charged. Before a paid plan opens, its price, how it is billed and how to cancel it are published, and these terms are updated.
         </LegalText>
       </LegalSection>
 

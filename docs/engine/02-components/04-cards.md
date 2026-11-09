@@ -73,7 +73,7 @@ scene-card
 
 ### Settings
 
-`CARD_SETTINGS` is one object read on every frame by every card of the page, so a debug panel can tune it while the game runs. What a glow looks like belongs to the glow.
+`CARD_SETTINGS` is one object read on every frame by every card of the page, so the Card folder of the table's debug panel can tune it while the game runs (`CARD_FIELDS` lists the knobs; `thickness` is read when a card is drawn and has none). What a glow looks like belongs to the glow.
 
 | Field | Role |
 | --- | --- |
@@ -118,7 +118,7 @@ scene-glows
 
 - `Glow` is an object of these parts, and a part it leaves out is not built at all. `GlowSpec` is what a game writes: each part says only what differs from the defaults, which live in `glows.ts`, so `{ frame: {} }` is a frame with every default.
 - A card wears one glow at a time; a state that needs two looks at once is a glow of its own.
-- Colours, opacities and speeds are read on every frame, so a debug panel can tune them live; `spread` and `blend` are read when the card is drawn. Every glow gets its own part objects: tuning one never moves another.
+- Colours, opacities and speeds are read on every frame, so the table's debug panel tunes them live in a folder for each glow (`Glow · name`); `spread` and `blend` are read when the card is drawn. Every glow gets its own part objects: tuning one never moves another. `definedGlows()` lists the glows made so far and `glowNameOf(glow)` tells the name one was defined under, which the panel and the card inspector use.
 - Name a glow for its meaning in the game (`selection`, `gold`), not for its look.
 
 ## From the view to the board
