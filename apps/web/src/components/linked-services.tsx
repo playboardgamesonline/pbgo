@@ -14,13 +14,13 @@ import { Spinner } from "@pbgo/ui/platform/spinner"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { changing, failureOf } from "@/lib/settings-change"
 
-/** The name of a way in and, when the account holds it, the blue check at its right: the one place that says a service is linked, for every row of the list. */
+/** The name of a way in and, when the account holds it, the blue check right beside it: the one place that says a service is linked, for every row of the list. */
 export function ServiceName({ name, linked }: { name: string; linked: boolean }) {
   return (
-    <>
+    <span className="flex items-center gap-1">
       {name}
       {linked && <HugeiconsIcon icon={CheckmarkBadge01Icon} strokeWidth={2} role="img" aria-label="Linked" className="size-4 shrink-0 text-verified" />}
-    </>
+    </span>
   )
 }
 

@@ -4,7 +4,7 @@ import { MotionConfig } from "motion/react"
 import { useSyncExternalStore, type ReactNode } from "react"
 
 // Whether the platform's motion is reduced, for the code that decides it in JavaScript: the member's own choice, then their device's. The choice (`Reduce motion` of the settings) is written on `<html>` as `data-reduce-motion`, `always` or
-// `never`, by the head of every page before it paints and by the settings row when it is pressed (`MOTION_ATTRIBUTE` of `@pbgo/accounts/motion`, which says the same name: `reduced-motion.test.ts` keeps the two together); the stylesheet reads
+// `never`, by the head of every page before it paints and by the settings row when it is pressed (`MOTION_ATTRIBUTE` of `@pbgo/accounts/display`, which says the same name: `reduced-motion.test.ts` keeps the two together); the stylesheet reads
 // it too (`platform.css`, for the durations and the `motion-reduce:` and `motion-safe:` variants). Without it, the device's `prefers-reduced-motion` decides.
 
 /** The attribute of `<html>` that carries the member's choice. */

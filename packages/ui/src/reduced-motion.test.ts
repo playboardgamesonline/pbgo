@@ -20,8 +20,8 @@ describe("resolveReducedMotion", () => {
 })
 
 describe("the attribute of <html>", () => {
-  // The head script of every page (`@pbgo/accounts/motion`) writes it, the stylesheet and the hook read it: one name, said in three places, none of which can import the others
-  const accounts = readFileSync(new URL("../../accounts/src/motion.ts", import.meta.url), "utf8")
+  // The head script of every page (`@pbgo/accounts/display`) writes it, the stylesheet and the hook read it: one name, said in three places, none of which can import the others
+  const accounts = readFileSync(new URL("../../accounts/src/display.ts", import.meta.url), "utf8")
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
   it("is the one that the accounts' script writes", () => {
@@ -29,9 +29,11 @@ describe("the attribute of <html>", () => {
   })
 
   it("is the one that the stylesheet reads: for the durations, and for both of the variants", () => {
-    const named = css.match(/\[(data-[a-z-]+)="(?:always|never)"\]/g) ?? []
-    expect(named.length).toBeGreaterThan(0)
-    for (const selector of named) expect(selector.startsWith(`[${MOTION_ATTRIBUTE}=`)).toBe(true)
+    const named = css.match(/\[(data-reduce-[a-z]+)="(?:always|never)"\]/g) ?? []
+    const motion = named.filter((selector) => selector.startsWith(`[${MOTION_ATTRIBUTE}=`))
+    expect(motion.length).toBeGreaterThan(0)
+    // The other attribute is the transparency's (`@pbgo/accounts/display`), which only the glass reads: nothing else is named
+    for (const selector of named) expect(selector.startsWith(`[${MOTION_ATTRIBUTE}=`) || selector.startsWith("[data-reduce-transparency=")).toBe(true)
     expect(css).toMatch(/@custom-variant motion-reduce/)
     expect(css).toMatch(/@custom-variant motion-safe/)
     expect(css).toMatch(/:root\[data-reduce-motion="always"\]\.platform/)

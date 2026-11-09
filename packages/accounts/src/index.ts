@@ -7,8 +7,8 @@ export { OLDEST_AGE, RESTRICTED_FROM, SITE_MINIMUM_AGE, ageInYears, ageOn, ageRe
 export type { AgeRefusal, AgeSubject, BirthdateProblem, CalendarDate } from "./age"
 export { PROVIDERS, PROVIDER_NAMES, accountOf, emailOf, initialsOf } from "./account"
 export type { Account, AuthUser, LinkedService, Provider } from "./account"
-export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_MOTION_CHOICES, TIME_FORMATS, hourCycleOf, isReduceMotion, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
-export type { PreferenceName, Preferences, ReduceMotion, SwitchPreferenceName, TimeFormat } from "./preferences"
+export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_CHOICES, TIME_FORMATS, hourCycleOf, isReduceChoice, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"
+export type { PreferenceName, Preferences, ReduceChoice, SwitchPreferenceName, TimeFormat } from "./preferences"
 export {
   COUNTRY_CODES,
   COUNTRY_KEY,

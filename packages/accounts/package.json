@@ -12,7 +12,7 @@
     "./proxy": "./src/proxy.ts",
     "./language": "./src/language.ts",
     "./set-language": "./src/set-language.ts",
-    "./motion": "./src/motion.ts",
+    "./display": "./src/display.ts",
     "./demo": "./src/demo.ts",
     "./presence": "./src/presence.ts",
     "./demo-avatars": "./src/demo-avatars.ts"

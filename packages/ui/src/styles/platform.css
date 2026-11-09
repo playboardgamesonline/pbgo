@@ -671,6 +671,24 @@
     --transition-duration-slow: 0ms;
   }
 
+  /*
+   * The glass solid when the visitor asks for less transparency: their device does (`prefers-reduced-transparency`), or they chose it on their account, which the head of every page writes on <html> before the first paint as
+   * `data-reduce-transparency` (`always`, or `never`, which keeps the glass whatever the device says; absent when the device decides). The three settings of the glass are variables of `.platform`, so a container that is `glass` needs nothing more.
+   */
+  @media (prefers-reduced-transparency: reduce) {
+    :root:not([data-reduce-transparency="never"]).platform,
+    :root:not([data-reduce-transparency="never"]) .platform {
+      --glass-opacity: 100%;
+      --glass-blur: 0px;
+    }
+  }
+
+  :root[data-reduce-transparency="always"].platform,
+  :root[data-reduce-transparency="always"] .platform {
+    --glass-opacity: 100%;
+    --glass-blur: 0px;
+  }
+
   .platform :is(h1, h2, h3, h4) {
     letter-spacing: var(--tracking-tight);
     text-wrap: balance;

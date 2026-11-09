@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Cookie Policy", alternates: { canoni
 /**
  * Everything the site writes on a device, one entry for a name (`LegalEntries`): what it is, what it is for, how long it lasts and when it is written.
  * The entries are the code's (`player.ts`, `admin.ts`, `language-select.tsx`, `consent.ts`, `profile.ts`, `sound.ts`, `folded-games.ts`, `matchmaking.ts`,
- * `debug-controls.ts`, the cookies of `@pbgo/accounts`, the motion cookie among them: `motion.ts`): a new cookie or storage key is added here at the same time, or the page says less than the site
+ * `debug-controls.ts`, the cookies of `@pbgo/accounts`, the display cookies among them: `display.ts`): a new cookie or storage key is added here at the same time, or the page says less than the site
  * does. Everything else the site does with personal data is the Privacy Policy's, and the inventory behind both is `docs/legal.md`.
  */
 const Stored = (props: { items: { name: string; text: ReactNode }[] }) => <LegalEntries mono {...props} />
@@ -86,6 +86,10 @@ export default function CookiePolicy() {
             {
               name: "pbgo-motion",
               text: "A cookie that remembers whether you asked the site to reduce its animations, or to keep them whatever your device says (the \"Reduce motion\" setting). Kept one year; written when you choose it in your settings and, if you have an account, when your account's choice is applied to this device. With \"Match my device\" there is no cookie. Your account keeps the choice too, so that it follows you from one device to the next.",
+            },
+            {
+              name: "pbgo-transparency",
+              text: "A cookie that remembers whether you asked the site to make its see-through surfaces solid, or to keep them whatever your device says (the \"Reduce transparency\" setting). Kept one year; written when you choose it in your settings and, if you have an account, when your account's choice is applied to this device. With \"Match my device\" there is no cookie. Your account keeps the choice too, so that it follows you from one device to the next.",
             },
             {
               name: "pbgo-consent",

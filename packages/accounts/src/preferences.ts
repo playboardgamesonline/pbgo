@@ -11,10 +11,10 @@ export const TIME_FORMATS = ["auto", "12h", "24h"] as const
 
 export type TimeFormat = (typeof TIME_FORMATS)[number]
 
-/** Whether the site's motion follows the device (`auto`: the `prefers-reduced-motion` setting of its system), is always reduced, or never is. */
-export const REDUCE_MOTION_CHOICES = ["auto", "always", "never"] as const
+/** What a member says of a way the site can be reduced (its motion, its transparency): `auto` follows their device (the `prefers-reduced-motion` or `prefers-reduced-transparency` setting of its system), `always` reduces it, `never` keeps it whatever the device says. */
+export const REDUCE_CHOICES = ["auto", "always", "never"] as const
 
-export type ReduceMotion = (typeof REDUCE_MOTION_CHOICES)[number]
+export type ReduceChoice = (typeof REDUCE_CHOICES)[number]
 
 /** The keys of the preferences, by name. A switch holds a boolean, a choice one of its few words; a value that is not one (the member can write their own `user_metadata`) reads as the default. */
 export const PREFERENCE_KEYS = {
@@ -28,6 +28,8 @@ export const PREFERENCE_KEYS = {
   timeFormat: "pbgo_time_format",
   /** Whether the site's animations are reduced, whatever their device says. */
   reduceMotion: "pbgo_reduce_motion",
+  /** Whether the glass of the site (its blurred, see-through surfaces) is made solid, whatever their device says. */
+  reduceTransparency: "pbgo_reduce_transparency",
 } as const
 
 export type PreferenceName = keyof typeof PREFERENCE_KEYS
@@ -37,14 +39,15 @@ export type Preferences = {
   notifyInvites: boolean
   hideHistory: boolean
   timeFormat: TimeFormat
-  reduceMotion: ReduceMotion
+  reduceMotion: ReduceChoice
+  reduceTransparency: ReduceChoice
 }
 
 /** The preferences that are a switch: what a `PreferenceRow` holds. */
 export type SwitchPreferenceName = { [Name in PreferenceName]: Preferences[Name] extends boolean ? Name : never }[PreferenceName]
 
 /** What a preference is until the member sets it. */
-export const DEFAULT_PREFERENCES: Preferences = { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto" }
+export const DEFAULT_PREFERENCES: Preferences = { notifyTurn: true, notifyInvites: true, hideHistory: false, timeFormat: "auto", reduceMotion: "auto", reduceTransparency: "auto" }
 
 /** The `hourCycle` option of an `Intl.DateTimeFormat` that a choice sets: the clock of 12 hours or of 24, and nothing for Automatic, which leaves it to the language the formatter writes in. */
 export function hourCycleOf(format: TimeFormat): "h12" | "h23" | undefined {
@@ -54,8 +57,8 @@ export function hourCycleOf(format: TimeFormat): "h12" | "h23" | undefined {
 /** Whether a value is a way of writing the time (the key holds anything the member wrote, a cookie or a form too). */
 export const isTimeFormat = (value: unknown): value is TimeFormat => typeof value === "string" && (TIME_FORMATS as readonly string[]).includes(value)
 
-/** Whether a value is one of the three choices for the site's motion. */
-export const isReduceMotion = (value: unknown): value is ReduceMotion => typeof value === "string" && (REDUCE_MOTION_CHOICES as readonly string[]).includes(value)
+/** Whether a value is one of the three choices for reducing the site (the key holds anything the member wrote, a cookie too). */
+export const isReduceChoice = (value: unknown): value is ReduceChoice => typeof value === "string" && (REDUCE_CHOICES as readonly string[]).includes(value)
 
 /** The part of an account that holds the free object `user_metadata`: a user of Supabase Auth, or what the tests make of one. */
 type WithMetadata = { user_metadata?: Record<string, unknown> | null }
@@ -69,12 +72,14 @@ export function preferencesOf(user: WithMetadata): Preferences {
   }
   const timeFormat = claims[PREFERENCE_KEYS.timeFormat]
   const reduceMotion = claims[PREFERENCE_KEYS.reduceMotion]
+  const reduceTransparency = claims[PREFERENCE_KEYS.reduceTransparency]
   return {
     notifyTurn: flag("notifyTurn"),
     notifyInvites: flag("notifyInvites"),
     hideHistory: flag("hideHistory"),
     timeFormat: isTimeFormat(timeFormat) ? timeFormat : DEFAULT_PREFERENCES.timeFormat,
-    reduceMotion: isReduceMotion(reduceMotion) ? reduceMotion : DEFAULT_PREFERENCES.reduceMotion,
+    reduceMotion: isReduceChoice(reduceMotion) ? reduceMotion : DEFAULT_PREFERENCES.reduceMotion,
+    reduceTransparency: isReduceChoice(reduceTransparency) ? reduceTransparency : DEFAULT_PREFERENCES.reduceTransparency,
   }
 }
 

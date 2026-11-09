@@ -404,6 +404,8 @@ describe("the changes of an account (PLT-111)", () => {
     expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_time_format: "24h" } })
     await savePreference("reduceMotion", "always")
     expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_reduce_motion: "always" } })
+    await savePreference("reduceTransparency", "never")
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ data: { pbgo_reduce_transparency: "never" } })
   })
 
   it("keeps the country under the key that is ours, and takes it away with null", async () => {

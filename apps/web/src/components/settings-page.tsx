@@ -17,6 +17,19 @@ export function SettingsPage({ title, description, children }: { title: string; 
   )
 }
 
+/** A setting that stands under a heading of its own, with a line that says what it is for and its control under them: the way a setting with a long list or a few choices to read is laid out (`Language & Time`), where a row with a switch would be too small. */
+export function SettingsField({ title, description, className, children }: { title: string; description?: string; className?: string; children: ReactNode }) {
+  return (
+    <section aria-label={title} className={cn("flex flex-col gap-4", className)}>
+      <div>
+        <h3 className="text-base">{title}</h3>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      </div>
+      {children}
+    </section>
+  )
+}
+
 /** A group of rows under a small title, with a line under it when the group needs one: `Item`s one under the other, 8px apart. */
 export function SettingsGroup({ title, description, className, children }: { title: string; description?: string; className?: string; children: ReactNode }) {
   return (

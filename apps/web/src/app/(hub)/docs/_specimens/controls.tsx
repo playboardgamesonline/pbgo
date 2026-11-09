@@ -12,6 +12,7 @@ import { Input } from "@pbgo/ui/platform/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@pbgo/ui/platform/input-group"
 import { Label } from "@pbgo/ui/platform/label"
 import { PasswordInput } from "@pbgo/ui/platform/password-input"
+import { RadioGroup, RadioGroupItem } from "@pbgo/ui/platform/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Spinner } from "@pbgo/ui/platform/spinner"
 import { Switch } from "@pbgo/ui/platform/switch"
@@ -387,6 +388,40 @@ function SelectDefaultAndSmall() {
   )
 }
 
+function RadioGroupStates() {
+  return (
+    <Frame className="max-w-xs" code={`<RadioGroup defaultValue="auto">
+  <div className="flex items-center gap-3">
+    <RadioGroupItem id="time-auto" value="auto" />
+    <Label htmlFor="time-auto">Automatic</Label>
+  </div>
+  <div className="flex items-center gap-3">
+    <RadioGroupItem id="time-12h" value="12h" />
+    <Label htmlFor="time-12h">12-hour</Label>
+  </div>
+  <div className="flex items-center gap-3">
+    <RadioGroupItem id="time-24h" value="24h" disabled />
+    <Label htmlFor="time-24h">24-hour</Label>
+  </div>
+</RadioGroup>`}>
+      <RadioGroup defaultValue="auto">
+        <div className="flex items-center gap-3">
+          <RadioGroupItem id="specimen-time-auto" value="auto" />
+          <Label htmlFor="specimen-time-auto">Automatic</Label>
+        </div>
+        <div className="flex items-center gap-3">
+          <RadioGroupItem id="specimen-time-12h" value="12h" />
+          <Label htmlFor="specimen-time-12h">12-hour</Label>
+        </div>
+        <div className="flex items-center gap-3">
+          <RadioGroupItem id="specimen-time-24h" value="24h" disabled />
+          <Label htmlFor="specimen-time-24h">24-hour</Label>
+        </div>
+      </RadioGroup>
+    </Frame>
+  )
+}
+
 function InlineEditRow() {
   return (
     <Frame className="max-w-xl" code={`<InlineEdit
@@ -611,6 +646,7 @@ export const controlsSpecimens: Specimens = {
   "select-default-and-small": SelectDefaultAndSmall,
   "combobox-in-a-popover": ComboboxInAPopover,
   "inline-edit-row": InlineEditRow,
+  "radio-group-states": RadioGroupStates,
   "inline-edit-fields": InlineEditFields,
   "slider-one-thumb": SliderOneThumb,
   "meter-levels": MeterLevels,

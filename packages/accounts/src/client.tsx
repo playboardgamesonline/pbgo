@@ -9,7 +9,7 @@ import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed, isDemoAccount } from "./demo"
 import { COUNTRY_KEY } from "./details"
 import { LANGUAGE_KEY, languageCookie, languageOf, type PlatformLanguage } from "./language"
-import { applyMotion, syncMotion } from "./motion"
+import { applyDisplay, syncDisplay } from "./display"
 import { NICKNAME_KEY, PREFERENCE_KEYS, type PreferenceName, type Preferences } from "./preferences"
 import { safeNext } from "./redirect"
 import { syncLanguage } from "./language-sync"
@@ -269,13 +269,14 @@ export async function renewIfLanguageChanged(): Promise<boolean> {
 }
 
 /**
- * Keeps the device of a signed-in member in step with their account's choice for the site's motion (`syncMotion`), each time the browser reads their session: the cookie and the attribute of `<html>` are written when they hold another
- * choice. A choice made on another device arrives with the next renewal of the session, within the hour. Nothing for a guest and for the demo account. Mount it once, where `useAccount` already is (`MotionSync` of the app).
+ * Keeps the device of a signed-in member in step with their account's choices for how the site is shown, its motion and its transparency (`syncDisplay`), each time the browser reads their session: the cookie and the attribute of `<html>` are
+ * written for each setting whose cookie holds another choice. A choice made on another device arrives with the next renewal of the session, within the hour. Nothing for a guest and for the demo account. Mount it once, where `useAccount`
+ * already is (`DisplaySync` of the app).
  */
-export function useMotionSync(): void {
+export function useDisplaySync(): void {
   const state = useAccount()
   useEffect(() => {
-    syncMotion(state, document.cookie, (choice) => applyMotion(choice))
+    syncDisplay(state, document.cookie, applyDisplay)
   }, [state])
 }
 

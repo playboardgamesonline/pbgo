@@ -2,6 +2,8 @@
 
 A container that floats over the page (a navbar island, the dock, a panel, a bar, a menu, a chat) is `glass`, a utility of `platform.css`: the grey of a card, partly translucent (`--glass-opacity`), over a blur (`--glass-blur`) that saturates what it blurs (`--glass-saturate`). The three settings are on `.platform` and the same for every container: no component picks a blur of its own. The one exception is the search bar, which uses the lighter `--card-bar` (see [The one grey](01-colors.md#the-one-grey)) so that it is read first. To change the glass of every container, change these variables or the `--card` mix, nowhere else.
 
+The glass follows the member's Reduce transparency choice (their settings, Appearance: always, never, or their device's): its opacity goes to full and its blur to none, so every container is a solid grey and no component checks. Nothing else sets these two settings.
+
 ## The settings, live
 
 Move the settings on real components: an island of the navbar, the search bar, a panel. The search bar keeps its own grey, so only the blur and the saturation move it.
