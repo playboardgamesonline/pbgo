@@ -1,22 +1,27 @@
 import "server-only"
-import { feedbackCutoff, finishedStateCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
+import { deletionLinkCutoff, feedbackCutoff, finishedStateCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
+import { dueAccounts, eraseAccount, purgeDeletionLinks } from "./account-deletion"
+import { FEEDBACK_BATCH_SIZE, removeFeedbackRows, type FeedbackRow } from "./feedback-removal"
 import { supabaseAdmin } from "./supabase"
-import { FEEDBACK_BUCKET } from "./tasks"
 
 /** Feedback goes in batches of this size, so that a request to the Storage API and a `delete` stay small. */
-export const PURGE_BATCH_SIZE = 100
+export const PURGE_BATCH_SIZE = FEEDBACK_BATCH_SIZE
 /** A run deletes this many batches at most (5,000 feedback): a backlog is finished by the next nights and a run stays short. */
 export const PURGE_MAX_BATCHES = 50
 /** The seats of the old unranked games go in batches of this size, and the states of the tables that are over in batches of the second (`fold_old_results` and `drop_finished_states`, migration 0008); a run does 20 batches at most of each. */
 export const FOLD_BATCH_SIZE = 1000
 export const STATE_BATCH_SIZE = 500
 export const SWEEP_MAX_BATCHES = 20
+/** A run deletes this many accounts whose day has passed (PLT-36) and no more: each takes the feedback sent with its address with it, and the rest are for the next nights. */
+export const ERASE_MAX_ACCOUNTS = 20
+/** A dry run counts the accounts that are due up to this many. */
+const ERASE_DRY_LIMIT = 1000
 
 export type PurgeReport = {
   /** Nothing was deleted: the counts are what a real run would delete now */
   dryRun: boolean
-  /** A table last written before the first, a feedback received before the second, a member last seen before the third, the state of a table that is over before the fourth, the seats of an unranked game that ended before the fifth, is old enough (`lib/retention.ts`) */
-  cutoffs: { tables: string; feedback: string; presence: string; states: string; seats: string }
+  /** A table last written before the first, a feedback received before the second, a member last seen before the third, the state of a table that is over before the fourth, the seats of an unranked game that ended before the fifth, a link of the e-mail of a deletion that stopped working before the sixth, is old enough (`lib/retention.ts`) */
+  cutoffs: { tables: string; feedback: string; presence: string; states: string; seats: string; links: string }
   tables: number
   feedback: number
   /** The members' rows of `member_presence` (the last time each was seen on the site) */
@@ -25,8 +30,14 @@ export type PurgeReport = {
   states: number
   /** The seats of unranked games, folded into the totals of their players (`game_participants`) */
   seats: number
-  /** The screenshots of those feedback, removed from the bucket before their rows */
+  /** The screenshots of those feedback, and of the feedback that went with an account, removed from the bucket before their rows */
   screenshots: number
+  /** The links of the e-mail of a deletion that nobody confirmed (`account_deletions`: the hash of a token and when it stopped working) */
+  links: number
+  /** The accounts on hold whose day has passed, deleted with what they hold (PLT-36) */
+  accounts: number
+  /** The feedback sent with the address of one of those accounts, deleted before it (screenshots in `screenshots`) */
+  accountFeedback: number
   /** One line per job that failed (the other one still ran); empty when all went well */
   errors: string[]
 }
@@ -47,8 +58,9 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     presence: presenceCutoff(now).toISOString(),
     states: finishedStateCutoff(now).toISOString(),
     seats: unrankedSeatCutoff(now).toISOString(),
+    links: deletionLinkCutoff(now).toISOString(),
   }
-  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, states: 0, seats: 0, screenshots: 0, errors: [] }
+  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, states: 0, seats: 0, screenshots: 0, links: 0, accounts: 0, accountFeedback: 0, errors: [] }
   try {
     report.tables = await purgeTables(cutoffs.tables, dryRun)
   } catch (error) {
@@ -70,11 +82,43 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     report.errors.push(`seats: ${messageOf(error)}`)
   }
   try {
+    report.links = await purgeDeletionLinks(new Date(cutoffs.links), dryRun)
+  } catch (error) {
+    report.errors.push(`links: ${messageOf(error)}`)
+  }
+  try {
+    await eraseDueAccounts(now, dryRun, report)
+  } catch (error) {
+    report.errors.push(`accounts: ${messageOf(error)}`)
+  }
+  try {
     await purgeFeedback(cutoffs.feedback, dryRun, report)
   } catch (error) {
     report.errors.push(`feedback: ${messageOf(error)}`)
   }
   return report
+}
+
+/**
+ * Deletes the accounts whose member asked for it and confirmed it, once their day has passed (PLT-36): `ERASE_MAX_ACCOUNTS` at most in a run, the oldest first. Each takes the feedback sent with its address with it, then goes with what it holds
+ * (`erase_account`, migration 0011). An account that fails is reported and the others still go; the next night finds it again. The error says what failed, never whose account it was. With `dryRun` it only counts.
+ */
+async function eraseDueAccounts(now: Date, dryRun: boolean, report: PurgeReport) {
+  const due = await dueAccounts(now, dryRun ? ERASE_DRY_LIMIT : ERASE_MAX_ACCOUNTS)
+  if (dryRun) {
+    report.accounts = due.length
+    return
+  }
+  for (const account of due) {
+    try {
+      const done = await eraseAccount(account.userId, account.email, { dueBefore: now })
+      if (done.erased) report.accounts += 1
+      report.accountFeedback += done.feedback
+      report.screenshots += done.screenshots
+    } catch (error) {
+      report.errors.push(`accounts: ${messageOf(error)}`)
+    }
+  }
 }
 
 /**
@@ -131,27 +175,12 @@ async function purgeFeedback(cutoff: string, dryRun: boolean, report: PurgeRepor
   for (let batch = 0; batch < PURGE_MAX_BATCHES; batch++) {
     const { data, error } = await db.from("feedback").select("id, screenshot").lt("created_at", cutoff).order("created_at").limit(PURGE_BATCH_SIZE)
     if (error) throw error
-    const rows = (data ?? []) as Array<{ id: string; screenshot: string | null }>
+    const rows = (data ?? []) as FeedbackRow[]
     if (!rows.length) return
-    const paths = rows.flatMap((row) => (row.screenshot ? [row.screenshot] : []))
-    // The screenshots first, through the Storage API (a SQL delete leaves the file in the bucket, see `docs/supabase-and-env.md`):
-    // a row that outlives its image is found again tomorrow, an image that outlives its row can never be found again
-    if (paths.length) {
-      const { error: removeError } = await db.storage.from(FEEDBACK_BUCKET).remove(paths)
-      if (removeError) throw removeError
-    }
-    const ids = rows.map((row) => row.id)
-    const { count, error: deleteError } = await db.from("feedback").delete({ count: "exact" }).in("id", ids)
-    if (deleteError) throw deleteError
-    report.feedback += count ?? 0
-    report.screenshots += count ? paths.length : 0
-    if (!count) {
-      // None went. Vercel can call a job twice and the other run may have deleted these rows first, which is fine; rows that are still there are an error,
-      // and the next batch would be the same one
-      const { data: left, error: leftError } = await db.from("feedback").select("id").in("id", ids)
-      if (leftError) throw leftError
-      if (left?.length) throw new Error("feedback found but not deleted")
-    }
+    // The screenshots first, then the rows (`removeFeedbackRows`): a row that outlives its image is found again tomorrow, an image that outlives its row can never be found again
+    const done = await removeFeedbackRows(db, rows)
+    report.feedback += done.deleted
+    report.screenshots += done.screenshots
     if (rows.length < PURGE_BATCH_SIZE) return
   }
 }

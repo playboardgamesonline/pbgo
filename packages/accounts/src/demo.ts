@@ -28,6 +28,15 @@ export const DEMO_ACCOUNT: Account = {
     { provider: "email", detail: "ore@example.com" },
     { provider: "google", detail: "ore@example.com" },
   ],
+  deletionAt: null,
+}
+
+/** The value of the demo cookie that stands for the demo account ON HOLD (`/auth/demo?held=1`): the sign-in page offers to keep it or to delete it, so that page can be seen with no account behind it. The value `1` is the account in use. */
+export const DEMO_HELD = "held"
+
+/** The demo account on hold, with a day made up a month ahead. */
+export function heldDemoAccount(now: Date = new Date()): Account {
+  return { ...DEMO_ACCOUNT, deletionAt: new Date(now.getTime() + 29 * 24 * 60 * 60 * 1000).toISOString() }
 }
 
 /** Whether an account is the demo account of development: its id is not a UUID, which is what every id of Supabase Auth is, so no real account can have it. */

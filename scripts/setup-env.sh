@@ -11,6 +11,11 @@
 #   CRON_SECRET                     what Vercel Cron sends to /api/cron/purge (the nightly clean-up of old tables and feedback),
 #                                   32 characters at least. Like the session key: this file's, else the one of .env.local, else
 #                                   a new one, appended here and never overwritten. Pushed to every Vercel target
+#   RESEND_API_KEY                  optional: the key of Resend (re_…) that the site's own code sends e-mails with (the link that
+#                                   confirms the deletion of an account), made in Resend's dashboard with sending access only,
+#                                   limited to the domain mail.playboardgamesonline.app. Not the key of Supabase's SMTP settings.
+#                                   Written to .env.local and pushed to every Vercel target. Without it a development server prints
+#                                   the e-mail in its terminal, and a deployment cannot send it: deleting an account says so
 #   SUPABASE_ACCESS_TOKEN          Supabase personal token: API keys read, migrations applied
 #   SUPABASE_PROJECT_REF            production project, shared by every game (rows carry a `game` column)
 #   SUPABASE_PREVIEW_PROJECT_REF    preview project (pbgo-preview), another project than the production one
@@ -356,6 +361,16 @@ for k in VERCEL_TOKEN VERCEL_TEAM_ID; do
   if [ -z "$v" ]; then warn "$k not set"; elif safe "$v"; then envset "$ENV_FILE" "$k" "$v"; ok "$k"; else err "$k: unexpected characters"; fi
 done
 
+# ---------- E-mails of the site (optional) ----------
+# The key of the mail provider for the e-mails that the site's own code sends (core/server/mail.ts: the link that confirms the
+# deletion of an account). Shape-checked like the PostHog pair: a value that is not a Resend key is neither written nor pushed, and
+# never named in the message
+title "E-mails sent by the site (optional)"
+RESEND_KEY="$(setting RESEND_API_KEY)"
+if [ -z "$RESEND_KEY" ]; then warn "RESEND_API_KEY not set: a development server prints the e-mails it would send, and a deployment cannot send them (deleting an account is not available there)"
+elif safe "$RESEND_KEY" && [[ "$RESEND_KEY" == re_* ]] && [ "${#RESEND_KEY}" -ge 20 ]; then envset "$ENV_FILE" RESEND_API_KEY "$RESEND_KEY"; ok "RESEND_API_KEY"
+else err "RESEND_API_KEY: a key of Resend (re_…) is expected; it is neither written nor pushed"; fi
+
 # ---------- PostHog (optional) ----------
 # Both values or neither (the key is public: it ships to the browser). The pair is checked with the app's own resolveConfig
 # (packages/analytics/src/config.ts, imported by Node like the registry): one it refuses would deploy a site that reports
@@ -484,7 +499,7 @@ if [ "$PUSH" = 1 ] && [ -n "$VID" ]; then
   while read -r k; do
     [[ "$FROM_VERCEL" == *"|$k|"* ]] && continue
     v="$(envget "$ENV_FILE" "$k")"; [ -n "$v" ] && push "$k" "$v" "$ALL"
-  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
+  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET RESEND_API_KEY VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
   [ -z "$(envget "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID)" ] && envset "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID "$VID"
   PUSHED=1
 fi

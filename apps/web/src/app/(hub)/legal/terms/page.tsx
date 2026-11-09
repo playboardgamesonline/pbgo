@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { ACCOUNT_DELETION_GRACE_DAYS } from "@pbgo/core/lib/retention"
 import { LEGAL_LINK, LegalList, LegalPage, LegalSection, LegalText, LegalUpdated } from "@/components/legal-page"
 import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 
@@ -7,7 +8,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Terms of Use", alternates: { canonical: "/legal/terms" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "6 November 2026"
+const UPDATED = "9 November 2026"
 
 /**
  * The rules of using the site, for a guest as much as for an account (the sign-in and the sign-up pages say that continuing, or creating an account, accepts them, `login-card.tsx`, `signup-card.tsx`). What the owner chose to ship without is not on the page: the
@@ -116,7 +117,8 @@ export default function TermsOfUse() {
 
       <LegalSection id="ending" title="Ending">
         <LegalText>
-          You can stop using the site at any time, and ask us to delete your account by writing to {mail}. We can suspend or end your access, or delete your account, if you break these terms or the law, or if we stop the service. When we can, we tell you why.
+          You can stop using the site at any time, and delete your account yourself in your settings: we e-mail you a link to confirm it, and keep the account for {ACCOUNT_DELETION_GRACE_DAYS} days in case you change your mind. If you cannot, or if your account has no
+          e-mail address, write to {mail}. We can suspend or end your access, or delete your account, if you break these terms or the law, or if we stop the service. When we can, we tell you why.
         </LegalText>
       </LegalSection>
 

@@ -2,7 +2,16 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
-import { FEEDBACK_RETENTION_MONTHS, FINISHED_STATE_RETENTION_HOURS, PRESENCE_RETENTION_DAYS, TABLE_RETENTION_DAYS, UNRANKED_SEAT_RETENTION_MONTHS } from "@pbgo/core/lib/retention"
+import {
+  ACCOUNT_DELETION_GRACE_DAYS,
+  ACCOUNT_DELETION_LINK_MINUTES,
+  ACCOUNT_DELETION_LINK_RETENTION_DAYS,
+  FEEDBACK_RETENTION_MONTHS,
+  FINISHED_STATE_RETENTION_HOURS,
+  PRESENCE_RETENTION_DAYS,
+  TABLE_RETENTION_DAYS,
+  UNRANKED_SEAT_RETENTION_MONTHS,
+} from "@pbgo/core/lib/retention"
 import { LEGAL_LINK, LegalEntries, LegalPage, LegalSection, LegalText, LegalUpdated } from "@/components/legal-page"
 import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 
@@ -10,7 +19,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/legal/privacy" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "8 November 2026"
+const UPDATED = "9 November 2026"
 
 /**
  * Everything the site does with personal data, in the order a person meets it. Every line is the code's, and the table of `docs/legal.md` lists where: a new field that holds
@@ -19,6 +28,7 @@ const UPDATED = "8 November 2026"
  */
 export default function PrivacyPolicy() {
   const consent = <ConsentLink className={`cursor-pointer ${LEGAL_LINK}`}>this link</ConsentLink>
+  const linkTime = ACCOUNT_DELETION_LINK_MINUTES % 60 === 0 ? `${ACCOUNT_DELETION_LINK_MINUTES / 60} ${ACCOUNT_DELETION_LINK_MINUTES === 60 ? "hour" : "hours"}` : `${ACCOUNT_DELETION_LINK_MINUTES} minutes`
   return (
     <LegalPage title="Privacy Policy" href="/legal/privacy">
       {/* The line of the stub that this page replaces: it goes when the owner says the text is final (PLT-110) */}
@@ -130,14 +140,23 @@ export default function PrivacyPolicy() {
               text: "For each game you play, we count your games, how many you won and how long you played. When a game counts for the ranks (a ranked game, where every seat is a different account and nobody played for another), we also keep rank points for you in that game: you earn points by winning, more when your opponents are stronger than you, and you lose points by losing, more when they are weaker, and your points set your rank. Behind the points we keep a hidden rating, which says how strong a player is, and what each game did to it. The rating is hidden: it is never shown and never sent to your browser; the site shows your rank, the points a game gave or took and, from your fifth ranked game, your place. The best players of a game are listed on its page, for every visitor, with the name and the picture of their account, their rank and their place. Your totals, your rating and the link between you and your games are deleted with your account. Hiding your game history in your settings hides your games from your profile for the other players. It does not stop us from writing your games down, since your totals and your rank are made of them, and it does not take you off the list of the best players of a game.",
             },
             {
+              name: "Deleting your account",
+              text: `You delete your account yourself, in your settings. We e-mail a confirmation link to the address of your account, through our e-mail provider, with your name in the greeting. The link works once, for ${linkTime}, and the page it opens asks you once more. To keep a trace that you asked, we write down a scrambled form of the link's token (never the token), when it stops working and when you asked; that trace goes ${ACCOUNT_DELETION_LINK_RETENTION_DAYS} ${ACCOUNT_DELETION_LINK_RETENTION_DAYS === 1 ? "day" : "days"} after the link stops working, or with the account. Once you confirm, we write the day your account will be deleted on the account itself and you are signed out everywhere.`,
+            },
+            {
               name: "Keeping and deleting",
               text: (
                 <>
-                  Your account stays until you ask us to delete it, by writing to{" "}
+                  After you confirm, your account is kept for {ACCOUNT_DELETION_GRACE_DAYS} days, so that you can change your mind: it is on hold, which means you are signed out everywhere and the site takes it for a visitor, so it sits at no new table and is not counted among the players online. If you sign in again during
+                  that time, you can keep your account or delete it right away. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name,
+                  picture address, password and the services linked to it), your language and your settings, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name and the picture
+                  that a table or a game had copied from your account are erased, and your games stay as those of a deleted player, without your name or your picture. Your e-mail address can then be used for a new account. An account without an
+                  e-mail address cannot ask from the site: write to{" "}
                   <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
                     {CONTACT}
-                  </a>
-                  . We then delete it with what it holds: your totals and your rating go with it, and your games stay as those of a deleted player, without your name or your picture.
+                  </a>{" "}
+                  and we delete it; write to us as well if you cannot sign in. Some things stay: the counts of the statistics, which carry a player identifier and never your account, so deleting your account cannot find them (they go by themselves, see
+                  Statistics), the record that our e-mail provider keeps of the e-mails it sent, and the technical logs of our host, for the time each of them keeps them.
                 </>
               ),
             },
@@ -182,6 +201,10 @@ export default function PrivacyPolicy() {
                   ),
                 },
                 { name: "How long", text: "Counts are kept for 12 months at most, session replays for 30 days." },
+                {
+                  name: "When you delete your account",
+                  text: "These counts carry a player identifier, which is a code made from the secret of a cookie of one game on one device, and never your account or your e-mail address. Nothing links them to your account, so deleting it does not delete them: they go by themselves, after the time above.",
+                },
               ]}
             />
           </>
@@ -196,7 +219,7 @@ export default function PrivacyPolicy() {
             { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language, keeping your games, your totals and your rank: we could not do it without your data." },
             {
               name: "Our legitimate interest",
-              text: "In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, and counting what happens at tables to fix and improve the games. You can object to this (see Your rights).",
+              text: `In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, counting what happens at tables to fix and improve the games, and keeping an account for ${ACCOUNT_DELETION_GRACE_DAYS} days after its deletion was confirmed, so that nobody loses it by mistake or by someone else's hand. You can object to this (see Your rights).`,
             },
             ...(ANALYTICS_ENABLED
               ? [{ name: "Your consent", text: "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. You can say no, and change your mind at any time." }]
@@ -212,7 +235,10 @@ export default function PrivacyPolicy() {
           items={[
             { name: "Vercel", text: "Hosts the site and runs its servers, in Paris. Receives your IP address and browser details with every request." },
             { name: "Supabase", text: "Our database, our sign-in service and the live updates of tables, in Paris. Holds the tables, the accounts and the feedback, relays the chat, and writes the e-mail that confirms an address." },
-            { name: "Resend", text: "Sends the e-mail that confirms an address, for our sign-in service. Receives your e-mail address and the content of that e-mail (the code and the link), and keeps a record of what it sent for 30 days." },
+            {
+              name: "Resend",
+              text: "Sends the e-mails of the site: the one that confirms an address, for our sign-in service, and the one that asks you to confirm the deletion of your account, which our servers send. Receives your e-mail address, your name (in the greeting) and the content of the e-mail (the code or the link), and keeps a record of what it sent for 30 days.",
+            },
             ...(ANALYTICS_ENABLED
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]
               : []),
@@ -246,7 +272,7 @@ export default function PrivacyPolicy() {
           {ANALYTICS_ENABLED && <> You can withdraw a consent you gave at any time, with {consent}.</>}
         </LegalText>
         <LegalText>
-          To use these rights, write to{" "}
+          You can delete your account yourself, in your settings (see Keeping and deleting). To use your other rights, or if you cannot, write to{" "}
           <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
             {CONTACT}
           </a>

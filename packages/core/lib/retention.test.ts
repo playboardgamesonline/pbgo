@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest"
-import { FEEDBACK_RETENTION_MONTHS, FINISHED_STATE_RETENTION_HOURS, TABLE_RETENTION_DAYS, UNRANKED_SEAT_RETENTION_MONTHS, feedbackCutoff, finishedStateCutoff, tableCutoff, unrankedSeatCutoff } from "./retention"
+import {
+  ACCOUNT_DELETION_GRACE_DAYS,
+  ACCOUNT_DELETION_LINK_MINUTES,
+  ACCOUNT_DELETION_LINK_RETENTION_DAYS,
+  FEEDBACK_RETENTION_MONTHS,
+  FINISHED_STATE_RETENTION_HOURS,
+  TABLE_RETENTION_DAYS,
+  UNRANKED_SEAT_RETENTION_MONTHS,
+  accountDeletionDate,
+  deletionLinkCutoff,
+  deletionLinkExpiry,
+  feedbackCutoff,
+  finishedStateCutoff,
+  tableCutoff,
+  unrankedSeatCutoff,
+} from "./retention"
 
 const at = (iso: string) => new Date(iso)
 
@@ -67,5 +82,34 @@ describe("unrankedSeatCutoff", () => {
   it("is the same moment 12 months earlier, as the feedback's is", () => {
     expect(unrankedSeatCutoff(at("2026-11-06T03:17:45.678Z")).toISOString()).toBe("2025-11-06T03:17:45.678Z")
     expect(unrankedSeatCutoff(at("2028-02-29T10:00:00.000Z")).toISOString()).toBe("2027-02-28T10:00:00.000Z")
+  })
+})
+
+describe("the deletion of an account (PLT-36)", () => {
+  it("keeps an account on hold for 30 days, a link for an hour, and the trace of a dead link for a day: the numbers the e-mail and the Privacy Policy state", () => {
+    expect(ACCOUNT_DELETION_GRACE_DAYS).toBe(30)
+    expect(ACCOUNT_DELETION_LINK_MINUTES).toBe(60)
+    expect(ACCOUNT_DELETION_LINK_RETENTION_DAYS).toBe(1)
+  })
+
+  it("puts the day of the deletion 30 days after the confirmation, to the millisecond, across a month and a year", () => {
+    expect(accountDeletionDate(at("2026-11-09T12:00:00.123Z")).toISOString()).toBe("2026-12-09T12:00:00.123Z")
+    expect(accountDeletionDate(at("2026-12-20T03:17:00.000Z")).toISOString()).toBe("2027-01-19T03:17:00.000Z")
+  })
+
+  it("stops a link an hour after it was asked for", () => {
+    expect(deletionLinkExpiry(at("2026-11-09T23:30:00.000Z")).toISOString()).toBe("2026-11-10T00:30:00.000Z")
+  })
+
+  it("deletes the trace of a link a day after it stopped working", () => {
+    expect(deletionLinkCutoff(at("2026-11-09T03:17:00.000Z")).toISOString()).toBe("2026-11-08T03:17:00.000Z")
+  })
+
+  it("does not change the date it is given", () => {
+    const now = at("2026-11-09T03:17:00.000Z")
+    accountDeletionDate(now)
+    deletionLinkExpiry(now)
+    deletionLinkCutoff(now)
+    expect(now.toISOString()).toBe("2026-11-09T03:17:00.000Z")
   })
 })

@@ -118,6 +118,13 @@ describe("saveLanguage", () => {
     expect(auth.updateUser).not.toHaveBeenCalled()
   })
 
+  it("keeps nothing for an account on hold, waiting to be deleted (PLT-36): nothing is written about it, not even a language", async () => {
+    const auth = stubClient({ session: { access_token: "token", user: { id: "u-1", app_metadata: { pbgo_deletion_at: "2026-12-09T03:17:00Z" } } } })
+    const { saveLanguage } = await client()
+    expect(await saveLanguage("fr")).toBe("no-session")
+    expect(auth.updateUser).not.toHaveBeenCalled()
+  })
+
   it("keeps nothing when the hub has no Supabase project", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
     const { saveLanguage } = await client()

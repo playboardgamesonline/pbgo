@@ -15,3 +15,9 @@ export const SITE_DESCRIPTION = "Play board and card games online, with friends 
 export const PUBLISHER = { name: "oré", url: "https://ore.today" }
 
 export const CONTACT = "hey@playboardgamesonline.app"
+
+/**
+ * The sender of the e-mails that the site's own code sends (the link that confirms the deletion of an account, PLT-36): the name of the site and an address on the subdomain that Resend verified, the one Supabase Auth sends its
+ * e-mails from too (`docs/accounts.md`, "Setting it up", 6). Nobody reads what is written to it: the replies go to `CONTACT`.
+ */
+export const MAIL_FROM = `${SITE_NAME} <no-reply@mail.playboardgamesonline.app>`

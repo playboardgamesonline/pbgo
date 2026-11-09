@@ -55,8 +55,11 @@ export function useAccount(): AccountState {
       return
     }
     let active = true
-    const read = (user: Parameters<typeof accountOf>[0] | null | undefined): AccountState =>
-      user ? { status: "signed-in", account: accountOf(user) } : (demo ?? signedOut)
+    // An account ON HOLD (waiting to be deleted, PLT-36) is nobody here either: the navbar offers to sign in, and the sign-in page offers to keep it
+    const read = (user: Parameters<typeof accountOf>[0] | null | undefined): AccountState => {
+      const account = user ? accountOf(user) : null
+      return account && !account.deletionAt ? { status: "signed-in", account } : (demo ?? signedOut)
+    }
     supabase.auth.getSession().then(({ data }) => {
       if (active) setState(read(data.session?.user))
     })
@@ -239,7 +242,8 @@ export async function saveLanguage(language: PlatformLanguage): Promise<SavedLan
   const supabase = browserClient()
   if (!supabase) return "no-session"
   const { data } = await supabase.auth.getSession()
-  if (!data.session) return "no-session"
+  // An account on hold (waiting to be deleted, PLT-36) is nobody here: nothing is written about it, not even a choice of language
+  if (!data.session || accountOf(data.session.user).deletionAt) return "no-session"
   const { error } = await supabase.auth.updateUser({ data: { [LANGUAGE_KEY]: language } })
   return error ? "failed" : "saved"
 }

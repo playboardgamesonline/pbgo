@@ -10,10 +10,14 @@ type Row = Record<string, unknown>
 
 const h = vi.hoisted(() => ({
   tables: { games: [] as Row[], feedback: [] as Row[], member_presence: [] as Row[] } as Record<string, Row[]>,
+  /** What `due_account_deletions` answers: the accounts whose day has passed, with their address */
+  due: [] as Array<{ user_id: string; email: string | null }>,
+  /** The accounts `erase_account` was asked to delete, in order, each with the day it was asked to wait for */
+  erased: [] as string[],
   /** The paths of the objects in the `feedback` bucket */
   objects: new Set<string>(),
   log: [] as string[],
-  fail: { games: null as string | null, presence: null as string | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false, rpc: {} as Record<string, string> },
+  fail: { games: null as string | null, presence: null as string | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false, rpc: {} as Record<string, string>, erase: {} as Record<string, string>, eraseGone: [] as string[] },
   /** What each clean-up function of the database answers, one answer for each call: how many rows it deleted */
   rpcAnswers: {} as Record<string, number[]>,
   removals: 0,
@@ -41,6 +45,20 @@ vi.mock("./supabase", () => {
     }
     lt(column: string, value: string) {
       this.matches.push((row) => String(row[column]) < value)
+      return this
+    }
+    /** `ilike` with the escapes PostgREST passes to Postgres: `\\` makes the next character plain, `%` is any run of characters and `_` any one */
+    ilike(column: string, pattern: string) {
+      let source = ""
+      for (let i = 0; i < pattern.length; i++) {
+        const character = pattern[i]!
+        if (character === "\\") source += (pattern[++i] ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        else if (character === "%") source += ".*"
+        else if (character === "_") source += "."
+        else source += character.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      }
+      const expression = new RegExp(`^${source}$`, "i")
+      this.matches.push((row) => typeof row[column] === "string" && expression.test(row[column] as string))
       return this
     }
     in(column: string, values: unknown[]) {
@@ -85,7 +103,27 @@ vi.mock("./supabase", () => {
   }
   const db = {
     from: (table: string) => new Query(table),
-    rpc: async (name: string, args: { p_before: string; p_limit: number; p_dry: boolean }) => {
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      // The deletion of accounts (PLT-36): its own functions and its own lines, apart from the sweeps of the games played
+      if (name === "due_account_deletions") {
+        h.log.push(`account due ${args.p_before} ${args.p_limit}`)
+        const failure = h.fail.rpc[name]
+        return failure ? { data: null, error: { message: failure } } : { data: h.due.slice(0, Number(args.p_limit)).map((row) => ({ ...row })), error: null }
+      }
+      if (name === "erase_account") {
+        const user = String(args.p_user)
+        h.log.push(`account erase ${user} ${args.p_due_before}`)
+        const failure = h.fail.erase[user]
+        if (failure) return { data: null, error: { message: failure } }
+        if (h.fail.eraseGone.includes(user)) return { data: false, error: null }
+        h.erased.push(user)
+        return { data: true, error: null }
+      }
+      if (name === "purge_deletion_links") {
+        h.log.push(`account links ${args.p_before} ${args.p_dry}`)
+        const failure = h.fail.rpc[name]
+        return failure ? { data: null, error: { message: failure } } : { data: h.rpcAnswers[name]?.shift() ?? 0, error: null }
+      }
       h.log.push(`rpc ${name} ${args.p_before} ${args.p_limit} ${args.p_dry}`)
       const failure = h.fail.rpc[name]
       if (failure) return { data: null, error: { message: failure } }
@@ -146,6 +184,10 @@ beforeEach(() => {
   h.fail.feedbackDelete = null
   h.fail.silentDelete = false
   h.fail.rpc = {}
+  h.fail.erase = {}
+  h.fail.eraseGone = []
+  h.due = []
+  h.erased = []
   h.rpcAnswers = {}
   h.removals = 0
   h.beforeDelete = null
@@ -195,7 +237,7 @@ describe("tables", () => {
 
   it("tells the moments it measured against", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO })
+    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO, links: daysAgo(1) })
   })
 })
 
@@ -457,5 +499,131 @@ describe("a dry run", () => {
     const report = await purgeExpired({ now: NOW, dryRun: true })
     expect(report).toMatchObject({ dryRun: true, states: STATE_BATCH_SIZE * 3, seats: FOLD_BATCH_SIZE * 2, errors: [] })
     expect(h.log.filter((line) => line.startsWith("rpc"))).toEqual([`rpc drop_finished_states ${daysAgo(1)} ${STATE_BATCH_SIZE} true`, `rpc fold_old_results ${YEAR_AGO} ${FOLD_BATCH_SIZE} true`])
+  })
+})
+
+describe("the links of the e-mail of a deletion that nobody confirmed", () => {
+  it("asks the database to delete those that stopped working more than a day ago, and counts them", async () => {
+    h.rpcAnswers.purge_deletion_links = [3]
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ links: 3, errors: [] })
+    expect(h.log).toContain(`account links ${daysAgo(1)} false`)
+  })
+
+  it("only counts them in a dry run", async () => {
+    h.rpcAnswers.purge_deletion_links = [2]
+    const report = await purgeExpired({ now: NOW, dryRun: true })
+    expect(report).toMatchObject({ dryRun: true, links: 2 })
+    expect(h.log).toContain(`account links ${daysAgo(1)} true`)
+  })
+
+  it("is reported when it fails, and the other jobs go on", async () => {
+    h.fail.rpc.purge_deletion_links = "function public.purge_deletion_links does not exist"
+    h.tables.games = [table("courtisans", "AAAA", 31)]
+    const report = await purgeExpired({ now: NOW })
+    expect(report.errors).toEqual(["links: purge_deletion_links: function public.purge_deletion_links does not exist"])
+    expect(codes()).toEqual([])
+  })
+})
+
+describe("the accounts on hold whose day has passed (PLT-36)", () => {
+  const due = (userId: string, email: string | null) => ({ user_id: userId, email })
+  const steps = () => h.log.filter((line) => /^(remove|delete feedback|account erase)/.test(line))
+
+  it("deletes the feedback sent with the address of the account, screenshot first, then the account", async () => {
+    h.due = [due("u1", "ann@example.com")]
+    h.tables.feedback = [
+      feedback("f1", "2026-10-01T00:00:00.000Z", "courtisans/f1.webp", { email: "ann@example.com" }),
+      feedback("f2", "2026-10-02T00:00:00.000Z", null, { email: "Ann@Example.com" }),
+      feedback("f3", "2026-10-03T00:00:00.000Z", "courtisans/f3.webp", { email: "bob@example.com" }),
+      feedback("f4", "2026-10-04T00:00:00.000Z", null, { email: null }),
+    ]
+    const report = await purgeExpired({ now: NOW })
+    expect(ids()).toEqual(["f3", "f4"])
+    expect([...h.objects]).toEqual(["courtisans/f3.webp"])
+    expect(h.erased).toEqual(["u1"])
+    expect(report).toMatchObject({ accounts: 1, accountFeedback: 2, screenshots: 1, errors: [] })
+    expect(steps()).toEqual(["remove feedback courtisans/f1.webp", "delete feedback f1,f2", `account erase u1 ${NOW.toISOString()}`])
+  })
+
+  it("asks for the accounts whose day is before now, 20 at most in a run, and passes the same moment to each deletion so that an account kept in the meantime is not deleted", async () => {
+    h.due = Array.from({ length: 25 }, (_, i) => due(`u${String(i).padStart(2, "0")}`, null))
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ accounts: 20, errors: [] })
+    expect(h.erased).toHaveLength(20)
+    expect(h.log).toContain(`account due ${NOW.toISOString()} 20`)
+    expect(h.log.filter((line) => line.startsWith("account erase")).every((line) => line.endsWith(NOW.toISOString()))).toBe(true)
+  })
+
+  it("matches the address and nothing else: no wildcard, whatever the case", async () => {
+    h.due = [due("u1", "a_b@example.com")]
+    h.tables.feedback = [
+      feedback("f1", "2026-10-01T00:00:00.000Z", null, { email: "a_b@example.com" }),
+      feedback("f2", "2026-10-02T00:00:00.000Z", null, { email: "aXb@example.com" }),
+      feedback("f3", "2026-10-03T00:00:00.000Z", null, { email: "a%b@example.com" }),
+      feedback("f4", "2026-10-04T00:00:00.000Z", null, { email: "A_B@EXAMPLE.COM" }),
+      feedback("f5", "2026-10-05T00:00:00.000Z", null, { email: "xa_b@example.com" }),
+    ]
+    await purgeExpired({ now: NOW })
+    expect(ids()).toEqual(["f2", "f3", "f5"])
+  })
+
+  it("looks for no feedback when the account has no address that mail can reach, and deletes the account all the same", async () => {
+    h.due = [due("u1", null), due("u2", "steam-3f2b8c1e@external.pbgo.invalid")]
+    h.tables.feedback = [feedback("f1", "2026-10-01T00:00:00.000Z", null, { email: "steam-3f2b8c1e@external.pbgo.invalid" })]
+    const report = await purgeExpired({ now: NOW })
+    expect(h.erased).toEqual(["u1", "u2"])
+    expect(ids()).toEqual(["f1"])
+    expect(report).toMatchObject({ accounts: 2, accountFeedback: 0 })
+  })
+
+  it("keeps the account for the next night when its feedback cannot be deleted: nothing would link what is left to it afterwards", async () => {
+    h.due = [due("u1", "ann@example.com")]
+    h.tables.feedback = [feedback("f1", "2026-10-01T00:00:00.000Z", "courtisans/f1.webp", { email: "ann@example.com" })]
+    h.fail.removal = "bucket unreachable"
+    const report = await purgeExpired({ now: NOW })
+    expect(h.erased).toEqual([])
+    expect(ids()).toEqual(["f1"])
+    expect(report).toMatchObject({ accounts: 0, errors: ["accounts: bucket unreachable"] })
+  })
+
+  it("goes on with the other accounts when one fails, and says what failed without saying whose account it was", async () => {
+    h.due = [due("u1", null), due("u2", null), due("u3", null)]
+    h.fail.erase.u2 = "deadlock detected"
+    const report = await purgeExpired({ now: NOW })
+    expect(h.erased).toEqual(["u1", "u3"])
+    expect(report).toMatchObject({ accounts: 2, errors: ["accounts: erase_account: deadlock detected"] })
+    expect(JSON.stringify(report)).not.toContain("u2")
+  })
+
+  it("counts only the accounts that were found: one kept in the meantime is answered as not deleted", async () => {
+    h.due = [due("u1", null), due("u2", null)]
+    h.fail.eraseGone = ["u2"]
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ accounts: 1, errors: [] })
+  })
+
+  it("only counts them in a dry run: no feedback, no account is touched", async () => {
+    h.due = [due("u1", "ann@example.com"), due("u2", null)]
+    h.tables.feedback = [feedback("f1", "2026-10-01T00:00:00.000Z", "courtisans/f1.webp", { email: "ann@example.com" })]
+    const report = await purgeExpired({ now: NOW, dryRun: true })
+    expect(report).toMatchObject({ dryRun: true, accounts: 2, accountFeedback: 0, errors: [] })
+    expect(h.erased).toEqual([])
+    expect(ids()).toEqual(["f1"])
+    expect(h.log).toContain(`account due ${NOW.toISOString()} 1000`)
+  })
+
+  it("is reported when the list cannot be read, and the other jobs go on", async () => {
+    h.fail.rpc.due_account_deletions = "function public.due_account_deletions does not exist"
+    h.tables.feedback = [feedback("f1", "2025-01-01T00:00:00.000Z")]
+    const report = await purgeExpired({ now: NOW })
+    expect(report.errors).toEqual(["accounts: due_account_deletions: function public.due_account_deletions does not exist"])
+    expect(ids()).toEqual([])
+  })
+
+  it("does nothing when no account is due", async () => {
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ accounts: 0, accountFeedback: 0, links: 0, errors: [] })
+    expect(h.erased).toEqual([])
   })
 })

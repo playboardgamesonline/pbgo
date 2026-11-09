@@ -26,6 +26,19 @@ export const FINISHED_STATE_RETENTION_HOURS = 24
  */
 export const UNRANKED_SEAT_RETENTION_MONTHS = 12
 
+/**
+ * An account whose member asked for its deletion and confirmed it by the link of the e-mail (PLT-36) is kept this many days, ON HOLD: signed out everywhere, treated as a visitor by everything that asks who is signed in (it sits at no new table
+ * and is not counted online), and its member may keep it by signing in again. Then the nightly clean-up deletes it with what it holds (`erase_account`, migration 0011). The day is fixed when the member confirms (`account_deletions.scheduled_for`), so a later change
+ * of this number moves no promise already made. The Privacy Policy prints it.
+ */
+export const ACCOUNT_DELETION_GRACE_DAYS = 30
+
+/** The link of the e-mail that confirms the deletion works for this many minutes, and once. The e-mail and the Privacy Policy say it. */
+export const ACCOUNT_DELETION_LINK_MINUTES = 60
+
+/** The trace of a link nobody confirmed (a row of `account_deletions`, holding the hash of the token and when it stops working) goes this many days after the link stopped working. */
+export const ACCOUNT_DELETION_LINK_RETENTION_DAYS = 1
+
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 
@@ -63,4 +76,19 @@ export function finishedStateCutoff(now: Date = new Date()): Date {
 /** The seats of an unranked game that ended strictly before this instant are old enough to delete: the same moment `UNRANKED_SEAT_RETENTION_MONTHS` calendar months earlier, in UTC. */
 export function unrankedSeatCutoff(now: Date = new Date()): Date {
   return monthsBefore(now, UNRANKED_SEAT_RETENTION_MONTHS)
+}
+
+/** The day an account is deleted when its member confirms the link at `now`: `ACCOUNT_DELETION_GRACE_DAYS` days later. */
+export function accountDeletionDate(now: Date = new Date()): Date {
+  return new Date(now.getTime() + ACCOUNT_DELETION_GRACE_DAYS * DAY_MS)
+}
+
+/** The moment a link asked for at `now` stops working. */
+export function deletionLinkExpiry(now: Date = new Date()): Date {
+  return new Date(now.getTime() + ACCOUNT_DELETION_LINK_MINUTES * 60 * 1000)
+}
+
+/** A link whose token stopped working strictly before this instant has been dead for `ACCOUNT_DELETION_LINK_RETENTION_DAYS` days: its row is old enough to delete. */
+export function deletionLinkCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - ACCOUNT_DELETION_LINK_RETENTION_DAYS * DAY_MS)
 }
