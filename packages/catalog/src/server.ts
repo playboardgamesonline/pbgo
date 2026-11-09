@@ -1,7 +1,8 @@
 import "server-only"
 import { cache } from "react"
+import type { AgeRules } from "@pbgo/core/lib/age-rules"
 import { GAMES } from "@pbgo/games/registry"
-import { buildCatalog, type Catalog } from "./catalog"
+import { ageRulesFor, buildCatalog, type Catalog } from "./catalog"
 import { readEditorial, type Editorial } from "./editorial"
 import { readSanityGames } from "./sanity"
 
@@ -40,6 +41,17 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     return { entries: buildCatalog(GAMES, [], { registryGames }), expansions: [], source: "unavailable" }
   }
 })
+
+/**
+ * The ages that a game and its expansions ask, for the age check of the tables (PLT-125): the "Minimum age" of the game and of each expansion in the platform's Sanity project, from the catalog and so as fresh as it is (ten minutes). It is what the routes that
+ * open, join, set and start a table are given (`AgeRulesSource` of `@pbgo/core/lib/age-rules`). While the project cannot be read no game is known to ask for an age, so tables open without the check until it answers, rather than every game closing (one line
+ * in the logs, as the catalog reports).
+ */
+export async function ageRulesOf(slug: string): Promise<AgeRules> {
+  const catalog = await getCatalog()
+  if (catalog.source === "unavailable") reportOnce("The platform's Sanity project is unavailable: no game is known to ask for an age, so tables open without the age check until it answers")
+  return ageRulesFor(catalog.entries, catalog.expansions, slug)
+}
 
 /** Tag of the cached read of the editorial: `revalidateTag(EDITORIAL_TAG, { expire: 0 })` makes the next read ask Sanity again. */
 export const EDITORIAL_TAG = "editorial"

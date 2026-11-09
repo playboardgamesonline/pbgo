@@ -3,6 +3,8 @@
 // its own small entries, which the games' pages import too: `./language` (the same pure part, alone) and `./set-language` (the setter, with no Supabase in it).
 
 export { AFTER_SIGN_IN, safeNext } from "./redirect"
+export { OLDEST_AGE, RESTRICTED_FROM, SITE_MINIMUM_AGE, ageInYears, ageRefusal, birthdateProblem, restrictedAge } from "./age"
+export type { AgeRefusal, AgeSubject, BirthdateProblem } from "./age"
 export { PROVIDERS, PROVIDER_NAMES, accountOf, emailOf, initialsOf } from "./account"
 export type { Account, AuthUser, LinkedService, Provider } from "./account"
 export { DEFAULT_PREFERENCES, NICKNAME_KEY, PREFERENCE_KEYS, REDUCE_MOTION_CHOICES, TIME_FORMATS, hourCycleOf, isReduceMotion, isTimeFormat, nicknameOf, preferencesOf } from "./preferences"

@@ -32,8 +32,16 @@ export function profileOf(account: Pick<Account, "nickname" | "avatarUrl"> | nul
   return { nickname: nickname || "Player", ...(avatarUrl ? { avatarUrl } : {}) }
 }
 
-/** Who sits down, and the account they sit down as: `memberId` is the id of a signed-in member's account, null for a guest and for the demo account of development, which is in no database. */
-export type Seat = { profile: Profile; memberId: string | null }
+/**
+ * Who acts, as far as the table cares: `memberId` is the id of a signed-in member's account, null for a guest and for the demo account of development, which is in no database; `signedIn` is whether there is an account at all, the demo
+ * account included (the check of the age tells a guest, who must sign in, from the demo account, which counts as an adult).
+ */
+export type Actor = { memberId: string | null; signedIn: boolean }
+
+const actorOf = (account: Pick<Account, "id"> | null): Actor => ({ memberId: account && !isDemoAccount(account) ? account.id : null, signedIn: account !== null })
+
+/** Who sits down, and the account they sit down as (`Actor`). */
+export type Seat = { profile: Profile } & Actor
 
 /**
  * `profileOf` for the request being served, and who the visitor is: the signed-in visitor is asked of Supabase Auth (`getAccount`), a visitor with no session costs no call. The `memberId` is not part of
@@ -41,5 +49,10 @@ export type Seat = { profile: Profile; memberId: string | null }
  */
 export async function resolveSeat(input: ProfileInput): Promise<Seat> {
   const account = await getAccount()
-  return { profile: profileOf(account, input), memberId: account && !isDemoAccount(account) ? account.id : null }
+  return { profile: profileOf(account, input), ...actorOf(account) }
+}
+
+/** The visitor who makes the request, for a route that seats nobody (the host's options and start): no nickname is asked of a guest there. */
+export async function resolveActor(): Promise<Actor> {
+  return actorOf(await getAccount())
 }
