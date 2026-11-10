@@ -32,6 +32,9 @@ export const DEMO_ACCOUNT: Account = {
   secondStep: [],
 }
 
+/** The tag of the demo account, which is in no database. */
+export const DEMO_TAG = 1
+
 /** Whether an account is the demo account of development: its id is not a UUID, which is what every id of Supabase Auth is, so no real account can have it. */
 export const isDemoAccount = (account: Pick<Account, "id">): boolean => account.id === DEMO_ACCOUNT.id
 

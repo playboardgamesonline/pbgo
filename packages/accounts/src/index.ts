@@ -87,6 +87,8 @@ export type { ResendOutcome, SignupEntry, SignupFields, SignupOutcome, SignupPro
 export { confirmEmail, confirmEmailSession, confirmFailedPath, confirmNext, confirmRequestOf } from "./confirm"
 export { DELETION_MESSAGES, REOPEN_PATH, deletionDate, deletionMessage, hasMailbox, isReopenToken, isUserId, maskEmail, reopenLink, reopenLinkOf } from "./deletion"
 export type { DeletionAnswer, DeletionRequest } from "./deletion"
+export { PROFILE_PATH, PROFILE_SOURCES, TAG_DIGITS, TAG_MAX, TAG_MIN, checkTag, handleText, ownHandleOf, parseProfileSegment, profilePath, profileSourceOf, profileViewOf, tagOfRequest, tagText } from "./profile"
+export type { Handle, OwnHandle, ProfileSource } from "./profile"
 export { mostPlayed, ordinal, perGame, playedGameOf, statsFrom, statsOf } from "./games"
 export type { FinishedGame, GameStats, GameTotals, PlayedGame } from "./games"
 export { supabaseAuthConfig } from "./config"

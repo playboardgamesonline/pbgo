@@ -1,5 +1,5 @@
 import { Brain02Icon, ChildIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
-import { ordinal, type TimeFormat } from "@pbgo/accounts"
+import { ordinal, profilePath, type TimeFormat } from "@pbgo/accounts"
 import { SPOKEN_LANGUAGES } from "@pbgo/accounts/language"
 import { unmetCriteria, type Unmet, type Viewer } from "@pbgo/core/lib/table-settings"
 import type { LeaderboardRow } from "@pbgo/ui/leaderboard"
@@ -28,14 +28,20 @@ const PACE: Partial<Record<TurnTimer, string>> = { none: "No timer", slow: "Slow
 /** The seats of a table, in order: each person with their name, tag, picture, record and whether they opened it, `null` for a seat nobody took. */
 export function seatsOfTable(table: GameTable): TableSeat[] {
   return seatsOf(
-    table.players.map(({ seat, name, avatarUrl, playerId, record }) => ({
-      seat,
-      name: name === null ? null : nicknameOf(name),
-      tag: name === null ? null : tagOf(name),
-      avatarUrl,
-      host: playerId === table.hostId,
-      record,
-    })),
+    table.players.map(({ seat, name, avatarUrl, playerId, record }) => {
+      const nickname = name === null ? null : nicknameOf(name)
+      const tag = name === null ? null : tagOf(name)
+      return {
+        seat,
+        name: nickname,
+        tag,
+        avatarUrl,
+        host: playerId === table.hostId,
+        record,
+        // An account's seat leads to its profile (PLT-39); a guest has no tag and no profile
+        href: nickname !== null && tag !== null ? profilePath({ nickname, tag: Number(tag) }, "seat") : null,
+      }
+    }),
     table.seatsMax,
   )
 }
@@ -148,6 +154,8 @@ export function leaderboardRow(standing: Standing): LeaderboardRow {
     name: standing.nickname,
     avatarUrl: standing.avatarUrl,
     rank: standing.rank,
+    // A player's name leads to their profile (PLT-39); one with no tag has none
+    href: standing.tag > 0 ? profilePath({ nickname: standing.nickname, tag: standing.tag }, "leaderboard") : null,
   }
 }
 

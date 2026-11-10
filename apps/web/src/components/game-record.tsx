@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { ordinal, type PlayedGame, type TimeFormat } from "@pbgo/accounts"
+import { Fragment } from "react"
+import { ordinal, profilePath, type PlayedGame, type TimeFormat } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
@@ -22,12 +23,31 @@ function ResultBadge({ result }: { result: NonNullable<PlayedGame["result"]> }) 
   return result === "won" ? <Badge>Won</Badge> : result === "lost" ? <Badge variant="secondary">Lost</Badge> : <Badge variant="outline">Draw</Badge>
 }
 
+/** The others at a table. A name links to that player's profile when they have an account (PLT-39). Names are `ph-mask` and links that hold one are `ph-no-capture`. */
+function Opponents({ opponents }: { opponents: PlayedGame["opponents"] }) {
+  return (
+    <>
+      {opponents.map((opponent, index) => (
+        <Fragment key={index}>
+          {index > 0 && ", "}
+          {opponent.handle ? (
+            <Link href={profilePath(opponent.handle, "history")} className="ph-mask ph-no-capture underline-offset-4 hover:text-foreground hover:underline">
+              {opponent.nickname}
+            </Link>
+          ) : (
+            <span className="ph-mask">{opponent.nickname}</span>
+          )}
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
 /**
  * One game of a visitor, as a row: the game (and its table, while it is in progress: a game that is over keeps its result and no table), when it started or ended (the time written as the member chose, `timeFormat`) and with whom (nobody, for a game played alone), then, for a game in progress, a
  * button to go back to its table, and for a game that is over, how it ended, the rank and the rank points it gave or took.
  */
 export function GameRecord({ game, timeFormat = "auto" }: { game: PlayedGame; timeFormat?: TimeFormat }) {
-  const names = game.opponents.map((opponent) => opponent.nickname)
   return (
     <Item size="sm">
       <ItemMedia>
@@ -42,7 +62,12 @@ export function GameRecord({ game, timeFormat = "auto" }: { game: PlayedGame; ti
         </ItemTitle>
         <ItemDescription>
           {gameDate(game.playedAt, timeFormat)}
-          {names.length > 0 && ` · with ${names.join(", ")}`}
+          {game.opponents.length > 0 && (
+            <>
+              {" · with "}
+              <Opponents opponents={game.opponents} />
+            </>
+          )}
         </ItemDescription>
       </ItemContent>
       <ItemActions>

@@ -60,6 +60,11 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   BIRTHDATE_INVALID: "This date of birth is not valid.",
   BIRTHDATE_UNDER_MINIMUM: "You must be at least 13 to use the site.",
   BIRTHDATE_LOCKED: "Your date of birth is already saved and cannot be changed here. Write to us if it needs to be corrected.",
+  // What the profile route refuses with (PLT-39): a username and a tag that somebody else has, that are not what a profile can have, or that cannot be saved yet
+  PROFILE_TAKEN: "Somebody already goes by that username and tag. Choose another tag.",
+  PROFILE_INVALID: "This username or tag is not valid.",
+  PROFILE_UNAVAILABLE: "Your username and tag can't be saved right now, try again later.",
+  CROSS_ORIGIN: "This request did not come from this site.",
 }
 
 // The page shows one game at a time: `SkinProvider` sets the messages of its skin (Sanity, else the platform's translations of the core codes).

@@ -50,6 +50,10 @@ export const RATE_LIMITS = {
   externalSignIn: { limit: 20, windowMs: 60_000, by: "ip" },
   /** A member declaring their date of birth (PLT-125): it is kept once, so a human sends it a few times at most (typos, a refusal); per IP, since the route belongs to no game, with room for a few members behind one address */
   birthdate: { limit: 20, windowMs: 10 * 60_000, by: "ip" },
+  /** A member's own handle (`GET /api/hub/profile`, PLT-39), asked once per page load: per IP, with room for several members behind one address */
+  profileRead: { limit: 120, windowMs: 60_000, by: "ip" },
+  /** A member changing their nickname and tag (`POST /api/hub/profile`, PLT-39): a few tries when a pair is taken, per IP */
+  profile: { limit: 20, windowMs: 10 * 60_000, by: "ip" },
   /** A member taking an account at an external provider off theirs (Steam: `POST /api/hub/unlink-external`): it reads and writes the database, and a human does it once in a while (a mistake, a change of mind), so a few per 10 minutes, per IP, whatever the cookies, with room for a few members behind one address */
   externalUnlink: { limit: 10, windowMs: 10 * 60_000, by: "ip" },
   /** Admin login (shared by every game): per IP, whatever the cookies, so a password can't be guessed by a script. A human mistypes it a few times at most */

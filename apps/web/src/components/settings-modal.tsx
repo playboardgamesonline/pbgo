@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useRef, type ReactNode } from "react"
-import { initialsOf } from "@pbgo/accounts"
+import { initialsOf, tagText } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Dialog, DialogContent, DialogTitle } from "@pbgo/ui/platform/dialog"
 import { SettingsNav } from "@/components/settings-nav"
@@ -14,7 +14,7 @@ import { SettingsNav } from "@/components/settings-nav"
  * back to it) or is the page itself (the address was typed, a link of an e-mail opened it, the page was reloaded: there is nothing under it, and closing leads to the front page, which sends a member to their home). The sections are the pages
  * under `/me/settings`, so a link can lead straight to one. It keeps the room of the consent banner free (`--consent-h`: `docs/design/01-guidelines/04-in-game-rules.md`), as every screen of the hub does: shorter by the banner's height and lifted by half of it. A slot keeps what it showed when the page changes under it, so the window draws nothing once the address is no longer the settings' (a link of the sidebar to the profile, for one).
  */
-export function SettingsModal({ nickname, avatarUrl, over, children }: { nickname: string; avatarUrl: string | null; over: boolean; children: ReactNode }) {
+export function SettingsModal({ nickname, tag, avatarUrl, over, children }: { nickname: string; /** The member's tag, which the head of the window says after their name; null where it is not known. */ tag?: number | null; avatarUrl: string | null; over: boolean; children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const content = useRef<HTMLDivElement>(null)
@@ -48,7 +48,10 @@ export function SettingsModal({ nickname, avatarUrl, over, children }: { nicknam
               <AvatarFallback>{initialsOf(nickname)}</AvatarFallback>
             </Avatar>
             <span className="flex min-w-0 flex-col">
-              <span className="ph-mask truncate text-sm text-foreground">{nickname}</span>
+              <span className="ph-mask flex min-w-0 items-baseline text-sm text-foreground">
+                <span className="truncate">{nickname}</span>
+                {tag != null && <span className="shrink-0 text-muted-foreground">#{tagText(tag)}</span>}
+              </span>
               <span className="text-xs text-muted-foreground">View profile</span>
             </span>
           </Link>

@@ -1,17 +1,32 @@
+import Link from "next/link"
 import type { ReactNode } from "react"
+import { profilePath } from "@pbgo/accounts"
+import { isDemoAccount } from "@pbgo/accounts/demo"
 import { requireAccount } from "@pbgo/accounts/server"
+import { Button } from "@pbgo/ui/platform/button"
 import { AccountShell } from "@/components/account-shell"
 import { ProfileHeader } from "@/components/profile-header"
+import { handleOfHead, ownProfileHead } from "@/lib/profile-data"
 
 /**
- * The frame of the pages of the profile, `/me`, `/me/games` and `/me/friends`: the header with the visitor's name, and the page under it. There are no tabs: the profile is a page, the settings are a window (the account menu opens it), and the
- * games and the friends are reached from the account menu and from the places that lead to them (the games a visitor played, the panel of their friends). The games their friends are in, on every page of the hub, are the bar of the navbar.
+ * The frame of the member's own profile pages (`/me`, `/me/games`, `/me/friends`): the same head as a public profile (`ProfileHeader`), buttons to edit it and to open the public page, and the page under it. There are no tabs.
  */
 export default async function ProfileLayout({ children }: Readonly<{ children: ReactNode }>) {
   const account = await requireAccount("/me")
+  const head = await ownProfileHead(account)
+  const handle = handleOfHead(head)
   return (
     <AccountShell>
-      <ProfileHeader account={account} />
+      <ProfileHeader head={head} note={isDemoAccount(account) ? "Demo account (development only)" : undefined}>
+        <Button asChild variant="outline">
+          <Link href="/me/settings/account">Edit profile</Link>
+        </Button>
+        {handle && (
+          <Button asChild variant="outline">
+            <Link href={profilePath(handle, "account")}>View public profile</Link>
+          </Button>
+        )}
+      </ProfileHeader>
       <div className="pt-8">{children}</div>
     </AccountShell>
   )

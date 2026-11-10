@@ -91,6 +91,13 @@ describe("playedGameOf", () => {
     ...overrides,
   })
 
+  it("keeps the handle of an opponent whose account is still there, which is where their profile is, and none for the others", () => {
+    const game = finished({ opponents: [{ name: "Ola", avatarUrl: null, handle: { nickname: "Ola", tag: 7 } }, { name: "Guest", avatarUrl: null }, { name: null, avatarUrl: null }] })
+    const { opponents } = playedGameOf(game, "Courtisans")
+    expect(opponents).toEqual([{ nickname: "Ola", avatarUrl: null, handle: { nickname: "Ola", tag: 7 } }, { nickname: "Guest", avatarUrl: null }, { nickname: "Player", avatarUrl: null }])
+    expect(opponents[1]).not.toHaveProperty("handle")
+  })
+
   it("is a game that is over, told by its end, with the others at the table, the former player of a deleted account named as a player, and the place they came", () => {
     expect(playedGameOf(finished(), "Courtisans")).toEqual({
       id: "r1",

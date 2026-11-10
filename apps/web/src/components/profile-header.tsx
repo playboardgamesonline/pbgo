@@ -1,26 +1,28 @@
-import { PROVIDER_NAMES, initialsOf, type Account } from "@pbgo/accounts"
-import { isDemoAccount } from "@pbgo/accounts/demo"
+import type { ReactNode } from "react"
+import { initialsOf, tagText } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { monthOf } from "@/lib/account-data"
+import type { ProfileHead } from "@/lib/profile-data"
 
-/** The line under the name: how the visitor signed in, and since when they have an account. An account with no provider is the demo account of development, or one made with an e-mail address and a password. */
-function lineOf(account: Account): string {
-  const how = isDemoAccount(account) ? "Demo account (development only)" : account.provider ? `Signed in with ${PROVIDER_NAMES[account.provider]}` : "Signed in with e-mail"
-  return account.createdAt ? `${how} · member since ${monthOf(account.createdAt)}` : how
-}
-
-/** The top of every page of an account: the picture (the initials when the provider gives none), the name, how they signed in and since when. */
-export function ProfileHeader({ account }: { account: Account }) {
+/**
+ * The top of a profile, the member's own or anybody's: picture, nickname with tag, since when. `children` are the actions (edit buttons on the member's own page, "Add friend" later, PLT-23). `note` goes before "member since".
+ */
+export function ProfileHeader({ head, note, children }: { head: ProfileHead; note?: string; children?: ReactNode }) {
+  const line = [note, head.memberSince ? `Member since ${monthOf(head.memberSince)}` : null].filter(Boolean).join(" · ")
   return (
     <header className="flex flex-wrap items-center gap-x-6 gap-y-4">
       <Avatar className="size-20 sm:size-24">
-        {account.avatarUrl && <AvatarImage src={account.avatarUrl} alt="" referrerPolicy="no-referrer" />}
-        <AvatarFallback className="text-3xl">{initialsOf(account.nickname)}</AvatarFallback>
+        {head.avatarUrl && <AvatarImage src={head.avatarUrl} alt="" referrerPolicy="no-referrer" />}
+        <AvatarFallback className="ph-mask text-3xl">{initialsOf(head.nickname)}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1 basis-56">
-        <h1 className="truncate font-heading text-3xl sm:text-5xl">{account.nickname}</h1>
-        <p className="mt-1 text-muted-foreground">{lineOf(account)}</p>
+        <h1 className="ph-mask truncate font-heading text-3xl sm:text-5xl">
+          {head.nickname}
+          {head.tag !== null && <span className="text-muted-foreground">#{tagText(head.tag)}</span>}
+        </h1>
+        {line && <p className="mt-1 text-muted-foreground">{line}</p>}
       </div>
+      {children && <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>}
     </header>
   )
 }

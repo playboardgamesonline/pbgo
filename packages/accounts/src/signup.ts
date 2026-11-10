@@ -35,6 +35,12 @@ export function cleanDisplayName(name: string): string {
   return name.replace(/\p{Cc}/gu, "").replace(/\s+/g, " ").trim()
 }
 
+/** The characters a name cannot hold: `#` tells a nickname from its tag ("Alex#0042") and `/` and `\` would break the address of a profile (`/player/Alex-0042`). The profiles table refuses them too (`clean_nickname`, migration 0015). */
+export const NAME_FORBIDDEN_CHARACTERS = /[#/\\]/u
+
+/** What a member is told of a name that holds one of them. */
+export const NAME_FORBIDDEN_PROBLEM = "A name cannot contain #, / or \\."
+
 const byteLength = (text: string): number => new TextEncoder().encode(text).length
 
 /**
@@ -53,6 +59,7 @@ export function checkSignup(fields: SignupFields): { ok: true; entry: SignupEntr
 
   const name = cleanDisplayName(fields.name)
   if (Array.from(name).length > DISPLAY_NAME_MAX) problems.name = `Use ${DISPLAY_NAME_MAX} characters at most.`
+  else if (NAME_FORBIDDEN_CHARACTERS.test(name)) problems.name = NAME_FORBIDDEN_PROBLEM
 
   if (email === null || Object.keys(problems).length > 0) return { ok: false, problems }
   return { ok: true, entry: { email, password: fields.password, name: name === "" ? null : name } }

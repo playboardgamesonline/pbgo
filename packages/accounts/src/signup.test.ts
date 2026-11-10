@@ -86,6 +86,10 @@ describe("checkSignup", () => {
     expect(problemsOf({ name: "🎲".repeat(21) }).name).toBe("Use 20 characters at most.")
   })
 
+  it("refuses a display name with a character that would break a handle (#) or the address of a profile (/ and \\)", () => {
+    for (const name of ["Ana#1", "Ana/Maria", "Ana\\Maria"]) expect(problemsOf({ name }).name, name).toBe("A name cannot contain #, / or \\.")
+  })
+
   it("judges the name as it is kept: the spaces around it and between its words do not count", () => {
     expect(checkSignup({ ...fields, name: ` ${"x".repeat(20)} ` }).ok).toBe(true)
     expect(checkSignup({ ...fields, name: "   " })).toEqual({ ok: true, entry: { email: "ana@example.com", password: "correct horse", name: null } })

@@ -3,6 +3,7 @@
 import { useId, useState } from "react"
 import type { PreferenceName } from "@pbgo/accounts"
 import { savePreference } from "@pbgo/accounts/client"
+import { trackClient } from "@pbgo/analytics/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
 import { Label } from "@pbgo/ui/platform/label"
@@ -31,7 +32,10 @@ export function PreferenceRow({ name, title, description, initial, demo }: { nam
     if (failure) {
       setOn(previous)
       setError(failure)
+      return
     }
+    // The choice to hide the games is the one preference a profile page reads (PLT-39): how many members make it is what the analytics are told, never who
+    if (name === "hideHistory") trackClient("profile_history_hidden", { hidden: next })
   }
 
   return (

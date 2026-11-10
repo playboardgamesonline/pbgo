@@ -1,0 +1,66 @@
+import "server-only"
+import { cache } from "react"
+import { profileViewOf, type Account, type Handle } from "@pbgo/accounts"
+import { DEMO_TAG, isDemoAccount } from "@pbgo/accounts/demo"
+import { ensureProfile, readProfileByHandle, type ProfileRecord } from "@pbgo/core/server/profiles"
+import { memberGames, type MemberGames } from "./member-games"
+
+// What the pages of a profile say (PLT-39, PLT-111): the member's own (`/me`) and anybody's (`/player/<nickname>-<tag>`). A head (who and since when) and, unless the member hides them, their games.
+// The profile is the database's (`@pbgo/core/server/profiles`), the games are the recorded ones (`member-games.ts`). The demo account is in no database: its profile is made up here.
+
+/** What the top of a profile says. */
+export type ProfileHead = {
+  nickname: string
+  /** Null for a member whose profile cannot be read (the profiles are not there yet): their name stands alone. */
+  tag: number | null
+  avatarUrl: string | null
+  /** When the account was made, an ISO date; null when it is not known. */
+  memberSince: string | null
+  /** The member chose to show no games, no records and no ranks to the others (`pbgo_hide_history`). */
+  hideHistory: boolean
+}
+
+const headOf = (record: ProfileRecord): ProfileHead => ({ nickname: record.nickname, tag: record.tag, avatarUrl: record.avatarUrl, memberSince: record.createdAt, hideHistory: record.hideHistory })
+
+/**
+ * The head of a signed-in member's own profile: the profile they have (made on the spot if missing), else their account's name and picture with no tag (migration not applied, or unreadable: the cause is in the log). Read once per request.
+ */
+export const ownProfileHead = cache(async (account: Account): Promise<ProfileHead> => {
+  const fallback: ProfileHead = { nickname: account.nickname, tag: null, avatarUrl: account.avatarUrl, memberSince: account.createdAt, hideHistory: account.preferences.hideHistory }
+  if (isDemoAccount(account)) return { ...fallback, tag: DEMO_TAG }
+  try {
+    const record = await ensureProfile(account)
+    return record ? headOf(record) : fallback
+  } catch (error) {
+    console.error("The profile of a member could not be read", error instanceof Error ? error.message : error)
+    return fallback
+  }
+})
+
+/** The handle that names a member's own profile, null while it has no tag. */
+export const handleOfHead = (head: ProfileHead): Handle | null => (head.tag === null ? null : { nickname: head.nickname, tag: head.tag })
+
+/** A profile as a page draws it. */
+export type ProfilePage = {
+  head: ProfileHead
+  /** The visitor is looking at their own profile: they see everything, hidden or not, and can edit it. */
+  own: boolean
+  /** Their games, records and ranks; null for the profile of a member who keeps them private, as far as another visitor is concerned. */
+  games: MemberGames | null
+}
+
+const sameHandle = (a: Handle, b: Handle): boolean => a.nickname.toLowerCase() === b.nickname.toLowerCase() && a.tag === b.tag
+
+/**
+ * The profile that goes by this handle, as `viewer` sees it, or null (the hub's 404). A member who hides their games shows none to another visitor: `games` is null and the database is not asked for them. The member sees everything. At most `limit` games are listed. Throws what the database says.
+ */
+export async function profilePage(handle: Handle, viewer: Account | null, limit: number): Promise<ProfilePage | null> {
+  if (viewer && isDemoAccount(viewer)) {
+    const head = await ownProfileHead(viewer)
+    if (head.tag !== null && sameHandle(handle, { nickname: head.nickname, tag: head.tag })) return { head, own: true, games: await memberGames(viewer, limit) }
+  }
+  const record = await readProfileByHandle(handle)
+  if (!record) return null
+  const { own, showGames } = profileViewOf(record, viewer)
+  return { head: headOf(record), own, games: showGames ? await memberGames({ id: record.userId }, limit) : null }
+}

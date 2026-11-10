@@ -6,3 +6,6 @@ export const isMissingColumn = (error: { code?: string } | null | undefined): bo
 
 /** Whether the database says a function is not there (`42883` from Postgres, `PGRST202` from PostgREST): a migration that adds one is not applied yet. */
 export const isMissingFunction = (error: { code?: string } | null | undefined): boolean => error?.code === "42883" || error?.code === "PGRST202"
+
+/** Whether the database says a table is not there (`42P01` from Postgres, `PGRST205` from PostgREST): a migration that creates it is not applied yet. */
+export const isMissingTable = (error: { code?: string } | null | undefined): boolean => error?.code === "42P01" || error?.code === "PGRST205"
