@@ -87,6 +87,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `pnpm dev` — apps/web on http://localhost:3100 (hub + every game; `pnpm dev <slug>` prints its URL)
 - `pnpm dev:studio <slug>` — the game's Sanity Studio (`pnpm dev:studio platform`: the platform's)
 - `pnpm build` (= `pnpm --filter web build`) · `pnpm typecheck` · `pnpm test` · `pnpm lint` · `pnpm check:catalog` · `pnpm check:public`: all six run on every pull request and on `main` (`.github/workflows/ci.yml`, no secret, no `.env.local`); the check `gates` is required to merge into `main` (an admin can bypass)
+- `pnpm lint [<path>…]` — ESLint once from the root over every package that holds code (`apps/web`, `packages/`, `games/`, `template/`, `platform/`), with one config, `eslint.config.mjs`, built on `@pbgo/eslint-config`: a new package is linted the day it is made, with no line of its own, and `pnpm lint packages/core` lints one folder. What it reports is fixed in the code; see `docs/packages.md`
 - `pnpm --filter @<slug>/engine test` · `pnpm --filter @pbgo/core test`
 - `pnpm --filter @pbgo/platform content:seed` / `content:art` — the platform's seed (Notion rows → drafts) and the download of the Notion pictures (`docs/platform-sanity.md`)
 - `pnpm --filter @pbgo/platform content:bgg [--dry-run | --apply] [--find-ids | --set-ids | --refresh]` — the missing figures of the games (complexity, players, duration, minimum age) and the BGG ids, from BoardGameGeek, as drafts to publish, or with `--refresh` the complexity brought up to date where it is still BGG's (the published documents); a dry run by default, `--apply` only on the owner's word; needs `BGG_API_TOKEN` (`docs/platform-sanity.md`)
@@ -119,6 +120,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - A recurring job is a skill of the agent that carries it out, `.claude/skills/<game|engine|platform>-<job>/SKILL.md`, listed in `.claude/skills/README.md`: its questions, rules and commands are written there once and other docs point to it. `CLAUDE.md` describes the codebase, it holds no procedure
 - A game's texts, translations, images and sounds live in its Sanity project only, never in code (`docs/sanity-and-languages.md`)
 - This file is loaded into every session, so it stays a map: the detail of an area goes into its `docs/` file, a procedure into a skill
+- A lint finding is fixed in the code. An `eslint-disable` comment is for the one line where a fix would change what the code does, and says why after `--`
 - Never commit secrets or env files (`.env*` except `.env.example`, `.vercel`, `.sanity-project-id` are git-ignored)
 
 ## Commits
