@@ -1,6 +1,6 @@
 import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
-import { trackAfter, trackGameFinished } from "../../../../../server/analytics"
+import { trackAfter, trackAnonymously, trackGameFinished } from "../../../../../server/analytics"
 import { handle } from "../../../../../server/api"
 import { deleteEmptyTable, publicGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
@@ -48,7 +48,9 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   })
 
   // Only a leave that wrote something can have emptied the table: a request that changed nothing never deletes one
-  if (outcome.changed) await deleteEmptyTable(game, row)
+  if (outcome.changed && (await deleteEmptyTable(game, row))) {
+    trackAnonymously("table_deleted", { game: game.slug, reason: outcome.from === "playing" ? "game_left" : outcome.from === "starting" ? "ready_check_left" : "lobby_left" })
+  }
   if (outcome.from) trackAfter("game_left", id, { game: game.slug, phase: outcome.from })
   if (outcome.left && id) {
     // The seat counts for no rating, and neither do those the server played for after it

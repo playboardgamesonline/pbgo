@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
-import { AFTER_SIGN_IN, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, type AnyProvider, type SignupFields, type SignupProblems } from "@pbgo/accounts"
+import { AFTER_SIGN_IN, DISPLAY_NAME_MAX, PASSWORD_MIN, RESEND_SECONDS, checkSignup, signInProviderOf, type AnyProvider, type SignupFields, type SignupProblems } from "@pbgo/accounts"
 import { signInWith, signUpWithPassword } from "@pbgo/accounts/client"
+import { trackClient } from "@pbgo/analytics/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@pbgo/ui/platform/field"
@@ -66,6 +67,9 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
   async function start(provider: AnyProvider) {
     setPending(provider)
     setError(null)
+    // The page is about to leave for the provider: the count goes out at once
+    const method = signInProviderOf(provider)
+    if (method) trackClient("auth_started", { flow: "signup", method }, { instant: true })
     const problem = await signInWith(provider, next)
     // On its way to the provider the page just goes: only a refusal comes back here
     if (problem) {
@@ -85,6 +89,7 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
     }
     setProblems({})
     setPending("signup")
+    trackClient("auth_started", { flow: "signup", method: "password" })
     const outcome = await signUpWithPassword({ ...checked.entry, next })
     setPending(null)
     if (!outcome.sent) {
@@ -96,6 +101,7 @@ export function SignupCard({ next, enabled, providers, linkFailed, className }: 
       }
       return
     }
+    trackClient("signup_code_sent", { resent: false })
     startWaiting(RESEND_SECONDS)
     setSentTo(checked.entry.email)
     setStep("code")

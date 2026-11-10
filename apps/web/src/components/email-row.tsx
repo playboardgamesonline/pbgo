@@ -41,7 +41,7 @@ export function EmailRow({ email, demo }: { email: string | null; demo: boolean 
     setProblem(null)
     setError(null)
     setPending(true)
-    const outcome = await changing(demo, () => changeEmail(checked.email))
+    const outcome = await changing(demo, () => changeEmail(checked.email), { account: "email" })
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) {

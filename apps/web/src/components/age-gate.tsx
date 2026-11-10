@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { birthdateProblem, type AgeRefusal } from "@pbgo/accounts"
+import { trackClient } from "@pbgo/analytics/client"
 import { ApiClientError, gameRequest } from "@pbgo/core/lib/api"
 import { Button } from "@pbgo/ui/platform/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@pbgo/ui/platform/dialog"
@@ -48,6 +49,7 @@ function BirthdateForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: (
     setSaving(true)
     try {
       await gameRequest("/api/hub/birthdate", { method: "POST", body: JSON.stringify({ birthdate }) })
+      trackClient("setting_changed", { setting: "birthdate" })
       onSaved()
     } catch (error) {
       setProblem(messageOf(error))

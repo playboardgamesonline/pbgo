@@ -106,6 +106,8 @@ export function OpenTables({
   const pick = (id: string) => {
     const next = id === ownId || pickedId === id ? null : id
     setPickedId(next)
+    // Another visitor's table, picked in the list (not the visitor's own, and not put down again)
+    if (next !== null) trackClient("public_table_clicked", { game: slug, from: "game_page" })
     // Under `lg` the panel is above the list: bring it into view
     if (next !== null && !window.matchMedia("(min-width: 1024px)").matches) panel.current?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" })
   }

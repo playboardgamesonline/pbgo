@@ -23,6 +23,8 @@ export {
   waysIn,
 } from "./account"
 export type { Account, AnyProvider, AuthUser, ExternalProvider, LinkedService, Provider } from "./account"
+export { providerSignInOf, signInProviderOf } from "./sign-in-report"
+export type { ProviderSignIn } from "./sign-in-report"
 export { NONCE_MAX_AGE_MS, STATE_PATTERN, STEAM_FALLBACK_NAME, STEAM_LOGIN_URL, STEAM_STATE_COOKIE, STEAM_STATE_MAX_AGE, assertionOf, checkAssertion, fetchSteamProfile, newState, sameSecret, steamConfirms, steamLoginUrl, steamProfileOf, steamReturnTo } from "./steam"
 export type { AssertionCheck, AssertionProblem, SteamProfile } from "./steam"
 export { externalEmail, externalLink, externalSignIn, externalUnlink } from "./external"

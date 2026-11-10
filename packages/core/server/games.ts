@@ -5,6 +5,7 @@ import { type PublicGame, type PublicPlayer, type GameStatus, UPDATE_EVENT, game
 import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
 import type { TableSettings } from "../lib/table-settings"
 import { sanityClient } from "../sanity/client"
+import { trackAnonymously } from "./analytics"
 import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
 import { isMissingColumn } from "./db-error"
@@ -186,7 +187,7 @@ export async function settleReadyCheck(game: GameRef, row: GameRow, now = Date.n
   if (!readyExpired(row, now)) return row
   const settled = await updateGame(game, row.code, (current) => (readyExpired(current, now) ? expirePatch(current) : null))
   // A check that ended with nobody ready left a lobby that holds no one: it goes (PLT-21)
-  await deleteEmptyTable(game, settled)
+  if (await deleteEmptyTable(game, settled)) trackAnonymously("table_deleted", { game: game.slug, reason: "nobody_ready" })
   return settled
 }
 

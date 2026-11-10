@@ -18,6 +18,7 @@ import {
 } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
 import { createAdminClient, createAuthClient, externalDeps, externalProvidersOn, getAccount, secondStepPendingAfterSignIn } from "@pbgo/accounts/server"
+import { trackAnonymously } from "@pbgo/core/server/analytics"
 import { rateLimit } from "@pbgo/core/server/rate-limit"
 
 /**
@@ -97,6 +98,8 @@ export async function GET(request: NextRequest) {
   if (session?.error?.code === "user_banned") return to(`/login?error=closed&next=${encodeURIComponent(next)}`)
   if (!session || session.error || !session.data.user || !session.data.session) return failed("session")
 
+  // Counted without a word of who: the provider and whether this sign-in made the account
+  trackAnonymously("signed_in", { method: "steam", new_account: result.created })
   // A member whose account asks for a second step (PLT-129) goes to the sign-in, which asks for the code and brings them on to `next`: it can be a page that anybody sees, where they would be left as a guest
   const second = supabase !== null && (await secondStepPendingAfterSignIn(supabase, session.data.session.access_token))
   const response = to(second ? `/login?next=${encodeURIComponent(next)}` : next)

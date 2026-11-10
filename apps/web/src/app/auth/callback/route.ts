@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_OPTIONS, languageOf, safeNext } from "@pbgo/accounts"
+import { ACCOUNT_SETTINGS_PATH, LANGUAGE_COOKIE, LANGUAGE_COOKIE_OPTIONS, languageOf, providerSignInOf, safeNext } from "@pbgo/accounts"
 import { createAuthClient, secondStepPendingAfterSignIn } from "@pbgo/accounts/server"
+import { trackAnonymously } from "@pbgo/core/server/analytics"
 
 /**
  * Where the provider sends the visitor back, with a one-time `code` that this exchanges for a session (the cookies are set on the way out), then on to
@@ -18,6 +19,9 @@ export async function GET(request: NextRequest) {
   if (supabase && code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // The provider and whether it made the account, counted without a word of who: the same way back brings a member who links a service or confirms a new address, and that is no sign-in
+      const signIn = next === ACCOUNT_SETTINGS_PATH ? null : providerSignInOf(data.user)
+      if (signIn) trackAnonymously("signed_in", signIn)
       const second = await secondStepPendingAfterSignIn(supabase, data.session?.access_token)
       const response = NextResponse.redirect(new URL(second ? `/login?next=${encodeURIComponent(next)}` : next, origin))
       const language = languageOf(data.user)
