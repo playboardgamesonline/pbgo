@@ -95,5 +95,5 @@ const [clue, setClue] = useState("")
 ### Not built
 
 - Cells to write in, as on the score sheet of a roll-and-write game (Yahtzee's pad, Qwixx, Welcome To): a sheet of cells that are marked or filled is a board, and no tool draws one ([Not built yet](../03-not-built-yet.md)).
-- Drawing: a canvas where a player draws strokes, for Telestrations or Pictionary.
+- Drawing: a sheet that a player draws on with the pointer is a component of its own ([Drawing](21-drawing.md)).
 - A list of the words that may not be written, and a way to report a text: see the Privacy Policy and the moderation of the platform before a game with free text goes live.

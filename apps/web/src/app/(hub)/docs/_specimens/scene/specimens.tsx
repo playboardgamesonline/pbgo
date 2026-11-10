@@ -1,16 +1,16 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { allSubmitted, bagSize, createSaveableRng, drawFromBag, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, submit, submittedFlags, type Submissions } from "@pbgo/engine-kit"
+import { addStrokes, allSubmitted, bagSize, createSaveableRng, type Drawing, drawFromBag, drawingPoints, emptyDrawing, EngineError, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, type Stroke, submit, submittedFlags, type Submissions, undoStroke } from "@pbgo/engine-kit"
 import { ask, askChoice, askNumber, askText } from "@pbgo/core/components/game/prompt"
 import { PromptHost } from "@pbgo/core/components/game/prompt-host"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Button } from "@pbgo/ui/platform/button"
 import { Choice, Knob, Option } from "./controls"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
+import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
 import { SceneFrame } from "./frame"
-import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, SeatScene, SeatsScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, SeatScene, SeatsScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -623,6 +623,62 @@ export function SceneNumbersSpecimen() {
       }
     >
       <NumbersScene count={count} face={face} bet={bet} onCount={setCount} onFace={setFace} onBet={setBet} onSettle={setSettled} />
+    </SceneFrame>
+  )
+}
+
+/** How big a drawing is on the wire, in the units a person reads */
+const sizeOf = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${(bytes / 1024).toFixed(1)} kB`)
+
+export function SceneSketchSpecimen() {
+  // What the board holds is the drawing as the engine keeps it: the strokes the sheet sends go through the engine kit, which cleans each one and refuses what does not fit. `held` is the newest drawing, for a batch that arrives before the page has drawn again
+  const [drawing, setDrawing] = useState<Drawing>(emptyDrawing)
+  const held = useRef<Drawing>(drawing)
+  const [pen, setPen] = useState(SKETCH_PEN)
+  const [mine, setMine] = useState(true)
+  const [refusal, setRefusal] = useState<string | null>(null)
+  const keep = (next: Drawing) => {
+    held.current = next
+    setDrawing(next)
+    setRefusal(null)
+  }
+  const draw = (incoming: Stroke[]) => {
+    try {
+      keep(addStrokes(held.current, incoming, SKETCH_RULES))
+    } catch (error) {
+      if (!(error instanceof EngineError)) throw error
+      setRefusal(error.code)
+    }
+  }
+  return (
+    <SceneFrame
+      label="Two sheets of paper on a table seen from above: a large one on the left that can be drawn on with the pointer, and a smaller one on the right that shows what the other players read. A line drawn on the large sheet appears on the small one a moment later, once the board has kept it"
+      controls={
+        <>
+          <Choice label="Colour" value={String(pen.color)} options={SKETCH_COLORS.map((name, k) => ({ value: String(k), label: name, description: `${name} ink` }))} onChange={(value) => setPen((now) => ({ ...now, color: Number(value) }))} />
+          <Choice label="Brush" value={String(pen.width)} options={SKETCH_BRUSHES.map((brush, k) => ({ value: String(k), label: brush.name, description: `${brush.name} brush` }))} onChange={(value) => setPen((now) => ({ ...now, width: Number(value) }))} />
+          <Option label="It is my turn" checked={mine} onChange={setMine} />
+          <Button variant="outline" size="sm" disabled={drawing.length === 0} onClick={() => keep(undoStroke(held.current))}>
+            Undo a stroke
+          </Button>
+          <Button variant="ghost" size="sm" disabled={drawing.length === 0} onClick={() => keep(emptyDrawing())}>
+            Clear
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The board holds <span className="text-foreground tabular-nums">{drawing.length}</span> of {SKETCH_RULES.strokes} strokes and <span className="text-foreground tabular-nums">{drawingPoints(drawing)}</span> of {SKETCH_RULES.points} points, which is{" "}
+            <span className="text-foreground tabular-nums">{sizeOf(JSON.stringify(drawing).length)}</span> of state.
+            {refusal !== null && (
+              <>
+                {" "}
+                The engine refused the last strokes with <code className="text-foreground">{refusal}</code>, and the sheet lets them go a moment later.
+              </>
+            )}
+            {!mine && " It is another player's turn, so the sheet can only be looked at."}
+          </p>
+        </>
+      }
+    >
+      <SketchScene strokes={drawing} pen={pen} mine={mine} onStrokes={draw} />
     </SceneFrame>
   )
 }

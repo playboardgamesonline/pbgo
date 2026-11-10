@@ -10,6 +10,7 @@ import { pointOnTable, withinReach } from "./reach"
 import { DRAG_SETTINGS } from "./settings"
 import type { Point } from "./shapes"
 import type { ZoneId } from "./store"
+import { claimTouch } from "./touch"
 
 /** Where a dragged thing was let go */
 export type Drop = {
@@ -51,21 +52,6 @@ export type Dragger = {
 
 /** A press that is going on: what ends it */
 type Session = { end: (how: "drop" | "cancel") => void }
-
-/** How many things on a canvas want the touches that begin on it, and what its `touch-action` was before: a canvas with something to drag does not scroll the page under a finger, and one with nothing keeps doing it */
-const touching = new WeakMap<HTMLElement, { count: number; was: string }>()
-
-function claimTouch(element: HTMLElement): () => void {
-  const claim = touching.get(element) ?? { count: 0, was: element.style.touchAction }
-  if (claim.count === 0) claim.was = element.style.touchAction
-  claim.count++
-  touching.set(element, claim)
-  element.style.touchAction = "none"
-  return () => {
-    claim.count--
-    if (claim.count === 0) element.style.touchAction = claim.was
-  }
-}
 
 /**
  * Lets the player pick a thing up with the pointer and let it go on the table, in the way the `Card` and the `Piece` do, for anything a game draws. It must be called inside the `Table`. A press on the thing that stays within a few pixels is a click; one

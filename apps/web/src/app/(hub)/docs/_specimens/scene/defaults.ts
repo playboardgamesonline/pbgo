@@ -1,4 +1,6 @@
-// What the light half of a specimen (its controls) and the heavy half (its scene) both need to know. Plain numbers only: this file imports nothing, so the controls can read it without pulling in three.js.
+// What the light half of a specimen (its controls) and the heavy half (its scene) both need to know. Plain numbers only: this file imports no code (a type of the engine kit at the most), so the controls can read it without pulling in three.js.
+
+import type { Drawing } from "@pbgo/engine-kit"
 
 /** The view the camera specimen starts from, and its reset returns to. The scene adds the point it looks at. */
 export const CAMERA_VIEW = { tilt: 40, yaw: 0, distance: 15, fov: 34 }
@@ -88,6 +90,21 @@ export type BidView = { mine: number | null; others: { hasBid: boolean; bid: num
 /** The numbers specimen: what the stepper counts, the faces to pick among, the range of the bet and where each starts. */
 export const NUMBERS = { count: { min: 1, max: 12, start: 3 }, faces: 6, bet: { min: 0, max: 100, step: 5, start: 40 } }
 
+/** The sketch specimen: the colours of its palette and the brushes it draws with (a brush is a part of the width of the sheet), the rules its drawing is kept under (a small sheet, so that a full one can be seen), and where the sheet that is drawn on and the one that shows what the others read lie, and their size. */
+export const SKETCH_COLORS = ["Ink", "Red", "Blue", "Gold"] as const
+export const SKETCH_BRUSHES = [
+  { name: "Fine", width: 0.006 },
+  { name: "Medium", width: 0.013 },
+  { name: "Broad", width: 0.028 },
+] as const
+export const SKETCH_RULES = { colors: SKETCH_COLORS.length, widths: SKETCH_BRUSHES.length, strokes: 12, points: 2500, strokePoints: 400 }
+export const SKETCH_SHEETS = {
+  mine: { x: -3.5, z: 0.1, width: 5.8, height: 4.35 },
+  others: { x: 4.4, z: -0.6, width: 3.6, height: 2.7 },
+}
+/** The pen the sketch specimen starts with: the first colour and the medium brush. */
+export const SKETCH_PEN = { color: 0, width: 1 }
+
 export const TIMER_SECONDS = { min: 5, max: 30, start: 12 }
 /** What is left of the time in the three hourglasses that wait with no clock: most of it, half and little */
 export const TIMER_REST = [0.85, 0.5, 0.15] as const
@@ -132,9 +149,9 @@ export const DRAG_START: DragCards = { hand: DRAG_HAND.map(({ card }) => card), 
 /** The playground: the things that lie on its table, the parts of the table that can be switched on, and where it starts. */
 export const PLAY_PIECES = ["disc", "square", "hex", "cube", "sphere", "pawn"] as const
 export type PlayPiece = (typeof PLAY_PIECES)[number]
-export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "seats"] as const
+export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "seats"] as const
 export type PlayPart = (typeof PLAY_PARTS)[number]
-export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", seats: "Seats" }
+export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", seats: "Seats" }
 export const PLAY_CUP_POSES = ["covering", "peeking", "lifted", "shaking", "rest", "pouring"] as const
 export type PlayCupPose = (typeof PLAY_CUP_POSES)[number]
 /** What the playground puts on the table for the visitor to move: a card (by the number its face is painted from) or a piece (a shape, and a colour of the palette). */
@@ -159,6 +176,8 @@ export type PlayState = {
   text: string
   bet: number | null
   face: number | null
+  /** The sheet: what is drawn on it, as the engine would keep it, and the pen */
+  sketch: { strokes: Drawing; color: number; width: number }
   players: number
   above: boolean
   zoom: number
@@ -177,10 +196,14 @@ export type PlayActions = {
   slide: (value: number) => void
   bet: (value: number) => void
   pick: (face: number) => void
+  /** The strokes a player finished on the sheet */
+  ink: (strokes: Drawing) => void
 }
 /** The ranges of the playground's stepper and slider, and where they start. */
 export const PLAY_NUMBERS = { stepper: { min: 0, max: 20, start: 3 }, slider: { min: 0, max: 100, step: 5, start: 40 } }
 /** How long a step of the playground's timer lasts, in seconds. */
 export const PLAY_CLOCK = { seconds: 12 }
+/** Where the playground's sheet lies and how big it is, and how far the camera backs off for it: it lies beyond the rest of the table, on the right. */
+export const PLAY_SKETCH = { x: 11.4, z: 6.2, width: 4.8, height: 3.6, zoom: 32 }
 /** How many things the table holds at the most, how many tokens the track has, and the most the counter reaches. */
 export const PLAY_LIMITS = { things: 24, spaces: 8, counter: 99, dice: 6, zoom: { min: 14, max: 34, start: 22 }, tilt: { min: 0, max: 60, start: 34 } }

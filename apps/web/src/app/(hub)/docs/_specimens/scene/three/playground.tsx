@@ -25,6 +25,7 @@ import {
   Seat,
   seats,
   shifted,
+  Sketch,
   Slider,
   spacesIn,
   squareCells,
@@ -35,12 +36,12 @@ import {
   TrackMarker,
 } from "@pbgo/table"
 import { useMemo } from "react"
-import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, PLAY_CLOCK, PLAY_LIMITS, PLAY_NUMBERS, type PlayActions, type PlayState, type PlayThing } from "../defaults"
-import { back, CARD_SIZE, face, palette } from "./art"
+import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, PLAY_CLOCK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SKETCH, type PlayActions, type PlayState, type PlayThing, SKETCH_BRUSHES } from "../defaults"
+import { back, CARD_SIZE, face, inks, palette } from "./art"
 import { Stage, TableLabel } from "./parts"
 
 // Every component of the table on one table. What the visitor can move, cards and pieces, is added from the controls and dragged anywhere: let one go on a cell of the board and it takes the cell, let it go on the bin and it is gone. The parts that have a
-// place of their own, the board, the track, the counter, the stepper, the slider, the timer, the bag, the cup, the dice tray, the fields and the seats, are on or off. Each is the component of the package as the page of its own shows it, given a place on the table and a state by the controls.
+// place of their own, the board, the track, the counter, the stepper, the slider, the timer, the bag, the cup, the dice tray, the fields, the sketch and the seats, are on or off. Each is the component of the package as the page of its own shows it, given a place on the table and a state by the controls.
 
 /** The view of the table: seen from where a player sits, and from straight above when the controls say so. The distance and the lean are the controls'. */
 const camera = ({ zoom, above, tilt }: Pick<PlayState, "zoom" | "above" | "tilt">): CameraSettings => ({ tilt: above ? 6 : tilt, yaw: 0, distance: zoom, fov: 34, targetX: 0, targetZ: 0.5 })
@@ -58,6 +59,7 @@ const BIN = { x: -6.6, z: 5.2, radius: 1.2 }
 const FIELD_Z = 6.2
 const RING = { radiusX: 10, radiusZ: 7.2 }
 const NAMES = ["Alix", "Basile", "Camille", "Dana", "Eli"] as const
+const BRUSHES = SKETCH_BRUSHES.map((brush) => brush.width)
 
 const CELLS = Array.from({ length: 36 }, (_, cell) => cell)
 const zoneOf = (cell: number) => `cell:${cell}`
@@ -225,6 +227,22 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
             width={2.6}
           />
           <ChoiceField value={state.face} options={BID_FACES} onChange={actions.pick} instant label="Your face" hint="The face of the die you bet on." placeholder="Press to pick" at={{ x: 5, z: FIELD_Z }} width={2.6} />
+        </>
+      )}
+      {parts.sketch && (
+        <>
+          <Sketch
+            strokes={state.sketch.strokes}
+            onStrokes={actions.ink}
+            at={{ x: PLAY_SKETCH.x, z: PLAY_SKETCH.z }}
+            width={PLAY_SKETCH.width}
+            height={PLAY_SKETCH.height}
+            colors={inks()}
+            widths={BRUSHES}
+            pen={{ color: state.sketch.color, width: state.sketch.width }}
+            paper={colors.ivory}
+          />
+          <TableLabel text="Sketch" x={PLAY_SKETCH.x} z={PLAY_SKETCH.z + PLAY_SKETCH.height / 2 + 0.6} height={0.45} tone="muted" />
         </>
       )}
       {parts.seats &&
