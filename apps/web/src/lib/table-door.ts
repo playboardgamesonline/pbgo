@@ -1,7 +1,7 @@
 // The door between the platform's table and the game's board (PLT-106). A table is opened, joined and started on the hub's page of the game; when it is started everybody seated is taken to its board, `/<slug>/game/<code>`, in the game's own
 // site (another root layout, which the router loads whole). Four things take them there: the Start button for the one who pressed it, the watcher of the table for the others (`TableSync`), the beat of a member who is playing, from any
 // other page of the hub (`PresenceBeat`, PLT-120), and the search of a visitor who pressed Play, when a table of it has begun (`SearchSync`). All call `enterBoard` and nothing else does.
-// Since PLT-107 the board is where the table is `starting`: the page there is the platform's start screen, which loads the board behind it while every board of the table loads (`@pbgo/core/components/game/ready-screen`). The jump takes about a second,
+// Since PLT-107 the board is where the table is `starting`: the page there is the platform's start screen, which loads the board behind it while every board of the table loads and every player confirms that they are there (`@pbgo/core/components/game/ready-screen`). The jump takes about a second,
 // well inside the minute they have, so nothing is warmed up before it; if it ever is not smooth enough this is the one function that changes.
 // A player who goes to a board has no search any more: they are in a game, whichever door took them, and the server leaves their other lobbies when it begins. The door says so with an event (`ENTER_BOARD_EVENT`), which `SearchSync` hears, so that
 // this file, which server components import too, holds nothing of the browser's.

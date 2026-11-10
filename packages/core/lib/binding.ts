@@ -155,7 +155,7 @@ export type BoardProps = {
    */
   held?: boolean
   /**
-   * Call it once, when the board is drawn and everything it needs is in (its pictures, its chunks): the player is then ready, and the game begins when every player is. A board that never calls it is waited for `READY_LOAD_GRACE_MS`, no longer.
+   * Call it once, when the board is drawn and everything it needs is in (its pictures, its chunks): the board is then loaded, and the player is ready once they have also pressed the button of the screen, "I'm here". The game begins when every player is. A board that never calls it is waited for `READY_LOAD_GRACE_MS`, no longer.
    */
   onLoaded?: () => void
   /**

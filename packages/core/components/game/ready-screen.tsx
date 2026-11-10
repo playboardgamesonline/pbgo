@@ -3,11 +3,13 @@
 import { AnimatePresence, MotionConfig, motion } from "motion/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { DURATION, EASE_STANDARD } from "@pbgo/ui/motion"
+import { Button } from "@pbgo/ui/platform/button"
+import { Spinner } from "@pbgo/ui/platform/spinner"
 import { ApiClientError } from "../../lib/api"
 import type { BoardProps } from "../../lib/binding"
 import { useApi, useBinding } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
-import { collectiveProgress, curtainState, loadingRows, READY_LOAD_GRACE_MS, secondsLeft } from "../../lib/ready-curtain"
+import { checkWords, collectiveProgress, type CurtainState, curtainState, type LoadingRow, loadingRows, READY_LOAD_GRACE_MS, secondsLeft } from "../../lib/ready-curtain"
 import { useDeadline } from "../../lib/use-deadline"
 import { type LoadingProgress, openLoading } from "../../lib/realtime"
 import { StartScreen } from "./start-screen"
@@ -17,9 +19,11 @@ const READY_ATTEMPTS = 3
 
 /**
  * The board of a table that has started, behind the start screen (PLT-107). The board is drawn from the first moment, from the view the table gives the player, and loads its pictures behind the screen (`held`, `onLoaded` and `onProgress` of
- * `BoardProps`); the screen is the platform's (`StartScreen`) and shows one collective bar, how far every board of the table is. A player is ready when their board is: it says so to the table by itself (`POST …/ready`), no click. While the table
- * is `starting` the screen stays up for everybody, loaded or not, until the last board is there and the game begins; then it goes, for each player, and the board plays its opening from then on. A player who comes back to a game under way gets the
- * same screen with their own bar only, no barrier: it goes as soon as their board is loaded.
+ * `BoardProps`); the screen is the platform's (`StartScreen`) and shows one collective bar, how far every board of the table is, a row for each player and a button, "I'm here", which every player presses to say they are there: the host who started
+ * the table included, and the player who took its last seat, since a table that is full begins by itself and must not draw an absent player into a game. Nothing is automatic. A player is ready when they have pressed it and their board is loaded: the
+ * table is told (`POST …/ready`) when both are true, and a press made before the board is loaded is kept until it is. While the table is `starting` the screen stays up for everybody, loaded or not, until the last player is ready and the game begins;
+ * then it goes, for each player, and the board plays its opening from then on. A player who has not pressed when the time is up is unseated by the table. A player who comes back to a game under way gets the same screen with their own bar only, no
+ * button and no barrier: it goes as soon as their board is loaded.
  */
 export function BoardEntry({
   game,
@@ -55,15 +59,16 @@ export function BoardEntry({
   const loaded = boardLoaded || graceOver
   const own = loaded ? 1 : reported
 
-  // The table has them down as ready, or knew it when the page opened (back during the check): it stays so when the game begins and the table forgets the marks
+  // The player said they are there: nothing is sent before, whatever the board is doing. The table has them down as ready, or knew it when the page opened (back during the check): it stays so when the game begins and the table forgets the marks
+  const [confirmed, setConfirmed] = useState(false)
   const [sent, setSent] = useState(false)
   const [knownReady, setKnownReady] = useState(false)
   if (!knownReady && meId && game.ready.includes(meId)) setKnownReady(true)
   const marked = knownReady || sent
 
-  // A player is ready when their board is. The table decides, once everybody is
+  // A player is ready when they said they are there and their board is loaded; a press made before the board is loaded is sent when it is. The table decides, once everybody is
   useEffect(() => {
-    if (!starting || !loaded || marked) return
+    if (!starting || !confirmed || !loaded || marked) return
     let stopped = false
     void (async () => {
       for (let attempt = 1; attempt <= READY_ATTEMPTS && !stopped; attempt++) {
@@ -77,11 +82,13 @@ export function BoardEntry({
           await new Promise((resolve) => setTimeout(resolve, 800 * attempt))
         }
       }
+      // The table could not be told: the button is theirs again, to press once the line is back, instead of a wait for nothing
+      if (!stopped) setConfirmed(false)
     })()
     return () => {
       stopped = true
     }
-  }, [starting, loaded, marked, api, game.code, onUpdate, reload])
+  }, [starting, confirmed, loaded, marked, api, game.code, onUpdate, reload])
 
   // How far the others are: what the boards of the table tell each other, while the check lasts
   const [others, setOthers] = useState<LoadingProgress>({})
@@ -119,7 +126,7 @@ export function BoardEntry({
     return () => clearInterval(timer)
   }, [timeUp, reload])
 
-  const state = curtainState({ status: game.status, marked, loaded })
+  const state = curtainState({ status: game.status, confirmed, marked, loaded })
   const lifted = state === "lifted"
   const rows = useMemo(() => loadingRows({ players: game.players, ready: game.ready, reported: others, meId, own }), [game.players, game.ready, others, meId, own])
   if (!Game) return null
@@ -144,14 +151,7 @@ export function BoardEntry({
               transition={{ duration: DURATION.slow, ease: EASE_STANDARD }}
             >
               {starting ? (
-                <StartScreen
-                  title={state === "waiting" ? "Waiting for the other players" : "Setting up the table"}
-                  subtitle={state === "waiting" ? "The game starts as soon as everyone is ready." : "The game starts when every board is loaded."}
-                  progress={collectiveProgress(rows)}
-                  caption={`${ready} of ${rows.length} players ready`}
-                  seconds={left}
-                  rows={rows}
-                />
+                <CheckScreen state={state} onConfirm={() => setConfirmed(true)} progress={collectiveProgress(rows)} caption={`${ready} of ${rows.length} players ready`} seconds={left} rows={rows} />
               ) : (
                 <StartScreen title="Loading the table" progress={own} caption={`${Math.round(own * 100)}%`} />
               )}
@@ -160,5 +160,36 @@ export function BoardEntry({
         </AnimatePresence>
       </MotionConfig>
     </>
+  )
+}
+
+/**
+ * The start screen of a table in its ready check: the words for where the player stands, the bar and a row for each player, and the button. The button is theirs to press until they do: it takes the focus when the screen comes up, so that Enter or Space
+ * presses it, and from the press on it is disabled, with a spinner, and says that the others are awaited.
+ */
+function CheckScreen({
+  state,
+  onConfirm,
+  progress,
+  caption,
+  seconds,
+  rows,
+}: {
+  state: Exclude<CurtainState, "lifted">
+  onConfirm: () => void
+  progress: number
+  caption: string
+  seconds: number | null
+  rows: readonly LoadingRow[]
+}) {
+  const words = checkWords(state)
+  const pressed = state !== "confirm"
+  return (
+    <StartScreen title={words.title} subtitle={words.subtitle} progress={progress} caption={caption} seconds={seconds} rows={rows}>
+      <Button size="xl" className="min-w-64" autoFocus disabled={pressed} onClick={onConfirm}>
+        {pressed && <Spinner data-icon="inline-start" />}
+        {words.button}
+      </Button>
+    </StartScreen>
   )
 }

@@ -13,7 +13,7 @@ import { leaveOtherLobbies } from "../../../../../server/table-seat"
 import { readTableSettingsOf } from "../../../../../server/table-settings"
 
 /**
- * "I'm ready" (PLT-107): sent by a player's board by itself once it is loaded, no click. The last of them to say it begins the game, and the answer says so (`status` is `playing`). Saying it again, or saying it for a table that is
+ * "I'm ready" (PLT-107): sent by a player's board once the player has pressed "I'm here" on the start screen and the board is loaded. Nothing sends it by itself: a player who does not press is not ready, and is unseated when the time is up. The last of them to say it begins the game, and the answer says so (`status` is `playing`). Saying it again, or saying it for a table that is
  * not in a ready check any more (it began without them, or went back to the lobby), changes nothing and answers with the table as it is, so the board shows where it stands. A player who is not at the table is refused. If the time was up
  * when the player said it, the check ends instead, as it would on any look at the table: the ones who were not ready are unseated and the table is back in the lobby. When the game begins, its players leave every other lobby where they sit
  * (`leaveOtherLobbies`).

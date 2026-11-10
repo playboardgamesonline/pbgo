@@ -93,8 +93,11 @@ export async function readPlayerTables(game: string, playerId: string, now = Dat
     }))
 }
 
+/** A table of a member that has begun: in its ready check, or being played. */
+export type ActiveTable = MemberTable & { status: "starting" | "playing" }
+
 /** The table a member is taken to: the one that is in its ready check or being played, the one written last when there are several (there should be one: a table does not start while a player is in a game). Null when there is none. */
-export const activeTable = (tables: readonly MemberTable[]): MemberTable | null => tables.find((table) => table.status === "starting" || table.status === "playing") ?? null
+export const activeTable = (tables: readonly MemberTable[]): ActiveTable | null => tables.find((table): table is ActiveTable => table.status === "starting" || table.status === "playing") ?? null
 
 /** Whether the member has a table that may begin any moment: a lobby, or a table in its ready check. Their browser then asks sooner where it should be (`BEAT_SOON_MS`). */
 export const hasTableToWatch = (tables: readonly MemberTable[]): boolean => tables.some((table) => table.status === "lobby" || table.status === "starting")

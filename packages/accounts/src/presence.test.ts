@@ -33,10 +33,18 @@ describe("the beat of a member who has a table that may begin", () => {
 })
 
 describe("readBeatAnswer", () => {
-  it("reads the table a member is taken to, and whether they have one that may begin", () => {
-    expect(readBeatAnswer({ ok: true, table: { game: "courtisans", code: "ABC234" }, watching: true })).toEqual({ table: { game: "courtisans", code: "ABC234" }, watching: true })
+  it("reads the table a member is taken to, what it is at, and whether they have one that may begin", () => {
+    expect(readBeatAnswer({ ok: true, table: { game: "courtisans", code: "ABC234", status: "playing" }, watching: true })).toEqual({ table: { game: "courtisans", code: "ABC234", status: "playing" }, watching: true })
+    expect(readBeatAnswer({ ok: true, table: { game: "courtisans", code: "ABC234", status: "starting" }, watching: true })).toEqual({ table: { game: "courtisans", code: "ABC234", status: "starting" }, watching: true })
     expect(readBeatAnswer({ ok: true, table: null, watching: false })).toEqual({ table: null, watching: false })
     expect(readBeatAnswer({ ok: true })).toEqual({ table: null, watching: false })
+  })
+
+  it("reads a table with no status, or with one it does not know, as in its ready check: only the word `playing` leaves a member alone", () => {
+    expect(readBeatAnswer({ table: { game: "courtisans", code: "ABC234" } }).table).toEqual({ game: "courtisans", code: "ABC234", status: "starting" })
+    for (const status of ["lobby", "over", "Playing", "PLAYING", " playing", "play", 1, true, null, [], {}]) {
+      expect(readBeatAnswer({ table: { game: "courtisans", code: "ABC234", status } }).table?.status, JSON.stringify(status)).toBe("starting")
+    }
   })
 
   it("takes nothing that is not a game and a code for a table, since they make an address", () => {
@@ -64,10 +72,24 @@ describe("readBeatAnswer", () => {
 })
 
 describe("takenToGame", () => {
-  it("takes a member who is playing from every page of the hub but the legal ones", () => {
-    for (const page of ["/", "/home", "/games", "/game/courtisans", "/game/courtisans/ABC234", "/tables", "/tournaments", "/about", "/me", "/me/settings/account", "/docs/design"]) expect(takenToGame(page), page).toBe(true)
-    for (const page of ["/legal", "/legal/cookies", "/legal/privacy", "/legal/terms"]) expect(takenToGame(page), page).toBe(false)
-    expect(takenToGame("/legalese")).toBe(true)
+  const LEGAL = ["/legal", "/legal/cookies", "/legal/privacy", "/legal/terms"]
+  const PROFILES = ["/player/Marly-0042", "/player/Marly-0042/"]
+  const OWN = ["/me", "/me/games", "/me/friends", "/me/settings", "/me/settings/account", "/me/settings/language"]
+  const OTHERS = ["/", "/home", "/games", "/game/courtisans", "/game/courtisans/ABC234", "/tables", "/tournaments", "/about", "/login", "/docs/design", "/auth/reopen-account"]
+
+  it("takes a member whose table is in its ready check from every page of the hub but the legal ones: nobody misses the confirmation", () => {
+    for (const page of [...OTHERS, ...PROFILES, ...OWN]) expect(takenToGame(page, "starting"), page).toBe(true)
+    for (const page of LEGAL) expect(takenToGame(page, "starting"), page).toBe(false)
+    expect(takenToGame("/legalese", "starting")).toBe(true)
+  })
+
+  it("takes a member who is playing from every page but the legal ones, a player's profile and their own pages", () => {
+    for (const page of OTHERS) expect(takenToGame(page, "playing"), page).toBe(true)
+    for (const page of [...LEGAL, ...PROFILES, ...OWN]) expect(takenToGame(page, "playing"), page).toBe(false)
+  })
+
+  it("reads a page as one of these by its whole first segment, not by its first letters, and by where it starts, not by what it holds", () => {
+    for (const page of ["/legalese", "/players", "/medals", "/media", "/members", "/me-too", "/games/me", "/game/me", "/game/player/ABC234", "/docs/me"]) expect(takenToGame(page, "playing"), page).toBe(true)
   })
 })
 

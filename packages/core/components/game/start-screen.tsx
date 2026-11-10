@@ -38,7 +38,7 @@ export function StartScreen({
   seconds?: number | null
   /** Seat by seat, how far each board is */
   rows?: readonly LoadingRow[]
-  /** What goes under it all: a button */
+  /** What goes under the title and its line: a button */
   children?: ReactNode
 }) {
   return (
@@ -53,6 +53,7 @@ export function StartScreen({
           <h1 className="text-2xl sm:text-3xl">{title}</h1>
           {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
         </div>
+        {children}
         {progress !== null && (
           <section aria-label="Loading" className="flex w-full flex-col gap-3">
             <Progress value={Math.round(progress * 100)} />
@@ -92,7 +93,6 @@ export function StartScreen({
             ))}
           </ul>
         )}
-        {children}
       </main>
     </div>
   )

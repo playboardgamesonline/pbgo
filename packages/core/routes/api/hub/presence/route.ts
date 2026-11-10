@@ -5,12 +5,12 @@ import { touchMember } from "../../../../server/presence"
 import { rateLimit } from "../../../../server/rate-limit"
 import { activeTable, hasTableToWatch, readMemberTables } from "../../../../server/tables"
 
-/** Where the member should be, and whether to ask again soon: the table that is in its ready check or being played (the game and its code, enough to build the address of its board), and whether a table may begin any moment. Never throws: the beat is for presence. */
-async function whereToBe(userId: string): Promise<{ table: { game: string; code: string } | null; watching: boolean }> {
+/** Where the member should be, and whether to ask again soon: the table that is in its ready check or being played (the game and its code, enough to build the address of its board, and which of the two it is at), and whether a table may begin any moment. Never throws: the beat is for presence. */
+async function whereToBe(userId: string): Promise<{ table: { game: string; code: string; status: "starting" | "playing" } | null; watching: boolean }> {
   try {
     const tables = await readMemberTables(userId)
     const table = activeTable(tables)
-    return { table: table ? { game: table.game, code: table.code } : null, watching: hasTableToWatch(tables) }
+    return { table: table ? { game: table.game, code: table.code, status: table.status } : null, watching: hasTableToWatch(tables) }
   } catch (error) {
     console.error("The tables of a member could not be read", error instanceof Error ? error.message : error)
     return { table: null, watching: false }
@@ -22,9 +22,9 @@ async function whereToBe(userId: string): Promise<{ table: { game: string; code:
  * the last one (`member_presence`, migration 0005). It is not a game's route: the member is asked of Supabase Auth (`getAccount`), and a visitor who is not signed in gets a 401 and is never counted.
  * The demo account of development is in no database, so its beat writes nothing.
  *
- * The answer says where the member should be (PLT-120): `table` is the game and the code of the table they sit at that is in its ready check or being played, which the page takes them to from any page of the hub (a player who is
- * playing is taken to their game), and `watching` that they have a table that may begin any moment (a lobby, or a ready check), which makes the browser beat sooner. Both are best effort: a project where migration 0013 is
- * not applied yet, or a database that cannot answer, gives `table: null` and the beat still counts the member.
+ * The answer says where the member should be (PLT-120): `table` is the game, the code and the `status` (`starting`, the ready check, or `playing`) of the table they sit at that is in its ready check or being played, which the page takes them to
+ * (`takenToGame`: from every page of the hub but the legal ones while it is in its ready check, so that nobody misses the confirmation they owe, and also but a player's profile and the member's own pages while it is being played), and `watching` that they have
+ * a table that may begin any moment (a lobby, or a ready check), which makes the browser beat sooner. Both are best effort: a project where migration 0013 is not applied yet, or a database that cannot answer, gives `table: null` and the beat still counts the member.
  */
 export const POST = handle(async (request: Request) => {
   await rateLimit(null, request, "presence")
