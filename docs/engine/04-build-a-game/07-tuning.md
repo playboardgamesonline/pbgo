@@ -1,6 +1,6 @@
 # Tuning
 
-A scene is tuned live. Every visual value is a field of a plain object that a frame reads, and the debug panel edits that object. The shared tools take such objects: `CARD_SETTINGS`, `SEAT_SETTINGS`, the camera's settings and the entrance, the glows. The shared `Table` makes the folders for them; a game binds the objects of its own (its layout) to folders with `useSettings`.
+A scene is tuned live. Every visual value is a field of a plain object that a frame reads, and the debug panel edits that object. The shared tools take such objects: `CARD_SETTINGS`, `DIE_SETTINGS`, `SEAT_SETTINGS`, the camera's settings and the entrance, the glows. The shared `Table` makes the folders for them; a game binds the objects of its own (its layout) to folders with `useSettings`.
 
 ## The panel
 
@@ -9,6 +9,15 @@ A scene is tuned live. Every visual value is a field of a plain object that a fr
 - It has three tabs (`DEBUG_TABS`): GAME, for the game's own commands (the template's "Phases" folder: START, NEXT TURN and END, which call the debug route, [Debug commands](../01-the-game/11-the-contract.md#debug-commands)); SCENE, for the board's folders; TRANSITION, for the announcement presets and their "Replay" buttons ([Turn change](../01-the-game/03-turns.md#turn-change)).
 - "Copy all settings" copies every value of every tab as JSON, and a frame-rate meter with the worst frame shows while the panel is open.
 - Every folder that `useSettings` makes has a "Copy values" button that copies the folder as JSON, to paste back as the defaults in code. The panel finds values; the defaults live in the code.
+
+## Keeping and loading a state
+
+A situation of a game is reached once, then kept. The Table folder of the GAME tab, which every board gets from the HUD (`TableDebug`), has two buttons, both off on the production deployment (`debugEnabled`, which the debug route has always asked; `DEBUG_GAMES=1` turns them on elsewhere).
+
+- *Copy state* copies the state of the table, saved with the ids of its seats in order (`SavedState`). *Load state from the clipboard* puts a saved state in the place of the state of the table, and the log starts again.
+- A saved state is portable: its seats are mapped on the seats of the table it is loaded into, in the same order (`restoreState`), so a situation copied from a 5-seat table loads into any 5-seat table of the game. A state the engine cannot read (`isOver`, `waitingFor`, `view` for each seat) is refused with `INVALID_STATE` and nothing is written. The same JSON is a fixture for an engine test.
+- The commands behind the buttons are `state` and `load` of the debug route (`POST /api/<slug>/games/<code>/debug`, [Debug commands](../01-the-game/11-the-contract.md#debug-commands)).
+- For a test or a debug command of a game, `playUntil(game, state, stop)` of the kit plays for the player the game waits for until `stop` says so (the end of a round, the turn of a seat).
 
 ## What the table brings
 
@@ -19,6 +28,16 @@ The `Table` mounts its own tools while the panel is open (`packages/table/src/de
 | Camera | The `camera` prop: `tilt`, `yaw`, `distance`, `fov`, `targetX`, `targetZ`. Open when the panel opens |
 | Entrance | The `intro` prop (`CAMERA_INTRO` without one), with a "Play again" button that plays the entrance anew, whatever the clock |
 | Card | `CARD_SETTINGS`: the knobs a frame reads (`CARD_FIELDS`) |
+| Die | `DIE_SETTINGS` (`DIE_FIELDS`): gravity, bounce and grip, how hard a die is thrown and how it spins (read when a roll is thrown), then the playback speed, the shadow and the glide, with a "Roll again" button that throws every die again toward the face it shows |
+| Piece | `PIECE_SETTINGS` (`PIECE_FIELDS`): how fast a piece glides, its shadow, and how high and how long it hops when it is turned over |
+| Counter | `COUNTER_SETTINGS` (`COUNTER_FIELDS`): how long a change takes to count, how many numbers it shows on the way, how much the number swells and how a change floats up |
+| Cup | `CUP_SETTINGS` (`CUP_FIELDS`): how long a cup takes to reach each pose (the slam is the quickest), how far it rattles when shaken and how often, and its shadow |
+| Bag | `BAG_SETTINGS` (`BAG_FIELDS`): how far and how long a bag rocks when a hand rummages in it, how fast it slumps as it empties, and its shadow |
+| Track | `TRACK_SETTINGS` (`TRACK_FIELDS`): the seconds a marker takes for a space, the most a walk may take, and how high a step hops |
+| Stepper | `STEPPER_SETTINGS` (`STEPPER_FIELDS`): how long a held arrow waits before it repeats, how often and how much faster each repeat is, and how far an arrow rises under the pointer and sinks when it is pressed |
+| Slider | `SLIDER_SETTINGS` (`SLIDER_FIELDS`): how far the knob rises under the pointer and when it is held, and how thick the rail is |
+| Timer | `TIMER_SETTINGS` (`TIMER_FIELDS`): how long an hourglass takes to turn over and how high it hops, how many seconds before the end the sand reddens and the glass trembles, how far it trembles, and its shadow |
+| Drag | `DRAG_SETTINGS` (`DRAG_FIELDS`): how far the pointer goes before a press is a drag, how high a held thing floats and how fast it follows, how much a card grows, how far a drag may go, and the line, glow, pulse and inside of a zone |
 | Seat | `SEAT_SETTINGS` (`SEAT_FIELDS`); the plates follow the knobs as they move |
 | Lights | With a `lights` prop only: `ambient`, `sun` and where the sun stands. The lights are props, not an object a frame reads, so the folder lays what it changed over them |
 | Floor | The colour of the surface and the size of one repeat of its picture, laid over the `surface` prop the same way |

@@ -42,7 +42,7 @@ expect(demo.waitingFor!(stored)).toEqual(["long-id", "x1", "x0"])
 
 - The server draws the seed of a game (`newSeed()`, see [Starting a game](01-how-a-game-runs.md#starting-a-game)); everything random comes from a stream seeded with it, so the same seed and the same actions give the same game.
 - Pinned-seed tests rely on it, and so does `autoPlayFor`, which must give the same result for the same state.
-- So an engine never calls `Math.random` or `Date.now`. The one exception is `randomSeed()`, called from `setup` when no seed was given: `const seed = args.seed ?? randomSeed()` in Flip 7's `setup.ts`.
+- So an engine never calls `Math.random` or `Date.now`. What it knows of time is the `at` of an action, which the server sets, and the clock of a step that it keeps in its state as a `Timer` ([Timers](../02-components/20-timers.md)). The one exception is `randomSeed()`, called from `setup` when no seed was given: `const seed = args.seed ?? randomSeed()` in Flip 7's `setup.ts`.
 - Test that a pinned seed gives the same game and that nothing calls `Math.random` once a seed is given (`vi.spyOn(Math, "random")` in `games/courtisans/packages/engine/src/determinism.test.ts`).
 
 ### Carrying a stream
@@ -59,6 +59,32 @@ return { s, rng: restoreRng(s.rng), events: [] }
 ctx.s.rng = ctx.rng.save()
 ```
 
+## Counters and tracks
+
+| Export | What it does | Errors |
+| --- | --- | --- |
+| `CounterRules`, `changeCounter(rules, value, delta)` | A number changed by `delta` and held between the ends the game gives, with what was really applied and the end that cut it short, if one did ([Counters](../02-components/14-counters.md)) | `RangeError` for ends that no number is between, a value or a change that is not a finite number, a counter outside its ends |
+| `TrackRules`, `moveAlong(track, from, steps)` | A marker moved along a row of spaces, forward or back, that stops at the ends or goes round: where it ended, the spaces it went through, the laps it made and the end that stopped it, if one did ([Tracks](../02-components/15-tracks.md)) | `RangeError` for a track with no space, a marker that is not on a space of it, steps that are not whole or that are more than `MAX_WALK` |
+
+- A counter is a number of the state and a position on a track is another: the state holds the numbers and nothing else, and the board knows the spaces by their number. Markers that share a space are kept in the order they came, in an array.
+
+## Bags
+
+| Export | What it does | Errors |
+| --- | --- | --- |
+| `bagSize(counts)`, `drawFromBag(rng, counts, count)` | How many tokens a bag holds, and tokens drawn from it at random without putting them back: `{ drawn, bag }`, the kinds in the order they came and the counts that are left, one draw of the stream for each ([Bags](../02-components/18-bags.md)) | `RangeError` for counts that are not whole numbers and for a number of tokens that is not |
+
+- A bag is an array of counts indexed by kind, never an object keyed by kind: an order comes from an array.
+
+## Boards
+
+| Export | What it does | Errors |
+| --- | --- | --- |
+| `squareBoard({ columns, rows, diagonals? })`, `hexBoard({ radius })`, `hexBoard({ columns, rows })` | A grid of cells numbered from 0, row by row from the top, that says who is next to a cell, how far two cells are and the coordinates of each ([Boards](../02-components/16-boards.md)) | `RangeError` for a board with no cell, a cell that is not on it and a direction it does not have |
+| `reachable`, `shortestPath`, `regionOf`, `lineBetween`, `rayFrom` | The cells that can be reached in some steps, the way from one cell to another, the cells linked to one, a straight line and what a sliding piece sees: all over the cells' numbers, going round the cells the game blocks | `RangeError` for a cell that is not on the board, a range that is not a number of steps |
+
+- The state holds the number of the cell a piece stands on, not its coordinates. A board has no state of its own: a game makes it once and asks it.
+
 ## Random numbers
 
 | Export | What it does | Errors |
@@ -69,6 +95,7 @@ ctx.s.rng = ctx.rng.save()
 | `createRng(seed)` | The same numbers, for a caller that never saves the position | |
 | `restoreRng(saved)` | Carries on from a `save()`: the next numbers are the ones the saved stream would have drawn | `RangeError` for anything `save()` could not have returned |
 | `shuffle(items, rng)` | A shuffled copy (Fisher-Yates); draws nothing for fewer than two items | |
+| `rollDie(rng, sides)`, `rollDice(rng, count, sides)`, `rerollDice(rng, dice, reroll, sides)` | A die, a pool, a pool with some dice rolled again: one draw of the stream for each die rolled ([Dice](../02-components/10-dice.md)) | `RangeError` for a die with fewer than two sides, a count that is not a whole number, an index that is not a die of the pool |
 | `sideSeed(seed, ...parts)` | A seed for an independent stream, from the high bits of the game seed and integers of your choice | |
 | `randomSeed()` | A fresh seed of the kind the server draws; the only function of the kit that is not deterministic | |
 

@@ -61,7 +61,9 @@ it("keeps the contract of an engine", () => {
 | `setup` | A table it cannot play (nobody, too few, too many, the same id twice, an empty id) is refused with `INVALID_PLAYERS`; a seed gives the same game |
 | Whole games, played with `autoPlayFor` | The smallest and the largest table and a few sizes between, eight seeds each, then each option at the extremes of what it takes at the smallest and the largest table, with ids of different lengths so that the order of the keys of an object is not the seat order |
 | Every step of them | The state is plain JSON and holds no nickname; `isOver` and `waitingFor` are sound (seated players, once each, in seat order, nobody once the game is over); every view works for each seat, a spectator and a stranger, is plain JSON, holds no nickname, shows no result before the end and the results at the end; when it carries `standings`, they hold each player once, in seat order, with a finite score, the same for every viewer; the step does not write to the state it was given (every state is frozen), gives the same state twice, plays the same once `jsonb` has reordered the keys, moves the game on, ends, and never calls `Math.random` or `Date.now` |
+| `progress`, when the definition has one | A number from 0 to 100 at every state, the same once `jsonb` has reordered the keys |
 | The log, for a game that says what happens | `step`, `autoPlayStep` and the optional `setupStep` come together; `autoPlayStep` plays what `autoPlayFor` plays and `setupStep` sets up what `setup` sets up; each says the same every time; the entries are a list of plain data, each with an event, addressed to players of the table, with a `masked` version only when `to` says who reads the whole, holding no nickname ([Events and the log](../01-the-game/12-events-and-the-log.md)) |
+| The clock, for a game that has one | `begin` goes live at a time and is harmless to call again; every play is told the time; the deadline (`nextDeadline`) is plain JSON, a finite time and a system action that no client may send, the same once `jsonb` has reordered the keys, none once the game is over; its action is played now and then in place of the players, plays the same every time, changes the state, and the deadline after it is never earlier ([Timers](../02-components/20-timers.md#in-the-engine)) |
 | The results | Each player once, a finite total, ranks that follow `ranks()` (1, 2, 2, 4), lines of score with a key, finite points and a place in `scoreLines`; winners who sit at the table, have rank 1 and are all the players of rank 1, or, for a table that plays together (`coop`), every player at rank 1 with the table's score and everybody among the winners when it won, nobody when it lost |
 | Junk actions, at the start and a few steps in | An unknown type, a missing type, a missing or foreign `playerId`, and each action type with nothing or with nonsense in its fields are refused with an `EngineError` whose code is shared or in `ERROR_CODES`, or else are a move; never a plain error, never a write to the state |
 
@@ -86,6 +88,8 @@ From `template/packages/engine/src/demo/game.test.ts`:
 const played = playFor(demo, e, "j1")
 expect(() => playFor(demo, played, "j1")).toThrow(expect.objectContaining({ code: "NOT_WAITING" }))
 ```
+
+- `playUntil(game, state, stop)` plays for the player the game waits for until `stop(state, plays)` is true (the end of a round, the turn of a seat), the game is over, nobody is waited for or `maxSteps` plays were made; `playOn` is the same with no condition.
 
 ## Where the patterns are shown
 

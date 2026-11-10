@@ -248,11 +248,15 @@ export function filterPages(pages: readonly DocPage[], query: string): DocPage[]
   })
 }
 
-/** What a link of a page leads to: somewhere on the same page, another site, another page of the docs, or a file of the repo that has no page (it is shown as a name, since there is nothing to open). Nothing for what is empty or unsafe. */
+/**
+ * What a link of a page leads to: somewhere on the same page, another site, another page of the docs, a page of the site that is under `/docs` and is not a page of a doc (the playground: an address, written in full), or a file of the repo that
+ * has no page (it is shown as a name, since there is nothing to open). Nothing for what is empty or unsafe.
+ */
 export type ResolvedLink =
   | { kind: "anchor"; href: string }
   | { kind: "external"; href: string }
   | { kind: "page"; href: string }
+  | { kind: "route"; href: string }
   | { kind: "file"; path: string }
   | { kind: "none" }
 
@@ -278,6 +282,7 @@ export function resolveLink(href: string | undefined, from: { dir: readonly stri
   if (href.startsWith("#")) return { kind: "anchor", href }
   if (/^(?:https?:|mailto:)/i.test(href)) return { kind: "external", href }
   if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(href)) return { kind: "none" }
+  if (/^\/docs(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*(?:#[\w-]*)?$/.test(href)) return { kind: "route", href }
   const [pathPart = "", hash] = href.split("#", 2)
   const names = resolveFrom(from.dir, pathPart)
   const fileName = names?.at(-1)

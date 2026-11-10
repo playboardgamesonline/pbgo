@@ -62,7 +62,8 @@ A game can hold cards of different kinds, and its board paints each kind its own
 | `speed` | About how many seconds the card takes to settle on a new `target`; smaller is snappier |
 | `onClick`, `onHover` | Pointer events. A card does not lift itself on hover: it reports the pointer, and the game moves the pose and sets `glow` or `gloss` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `onArrive` | Called when a flight ends, for instance to remove a card that exists only for its flight |
-| `draggable`, `onDrop` | Reserved, with no effect; `CardDrop` is the type reserved for where a dragged card was let go ([Not built yet](../03-not-built-yet.md)) |
+| `draggable` | The player can pick the card up with the pointer and let it go on the table: it follows the pointer, lifted, and goes back to its `target` when it is let go ([Dragging](19-dragging.md)) |
+| `dropOn`, `onDragStart`, `onDrop`, `onDragCancel` | The zones it may be let go on, and what it reports: `onDrop` is called with a `CardDrop`, the zone it was let go on or `null`, and where it lay ([Dragging](19-dragging.md#dragging-a-card-or-a-piece)) |
 | `children` | Three.js elements drawn on the face, such as a value or a suit. Their origin is the middle of the face, x to the right and y up, in the card's units; they move, flip and hover with the card |
 
 Press the card to change its `target` between `FACE_UP` and `FACE_DOWN`; the switches are its `gloss` and `shadow` props. The slider writes `shadow` of `CARD_SETTINGS` and starts at its top so that the shadow shows: the default is far fainter.

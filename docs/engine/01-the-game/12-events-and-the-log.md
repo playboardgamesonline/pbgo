@@ -36,7 +36,7 @@ export const GAME: GameDefinition<State, Action, PlayerView, undefined, Flip7Eve
 ## What a board does
 
 - `useGameLog<Event>()` (`@pbgo/core/components/game/context`) gives the lines. The history of the HUD is `groupTurns(lines.map((line) => line.event), …)`, as the template does ([The screen around the table](../../design/04-in-game/01-screens-and-game-flow.md)).
-- A board that plays the new lines keeps the greatest `v` it has played and plays the lines with a greater one, in order. The first time it opens a table it has played nothing: it draws the state and takes the greatest `v` it finds.
+- A board that animates uses `usePlayLog` (`@pbgo/core/components/game/use-play-log`), which keeps the greatest `v` played and plays the lines with a greater one, in order: `play(line, { instant })` may return a promise, and the next line waits for it. The first time a board opens a table it plays nothing: it draws the state and takes the greatest `v` it finds. `instant` is true when motion is off (the visitor's preference, a hidden tab) and for all the lines of a batch of more than twelve, so a player who was away does not watch a minute of animation. `busy` says lines are playing, to hold the buttons back. A handler that throws is reported and the next line plays. The rules are those of `createLogPlayer` (`lib/log-player.ts`, tested).
 - The log tells what happened, the view tells what is there. A board draws the view, and uses the log for sentences and motion, never to work out the state.
 
 ## Testing

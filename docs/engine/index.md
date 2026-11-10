@@ -5,13 +5,15 @@ description: How the rules of a board game become code, and how that code plugs 
 
 # Engine
 
+To try every component at once, open the [playground](/docs/playground): one table with all of them on it, to move, tune and play with.
+
 The engine of a game is its rules as pure TypeScript, with no UI and no I/O, in the package `@<slug>/engine`. What it agrees on with the web app is `GameDefinition` of `@pbgo/engine-kit`. These pages describe what a game is made of, piece by piece, then how to put one together.
 
 ## The map
 
 - [The game](01-the-game/index.md): what every game has: players, turns and phases, actions, victory, parameters, data, state and views, and the contract.
-- [Components](02-components/index.md): what lies on the table: the table, cards, decks and piles, zones, a score. Each with its side in the engine and its side on the board.
-- [Not built yet](03-not-built-yet.md): what games ask for and no tool provides: tokens, dice, boards, roles, real time.
+- [Components](02-components/index.md): the building blocks a game is made of: cards, piles, zones, dice, a text field, pieces, counters, tracks, boards, cups, bags, dragging, seats, a score. Each with its side in the engine and its side on the board, and the list of the ones still to build.
+- [Not built yet](03-not-built-yet.md): what games ask for and no tool provides: maps, drawing, deadlines.
 - [Build a game](04-build-a-game/index.md): from the rules to a playable game, in order.
 - [Examples](05-examples/index.md): the engines of Flip 7 and Courtisans, file by file.
 
