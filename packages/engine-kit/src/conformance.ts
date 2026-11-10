@@ -325,6 +325,29 @@ class Suite {
       found.flag("who the game waits for changes once jsonb has reordered the keys of its state: an order comes from the keys of an object", at)
     }
     for (const viewer of [...ids, null, STRANGER]) this.checkView(state, stored, viewer, over.value, at)
+    this.checkStandings(state, ids, at)
+  }
+
+  /**
+   * What each player has so far, when the view says it (`standings`, for the list of the players that the HUD keeps in view): a view that has it for one viewer has it for all, it holds each player of the table once, in seat order,
+   * with a finite score, and is the same for every viewer. A game with none says nothing here.
+   */
+  private checkStandings(state: unknown, ids: string[], at: string) {
+    const { game, found } = this
+    const seen: unknown[] = []
+    for (const viewer of [...ids, null]) {
+      const view = this.attempt(at, () => game.view(state, viewer) as { standings?: unknown } | null)
+      if (view.ok && view.value?.standings !== undefined) seen.push(view.value.standings)
+    }
+    if (seen.length === 0) return
+    if (seen.length !== ids.length + 1) found.flag("the view carries standings for some viewers and not for others", at)
+    if (seen.some((standings) => !deepEqual(standings, seen[0]))) found.flag("the standings are not the same for every viewer", at)
+    const rows = seen[0] as { playerId?: unknown; score?: unknown }[]
+    if (!Array.isArray(rows) || rows.length !== ids.length || rows.some((row, i) => row?.playerId !== ids[i])) {
+      found.flag("the standings do not hold each player of the table once, in seat order", at)
+      return
+    }
+    if (rows.some((row) => typeof row.score !== "number" || !Number.isFinite(row.score))) found.flag("a standing has a score that is not a finite number", at)
   }
 
   private same(at: string, f: () => unknown, expected: unknown): boolean {
@@ -446,7 +469,7 @@ class Suite {
  * - `setup`: a table it cannot play (no player, too few, too many, the same id twice, an empty id) is refused with `INVALID_PLAYERS`; a seed gives the same game.
  * - Whole games, for several table sizes, seeds and variants of each option, played with `autoPlayFor` until they end: at every step the state is plain JSON, `isOver` and `waitingFor`
  *   are sound (a list of the seated players, in seat order, nobody once the game is over), every view works for each seat, a spectator and a stranger, shows no result before the end and
- *   all of them at the end, and leaks none of the `secretsFor`; the step does not write to the state it was given, gives the same state twice, plays the same once `jsonb` has reordered the keys,
+ *   all of them at the end, and leaks none of the `secretsFor`; when a view carries `standings` they hold each player once, in seat order, with a finite score, the same for every viewer; the step does not write to the state it was given, gives the same state twice, plays the same once `jsonb` has reordered the keys,
  *   moves the game on, and never asks `Math.random` or `Date.now`; the results hold each player once, with ranks, winners and lines of score in order (a table that plays together, `coop`,
  *   wins or loses as one: every player at rank 1 with the table's score, and everybody among the winners or nobody).
  * - Junk actions: whatever a client could send is refused with an `EngineError` whose code is in the vocabulary, or else is a move; it never throws a plain error and never writes to the state.

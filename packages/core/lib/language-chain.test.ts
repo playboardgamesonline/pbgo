@@ -20,7 +20,26 @@ import { toSkin, type SkinDoc } from "./skin-server"
  * The messages of the platform that exist in English only: the code holds English, and the other languages are added by the language pass (twelve languages, PLT-32), not written
  * one by one in the code. A visitor reads them in English until then. Translate one in every language of `ERROR_TRANSLATIONS`, then take it out of this list.
  */
-const ENGLISH_ONLY = ["INVALID_PLAYERS", "INVALID_ACTION", "INVALID_PHASE", "GAME_OVER", "UNKNOWN_PLAYER", "INVALID_TARGET", "GAME_NOT_STARTED", "GAME_NOT_OVER", "CODE_UNAVAILABLE", "INVALID_REQUEST"]
+const ENGLISH_ONLY = [
+  "INVALID_PLAYERS",
+  "INVALID_ACTION",
+  "INVALID_PHASE",
+  "GAME_OVER",
+  "UNKNOWN_PLAYER",
+  "INVALID_TARGET",
+  "GAME_NOT_STARTED",
+  "GAME_NOT_OVER",
+  "CODE_UNAVAILABLE",
+  "INVALID_REQUEST",
+  "AGE_SIGN_IN_REQUIRED",
+  "AGE_DATE_REQUIRED",
+  "AGE_TOO_YOUNG",
+  "AGE_TABLE_NOT_ALLOWED",
+  "NOT_SIGNED_IN",
+  "BIRTHDATE_INVALID",
+  "BIRTHDATE_UNDER_MINIMUM",
+  "BIRTHDATE_LOCKED",
+]
 
 const game = { sanityProjectId: "abc123xy" }
 const texts = (fields: Record<string, unknown>): SkinDoc => ({ texts: fields }) as SkinDoc

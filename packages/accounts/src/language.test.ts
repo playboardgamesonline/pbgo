@@ -5,6 +5,7 @@ import {
   LANGUAGE_COOKIE,
   LANGUAGE_KEY,
   PLATFORM_LANGUAGE_NAMES,
+  PLATFORM_LANGUAGE_REGIONS,
   hasSessionCookie,
   isPlatformLanguage,
   languageCookie,
@@ -28,6 +29,13 @@ describe("the languages of the platform", () => {
     expect(PLATFORM_LANGUAGE_NAMES.zh).toBe("中文 (简体)")
     expect(PLATFORM_LANGUAGE_NAMES.ar).toBe("العربية")
     expect(Object.keys(PLATFORM_LANGUAGE_NAMES)).toHaveLength(12)
+  })
+
+  it("each have the country of a flag, a code of two capital letters, and none more than the list holds", () => {
+    expect(Object.keys(PLATFORM_LANGUAGE_REGIONS)).toEqual(PLATFORM_LANGUAGES.map((language) => language.id))
+    for (const region of Object.values(PLATFORM_LANGUAGE_REGIONS)) expect(region).toMatch(/^[A-Z]{2}$/)
+    expect(PLATFORM_LANGUAGE_REGIONS.fr).toBe("FR")
+    expect(PLATFORM_LANGUAGE_REGIONS.en).toBe("US")
   })
 
   it("include the four languages of the games, whose own list is not changed", () => {

@@ -210,6 +210,7 @@ export const demo: GameDefinition<State, Action, PlayerView> = {
       trick: state.trick,
       lastTrick: state.lastTrick,
       log: state.log.slice(-40),
+      standings: state.players.map((j) => ({ playerId: j.id, score: j.pointsPerRound.reduce((a, b) => a + b, 0) })),
       results: state.phase === "over" ? results(state) : null,
     }
   },

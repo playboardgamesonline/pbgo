@@ -13,3 +13,5 @@ What a visitor presses, types in or picks.
 - [Tabs](09-tabs.md)
 - [Toggle group](10-toggle-group.md)
 - [Collapsible](11-collapsible.md)
+- [Inline edit](12-inline-edit.md)
+- [Radio group](13-radio-group.md)

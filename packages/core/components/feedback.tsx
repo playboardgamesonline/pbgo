@@ -14,13 +14,13 @@ import { useProfile } from "../lib/profile"
 import { useSkin, useText } from "./skin-provider"
 import { ICON_BUTTON } from "./sound/sound"
 
-const TYPES = [
+export const FEEDBACK_TYPES = [
   { value: "review", text: "feedbackTypeReview" },
   { value: "bug", text: "feedbackTypeBug" },
   { value: "suggestion", text: "feedbackTypeSuggestion" },
   { value: "other", text: "feedbackTypeOther" },
 ] as const
-type FeedbackType = (typeof TYPES)[number]["value"]
+export type FeedbackType = (typeof FEEDBACK_TYPES)[number]["value"]
 
 const MAX_INPUT = 12 * 1024 * 1024
 const FIELD =
@@ -40,13 +40,15 @@ async function shrink(file: File): Promise<File> {
   return new File([blob], "screenshot.webp", { type: "image/webp" })
 }
 
-/** "Feedback" button (outside the game, apart from the game buttons): type, message, optional e-mail and screenshot → admin, Tasks › Feedback. */
-export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: string; className?: string; asRow?: boolean }) {
+/**
+ * What the feedback form holds and what sending it does (type, message, optional e-mail and screenshot → admin, Tasks › Feedback), apart from how it looks: the game's window below and the platform's (`FeedbackWindow`, in the menu of
+ * a game's screen) both draw it. `onSent` is called once the message has arrived and the form is empty again.
+ */
+export function useFeedback({ gameCode, onSent }: { gameCode?: string; onSent: () => void }) {
   const slug = useGameSlug()
   const t = useText()
   const { errors } = useSkin()
   const { profile } = useProfile()
-  const [open, setOpen] = useState(false)
   const [type, setType] = useState<FeedbackType>("review")
   const [message, setMessage] = useState("")
   const [email, setEmail] = useState("")
@@ -94,13 +96,22 @@ export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: stri
       setEmail("")
       setScreenshot(null)
       setType("review")
-      setOpen(false)
+      onSent()
     } catch (err) {
       toast.error((err as Error).message ?? errors.SERVER_ERROR)
     } finally {
       setSending(false)
     }
   }
+
+  return { type, setType, message, setMessage, email, setEmail, trap, setTrap, preview, removeScreenshot: () => setScreenshot(null), sending, pick, send }
+}
+
+/** "Feedback" button (outside the game, apart from the game buttons): type, message, optional e-mail and screenshot → admin, Tasks › Feedback. */
+export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: string; className?: string; asRow?: boolean }) {
+  const t = useText()
+  const [open, setOpen] = useState(false)
+  const { type, setType, message, setMessage, email, setEmail, trap, setTrap, preview, removeScreenshot, sending, pick, send } = useFeedback({ gameCode, onSent: () => setOpen(false) })
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -126,7 +137,7 @@ export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: stri
             onChange={(e) => setType(e.target.value as FeedbackType)}
             className={cn(FIELD, "h-12 cursor-pointer")}
           >
-            {TYPES.map((o) => (
+            {FEEDBACK_TYPES.map((o) => (
               <option key={o.value} value={o.value}>
                 {t(o.text)}
               </option>
@@ -177,7 +188,7 @@ export function FeedbackButton({ gameCode, className, asRow }: { gameCode?: stri
                 type="button"
                 aria-label={t("feedbackScreenshotRemove")}
                 title={t("feedbackScreenshotRemove")}
-                onClick={() => setScreenshot(null)}
+                onClick={removeScreenshot}
                 className="absolute -top-2 -right-2 flex size-6 cursor-pointer items-center justify-center rounded-full bg-foreground text-background"
               >
                 <XIcon className="size-3.5" />

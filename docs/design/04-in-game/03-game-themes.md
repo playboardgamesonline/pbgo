@@ -1,6 +1,6 @@
 # Game themes
 
-The in-game UI is not drawn with the platform tokens: each game owns its universe. The components are shared, logic and layout alike; a game only tunes their look through `UI_THEME` in its binding (`motion`, `announcement`, `seat`, `gameOver`), on top of its own colors and fonts. Three parts are tuned by it (`UiTheme` in `lib/binding.ts`; `lib/ui-theme.ts` holds the defaults and `announcementTheme|seatTheme|gameOverTheme`): the announcements, the seat label and the game over.
+The table is not drawn with the platform tokens: each game owns its universe there. The components are shared, logic and layout alike; a game only tunes their look through `UI_THEME` in its binding (`motion`, `announcement`, `seat`, `gameOver`), on top of its own colors and fonts. The screen around the table is the platform's and is not tuned by it ([the rules](../01-guidelines/04-in-game-rules.md)). Three parts are tuned by it (`UiTheme` in `lib/binding.ts`; `lib/ui-theme.ts` holds the defaults and `announcementTheme|seatTheme|gameOverTheme`): the announcements, the seat label and the game over.
 
 Every specimen of these pages sits inside its game's tokens, two games side by side, and both sides use the same neutral sample copy, so that only the look differs.
 

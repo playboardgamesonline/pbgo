@@ -1,21 +1,29 @@
 import { EngineError, type AnyGameDefinition } from "@pbgo/engine-kit"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { NO_AGE_RULES } from "../lib/age-rules"
 import type { GameRouteContext } from "../lib/binding"
 import { DEFAULT_REACTION_IDS } from "../lib/chat"
 import { POST as chat } from "../routes/api/games/[code]/chat/route"
 import { POST as action } from "../routes/api/games/[code]/action/route"
 import { POST as debug } from "../routes/api/games/[code]/debug/route"
-import { POST as join } from "../routes/api/games/[code]/join/route"
+import { postJoin } from "../routes/api/games/[code]/join/route"
 import { POST as leave } from "../routes/api/games/[code]/leave/route"
-import { POST as options } from "../routes/api/games/[code]/options/route"
+import { postOptions } from "../routes/api/games/[code]/options/route"
 import { POST as ready } from "../routes/api/games/[code]/ready/route"
 import { POST as replay } from "../routes/api/games/[code]/replay/route"
 import { GET as read } from "../routes/api/games/[code]/route"
-import { POST as start } from "../routes/api/games/[code]/start/route"
+import { postStart } from "../routes/api/games/[code]/start/route"
 import { POST as takeover } from "../routes/api/games/[code]/takeover/route"
-import { POST as create } from "../routes/api/games/route"
+import { postGame } from "../routes/api/games/route"
 import { createGame, stateFingerprint } from "./games"
 import { voteEntry } from "./takeover"
+
+// These tests are not about the age check (`age-check.test.ts`): the game they play asks for no age
+const noAges = async () => NO_AGE_RULES
+const join = postJoin(noAges)
+const options = postOptions(noAges)
+const start = postStart(noAges)
+const create = postGame(noAges)
 
 /**
  * The server events of the game routes, end to end: the real routes, `updateGame`, `publicGame` and the takeover logic run

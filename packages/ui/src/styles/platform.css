@@ -32,6 +32,29 @@
 /* `dark:` classes never match: the platform is dark by its values, not by a class. */
 @custom-variant dark (&:is(.dark *));
 
+/* `motion-reduce:` and `motion-safe:` follow the member's choice before the device's: `data-reduce-motion` on <html> says `always` or `never` and decides when it is there, and the device's `prefers-reduced-motion` decides when it is not. */
+@custom-variant motion-reduce {
+  :root[data-reduce-motion="always"] & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root:not([data-reduce-motion="never"]) & {
+      @slot;
+    }
+  }
+}
+
+@custom-variant motion-safe {
+  :root[data-reduce-motion="never"] & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-reduce-motion="always"]) & {
+      @slot;
+    }
+  }
+}
+
 /* Token → utility mapping, shared by the platform layer and the game layer. */
 @theme inline {
   --font-sans: var(--font-body);
@@ -54,12 +77,14 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-verified: var(--verified);
   --color-presence-online: var(--presence-online);
   --color-presence-playing: var(--presence-playing);
   --color-presence-inactive: var(--presence-inactive);
   --color-presence-dnd: var(--presence-dnd);
   --color-brand-twitch: var(--brand-twitch);
   --color-brand-discord: var(--brand-discord);
+  --color-brand-steam: var(--brand-steam);
   --color-piece-red: var(--piece-red);
   --color-piece-navy: var(--piece-navy);
   --color-piece-gold: var(--piece-gold);
@@ -505,7 +530,7 @@
     --color-neutral-800: oklch(0.235 0 0);
     --color-neutral-900: oklch(0.175 0 0);
     --color-neutral-950: oklch(0.12 0 0);
-    /* Colours: that scale, then the hues: destructive, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
+    /* Colours: that scale, then the hues: destructive, success, the blue of what is confirmed, the four of a friend's presence (green online, blue in a game, orange-yellow inactive, red do not disturb), which only a dot wears, and the two of a sign-in provider's button */
     --background: var(--color-neutral-950);
     --foreground: var(--color-neutral-50);
     /* The grey of every container: a card, a menu, a dialog, and the glass of the navbar, the dock, the bars (`glass`). Two thirds neutral 900 and a third neutral 950 (0.156 of lightness, it was 0.205), a dark grey that is darker than it was and is still not the page's black */
@@ -526,13 +551,16 @@
     --destructive: oklch(0.704 0.191 22.216);
     /* The colour of a win: with `--destructive`, the second signal colour. The results of games wear it as a tint over the dark, a fifth of the colour for the fill and the colour itself for the text (`Badge variant="success"`) */
     --success: oklch(0.78 0.16 155);
+    /* The blue of what is confirmed: the check at the right of a service that is linked to the account (`LinkedServices`). A hue of its own, since the blue of the presence dots is for the dots only */
+    --verified: oklch(0.72 0.15 245);
     --presence-online: oklch(0.78 0.16 155);
     --presence-playing: oklch(0.76 0.13 235);
     --presence-inactive: oklch(0.82 0.16 80);
     --presence-dnd: oklch(0.7 0.19 22);
-    /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Twitch's purple and Discord's blurple. Google's is `foreground`; the marks are in `brands.tsx` */
+    /* The tile of a sign-in button that is its brand's colour, exactly (the brand's guidelines, not ours): Twitch's purple, Discord's blurple and Steam's near-black. Google's is `foreground`; the marks are in `brands.tsx` */
     --brand-twitch: #9146ff;
     --brand-discord: #5865f2;
+    --brand-steam: #171a21;
     /* The colours of the pieces that stand for letters in the home's title (`TitlePiece`, `TitleCards`): red and gold, the dark blue of the backs of the cards, ivory and ink for a die. The black suits are not one of them: on the page's black they are drawn in the colour of the text */
     --piece-red: oklch(0.64 0.2 27);
     --piece-navy: oklch(0.34 0.1 258);
@@ -625,13 +653,42 @@
     }
   }
 
-  /* Motion off when the visitor asks for less of it */
+  /*
+   * Motion off when the visitor asks for less of it: their device does (`prefers-reduced-motion`), or they chose it on their account, which the head of every page writes on <html> before the first paint as `data-reduce-motion` (`always`, or
+   * `never`, which keeps the motion whatever the device says; absent when the device decides). The attribute is on <html>, and the rule reaches every `.platform` below it, the portals of the menus and the dialogs among them.
+   */
   @media (prefers-reduced-motion: reduce) {
-    .platform {
+    :root:not([data-reduce-motion="never"]).platform,
+    :root:not([data-reduce-motion="never"]) .platform {
       --transition-duration-fast: 0ms;
       --transition-duration-base: 0ms;
       --transition-duration-slow: 0ms;
     }
+  }
+
+  :root[data-reduce-motion="always"].platform,
+  :root[data-reduce-motion="always"] .platform {
+    --transition-duration-fast: 0ms;
+    --transition-duration-base: 0ms;
+    --transition-duration-slow: 0ms;
+  }
+
+  /*
+   * The glass solid when the visitor asks for less transparency: their device does (`prefers-reduced-transparency`), or they chose it on their account, which the head of every page writes on <html> before the first paint as
+   * `data-reduce-transparency` (`always`, or `never`, which keeps the glass whatever the device says; absent when the device decides). The three settings of the glass are variables of `.platform`, so a container that is `glass` needs nothing more.
+   */
+  @media (prefers-reduced-transparency: reduce) {
+    :root:not([data-reduce-transparency="never"]).platform,
+    :root:not([data-reduce-transparency="never"]) .platform {
+      --glass-opacity: 100%;
+      --glass-blur: 0px;
+    }
+  }
+
+  :root[data-reduce-transparency="always"].platform,
+  :root[data-reduce-transparency="always"] .platform {
+    --glass-opacity: 100%;
+    --glass-blur: 0px;
   }
 
   .platform :is(h1, h2, h3, h4) {

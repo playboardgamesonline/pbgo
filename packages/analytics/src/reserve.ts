@@ -11,22 +11,26 @@ export const RESERVED_HEIGHT_VAR = "--consent-h"
  * (`h-[calc(100dvh-var(--consent-h,0px))]`) and a `fixed` element anchored to the bottom offsets itself by it (`docs/design/01-guidelines/04-in-game-rules.md`). It
  * follows the banner when its size changes (another language, a narrower window).
  *
+ * `pad: false` is for a page whose canvas must keep its whole height, the screens of a game: the banner then floats over the page, which is not padded, and the variable is
+ * still published, for the buttons that keep their distance from the card.
+ *
  * The variable lives on `<body>`, never on `:root`: the platform sets no value on `:root`, or every game would inherit it.
  *
  * Returns the function that gives the room back: it stops following the banner and puts the page as it was.
  */
-export function reserveSpace(banner: HTMLElement, page: HTMLElement): () => void {
+export function reserveSpace(banner: HTMLElement, page: HTMLElement, { pad = true }: { pad?: boolean } = {}): () => void {
   const padding = page.style.getPropertyValue("padding-bottom")
   const publish = () => {
     page.style.setProperty(RESERVED_HEIGHT_VAR, `${Math.ceil(banner.getBoundingClientRect().height)}px`)
   }
   publish()
-  page.style.setProperty("padding-bottom", `var(${RESERVED_HEIGHT_VAR})`)
+  if (pad) page.style.setProperty("padding-bottom", `var(${RESERVED_HEIGHT_VAR})`)
   const observer = new ResizeObserver(publish)
   observer.observe(banner)
   return () => {
     observer.disconnect()
     page.style.removeProperty(RESERVED_HEIGHT_VAR)
+    if (!pad) return
     if (padding) page.style.setProperty("padding-bottom", padding)
     else page.style.removeProperty("padding-bottom")
   }

@@ -10,7 +10,7 @@ The words and the answers come from the caller: `@pbgo/analytics` keeps the stor
 
 ## Room for the card
 
-The card never sits over the page: `@pbgo/analytics` publishes its height as `--consent-h` on `<body>`, and a screen as tall as the viewport subtracts it (see [Room for the cookie banner](../../01-guidelines/04-in-game-rules.md#room-for-the-cookie-banner)).
+The card never sits over the page, except over a game's table: `@pbgo/analytics` publishes its height as `--consent-h` on `<body>`, and a screen as tall as the viewport subtracts it (see [Room for the cookie banner](../../01-guidelines/04-in-game-rules.md#room-for-the-cookie-banner)).
 
 ## First visit
 

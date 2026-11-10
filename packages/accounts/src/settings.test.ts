@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { AuthApiError, AuthRetryableFetchError, AuthWeakPasswordError } from "@supabase/supabase-js"
 import { PASSWORD_MAX_BYTES } from "./signup"
-import { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, settingsMessage, settingsProblem } from "./settings"
+import { ACCOUNT_SETTINGS_PATH, SETTINGS_MESSAGES, checkEmailChange, checkNickname, checkPasswordChange, describeDevice, deviceLabel, linkNoticeOf, nicknameCharactersLeft, settingsMessage, settingsProblem, unlinkProblem } from "./settings"
 import { safeNext } from "./redirect"
 
 describe("ACCOUNT_SETTINGS_PATH", () => {
@@ -11,19 +11,38 @@ describe("ACCOUNT_SETTINGS_PATH", () => {
 })
 
 describe("checkNickname", () => {
-  it("keeps a nickname cleaned like a display name", () => {
+  it("keeps a username cleaned like a display name", () => {
     expect(checkNickname("  Marly   74 ")).toEqual({ ok: true, nickname: "Marly 74" })
   })
 
   it("asks for one", () => {
-    expect(checkNickname("")).toEqual({ ok: false, problem: "Enter a nickname." })
-    expect(checkNickname("   \u0000 ")).toEqual({ ok: false, problem: "Enter a nickname." })
+    expect(checkNickname("")).toEqual({ ok: false, problem: "Enter a username." })
+    expect(checkNickname("   \u0000 ")).toEqual({ ok: false, problem: "Enter a username." })
   })
 
   it("keeps it to 20 characters as a person counts them", () => {
     expect(checkNickname("a".repeat(20)).ok).toBe(true)
     expect(checkNickname("🎲".repeat(20)).ok).toBe(true)
     expect(checkNickname("a".repeat(21))).toEqual({ ok: false, problem: "Use 20 characters at most." })
+  })
+})
+
+describe("nicknameCharactersLeft", () => {
+  it("counts down from 20 as a person counts, an emoji being one character", () => {
+    expect(nicknameCharactersLeft("")).toBe(20)
+    expect(nicknameCharactersLeft("Marly")).toBe(15)
+    expect(nicknameCharactersLeft("🎲".repeat(20))).toBe(0)
+  })
+
+  it("counts the name as it will be kept, so the blanks that are cleaned away are not counted", () => {
+    expect(nicknameCharactersLeft("  Marly   74 ")).toBe(12)
+    expect(nicknameCharactersLeft("a".repeat(20) + "   ")).toBe(0)
+  })
+
+  it("goes below zero exactly when the name is refused for its length", () => {
+    for (const text of ["a".repeat(20), "a".repeat(21), "a".repeat(35), "🎲".repeat(21)]) {
+      expect(nicknameCharactersLeft(text) < 0).toBe(!checkNickname(text).ok)
+    }
   })
 })
 
@@ -72,6 +91,8 @@ describe("settingsProblem and settingsMessage", () => {
     ["same_password", "same-password"],
     ["reauthentication_needed", "reauthenticate"],
     ["reauthentication_not_valid", "reauthenticate"],
+    // A member with a second step who changes their password or address from a session that has not passed it (PLT-129)
+    ["insufficient_aal", "reauthenticate"],
     ["manual_linking_disabled", "manual-linking"],
     ["single_identity_not_deletable", "last-service"],
     ["identity_already_exists", "service-taken"],
@@ -104,8 +125,31 @@ describe("settingsProblem and settingsMessage", () => {
   })
 
   it("has a sentence for every problem, none of them Supabase's own", () => {
-    expect(Object.keys(SETTINGS_MESSAGES).length).toBe(11)
+    expect(Object.keys(SETTINGS_MESSAGES).length).toBe(12)
     for (const message of Object.values(SETTINGS_MESSAGES)) expect(message).not.toMatch(/supabase|auth|identity|session|token|jwt/i)
+  })
+})
+
+describe("what the way back of a Steam link says", () => {
+  it("reads the `?steam=` of the settings: done, or the sentence of why not, in the words the settings already use", () => {
+    expect(linkNoticeOf("linked")).toEqual({ done: true })
+    expect(linkNoticeOf("taken")).toEqual({ done: false, message: SETTINGS_MESSAGES["service-taken"] })
+    expect(linkNoticeOf("has-another")).toEqual({ done: false, message: SETTINGS_MESSAGES["has-another"] })
+    expect(linkNoticeOf("failed")).toEqual({ done: false, message: SETTINGS_MESSAGES.other })
+  })
+
+  it("has nothing to say about anything else, so that a made-up address shows no sentence of its own", () => {
+    for (const value of [undefined, null, "", "LINKED", "linked ", "<b>hi</b>", "Your account was deleted", "constructor", "__proto__"]) expect(linkNoticeOf(value), String(value)).toBeNull()
+  })
+})
+
+describe("what the answer of an unlink comes to", () => {
+  it("is that nobody is signed in, that the last way in stays, that there were too many requests, or that it did not work", () => {
+    expect(unlinkProblem("NOT_SIGNED_IN")).toBe("no-session")
+    expect(unlinkProblem("LAST_WAY_IN")).toBe("last-service")
+    expect(unlinkProblem("RATE_LIMITED")).toBe("rate-limit")
+    expect(unlinkProblem("TOO_MANY_REQUESTS")).toBe("rate-limit")
+    for (const code of ["UNLINK_FAILED", "SERVER_ERROR", "FORBIDDEN", "INVALID_REQUEST", "", undefined, null, 42, {}]) expect(unlinkProblem(code), String(code)).toBe("other")
   })
 })
 

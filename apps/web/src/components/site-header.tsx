@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment } from "react"
+import { Fragment, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowLeft02Icon } from "@hugeicons/core-free-icons"
@@ -11,13 +11,14 @@ import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBack, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
 import { SiteSocial } from "@/components/site-social"
-import { SITE_NAME } from "@/site"
+import { PRICING_OPEN, SITE_NAME } from "@/site"
 
 /**
  * The tabs of the navbar, in order, each with the page it leads to and its `group`: the ones for playing, then the ones about the site, with a hairline between the two groups (`NavbarSeparator`).
  * The home is the logo's, not a tab's. The tabs about the site leave the bar under `lg` (they would not fit between the logo and the account on a tablet): the ones for playing stay.
+ * The Pricing tab is drawn only while the page is open (`PRICING_OPEN`, which it is not for now).
  */
-const SITE_TABS = [
+const TABS = [
   { id: "games", label: "Games", href: "/games", group: "play" },
   { id: "tables", label: "Tables", href: "/tables", group: "play" },
   { id: "tournaments", label: "Tournaments", href: "/tournaments", group: "play" },
@@ -25,8 +26,10 @@ const SITE_TABS = [
   { id: "pricing", label: "Pricing", href: "/pricing", group: "about" },
 ] as const
 
-/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the sign-in and the pages of a signed-in visitor, `docs`: the way into the docs, which no tab leads to). */
-type SiteCurrent = (typeof SITE_TABS)[number]["id"] | "home" | "account" | "docs"
+const SITE_TABS = TABS.filter((tab) => tab.id !== "pricing" || PRICING_OPEN)
+
+/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`: the pages of a signed-in visitor, `docs`: the way into the docs, which no tab leads to). */
+type SiteCurrent = (typeof TABS)[number]["id"] | "home" | "account" | "docs"
 
 /**
  * The address the bar reads. Once Vercel has regenerated the front page in the background, the server renders it at `/index` (the route in the page's flight data
@@ -40,12 +43,12 @@ const isGamePage = (pathname: string) => pathname.startsWith("/game/") || findGa
 
 /**
  * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab, Games on a
- * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the sign-in and the sign-up, the pages of an account (`/me`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
- * page that has no bar (the pages of a doc, which have a side menu of their own, the legal pages, the 404).
+ * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the pages of an account (`/me`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
+ * page that has no bar (the sign-in and the sign-up, which are a page of their own with the logo alone (`AuthShell`), the pages of a doc, which have a side menu of their own, the legal pages, the 404).
  */
 function currentOf(pathname: string): SiteCurrent | null {
   if (pathname === "/" || pathname === "/home") return "home"
-  if (pathname === "/login" || pathname === "/signup" || pathname === "/me" || pathname.startsWith("/me/")) return "account"
+  if (pathname === "/me" || pathname.startsWith("/me/")) return "account"
   if (pathname === "/docs") return "docs"
   if (isGamePage(pathname)) return "games"
   return SITE_TABS.find((tab) => tab.href === pathname)?.id ?? null
@@ -64,7 +67,12 @@ function currentOf(pathname: string): SiteCurrent | null {
  * their place but are not drawn, so a signed-in visitor never sees them flash.
  */
 export function SiteHeader() {
-  const pathname = addressOf(usePathname())
+  const address = addressOf(usePathname())
+  // The settings are a window over the page the visitor was on, and the address is then the settings': while it is open the bar keeps what that page marks (the state is adjusted while rendering, not in an effect)
+  const [under, setUnder] = useState(address)
+  const settings = address.startsWith("/me/settings")
+  if (!settings && under !== address) setUnder(address)
+  const pathname = settings ? under : address
   const current = currentOf(pathname)
   const account = useAccount()
   if (current === null) return null

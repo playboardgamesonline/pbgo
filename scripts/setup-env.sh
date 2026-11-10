@@ -35,6 +35,10 @@
 #                                   Written to .env.local and pushed to every Vercel target. Without them the analytics and
 #                                   the cookie banner are off; a pair of the wrong shape (the one @pbgo/analytics refuses)
 #                                   is neither written nor pushed
+#   STEAM_WEB_API_KEY               optional: the key of Steam's Web API (32 hexadecimal characters, from steamcommunity.com/dev/apikey),
+#                                   which switches the Steam button of the sign-in on (docs/accounts.md). Written to .env.local and
+#                                   pushed to every Vercel target. Without it the sign-in has no Steam button; one of the wrong shape
+#                                   is neither written nor pushed
 #   SANITY_API_WRITE_TOKEN_<SLUG>   optional, one per game: a token found here is reused, see Sanity below
 # The three Supabase values are required. The production keys go to the Vercel production target only: .env.local and
 # the Vercel preview/development targets get the preview project's keys, never production ones. The script exits with
@@ -411,6 +415,15 @@ else
   err "NEXT_PUBLIC_POSTHOG_KEY / NEXT_PUBLIC_POSTHOG_HOST: a project key (phc_…) and an ingest host (https://eu.i.posthog.com, no trailing slash) are expected; neither is written nor pushed"
 fi
 
+# ---------- Sign-in with Steam (optional) ----------
+# The key of Steam's Web API is what the server asks Steam for a player's name and picture with, and the switch of the Steam button (externalProvidersOn, packages/accounts):
+# 32 hexadecimal characters. Its value is never printed, not even in the message of a refusal. Migration 0010 (the table of external identities) is applied above, before the key goes anywhere
+title "Sign-in with Steam (optional)"
+STEAM_KEY="$(setting STEAM_WEB_API_KEY)"; STEAM_OK=0
+if [ -z "$STEAM_KEY" ]; then warn "STEAM_WEB_API_KEY not set: the sign-in has no Steam button"
+elif [[ "$STEAM_KEY" =~ ^[0-9A-Fa-f]{32}$ ]]; then envset "$ENV_FILE" STEAM_WEB_API_KEY "$STEAM_KEY"; STEAM_OK=1; ok "STEAM_WEB_API_KEY"
+else err "STEAM_WEB_API_KEY: a Steam Web API key is 32 hexadecimal characters; neither written nor pushed"; fi
+
 # ---------- Vercel project ----------
 # Looked up before the Sanity tokens: the project already holds them. The API alone is used, with the project's id: no
 # .vercel/project.json, no Vercel CLI login, so any worktree will do. The project id comes from the secrets file only (not
@@ -519,7 +532,7 @@ if [ "$PUSH" = 1 ] && [ -n "$VID" ]; then
   while read -r k; do
     [[ "$FROM_VERCEL" == *"|$k|"* ]] && continue
     v="$(envget "$ENV_FILE" "$k")"; [ -n "$v" ] && push "$k" "$v" "$ALL"
-  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
+  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; [ "$STEAM_OK" = 1 ] && printf "%s\n" STEAM_WEB_API_KEY; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
   [ -z "$(envget "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID)" ] && envset "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID "$VID"
   PUSHED=1
 fi

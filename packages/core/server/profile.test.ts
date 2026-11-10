@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { ApiError } from "./api"
-import { profileOf, resolveSeat, validateProfile } from "./profile"
+import { profileOf, resolveActor, resolveSeat, validateProfile } from "./profile"
 
 const mocks = vi.hoisted(() => ({ account: null as { id: string; nickname: string; avatarUrl: string | null } | null }))
 
@@ -63,7 +63,7 @@ describe("resolveSeat", () => {
   })
 
   it("sits a guest down under the nickname they typed, with no account", async () => {
-    expect(await resolveSeat({ nickname: " Ann " })).toEqual({ profile: { nickname: "Ann" }, memberId: null })
+    expect(await resolveSeat({ nickname: " Ann " })).toEqual({ profile: { nickname: "Ann" }, memberId: null, signedIn: false })
   })
 
   it("sits a member down as their account and says which account it is", async () => {
@@ -71,11 +71,32 @@ describe("resolveSeat", () => {
     expect(await resolveSeat({ nickname: "Someone else" })).toEqual({
       profile: { nickname: "Anne Martin", avatarUrl: "https://cdn.example/anne.png" },
       memberId: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11",
+      signedIn: true,
     })
   })
 
-  it("gives the demo account of development no member id: it is in no database", async () => {
+  it("gives the demo account of development no member id, since it is in no database, but says it is signed in", async () => {
     mocks.account = { id: "demo", nickname: "Oré", avatarUrl: null }
-    expect(await resolveSeat({})).toEqual({ profile: { nickname: "Oré" }, memberId: null })
+    expect(await resolveSeat({})).toEqual({ profile: { nickname: "Oré" }, memberId: null, signedIn: true })
+  })
+})
+
+describe("resolveActor", () => {
+  afterEach(() => {
+    mocks.account = null
+  })
+
+  it("is a guest for a visitor with no session, and asks no nickname of them", async () => {
+    expect(await resolveActor()).toEqual({ memberId: null, signedIn: false })
+  })
+
+  it("is the member for a signed-in visitor", async () => {
+    mocks.account = { id: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11", nickname: "Anne Martin", avatarUrl: null }
+    expect(await resolveActor()).toEqual({ memberId: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11", signedIn: true })
+  })
+
+  it("is signed in with no member id for the demo account of development", async () => {
+    mocks.account = { id: "demo", nickname: "Oré", avatarUrl: null }
+    expect(await resolveActor()).toEqual({ memberId: null, signedIn: true })
   })
 })

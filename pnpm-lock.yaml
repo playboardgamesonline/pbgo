@@ -248,6 +248,9 @@ catalogs:
     clsx:
       specifier: ^2.1.1
       version: 2.1.1
+    country-flag-icons:
+      specifier: ^1.6.20
+      version: 1.6.20
     eslint:
       specifier: ^10.14.0
       version: 10.14.0
@@ -405,6 +408,9 @@ importers:
       '@vercel/analytics':
         specifier: 'catalog:'
         version: 2.0.1(next@16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+      country-flag-icons:
+        specifier: 'catalog:'
+        version: 1.6.20
       motion:
         specifier: 'catalog:'
         version: 14.9.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2735,9 +2741,6 @@ importers:
       '@template/engine':
         specifier: workspace:*
         version: link:packages/engine
-      leva:
-        specifier: 'catalog:'
-        version: 0.10.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       maath:
         specifier: 'catalog:'
         version: 0.10.8(@types/three@0.186.0)(three@0.187.0)
@@ -7107,6 +7110,9 @@ packages:
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
+
+  country-flag-icons@1.6.20:
+    resolution: {integrity: sha512-py8JiEKzjhYw6HPJ0L7SxLgCYim36UPRTZX43/kqGueUCZLSvnrqAiwW8HtQibur7mdkFQUkjOgdK+o/9FBtaw==}
 
   crelt@1.0.7:
     resolution: {integrity: sha512-aK6BbWfhf4U/wCcLHKPJl/xa6VkVstRaPywWtMKGwuOLc/wZTyQYuoxgvZnNsBvv7Kg3YTBQYYBCggcviQczuA==}
@@ -15733,6 +15739,8 @@ snapshots:
   core-js@3.50.0: {}
 
   core-util-is@1.0.3: {}
+
+  country-flag-icons@1.6.20: {}
 
   crelt@1.0.7: {}
 

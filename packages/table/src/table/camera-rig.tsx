@@ -3,6 +3,7 @@
 import { useFrame } from "@react-three/fiber"
 import { useRef } from "react"
 import type { PerspectiveCamera } from "three"
+import { ENTRANCE } from "../debug/overrides"
 import { CAMERA_INTRO, type CameraIntro, type CameraSettings, aspectScale, introRest, placeCamera } from "./camera"
 
 export type CameraRigProps = {
@@ -19,9 +20,15 @@ export type CameraRigProps = {
 /** Puts the camera where the settings say on every frame: backed off on a narrow screen, with the entrance on top while it plays */
 export function CameraRig({ settings, intro = CAMERA_INTRO, playIntro = true, held = false }: CameraRigProps) {
   const startedAt = useRef<number | null>(null)
+  const replays = useRef(ENTRANCE.replays)
 
   useFrame((state) => {
     const now = performance.now()
+    // The debug panel asked for the entrance again: it begins anew on this frame
+    if (replays.current !== ENTRANCE.replays) {
+      replays.current = ENTRANCE.replays
+      startedAt.current = null
+    }
     if (!playIntro || held) startedAt.current = null
     else if (startedAt.current === null) startedAt.current = now
     placeCamera(state.camera as PerspectiveCamera, settings, {

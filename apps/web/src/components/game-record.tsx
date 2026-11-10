@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ordinal, type PlayedGame } from "@pbgo/accounts"
+import { ordinal, type PlayedGame, type TimeFormat } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
@@ -23,10 +23,10 @@ function ResultBadge({ result }: { result: NonNullable<PlayedGame["result"]> }) 
 }
 
 /**
- * One game of a visitor, as a row: the game (and its table, while it is in progress: a game that is over keeps its result and no table), when it started or ended and with whom (nobody, for a game played alone), then, for a game in progress, a
+ * One game of a visitor, as a row: the game (and its table, while it is in progress: a game that is over keeps its result and no table), when it started or ended (the time written as the member chose, `timeFormat`) and with whom (nobody, for a game played alone), then, for a game in progress, a
  * button to go back to its table, and for a game that is over, how it ended, the rank and the rank points it gave or took.
  */
-export function GameRecord({ game }: { game: PlayedGame }) {
+export function GameRecord({ game, timeFormat = "auto" }: { game: PlayedGame; timeFormat?: TimeFormat }) {
   const names = game.opponents.map((opponent) => opponent.nickname)
   return (
     <Item size="sm">
@@ -41,7 +41,7 @@ export function GameRecord({ game }: { game: PlayedGame }) {
           {game.table && <span className="text-muted-foreground">· table {game.table}</span>}
         </ItemTitle>
         <ItemDescription>
-          {gameDate(game.playedAt)}
+          {gameDate(game.playedAt, timeFormat)}
           {names.length > 0 && ` · with ${names.join(", ")}`}
         </ItemDescription>
       </ItemContent>

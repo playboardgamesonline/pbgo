@@ -57,11 +57,11 @@ describe("platform components", () => {
  */
 /**
  * Rounded, never round: the largest step is the surfaces' (`rounded-4xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
- * person with its dot, the place of a seat nobody has taken (a circle like the picture it waits for, which its focus ring follows), the track and thumb of a switch, a slider and a progress bar, and the round background that comes
+ * person with its dot, the place of a seat nobody has taken (a circle like the picture it waits for, which its focus ring follows), the track and thumb of a switch, a slider and a progress bar, the mark of a radio (a choice among a few is drawn as a circle everywhere, and a square would read as a checkbox), and the round background that comes
  * under the pointer behind the "+5" of the achievements, the one place the owner asked for a circle that is no picture.
  */
 describe("radius", () => {
-  const CIRCLES = new Set(["achievements-card.tsx", "avatar.tsx", "open-seat.tsx", "progress.tsx", "slider.tsx", "switch.tsx"])
+  const CIRCLES = new Set(["achievements-card.tsx", "avatar.tsx", "open-seat.tsx", "progress.tsx", "radio-group.tsx", "slider.tsx", "switch.tsx"])
   const hitsOf = (files: readonly string[], pattern: RegExp) =>
     files.flatMap((file) =>
       readFileSync(new URL(file, DIRECTORY), "utf8")
@@ -132,7 +132,7 @@ describe("piece colours", () => {
 describe("brand colours", () => {
   const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
 
-  for (const name of ["twitch", "discord"]) {
+  for (const name of ["twitch", "discord", "steam"]) {
     it(`brand-${name} is a token with its utilities`, () => {
       expect(css).toMatch(new RegExp(`--brand-${name}:\\s*#[0-9a-f]{6};`, "i"))
       expect(css).toContain(`--color-brand-${name}: var(--brand-${name})`)
@@ -142,7 +142,7 @@ describe("brand colours", () => {
   it("every brand has a mark and a tile", () => {
     const marks = readFileSync(new URL("./brands.tsx", import.meta.url), "utf8")
     const button = readFileSync(new URL("./platform/provider-button.tsx", import.meta.url), "utf8")
-    for (const name of ["google", "twitch", "discord"]) {
+    for (const name of ["google", "twitch", "discord", "steam"]) {
       expect(marks, `the mark of ${name}`).toMatch(new RegExp(`\\b${name}\\b`))
       expect(button, `the tile of ${name}`).toMatch(new RegExp(`^  ${name}:`, "m"))
     }

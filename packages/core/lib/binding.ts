@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import type { AnyGameDefinition, OptionValues, Results } from "@pbgo/engine-kit"
+import type { AnyGameDefinition, OptionValues, Results, Standing } from "@pbgo/engine-kit"
 import type { SanityClient } from "@sanity/client"
 import type { PublicGame } from "./game-types"
 import type { Locale } from "./i18n"
@@ -194,13 +194,14 @@ export type GameModule = GameEntry & { binding: ServerBinding }
 export type PlayableGame = GameModule & { binding: ServerBinding & { GAME: AnyGame } }
 
 /**
- * What core reads from a player's view: the results once the game is over, and the length of the log. A view is the game's to shape for its
- * own board. What core needs besides, it takes from the table: who is looking is `PublicGame.meId` and whether the game is over is
- * `PublicGame.status`, so a game names its phase and its `me` as it likes, and gives none to a player who is out.
+ * What core reads from a player's view: the results once the game is over, the length of the log and what each player has so far (`standings`, for the list of
+ * the players). A view is the game's to shape for its own board. What core needs besides, it takes from the table: who is looking is `PublicGame.meId` and
+ * whether the game is over is `PublicGame.status`, so a game names its phase and its `me` as it likes, and gives none to a player who is out.
  */
 export type CoreView = {
   results?: Results | null
   log?: readonly unknown[]
+  standings?: readonly Standing[]
 }
 
 /** Whether the game has an engine, live or not: enough to show its table to the gamemaster in an admin preview. */

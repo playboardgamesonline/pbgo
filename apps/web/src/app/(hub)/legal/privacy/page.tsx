@@ -101,12 +101,16 @@ export default function PrivacyPolicy() {
       </LegalSection>
 
       <LegalSection id="accounts" title="When you sign in">
-        <LegalText>An account is optional. You sign in with Google, Twitch or Discord. Some accounts use an e-mail address and a password instead.</LegalText>
+        <LegalText>An account is optional. You sign in with Google, Discord or Steam, and you can link a Twitch account to yours, which does not sign you in. From your settings you can also link a Steam account to an account you made another way. Some accounts use an e-mail address and a password instead.</LegalText>
         <LegalEntries
           items={[
             {
               name: "What your provider gives us",
               text: "When you choose a provider, it tells our sign-in service, Supabase, who you are: an identifier, your e-mail address, your name and your picture, as far as that provider gives them. We keep them with your account, to sign you in and to show your name and picture to you and to the others at your table. We never see your password for that provider. The provider learns that you signed in to this site, and its own privacy policy applies to that.",
+            },
+            {
+              name: "Signing in with Steam",
+              text: "Steam gives us no e-mail address. When you sign in with it, Steam tells us the number of your Steam account (the one in the address of your Steam profile), and our server then asks Steam for the name and the picture of your profile. We keep the number, the name and the picture with your account, to sign you in and to show your name and picture to you and to the others at your table. Our sign-in service needs an address for every account, so we make one up for yours: it ends in external.pbgo.invalid, it cannot receive any e-mail and it is never shown. We never see your Steam password. Steam learns that you signed in to this site, and its own privacy policy applies to that. You can also link a Steam account to an account you made another way, from your settings: the same number, name and picture are kept with it, nothing else about your account changes, and unlinking it deletes them.",
             },
             {
               name: "E-mail accounts",
@@ -118,7 +122,19 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Your settings",
-              text: "The nickname you choose and your choices (the notifications you want, hiding your game history) are kept with your account, so that they follow you from one device to the next. They stay until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
+              text: "The username you choose and your choices (the notifications you want, hiding your game history, how times are written, whether the site's animations or its see-through surfaces are reduced) are kept with your account, so that they follow you from one device to the next. The choices for the animations and the see-through surfaces are also kept in a cookie each on each device, so that a page can honour them as it opens (see the Cookie Policy). All of it stays until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
+            },
+            {
+              name: "Your country or region",
+              text: "In your account settings you can record the country or region you are in. It is optional and nobody else sees it. We keep it with your account until the account is deleted, and you can change or remove it at any time.",
+            },
+            {
+              name: "Your date of birth",
+              text: "Some games, and some expansions of a game, are for adults only, or for an older age than 13. To play one you give your date of birth, in your account settings or when the site asks for it. It is optional until you want to play one of those. You give it once, and it cannot be changed afterwards: write to us if it is wrong. We take your word for it and do not check it. We keep it apart from the rest of your account, in a table that only our server reads, and the server works out your age from it each time you sit at a table that asks for one. Other players never see it; you see it yourself with its day and month hidden. It stays until your account is deleted. A date that would make you younger than 13 is refused and not kept.",
+            },
+            {
+              name: "Multi-factor authentication",
+              text: "If you turn it on in your account settings, our sign-in service, Supabase, makes a secret that you add to an authenticator app on your phone, by scanning a QR code or typing a key. Supabase keeps the secret, the name we give it (\"Authenticator app\") and its dates with your account, and records each set-up and each check of a code, with your IP address, in the log of your sign-in events. We never see the codes the app shows and keep none. Once it is on, you are asked for a code each time you sign in, whichever way you sign in, and turning it on signs you out of your other devices. It is optional. We keep it until you turn it off, which deletes the secret, or until your account is deleted. If you lose your phone, write to us from the e-mail address of your account and we turn it off. Accounts with no e-mail address, the ones made with Steam, cannot turn it on.",
             },
             {
               name: "Being online",
@@ -146,7 +162,7 @@ export default function PrivacyPolicy() {
                 <>
                   Your account stays until you delete it. When you do, it is closed at once and kept for {ACCOUNT_DELETION_GRACE_DAYS} days, in case you change your mind: you can reopen it with the link we e-mail you, or delete it right away from the page that
                   link opens. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name, picture address, password and the services linked to it), your
-                  language and your settings, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name and the picture that a table or a game had copied from your account are erased, and
+                  language and your settings, your country or region and your date of birth if you gave them, your second step if you turned it on, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name and the picture that a table or a game had copied from your account are erased, and
                   your games stay as those of a deleted player, without your name or your picture. Your e-mail address can then be used for a new account. An account without an e-mail address cannot be deleted from the site, since it would have no link to be
                   reopened with: write to{" "}
                   <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
@@ -213,14 +229,17 @@ export default function PrivacyPolicy() {
         <LegalText>The law asks for a reason for each use of personal data. Ours are:</LegalText>
         <LegalEntries
           items={[
-            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language, keeping your games, your totals and your rank: we could not do it without your data." },
+            { name: "To give you the service", text: "Sitting you at a table, signing you in, remembering your language and your settings, keeping your games, your totals and your rank, checking your age for the games and expansions that ask for one: we could not do it without your data." },
             {
               name: "Our legitimate interest",
               text: `In running a safe site that works: limiting requests, blocking abuse, keeping technical logs, handling feedback, counting what happens at tables to fix and improve the games, and keeping a deleted account for ${ACCOUNT_DELETION_GRACE_DAYS} days, so that nobody loses it by mistake or by someone else's hand. You can object to this (see Your rights).`,
             },
-            ...(ANALYTICS_ENABLED
-              ? [{ name: "Your consent", text: "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. You can say no, and change your mind at any time." }]
-              : []),
+            {
+              name: "Your consent",
+              text: ANALYTICS_ENABLED
+                ? "For what the cookie banner asks: the identifier that PostHog keeps on your device and the session replays. And for the country or region you choose to record in your account. You can say no, and change your mind at any time."
+                : "For the country or region you choose to record in your account. You can say no, and change your mind at any time.",
+            },
           ]}
         />
         <LegalText>We make no automated decision that has legal or similar effects on you.</LegalText>
@@ -240,7 +259,7 @@ export default function PrivacyPolicy() {
               ? [{ name: "PostHog", text: "Statistics, on its European cloud. Receives the counts of what happens at tables and of visits and, if you accept, the identifier and the session replays." }]
               : []),
             { name: "Sanity", text: "Stores the texts, pictures and videos of the games. Your browser loads the pictures and videos from its servers." },
-            { name: "Google, Twitch and Discord", text: "Only if you sign in with them. They learn that you sign in to this site and handle your data under their own policies." },
+            { name: "Google, Discord, Steam and Twitch", text: "Only if you sign in with them or link them to your account (Twitch can only be linked). They learn that you sign in to this site and handle your data under their own policies. For Steam, our server also asks its operator, Valve, to confirm the sign-in and for the name and the picture of your profile." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
             { name: "Every visitor of a game's page", text: "See the best players of the game: the name and the picture of their account, their rank and their place. Never a rating, and never the games behind it." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },
@@ -273,7 +292,7 @@ export default function PrivacyPolicy() {
           <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
             {CONTACT}
           </a>
-          . We answer within one month. We may ask for proof that the data is yours. With an account, tell us the e-mail address of the account. As a guest you are only a random secret in a cookie, so we can only find your data if you tell us the link of the table and the
+          . We answer within one month. We may ask for proof that the data is yours. With an account, tell us the e-mail address of the account (if you signed in with Steam, which gives none, the link of your Steam profile). As a guest you are only a random secret in a cookie, so we can only find your data if you tell us the link of the table and the
           nickname you used.
         </LegalText>
         <LegalText>

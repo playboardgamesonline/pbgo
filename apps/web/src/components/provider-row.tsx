@@ -1,6 +1,6 @@
 "use client"
 
-import { PROVIDER_NAMES, type Provider } from "@pbgo/accounts"
+import { PROVIDER_NAMES, type AnyProvider } from "@pbgo/accounts"
 import { ProviderButton } from "@pbgo/ui/platform/provider-button"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { cn } from "@pbgo/ui/utils"
@@ -10,7 +10,7 @@ const COLUMNS = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4"] as 
 
 /**
  * "or continue with" and one button per provider, side by side with nothing on them but the provider's small mark: the same under the sign-in's form and the sign-up's, since a provider's sign-in makes an account too. `providers` are the ones
- * the project has switched on (`enabledProviders`), in a row of as many columns, and none is drawn, not even the line, when there are none. The card controls the rest: it owns what is on its way (`pending`, a provider or its own form)
+ * the sign-in offers (`signInProviders`: the project's, and the server's for Steam), in a row of as many columns, and none is drawn, not even the line, when there are none. The card controls the rest: it owns what is on its way (`pending`, a provider or its own form)
  * and what a press does (`onSelect`), and while anything is on its way nothing else can be pressed (`disabled`).
  */
 export function ProviderRow({
@@ -19,10 +19,10 @@ export function ProviderRow({
   disabled,
   onSelect,
 }: {
-  providers: readonly Provider[]
+  providers: readonly AnyProvider[]
   pending: string | null
   disabled: boolean
-  onSelect: (provider: Provider) => void
+  onSelect: (provider: AnyProvider) => void
 }) {
   if (providers.length === 0) return null
 
@@ -36,7 +36,7 @@ export function ProviderRow({
 
       <div role="group" aria-label="Continue with" className={cn("grid gap-3", COLUMNS[Math.min(providers.length, COLUMNS.length) - 1])}>
         {providers.map((provider) => (
-          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} pending={pending === provider} disabled={disabled} onClick={() => onSelect(provider)} />
+          <ProviderButton key={provider} brand={provider} name={PROVIDER_NAMES[provider]} pending={pending === provider} disabled={disabled} onClick={() => onSelect(provider)} className="h-12" />
         ))}
       </div>
     </>

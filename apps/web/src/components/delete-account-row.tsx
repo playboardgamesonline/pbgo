@@ -16,10 +16,11 @@ import { CONTACT } from "@/site"
  * The Delete account row of the settings (PLT-36). A red button opens a window that says what deleting means, and its button deletes the account (`POST /api/hub/account/deletion`, intent `close`): the account is closed at once, the member is signed
  * out everywhere, and an e-mail holds the link that reopens it for `ACCOUNT_DELETION_GRACE_DAYS` days, then it is deleted for good (`docs/accounts.md`, "Deleting an account"). The window already says all of that before the button is pressed, so once it
  * worked nothing more is said: the page is left for the home at once (a whole page load: the member is signed out, and the page they were on is not theirs any more).
- * An account without an address that mail can reach (`hasMailbox`) cannot be closed from here, since it would have no way back: the window says so and offers to write to us instead, as the Privacy Policy keeps saying. So does a site where no
+ * An account without an address that mail can reach (`hasMailbox`) cannot be closed from here, since it would have no way back: the window says so and offers to write to us instead, as the Privacy Policy keeps saying. One that came from a provider
+ * with no e-mail address (Steam) gives the link of its profile, which names the account but proves nothing (it is public), so the window says that proof may be asked (`provider`: the name of that provider, null for an account with an address). So does a site where no
  * e-mail can leave (`available` is false: production with no key for the mail provider). The demo account of development is in no database: nothing is closed and no e-mail leaves, and its button goes to the page its link would open.
  */
-export function DeleteAccountRow({ email, demo, available }: { email: string | null; demo: boolean; available: boolean }) {
+export function DeleteAccountRow({ email, demo, available, provider }: { email: string | null; demo: boolean; available: boolean; provider: string | null }) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +77,9 @@ export function DeleteAccountRow({ email, demo, available }: { email: string | n
                 <DialogTitle>Delete your account</DialogTitle>
                 <DialogDescription>
                   {!reachable
-                    ? "When you delete your account we e-mail you a link to reopen it, and yours has no e-mail address. Write to us and we delete it, with what it holds: your profile and your personal data. This cannot be undone."
+                    ? provider
+                      ? `Write to us with the link of your ${provider} profile and we delete the account, with what it holds: your profile and your personal data. We may ask you to prove that it is yours. This cannot be undone.`
+                      : "When you delete your account we e-mail you a link to reopen it, and yours has no e-mail address. Write to us and we delete it, with what it holds: your profile and your personal data. This cannot be undone."
                     : "Deleting an account is not available right now. Try again later, or write to us and we delete it, with what it holds: your profile and your personal data."}
                 </DialogDescription>
               </DialogHeader>

@@ -1,10 +1,11 @@
 import { PROVIDER_NAMES, initialsOf, type Account } from "@pbgo/accounts"
+import { isDemoAccount } from "@pbgo/accounts/demo"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { monthOf } from "@/lib/account-data"
 
-/** The line under the name: how the visitor signed in, and since when they have an account. */
+/** The line under the name: how the visitor signed in, and since when they have an account. An account with no provider is the demo account of development, or one made with an e-mail address and a password. */
 function lineOf(account: Account): string {
-  const how = account.provider ? `Signed in with ${PROVIDER_NAMES[account.provider]}` : "Demo account (development only)"
+  const how = isDemoAccount(account) ? "Demo account (development only)" : account.provider ? `Signed in with ${PROVIDER_NAMES[account.provider]}` : "Signed in with e-mail"
   return account.createdAt ? `${how} · member since ${monthOf(account.createdAt)}` : how
 }
 

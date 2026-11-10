@@ -45,6 +45,15 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   TOO_MANY_REQUESTS: "Too many submissions: try again in a moment.",
   RATE_LIMITED: "Too many requests: wait a few seconds before trying again.",
   FORBIDDEN: "Action refused.",
+  // What the age check refuses with (PLT-125): a game or an expansion that asks for an age, and the date of birth a member declares
+  AGE_SIGN_IN_REQUIRED: "Sign in to play age-restricted games and expansions.",
+  AGE_DATE_REQUIRED: "Add your date of birth to play age-restricted games and expansions.",
+  AGE_TOO_YOUNG: "You are not old enough for this game or expansion.",
+  AGE_TABLE_NOT_ALLOWED: "Everybody at the table has to be signed in and old enough for this.",
+  NOT_SIGNED_IN: "Sign in first.",
+  BIRTHDATE_INVALID: "This date of birth is not valid.",
+  BIRTHDATE_UNDER_MINIMUM: "You must be at least 13 to use the site.",
+  BIRTHDATE_LOCKED: "Your date of birth is already saved and cannot be changed here. Write to us if it needs to be corrected.",
 }
 
 // The page shows one game at a time: `SkinProvider` sets the messages of its skin (Sanity, else the platform's translations of the core codes).

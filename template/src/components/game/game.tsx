@@ -1,14 +1,13 @@
 "use client"
 
 import type { GameEvent, PlayerView } from "@template/engine"
-import { button, useControls } from "leva"
 import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useAnnouncementSettings } from "@pbgo/core/components/game/announcement"
 import { GameProvider, useGame } from "@pbgo/core/components/game/context"
-import { DebugPanel } from "@pbgo/core/components/game/debug"
-import { debugTab } from "@pbgo/core/components/game/debug-tabs"
+import { DebugSlot } from "@pbgo/core/components/game/debug-controls"
+import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
 import { GameHud, groupTurns, PlayerName, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
@@ -74,7 +73,7 @@ function RoundStatus() {
     <>
       {`Manche ${view.round}/${view.options.rounds}${view.options.inverse ? " · la plus basse gagne" : ""}`}
       {revealed && (
-        <div className="mt-1.5 flex flex-wrap items-baseline justify-end gap-x-4 gap-y-1 text-xs tracking-[0.12em]">
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs tracking-[0.12em]">
           <span className="text-foreground/50">Plis / annonces</span>
           {view.players.map((p) => (
             <span key={p.id} className="inline-flex items-baseline gap-1.5">
@@ -135,27 +134,33 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
       .catch((e: Error) => toast.error(e.message))
   }
 
-  useControls(
-    "Phases",
+  // The commands of the game and the replay of its announcements: folders of the debug panel, written down here and drawn by the panel (`DebugSlot`) when it is there
+  useDebugFolder(
     {
-      "START · new game": button(() => runDebugCommand("start")),
-      "NEXT TURN · auto play": button(() => runDebugCommand("turn")),
-      "END · play to the end": button(() => runDebugCommand("over")),
+      folder: "Phases",
+      tab: "GAME",
+      closed: false,
+      schema: ({ button }) => ({
+        "START · new game": button(() => runDebugCommand("start")),
+        "NEXT TURN · auto play": button(() => runDebugCommand("turn")),
+        "END · play to the end": button(() => runDebugCommand("over")),
+      }),
     },
     [game.code],
   )
-  useControls(
-    "Replay",
-    {
+  useDebugFolder({
+    folder: "Replay",
+    tab: "TRANSITION",
+    order: 1,
+    closed: false,
+    schema: ({ button }) => ({
       "Start announcement": button(() => announce("C'est parti !", "start", { subtitle: "3 manches" })),
       "Round announcement": button(() => announce("Manche 2", "round")),
       "Your turn announcement": button(() => announce(t("yourTurn"), "turn", { seats: seatsFor(meId ? [meId] : []) })),
       "Victory announcement": button(() => announce("Victoire de", "victory", { subtitle: "Oré · 9 pts", seats: seatsFor(game.players.slice(0, 1).map((p) => p.id)) })),
       "Defeat announcement": button(() => announce(t("defeatTitle"), "defeat", { subtitle: t("pointsShort", { points: 12 }) })),
-    },
-    { order: 1 },
-    debugTab("TRANSITION"),
-  )
+    }),
+  })
 
   async function send(action: { type: string } & Record<string, unknown>) {
     setSending(true)
@@ -203,7 +208,7 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
           <BidPanel sending={sending} onBid={bid} />
           <StalledTurn onUpdate={onUpdate} />
           {ended && !current && <GameOver onUpdate={onUpdate} isOpen={scoresOpen} onToggle={() => setScoresOpen((o) => !o)} />}
-          <DebugPanel />
+          <DebugSlot />
         </>
       }
     >

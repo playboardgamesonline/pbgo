@@ -12,7 +12,7 @@ const UPDATED = "9 November 2026"
 
 /**
  * The rules of using the site, for a guest as much as for an account (the sign-in and the sign-up pages say that continuing, or creating an account, accepts them, `login-card.tsx`, `signup-card.tsx`). What the owner chose to ship without is not on the page: the
- * governing law and courts (`docs/legal.md`, "Decisions of the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2). The chat's
+ * governing law and courts (`docs/legal.md`, "Decisions of the owner"). The minimum age is the owner's choice: 13, with no parental agreement, which a lawyer should look at (`docs/legal.md`, Decisions 2); the games and expansions for adults, and the declared date of birth they ask for, are PLT-125 (`docs/accounts.md`, "The age check"). The chat's
  * banned-word filter is a feature they plan and that does not exist yet: the sentence about it must not go live before the filter does. What the page says of the games follows the footer's line and the legal notice:
  * the games are unofficial adaptations, and their rights belong to their owners.
  */
@@ -51,11 +51,15 @@ export default function TermsOfUse() {
 
       <LegalSection id="age" title="Who can use the site">
         <LegalText>You must be at least 13 to use the site.</LegalText>
+        <LegalText>
+          Some games, and some expansions of a game, are for an older age and say so on their page. From 16 up, they can only be played by people who are old enough: to play one you must be signed in and have given your date of birth. You give it once, when it is asked
+          for, and it cannot be changed afterwards (write to {mail} if it is wrong). We take your word for it and do not check it, so give your real date of birth.
+        </LegalText>
       </LegalSection>
 
       <LegalSection id="accounts" title="Accounts and nicknames">
         <LegalText>
-          You do not need an account to play: a guest picks a nickname. An account is made by signing in with Google, Twitch or Discord. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
+          You do not need an account to play: a guest picks a nickname. An account is made by signing in with Google, Discord or Steam. You are responsible for what happens under your account, so keep the access to your provider&apos;s account safe, and tell us if someone
           else uses yours.
         </LegalText>
         <LegalText>
@@ -74,6 +78,7 @@ export default function TermsOfUse() {
             "cheat, for example with scripts or bots, or by using a bug on purpose;",
             "try to see what is hidden from you (such as the hands of the other players), to get around the limits of the site, to disrupt it or overload it, or to reach accounts, tables or data that are not yours;",
             "pretend to be someone else, or to speak for the site;",
+            "give a date of birth that is not yours, to play a game or an expansion that is not for your age;",
             "collect data from the site in bulk.",
           ]}
         />
@@ -103,7 +108,7 @@ export default function TermsOfUse() {
 
       <LegalSection id="plans" title="Paid plans">
         <LegalText>
-          The site is free. The Pricing page shows plans that are not on sale: nothing can be bought and nothing is charged. Before a paid plan opens, its price, how it is billed and how to cancel it are published, and these terms are updated.
+          The site is free. No paid plan is on sale: nothing can be bought and nothing is charged. Before a paid plan opens, its price, how it is billed and how to cancel it are published, and these terms are updated.
         </LegalText>
       </LegalSection>
 

@@ -1,10 +1,12 @@
 "use client"
 
+import * as leva from "leva"
 import { Leva, LevaPanel, button, useControls } from "leva"
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { roundValue, DEBUG_STORES, DEBUG_TABS, type DebugTab } from "./debug-tabs"
 import { useDebugRequested, useDebugShortcut } from "./debug-controls"
+import { type DebugFolder, useDebugFolders } from "./debug-folders"
 
 function copyAll() {
   const values: Record<string, Record<string, unknown>> = {}
@@ -51,14 +53,24 @@ function Fps() {
   return <span ref={ref} className="w-32 shrink-0 self-center px-2 text-right whitespace-nowrap tabular-nums" />
 }
 
+/** One folder the board asked for (`useDebugFolder`): its inputs are made here, where leva is, and stay as long as the board asks for the folder. Draws nothing itself: the panel shows the store */
+function Folder({ entry }: { entry: DebugFolder }) {
+  useControls(entry.folder, entry.schema(leva) as never, { collapsed: entry.closed, order: entry.order }, { store: DEBUG_STORES[entry.tab] }, entry.deps)
+  return null
+}
+
 export function DebugPanel() {
   useControls({ "Copy all settings": button(copyAll) })
   const [activeTab, setActiveTab] = useState<DebugTab>("GAME")
   const active = useDebugRequested()
+  const folders = useDebugFolders()
   useDebugShortcut()
 
   return (
     <div className={cn("absolute top-44 left-4 z-40 w-[27rem]", !active && "hidden")}>
+      {folders.map((entry) => (
+        <Folder key={entry.id} entry={entry} />
+      ))}
       <div className="flex gap-px overflow-hidden rounded-t-md bg-[#292d39] font-mono text-[10px] tracking-wider">
         {DEBUG_TABS.map((name) => (
           <button

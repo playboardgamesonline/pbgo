@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Cookie Policy", alternates: { canoni
 /**
  * Everything the site writes on a device, one entry for a name (`LegalEntries`): what it is, what it is for, how long it lasts and when it is written.
  * The entries are the code's (`player.ts`, `admin.ts`, `language-select.tsx`, `consent.ts`, `profile.ts`, `sound.ts`, `folded-games.ts`, `matchmaking.ts`,
- * `debug-controls.ts`, the cookies of `@pbgo/accounts`): a new cookie or storage key is added here at the same time, or the page says less than the site
+ * `debug-controls.ts`, the cookies of `@pbgo/accounts`, the display cookies among them: `display.ts`): a new cookie or storage key is added here at the same time, or the page says less than the site
  * does. Everything else the site does with personal data is the Privacy Policy's, and the inventory behind both is `docs/legal.md`.
  */
 const Stored = (props: { items: { name: string; text: ReactNode }[] }) => <LegalEntries mono {...props} />
@@ -46,7 +46,7 @@ export default function CookiePolicy() {
         This page lists what the site keeps on your device, why, and for how long. A cookie is a small file that your browser keeps for a site; local storage is a similar space that only the site that wrote to it can read.
       </LegalText>
       <LegalText>
-        Nothing is stored when you arrive. The site writes something only when you do what needs it (create or join a table, pick a language, sign in or create an account) or when you answer the cookie banner, and, once you are signed in, it keeps your language cookie in step with your account. No advertising cookies, no tracking across sites, and nothing is sold or shared for
+        Nothing is stored when you arrive. The site writes something only when you do what needs it (create or join a table, pick a language or a setting, sign in or create an account) or when you answer the cookie banner, and, once you are signed in, it keeps your language and motion cookies in step with your account. No advertising cookies, no tracking across sites, and nothing is sold or shared for
         advertising. The site does not use cookies to personalise what you see or to market anything to you.
       </LegalText>
       <LegalText>
@@ -69,6 +69,10 @@ export default function CookiePolicy() {
               text: "Keeps you signed in; a few more of the same family hold a sign-in or a sign-up while it is under way. Written by Supabase, our sign-in service, on this site's own domain, and only if you sign in or create an account. Kept while you stay signed in, 400 days at most.",
             },
             {
+              name: "pbgo-steam-state",
+              text: "A random value that ties the way back from Steam to the browser that started the sign-in, so that a link someone else started cannot sign you in as them. It is sent to this site only and page scripts cannot read it. Kept ten minutes at most; written when you choose Steam to sign in, and deleted when you come back from Steam.",
+            },
+            {
               name: "gamemaster_session",
               text: "For the people who run the site only: it opens the back office. Kept 7 days. Visitors never get it.",
             },
@@ -82,6 +86,14 @@ export default function CookiePolicy() {
             {
               name: "pbgo-locale",
               text: "A cookie that remembers your language. Kept one year; written when you choose a language and, if you have an account, when your account's language is applied to this device (when you sign in, and when you open the site after changing it on another device). Your account keeps your language too, so that it follows you from one device to the next.",
+            },
+            {
+              name: "pbgo-motion",
+              text: "A cookie that remembers whether you asked the site to reduce its animations, or to keep them whatever your device says (the \"Reduce motion\" setting). Kept one year; written when you choose it in your settings and, if you have an account, when your account's choice is applied to this device. With \"Match my device\" there is no cookie. Your account keeps the choice too, so that it follows you from one device to the next.",
+            },
+            {
+              name: "pbgo-transparency",
+              text: "A cookie that remembers whether you asked the site to make its see-through surfaces solid, or to keep them whatever your device says (the \"Reduce transparency\" setting). Kept one year; written when you choose it in your settings and, if you have an account, when your account's choice is applied to this device. With \"Match my device\" there is no cookie. Your account keeps the choice too, so that it follows you from one device to the next.",
             },
             {
               name: "pbgo-consent",
@@ -98,10 +110,6 @@ export default function CookiePolicy() {
             {
               name: "pbgo:queue",
               text: "Session storage. The games you asked to look for a table of, whether you want a ranked or a normal one, and since when, so that reloading the page does not lose your place. It goes when you close the tab.",
-            },
-            {
-              name: "game:debug",
-              text: "Local storage. A switch for the debugging tools of a game, written only if you turn them on (Shift+D). It stays until you clear your browser's data.",
             },
           ]}
         />

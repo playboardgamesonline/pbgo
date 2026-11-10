@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { isDemoAccount } from "@pbgo/accounts/demo"
-import { getAccount } from "@pbgo/accounts/server"
+import { getSessionState } from "@pbgo/accounts/server"
 import { KIND_LABELS, activeAnnouncements, bannersOf, entryHref, newsOf } from "@pbgo/catalog/editorial"
 import { getCatalog, getEditorial } from "@pbgo/catalog/server"
+import { NO_AGE_STATES } from "@pbgo/core/lib/age-rules"
 import { Section } from "@pbgo/ui/platform/section"
 import { playerRange } from "@pbgo/ui/tables"
 import { HomeAnnouncements } from "@/components/home-announcements"
@@ -14,13 +15,15 @@ import { HomeFindGame } from "@/components/home-find-game"
 import { HomeNews } from "@/components/home-news"
 import { HomeYourGames } from "@/components/home-your-games"
 import { SiteFooter } from "@/components/site-footer"
+import { ageStatesOf, lockedExpansions } from "@/lib/age-state"
 import { demoEditorial } from "@/lib/demo-editorial"
 import { getExpansions } from "@/lib/game-activity"
 import { expansionOption, LANGUAGE_OPTIONS } from "@/lib/game-activity-props"
 import { gamePicture } from "@/lib/game-card-props"
 
 // The home of a signed-in member. The proxy sends a visitor who has a session from `/` to it, instead of leaving them on the public home (`apps/web/src/proxy.ts`), and a visitor
-// who is not signed in who asks for `/home` is sent to `/`. It is read per request, since the session decides who sees it, and it is never indexed.
+// who is not signed in who asks for `/home` is sent to `/`, and one who has signed in but not passed the second step of their account (PLT-129) to the sign-in, which asks for the code and brings them back here: the proxy
+// sees a session at `/` and would send that visitor straight back. It is read per request, since the session decides who sees it, and it is never indexed.
 export const metadata: Metadata = { title: "Home", robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"
 
@@ -34,22 +37,28 @@ const ANNOUNCEMENTS_MAX = 2
  * The others are drawn whole: the play zone works as far as the platform does, and the lists have their empty state, so the shape of the home is there to see (docs/accounts.md, PLT-21). It has no title and no search bar: the title and the figures are the public home's.
  */
 export default async function MemberHome() {
-  const account = await getAccount()
-  if (!account) redirect("/")
+  const { account, secondStep } = await getSessionState()
+  if (!account) redirect(secondStep ? `/login?next=${encodeURIComponent("/home")}` : "/")
   const catalog = await getCatalog()
   const editorial = isDemoAccount(account) ? demoEditorial(catalog.entries) : await getEditorial()
 
   // The pages the hub has: the games of its catalog, the ones that can be played now being those a search looks for and a table can be opened on
   const known = new Set(catalog.entries.map((entry) => entry.slug))
   const live = catalog.entries.filter((entry) => entry.live)
-  const findable = live.map((entry) => ({ slug: entry.slug, name: entry.game.name, ...gamePicture(entry.game) }))
+  // What each game asks of the member for their age (PLT-125): a game they are too young for is not offered, one that needs their date of birth asks for it when they use it, and an expansion for adults they cannot choose carries a lock
+  const ages = await ageStatesOf(
+    live.map((entry) => entry.slug),
+    account,
+  )
+  const playable = live.filter((entry) => ages.get(entry.slug)?.game?.refusal !== "too-young")
+  const findable = playable.map((entry) => ({ slug: entry.slug, name: entry.game.name, ...gamePicture(entry.game), refusal: ages.get(entry.slug)?.game?.refusal ?? null }))
   // What the settings of a table offer is per game, and the catalog (read once, cached) has all of it: the number of players, the helpers, and the expansions of the platform's Sanity project
   const creatable = await Promise.all(
-    live.map(async (entry) => ({
+    playable.map(async (entry) => ({
       slug: entry.slug,
       name: entry.game.name,
       range: playerRange(entry.game.players?.min ?? null, entry.game.players?.max ?? null),
-      expansions: (await getExpansions(entry.slug)).map(expansionOption),
+      expansions: lockedExpansions(await getExpansions(entry.slug), ages.get(entry.slug) ?? NO_AGE_STATES).map(expansionOption),
       helpers: entry.game.helpers.map(({ key, title }) => ({ id: key, label: title })),
     })),
   )

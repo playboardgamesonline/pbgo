@@ -124,4 +124,15 @@ describe("checkRateLimit", () => {
     expect((await attempt("8.8.8.8", "fake-0", 5 * minute)).ok).toBe(true) // another IP has its own budget
     expect((await attempt("7.7.7.7", "fake-6", 10 * minute)).ok).toBe(true) // the attempt at 0 left the window
   })
+
+  it("allows 10 unlinks of an external account per 10 minutes per IP, whatever the cookies", async () => {
+    const minute = 60_000
+    const store = new MemoryRateLimitStore()
+    const attempt = (ip: string, playerId: string, now: number) => checkRateLimit(store, rateLimitKeys("externalUnlink", { playerId, ip }), now)
+    expect(RATE_LIMITS.externalUnlink).toEqual({ limit: 10, windowMs: 10 * minute, by: "ip" })
+
+    for (let i = 0; i < 10; i++) expect((await attempt("7.7.7.7", `fake-${i}`, i * 1000)).ok).toBe(true)
+    expect((await attempt("7.7.7.7", "fake-10", 11_000)).ok).toBe(false)
+    expect((await attempt("8.8.8.8", "fake-0", 11_000)).ok).toBe(true) // another IP has its own budget
+  })
 })

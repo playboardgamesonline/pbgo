@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { AnimatePresence, MotionConfig, animate, motion, useMotionValue, useReducedMotion } from "motion/react"
+import { AnimatePresence, animate, motion, useMotionValue } from "motion/react"
+import { MotionPreference, useReducedMotion } from "../reduced-motion"
 import { DURATION, EASE_STANDARD } from "../motion"
 import { cn } from "../utils"
 
@@ -150,7 +151,7 @@ type SocialDockProps = {
 
 function SocialDock({ open, games, profile, toggle, children, height, className }: SocialDockProps) {
   const room = React.useSyncExternalStore(subscribeToResize, readRoom, noRoom)
-  const reduced = useReducedMotion() ?? false
+  const reduced = useReducedMotion()
   const place = React.useRef<HTMLDivElement>(null)
   const dock = React.useRef<HTMLDivElement>(null)
   const width = useMotionValue<number | "auto">("auto")
@@ -203,7 +204,7 @@ function SocialDock({ open, games, profile, toggle, children, height, className 
   }, [open, reduced, width])
 
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionPreference>
       <DockState.Provider value={state}>
         <div ref={place} data-slot="social-dock-place" className="flex h-14 shrink-0 justify-end">
           <motion.div
@@ -250,7 +251,7 @@ function SocialDock({ open, games, profile, toggle, children, height, className 
           </motion.div>
         </div>
       </DockState.Provider>
-    </MotionConfig>
+    </MotionPreference>
   )
 }
 

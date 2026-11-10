@@ -27,6 +27,12 @@ export type Results = {
 }
 
 /**
+ * What a player has so far, for the list of the players that the HUD keeps in view while the game runs. The public view carries it for every viewer, like `results`: one entry per seat, in
+ * seat order. `score` is the number the game counts (points, tokens of affection, lives…); the words that name it are a text of the game, in its Sanity.
+ */
+export type Standing = { playerId: string; score: number }
+
+/**
  * `SetupData`: data loaded on the server before the game starts (e.g. missions from Sanity).
  * The game's server binding provides it through `loadSetupData`; without one it is `undefined`.
  */
