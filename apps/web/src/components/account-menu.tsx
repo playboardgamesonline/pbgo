@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@pbgo/ui/platform/dropdown-menu"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
+import { OwnName } from "@/components/own-name"
 
 type Place = { side: "bottom" | "left"; align: "start" | "end"; sideOffset: number; alignOffset: number }
 
@@ -22,7 +23,7 @@ type Place = { side: "bottom" | "left"; align: "start" | "end"; sideOffset: numb
 const UNDER: Place = { side: "bottom", align: "end", sideOffset: 4, alignOffset: 0 }
 
 /**
- * The menu of the account, which opens from its trigger (`children`: a button, the visitor's picture): at the top, their picture, big, with the dot of their presence, their name and the
+ * The menu of the account, which opens from its trigger (`children`: a button, the visitor's picture): at the top, their picture, big, with the dot of their presence, their name with its tag (`OwnName`) and the
  * word that says it, then the pages of their account and Sign out. Sign out is a form that posts to `/logout`, never a link: nothing but a click may end a session. It opens under the picture, to its
  * end, in the bar of the navbar; and, where the picture is the head of a side panel that is open (`beside`: what the panel is, a selector the trigger is inside of), it opens beside the panel instead, to
  * its left, overlapping it by 16px (the edge of what the panel holds) and 12px under its top, as the Riot Client's does. Where it goes is read as it opens: the panel is where it is then.
@@ -61,7 +62,7 @@ export function AccountMenu({ account, beside, game, children }: { account: Acco
             <PresenceDot status="online" />
           </Avatar>
           <span className="flex max-w-full flex-col gap-0.5">
-            <span className="truncate text-base text-foreground">{account.nickname}</span>
+            <OwnName account={account} className="text-base text-foreground" />
             <span className="truncate text-xs">Online</span>
             <span className="truncate text-xs">{account.email ?? (account.provider ? `Signed in with ${PROVIDER_NAMES[account.provider]}` : "Demo account")}</span>
           </span>

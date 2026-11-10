@@ -22,6 +22,10 @@ export type TakeoverStatus = {
 export type PublicPlayer = PlayerInfo & {
   /** The account's picture; absent: the avatar is generated from the nickname and the seat colour */
   avatarUrl?: string
+  /**
+     * The tag of the member who sits here (`Alex#0042`, 1 to 9999). With the nickname it is their handle, which leads to their profile (PLT-39). A copy made when they sat down. None for a guest. Never given to an engine.
+     */
+  tag?: number
   /** Account badge (PLT-17), meant for the label next to the nickname; read by nothing yet */
   badge?: string
   /**

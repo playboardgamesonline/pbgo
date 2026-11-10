@@ -4,18 +4,12 @@ import { clearSessionCookies, getAccount } from "@pbgo/accounts/server"
 import { accountDeletionDate } from "../../../../../lib/retention"
 import type { DeletionMailInput, MailMessage } from "../../../../../lib/deletion-mail"
 import { closeAccount, eraseAccount, newReopenToken, peekReopenLink, reopenAccount } from "../../../../../server/account-deletion"
-import { ApiError, handle, readJson } from "../../../../../server/api"
+import { ApiError, assertSameOrigin, handle, readJson } from "../../../../../server/api"
 import { mailAvailable, sendMail } from "../../../../../server/mail"
 import { rateLimit } from "../../../../../server/rate-limit"
 
 /** What the app tells the route to compose: the member's address and name, the link (whose token only the e-mail holds) and the day it works until. */
 export type ComposeDeletionMail = (input: DeletionMailInput) => MailMessage
-
-/** A request that changes an account on the strength of its cookie must come from this site: a browser says where a request comes from, and a form of another site is refused. A client that says nothing is a script, which has no cookie of ours to abuse. */
-function assertSameOrigin(request: Request) {
-  const origin = request.headers.get("origin")
-  if (origin && origin !== new URL(request.url).origin) throw new ApiError("CROSS_ORIGIN", 403)
-}
 
 /**
  * `POST /api/hub/account/deletion`: the deletion of an account (PLT-36, `docs/accounts.md`, "Deleting an account"). It is not a game's route. The body says what is asked (`intent`):

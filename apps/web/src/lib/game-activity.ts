@@ -1,4 +1,5 @@
 import "server-only"
+import { tagText, type Handle } from "@pbgo/accounts"
 import type { PlatformLanguage } from "@pbgo/accounts/language"
 import { expansionsOf, pickLocalized, pictureRatio, pictureUrl } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
@@ -8,6 +9,7 @@ import type { TableSettings } from "@pbgo/core/lib/table-settings"
 import { ApiError } from "@pbgo/core/server/api"
 import { findPlayerGame, readGame, type GameRow } from "@pbgo/core/server/games"
 import { getPlayerId } from "@pbgo/core/server/player"
+import { readProfile } from "@pbgo/core/server/profiles"
 import { readBoard, readHistory, readPlayerStanding } from "@pbgo/core/server/standings"
 import { seatedPlayers } from "@pbgo/core/server/table-rules"
 import { readTableSettingsOf } from "@pbgo/core/server/table-settings"
@@ -193,8 +195,8 @@ export type HistoryEntry = {
   expansions: string[]
   /** The experience the game gave them (XP), null when it gave none. The page's guess: the schema has no such column. */
   xp: number | null
-  /** The others at the table: the name they sat down with (`game_participants.display_name`; null: a player who has since deleted their account) and the picture of their profile. */
-  opponents: { name: string | null; avatarUrl: string | null }[]
+  /** The others at the table: the name they sat down with (`game_participants.display_name`; null: a player who has since deleted their account) and the picture of their profile. An account that is still there goes by its profile, with its handle (PLT-39). */
+  opponents: { name: string | null; avatarUrl: string | null; handle?: Handle }[]
 }
 
 /** How many games the history holds on the page, the latest first. */
@@ -249,7 +251,8 @@ function tableOfRow(row: Pick<GameRow, "code" | "host_id" | "status" | "players"
     hostId: row.host_id,
     // Never fewer seats than people: the game's own limit is enforced by its routes. A host may have set fewer than the game takes
     seatsMax: Math.max(settings.seats === undefined ? seatsMax : Math.min(settings.seats, seatsMax), seated.length),
-    players: seated.map((player, seat) => ({ playerId: player.id, seat, name: player.nickname, avatarUrl: player.avatarUrl ?? null, record: null })),
+    // A member's seat carries the tag that goes with their name ("Alex#0042", PLT-39: `seatsOfTable` tells the two apart and leads to the profile); a guest's is a plain name
+    players: seated.map((player, seat) => ({ playerId: player.id, seat, name: player.tag ? `${player.nickname}#${tagText(player.tag)}` : player.nickname, avatarUrl: player.avatarUrl ?? null, record: null })),
     turnTimer: settings.pace ?? "normal",
     expansions: Object.entries(options).flatMap(([key, value]) => (value === true ? [key] : [])),
     createdAt: row.created_at ?? row.updated_at ?? new Date().toISOString(),
@@ -305,15 +308,20 @@ export async function getTable(slug: string, code: string, seatsMax: number): Pr
 
 /**
  * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, most rank points first (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). A player is on the board from their fifth
- * ranked game (`LEADERBOARD_MIN_GAMES`); nobody is while no game was ranked, which nothing opens yet (PLT-21). The tag of a player is 0 until the nicknames have one (PLT-39).
+ * ranked game (`LEADERBOARD_MIN_GAMES`); nobody is while no game was ranked, which nothing opens yet (PLT-21). A player goes by their profile's nickname, picture and tag (PLT-39); the tag is 0 without a profile.
  */
 export async function getStandings(slug: string, viewerId: string | null): Promise<GameStandings> {
   try {
-    const [board, viewer] = await Promise.all([readBoard(slug, LEADERBOARD_SIZE), viewerId === null ? null : readPlayerStanding(viewerId, slug)])
+    const [board, viewer, profile] = await Promise.all([
+      readBoard(slug, LEADERBOARD_SIZE),
+      viewerId === null ? null : readPlayerStanding(viewerId, slug),
+      // The visitor's own row is read apart: they may not be on the board, and a profile that cannot be read leaves the row as the standing has it
+      viewerId === null ? null : readProfile(viewerId).catch(() => null),
+    ])
     const top: Standing[] = board.map((row) => ({
       playerId: row.userId,
       nickname: row.name ?? "Player",
-      tag: 0,
+      tag: row.handle?.tag ?? 0,
       avatarUrl: row.avatarUrl,
       rank: row.rank,
       wins: row.wins,
@@ -323,7 +331,16 @@ export async function getStandings(slug: string, viewerId: string | null): Promi
     // Their own standing, wherever it is: a player who has rated a game has a rank, and a place from the fifth
     const own: Standing | null =
       viewerId !== null && viewer?.rank
-        ? { playerId: viewerId, nickname: viewer.name ?? "You", tag: 0, avatarUrl: viewer.avatarUrl, rank: viewer.rank, wins: viewer.ratedWins, gamesPlayed: viewer.ratedGames, place: viewer.place }
+        ? {
+            playerId: viewerId,
+            nickname: profile?.nickname ?? viewer.name ?? "You",
+            tag: profile?.tag ?? 0,
+            avatarUrl: profile?.avatarUrl ?? viewer.avatarUrl,
+            rank: viewer.rank,
+            wins: viewer.ratedWins,
+            gamesPlayed: viewer.ratedGames,
+            place: viewer.place,
+          }
         : null
     return { top, viewer: own }
   } catch (error) {

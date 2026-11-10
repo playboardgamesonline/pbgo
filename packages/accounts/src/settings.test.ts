@@ -25,6 +25,11 @@ describe("checkNickname", () => {
     expect(checkNickname("🎲".repeat(20)).ok).toBe(true)
     expect(checkNickname("a".repeat(21))).toEqual({ ok: false, problem: "Use 20 characters at most." })
   })
+
+  it("refuses the characters that would break a handle or the address of a profile", () => {
+    for (const name of ["Alex#42", "A/B", "A\\B", "#"]) expect(checkNickname(name), name).toEqual({ ok: false, problem: "A name cannot contain #, / or \\." })
+    expect(checkNickname("Alex (pro) - 74.").ok).toBe(true)
+  })
 })
 
 describe("nicknameCharactersLeft", () => {

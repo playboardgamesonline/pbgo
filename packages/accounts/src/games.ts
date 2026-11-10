@@ -1,6 +1,8 @@
 // What the games a visitor played say of them: the figures of their profile. Pure, so that the pages that draw them, whether the games come from the database
 // (a member's, PLT-13) or from the made-up ones of the development account, and the tests all read them the same way.
 
+import type { Handle } from "./profile"
+
 /** A game a visitor played, or is playing. */
 export type PlayedGame = {
   id: string
@@ -11,8 +13,8 @@ export type PlayedGame = {
   playedAt: string
   /** The code of the table, for a game in progress. A game that is over has none: its result is kept without the table, which goes. */
   table?: string
-  /** The others at the table. */
-  opponents: readonly { nickname: string; avatarUrl?: string | null }[]
+  /** The others at the table. An opponent whose account is still there has a handle, which is where their profile is (`profilePath`): a guest has none, and neither has an account that was deleted. */
+  opponents: readonly { nickname: string; avatarUrl?: string | null; handle?: Handle | null }[]
   state: "in-progress" | "finished"
   /** How it ended for the visitor, once it has. */
   result?: "won" | "lost" | "draw"
@@ -72,8 +74,8 @@ export type FinishedGame = {
   place: number | null
   /** The rank points the game gave them (+) or took (−), null where none applied. */
   points: number | null
-  /** The others at the table, by seat: a seat whose account is gone has no name. */
-  opponents: readonly { name: string | null; avatarUrl: string | null }[]
+  /** The others at the table, by seat: a seat whose account is gone has no name. The name and the picture are the account's own while it is there, with its handle, else what the seat had. */
+  opponents: readonly { name: string | null; avatarUrl: string | null; handle?: Handle | null }[]
 }
 
 /** What an opponent whose account is gone is called. */
@@ -90,7 +92,7 @@ export function playedGameOf(game: FinishedGame, name: string): PlayedGame {
     slug: game.game,
     name,
     playedAt: game.finishedAt,
-    opponents: game.opponents.map((opponent) => ({ nickname: opponent.name ?? FORMER_PLAYER, avatarUrl: opponent.avatarUrl })),
+    opponents: game.opponents.map((opponent) => ({ nickname: opponent.name ?? FORMER_PLAYER, avatarUrl: opponent.avatarUrl, ...(opponent.handle ? { handle: opponent.handle } : {}) })),
     state: "finished",
     result: game.outcome === "win" || game.outcome === "coop_win" ? "won" : game.outcome === "draw" ? "draw" : "lost",
     ...(together || game.place === null ? {} : { rank: game.place }),

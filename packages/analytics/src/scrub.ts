@@ -1,5 +1,5 @@
 /**
- * Table codes stay out of the analytics. A table's address (`/<slug>/game/<CODE>`, and `/game/<slug>/<CODE>` on the hub, where the
+ * Table codes and profile handles stay out of the analytics. A profile's address (`/player/<nickname>-<tag>`, PLT-39) holds a name and a tag: it is reported as `/player/:handle`. A table's address (`/<slug>/game/<CODE>`, and `/game/<slug>/<CODE>` on the hub, where the
  * platform's page of a table that waits for players is) is what lets someone sit down at it, so it is not something to store in an
  * event: the path is reported as `/<slug>/game/:code` or `/game/<slug>/:code`, which also lets a funnel group the tables.
  */
@@ -20,11 +20,17 @@ const HUB_TABLE_CODE = /(\/game\/[A-Za-z0-9-]+\/)[A-Za-z0-9]{6}(?![A-Za-z0-9])/g
  */
 const TITLE_CODE = /(^|[^A-Za-z0-9])#[A-Za-z0-9]{3}-[A-Za-z0-9]{3}(?![A-Za-z0-9])/g
 
+/** The handle after `/player/` in the address of a profile, up to the end of the path segment: what comes after the segment (`?from=`) is not part of it. */
+const PROFILE_HANDLE = /(\/player\/)[^/?#\s"'<>]+/g
+
 export const CODE_PLACEHOLDER = ":code"
+
+export const HANDLE_PLACEHOLDER = ":handle"
 
 /** `value` with the table code removed from the address, the API address and the tab title it appears in. */
 export function scrubText(value: string): string {
   let scrubbed = value
+  if (scrubbed.includes("/player/")) scrubbed = scrubbed.replace(PROFILE_HANDLE, `$1${HANDLE_PLACEHOLDER}`)
   if (scrubbed.includes("/game")) scrubbed = scrubbed.replace(HUB_TABLE_CODE, `$1${CODE_PLACEHOLDER}`).replace(TABLE_CODE, `$1${CODE_PLACEHOLDER}`)
   if (scrubbed.includes("#")) scrubbed = scrubbed.replace(TITLE_CODE, `$1#${CODE_PLACEHOLDER}`)
   return scrubbed

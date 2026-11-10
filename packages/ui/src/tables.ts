@@ -11,9 +11,9 @@ export type PlayerRecord = { rank: Rank; gamesPlayed: number; wins: number }
 
 /**
  * The person in a seat, as the table draws them: a name and the tag that tells two players of one name apart (null for a guest), a picture when they have one (the initials of the name otherwise), whether they opened the table, and their
- * record in the game, which their card says (null for a guest, and for an account that has not played the game ranked).
+ * record in the game, which their card says (null for a guest, and for an account that has not played the game ranked). `href` is where their profile is, which their card leads to: an account has one, a guest has none.
  */
-export type SeatedPlayer = { name: string; tag?: string | null; avatarUrl?: string | null; host?: boolean; record?: PlayerRecord | null }
+export type SeatedPlayer = { name: string; tag?: string | null; avatarUrl?: string | null; host?: boolean; record?: PlayerRecord | null; href?: string | null }
 
 /** A seat of a table: who sits in it, or `null` when it is free. */
 export type TableSeat = SeatedPlayer | null
@@ -61,7 +61,7 @@ export function fitSeats(seats: readonly TableSeat[], count: number): TableSeat[
 }
 
 /** A player of a table as the platform keeps them: the seat they took, the name they sat down with (null once they have deleted their account), its tag, their picture, whether they opened the table, and their record in the game. */
-export type SeatClaim = { seat: number; name: string | null; tag?: string | null; avatarUrl?: string | null; host?: boolean; record?: PlayerRecord | null }
+export type SeatClaim = { seat: number; name: string | null; tag?: string | null; avatarUrl?: string | null; host?: boolean; record?: PlayerRecord | null; href?: string | null }
 
 /** What a player who deleted their account is called at the tables they sat at. */
 export const DELETED_PLAYER = "Deleted player"
@@ -73,8 +73,8 @@ export const DELETED_PLAYER = "Deleted player"
 export function seatsOf(players: readonly SeatClaim[], seatsMax: number): TableSeat[] {
   const seats: TableSeat[] = Array.from({ length: Math.max(0, seatsMax) }, () => null)
   const misplaced: SeatedPlayer[] = []
-  for (const { seat, name, tag, avatarUrl, host, record } of [...players].sort((a, b) => a.seat - b.seat)) {
-    const player: SeatedPlayer = { name: name ?? DELETED_PLAYER, tag, avatarUrl, host, record }
+  for (const { seat, name, tag, avatarUrl, host, record, href } of [...players].sort((a, b) => a.seat - b.seat)) {
+    const player: SeatedPlayer = { name: name ?? DELETED_PLAYER, tag, avatarUrl, host, record, href }
     if (seats[seat] === null) seats[seat] = player
     else misplaced.push(player)
   }

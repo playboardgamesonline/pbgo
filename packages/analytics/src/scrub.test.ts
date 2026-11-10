@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { scrubCapture, scrubDeep, scrubText } from "./scrub"
+import { HANDLE_PLACEHOLDER, scrubCapture, scrubDeep, scrubText } from "./scrub"
 
 describe("scrubText", () => {
   it("replaces the code of a table, wherever the address appears", () => {
@@ -158,5 +158,35 @@ describe("scrubCapture", () => {
   it("scrubs a recording that carries no payload like any other event", () => {
     const output = scrubCapture({ event: "$snapshot", properties: { $current_url: "https://x.app/hanabi/game/ABC123" } })
     expect(output?.properties).toEqual({ $current_url: "https://x.app/hanabi/game/:code" })
+  })
+})
+
+describe("scrubText: the profile of a member", () => {
+  it("replaces the nickname and the tag in the address of a profile, wherever the address appears", () => {
+    expect(HANDLE_PLACEHOLDER).toBe(":handle")
+    expect(scrubText("https://playboardgamesonline.app/player/Alex-0042")).toBe("https://playboardgamesonline.app/player/:handle")
+    expect(scrubText("/player/Marly%20the%20Brave-0007")).toBe("/player/:handle")
+    expect(scrubText("/player/Or%C3%A9-0001?from=seat#games")).toBe("/player/:handle?from=seat#games")
+    expect(scrubText("/player/Jean-Luc-0007/")).toBe("/player/:handle/")
+    expect(scrubText("from /player/Ann-0001 to /player/Bob-0002")).toBe("from /player/:handle to /player/:handle")
+  })
+
+  it("replaces it in a link that holds it, as the recorder and the autocapture write one", () => {
+    expect(scrubText('<a href="/player/Alex-0042?from=leaderboard">Alex</a>')).toBe('<a href="/player/:handle?from=leaderboard">Alex</a>')
+    expect(scrubText("a[href='/player/Alex-0042']")).toBe("a[href='/player/:handle']")
+  })
+
+  it("leaves the other addresses as they are", () => {
+    expect(scrubText("/players")).toBe("/players")
+    expect(scrubText("/me")).toBe("/me")
+    expect(scrubText("/game/courtisans")).toBe("/game/courtisans")
+    expect(scrubText("/api/hub/profile")).toBe("/api/hub/profile")
+    expect(scrubText("Player profile")).toBe("Player profile")
+  })
+
+  it("is part of what an event is scrubbed of, in every property", () => {
+    const event = { event: "$pageview", properties: { $current_url: "https://x.app/player/Alex-0042?from=seat", $pathname: "/player/Alex-0042", $referrer: "https://x.app/player/Bob-0002" } }
+    expect(scrubCapture(event)?.properties).toEqual({ $current_url: "https://x.app/player/:handle?from=seat", $pathname: "/player/:handle", $referrer: "https://x.app/player/:handle" })
+    expect(scrubDeep({ $elements: [{ tag_name: "a", attr__href: "/player/Alex-0042?from=history" }] })).toEqual({ $elements: [{ tag_name: "a", attr__href: "/player/:handle?from=history" }] })
   })
 })

@@ -50,7 +50,14 @@ function LeaderboardLine({ row, you }: { row: LeaderboardRow; you: boolean }) {
             {row.avatarUrl && <AvatarImage src={row.avatarUrl} alt="" />}
             <AvatarFallback>{initials(row.name)}</AvatarFallback>
           </Avatar>
-          <span className={cn("truncate", !podium && !you && "text-muted-foreground")}>{row.name}</span>
+          {row.href ? (
+            // The name leads to the player's profile; it is `ph-mask`, and the link that holds it `ph-no-capture` (autocapture sends the text of a clicked link)
+            <a href={row.href} className={cn("ph-mask ph-no-capture truncate underline-offset-4 hover:text-foreground hover:underline", !podium && !you && "text-muted-foreground")}>
+              {row.name}
+            </a>
+          ) : (
+            <span className={cn("ph-mask truncate", !podium && !you && "text-muted-foreground")}>{row.name}</span>
+          )}
           {you && <Badge variant="secondary" className="hidden @sm:inline-flex">You</Badge>}
         </div>
       </TableCell>

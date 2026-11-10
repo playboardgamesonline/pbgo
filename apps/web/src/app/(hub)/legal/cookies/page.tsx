@@ -24,7 +24,7 @@ const STATISTICS: ReactNode[] = [
     player cookie (a one-way hash: the cookie&apos;s own value is never stored or sent on), so we can tell that someone came back to a game, but never a nickname or anything typed in the chat (a chat message is counted, never read).
   </>,
   <>
-    <span className={LEGAL_LEAD}>Visits.</span> The pages opened, clicks, loading times and errors are counted without any identifier kept in your browser: nothing links one page load to the next. Table codes are removed from the addresses.
+    <span className={LEGAL_LEAD}>Visits.</span> The pages opened, clicks, loading times and errors are counted without any identifier kept in your browser: nothing links one page load to the next. Table codes are removed from the addresses, and so are the names in the addresses of profiles.
   </>,
   <>
     <span className={LEGAL_LEAD}>If you accept,</span> PostHog also stores a random identifier in a cookie and in your browser&apos;s local storage (their names start with <span className="font-mono text-sm">ph_</span>). It tells us when the same browser comes back, and at a

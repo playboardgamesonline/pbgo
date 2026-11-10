@@ -47,4 +47,15 @@ export type ClientEvents = {
   rules_opened: { game: string }
   language_changed: { from: Language; to: Language }
   cookie_consent: { choice: "accepted" | "refused"; marketing: boolean }
+  /**
+   * A member's profile was opened (PLT-39): `own` is the visitor's own, `hidden` is that its games are not shown to the visitor (the member keeps them private), and `from` is where the link they followed was drawn (`?from=` of the address: a seat's card,
+   * a leaderboard, the games of another profile, the member's own account; `direct` when it says nothing). Never a nickname or a tag: the address of the page is scrubbed too (`scrub.ts`).
+   */
+  profile_viewed: { own: boolean; hidden: boolean; from: "seat" | "leaderboard" | "history" | "account" | "direct" }
+  /** A member changed their nickname, their tag, or both (PLT-39): which of them changed, never what they became. */
+  profile_updated: { nickname: boolean; tag: boolean }
+  /** A change of the nickname or the tag was refused: somebody else goes by that pair, it is not what a profile can have, or it cannot be saved yet (PLT-39). */
+  profile_update_refused: { reason: "taken" | "invalid" | "unavailable" }
+  /** A member chose to hide their games from the other players, or to show them again (PLT-39: "Hide my game history" of the privacy settings). */
+  profile_history_hidden: { hidden: boolean }
 }

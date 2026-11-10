@@ -2,7 +2,7 @@
 // e-mail or a provider leads to, and how a browser is named. Pure, so that the forms, the calls to Supabase in `./client` and the tests all read it the same way (docs/accounts.md).
 
 import { emailOf } from "./account"
-import { DISPLAY_NAME_MAX, PASSWORD_MAX_BYTES, PASSWORD_MIN, cleanDisplayName, failureKind, failureOf } from "./signup"
+import { DISPLAY_NAME_MAX, NAME_FORBIDDEN_CHARACTERS, NAME_FORBIDDEN_PROBLEM, PASSWORD_MAX_BYTES, PASSWORD_MIN, cleanDisplayName, failureKind, failureOf } from "./signup"
 
 /** The page of the settings that a member lands on when they come back from the link of an e-mail (a new address to confirm) or from a provider (a service to link): a path of this site, which `safeNext` takes. */
 export const ACCOUNT_SETTINGS_PATH = "/me/settings/account"
@@ -14,6 +14,7 @@ export function checkNickname(text: string): { ok: true; nickname: string } | { 
   const nickname = cleanDisplayName(text)
   if (nickname === "") return { ok: false, problem: "Enter a username." }
   if (Array.from(nickname).length > DISPLAY_NAME_MAX) return { ok: false, problem: `Use ${DISPLAY_NAME_MAX} characters at most.` }
+  if (NAME_FORBIDDEN_CHARACTERS.test(nickname)) return { ok: false, problem: NAME_FORBIDDEN_PROBLEM }
   return { ok: true, nickname }
 }
 

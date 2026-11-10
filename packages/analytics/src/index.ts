@@ -34,5 +34,5 @@ export {
 export type { ClientEvents, Language, Locale, ServerEvents } from "./events"
 export { cookieValue, isLocale, LOCALE_COOKIE, pickLocale } from "./locale"
 export { RESERVED_HEIGHT_VAR, reserveSpace } from "./reserve"
-export { CODE_PLACEHOLDER, scrubCapture, scrubDeep, scrubText, type Capture } from "./scrub"
+export { CODE_PLACEHOLDER, HANDLE_PLACEHOLDER, scrubCapture, scrubDeep, scrubText, type Capture } from "./scrub"
 export { BANNER_TEXTS, type BannerTexts } from "./texts"

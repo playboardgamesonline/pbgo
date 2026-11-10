@@ -21,9 +21,10 @@ const DEMO_RANKS: readonly MemberRank[] = [
 const DEMO: MemberGames = { games: DEMO_GAMES, stats: statsOf(DEMO_GAMES), perGame: perGame(DEMO_GAMES), ranks: DEMO_RANKS }
 
 /**
- * The games of this member, at most `limit` of them listed (`MEMBER_GAMES_MAX` of the reader is the most it answers): what the pages draw. The games are named as the catalog names them, by their slug where the catalog has no entry for it.
+ * The games of this member, at most `limit` of them listed (`MEMBER_GAMES_MAX` of the reader is the most it answers): what the pages draw, the member's own and, by their account's id, the profile that another member opens. The games are named as the catalog
+ * names them, by their slug where the catalog has no entry for it.
  */
-export async function memberGames(account: Account, limit: number): Promise<MemberGames> {
+export async function memberGames(account: Pick<Account, "id">, limit: number): Promise<MemberGames> {
   if (isDemoAccount(account)) return DEMO
   try {
     const [rows, totals, catalog] = await Promise.all([readMemberGames(account.id, limit), readMemberTotals(account.id), getCatalog()])

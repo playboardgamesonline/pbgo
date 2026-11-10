@@ -17,6 +17,7 @@ import { QUEUE_MODE_LABELS, queueGamesLabel } from "@pbgo/ui/queue"
 import { unreadOf, type Conversation, type Message } from "@pbgo/ui/social"
 import { cn } from "@pbgo/ui/utils"
 import { AccountMenu } from "@/components/account-menu"
+import { OwnName } from "@/components/own-name"
 import { readFolded, writeFolded } from "@/lib/folded-games"
 import { leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
 import { useCopied } from "@/lib/use-copied"
@@ -30,7 +31,7 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
  * panel while it is open, the same element changing from one to the other with a transition. Closed, the bar has the games their friends are in (`FriendsBar`, with the list of a
  * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests to answer), which opens
  * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
- * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name and
+ * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name with its tag and
  * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A press on a friend or a conversation opens the
  * chat with them (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open. While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. The demo account of development has friends, messages and requests whose
  * buttons do nothing; a real account has none until PLT-23, so its bar is the button that invites a friend, which copies the address of the sign-in, where a friend can come and sign in.
@@ -133,7 +134,7 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
                 <PresenceDot status="online" />
               </Avatar>
               <SocialDockIdentity>
-                <span className="truncate text-lg leading-tight font-strong text-foreground">{account.nickname}</span>
+                <OwnName account={account} className="text-lg leading-tight font-strong text-foreground" />
                 <span className="truncate text-xs text-muted-foreground">Online</span>
               </SocialDockIdentity>
             </button>

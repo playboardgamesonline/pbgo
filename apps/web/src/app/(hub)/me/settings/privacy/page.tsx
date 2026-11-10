@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Data & Privacy settings" }
 
 /**
  * The Data & Privacy section of the settings: what the other players see (the profile is public by default, and the member can hide their game history: PLT-16), the players they blocked (none can be yet: the list has its place and its empty state), and
- * their data: the Privacy Policy, and a copy of what is held on them, which is asked for by e-mail as the policy says. The choice to hide the history is kept in the account; what shows it to the other players is the profile pages (PLT-111).
+ * their data: the Privacy Policy, and a copy of what is held on them, which is asked for by e-mail as the policy says. The choice to hide the history is kept in the account and copied to the member's profile (PLT-39): the public profile then shows other players no games, records or ranks.
  */
 export default async function PrivacySettingsPage() {
   const account = await requireAccount("/me/settings/privacy")
@@ -27,7 +27,7 @@ export default async function PrivacySettingsPage() {
         <PreferenceRow
           name="hideHistory"
           title="Hide my game history"
-          description="The other players cannot see the games you played on your profile."
+          description="The other players cannot see your games, your records and your ranks on your profile."
           initial={account.preferences.hideHistory}
           demo={demo}
         />

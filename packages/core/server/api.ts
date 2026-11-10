@@ -28,6 +28,12 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<unknown>
   }
 }
 
+/** A request that changes an account on the strength of its cookie must come from this site: a browser says where a request comes from, and a form of another site is refused. A client that says nothing is a script, which has no cookie of ours to abuse. */
+export function assertSameOrigin(request: Request) {
+  const origin = request.headers.get("origin")
+  if (origin && origin !== new URL(request.url).origin) throw new ApiError("CROSS_ORIGIN", 403)
+}
+
 export async function readJson<T>(request: Request): Promise<T> {
   try {
     return (await request.json()) as T

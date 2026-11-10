@@ -59,6 +59,7 @@ export const ENGLISH_ONLY_TEXTS = {
   lostWith: "{names} lost the game with {points} points.",
   addFriend: "Add friend",
   reportPlayer: "Report",
+  viewProfile: "View profile",
   guest: "Guest",
 } as const
 
@@ -182,6 +183,7 @@ export const UI_TEXTS = [
   { key: "history", group: "game", title: "Ticker: history toggle (small screens)", fr: "Historique" },
   { key: "addFriend", group: "game", title: "Players list: the card of a player, the button that asks them to be a friend", fr: ENGLISH_ONLY_TEXTS.addFriend },
   { key: "reportPlayer", group: "game", title: "Players list: the card of a player, the button that reports them", fr: ENGLISH_ONLY_TEXTS.reportPlayer },
+  { key: "viewProfile", group: "game", title: "Players list: the card of a player, the button that leads to their profile (opens in another tab, so that the game is not left)", fr: ENGLISH_ONLY_TEXTS.viewProfile },
   { key: "guest", group: "game", title: "Menu of the picture: what a visitor who is not signed in is called", fr: ENGLISH_ONLY_TEXTS.guest },
 ] as const
 
