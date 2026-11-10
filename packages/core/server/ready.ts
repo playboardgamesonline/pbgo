@@ -2,8 +2,9 @@ import type { LogWrite } from "./game-log"
 import type { GameRow } from "./games"
 
 /**
- * The ready check (PLT-107). When the host starts a table it is `starting`: everybody seated comes to its board, which loads behind the platform's start screen, and a player is ready when their board is. When all of them are, the
- * game is `playing`; whoever is not ready when the time is up is unseated and the table goes back to the lobby for the others. This file is the rules of it, pure and tested; the routes write what it says.
+ * The ready check (PLT-107). When the host starts a table, or when it fills (`beginTable`), it is `starting`: everybody seated comes to its board, which loads behind the platform's start screen, and a player is ready when they have pressed the
+ * button of that screen, "I'm here", and their board is loaded: nobody is ready by default, the host and the last to sit down included. When all of them are, the game is `playing`; whoever is not ready when the time is up is unseated and the table goes
+ * back to the lobby for the others. This file is the rules of it, pure and tested; the routes write what it says.
  *
  * While `starting` the row already holds the game's `state`, set up when the host started it: a board is drawn from a view of it, and a board needs one to be loaded behind the start screen. Going back to the lobby drops it,
  * and the next start sets the game up again with whoever is seated then.
@@ -47,7 +48,7 @@ export function startingPatch(started: Pick<GameRow, "state" | "replay" | "takeo
 }
 
 /**
- * What a player's "I'm ready" writes (their board sends it by itself once it is loaded): the time they said it, and, when they are the last, the beginning of the game. Null when it changes nothing: the table is not in a ready check, the
+ * What a player's "I'm ready" writes (their board sends it once the player pressed "I'm here" and the board is loaded): the time they said it, and, when they are the last, the beginning of the game. Null when it changes nothing: the table is not in a ready check, the
  * player is not at it, or they said it already.
  */
 export function readyPatch(row: Check, playerId: string, now: number): Partial<GameRow> | null {

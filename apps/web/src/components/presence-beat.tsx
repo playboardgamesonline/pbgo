@@ -12,9 +12,10 @@ import { enterBoard } from "@/lib/table-door"
  * comes back into view (`startBeating`). The players online count the member for two minutes after the last beat (`POST /api/hub/presence`). It draws nothing, asks no one, keeps nothing on the device and never makes a page
  * dynamic: the browser reads the session, as the navbar does. A beat that fails is tried again later and later. A guest beats nothing: a guest is online when they sit at a table.
  *
- * The answer to a beat also says where the member should be (PLT-120): a member who is playing, or whose table is in its ready check, is taken to its board from any page of the hub (`takenToGame`: the legal pages, which have to be
- * readable, are the exception), in place of the page they were on. The beat is the safety net of that rule and its only carrier for a member who is not looking at their table: it comes every 15 s while they have a lobby or a
- * ready check, since a ready check lasts a minute. A member seated at nothing that has begun is not taken anywhere.
+ * The answer to a beat also says where the member should be (PLT-120): a member whose table is in its ready check is taken to its board from any page of the hub but the legal ones, which have to be readable, so that nobody misses the
+ * confirmation they owe the others; a member whose game is being played is taken there from the same pages, a player's profile and their own pages (`/me`, `/player/…`) left out, which they may look at while they play
+ * (`takenToGame`, by the status the answer gives). They are taken in place of the page they were on. The beat is the safety net of that rule and its only carrier for a member who is not looking at their table: it comes every 15 s while they have
+ * a lobby or a ready check, since a ready check lasts a minute. A member seated at nothing that has begun is not taken anywhere.
  */
 export function PresenceBeat() {
   const state = useAccount()
@@ -35,7 +36,7 @@ export function PresenceBeat() {
         const response = await fetch(PRESENCE_PATH, { method: "POST", cache: "no-store", keepalive: true })
         if (!response.ok) return false
         const { table, watching } = readBeatAnswer(await response.json().catch(() => null))
-        if (table && takenToGame(page.current)) enterBoard(router, table.game, table.code, { replace: true })
+        if (table && takenToGame(page.current, table.status)) enterBoard(router, table.game, table.code, { replace: true })
         return watching ? "soon" : true
       },
       visible: () => document.visibilityState === "visible",

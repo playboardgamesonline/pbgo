@@ -45,8 +45,14 @@ describe("POST /api/hub/presence", () => {
       { game: "courtisans", code: "ABC234", status: "playing" },
     ]
     const response = await POST(request())
-    expect(await response.json()).toEqual({ ok: true, table: { game: "courtisans", code: "ABC234" }, watching: true })
+    expect(await response.json()).toEqual({ ok: true, table: { game: "courtisans", code: "ABC234", status: "playing" }, watching: true })
     expect(mocks.readMemberTables).toHaveBeenCalledWith("0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11")
+  })
+
+  it("says that a table is in its ready check, which takes the member from more pages than a game that is being played", async () => {
+    mocks.account = { id: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11" }
+    mocks.tables = [{ game: "courtisans", code: "ABC234", status: "starting" }]
+    expect(await (await POST(request())).json()).toEqual({ ok: true, table: { game: "courtisans", code: "ABC234", status: "starting" }, watching: true })
   })
 
   it("has no table to take a member to while they only wait in lobbies, and asks for a closer look", async () => {

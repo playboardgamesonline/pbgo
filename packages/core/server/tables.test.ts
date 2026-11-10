@@ -72,6 +72,11 @@ describe("the table a member is taken to", () => {
     expect(activeTable([])).toBeNull()
   })
 
+  it("keeps what the table is at, which decides from which pages the member is taken to it", () => {
+    expect(activeTable([table("AAA111", "lobby"), table("BBB222", "playing")])?.status).toBe("playing")
+    expect(activeTable([table("AAA111", "starting")])?.status).toBe("starting")
+  })
+
   it("asks for a closer look when a table may begin any moment", () => {
     expect(hasTableToWatch([table("AAA111", "lobby")])).toBe(true)
     expect(hasTableToWatch([table("AAA111", "starting")])).toBe(true)
