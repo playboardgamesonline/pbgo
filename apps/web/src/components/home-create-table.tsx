@@ -11,9 +11,9 @@ import { creationSettings, OPEN_TO_ANYONE, type AccessChoice } from "@pbgo/core/
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { LobbyAccess, type LanguageOption } from "@pbgo/ui/platform/lobby-access"
-import { LobbyPlayers } from "@pbgo/ui/platform/lobby-players"
 import { LobbySettings, type ExpansionOption, type HelperOption, type LobbySettingsValue } from "@pbgo/ui/platform/lobby-settings"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
+import { SeatPicker } from "@pbgo/ui/platform/seat-picker"
 import type { Pace } from "@pbgo/ui/tables"
 import { cn } from "@pbgo/ui/utils"
 import { useAgeGate } from "./age-gate"
@@ -30,12 +30,12 @@ export type CreatableGame = {
 
 /**
  * Create a table, on the signed-in home, the smaller of the two cards that open the play zone (a third of the row from `xl`, two fifths from `lg`): the way to play with friends, which is a game's lobby set up before it exists. It has, in this order, the game to play, how fast
- * it is played and how many may play (`LobbyPlayers`, which waits for the game: its numbers are the game's), and, once a game is chosen, what that game offers (`LobbySettings`: its expansions and its helpers), which come with the game: another game has its own, so they start again.
+ * it is played and how many may play (`SeatPicker`: the member in the first seat and a seat with a plus for each friend the table has room for, which sets the number of players when it is pressed; its seats are the game's), and, once a game is chosen, what that game offers (`LobbySettings`: its expansions and its helpers), which come with the game: another game has its own, so they start again.
  * Who may join is the button at the top right, as in the lobby of a game's page (`LobbyAccess`). The one button opens the table with the game's own route (`POST /api/<slug>/games`, which sits the member down as their account) and takes them to its page
  * (`/game/<slug>/<code>`), where they share its link. Who may join, the speed and the number of players go with the table when it is opened (`creationSettings`, PLT-21, as `TableCreator` does), and the choices of the settings whose id is one of the engine's
  * options are sent right after the table exists (`engineOptionsOf`). The games are the ones that can be played. With none, the button says it is coming.
  */
-export function HomeCreateTable({ games, languages, className }: { games: readonly CreatableGame[]; languages: readonly LanguageOption[]; className?: string }) {
+export function HomeCreateTable({ games, languages, host, className }: { games: readonly CreatableGame[]; languages: readonly LanguageOption[]; host: { name: string; avatarUrl?: string | null }; className?: string }) {
   const router = useRouter()
   const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
   const [slug, setSlug] = useState("")
@@ -105,7 +105,7 @@ export function HomeCreateTable({ games, languages, className }: { games: readon
             pace={pace}
             expansions={game?.expansions}
             helpers={game?.helpers}
-            afterSpeed={<LobbyPlayers range={game?.range} pending defaultCount={game?.range.max} onCountChange={setSeats} />}
+            afterSpeed={<SeatPicker host={host} range={game?.range} count={seats ?? game?.range.max ?? 0} onCountChange={setSeats} disabled={opening} />}
             editable
             onChange={(value) => {
               setSettings(value)
