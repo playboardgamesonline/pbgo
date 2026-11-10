@@ -10,10 +10,10 @@ import { QueueButton } from "@pbgo/ui/platform/queue"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { QUEUE_MODE_LABELS, QUEUE_MODES, type QueueMode } from "@pbgo/ui/queue"
 import { cn } from "@pbgo/ui/utils"
-import { joinQueue, leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
+import { leaveQueue, startSearch, useQueue, useQueueSeconds } from "@/lib/matchmaking"
 import { useAgeGate } from "./age-gate"
 
-/** A game that a search can look for, one that can be played now, with the picture its tile draws (`gamePicture`). `refusal` is what the member has to do before they may play it when it asks for an age (PLT-125): the queue lives in the browser with no server to refuse them, so the search asks first. */
+/** A game that a search can look for, one that can be played now, with the picture its tile draws (`gamePicture`). `refusal` is what the member has to do before they may play it when it asks for an age (PLT-125): the search asks first for the date of birth, which the games for adults need. */
 export type FindableGame = { slug: string; name: string; picture?: string; logo?: string; refusal?: AgeRefusal | null }
 
 /** What each kind of table is, in a line: ranked is the one that counts for the rank and has no helpers (PLT-21), the other is for playing. */
@@ -42,14 +42,14 @@ function Group({ title, aside, children }: { title: string; aside?: string; chil
  * Find a game, on the signed-in home, the larger of the two cards that open the play zone (two thirds of the row from `xl`, three fifths from `lg`, on a surface a step lighter than the other containers, `--card-bar`, which is what is read first): look for a table
  * among the games the visitor picks, against players they do not know (PLT-21). The games are tiles to press (`GamePick`), all picked to begin with; under them the kind of table, ranked or normal, two options to choose between, the ranked one
  * with its rank and no helpers said in a line; at the foot, a small button with a play icon starts the search, "Play ranked" or "Play normal" (`QueueButton`). A search is the platform's one queue (`lib/matchmaking.ts`, which the social panel shows
- * too): it counts on the button, with a cross that stops it, and the card shows the search that is on, whichever page began it, its games and its kind of table, and cannot be changed until it is stopped. Nothing is found for the visitor yet:
- * the counter runs until they stop it.
+ * too): a press sits the member at a table of each game they picked, and the table that fills first begins by itself. It counts on the button, with a cross that stops it, and the card shows the search that is on, whichever page began it, its games and its kind of table,
+ * and cannot be changed until it is stopped.
  */
 export function HomeFindGame({ games, className }: { games: readonly FindableGame[]; className?: string }) {
   const [picked, setPicked] = useState<readonly string[]>(() => games.map((game) => game.slug))
   const [mode, setMode] = useState<QueueMode>("ranked")
   const queue = useQueue()
-  const { demand, dialog: ageDialog } = useAgeGate()
+  const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
   const seconds = useQueueSeconds(queue)
   const searching = queue !== null
   // What the card shows is the search when there is one, else what the visitor has set up so far
@@ -112,7 +112,11 @@ export function HomeFindGame({ games, className }: { games: readonly FindableGam
           onSearch={async () => {
             // A game for adults needs the member's date of birth before the search begins
             if (asked.some((game) => game.refusal === "date") && !(await demand("date"))) return
-            joinQueue(asked, mode)
+            try {
+              await guard(() => startSearch(asked, mode))
+            } catch (error) {
+              fail(error)
+            }
           }}
           onCancel={leaveQueue}
         >

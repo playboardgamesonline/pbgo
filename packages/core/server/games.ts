@@ -88,7 +88,7 @@ export async function findPlayerGame(game: GameRef, playerId: string, now = Date
 
 /**
  * Opens a table. `ranked` opens it to count for the ratings (`games.ranked`, migration 0006): the games it plays are written down as ranked when every seat is a different account, and counted for the ratings of those who played
- * their own moves. Nothing opens one yet; the matchmaking of PLT-21 will. The column is only written for a ranked table, so that a normal one is created as it always was, and a project where the migration is not applied yet keeps opening tables.
+ * their own moves. A ranked search opens them (`server/quick-play.ts`). The column is only written for a ranked table, so that a normal one is created as it always was, and a project where the migration is not applied yet keeps opening tables.
  * `settings` are the host's choices at the top of the lobby (`TableSettings`, migration 0014: who may join, the speed, the seats), written with the table so that it is public from the first moment it is listed. They are kept to what was set, and a project
  * where the migration is not applied yet opens the table without them (a private table, as every table was) instead of refusing to open one.
  */

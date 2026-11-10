@@ -44,6 +44,8 @@ export const RATE_LIMITS = {
   feedback: { limit: 3, windowMs: 10_000 },
   /** The beat of a signed-in member who has the site open, about every 45 s (`PresenceBeat`): per IP, since the route belongs to no game; room for a few members behind one address */
   presence: { limit: 30, windowMs: 60_000, by: "ip" },
+  /** The search of a visitor who presses Play (`POST /api/hub/play`, and `…/cancel`): the press, then a call every few seconds while it lasts, so per IP (the route belongs to no game) with room for a few members behind one address. Opening a table is limited as `create` is */
+  play: { limit: 60, windowMs: 60_000, by: "ip" },
   /** The deletion of an account (PLT-36): closing it (the e-mail with the link goes first), then, from that link, reopening it or deleting it now. Per IP, since the route belongs to no game. A person does each of these once or twice; the e-mail costs a send */
   accountDeletion: { limit: 10, windowMs: 60 * 60_000, by: "ip" },
   /** The way back from an external provider's sign-in (Steam: `/auth/steam/callback`): it asks the provider, reads and writes the database and makes a member, so per IP, whatever the cookies; a human signs in once, a script is stopped */

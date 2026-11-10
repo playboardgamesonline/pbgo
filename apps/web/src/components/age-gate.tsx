@@ -154,7 +154,7 @@ export function useAgeGate() {
   const askDate = useCallback(() => new Promise<boolean>((resolve) => setAsking(() => resolve)), [])
 
   const fail = useCallback((error: unknown) => {
-    if (error instanceof ApiClientError && error.code === "AGE_SIGN_IN_REQUIRED") {
+    if (error instanceof ApiClientError && (error.code === "AGE_SIGN_IN_REQUIRED" || error.code === "RANKED_MEMBERS_ONLY")) {
       toast.error(error.message, { action: { label: "Sign in", onClick: () => window.location.assign(loginHref()) } })
       return
     }

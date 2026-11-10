@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest"
-import { ASKABLE_TIERS, asksSomething, checkTableSettings, creationSettings, effectiveSettings, OPEN_TO_ANYONE, parseTableSettings, tierOf, unmetCriteria, UNMET_CODES, type TableSettings, type TableSettingsInput, type Viewer } from "./table-settings"
+import {
+  ASKABLE_TIERS,
+  asksSomething,
+  checkTableSettings,
+  creationSettings,
+  defaultSeats,
+  effectiveSettings,
+  isLocked,
+  modeOf,
+  OPEN_TO_ANYONE,
+  parseTableSettings,
+  RANK_GAP_BASE,
+  RANK_GAP_STEP_MS,
+  rankGap,
+  tierOf,
+  unmetCriteria,
+  UNMET_CODES,
+  withinRankGap,
+  type TableSettings,
+  type TableSettingsInput,
+  type Viewer,
+} from "./table-settings"
 
 const limits = { min: 2, max: 5, seated: 1 }
 const input = (over: Partial<Record<keyof TableSettingsInput, unknown>> = {}) => ({ visibility: "public", minRank: null, language: null, pace: "normal", seats: 4, ...over })
@@ -115,7 +136,86 @@ describe("unmetCriteria", () => {
 
   it("says the rank first when both are missing, and each has its code", () => {
     expect(unmetCriteria(table({ minRank: "Gold", language: "fr" }), viewer({ tier: "Bronze", language: "en" }))).toBe("rank")
-    expect(UNMET_CODES).toEqual({ rank: "RANK_TOO_LOW", language: "LANGUAGE_MISMATCH" })
+    expect(UNMET_CODES).toEqual({ rank: "RANK_TOO_LOW", language: "LANGUAGE_MISMATCH", gap: "RANK_GAP" })
+  })
+
+  it("keeps a ranked table to the tiers near the one it opened at, more of them the longer it has waited", () => {
+    const ranked = table({ ranked: true, anchor: "Gold" })
+    expect(unmetCriteria(ranked, viewer({ tier: "Gold" }))).toBeNull()
+    expect(unmetCriteria(ranked, viewer({ tier: "Silver" }))).toBeNull()
+    expect(unmetCriteria(ranked, viewer({ tier: "Platinum" }))).toBeNull()
+    expect(unmetCriteria(ranked, viewer({ tier: "Bronze" }))).toBe("gap")
+    expect(unmetCriteria(ranked, viewer({ tier: "Diamond" }))).toBe("gap")
+    // Thirty seconds later it takes one more tier on each side, and in the end anybody
+    expect(unmetCriteria(ranked, viewer({ tier: "Bronze" }), RANK_GAP_STEP_MS)).toBeNull()
+    expect(unmetCriteria(ranked, viewer({ tier: "Apprentice" }), RANK_GAP_STEP_MS)).toBe("gap")
+    expect(unmetCriteria(ranked, viewer({ tier: "Apprentice" }), 8 * RANK_GAP_STEP_MS)).toBeNull()
+    expect(unmetCriteria(ranked, viewer({ tier: "Legend" }), 8 * RANK_GAP_STEP_MS)).toBeNull()
+  })
+
+  it("asks no gap of a table that is not ranked, nor of a ranked one that kept no tier", () => {
+    expect(unmetCriteria(table({ anchor: "Gold" }), viewer({ tier: "Apprentice" }))).toBeNull()
+    expect(unmetCriteria(table({ ranked: true }), viewer({ tier: "Apprentice" }))).toBeNull()
+  })
+})
+
+describe("the rank gap", () => {
+  it("is one tier at first and one more for each step of waiting", () => {
+    expect(rankGap(0)).toBe(RANK_GAP_BASE)
+    expect(rankGap(RANK_GAP_STEP_MS - 1)).toBe(RANK_GAP_BASE)
+    expect(rankGap(RANK_GAP_STEP_MS)).toBe(RANK_GAP_BASE + 1)
+    expect(rankGap(3 * RANK_GAP_STEP_MS + 5)).toBe(RANK_GAP_BASE + 3)
+  })
+
+  it("never goes under the first gap, whatever the clock says", () => {
+    for (const waited of [-1, -RANK_GAP_STEP_MS, Number.NaN, Number.POSITIVE_INFINITY * 0]) expect(rankGap(waited)).toBe(RANK_GAP_BASE)
+  })
+
+  it("is measured in tiers between two players, in either direction", () => {
+    expect(withinRankGap("Gold", "Silver", 0)).toBe(true)
+    expect(withinRankGap("Silver", "Gold", 0)).toBe(true)
+    expect(withinRankGap("Gold", "Apprentice", 0)).toBe(false)
+    expect(withinRankGap("Apprentice", "Gold", 2 * RANK_GAP_STEP_MS)).toBe(true)
+  })
+})
+
+describe("a ranked table", () => {
+  it("is read back from what it kept: it is ranked, and has the tier it opened at", () => {
+    expect(parseTableSettings({ visibility: "public", ranked: true, anchor: "Gold", seats: 3 })).toEqual({ visibility: "public", ranked: true, anchor: "Gold", seats: 3 })
+  })
+
+  it("keeps nothing that is not a ranked table's: only `true` says ranked, and the tier is one of ours", () => {
+    expect(parseTableSettings({ ranked: false, anchor: "Mythic" })).toEqual({})
+    expect(parseTableSettings({ ranked: "yes", anchor: 3 })).toEqual({})
+    // The lowest tier is a tier a table opens at, though no table asks for it
+    expect(parseTableSettings({ ranked: true, anchor: "Apprentice" })).toEqual({ ranked: true, anchor: "Apprentice" })
+  })
+
+  it("counts as ranked and is fixed; every other table counts as normal and may be changed", () => {
+    expect([modeOf({ ranked: true }), isLocked({ ranked: true })]).toEqual(["ranked", true])
+    expect([modeOf({}), isLocked({})]).toEqual(["normal", false])
+    expect([modeOf({ ranked: false }), isLocked({ ranked: false })]).toEqual(["normal", false])
+  })
+
+  it("asks something of whoever sits, since it looks at their tier", () => {
+    expect(asksSomething({ visibility: "public", ranked: true })).toBe(true)
+    expect(asksSomething({ visibility: "public" })).toBe(false)
+  })
+})
+
+describe("defaultSeats", () => {
+  it("is the value between the game's least and most players", () => {
+    expect(defaultSeats(2, 4)).toBe(3)
+    expect(defaultSeats(2, 6)).toBe(4)
+    expect(defaultSeats(3, 5)).toBe(4)
+    expect(defaultSeats(1, 8)).toBe(4)
+  })
+
+  it("is the lower one when there is none in the middle, and the only one for a game that takes one count", () => {
+    expect(defaultSeats(2, 3)).toBe(2)
+    expect(defaultSeats(2, 5)).toBe(3)
+    expect(defaultSeats(2, 2)).toBe(2)
+    expect(defaultSeats(4, 4)).toBe(4)
   })
 })
 

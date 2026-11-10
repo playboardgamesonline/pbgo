@@ -7,6 +7,7 @@ import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
+import { QUEUE_MODE_LABELS } from "@pbgo/ui/queue"
 import { ageOf, hostOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import { categoryIcon } from "./category-icons"
 import { perTimeFormat } from "./time-format"
@@ -91,13 +92,18 @@ export function unmetOfTable(table: Pick<GameTable, "visibility" | "minRank" | "
 
 /** What the button of a table says when the visitor does not meet what it asks: the rank or the language, in the words of its tags. */
 function unmetLabel(table: Pick<GameTable, "minRank" | "language">, unmet: Unmet): string {
-  return unmet === "rank" ? `Requires ${table.minRank} and above` : `Requires ${languageName(table.language ?? "")}`
+  if (unmet === "rank") return `Requires ${table.minRank} and above`
+  if (unmet === "gap") return "Too far from this table's rank"
+  return `Requires ${languageName(table.language ?? "")}`
 }
 
-/** The facts of a table worth saying before sitting down: the pace when it is not the usual one, then the expansions it is played with (every table counts for the leaderboard, so that is not said), then what it asks of its players. */
+/** How a table counts, in the word the screens use for it: "Ranked" for a table played for the rank, "Normal" for any other. */
+export const modeOfTable = (table: Pick<GameTable, "ranked">): string => QUEUE_MODE_LABELS[table.ranked ? "ranked" : "normal"]
+
+/** The facts of a table worth saying before sitting down: how it counts, "Normal" or "Ranked", then the pace when it is not the usual one, then the expansions it is played with, then what it asks of its players. */
 function factsOf(table: GameTable, expansions: readonly Expansion[]): string[] {
   const names = table.expansions.flatMap((id) => expansions.find((expansion) => expansion.id === id)?.name ?? [])
-  return [PACE[table.turnTimer], ...names, ...criteriaOf(table)].filter((fact) => fact !== undefined)
+  return [modeOfTable(table), PACE[table.turnTimer], ...names, ...criteriaOf(table)].filter((fact) => fact !== undefined)
 }
 
 /** The name of a table: its host's, or its code when the host has deleted their account. */
@@ -196,7 +202,7 @@ export function tableDetailProps(
     // Who may join a lobby and how many players it has are for its host to set, at the top of the panel and above the seats: every other table is read, and says what a public one asks as tags under its seats
     ...(editable
       ? { access: { defaultVisibility: table.visibility, defaultMinRank: table.minRank ?? null, defaultLanguage: table.language ?? null, languages: LANGUAGE_OPTIONS }, playerRange: playerRange(players.min, players.max) }
-      : { criteria: criteriaOf(table) }),
+      : { criteria: [modeOfTable(table), ...criteriaOf(table)] }),
     action: mine
       ? state === "playing"
         ? { label: "Rejoin your game", href }

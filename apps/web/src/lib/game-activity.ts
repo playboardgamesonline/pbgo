@@ -64,6 +64,8 @@ export type GameTable = {
   minRank?: Tier | null
   /** The language its players are asked to speak, by the code the lobby offers (`LANGUAGE_OPTIONS`), none when it asks for nothing. */
   language?: PlatformLanguage | null
+  /** The table counts for the rank (`games.settings`): a ranked search opened it, and nothing in it changes. Every other table is a normal one. */
+  ranked?: boolean
   /** `tables.host_player_id`: who opened it; null once they have deleted their account. */
   hostId: string | null
   /** `tables.seats_max`: how many seats it has, 1 to 10. */
@@ -248,6 +250,7 @@ function tableOfRow(row: Pick<GameRow, "code" | "host_id" | "status" | "players"
     visibility: settings.visibility ?? "private",
     minRank: settings.minRank ?? null,
     language: settings.language ?? null,
+    ranked: settings.ranked === true,
     hostId: row.host_id,
     // Never fewer seats than people: the game's own limit is enforced by its routes. A host may have set fewer than the game takes
     seatsMax: Math.max(settings.seats === undefined ? seatsMax : Math.min(settings.seats, seatsMax), seated.length),

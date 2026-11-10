@@ -9,13 +9,13 @@ import { categoryIcon } from "@/lib/category-icons"
 import type { GamePage } from "@/lib/game-page"
 import { GameCredits } from "./game-credits"
 import { CREATE_ANCHOR } from "./game-play"
-import { PlayRankedButton } from "./play-ranked-button"
+import { PlayButton } from "./play-button"
 import { RulesButton } from "./rules-button"
 
 // The head of a game's page, the first thing a visitor sees: the game's own background across the whole width of the page, from the very top (the navbar is over it), the art fading into the page under the text, from the left, where the text is, and at the foot, where the page goes on
 // (the one place where game art is dimmed: a logo is otherwise drawn straight on its background). On it, in a column at the left as tall as the head, which is 92% of the screen, and 80% of it from `lg` (less the room that the cookie banner takes, `--consent-h`, so that the buttons at its foot are not under it, and taller when its text needs more), everything at its foot, with the room that keeps the top of the next section showing under the head (the way back to the games' list is the navbar's from `sm`, an island at the left of its main block; on a phone, where the bar has no room for it, a text link "Back" is at the top of the column, kept 4rem from the rest): the game's logo in place of its name (the name, written, for a game
-// that has no logo; either way the heading reads "Play <name> Online" to a screen reader and to a search engine, `playTitle`), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three main
-// buttons, all 48px high, "Play ranked", with a play icon, which puts the visitor in a queue and becomes a counter with a cross while it lasts (`PlayRankedButton`); "Create a table", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
+// that has no logo; either way the heading reads "Play <name> Online" to a screen reader and to a search engine, `playTitle`), the figures of the game on one line (the players, how long, how complex, from what age, after "Coming soon" for a game that is not live), under them the description, then the categories as chips that lead to the games' list showing that category, and, last, a row of controls: the three
+// controls, all 48px high, "Play", with a play icon and an arrow, which unrolls Normal and Ranked and sits the visitor at a table of the game in the kind picked, and becomes a counter with a cross while the search lasts (`PlayButton`); "Create a table", in outline, which leads to the space under the head that opens a lobby (`CREATE_ANCHOR`, set by `GamePlay`); and, as a picto, the rules (`RulesButton`: a link
 // to the rulebook, or a menu of languages that a press opens). What the signed-in visitor has done in the game is not in the head: it is the cards under it, the first section of the page (`GamePlayerBar`).
 // Under the buttons come the credits of the game, quiet (`GameCredits`). A game that is not live has the first two buttons disabled and keeps the rules.
 // Nothing stands in for what is missing: a game with no background has a plain head.
@@ -39,7 +39,7 @@ const FADE_FROM_LEFT = easedFade("to right", 0.35, 0.65)
 const FADE_FROM_FOOT = easedFade("to top", 1, 0.8)
 
 export type GameHeadProps = Pick<GamePage, "slug" | "name" | "live" | "description" | "players" | "duration" | "complexity" | "age" | "categories" | "rulebooks" | "hero" | "facts" | "bgg" | "shop"> & {
-  /** What the visitor has to do before they may play this game, when it asks for an age (PLT-125): the queue of "Play ranked" has no server to refuse them, so its button asks first. None: they may. */
+  /** What the visitor has to do before they may play this game, when it asks for an age (PLT-125): the buttons that look for a table ask first, so that a member is asked for their date of birth before the search begins. None: they may. */
   ageRefusal?: AgeRefusal | null
 }
 
@@ -130,7 +130,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <PlayRankedButton slug={slug} name={name} disabled={!live} refusal={ageRefusal} />
+            <PlayButton slug={slug} name={name} disabled={!live} refusal={ageRefusal} />
             {live ? (
               <Button variant="outline" size="xl" asChild>
                 <a href={`#${CREATE_ANCHOR}`}>

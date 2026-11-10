@@ -38,6 +38,12 @@ export type ServerEvents = {
   turn_auto_played: { game: string; reason: "takeover" }
   /** Never the text, never the reaction. */
   chat_message_sent: { game: string; kind: "text" | "reaction" }
+  /** A visitor pressed Play: the slugs of the games they look for and how the table counts. */
+  quick_play_started: { mode: "normal" | "ranked"; games: string[] }
+  /** A search found its table, which has begun: `how` says whether the visitor sat at a lobby that was open or opened it, `wait_s` how long they waited. */
+  quick_play_matched: { game: string; mode: "normal" | "ranked"; how: "joined" | "opened"; wait_s: number; players: number }
+  /** A visitor stopped looking: the slugs of the games they looked for, and how long they had waited when it is known. */
+  quick_play_cancelled: { mode: "normal" | "ranked"; games: string[]; wait_s?: number }
 }
 
 /** Events sent by the browser, on top of the pageviews, clicks, web vitals and exceptions PostHog captures by itself. */

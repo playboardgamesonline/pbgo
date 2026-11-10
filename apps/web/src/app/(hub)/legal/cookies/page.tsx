@@ -109,7 +109,7 @@ export default function CookiePolicy() {
             },
             {
               name: "pbgo:queue",
-              text: "Session storage. The games you asked to look for a table of, whether you want a ranked or a normal one, and since when, so that reloading the page does not lose your place. It goes when you close the tab.",
+              text: "Session storage. The games you asked to look for a table of, whether you want a ranked or a normal one, since when, and the tables the search sat you at (the game, the table's code and how many are seated), so that reloading the page does not lose your search. It goes when you close the tab.",
             },
           ]}
         />
