@@ -11,9 +11,9 @@ import { BggButton } from "./bgg-button"
 // several, and Released) are not drawn: a screen reader still has them, before each term, and does not read the dots. At the end of the line come the buttons that belong to them, as small and as quiet: a link to buy the game in a shop, there only when the Studio has a shop's page for the game, and BoardGameGeek's icon, a small button that
 // leads to the game's page there (`BggButton`: its icon and "Powered by BGG", the credit BoardGameGeek asks for the figures it gives the catalog), there only when the Studio has the game's id. A publisher is a link to its website, with the icon of that site before its name, the two being one link. Nothing is drawn when the Studio has none of it: nothing stands in for what is missing.
 
-export type GameCreditsProps = Pick<GamePage, "facts" | "bgg" | "shop"> & { className?: string }
+export type GameCreditsProps = Pick<GamePage, "facts" | "bgg" | "shop"> & { slug: string; className?: string }
 
-export function GameCredits({ facts, bgg, shop, className }: GameCreditsProps) {
+export function GameCredits({ slug, facts, bgg, shop, className }: GameCreditsProps) {
   if (facts.length === 0 && !bgg && !shop) return null
 
   return (
@@ -48,7 +48,7 @@ export function GameCredits({ facts, bgg, shop, className }: GameCreditsProps) {
         <div className="flex items-center gap-2">
           {shop && (
             <Button variant="ghost" size="sm" className="text-muted-foreground/60 hover:text-foreground" asChild>
-              <a href={shop} target="_blank" rel="noopener noreferrer">
+              <a href={shop} target="_blank" rel="noopener noreferrer" data-cta="buy" data-cta-game={slug}>
                 <HugeiconsIcon icon={ShoppingBag01Icon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
                 Buy the game
                 <HugeiconsIcon icon={ArrowUpRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />

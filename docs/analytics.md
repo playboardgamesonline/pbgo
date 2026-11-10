@@ -13,3 +13,50 @@ Optional: without `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` nothi
 - Recordings mask every input; the chat is `ph-no-capture`, and so are the QR code and the setup key of multi-factor authentication (PLT-129), while the digits of a one-time code (`InputOTP` of the platform: the sign-up's and the second step's) are `ph-mask`, since the slots draw them as text, which the masking of inputs does not reach; nicknames printed by core are `ph-mask` (the tables draw theirs in a canvas, which is not recorded), and so are those of the hub's table components of `@pbgo/ui` (the seats of a lobby and of a row, the host's name, the card of a player, and the hidden title and description of a lobby, which name the host and spell the table's code; PLT-106). A game that prints a nickname in its own DOM adds `ph-mask` there, and `ph-no-capture` as well when it sits inside a button or a link: autocapture sends the text of a clicked `a` / `button` (`$el_text`), nested text included. Never set `maskTextFn` in `options.ts`: it replaces the stars of every masked node and would show the nicknames
 - Table codes (`/<slug>/game/<CODE>`, `/game/<slug>/<CODE>` on the hub, `/api/<slug>/games/<CODE>/…`, and `Table #XXX-XXX` of the tab title) are scrubbed by `scrub.ts`: from every property of an event (`before_send`), from the page address, the links and the network timings of a replay (`maskCapturedNetworkRequestFn`, `maskAttributeFn`), and the `<title>` is masked in the replay (`maskTextSelector: "title"`). The code field is `ph-mask` too. A new place that prints the code needs the same care. The address of a profile (`/player/<nickname>-<tag>`, PLT-39) holds a name and a tag. It is scrubbed to `/player/:handle` (`HANDLE_PLACEHOLDER`; `?from=` stays) from page addresses, links and event properties. The title of the page is "Player profile", never the name. Nicknames on a profile are `ph-mask`, and links that hold one are `ph-no-capture`. The pattern is any six letters or digits after `/game/` or `/games/`, so the hub's `/game/<slug>` of a six-letter slug (`/game/hanabi`) is reported as `/game/:code`: a slug is public, so nothing leaks, that page is just less precise in the reports. The client's masking options win over the project's "Privacy and masking" settings: leave the project's text and block selectors empty. The recorder compresses its larger chunks (gzip), so check a replay after gunzipping it, never by searching the raw upload
 - Not in the repo, set in the PostHog project `pbgo` (EU cloud): recording enabled for the domain, exception autocapture, web vitals, IP anonymisation, the internal/test-account filter, authorised URLs
+
+## Events and the question each answers
+Three kinds of identity, by design. No event ever carries an account id, an address or a name.
+- **A player id** (`trackAfter`): the table's events. The same device is the same id in one game (`identity_stable: false`).
+- **No id** (`trackAnonymously`): what no player carries. A new random id is made for each event and used once, so two events are never tied together. Account steps, feedback, deleted tables, refusals.
+- **The browser's id** (`trackClient`): none that outlives the page before the answer to the banner, a stored one after "Accept all", tied to the player id at a table. These events leave before the answer too, anonymous like the page views.
+
+Every property is a boolean, a count or a word of a closed list; `game` is a slug, and `options` are the table's own options. `events.test.ts` checks it for each event: a new event needs a fixture there, and a property of free text does not compile.
+
+| Event | From | Properties | Question |
+| --- | --- | --- | --- |
+| `game_created` | server, player id | game, options, max_players, locale | How many tables are opened, with which options? |
+| `player_joined` | server, player id | game, seat, players | How full do tables get? |
+| `game_started` | server, player id | game, players, options | How many tables begin? |
+| `game_finished` | server, player id | game, duration_s, players, moves_count | How long do games last, how many end? |
+| `game_left`, `rematch_started`, `chat_message_sent` | server, player id | game, phase or kind | Where do players leave, do they play again, is the chat used? |
+| `takeover_vote_started`, `takeover_completed`, `turn_auto_played` | server, player id | game | How often is somebody played for? |
+| `table_deleted` | server, no id | game, reason | How do tables end up empty (lobby left, ready check left, game left, nobody ready)? |
+| `feedback_sent` | server, no id | game, type, with_screenshot, with_email | How much feedback, of which kind? |
+| `game_route_error` | server, no id | game, route, code, status | What do the routes refuse, and how often? Not the 429, not a request that no player made; 6 a minute at most per instance |
+| `signed_in` | server, no id (a provider, the e-mail link); browser (password, e-mail code) | method, new_account | How do people sign in, how many accounts are new? Counted at the first step: a member with a second step is counted once |
+| `signed_out`, `account_deletion` | server, no id | none; step (requested, reopened, deleted_now, purged) | How many leave, and how many accounts go? |
+| `auth_started` | browser | flow, method | Where do sign-ins and sign-ups start? |
+| `signup_code_sent` | browser | resent | Do sign-ups reach the code, do codes get lost? |
+| `account_changed` | browser | change, service | Is the second step used, are services linked? |
+| `setting_changed` | browser | setting | Which settings are used? The key, never the value. The language, the username and the history have their own events |
+| `table_setting_changed` | browser | game, setting, visibility | Do hosts open their tables to everyone? |
+| `public_table_clicked` | browser | game, from | Which lists lead to a table? |
+| `list_searched` | browser | list, with_text, filters, results, sort | Do visitors search, filter, sort? Do they find something? After a one second pause, never the text |
+| `game_page_clicked` | browser | game, target | Do visitors create a table or buy the game from a game's page? |
+| `game_opened_from_hub`, `invite_link_copied`, `rules_opened`, `language_changed`, `cookie_consent` | browser | see `events.ts` | Which cards are opened, are invitations and rules used, which languages, how many accept? |
+
+A button of a game's page that is a link of a server component counts itself from its markup: `data-cta` and `data-cta-game`, read by the listener of `AnalyticsProvider` and checked before they are sent (`cta.ts`). A change of the account that a row of the settings keeps goes through `changing` (`apps/web/src/lib/settings-change.ts`), which counts it once it is kept and never for the demo account.
+
+## Check once the site's project is connected
+Do it on a preview, then on production. Filter on `env`.
+1. Open the home and `/games`, answer the banner. Expect `$pageview`, then `cookie_consent`. Before the answer nothing is stored on the device (local storage and cookies are empty); after "Accept all" the `ph_` key is.
+2. Type a word in the search of `/games`: one `list_searched` a second later, `with_text: true`, no text anywhere in the event. Press "Create" and the rules of a game's page: `game_page_clicked`, `rules_opened`.
+3. Open a table: `game_created`. Change its speed: `table_setting_changed`. Sit down from a second browser: `player_joined`. Leave with both: `table_deleted` with a `distinct_id` that is new each time.
+4. Sign in with a provider and out: `signed_in` (server), `signed_out`.
+5. Look at the properties of every event above: no nickname, address, text or table code; no `$ip`. The recordings keep what the first section says.
+
+Funnels worth building (dashboards are PLT-18):
+1. Sign-up to first table: `auth_started` (flow signup), `signup_code_sent`, `signed_in` (new_account), `game_created` or `player_joined`. Whole only for visitors who accepted: the stored id is what ties the browser's steps to the player id at the table.
+2. A table: `game_created`, `game_started`, `game_finished`. `game_finished` is sent for the player whose move ended the game, so the steps share a person only when it is the host.
+3. A public table: `public_table_clicked`, `player_joined`, `game_started`.
+4. From the hub to a table: `game_opened_from_hub`, `game_page_clicked` (create_table), `game_created`.

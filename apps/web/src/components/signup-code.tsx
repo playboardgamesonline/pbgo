@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { AFTER_SIGN_IN, CODE_LENGTH, safeNext } from "@pbgo/accounts"
 import { resendSignupCode, verifySignupCode } from "@pbgo/accounts/client"
+import { trackClient } from "@pbgo/analytics/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
 import { InputOTP, InputOTPGroup, InputOTPSlot, REGEXP_ONLY_DIGITS } from "@pbgo/ui/platform/input-otp"
@@ -40,6 +41,8 @@ export function SignupCode({ email, next, waiting, onSent, onBack }: { email: st
       setCode("")
       return
     }
+    // A code that works confirms an address that signed up: the account is new, and the page leaves at once
+    trackClient("signed_in", { method: "email_code", new_account: true }, { instant: true })
     window.location.assign(safeNext(next))
   }
 
@@ -51,6 +54,7 @@ export function SignupCode({ email, next, waiting, onSent, onBack }: { email: st
     const outcome = await resendSignupCode(email, next)
     setPending(null)
     if (outcome.status === "sent") {
+      trackClient("signup_code_sent", { resent: true })
       setNotice("A new code is on its way.")
       onSent()
       return

@@ -8,6 +8,7 @@ import { trackClient } from "@pbgo/analytics/client"
 import { createApi } from "@pbgo/core/lib/api"
 import { engineOptionsOf } from "@pbgo/core/lib/table-options"
 import type { TableSettingsInput } from "@pbgo/core/lib/table-settings"
+import { changedSettings } from "@pbgo/core/lib/table-settings-changes"
 import type { LobbyAccessValue } from "@pbgo/ui/platform/lobby-access"
 import { LobbyDetail, type LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import { SPEEDS } from "@pbgo/ui/tables"
@@ -61,12 +62,16 @@ export function OwnLobby({
   }
 
   const save = (patch: Partial<TableSettingsInput>) => {
-    const next = { ...kept.current, ...patch }
+    const before = kept.current
+    const next = { ...before, ...patch }
     kept.current = next
     queue.current = queue.current
       .then(() => createApi(slug).settings(code, next))
       .then(
-        () => undefined,
+        // Once the server has kept them: one count for each setting that changed, with who may join the table now. Never the values
+        () => {
+          for (const setting of changedSettings(before, next)) trackClient("table_setting_changed", { game: slug, setting, visibility: next.visibility })
+        },
         (error) => {
           fail(error)
           reset()

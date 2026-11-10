@@ -42,7 +42,7 @@ export function PasswordRow({ hasPassword, demo }: { hasPassword: boolean; demo:
     setProblems({})
     setError(null)
     setPending(true)
-    const outcome = await changing(demo, () => changePassword(password))
+    const outcome = await changing(demo, () => changePassword(password), { account: "password" })
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) {

@@ -133,7 +133,7 @@ export function GameHead({ slug, name, live, description, players, duration, com
             <PlayButton slug={slug} name={name} disabled={!live} refusal={ageRefusal} />
             {live ? (
               <Button variant="outline" size="xl" asChild>
-                <a href={`#${CREATE_ANCHOR}`}>
+                <a href={`#${CREATE_ANCHOR}`} data-cta="create_table" data-cta-game={slug}>
                   <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
                   Create<span className="sr-only"> a table</span>
                 </a>
@@ -144,10 +144,10 @@ export function GameHead({ slug, name, live, description, players, duration, com
                 Create<span className="sr-only"> a table</span>
               </Button>
             )}
-            <RulesButton rulebooks={rulebooks} />
+            <RulesButton slug={slug} rulebooks={rulebooks} />
           </div>
 
-          <GameCredits facts={facts} bgg={bgg} shop={shop} className="mt-6" />
+          <GameCredits slug={slug} facts={facts} bgg={bgg} shop={shop} className="mt-6" />
         </div>
       </div>
     </div>

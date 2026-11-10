@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState, type ChangeEvent } from "react"
 import { birthYearOf, birthdateFields, calendarDateOf, checkBirthdate, type BirthdateField, type BirthdateFields } from "@pbgo/accounts"
+import { trackClient } from "@pbgo/analytics/client"
 import { gameRequest } from "@pbgo/core/lib/api"
 import { InlineEdit, InlineField, InlineFieldInput } from "@pbgo/ui/platform/inline-edit"
 import { Item, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
@@ -72,6 +73,7 @@ export function BirthdateRow({ birthdate }: { birthdate: string | null }) {
     setPending(true)
     try {
       await gameRequest("/api/hub/birthdate", { method: "POST", body: JSON.stringify({ birthdate: date }) })
+      trackClient("setting_changed", { setting: "birthdate" })
       setSaved(date)
       setOpen(false)
       toast.success("Date of birth saved")

@@ -7,6 +7,7 @@ import { closeAccount, eraseAccount, newReopenToken, peekReopenLink, reopenAccou
 import { ApiError, assertSameOrigin, handle, readJson } from "../../../../../server/api"
 import { mailAvailable, sendMail } from "../../../../../server/mail"
 import { rateLimit } from "../../../../../server/rate-limit"
+import { trackAnonymously } from "../../../../../server/analytics"
 
 /** What the app tells the route to compose: the member's address and name, the link (whose token only the e-mail holds) and the day it works until. */
 export type ComposeDeletionMail = (input: DeletionMailInput) => MailMessage
@@ -61,6 +62,7 @@ async function close(request: Request, compose: ComposeDeletionMail): Promise<De
   if (!(await closeAccount(account.id, token, reopensUntil))) throw new ApiError("NOT_SIGNED_IN", 401)
   // The sessions ended with the account; this takes the cookies of this browser with them
   await clearSessionCookies()
+  trackAnonymously("account_deletion", { step: "requested" })
   return { ok: true }
 }
 
@@ -73,6 +75,7 @@ function linkOf(body: Record<string, unknown>): { user: string; token: string } 
 async function reopen(body: Record<string, unknown>): Promise<DeletionAnswer> {
   const { user, token } = linkOf(body)
   if (!(await reopenAccount(user, token))) throw new ApiError("LINK_INVALID", 410)
+  trackAnonymously("account_deletion", { step: "reopened" })
   return { ok: true }
 }
 
@@ -82,5 +85,6 @@ async function deleteNow(body: Record<string, unknown>): Promise<DeletionAnswer>
   const link = await peekReopenLink(user, token)
   if (!link) throw new ApiError("LINK_INVALID", 410)
   await eraseAccount(user, link.email)
+  trackAnonymously("account_deletion", { step: "deleted_now" })
   return { ok: true }
 }

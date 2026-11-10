@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto"
 import sharp from "sharp"
 import type { GameRouteContext } from "../../../lib/binding"
+import { trackAnonymously } from "../../../server/analytics"
 import { ApiError, handle } from "../../../server/api"
 import { getPlayerId } from "../../../server/player"
 import { rateLimit } from "../../../server/rate-limit"
@@ -120,5 +121,7 @@ export const POST = handle(async (request: Request, { game }: GameRouteContext) 
     if (screenshot) await db.storage.from(FEEDBACK_BUCKET).remove([screenshot])
     throw error
   }
+  // The type and whether it came with a screenshot and an address, never the text: nobody is behind the count
+  trackAnonymously("feedback_sent", { game: game.slug, type, with_screenshot: screenshot !== null, with_email: emailRaw !== "" })
   return { ok: true }
 })

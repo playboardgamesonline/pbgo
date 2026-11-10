@@ -1,3 +1,4 @@
+import { assertNoPersonalData } from "@pbgo/analytics/privacy"
 import { EngineError, type AnyGameDefinition } from "@pbgo/engine-kit"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { NO_AGE_RULES } from "../lib/age-rules"
@@ -1035,6 +1036,82 @@ describe("a table that nobody sits at any more is deleted (PLT-21)", () => {
     expect(stored()).toMatchObject({ version: 4, players: [] })
   })
 })
+
+describe("table_deleted", () => {
+  const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+  /** What the deletions told PostHog since the last look */
+  const deletions = () => tracked().filter((entry) => entry.event === "table_deleted")
+
+  it("says that the last player left the lobby, for nobody: the identifier is one that is used once", async () => {
+    seed({ players: [ann], version: 4 })
+    h.playerId = "p1"
+    await call(leave)
+    const [only, ...more] = deletions()
+    expect(more).toEqual([])
+    expect(only).toEqual({ event: "table_deleted", distinctId: expect.stringMatching(ID), properties: { game: SLUG, reason: "lobby_left" } })
+    expect(only?.distinctId).not.toBe("p1")
+  })
+
+  it("says that the last player left the ready check", async () => {
+    starting(["p1"], [])
+    h.playerId = "p1"
+    await call(leave)
+    expect(deletions().map((entry) => entry.properties)).toEqual([{ game: SLUG, reason: "ready_check_left" }])
+  })
+
+  it("says that everybody left the game in progress", async () => {
+    withLeftPlayers(["p1", "p2"], ["p1"])
+    h.playerId = "p2"
+    await call(leave)
+    expect(deletions().map((entry) => entry.properties)).toEqual([{ game: SLUG, reason: "game_left" }])
+  })
+
+  it("says that a ready check ended with nobody ready, at the first look at the table", async () => {
+    starting(["p1", "p2"], [], -1000)
+    h.playerId = "p1"
+    await call(read)
+    expect(deletions().map((entry) => entry.properties)).toEqual([{ game: SLUG, reason: "nobody_ready" }])
+    // The next look finds no table, and has nothing to say
+    await call(read)
+    expect(deletions()).toEqual([])
+  })
+
+  it("uses an identifier of its own for each table", async () => {
+    seed({ players: [ann], version: 4 })
+    h.playerId = "p1"
+    await call(leave)
+    seed({ players: [ann], version: 4 })
+    await call(leave)
+    const ids = deletions().map((entry) => entry.distinctId)
+    expect(ids).toHaveLength(2)
+    expect(new Set(ids).size).toBe(2)
+  })
+
+  it("says nothing while somebody still sits at the table, or when the database could not delete it", async () => {
+    seed({ players: [ann, bob] })
+    h.playerId = "p1"
+    await call(leave)
+    expect(deletions()).toEqual([])
+
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    seed({ players: [ann], version: 4 })
+    h.deleteError = { code: "57P01", message: "terminating connection" }
+    await call(leave)
+    expect(deletions()).toEqual([])
+  })
+
+  it("holds nothing personal", async () => {
+    seed({ players: [ann], version: 4 })
+    h.playerId = "p1"
+    await call(leave)
+    for (const entry of deletions()) assertNoPersonalData(entry.properties)
+  })
+})
+
+/** A game in progress where `left` of the players already left */
+function withLeftPlayers(ids: string[], left: string[]) {
+  return playing(ids, 1, 10, { players: ids.map((id) => ({ id, nickname: id.toUpperCase(), ...(left.includes(id) ? { left: true } : {}) })) })
+}
 
 describe("leaving a game in progress", () => {
   const table = async (response: Response) => (await response.json()) as { status: string; meId: string | null; players: Array<{ id: string; nickname: string; left?: boolean }>; view: { me: unknown; turn: number } | null; error?: string }

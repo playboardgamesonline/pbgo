@@ -139,7 +139,7 @@ export function MultiFactorRow({ devices, demo }: { devices: readonly SecondStep
     setPending(true)
     setError(null)
     const { factorId } = setup.setup
-    const outcome = await changing(demo, () => finishSecondStepSetup(factorId, value))
+    const outcome = await changing(demo, () => finishSecondStepSetup(factorId, value), { account: "mfa_enabled" })
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) {
@@ -171,7 +171,7 @@ export function MultiFactorRow({ devices, demo }: { devices: readonly SecondStep
     }
     setPending(true)
     setError(null)
-    const outcome = await changing(demo, () => removeSecondStep(value))
+    const outcome = await changing(demo, () => removeSecondStep(value), { account: "mfa_disabled" })
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) {

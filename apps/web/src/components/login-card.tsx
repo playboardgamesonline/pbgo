@@ -2,8 +2,9 @@
 
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
-import { AFTER_SIGN_IN, safeNext, type AnyProvider } from "@pbgo/accounts"
+import { AFTER_SIGN_IN, safeNext, signInProviderOf, type AnyProvider } from "@pbgo/accounts"
 import { secondStepNeeded, signInWith, signInWithPassword } from "@pbgo/accounts/client"
+import { trackClient } from "@pbgo/analytics/client"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
 import { Input } from "@pbgo/ui/platform/input"
@@ -42,6 +43,9 @@ export function LoginCard({
   async function start(provider: AnyProvider) {
     setPending(provider)
     setError(null)
+    // The page is about to leave for the provider: the count goes out at once
+    const method = signInProviderOf(provider)
+    if (method) trackClient("auth_started", { flow: "signin", method }, { instant: true })
     const problem = await signInWith(provider, next)
     // On its way to the provider the page just goes: only a refusal comes back here
     if (problem) {
@@ -55,12 +59,14 @@ export function LoginCard({
     const form = new FormData(event.currentTarget)
     setPending("password")
     setError(null)
+    trackClient("auth_started", { flow: "signin", method: "password" })
     const problem = await signInWithPassword(String(form.get("username") ?? ""), String(form.get("password") ?? ""))
     if (problem) {
       setPending(null)
       setError(problem)
       return
     }
+    trackClient("signed_in", { method: "password", new_account: false }, { instant: true })
     // A member who set up the second step (PLT-129) has it left to pass: the sign-in page, drawn again, knows the session now and asks for the code, then takes them on to `next`
     const target = safeNext(next)
     window.location.assign((await secondStepNeeded()) ? `/login?next=${encodeURIComponent(target)}` : target)

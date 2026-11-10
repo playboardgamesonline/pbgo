@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { confirmEmailSession, confirmFailedPath, confirmNext, confirmRequestOf } from "@pbgo/accounts"
 import { createAuthClient, secondStepPendingAfterSignIn } from "@pbgo/accounts/server"
+import { trackAnonymously } from "@pbgo/core/server/analytics"
 
 /**
  * Where the link of the confirmation e-mail leads: `?token_hash=…&type=email`, a token that is single-use and proves the address is the visitor's. This spends it on the server, which confirms the address and signs the visitor in (the cookies of
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest) {
   const asked = confirmRequestOf(searchParams)
   const supabase = await createAuthClient()
   const confirmed = asked !== null && supabase !== null ? await confirmEmailSession(supabase, asked) : null
+  // The link of a sign-up's e-mail confirms an account that is new, and signs it in: counted without a word of whose
+  if (confirmed !== null) trackAnonymously("signed_in", { method: "email_link", new_account: true })
   const second = confirmed !== null && supabase !== null && (await secondStepPendingAfterSignIn(supabase, confirmed.accessToken))
   const response = NextResponse.redirect(new URL(confirmed === null ? confirmFailedPath(next) : second ? `/login?next=${encodeURIComponent(next)}` : next, origin))
   // The link held a secret and the answer holds a session: nothing keeps either

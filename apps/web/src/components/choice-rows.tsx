@@ -9,7 +9,10 @@ import { Item, ItemActions, ItemContent, ItemTitle } from "@pbgo/ui/platform/ite
 import { Label } from "@pbgo/ui/platform/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { Spinner } from "@pbgo/ui/platform/spinner"
-import { changing, failureOf } from "@/lib/settings-change"
+import { changing, failureOf, type ChangeReport } from "@/lib/settings-change"
+
+/** What each of these preferences is counted as when it is changed: the key, never the word chosen. */
+const REPORTED: Partial<Record<PreferenceName, ChangeReport>> = { reduceMotion: { setting: "reduce_motion" }, reduceTransparency: { setting: "reduce_transparency" } }
 
 /** One of the words a preference can hold, with what the picker says for it. */
 type Choice<Name extends PreferenceName> = { value: Preferences[Name]; label: string }
@@ -46,7 +49,7 @@ function ChoiceRow<Name extends PreferenceName>({
     setCurrent(next)
     setPending(true)
     setError(null)
-    const outcome = await changing(demo, () => savePreference(name, next))
+    const outcome = await changing(demo, () => savePreference(name, next), REPORTED[name])
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) {

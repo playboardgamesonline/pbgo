@@ -1,5 +1,6 @@
 import "server-only"
 import { isEngineError } from "@pbgo/engine-kit"
+import { reportRefusal } from "./analytics"
 
 export class ApiError extends Error {
   constructor(
@@ -20,9 +21,16 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<unknown>
     try {
       return Response.json(await fn(...args))
     } catch (error) {
-      if (error instanceof ApiError) return Response.json({ error: error.code }, { status: error.status, headers: error.headers })
-      if (isEngineError(error)) return Response.json({ error: error.code }, { status: 400 })
+      if (error instanceof ApiError) {
+        reportRefusal(args, error.code, error.status)
+        return Response.json({ error: error.code }, { status: error.status, headers: error.headers })
+      }
+      if (isEngineError(error)) {
+        reportRefusal(args, error.code, 400)
+        return Response.json({ error: error.code }, { status: 400 })
+      }
       console.error(error)
+      reportRefusal(args, "SERVER_ERROR", 500)
       return Response.json({ error: "SERVER_ERROR" }, { status: 500 })
     }
   }
