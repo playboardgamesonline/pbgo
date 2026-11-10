@@ -116,6 +116,8 @@ How it behaves:
 - The picture is painted on a canvas, 120 pixels for each unit of the table, and laid on the table with a soft shadow like the rest of the board: it is unlit and not tone mapped, so the colours are the ones painted ([Rules of the board](22-rules-of-the-board.md)). Nothing in it moves by itself, so a visitor who asks for less motion sees no difference.
 - A sheet that several players draw on at once works, but the sheet waits for its own strokes by their place in the list, so a stroke of the viewer can blink out for a moment when another player's is kept first.
 
+The arithmetic is pure and exported, and tested: `toSheet(point, sheet)` says where a point of the table is on a sheet, from 0 to 1 across and down, `toGrid` puts such a place on the grid (`SKETCH_GRID`, the kit's `DRAWING_GRID`), `simplify(points, tolerance)` takes out the points that lie within the tolerance of the line, and `buildStroke(recorded, pen, thinning)` makes the stroke a board sends of what the pen recorded. A game that draws on something other than a `Sketch` uses them.
+
 ### Settings
 
 `SKETCH_SETTINGS` is read by every sheet: `tolerance` (how far the thinned line may stray from what was drawn, in points of the grid), `spacing` (the least distance between two points the pen records), `settle` (the seconds a finished stroke waits for the next one before the batch goes), `flush` (the most seconds a stroke waits to be sent) and `pending` (the seconds a sent stroke is kept on the sheet for the board to give it back). The debug panel has a Sketch folder for it ([Tuning](../04-build-a-game/07-tuning.md)), and the Tuning tab of the [playground](/docs/playground) has the same sliders.

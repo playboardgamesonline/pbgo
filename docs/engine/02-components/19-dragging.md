@@ -20,7 +20,7 @@ scene-grid
 | --- | --- | --- |
 | Thing | What is picked up: a card, a piece, a pawn on a track | `Card`, `Piece` or `TrackMarker` with `draggable`, or `useDrag` for anything else a game draws |
 | Zone | A place a thing can be let go on, a shape on the table | A `DropZone`, or the cells of a `Board` that has `drops` |
-| Shape | Where a zone lies: a circle, a rectangle that may be turned and rounded, a polygon, the corners of a cell | `circleShape`, `rectShape`, `polygonShape`, `cellShape` |
+| Shape | Where a zone lies: a circle, a rectangle that may be turned and rounded, a polygon, the corners of a cell (a `DropShape`) | `circleShape`, `rectShape`, `polygonShape`, `cellShape` |
 | Legal drops | The zones a thing may be let go on, now | The view, from the engine's rules; the thing's `dropOn` |
 | Drop | Where the thing was let go: which zone, and where | `onDrop`, called with a `Drop` |
 | Action | What the game posts for it | The same action as for a click |
@@ -93,7 +93,7 @@ How a drag goes:
 
 ### Zones
 
-A `DropZone` is a place a dragged thing can be let go on: invisible until something is held that may go on it, then it shows its line, which pulses, and the one under the pointer shows it in full and lights its inside. It holds nothing: what lies on it, and what the drop does, is the game's. Do not confuse it with the `Zone` that lays cards out: a card zone places cards, a `DropZone` receives a drop, and a game often has both over the same place.
+A `DropZone` (props: `DropZoneProps`) is a place a dragged thing can be let go on: invisible until something is held that may go on it, then it shows its line, which pulses, and the one under the pointer shows it in full and lights its inside. It holds nothing: what lies on it, and what the drop does, is the game's. Do not confuse it with the `Zone` that lays cards out: a card zone places cards, a `DropZone` receives a drop, and a game often has both over the same place.
 
 | Prop | Role |
 | --- | --- |
@@ -105,13 +105,13 @@ A `DropZone` is a place a dragged thing can be let go on: invisible until someth
 | `onClick` | Pressing it does this: the click that leads to what a drop leads to |
 
 - A zone is in table coordinates, so it goes outside any group that moves or turns. `cellShape(cell)` makes the shape of a cell of a board from the cell that `squareCells` and `hexCells` made.
-- A zone that nothing draws is `useDropZones`, which puts shapes on the table for as long as the component is there: the spaces of a `Track`, or the seats of a ring.
+- A zone that nothing draws is `useDropZones`, which puts shapes on the table for as long as the component is there, each a `DropTarget`, an `id` and a `shape`: the spaces of a `Track`, or the seats of a ring. A zone is named by its id, a `ZoneId`: the game's own word or number.
 - A `Board` takes `drops`, the numbers of the cells that things can be let go on. Each is a zone named by its number, so the `dropOn` of a piece lists numbers. While a piece is held that may go on them a ring pulses on each, and the cell it is over takes the ring of the pointer, in the colour of `haloColor`.
-- `useDragState` says what the drag of the table is now, which zones it may go on and which it is over, for a game that draws something of its own for it.
+- `useDragState` says what the drag of the table is now, a `DragSnapshot` (whether something is held, the zones it may go on and the one it is over), for a game that draws something of its own for it.
 
 ### Anything else a game draws
 
-`useDrag` is what `Card` and `Piece` are made with, for a thing of the game's own. It is called inside the `Table`, takes where the thing is (`position`), the height it rests at (`level`), the zones it may go on and the callbacks, and gives `bind`, the two handlers to put on the group of the thing, and `held`, a ref that a frame reads: where the thing is drawn while it is held, `null` otherwise. The hook moves nothing: the owner draws the thing at `held` while there is one (`dragGoal` makes the pose, lifted) and at its place the rest of the time.
+`useDrag` is what `Card` and `Piece` are made with, for a thing of the game's own. It is called inside the `Table`, takes `DragOptions` (where the thing is, `position`; the height it rests at, `level`; the zones it may go on and the callbacks) and gives a `Dragger`: `bind`, the two handlers to put on the group of the thing, and `held`, a ref that a frame reads: where the thing is drawn while it is held, `null` otherwise. The hook moves nothing: the owner draws the thing at `held` while there is one (`dragGoal` makes the pose, lifted) and at its place the rest of the time.
 
 ```tsx
 const drag = useDrag({ level: 0, position: () => group.current?.position ?? null, dropOn: ["tray"], onDrop })

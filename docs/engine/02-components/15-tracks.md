@@ -45,7 +45,7 @@ ctx.events.push({ type: "moved", seat, from: walk.from, to: walk.to, passed: wal
 
 ### Laying out the spaces
 
-A `Space` is `{ x, z, yaw }`: where it is, and the way the track goes there (`yaw` turns about the vertical axis, as everywhere on the table). The helpers make the list for a track, in the order of the track, and `spacesIn` moves it where the board has it.
+A `Space` is `{ x, z, yaw }`: where it is, and the way the track goes there (`yaw` turns about the vertical axis, as everywhere on the table). The helpers make the list for a track, in the order of the track, and `spacesIn` moves it where the board has it. The options of `arcSpaces`, `loopSpaces` and `snakeSpaces` are typed `ArcOptions`, `LoopOptions` and `SnakeOptions`.
 
 | Helper | The spaces |
 | --- | --- |
@@ -63,8 +63,8 @@ A `Space` is `{ x, z, yaw }`: where it is, and the way the track goes there (`ya
 | Prop | Role |
 | --- | --- |
 | `spaces` | The spaces, in order. Keep the list from one render to the next, or compute it in `useMemo`; a list made anew with the same spaces costs a comparison and no painting |
-| `size` | The size of a plate in world units: its side, or `{ width, depth }`. Default: a little under the distance to the nearest neighbour, so that two plates never touch |
-| `look` | `(index) => { label?, color?, ink? }`: what each space shows, its label (a number, a word, a sign), the colour of its plate and of its ink. The start, the end and the spaces that pay are the ones that give a colour. The labels come from the game's data and the visitor's language |
+| `size` | The size of a plate in world units: its side, or a `PlateSize`, `{ width, depth }`. Default: a little under the distance to the nearest neighbour, so that two plates never touch |
+| `look` | `(index) => SpaceLook`, `{ label?, color?, ink? }`: what each space shows, its label (a number, a word, a sign), the colour of its plate and of its ink. The start, the end and the spaces that pay are the ones that give a colour. The labels come from the game's data and the visitor's language |
 | `upright` | The plates face the viewer whichever way their space faces, so that a label reads upright (default true); without it a plate turns with its space |
 | `halo`, `haloColor` | The numbers of the spaces that can be chosen, which a ring pulses round, and the colour of the ring |
 | `onSpace` | Pressing a space does this, with its number. The space under the pointer takes a ring. Without it the plates only show |

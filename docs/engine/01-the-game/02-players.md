@@ -7,7 +7,7 @@ To the engine a player is an id and a nickname, `PlayerInfo` in `packages/engine
 - `setup` receives `players` as `{ id, nickname }` and nothing more, in the order the players sat down (`GameRow.players`): a join goes last, a leave closes the gap and a rematch keeps the order.
 - A nickname is never empty and never longer than `NICKNAME_MAX` when it reaches `setup` (`packages/core/server/profile.ts`); the picture of an account stays in `PublicGame.players` (`avatarUrl`) and never reaches `setup`.
 - A lean state keeps the ids: a board takes names, colours and pictures from the table's `players` with `nickname(id)`, `color(id)` and `avatarUrl(id)` of `useGame()` (`packages/core/components/game/context.tsx`).
-- `setup` refuses a table it cannot play with `EngineError("INVALID_PLAYERS")`: a count outside its bounds, an empty id or the same id twice.
+- `setup` refuses a table it cannot play with `EngineError("INVALID_PLAYERS")`: a count outside its bounds, an empty id or the same id twice. `assertPlayers(players, { min, max })` of the kit makes that check.
 - Core holds a table to `minPlayers` and `maxPlayers`: `join` answers `GAME_FULL` past the maximum and `start` answers `NOT_ENOUGH_PLAYERS` under the minimum. The gamemaster narrows both in Setup › Mechanics, and `clampPlayers` (`packages/core/lib/settings.ts`) keeps them inside the engine's, so they never widen.
 
 ## Where an id comes from

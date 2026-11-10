@@ -19,16 +19,23 @@ import {
   DICE_SIDES,
   type DiceShape,
   FIELD_LENGTH,
+  LAYOUTS,
   PLAY_CLOCK,
   PLAY_CUP_POSES,
+  PLAY_DECK,
+  PLAY_GLOWS,
   PLAY_LIMITS,
+  PLAY_NAMES,
   PLAY_NUMBERS,
   PLAY_PART_NAMES,
   PLAY_PIECES,
   PLAY_SKETCH,
+  PLAY_STACK,
   type PlayActions,
+  type PlayCard,
   type PlayPart,
   type PlayPiece,
+  type PlayPlace,
   type PlayState,
   type PlayThing,
   SKETCH_BRUSHES,
@@ -48,9 +55,56 @@ const rollFor = (shape: DiceShape) => Array.from({ length: PLAY_LIMITS.dice }, (
 /** What the playground's sheet is kept under: the engine's own limits, for a palette and brushes of the specimens' sizes */
 const SHEET_RULES = { colors: SKETCH_COLORS.length, widths: SKETCH_BRUSHES.length }
 /** The parts that lie beyond the rest of the table: the camera backs off to at least this distance when one is switched on */
-const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom }
+const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28 }
 
 const freshBag = () => ({ counts: [...BAG_START], rng: createSaveableRng(BAG_SEED).save(), drawn: 0 })
+
+/** The number the face of the k-th card drawn from the deck is painted from: the 36 numbers come once each before any returns. */
+const deckCard = (k: number) => (k * 7 + 3) % 36
+
+/** Sends card `id`, wherever it lies (the table, the hand, the discard pile), to `to`. A card that has nowhere to go, because the hand or the table is full, stays where it is. */
+function sendCard(now: PlayState, id: number, to: PlayPlace, at: { x: number; z: number } = { x: 0, z: 0 }): PlayState {
+  const onTable = now.things.find((one) => one.id === id && one.kind === "card")
+  const inHand = now.hand.cards.find((one) => one.id === id)
+  const onDiscard = now.piles.discard.find((one) => one.id === id)
+  const card = onTable?.kind === "card" ? onTable.card : (inHand ?? onDiscard)?.card
+  if (card === undefined) return now
+  const where = onTable ? "table" : inHand ? "hand" : "discard"
+  if (to === where && to !== "table") return now
+  if (to === "table" && where === "table") return { ...now, things: now.things.map((one) => (one.id === id ? { ...one, x: at.x, z: at.z } : one)) }
+  if (to === "hand" && now.hand.cards.length >= PLAY_DECK.hand) return now
+  if (to === "table" && now.things.length >= PLAY_LIMITS.things) return now
+  const entry: PlayCard = { id, card }
+  const things = now.things.filter((one) => one.id !== id)
+  return {
+    ...now,
+    things: to === "table" ? [...things, { id, kind: "card", card, x: at.x, z: at.z, face: "up" }] : things,
+    selected: to === "table" || now.selected !== id ? now.selected : null,
+    hand: { ...now.hand, cards: [...now.hand.cards.filter((one) => one.id !== id), ...(to === "hand" ? [entry] : [])] },
+    piles: { ...now.piles, discard: [...now.piles.discard.filter((one) => one.id !== id), ...(to === "discard" ? [entry] : [])] },
+  }
+}
+
+/** The top card of the draw pile is dealt: to the hand when the hand is on and has room, otherwise onto the table. */
+function deal(now: PlayState): PlayState {
+  if (now.piles.drawn >= PLAY_DECK.size) return now
+  const id = now.nextId
+  const card = deckCard(now.piles.drawn)
+  // The draw pile held this many cards, which is where the card flies in from
+  const from = PLAY_DECK.size - now.piles.drawn
+  const piles = { ...now.piles, drawn: now.piles.drawn + 1 }
+  if (now.parts.hand && now.hand.cards.length < PLAY_DECK.hand) return { ...now, nextId: id + 1, piles, hand: { ...now.hand, cards: [...now.hand.cards, { id, card, from }] } }
+  if (now.things.length >= PLAY_LIMITS.things) return now
+  const at = freeSlot(now.things)
+  return { ...now, nextId: id + 1, piles, things: [...now.things, { id, kind: "card", card, x: at.x, z: at.z, face: "up", from }] }
+}
+
+/** The top piece of the stack is taken onto the table. */
+function take(now: PlayState): PlayState {
+  if (now.stack === 0 || now.things.length >= PLAY_LIMITS.things) return now
+  const at = freeSlot(now.things)
+  return { ...now, nextId: now.nextId + 1, stack: now.stack - 1, things: [...now.things, { id: now.nextId, kind: "piece", shape: "disc", paint: 2, x: at.x, z: at.z, fromBag: false, fromStack: now.stack }] }
+}
 
 const START: PlayState = {
   things: [
@@ -61,9 +115,9 @@ const START: PlayState = {
     { id: 5, kind: "piece", shape: "cube", paint: 2, x: 0, z: 1.6, fromBag: false },
     { id: 6, kind: "piece", shape: "disc", paint: 1, x: 1.6, z: 1.6, fromBag: false },
   ],
-  nextId: 7,
+  nextId: 12,
   selected: null,
-  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, seats: false },
+  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, hand: false, piles: false, stack: false, paper: false, seats: false },
   counter: 12,
   stepper: PLAY_NUMBERS.stepper.start,
   slider: PLAY_NUMBERS.slider.start,
@@ -76,6 +130,21 @@ const START: PlayState = {
   bet: null,
   face: null,
   sketch: { strokes: emptyDrawing(), color: 0, width: 1 },
+  glow: "halo",
+  hand: {
+    cards: [
+      { id: 7, card: 3 },
+      { id: 8, card: 9 },
+      { id: 9, card: 14 },
+      { id: 10, card: 18 },
+      { id: 11, card: 23 },
+    ],
+    layout: "fan",
+  },
+  piles: { drawn: 0, discard: [] },
+  stack: PLAY_STACK.start,
+  presses: 0,
+  seat: null,
   players: 4,
   above: false,
   zoom: PLAY_LIMITS.zoom.start,
@@ -126,6 +195,11 @@ export function Playground() {
     slide: (slider) => set({ slider }),
     bet: (value) => set({ bet: value }),
     pick: (face) => set({ face }),
+    place: (id, to, at) => setState((now) => sendCard(now, id, to, at)),
+    deal: () => setState(deal),
+    take: () => setState(take),
+    press: () => setState((now) => ({ ...now, presses: now.presses + 1 })),
+    pickSeat: (seat) => set({ seat }),
     // The sheet keeps what the engine keeps: strokes that do not fit are let go, as a board that was told no would
     ink: (incoming) =>
       setState((now) => {
@@ -139,7 +213,7 @@ export function Playground() {
   }
   const pen = (patch: Partial<PlayState["sketch"]>) => setState((now) => ({ ...now, sketch: { ...now.sketch, ...patch } }))
 
-  // The seats stand on a ring wider than the rest of the table and the sheet lies beyond it, so the camera backs off to see them
+  // The seats stand on a ring wider than the rest of the table, and the sheet, the hand, the piles, the stack and the paper lie beyond it, so the camera backs off to see them
   const showPart = (part: PlayPart, on: boolean) => {
     const farthest = BACK_OFF[part]
     set({ parts: { ...parts, [part]: on }, ...(on && farthest !== undefined ? { zoom: Math.max(state.zoom, farthest) } : {}) })
@@ -166,7 +240,7 @@ export function Playground() {
         <main className="min-h-0 flex-1 max-lg:min-h-[45svh]">
           <SceneFrame
             fill
-            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
+            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, a hand of cards, a draw pile and a discard pile, a stack of coins, a paper button, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
           >
             <PlaygroundScene state={state} actions={actions} />
           </SceneFrame>
@@ -201,9 +275,12 @@ export function Playground() {
                     <>
                       <span className="text-sm text-muted-foreground">The {thing.kind === "card" ? "card" : thing.shape} that is picked:</span>
                       {thing.kind === "card" && (
-                        <Button variant="outline" size="sm" onClick={() => setState((now) => ({ ...now, things: now.things.map((one) => (one.id === thing.id && one.kind === "card" ? { ...one, face: one.face === "up" ? "down" : "up" } : one)) }))}>
-                          Turn it over
-                        </Button>
+                        <>
+                          <Button variant="outline" size="sm" onClick={() => setState((now) => ({ ...now, things: now.things.map((one) => (one.id === thing.id && one.kind === "card" ? { ...one, face: one.face === "up" ? "down" : "up" } : one)) }))}>
+                            Turn it over
+                          </Button>
+                          <Choice label="Glow" value={state.glow} options={PLAY_GLOWS.map((value) => ({ value, label: value }))} onChange={(glow) => set({ glow })} />
+                        </>
                       )}
                       <Button variant="outline" size="sm" onClick={() => actions.remove(thing.id)}>
                         Remove it
@@ -217,7 +294,7 @@ export function Playground() {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground" aria-live="polite">
-                  <span className="text-foreground tabular-nums">{things.length}</span> of {PLAY_LIMITS.things} things on the table. Drag one anywhere: let it go on a cell of the board and it takes the cell, on the bin and it is gone.
+                  <span className="text-foreground tabular-nums">{things.length}</span> of {PLAY_LIMITS.things} things on the table. Drag one anywhere: let it go on a cell of the board and it takes the cell, on the bin and it is gone, and a card let go on the hand or the discard pile joins it.
                 </p>
               </div>
             )}
@@ -316,6 +393,51 @@ export function Playground() {
                     <span className="text-foreground tabular-nums">{state.sketch.strokes.length}</span> strokes, <span className="text-foreground tabular-nums">{drawingPoints(state.sketch.strokes)}</span> points
                   </span>
                 </Part>
+                <Part part="hand" on={parts.hand} onChange={(on) => showPart("hand", on)}>
+                  <Choice label="Layout" value={state.hand.layout} options={LAYOUTS.map((value) => ({ value, label: value }))} onChange={(layout) => set({ hand: { ...state.hand, layout } })} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={state.hand.cards.length >= PLAY_DECK.hand}
+                    onClick={() => setState((now) => ({ ...now, nextId: now.nextId + 1, hand: { ...now.hand, cards: [...now.hand.cards, { id: now.nextId, card: (now.nextId * 7) % 36 }] } }))}
+                  >
+                    Add a card
+                  </Button>
+                  <Button variant="ghost" size="sm" disabled={state.hand.cards.length === 0} onClick={() => setState((now) => ({ ...now, hand: { ...now.hand, cards: [] } }))}>
+                    Empty the hand
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    <span className="text-foreground tabular-nums">{state.hand.cards.length}</span> of {PLAY_DECK.hand} cards
+                  </span>
+                </Part>
+                <Part part="piles" on={parts.piles} onChange={(on) => showPart("piles", on)}>
+                  <Button variant="outline" size="sm" disabled={state.piles.drawn >= PLAY_DECK.size} onClick={actions.deal}>
+                    Deal a card
+                  </Button>
+                  <Button variant="ghost" size="sm" disabled={state.piles.drawn === 0 && state.piles.discard.length === 0} onClick={() => setState((now) => ({ ...now, piles: { drawn: 0, discard: [] } }))}>
+                    Reshuffle
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    <span className="text-foreground tabular-nums">{PLAY_DECK.size - state.piles.drawn}</span> in the draw pile, <span className="text-foreground tabular-nums">{state.piles.discard.length}</span> in the discard pile
+                  </span>
+                </Part>
+                <Part part="stack" on={parts.stack} onChange={(on) => showPart("stack", on)}>
+                  <Knob label="Pieces" value={state.stack} min={0} max={PLAY_STACK.max} step={1} onChange={(stack) => set({ stack })} />
+                  <Button variant="outline" size="sm" disabled={state.stack === 0 || full} onClick={actions.take}>
+                    Take one
+                  </Button>
+                </Part>
+                <Part part="paper" on={parts.paper} onChange={(on) => showPart("paper", on)}>
+                  <Button variant="outline" size="sm" onClick={actions.press}>
+                    Press it
+                  </Button>
+                  <Button variant="ghost" size="sm" disabled={state.presses === 0} onClick={() => set({ presses: 0 })}>
+                    Start again
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    Pressed <span className="text-foreground tabular-nums">{state.presses}</span> {state.presses === 1 ? "time" : "times"}
+                  </span>
+                </Part>
                 <Part part="seats" on={parts.seats} onChange={(on) => showPart("seats", on)}>
                   <Choice
                     label="Players"
@@ -323,6 +445,18 @@ export function Playground() {
                     options={[2, 3, 4, 5].map((count) => ({ value: String(count), label: String(count), description: `${count} players` }))}
                     onChange={(count) => set({ players: Number(count) })}
                   />
+                  <Button variant="ghost" size="sm" disabled={state.seat === null} onClick={() => set({ seat: null })}>
+                    Put the pick down
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    {state.seat !== null && state.seat < state.players ? (
+                      <>
+                        Picked: <span className="text-foreground">{PLAY_NAMES[state.seat]}</span>
+                      </>
+                    ) : (
+                      "Press a plate to pick a player."
+                    )}
+                  </span>
                 </Part>
               </div>
             )}

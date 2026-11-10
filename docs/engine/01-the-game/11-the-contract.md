@@ -34,6 +34,8 @@
 | `PlayerInfo` | `{ id, nickname }`: a seat as `setup` receives it |
 | `PlayerAction` | `{ type, playerId, at? }`: what every `Action` extends; the server sets `playerId` and `at`, the time it plays the action at, in milliseconds |
 | `Timer`, `Deadline` | `{ endsAt, seconds }`, the clock of a step as the state keeps it, and `{ at, action }`, what `nextDeadline` answers: the time and the system action that the clock plays then ([Timers](../02-components/20-timers.md)) |
+| `SetupArgs` | `{ players, options, seed?, data? }`: what `setup` and `setupStep` are given |
+| `StepHooks`, `DeadlineHooks`, `Settled` | The parts of a definition that the helpers of the kit read, `apply` and `step` to play an action (`stepOf`, `playStepFor`), and `isOver` and `nextDeadline` for the clock (`deadlineOf`, `settleDeadlines`), and what `settleDeadlines` gives back: the state after the deadlines it played, the entries they added to the log and how many it played |
 | `Results`, `PlayerResult` | The end of a game, in the view ([Results](06-victory.md#results)), and `outcomesOf`, which reads them as a win, a loss, a draw or a win or loss of the whole table for each player ([Outcomes](06-victory.md#outcomes)) |
 | `Standing` | `{ playerId, score }`: what a player has so far, in the view as `standings`, for the list of the players in the HUD ([Keeping the score](../02-components/09-score.md#keeping-the-score)) |
 | `Step`, `LogEntry` | What a move gives back when the game says what happened: the state and the events, each event with the players who read it in full and what the others read instead ([Events and the log](12-events-and-the-log.md)) |

@@ -12,9 +12,9 @@ scene-dice
 
 | Part | What it is | Where it comes from |
 | --- | --- | --- |
-| Shape | The solid: its corners, its faces, which face is opposite which, the ways it turns onto itself. Any number of faces | `dieModel` gives a d6, d8, d10, d12 and d20; `makeDieModel` makes the model of a solid of a game's own from its corners |
-| Values | What each face says: numbers, words | The `values` of the die, one for each face, from 1 up to the number of faces unless the game gives its own |
-| Pictures | What each value looks like on its face | The `faces` of the die, textures painted by the game; by default the pips of `pipFace` on a cube numbered 1 to 6 and the number written by `numberFace` on any other |
+| Shape | The solid: its corners, its faces, which face is opposite which, the ways it turns onto itself. Any number of faces | `dieModel` gives a d6, d8, d10, d12 and d20 (`DIE_SHAPES` lists them and a `DieShape` is one of them); `makeDieModel` makes the model of a solid of a game's own from its corners (a `ModelInput`) |
+| Values | What each face says: numbers, words | The `values` of the die, one for each face (a `DieValue` is a number or a word), from 1 up to the number of faces unless the game gives its own |
+| Pictures | What each value looks like on its face | The `faces` of the die, textures painted by the game; by default the pips of `pipFace` on a cube numbered 1 to 6 and the number written by `numberFace` on any other; `DEFAULT_BODY` and `DEFAULT_INK` are the ivory and the dark ink of that default die |
 | Size and colour | How big the die is, and the colour of its body and ink | `size`, `body`, `ink` |
 
 A die of King of Tokyo is a cube whose values are `1`, `2`, `3`, a claw, a heart and an energy; a die of Perudo is a cube kept under a cup; a die of a role-playing game is a d20. None of them is a component of its own: each is a `Die` given its shape, its values and its pictures.
@@ -70,7 +70,7 @@ A `DiceTray` is the part of the table the dice are thrown onto, and the world th
 
 | Prop | Role |
 | --- | --- |
-| `area` | `{ x, z, width, depth }`: the rectangle the dice roll in. An invisible wall keeps them in it |
+| `area` | `{ x, z, width, depth }` (a `DiceArea`): the rectangle the dice roll in. An invisible wall keeps them in it |
 
 - The dice of a tray that roll in the same moment are thrown together, so they meet and knock one another; the dice that lie still in the tray are in their way, as they are on a table. A die outside any tray is thrown alone, in an area around its place.
 - Pass `roll` something every player sees alike and that changes with each roll: the `v` of the line of the log that rolled, or a count of rolls the view carries. A board that opens on a table with dice already rolled shows them lying still, since the `roll` it starts with is not a new one, and a catch-up of several rolls throws the dice once, for the last.
@@ -95,7 +95,7 @@ const rolled = useGameLog<RollEvent>().filter((line) => line.event.kind === "rol
 - A die that is moved, or whose `value` changes with no new `roll`, glides and turns to its new place and face.
 - A visitor who asks for less motion sees the die lie on its value at once; `onLand` is still called. So does a table whose physics could not be loaded.
 - The die carries its own light and needs none from the table: its faces are brighter as they turn toward it, and an edge catches a glint as the die rolls.
-- The physics is a chunk of its own, a few megabytes with its WebAssembly inside, loaded as soon as a die is on a table and never on a board without dice.
+- The physics is a chunk of its own, a few megabytes with its WebAssembly inside, loaded as soon as a die is on a table and never on a board without dice. `loadPhysics()` loads it, once: a `Die` calls it as it appears, and a board that wants the chunk early may call it first.
 
 ### Models
 
@@ -105,6 +105,7 @@ A model is made from the corners of a solid, middle of it on the origin: its fac
 const prism = makeDieModel({ name: "prism", corners, geometry: (model, size) => myGeometry(model, size) })
 ```
 
+- A `DieModel` keeps a `FaceInfo` for each face: the direction it looks at, its middle, the corners of its flat part and how far its middle is from the middle of the die.
 - `makeDieModel` scales the solid so that the distance across two opposite faces is 1, finds the faces, the face opposite each, the turns of the solid onto itself and the labels of a new die (opposite faces add up to the same number). A die whose faces are not all flat, such as the cube with its corners cut, says which faces count with `faces`.
 - `geometry` draws the solid at a size: one group of triangles for each face, `face + 1` being the index of its material, the same colour attribute for the light. `polyhedronGeometry` draws any solid whose faces are flat polygons, each with its picture laid over the circle inscribed in it.
 - The faces of the package: the cube is numbered 1 to 6 with 1 up, 2 toward the viewer and 3 to the right, and the other dice put the numbers in order with opposite faces adding up to one more than the number of faces.

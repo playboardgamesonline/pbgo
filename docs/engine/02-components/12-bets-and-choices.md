@@ -17,6 +17,7 @@ scene-bets
 | `cleanChoices(input, options, rules)` | Several options: a list with none twice, between the least and the most the rules allow, given back in the order of `options` whatever the order they were sent in | `EngineError("INVALID_CHOICE")` |
 
 - Call them in `apply`, on the field of the action, and keep what they return. A missing field is `INVALID_ACTION`; a value that does not pass is `INVALID_NUMBER` or `INVALID_CHOICE`, shared codes that the platform words for the player ([The shared codes](../01-the-game/05-actions.md#the-shared-codes)).
+- The rules are typed: `NumberRules` (`min`, `max`, `step` and `integer`, every field optional) and `ChoicesRules` (`min` and `max`, how many options may be chosen at once); an option is a `ChoiceValue`, a string or a number.
 - The rules of the window and the rules of the engine are the same: the window is given the `min`, `max` and `step` that `cleanNumber` checks with, and the options that `cleanChoice` checks against, and it checks them again when the player confirms, so that the engine refuses nothing the window accepted. Only the engine's answer counts.
 - A bet whose rules depend on the state (a bid that must beat the last one, a bet of 0 up to the tricks of the round) has them worked out from the state, in the engine for the check and in the view for the window: the view gives the board the `min`, the `max` and the options it asks with, never a guess of its own.
 - A bid is two fields of one action: `cleanNumber` for how many and `cleanChoice` for which face, then the game's own rule that it beats the last bid, with its own code.
@@ -34,7 +35,7 @@ cleanChoices(["c", "a"], ["a", "b", "c", "d"])    // ["a", "c"]
 
 ## Fields that open a window
 
-A `NumberField` and a `ChoiceField` are shared, in `packages/table/src/field/`. Each is a `Paper` that shows what was chosen; pressing it opens the window. The props they have in common are those of a [text field](11-text-field.md#on-the-table) (`at`, `width`, `height`, `font`, the colours, `disabled`, `confirm`, `cancel`, `placeholder`), then:
+A `NumberField` and a `ChoiceField` are shared, in `packages/table/src/field/`. Each is a `Paper` that shows what was chosen; pressing it opens the window. The props they have in common are those of a [text field](11-text-field.md#on-the-table) (`at`, `width`, `height`, `font`, the colours, `disabled`, `confirm`, `cancel`, `placeholder`): `NumberFieldProps` and `ChoiceFieldProps` are the props of a `Paper` (`PaperProps`) but its `text` and its `onPress`, which a field fills in, and then:
 
 | Component | Prop | Role |
 | --- | --- | --- |
@@ -49,7 +50,7 @@ A `NumberField` and a `ChoiceField` are shared, in `packages/table/src/field/`. 
 | | `label`, `hint` | The title of the window and a line under it |
 | | `instant` | Pressing an option confirms it, with no button after: yes or no |
 
-A `Paper` is the piece of paper on its own, in `paper.tsx`: its `text`, its `placeholder`, and an `onPress` that does what the board wants. It is how a board opens a window of its own (a bid, with `ask`), and also a button on the table: a label that can be pressed. Without `onPress` it only shows its text.
+A `Paper` (props: `PaperProps`) is the piece of paper on its own, in `paper.tsx`: its `text`, its `placeholder`, and an `onPress` that does what the board wants. It is how a board opens a window of its own (a bid, with `ask`), and also a button on the table: a label that can be pressed. Without `onPress` it only shows its text.
 
 ```tsx
 <NumberField value={bet} onChange={(n) => post({ type: "bet", tricks: n })} label={texts.betLabel} min={0} max={view.round} placeholder={texts.betPlaceholder} at={{ x: 0, z: 2.4 }} />
@@ -100,6 +101,8 @@ scene-numbers
 
 A number between two arrows. The left one takes a step down, the right one a step up, and held down they repeat, faster and faster, which is how a number far away is reached. The arrows are flat pieces and take the game's `color`; the digits are a `Counter`, which counts to each new number. An arrow at the end of the range is dimmed and does nothing.
 
+The props are `StepperProps`:
+
 | Prop | Role |
 | --- | --- |
 | `value` | The number the board holds. The stepper keeps none of its own |
@@ -111,6 +114,8 @@ A number between two arrows. The left one takes a step down, the right one a ste
 | `color`, `style` | The colour of the arrows, and how the digits are dressed |
 | `change` | Shows what changed above the number, "+1" (off by default: a stepper changes by one) |
 | `disabled` | Nobody can press the arrows now, and they are dimmed |
+
+The arithmetic of the arrows is pure and exported: `rangeOf` fills in a `NumberRange` (`min`, `max`, `step`) and keeps it sane, `stepped(value, direction, range)` gives the number a press leads to, and `repeatAfter(index, ...)` the seconds a held arrow waits before its next repeat.
 
 #### A row of tokens
 
@@ -125,6 +130,8 @@ A choice among a few things is a row of what the game draws for each of them, pr
 #### Slider
 
 A knob on a rail, which the player drags along it, or takes to a place by pressing the rail. The rail is marked from the least number to the most, the part up to the knob is filled, and the knob wears the number. It is how a number in a wide range is chosen, where the arrows of a stepper would take too long.
+
+The props are `SliderProps`:
 
 | Prop | Role |
 | --- | --- |
@@ -142,6 +149,8 @@ A knob on a rail, which the player drags along it, or takes to a place by pressi
 - The knob follows the `value` of the board and the board follows the knob: the knob does not move until the board has taken the number. Escape gives the drag up and puts the number back where it was when the knob was taken.
 - Both components are kept to the `min`, `max` and `step` that `cleanNumber` checks with, and the numbers they give are on the steps, counted from the least: a stepper or a slider never gives a number that the engine would refuse for its range. The engine is still the one to decide, and refuses what is not right.
 - A game that asks the server on every change posts a stream of actions while a knob is dragged or an arrow is held. Keep the number in the board while the player is choosing, and post it when they settle: `onCommit` for the slider, a confirm for the stepper (a `Paper` that says "Bet", pressed).
+
+The arithmetic of the rail is pure and exported too: `valueAt(fraction, range)` is the number a place along the rail means, `fractionOf(value, range)` is where a number is, from 0 to 1, `marksOf(range, most)` the numbers that get a mark, and `alongRail(point, middle, yaw)` how far along the rail a point of the table is. A game that draws a rail of its own uses them.
 
 The way with the keyboard is the same as for a bid: the specimen has the platform's own controls under the scene, and a board gives the window, `askNumber`, beside the pieces.
 

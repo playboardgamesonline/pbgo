@@ -149,15 +149,28 @@ export const DRAG_START: DragCards = { hand: DRAG_HAND.map(({ card }) => card), 
 /** The playground: the things that lie on its table, the parts of the table that can be switched on, and where it starts. */
 export const PLAY_PIECES = ["disc", "square", "hex", "cube", "sphere", "pawn"] as const
 export type PlayPiece = (typeof PLAY_PIECES)[number]
-export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "seats"] as const
+export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "hand", "piles", "stack", "paper", "seats"] as const
 export type PlayPart = (typeof PLAY_PARTS)[number]
-export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", seats: "Seats" }
+export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", hand: "Hand", piles: "Piles", stack: "Stack", paper: "Paper button", seats: "Seats" }
 export const PLAY_CUP_POSES = ["covering", "peeking", "lifted", "shaking", "rest", "pouring"] as const
 export type PlayCupPose = (typeof PLAY_CUP_POSES)[number]
+/** The names of the players the playground seats, in the order of the seats. */
+export const PLAY_NAMES = ["Alix", "Basile", "Camille", "Dana", "Eli"] as const
+/** A card that is in the hand or on the discard pile and not on the table: the id it has everywhere (so that it keeps its name, and glides, when it changes places), the number its face is painted from, and, when it was just dealt from the draw pile, how many cards the pile held then (where it flies in from). */
+export type PlayCard = { id: number; card: number; from?: number }
+/** Where a card can be sent: the hand, the discard pile, a place on the table, or away. */
+export type PlayPlace = "hand" | "discard" | "table" | "gone"
+/** The glows a picked card can wear: one part each, and all four. */
+export const PLAY_GLOWS = ["none", "halo", "outline", "frame", "sparkle", "all"] as const
+export type PlayGlow = (typeof PLAY_GLOWS)[number]
+/** The playground's cards: how many the draw pile starts with, and the most the hand holds. */
+export const PLAY_DECK = { size: 30, hand: 10 }
+/** The playground's stack of pieces: the most it holds and where its count starts. */
+export const PLAY_STACK = { max: 24, start: 8 }
 /** What the playground puts on the table for the visitor to move: a card (by the number its face is painted from) or a piece (a shape, and a colour of the palette). */
 export type PlayThing =
-  | { id: number; kind: "card"; card: number; x: number; z: number; face: "up" | "down" }
-  | { id: number; kind: "piece"; shape: PlayPiece; paint: number; x: number; z: number; fromBag: boolean }
+  | { id: number; kind: "card"; card: number; x: number; z: number; face: "up" | "down"; /** How many cards the draw pile held when this one was dealt from it: where it flies in from */ from?: number }
+  | { id: number; kind: "piece"; shape: PlayPiece; paint: number; x: number; z: number; fromBag: boolean; /** How many pieces the stack held when this one was taken from it */ fromStack?: number }
 export type PlayState = {
   things: PlayThing[]
   nextId: number
@@ -178,6 +191,18 @@ export type PlayState = {
   face: number | null
   /** The sheet: what is drawn on it, as the engine would keep it, and the pen */
   sketch: { strokes: Drawing; color: number; width: number }
+  /** The glow of the picked card */
+  glow: PlayGlow
+  /** The hand: its cards, and how they are laid out */
+  hand: { cards: PlayCard[]; layout: LayoutName }
+  /** The draw pile counts how many cards were drawn from its deck; the discard pile holds the cards let go on it */
+  piles: { drawn: number; discard: PlayCard[] }
+  /** How many pieces the stack holds */
+  stack: number
+  /** How many times the paper was pressed */
+  presses: number
+  /** The seat whose plate was pressed to pick that player, or null */
+  seat: number | null
   players: number
   above: boolean
   zoom: number
@@ -198,6 +223,16 @@ export type PlayActions = {
   pick: (face: number) => void
   /** The strokes a player finished on the sheet */
   ink: (strokes: Drawing) => void
+  /** A card is sent to the hand, the discard pile, a place on the table, or away */
+  place: (id: number, to: PlayPlace, at?: { x: number; z: number }) => void
+  /** The top card of the draw pile is pressed */
+  deal: () => void
+  /** The top of the stack is pressed: a piece comes off it */
+  take: () => void
+  /** The plate of a seat is pressed: that player is picked, or nobody when it was the one picked already */
+  pickSeat: (seat: number | null) => void
+  /** The paper is pressed */
+  press: () => void
 }
 /** The ranges of the playground's stepper and slider, and where they start. */
 export const PLAY_NUMBERS = { stepper: { min: 0, max: 20, start: 3 }, slider: { min: 0, max: 100, step: 5, start: 40 } }
