@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { QUEUE_MAX_AGE_MS, QUEUE_MAX_GAMES, QUEUE_MODE_LABELS, QUEUE_MODES, parseQueue, queueGamesLabel, queueSeconds, queueTime } from "./queue"
+import { QUEUE_MAX_AGE_MS, QUEUE_MAX_GAMES, QUEUE_MAX_TABLES, QUEUE_MODE_LABELS, QUEUE_MODES, parseQueue, queueGamesLabel, queueProgress, queueSeconds, queueTime } from "./queue"
 
 const NOW = Date.parse("2026-11-02T18:00:00Z")
 
@@ -59,6 +59,25 @@ describe("queueGamesLabel", () => {
   })
 })
 
+describe("queueProgress", () => {
+  const table = (players: number, seats: number, status: "lobby" | "starting" | "playing" = "lobby") => ({ game: "courtisans", code: `T${players}${seats}${status}`, status, players, seats })
+
+  it("is the players and the seats of the table that is the nearest to beginning", () => {
+    expect(queueProgress({ tables: [table(1, 4), table(2, 3), table(1, 2)] })).toEqual({ players: 2, seats: 3 })
+    expect(queueProgress({ tables: [table(1, 3)] })).toEqual({ players: 1, seats: 3 })
+  })
+
+  it("is nothing while there is no table, or only tables that have begun", () => {
+    expect(queueProgress({})).toBeNull()
+    expect(queueProgress({ tables: [] })).toBeNull()
+    expect(queueProgress({ tables: [table(3, 3, "starting"), table(2, 2, "playing")] })).toBeNull()
+  })
+
+  it("does not divide by nothing", () => {
+    expect(queueProgress({ tables: [table(0, 0)] })).toEqual({ players: 0, seats: 0 })
+  })
+})
+
 describe("parseQueue", () => {
   const stored = {
     games: [
@@ -105,6 +124,28 @@ describe("parseQueue", () => {
     ["a start older than the queue is believed", { ...stored, since: NOW - QUEUE_MAX_AGE_MS - 1 }],
   ])("is no queue: %s", (_label, raw) => {
     expect(parseQueue(raw, NOW)).toBeNull()
+  })
+
+  it("reads the tables the search has sat the visitor at", () => {
+    const tables = [
+      { game: "courtisans", code: "ABC234", status: "lobby", players: 2, seats: 4 },
+      { game: "flip-7", code: "XYZ789", status: "starting", players: 3, seats: 3 },
+    ]
+    expect(parseQueue({ ...stored, tables }, NOW)).toEqual({ ...stored, tables })
+  })
+
+  it("keeps the queue and leaves out tables that are not valid, which the next answer fills again", () => {
+    const table = { game: "courtisans", code: "ABC234", status: "lobby", players: 2, seats: 4 }
+    for (const tables of ["ABC234", [3], [{ ...table, status: "over" }], [{ ...table, players: -1 }], [{ ...table, seats: 2.5 }], [{ ...table, code: "ABCDEFGHIJKLM" }], [{ ...table, game: "" }], [table, { ...table, players: "2" }]]) {
+      expect(parseQueue({ ...stored, tables }, NOW)).toEqual(stored)
+    }
+    expect(parseQueue({ ...stored, tables: Array.from({ length: QUEUE_MAX_TABLES + 1 }, () => table) }, NOW)).toEqual(stored)
+    expect(parseQueue({ ...stored, tables: [] }, NOW)).toEqual(stored)
+  })
+
+  it("keeps nothing but what a table of a search is", () => {
+    const read = parseQueue({ ...stored, tables: [{ game: "courtisans", code: "ABC234", status: "lobby", players: 1, seats: 3, hostId: "secret" }] }, NOW)
+    expect(read?.tables).toEqual([{ game: "courtisans", code: "ABC234", status: "lobby", players: 1, seats: 3 }])
   })
 
   it("takes the most games there can be, a start a moment ahead of the clock (two clocks never agree) and one just inside the age", () => {

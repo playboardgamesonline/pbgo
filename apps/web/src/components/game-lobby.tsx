@@ -21,7 +21,8 @@ import { TableCreator } from "./table-creator"
  */
 export function ownTableDetail(table: ViewerTable, slug: string, expansions: readonly Expansion[], minPlayers: number | null = null, maxPlayers: number | null = null, helpers: readonly HelperOption[] = []) {
   const waiting = table.status === "lobby"
-  const host = waiting && table.viewerIsHost
+  // The one who opened a lobby sets it and starts it, unless it is a ranked one: nothing in it is changed, and it begins when it is full
+  const host = waiting && table.viewerIsHost && !table.ranked
   return {
     ...tableDetailProps(table, slug, true, expansions, host, { min: minPlayers, max: maxPlayers }, helpers),
     start: host ? <StartGameButton slug={slug} code={table.code} joined={table.players.length} needed={minPlayers} /> : undefined,
