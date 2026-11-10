@@ -43,6 +43,12 @@ export function palette(): Palette {
   return palette_
 }
 
+/** The ink of each colour of the sketch palette (`SKETCH_COLORS` of the defaults, in its order): the pieces' own tokens, so that a drawing is in the colours of the table */
+export function inks(): string[] {
+  const colors = palette()
+  return [colors.ink, colors.marks[0], colors.navy, colors.marks[2]]
+}
+
 /** Where cards are dealt from in the specimens: above the middle of the table, face down. */
 export const DECK = onTable(0, -0.5, { y: 3.2, face: "down", scale: 0.9 })
 

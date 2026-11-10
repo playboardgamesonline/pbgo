@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { AddFriendForm } from "./add-friend-form"
 import { Badge } from "./badge"
 import { Button } from "./button"
-import { FriendsRoster, PresenceDot } from "./friends-panel"
+import { FriendsRoster, PresenceDot, type FriendMenuHandlers } from "./friends-panel"
 import { QueueCard, type QueueCardProps } from "./queue"
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
@@ -71,7 +71,7 @@ const TAB_ICON = "size-6"
 /** A scrolling column with no scrollbar, for what a tab holds. */
 const COLUMN = "min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
-type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & {
+type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & FriendMenuHandlers & {
   /** What is at the top, above the tabs: the visitor, if the page wants one there. Nothing when the dock above it already shows them. */
   header?: React.ReactNode
   /** The search for a game that the visitor has begun, when there is one: a card between the header and the tabs with the games and the kind of table, the time waited and the cross that stops it. */
@@ -99,8 +99,8 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & {
   /** The games of the list of friends that are folded, by their key (`game:<slug>`), when the page keeps them (so that they stay folded when the panel is closed and opened again). */
   folded?: ReadonlySet<string>
   onFoldedChange?: (folded: ReadonlySet<string>) => void
-  /** What the form that adds a friend does with the username and the tag typed in it, written `username#tag` (`AddFriendForm`). The form is off without it. */
-  onSendRequest?: (who: string) => void
+  /** What the form that adds a friend does with the username and the tag typed in it, written `username#tag` (`AddFriendForm`). The form is off without it. It may answer `false`, or a promise of it, to keep what was typed (a request that was refused). */
+  onSendRequest?: (who: string) => void | boolean | Promise<boolean | void>
   /** What the buttons of a request do. Not drawn without it. */
   onAnswerRequest?: (request: FriendRequest, answer: "accept" | "decline" | "cancel") => void
   /** What the button that invites a friend who has no account does: copy a link that brings them here. Not drawn without it. */
@@ -133,8 +133,8 @@ function ConversationRow({ conversation, onOpen }: { conversation: Conversation;
       >
         <FriendAvatar friend={conversation.friend} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm text-foreground">{conversation.friend.nickname}</span>
-          {last && <span className={cn("block truncate text-xs", tone)}>{last.text}</span>}
+          <span className="ph-mask block truncate text-sm text-foreground">{conversation.friend.nickname}</span>
+          {last && <span className={cn("ph-mask block truncate text-xs", tone)}>{last.text}</span>}
         </span>
         <span className="flex shrink-0 flex-col items-end gap-1">
           {last && <span className={cn("text-xs", tone)}>{timeAgo(last.at)}</span>}
@@ -162,8 +162,8 @@ function RequestRow({ request, onAnswer }: { request: FriendRequest; onAnswer?: 
         <AvatarFallback>{initials(request.nickname)}</AvatarFallback>
       </Avatar>
       <p className="min-w-0 flex-1">
-        <span className="block truncate text-sm text-foreground">{request.nickname}</span>
-        <span className="block truncate text-xs text-muted-foreground">#{request.tag}</span>
+        <span className="ph-mask block truncate text-sm text-foreground">{request.nickname}</span>
+        <span className="ph-mask block truncate text-xs text-muted-foreground">#{request.tag}</span>
       </p>
       {onAnswer &&
         (request.direction === "incoming" ? (
@@ -237,6 +237,9 @@ function SocialPanel({
   onInvite,
   onJoin,
   onNote,
+  onViewProfile,
+  onRemove,
+  onBlock,
   folded,
   onFoldedChange,
   onSendRequest,
@@ -265,7 +268,21 @@ function SocialPanel({
   }
 
   const panes: Record<SocialTab, React.ReactNode> = {
-    friends: <FriendsRoster friends={friends} gameIcon={gameIcon} folded={folded} onFoldedChange={onFoldedChange} onInvite={onInvite} onJoin={onJoin} onNote={onNote} onOpen={onOpenChat} />,
+    friends: (
+      <FriendsRoster
+        friends={friends}
+        gameIcon={gameIcon}
+        folded={folded}
+        onFoldedChange={onFoldedChange}
+        onInvite={onInvite}
+        onJoin={onJoin}
+        onNote={onNote}
+        onOpen={onOpenChat}
+        onViewProfile={onViewProfile}
+        onRemove={onRemove}
+        onBlock={onBlock}
+      />
+    ),
     messages: (
       <div className={COLUMN}>
         {sorted.length === 0 ? (

@@ -16,8 +16,8 @@ What the framework does not provide, and what holds instead. The first table is 
 | Maps: places and the roads between them, territories of any shape | Ticket to Ride, Pandemic, Risk | No tool draws one: a board is a regular grid ([Boards](02-components/16-boards.md)); a plane the game draws on the table has an edge to place and to hide ([Surface](02-components/01-table.md#surface)), and the `Piece`s stand on it at the places the game works out |
 | Boards whose cells are not plates: the intersections of lines, the corners and edges of hexagons | Go, Catan | A `Board` draws a plate for each cell, hexagons with a point up; the lines and the roads are a plane of the game's own, and `Piece`s stand on the points the game works out |
 | Cells to mark or fill, on a score sheet | Yahtzee's pad, Qwixx, Welcome To | Nothing: the `TextField` takes a text and not a grid of cells ([Text field](02-components/11-text-field.md)) |
-| Drawing: strokes a player draws and the others see | Telestrations, Pictionary | Nothing |
-| A filter of what players write, and a way to report it | Codenames, Just One, any game with free text | Nothing: `cleanText` bounds a text and takes out what cannot be shown, it does not judge it ([Text field](02-components/11-text-field.md)) |
+| Drawing that the others watch as it is drawn, an eraser, a fill, shapes, the pressure of a pen, a picture to trace | Telestrations, Pictionary | A `Sketch` shows the strokes the engine kept, which arrive when the pen is lifted; a stroke is a colour and a width, and `undoStroke` is the only eraser ([Drawing](02-components/21-drawing.md#not-built)) |
+| A filter of what players write or draw, and a way to report it | Codenames, Just One, Pictionary, any game with free text | Nothing: `cleanText` bounds a text and takes out what cannot be shown, `cleanStroke` bounds a stroke, and neither judges what it keeps ([Text field](02-components/11-text-field.md), [Drawing](02-components/21-drawing.md)) |
 | A hand hidden from its owner | Hanabi | A `view` can hide anything from anybody, an owner included; no layout or example is made for it |
 | Free negotiation between players | Hellapagos | Nothing |
 

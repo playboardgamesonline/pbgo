@@ -1,25 +1,26 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { UserBlock01Icon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import { isDemoAccount } from "@pbgo/accounts/demo"
 import { requireAccount } from "@pbgo/accounts/server"
 import { Button } from "@pbgo/ui/platform/button"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@pbgo/ui/platform/item"
+import { BlockedPlayers } from "@/components/blocked-players"
 import { PreferenceRow } from "@/components/preference-row"
 import { SettingsGroup, SettingsPage } from "@/components/settings-page"
+import { DEMO_BLOCKED } from "@/lib/demo-data"
+import { socialOf } from "@/lib/social-state"
 import { CONTACT } from "@/site"
 
 export const metadata: Metadata = { title: "Data & Privacy settings" }
 
 /**
- * The Data & Privacy section of the settings: what the other players see (the profile is public by default, and the member can hide their game history: PLT-16), the players they blocked (none can be yet: the list has its place and its empty state), and
+ * The Data & Privacy section of the settings: what the other players see (the profile is public by default, and the member can hide their game history: PLT-16), the players they blocked (PLT-23: each with the button that lifts the block, read on the server, and the empty state), and
  * their data: the Privacy Policy, and a copy of what is held on them, which is asked for by e-mail as the policy says. The choice to hide the history is kept in the account and copied to the member's profile (PLT-39): the public profile then shows other players no games, records or ranks.
  */
 export default async function PrivacySettingsPage() {
   const account = await requireAccount("/me/settings/privacy")
   const demo = isDemoAccount(account)
+  const blocked = demo ? DEMO_BLOCKED : ((await socialOf(account))?.blocked ?? [])
 
   return (
     <SettingsPage title="Data & Privacy">
@@ -33,15 +34,7 @@ export default async function PrivacySettingsPage() {
         />
       </SettingsGroup>
       <SettingsGroup title="Blocked players">
-        <Empty className="border p-6">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <HugeiconsIcon icon={UserBlock01Icon} strokeWidth={2} aria-hidden="true" />
-            </EmptyMedia>
-            <EmptyTitle>No one blocked</EmptyTitle>
-            <EmptyDescription>The players you block cannot write to you or invite you. They are listed here.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <BlockedPlayers blocked={blocked} />
       </SettingsGroup>
       <SettingsGroup title="Your data">
         <Item>

@@ -77,6 +77,9 @@ function SocialTabsFrame() {
   conversations={conversations}
   requests={requests}
   onOpenChat={(friend) => …}
+  onViewProfile={(friend) => …}
+  onRemove={(friend) => …}
+  onBlock={(friend) => …}
   onSendRequest={(who) => …}
   onAnswerRequest={(request, answer) => …}
   onShareLink={copyLink}

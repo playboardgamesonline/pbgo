@@ -28,6 +28,9 @@ export type TableSettingKey = "visibility" | "min_rank" | "language" | "pace" | 
 /** Who may find a table: a public one is listed, a private one is reached by its link. */
 export type TableVisibility = "public" | "private"
 
+/** Where a friend request is sent from (PLT-23): the form that takes a username and a tag, or the button of a profile. */
+export type FriendRequestSource = "form" | "profile"
+
 /** Where a list of tables is drawn. */
 export type TableListSource = "game_page" | "tables_tab" | "home"
 
@@ -84,6 +87,17 @@ export type ServerEvents = {
   signed_out: Record<string, never>
   /** An account was closed on its member's word (`requested`), reopened with the link of the e-mail (`reopened`) or deleted at once (`deleted_now`), or deleted by the nightly clean-up when its days were over (`purged`). No person is behind it. */
   account_deletion: { step: "requested" | "reopened" | "deleted_now" | "purged" }
+  /**
+   * A member sent a friend request that waits for an answer (PLT-23): `source` says where from, the form that takes a username and a tag or the button of a profile. Not the request that accepts one the other had sent: that is `friend_request_answered`.
+   * Never a name or a tag, and no account. No person is behind it.
+   */
+  friend_request_sent: { source: FriendRequestSource }
+  /** A friend request was answered: accepted (by the member it was sent to, or by sending one to a member who had sent one), declined by the one who got it, or cancelled by the one who sent it. No person is behind it. */
+  friend_request_answered: { answer: "accepted" | "declined" | "cancelled" }
+  /** A member removed a friend. No person is behind it. */
+  friend_removed: Record<string, never>
+  /** A member blocked another, and `were_friends` says whether they were friends. Never who. No person is behind it. */
+  member_blocked: { were_friends: boolean }
   rematch_started: { game: string }
   takeover_vote_started: { game: string }
   takeover_completed: { game: string }

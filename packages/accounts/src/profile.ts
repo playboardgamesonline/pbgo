@@ -60,6 +60,18 @@ export function parseProfileSegment(segment: string): Handle | null {
   return tag >= TAG_MIN && tag <= TAG_MAX && isNickname(nickname) ? { nickname, tag } : null
 }
 
+/**
+ * A handle as a member types it, `Alex#0042` (the tag may be "42" or "0042"): the nickname as a profile keeps it (spaces collapsed, trimmed) and the tag, or null when it cannot name anybody: no `#`, no nickname, a nickname no profile can have, or a tag out of range.
+ * A nickname holds no `#`, so the first one is where the tag starts.
+ */
+export function parseHandleText(text: string): Handle | null {
+  const hash = text.indexOf("#")
+  if (hash < 0) return null
+  const nickname = cleanDisplayName(text.slice(0, hash))
+  const tag = checkTag(text.slice(hash + 1))
+  return isNickname(nickname) && tag.ok ? { nickname, tag: tag.tag } : null
+}
+
 /** A tag as a member typed it ("42", "0042" or "#0042"): the number, or what is wrong with it. */
 export function checkTag(text: string): { ok: true; tag: number } | { ok: false; problem: string } {
   const digits = text.trim().replace(/^#/, "")

@@ -20,6 +20,7 @@ Each part is the component of the package as the page of its own shows it, given
 | Cup | Press it to lift it, or pick a pose | [Cups](02-components/17-cups.md) |
 | Dice tray | Pick the shape and the number of dice, roll them | [Dice](02-components/10-dice.md) |
 | Fields | Press one to write a clue, to bet, to pick a face | [Text field](02-components/11-text-field.md), [Bets and choices](02-components/12-bets-and-choices.md) |
+| Sketch | Switch it on and the camera backs off to show the sheet on the right of the table: draw on it, pick a colour and a brush, undo a stroke or clear it | [Drawing](02-components/21-drawing.md) |
 | Seats | Seat two to five players around the table | [Seats](02-components/03-seats.md) |
 | Camera | Move it back or forward, look from above | [Camera](02-components/02-camera.md) |
 

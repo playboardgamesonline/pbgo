@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { type ReactNode, useState } from "react"
-import { bagSize, createSaveableRng, drawFromBag, restoreRng } from "@pbgo/engine-kit"
+import { addStrokes, bagSize, createSaveableRng, drawFromBag, drawingPoints, emptyDrawing, EngineError, restoreRng, undoStroke } from "@pbgo/engine-kit"
 import { askChoice, askNumber, askText } from "@pbgo/core/components/game/prompt"
 import { PromptHost } from "@pbgo/core/components/game/prompt-host"
 import { Button } from "@pbgo/ui/platform/button"
@@ -25,11 +25,14 @@ import {
   PLAY_NUMBERS,
   PLAY_PART_NAMES,
   PLAY_PIECES,
+  PLAY_SKETCH,
   type PlayActions,
   type PlayPart,
   type PlayPiece,
   type PlayState,
   type PlayThing,
+  SKETCH_BRUSHES,
+  SKETCH_COLORS,
 } from "../_specimens/scene/defaults"
 import { SceneFrame } from "../_specimens/scene/frame"
 import { PlaygroundScene, PlaygroundTuning } from "../_specimens/scene/lazy"
@@ -42,6 +45,11 @@ const SLOTS = Array.from({ length: 24 }, (_, n) => ({ x: -2.4 + (n % 4) * 1.6, z
 const freeSlot = (things: readonly PlayThing[]) => SLOTS.find((slot) => !things.some((thing) => Math.hypot(thing.x - slot.x, thing.z - slot.z) < 1)) ?? { x: 0, z: 0 }
 
 const rollFor = (shape: DiceShape) => Array.from({ length: PLAY_LIMITS.dice }, () => 1 + Math.floor(Math.random() * DICE_SIDES[shape]))
+/** What the playground's sheet is kept under: the engine's own limits, for a palette and brushes of the specimens' sizes */
+const SHEET_RULES = { colors: SKETCH_COLORS.length, widths: SKETCH_BRUSHES.length }
+/** The parts that lie beyond the rest of the table: the camera backs off to at least this distance when one is switched on */
+const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom }
+
 const freshBag = () => ({ counts: [...BAG_START], rng: createSaveableRng(BAG_SEED).save(), drawn: 0 })
 
 const START: PlayState = {
@@ -55,7 +63,7 @@ const START: PlayState = {
   ],
   nextId: 7,
   selected: null,
-  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, seats: false },
+  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, seats: false },
   counter: 12,
   stepper: PLAY_NUMBERS.stepper.start,
   slider: PLAY_NUMBERS.slider.start,
@@ -67,6 +75,7 @@ const START: PlayState = {
   text: "",
   bet: null,
   face: null,
+  sketch: { strokes: emptyDrawing(), color: 0, width: 1 },
   players: 4,
   above: false,
   zoom: PLAY_LIMITS.zoom.start,
@@ -117,10 +126,24 @@ export function Playground() {
     slide: (slider) => set({ slider }),
     bet: (value) => set({ bet: value }),
     pick: (face) => set({ face }),
+    // The sheet keeps what the engine keeps: strokes that do not fit are let go, as a board that was told no would
+    ink: (incoming) =>
+      setState((now) => {
+        try {
+          return { ...now, sketch: { ...now.sketch, strokes: addStrokes(now.sketch.strokes, incoming, SHEET_RULES) } }
+        } catch (error) {
+          if (error instanceof EngineError) return now
+          throw error
+        }
+      }),
   }
+  const pen = (patch: Partial<PlayState["sketch"]>) => setState((now) => ({ ...now, sketch: { ...now.sketch, ...patch } }))
 
-  // The seats stand on a ring wider than the rest of the table, so the camera backs off to see them
-  const showPart = (part: PlayPart, on: boolean) => set({ parts: { ...parts, [part]: on }, ...(part === "seats" && on ? { zoom: Math.max(state.zoom, 28) } : {}) })
+  // The seats stand on a ring wider than the rest of the table and the sheet lies beyond it, so the camera backs off to see them
+  const showPart = (part: PlayPart, on: boolean) => {
+    const farthest = BACK_OFF[part]
+    set({ parts: { ...parts, [part]: on }, ...(on && farthest !== undefined ? { zoom: Math.max(state.zoom, farthest) } : {}) })
+  }
   const roll = () => setState((now) => ({ ...now, dice: { ...now.dice, values: rollFor(now.dice.shape), rolls: now.dice.rolls + 1 } }))
   const askClue = () => void askText({ title: "Your clue", description: "One word that the others will guess from.", value: state.text, placeholder: "Press to write a clue", rules: { max: FIELD_LENGTH.start, lines: 1 } }).then((text) => text !== null && set({ text }))
   const askBet = () => askNumber({ title: "Your bet", description: "How many tricks you think you will win.", value: state.bet ?? undefined, min: 0, max: BET_MOST }).then((value) => value !== null && set({ bet: value }))
@@ -143,7 +166,7 @@ export function Playground() {
         <main className="min-h-0 flex-1 max-lg:min-h-[45svh]">
           <SceneFrame
             fill
-            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
+            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
           >
             <PlaygroundScene state={state} actions={actions} />
           </SceneFrame>
@@ -279,6 +302,19 @@ export function Playground() {
                   <Button variant="outline" size="sm" onClick={() => void askFace()}>
                     Pick a face
                   </Button>
+                </Part>
+                <Part part="sketch" on={parts.sketch} onChange={(on) => showPart("sketch", on)}>
+                  <Choice label="Colour" value={String(state.sketch.color)} options={SKETCH_COLORS.map((name, k) => ({ value: String(k), label: name, description: `${name} ink` }))} onChange={(color) => pen({ color: Number(color) })} />
+                  <Choice label="Brush" value={String(state.sketch.width)} options={SKETCH_BRUSHES.map((brush, k) => ({ value: String(k), label: brush.name, description: `${brush.name} brush` }))} onChange={(width) => pen({ width: Number(width) })} />
+                  <Button variant="outline" size="sm" disabled={state.sketch.strokes.length === 0} onClick={() => setState((now) => ({ ...now, sketch: { ...now.sketch, strokes: undoStroke(now.sketch.strokes) } }))}>
+                    Undo a stroke
+                  </Button>
+                  <Button variant="ghost" size="sm" disabled={state.sketch.strokes.length === 0} onClick={() => pen({ strokes: emptyDrawing() })}>
+                    Clear
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    <span className="text-foreground tabular-nums">{state.sketch.strokes.length}</span> strokes, <span className="text-foreground tabular-nums">{drawingPoints(state.sketch.strokes)}</span> points
+                  </span>
                 </Part>
                 <Part part="seats" on={parts.seats} onChange={(on) => showPart("seats", on)}>
                   <Choice

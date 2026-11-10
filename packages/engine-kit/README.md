@@ -158,6 +158,20 @@ The text a player writes is cleaned and bounded in one place, in `apply`, before
 
 A text written in secret by every player is a `Submissions<string>`: the view says who wrote, never what, until the step is resolved.
 
+### Drawing (`drawing.ts`)
+
+What a player draws is cleaned and bounded in one place, in `apply`, as a text is (`docs/engine/02-components/21-drawing.md`). A drawing is a list of strokes, each `{ color, width, points }`: the colour and the width are indexes of the game's palette and brushes, and the points are a flat list of whole numbers on a grid of `DRAWING_GRID` (1000) on each side.
+
+| | |
+| --- | --- |
+| `cleanStroke(input, rules)` | One stroke checked and given back as a new object: the numbers rounded, a point that comes twice in a row kept once. `EngineError("INVALID_DRAWING")` for anything that is not a stroke, a colour or a width outside the palette, points off the grid, or more points than a stroke may have (counted as sent). |
+| `addStrokes(drawing, input, rules)` | The drawing with the strokes of `input` added, as a new list. `INVALID_DRAWING` for what is not a list of strokes, `EngineError("DRAWING_FULL")` when the strokes or the points would pass the limits. |
+| `cleanDrawing(input, rules)` | A whole drawing handed in at once, checked as strokes added to an empty sheet. |
+| `undoStroke(drawing)`, `drawingPoints(drawing)`, `emptyDrawing()` | The drawing without its last stroke, how many points it holds in all, and a sheet with nothing on it. |
+| `DrawingRules`, `DRAWING_LIMITS`, `DRAWING_GRID` | `colors` and `widths` (how many there are), the limits `strokes`, `points` and `strokePoints` (60, 2,500 and 400 unless a game says less), and the grid. |
+
+A drawing that every player makes in secret is a `Submissions<Drawing>`: the view says who has drawn, never what, until the step is resolved.
+
 ### Opaque ids (`ids.ts`)
 
 A card that clients can see (face down on the table, in a hand, in a pile) is shown under an id, never under what it is. An id is a number that says nothing about the card or its place. The kit keeps the link in one table, `ids`, aligned with the game's catalogue: `ids[card]` is the id held, now, by the card at index `card` of the catalogue. Piles, hands and tables hold ids only.

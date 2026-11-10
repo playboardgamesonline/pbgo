@@ -1,10 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { Account } from "@pbgo/accounts"
 import { DEMO_ACCOUNT } from "@pbgo/accounts/demo"
+import type { SocialState } from "@pbgo/core/lib/friends"
+import { panelOf } from "@pbgo/core/lib/friends-view"
 import type { Friend } from "@pbgo/ui/friends"
 import type { Conversation, FriendRequest } from "@pbgo/ui/social"
+import { useSocialState } from "./social-store"
 
 /** What the social panel of the navbar holds: the friends, the conversations with them and the requests to be friends. */
 export type Social = { friends: readonly Friend[]; requests: readonly FriendRequest[]; conversations: readonly Conversation[] }
@@ -12,14 +15,20 @@ export type Social = { friends: readonly Friend[]; requests: readonly FriendRequ
 const NOBODY: Social = { friends: [], requests: [], conversations: [] }
 
 /**
- * The friends, the conversations and the requests of a signed-in visitor, for the social panel that every page of the hub has (`SiteSocial`). The pages are static
- * and the panel is in the browser, so they are asked for here and not by the page. Nobody has any yet for a real account (PLT-23: they are in the platform schema,
- * which does not exist), so this is nothing, and this is where they will be read, with the presence of the friends, when they do. The demo account of development
- * has made-up ones (`demo-data.ts`), loaded only in development: the check on `NODE_ENV` is the build's, which drops the import from a deployment.
+ * The friends, the conversations and the requests of a signed-in visitor, for the social panel that every page of the hub has (`SiteSocial`). The pages are static and the panel is in the browser, so they are asked for here and not by the page: a real account's
+ * friends, with whether they are online and the game they are at, and the requests, come from `GET /api/hub/friends`, read when the panel is on the page and again every 20 s while a tab is in view (`social-store.ts`); there are no conversations until
+ * the messages exist (PLT-25). The demo account of development has made-up ones (`demo-data.ts`), loaded only in development: the check on `NODE_ENV` is the build's, which drops the import from a deployment. A page that has read the state on the server
+ * (`social-state.ts`) gives it as `initial`, which is shown until the browser has read it.
  */
-export function useSocial(account: Account): Social {
+export function useSocial(account: Pick<Account, "id">, initial?: SocialState | null): Social {
   const [demo, setDemo] = useState<Social | null>(null)
   const isDemo = account.id === DEMO_ACCOUNT.id
+  const state = useSocialState(isDemo ? null : account.id, initial)
+  const real = useMemo<Social>(() => {
+    if (!state) return NOBODY
+    const { friends, requests } = panelOf(state)
+    return { friends, requests, conversations: [] }
+  }, [state])
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || !isDemo) return
@@ -32,5 +41,5 @@ export function useSocial(account: Account): Social {
     }
   }, [isDemo])
 
-  return isDemo && demo ? demo : NOBODY
+  return isDemo ? (demo ?? NOBODY) : real
 }

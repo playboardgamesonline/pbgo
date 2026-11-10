@@ -1,4 +1,5 @@
 import type { PlayedGame } from "@pbgo/accounts"
+import type { Person } from "@pbgo/core/lib/friends"
 import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
 import type { Friend } from "@pbgo/ui/friends"
 import type { Conversation, FriendRequest } from "@pbgo/ui/social"
@@ -26,6 +27,12 @@ export const DEMO_REQUESTS: readonly FriendRequest[] = [
   { id: "r1", nickname: "Nolan", tag: "6150", avatarUrl: DEMO_AVATARS.nolan, direction: "incoming" },
   { id: "r2", nickname: "Clara", tag: "8827", avatarUrl: DEMO_AVATARS.clara, direction: "incoming" },
   { id: "r3", nickname: "Yann", tag: "3069", avatarUrl: DEMO_AVATARS.yann, direction: "outgoing" },
+]
+
+/** The players the demo account blocked (PLT-23), with no picture: their initial stands in. */
+export const DEMO_BLOCKED: readonly Person[] = [
+  { nickname: "Rex", tag: 1234, avatarUrl: null },
+  { nickname: "Vic", tag: 7, avatarUrl: null },
 ]
 
 const ago = (minutes: number, now: number) => new Date(now - minutes * 60_000).toISOString()

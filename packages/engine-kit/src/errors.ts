@@ -15,6 +15,8 @@ export const SHARED_ERROR_CODES = [
   "INVALID_TEXT", // a text a player wrote is empty, too long or not a text (`cleanText` throws it)
   "INVALID_NUMBER", // a number a player chose is not a number, is outside the range or is off the steps (`cleanNumber` throws it)
   "INVALID_CHOICE", // an option a player chose is not one of the options (`cleanChoice` and `cleanChoices` throw it)
+  "INVALID_DRAWING", // a stroke or a drawing a player sent is not one: a colour or width that is not in the palette, points off the sheet, none, too many (`cleanStroke`, `addStrokes` and `cleanDrawing` throw it)
+  "DRAWING_FULL", // the sheet has no room left for the strokes: the most strokes or points the game allows would be passed (`addStrokes` throws it)
   "AUTOPLAY_UNSUPPORTED", // the engine cannot play for this player (the kit throws it)
 ] as const
 export type SharedErrorCode = (typeof SHARED_ERROR_CODES)[number]
