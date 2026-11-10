@@ -53,7 +53,8 @@ export function GameRecord({ game, timeFormat = "auto" }: { game: PlayedGame; ti
       <ItemMedia>
         <GameThumb slug={game.slug} name={game.name} />
       </ItemMedia>
-      <ItemContent>
+      {/* The text keeps at least this much room: where the card is narrower, the result goes under it, instead of squeezing the name of the game into three lines */}
+      <ItemContent className="min-w-52">
         <ItemTitle>
           <Link href={`/game/${game.slug}`} className="hover:underline">
             {game.name}
