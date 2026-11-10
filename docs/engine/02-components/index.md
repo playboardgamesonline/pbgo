@@ -42,7 +42,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Cup | A cover that hides dice, is shaken and slammed down, tilted to be looked under, lifted away, or tipped to pour them out | A hidden roll: the roll kept in the state, a view that hides it | `Cup`, and the `Die`s under it or thrown from it | Built: [Cups](17-cups.md) |
 | Bag | Tokens of several kinds that are drawn at random without being seen | A count for each kind, `drawFromBag`, `bagSize` | `Bag`, and the `Piece`s that come out of its mouth | Built: [Bags](18-bags.md) |
 | Timer | A clock that ends a step: the time left is shown, and at the deadline the game plays for whom it waits for | A `Timer` in the state, `begin`, `nextDeadline` and a system action | `Timer`, an hourglass | Built: [Timers](20-timers.md) |
-| Drawing | Strokes a player draws and the others see | Strokes kept as bounded data | A drawing zone | To build |
+| Drawing | Strokes a player draws on a sheet of paper and the others see: lines of points in a colour and a width | `cleanStroke`, `addStrokes`, `undoStroke` and the shared codes `INVALID_DRAWING` and `DRAWING_FULL` | `Sketch` | Built: [Drawing](21-drawing.md) |
 | Drag | Picking a card or a piece up and dropping it on a zone or a cell | Nothing new: a drop is an action, checked like a click | `draggable`, `dropOn` and `onDrop` of `Card` and `Piece`, `DropZone`, `useDrag`, and `drops` of a `Board` | Built: [Dragging](19-dragging.md) |
 
 ## The pages
@@ -68,6 +68,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Bags](18-bags.md): tokens drawn at random from counts kept in the state, and the bag the tokens come out of.
 - [Dragging](19-dragging.md): a card or a piece picked up with the pointer and let go on a zone or a cell, and what the engine does with the drop.
 - [Timers](20-timers.md): the clock of a step in the engine, a deadline the server plays, and the hourglass that shows the time that is left.
-- [Rules of the board](21-rules-of-the-board.md): what holds for every board, whatever the game.
+- [Drawing](21-drawing.md): the strokes a player draws, kept as bounded data on a grid in the engine, and the sheet of paper that the pointer draws on and the others read on the table.
+- [Rules of the board](22-rules-of-the-board.md): what holds for every board, whatever the game.
 
 What no tool draws or holds yet is on [Not built yet](../03-not-built-yet.md), with what holds instead. The players and the turn are in [The game](../01-the-game/index.md).

@@ -24,6 +24,8 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   INVALID_TEXT: "This text can't be used. It may be empty or too long.",
   INVALID_NUMBER: "This number can't be used.",
   INVALID_CHOICE: "This choice isn't available.",
+  INVALID_DRAWING: "This drawing can't be used.",
+  DRAWING_FULL: "The sheet is full: there is no room for more strokes.",
   AUTOPLAY_UNSUPPORTED: "This game can't play for this player.",
   // What the routes of a game refuse with
   INVALID_NICKNAME: "Pick a nickname.",

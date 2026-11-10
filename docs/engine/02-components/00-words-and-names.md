@@ -57,6 +57,7 @@ The code has no component for some of the words used for the parts of a table. T
 | cup, shaker, hidden roll | `Cup` (covers dice, shakes, tilts, lifts, tips over); the roll is `rollDice` of the kit, hidden by the view | Shared | [Cups](17-cups.md) |
 | bag, pouch, draw a token | `Bag` (draws come out of its mouth, `bagMouth`); `drawFromBag` and `bagSize` of the kit | Shared | [Bags](18-bags.md) |
 | timer, clock, time limit, deadline, hourglass | `Timer` (an hourglass that shows the time left to a step); a `Timer` in the state, `begin`, `nextDeadline` and a system action in the engine, `startTimer` and `systemAction` of the kit | Shared | [Timers](20-timers.md) |
+| drawing, sketch, stroke, sheet, pen, brush | `Sketch` (a sheet of paper that the pointer draws on); a `Stroke` and a `Drawing` in the state, `addStrokes` and `cleanStroke` of the kit | Shared | [Drawing](21-drawing.md) |
 | drag, drop, drop zone, pick up | `draggable`, `dropOn` and `onDrop` of a `Card` or a `Piece`, `DropZone`, and `drops` of a `Board`; the engine checks the drop like a click | Shared | [Dragging](19-dragging.md) |
 | game board, grid, square, hexagon, cell | `Board` (the cells, which can be pressed), `squareCells`, `hexCells`, a `Piece` or a `TrackMarker` on a cell; `squareBoard`, `hexBoard`, `reachable`, `shortestPath`, `regionOf`, `lineBetween`, `rayFrom` of the kit | Shared | [Boards](16-boards.md) |
 | map of places and roads, territories | Nothing: a board is a regular grid | Not built | [Not built yet](../03-not-built-yet.md) |

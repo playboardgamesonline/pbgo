@@ -61,6 +61,8 @@ An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit
 | `INVALID_TEXT` | A text the player wrote is empty, too long or not a text: `cleanText` throws it ([Text field](../02-components/11-text-field.md)) |
 | `INVALID_NUMBER` | A number the player chose is not a number, is outside the range or is off the steps: `cleanNumber` throws it ([Bets and choices](../02-components/12-bets-and-choices.md)) |
 | `INVALID_CHOICE` | An option the player chose is not one of the options: `cleanChoice` and `cleanChoices` throw it ([Bets and choices](../02-components/12-bets-and-choices.md)) |
+| `INVALID_DRAWING` | A stroke or a drawing the player sent is not one: a colour or a width outside the palette, points that are not pairs on the grid, none, or too many in a stroke: `cleanStroke`, `addStrokes` and `cleanDrawing` throw it ([Drawing](../02-components/21-drawing.md)) |
+| `DRAWING_FULL` | The sheet has no room for the strokes: the most strokes or the most points would be passed. It is the sheet's fault and not the stroke's: `addStrokes` throws it ([Drawing](../02-components/21-drawing.md)) |
 | `AUTOPLAY_UNSUPPORTED` | The engine cannot play for this player; the kit throws it |
 
 - Take the code whose meaning is yours: `INVALID_ACTION` for an action that is wrong anywhere (an unknown type, a missing field), `INVALID_PHASE` for the right action at the wrong moment, `GAME_OVER` for any action once the game has ended.
