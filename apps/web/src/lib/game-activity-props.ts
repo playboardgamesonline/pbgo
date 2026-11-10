@@ -1,11 +1,13 @@
 import { Brain02Icon, ChildIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
-import { ordinal, type TimeFormat } from "@pbgo/accounts"
-import { PLATFORM_LANGUAGES } from "@pbgo/accounts/language"
+import { ordinal, profilePath, type TimeFormat } from "@pbgo/accounts"
+import { SPOKEN_LANGUAGES } from "@pbgo/accounts/language"
+import { unmetCriteria, type Unmet, type Viewer } from "@pbgo/core/lib/table-settings"
 import type { LeaderboardRow } from "@pbgo/ui/leaderboard"
 import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import type { TableCardProps } from "@pbgo/ui/platform/table-card"
 import type { TableEntryProps } from "@pbgo/ui/platform/table-entry"
+import { QUEUE_MODE_LABELS } from "@pbgo/ui/queue"
 import { ageOf, hostOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, tableAction, tagOf, type TableSeat, type TableState } from "@pbgo/ui/tables"
 import { categoryIcon } from "./category-icons"
 import { perTimeFormat } from "./time-format"
@@ -15,8 +17,11 @@ import { durationLabel, playersLabel } from "./game-card-props"
 // What the blocks of a game's page draw, made of the rows of `game-activity.ts`: the one place that words a table (its name, its age, what to know before sitting down, what a visitor may do at it), a visitor's figures and games, and
 // that picks what a leaderboard row shows of a standing. The components of `@pbgo/ui` draw what they are given; the docs' specimens run their demo rows through these functions too, so that they show what the page will.
 
-/** The languages a lobby may ask its players to speak: the platform's twelve, each as its own name (the button that says who may join offers them, `LobbyAccess`). */
-export const LANGUAGE_OPTIONS = PLATFORM_LANGUAGES.map(({ id, title }) => ({ value: id, label: title }))
+/** The languages a lobby may ask its players to speak: one for each language people speak, so English once (a table is not played in "English (UK)"), each as its own name (the button that says who may join offers them, `LobbyAccess`). */
+export const LANGUAGE_OPTIONS = SPOKEN_LANGUAGES.map(({ id, name }) => ({ value: id, label: name }))
+
+/** The name of a language the lobby offers, as the button that says who may join writes it (its code when it is not one of them). */
+const languageName = (code: string): string => LANGUAGE_OPTIONS.find(({ value }) => value === code)?.label ?? code
 
 /** The pace of a table, when it is worth saying: a table with no clock, one that leaves days to play, or a clock that is not the usual one. The usual pace (`normal`) is not said. */
 const PACE: Partial<Record<TurnTimer, string>> = { none: "No timer", slow: "Slow turns", fast: "Fast turns", async: "Async" }
@@ -24,14 +29,20 @@ const PACE: Partial<Record<TurnTimer, string>> = { none: "No timer", slow: "Slow
 /** The seats of a table, in order: each person with their name, tag, picture, record and whether they opened it, `null` for a seat nobody took. */
 export function seatsOfTable(table: GameTable): TableSeat[] {
   return seatsOf(
-    table.players.map(({ seat, name, avatarUrl, playerId, record }) => ({
-      seat,
-      name: name === null ? null : nicknameOf(name),
-      tag: name === null ? null : tagOf(name),
-      avatarUrl,
-      host: playerId === table.hostId,
-      record,
-    })),
+    table.players.map(({ seat, name, avatarUrl, playerId, record }) => {
+      const nickname = name === null ? null : nicknameOf(name)
+      const tag = name === null ? null : tagOf(name)
+      return {
+        seat,
+        name: nickname,
+        tag,
+        avatarUrl,
+        host: playerId === table.hostId,
+        record,
+        // An account's seat leads to its profile (PLT-39); a guest has no tag and no profile
+        href: nickname !== null && tag !== null ? profilePath({ nickname, tag: Number(tag) }, "seat") : null,
+      }
+    }),
     table.seatsMax,
   )
 }
@@ -67,10 +78,32 @@ export function expansionOption(expansion: Expansion): ExpansionOption {
   }
 }
 
-/** The facts of a table worth saying before sitting down: the pace when it is not the usual one, then the expansions it is played with (every table counts for the leaderboard, so that is not said). */
+/** What a public table asks of the people who sit at it, in words ("Silver and above", "French"): nothing for a table that is not public, which is reached by its link and asks for nothing. */
+export function criteriaOf(table: Pick<GameTable, "visibility" | "minRank" | "language">): string[] {
+  if (table.visibility !== "public") return []
+  return [table.minRank ? `${table.minRank} and above` : undefined, table.language ? languageName(table.language) : undefined].filter((criterion) => criterion !== undefined)
+}
+
+/** What a visitor does not meet at a table (its minimum rank, its language), or null: they meet it, or it asks for nothing, or there is no visitor to ask (`viewer` null). */
+export function unmetOfTable(table: Pick<GameTable, "visibility" | "minRank" | "language">, viewer: Viewer | null): Unmet | null {
+  if (!viewer) return null
+  return unmetCriteria({ visibility: table.visibility, ...(table.minRank ? { minRank: table.minRank } : {}), ...(table.language ? { language: table.language } : {}) }, viewer)
+}
+
+/** What the button of a table says when the visitor does not meet what it asks: the rank or the language, in the words of its tags. */
+function unmetLabel(table: Pick<GameTable, "minRank" | "language">, unmet: Unmet): string {
+  if (unmet === "rank") return `Requires ${table.minRank} and above`
+  if (unmet === "gap") return "Too far from this table's rank"
+  return `Requires ${languageName(table.language ?? "")}`
+}
+
+/** How a table counts, in the word the screens use for it: "Ranked" for a table played for the rank, "Normal" for any other. */
+export const modeOfTable = (table: Pick<GameTable, "ranked">): string => QUEUE_MODE_LABELS[table.ranked ? "ranked" : "normal"]
+
+/** The facts of a table worth saying before sitting down: how it counts, "Normal" or "Ranked", then the pace when it is not the usual one, then the expansions it is played with, then what it asks of its players. */
 function factsOf(table: GameTable, expansions: readonly Expansion[]): string[] {
   const names = table.expansions.flatMap((id) => expansions.find((expansion) => expansion.id === id)?.name ?? [])
-  return [PACE[table.turnTimer], ...names].filter((fact) => fact !== undefined)
+  return [modeOfTable(table), PACE[table.turnTimer], ...names, ...criteriaOf(table)].filter((fact) => fact !== undefined)
 }
 
 /** The name of a table: its host's, or its code when the host has deleted their account. */
@@ -99,14 +132,16 @@ export function tableCardProps(table: GameTable, slug: string, now: number = Dat
 }
 
 /** The row of a table in the list of the open tables of the game `slug`: who hosts it, a circle for each of its seats, what to know about it and how old it is (`TableEntry`). `mine` is for the table that the visitor sits at, whose free seats invite instead of join. */
-export function tableEntryProps(table: GameTable, slug: string, now: number = Date.now(), expansions: readonly Expansion[] = [], mine = false): Omit<TableEntryProps, "selected" | "onSelect" | "controls"> {
+export function tableEntryProps(table: GameTable, slug: string, now: number = Date.now(), expansions: readonly Expansion[] = [], mine = false, unmet: Unmet | null = null): Omit<TableEntryProps, "selected" | "onSelect" | "controls"> {
   const seats = seatsOfTable(table)
+  // A visitor who does not meet what the table asks has no free seat to sit at: the row says what it asks (its facts), and the seats are not a way in
+  const action = actionOf(table, seats)
   return {
     state: table.status === "lobby" ? "waiting" : "playing",
     seats,
     age: ageOfTable(table, now),
     facts: factsOf(table, expansions),
-    action: actionOf(table, seats),
+    action: unmet && action === "join" ? null : action,
     href: `/${slug}/game/${table.code}`,
     mine,
   }
@@ -125,6 +160,8 @@ export function leaderboardRow(standing: Standing): LeaderboardRow {
     name: standing.nickname,
     avatarUrl: standing.avatarUrl,
     rank: standing.rank,
+    // A player's name leads to their profile (PLT-39); one with no tag has none
+    href: standing.tag > 0 ? profilePath({ nickname: standing.nickname, tag: standing.tag }, "leaderboard") : null,
   }
 }
 
@@ -140,7 +177,8 @@ export function tableDetailProps(
   expansions: readonly Expansion[] = [],
   editable = false,
   players: { min: number | null; max: number | null } = { min: null, max: null },
-  helpers: readonly HelperOption[] = []
+  helpers: readonly HelperOption[] = [],
+  unmet: Unmet | null = null,
 ): Omit<LobbyDetailProps, "onClose"> {
   const state: TableState = table.status === "lobby" ? "waiting" : "playing"
   const seats = seatsOfTable(table)
@@ -161,8 +199,10 @@ export function tableDetailProps(
       // The helpers are for the lobby the visitor sets: a table of the list says none
       ...(editable ? { editable: true, helpers } : {}),
     },
-    // Who may join a lobby and how many players it has are for its host to set, at the top of the panel and above the seats: every other table is read
-    ...(editable ? { access: { defaultVisibility: table.visibility, languages: LANGUAGE_OPTIONS }, playerRange: playerRange(players.min, players.max) } : {}),
+    // Who may join a lobby and how many players it has are for its host to set, at the top of the panel and above the seats: every other table is read, and says what a public one asks as tags under its seats
+    ...(editable
+      ? { access: { defaultVisibility: table.visibility, defaultMinRank: table.minRank ?? null, defaultLanguage: table.language ?? null, languages: LANGUAGE_OPTIONS }, playerRange: playerRange(players.min, players.max) }
+      : { criteria: [modeOfTable(table), ...criteriaOf(table)] }),
     action: mine
       ? state === "playing"
         ? { label: "Rejoin your game", href }
@@ -170,13 +210,15 @@ export function tableDetailProps(
           editable
           ? null
           : { label: `Waiting to start · ${taken}/${total}`, disabled: true }
-      : way === "join"
-        ? { label: "Join", href }
-        : way === "full"
-          ? { label: "Full", disabled: true }
-          : null,
-    // The plus of a free seat: for the visitor who sits at the table, the menu that invites a friend or copies the link; for another, the way in
-    ...(mine && state === "waiting" ? { invite: { link: href } } : way === "join" ? { join: { href } } : {}),
+      : way === "join" && unmet
+        ? { label: unmetLabel(table, unmet), disabled: true }
+        : way === "join"
+          ? { label: "Join", href }
+          : way === "full"
+            ? { label: "Full", disabled: true }
+            : null,
+    // The plus of a free seat: for the visitor who sits at the table, the menu that invites a friend or copies the link; for another, the way in, unless the table asks what they do not have
+    ...(mine && state === "waiting" ? { invite: { link: href } } : way === "join" && !unmet ? { join: { href } } : {}),
   }
 }
 

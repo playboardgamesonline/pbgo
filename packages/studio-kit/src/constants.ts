@@ -6,11 +6,13 @@ export const LANGUAGES = [
 ] as const
 
 /**
- * Languages of the platform's content (the catalog), English first: it is the default and the fallback of every text.
+ * Languages of the platform's content (the catalog), English (US) first: it is the default and the fallback of every text. English (UK) comes second and has a text only where the UK writes it
+ * otherwise; every other text of it is the one of English (US). A regional form of a language has the id of the language and its region (`en-GB`).
  * `LANGUAGES` stays the four languages of the games until their Studios move to the same system.
  */
 export const PLATFORM_LANGUAGES = [
-  { id: "en", title: "English" },
+  { id: "en", title: "English (US)" },
+  { id: "en-GB", title: "English (UK)" },
   { id: "fr", title: "Français" },
   { id: "es", title: "Español" },
   { id: "de", title: "Deutsch" },
@@ -47,7 +49,7 @@ export const FONT_CHOICES = [
 ] as const
 
 /**
- * The labels that exist in English only: the code holds English, and the other languages come with the language pass (twelve languages, PLT-32), not typed one by one here.
+ * The labels that exist in English only: the code holds English, and the other languages come with the language pass (thirteen languages, PLT-32), not typed one by one here.
  * Their entries of `UI_TEXTS` carry this English text where `fr` goes and `translations.ts` gives it to every language, so a visitor reads English until the pass.
  * To translate one: write it in each language of `UI_TRANSLATIONS`, give its entry a French `fr` and take it out of this list.
  */
@@ -57,6 +59,7 @@ export const ENGLISH_ONLY_TEXTS = {
   lostWith: "{names} lost the game with {points} points.",
   addFriend: "Add friend",
   reportPlayer: "Report",
+  viewProfile: "View profile",
   guest: "Guest",
 } as const
 
@@ -180,6 +183,7 @@ export const UI_TEXTS = [
   { key: "history", group: "game", title: "Ticker: history toggle (small screens)", fr: "Historique" },
   { key: "addFriend", group: "game", title: "Players list: the card of a player, the button that asks them to be a friend", fr: ENGLISH_ONLY_TEXTS.addFriend },
   { key: "reportPlayer", group: "game", title: "Players list: the card of a player, the button that reports them", fr: ENGLISH_ONLY_TEXTS.reportPlayer },
+  { key: "viewProfile", group: "game", title: "Players list: the card of a player, the button that leads to their profile (opens in another tab, so that the game is not left)", fr: ENGLISH_ONLY_TEXTS.viewProfile },
   { key: "guest", group: "game", title: "Menu of the picture: what a visitor who is not signed in is called", fr: ENGLISH_ONLY_TEXTS.guest },
 ] as const
 

@@ -4,14 +4,15 @@ import { initials } from "../friends"
 import { recordOf } from "../results"
 import type { SeatedPlayer } from "../tables"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
+import { Button } from "./button"
 import { RankBadge } from "./rank-badge"
 
-// What the card of a player says, which opens under the pointer on their picture (`HoverCard`): the picture, big, their name and tag, and what they have done in the game: their rank, and how many of their games they won. A guest has no
-// tag and no rank, and says so; so does an account that has not played the game ranked yet. It draws what it is given.
+// What the card of a player says, which opens under the pointer on their picture (`HoverCard`): the picture, big, their name and tag, and what they have done in the game: their rank, and how many of their games they won, then, for an account, a button
+// that leads to their profile (`href`). A guest has no tag, no rank and no profile, and says so; so does an account that has not played the game ranked yet. It draws what it is given.
 
 /** The card of a player: draw it in a `HoverCardContent`, or by itself where a player is introduced. */
 function UserCard({ player, className, ...props }: Omit<React.ComponentProps<"div">, "children"> & { player: SeatedPlayer }) {
-  const { name, tag, avatarUrl, host, record } = player
+  const { name, tag, avatarUrl, host, record, href } = player
   const note = !tag ? "Guest" : host ? "Host of the table" : null
   return (
     <div data-slot="user-card" className={cn("flex flex-col gap-4", className)} {...props}>
@@ -38,6 +39,11 @@ function UserCard({ player, className, ...props }: Omit<React.ComponentProps<"di
           <dd className="truncate text-sm">{record ? recordOf(record.wins, record.gamesPlayed) : "Not ranked yet"}</dd>
         </div>
       </dl>
+      {href && (
+        <Button asChild variant="outline" size="sm" className="w-full">
+          <a href={href}>View profile</a>
+        </Button>
+      )}
     </div>
   )
 }

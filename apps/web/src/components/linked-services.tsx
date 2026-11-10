@@ -50,7 +50,8 @@ function useServiceToggle(demo: boolean, told: string | null) {
     const run = isExternalProvider(provider)
       ? () => (isLinked ? unlinkExternal(provider) : linkExternal(provider))
       : () => (isLinked ? unlinkProvider(provider) : linkProvider(provider))
-    const failure = failureOf(await changing(demo, run))
+    // Which service, and whether the member linked it or took it off: the service's name, never what the account says of itself
+    const failure = failureOf(await changing(demo, run, { account: isLinked ? "provider_unlinked" : "provider_link_started", service: provider }))
     setPending(null)
     if (failure) {
       setError(failure)

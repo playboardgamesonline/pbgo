@@ -18,6 +18,7 @@ import {
   categoriesOf,
   complexityLevel,
   complexityPick,
+  countFilters,
   filterFromParams,
   filterGames,
   filterToParams,
@@ -852,6 +853,19 @@ describe("filterFromParams", () => {
   it("takes the first of a pick that comes twice, and nothing from the others", () => {
     expect(read("players=2&players=3&utm_source=newsletter").players).toBe(2)
     expect(read("utm_source=newsletter&ref=home")).toEqual(DEFAULT_FILTER)
+  })
+})
+
+describe("countFilters", () => {
+  it("is none where the filter starts, and for a text alone", () => {
+    expect(countFilters(DEFAULT_FILTER)).toBe(0)
+    expect(countFilters({ ...DEFAULT_FILTER, query: "flip seven" })).toBe(0)
+  })
+
+  it("counts each pick that is set, each category included", () => {
+    expect(countFilters({ ...DEFAULT_FILTER, players: 5 })).toBe(1)
+    expect(countFilters({ ...DEFAULT_FILTER, players: 5, age: 10, complexity: 2, duration: 30 })).toBe(4)
+    expect(countFilters({ ...DEFAULT_FILTER, categories: ["Party", "Cards"], players: 4 })).toBe(3)
   })
 })
 

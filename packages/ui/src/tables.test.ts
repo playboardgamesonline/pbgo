@@ -16,6 +16,12 @@ describe("seatsOf", () => {
     ])
   })
 
+  it("keeps where a player's profile is with their seat, for an account (a guest has none)", () => {
+    const [account, guest] = seatsOf([{ seat: 0, name: "Alex", tag: "0042", href: "/player/Alex-0042?from=seat" }, { seat: 1, name: "Guest", href: null }], 2)
+    expect(account).toMatchObject({ name: "Alex", tag: "0042", href: "/player/Alex-0042?from=seat" })
+    expect(guest?.href ?? null).toBeNull()
+  })
+
   it("keeps the tag and the record of a player with their seat", () => {
     const record = { rank: { tier: "Gold", division: 2 } as const, gamesPlayed: 24, wins: 14 }
     const [first, second] = seatsOf([{ seat: 0, name: "Alex", tag: "0042", record }, { seat: 1, name: "Guest" }], 2)

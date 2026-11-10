@@ -9,14 +9,14 @@ The settings of a table are declared by the engine, the platform or core, narrow
 | Number of players | `minPlayers` and `maxPlayers` of the definition ([The contract](11-the-contract.md#the-contract)) | The gamemaster, within the engine's bounds (`clampPlayers`) | As `players` in `setup`, in the order they sat down; the routes hold a table to the bounds ([Players](02-players.md)) |
 | Engine options | `options` of the definition | The gamemaster sets each default and can hide an option; the host sets the options that an expansion or a helper carries | As `options` in `setup`, normalized for the players seated |
 | Expansions and helpers | The platform's Sanity project, not the engine | The host, in the settings of the lobby | Only as the option whose key is their id |
-| Speed | The platform's lobby (`PACES`) | The host, in the settings of the lobby | Not at all |
+| Speed | The platform's lobby (`PACES`) | The host, in the settings of the lobby, kept with the table (`games.settings`) | Not at all: it is shown and kept, and sets no clock yet |
 | Delay for an absent player | Core (`TURN_TIMEOUT_BOUNDS`) | The gamemaster, `turnTimeout` of the game | Not at all: core measures it for the takeover vote ([Absent players](03-turns.md#absent-players-in-core)) |
 
 - Everything a table sets reaches the engine as an argument of `setup`: `players`, `options`, `seed` and `data` ([Starting a game](01-how-a-game-runs.md#starting-a-game)). There is no other channel.
-- `TableCreator` and `OwnLobby` send option values to the routes and nothing else, so two more settings that the lobby draws stay in the page and no route receives them.
+- `TableCreator` and `OwnLobby` send option values to the options route, and the three other settings that the lobby draws (the speed, the number of players, who may join) to the settings route (`POST …/settings`, PLT-21), which keeps them with the table in `games.settings`; none of them reaches the engine.
 - The number of players: the select above the seats (`LobbyPlayers`) ranges over the game's figures in the platform's Sanity project (`playerRange`), not over the engine's bounds, and the seats fill as people join, up to the maximum.
 - Who may join: the button at the top right of the panel (`LobbyAccess`), public or private, with a minimum rank and a language.
-- A table read back from `games` has the options and the players its row holds, and it is played with every option that is `true`; its visibility, its pace and its seats are defaults of the page (`tableOfRow` in `apps/web/src/lib/game-activity.ts`).
+- A table read back from `games` has the options and the players its row holds, and it is played with every option that is `true`; its visibility, its pace, its seats and what a public table asks (a minimum rank, a language) are its settings (`games.settings`, read apart by `readTableSettingsOf`), and a table with none is private, of the usual speed and of the game's seats (`tableOfRow` in `apps/web/src/lib/game-activity.ts`).
 
 ## Options
 

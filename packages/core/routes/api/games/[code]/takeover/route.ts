@@ -10,6 +10,7 @@ import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { markTakenOver, recordGameResult } from "../../../../../server/results"
+import { isSeated, seatedPlayers, settleLeavers } from "../../../../../server/table-rules"
 import { TakeoverError, castVotes, isStalled, parseVotes, presentPlayers, sameVotes } from "../../../../../server/takeover"
 
 /**
@@ -41,7 +42,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       outcome.played = 0
       outcome.targets = []
       outcome.clocked = []
-      if (!id || !row.players.some((p) => p.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
+      if (!id || !isSeated(row, id)) throw new ApiError("UNKNOWN_PLAYER", 403)
       if (row.status !== "playing" || !row.state) throw notPlaying(row)
       const now = Date.now()
       // A game with a clock that has run out has moved on without a vote: the deadline is played, and the votes that were for the state before it are no more
@@ -55,9 +56,9 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       const fingerprint = stateFingerprint(row.state)
       try {
         const { entries, play } = castVotes({
-          players: row.players,
+          players: seatedPlayers(row.players),
           waiting,
-          present: presentPlayers(row.players, row.seen, now),
+          present: presentPlayers(seatedPlayers(row.players), row.seen, now),
           entries: row.takeover_votes,
           fingerprint,
           voter: id,
@@ -81,6 +82,11 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
             outcome.targets.push(target)
           }
         }
+        // The steps that follow may be ones that the game waits for from players who left: the server plays them too (PLT-120)
+        const settled = settleLeavers(GAME, state, row.players, now)
+        state = settled.state
+        events.push(...(settled.events ?? []))
+        for (const left of settled.played) if (!outcome.targets.includes(left)) outcome.targets.push(left)
         // The first vote on this state, and the last one: on a table of two they are the same request
         outcome.started = !parseVotes(row.takeover_votes, fingerprint).length
         outcome.completed = true

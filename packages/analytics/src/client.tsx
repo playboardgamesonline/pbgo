@@ -6,12 +6,17 @@ import { ConsentBanner } from "./banner"
 import { identifyPlayer, syncConsent, trackClient } from "./browser"
 import { ANALYTICS_ENABLED, isExcludedPath } from "./config"
 import { answerOf, type Answer } from "./consent"
+import { gamePageClickOf } from "./cta"
+import type { ClientEvents } from "./events"
 import { consentStore } from "./store"
 
 export { trackClient }
 
 /** A link of the hub to a game (the cards of the live games): a plain link, `data-game` holds the slug. */
 const GAME_LINK = "a[data-game]"
+
+/** A button of a game's page that counts itself: `data-cta` says which and `data-cta-game` of which game (`gamePageClickOf`). */
+const GAME_PAGE_BUTTON = "[data-cta]"
 
 /** The visitor's answer: stored, followed by the SDK at once, then reported in the mode they just chose. */
 function choose(answer: Answer): void {
@@ -69,6 +74,19 @@ export function AnalyticsProvider({ floating = false }: { /** The banner floats 
     return () => document.removeEventListener("click", onClick)
   }, [reporting, onGameList])
 
+  // The buttons of a game's page (`/game/<slug>`, which `/<slug>` shows too) count themselves from their markup: the page is a server component, so none has a handler of its own
+  React.useEffect(() => {
+    if (!reporting) return
+    function onClick(event: MouseEvent) {
+      const button = event.target instanceof Element ? event.target.closest<HTMLElement>(GAME_PAGE_BUTTON) : null
+      const click = button ? gamePageClickOf(button.dataset.cta, button.dataset.ctaGame) : null
+      // A button may leave for another page or another tab: the event leaves at once
+      if (click) trackClient("game_page_clicked", click, { instant: true })
+    }
+    document.addEventListener("click", onClick)
+    return () => document.removeEventListener("click", onClick)
+  }, [reporting])
+
   if (!reporting || !ready || !open) return null
   return <ConsentBanner reopened={consent !== null} current={answerOf(consent)} floating={floating} onChoose={choose} onClose={consentStore.dismiss} />
 }
@@ -91,6 +109,26 @@ export function ConsentLink({ onClick, ...props }: Omit<React.ComponentProps<"bu
       }}
     />
   )
+}
+
+/** How long a search is left alone before it is counted: a visitor who types a word, or ticks three filters, has made one search. */
+export const SEARCH_PAUSE_MS = 1000
+
+/**
+ * Counts a search of a list (`list_searched`) once the visitor has stopped changing it for a second. `inputs` is what the visitor has asked of the list (null while they have asked nothing: a list nobody searched is not a search),
+ * and the event is sent again only when it changes; `results` is how many it shows at that moment, which the page may refresh in the meantime without it counting for a new search.
+ */
+export function useSearchReport(inputs: Omit<ClientEvents["list_searched"], "results"> | null, results: number): void {
+  const shown = React.useRef(results)
+  React.useEffect(() => {
+    shown.current = results
+  }, [results])
+  const key = inputs === null ? null : JSON.stringify(inputs)
+  React.useEffect(() => {
+    if (key === null) return
+    const timer = setTimeout(() => trackClient("list_searched", { ...(JSON.parse(key) as Omit<ClientEvents["list_searched"], "results">), results: shown.current }), SEARCH_PAUSE_MS)
+    return () => clearTimeout(timer)
+  }, [key])
 }
 
 /**

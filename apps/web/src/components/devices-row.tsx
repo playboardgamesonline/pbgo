@@ -27,7 +27,7 @@ export function DevicesRow({ demo }: { demo: boolean }) {
   async function signOutOthers() {
     setPending(true)
     setError(null)
-    const outcome = await changing(demo, signOutOtherDevices)
+    const outcome = await changing(demo, signOutOtherDevices, { account: "other_devices_signed_out" })
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) setError(failure)

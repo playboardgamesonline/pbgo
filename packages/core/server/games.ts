@@ -3,12 +3,16 @@ import { beginOf, deadlineIn, normalizeOptions, progressOf, setupOf, waitingPlay
 import type { GameEntry, PlayableGame } from "../lib/binding"
 import { type PublicGame, type PublicPlayer, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
+import type { TableSettings } from "../lib/table-settings"
 import { sanityClient } from "../sanity/client"
+import { trackAnonymously } from "./analytics"
 import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
+import { isMissingColumn } from "./db-error"
 import { type LoggedStep, type LogWrite, readLog, viewLogged, writeLog } from "./game-log"
 import { expirePatch, readyExpired, readyIds, readyLeft } from "./ready"
 import { supabaseAdmin } from "./supabase"
+import { isSeated, seatedPlayers } from "./table-rules"
 import { publicTakeover } from "./takeover"
 
 /** A table, as stored in `games` (one table per game and code: `(game, code)` is the key). */
@@ -30,6 +34,11 @@ export type GameRow = {
   ready_at?: Record<string, string>
   /** When the ready check ends (ISO), null outside `starting` */
   ready_deadline?: string | null
+  /**
+   * What the host set apart from the engine's options (`games.settings`, migration 0014): who may join, how fast it is played, how many seats. Not read with the table (`COLUMNS` does not have it, so that a project where the migration is not
+   * applied yet is not broken): `readTableSettingsOf` reads it, and the route that sets it writes it through `updateGame`.
+   */
+  settings?: TableSettings
   version: number
   updated_at?: string
   created_at?: string
@@ -55,10 +64,14 @@ export async function readGame(game: GameRef, rawCode: string): Promise<GameRow>
 /** A table nobody has written to for this long is no longer the one a player "sits at": a lobby walked away from, a game dropped. Presence does not count (`touch_game_player` leaves `updated_at` alone), a move or a join does. */
 export const TABLE_IDLE_MS = 6 * 60 * 60 * 1000
 
+/** How many of a player's most recent tables `findPlayerGame` looks at for one they did not leave: a player is seldom at more than a few. */
+const RECENT_TABLES = 10
+
 /**
  * The table a player sits at in a game: the one that waits for players, is starting or is being played and that was written last, null when there is none. The platform's page of the game asks it
- * to show a visitor their lobby or their game (PLT-106). A table idle for `TABLE_IDLE_MS` is left out, so that a player is never held by a table they have forgotten. The people of a table are a column
- * of `games` (jsonb), not rows of their own: this reads the game's recent tables with a containment filter, which asks for no index while there are few; PLT-13's `table_players` replaces it.
+ * to show a visitor their lobby or their game (PLT-106). A table idle for `TABLE_IDLE_MS` is left out, so that a player is never held by a table they have forgotten, and so is a game they left (PLT-120: their seat stays at
+ * the table, marked `left`, and the table is not theirs any more). The people of a table are a column of `games` (jsonb), not rows of their own: this reads the game's recent tables with a containment filter, which asks
+ * for no index while there are few, and looks at the first few for one they did not leave; PLT-13's `table_players` replaces it.
  */
 export async function findPlayerGame(game: GameRef, playerId: string, now = Date.now()): Promise<GameRow | null> {
   const { data, error } = await supabaseAdmin()
@@ -70,22 +83,25 @@ export async function findPlayerGame(game: GameRef, playerId: string, now = Date
     // The JSON as a string: for an array supabase-js writes a Postgres array literal (`{…}`), which a jsonb column does not read
     .contains("players", JSON.stringify([{ id: playerId }]))
     .order("updated_at", { ascending: false })
-    .limit(1)
+    .limit(RECENT_TABLES)
   if (error) throw error
-  return (data?.[0] as GameRow | undefined) ?? null
+  return ((data ?? []) as GameRow[]).find((row) => isSeated(row, playerId)) ?? null
 }
 
 /**
  * Opens a table. `ranked` opens it to count for the ratings (`games.ranked`, migration 0006): the games it plays are written down as ranked when every seat is a different account, and counted for the ratings of those who played
- * their own moves. Nothing opens one yet; the matchmaking of PLT-21 will. The column is only written for a ranked table, so that a normal one is created as it always was, and a project where the migration is not applied yet keeps opening tables.
+ * their own moves. A ranked search opens them (`server/quick-play.ts`). The column is only written for a ranked table, so that a normal one is created as it always was, and a project where the migration is not applied yet keeps opening tables.
+ * `settings` are the host's choices at the top of the lobby (`TableSettings`, migration 0014: who may join, the speed, the seats), written with the table so that it is public from the first moment it is listed. They are kept to what was set, and a project
+ * where the migration is not applied yet opens the table without them (a private table, as every table was) instead of refusing to open one.
  */
 export async function createGame(
   game: PlayableGame,
   host: PublicPlayer,
   options: OptionValues = normalizeOptions(game.binding.GAME.options, {}),
-  { ranked = false }: { ranked?: boolean } = {},
+  { ranked = false, settings }: { ranked?: boolean; settings?: TableSettings } = {},
 ): Promise<GameRow> {
   const db = supabaseAdmin()
+  let withSettings = settings !== undefined && Object.keys(settings).length > 0
   for (let attempt = 0; attempt < 5; attempt++) {
     const row: GameRow = {
       code: generateCode(),
@@ -96,13 +112,19 @@ export async function createGame(
       state: null,
       replay: [],
       takeover_votes: [],
-      seen: {},
+      // The host is at the table just now: a public table is listed while somebody who sits at it was seen lately, and it should be from its first moment, not once the page has asked for it again
+      seen: { [host.id]: new Date().toISOString() },
       ready_at: {},
       ready_deadline: null,
       version: 0,
     }
-    const { error } = await db.from("games").insert({ game: game.slug, ...row, ...(ranked ? { ranked: true } : {}) })
-    if (!error) return row
+    const { error } = await db.from("games").insert({ game: game.slug, ...row, ...(ranked ? { ranked: true } : {}), ...(withSettings ? { settings } : {}) })
+    if (!error) return withSettings ? { ...row, settings } : row
+    if (withSettings && isMissingColumn(error)) {
+      console.error("The settings of a table could not be kept: migration 0014 is not applied", { game: game.slug })
+      withSettings = false
+      continue
+    }
     if (error.code !== "23505") throw error
   }
   throw new ApiError("CODE_UNAVAILABLE", 500)
@@ -172,7 +194,31 @@ async function notify(slug: string, code: string, version: number) {
  */
 export async function settleReadyCheck(game: GameRef, row: GameRow, now = Date.now()): Promise<GameRow> {
   if (!readyExpired(row, now)) return row
-  return updateGame(game, row.code, (current) => (readyExpired(current, now) ? expirePatch(current) : null))
+  const settled = await updateGame(game, row.code, (current) => (readyExpired(current, now) ? expirePatch(current) : null))
+  // A check that ended with nobody ready left a lobby that holds no one: it goes (PLT-21)
+  if (await deleteEmptyTable(game, settled)) trackAnonymously("table_deleted", { game: game.slug, reason: "nobody_ready" })
+  return settled
+}
+
+/**
+ * Deletes a table that nobody sits at any more (the owner's rule, PLT-21): the last player who leaves a lobby, a ready check or a game in progress, and a ready check that ends with nobody ready, leave a row that holds no one and that
+ * nobody can come back to (a player who left does not return), so it goes at once instead of waiting for the nightly clean-up. `row` is the table as the write that emptied it left it, and the delete is guarded by its `version`: a player who
+ * sat down since keeps the table. A table that is over is never deleted here, since its game is written down after the response from its row (`recordGameResult`), and the nightly job takes it. Never throws, a failure being
+ * logged and the nightly job taking the table in the end. Says whether it was deleted.
+ */
+export async function deleteEmptyTable(game: GameRef, row: Pick<GameRow, "code" | "status" | "players" | "version">): Promise<boolean> {
+  if (row.status === "over" || seatedPlayers(row.players).length > 0) return false
+  try {
+    const { data, error } = await supabaseAdmin().from("games").delete().eq("game", game.slug).eq("code", row.code).eq("version", row.version).select("code")
+    if (error) {
+      console.error("An empty table could not be deleted", { game: game.slug }, error.code, error.message)
+      return false
+    }
+    return (data ?? []).length === 1
+  } catch (error) {
+    console.error("An empty table could not be deleted", { game: game.slug }, error instanceof Error ? error.message : error)
+    return false
+  }
 }
 
 /** Data loaded on the server before `GAME.setup` (e.g. Courtisans' missions from Sanity): the game's optional `loadSetupData`. */
@@ -212,11 +258,12 @@ export function newGame(game: PlayableGame, row: GameRow, data?: unknown, now = 
  */
 export function publicGame(game: PlayableGame, row: GameRow, playerId: string | null, now = Date.now(), steps: readonly LoggedStep[] = []): PublicGame {
   const { GAME } = game.binding
-  const member = row.players.some((j) => j.id === playerId)
+  // A player who left the game is no longer a member of the table: they see it as anybody does, and they are not present for the takeover (PLT-120)
+  const member = isSeated(row, playerId)
   const playing = row.status === "playing" && !!row.state
   const waitingFor = playing ? waitingPlayers(GAME, row.state) : []
   const { present, takeovers } = publicTakeover({
-    players: row.players,
+    players: seatedPlayers(row.players),
     seen: row.seen,
     viewer: playerId,
     waiting: waitingFor,

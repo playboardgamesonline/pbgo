@@ -328,6 +328,11 @@ export function filterToParams(filter: GameFilter): URLSearchParams {
   return params
 }
 
+/** How many picks are set: each category, and the number of players, the duration, the complexity and the age when they are not where they start. The text of the search is not one. */
+export function countFilters(filter: GameFilter): number {
+  return [...filterToParams(filter)].length
+}
+
 /** The order a link holds: one of `SORTS`, spelled exactly; anything else, or none, is where the list starts (`DEFAULT_SORT`), since a link is anything someone typed or kept for a long time. */
 export function sortFromParams(params: { get(name: string): string | null }): GameSort {
   return optionOf(SORTS, params.get("sort")) ?? DEFAULT_SORT

@@ -4,7 +4,7 @@ import type { LogLine } from "../lib/game-types"
 import { supabaseAdmin } from "./supabase"
 
 /**
- * The log of a table (`game_log`, migration 0013): what happened in its game, kept apart from the state (PLT-45). A game that says what its moves did (`GameDefinition.step`) hands the server the entries of each move; the server writes them
+ * The log of a table (`game_log`, migration 0016): what happened in its game, kept apart from the state (PLT-45). A game that says what its moves did (`GameDefinition.step`) hands the server the entries of each move; the server writes them
  * with the move, in the same order for everybody, and sends each player the lines `viewLog` lets them read (`PublicGame.log`). Nothing here is needed to play: a log that cannot be written or read (the migration is not applied to this project yet,
  * the database hiccups) leaves the game going and its history short.
  */

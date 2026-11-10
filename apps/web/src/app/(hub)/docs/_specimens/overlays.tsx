@@ -1,6 +1,7 @@
 // The live specimens of the overlays pages of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
 
 import type { Specimens } from "@pbgo/docs/markdown"
+import { profilePath } from "@pbgo/accounts"
 import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
 import { Button } from "@pbgo/ui/platform/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@pbgo/ui/platform/dialog"
@@ -174,8 +175,8 @@ function CookieBannerReopened() {
 /** A picture of a seat with a rank, a guest's and an account's that has not played the game ranked: what the cards say. */
 const SEATS = seatsOf(
   [
-    { seat: 0, name: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, host: true, record: { rank: { tier: "Legend" }, wins: 52, gamesPlayed: 97 } },
-    { seat: 1, name: "Inès", tag: "3318", avatarUrl: DEMO_AVATARS.ines, record: null },
+    { seat: 0, name: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, host: true, record: { rank: { tier: "Legend" }, wins: 52, gamesPlayed: 97 }, href: profilePath({ nickname: "Marly", tag: 4821 }, "seat") },
+    { seat: 1, name: "Inès", tag: "3318", avatarUrl: DEMO_AVATARS.ines, record: null, href: profilePath({ nickname: "Inès", tag: 3318 }, "seat") },
     { seat: 2, name: "Tom", tag: null, avatarUrl: null, record: null },
   ],
   3,

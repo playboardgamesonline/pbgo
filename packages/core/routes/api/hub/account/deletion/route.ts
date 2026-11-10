@@ -4,18 +4,13 @@ import { clearSessionCookies, getAccount } from "@pbgo/accounts/server"
 import { accountDeletionDate } from "../../../../../lib/retention"
 import type { DeletionMailInput, MailMessage } from "../../../../../lib/deletion-mail"
 import { closeAccount, eraseAccount, newReopenToken, peekReopenLink, reopenAccount } from "../../../../../server/account-deletion"
-import { ApiError, handle, readJson } from "../../../../../server/api"
+import { ApiError, assertSameOrigin, handle, readJson } from "../../../../../server/api"
 import { mailAvailable, sendMail } from "../../../../../server/mail"
 import { rateLimit } from "../../../../../server/rate-limit"
+import { trackAnonymously } from "../../../../../server/analytics"
 
 /** What the app tells the route to compose: the member's address and name, the link (whose token only the e-mail holds) and the day it works until. */
 export type ComposeDeletionMail = (input: DeletionMailInput) => MailMessage
-
-/** A request that changes an account on the strength of its cookie must come from this site: a browser says where a request comes from, and a form of another site is refused. A client that says nothing is a script, which has no cookie of ours to abuse. */
-function assertSameOrigin(request: Request) {
-  const origin = request.headers.get("origin")
-  if (origin && origin !== new URL(request.url).origin) throw new ApiError("CROSS_ORIGIN", 403)
-}
 
 /**
  * `POST /api/hub/account/deletion`: the deletion of an account (PLT-36, `docs/accounts.md`, "Deleting an account"). It is not a game's route. The body says what is asked (`intent`):
@@ -67,6 +62,7 @@ async function close(request: Request, compose: ComposeDeletionMail): Promise<De
   if (!(await closeAccount(account.id, token, reopensUntil))) throw new ApiError("NOT_SIGNED_IN", 401)
   // The sessions ended with the account; this takes the cookies of this browser with them
   await clearSessionCookies()
+  trackAnonymously("account_deletion", { step: "requested" })
   return { ok: true }
 }
 
@@ -79,6 +75,7 @@ function linkOf(body: Record<string, unknown>): { user: string; token: string } 
 async function reopen(body: Record<string, unknown>): Promise<DeletionAnswer> {
   const { user, token } = linkOf(body)
   if (!(await reopenAccount(user, token))) throw new ApiError("LINK_INVALID", 410)
+  trackAnonymously("account_deletion", { step: "reopened" })
   return { ok: true }
 }
 
@@ -88,5 +85,6 @@ async function deleteNow(body: Record<string, unknown>): Promise<DeletionAnswer>
   const link = await peekReopenLink(user, token)
   if (!link) throw new ApiError("LINK_INVALID", 410)
   await eraseAccount(user, link.email)
+  trackAnonymously("account_deletion", { step: "deleted_now" })
   return { ok: true }
 }

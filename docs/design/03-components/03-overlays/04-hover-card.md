@@ -6,7 +6,7 @@ A card that opens under the pointer when it rests on its trigger, for what a sig
 
 ## A player's card
 
-`UserCard` is what the picture of a player opens: their nickname and tag, a quiet line when there is something to say, their rank in the game and their record. A seat's picture opens it already (`SeatAvatar`).
+`UserCard` is what the picture of a player opens: their nickname and tag, a quiet line when there is something to say, their rank in the game and their record, and, for an account, a button that leads to their profile. A seat's picture opens it already (`SeatAvatar`).
 
 ```specimen
 hover-card-a-players-card

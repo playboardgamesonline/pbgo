@@ -18,20 +18,25 @@ const Stored = (props: { items: { name: string; text: ReactNode }[] }) => <Legal
 
 /** What the site measures, in full: the cookie banner is a small card that says the essentials in one sentence and links here. */
 const STATISTICS: ReactNode[] = [
-  "We use PostHog, on its European cloud, to see how the site is used and to fix what breaks. IP addresses are discarded. Two kinds of counts run whatever you choose, and neither stores anything on your device:",
+  "We use PostHog, on its European cloud, to see how the site is used and to fix what breaks. IP addresses are discarded. Three kinds of counts run whatever you choose, and none stores anything on your device:",
   <>
-    <span className={LEGAL_LEAD}>Game statistics.</span> When a table is created, joined, started or finished, the server counts it with the game, the number of players, the options and how long it lasted. Each count carries a code made from that game&apos;s
+    <span className={LEGAL_LEAD}>Game statistics.</span> When a table is created, joined, started or finished, or goes because nobody sits at it any more, the server counts it with the game, the number of players, the options, whether it is open to everyone and how long it lasted. Each count carries a code made from that game&apos;s
     player cookie (a one-way hash: the cookie&apos;s own value is never stored or sent on), so we can tell that someone came back to a game, but never a nickname or anything typed in the chat (a chat message is counted, never read).
   </>,
   <>
-    <span className={LEGAL_LEAD}>Visits.</span> The pages opened, clicks, loading times and errors are counted without any identifier kept in your browser: nothing links one page load to the next. Table codes are removed from the addresses.
+    <span className={LEGAL_LEAD}>Counts with no code.</span> A few counts carry no code of yours at all: a new random one is made for each and used once. They are a sign-in (which provider, and whether it made the account), a sign-out, the steps of an account deletion, feedback sent (its type, and whether it came with a
+    screenshot or an address, never what it says) and a request that a game refused (which route, and the error code).
+  </>,
+  <>
+    <span className={LEGAL_LEAD}>Visits.</span> The pages opened, clicks, loading times and errors are counted without any identifier kept in your browser: nothing links one page load to the next. So are a few actions, by name: the steps of signing in or signing up (how), a search or a filter on a
+    list (how many, never what you typed), the buttons of a game&apos;s page, the tables you open from a list and the settings you change (which, never to what). Table codes are removed from the addresses, and so are the names in the addresses of profiles.
   </>,
   <>
     <span className={LEGAL_LEAD}>If you accept,</span> PostHog also stores a random identifier in a cookie and in your browser&apos;s local storage (their names start with <span className="font-mono text-sm">ph_</span>). It tells us when the same browser comes back, and at a
     table it is linked to your player identifier. Your visits may be recorded as session replays, to see where people get stuck: what you type in a field, the chat and nicknames are masked.
   </>,
   <>
-    <span className={LEGAL_LEAD}>If you refuse,</span> nothing is stored for statistics and nothing is recorded. The two counts above carry on.
+    <span className={LEGAL_LEAD}>If you refuse,</span> nothing is stored for statistics and nothing is recorded. The counts above carry on.
   </>,
   <>
     You can change your choice at any time with{" "}
@@ -109,7 +114,7 @@ export default function CookiePolicy() {
             },
             {
               name: "pbgo:queue",
-              text: "Session storage. The games you asked to look for a table of, whether you want a ranked or a normal one, and since when, so that reloading the page does not lose your place. It goes when you close the tab.",
+              text: "Session storage. The games you asked to look for a table of, whether you want a ranked or a normal one, since when, and the tables the search sat you at (the game, the table's code and how many are seated), so that reloading the page does not lose your search. It goes when you close the tab.",
             },
           ]}
         />

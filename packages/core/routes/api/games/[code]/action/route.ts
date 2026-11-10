@@ -9,6 +9,7 @@ import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { markTakenOver, recordGameResult } from "../../../../../server/results"
+import { hasLeft, settleLeavers } from "../../../../../server/table-rules"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await rateLimit(game.slug, request, "action")
@@ -22,14 +23,18 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   const outcome = { playedFor: [] as string[] }
   const row = await updateGame(game, params.code ?? "", (row) => {
     if (!row.state || row.status !== "playing") throw notPlaying(row)
+    // A player who left the game has no part in it any more (PLT-120)
+    if (row.players.some((player) => player.id === id && hasLeft(player))) throw new ApiError("LEFT_GAME", 403)
     const now = Date.now()
     // What the clock owes the table comes first: a deadline that has passed is played before the move, which is then judged on the table as it stands. The server writes the time of the move, whatever the client sent
     const due = playDueSafely(GAME, row.state, now)
     outcome.playedFor = due.playedFor
     // A game that says what its moves did (`step`) has it written in the log of the table with the move; one that does not has nothing to write
-    const { state, events } = stepOf(GAME, due.state, { ...action, playerId: id, at: now })
-    const entries = [...due.events, ...events]
-    return { state, status: GAME.isOver(state) ? "over" : "playing", ...(entries.length ? { log: { entries } } : {}) }
+    const moved = stepOf(GAME, due.state, { ...action, playerId: id, at: now })
+    // The step that follows may be one that the game waits for from a player who left: the server plays it at once, so that the others are never kept waiting for a seat nobody is at
+    const settled = settleLeavers(GAME, moved.state, row.players, now)
+    const entries = [...due.events, ...moved.events, ...(settled.events ?? [])]
+    return { state: settled.state, status: GAME.isOver(settled.state) ? "over" : "playing", ...(entries.length ? { log: { entries } } : {}) }
   })
   after(() => markSeen(game, row, id))
   // The players the clock played for count for no rating, as the players the others played for do

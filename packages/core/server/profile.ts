@@ -3,33 +3,52 @@ import { isDemoAccount } from "@pbgo/accounts/demo"
 import { getAccount } from "@pbgo/accounts/server"
 import type { Account } from "@pbgo/accounts"
 import { ApiError } from "./api"
+import { ensureProfile, pictureUrl, type ProfileRecord } from "./profiles"
 
 export type ProfileInput = { nickname?: unknown }
 
-/** Who sits down at a table: the name the others see and, for an account, its picture. */
-export type Profile = { nickname: string; avatarUrl?: string }
+/** Who sits down at a table: the name the others see and, for an account, its picture and the tag that goes with its name (`Alex#0042`: the handle that leads to its profile, PLT-39). A guest has a nickname alone. */
+export type Profile = { nickname: string; avatarUrl?: string; tag?: number }
 
 /** The longest nickname, in characters as a person counts them (an emoji is one). */
 const NICKNAME_MAX = 20
 
-/** The picture of an account is drawn by the others at the table, so it is an `https` address of a sensible length: the metadata of an account is edited by its owner, and the server keeps no other kind of address. */
-const picture = (url: string | null): string | null => (url && url.length <= 2048 && /^https:\/\//i.test(url) ? url : null)
-
+/**
+ * A guest's nickname is what they typed, cut to 20 characters, with no `#`. Only a member has a tag, and a guest must not be able to write one to pass for a member.
+ */
 export function validateProfile(input: ProfileInput): { nickname: string } {
-  const nickname = typeof input.nickname === "string" ? input.nickname.trim().slice(0, NICKNAME_MAX) : ""
+  const nickname = typeof input.nickname === "string" ? input.nickname.replace(/#/g, "").trim().slice(0, NICKNAME_MAX) : ""
   if (nickname.length < 1) throw new ApiError("INVALID_NICKNAME")
   return { nickname }
 }
 
 /**
- * Who sits down, from what the request says and who is signed in. A signed-in visitor sits down as their account: the name and the picture their provider gives, taken here on the server and never
- * from the request, so that nobody can sit under another name or with a picture of their choice. A guest sits down under the nickname they typed (`validateProfile`).
+ * Who sits down, from what the request says and who is signed in. A signed-in visitor sits down as their account, taken here on the server and never from the request, so that nobody can sit under another name or with a picture of their choice:
+ * as their profile when they have one (`member`: the nickname and the tag that are theirs and no other member's, and the picture their provider gives), else as the name and the picture their provider gives, with no tag (a project where the profiles are not
+ * there yet). A guest sits down under the nickname they typed (`validateProfile`), with no tag.
  */
-export function profileOf(account: Pick<Account, "nickname" | "avatarUrl"> | null, input: ProfileInput): Profile {
+export function profileOf(account: Pick<Account, "nickname" | "avatarUrl"> | null, input: ProfileInput, member: Pick<ProfileRecord, "nickname" | "tag" | "avatarUrl"> | null = null): Profile {
   if (!account) return validateProfile(input)
+  if (member) {
+    const avatarUrl = pictureUrl(member.avatarUrl)
+    return { nickname: member.nickname, tag: member.tag, ...(avatarUrl ? { avatarUrl } : {}) }
+  }
   const nickname = Array.from(account.nickname.trim()).slice(0, NICKNAME_MAX).join("")
-  const avatarUrl = picture(account.avatarUrl)
+  const avatarUrl = pictureUrl(account.avatarUrl)
   return { nickname: nickname || "Player", ...(avatarUrl ? { avatarUrl } : {}) }
+}
+
+/**
+ * The profile of a signed-in member for their seat: made on the spot when the database has none. A database that cannot say is no reason to keep a member from sitting down: the seat is then the one their account would give, with no tag, and the
+ * cause is in the log.
+ */
+async function memberProfile(account: Account): Promise<ProfileRecord | null> {
+  try {
+    return await ensureProfile(account)
+  } catch (error) {
+    console.error("The profile of a member could not be read for their seat", error instanceof Error ? error.message : error)
+    return null
+  }
 }
 
 /**
@@ -50,7 +69,7 @@ export type Seat = { profile: Profile } & Actor
  */
 export async function resolveSeat(input: ProfileInput): Promise<Seat> {
   const account = await getAccount()
-  return { profile: profileOf(account, input), ...actorOf(account) }
+  return { profile: profileOf(account, input, account ? await memberProfile(account) : null), ...actorOf(account) }
 }
 
 /** The visitor who makes the request, for a route that seats nobody (the host's options and start): no nickname is asked of a guest there. */

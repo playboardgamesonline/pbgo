@@ -337,3 +337,108 @@ describe("readMemberTotals", () => {
     await expect(readMemberTotals(USER)).rejects.toBe(error)
   })
 })
+
+// PLT-39: an account that sat in a seat goes by its profile (the nickname and picture it has now, with the handle that leads to its page), and a seat with no account by what the seat had
+describe("the accounts that sat in a seat, named by their profile", () => {
+  const ANN = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
+  const BOB = "5c3e1d8a-1f2b-4c47-8a9e-6d0b7e2f4a90"
+  const profile = (user_id: string, nickname: string, tag: number, avatar_url: string | null = null) => ({ user_id, nickname, tag, avatar_url, hide_history: false, created_at: "2026-10-01T09:00:00+00:00" })
+
+  it("names the players of a board by their profile, with its handle, and keeps the name of a last rated game for one that has none", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [
+        { user_id: ANN, display_name: "Old Ann", avatar_url: "https://example.com/old.png", place: 1, points: 1450, wins: 9, games_played: 14 },
+        { user_id: BOB, display_name: "Bob", avatar_url: "https://example.com/bob.png", place: 2, points: 1100, wins: 4, games_played: 9 },
+      ],
+      error: null,
+    })
+    const log = tables({ profiles: [{ data: [profile(ANN, "Ann", 42, "https://example.com/ann.png")], error: null }] })
+    const board = await readBoard("courtisans", 100)
+    expect(log[0]?.calls).toContainEqual(["in", ["user_id", [ANN, BOB]]])
+    expect(board.map((row) => [row.name, row.avatarUrl, row.handle])).toEqual([
+      ["Ann", "https://example.com/ann.png", { nickname: "Ann", tag: 42 }],
+      ["Bob", "https://example.com/bob.png", undefined],
+    ])
+  })
+
+  it("keeps the picture of the seat when the profile has none", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ user_id: ANN, display_name: "Old Ann", avatar_url: "https://example.com/old.png", place: 1, points: 1450, wins: 9, games_played: 14 }], error: null })
+    tables({ profiles: [{ data: [profile(ANN, "Ann", 42)], error: null }] })
+    expect((await readBoard("courtisans", 100))[0]).toMatchObject({ name: "Ann", avatarUrl: "https://example.com/old.png", handle: { nickname: "Ann", tag: 42 } })
+  })
+
+  it("draws the board as it was when the profiles cannot be read, and says why in the log", async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ user_id: ANN, display_name: "Old Ann", avatar_url: null, place: 1, points: 1450, wins: 9, games_played: 14 }], error: null })
+    tables({ profiles: [{ data: null, error: { code: "XX000", message: "boom" } }] })
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    const board = await readBoard("courtisans", 100)
+    expect(board[0]).toMatchObject({ name: "Old Ann" })
+    expect(board[0]).not.toHaveProperty("handle")
+    expect(log).toHaveBeenCalledTimes(1)
+    log.mockRestore()
+  })
+
+  it("asks the database nothing about profiles when nobody on the board is an account it knows", async () => {
+    mocks.rpc.mockResolvedValue({ data: [], error: null })
+    await readBoard("courtisans", 100)
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  it("names the opponents of a game of the history by their profile, and a guest or a gone account by their seat", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [
+        {
+          id: "g1",
+          finished_at: "2026-11-08T10:00:00+00:00",
+          outcome: "win",
+          place: 1,
+          score: 12,
+          player_count: 4,
+          duration_s: 900,
+          options: {},
+          points: 48,
+          opponents: [
+            { name: "Bobby", avatarUrl: null, userId: BOB },
+            { name: "Guest", avatarUrl: null, userId: null },
+            { name: null, avatarUrl: null, userId: null },
+          ],
+        },
+      ],
+      error: null,
+    })
+    tables({ profiles: [{ data: [profile(BOB, "Bob", 7, "https://example.com/bob.png")], error: null }] })
+    const [game] = await readHistory(USER, "courtisans", 10)
+    expect(game?.opponents).toEqual([
+      { name: "Bob", avatarUrl: "https://example.com/bob.png", handle: { nickname: "Bob", tag: 7 } },
+      { name: "Guest", avatarUrl: null },
+      { name: null, avatarUrl: null },
+    ])
+    // The account never reaches the page: an opponent holds a name, a picture and a handle
+    expect(JSON.stringify(game)).not.toContain(BOB)
+  })
+
+  it("names the opponents of the member's games by their profile too, the member's own seat left out", async () => {
+    const log = tables({
+      game_participants: [
+        { data: [{ game_result_id: "r1", seat: 1, outcome: "win", rank: 1, score: 12, finished_at: "2026-11-08T10:00:00+00:00", game_results: { game: "courtisans", ranked: true, player_count: 3, duration_s: 900, options: {} } }], error: null },
+        {
+          data: [
+            { game_result_id: "r1", seat: 0, user_id: BOB, display_name: "Bobby", avatar_url: null },
+            { game_result_id: "r1", seat: 1, user_id: USER, display_name: "Me", avatar_url: null },
+            { game_result_id: "r1", seat: 2, user_id: null, display_name: "Guest", avatar_url: null },
+          ],
+          error: null,
+        },
+      ],
+      rating_changes: [{ data: [], error: null }],
+      profiles: [{ data: [profile(BOB, "Bob", 7)], error: null }],
+    })
+    const [game] = await readMemberGames(USER, 20)
+    expect(game?.opponents).toEqual([
+      { name: "Bob", avatarUrl: null, handle: { nickname: "Bob", tag: 7 } },
+      { name: "Guest", avatarUrl: null },
+    ])
+    expect(log.map((query) => query.table)).toEqual(["game_participants", "game_participants", "rating_changes", "profiles"])
+    expect(JSON.stringify(game)).not.toContain(BOB)
+  })
+})

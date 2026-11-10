@@ -6,6 +6,7 @@ import { debugEnabled, restoreState, saveState } from "../../../../../server/deb
 import { type GameRow, loadSetupData, newGame, servedGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markGameStarted, recordGameResult } from "../../../../../server/results"
+import { isSeated } from "../../../../../server/table-rules"
 
 /**
  * A saved state for the seats of this table (`restoreState`), once the game has taken a look at it: a state that the engine cannot read is refused (`INVALID_STATE`) instead of being written. Debug tools only.
@@ -51,7 +52,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   let wasOver = false
   const row = await updateGame(game, code, (row) => {
     wasOver = row.status === "over"
-    if (!id || !row.players.some((j) => j.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
+    if (!id || !isSeated(row, id)) throw new ApiError("UNKNOWN_PLAYER", 403)
     if (command === "start") return newGame(game, row, data)
     if (command === "load") {
       const state = loadable(game, row, body.saved)

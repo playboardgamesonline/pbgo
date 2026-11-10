@@ -1,8 +1,9 @@
 import { COMING_SOON } from "@/lib/coming-soon"
+import type { Viewer } from "@pbgo/core/lib/table-settings"
 import type { HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import { seatCount, tableAction } from "@pbgo/ui/tables"
 import type { Expansion, GameTable, ViewerTable } from "@/lib/game-activity"
-import { seatsOfTable, tableDetailProps, tableEntryProps } from "@/lib/game-activity-props"
+import { seatsOfTable, tableDetailProps, tableEntryProps, unmetOfTable } from "@/lib/game-activity-props"
 import { GameLobby, ownTableDetail } from "./game-lobby"
 import { OpenTables } from "./open-tables"
 import { TableSync } from "./table-sync"
@@ -30,6 +31,7 @@ export function GamePlay({
   expansions = [],
   helpers = [],
   signedIn = false,
+  viewer = null,
   now,
   anchored = false,
 }: {
@@ -47,6 +49,8 @@ export function GamePlay({
   helpers?: readonly HelperOption[]
   /** Whether the visitor has an account: the server sits them down as it, and no nickname is asked. */
   signedIn?: boolean
+  /** Who the visitor is for what a public table asks (their tier in the game, their language): a table they do not meet has no way in, and says what it asks. None: nothing is asked of them (the specimens). */
+  viewer?: Viewer | null
   now?: number
   /** Give the space the name that the head's button leads to. Only the page does: a name is one per page, and the specimens show several. */
   anchored?: boolean
@@ -70,11 +74,18 @@ export function GamePlay({
   // The table of an invitation link, when it is not the visitor's own: a row that is picked, which the visitor may sit down at when it waits and has a seat free (`OpenTables` does it)
   const invited = live && linked && linked.id !== viewerTable?.id ? linked : null
   const joinable = (table: GameTable) => tableAction(table.status === "lobby" ? "waiting" : "playing", seatCount(seatsOfTable(table)).free) === "join"
-  const rows = [
-    ...own,
-    ...open.map((table) => ({ id: table.id, code: table.code, joinable: joinable(table), entry: tableEntryProps(table, slug, now, expansions, false), detail: tableDetailProps(table, slug, false, expansions) })),
-    ...(invited ? [{ id: invited.id, code: invited.code, joinable: joinable(invited), entry: tableEntryProps(invited, slug, now, expansions, false), detail: tableDetailProps(invited, slug, false, expansions) }] : []),
-  ]
+  // A table that asks what the visitor does not have (a rank, a language) is a row they can read and not sit at: its button says what it asks
+  const rowOf = (table: GameTable) => {
+    const unmet = unmetOfTable(table, viewer)
+    return {
+      id: table.id,
+      code: table.code,
+      joinable: !unmet && joinable(table),
+      entry: tableEntryProps(table, slug, now, expansions, false, unmet),
+      detail: tableDetailProps(table, slug, false, expansions, false, undefined, undefined, unmet),
+    }
+  }
+  const rows = [...own, ...open.map(rowOf), ...(invited ? [rowOf(invited)] : [])]
   // The tables that wait, the visitor's and the invited one, are watched
   const watched = live ? [viewerTable, invited].flatMap((table) => (table && table.status === "lobby" && table.version !== undefined ? [{ table, member: table === viewerTable }] : [])) : []
   return (

@@ -17,7 +17,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/legal/privacy" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "9 November 2026"
+const UPDATED = "10 November 2026"
 
 /**
  * Everything the site does with personal data, in the order a person meets it. Every line is the code's, and the table of `docs/legal.md` lists where: a new field that holds
@@ -78,11 +78,11 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Your nickname",
-              text: "As a guest you type one (20 characters at most). It is kept on your device and sent to the table, where everyone who has the table's link sees it. If you are signed in, the table shows the name of your account instead.",
+              text: "As a guest you type one (20 characters at most). It is kept on your device and sent to the table, where everyone who has the table's link sees it, and everyone who visits the site if the table is public (below). If you are signed in, the table shows the name of your account instead.",
             },
             {
               name: "The table",
-              text: `A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played, a log of what happened in the game (for the history on the screen: who drew which card, who stayed, who won the round, with player identifiers and no names) and the last time each player was seen. While a game starts, it also keeps the time each player's board finished loading, for a minute at most. That is how a game goes on after a reload, how the others can play for someone who has left, and how the game begins for everybody together. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. A clean-up runs every night and deletes a table ${TABLE_RETENTION_DAYS} days after the last thing that happened at it (a move, a join, a change of its options). Once a game is over and its result is written down (below), the hidden part of its state, such as the cards in hand, and the log of what happened are deleted ${FINISHED_STATE_RETENTION_HOURS} hours after the table was last written to, without waiting for the rest of the table.`,
+              text: `A table keeps its code, who hosts it, who sits at it (nicknames and player identifiers), its options, the state of the game, the moves played, a log of what happened in the game (for the history on the screen: who drew which card, who stayed, who won the round, with player identifiers and no names) and the last time each player was seen. While a game starts, it also keeps the time each player's board finished loading, for a minute at most. That is how a game goes on after a reload, how the others can play for someone who has left, and how the game begins for everybody together. Anyone who has the table's link can see who sits at it, with their nicknames and pictures: share it with the people you want to play with. The one who opens a table also chooses who may join it, and the table keeps that choice with the speed it is played at and the number of seats: it is private, reached by its link alone, or public, and a public table can ask for a minimum rank in the game and a language. A public table that is waiting for players is listed with the open tables of its game, on the Tables page and on the home page, for as long as someone sits at it and is seen there: every visitor of the site, signed in or not, then sees the nicknames or account names and pictures of the people who sit at it, and what its host asked for. The form that opens a table starts with the table public, and the host can make it private before or after opening it. A table that its last player leaves is deleted at once. A clean-up runs every night and deletes a table ${TABLE_RETENTION_DAYS} days after the last thing that happened at it (a move, a join, a change of its options). Once a game is over and its result is written down (below), the hidden part of its state, such as the cards in hand, and the log of what happened are deleted ${FINISHED_STATE_RETENTION_HOURS} hours after the table was last written to, without waiting for the rest of the table.`,
             },
             {
               name: "The result of a game",
@@ -122,7 +122,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Your settings",
-              text: "The username you choose and your choices (the notifications you want, hiding your game history, how times are written, whether the site's animations or its see-through surfaces are reduced) are kept with your account, so that they follow you from one device to the next. The choices for the animations and the see-through surfaces are also kept in a cookie each on each device, so that a page can honour them as it opens (see the Cookie Policy). All of it stays until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
+              text: "Your username is kept in your profile (see \"Your profile\"), and a copy of it with your account, so that the site can show it as soon as you are signed in. Your choices (the notifications you want, hiding your game history, how times are written, whether the site's animations or its see-through surfaces are reduced) are kept with your account, so that they follow you from one device to the next. The choices for the animations and the see-through surfaces are also kept in a cookie each on each device, so that a page can honour them as it opens (see the Cookie Policy). All of it stays until the account is deleted. A change of e-mail address sends a link to the new address, through the same sender as the sign-up.",
             },
             {
               name: "Your country or region",
@@ -146,11 +146,15 @@ export default function PrivacyPolicy() {
             },
             {
               name: "At a table",
-              text: "When you sit down at a table, we copy your account's name (20 characters at most) and the address of your picture onto the table, so that the others see them. The picture itself stays with your provider and each person's browser loads it from there; its address can contain an identifier of your account at that provider. The table also records which account holds your seat, apart from what the others see, so that you are counted once among the players online. Both go with the table. When the game ends, the account that held your seat is written in the result of the game, which stays (see \"The result of a game\").",
+              text: "When you sit down at a table, we copy your account's name (20 characters at most), your tag (the four digits after your name, as in Alex#0042) and the address of your picture onto the table, so that the others see them, and every visitor of the site does too if the table is public. The picture itself stays with your provider and each person's browser loads it from there; its address can contain an identifier of your account at that provider. The table also records which account holds your seat, apart from what the others see, so that you are counted once among the players online. Both go with the table. When the game ends, the account that held your seat is written in the result of the game, which stays (see \"The result of a game\").",
+            },
+            {
+              name: "Your profile",
+              text: "Every account has a public profile: a page that any visitor can open, signed in or not, at an address made of your username and your tag (as in /player/Alex-0042). It shows your username with its tag, a number of four digits that we give you at random and that you can change in your settings, so that two players with the same name can be told apart; your picture; the month you joined; and, unless you hide them, the games you played, with your rank, how many you won and how many you played in each, and your last ten games with the names of the other players, each leading to their own profile. We keep it in our database, with your account, until the account is deleted: it is made from what we already hold, with no copy anywhere else. Search engines are asked not to list or read these pages. If you change your username or your tag, the old address stops working, and when you delete your account your username and tag are free for someone else. The choice to hide your game history, in your settings, hides your games, your records and your ranks from your profile for the other players: they see your username, your tag, your picture and the month you joined, and nothing else. You always see all of it on your own page.",
             },
             {
               name: "Your games, your totals and your rank",
-              text: "For each game you play, we count your games, how many you won and how long you played. When a game counts for the ranks (a ranked game, where every seat is a different account and nobody played for another), we also keep rank points for you in that game: you earn points by winning, more when your opponents are stronger than you, and you lose points by losing, more when they are weaker, and your points set your rank. Behind the points we keep a hidden rating, which says how strong a player is, and what each game did to it. The rating is hidden: it is never shown and never sent to your browser; the site shows your rank, the points a game gave or took and, from your fifth ranked game, your place. The best players of a game are listed on its page, for every visitor, with the name and the picture of their account, their rank and their place. Your totals, your rating and the link between you and your games are deleted with your account. Hiding your game history in your settings hides your games from your profile for the other players. It does not stop us from writing your games down, since your totals and your rank are made of them, and it does not take you off the list of the best players of a game.",
+              text: "For each game you play, we count your games, how many you won and how long you played. When a game counts for the ranks (a ranked game, where every seat is a different account and nobody played for another), we also keep rank points for you in that game: you earn points by winning, more when your opponents are stronger than you, and you lose points by losing, more when they are weaker, and your points set your rank. Behind the points we keep a hidden rating, which says how strong a player is, and what each game did to it. The rating is hidden: it is never shown and never sent to your browser; the site shows your rank, the points a game gave or took and, from your fifth ranked game, your place. The best players of a game are listed on its page, for every visitor, with the name and the picture of their account, their rank and their place. Your totals, your rating and the link between you and your games are deleted with your account. Hiding your game history in your settings hides your games, your records and your ranks from your profile for the other players (see \"Your profile\"). It does not stop us from writing your games down, since your totals and your rank are made of them, it does not take you off the list of the best players of a game, and your name stays in the games of the players you played with.",
             },
             {
               name: "Deleting your account",
@@ -161,8 +165,8 @@ export default function PrivacyPolicy() {
               text: (
                 <>
                   Your account stays until you delete it. When you do, it is closed at once and kept for {ACCOUNT_DELETION_GRACE_DAYS} days, in case you change your mind: you can reopen it with the link we e-mail you, or delete it right away from the page that
-                  link opens. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name, picture address, password and the services linked to it), your
-                  language and your settings, your country or region and your date of birth if you gave them, your second step if you turned it on, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name and the picture that a table or a game had copied from your account are erased, and
+                  link opens. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name, picture address, password and the services linked to it), your profile (username, tag and picture address), your
+                  language and your settings, your country or region and your date of birth if you gave them, your second step if you turned it on, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name, the tag and the picture that a table or a game had copied from your account are erased, and
                   your games stay as those of a deleted player, without your name or your picture. Your e-mail address can then be used for a new account. An account without an e-mail address cannot be deleted from the site, since it would have no link to be
                   reopened with: write to{" "}
                   <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
@@ -198,11 +202,15 @@ export default function PrivacyPolicy() {
               items={[
                 {
                   name: "Counts at tables",
-                  text: "When a table is created, joined, started or finished, our server counts it, with the game, the number of players, the options and how long it lasted. Each count carries your player identifier, never a nickname, a chat message or a table code. This runs whatever you chose in the cookie banner.",
+                  text: "When a table is created, joined, started or finished, or goes because nobody sits at it any more, our server counts it, with the game, the number of players, the options, whether it is open to everyone and how long it lasted. Each count carries your player identifier, never a nickname, a chat message or a table code. This runs whatever you chose in the cookie banner.",
+                },
+                {
+                  name: "Counts with no identifier",
+                  text: "A few counts carry no identifier of yours: a new random code is made for each and used once. They are a sign-in (with which provider, and whether it made the account), a sign-out, the steps of an account deletion, feedback sent (its type, never what it says) and a request that a game refused (the error code). This runs whatever you chose in the cookie banner.",
                 },
                 {
                   name: "Visits",
-                  text: "The pages opened, clicks, loading times and errors are counted without any identifier kept on your device. Table codes are removed from the addresses.",
+                  text: "The pages opened, clicks, loading times and errors are counted without any identifier kept on your device. So are a few actions, by name: the steps of signing in or signing up, a search or a filter on a list (how many, never what you typed), the buttons of a game's page, the tables you open from a list and the settings you change (which, never to what). Table codes are removed from the addresses, and so are the names in the addresses of profiles. A visit to a profile is counted without a name or a tag.",
                 },
                 {
                   name: "If you accept",
@@ -216,7 +224,7 @@ export default function PrivacyPolicy() {
                 { name: "How long", text: "Counts are kept for 12 months at most, session replays for 30 days." },
                 {
                   name: "When you delete your account",
-                  text: "These counts carry a player identifier, which is a code made from the secret of a cookie of one game on one device, and never your account or your e-mail address. Nothing links them to your account, so deleting it does not delete them: they go by themselves, after the time above.",
+                  text: "These counts carry a player identifier, which is a code made from the secret of a cookie of one game on one device, or a code used once, and never your account or your e-mail address. Nothing links them to your account, so deleting it does not delete them: they go by themselves, after the time above.",
                 },
               ]}
             />
@@ -261,6 +269,7 @@ export default function PrivacyPolicy() {
             { name: "Sanity", text: "Stores the texts, pictures and videos of the games. Your browser loads the pictures and videos from its servers." },
             { name: "Google, Discord, Steam and Twitch", text: "Only if you sign in with them or link them to your account (Twitch can only be linked). They learn that you sign in to this site and handle your data under their own policies. For Steam, our server also asks its operator, Valve, to confirm the sign-in and for the name and the picture of your profile." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
+            { name: "Every visitor, for a public table", text: "A table that its host made public, or that a search opened, is listed while it waits for players: anyone who opens the site sees the nicknames or account names and pictures of the people who sit at it, and what was asked for (a minimum rank, a language, the speed, the number of seats, whether it counts for the rank). When you press Play, the search sits you at such a table for each game you picked, until a game begins or you stop looking. Chat messages are not shown." },
             { name: "Every visitor of a game's page", text: "See the best players of the game: the name and the picture of their account, their rank and their place. Never a rating, and never the games behind it." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },
           ]}

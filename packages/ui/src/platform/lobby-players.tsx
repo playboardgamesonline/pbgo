@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 // The top of a table's panel and its seats. On the left of the top row, for the visitor who sets the lobby, "Number of players" and a select, from the game's least players to its most (`range`, `playerRange` of `@pbgo/ui/tables`) and never under the people who already
 // sit, who are never dropped; for anybody else, a line of the same size that says who opened the table and how many sit at it of how many it has ("Table created by Marly (3/5)", `createdBy`). On its right, what the page puts there (`actions`: the button that says who may join, or
 // the one that closes the details). Under the row, the seats, as many as the number says, five to a row (`LobbySeats`): a number that is more than the table has adds free seats and one that is less takes the free ones away (`fitSeats`). The space that opens a lobby has no table
-// yet, so it has the row alone, the select, and no seats. Nothing is kept yet (the tables of PLT-13), so what is set stays in the page; `onCountChange` is for the page that has somewhere to put it.
+// yet, so it has the row alone, the select, and no seats. The component keeps no number of its own beyond the select: `onCountChange` is how the page keeps it (a table's settings, PLT-21).
 
 type LobbyPlayersProps = Omit<React.ComponentProps<"div">, "children"> & {
   /** The seats of the table, as the page has them. None: there is no table yet, and no seats are drawn. */

@@ -19,7 +19,7 @@ export default async function AccessibilitySettingsPage() {
   const choice = demo ? displayChoiceOf(store.get(DISPLAY_SETTINGS.reduceMotion.cookie)?.value) : account.preferences.reduceMotion
 
   return (
-    <SettingsPage title="Accessibility" description="What makes the site easier to use.">
+    <SettingsPage title="Accessibility">
       <SettingsGroup title="Motion">
         <ReduceMotionRow choice={choice} demo={demo} />
       </SettingsGroup>

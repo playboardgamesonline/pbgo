@@ -75,7 +75,7 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & {
   /** What is at the top, above the tabs: the visitor, if the page wants one there. Nothing when the dock above it already shows them. */
   header?: React.ReactNode
   /** The search for a game that the visitor has begun, when there is one: a card between the header and the tabs with the games and the kind of table, the time waited and the cross that stops it. */
-  queue?: Pick<QueueCardProps, "game" | "mode" | "seconds" | "onCancel">
+  queue?: Pick<QueueCardProps, "game" | "mode" | "progress" | "seconds" | "onCancel">
   /** The panel lives in a container that is drawn around it (`SocialDock`): it draws none of its own, no border, no fill, no shadow. */
   bare?: boolean
   /** The tab that is shown, when the page decides it (a press on a game of the bar takes the visitor to the friends); the panel changes it itself, and tells `onTabChange`. */

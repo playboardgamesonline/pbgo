@@ -11,6 +11,8 @@ export type LeaderboardRow = {
   place: number | null
   name: string
   avatarUrl?: string | null
+  /** Where their profile is: their name leads to it. A player has one when they are an account with a tag; none otherwise. */
+  href?: string | null
   /** Their rank in the game: the tier and the division the board draws. The rows come in the order of the rating the rank comes from, which is not here. */
   rank: Rank
 }

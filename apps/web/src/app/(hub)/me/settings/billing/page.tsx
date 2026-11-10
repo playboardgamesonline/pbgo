@@ -24,7 +24,7 @@ export default async function BillingSettingsPage() {
   const plan = PLANS.find((candidate) => candidate.id === "free")
 
   return (
-    <SettingsPage title="Billing" description="Your plan, how you pay for it and your invoices.">
+    <SettingsPage title="Billing">
       <p className="-mt-4 text-sm text-muted-foreground">{PAID_PLANS_NOTICE}</p>
       <SettingsGroup title="Plan">
         <Item>

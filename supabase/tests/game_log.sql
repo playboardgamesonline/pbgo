@@ -1,4 +1,4 @@
--- The log of a game (migration 0013): what the table accepts, the cascade with its table, the clean-up of the state of a finished table that takes the log with it (and only that table's), and who may touch it.
+-- The log of a game (migration 0016): what the table accepts, the cascade with its table, the clean-up of the state of a finished table that takes the log with it (and only that table's), and who may touch it.
 --
 -- Run it on `pbgo-preview` once the migrations are applied (the Supabase MCP's `execute_sql`, or the SQL editor). It is one `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled back, and the
 -- message is the answer. Every check prints `ok` or `FAIL` with what it saw; read the whole line. Never on production.

@@ -1,5 +1,6 @@
 import "server-only"
 import { isEngineError } from "@pbgo/engine-kit"
+import { reportRefusal } from "./analytics"
 
 export class ApiError extends Error {
   constructor(
@@ -20,12 +21,25 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<unknown>
     try {
       return Response.json(await fn(...args))
     } catch (error) {
-      if (error instanceof ApiError) return Response.json({ error: error.code }, { status: error.status, headers: error.headers })
-      if (isEngineError(error)) return Response.json({ error: error.code }, { status: 400 })
+      if (error instanceof ApiError) {
+        reportRefusal(args, error.code, error.status)
+        return Response.json({ error: error.code }, { status: error.status, headers: error.headers })
+      }
+      if (isEngineError(error)) {
+        reportRefusal(args, error.code, 400)
+        return Response.json({ error: error.code }, { status: 400 })
+      }
       console.error(error)
+      reportRefusal(args, "SERVER_ERROR", 500)
       return Response.json({ error: "SERVER_ERROR" }, { status: 500 })
     }
   }
+}
+
+/** A request that changes an account on the strength of its cookie must come from this site: a browser says where a request comes from, and a form of another site is refused. A client that says nothing is a script, which has no cookie of ours to abuse. */
+export function assertSameOrigin(request: Request) {
+  const origin = request.headers.get("origin")
+  if (origin && origin !== new URL(request.url).origin) throw new ApiError("CROSS_ORIGIN", 403)
 }
 
 export async function readJson<T>(request: Request): Promise<T> {

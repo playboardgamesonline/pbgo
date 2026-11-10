@@ -30,6 +30,8 @@ export const RATE_LIMITS = {
   leave: { limit: 20, windowMs: 60_000 },
   /** Host tweaking options in the lobby (each click is a request) */
   options: { limit: 30, windowMs: 10_000 },
+  /** Host setting who may join, the speed and the seats in the lobby (each click is a request, like the options) */
+  settings: { limit: 30, windowMs: 10_000 },
   start: { limit: 10, windowMs: 60_000 },
   /** "I'm ready" of the ready check (PLT-107): one request per player, a few more for one that lost a race */
   ready: { limit: 20, windowMs: 10_000 },
@@ -44,12 +46,18 @@ export const RATE_LIMITS = {
   feedback: { limit: 3, windowMs: 10_000 },
   /** The beat of a signed-in member who has the site open, about every 45 s (`PresenceBeat`): per IP, since the route belongs to no game; room for a few members behind one address */
   presence: { limit: 30, windowMs: 60_000, by: "ip" },
+  /** The search of a visitor who presses Play (`POST /api/hub/play`, and `…/cancel`): the press, then a call every few seconds while it lasts, so per IP (the route belongs to no game) with room for a few members behind one address. Opening a table is limited as `create` is */
+  play: { limit: 60, windowMs: 60_000, by: "ip" },
   /** The deletion of an account (PLT-36): closing it (the e-mail with the link goes first), then, from that link, reopening it or deleting it now. Per IP, since the route belongs to no game. A person does each of these once or twice; the e-mail costs a send */
   accountDeletion: { limit: 10, windowMs: 60 * 60_000, by: "ip" },
   /** The way back from an external provider's sign-in (Steam: `/auth/steam/callback`): it asks the provider, reads and writes the database and makes a member, so per IP, whatever the cookies; a human signs in once, a script is stopped */
   externalSignIn: { limit: 20, windowMs: 60_000, by: "ip" },
   /** A member declaring their date of birth (PLT-125): it is kept once, so a human sends it a few times at most (typos, a refusal); per IP, since the route belongs to no game, with room for a few members behind one address */
   birthdate: { limit: 20, windowMs: 10 * 60_000, by: "ip" },
+  /** A member's own handle (`GET /api/hub/profile`, PLT-39), asked once per page load: per IP, with room for several members behind one address */
+  profileRead: { limit: 120, windowMs: 60_000, by: "ip" },
+  /** A member changing their nickname and tag (`POST /api/hub/profile`, PLT-39): a few tries when a pair is taken, per IP */
+  profile: { limit: 20, windowMs: 10 * 60_000, by: "ip" },
   /** A member taking an account at an external provider off theirs (Steam: `POST /api/hub/unlink-external`): it reads and writes the database, and a human does it once in a while (a mistake, a change of mind), so a few per 10 minutes, per IP, whatever the cookies, with room for a few members behind one address */
   externalUnlink: { limit: 10, windowMs: 10 * 60_000, by: "ip" },
   /** Admin login (shared by every game): per IP, whatever the cookies, so a password can't be guessed by a script. A human mistypes it a few times at most */

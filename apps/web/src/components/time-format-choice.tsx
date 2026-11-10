@@ -33,7 +33,7 @@ export function TimeFormatChoice({ format, demo }: { format: TimeFormat; demo: b
     setCurrent(value)
     setPending(true)
     setError(null)
-    const outcome = await changing(demo, () => savePreference("timeFormat", value))
+    const outcome = await changing(demo, () => savePreference("timeFormat", value), { setting: "time_format" })
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) {

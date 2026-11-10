@@ -12,7 +12,7 @@ export function demoEditorial(entries: readonly CatalogEntry[], now = new Date()
     const image = entry.game.pictures.background ?? entry.game.pictures.cover
     return image ? [{ slug: entry.slug, name: entry.game.name, image }] : []
   })
-  const [first, second] = withPicture
+  const [first, second, third] = withPicture
   return {
     announcements: [
       { id: "demo-announcement", title: "A short break tonight", message: "The tables stay open; the chat may be slow for a few minutes.", tone: "info", link: null, game: null, dismissible: true, startsAt: null, endsAt: null },
@@ -20,7 +20,7 @@ export function demoEditorial(entries: readonly CatalogEntry[], now = new Date()
     entries: [
       ...(first ? [{ id: "demo-1", title: `${first.name} is on the platform`, date: day(2), kind: "newGame" as const, text: "Open a table and play it with your friends.", image: first.image, games: [first.slug] }] : []),
       ...(second ? [{ id: "demo-2", title: `${second.name} gets its own page`, date: day(5), kind: "feature" as const, text: "Its rules, its credits and the tables waiting for players.", image: second.image, games: [second.slug] }] : []),
-      { id: "demo-3", title: "Tables you can share", date: day(9), kind: "improvement" as const, text: "A table has a link: send it, and your friends sit down in one click.", image: null, games: [] },
+      { id: "demo-3", title: "Tables you can share", date: day(9), kind: "improvement" as const, text: "A table has a link: send it, and your friends sit down in one click.", image: third?.image ?? null, games: [] },
     ],
   }
 }

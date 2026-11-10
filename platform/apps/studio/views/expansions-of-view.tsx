@@ -5,7 +5,7 @@ import { IntentLink } from "sanity/router"
 import type { UserViewComponent } from "sanity/structure"
 import { EXPANSIONS_OF_QUERY, type ExpansionOf } from "./expansions-of"
 
-type State = { status: "loading" } | { status: "failed"; message: string } | { status: "ready"; expansions: ExpansionOf[] }
+type Settled = { status: "failed"; message: string } | { status: "ready"; expansions: ExpansionOf[] }
 
 /**
  * The "Expansions" tab of a game: the expansions that name it as their base game, read from the expansions themselves (the link is
@@ -14,17 +14,23 @@ type State = { status: "loading" } | { status: "failed"; message: string } | { s
 export const ExpansionsOf: UserViewComponent = ({ documentId }) => {
   const client = useClient({ apiVersion: "2025-02-19" })
   const id = getPublishedId(documentId)
-  const [state, setState] = useState<State>({ status: "loading" })
+  // What the last read found, with the client and the game it was made for: until the read of this game is back the tab is loading, and a read made for another game is forgotten
+  const [read, setRead] = useState<{ client: typeof client; id: string; settled: Settled } | null>(null)
+  const current = read !== null && read.client === client && read.id === id
+  const state = current ? read.settled : ({ status: "loading" } as const)
+  if (read && !current) setRead(null)
 
   useEffect(() => {
-    let current = true
-    setState({ status: "loading" })
+    let live = true
     client
       .fetch<ExpansionOf[]>(EXPANSIONS_OF_QUERY, { id }, { perspective: "drafts" })
-      .then((expansions) => current && setState({ status: "ready", expansions }))
-      .catch((error: unknown) => current && setState({ status: "failed", message: error instanceof Error ? error.message : "The expansions could not be read" }))
+      .then((expansions) => live && setRead({ client, id, settled: { status: "ready", expansions } }))
+      .catch(
+        (error: unknown) =>
+          live && setRead({ client, id, settled: { status: "failed", message: error instanceof Error ? error.message : "The expansions could not be read" } }),
+      )
     return () => {
-      current = false
+      live = false
     }
   }, [client, id])
 

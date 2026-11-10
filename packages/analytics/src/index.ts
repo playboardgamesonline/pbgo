@@ -31,8 +31,26 @@ export {
   type Consent,
   type ConsentStore,
 } from "./consent"
-export type { ClientEvents, Language, Locale, ServerEvents } from "./events"
+export { isGameSlug } from "./cta"
+export { errorCodeOf, type ErrorCode } from "./error-code"
+export type {
+  AccountChange,
+  AccountService,
+  AuthProvider,
+  ClientEvents,
+  GameOrder,
+  GameRoute,
+  Language,
+  Locale,
+  SearchedList,
+  ServerEvents,
+  SettingKey,
+  SignInMethod,
+  TableListSource,
+  TableSettingKey,
+  TableVisibility,
+} from "./events"
 export { cookieValue, isLocale, LOCALE_COOKIE, pickLocale } from "./locale"
 export { RESERVED_HEIGHT_VAR, reserveSpace } from "./reserve"
-export { CODE_PLACEHOLDER, scrubCapture, scrubDeep, scrubText, type Capture } from "./scrub"
+export { CODE_PLACEHOLDER, HANDLE_PLACEHOLDER, scrubCapture, scrubDeep, scrubText, type Capture } from "./scrub"
 export { BANNER_TEXTS, type BannerTexts } from "./texts"

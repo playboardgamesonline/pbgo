@@ -40,7 +40,7 @@ export function CountryRow({ country, options, demo }: { country: string | null;
     const country = checked.country
     setError(null)
     setPending(true)
-    const outcome = await changing(demo, () => saveCountry(country))
+    const outcome = await changing(demo, () => saveCountry(country), { setting: "country" })
     setPending(false)
     const failure = failureOf(outcome)
     if (failure) {

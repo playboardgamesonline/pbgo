@@ -1,6 +1,9 @@
+import { assertNoPersonalData } from "@pbgo/analytics/privacy"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
+  scheduled: [] as Array<() => unknown>,
+  track: vi.fn<(event: string, distinctId: string, properties: object) => Promise<void>>(async () => {}),
   account: null as { id: string; email: string | null; nickname: string } | null,
   available: true,
   sent: "sent" as "sent" | "logged" | "unavailable" | "failed",
@@ -14,6 +17,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock("server-only", () => ({}))
+vi.mock("next/server", () => ({ after: (callback: () => unknown) => void mocks.scheduled.push(callback) }))
+vi.mock("@pbgo/analytics/server", () => ({ track: mocks.track }))
 vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => mocks.account, clearSessionCookies: mocks.clearSessionCookies }))
 vi.mock("../../../../../server/player", () => ({ getPlayerId: async () => null }))
 vi.mock("../../../../../server/account-deletion", () => ({
@@ -43,7 +48,19 @@ const POST = deletionRoute(compose)
 const call = (body: unknown, { origin, ip = "1.1.1.1" }: { origin?: string; ip?: string } = {}) =>
   POST(new Request("http://localhost:3140/api/hub/account/deletion", { method: "POST", headers: { "x-forwarded-for": ip, "content-type": "application/json", ...(origin ? { origin } : {}) }, body: typeof body === "string" ? body : JSON.stringify(body) }))
 
+/** What was counted in PostHog once the response has left. */
+function counted() {
+  mocks.scheduled.splice(0).forEach((callback) => callback())
+  const sent = mocks.track.mock.calls.map(([event, distinctId, properties]) => ({ event, distinctId, properties }))
+  mocks.track.mockClear()
+  return sent
+}
+
+const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
 beforeEach(() => {
+  mocks.scheduled.length = 0
+  mocks.track.mockClear()
   vi.useFakeTimers({ toFake: ["Date"] })
   vi.setSystemTime(new Date("2026-11-09T12:00:00.000Z"))
   mocks.account = { id: USER, email: "ore@example.com", nickname: "Oré" }
@@ -169,6 +186,52 @@ describe("a member deletes their account (intent close)", () => {
     expect(await response.json()).toEqual({ error: "CROSS_ORIGIN" })
     expect(mocks.sendMail).not.toHaveBeenCalled()
     expect(mocks.closeAccount).not.toHaveBeenCalled()
+  })
+})
+
+describe("what is counted of a deletion", () => {
+  it("is each step, once it went through, for nobody: the identifier is one that is used once, and no address, account or token goes with it", async () => {
+    const { email, nickname } = mocks.account!
+    await call({ intent: "close" }, { origin: "http://localhost:3140" })
+    mocks.account = null
+    await call({ intent: "reopen", user: USER, token: TOKEN })
+    await call({ intent: "now", user: USER, token: TOKEN })
+    const sent = counted()
+    expect(sent.map((entry) => entry.event)).toEqual(["account_deletion", "account_deletion", "account_deletion"])
+    expect(sent.map((entry) => entry.properties)).toEqual([{ step: "requested" }, { step: "reopened" }, { step: "deleted_now" }])
+    for (const entry of sent) {
+      expect(entry.distinctId).toMatch(ID)
+      assertNoPersonalData(entry.properties)
+      for (const secret of [USER, TOKEN, email, nickname]) expect(JSON.stringify(entry)).not.toContain(String(secret))
+    }
+    expect(new Set(sent.map((entry) => entry.distinctId)).size).toBe(3)
+  })
+
+  it("is nothing when the request is refused or did not work", async () => {
+    // not signed in, no address, no e-mail service, a mail that did not leave
+    mocks.account = null
+    await call({ intent: "close" })
+    mocks.account = { id: USER, email: null, nickname: "Mia" }
+    await call({ intent: "close" })
+    mocks.account = { id: USER, email: "mia@example.com", nickname: "Mia" }
+    mocks.available = false
+    await call({ intent: "close" })
+    mocks.available = true
+    mocks.sent = "failed"
+    await call({ intent: "close" })
+    mocks.sent = "sent"
+    // the account was closed in the meantime
+    mocks.closeAccount.mockResolvedValue(null)
+    await call({ intent: "close" })
+    // links that are not good, and a database that cannot delete
+    mocks.reopenAccount.mockResolvedValue(false)
+    await call({ intent: "reopen", user: USER, token: TOKEN })
+    mocks.peekReopenLink.mockResolvedValue(null)
+    await call({ intent: "now", user: USER, token: TOKEN })
+    mocks.peekReopenLink.mockResolvedValue({ email: "mia@example.com", reopensUntil: new Date("2026-11-16T23:59:59.999Z") })
+    mocks.eraseAccount.mockRejectedValue(new Error("erase_account: deadlock detected"))
+    await call({ intent: "now", user: USER, token: TOKEN })
+    expect(counted()).toEqual([])
   })
 })
 

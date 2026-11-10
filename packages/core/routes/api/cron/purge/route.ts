@@ -1,3 +1,4 @@
+import { trackAnonymously } from "../../../../server/analytics"
 import { ApiError, handle } from "../../../../server/api"
 import { cronAuthorized } from "../../../../server/cron"
 import { purgeExpired } from "../../../../server/retention"
@@ -10,6 +11,8 @@ import { purgeExpired } from "../../../../server/retention"
 export const GET = handle(async (request: Request) => {
   if (!cronAuthorized(request.headers.get("authorization"), process.env.CRON_SECRET)) throw new ApiError("ACCESS_DENIED", 401)
   const report = await purgeExpired({ dryRun: new URL(request.url).searchParams.get("dry") === "1" })
+  // One count for each account that the clean-up deleted: the run says how many, never whose
+  if (!report.dryRun) for (let account = 0; account < report.accounts; account++) trackAnonymously("account_deletion", { step: "purged" })
   // Counts and dates only, no personal data: Vercel keeps this line with the run of the cron job
   if (report.errors.length) {
     console.error("Purge failed", report)

@@ -1,9 +1,13 @@
 "use client"
 
 import { createContext, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
+import { usePathname } from "next/navigation"
 
+import { useSearchReport } from "@pbgo/analytics/client"
 import {
   categoriesOf,
+  countFilters,
+  DEFAULT_SORT,
   filterFromParams,
   filterGames,
   filterToParams,
@@ -80,6 +84,13 @@ export function GameSearch({ games, children }: { games: readonly SearchedGame[]
   const filter = edited ?? filterFromParams(params, categories)
   const sort = editedSort ?? sortFromParams(params)
   const shown = sortGames(filterGames(games, filter), sort)
+
+  // A search, a pick or an order that stopped for a second is counted: whether a text was typed, how many picks are on and how many games are left, never the text. A list nobody has touched is not a search
+  const pathname = usePathname()
+  const withText = filter.query.trim() !== ""
+  const filters = countFilters(filter)
+  const asked = withText || filters > 0 || sort !== DEFAULT_SORT
+  useSearchReport(asked ? { list: pathname === "/" ? "home" : "games", with_text: withText, filters, sort } : null, shown.length)
 
   function setQuery(query: string) {
     setEdited({ ...filter, query })

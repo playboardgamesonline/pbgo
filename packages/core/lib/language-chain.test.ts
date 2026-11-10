@@ -17,7 +17,7 @@ import { toSkin, type SkinDoc } from "./skin-server"
 // Never French (the default before English) and never the first language that has a value.
 
 /**
- * The messages of the platform that exist in English only: the code holds English, and the other languages are added by the language pass (twelve languages, PLT-32), not written
+ * The messages of the platform that exist in English only: the code holds English, and the other languages are added by the language pass (thirteen languages, PLT-32), not written
  * one by one in the code. A visitor reads them in English until then. Translate one in every language of `ERROR_TRANSLATIONS`, then take it out of this list.
  */
 const ENGLISH_ONLY = [
@@ -39,6 +39,19 @@ const ENGLISH_ONLY = [
   "BIRTHDATE_INVALID",
   "BIRTHDATE_UNDER_MINIMUM",
   "BIRTHDATE_LOCKED",
+  "PROFILE_TAKEN",
+  "PROFILE_INVALID",
+  "PROFILE_UNAVAILABLE",
+  "CROSS_ORIGIN",
+  "PLAYER_BUSY",
+  "RANK_TOO_LOW",
+  "LANGUAGE_MISMATCH",
+  "SETTINGS_UNAVAILABLE",
+  "LEFT_GAME",
+  "RANK_GAP",
+  "RANKED_MEMBERS_ONLY",
+  "RANKED_TABLE_LOCKED",
+  "RANKED_TABLE_NOT_FULL",
 ]
 
 const game = { sanityProjectId: "abc123xy" }

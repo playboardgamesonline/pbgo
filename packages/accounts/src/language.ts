@@ -1,28 +1,29 @@
-// The language of a visitor, as far as the platform speaks it: the twelve they can choose, how the languages of a browser find one of them, the key of the account that
+// The language of a visitor, as far as the platform speaks it: the thirteen they can choose, how the languages of a browser find one of them, the key of the account that
 // keeps their choice, the cookie that keeps it on a device, and what to write where when the account, the cookie and the browser disagree (docs/accounts.md). Pure and
 // without any import beyond the list of languages, so that the browser, the server, the games' pages and the tests read it the same way.
 
 import { DEFAULT_PLATFORM_LANGUAGE, PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
 
 /**
- * A language a visitor can choose: any of the platform's twelve (`PLATFORM_LANGUAGES`). It is not the set of languages a site can render: the games have four
+ * A language a visitor can choose: any of the platform's thirteen (`PLATFORM_LANGUAGES`). It is not the set of languages a site can render: the games have four
  * (`Locale` of `@pbgo/core/lib/i18n`, from `LANGUAGES`) until their Studios move to the same system, and a visitor whose language a site lacks reads English
- * there (`localeFor` of core). The four are among the twelve.
+ * there (`localeFor` of core), English (UK) included. The four are among the thirteen.
  */
 export type PlatformLanguage = (typeof PLATFORM_LANGUAGES)[number]["id"]
 
-/** The twelve languages a visitor can choose, English first, each with its name in that language: what a picker lists, in this order. */
+/** The thirteen languages a visitor can choose, English (US) first and English (UK) second, each with its name in that language: what a picker lists, in this order. */
 export { PLATFORM_LANGUAGES }
 
-/** English: the default of the platform and the fallback of every text. */
+/** English (US), `en`: the default of the platform and the fallback of every text, English (UK) included. */
 export const DEFAULT_LANGUAGE: PlatformLanguage = DEFAULT_PLATFORM_LANGUAGE
 
 /**
- * The country whose flag stands for each language in the pickers (ISO 3166-1 alpha-2): the one the language is known by, since several languages are spoken in many countries and none of them is the language's alone. A flag is how a picker
- * finds a language at a glance, not a claim about it. A language added to the list without a country does not compile.
+ * The country whose flag stands for each language in the pickers (ISO 3166-1 alpha-2): the one the language is known by, since several languages are spoken in many countries and none of them is the language's alone (English (US) wears the flag of the
+ * US and English (UK) that of the UK). A flag is how a picker finds a language at a glance, not a claim about it. A language added to the list without a country does not compile.
  */
 export const PLATFORM_LANGUAGE_REGIONS = {
   en: "US",
+  "en-GB": "GB",
   fr: "FR",
   es: "ES",
   de: "DE",
@@ -44,10 +45,34 @@ export const PLATFORM_LANGUAGE_NAMES = Object.fromEntries(PLATFORM_LANGUAGES.map
 
 const IDS: readonly string[] = PLATFORM_LANGUAGES.map((language) => language.id)
 
-/** Whether a value is one of the platform's twelve languages (a cookie, a claim of the account or a form can hold anything). */
+/** Whether a value is one of the platform's thirteen languages, written as the list writes it (a cookie, a claim of the account or a form can hold anything). */
 export function isPlatformLanguage(value: unknown): value is PlatformLanguage {
   return typeof value === "string" && IDS.includes(value)
 }
+
+/**
+ * The language that a regional form is a form of: English (UK), `en-GB`, is a form of English (US), `en`, the English of the platform. A language that is not the form of another is its own. A form has the id of its language and its region, so the
+ * language is the part before the hyphen.
+ */
+export function baseLanguageOf(language: PlatformLanguage): PlatformLanguage {
+  const [base = language] = language.split("-")
+  return isPlatformLanguage(base) ? base : language
+}
+
+/** What a title puts in brackets after a language to tell its forms apart: `English (US)` and `English (UK)`. */
+const FORM_MARK = /\s*\([^)]*\)$/
+
+/**
+ * The languages people speak, for what is about the people and not about the site: the language that a table asks its players to speak. They are the platform's languages without the forms of another, since English (UK) is a way of writing English
+ * and not another language to speak, each by the name that a picker gives it, except a language that has forms: its brackets tell it from them, and there is one English here, which is called English.
+ */
+export const SPOKEN_LANGUAGES: readonly { id: PlatformLanguage; name: string }[] = PLATFORM_LANGUAGES.filter(({ id }) => baseLanguageOf(id) === id).map(({ id, title }) => ({
+  id,
+  name: PLATFORM_LANGUAGES.some((other) => other.id !== id && baseLanguageOf(other.id) === id) ? title.replace(FORM_MARK, "") : title,
+}))
+
+/** The regional forms that the platform has, by their tag in lower case, which is how a browser's tag is looked up: `en-gb` is English (UK). */
+const FORMS: ReadonlyMap<string, PlatformLanguage> = new Map(PLATFORM_LANGUAGES.filter(({ id }) => id.includes("-")).map(({ id }): [string, PlatformLanguage] => [id.toLowerCase(), id]))
 
 /** The tags of an `Accept-Language` header, the most wanted first: `fr-CA,fr;q=0.9,en;q=0.8` is `fr-CA`, `fr`, `en`. A weight of 0 says "not this one" and `*` names no language: both are left out. */
 function byPreference(header: string): string[] {
@@ -64,17 +89,33 @@ function byPreference(header: string): string[] {
 }
 
 /**
+ * The language and the region that a tag of a browser names, in lower case: `en-Latn-GB` is `en` and `gb`, `pt_BR` is `pt` and `br`, `es-419` is `es` and `419`. The region is the first subtag after the language that is two letters or three digits (a
+ * script has four letters, a variant five or more). None is looked for after an extension or a private use, which start with a subtag of one character: `en-u-ca-gb` and `en-x-gb` have none.
+ */
+function partsOf(tag: string): { language: string; region: string | undefined } {
+  const [language = "", ...subtags] = tag.trim().toLowerCase().split(/[-_]/)
+  for (const subtag of subtags) {
+    if (subtag.length === 1) break
+    if (/^(?:[a-z]{2}|\d{3})$/.test(subtag)) return { language, region: subtag }
+  }
+  return { language, region: undefined }
+}
+
+/**
  * The language of the platform that a browser asks for: the first of its languages that the platform has, by the first part of the tag (`fr-CA` is French, `pt-BR`
- * Portuguese, `en-GB` English; every `zh-*`, Traditional included, is Chinese, Simplified, since there is no other Chinese yet), else English. It takes the header
- * `Accept-Language` (a string, with its `;q=` weights, which put the languages in order) or the list `navigator.languages` (already in order). No language at
- * all, as a crawler sends none, is English too: this is the platform's answer, not the games' (`fromAcceptLanguage` of core, which has four languages and
- * French as its default when the header is missing).
+ * Portuguese; every `zh-*`, Traditional included, is Chinese, Simplified, since there is no other Chinese yet), else English (US). A tag that names a regional form that
+ * the platform has gets the form: `en-GB` is English (UK), and it alone, since every other English (`en`, `en-US`, `en-CA`, `en-AU`…) is English (US), and the
+ * region of another language is no form of English (`fr-GB` is French). It takes the header `Accept-Language` (a string, with its `;q=` weights, which put the languages
+ * in order) or the list `navigator.languages` (already in order). No language at all, as a crawler sends none, is English (US) too: this is the platform's answer, not
+ * the games' (`fromAcceptLanguage` of core, which has four languages and French as its default when the header is missing).
  */
 export function matchPlatformLanguage(languages: string | readonly string[] | null | undefined): PlatformLanguage {
   const tags = typeof languages === "string" ? byPreference(languages) : (languages ?? [])
   for (const tag of tags) {
-    const primary = tag.trim().toLowerCase().split(/[-_]/)[0]
-    if (isPlatformLanguage(primary)) return primary
+    const { language, region } = partsOf(tag)
+    const form = region === undefined ? undefined : FORMS.get(`${language}-${region}`)
+    if (form) return form
+    if (isPlatformLanguage(language)) return language
   }
   return DEFAULT_LANGUAGE
 }
@@ -87,7 +128,7 @@ export function matchPlatformLanguage(languages: string | readonly string[] | nu
  */
 export const LANGUAGE_KEY = "pbgo_locale"
 
-/** The language an account keeps, or null when it keeps none yet, or something that is not one of the twelve (a value written by hand, or by another version of the site). */
+/** The language an account keeps, or null when it keeps none yet, or something that is not one of the thirteen (a value written by hand, or by another version of the site). */
 export function languageOf(user: { user_metadata?: Record<string, unknown> | null }): PlatformLanguage | null {
   const value = user.user_metadata?.[LANGUAGE_KEY]
   return isPlatformLanguage(value) ? value : null

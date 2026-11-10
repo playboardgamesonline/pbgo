@@ -135,16 +135,17 @@ function FriendsBar({
   className,
   ...props
 }: FriendsBarProps) {
-  const games = gamesOf(friends).slice(0, MAX_GAMES)
+  // Kept for as long as the friends are the same ones: the panel below compares the game it draws with the one it drew before
+  const games = React.useMemo(() => gamesOf(friends).slice(0, MAX_GAMES), [friends])
   const bar = React.useRef<HTMLDivElement>(null)
   const touched = React.useRef(false)
   // One panel for all the pills: it moves from a game to the next and says what is about the one under the pointer. A press on the bar is not a press away from the panel: the pill decides
   const card = useMovingCard((node) => bar.current?.contains(node) ?? false)
   const onPill = games.find((game) => game.game.slug === card.target?.key) ?? null
   // The panel keeps the last game it drew while it closes, so that it does not empty as it fades
-  const last = React.useRef<GameFriends | null>(null)
-  if (onPill) last.current = onPill
-  const shown = onPill ?? last.current
+  const [last, setLast] = React.useState<GameFriends | null>(null)
+  if (onPill && onPill !== last) setLast(onPill)
+  const shown = onPill ?? last
 
   if (games.length === 0) {
     if (!onShareLink) return null

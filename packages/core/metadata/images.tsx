@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- `ImageResponse` draws these pictures itself (Satori, not a page): `<img>` is the only element it knows, `next/image` is not available in it */
 import "server-only"
 import { ImageResponse } from "next/og"
 import sharp from "sharp"

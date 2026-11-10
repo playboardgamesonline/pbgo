@@ -53,23 +53,24 @@ export function useFeedback({ gameCode, onSent }: { gameCode?: string; onSent: (
   const [message, setMessage] = useState("")
   const [email, setEmail] = useState("")
   const [trap, setTrap] = useState("")
-  const [screenshot, setScreenshot] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  // The screenshot with the address the browser gives it for the preview: made when the screenshot is picked, let go of when it is replaced, removed or sent
+  const [shot, setShot] = useState<{ file: File; url: string } | null>(null)
+  const screenshot = shot?.file ?? null
+  const preview = shot?.url ?? null
   const [sending, setSending] = useState(false)
 
   useEffect(() => {
-    if (!screenshot) return setPreview(null)
-    const url = URL.createObjectURL(screenshot)
-    setPreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [screenshot])
+    if (!shot) return
+    return () => URL.revokeObjectURL(shot.url)
+  }, [shot])
 
   async function pick(file: File | undefined) {
     if (!file) return
     if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) return toast.error(new ApiClientError("INVALID_IMAGE").message)
     if (file.size > MAX_INPUT) return toast.error(new ApiClientError("FILE_TOO_BIG").message)
     try {
-      setScreenshot(await shrink(file))
+      const shrunk = await shrink(file)
+      setShot({ file: shrunk, url: URL.createObjectURL(shrunk) })
     } catch {
       toast.error(new ApiClientError("INVALID_IMAGE").message)
     }
@@ -94,7 +95,7 @@ export function useFeedback({ gameCode, onSent }: { gameCode?: string; onSent: (
       toast.success(t("feedbackThanks"))
       setMessage("")
       setEmail("")
-      setScreenshot(null)
+      setShot(null)
       setType("review")
       onSent()
     } catch (err) {
@@ -104,7 +105,7 @@ export function useFeedback({ gameCode, onSent }: { gameCode?: string; onSent: (
     }
   }
 
-  return { type, setType, message, setMessage, email, setEmail, trap, setTrap, preview, removeScreenshot: () => setScreenshot(null), sending, pick, send }
+  return { type, setType, message, setMessage, email, setEmail, trap, setTrap, preview, removeScreenshot: () => setShot(null), sending, pick, send }
 }
 
 /** "Feedback" button (outside the game, apart from the game buttons): type, message, optional e-mail and screenshot → admin, Tasks › Feedback. */

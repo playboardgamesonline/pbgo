@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, MotionConfig, motion } from "motion/react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { DURATION, EASE_STANDARD } from "@pbgo/ui/motion"
 import { ApiClientError } from "../../lib/api"
 import type { BoardProps } from "../../lib/binding"
@@ -85,17 +85,20 @@ export function BoardEntry({
 
   // How far the others are: what the boards of the table tell each other, while the check lasts
   const [others, setOthers] = useState<LoadingProgress>({})
-  const [channel, setChannel] = useState<ReturnType<typeof openLoading>>(null)
+  const channel = useRef<ReturnType<typeof openLoading>>(null)
   useEffect(() => {
     if (!starting || !meId) return
     const open = openLoading(SLUG, game.code, meId, setOthers)
-    setChannel(open)
+    channel.current = open
     return () => {
       open?.close()
-      setChannel(null)
+      channel.current = null
     }
   }, [starting, meId, SLUG, game.code])
-  useEffect(() => channel?.report(own), [channel, own])
+  // What this board has loaded is said again whenever it changes and to a channel that has just opened (this effect runs after the one that opens it)
+  useEffect(() => {
+    channel.current?.report(own)
+  }, [own, starting, meId, SLUG, game.code])
 
   // The deadline of a game with a clock: counted down here for every board, and the table asked to play it when it ends
   const deadlineAt = useDeadline(game, receivedAt, async () => onUpdate(await api.tick(game.code)))

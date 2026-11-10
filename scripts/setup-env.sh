@@ -39,6 +39,9 @@
 #                                   which switches the Steam button of the sign-in on (docs/accounts.md). Written to .env.local and
 #                                   pushed to every Vercel target. Without it the sign-in has no Steam button; one of the wrong shape
 #                                   is neither written nor pushed
+#   BGG_API_TOKEN                   optional: the token of the application registered at boardgamegeek.com/applications, which
+#                                   `pnpm --filter @pbgo/platform content:bgg` reads BoardGameGeek's API with (PLT-78). Written to
+#                                   .env.local only and never pushed to Vercel: the hub does not call BoardGameGeek
 #   SANITY_API_WRITE_TOKEN_<SLUG>   optional, one per game: a token found here is reused, see Sanity below
 # The three Supabase values are required. The production keys go to the Vercel production target only: .env.local and
 # the Vercel preview/development targets get the preview project's keys, never production ones. The script exits with
@@ -423,6 +426,15 @@ STEAM_KEY="$(setting STEAM_WEB_API_KEY)"; STEAM_OK=0
 if [ -z "$STEAM_KEY" ]; then warn "STEAM_WEB_API_KEY not set: the sign-in has no Steam button"
 elif [[ "$STEAM_KEY" =~ ^[0-9A-Fa-f]{32}$ ]]; then envset "$ENV_FILE" STEAM_WEB_API_KEY "$STEAM_KEY"; STEAM_OK=1; ok "STEAM_WEB_API_KEY"
 else err "STEAM_WEB_API_KEY: a Steam Web API key is 32 hexadecimal characters; neither written nor pushed"; fi
+
+# ---------- BoardGameGeek (optional) ----------
+# The token of the application registered at BoardGameGeek: what `content:bgg` of @pbgo/platform reads its API with (the figures of the games, PLT-78). It stays on this machine,
+# in .env.local, and is not in the list of what is pushed to Vercel below, since the hub never calls BoardGameGeek. Its value is never printed, not even in the message of a refusal
+title "BoardGameGeek (optional)"
+BGG_TOKEN="$(setting BGG_API_TOKEN)"
+if [ -z "$BGG_TOKEN" ]; then warn "BGG_API_TOKEN not set: content:bgg cannot read BoardGameGeek"
+elif safe "$BGG_TOKEN"; then envset "$ENV_FILE" BGG_API_TOKEN "$BGG_TOKEN"; ok "BGG_API_TOKEN (.env.local only, not pushed)"
+else err "BGG_API_TOKEN: the token has a character that cannot be written to .env.local; it is not written"; fi
 
 # ---------- Vercel project ----------
 # Looked up before the Sanity tokens: the project already holds them. The API alone is used, with the project's id: no

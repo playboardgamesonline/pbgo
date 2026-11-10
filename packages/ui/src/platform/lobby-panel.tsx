@@ -3,6 +3,7 @@ import { ArrowRight01Icon, Cancel01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 import type { TableSeat, TableState } from "../tables"
+import { Badge } from "./badge"
 import { Button } from "./button"
 import { Card, CardContent, CardDescription, CardFooter, CardTitle } from "./card"
 import { LobbyAccess, type LobbyAccessProps } from "./lobby-access"
@@ -52,10 +53,14 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
   seats: readonly TableSeat[]
   /** The settings of the table, under the seats: how fast it is played and the expansions it is played with. None: the panel has none to show. */
   settings?: LobbySettingsProps | null
-  /** Who may join the table, for the visitor's own lobby, which they set: the one button at the top right (`LobbyAccess`), with where it starts and the languages it offers. None: not drawn, as for every table of the list, which is public. */
-  access?: Pick<LobbyAccessProps, "defaultVisibility" | "defaultMinRank" | "defaultLanguage" | "languages">
+  /** Who may join the table, for the visitor's own lobby, which they set: the one button at the top right (`LobbyAccess`), with where it starts, the languages it offers and what the page does with a choice (`onChange`). None: not drawn, as for every table of the list. */
+  access?: Pick<LobbyAccessProps, "defaultVisibility" | "defaultMinRank" | "defaultLanguage" | "languages" | "onChange">
   /** How many players the visitor's own lobby may be set for: the select above the seats (`LobbyPlayers`). None: the seats are drawn as they are, as for every table of the list. */
   playerRange?: { min: number; max: number }
+  /** What the page does with a number of players that the visitor picks (`LobbyPlayers`), for the lobby that is theirs. */
+  onPlayersChange?: (count: number) => void
+  /** What a table of the list asks of the people who sit at it ("Silver and above", "French"), already worded, as small tags under its seats. None: it asks nothing. The visitor's own lobby has them in the button that says who may join. */
+  criteria?: readonly string[]
   /** The main button at the bottom: where it leads (`href`), or a button that cannot be pressed (`disabled`: "Full", "Waiting to start · 3/5"). None: no button, unless `start` is given. */
   action?: { label: string; href?: string; disabled?: boolean } | null
   /** The main button of the visitor who opened the lobby, which starts it: the page's own (`StartGameButton`), drawn in place of `action`. */
@@ -76,7 +81,7 @@ type LobbyDetailProps = Omit<React.ComponentProps<typeof LobbyPanel>, "title"> &
  * sits at, which they may leave by the secondary button beside the main one (`leave`) and, when it is theirs, set who may join by the button at the top right (`access`), and the table they picked in the list of the open tables, which a button at the top right closes (`onClose`)
  * and gives the panel back to what it showed before.
  */
-function LobbyDetail({ state, createdBy, title, description, seats, settings, access, playerRange, action, start, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
+function LobbyDetail({ state, createdBy, title, description, seats, settings, access, playerRange, onPlayersChange, criteria, action, start, onClose, leave, join, invite, ...props }: LobbyDetailProps) {
   // At the right of the top row: who may join, for the visitor's own lobby, and the way to put a table that was picked down
   const actions =
     access || onClose ? (
@@ -95,7 +100,16 @@ function LobbyDetail({ state, createdBy, title, description, seats, settings, ac
       <CardTitle className="ph-mask sr-only">{title}</CardTitle>
       <CardDescription className="ph-mask sr-only">{description}</CardDescription>
       <CardContent className="flex flex-col gap-6">
-        <LobbyPlayers seats={seats} range={playerRange} createdBy={createdBy} actions={actions} join={join} invite={invite} />
+        <LobbyPlayers seats={seats} range={playerRange} onCountChange={onPlayersChange} createdBy={createdBy} actions={actions} join={join} invite={invite} />
+        {criteria && criteria.length > 0 && (
+          <ul aria-label="What the table asks" className="-mt-2 flex flex-wrap gap-2">
+            {criteria.map((criterion) => (
+              <li key={criterion}>
+                <Badge variant="outline">{criterion}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
         {settings && <LobbySettings {...settings} className="border-t pt-6" />}
       </CardContent>
       {(action || start || leave) && (

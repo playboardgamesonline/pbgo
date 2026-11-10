@@ -1,7 +1,9 @@
 import "server-only"
+import type { Handle } from "@pbgo/accounts"
 import type { Rank } from "@pbgo/ui/ranks"
 import type { Outcome } from "@pbgo/ui/results"
 import { progressOfPoints, rankOfPoints } from "../lib/ladder"
+import { handleOf, readProfiles, type ProfileRecord } from "./profiles"
 import { supabaseAdmin } from "./supabase"
 
 /**
@@ -18,6 +20,29 @@ const text = (value: unknown): string | null => (typeof value === "string" ? val
 const count = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : Number(value) || 0)
 const maybe = (value: unknown): number | null => (value === null || value === undefined ? null : count(value))
 
+/** Who sat in a seat, as the history and the board draw them: what the seat had (the name and the picture it was copied with) or, while the account is still there, the account's own name and picture, with the handle that leads to its profile (PLT-39). */
+export type Seated = { name: string | null; avatarUrl: string | null; handle?: Handle }
+
+/**
+ * The profiles of the accounts that sat in these seats, read once. A database that cannot say leaves the seats as they were, with no handle and the cause in the log: a history or a board is never refused for the links it would have had. The account's id
+ * is what the lookup goes by and what no page ever sends to a browser.
+ */
+async function profilesOf(ids: readonly (string | null)[]): Promise<Map<string, ProfileRecord>> {
+  const wanted = ids.filter((id): id is string => id !== null)
+  try {
+    return await readProfiles(wanted)
+  } catch (error) {
+    console.error("The profiles of the players of a history could not be read", error instanceof Error ? error.message : error)
+    return new Map()
+  }
+}
+
+/** A seat as it is drawn: the account's own name, picture and handle when it has a profile (the nickname it goes by now, not the one it had then), the seat's name and picture otherwise (a guest, an account that is gone). */
+function seatedOf(seat: { userId: string | null; name: string | null; avatarUrl: string | null }, profiles: ReadonlyMap<string, ProfileRecord>): Seated {
+  const profile = seat.userId ? profiles.get(seat.userId) : undefined
+  return profile ? { name: profile.nickname, avatarUrl: profile.avatarUrl ?? seat.avatarUrl, handle: handleOf(profile) } : { name: seat.name, avatarUrl: seat.avatarUrl }
+}
+
 async function call(name: string, args: Record<string, unknown>): Promise<Row[]> {
   const { data, error } = await supabaseAdmin().rpc(name, args)
   if (error) throw error
@@ -25,15 +50,18 @@ async function call(name: string, args: Record<string, unknown>): Promise<Row[]>
 }
 
 /** One player of the board of a game, as the board shows them: where they stand and what they are called. */
-export type BoardRow = { userId: string; name: string | null; avatarUrl: string | null; place: number; rank: Rank; wins: number; gamesPlayed: number }
+export type BoardRow = { userId: string; name: string | null; avatarUrl: string | null; place: number; rank: Rank; wins: number; gamesPlayed: number; handle?: Handle }
 
-/** The best players of a game, best first, at most `limit`: the players who have rated at least 5 games (`LEADERBOARD_MIN_GAMES` of the hub; the 5 is also in migrations 0007 and 0009). */
+/**
+ * The best players of a game, best first, at most `limit`: the players who have rated at least 5 games (`LEADERBOARD_MIN_GAMES` of the hub; the 5 is also in migrations 0007 and 0009). A player whose account is there goes by their profile (nickname, picture, handle);
+ * the name and picture of their last rated game are used for one that has none.
+ */
 export async function readBoard(game: string, limit: number): Promise<BoardRow[]> {
   const rows = await call("game_standings", { p_game: game, p_limit: limit })
+  const profiles = await profilesOf(rows.map((row) => text(row.user_id)))
   return rows.map((row) => ({
     userId: String(row.user_id),
-    name: text(row.display_name),
-    avatarUrl: text(row.avatar_url),
+    ...seatedOf({ userId: text(row.user_id), name: text(row.display_name), avatarUrl: text(row.avatar_url) }, profiles),
     place: count(row.place),
     rank: rankOfPoints(count(row.points)),
     wins: count(row.wins),
@@ -99,13 +127,15 @@ export type HistoryRow = {
   options: Record<string, unknown>
   /** The rank points it gave (+) or took (-), null for a game that was not rated. */
   points: number | null
-  /** The others at the table, by seat: the name and picture their seat had, null once the account is gone. */
-  opponents: { name: string | null; avatarUrl: string | null }[]
+  /** The others at the table, by seat: the name and picture their seat had, null once the account is gone; an account that is still there is named as it goes now, with its handle (`Seated`). */
+  opponents: Seated[]
 }
 
 export async function readHistory(userId: string, game: string, limit: number): Promise<HistoryRow[]> {
   if (!USER_ID.test(userId)) return []
   const rows = await call("player_history", { p_user: userId, p_game: game, p_limit: limit })
+  const seatsOf = (row: Row): Row[] => (Array.isArray(row.opponents) ? (row.opponents as Row[]) : [])
+  const profiles = await profilesOf(rows.flatMap((row) => seatsOf(row).map((seat) => text(seat.userId))))
   return rows.map((row) => ({
     id: String(row.id),
     finishedAt: String(row.finished_at),
@@ -116,7 +146,7 @@ export async function readHistory(userId: string, game: string, limit: number): 
     durationSeconds: maybe(row.duration_s),
     options: row.options && typeof row.options === "object" ? (row.options as Record<string, unknown>) : {},
     points: maybe(row.points),
-    opponents: Array.isArray(row.opponents) ? (row.opponents as Row[]).map((opponent) => ({ name: text(opponent.name), avatarUrl: text(opponent.avatarUrl) })) : [],
+    opponents: seatsOf(row).map((seat) => seatedOf({ userId: text(seat.userId), name: text(seat.name), avatarUrl: text(seat.avatarUrl) }, profiles)),
   }))
 }
 
@@ -147,7 +177,7 @@ export async function readMemberGames(userId: string, limit: number): Promise<Me
   if (own.length === 0) return []
   const ids = own.map((row) => String(row.game_result_id))
   const [seated, changes] = await Promise.all([
-    db.from("game_participants").select("game_result_id, seat, display_name, avatar_url").in("game_result_id", ids),
+    db.from("game_participants").select("game_result_id, seat, user_id, display_name, avatar_url").in("game_result_id", ids),
     db.from("rating_changes").select("game_result_id, points_before, points_after").eq("user_id", userId).in("game_result_id", ids),
   ])
   if (seated.error) throw seated.error
@@ -155,11 +185,12 @@ export async function readMemberGames(userId: string, limit: number): Promise<Me
 
   const points = new Map<string, number>()
   for (const row of (changes.data ?? []) as Row[]) points.set(String(row.game_result_id), count(row.points_after) - count(row.points_before))
-  const seats = new Map<string, { seat: number; name: string | null; avatarUrl: string | null }[]>()
+  const seats = new Map<string, { seat: number; userId: string | null; name: string | null; avatarUrl: string | null }[]>()
   for (const row of (seated.data ?? []) as Row[]) {
     const id = String(row.game_result_id)
-    seats.set(id, [...(seats.get(id) ?? []), { seat: count(row.seat), name: text(row.display_name), avatarUrl: text(row.avatar_url) }])
+    seats.set(id, [...(seats.get(id) ?? []), { seat: count(row.seat), userId: text(row.user_id), name: text(row.display_name), avatarUrl: text(row.avatar_url) }])
   }
+  const profiles = await profilesOf([...seats.values()].flatMap((list) => list.map((seat) => seat.userId)))
 
   return own.map((row) => {
     const id = String(row.game_result_id)
@@ -179,7 +210,7 @@ export async function readMemberGames(userId: string, limit: number): Promise<Me
       opponents: (seats.get(id) ?? [])
         .filter((seat) => seat.seat !== count(row.seat))
         .sort((a, b) => a.seat - b.seat)
-        .map(({ name, avatarUrl }) => ({ name, avatarUrl })),
+        .map((seat) => seatedOf(seat, profiles)),
     }
   })
 }

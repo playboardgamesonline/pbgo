@@ -2,6 +2,7 @@
 
 import { ArrowUpRight01Icon, BookOpen01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { trackClient } from "@pbgo/analytics/client"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@pbgo/ui/platform/dropdown-menu"
@@ -11,16 +12,18 @@ import type { GameRulebook } from "@/lib/game-page"
 // a press opens a small menu with a row for each language, the visitor's first (`rulebooks` of `lib/game-page.ts`). A rulebook opens in a new tab, which the arrow of a menu's row says. The picto is named "Rules" for a screen reader and for the pointer (`aria-label`, `title`).
 // The language's code is a chip that a screen reader does not read (the link carries the `lang`, and the title is in that language: "Règles du jeu - Flip 7"). A game with no rulebook has no button at all. It is a client component for the menu alone.
 
-export function RulesButton({ rulebooks }: { rulebooks: readonly GameRulebook[] }) {
+export function RulesButton({ slug, rulebooks }: { slug: string; rulebooks: readonly GameRulebook[] }) {
   const [only] = rulebooks
   if (!only) return null
+  // A rulebook opens in another tab, and counts once, whichever language it is in
+  const count = () => trackClient("rules_opened", { game: slug })
 
   const book = <HugeiconsIcon icon={BookOpen01Icon} strokeWidth={2} className="size-5" aria-hidden="true" />
 
   if (rulebooks.length === 1) {
     return (
       <Button variant="outline" size="icon-xl" asChild>
-        <a href={only.href} target="_blank" rel="noopener noreferrer" lang={only.language} aria-label="Rules" title="Rules">
+        <a href={only.href} target="_blank" rel="noopener noreferrer" lang={only.language} aria-label="Rules" title="Rules" onClick={count}>
           {book}
         </a>
       </Button>
@@ -37,7 +40,7 @@ export function RulesButton({ rulebooks }: { rulebooks: readonly GameRulebook[] 
       <DropdownMenuContent align="start" className="w-auto">
         {rulebooks.map(({ language, label, href }) => (
           <DropdownMenuItem key={language} asChild>
-            <a href={href} target="_blank" rel="noopener noreferrer" lang={language}>
+            <a href={href} target="_blank" rel="noopener noreferrer" lang={language} onClick={count}>
               <Badge variant="outline" aria-hidden="true" className="min-w-9">
                 {language.toUpperCase()}
               </Badge>

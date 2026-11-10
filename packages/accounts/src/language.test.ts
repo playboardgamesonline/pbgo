@@ -6,6 +6,8 @@ import {
   LANGUAGE_KEY,
   PLATFORM_LANGUAGE_NAMES,
   PLATFORM_LANGUAGE_REGIONS,
+  SPOKEN_LANGUAGES,
+  baseLanguageOf,
   hasSessionCookie,
   isPlatformLanguage,
   languageCookie,
@@ -18,17 +20,19 @@ import {
 } from "./language"
 
 describe("the languages of the platform", () => {
-  it("are twelve, English first, and English is the default", () => {
-    expect(PLATFORM_LANGUAGES.map((language) => language.id)).toEqual(["en", "fr", "es", "de", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"])
+  it("are thirteen, English (US) first and English (UK) second, and English (US) is the default", () => {
+    expect(PLATFORM_LANGUAGES.map((language) => language.id)).toEqual(["en", "en-GB", "fr", "es", "de", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"])
     expect(DEFAULT_LANGUAGE).toBe("en")
     expect(PLATFORM_LANGUAGES[0].id).toBe(DEFAULT_LANGUAGE)
   })
 
-  it("have a name in their own language", () => {
+  it("have a name in their own language, and the two Englishes say which one they are", () => {
+    expect(PLATFORM_LANGUAGE_NAMES.en).toBe("English (US)")
+    expect(PLATFORM_LANGUAGE_NAMES["en-GB"]).toBe("English (UK)")
     expect(PLATFORM_LANGUAGE_NAMES.ja).toBe("日本語")
     expect(PLATFORM_LANGUAGE_NAMES.zh).toBe("中文 (简体)")
     expect(PLATFORM_LANGUAGE_NAMES.ar).toBe("العربية")
-    expect(Object.keys(PLATFORM_LANGUAGE_NAMES)).toHaveLength(12)
+    expect(Object.keys(PLATFORM_LANGUAGE_NAMES)).toHaveLength(13)
   })
 
   it("each have the country of a flag, a code of two capital letters, and none more than the list holds", () => {
@@ -36,6 +40,7 @@ describe("the languages of the platform", () => {
     for (const region of Object.values(PLATFORM_LANGUAGE_REGIONS)) expect(region).toMatch(/^[A-Z]{2}$/)
     expect(PLATFORM_LANGUAGE_REGIONS.fr).toBe("FR")
     expect(PLATFORM_LANGUAGE_REGIONS.en).toBe("US")
+    expect(PLATFORM_LANGUAGE_REGIONS["en-GB"]).toBe("GB")
   })
 
   it("include the four languages of the games, whose own list is not changed", () => {
@@ -47,9 +52,31 @@ describe("the languages of the platform", () => {
 })
 
 describe("isPlatformLanguage", () => {
-  it("accepts the twelve and nothing else", () => {
+  it("accepts the thirteen and nothing else", () => {
     for (const { id } of PLATFORM_LANGUAGES) expect(isPlatformLanguage(id)).toBe(true)
-    for (const value of ["", "xx", "EN", "en-US", "jp", "zh-Hant", " fr", null, undefined, 42, {}, ["fr"]]) expect(isPlatformLanguage(value)).toBe(false)
+    for (const value of ["", "xx", "EN", "en-US", "en-AU", "en-gb", "EN-GB", "en_GB", "jp", "zh-Hant", " fr", null, undefined, 42, {}, ["fr"]]) expect(isPlatformLanguage(value)).toBe(false)
+  })
+})
+
+describe("baseLanguageOf", () => {
+  it("is the language that a form is a form of: English (UK) is a form of English (US), the English of the platform", () => {
+    expect(baseLanguageOf("en-GB")).toBe("en")
+  })
+
+  it("is the language itself for every language that is not a form of another", () => {
+    for (const { id } of PLATFORM_LANGUAGES) if (!id.includes("-")) expect(baseLanguageOf(id)).toBe(id)
+  })
+})
+
+describe("SPOKEN_LANGUAGES", () => {
+  it("are the languages of the platform without the forms of another: English once", () => {
+    expect(SPOKEN_LANGUAGES.map(({ id }) => id)).toEqual(["en", "fr", "es", "de", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"])
+  })
+
+  it("call English by its plain name, since a table has only one, and every other language by the name the picker gives it", () => {
+    expect(SPOKEN_LANGUAGES[0]).toEqual({ id: "en", name: "English" })
+    expect(SPOKEN_LANGUAGES.find(({ id }) => id === "fr")).toEqual({ id: "fr", name: "Français" })
+    expect(SPOKEN_LANGUAGES.find(({ id }) => id === "zh")).toEqual({ id: "zh", name: "中文 (简体)" })
   })
 })
 
@@ -63,17 +90,36 @@ describe("matchPlatformLanguage", () => {
   it("reads the first part of the tag: a region or a script does not matter", () => {
     expect(matchPlatformLanguage("pt-BR")).toBe("pt")
     expect(matchPlatformLanguage("pt-PT")).toBe("pt")
-    expect(matchPlatformLanguage("en-GB")).toBe("en")
     expect(matchPlatformLanguage("es-419")).toBe("es")
     expect(matchPlatformLanguage("de-CH")).toBe("de")
     expect(matchPlatformLanguage("pt_BR")).toBe("pt")
+  })
+
+  it("gives English (UK) to the English of the UK alone, and English (US) to every other English", () => {
+    for (const tag of ["en-GB", "en-gb", "EN-GB", "en_GB", "en-Latn-GB", "en-GB-oxendict", "en-GB-u-ca-gregory"]) expect(matchPlatformLanguage(tag), tag).toBe("en-GB")
+    for (const tag of ["en", "en-US", "en-CA", "en-AU", "en-NZ", "en-IE", "en-IN", "en-ZA", "en-001", "en-150", "en-Latn-US"]) expect(matchPlatformLanguage(tag), tag).toBe("en")
+  })
+
+  it("does not take the UK for a form of another language, nor a region that stands after an extension", () => {
+    expect(matchPlatformLanguage("fr-GB")).toBe("fr")
+    expect(matchPlatformLanguage("de-GB")).toBe("de")
+    expect(matchPlatformLanguage("en-x-gb")).toBe("en")
+    expect(matchPlatformLanguage("en-u-ca-gb")).toBe("en")
+  })
+
+  it("puts the English of the UK where the browser put it among its languages", () => {
+    expect(matchPlatformLanguage("en-GB,en;q=0.9,fr;q=0.8")).toBe("en-GB")
+    expect(matchPlatformLanguage("en,en-GB;q=0.9")).toBe("en")
+    expect(matchPlatformLanguage("fr-FR,fr;q=0.9,en-GB;q=0.8")).toBe("fr")
+    expect(matchPlatformLanguage("sv,en-GB;q=0.5")).toBe("en-GB")
+    expect(matchPlatformLanguage(["sv-SE", "en-GB", "en-US"])).toBe("en-GB")
   })
 
   it("gives every Chinese, simplified or not, Chinese (Simplified)", () => {
     for (const tag of ["zh", "zh-CN", "zh-TW", "zh-HK", "zh-Hans", "zh-Hant", "zh-Hant-TW", "ZH-cn"]) expect(matchPlatformLanguage(tag)).toBe("zh")
   })
 
-  it("finds each of the twelve by its own code", () => {
+  it("finds each of the thirteen by its own code", () => {
     for (const { id } of PLATFORM_LANGUAGES) {
       expect(matchPlatformLanguage(id)).toBe(id)
       expect(matchPlatformLanguage([`${id.toUpperCase()}-xx`])).toBe(id)
@@ -115,12 +161,14 @@ describe("the language an account keeps", () => {
     expect(LANGUAGE_KEY).toBe("pbgo_locale")
     expect(LANGUAGE_KEY).not.toBe("locale")
     expect(languageOf({ user_metadata: { pbgo_locale: "ja" } })).toBe("ja")
+    expect(languageOf({ user_metadata: { pbgo_locale: "en-GB" } })).toBe("en-GB")
   })
 
   it("is not the `locale` a provider may fill in, nor a value that is not a language of the platform", () => {
     expect(languageOf({ user_metadata: { locale: "fr", full_name: "Oré" } })).toBeNull()
     expect(languageOf({ user_metadata: { pbgo_locale: "xx" } })).toBeNull()
     expect(languageOf({ user_metadata: { pbgo_locale: "FR" } })).toBeNull()
+    expect(languageOf({ user_metadata: { pbgo_locale: "en-gb" } })).toBeNull()
     expect(languageOf({ user_metadata: { pbgo_locale: 42 } })).toBeNull()
     expect(languageOf({ user_metadata: { pbgo_locale: null } })).toBeNull()
   })
@@ -136,12 +184,14 @@ describe("the cookie of the language", () => {
   it("is the cookie the games have always read, written the way the picker always wrote it", () => {
     expect(LANGUAGE_COOKIE).toBe("pbgo-locale")
     expect(languageCookie("ja")).toBe("pbgo-locale=ja; path=/; max-age=31536000; samesite=lax")
+    expect(languageCookie("en-GB")).toBe("pbgo-locale=en-GB; path=/; max-age=31536000; samesite=lax")
   })
 
   it("is found among the other cookies", () => {
     expect(languageFromCookies("a=1; pbgo-locale=de; b=2")).toBe("de")
     expect(languageFromCookies("pbgo-locale=ko")).toBe("ko")
     expect(languageFromCookies("a=1;pbgo-locale=zh")).toBe("zh")
+    expect(languageFromCookies("a=1; pbgo-locale=en-GB; b=2")).toBe("en-GB")
   })
 
   it("is none when it is absent, when it is not a language of the platform, or when the name is only part of another", () => {
@@ -152,6 +202,7 @@ describe("the cookie of the language", () => {
     expect(languageFromCookies("pbgo-locale")).toBeNull()
     expect(languageFromCookies("x-pbgo-locale=de")).toBeNull()
     expect(languageFromCookies("pbgo-locale-old=de")).toBeNull()
+    expect(languageFromCookies("pbgo-locale=en-gb")).toBeNull()
   })
 })
 
@@ -177,6 +228,10 @@ describe("resolveLanguage", () => {
     expect(resolveLanguage({ account: null, cookie: "de", browser: "fr" })).toBe("de")
     expect(resolveLanguage({ cookie: "de", browser: ["fr"] })).toBe("de")
     expect(resolveLanguage({ account: null, cookie: undefined, browser: ["fr-CA", "en"] })).toBe("fr")
+    expect(resolveLanguage({ cookie: "en-GB", browser: ["fr"] })).toBe("en-GB")
+    expect(resolveLanguage({ cookie: "en", browser: ["en-GB"] })).toBe("en")
+    expect(resolveLanguage({ browser: ["en-GB", "en"] })).toBe("en-GB")
+    expect(resolveLanguage({ account: "en-GB", cookie: "en", browser: ["en-US"] })).toBe("en-GB")
     expect(resolveLanguage({ browser: "sv" })).toBe("en")
     expect(resolveLanguage({})).toBe("en")
   })
@@ -217,6 +272,15 @@ describe("planLanguage", () => {
   it("rewrites a cookie that holds something that is not a language", () => {
     expect(planLanguage({ account: "es", cookie: "xx", browser: ["es"] })).toMatchObject({ language: "es", writeCookie: true, writeAccount: false })
     expect(planLanguage({ account: null, cookie: "xx", browser: ["pt-BR"] })).toMatchObject({ language: "pt", writeCookie: true, writeAccount: true })
+  })
+
+  it("makes the account take English (UK) when that is what the browser asks for, and keeps English (US) when the cookie says so", () => {
+    expect(planLanguage({ account: null, cookie: null, browser: ["en-GB", "en"] })).toEqual({ language: "en-GB", writeCookie: true, writeAccount: true, refresh: false })
+    expect(planLanguage({ account: null, cookie: "en", browser: ["en-GB"] })).toEqual({ language: "en", writeCookie: false, writeAccount: true, refresh: false })
+  })
+
+  it("lets the account's English (UK) win on a device whose cookie says English (US): the cookie is rewritten and the page drawn again", () => {
+    expect(planLanguage({ account: "en-GB", cookie: "en", browser: ["en-US"] })).toEqual({ language: "en-GB", writeCookie: true, writeAccount: false, refresh: true })
   })
 
   it("never writes the account once it keeps a language: only a choice does", () => {

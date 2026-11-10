@@ -102,9 +102,10 @@ describe("setLanguage", () => {
     expect(isChangingLanguage()).toBe(false)
   })
 
-  it("accepts each of the twelve languages", async () => {
+  it("accepts each of the thirteen languages", async () => {
     const { writes } = jar("")
-    for (const language of ["en", "fr", "es", "de", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"] as const) await setLanguage(language)
-    expect(writes.map((line) => line.split(";")[0])).toEqual(["en", "fr", "es", "de", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"].map((id) => `pbgo-locale=${id}`))
+    const languages = ["en", "en-GB", "fr", "es", "de", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"] as const
+    for (const language of languages) await setLanguage(language)
+    expect(writes.map((line) => line.split(";")[0])).toEqual(languages.map((id) => `pbgo-locale=${id}`))
   })
 })

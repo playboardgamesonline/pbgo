@@ -1,118 +1,117 @@
 "use client"
 
 import { useState } from "react"
-import { DiceIcon, PlayIcon, TrophyIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import { PlayIcon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import type { AgeRefusal } from "@pbgo/accounts"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
-import { GamePick } from "@pbgo/ui/platform/game-pick"
+import { SEARCH_MAX_GAMES } from "@pbgo/core/lib/quick-play"
+import { Card, CardContent, CardFooter } from "@pbgo/ui/platform/card"
+import { AddGame, PickedGame } from "@pbgo/ui/platform/picked-game"
 import { QueueButton } from "@pbgo/ui/platform/queue"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { QUEUE_MODE_LABELS, QUEUE_MODES, type QueueMode } from "@pbgo/ui/queue"
+import { QUEUE_MODE_LABELS, type QueueMode } from "@pbgo/ui/queue"
+import type { Rank } from "@pbgo/ui/ranks"
 import { cn } from "@pbgo/ui/utils"
-import { joinQueue, leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
+import { leaveQueue, startSearch, useQueue, useQueueSeconds } from "@/lib/matchmaking"
 import { useAgeGate } from "./age-gate"
 
-/** A game that a search can look for, one that can be played now, with the picture its tile draws (`gamePicture`). `refusal` is what the member has to do before they may play it when it asks for an age (PLT-125): the queue lives in the browser with no server to refuse them, so the search asks first. */
-export type FindableGame = { slug: string; name: string; picture?: string; logo?: string; refusal?: AgeRefusal | null }
+/** A game that a search can look for, one that can be played now, with the picture its tile draws (`gamePicture`) and the member's rank in it (none for a game they have not rated). `refusal` is what the member has to do before they may play it when it asks for an age (PLT-125): the search asks first for the date of birth, which the games for adults need. */
+export type FindableGame = { slug: string; name: string; picture?: string; logo?: string; rank?: Rank | null; refusal?: AgeRefusal | null }
 
-/** What each kind of table is, in a line: ranked is the one that counts for the rank and has no helpers (PLT-21), the other is for playing. */
-const MODES: Record<QueueMode, { icon: IconSvgElement; hint: string }> = {
-  ranked: { icon: TrophyIcon, hint: "Counts for your rank. No helpers." },
-  normal: { icon: DiceIcon, hint: "Doesn't change your rank." },
+/** The kinds of table a search looks for, in the order they are offered: the first is the one the card starts on. */
+const MODES: readonly QueueMode[] = ["normal", "ranked"]
+
+/**
+ * How big the tiles are for how many there are, the tile that adds a game counted: up to three games have large tiles, up to eight medium ones and more small ones, so that a search of one game and a search of fifteen both fill the card. A phone
+ * has two, three or four to a row, a wider card as many as it has room for.
+ */
+const GRIDS = {
+  large: "gap-4 grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]",
+  medium: "gap-3 grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))]",
+  small: "gap-3 grid-cols-4 sm:grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]",
 }
 
-function Group({ title, aside, children }: { title: string; aside?: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-sm text-muted-foreground">{title}</h3>
-        {aside && (
-          <p aria-live="polite" className="text-sm text-muted-foreground">
-            {aside}
-          </p>
-        )}
-      </div>
-      {children}
-    </section>
-  )
-}
+const gridOf = (tiles: number) => GRIDS[tiles <= 4 ? "large" : tiles <= 9 ? "medium" : "small"]
 
 /**
  * Find a game, on the signed-in home, the larger of the two cards that open the play zone (two thirds of the row from `xl`, three fifths from `lg`, on a surface a step lighter than the other containers, `--card-bar`, which is what is read first): look for a table
- * among the games the visitor picks, against players they do not know (PLT-21). The games are tiles to press (`GamePick`), all picked to begin with; under them the kind of table, ranked or normal, two options to choose between, the ranked one
- * with its rank and no helpers said in a line; at the foot, a small button with a play icon starts the search, "Play ranked" or "Play normal" (`QueueButton`). A search is the platform's one queue (`lib/matchmaking.ts`, which the social panel shows
- * too): it counts on the button, with a cross that stops it, and the card shows the search that is on, whichever page began it, its games and its kind of table, and cannot be changed until it is stopped. Nothing is found for the visitor yet:
- * the counter runs until they stop it.
+ * among the games the visitor picks, against players they do not know (PLT-21). It has no title: what it is for is its toggle, Normal (the one it starts on) or Ranked, as wide as its two words, the kind of table. Under it are the games of the search, each a tile with a cross that takes it out
+ * (`PickedGame`), the first ten of them to begin with and ten at the most, and a dark, translucent rectangle with a plus that lists the games that are not in it and adds the one that is pressed (`AddGame`); the tiles are sized by how many there are, from one game to the whole catalog. In a ranked search each tile says
+ * the member's rank in its game. Only a member who is signed in plays ranked, and the home is theirs. At the foot, at the left, a large button with a play icon starts the search, "Play normal" or "Play ranked" (`QueueButton`). A search is the platform's one queue (`lib/matchmaking.ts`, which the social
+ * panel shows too): a press sits the member at a table of each game they picked, and the table that fills first begins by itself. It counts on the button, with a cross that stops it, and the card shows the search that is on, whichever page began it, its games and its kind of table,
+ * and cannot be changed until it is stopped.
  */
 export function HomeFindGame({ games, className }: { games: readonly FindableGame[]; className?: string }) {
-  const [picked, setPicked] = useState<readonly string[]>(() => games.map((game) => game.slug))
-  const [mode, setMode] = useState<QueueMode>("ranked")
+  // A search sits the member at a table of each game, so it holds ten at the most (`SEARCH_MAX_GAMES`): the first ten are in to begin with
+  const [picked, setPicked] = useState<readonly string[]>(() => games.slice(0, SEARCH_MAX_GAMES).map((game) => game.slug))
+  const [mode, setMode] = useState<QueueMode>("normal")
   const queue = useQueue()
-  const { demand, dialog: ageDialog } = useAgeGate()
+  const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
   const seconds = useQueueSeconds(queue)
   const searching = queue !== null
   // What the card shows is the search when there is one, else what the visitor has set up so far
   const chosen = queue ? queue.games.map((game) => game.slug) : picked
   const shownMode = queue ? queue.mode : mode
   const asked = games.filter((game) => picked.includes(game.slug))
+  const shown = games.filter((game) => chosen.includes(game.slug))
 
   return (
-    <Card className={cn("h-full gap-8 [--card:var(--card-bar)] md:[--card-spacing:--spacing(8)]", className)}>
-      <CardHeader>
-        <CardTitle className="text-4xl md:text-5xl">Find a game</CardTitle>
-        <CardDescription className="text-base">Pick the games you like and play against other players.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-8">
-        <Group title="Games" aside={games.length > 0 ? (chosen.length === 0 ? "Pick at least one game" : `${chosen.length} selected`) : undefined}>
-          {games.length > 0 ? (
-            <div role="group" aria-label="Games to look for" className="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]">
-              {games.map((game, index) => (
-                <GamePick
+    <Card className={cn("h-full gap-6 [--card:var(--card-bar)] md:[--card-spacing:--spacing(8)]", className)}>
+      <CardContent className="flex flex-col gap-6">
+        <ToggleGroup type="single" variant="segmented" value={shownMode} disabled={searching} onValueChange={(next) => next && setMode(next as QueueMode)} aria-label="Kind of table" className="w-auto self-start">
+          {MODES.map((value) => (
+            // A search that is on keeps the kind it was started with as strong as when it is set: a value to read is not a control that is off
+            <ToggleGroupItem key={value} value={value} className="h-9 px-6 data-[state=on]:disabled:opacity-100">
+              {QUEUE_MODE_LABELS[value]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        {games.length > 0 ? (
+          <>
+            <div role="group" aria-label="Games to look for" className={cn("grid", gridOf(shown.length + 1))}>
+              {shown.map((game, index) => (
+                <PickedGame
                   key={game.slug}
                   name={game.name}
                   picture={game.picture}
                   logo={game.logo}
-                  selected={chosen.includes(game.slug)}
-                  onSelectedChange={(on) => setPicked(on ? [...picked, game.slug] : picked.filter((slug) => slug !== game.slug))}
-                  disabled={searching}
+                  showRank={shownMode === "ranked"}
+                  rank={game.rank}
+                  onRemove={searching ? undefined : () => setPicked(picked.filter((slug) => slug !== game.slug))}
                   loading={index < 6 ? "eager" : "lazy"}
                 />
               ))}
+              {!searching && (
+                <AddGame
+                  games={chosen.length < SEARCH_MAX_GAMES ? games.filter((game) => !chosen.includes(game.slug)) : []}
+                  note={chosen.length < SEARCH_MAX_GAMES ? undefined : `A search takes ${SEARCH_MAX_GAMES} games at the most. Take one out to add another.`}
+                  showRank={shownMode === "ranked"}
+                  onAdd={(slug) => setPicked([...picked, slug])}
+                />
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">The games you can play are listed here.</p>
-          )}
-        </Group>
-        <Group title="Mode">
-          <ToggleGroup type="single" value={shownMode} disabled={searching} onValueChange={(next) => next && setMode(next as QueueMode)} aria-label="Kind of table" className="grid grid-cols-2 gap-3">
-            {QUEUE_MODES.map((value) => (
-              // A search that is on keeps the kind it was started with as strong as when it is set: a value to read is not a control that is off
-              <ToggleGroupItem
-                key={value}
-                value={value}
-                className="h-auto flex-col items-start justify-start gap-1.5 rounded-2xl p-4 text-left whitespace-normal data-[state=on]:disabled:opacity-100"
-              >
-                <span className="flex items-center gap-2 text-base">
-                  <HugeiconsIcon icon={MODES[value].icon} strokeWidth={2} aria-hidden="true" />
-                  {QUEUE_MODE_LABELS[value]}
-                </span>
-                <span className="text-sm text-muted-foreground group-data-[state=on]/toggle-item:text-primary-foreground/70">{MODES[value].hint}</span>
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </Group>
+            <p aria-live="polite" className={cn("text-sm text-muted-foreground", chosen.length > 0 && "sr-only")}>
+              {chosen.length === 0 ? "Pick at least one game" : `${chosen.length} selected`}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">The games you can play are listed here.</p>
+        )}
       </CardContent>
-      <CardFooter className="mt-auto justify-end">
+      <CardFooter className="mt-auto">
         <QueueButton
-          size="lg"
+          size="xl"
           searching={searching}
           seconds={seconds}
           disabled={asked.length === 0}
           onSearch={async () => {
             // A game for adults needs the member's date of birth before the search begins
             if (asked.some((game) => game.refusal === "date") && !(await demand("date"))) return
-            joinQueue(asked, mode)
+            try {
+              await guard(() => startSearch(asked, mode))
+            } catch (error) {
+              fail(error)
+            }
           }}
           onCancel={leaveQueue}
         >

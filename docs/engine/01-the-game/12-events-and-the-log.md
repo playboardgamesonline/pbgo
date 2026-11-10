@@ -27,7 +27,7 @@ export const GAME: GameDefinition<State, Action, PlayerView, undefined, Flip7Eve
 
 ## What the platform does
 
-- `updateGame` (`packages/core/server/games.ts`) writes the move and, when the modifier gave entries (`log: { entries }`), adds them to the log of the table, `game_log` (migration `0013`), under the version the move produced, before it tells the others (`notify`). The routes that move a game give them: `action` (`stepOf`), `takeover` (`playStepFor`, one list for all the plays of the request) and a new game (`newGame`: it empties the log of the table, then writes what the setup said).
+- `updateGame` (`packages/core/server/games.ts`) writes the move and, when the modifier gave entries (`log: { entries }`), adds them to the log of the table, `game_log` (migration `0016`), under the version the move produced, before it tells the others (`notify`). The routes that move a game give them: `action` (`stepOf`), `takeover` (`playStepFor`, one list for all the plays of the request) and a new game (`newGame`: it empties the log of the table, then writes what the setup said).
 - The log is not needed to play. A table whose log cannot be written or read goes on and its history is short; a game with no `step` never touches `game_log`.
 - A table keeps its log as long as it keeps the table (30 days after its last write) and drops it with its state, a day after the game it played is recorded: an entry can hold what only some players were shown (`drop_finished_states`).
 - Every route that answers a player with the table does it with `servedGame`: the public game, and in `PublicGame.log` the last 60 lines of the log as that player reads them (`viewLog`).

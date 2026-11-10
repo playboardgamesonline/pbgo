@@ -4,6 +4,7 @@ import type { ChatMessage, ChatReaction } from "./chat"
 import { missing } from "./missing"
 import { isPreviewWindow } from "./preview"
 import type { Profile } from "./profile"
+import type { TableSettingsInput } from "./table-settings"
 
 /**
  * Error messages of the codes the platform words: the shared codes of the engines (`SHARED_ERROR_CODES` of engine-kit) and the codes of its own routes (English, the default
@@ -34,6 +35,15 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   GAME_FULL: "This game is full.",
   HOST_ONLY: "Only the host can do that.",
   NOT_ENOUGH_PLAYERS: "More players are needed to start the game.",
+  PLAYER_BUSY: "Someone at this table is in a game right now. Start when they are done.",
+  RANK_TOO_LOW: "Your rank in this game is too low for this table.",
+  LANGUAGE_MISMATCH: "This table asks its players to speak another language.",
+  SETTINGS_UNAVAILABLE: "The table's settings can't be saved right now, try again later.",
+  LEFT_GAME: "You left this game.",
+  RANK_GAP: "Your rank is too far from the other players' ranks at this table.",
+  RANKED_MEMBERS_ONLY: "Sign in to play ranked games.",
+  RANKED_TABLE_LOCKED: "A ranked table can't be changed.",
+  RANKED_TABLE_NOT_FULL: "A ranked game starts by itself when the table is full.",
   CODE_UNAVAILABLE: "Couldn't open the table, try again.",
   CONFLICT: "Someone played at the same time, try again.",
   DEBUG_DISABLED: "Debug is disabled on this server (DEBUG_GAMES=1).",
@@ -58,6 +68,11 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   BIRTHDATE_INVALID: "This date of birth is not valid.",
   BIRTHDATE_UNDER_MINIMUM: "You must be at least 13 to use the site.",
   BIRTHDATE_LOCKED: "Your date of birth is already saved and cannot be changed here. Write to us if it needs to be corrected.",
+  // What the profile route refuses with (PLT-39): a username and a tag that somebody else has, that are not what a profile can have, or that cannot be saved yet
+  PROFILE_TAKEN: "Somebody already goes by that username and tag. Choose another tag.",
+  PROFILE_INVALID: "This username or tag is not valid.",
+  PROFILE_UNAVAILABLE: "Your username and tag can't be saved right now, try again later.",
+  CROSS_ORIGIN: "This request did not come from this site.",
 }
 
 // The page shows one game at a time: `SkinProvider` sets the messages of its skin (Sanity, else the platform's translations of the core codes).
@@ -93,12 +108,14 @@ export type ClientDebugCommand = "start" | "turn" | "over" | (string & {})
 function buildApi(slug: string) {
   const games = `/api/${slug}/games`
   return {
-    /** `profile` is the nickname of a guest; a signed-in visitor sends none, the server sits them down as their account (`resolveSeat`). */
-    create: (profile: Partial<Profile>) => post(games, profile),
+    /** `profile` is the nickname of a guest; a signed-in visitor sends none, the server sits them down as their account (`resolveSeat`). `settings` are what the host chose before the table existed: who may join, the speed and the seats (PLT-21). */
+    create: (profile: Partial<Profile>, settings?: TableSettingsInput) => post(games, settings ? { ...profile, settings } : profile),
     read: (code: string) => apiRequest(`${games}/${code}`),
     join: (code: string, profile: Partial<Profile>) => post(`${games}/${code}/join`, profile),
     leave: (code: string) => post(`${games}/${code}/leave`),
     options: (code: string, options: OptionValues) => post(`${games}/${code}/options`, { options }),
+    /** The host sets who may join the table, how fast it is played and how many seats it has, all at once (PLT-21): what the panel shows is what is kept. */
+    settings: (code: string, settings: TableSettingsInput) => post(`${games}/${code}/settings`, { settings }),
     start: (code: string) => post(`${games}/${code}/start`),
     /** "I'm ready", while the table is `starting` (PLT-107), sent by a player's board once it is loaded: the last player to say it begins the game */
     ready: (code: string) => post(`${games}/${code}/ready`),
