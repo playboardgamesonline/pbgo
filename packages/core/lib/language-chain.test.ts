@@ -39,6 +39,8 @@ const ENGLISH_ONLY = [
   "BIRTHDATE_INVALID",
   "BIRTHDATE_UNDER_MINIMUM",
   "BIRTHDATE_LOCKED",
+  "PLAYER_BUSY",
+  "LEFT_GAME",
 ]
 
 const game = { sanityProjectId: "abc123xy" }

@@ -31,6 +31,8 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   GAME_FULL: "This game is full.",
   HOST_ONLY: "Only the host can do that.",
   NOT_ENOUGH_PLAYERS: "More players are needed to start the game.",
+  PLAYER_BUSY: "Someone at this table is in a game right now. Start when they are done.",
+  LEFT_GAME: "You left this game.",
   CODE_UNAVAILABLE: "Couldn't open the table, try again.",
   CONFLICT: "Someone played at the same time, try again.",
   DEBUG_DISABLED: "Debug is disabled on this server (DEBUG_GAMES=1).",

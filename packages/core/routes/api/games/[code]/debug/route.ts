@@ -5,6 +5,7 @@ import { ApiError, handle, readJson } from "../../../../../server/api"
 import { loadSetupData, newGame, publicGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markGameStarted, recordGameResult } from "../../../../../server/results"
+import { isSeated } from "../../../../../server/table-rules"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   if (process.env.NODE_ENV === "production" && process.env.DEBUG_GAMES !== "1") throw new ApiError("DEBUG_DISABLED", 403)
@@ -18,7 +19,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   let wasOver = false
   const row = await updateGame(game, code, (row) => {
     wasOver = row.status === "over"
-    if (!id || !row.players.some((j) => j.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
+    if (!id || !isSeated(row, id)) throw new ApiError("UNKNOWN_PLAYER", 403)
     if (command === "start") return newGame(game, row, data)
     const step = GAME.debug?.[command]
     if (!step) throw new ApiError("INVALID_ACTION")

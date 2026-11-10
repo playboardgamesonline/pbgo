@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { getAccount } from "@pbgo/accounts/server"
 import { gameJsonLd, playLine, serializeJsonLd } from "@pbgo/catalog/seo"
 import { normalizeCode } from "@pbgo/core/server/code"
@@ -15,6 +15,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { ageStatesOfGame, lockedExpansions } from "@/lib/age-state"
 import { getExpansions, getHistory, getPlayerStats, getStandings, getTable, getTables, getTournaments, getViewerTable } from "@/lib/game-activity"
 import { getGamePage } from "@/lib/game-page"
+import { boardHref } from "@/lib/table-door"
 import { SITE_URL } from "@/site"
 
 // The page of a game on the hub, where every card of the list leads. Every game's page is its game in the platform's Sanity project, a live game's included: the
@@ -57,6 +58,8 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
     // What the visitor has to do before they may play this game or choose one of its expansions, when they ask for an age (PLT-125); the server decides all the same when they ask
     ageStatesOfGame(game.slug, account),
   ])
+  // A visitor who is playing this game is taken to its board (PLT-120): a member from any page of the hub, by the beat of their presence (`PresenceBeat`); a guest is known by the game's cookie alone, so from the page of the game they play
+  if (viewerTable?.status === "playing") redirect(boardHref(game.slug, viewerTable.code))
   // An expansion for adults that the visitor cannot choose carries a lock: its card says why
   const expansions = lockedExpansions(offered, ages)
   // The table of the link, when the visitor does not sit at it: the page shows it picked, with the way to sit down

@@ -5,20 +5,23 @@ import { getSessionState } from "@pbgo/accounts/server"
 import { KIND_LABELS, activeAnnouncements, bannersOf, entryHref, newsOf } from "@pbgo/catalog/editorial"
 import { getCatalog, getEditorial } from "@pbgo/catalog/server"
 import { NO_AGE_STATES } from "@pbgo/core/lib/age-rules"
+import { readMemberTables } from "@pbgo/core/server/tables"
 import { Section } from "@pbgo/ui/platform/section"
 import { playerRange } from "@pbgo/ui/tables"
 import { HomeAnnouncements } from "@/components/home-announcements"
 import { HomeBanners } from "@/components/home-banners"
 import { HomeCreateTable } from "@/components/home-create-table"
-import { HomeOpenTables, HomeTournaments } from "@/components/home-empty-zones"
+import { HomeTournaments } from "@/components/home-empty-zones"
 import { HomeFindGame } from "@/components/home-find-game"
 import { HomeNews } from "@/components/home-news"
+import { HomeOpenTables, type HomeTableRow } from "@/components/home-open-tables"
 import { HomeYourGames } from "@/components/home-your-games"
 import { SiteFooter } from "@/components/site-footer"
 import { ageStatesOf, lockedExpansions } from "@/lib/age-state"
 import { demoEditorial } from "@/lib/demo-editorial"
-import { getExpansions } from "@/lib/game-activity"
-import { expansionOption, LANGUAGE_OPTIONS } from "@/lib/game-activity-props"
+import { demoTables } from "@/lib/demo-tables"
+import { getExpansions, tableOfMember } from "@/lib/game-activity"
+import { expansionOption, LANGUAGE_OPTIONS, tableEntryProps } from "@/lib/game-activity-props"
 import { gamePicture } from "@/lib/game-card-props"
 
 // The home of a signed-in member. The proxy sends a visitor who has a session from `/` to it, instead of leaving them on the public home (`apps/web/src/proxy.ts`), and a visitor
@@ -32,8 +35,8 @@ const ANNOUNCEMENTS_MAX = 2
 
 /**
  * What a member opens the hub on: what is new and what to do now. From the top: the announcements (a message bar each), the banners (a new game, a new feature, each leading to its game or to what's new), the play zone, Find a game on two thirds of the row
- * and Create a table on the third beside it (from `xl`: two fifths for it from `lg`, the whole row for each below) (the games that can be played, each with the picture of its tile and, for a table, how many may play, its expansions and its helpers, which the game's page offers the same way), the tables open on the member's
- * games, their history, stats and ranks (the games that were recorded, PLT-13), their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something, and it holds nothing yet.
+ * and Create a table on the third beside it (from `xl`: two fifths for it from `lg`, the whole row for each below) (the games that can be played, each with the picture of its tile and, for a table, how many may play, its expansions and its helpers, which the game's page offers the same way), the tables the member sits at (and, one day, the ones
+ * open on their games), their history, stats and ranks (the games that were recorded, PLT-13), their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something, and it holds nothing yet.
  * The others are drawn whole: the play zone works as far as the platform does, and the lists have their empty state, so the shape of the home is there to see (docs/accounts.md, PLT-21). It has no title and no search bar: the title and the figures are the public home's.
  */
 export default async function MemberHome() {
@@ -62,6 +65,20 @@ export default async function MemberHome() {
       helpers: entry.game.helpers.map(({ key, title }) => ({ id: key, label: title })),
     })),
   )
+
+  // The tables the member sits at: the row of each is the one of a game's page, which leads to the table (PLT-120). A project where the database cannot say (migration 0013 is not applied yet) lists none
+  const memberTables = isDemoAccount(account) ? demoTables(catalog.entries, account.nickname) : await readMemberTables(account.id).catch((error) => (console.error("The tables of a member could not be read", error instanceof Error ? error.message : error), []))
+  const tableRows = (
+    await Promise.all(
+      memberTables.map(async (table): Promise<HomeTableRow | null> => {
+        const entry = catalog.entries.find((candidate) => candidate.slug === table.game)
+        if (!entry) return null
+        const row = tableEntryProps(tableOfMember(table, entry.game.players?.max ?? table.players.length), table.game, undefined, await getExpansions(table.game), table.status === "lobby")
+        // Which game it is, first; the free seats of a table that is played are no way in, and the row leads to the table: a lobby's page, or the board of a game in progress (`/<slug>/game/<code>` sends a lobby to its page)
+        return { id: `${table.game}:${table.code}`, entry: { ...row, facts: [entry.game.name, ...(row.facts ?? [])], hostedByYou: table.hostId === table.seat, to: row.href } }
+      }),
+    )
+  ).filter((row) => row !== null)
 
   const announcements = activeAnnouncements(editorial.announcements, new Date())
     .slice(0, ANNOUNCEMENTS_MAX)
@@ -100,7 +117,7 @@ export default async function MemberHome() {
               <HomeCreateTable games={creatable} languages={LANGUAGE_OPTIONS} className="lg:col-span-2 xl:col-span-1" />
             </div>
           </Section>
-          <HomeOpenTables />
+          <HomeOpenTables rows={tableRows} />
           <HomeYourGames account={account} />
           <HomeTournaments />
           <HomeNews lines={news} />

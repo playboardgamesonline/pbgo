@@ -88,6 +88,15 @@ When the others vote to play for a player who left, the server calls the engine'
 5. **Who must agree.** Every present member other than the target. Present means seen within `PRESENCE_WINDOW_MS`: reading the table, playing, voting or chatting records the player (`markSeen`) without changing `version` or `updated_at`, and a board reads its table on a timer, which keeps its player present. The voter always counts as present, an absent member never blocks, and a voter who is alone is enough.
 6. **The play.** For each target whose vote is complete, in the order the game waits for them, the route calls `playFor` if the game still waits for the player, then stores the new state with `takeover_votes` emptied, in one write. A takeover that ends the game stores the status `over`.
 
+### A player who leaves the game
+
+A player can leave a game in progress (the "Leave" row of the menu of the game, after a confirmation; PLT-120). Their seat stays in the state, since the engine has it, and the server plays it from then on with `autoPlayFor`, with no vote and no delay, so that the others can finish:
+
+- At once when the game waits for them, and again after every move of the others that reaches a step they owe: the move and the steps played for the players who left are one write. A step owed by several players is played for the players who left only.
+- Never when everybody left: the table is abandoned, not played out alone. And a game that `canPlayFor` is false for keeps waiting; the others cannot vote either (`TAKEOVER_UNSUPPORTED`).
+- The game they leave can end this way: it is stored `over` and recorded like any other, with their seat among those that count for no rating (`taken_over`, as for the players the others voted to play for).
+- The engine writes nothing more for it: `autoPlayFor` is the same hook, with the same rules, and a step it cannot complete (it throws an `EngineError`) is left to the others' vote. The player takes no further part: they see the table as a spectator (`meId` null), are not present for the takeover, and refused by the routes that act for a player (`LEFT_GAME`, `UNKNOWN_PLAYER`). The rules are pure and tested in `packages/core/server/table-rules.ts`.
+
 ## Crown and the turn marker
 
 The turn marker is a crown that stands on the upper-right corner of the avatar of the player whose turn it is. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).

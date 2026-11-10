@@ -24,6 +24,11 @@ export type PublicPlayer = PlayerInfo & {
   avatarUrl?: string
   /** Account badge (PLT-17), meant for the label next to the nickname; read by nothing yet */
   badge?: string
+  /**
+   * The player left the game while it was in progress (PLT-120). Their seat stays at the table, since the state of the game has it, and the server plays it for them (`server/table-rules.ts`); they take no part in the table any more
+   * (`meId` is null for them, they are not present, they cannot act). Never set in a lobby, where a player who leaves is unseated.
+   */
+  left?: boolean
 }
 
 /** A game as a player sees it. `View` is the game's player view (`GAME.view`); core only reads `CoreView`. */

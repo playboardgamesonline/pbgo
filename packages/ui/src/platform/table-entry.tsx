@@ -39,9 +39,11 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   onSelect?: () => void
   /** The id of what the row controls, the panel that shows the details. */
   controls?: string
+  /** Where a press on the row's first line leads, for a list that has no panel to show details in (the member's own tables on the home): the line is then a link, and `onSelect`, `selected` and `controls` have no part in it. */
+  to?: string
 }
 
-function TableEntry({ className, state, seats, age, facts = [], action, href, onJoin, onCopyInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, ...props }: TableEntryProps) {
+function TableEntry({ className, state, seats, age, facts = [], action, href, onJoin, onCopyInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, to, ...props }: TableEntryProps) {
   const { taken, total } = seatCount(seats)
   const host = hostedByYou ? "you" : (hostOf(seats) ?? "a player who left")
   const full = action === "full"
@@ -49,6 +51,35 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, on
   const join = !mine && (href || onJoin) && action === "join" ? { href, onJoin } : undefined
   const invite = mine && href ? { link: href, onCopy: onCopyInvite } : undefined
   const word = mine ? "Invite" : join ? "Join" : "Open"
+  // The first line is what a press picks (a button), or, in a list with nothing to pick it for, where the row leads (a link)
+  const firstLine = "flex w-full min-w-0 flex-col gap-1 rounded-t-[inherit] px-4 pt-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset"
+  const summary = (
+    <>
+      {/* What the row says, once, for screen readers: the seats under it name everybody and are read as they are */}
+      <span className="ph-mask sr-only">
+        {`Table hosted by ${host}, ${taken} of ${total} seats taken${facts.length > 0 ? `, ${facts.join(", ")}` : ""}. ${age}.`}
+      </span>
+      <span aria-hidden="true" className="flex w-full min-w-0 items-center gap-3">
+        <span data-slot="table-entry-count" className="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground tabular-nums">
+          <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} className="size-4" />
+          {taken}/{total}
+        </span>
+        <span className="min-w-0 truncate">
+          <span className="text-muted-foreground">Hosted by </span>
+          <span className="ph-mask">{host}</span>
+        </span>
+        <span data-slot="table-entry-age" className="ml-auto shrink-0 text-sm text-muted-foreground">
+          {full && "Full · "}
+          {age}
+        </span>
+      </span>
+      {facts.length > 0 && (
+        <span aria-hidden="true" data-slot="table-entry-facts" className="truncate text-sm text-muted-foreground">
+          {facts.join(" · ")}
+        </span>
+      )}
+    </>
+  )
   return (
     // A press on the row picks it, wherever it is but on a link or a button (a free seat is one, and what is portaled out of the row, a player's card or a menu, is not a press on it); the button of the first line is what the keyboard and screen readers reach
     <li
@@ -65,37 +96,15 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, on
       }
       className={cn("group/entry rounded-2xl transition-colors duration-fast hover:bg-muted/50 data-[selected]:bg-muted", className)}
     >
-      <button
-        type="button"
-        aria-pressed={selected}
-        aria-controls={controls}
-        onClick={onSelect}
-        className="flex w-full min-w-0 flex-col gap-1 rounded-t-[inherit] px-4 pt-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset"
-      >
-        {/* What the row says, once, for screen readers: the seats under it name everybody and are read as they are */}
-        <span className="ph-mask sr-only">
-          {`Table hosted by ${host}, ${taken} of ${total} seats taken${facts.length > 0 ? `, ${facts.join(", ")}` : ""}. ${age}.`}
-        </span>
-        <span aria-hidden="true" className="flex w-full min-w-0 items-center gap-3">
-          <span data-slot="table-entry-count" className="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground tabular-nums">
-            <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} className="size-4" />
-            {taken}/{total}
-          </span>
-          <span className="min-w-0 truncate">
-            <span className="text-muted-foreground">Hosted by </span>
-            <span className="ph-mask">{host}</span>
-          </span>
-          <span data-slot="table-entry-age" className="ml-auto shrink-0 text-sm text-muted-foreground">
-            {full && "Full · "}
-            {age}
-          </span>
-        </span>
-        {facts.length > 0 && (
-          <span aria-hidden="true" data-slot="table-entry-facts" className="truncate text-sm text-muted-foreground">
-            {facts.join(" · ")}
-          </span>
-        )}
-      </button>
+      {to ? (
+        <a href={to} className={firstLine}>
+          {summary}
+        </a>
+      ) : (
+        <button type="button" aria-pressed={selected} aria-controls={controls} onClick={onSelect} className={firstLine}>
+          {summary}
+        </button>
+      )}
       {/* A seat is a column 56px wide round a picture of 48px and a name of 52px: no room between the columns, so that the pictures are 8px apart and the names under them 4px, as the comment above says */}
       <ul data-slot="table-entry-seats" aria-label="Seats" className="flex flex-wrap gap-y-4 px-4 pt-7 pb-4">
         {seats.map((seat, index) => (

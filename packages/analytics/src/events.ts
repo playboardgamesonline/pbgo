@@ -30,6 +30,8 @@ export type ServerEvents = {
     ended_by: "natural"
     approximate: true
   }
+  /** A player left a table that had begun, from its ready check or from a game in progress (PLT-120); a lobby that is left is no event. */
+  game_left: { game: string; phase: "starting" | "playing" }
   rematch_started: { game: string }
   takeover_vote_started: { game: string }
   takeover_completed: { game: string }

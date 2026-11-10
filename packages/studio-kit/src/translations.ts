@@ -411,6 +411,8 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     BIRTHDATE_INVALID: "This date of birth is not valid.",
     BIRTHDATE_UNDER_MINIMUM: "You must be at least 13 to use the site.",
     BIRTHDATE_LOCKED: "Your date of birth is already saved and cannot be changed here. Write to us if it needs to be corrected.",
+    PLAYER_BUSY: "Someone at this table is in a game right now. Start when they are done.",
+    LEFT_GAME: "You left this game.",
   },
   es: {
     INVALID_NICKNAME: "Elige un apodo.",
