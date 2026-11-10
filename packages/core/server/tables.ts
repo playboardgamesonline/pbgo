@@ -62,6 +62,37 @@ export async function readMemberTables(userId: string): Promise<MemberTable[]> {
   }))
 }
 
+/**
+ * The tables a player sits at in one game, the one written last first: the lobbies, the ready check and the game in progress, as `readMemberTables` has them. A guest is known by the cookie of the game alone, so this is all of their tables there are to know; a
+ * member's seat at a game is the same cookie. Like `findPlayerGame` it reads the game's recent tables with a containment filter, and leaves out a table idle for `TABLE_IDLE_MS` and a game the player left. Throws what the database says.
+ */
+export async function readPlayerTables(game: string, playerId: string, now = Date.now()): Promise<MemberTable[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("games")
+    .select("code, status, host_id, players, options, created_at, updated_at")
+    .eq("game", game)
+    .in("status", ["lobby", "starting", "playing"])
+    .gte("updated_at", new Date(now - TABLE_IDLE_MS).toISOString())
+    // The JSON as a string: for an array supabase-js writes a Postgres array literal (`{…}`), which a jsonb column does not read
+    .contains("players", JSON.stringify([{ id: playerId }]))
+    .order("updated_at", { ascending: false })
+    .limit(20)
+  if (error) throw error
+  return ((data ?? []) as Array<Omit<MemberTableRow, "game" | "seat">>)
+    .filter((row) => (row.players ?? []).some((player) => player.id === playerId && player.left !== true))
+    .map((row) => ({
+      game,
+      code: row.code,
+      status: row.status,
+      hostId: row.host_id,
+      players: row.players ?? [],
+      options: row.options ?? {},
+      seat: playerId,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }))
+}
+
 /** The table a member is taken to: the one that is in its ready check or being played, the one written last when there are several (there should be one: a table does not start while a player is in a game). Null when there is none. */
 export const activeTable = (tables: readonly MemberTable[]): MemberTable | null => tables.find((table) => table.status === "starting" || table.status === "playing") ?? null
 

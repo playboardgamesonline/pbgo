@@ -56,7 +56,7 @@ export async function visitorLanguage() {
  */
 export async function viewerFor(game: string, memberId: string | null, settings: TableSettings): Promise<Viewer> {
   const [standing, language] = await Promise.all([
-    settings.minRank !== undefined && memberId ? readPlayerStanding(memberId, game) : null,
+    (settings.minRank !== undefined || settings.ranked === true) && memberId ? readPlayerStanding(memberId, game) : null,
     settings.language !== undefined ? visitorLanguage() : null,
   ])
   // A language the table does not ask for is not looked at: any value does

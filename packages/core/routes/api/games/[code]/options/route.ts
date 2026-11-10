@@ -2,16 +2,20 @@ import type { AgeRulesSource } from "../../../../../lib/age-rules"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { gameOptions } from "../../../../../lib/settings"
 import { loadSettings } from "../../../../../lib/settings-server"
+import { isLocked } from "../../../../../lib/table-settings"
 import { ageGateFor } from "../../../../../server/age-gate"
 import { ApiError, handle, readJson } from "../../../../../server/api"
+import { normalizeCode } from "../../../../../server/code"
 import { publicGame, readGame, updateGame, type GameRow } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { resolveActor } from "../../../../../server/profile"
 import { rateLimit } from "../../../../../server/rate-limit"
+import { readTableSettingsOf } from "../../../../../server/table-settings"
 
 /**
  * `POST /api/<slug>/games/<code>/options`: the host sets the options of the table (the speed, the expansions it is played with, the aids). `ageRules` is where the age that the game and its expansions ask comes from (the app hands it in): switching on an
  * expansion for adults makes the table a table for adults, which the host must have the age for and so must everybody already seated (`server/age-gate.ts`, PLT-125). Switching one off, or changing anything else, asks nothing.
+ * A ranked table is not changed: 403 `RANKED_TABLE_LOCKED`.
  */
 export const postOptions = (ageRules: AgeRulesSource) =>
   handle(async (request: Request, { game, params }: GameRouteContext) => {
@@ -20,6 +24,8 @@ export const postOptions = (ageRules: AgeRulesSource) =>
     const settings = await loadSettings(game)
     const { options } = await readJson<{ options?: unknown }>(request)
     const code = params.code ?? ""
+    // A ranked table is fixed: its options (and so its helpers) are what the search opened it with
+    if (isLocked(await readTableSettingsOf(game.slug, normalizeCode(code)))) throw new ApiError("RANKED_TABLE_LOCKED", 403)
     const gate = await ageGateFor(ageRules, game, await resolveActor())
     const merged = (row: Pick<GameRow, "options" | "players">) =>
       gameOptions(game.binding, settings.options, { ...row.options, ...(options as object) }, { playerCount: row.players.length })

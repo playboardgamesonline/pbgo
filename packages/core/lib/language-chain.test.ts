@@ -48,6 +48,10 @@ const ENGLISH_ONLY = [
   "LANGUAGE_MISMATCH",
   "SETTINGS_UNAVAILABLE",
   "LEFT_GAME",
+  "RANK_GAP",
+  "RANKED_MEMBERS_ONLY",
+  "RANKED_TABLE_LOCKED",
+  "RANKED_TABLE_NOT_FULL",
 ]
 
 const game = { sanityProjectId: "abc123xy" }

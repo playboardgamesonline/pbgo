@@ -382,10 +382,11 @@ describe("a public table asks for something", () => {
     const answer = await send(new Map(), join, { nickname: "Gus" })
     expect([answer.status, answer.body.error]).toEqual([409, "GAME_FULL"])
     expect(stored().players).toHaveLength(2)
-    // Without settings it takes what the game takes
+    // Without settings it takes what the game takes, and the table that has filled begins by itself: the next one finds it begun
     lobby([ann, bob])
     expect((await send(new Map(), join, { nickname: "Gus" })).status).toBe(200)
-    expect((await send(new Map(), join, { nickname: "Hal" })).body.error).toBe("GAME_FULL")
+    expect(stored().status).toBe("starting")
+    expect((await send(new Map(), join, { nickname: "Hal" })).body.error).toBe("GAME_IN_PROGRESS")
   })
 
   it("does not look up the rank or the language of a table that asks for neither", async () => {

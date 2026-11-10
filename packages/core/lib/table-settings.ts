@@ -25,6 +25,10 @@ export type TableSettings = {
   pace?: Pace
   /** How many players it was set for, between the game's least and most. */
   seats?: number
+  /** The table counts for the rank: a ranked search opened it. Members only, no helpers, and nothing in it changes once it is open (`isLocked`). */
+  ranked?: boolean
+  /** The tier of the member who opened a ranked table: the others sit at it while their tier is near it (`withinRankGap`). */
+  anchor?: Tier
 }
 
 /** What the host sends to set a table: every setting at once, so that the server writes what the panel shows (a rank or a language that asks for nothing is `null`). */
@@ -49,8 +53,29 @@ export function parseTableSettings(raw: unknown): TableSettings {
   if (isSpoken(raw.language)) settings.language = raw.language
   if (isPace(raw.pace)) settings.pace = raw.pace
   if (typeof raw.seats === "number" && Number.isInteger(raw.seats) && raw.seats >= 1 && raw.seats <= MAX_SEATS) settings.seats = raw.seats
+  if (raw.ranked === true) settings.ranked = true
+  if (typeof raw.anchor === "string" && (TIERS as readonly string[]).includes(raw.anchor)) settings.anchor = raw.anchor as Tier
   return settings
 }
+
+/** How a table counts: `ranked` for the rank, `normal` for playing. A table that kept no setting is a normal one. */
+export const modeOf = (settings: Pick<TableSettings, "ranked">): "normal" | "ranked" => (settings.ranked === true ? "ranked" : "normal")
+
+/** A ranked table is fixed: who may join, the speed, the seats and the options are not changed, and its host cannot start it before it is full. */
+export const isLocked = (settings: Pick<TableSettings, "ranked">): boolean => settings.ranked === true
+
+/** How many players a table that a search opens is set for: the value between the game's least and most (the lower one when there is none in the middle). */
+export const defaultSeats = (min: number, max: number): number => Math.floor((Math.min(min, max) + max) / 2)
+
+/** How many tiers apart a player may be from the one who opened a ranked table, when it has just opened, and how long the table waits before it takes one more. */
+export const RANK_GAP_BASE = 1
+export const RANK_GAP_STEP_MS = 30_000
+
+/** The gap in tiers that a ranked table accepts after it has waited `waitedMs`: it widens by one tier for each `RANK_GAP_STEP_MS`, so that a table nobody fits ends up taking anybody. */
+export const rankGap = (waitedMs: number): number => RANK_GAP_BASE + Math.floor(Math.max(0, Number.isFinite(waitedMs) ? waitedMs : 0) / RANK_GAP_STEP_MS)
+
+/** Whether a player of tier `tier` may sit at a ranked table opened by a player of tier `anchor` that has waited `waitedMs`. */
+export const withinRankGap = (anchor: Tier, tier: Tier, waitedMs: number): boolean => Math.abs(TIERS.indexOf(anchor) - TIERS.indexOf(tier)) <= rankGap(waitedMs)
 
 /** The least and the most players the game takes, and how many are seated now: what the number of seats of a table is checked against. */
 export type SeatLimits = { min: number; max: number; seated: number }
@@ -101,24 +126,27 @@ export const tierOf = (rank: Pick<Rank, "tier"> | null | undefined): Tier => ran
 /** What a visitor is, as far as the criteria of a table go: their tier in the game and the language of the platform they use. */
 export type Viewer = { tier: Tier; language: PlatformLanguage }
 
-/** What a visitor does not meet at a table. */
-export type Unmet = "rank" | "language"
+/** What a visitor does not meet at a table: its minimum rank, its language, or, at a ranked table, the gap between their tier and the tier it opened at. */
+export type Unmet = "rank" | "language" | "gap"
 
 /**
- * Whether a visitor meets what a table asks: its minimum rank, then its language (a regional form of the language is that language: English (UK) speaks English). Only a public table asks for anything. Null: they meet it, or it asks for nothing.
+ * Whether a visitor meets what a table asks: its minimum rank, then its language (a regional form of the language is that language: English (UK) speaks English), then, at a ranked table, that their tier is within the gap of the one it opened
+ * at (`withinRankGap`, which widens with the time the table has waited: `waitedMs`). Only a public table asks for anything. Null: they meet it, or it asks for nothing.
  */
-export function unmetCriteria(settings: TableSettings, viewer: Viewer): Unmet | null {
+export function unmetCriteria(settings: TableSettings, viewer: Viewer, waitedMs = 0): Unmet | null {
   if (settings.visibility !== "public") return null
   if (settings.minRank && TIERS.indexOf(viewer.tier) < TIERS.indexOf(settings.minRank)) return "rank"
   if (settings.language && baseLanguageOf(viewer.language) !== settings.language) return "language"
+  if (settings.ranked && settings.anchor && !withinRankGap(settings.anchor, viewer.tier, waitedMs)) return "gap"
   return null
 }
 
 /** The error code a criterion that is not met is refused with. */
-export const UNMET_CODES: Record<Unmet, string> = { rank: "RANK_TOO_LOW", language: "LANGUAGE_MISMATCH" }
+export const UNMET_CODES: Record<Unmet, string> = { rank: "RANK_TOO_LOW", language: "LANGUAGE_MISMATCH", gap: "RANK_GAP" }
 
-/** Whether a table asks for something of the people who sit at it (a public table with a rank or a language). */
-export const asksSomething = (settings: TableSettings): boolean => settings.visibility === "public" && (settings.minRank !== undefined || settings.language !== undefined)
+/** Whether a table asks for something of the people who sit at it (a public table with a rank or a language, or a ranked one, which looks at the tier of whoever sits). */
+export const asksSomething = (settings: TableSettings): boolean =>
+  settings.visibility === "public" && (settings.minRank !== undefined || settings.language !== undefined || settings.ranked === true)
 
 /** What the button that says who may join reports (`LobbyAccess`): the page keeps it as it is until the table is opened or set. */
 export type AccessChoice = { visibility: Visibility; minRank: Tier | null; language: string | null }

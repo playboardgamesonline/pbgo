@@ -420,6 +420,10 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     LANGUAGE_MISMATCH: "This table asks its players to speak another language.",
     SETTINGS_UNAVAILABLE: "The table's settings can't be saved right now, try again later.",
     LEFT_GAME: "You left this game.",
+    RANK_GAP: "Your rank is too far from the other players' ranks at this table.",
+    RANKED_MEMBERS_ONLY: "Sign in to play ranked games.",
+    RANKED_TABLE_LOCKED: "A ranked table can't be changed.",
+    RANKED_TABLE_NOT_FULL: "A ranked game starts by itself when the table is full.",
   },
   es: {
     INVALID_NICKNAME: "Elige un apodo.",

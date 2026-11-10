@@ -7,11 +7,13 @@ import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { readyExpired, readyPatch, expirePatch } from "../../../../../server/ready"
 import { markGameStarted } from "../../../../../server/results"
+import { leaveOtherLobbies } from "../../../../../server/table-seat"
 
 /**
  * "I'm ready" (PLT-107): sent by a player's board by itself once it is loaded, no click. The last of them to say it begins the game, and the answer says so (`status` is `playing`). Saying it again, or saying it for a table that is
  * not in a ready check any more (it began without them, or went back to the lobby), changes nothing and answers with the table as it is, so the board shows where it stands. A player who is not at the table is refused. If the time was up
- * when the player said it, the check ends instead, as it would on any look at the table: the ones who were not ready are unseated and the table is back in the lobby.
+ * when the player said it, the check ends instead, as it would on any look at the table: the ones who were not ready are unseated and the table is back in the lobby. When the game begins, its players leave every other lobby where they sit
+ * (`leaveOtherLobbies`).
  */
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await rateLimit(game.slug, request, "ready")
@@ -32,6 +34,8 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   if (outcome.began) {
     trackAfter("game_started", row.host_id, { game: game.slug, players: row.players.length, options: row.options })
     after(() => markGameStarted(game, row))
+    // The people who play leave the other lobbies where they sit: a player in a game cannot begin another, so they would only block them
+    after(() => leaveOtherLobbies(game, row))
   }
   return publicGame(game, row, id)
 })
