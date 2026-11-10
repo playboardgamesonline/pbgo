@@ -123,6 +123,7 @@ describe("the docs of this repo", () => {
     for (const name of await getSpecimenNames()) expect(isDocName(name), name).toBe(true)
   })
 
+  // It renders every page of the docs, so it takes longer with each page: on a runner of the CI it needs more than the five seconds vitest gives a test
   it("link to pages and to headings that exist", async () => {
     const sections = await getSections()
     const stub = new Proxy({}, { get: () => () => null })
@@ -150,7 +151,7 @@ describe("the docs of this repo", () => {
       }
     }
     expect(broken).toEqual([])
-  })
+  }, 30_000)
 })
 
 describe("the specimens of the docs of this repo", () => {
