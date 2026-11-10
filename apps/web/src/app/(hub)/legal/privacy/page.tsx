@@ -202,11 +202,15 @@ export default function PrivacyPolicy() {
               items={[
                 {
                   name: "Counts at tables",
-                  text: "When a table is created, joined, started or finished, our server counts it, with the game, the number of players, the options and how long it lasted. Each count carries your player identifier, never a nickname, a chat message or a table code. This runs whatever you chose in the cookie banner.",
+                  text: "When a table is created, joined, started or finished, or goes because nobody sits at it any more, our server counts it, with the game, the number of players, the options and how long it lasted. Each count carries your player identifier, never a nickname, a chat message or a table code. This runs whatever you chose in the cookie banner.",
+                },
+                {
+                  name: "Counts with no identifier",
+                  text: "A few counts carry no identifier of yours: a new random code is made for each and used once. They are a sign-in (with which provider, and whether it made the account), a sign-out, the steps of an account deletion, feedback sent (its type, never what it says) and a request that a game refused (the error code). This runs whatever you chose in the cookie banner.",
                 },
                 {
                   name: "Visits",
-                  text: "The pages opened, clicks, loading times and errors are counted without any identifier kept on your device. Table codes are removed from the addresses, and so are the names in the addresses of profiles. A visit to a profile is counted without a name or a tag.",
+                  text: "The pages opened, clicks, loading times and errors are counted without any identifier kept on your device. So are a few actions, by name: the steps of signing in or signing up, a search or a filter on a list (how many, never what you typed), the buttons of a game's page, the tables you open from a list and the settings you change (which, never to what). Table codes are removed from the addresses, and so are the names in the addresses of profiles. A visit to a profile is counted without a name or a tag.",
                 },
                 {
                   name: "If you accept",
@@ -220,7 +224,7 @@ export default function PrivacyPolicy() {
                 { name: "How long", text: "Counts are kept for 12 months at most, session replays for 30 days." },
                 {
                   name: "When you delete your account",
-                  text: "These counts carry a player identifier, which is a code made from the secret of a cookie of one game on one device, and never your account or your e-mail address. Nothing links them to your account, so deleting it does not delete them: they go by themselves, after the time above.",
+                  text: "These counts carry a player identifier, which is a code made from the secret of a cookie of one game on one device, or a code used once, and never your account or your e-mail address. Nothing links them to your account, so deleting it does not delete them: they go by themselves, after the time above.",
                 },
               ]}
             />
