@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef, useState, useSyncExternalStore, type ComponentType } from "react"
+import { createElement, useEffect, useState, useSyncExternalStore, type ComponentType } from "react"
 import type * as Leva from "leva"
 import { DEBUG_STORAGE_KEY, debugAllowed, debugAsked, debugKeyToggles, debugLoadsAlone } from "./debug-rule"
 
@@ -170,17 +170,20 @@ function useDefaultControls(...args: unknown[]) {
   const [first, second] = args
   const schema = typeof first === "string" ? second : first
   const deps = args.slice(1).find((a) => Array.isArray(a)) as unknown[] | undefined
-  const memo = useRef<{ deps: unknown[] | undefined; values: Record<string, unknown> } | null>(null)
-  if (!memo.current || !sameDeps(memo.current.deps, deps)) memo.current = { deps, values: defaults(schema) }
-  const values = memo.current.values
+  const [memo, setMemo] = useState(() => ({ deps, values: defaults(schema) }))
+  let current = memo
+  if (!sameDeps(memo.deps, deps)) {
+    current = { deps, values: defaults(schema) }
+    setMemo(current)
+  }
+  const values = current.values
   if (typeof schema !== "function") return values
   return [values, () => {}, (path: string) => values[path]]
 }
 
 export const useControls: LevaModule["useControls"] = ((...args: unknown[]) => {
-  // The implementation is chosen once per mount, so the hooks called never change (see useDebugTools).
+  // The implementation is chosen once per mount, so the hooks called never change (see useDebugTools): `leva` is constant for the lifetime of the component, which is what makes the condition below safe.
   const [leva] = useState(() => tools?.leva ?? null)
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- `leva` is constant for the lifetime of the component
   return leva ? (leva.useControls as (...a: unknown[]) => unknown)(...args) : useDefaultControls(...args)
 }) as never
 

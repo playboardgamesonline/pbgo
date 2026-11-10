@@ -60,7 +60,8 @@ export function Chat({ className }: { className?: string }) {
   const [open, setOpen] = useState(false)
   const [particles, setParticles] = useState<Particle[]>([])
   const lastReaction = useRef(0)
-  const [, tick] = useState(0)
+  // The clock the messages fade by: it is read in the effect below, not while drawing, and ticks every second while a message still shows
+  const [now, setNow] = useState(() => Date.now())
   const last = useRef(0)
   const list = useRef<HTMLUListElement>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -97,10 +98,10 @@ export function Chat({ className }: { className?: string }) {
   }, [SLUG, game.code, reactions, showReaction])
 
   // re-renders periodically so the messages fade out
-  const recent = messages.some((m) => Date.now() - m.at < VISIBLE_MS)
+  const recent = messages.some((m) => now - m.at < VISIBLE_MS)
   useEffect(() => {
     if (!recent) return
-    const id = setInterval(() => tick((n) => n + 1), 1000)
+    const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [recent, messages])
 
@@ -129,16 +130,19 @@ export function Chat({ className }: { className?: string }) {
     })
   }
 
-  function react(reaction: Reaction) {
-    if (!meId || Date.now() - lastReaction.current < REACTION_GAP_MS) return
-    lastReaction.current = Date.now()
-    prepareSoundboard()
-    playReaction(reaction)
-    const id = crypto.randomUUID()
-    ownReactions.current.add(id)
-    showReaction(meId, reaction, true)
-    api.chat(game.code, { id, reaction: reaction.id }).catch(() => ownReactions.current.delete(id))
-  }
+  const react = useCallback(
+    (reaction: Reaction) => {
+      if (!meId || Date.now() - lastReaction.current < REACTION_GAP_MS) return
+      lastReaction.current = Date.now()
+      prepareSoundboard()
+      playReaction(reaction)
+      const id = crypto.randomUUID()
+      ownReactions.current.add(id)
+      showReaction(meId, reaction, true)
+      api.chat(game.code, { id, reaction: reaction.id }).catch(() => ownReactions.current.delete(id))
+    },
+    [meId, showReaction, api, game.code],
+  )
 
   // the palette stays open until a click elsewhere (moving from the button to an emoji no longer closes it)
   const boardRef = useRef<HTMLDivElement>(null)
@@ -157,7 +161,6 @@ export function Chat({ className }: { className?: string }) {
   }, [board])
 
   if (!meId) return null
-  const now = Date.now()
   return (
     <div
       // what players write is theirs: the recordings and the autocapture leave the whole chat out (`ph-no-capture`)

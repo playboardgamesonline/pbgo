@@ -11,7 +11,7 @@
     "build": "pnpm --filter web build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "lint": "pnpm -r lint",
+    "lint": "eslint",
     "check:catalog": "node scripts/check-catalog.mjs",
     "check:public": "node scripts/check-public.mjs",
     "catalog:list": "node --disable-warning=ExperimentalWarning packages/catalog/scripts/list.ts",
@@ -20,5 +20,10 @@
     "add-game": "bash scripts/add-game.sh",
     "game-rules": "bash scripts/game-rules.sh",
     "setup-env": "bash scripts/setup-env.sh"
+  },
+  "devDependencies": {
+    "@pbgo/eslint-config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

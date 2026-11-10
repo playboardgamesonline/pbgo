@@ -125,10 +125,7 @@ type MovingCardProps = {
 /** The card of a list: one for all of its things (`useMovingCard`), drawn in the page above the navbar. */
 function MovingCard({ card, contentKey, width, placement, label, contentClassName, children }: MovingCardProps) {
   const reduced = useReducedMotion()
-  const { target } = card
-  // The card stays where it was while it closes
-  const element = React.useRef<HTMLElement | null>(null)
-  if (target) element.current = target.element
+  const { target, ref, keep, leave } = card
   // Its height is its content's: measured, so that the card grows and shrinks to what it holds
   const [height, setHeight] = React.useState(0)
   const measure = React.useCallback((node: HTMLDivElement | null) => {
@@ -139,7 +136,8 @@ function MovingCard({ card, contentKey, width, placement, label, contentClassNam
   }, [])
 
   if (typeof document === "undefined") return null
-  const anchor = element.current?.getBoundingClientRect()
+  // The card stays where it was while it closes: `AnimatePresence` keeps the card that leaves as it was drawn, so nothing of it is measured again
+  const anchor = target?.element.getBoundingClientRect()
   const { x, y } = anchor
     ? cardPosition(anchor, { width, height: height || 140 }, { width: window.innerWidth, height: window.innerHeight }, placement)
     : { x: 0, y: 0 }
@@ -151,7 +149,7 @@ function MovingCard({ card, contentKey, width, placement, label, contentClassNam
       {target && (
         <motion.div
           key="card"
-          ref={card.ref}
+          ref={ref}
           role="group"
           aria-label={label}
           data-slot="moving-card"
@@ -167,8 +165,8 @@ function MovingCard({ card, contentKey, width, placement, label, contentClassNam
             transition: { x: travel, y: travel, height: travel, opacity: { duration: DURATION.fast }, scale: { duration: DURATION.base, ease: EASE_STANDARD } },
           }}
           exit={{ opacity: 0, scale: shrunk, transition: { duration: DURATION.fast } }}
-          onPointerEnter={card.keep}
-          onPointerLeave={card.leave}
+          onPointerEnter={keep}
+          onPointerLeave={leave}
         >
           <div ref={measure} className="relative">
             <AnimatePresence initial={false} mode="popLayout">

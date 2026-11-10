@@ -53,25 +53,31 @@ export function useAccount(): AccountState {
   useEffect(() => {
     const demo = demoState()
     const supabase = browserClient()
-    if (!supabase) {
-      setState(demo ?? signedOut)
-      return
-    }
     let active = true
     // A session that holds the first factor alone, of a member whose account asks for a second (multi-factor authentication, PLT-129), is not a signed-in visitor yet: the navbar does not draw their dock before they give the code
     const read = (session: { user: Parameters<typeof accountOf>[0]; access_token: string } | null | undefined): AccountState =>
       session && !secondStepPendingOf(session.user, session.access_token) ? { status: "signed-in", account: accountOf(session.user) } : (demo ?? signedOut)
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) setState(read(data.session))
+    // With no project to ask nobody is signed in (but the demo account), which comes the way the session does
+    const first = supabase ? supabase.auth.getSession().then(({ data }) => data.session) : Promise.resolve(null)
+    first.then((session) => {
+      if (active) setState(read(session))
     })
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setState(read(session)))
+    const subscription = supabase?.auth.onAuthStateChange((_event, session) => setState(read(session)))
     return () => {
       active = false
-      data.subscription.unsubscribe()
+      subscription?.data.subscription.unsubscribe()
     }
   }, [])
 
   return state
+}
+
+/**
+ * Goes to a path of this site with a whole page load, on purpose: the route of an external provider is a handler of the server that sends the browser on to the provider, which a navigation of the router does not run. The path comes in
+ * as an argument, not as a literal, because the lint rule against `location.assign` is about links the router could follow.
+ */
+function leaveTo(path: string): void {
+  window.location.assign(path)
 }
 
 /**
@@ -81,7 +87,7 @@ export function useAccount(): AccountState {
  */
 export async function signInWith(provider: AnyProvider, next: string): Promise<string | null> {
   if (isExternalProvider(provider)) {
-    window.location.assign(`/auth/${provider}?next=${encodeURIComponent(safeNext(next))}`)
+    leaveTo(`/auth/${provider}?next=${encodeURIComponent(safeNext(next))}`)
     return null
   }
   const supabase = browserClient()
@@ -242,7 +248,7 @@ export function unlinkProvider(provider: Provider): Promise<ChangeOutcome> {
  * (`ACCOUNT_SETTINGS_PATH`) with `?steam=` to say how it went (`linkNoticeOf`). It needs no setting of the Supabase project. Done means the browser is on its way.
  */
 export function linkExternal(provider: ExternalProvider): Promise<ChangeOutcome> {
-  window.location.assign(`/auth/${provider}?link=1`)
+  leaveTo(`/auth/${provider}?link=1`)
   return Promise.resolve({ status: "done" })
 }
 

@@ -50,6 +50,7 @@ export function StalledTurn({
   const first = targets[0]
 
   // every move restarts the countdown (votes do not change `updatedAt`)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the countdown starts at this browser's clock when a move arrives (the server's `updatedAt` may not agree with it), a reading that is not made while drawing
   useEffect(() => setSince(Date.now()), [game.updatedAt])
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5000)
