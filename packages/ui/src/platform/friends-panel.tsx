@@ -255,9 +255,10 @@ function FriendsRoster({
   const list = React.useRef<HTMLDivElement>(null)
   const card = useMovingCard((node) => list.current?.contains(node) ?? false)
   const onCard = friends.find((friend) => friend.id === card.target?.key)
-  const lastOnCard = React.useRef<Friend | null>(null)
-  if (onCard) lastOnCard.current = onCard
-  const cardFriend = onCard ?? lastOnCard.current
+  // The card keeps the last friend it drew while it closes, so that it does not empty as it fades
+  const [lastOnCard, setLastOnCard] = React.useState<Friend | null>(null)
+  if (onCard && onCard !== lastOnCard) setLastOnCard(onCard)
+  const cardFriend = onCard ?? lastOnCard
   const [own, setOwn] = React.useState<ReadonlySet<string>>(() => new Set())
   const folds = folded ?? own
   const fadeOut = useReducedMotion() ? { duration: 0 } : { duration: DURATION.base, ease: EASE_STANDARD }

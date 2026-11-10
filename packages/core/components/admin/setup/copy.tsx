@@ -48,7 +48,7 @@ export function CopyPage({ initial }: { initial: AdminData }) {
   const visible = useMemo(
     () =>
       data.copy.entries.filter((e) =>
-        q ? [e.label, e.fallbacks[lang], value(e.key) ?? "", e.key].some((t) => t.toLowerCase().includes(q)) : e.group === group,
+        q ? [e.label, e.fallbacks[lang], draft.values[e.key]?.[lang] ?? "", e.key].some((t) => t.toLowerCase().includes(q)) : e.group === group,
       ),
     [data.copy.entries, q, group, draft.values, lang],
   )

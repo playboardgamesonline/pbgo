@@ -1,6 +1,6 @@
 import { pluginTypes, studioTypes } from "@pbgo/content-kit/form-rules"
 import { DEFAULT_PLATFORM_LANGUAGE, PLATFORM_LANGUAGES, translatedRowType, translatedType } from "@pbgo/studio-kit/constants"
-import { createSchema, validateDocument } from "sanity"
+import { createSchema } from "sanity"
 import { describe, expect, it } from "vitest"
 import studio from "../sanity.config"
 import { DESCRIPTION_MAX, TRANSLATED_FIELDS, TRANSLATED_KINDS } from "./constants"
@@ -12,9 +12,13 @@ import { TRANSLATED_FIELD_TYPES, englishRow } from "./translations"
 
 const schema = createSchema({ name: "default", types: [...studioTypes(studio).values(), ...pluginTypes(studio).values()] })
 
+// The type of a field in the compiled schema, read as it is: Sanity gives it no public type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Compiled = Record<string, any>
+
 /** What the compiled schema holds of a field of a document type. */
 const fieldOf = (type: string, name: string) => {
-  const found = (schema.get(type) as { fields?: { name: string; type: Record<string, any> }[] }).fields?.find((field) => field.name === name)
+  const found = (schema.get(type) as { fields?: { name: string; type: Compiled }[] }).fields?.find((field) => field.name === name)
   if (!found) throw new Error(`${type} has no field "${name}"`)
   return found
 }

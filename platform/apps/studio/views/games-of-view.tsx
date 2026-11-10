@@ -7,7 +7,7 @@ import { gamesOfQuery, rolesLine, type GameOf, type Holder } from "./games-of"
 
 type Options = { of: Holder }
 
-type State = { status: "loading" } | { status: "failed"; message: string } | { status: "ready"; games: GameOf[] }
+type Settled = { status: "failed"; message: string } | { status: "ready"; games: GameOf[] }
 
 /**
  * The "Games" tab of a creator or a publisher: the games that list them, read from the games themselves (the link is stored on the
@@ -16,17 +16,23 @@ type State = { status: "loading" } | { status: "failed"; message: string } | { s
 export const GamesOf: UserViewComponent<Options> = ({ documentId, options }) => {
   const client = useClient({ apiVersion: "2025-02-19" })
   const id = getPublishedId(documentId)
-  const [state, setState] = useState<State>({ status: "loading" })
+  // What the last read found, with the client, the person and the kind of holder it was made for: until the read of this one is back the tab is loading, and a read made for another one is forgotten
+  const [read, setRead] = useState<{ client: typeof client; id: string; of: Holder; settled: Settled } | null>(null)
+  const current = read !== null && read.client === client && read.id === id && read.of === options.of
+  const state = current ? read.settled : ({ status: "loading" } as const)
+  if (read && !current) setRead(null)
 
   useEffect(() => {
-    let current = true
-    setState({ status: "loading" })
+    let live = true
     client
       .fetch<GameOf[]>(gamesOfQuery(options.of), { id }, { perspective: "drafts" })
-      .then((games) => current && setState({ status: "ready", games }))
-      .catch((error: unknown) => current && setState({ status: "failed", message: error instanceof Error ? error.message : "The games could not be read" }))
+      .then((games) => live && setRead({ client, id, of: options.of, settled: { status: "ready", games } }))
+      .catch(
+        (error: unknown) =>
+          live && setRead({ client, id, of: options.of, settled: { status: "failed", message: error instanceof Error ? error.message : "The games could not be read" } }),
+      )
     return () => {
-      current = false
+      live = false
     }
   }, [client, id, options.of])
 

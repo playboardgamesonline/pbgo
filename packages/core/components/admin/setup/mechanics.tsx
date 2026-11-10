@@ -232,7 +232,7 @@ export function MechanicsPage({
                 <HugeiconsIcon icon={LinkSquare02Icon} strokeWidth={2} className="size-3.5" />
               </a>
             ) : (
-              <p className="text-sm text-muted-foreground">Add the game's Sanity project to the @pbgo/games registry (or STUDIO_URL to its binding) to link the Studio here.</p>
+              <p className="text-sm text-muted-foreground">Add the game&apos;s Sanity project to the @pbgo/games registry (or STUDIO_URL to its binding) to link the Studio here.</p>
             )}
           </CardContent>
         </Card>

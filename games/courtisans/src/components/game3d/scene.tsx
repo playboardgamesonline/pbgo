@@ -40,7 +40,6 @@ import {
   CARD_W,
   DOMAIN_SCALE,
   FACE_DOWN,
-  FACE_UP,
   MISSION_H,
   MISSION_W,
   DRAW_PILE,
@@ -127,7 +126,6 @@ type Transient = {
 export const DEFAULT_CAMERA = { tilt: 40, yaw: 0, distance: 37.6, fov: 26.5, target: { x: 0, y: 0.6 } }
 
 const RAD = Math.PI / 180
-const Y_AXIS = new Vector3(0, 1, 0)
 const EMPTY: string[] = []
 const TARGET_TMP = new Vector3()
 
@@ -773,6 +771,7 @@ function World({
   const meId = view.me?.id
   const myZone = meId ? zones.get(meId) : undefined
   // resting poses of the other players' missions (backs only): cached so the animation does not restart at each render
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `zones` is not read by the cache, it is what empties it
   const restPoses = useMemo(() => new Map<string, Pose>(), [zones])
   const restPose = (zone: DomainZone, id: string, k: number) => {
     const key = `${id}:${k}`

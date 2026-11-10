@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { previewHref } from "../../../lib/admin-nav"
 import { PREVIEW_MESSAGE, PREVIEW_READY, type PreviewDraft } from "../../../lib/preview"
-import { siteTitle, tableTitle } from "../../../lib/settings"
+import { tableTitle } from "../../../lib/settings"
 import { useAdminSlug } from "../admin-game"
 
 const FRAME = { width: 1440, height: 900 }
